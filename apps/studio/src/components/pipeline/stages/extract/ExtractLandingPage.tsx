@@ -118,13 +118,14 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to run extraction.</Trans>
+    <Trans>Connect an AI provider to run extraction.</Trans>
   ) : undefined
 
   return (
     <LandingPageShell
       bookLabel={bookLabel}
       stageSlug="extract"
+      requiresProvider
       settingsTab="general"
       colorClass="bg-blue-600 hover:bg-blue-700"
       accentColor="#2563eb"

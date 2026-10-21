@@ -412,11 +412,17 @@ msgstr "{coveredSections} nga {totalSections} seksione të mbuluara"
 msgid "{days} days ago"
 msgstr "{days} ditë më parë"
 
-msgid "{disabledProvidersText} are disabled — add their API keys in Book settings to enable them."
-msgstr "{disabledProvidersText} janë të çaktivizuar — shtoni çelësat e tyre API në cilësimet e Librit për t'i aktivizuar."
+#~ msgid "{disabledProvidersText} are disabled — add their API keys in Book settings to enable them."
+#~ msgstr "{disabledProvidersText} janë të çaktivizuar — shtoni çelësat e tyre API në cilësimet e Librit për t'i aktivizuar."
 
-msgid "{disabledProvidersText} is disabled — add its API key in Book settings to enable it."
-msgstr "{disabledProvidersText} është i çaktivizuar — shtoni çelësin e tij API në cilësimet e Librit për ta aktivizuar."
+msgid "{disabledProvidersText} are disabled — add their API keys in Settings → AI providers to enable them."
+msgstr "{disabledProvidersText} janë të çaktivizuar — shtoni çelësat e tyre API te Cilësime → Ofruesit e AI për t'i aktivizuar."
+
+#~ msgid "{disabledProvidersText} is disabled — add its API key in Book settings to enable it."
+#~ msgstr "{disabledProvidersText} është i çaktivizuar — shtoni çelësin e tij API në cilësimet e Librit për ta aktivizuar."
+
+msgid "{disabledProvidersText} is disabled — add its API key in Settings → AI providers to enable it."
+msgstr "{disabledProvidersText} është i çaktivizuar — shtoni çelësin e tij API te Cilësime → Ofruesit e AI për ta aktivizuar."
 
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
@@ -987,41 +993,41 @@ msgstr "Shto një kuiz"
 msgid "Add after"
 msgstr "Shto pas"
 
-msgid "Add an API key in Book settings to add a quiz."
-msgstr "Shto një çelës API në cilësimet e Librit për të shtuar një kuiz."
+#~ msgid "Add an API key in Book settings to add a quiz."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të shtuar një kuiz."
 
-msgid "Add an API key in Book settings to generate a quiz."
-msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar një kuiz."
+#~ msgid "Add an API key in Book settings to generate a quiz."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar një kuiz."
 
-msgid "Add an API key in Book settings to generate Easy Read content."
-msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar përmbajtje Lexim të Lehtë."
+#~ msgid "Add an API key in Book settings to generate Easy Read content."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar përmbajtje Lexim të Lehtë."
 
-msgid "Add an API key in Book settings to generate quizzes."
-msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar kuize."
+#~ msgid "Add an API key in Book settings to generate quizzes."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar kuize."
 
-msgid "Add an API key in Book settings to run captions."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar titujt."
+#~ msgid "Add an API key in Book settings to run captions."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar titujt."
 
-msgid "Add an API key in Book settings to run extraction."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar nxjerrjen."
+#~ msgid "Add an API key in Book settings to run extraction."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar nxjerrjen."
 
-msgid "Add an API key in Book settings to run sectioning."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar ndarjen në seksione."
+#~ msgid "Add an API key in Book settings to run sectioning."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar ndarjen në seksione."
 
 #~ msgid "Add an API key in Book settings to run speech."
 #~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar të folurit."
 
-msgid "Add an API key in Book settings to run storyboard."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar storyboard-in."
+#~ msgid "Add an API key in Book settings to run storyboard."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar storyboard-in."
 
-msgid "Add an API key in Book settings to run the glossary."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar fjalorthin."
+#~ msgid "Add an API key in Book settings to run the glossary."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar fjalorthin."
 
-msgid "Add an API key in Book settings to run TOC generation."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar gjenerimin e TOC."
+#~ msgid "Add an API key in Book settings to run TOC generation."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar gjenerimin e TOC."
 
-msgid "Add an API key in Book settings to run translation."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkthimin."
+#~ msgid "Add an API key in Book settings to run translation."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkthimin."
 
 msgid "Add an API key to re-run"
 msgstr "Shto një çelës API për të ri-ekzekutuar"
@@ -1143,11 +1149,17 @@ msgstr "Shto tekst"
 msgid "Add the region (e.g. Spanish — Uruguay) so downstream stages use the right localization."
 msgstr "Shto rajonin (p.sh. Spanjisht — Uruguai) që fazat pasuese të përdorin lokalizimin e duhur."
 
-msgid "Add the selected provider's API key in Book settings to run speech."
-msgstr "Shto çelësin API të ofruesit të zgjedhur në cilësimet e Librit për të ekzekutuar të folurit."
+#~ msgid "Add the selected provider's API key in Book settings to run speech."
+#~ msgstr "Shto çelësin API të ofruesit të zgjedhur në cilësimet e Librit për të ekzekutuar të folurit."
 
-msgid "Add this provider's API key in Book settings."
-msgstr "Shto çelësin API të këtij ofruesi në cilësimet e Librit."
+msgid "Add the selected provider's API key in Settings → AI providers to run speech."
+msgstr "Shto çelësin API të ofruesit të zgjedhur te Cilësime → Ofruesit e AI për të ekzekutuar të folurin."
+
+#~ msgid "Add this provider's API key in Book settings."
+#~ msgstr "Shto çelësin API të këtij ofruesi në cilësimet e Librit."
+
+msgid "Add this provider's API key in Settings → AI providers."
+msgstr "Shto çelësin API të këtij ofruesi te Cilësime → Ofruesit e AI."
 
 msgid "Add tile"
 msgstr "Shto pllakëz"
@@ -1316,6 +1328,9 @@ msgstr "AI vendos imazhet dhe tekstin për çdo seksion, duke iu përshtatur sa 
 msgid "AI Overlay"
 msgstr "Mbivendosje AI"
 
+msgid "AI provider connected. Your book can be processed now."
+msgstr "Ofruesi i AI u lidh. Libri juaj tani mund të përpunohet."
+
 msgid "AI provider credentials"
 msgstr "Kredencialet e ofruesve të IA-së"
 
@@ -1409,6 +1424,9 @@ msgstr "Alfabetik"
 
 msgid "Already handed out"
 msgstr "Tashmë të shpërndara"
+
+msgid "Always on"
+msgstr "Gjithmonë aktiv"
 
 msgid "Among the Stars"
 msgstr "Mes yjeve"
@@ -1545,6 +1563,9 @@ msgstr "Aplikacioni"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Ndërfaqe Programimi Aplikacioni — një grup rregullash që lejon programet të komunikojnë."
+
+msgid "Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "Zbatohet vetëm për normalizimin e tekstit. Leximi me zë i matematikës ekzekutohet gjithsesi. Përgatitja zgjedh fillimisht lokalin e saktë, pastaj gjuhën bazë dhe në fund këtë parazgjedhje. Udhëzimi përfshihet në thirrjen LLM të ruajtur në memorie dhe të inspektueshme."
 
 msgid "Applies to every language routed to ElevenLabs."
 msgstr "Zbatohet për çdo gjuhë të drejtuar në ElevenLabs."
@@ -2572,8 +2593,59 @@ msgstr "Konfiguruar në server"
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
 
+msgid "Connect"
+msgstr "Lidhu"
+
+msgid "Connect an AI provider to add a quiz."
+msgstr "Lidhni një ofrues IA për të shtuar një kuiz."
+
+msgid "Connect an AI provider to generate a quiz."
+msgstr "Lidhni një ofrues IA për të gjeneruar një kuiz."
+
+msgid "Connect an AI provider to generate Easy Read content."
+msgstr "Lidhni një ofrues IA për të gjeneruar përmbajtje Easy Read."
+
+msgid "Connect an AI provider to generate quizzes."
+msgstr "Lidhni një ofrues IA për të gjeneruar kuize."
+
+msgid "Connect an AI provider to process your book"
+msgstr "Lidhni një ofrues IA për të përpunuar librin tuaj"
+
+msgid "Connect an AI provider to retry."
+msgstr "Lidhni një ofrues IA për të provuar sërish."
+
+msgid "Connect an AI provider to run captions."
+msgstr "Lidhni një ofrues IA për të nisur titrat."
+
+msgid "Connect an AI provider to run extraction."
+msgstr "Lidhni një ofrues IA për të nisur nxjerrjen."
+
+msgid "Connect an AI provider to run sectioning."
+msgstr "Lidhni një ofrues IA për të nisur ndarjen në seksione."
+
+msgid "Connect an AI provider to run storyboard."
+msgstr "Lidhni një ofrues IA për të nisur storyboard-in."
+
+msgid "Connect an AI provider to run the glossary."
+msgstr "Lidhni një ofrues IA për të nisur fjalorin."
+
+msgid "Connect an AI provider to run TOC generation."
+msgstr "Lidhni një ofrues IA për të gjeneruar tabelën e përmbajtjes."
+
+msgid "Connect an AI provider to run translation."
+msgstr "Lidhni një ofrues IA për të nisur përkthimin."
+
+msgid "Connect provider"
+msgstr "Lidh ofruesin"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Lidh motorët që drejtojnë linjën dhe tregojnë libra. Çelësat qëndrojnë në këtë makinë; ofruesit CLI ripërdorin hyrjen tashmë në të."
+
+msgid "Connect your AI provider to extract and process pages. You can still set up the book without one."
+msgstr "Lidhni ofruesin tuaj IA për të nxjerrë dhe përpunuar faqet. Prapë mund ta konfiguroni librin pa të."
+
+msgid "Connect your AI provider to process books."
+msgstr "Lidhni ofruesin tuaj të IA për të përpunuar libra."
 
 #. placeholder {0}: health.modelCount
 msgid "Connected — {0} models available."
@@ -2637,6 +2709,9 @@ msgstr "Konteksti i përfshirë"
 msgid "Continue"
 msgstr "Vazhdo"
 
+msgid "Continue adding your book"
+msgstr "Vazhdo shtimin e librit"
+
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"
 msgstr "Vazhdo në faqen {0}"
@@ -2654,6 +2729,9 @@ msgstr "Vazhdo te prerja"
 
 msgid "Continue to upload"
 msgstr "Vazhdo te ngarkimi"
+
+msgid "Continue without a provider"
+msgstr "Vazhdo pa ofrues"
 
 msgid "Continuing will reset your current configuration."
 msgstr "Vazhdimi do të rivendosë konfigurimin tuaj aktual."
@@ -3910,6 +3988,9 @@ msgstr "Tekst i nxjerrë"
 
 msgid "Extracting..."
 msgstr "Duke nxjerrë..."
+
+msgid "Extraction and the other AI steps run on your own AI provider."
+msgstr "Nxjerrja dhe hapat e tjerë të IA ekzekutohen te ofruesi juaj i IA."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Ekstraktimi është në proces — mund të rishikoni faqet e përbashkëta pasi të përfundojë."
@@ -5462,6 +5543,9 @@ msgstr "Duke ngarkuar të dhënat e seksionimit..."
 msgid "Loading speech instructions..."
 msgstr "Duke ngarkuar udhëzimet e fjalës..."
 
+msgid "Loading speech preparation..."
+msgstr "Po ngarkohet përgatitja e të folurit..."
+
 msgid "Loading stats..."
 msgstr "Duke ngarkuar statistikat..."
 
@@ -5479,9 +5563,6 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
-
-msgid "Loading TTS normalization..."
-msgstr "Po ngarkohet normalizimi TTS..."
 
 msgid "Loading validation..."
 msgstr "Duke ngarkuar vërtetimin..."
@@ -5605,6 +5686,9 @@ msgstr "Ndiq temën e sistemit"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
+
+msgid "Math read aloud"
+msgstr "Leximi me zë i matematikës"
 
 msgid "Max height"
 msgstr "Lartësia maksimale"
@@ -6039,6 +6123,12 @@ msgstr "Nuk u raportuan gjetje aksesueshmërie për këtë faqe."
 msgid "No AI edits yet for this section."
 msgstr "Nuk ka redaktime të AI ende për këtë seksion."
 
+msgid "No AI provider"
+msgstr "Pa ofrues IA"
+
+msgid "No AI provider. Connect an AI provider."
+msgstr "Pa ofrues IA. Lidhni një ofrues IA."
+
 msgid "No answer set"
 msgstr "Pa përgjigje të caktuar"
 
@@ -6046,8 +6136,12 @@ msgid "no API key"
 msgstr "pa çelës API"
 
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
-msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
-msgstr "Nuk ka ende çelës API për {0}. Shto një te cilësimet e Librit për të aktivizuar këtë ofrues."
+#~ msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
+#~ msgstr "Nuk ka ende çelës API për {0}. Shto një te cilësimet e Librit për të aktivizuar këtë ofrues."
+
+#. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
+msgid "No API key for {0} yet. Add one in Settings → AI providers to enable this provider."
+msgstr "Nuk ka ende çelës API për {0}. Shto një te Cilësime → Ofruesit e AI për të aktivizuar këtë ofrues."
 
 msgid "No assessment"
 msgstr "Pa vlerësim"
@@ -6559,6 +6653,9 @@ msgstr "Një kolonë"
 
 msgid "One column for every section. Clean and predictable."
 msgstr "Një kolonë për çdo seksion. E pastër dhe e parashikueshme."
+
+msgid "One step before you can run this"
+msgstr "Një hap para se ta ekzekutoni"
 
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "Një etiketë për rresht ose të ndara me presje. Lërini siç janë për të mbajtur paracaktimet aktuale të paketës."
@@ -7308,11 +7405,8 @@ msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjen
 msgid "Preferences"
 msgstr "Preferencat"
 
-msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
-msgstr "Përgatitja zgjedh fillimisht lokalin e saktë, pastaj gjuhën bazë dhe në fund këtë parazgjedhje. Udhëzimi përfshihet në thirrjen LLM të ruajtur në memorie dhe të inspektueshme."
-
-msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
-msgstr "Përgatit numrat, datat dhe shkurtesat për shqiptim natyral. Matematika dhe LaTeX-i trajtohen veçmas."
+msgid "Prepare numbers, dates, and abbreviations for natural speech."
+msgstr "Përgatit numrat, datat dhe shkurtesat për shqiptim natyral."
 
 msgid "Prepared speech text"
 msgstr "Teksti i përgatitur për të folur"
@@ -8228,6 +8322,9 @@ msgstr "Duke rishikuar..."
 
 msgid "Revoked"
 msgstr "Revokuar"
+
+msgid "Rewrites text before it is read aloud. The text on the page does not change."
+msgstr "Rishkruan tekstin përpara se të lexohet me zë. Teksti në faqe nuk ndryshon."
 
 msgid "Rewriting the story of this section..."
 msgstr "Duke rishkruar historinë e këtij seksioni..."
@@ -9168,6 +9265,15 @@ msgstr "Gjenerimi i të Folurit"
 msgid "Speech narrates the translated text Language produces. Finish Language before running this stage."
 msgstr "Të folurit rrëfen tekstin e përkthyer që prodhon hapi Language. Përfundo Language para se të ekzekutosh këtë fazë."
 
+msgid "Speech preparation"
+msgstr "Përgatitja e të folurit"
+
+msgid "Speech Preparation"
+msgstr "Përgatitja e të Folurit"
+
+msgid "Speech Preparation Prompt"
+msgstr "Prompti i Përgatitjes së të Folurit"
+
 msgid "Speech Preview"
 msgstr "Parashikim i të Folurit"
 
@@ -9823,6 +9929,9 @@ msgstr "Modeli i udhëzimit i përdorur për të ndarë çdo faqe në seksione l
 msgid "The prompt template used to translate text catalog entries."
 msgstr "Modeli i udhëzimit i përdorur për të përkthyer hyrjet e katalogut të tekstit."
 
+msgid "The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both."
+msgstr "Prompti që përgatit tekstin për të folurit. Ai e kthen matematikën në fjalë të folura në çdo ekzekutim dhe zbaton udhëzimin për normalizimin e tekstit kur normalizimi i tekstit është aktiv, prandaj një ndryshim ndikon te të dyja."
+
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "Udhëzimi i përdorur nga kalimi i rishikuesit për të inspektuar dhe korrigjuar një pemë seksionimi kandidate. Ndan modelin dhe cilësimet e riprovimit të udhëzimit të seksionimit."
 
@@ -10351,9 +10460,6 @@ msgstr "Provo problemin praktik"
 msgid "Try this screen again"
 msgstr "Provo këtë ekran sërish"
 
-msgid "TTS Normalization"
-msgstr "Normalizimi TTS"
-
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Rregullo se si thjeshtohet teksti në cilësimet e Udhëzimit Easy Read. Pas ekzekutimit, çdo bllok bëhet i redaktueshëm këtu në hapin Easy Read."
 
@@ -10368,6 +10474,9 @@ msgstr "Aktivizo këtë për të shfaqur kartën e rishikimit të Validimit në 
 
 msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 msgstr "Aktivizimi i normalizimit me {elevenLabsModel} kërkon një plan Enterprise të ElevenLabs. Përdorni \"Off\", ose kaloni në eleven_multilingual_v2 — ai gjithsesi normalizon numrat më mirë."
+
+msgid "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
+msgstr "I kthen matematikën dhe LaTeX-in në fjalë të folura, që formulat të mos lexohen kurrë si shënim i papërpunuar."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Mbështeten dy metoda autentikimi: tokenët Bearer të kaluar në kokën Authorization dhe çelësat API të kaluar si parametër pyetjeje. Tokenët Bearer preferohen për kërkesat server-te-server për shkak të dritares së tyre të shkurtër të skadimit."

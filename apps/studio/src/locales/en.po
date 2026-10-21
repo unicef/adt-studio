@@ -410,11 +410,17 @@ msgstr "{coveredSections} of {totalSections} sections covered"
 msgid "{days} days ago"
 msgstr "{days} days ago"
 
-msgid "{disabledProvidersText} are disabled — add their API keys in Book settings to enable them."
-msgstr "{disabledProvidersText} are disabled — add their API keys in Book settings to enable them."
+#~ msgid "{disabledProvidersText} are disabled — add their API keys in Book settings to enable them."
+#~ msgstr "{disabledProvidersText} are disabled — add their API keys in Book settings to enable them."
 
-msgid "{disabledProvidersText} is disabled — add its API key in Book settings to enable it."
-msgstr "{disabledProvidersText} is disabled — add its API key in Book settings to enable it."
+msgid "{disabledProvidersText} are disabled — add their API keys in Settings → AI providers to enable them."
+msgstr "{disabledProvidersText} are disabled — add their API keys in Settings → AI providers to enable them."
+
+#~ msgid "{disabledProvidersText} is disabled — add its API key in Book settings to enable it."
+#~ msgstr "{disabledProvidersText} is disabled — add its API key in Book settings to enable it."
+
+msgid "{disabledProvidersText} is disabled — add its API key in Settings → AI providers to enable it."
+msgstr "{disabledProvidersText} is disabled — add its API key in Settings → AI providers to enable it."
 
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
@@ -985,41 +991,41 @@ msgstr "Add a quiz"
 msgid "Add after"
 msgstr "Add after"
 
-msgid "Add an API key in Book settings to add a quiz."
-msgstr "Add an API key in Book settings to add a quiz."
+#~ msgid "Add an API key in Book settings to add a quiz."
+#~ msgstr "Add an API key in Book settings to add a quiz."
 
-msgid "Add an API key in Book settings to generate a quiz."
-msgstr "Add an API key in Book settings to generate a quiz."
+#~ msgid "Add an API key in Book settings to generate a quiz."
+#~ msgstr "Add an API key in Book settings to generate a quiz."
 
-msgid "Add an API key in Book settings to generate Easy Read content."
-msgstr "Add an API key in Book settings to generate Easy Read content."
+#~ msgid "Add an API key in Book settings to generate Easy Read content."
+#~ msgstr "Add an API key in Book settings to generate Easy Read content."
 
-msgid "Add an API key in Book settings to generate quizzes."
-msgstr "Add an API key in Book settings to generate quizzes."
+#~ msgid "Add an API key in Book settings to generate quizzes."
+#~ msgstr "Add an API key in Book settings to generate quizzes."
 
-msgid "Add an API key in Book settings to run captions."
-msgstr "Add an API key in Book settings to run captions."
+#~ msgid "Add an API key in Book settings to run captions."
+#~ msgstr "Add an API key in Book settings to run captions."
 
-msgid "Add an API key in Book settings to run extraction."
-msgstr "Add an API key in Book settings to run extraction."
+#~ msgid "Add an API key in Book settings to run extraction."
+#~ msgstr "Add an API key in Book settings to run extraction."
 
-msgid "Add an API key in Book settings to run sectioning."
-msgstr "Add an API key in Book settings to run sectioning."
+#~ msgid "Add an API key in Book settings to run sectioning."
+#~ msgstr "Add an API key in Book settings to run sectioning."
 
 #~ msgid "Add an API key in Book settings to run speech."
 #~ msgstr "Add an API key in Book settings to run speech."
 
-msgid "Add an API key in Book settings to run storyboard."
-msgstr "Add an API key in Book settings to run storyboard."
+#~ msgid "Add an API key in Book settings to run storyboard."
+#~ msgstr "Add an API key in Book settings to run storyboard."
 
-msgid "Add an API key in Book settings to run the glossary."
-msgstr "Add an API key in Book settings to run the glossary."
+#~ msgid "Add an API key in Book settings to run the glossary."
+#~ msgstr "Add an API key in Book settings to run the glossary."
 
-msgid "Add an API key in Book settings to run TOC generation."
-msgstr "Add an API key in Book settings to run TOC generation."
+#~ msgid "Add an API key in Book settings to run TOC generation."
+#~ msgstr "Add an API key in Book settings to run TOC generation."
 
-msgid "Add an API key in Book settings to run translation."
-msgstr "Add an API key in Book settings to run translation."
+#~ msgid "Add an API key in Book settings to run translation."
+#~ msgstr "Add an API key in Book settings to run translation."
 
 msgid "Add an API key to re-run"
 msgstr "Add an API key to re-run"
@@ -1141,11 +1147,17 @@ msgstr "Add text"
 msgid "Add the region (e.g. Spanish — Uruguay) so downstream stages use the right localization."
 msgstr "Add the region (e.g. Spanish — Uruguay) so downstream stages use the right localization."
 
-msgid "Add the selected provider's API key in Book settings to run speech."
-msgstr "Add the selected provider's API key in Book settings to run speech."
+#~ msgid "Add the selected provider's API key in Book settings to run speech."
+#~ msgstr "Add the selected provider's API key in Book settings to run speech."
 
-msgid "Add this provider's API key in Book settings."
-msgstr "Add this provider's API key in Book settings."
+msgid "Add the selected provider's API key in Settings → AI providers to run speech."
+msgstr "Add the selected provider's API key in Settings → AI providers to run speech."
+
+#~ msgid "Add this provider's API key in Book settings."
+#~ msgstr "Add this provider's API key in Book settings."
+
+msgid "Add this provider's API key in Settings → AI providers."
+msgstr "Add this provider's API key in Settings → AI providers."
 
 msgid "Add tile"
 msgstr "Add tile"
@@ -1314,6 +1326,9 @@ msgstr "AI lays out images and text per section, matching the original book's de
 msgid "AI Overlay"
 msgstr "AI Overlay"
 
+msgid "AI provider connected. Your book can be processed now."
+msgstr "AI provider connected. Your book can be processed now."
+
 msgid "AI provider credentials"
 msgstr "AI provider credentials"
 
@@ -1407,6 +1422,9 @@ msgstr "Alphabetical"
 
 msgid "Already handed out"
 msgstr "Already handed out"
+
+msgid "Always on"
+msgstr "Always on"
 
 msgid "Among the Stars"
 msgstr "Among the Stars"
@@ -1543,6 +1561,9 @@ msgstr "Application"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Application Programming Interface — a set of rules that allows programs to communicate."
+
+msgid "Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
 
 msgid "Applies to every language routed to ElevenLabs."
 msgstr "Applies to every language routed to ElevenLabs."
@@ -2570,8 +2591,59 @@ msgstr "Configured on server"
 msgid "Confirm merge"
 msgstr "Confirm merge"
 
+msgid "Connect"
+msgstr "Connect"
+
+msgid "Connect an AI provider to add a quiz."
+msgstr "Connect an AI provider to add a quiz."
+
+msgid "Connect an AI provider to generate a quiz."
+msgstr "Connect an AI provider to generate a quiz."
+
+msgid "Connect an AI provider to generate Easy Read content."
+msgstr "Connect an AI provider to generate Easy Read content."
+
+msgid "Connect an AI provider to generate quizzes."
+msgstr "Connect an AI provider to generate quizzes."
+
+msgid "Connect an AI provider to process your book"
+msgstr "Connect an AI provider to process your book"
+
+msgid "Connect an AI provider to retry."
+msgstr "Connect an AI provider to retry."
+
+msgid "Connect an AI provider to run captions."
+msgstr "Connect an AI provider to run captions."
+
+msgid "Connect an AI provider to run extraction."
+msgstr "Connect an AI provider to run extraction."
+
+msgid "Connect an AI provider to run sectioning."
+msgstr "Connect an AI provider to run sectioning."
+
+msgid "Connect an AI provider to run storyboard."
+msgstr "Connect an AI provider to run storyboard."
+
+msgid "Connect an AI provider to run the glossary."
+msgstr "Connect an AI provider to run the glossary."
+
+msgid "Connect an AI provider to run TOC generation."
+msgstr "Connect an AI provider to run TOC generation."
+
+msgid "Connect an AI provider to run translation."
+msgstr "Connect an AI provider to run translation."
+
+msgid "Connect provider"
+msgstr "Connect provider"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
+
+msgid "Connect your AI provider to extract and process pages. You can still set up the book without one."
+msgstr "Connect your AI provider to extract and process pages. You can still set up the book without one."
+
+msgid "Connect your AI provider to process books."
+msgstr "Connect your AI provider to process books."
 
 #. placeholder {0}: health.modelCount
 msgid "Connected — {0} models available."
@@ -2635,6 +2707,9 @@ msgstr "Context included"
 msgid "Continue"
 msgstr "Continue"
 
+msgid "Continue adding your book"
+msgstr "Continue adding your book"
+
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"
 msgstr "Continue on page {0}"
@@ -2652,6 +2727,9 @@ msgstr "Continue to crop"
 
 msgid "Continue to upload"
 msgstr "Continue to upload"
+
+msgid "Continue without a provider"
+msgstr "Continue without a provider"
 
 msgid "Continuing will reset your current configuration."
 msgstr "Continuing will reset your current configuration."
@@ -3908,6 +3986,9 @@ msgstr "Extracted Text"
 
 msgid "Extracting..."
 msgstr "Extracting..."
+
+msgid "Extraction and the other AI steps run on your own AI provider."
+msgstr "Extraction and the other AI steps run on your own AI provider."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Extraction is running — you can review spreads once it finishes."
@@ -5460,6 +5541,9 @@ msgstr "Loading sectioning data..."
 msgid "Loading speech instructions..."
 msgstr "Loading speech instructions..."
 
+msgid "Loading speech preparation..."
+msgstr "Loading speech preparation..."
+
 msgid "Loading stats..."
 msgstr "Loading stats..."
 
@@ -5477,9 +5561,6 @@ msgstr "Loading text catalog..."
 
 msgid "Loading text sizes…"
 msgstr "Loading text sizes…"
-
-msgid "Loading TTS normalization..."
-msgstr "Loading TTS normalization..."
 
 msgid "Loading validation..."
 msgstr "Loading validation..."
@@ -5603,6 +5684,9 @@ msgstr "Match system theme"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Matches the original book design with some flexibility."
+
+msgid "Math read aloud"
+msgstr "Math read aloud"
 
 msgid "Max height"
 msgstr "Max height"
@@ -6037,6 +6121,12 @@ msgstr "No accessibility findings were reported for this page."
 msgid "No AI edits yet for this section."
 msgstr "No AI edits yet for this section."
 
+msgid "No AI provider"
+msgstr "No AI provider"
+
+msgid "No AI provider. Connect an AI provider."
+msgstr "No AI provider. Connect an AI provider."
+
 msgid "No answer set"
 msgstr "No answer set"
 
@@ -6044,8 +6134,12 @@ msgid "no API key"
 msgstr "no API key"
 
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
-msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
-msgstr "No API key for {0} yet. Add one in Book settings to enable this provider."
+#~ msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
+#~ msgstr "No API key for {0} yet. Add one in Book settings to enable this provider."
+
+#. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
+msgid "No API key for {0} yet. Add one in Settings → AI providers to enable this provider."
+msgstr "No API key for {0} yet. Add one in Settings → AI providers to enable this provider."
 
 msgid "No assessment"
 msgstr "No assessment"
@@ -6557,6 +6651,9 @@ msgstr "One Column"
 
 msgid "One column for every section. Clean and predictable."
 msgstr "One column for every section. Clean and predictable."
+
+msgid "One step before you can run this"
+msgstr "One step before you can run this"
 
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
@@ -7306,11 +7403,8 @@ msgstr "Prefer terms central to the book's subject matter. Skip generic vocabula
 msgid "Preferences"
 msgstr "Preferences"
 
-msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
-msgstr "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
-
-msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
-msgstr "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+msgid "Prepare numbers, dates, and abbreviations for natural speech."
+msgstr "Prepare numbers, dates, and abbreviations for natural speech."
 
 msgid "Prepared speech text"
 msgstr "Prepared speech text"
@@ -8226,6 +8320,9 @@ msgstr "Reviewing..."
 
 msgid "Revoked"
 msgstr "Revoked"
+
+msgid "Rewrites text before it is read aloud. The text on the page does not change."
+msgstr "Rewrites text before it is read aloud. The text on the page does not change."
 
 msgid "Rewriting the story of this section..."
 msgstr "Rewriting the story of this section..."
@@ -9166,6 +9263,15 @@ msgstr "Speech Generation"
 msgid "Speech narrates the translated text Language produces. Finish Language before running this stage."
 msgstr "Speech narrates the translated text Language produces. Finish Language before running this stage."
 
+msgid "Speech preparation"
+msgstr "Speech preparation"
+
+msgid "Speech Preparation"
+msgstr "Speech Preparation"
+
+msgid "Speech Preparation Prompt"
+msgstr "Speech Preparation Prompt"
+
 msgid "Speech Preview"
 msgstr "Speech Preview"
 
@@ -9821,6 +9927,9 @@ msgstr "The prompt template used to split each page into logical sections. This 
 msgid "The prompt template used to translate text catalog entries."
 msgstr "The prompt template used to translate text catalog entries."
 
+msgid "The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both."
+msgstr "The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both."
+
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 
@@ -10349,9 +10458,6 @@ msgstr "Try the practice problem"
 msgid "Try this screen again"
 msgstr "Try this screen again"
 
-msgid "TTS Normalization"
-msgstr "TTS Normalization"
-
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 
@@ -10366,6 +10472,9 @@ msgstr "Turn this on to show the Validation review card in Preview and the Revie
 
 msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 msgstr "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
+
+msgid "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
+msgstr "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
