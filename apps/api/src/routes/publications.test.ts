@@ -99,8 +99,11 @@ function routes(
     cloudflare?: FakeCloudflareOptions
     /** Lets a test hold the first step open to catch a run mid-way. */
     prepareExportFn?: never
+    /** Tokens handed out in order, one per share; the last one repeats. */
+    tokens?: string[]
   } = {},
 ) {
+  const tokens = [...(options.tokens ?? [TOKEN])]
   const worker = options.worker ?? createFakePublishWorker({ now: NOW })
   if (options.connected !== false) {
     createConnectionStore(stateDir).write(connectionRecord(worker))
@@ -113,7 +116,7 @@ function routes(
     webAssetsDir: path.join(tmpDir, "assets-web"),
     stateDir,
     now: () => new Date(NOW),
-    generateToken: () => TOKEN,
+    generateToken: () => (tokens.length > 1 ? tokens.shift()! : tokens[0]!),
     sleep: async () => {},
     prepareExportFn: options.prepareExportFn ?? ((async () => ({})) as never),
     bookHost: async () => bookHost.deps,
@@ -453,6 +456,94 @@ describe("publishing a book over SSE", () => {
     const response = await app.request(`/books/${LABEL}/publication`, { method: "POST" })
     expect(response.status).toBe(409)
     expect(await response.json()).toMatchObject({ code: "published_already" })
+  })
+
+  describe("sharing again once the link has expired", () => {
+    const FRESH = "TokenFreshTokenFreshTokenFresh34"
+    const ENDED = "2026-08-01T00:00:00.000Z"
+    const LATER = "2026-09-01T00:00:00.000Z"
+
+    function post(app: ReturnType<typeof routes>["app"], path: string, body: unknown) {
+      return app.request(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+    }
+
+    async function publishThenExpire() {
+      const built = routes({ tokens: [TOKEN, FRESH] })
+      await drain(await post(built.app, `/books/${LABEL}/publication`, { access_code: "OLDK23" }))
+      const expired = await built.app.request(`/books/${LABEL}/publication`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expires_at: ENDED }),
+      })
+      expect(expired.status).toBe(200)
+      expect(built.worker.state.accessCodes.get(TOKEN)).toBe("OLDK23")
+      return built
+    }
+
+    it("mints a fresh link with the settings sent, and leaves the old one as it was", async () => {
+      const { app, worker } = await publishThenExpire()
+
+      const response = await post(app, `/books/${LABEL}/publication`, {
+        expires_at: LATER,
+        access_code: "NEWK89",
+      })
+      expect(response.status).toBe(200)
+      const events = await drain(response)
+
+      expect(events.at(-1)).toMatchObject({ type: "complete" })
+      const status = await (await app.request(`/books/${LABEL}/publication`)).json()
+      expect(status.record).toMatchObject({
+        token: FRESH,
+        expires_at: LATER,
+        has_access_code: true,
+        access_code: "NEWK89",
+      })
+      expect(worker.state.publications.get(FRESH)?.expires_at).toBe(LATER)
+      expect(worker.state.accessCodes.get(FRESH)).toBe("NEWK89")
+      expect(worker.state.publications.get(TOKEN)?.expires_at).toBe(ENDED)
+      expect(worker.state.publications.get(TOKEN)?.revoked_at).toBeNull()
+      expect(worker.state.accessCodes.get(TOKEN)).toBe("OLDK23")
+    })
+
+    it("still refuses a second share while the link is live", async () => {
+      const { app } = routes({ tokens: [TOKEN, FRESH] })
+      await publishOnce(app)
+
+      const response = await app.request(`/books/${LABEL}/publication`, { method: "POST" })
+
+      expect(response.status).toBe(409)
+      expect(await response.json()).toMatchObject({ code: "published_already" })
+    })
+
+    it("still lets the expired link's end date be extended, on the same token", async () => {
+      const { app, worker } = await publishThenExpire()
+
+      const extended = await app.request(`/books/${LABEL}/publication`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expires_at: LATER }),
+      })
+
+      expect(extended.status).toBe(200)
+      const status = await (await app.request(`/books/${LABEL}/publication`)).json()
+      expect(status.record).toMatchObject({ token: TOKEN, expires_at: LATER })
+      expect(worker.state.publications.get(TOKEN)?.expires_at).toBe(LATER)
+      expect(worker.state.publications.has(FRESH)).toBe(false)
+    })
+
+    it("still lets the expired link be updated with a new version", async () => {
+      const { app, worker } = await publishThenExpire()
+
+      const events = await drain(await post(app, `/books/${LABEL}/publication/versions`, {}))
+
+      expect(events.at(-1)).toMatchObject({ type: "complete" })
+      expect(worker.state.versions.get(TOKEN)?.map((entry) => entry.version)).toEqual([1, 2])
+      expect(worker.state.publications.has(FRESH)).toBe(false)
+    })
   })
 
   it("asks for a connection before publishing", async () => {

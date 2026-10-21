@@ -138,8 +138,9 @@ function belongsToConnection(
   return record !== null && record.worker_url === connection.worker_url
 }
 
-/** A revoked publication is terminal — the Studio offers "Publish again", which mints a fresh
- *  token. Expiry is not: it can be lifted with PATCH, so an expired record still counts.
+/** Whether a publication can still be updated or have its end date changed. A revoked one is
+ *  terminal — the Studio offers "Publish again", which mints a fresh token. An expired one is
+ *  not: its end date can be lifted with PATCH, so for updates an expired record still counts.
  *
  *  A record from another account does not count either: on *this* account the book has never
  *  been published, which is exactly what the author is offered. */
@@ -148,6 +149,18 @@ function isActiveRecord(
   connection: CloudflareConnectionRecord,
 ): record is BookPublicationRecord {
   return belongsToConnection(record, connection) && record!.revoked_at === null
+}
+
+/** Whether a first share must be refused because the book already has a link readers can
+ *  open. An expired link cannot be opened, and the Studio offers "Share again" for it, which
+ *  mints a fresh link and leaves the old one closed — so only a live link blocks a new share. */
+function hasLiveLink(
+  record: BookPublicationRecord | null,
+  connection: CloudflareConnectionRecord,
+  now: Date,
+): record is BookPublicationRecord {
+  if (!isActiveRecord(record, connection)) return false
+  return record.expires_at === null || Date.parse(record.expires_at) > now.getTime()
 }
 
 /**
@@ -729,7 +742,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
 
     await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
     const record = readPublicationRecord(label, deps.booksDir)
-    if (isActiveRecord(record, connection)) {
+    if (hasLiveLink(record, connection, (deps.now ?? (() => new Date()))())) {
       release()
       return failure(
         c,
