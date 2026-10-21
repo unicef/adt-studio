@@ -142,6 +142,13 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
         generatedAt: catalog.generatedAt,
         version: catalogRow?.version ?? 0,
         translations,
+        // A first manual save has no translation entity yet, but must still
+        // bind to the current source/settings instead of sending an empty guard.
+        translationSourceSignatures: Object.fromEntries(
+          [...new Set(outputs.filter(output => output.identity.kind === "translation")
+            .flatMap(output => output.identity.language ? [output.identity.language] : []))]
+            .map(language => [language, editSourceSignature(outputs, "translation", language)]),
+        ),
         speechTexts,
       })
     } finally {
@@ -177,8 +184,24 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
         ? previous.data as { generatedAt?: unknown }
         : null
       const changes = new Map<string, (typeof parsed.data.entries)[number]>()
+      const submitted = new Map<string, typeof parsed.data.entries>()
       for (const entry of parsed.data.entries) {
-        if (changes.has(entry.id)) throw new HTTPException(400, { message: "Duplicate translation identity." })
+        const group = submitted.get(entry.id) ?? []
+        group.push(entry)
+        submitted.set(entry.id, group)
+      }
+      for (const [id, group] of submitted) {
+        const retained = retainedEntries.filter(entry => entry.id === id)
+        // Studio sends the complete stored list. Passing through an unchanged
+        // retired ID or conflicting legacy copies must not block another edit.
+        if (isDeepStrictEqual(group, retained.map(({ id, text }) => ({ id, text })))) continue
+        const entry = group[0]
+        // Editing a visible legacy ID updates all of its submitted copies. Only
+        // that unambiguous edit may resolve a pre-existing duplicate collection.
+        if (group.length > 1 && (retained.length !== group.length || group.some(copy => copy.text !== entry.text))) {
+          throw new HTTPException(400, { message: "Duplicate translation identity." })
+        }
+        if (previousEntries.get(id)?.text === entry.text) continue
         if (!outputs.some((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)) {
           throw new HTTPException(409, { message: "Translation source is no longer available. Refresh before saving." })
         }

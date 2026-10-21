@@ -1767,10 +1767,10 @@ export function createPageRoutes(
       assertEditSource(editSourceSignature(outputs, "caption", undefined, pageId), parsed.data.sourceSignature)
       const oldEntries = new Map((ImageCaptioningOutput.safeParse(previous?.data).data?.captions ?? []).map((entry) => [entry.imageId, entry]))
       const captions = parsed.data.captions.map((entry) => {
-        const owner = storage.getImageMeta(entry.imageId)?.pageId
-        if (owner && owner !== pageId) throw new HTTPException(409, { message: "Edit this shared caption on its owning page." })
         const old = oldEntries.get(entry.imageId)
         if (old?.caption === entry.caption && !!old.decorative === !!entry.decorative) return old
+        const owner = storage.getImageMeta(entry.imageId)?.pageId
+        if (owner && owner !== pageId) throw new HTTPException(409, { message: "Edit this shared caption on its owning page." })
         const status = outputs.find((item) => item.identity.kind === "caption" && item.identity.id === entry.imageId)
         const content = { caption: entry.caption, decorative: entry.decorative === true }
         return { ...old, ...entry, source: "manual" as const, review: undefined, input: status ? outputEvidence(status.signature, content, captureOutputReferences(storage, status.identity.kind, status.identity.language)) : undefined }

@@ -530,3 +530,89 @@ it.each(["", " ", "\t"])("rejects newly introduced blank data ID %j without atta
   expect(buildTextCatalogSnapshot(after, after.getPages()).entries.some(entry => entry.id === id)).toBe(false)
   after.close()
 })
+
+it.each(["retired", "duplicate"])("saves an unrelated translation with unchanged %s rows in the full legacy payload", async kind => {
+  const db = storage()
+  const base = db.getLatestNodeData("text-catalog-translation", "fr")!.data as TextCatalogOutput
+  const extra = kind === "retired" ? { id: "retired_id", text: "Retained retired correction", source: "manual" as const }
+    : { id: "pg001_t002", text: "Different legacy correction", source: "manual" as const }
+  db.putNodeData("text-catalog-translation", "fr", { ...base, entries: [...base.entries, extra] })
+  const before = db.getLatestNodeData("text-catalog-translation", "fr")!
+  db.close()
+  const read = await (await app.request(`/books/${label}/text-catalog`)).json()
+  const entries = read.translations.fr.entries.map((entry: {id: string; text: string}) => ({ id: entry.id, text: entry.id === "pg001_t001" ? "A new correction" : entry.text }))
+  const response = await send("text-catalog-translation/fr", { entries, baseVersion: read.translations.fr.version, sourceVersion: read.version, sourceSignature: read.translations.fr.sourceSignature })
+  expect(response.status, await response.clone().text()).toBe(200)
+  const check = storage()
+  expect(check.getLatestNodeData("text-catalog-translation", "fr")!.data).toMatchObject({ entries: [{ id: "pg001_t001", text: "A new correction", source: "manual" }, base.entries[1], extra] })
+  expect(check.getAllNodeVersions("text-catalog-translation", "fr")).toContainEqual(before)
+  check.close()
+})
+
+it("provides a guarded first-save receipt for a configured language without a translation entity", async () => {
+  const db = storage()
+  fs.writeFileSync(path.join(db.bookDir!, "config.yaml"), "output_languages: [en, fr, es]\n")
+  db.close()
+  const read = await (await app.request(`/books/${label}/text-catalog`)).json()
+  expect(read.translations.es).toBeUndefined()
+  expect(read.translationSourceSignatures?.es).toEqual(expect.any(String))
+  const response = await send("text-catalog-translation/es", { entries: [{ id: "pg001_t001", text: "Hola" }], baseVersion: 0, sourceVersion: read.version, sourceSignature: read.translationSourceSignatures?.es ?? "" })
+  expect(response.status, await response.clone().text()).toBe(200)
+  const check = storage()
+  expect(check.getLatestNodeData("text-catalog-translation", "es")).toMatchObject({ version: 1, data: { entries: [{ id: "pg001_t001", text: "Hola", source: "manual" }] } })
+  check.close()
+})
+
+it("edits an owned caption while carrying an unchanged foreign legacy caption", async () => {
+  const db = storage()
+  db.putExtractedPage({ pageId: "pg002", pageNumber: 2, text: "Second", pageImage: { imageId: "pg002_page", buffer: Buffer.from("page2"), format: "png", hash: "page2", width: 100, height: 100 }, images: [{ imageId: "pg002_im001", buffer: Buffer.from("image2"), format: "png", hash: "image2", width: 20, height: 20 }] })
+  const foreign = { imageId: "pg002_im001", caption: "Legacy foreign caption", reasoning: "retain", source: "manual" as const }
+  db.putNodeData("image-captioning", "pg001", { captions: [{ imageId: "pg001_im001", caption: "A picture", reasoning: "", source: "manual" }, foreign] })
+  const before = db.getLatestNodeData("image-captioning", "pg001")!
+  db.close()
+  const page = await (await app.request(`/books/${label}/pages/pg001`)).json()
+  const payload = { captions: [{ imageId: "pg001_im001", caption: "Edited own caption", reasoning: "" }, foreign], baseVersion: before.version, sourceSignature: page.captionSourceSignature }
+  const response = await send("pages/pg001/image-captioning", payload)
+  expect(response.status, await response.clone().text()).toBe(200)
+  const check = storage()
+  expect(check.getLatestNodeData("image-captioning", "pg001")!.data).toMatchObject({ captions: [{ caption: "Edited own caption" }, foreign] })
+  expect(check.getAllNodeVersions("image-captioning", "pg001")).toContainEqual(before)
+  check.close()
+  const fresh = await (await app.request(`/books/${label}/pages/pg001`)).json()
+  const bad = await send("pages/pg001/image-captioning", { ...payload, baseVersion: before.version + 1, sourceSignature: fresh.captionSourceSignature, captions: [{ ...foreign, caption: "Wrong page edit" }] })
+  expect(bad.status).toBe(409)
+})
+
+
+it.each(["new-duplicate", "divergent-edit", "retired-edit"])("rejects %s in a legacy translation payload without creating a version", async kind => {
+  const db = storage()
+  const entries = [{id: "pg001_t001", text: "First", source: "manual"}, {id: "pg001_t001", text: "Other correction"}, {id: "retired", text: "Historical correction"}]
+  db.putNodeData("text-catalog-translation", "fr", {entries, generatedAt: "legacy"})
+  const fingerprint = db.getNodeVersionFingerprint()
+  db.close()
+  const read = await (await app.request(`/books/${label}/text-catalog`)).json()
+  const submitted = kind === "new-duplicate" ? [{id: "pg001_t002", text: "New"}, {id: "pg001_t002", text: "New"}]
+    : kind === "divergent-edit" ? [{id: "pg001_t001", text: "Changed first"}, {id: "pg001_t001", text: "Changed second"}]
+    : [{id: "retired", text: "Changed retired"}]
+  const response = await send("text-catalog-translation/fr", {entries: submitted, baseVersion: read.translations.fr.version, sourceVersion: read.version, sourceSignature: read.translations.fr.sourceSignature})
+  expect(response.status).toBe(kind === "retired-edit" ? 409 : 400)
+  const check = storage()
+  expect(check.getNodeVersionFingerprint()).toEqual(fingerprint)
+  check.close()
+})
+
+it("resolves an active duplicate through the editor's equal-copy replacement without losing history", async () => {
+  const db = storage()
+  db.putNodeData("text-catalog-translation", "fr", {entries: [{id: "pg001_t001", text: "First"}, {id: "pg001_t001", text: "Second", source: "manual"}], generatedAt: "legacy"})
+  const previous = db.getLatestNodeData("text-catalog-translation", "fr")!
+  db.close()
+  const read = await (await app.request(`/books/${label}/text-catalog`)).json()
+  const response = await send("text-catalog-translation/fr", {entries: [{id: "pg001_t001", text: "Resolved"}, {id: "pg001_t001", text: "Resolved"}], baseVersion: read.translations.fr.version, sourceVersion: read.version, sourceSignature: read.translations.fr.sourceSignature})
+  expect(response.status).toBe(200)
+  const check = storage()
+  const next = check.getLatestNodeData("text-catalog-translation", "fr")!.data as TextCatalogOutput
+  expect(next.entries).toHaveLength(1)
+  expect(next.entries[0]).toMatchObject({id: "pg001_t001", text: "Resolved", source: "manual"})
+  expect(check.getAllNodeVersions("text-catalog-translation", "fr")).toContainEqual(previous)
+  check.close()
+})

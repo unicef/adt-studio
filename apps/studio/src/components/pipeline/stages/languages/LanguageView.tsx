@@ -24,7 +24,7 @@ import { StageEmptyState } from "../../components/StageEmptyState"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { normalizeLocale } from "@/lib/languages"
-import { languageUsesSpeechProvider, resolveSpeechProviderForLanguage } from "@/lib/speech-routing"
+import { languageUsesSpeechProvider, resolveSpeechProviderForLanguage, speechProvidersForLanguages } from "@/lib/speech-routing"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -296,7 +296,6 @@ export function LanguageView({
   const { isTaskRunning, tasks } = useBookTasks(bookLabel);
   const {
     apiKey,
-    hasSpeechProvider,
     hasTranscriber,
     isAvailable,
     azureKey,
@@ -317,17 +316,7 @@ export function LanguageView({
   const stageDone = activeState === "done";
   const hasStageError = activeState === "error";
   const isRunning = activeState === "running" || activeState === "queued";
-  const canRunStage = isSpeechStage ? hasSpeechProvider : hasStructuredTextProvider;
   const geminiTtsAvailable = isAvailable("tts", "gemini:default");
-
-  const handleRun = useCallback(() => {
-    if (!canRunStage || isRunning) return;
-    queueRun({
-      fromStage: isSpeechStage ? "speech" : "translate",
-      toStage: stageSlug as "translate" | "speech",
-      apiKey,
-    });
-  }, [canRunStage, isRunning, apiKey, queueRun, stageSlug, isSpeechStage]);
 
   const stageMissing = useStageMissingCounts(bookLabel);
   const missingForCurrentStage = isSpeechStage
@@ -427,6 +416,22 @@ export function LanguageView({
     book?.languageCode ?? book?.metadata?.language_code ?? null;
   const configuredEditingLanguage = merged?.editing_language as
     string | undefined;
+
+  const speechLanguages = [configuredEditingLanguage ?? bookLanguage ?? "en", ...outputLanguages];
+  const hasBookSpeechProvider = !!activeConfigData && speechProvidersForLanguages(speechLanguages, speechConfig)
+    .some(provider => {
+      const modelId = `${provider}:default`;
+      return isAvailable("tts", modelId);
+    });
+  const canRunStage = isSpeechStage ? hasBookSpeechProvider : hasStructuredTextProvider;
+  const handleRun = useCallback(() => {
+    if (!canRunStage || isRunning) return;
+    queueRun({
+      fromStage: isSpeechStage ? "speech" : "translate",
+      toStage: stageSlug as "translate" | "speech",
+      apiKey,
+    });
+  }, [canRunStage, isRunning, apiKey, queueRun, stageSlug, isSpeechStage]);
 
   const hasExplicitOutputLanguages = outputLanguages.length > 0;
 
@@ -691,20 +696,24 @@ export function LanguageView({
   >({});
 
   // Get translated entries for selected language
-  const translationItemId = selectedLang && catalog?.translations?.[selectedLang]
-    ? selectedLang : selectedLang?.replace("-", "_");
+  const legacyTranslationItemId = selectedLang?.replace("-", "_");
+  const translationItemId = selectedLang && !catalog?.translations?.[selectedLang] &&
+    legacyTranslationItemId && catalog?.translations?.[legacyTranslationItemId]
+    ? legacyTranslationItemId : selectedLang;
   const translationScope = useMemo(() => ({ bookLabel, translationItemId }), [bookLabel, translationItemId]);
   const translationScopeRef = useRef(translationScope);
   translationScopeRef.current = translationScope;
   const translationData = translationItemId
     ? catalog?.translations?.[translationItemId]
     : undefined;
+  const translationSourceSignature = translationData?.sourceSignature ??
+    (selectedLang ? catalog?.translationSourceSignatures?.[normalizeLocale(selectedLang)] : undefined);
   const translatedEntries = isSourceLang
     ? entries
     : (translationData?.entries ?? []);
   const translationVersion = isSourceLang
     ? (catalog?.version ?? null)
-    : (translationData?.version ?? null);
+    : (translationData?.version ?? (translationSourceSignature ? 0 : null));
 
   // Language changes are allowed only after the current draft/save is settled.
   useEffect(() => {
@@ -863,7 +872,7 @@ export function LanguageView({
   saveRef.current = saveTranslation;
 
   const updateEntry = (entryId: string, newText: string) => {
-    if (!pendingEntries) pendingVersions.current = { baseVersion: translationData?.version ?? 0, sourceVersion: catalog?.version ?? 0, sourceSignature: translationData?.sourceSignature ?? "" };
+    if (!pendingEntries) pendingVersions.current = { baseVersion: translationData?.version ?? 0, sourceVersion: catalog?.version ?? 0, sourceSignature: translationSourceSignature ?? "" };
     const base = pendingEntries ?? translatedEntries;
     // If no existing entry for this id, add one
     const exists = base.some((e) => e.id === entryId);

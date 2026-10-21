@@ -638,6 +638,7 @@ export interface TextCatalogResponse {
   generatedAt: string
   version: number
   translations: Record<string, { entries: TextCatalogEntry[]; version: number; sourceSignature: string }>
+  translationSourceSignatures?: Record<string, string>
   speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number; sourceSignature: string }>
 }
 

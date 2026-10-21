@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import React, { type ReactNode } from "react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
+const speechRouting = vi.hoisted(() => ({ config: {} as Record<string, unknown>, available: [] as string[], globalAvailable: false, queueRun: vi.fn() }))
 const saveActions = vi.hoisted(() => ({ stay: async () => {}, restoring: (_next: boolean) => {}, speechRestoring: false, discard: () => {}, speechEditing: (_id: string, _language: string, _editing: boolean) => {} }))
 const join = (strings: TemplateStringsArray, ...values: unknown[]) => strings.reduce((text, part, index) => text + part + (values[index] ?? ""), "")
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({ message: join(strings, ...values) }) }))
@@ -11,12 +12,12 @@ vi.mock("@lingui/react/macro", () => ({ Trans: ({ children }: { children: ReactN
 vi.mock("@tanstack/react-router", () => ({ Link: ({ children }: { children: ReactNode }) => <span>{children}</span> }))
 vi.mock("@tanstack/react-virtual", () => ({ useVirtualizer: ({ count }: { count: number }) => ({ getTotalSize: () => count * 100, getVirtualItems: () => Array.from({ length: count }, (_, index) => ({ index, key: index, start: index * 100, size: 100 })), measureElement: () => {}, scrollToIndex: () => {} }) }))
 vi.mock("@/hooks/use-book-config", () => ({ useBookConfig: () => ({ data: { config: {} } }), useUpdateBookConfig: () => ({ mutateAsync: vi.fn() }) }))
-vi.mock("@/hooks/use-debug", () => ({ useActiveConfig: () => ({ data: { merged: { output_languages: ["fr", "es"], editing_language: "en", translation_evaluation: { enabled: false } } } }) }))
+vi.mock("@/hooks/use-debug", () => ({ useActiveConfig: () => ({ data: { merged: { output_languages: ["fr", "es"], editing_language: "en", speech: speechRouting.config, translation_evaluation: { enabled: false } } } }) }))
 vi.mock("@/hooks/use-books", () => ({ useBook: () => ({ data: { languageCode: "en" }, isLoading: false }) }))
-vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ stageState: () => "done", stepProgress: {}, queueRun: vi.fn(), cancelRun: vi.fn(), isCancelling: false }) }))
+vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ stageState: () => "done", stepProgress: {}, queueRun: speechRouting.queueRun, cancelRun: vi.fn(), isCancelling: false }) }))
 vi.mock("@/hooks/use-book-tasks", () => ({ useBookTasks: () => ({ isTaskRunning: () => false, tasks: [] }) }))
 vi.mock("@/hooks/use-stage-missing-counts", () => ({ useStageMissingCounts: () => ({ translate: 0, speech: 0 }) }))
-vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ isAvailable: () => false, hasSpeechProvider: false, hasTranscriber: false }), useBookStructuredTextAvailability: () => true }))
+vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ isAvailable: (_modality: string, model: string) => speechRouting.available.includes(model?.split(":")[0]), hasSpeechProvider: speechRouting.globalAvailable, hasTranscriber: false }), useBookStructuredTextAvailability: () => true }))
 vi.mock("@/hooks/use-elevenlabs-voices", () => ({ useElevenLabsVoices: () => ({ describeVoice: () => "" }) }))
 vi.mock("@/hooks/use-tts", () => ({ useTTSData: () => ({ data: { languages: {} } }) }))
 vi.mock("../../components/StepViewRouter", () => ({ useStepHeader: () => ({ headerSlotEl: document.body }) }))
@@ -28,13 +29,13 @@ vi.mock("@/components/pipeline/components/VersionPicker", () => ({ VersionPicker
   saveActions.restoring = onRestoringChange
   return <button disabled={!dirty || saving} onClick={() => { void onSave().catch(() => {}) }}>Save translation</button>
 } }))
-vi.mock("@/api/client", () => ({ BASE_URL: "", getAudioUrl: () => "", api: { getTextCatalog: vi.fn(), getEasyRead: vi.fn().mockResolvedValue(null), listTranslatedImages: vi.fn().mockResolvedValue({ images: [] }), updateTranslation: vi.fn() } }))
+vi.mock("@/api/client", () => ({ BASE_URL: "", getAudioUrl: () => "", api: { getTextCatalog: vi.fn(), getEasyRead: vi.fn().mockResolvedValue(null), listTranslatedImages: vi.fn().mockResolvedValue({ images: [] }), updateTranslation: vi.fn(), getVoiceMappings: vi.fn().mockResolvedValue({}) } }))
 
 const { api } = await import("@/api/client")
 const { TooltipProvider } = await import("@/components/ui/tooltip")
 const { LanguageView } = await import("./LanguageView")
 let client: QueryClient
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => { vi.clearAllMocks(); speechRouting.config = {}; speechRouting.available = []; speechRouting.globalAvailable = false; saveActions.stay = async () => { throw new Error("Save controls have not rendered") } })
 afterEach(() => { cleanup(); client?.clear() })
 
 it.each(["conflict", "successor"])("Save & leave retains a translation %s draft and permits a guarded retry", async mode => {
@@ -61,7 +62,7 @@ it.each(["conflict", "successor"])("Save & leave retains a translation %s draft 
   expect((screen.getByRole("button", { name: "Save translation" }) as HTMLButtonElement).disabled).toBe(true)
 })
 
-function renderLanguages() {
+function renderLanguages(stageSlug = "translate") {
   const catalog = { version: 4, entries: [{ id: "pg001_text", text: "Original source" }], translations: {
     fr: { version: 1, sourceSignature: "source-fr", entries: [{ id: "pg001_text", text: "Traduction originale" }] },
     es: { version: 7, sourceSignature: "source-es", entries: [{ id: "pg001_text", text: "Traducción original" }] },
@@ -69,7 +70,7 @@ function renderLanguages() {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
   client.setQueryData(["books", "book", "text-catalog"], catalog)
   vi.mocked(api.getTextCatalog).mockResolvedValue(catalog as never)
-  return render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
+  return render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" stageSlug={stageSlug} /></TooltipProvider></QueryClientProvider>)
 }
 
 it("keeps the selected language and unsaved translation when another language is clicked", async () => {
@@ -190,4 +191,37 @@ it("blocks translation, language selection and prepared speech editing during re
   expect(input.value).toBe("Retained translation draft")
   expect(input.matches(":disabled")).toBe(false)
   expect(saveActions.speechRestoring).toBe(false)
+})
+
+it("uses the server receipt for a first translation save without a stored row", async () => {
+  const catalog = { version: 4, entries: [{ id: "pg001_text", text: "Original source" }], translations: {}, translationSourceSignatures: { fr: "first-fr-source", es: "first-es-source" } }
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  client.setQueryData(["books", "book", "text-catalog"], catalog)
+  vi.mocked(api.getTextCatalog).mockResolvedValue(catalog as never)
+  vi.mocked(api.updateTranslation).mockResolvedValue({version: 1})
+  render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
+  fireEvent.change(await screen.findByPlaceholderText("Pending..."), {target: {value: "Ma première traduction"}})
+  fireEvent.click(await screen.findByRole("button", {name: "Save translation"}))
+  await waitFor(() => expect(api.updateTranslation).toHaveBeenCalledTimes(1))
+  expect(api.updateTranslation).toHaveBeenCalledWith("book", "fr", {entries: [{id: "pg001_text", text: "Ma première traduction"}], baseVersion: 0, sourceVersion: 4, sourceSignature: "first-fr-source"})
+})
+
+
+it.each([
+  {name: "book default", config: {default_provider: "gemini"}, available: ["gemini"], global: false, enabled: true},
+  {name: "source language omitted from outputs", config: {default_provider: "openai", providers: {gemini: {languages: ["en"]}}}, available: ["gemini"], global: false, enabled: true},
+  {name: "language override", config: {default_provider: "openai", providers: {gemini: {languages: ["fr", "es"]}}}, available: ["gemini"], global: false, enabled: true},
+  {name: "secondary narrator", config: {default_provider: "openai", secondary_voices: {fr: {provider: "gemini", voice: "Kore"}}}, available: ["gemini"], global: false, enabled: true},
+  {name: "unconfigured provider", config: {default_provider: "gemini"}, available: ["openai"], global: true, enabled: false},
+  {name: "unrelated secondary locale", config: {default_provider: "openai", secondary_voices: {sq: {provider: "gemini", voice: "Kore"}}}, available: ["gemini"], global: false, enabled: false},
+])("Speech Run honors $name rather than global provider availability", async scenario => {
+  speechRouting.config = scenario.config
+  speechRouting.available = scenario.available
+  speechRouting.globalAvailable = scenario.global
+  renderLanguages("speech")
+  const run = await screen.findByRole("button", {name: "Re-run speech"}) as HTMLButtonElement
+  expect(run.disabled).toBe(!scenario.enabled)
+  fireEvent.click(run)
+  expect(speechRouting.queueRun).toHaveBeenCalledTimes(scenario.enabled ? 1 : 0)
+  if (scenario.enabled) expect(speechRouting.queueRun).toHaveBeenCalledWith(expect.objectContaining({fromStage: "speech", toStage: "speech"}))
 })
