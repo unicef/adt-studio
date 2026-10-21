@@ -135,9 +135,11 @@ export {
   isProviderConfiguredOnServer,
   mergeWithServerCredentials,
   providerFieldStatus,
+  resolveCredentialValues,
   resolveProviderCredentials,
   validateProviderCredentials,
   type HeaderReader,
+  type ProviderLookup,
   type ResolvedCredentials,
 } from "./credentials.js"
 

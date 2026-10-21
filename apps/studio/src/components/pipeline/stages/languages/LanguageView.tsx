@@ -15,8 +15,13 @@ import { LoadingState } from "../../components/LoadingState"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
-import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import {
+  useApiKey,
+  useBookSpeechAvailability,
+  useBookStructuredTextAvailability,
+} from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
+import { UnavailableHint } from "../../components/UnavailableHint"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
@@ -291,8 +296,8 @@ export function LanguageView({
   const { isTaskRunning, tasks } = useBookTasks(bookLabel);
   const {
     apiKey,
-    hasSpeechProvider,
     hasTranscriber,
+    isLoading: providersLoading,
     isAvailable,
     azureKey,
     azureRegion,
@@ -304,6 +309,7 @@ export function LanguageView({
     customApiKey,
   } = useApiKey();
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel);
+  const hasSpeechProvider = useBookSpeechAvailability(bookLabel);
   // Resolve opaque ElevenLabs voice IDs to names for the speech summary chip.
   const { describeVoice: describeElevenLabsVoice } = useElevenLabsVoices();
   const translateState = stageState("translate");
@@ -387,6 +393,11 @@ export function LanguageView({
     isTranslationEvaluationEnabled(merged?.translation_evaluation);
   const wordHighlightingEnabled =
     speechConfigRecord?.word_highlighting === true;
+  // Word timestamps come from OpenAI Whisper; without an OpenAI key the speech
+  // run skips them, so the toggle is shown off and disabled.
+  const wordHighlightingUnavailable = !providersLoading && !hasTranscriber;
+  const effectiveWordHighlighting =
+    wordHighlightingEnabled && !wordHighlightingUnavailable;
   const configExcludedTextIds = useMemo(
     () =>
       Array.isArray(speechConfigRecord?.excluded_text_ids)
@@ -1819,14 +1830,38 @@ export function LanguageView({
                         {t`Highlights words in sync with the audio. Adds noticeable time to speech generation.`}
                       </p>
                     </div>
-                    <Switch
-                      id="word-highlight-landing"
-                      checked={wordHighlightingEnabled}
-                      onCheckedChange={toggleWordHighlighting}
-                      disabled={updateConfig.isPending || isRunning}
-                    />
+                    {(() => {
+                      const toggle = (
+                        <Switch
+                          id="word-highlight-landing"
+                          checked={effectiveWordHighlighting}
+                          onCheckedChange={toggleWordHighlighting}
+                          disabled={
+                            updateConfig.isPending ||
+                            isRunning ||
+                            wordHighlightingUnavailable
+                          }
+                          className={
+                            wordHighlightingUnavailable ? "pointer-events-none" : undefined
+                          }
+                        />
+                      );
+                      // A disabled switch gets no pointer events, so the
+                      // focusable wrapper carries the "why" tooltip instead.
+                      return wordHighlightingUnavailable ? (
+                        <UnavailableHint
+                          hint={t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`}
+                        >
+                          <span tabIndex={0} className="inline-flex rounded-full">
+                            {toggle}
+                          </span>
+                        </UnavailableHint>
+                      ) : (
+                        toggle
+                      );
+                    })()}
                   </div>
-                  <WordHighlightPreview enabled={wordHighlightingEnabled} />
+                  <WordHighlightPreview enabled={effectiveWordHighlighting} />
                 </div>
                 <Link
                   to="/books/$label/$step/settings"
