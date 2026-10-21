@@ -105,38 +105,123 @@ selecting GPT-5.4 still resolves the legacy base prompts.
 Visual review resolves its model as `visual_review.model`, then `default_model`
 (`resolveVisualReviewModelId` in `packages/pipeline/src/visual-review.ts`).
 
-Following OpenAI's GPT-6 migration guidance — keep working prompts, then make
-the smallest edit that fixes a measured regression — the `openai_gpt_6_1_sol`
-directory ships only two variants:
+The `openai_gpt_6_1_sol` directory ships three variants:
 
-- `web_generation_html`: sizes and places images by their footprint on the
-  original page. Sol applies the base "standalone image fills the column" rule
-  literally, so every figure rendered full width in a single column.
-- `visual_review`: checks image size, placement and column structure against the
-  original, and treats raw LaTeX in math leaves as expected (it becomes MathML
-  at packaging; see #951).
+- `web_generation_html`: leads with the goal, input authority, output format,
+  and instruction priority, then separates HTML contracts from layout decisions
+  and completion criteria. It retains the source-relative image sizing fix:
+  Sol applied the base "standalone image fills the column" rule literally.
+- `visual_review`: leads with accept/repair/blocked outcomes, then content
+  authority, concrete quality criteria and minimal repair guidance. It retains
+  source layout relationships while accommodating the fixed accessible type
+  scale and treats raw LaTeX as a packaging artifact (see #951).
+- `visual_review_flexible`: uses the same decision and repair structure for
+  functional review of web adaptations and editor-directed rerenders. It
+  preserves the requested design and fixes the base prompt's contradictory
+  mobile-first breakpoint advice. No source-fidelity requirement is added.
 
 The `openai_gpt_6_luna` directory ships one variant, `web_generation_html`, so
 web rendering on the default model also sizes and places images by their
-footprint on the original page. It is the Sol variant with only its guidance
-heading renamed; every other task resolves the base prompts on Luna.
+footprint on the original page. It retains the earlier prompt wording; the
+goal-first Sol rewrite does not change Luna. Every other task resolves the
+base prompts on Luna.
 
-Both variants end with a short "GPT-6.1 Sol execution guidance" block. It only
-references inputs the prompt actually receives and must not contradict the
-task rules above it (GPT-6 models stall or over-apply instructions when the
-prompt conflicts with itself). Task data is delimited with XML tags:
-`<content_tree>` in both prompts, `<user_instructions>` in the
-`web_generation_html` user message, and `<current_html>` in the visual-review
+The web prompt replaces the appended execution-guidance block with goals and
+conditional layout decisions. It removes repeated instructions, qualifies
+sidebar placement by saved reading order, clarifies tablet image/text pairing,
+uses allowed breakpoints in the TOC example, and places HTML in the existing
+`content` field rather than asking for a raw-HTML response. Both review prompts
+replace repeated instructions with explicit completion criteria. Task data is
+delimited with XML tags:
+`<content_tree>` in web generation and strict review, `<user_instructions>` in the
+`web_generation_html` user message and the flexible review system message,
+and `<current_html>` in the visual-review
 user message (built by `packages/pipeline/src/visual-review.ts` for every
 model). `web_generation_html` states the instruction priority explicitly:
 `<user_instructions>` override the default visual choices and the styleguide,
 but never the `data-id`, exact-text, reading-order, allowed-tag or `adt-*`
 type-scale rules.
 
+The web prompt also names the reader's existing `data-word-bank-*` hooks,
+limits blank markers to the section types that actually hydrate them, and
+keeps image-associated text visible unless it is legible in the displayed
+image. These constraints matter beyond HTML validation: a valid page can
+still have inactive controls or unreadable diagram labels.
+
+The rewrite applies the goal/context/constraints/completion structure in
+[OpenAI's Codex guidance](https://learn.chatgpt.com/guides/best-practices#strong-first-use-context-and-prompts).
+This is an adaptation to this rendering task, not evidence of a measured Sol
+quality improvement. The [GPT-6 prompting guidance](https://developers.openai.com/api/docs/guides/latest-model#prompting-best-practices)
+is based on Astra behavior and explicitly calls for evaluation on the chosen
+model and workload. Liquid tokens, shared includes, the response schema, and
+validator expectations remain unchanged. Focused tests check compatibility;
+representative before/after model runs are still needed to measure fidelity,
+validation retries, cost, and consistency.
+
+Sol generation and review distinguish actual response tasks from rhetorical
+reading content. Question marks, "Big Question"/"Think About" headings, and
+questions answered by nearby prose do not justify controls. Saved activity
+roles and explicit source response tasks still require controls, including
+exercises without printed answer lines and accessible oral/pair-work tasks.
+The reviewer may remove an unsupported generated response field attached only
+to rhetorical content, preserving every source ID and text; this is a narrow
+exception to preserving controls. If the removed field carries an `adt-*`
+class, preserve it on a non-interactive content wrapper with the source text
+sizes unchanged, so the existing typography guard accepts the repair. It must
+not reclassify saved activity nodes.
+If extraction already mislabeled a rhetorical question as `activity_question`,
+correct that upstream role rather than bypassing the response validator.
+
+Saved reading order controls DOM order, the main prose sequence and each
+sidebar's internal order; it does not force a sidebar into a full-width row
+above the prose. When the source stacks consecutive sidebar boxes on the
+right, Sol generation and strict review keep them in one right-floating
+vertical stack, letting following prose wrap beside and below them. Mobile
+returns to the saved DOM sequence. This preserves the content contract
+without collecting sidebars across intervening content.
+
+The strict review prompt applies to ordinary rendering. When a rerender has
+nonempty editor instructions and its configured review prompt is
+`visual_review`, `render-llm.ts` selects `visual_review_flexible` automatically.
+A saved book-level Sol override can supersede either shipped variant.
+
+The review optimization targets unnecessary full-HTML output and repeat calls,
+not just prompt length. It asks for a complete minimal repair across all three
+widths, distinguishes normal whitespace from disruptive gaps, avoids unnecessary
+float/grid swaps, and preserves valid nested activity markup. Repair utilities
+go directly on affected elements: HTML serialization can escape `&` in ancestor
+selectors before Tailwind scans the source, leaving those repairs ineffective.
+A rejected
+revision in validation feedback was never applied; the current HTML remains
+the repair baseline. Shared includes and the existing response schema remain
+unchanged. No iteration limits, models, effort settings or validators change.
+
+`approved: false, content: ""` stops review without approval. The caller still
+uses the current validated HTML, and a final repair at the iteration limit is
+not visually rechecked. These are existing harness behaviors, not a quality
+pass or proof that the prompt solved an unrepairable page. The loop detects
+repeated normalized HTML, but different markup that produces the same visual
+problem can still consume the whole budget. Measure cost per independently
+accepted section, including retries and final quality; a higher approval rate
+alone is not a success metric.
+
+A four-section development replay compared the old strict prompt with the
+layout-focused rewrite on the same initial screenshots and HTML, then captured and
+reviewed corrections for up to three calls. Both used seven calls; input tokens
+fell from 77,441 to 70,596, output tokens from 4,839 to 4,807. Summed model time
+increased from 98.7s to 104.1s. One layout case needed fewer calls; another
+needed an extra call to repair a source-fidelity issue the baseline accepted.
+All sequences ended model-approved and passed the evaluated HTML/typography
+checks. This small, tuned-on sample is not an independent quality benchmark
+or proof of broader cost savings; flexible review was not live-evaluated in that
+sample. Those measurements predate the rhetorical-question and stacked-sidebar guardrails; the
+old sample also missed unsupported controls on rhetorical captions, so model
+approval there did not establish correct pedagogical intent.
+
 Every other task resolves the base prompts on Sol. Shared `_*.liquid` includes
-keep their existing lookup and contracts. A goal-oriented rewrite of the full
-prompt set for Sol, validated on a representative page set, is tracked as its
-own spec (#954).
+keep their existing lookup and contracts. The broader rewrite and representative
+50-page evaluation are proposed in #954; these targeted rewrites do not
+complete that evaluation or claim its acceptance criteria.
 
 Image generation/editing and image translation use specialized image models.
 The independent book-outline task retains its pinned mini model
@@ -325,10 +410,10 @@ introduce new required variables without a matching pipeline code change.
 | `quiz_generation` | `language`, `language_code`, `page_texts`, `page_texts[].pageId`, `page_texts[].text` |
 | `font_assignment` | `fonts`, `page_images`, `book_summary`, `book_title` |
 | `styleguide_generation` | `page_images`, `book_fonts` |
-| `web_generation_html` | `label`, `page_image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `viewports`, `user_instructions` |
+| `web_generation_html` | `label`, `page_image_base64`, `source_pages`, `source_pages[].page_id`, `source_pages[].image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `typography`, `viewports`, `user_instructions` |
 | `web_generation_html_overlay` | `label`, `page_image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `viewports`, `user_instructions` |
-| `visual_review` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `viewports` |
-| `visual_review_flexible` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `viewports` |
+| `visual_review` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `has_merged_content`, `viewports` |
+| `visual_review_flexible` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `has_merged_content`, `user_instructions`, `viewports` |
 | `html_edit` | `current_html`, `instruction`, `screenshots`, `previous_attempt_failure` |
 | `html_edit_verify` | `instruction`, `before_base64`, `after_base64` |
 | `activity_*` | Same as render prompts: `label`, `page_image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `viewports`, `user_instructions` |
