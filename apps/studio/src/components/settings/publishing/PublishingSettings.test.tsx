@@ -36,6 +36,8 @@ vi.mock("@lingui/core/macro", () => {
     msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({
       id: templateToString(strings, ...values),
     }),
+    plural: (count: number, forms: { one: string; other: string }) =>
+      (count === 1 ? forms.one : forms.other).replace("#", String(count)),
   }
 })
 
@@ -53,7 +55,7 @@ vi.mock("@tanstack/react-router", () => ({
 }))
 
 vi.mock("@/components/ui/sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
 }))
 
 const getCloudflareConnection = vi.fn()
@@ -687,6 +689,31 @@ describe("PublishingSettings — already connected", () => {
     expect(
       screen.getByRole("button", { name: /copy the link to a book for readers/i }),
     ).toBeTruthy()
+  })
+
+  it("warns about book Workers that may remain when the sharing database was already gone", async () => {
+    getCloudflareConnection.mockResolvedValue(connectionStatus())
+    disconnectCloudflare.mockResolvedValue({
+      forgotten: true,
+      deleted_resources: true,
+      oauth_cleared: false,
+      inventory_incomplete: true,
+      leftover_book_workers: ["adt-book-0123456789abcdef0123456789abcdef"],
+      connection: disconnectedStatus(),
+    })
+    const { toast } = await import("@/components/ui/sonner")
+
+    renderSettings()
+    await waitFor(() => expect(screen.getByRole("button", { name: /^disconnect$/i })).toBeTruthy())
+    fireEvent.click(screen.getByRole("button", { name: /^disconnect$/i }))
+    fireEvent.click(await screen.findByRole("checkbox"))
+    fireEvent.click(screen.getByRole("button", { name: /disconnect and delete everything/i }))
+
+    await waitFor(() => expect(toast.warning).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(toast.warning).mock.calls[0]?.[0]).toContain(
+      "1 shared book Worker may still be in your Cloudflare account",
+    )
+    expect(toast.success).not.toHaveBeenCalled()
   })
 
   it("offers the upgrade when a newer service version is available", async () => {

@@ -9,6 +9,7 @@ import { createFakePublishWorker, type FakePublishWorker } from "./fake-publish-
 import {
   isPublishStepError,
   publishBook,
+  readAllPublicationTokens,
   readPendingCommit,
   readPublicationRecord,
   reconcilePendingCommit,
@@ -536,6 +537,22 @@ describe("a commit whose reply was lost", () => {
 
     expect(await reconcilePendingCommit(LABEL, tmpDir, client)).toBeNull()
     expect(readPendingCommit(LABEL, tmpDir)).not.toBeNull()
+  })
+})
+
+describe("the share tokens a teardown looks for", () => {
+  it("includes a first share that only left an unconfirmed note behind", async () => {
+    const { options } = harness({}, { loseCommitReplies: 99 })
+    await expect(publishBook(options)).rejects.toThrow()
+
+    expect(readPublicationRecord(LABEL, tmpDir)).toBeNull()
+    expect(readAllPublicationTokens(tmpDir)).toEqual([TOKEN])
+  })
+
+  it("includes a published book", async () => {
+    const { options } = harness()
+    await publishBook(options)
+    expect(readAllPublicationTokens(tmpDir)).toEqual([TOKEN])
   })
 })
 

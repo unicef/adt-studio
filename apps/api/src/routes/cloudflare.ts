@@ -38,7 +38,10 @@ import {
 } from "../services/cloudflare/oauth.js"
 import { provisionCloudflare } from "../services/cloudflare/provisioner.js"
 import { createProvisionRunView } from "../services/provision-progress.js"
-import { clearAllPublicationRecords } from "../services/publish-service.js"
+import {
+  clearAllPublicationRecords,
+  readAllPublicationTokens,
+} from "../services/publish-service.js"
 import {
   disconnectedStatus,
   readAuthMethod,
@@ -341,10 +344,14 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
         forgotten: false,
         deleted_resources: false,
         oauth_cleared: oauthCleared,
+        inventory_incomplete: false,
+        leftover_book_workers: [],
       }
       return c.json({ ...response, connection: disconnectedStatus(readAuthMethod(store)) })
     }
 
+    let inventoryIncomplete = false
+    let leftoverBookWorkers: string[] | null = []
     if (deleteResources) {
       let credentials: ResolvedCloudflareCredentials
       try {
@@ -352,7 +359,14 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
       } catch (error) {
         return oauthFailure(c, error)
       }
-      const { failures } = await teardownCloudflareResources(clientFor(credentials), record)
+      const teardown = await teardownCloudflareResources(
+        clientFor(credentials),
+        record,
+        readAllPublicationTokens(deps.booksDir),
+      )
+      const { failures } = teardown
+      inventoryIncomplete = teardown.inventoryIncomplete
+      leftoverBookWorkers = teardown.leftoverBookWorkers
       if (failures.length > 0) {
         throw new HTTPException(502, {
           message: `Cloudflare teardown was incomplete, the connection was kept so you can retry: ${failures.join("; ")}`,
@@ -378,6 +392,8 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
       forgotten: true,
       deleted_resources: deleteResources,
       oauth_cleared: oauthCleared,
+      inventory_incomplete: inventoryIncomplete,
+      leftover_book_workers: leftoverBookWorkers,
     }
     return c.json({ ...response, connection: disconnectedStatus(readAuthMethod(store)) })
   })

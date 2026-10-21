@@ -164,6 +164,10 @@ msgstr "{0, plural, one {Lidhja u krye me sukses — # model në dispozicion.} o
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {ditë} other {ditë}}"
 
+#. placeholder {0}: leftover.length
+msgid "{0, plural, one {Disconnected. # shared book Worker may still be in your Cloudflare account. If it's yours, delete it in Workers & Pages (named \"adt-book-…\").} other {Disconnected. # shared book Workers may still be in your Cloudflare account. If they're yours, delete them in Workers & Pages (named \"adt-book-…\").}}"
+msgstr "{0, plural, one {I shkëputur. # Worker i një libri të ndarë mund të jetë ende në llogarinë tuaj Cloudflare. Nëse është i juaji, fshijeni te Workers & Pages (me emrin “adt-book-…”).} other {I shkëputur. # Workers të librave të ndarë mund të jenë ende në llogarinë tuaj Cloudflare. Nëse janë tuajat, fshijini te Workers & Pages (me emrin “adt-book-…”).}}"
+
 #. placeholder {0}: state.hours
 msgid "{0, plural, one {hour} other {hours}}"
 msgstr "{0, plural, one {orë} other {orë}}"
@@ -3897,6 +3901,9 @@ msgstr "I shkëputur nga Cloudflare."
 
 msgid "Disconnected. Everything was deleted from your Cloudflare account."
 msgstr "I shkëputur. Gjithçka u fshi nga llogaria juaj Cloudflare."
+
+msgid "Disconnected. The sharing database was already gone, so some shared books may still have their own Worker in your Cloudflare account. Look for Workers named \"adt-book-…\" in Workers & Pages."
+msgstr "I shkëputur. Baza e të dhënave për ndarjen nuk ekzistonte më, prandaj disa libra të ndarë mund të kenë ende Worker-in e tyre në llogarinë tuaj Cloudflare. Kërkoni Workers me emrin “adt-book-…” te Workers & Pages."
 
 msgid "Dismiss"
 msgstr "Hiqe"

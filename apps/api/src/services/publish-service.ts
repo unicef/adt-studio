@@ -287,6 +287,30 @@ export function clearAllPublicationRecords(booksDir: string, deletedAt: string):
 }
 
 /**
+ * The share tokens the books on this machine still know, so deleting the account's sharing setup
+ * can find each book's own Worker: the published link, and the note a share leaves when it could
+ * not confirm its commit — a first share in that state kept its Worker on purpose. Best effort
+ * per book, like clearing the records.
+ */
+export function readAllPublicationTokens(booksDir: string): string[] {
+  const resolved = path.resolve(booksDir)
+  if (!fs.existsSync(resolved)) return []
+  const tokens: string[] = []
+  for (const entry of fs.readdirSync(resolved, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    try {
+      const record = readPublicationRecord(entry.name, resolved)
+      if (record) tokens.push(record.token)
+      const pending = readPendingCommit(entry.name, resolved)
+      if (pending) tokens.push(pending.token)
+    } catch {
+      /* An unreadable book is skipped; the control plane's database still names its token. */
+    }
+  }
+  return tokens
+}
+
+/**
  * The highest `node_data` version across every node except the publication record itself.
  *
  * The exclusion is the point: the record lives in the same table, so counting it would make

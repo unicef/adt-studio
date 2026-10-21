@@ -164,6 +164,10 @@ msgstr "{0, plural, one {Connexion réussie — # modèle disponible.} other {Co
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {jour} other {jours}}"
 
+#. placeholder {0}: leftover.length
+msgid "{0, plural, one {Disconnected. # shared book Worker may still be in your Cloudflare account. If it's yours, delete it in Workers & Pages (named \"adt-book-…\").} other {Disconnected. # shared book Workers may still be in your Cloudflare account. If they're yours, delete them in Workers & Pages (named \"adt-book-…\").}}"
+msgstr "{0, plural, one {Déconnecté. # Worker d'un livre partagé est peut-être encore dans votre compte Cloudflare. S'il vous appartient, supprimez-le dans Workers & Pages (nommé « adt-book-… »).} other {Déconnecté. # Workers de livres partagés sont peut-être encore dans votre compte Cloudflare. S'ils vous appartiennent, supprimez-les dans Workers & Pages (nommés « adt-book-… »).}}"
+
 #. placeholder {0}: state.hours
 msgid "{0, plural, one {hour} other {hours}}"
 msgstr "{0, plural, one {heure} other {heures}}"
@@ -3897,6 +3901,9 @@ msgstr "Déconnecté de Cloudflare."
 
 msgid "Disconnected. Everything was deleted from your Cloudflare account."
 msgstr "Déconnecté. Tout a été supprimé de votre compte Cloudflare."
+
+msgid "Disconnected. The sharing database was already gone, so some shared books may still have their own Worker in your Cloudflare account. Look for Workers named \"adt-book-…\" in Workers & Pages."
+msgstr "Déconnecté. La base de données de partage n'existait déjà plus : certains livres partagés ont peut-être encore leur propre Worker dans votre compte Cloudflare. Cherchez les Workers nommés « adt-book-… » dans Workers & Pages."
 
 msgid "Dismiss"
 msgstr "Ignorer"

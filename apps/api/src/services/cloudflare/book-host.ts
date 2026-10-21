@@ -27,12 +27,19 @@ export function isLegalWorkerName(name: string): boolean {
  * land on either end, and `adt-book-` plus a 64-character token is 73, over the 63 limit.
  * Deriving sidesteps all three and yields a fixed 41 characters regardless of the token.
  *
- * One-way on purpose: the publication row stores the name it was given, so nothing ever has to
- * recover a token from a Worker.
+ * One-way on purpose: nothing stores the name — the publication row and the book's record keep
+ * the token, and the name is derived from it again wherever it is needed (deploying, deleting a
+ * book, tearing the account's setup down), so nothing ever has to recover a token from a Worker.
  */
 export function bookWorkerName(token: string): string {
   const digest = crypto.createHash("sha256").update(token).digest("hex")
   return `${BOOK_WORKER_NAME_PREFIX}${digest.slice(0, NAME_DIGEST_LENGTH)}`
+}
+
+/** Whether a Worker name has exactly the shape `bookWorkerName` produces. Shape alone does not
+ *  prove a Worker belongs to this setup, so this only ever reports, never deletes. */
+export function isBookWorkerName(name: string): boolean {
+  return new RegExp(`^${BOOK_WORKER_NAME_PREFIX}[0-9a-f]{${NAME_DIGEST_LENGTH}}$`).test(name)
 }
 
 /**

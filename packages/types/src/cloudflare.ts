@@ -115,6 +115,12 @@ export const CloudflareConnectionDeleteResponse = z.object({
   forgotten: z.boolean(),
   deleted_resources: z.boolean(),
   oauth_cleared: z.boolean(),
+  /** The control plane's database was already gone, so only the shares this machine's books
+   *  remember could be found and deleted. */
+  inventory_incomplete: z.boolean().default(false),
+  /** Book-shaped Workers still in the account after an incomplete teardown — reported, never
+   *  deleted. `null` when the account's Workers could not be listed. */
+  leftover_book_workers: z.array(z.string()).nullable().default([]),
 })
 export type CloudflareConnectionDeleteResponse = z.infer<
   typeof CloudflareConnectionDeleteResponse

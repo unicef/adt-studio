@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { plural } from "@lingui/core/macro"
 import { CheckCircle2, CircleHelp, Cloud, RefreshCw } from "lucide-react"
 import { PublicationsDashboard } from "@/components/publications/PublicationsDashboard"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,18 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
         onSuccess: (result) => {
           setDisconnectOpen(false)
           onDisconnected()
+          const leftover = result.leftover_book_workers
+          if (result.deleted_resources && result.inventory_incomplete && leftover?.length !== 0) {
+            toast.warning(
+              leftover === null
+                ? t`Disconnected. The sharing database was already gone, so some shared books may still have their own Worker in your Cloudflare account. Look for Workers named "adt-book-…" in Workers & Pages.`
+                : plural(leftover.length, {
+                    one: "Disconnected. # shared book Worker may still be in your Cloudflare account. If it's yours, delete it in Workers & Pages (named \"adt-book-…\").",
+                    other: "Disconnected. # shared book Workers may still be in your Cloudflare account. If they're yours, delete them in Workers & Pages (named \"adt-book-…\").",
+                  }),
+            )
+            return
+          }
           toast.success(
             result.deleted_resources
               ? t`Disconnected. Everything was deleted from your Cloudflare account.`

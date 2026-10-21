@@ -162,6 +162,10 @@ msgstr "{0, plural, one {Connected successfully — # model available.} other {C
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {day} other {days}}"
 
+#. placeholder {0}: leftover.length
+msgid "{0, plural, one {Disconnected. # shared book Worker may still be in your Cloudflare account. If it's yours, delete it in Workers & Pages (named \"adt-book-…\").} other {Disconnected. # shared book Workers may still be in your Cloudflare account. If they're yours, delete them in Workers & Pages (named \"adt-book-…\").}}"
+msgstr "{0, plural, one {Disconnected. # shared book Worker may still be in your Cloudflare account. If it's yours, delete it in Workers & Pages (named \"adt-book-…\").} other {Disconnected. # shared book Workers may still be in your Cloudflare account. If they're yours, delete them in Workers & Pages (named \"adt-book-…\").}}"
+
 #. placeholder {0}: state.hours
 msgid "{0, plural, one {hour} other {hours}}"
 msgstr "{0, plural, one {hour} other {hours}}"
@@ -3896,6 +3900,9 @@ msgstr "Disconnected from Cloudflare."
 
 msgid "Disconnected. Everything was deleted from your Cloudflare account."
 msgstr "Disconnected. Everything was deleted from your Cloudflare account."
+
+msgid "Disconnected. The sharing database was already gone, so some shared books may still have their own Worker in your Cloudflare account. Look for Workers named \"adt-book-…\" in Workers & Pages."
+msgstr "Disconnected. The sharing database was already gone, so some shared books may still have their own Worker in your Cloudflare account. Look for Workers named \"adt-book-…\" in Workers & Pages."
 
 msgid "Dismiss"
 msgstr "Dismiss"

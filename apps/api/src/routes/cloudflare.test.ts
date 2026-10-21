@@ -19,6 +19,7 @@ import {
   savePublicationRecord,
 } from "../services/publish-service.js"
 import { createCloudflareRoutes, type CloudflareRoutesDeps } from "./cloudflare.js"
+import { bookWorkerName } from "../services/cloudflare/book-host.js"
 import type { FetchLike } from "../services/cloudflare/client.js"
 import {
   createConnectionStore,
@@ -828,6 +829,169 @@ describe("cloudflare routes", () => {
      * be spotted later: it matches the new connection and reports the book as published behind
      * a link that no longer resolves.
      */
+    describe("each shared book's own Worker", () => {
+      const LIVE = "LiveTokenAbcdefghijklmnopq1"
+      const EXPIRED_OR_REVOKED = "RevokedTokenAbcdefghijklmn3"
+      const INTERRUPTED = "InterruptedTokenAbcdefghij4"
+      const LOCAL_ONLY = "SeededTokenAbcdefghijklmnop12"
+      const UNRELATED = "someone-elses-worker"
+      const DATABASE = { uuid: "db-uuid-1", name: "adt-publish" }
+
+      /** The database lists published books (revoked and expired rows included) and, through
+       *  `publication_uploads`, a first share that registered but never committed. */
+      const D1_TOKENS = { publications: [LIVE, EXPIRED_OR_REVOKED], uploads: [LIVE, INTERRUPTED] }
+      const BOOK_WORKERS = [LIVE, EXPIRED_OR_REVOKED, INTERRUPTED, LOCAL_ONLY].map(bookWorkerName)
+
+      function deleteEverything(app: Hono) {
+        return app.request("/api/cloudflare/connection?delete_resources=1", {
+          method: "DELETE",
+          headers: AUTH,
+        })
+      }
+
+      it("deletes the Worker of every share the database or a book names, and nothing unrelated", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const { app, fake } = buildApp({
+          databases: [DATABASE],
+          scripts: [CLOUDFLARE_WORKER_NAME, UNRELATED, ...BOOK_WORKERS],
+          d1Tokens: D1_TOKENS,
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const res = await deleteEverything(app)
+
+        expect(res.status).toBe(200)
+        expect([...fake.state.scripts.keys()]).toEqual([UNRELATED])
+        expect(fake.state.databases).toEqual([])
+        expect(store.read()).toBeNull()
+      })
+
+      it("deletes nothing when the database's list of shares cannot be read", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const scripts = [CLOUDFLARE_WORKER_NAME, ...BOOK_WORKERS]
+        const { app, fake } = buildApp({
+          databases: [DATABASE],
+          scripts,
+          d1Tokens: D1_TOKENS,
+          d1TokenQueryFails: true,
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const res = await deleteEverything(app)
+
+        expect(res.status).toBe(502)
+        expect((await res.json()).error).toContain("nothing was deleted")
+        expect([...fake.state.scripts.keys()].sort()).toEqual([...scripts].sort())
+        expect(fake.state.databases).toHaveLength(1)
+        expect(store.read()).not.toBeNull()
+        expect(readPublicationRecord("raven", tmpDir)).not.toBeNull()
+      })
+
+      it("keeps the shared pieces and the records when a book Worker resists, then finishes on retry", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const stuck = bookWorkerName(LIVE)
+        const failing = buildApp({
+          databases: [DATABASE],
+          scripts: [CLOUDFLARE_WORKER_NAME, ...BOOK_WORKERS],
+          d1Tokens: D1_TOKENS,
+          workerDeleteFailsFor: [stuck],
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const failed = await deleteEverything(failing.app)
+
+        expect(failed.status).toBe(502)
+        expect((await failed.json()).error).toContain(stuck)
+        expect([...failing.fake.state.scripts.keys()].sort()).toEqual(
+          [CLOUDFLARE_WORKER_NAME, stuck].sort(),
+        )
+        expect(failing.fake.state.databases).toHaveLength(1)
+        expect(store.read()).not.toBeNull()
+        expect(readPublicationRecord("raven", tmpDir)).not.toBeNull()
+
+        const retry = buildApp({
+          databases: [...failing.fake.state.databases],
+          scripts: [...failing.fake.state.scripts.keys()],
+          d1Tokens: D1_TOKENS,
+        })
+        const finished = await deleteEverything(retry.app)
+
+        expect(finished.status).toBe(200)
+        expect(retry.fake.state.scripts.size).toBe(0)
+        expect(retry.fake.state.databases).toEqual([])
+        expect(readPublicationRecord("raven", tmpDir)).toBeNull()
+      })
+
+      it("works from the books' own tokens when the database is already gone", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const { app, fake } = buildApp({
+          databases: [],
+          scripts: [CLOUDFLARE_WORKER_NAME, bookWorkerName(LOCAL_ONLY)],
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const res = await deleteEverything(app)
+
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject({ inventory_incomplete: true, leftover_book_workers: [] })
+        expect(fake.state.scripts.size).toBe(0)
+        expect(store.read()).toBeNull()
+      })
+
+      /** A share made from another machine is named only in the database. With the database
+       *  gone nothing ties its Worker to this setup, so it is reported, never deleted. */
+      it("reports, without deleting, a book Worker only another machine's share could name", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const remoteOnly = bookWorkerName(LIVE)
+        const { app, fake } = buildApp({
+          databases: [],
+          scripts: [CLOUDFLARE_WORKER_NAME, UNRELATED, remoteOnly, bookWorkerName(LOCAL_ONLY)],
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const res = await deleteEverything(app)
+
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject({
+          forgotten: true,
+          inventory_incomplete: true,
+          leftover_book_workers: [remoteOnly],
+        })
+        expect([...fake.state.scripts.keys()].sort()).toEqual([remoteOnly, UNRELATED].sort())
+      })
+
+      it("says the leftovers are unknown when the account's Workers cannot be listed", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const { app } = buildApp({ databases: [], scripts: [], scriptListFails: true })
+
+        const res = await deleteEverything(app)
+
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject({ inventory_incomplete: true, leftover_book_workers: null })
+      })
+
+      it("reports a complete inventory when the database could be read", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const { app } = buildApp({
+          databases: [DATABASE],
+          scripts: [CLOUDFLARE_WORKER_NAME, ...BOOK_WORKERS],
+          d1Tokens: D1_TOKENS,
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const res = await deleteEverything(app)
+
+        expect(await res.json()).toMatchObject({ inventory_incomplete: false, leftover_book_workers: [] })
+      })
+    })
+
     it("makes the books forget links that died with the account", async () => {
       const store = createConnectionStore(stateDir)
       store.write(record)
