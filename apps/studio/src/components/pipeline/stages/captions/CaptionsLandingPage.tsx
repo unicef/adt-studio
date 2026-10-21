@@ -101,7 +101,7 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to run captions.</Trans>
+    <Trans>Connect an AI provider to run captions.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — captions describe the images placed by Storyboard.</Trans>
   ) : undefined
@@ -109,6 +109,7 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
   return (
     <LandingPageShell
       bookLabel={bookLabel}
+      requiresProvider
       stageSlug="captions"
       settingsTab="general"
       colorClass="bg-teal-600 hover:bg-teal-700"
