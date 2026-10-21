@@ -17,11 +17,12 @@ export type {
   TokenUsage,
 } from "./common.js"
 
-export type {
-  StructuredTextBackend,
-  StructuredTextRequest,
-  StructuredTextResult,
-  StructuredRequestTraits,
+export {
+  appendSystemAdditions,
+  type StructuredTextBackend,
+  type StructuredTextRequest,
+  type StructuredTextResult,
+  type StructuredRequestTraits,
 } from "./structured-text-backend.js"
 
 export {

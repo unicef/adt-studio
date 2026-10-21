@@ -33,6 +33,8 @@ interface FakeProviderOptions {
   requiredCredential?: boolean
   fingerprint?: CacheFingerprint
   minimumRequestTimeoutMs?: number
+  /** What the fake backend claims to append to the system prompt on the wire. */
+  systemAdditions?: string[]
 }
 
 function makeManifest(options: FakeProviderOptions): ProviderManifest {
@@ -90,6 +92,7 @@ function makeRegistry(options: FakeProviderOptions = {}): {
     createStructuredTextBackend: (context) => {
       contexts.push(context)
       return {
+        systemAdditions: () => options.systemAdditions ?? [],
         generateStructured: async <T>(request: StructuredTextRequest) => {
           requests.push(request)
           return (await generate()) as StructuredTextResult<T>
@@ -638,5 +641,27 @@ describe("createLLMModel validation retries", () => {
       usage: { inputTokens: 20, outputTokens: 3 },
     })
     expect(onLog.mock.calls[1]?.[0].validationErrors).toBeUndefined()
+  })
+})
+
+describe("createLLMModel llm_log system prompt", () => {
+  it("logs the system prompt with the backend's additions and sends the caller's", async () => {
+    const { registry, requests } = makeRegistry({ systemAdditions: ["Call the `json` tool."] })
+    const onLog = vi.fn()
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, onLog, logLevel: "silent" })
+
+    await llm.generateObject({
+      schema,
+      system: "Be brief.",
+      messages,
+      log: { taskType: "test-step", promptName: "test-prompt" },
+    })
+
+    expect(requests[0]?.system).toBe("Be brief.")
+    expect(onLog).toHaveBeenCalledTimes(1)
+    expect(onLog.mock.calls[0]?.[0].messages[0]).toEqual({
+      role: "system",
+      content: [{ type: "text", text: "Be brief.\n\nCall the `json` tool." }],
+    })
   })
 })

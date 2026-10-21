@@ -1,10 +1,20 @@
 import { z } from "zod"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import type { ProviderManifest } from "@adt/types"
-import type { CapabilitiesFor, ProviderModule } from "../../ports/index.js"
+import {
+  appendSystemAdditions,
+  type CapabilitiesFor,
+  type ProviderModule,
+  type StructuredTextRequest,
+} from "../../ports/index.js"
 import { createAiSdkStructuredTextBackend } from "../shared/ai-sdk/structured-text.js"
 import { createAiSdkAgentBackend } from "../shared/ai-sdk/agent.js"
-import { claudeModelRules, claudeTimeoutMs, withClaudeModelRules } from "./claude-models.js"
+import {
+  claudeModelRules,
+  claudeSystemAdditions,
+  claudeTimeoutMs,
+  withClaudeModelRules,
+} from "./claude-models.js"
 import {
   ANTHROPIC_ORIGIN,
   listAnthropicModels,
@@ -82,10 +92,17 @@ export const anthropicProvider: ProviderModule<AnthropicCredentials> = {
     const backend = createAiSdkStructuredTextBackend(() =>
       withClaudeModelRules(context.modelId, client(context.modelId)),
     )
+    const additions = (request: StructuredTextRequest) =>
+      claudeSystemAdditions(context.modelId, request)
     return {
+      systemAdditions: (request) => [
+        ...additions(request),
+        ...(backend.systemAdditions?.(request) ?? []),
+      ],
       generateStructured: (request) =>
         backend.generateStructured({
           ...request,
+          system: appendSystemAdditions(request.system, additions(request)),
           timeoutMs: claudeTimeoutMs(context.modelId, request.timeoutMs),
         }),
     }

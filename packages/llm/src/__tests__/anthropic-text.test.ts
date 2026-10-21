@@ -105,8 +105,10 @@ describe("Anthropic text models", () => {
       expect(body.tool_choice).toEqual({ type: "auto" })
       expect(body.tools).toEqual([expect.objectContaining({ name: "json" })])
       expect(body.system).toEqual([
-        { type: "text", text: "You are terse." },
-        { type: "text", text: expect.stringContaining("calling the `json` tool") },
+        {
+          type: "text",
+          text: expect.stringMatching(/^You are terse\.\n\n.*calling the `json` tool/s),
+        },
       ])
       expect(body).not.toHaveProperty("temperature")
       expect(body).not.toHaveProperty("top_p")
@@ -116,6 +118,36 @@ describe("Anthropic text models", () => {
       expect(temperatureCapability(model)).toBe(false)
     },
   )
+
+  it("logs the steering line as part of the system prompt the model saw", async () => {
+    const onLog = vi.fn()
+    const llm = createLLMModel({
+      modelId: "anthropic:claude-opus-5-5", registry, providerCredentials, logLevel: "silent", onLog,
+    })
+    await llm.generateObject({
+      schema, messages, system: "You are terse.", log: { taskType: "test", promptName: "p" },
+    })
+
+    const sent = (sentBody().system as Array<{ text: string }>)[0]!.text
+    expect(sent).toContain("calling the `json` tool")
+    expect(onLog).toHaveBeenCalledTimes(1)
+    expect(onLog.mock.calls[0]![0].messages[0]).toEqual({
+      role: "system",
+      content: [{ type: "text", text: sent }],
+    })
+  })
+
+  it("reports the steering line as a system addition, and none where the call is forced", () => {
+    const request = { system: "You are terse.", messages, schema, strategy: "tool-call" as const }
+    const backendFor = (model: string) =>
+      registry.resolveStructuredText(`anthropic:${model}`, { credentials: providerCredentials })
+        .backend
+    expect(backendFor("claude-opus-5-5").systemAdditions?.(request)).toEqual([
+      expect.stringContaining("calling the `json` tool"),
+    ])
+    expect(backendFor("claude-haiku-5-5").systemAdditions?.(request)).toEqual([])
+    expect(backendFor("claude-opus-4-6").systemAdditions?.(request)).toEqual([])
+  })
 
   it("accepts a JSON answer written as text when the tool goes uncalled", async () => {
     fetchMock.mockImplementation(async () =>
@@ -220,9 +252,10 @@ describe("Anthropic text models", () => {
   })
 
   it("leaves requests to earlier models unchanged", async () => {
-    await generate("claude-opus-4-6")
+    await generate("claude-opus-4-6", { system: "You are terse." })
 
     const body = sentBody()
+    expect(body.system).toEqual([{ type: "text", text: "You are terse." }])
     expect(body.temperature).toBe(0.3)
     expect(body.max_tokens).toBe(1024)
     expect(body.tool_choice).toEqual({ type: "tool", name: "json" })

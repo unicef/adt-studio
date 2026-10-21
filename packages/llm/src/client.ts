@@ -33,7 +33,11 @@ import {
 } from "./legacy-credentials.js"
 import { getDefaultProviderRegistry } from "./providers/index.js"
 import type { ProviderRegistry, ResolvedBackend } from "./registry.js"
-import type { StructuredTextBackend } from "./ports/index.js"
+import {
+  appendSystemAdditions,
+  type StructuredTextBackend,
+  type StructuredTextRequest,
+} from "./ports/index.js"
 
 export type { LLMProviderCredentials }
 
@@ -189,19 +193,29 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       )
       const legacyReadable = isLegacyCacheReadable(resolved.fingerprint)
 
+      const toRequest = (current: Message[]): StructuredTextRequest => ({
+        system,
+        messages: current,
+        schema: opts.schema,
+        strategy,
+        temperature: effectiveTemperature,
+        maxTokens: opts.maxTokens,
+        timeoutMs: effectiveTimeoutMs,
+        signal: externalSignal,
+      })
+      // The log shows the system prompt the model actually saw: the caller's
+      // plus whatever the backend appends on the wire (a steering line, a
+      // schema). The cache key keeps the caller's: the additions follow from
+      // the model and strategy, which are already part of it.
+      const loggedSystem = appendSystemAdditions(
+        system,
+        resolved.backend.systemAdditions?.(toRequest(messages)) ?? [],
+      )
+
       const generate = async (
         current: Message[],
       ): Promise<{ object: T; usage: TokenUsage }> => {
-        const generated = await resolved.backend.generateStructured<T>({
-          system,
-          messages: current,
-          schema: opts.schema,
-          strategy,
-          temperature: effectiveTemperature,
-          maxTokens: opts.maxTokens,
-          timeoutMs: effectiveTimeoutMs,
-          signal: externalSignal,
-        })
+        const generated = await resolved.backend.generateStructured<T>(toRequest(current))
         return { object: generated.object, usage: generated.usage }
       }
 
@@ -322,7 +336,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                       : undefined,
                   validationErrors: check.errors,
                   messages: sanitizeMessages(
-                    buildLogMessages(system, currentMessages, null)
+                    buildLogMessages(loggedSystem, currentMessages, null)
                   ),
                 })
               }
@@ -365,7 +379,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                   ? attemptUsage
                   : undefined,
               messages: sanitizeMessages(
-                buildLogMessages(system, currentMessages, result)
+                buildLogMessages(loggedSystem, currentMessages, result)
               ),
             })
           }
@@ -422,7 +436,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                     : undefined,
                 validationErrors: [errMsg],
                 messages: sanitizeMessages(
-                  buildLogMessages(system, currentMessages, null)
+                  buildLogMessages(loggedSystem, currentMessages, null)
                 ),
               })
             }
@@ -461,7 +475,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                   : undefined,
               validationErrors: [errMsg],
               messages: sanitizeMessages(
-                buildLogMessages(system, currentMessages, null)
+                buildLogMessages(loggedSystem, currentMessages, null)
               ),
             })
           }

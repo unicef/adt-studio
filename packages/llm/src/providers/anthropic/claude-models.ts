@@ -1,8 +1,8 @@
 import { wrapLanguageModel, type LanguageModel, type LanguageModelV1Middleware } from "ai"
 import { ModelRefusalError } from "../../ports/errors.js"
-import { extractJsonObject } from "../shared/ai-sdk/structured-text.js"
+import type { StructuredTextRequest } from "../../ports/index.js"
+import { extractJsonObject, STRUCTURED_OUTPUT_TOOL_NAME } from "../shared/ai-sdk/structured-text.js"
 
-type CallOptions = Parameters<NonNullable<LanguageModelV1Middleware["transformParams"]>>[0]["params"]
 type GenerateResult = Awaited<ReturnType<NonNullable<LanguageModelV1Middleware["wrapGenerate"]>>>
 
 /** Rules for the request fields a Claude model rejects with a 400. */
@@ -89,16 +89,15 @@ export function claudeTimeoutMs(modelId: string, requested: number | undefined):
     : requested
 }
 
-function toolInstruction(toolName: string): string {
-  return `Give your answer by calling the \`${toolName}\` tool with the complete result as its input. Do not answer in plain text.`
-}
-
-/** Inserted after the leading system messages: the Anthropic adapter rejects a
- *  system message that follows a user or assistant turn. */
-function withSystemInstruction(prompt: CallOptions["prompt"], instruction: string): CallOptions["prompt"] {
-  const firstTurn = prompt.findIndex((message) => message.role !== "system")
-  const at = firstTurn === -1 ? prompt.length : firstTurn
-  return [...prompt.slice(0, at), { role: "system", content: instruction }, ...prompt.slice(at)]
+/** The line that steers the model toward generateObject's tool once the call
+ *  can no longer be forced. The provider appends it to the system prompt and
+ *  reports it as a system addition, so the log shows the prompt as sent. */
+export function claudeSystemAdditions(modelId: string, request: StructuredTextRequest): string[] {
+  return claudeModelRules(modelId).rejectsForcedToolChoice && request.strategy === "tool-call"
+    ? [
+        `Give your answer by calling the \`${STRUCTURED_OUTPUT_TOOL_NAME}\` tool with the complete result as its input. Do not answer in plain text.`,
+      ]
+    : []
 }
 
 function createClaudeMiddleware(rules: ClaudeModelRules): LanguageModelV1Middleware {
@@ -120,9 +119,10 @@ function createClaudeMiddleware(rules: ClaudeModelRules): LanguageModelV1Middlew
 
     wrapGenerate: async ({ doGenerate, params, model }) => {
       // generateObject's tool mode forces `tool_choice: {type: "tool"}`, a 400
-      // on these models. Offer the same tool with `auto`, steer toward it from
-      // the system prompt, and accept a JSON answer written as text if the
-      // model replies without the call; generateObject still checks the schema.
+      // on these models. Offer the same tool with `auto` (the system prompt
+      // carries the steering line from `claudeSystemAdditions`), and accept a
+      // JSON answer written as text if the model replies without the call;
+      // generateObject still checks the schema.
       const tool =
         rules.rejectsForcedToolChoice && params.mode.type === "object-tool"
           ? params.mode.tool
@@ -131,7 +131,6 @@ function createClaudeMiddleware(rules: ClaudeModelRules): LanguageModelV1Middlew
         ? await model.doGenerate({
             ...params,
             mode: { type: "regular", tools: [tool], toolChoice: { type: "auto" } },
-            prompt: withSystemInstruction(params.prompt, toolInstruction(tool.name)),
           })
         : await doGenerate()
 
