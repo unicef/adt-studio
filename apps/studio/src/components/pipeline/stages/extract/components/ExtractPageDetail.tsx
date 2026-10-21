@@ -38,7 +38,7 @@ function ImageCard({ imageId, bookLabel, isPruned, reason, bounds, onTogglePrune
         {onCleanup && (
           <button type="button" onClick={onCleanup} disabled={cleanupDisabled}
             title={t`Clean up figure`} aria-label={t`Clean up figure`}
-            className="flex size-6 items-center justify-center rounded-full bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
+            className="flex size-6 items-center justify-center rounded-full bg-violet-600 text-white opacity-0 group-hover:opacity-100 hover:bg-violet-500 group-hover:disabled:opacity-40 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
             <Sparkles className="size-3.5" />
           </button>
         )}
