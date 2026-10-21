@@ -38,6 +38,8 @@ interface ImageCropDialogProps {
 const VERTEX_RADIUS = 6
 const MIDPOINT_RADIUS = 4
 const EDGE_HANDLE = 8
+/** Width of the invisible strip along each edge that can be grabbed, in display px. */
+const EDGE_HIT_WIDTH = 12
 const MIN_POINTS = 3
 /** Minimum width/height of a rectangle crop, in image pixels. */
 const MIN_RECT = 16
@@ -535,6 +537,28 @@ export function ImageCropDialog({ imageSrc, initialRect, onApply, onClose }: Ima
                       style={{ cursor: "move" }}
                       onMouseDown={handleBodyMouseDown}
                     />
+                    {/* Invisible strips along the edges, so the whole blue line
+                        resizes and not just its handle. Capped at half the box
+                        so a small box still has a middle to move it by. */}
+                    {RECT_HANDLES.map((h) => {
+                      const horizontal = h.T || h.B
+                      if (horizontal && (h.L || h.R)) return null // corners resize from their circle
+                      const x = (bbox.left + bbox.w * h.fx) * scale
+                      const y = (bbox.top + bbox.h * h.fy) * scale
+                      return (
+                        <line
+                          key={`edge-${h.key}`}
+                          x1={horizontal ? bbox.left * scale : x}
+                          y1={horizontal ? y : bbox.top * scale}
+                          x2={horizontal ? bbox.right * scale : x}
+                          y2={horizontal ? y : bbox.bottom * scale}
+                          stroke="transparent"
+                          strokeWidth={Math.min(EDGE_HIT_WIDTH, ((horizontal ? bbox.h : bbox.w) * scale) / 2)}
+                          style={{ cursor: h.cursor }}
+                          onMouseDown={(e) => handleRectMouseDown(e, h)}
+                        />
+                      )
+                    })}
                     {/* Corner + edge resize handles */}
                     {RECT_HANDLES.map((h) => {
                       const hx = (bbox.left + bbox.w * h.fx) * scale
@@ -582,7 +606,7 @@ export function ImageCropDialog({ imageSrc, initialRect, onApply, onClose }: Ima
                           x2={next.x * scale}
                           y2={next.y * scale}
                           stroke="transparent"
-                          strokeWidth={12}
+                          strokeWidth={EDGE_HIT_WIDTH}
                           style={{ cursor: "move" }}
                           onMouseDown={(e) => handleEdgeMouseDown(e, i)}
                         />
@@ -634,9 +658,9 @@ export function ImageCropDialog({ imageSrc, initialRect, onApply, onClose }: Ima
           {ratioMode === "polygon" ? (
             <Trans>Drag vertices to reshape. Click midpoints (+) to add points. Right-click a vertex to remove it.</Trans>
           ) : aspectRatio !== null ? (
-            <Trans>Drag the handles to resize (aspect ratio locked). Drag inside to move.</Trans>
+            <Trans>Drag an edge or corner to resize (aspect ratio locked). Drag inside to move.</Trans>
           ) : (
-            <Trans>Drag the handles to crop a rectangle. Drag inside to move.</Trans>
+            <Trans>Drag an edge or corner to crop a rectangle. Drag inside to move.</Trans>
           )}
         </span>
         {bbox && (

@@ -3327,11 +3327,17 @@ msgstr "Draft"
 msgid "Drag & drop font files here"
 msgstr "Tërhiq dhe lësho skedarët e fontit këtu"
 
-msgid "Drag the handles to crop a rectangle. Drag inside to move."
-msgstr "Tërhiqni dorezat për të prerë një drejtkëndësh. Tërhiqni brenda për ta lëvizur."
+msgid "Drag an edge or corner to crop a rectangle. Drag inside to move."
+msgstr "Tërhiqni një skaj ose cep për të prerë një drejtkëndësh. Tërhiqni brenda për ta lëvizur."
 
-msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
-msgstr "Tërhiqni dorezat për të ripërmasuar (raporti i pamjes i kyçur). Tërhiqni brenda për ta lëvizur."
+msgid "Drag an edge or corner to resize (aspect ratio locked). Drag inside to move."
+msgstr "Tërhiqni një skaj ose cep për të ripërmasuar (raporti i pamjes i kyçur). Tërhiqni brenda për ta lëvizur."
+
+#~ msgid "Drag the handles to crop a rectangle. Drag inside to move."
+#~ msgstr "Tërhiqni dorezat për të prerë një drejtkëndësh. Tërhiqni brenda për ta lëvizur."
+
+#~ msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+#~ msgstr "Tërhiqni dorezat për të ripërmasuar (raporti i pamjes i kyçur). Tërhiqni brenda për ta lëvizur."
 
 msgid "Drag to move"
 msgstr "Tërhiq për të lëvizur"

@@ -3325,11 +3325,17 @@ msgstr "Draft"
 msgid "Drag & drop font files here"
 msgstr "Drag & drop font files here"
 
-msgid "Drag the handles to crop a rectangle. Drag inside to move."
-msgstr "Drag the handles to crop a rectangle. Drag inside to move."
+msgid "Drag an edge or corner to crop a rectangle. Drag inside to move."
+msgstr "Drag an edge or corner to crop a rectangle. Drag inside to move."
 
-msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
-msgstr "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+msgid "Drag an edge or corner to resize (aspect ratio locked). Drag inside to move."
+msgstr "Drag an edge or corner to resize (aspect ratio locked). Drag inside to move."
+
+#~ msgid "Drag the handles to crop a rectangle. Drag inside to move."
+#~ msgstr "Drag the handles to crop a rectangle. Drag inside to move."
+
+#~ msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+#~ msgstr "Drag the handles to resize (aspect ratio locked). Drag inside to move."
 
 msgid "Drag to move"
 msgstr "Drag to move"
