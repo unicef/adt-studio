@@ -109,7 +109,7 @@ export async function sectionPage(
   // Initial generation (with built-in validation retry).
   const initial = await generateInitial(input, config, validatorContext, llmModel)
   let candidate = initial
-  applyAutoRepairs(candidate)
+  applyAutoRepairs(candidate, validatorContext)
 
   // Refinement loop — up to maxRefinements reviewer passes.
   const priorNotes: string[] = []
@@ -126,7 +126,7 @@ export async function sectionPage(
 
     // The reviewer proposed a replacement. Validate it before adopting.
     if (review.nodes_and_sections) {
-      applyAutoRepairs(review.nodes_and_sections)
+      applyAutoRepairs(review.nodes_and_sections, validatorContext)
       const err = runValidator(review.nodes_and_sections, validatorContext)
       if (err.valid) {
         candidate = review.nodes_and_sections
@@ -165,7 +165,7 @@ async function generateInitial(
       book_outline: input.outline ?? null,
     },
     validate: (raw) => {
-      applyAutoRepairs(raw as LLMStructuringResult | null)
+      applyAutoRepairs(raw as LLMStructuringResult | null, validatorContext)
       return runValidator(raw, validatorContext)
     },
     maxRetries: config.maxRetries,
@@ -242,14 +242,74 @@ async function generateReview(
  *     synthetic leading `role: "text"` leaf.
  *  4. A leaf whose text is a row of single-letter tokens separated by spaces
  *     (crossword/letter-grid pattern) → split into one leaf per letter.
+ *  5. A `role` that is only a structure key, on a node with children and no
+ *     text → move it to `structure`.
+ *  6. A `structure` that is only a role key → move it to `role`; a lone
+ *     text-leaf child collapses into that leaf.
+ *  7. A heading leaf linked to a known outline entry → take role, level and
+ *     style cluster from the entry; an unknown outline id is dropped.
  */
-export function applyAutoRepairs(raw: LLMStructuringResult | null | undefined): void {
+export function applyAutoRepairs(
+  raw: LLMStructuringResult | null | undefined,
+  ctx?: RepairContext,
+): void {
   if (!raw || !Array.isArray(raw.sections)) return
   for (const section of raw.sections) {
     if (Array.isArray(section.nodes)) {
-      section.nodes = repairChildren(section.nodes)
+      section.nodes = repairChildren(section.nodes, ctx)
     }
   }
+}
+
+type RepairContext = Pick<ValidatorContext, "structureKeys" | "roleKeys" | "outlineEntries">
+
+const HEADING_ROLES = new Set(["chapter_title", "section_heading", "subheading", "heading"])
+
+function roleForOutlineLevel(level: number): string {
+  if (level === 1) return "chapter_title"
+  if (level === 2) return "section_heading"
+  if (level === 3) return "subheading"
+  return "heading"
+}
+
+function repairVocabulary(node: LLMNode, ctx: RepairContext): LLMNode {
+  const children = Array.isArray(node.children) ? node.children : []
+  const hasText = typeof node.text === "string" && node.text.length > 0
+  if (typeof node.role === "string" && !node.structure && ctx.structureKeys.has(node.role)) {
+    if (children.length > 0 && !hasText) {
+      return { ...node, structure: node.role, role: null }
+    }
+    if (children.length === 0 && hasText && !ctx.roleKeys.has(node.role) && ctx.roleKeys.has("text")) {
+      return { structure: node.role, children: [{ role: "text", text: node.text }] }
+    }
+  }
+  if (
+    typeof node.structure === "string" &&
+    !node.role &&
+    !ctx.structureKeys.has(node.structure) &&
+    ctx.roleKeys.has(node.structure)
+  ) {
+    const role = node.structure
+    if (children.length === 0) return { ...node, role, structure: null, children: null }
+    const only = children.length === 1 ? children[0] : null
+    if (!hasText && only && !only.structure && typeof only.text === "string" && only.text.length > 0) {
+      return { ...only, role, children: null }
+    }
+  }
+  return node
+}
+
+function repairOutlineLink(node: LLMNode, ctx: RepairContext): void {
+  if (typeof node.outline_entry_id !== "string" || node.outline_entry_id.length === 0) return
+  const entry = ctx.outlineEntries?.get(node.outline_entry_id)
+  if (!entry) {
+    node.outline_entry_id = null
+    return
+  }
+  if (typeof node.role !== "string" || !HEADING_ROLES.has(node.role)) return
+  node.role = roleForOutlineLevel(entry.level)
+  node.heading_level = entry.level
+  node.heading_style_cluster_id = entry.styleClusterId
 }
 
 const SINGLE_LETTER_ROW = /^[A-Za-zÀ-ÿ](\s+[A-Za-zÀ-ÿ])+$/
@@ -263,7 +323,7 @@ const STRUCTURE_ALIASES: Record<string, string> = {
   boxed_text: "panel",
 }
 
-function repairChildren(children: LLMNode[]): LLMNode[] {
+function repairChildren(children: LLMNode[], ctx?: RepairContext): LLMNode[] {
   const out: LLMNode[] = []
   for (const original of children) {
     if (!original || typeof original !== "object") {
@@ -274,7 +334,12 @@ function repairChildren(children: LLMNode[]): LLMNode[] {
 
     // Recurse first so deeper repairs propagate up.
     if (Array.isArray(child.children)) {
-      child.children = repairChildren(child.children)
+      child.children = repairChildren(child.children, ctx)
+    }
+
+    if (ctx) {
+      child = repairVocabulary(child, ctx)
+      repairOutlineLink(child, ctx)
     }
 
     // Canonicalize known invented structure synonyms (e.g. "boxed_text" → "panel")
@@ -562,14 +627,7 @@ function validateNode(
           `${path}: outline entry "${node.outline_entry_id}" requires heading level ${outlineEntry.level}.`,
         )
       }
-      const expectedRole =
-        outlineEntry.level === 1
-          ? "chapter_title"
-          : outlineEntry.level === 2
-            ? "section_heading"
-            : outlineEntry.level === 3
-              ? "subheading"
-              : "heading"
+      const expectedRole = roleForOutlineLevel(outlineEntry.level)
       if (node.role !== expectedRole) {
         errors.push(
           `${path}: outline level ${outlineEntry.level} requires role "${expectedRole}".`,

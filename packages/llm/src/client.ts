@@ -40,12 +40,33 @@ import { StructuredTextError } from "./ports/structured-text-backend.js"
 
 export type { LLMProviderCredentials }
 
+const EFFORT_TIMEOUT_FACTOR: Partial<Record<ReasoningEffort, number>> = {
+  high: 1.5,
+  xhigh: 2,
+  max: 2.5,
+}
+
+const TIMEOUT_RETRY_FACTOR = 2
+
 function resolveEffectiveTimeoutMs(
   manifest: ProviderManifest,
   requestedTimeoutMs: number | undefined,
+  effort: ReasoningEffort | undefined,
 ): number | undefined {
-  if (manifest.minimumRequestTimeoutMs === undefined) return requestedTimeoutMs
-  return Math.max(requestedTimeoutMs ?? 0, manifest.minimumRequestTimeoutMs)
+  const budgetMs = requestedTimeoutMs === undefined
+    ? undefined
+    : Math.round(requestedTimeoutMs * (effort ? EFFORT_TIMEOUT_FACTOR[effort] ?? 1 : 1))
+  if (manifest.minimumRequestTimeoutMs === undefined) return budgetMs
+  return Math.max(budgetMs ?? 0, manifest.minimumRequestTimeoutMs)
+}
+
+function isTimeoutError(err: unknown): boolean {
+  let current = err
+  for (let depth = 0; current instanceof Error && depth < 5; depth++) {
+    if (current.name === "TimeoutError") return true
+    current = current.cause
+  }
+  return false
 }
 
 export interface CreateLLMModelOptions {
@@ -227,7 +248,10 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       const effectiveTimeoutMs = resolveEffectiveTimeoutMs(
         registry.get(resolved.providerId).manifest,
         opts.timeoutMs,
+        appliedEffort,
       )
+      let attemptTimeoutMs = effectiveTimeoutMs
+      let timedOutOnce = false
       const legacyReadable = isLegacyCacheReadable(resolved.fingerprint) && !effective.providerOptions
 
       const generate = async (
@@ -240,7 +264,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           strategy,
           temperature: effectiveTemperature,
           maxTokens: opts.maxTokens,
-          timeoutMs: effectiveTimeoutMs,
+          timeoutMs: attemptTimeoutMs,
           signal: externalSignal,
           providerOptions: effective.providerOptions,
         })
@@ -256,6 +280,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         delete callParams.reasoningTokens
         delete callParams.attempts
         delete callParams.inferenceAttempts
+        if (attemptTimeoutMs !== undefined) callParams.timeoutMs = attemptTimeoutMs
         const attemptStartedAt = Date.now()
         const attemptUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
         const hash = computeCacheKeyV2({
@@ -445,8 +470,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
           // A deliberate external cancel never retries — detected by the signal,
           // not the error name (the SDK may wrap the AbortError). The internal
-          // timeout also aborts the call but leaves the signal intact, so those
-          // keep retrying as before.
+          // timeout leaves the signal intact; it gets one retry with a doubled
+          // budget, never a repeat of the request that just ran out of time.
           if (externalSignal?.aborted) {
             log.error(`[LLM] ${label} | cancelled | ${errMsg}`)
             throw err
@@ -456,7 +481,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           // transient ones — retrying them only delays the real message.
           const configurationError = AiProviderError.is(err) ||
             err instanceof StructuredTextError && AiProviderError.is(err.cause)
-          if (attempt < maxRetries && !configurationError) {
+          const timedOut = isTimeoutError(err)
+          const timeoutExhausted = timedOut && (timedOutOnce || attemptTimeoutMs === undefined)
+          if (attempt < maxRetries && !configurationError && !timeoutExhausted) {
+            if (timedOut && attemptTimeoutMs !== undefined) {
+              timedOutOnce = true
+              attemptTimeoutMs = Math.round(attemptTimeoutMs * TIMEOUT_RETRY_FACTOR)
+            }
             const delayMs = backoffDelay(attempt)
             log.error(
               `[LLM] ${label} | error (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg} | retrying in ${delayMs}ms`

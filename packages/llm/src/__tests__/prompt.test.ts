@@ -25,6 +25,28 @@ describe("Luna prompt variants", () => {
 })
 
 describe("Sol prompt variants", () => {
+  it.each(["visual_review", "visual_review_flexible"])("keeps %s compatible with hidden source dots in generated TOC rows", async (name) => {
+    const engine = createPromptEngine(path.resolve(import.meta.dirname, "../../../../prompts"))
+    const context = {
+      section_type: "table_of_contents", user_instructions: "", viewports: [],
+      nodes: [{ node_id: "toc_1", role: "text", text: "Vocabulary........43" }],
+    }
+    const options = { modelId: "openai:gpt-6.1-sol" }
+    const generation = await engine.renderPrompt("web_generation_html", context, options)
+    expect(generation[0].content).toContain('<span class="sr-only">EXACT ORIGINAL DOT RUN, IF ANY</span>')
+
+    const review = await engine.renderPrompt(name, context, options)
+    const system = review[0].content as string
+    expect(system).toContain("Preserve original source dots in an `sr-only` child inside the leader")
+    expect(system).toContain("Keep the leader empty only when there are no source dots")
+    expect(system).toContain("do not remove or reveal them")
+    expect(system).not.toContain("EMPTY flexible dotted-border leader")
+    expect(system).not.toContain('`data-toc-leader="true"` (empty')
+
+    const ordinary = await engine.renderPrompt(name, { ...context, section_type: "text_and_images" }, options)
+    expect(ordinary[0].content).not.toContain("## TABLE OF CONTENTS")
+  })
+
   it.each(["web_generation_html", "visual_review"])("allows %s to stack consecutive sidebars beside prose without reordering the tree", async (name) => {
     const root = path.resolve(import.meta.dirname, "../../../../prompts")
     const engine = createPromptEngine(root)
@@ -163,7 +185,7 @@ describe("Sol prompt variants", () => {
     expect(user).toContain("pg002")
     expect(user).toMatch(/<user_instructions>\s*Use a blue background\.\s*<\/user_instructions>/)
     const tree = user.match(/<content_tree>([\s\S]*?)<\/content_tree>/)?.[1] ?? ""
-    expect(tree.trim().split("\n")).toEqual([
+    expect(tree.trim().split(/\r?\n/)).toEqual([
       'heading id=title heading_level=2 "Éléments"',
       "image id=figure_1",
       'text id=continuation "Suite à la page suivante."',
