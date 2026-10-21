@@ -419,6 +419,33 @@ describe("resolveSpeechModel", () => {
 
   it("uses the shared default model for non-provider-specific fallbacks", () => {
     expect(resolveSpeechModel("openai", {}, "gpt-4o-audio")).toBe("gpt-4o-audio")
+    // An id of unknown shape still passes through for OpenAI.
+    expect(resolveSpeechModel("openai", {}, "my-custom-tts")).toBe("my-custom-tts")
+  })
+
+  it("honours the global default only for the provider it belongs to", () => {
+    expect(resolveSpeechModel("gemini", {}, "gemini-2.5-pro-preview-tts")).toBe(
+      "gemini-2.5-pro-preview-tts",
+    )
+    // A Gemini id must not be sent to OpenAI — OpenAI runs on its own default.
+    expect(resolveSpeechModel("openai", {}, "gemini-2.5-pro-preview-tts")).toBe("gpt-4o-mini-tts")
+    // An OpenAI id is not a Gemini model — Gemini runs on its own default.
+    expect(resolveSpeechModel("gemini", {}, "gpt-4o-mini-tts")).toBe("gemini-2.5-flash-preview-tts")
+    expect(resolveSpeechModel("elevenlabs", {}, "gemini-2.5-pro-preview-tts")).toBe(
+      "eleven_multilingual_v2",
+    )
+    // Unknown-shaped ids never reach a provider that has its own default.
+    expect(resolveSpeechModel("gemini", {}, "my-custom-tts")).toBe("gemini-2.5-flash-preview-tts")
+  })
+
+  it("lets the per-provider model keep overriding the global default", () => {
+    expect(
+      resolveSpeechModel(
+        "gemini",
+        { gemini: { model: "gemini-2.5-flash-preview-tts" } },
+        "gemini-2.5-pro-preview-tts",
+      ),
+    ).toBe("gemini-2.5-flash-preview-tts")
   })
 })
 

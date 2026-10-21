@@ -5,6 +5,7 @@ import yaml from "js-yaml"
 import {
   DEFAULT_OPENAI_TTS_MODEL_ID,
   DEFAULT_ELEVENLABS_TTS_MODEL_ID,
+  speechModelProvider,
   DEFAULT_ELEVENLABS_VOICE_ID,
   ELEVENLABS_SHIPPED_VOICE_NAMES,
   isTtsExcluded,
@@ -378,6 +379,20 @@ export function resolveProviderForLanguage(
   return routing.defaultProvider
 }
 
+const PROVIDER_DEFAULT_SPEECH_MODELS: Record<string, string> = {
+  azure: DEFAULT_AZURE_MODEL,
+  gemini: DEFAULT_GEMINI_MODEL,
+  elevenlabs: DEFAULT_ELEVENLABS_TTS_MODEL_ID,
+}
+
+/**
+ * The model a provider synthesizes with: its per-provider setting from Speech
+ * settings first, then the global default (Settings → Models) — but only when
+ * that id belongs to this provider. The global picker lists every provider's
+ * models and stores a bare id, so a Gemini id must neither be sent to OpenAI
+ * (a failed run) nor be ignored by Gemini (a silently different model). An id
+ * of unknown shape still passes through for OpenAI, as it always has.
+ */
 export function resolveSpeechModel(
   provider: string,
   providerConfigs: Record<string, TTSProviderConfig>,
@@ -386,10 +401,15 @@ export function resolveSpeechModel(
   const configuredModel = providerConfigs[provider]?.model?.trim()
   if (configuredModel) return configuredModel
 
-  if (provider === "azure") return DEFAULT_AZURE_MODEL
-  if (provider === "gemini") return DEFAULT_GEMINI_MODEL
-  if (provider === "elevenlabs") return DEFAULT_ELEVENLABS_TTS_MODEL_ID
-  return defaultModel?.trim() || DEFAULT_OPENAI_TTS_MODEL_ID
+  const providerDefault = PROVIDER_DEFAULT_SPEECH_MODELS[provider]
+  const globalModel = defaultModel?.trim()
+  if (globalModel) {
+    const owner = speechModelProvider(globalModel)
+    if (owner === provider || (owner === undefined && providerDefault === undefined)) {
+      return globalModel
+    }
+  }
+  return providerDefault ?? DEFAULT_OPENAI_TTS_MODEL_ID
 }
 
 /**
