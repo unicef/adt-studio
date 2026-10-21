@@ -1070,8 +1070,12 @@ function resolveCredentialField(
   providerId: string,
   fieldKey: string,
 ): string {
-  const provider = getDefaultProviderRegistry().get(providerId)
-  const values = resolveProviderCredentials(provider, options.credentials)
+  const registry = getDefaultProviderRegistry()
+  const values = resolveProviderCredentials(
+    registry.get(providerId),
+    options.credentials,
+    registry.tryGet,
+  )
   return values[fieldKey] ?? ""
 }
 
