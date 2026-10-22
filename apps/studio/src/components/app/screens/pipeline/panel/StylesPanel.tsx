@@ -1,9 +1,8 @@
-import { Trans } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { useInspectorContext } from "adt-html-editor"
 import { HtmlEditor, InspectorBody, InspectorEmpty, InspectorHeader, InspectorPosition, InspectorTransform, InspectorVariants, InspectorLayout, InspectorSpacing, InspectorSizing, InspectorTypography, InspectorAppearance, InspectorBorders, TagInspectorHeader } from "adt-html-editor/shadcn"
 import { SlidersHorizontal } from "lucide-react"
 import { AppliedStyles } from "../editor/responsive/inspection/AppliedStyles"
-import { PositionSection } from "../editor/responsive/position/PositionSection"
 
 function StylesHeader() {
   const { selectedIds } = useInspectorContext()
@@ -16,6 +15,8 @@ export interface StylesPanelProps {
 }
 
 export function StylesPanel({ editable }: StylesPanelProps) {
+  const { t } = useLingui()
+
   if (!editable) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
@@ -40,7 +41,7 @@ export function StylesPanel({ editable }: StylesPanelProps) {
       <div className="flex flex-col">
         <InspectorLayout />
         <InspectorSpacing />
-        <PositionSection />
+        <HtmlEditor.Inspector.FlowPosition title={t`Position`} />
         <InspectorSizing />
         <InspectorTypography />
         <InspectorAppearance />

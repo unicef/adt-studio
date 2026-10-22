@@ -4,8 +4,6 @@ import { HtmlEditor } from "adt-html-editor/shadcn"
 import { useSectionHtml } from "./draftStore"
 import { fixedPageSize } from "./pageSize"
 import type { StoryboardEditorSession } from "./useStoryboardEditor"
-import { StyleInspection } from "./responsive/inspection/StyleInspection"
-import { PositionProvider } from "./responsive/position/PositionProvider"
 
 const FLOW_LAYOUT = { directControls: true }
 
@@ -38,7 +36,7 @@ export function StoryboardShell({ session, children }: StoryboardShellProps) {
       flowLayout={FLOW_LAYOUT}
       className="relative min-h-0 flex-1 bg-transparent text-base"
     >
-      <StyleInspection><PositionProvider>{children}</PositionProvider></StyleInspection>
+      {children}
     </HtmlEditor>
   )
 }

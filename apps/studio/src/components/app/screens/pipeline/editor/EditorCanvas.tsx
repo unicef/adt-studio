@@ -6,7 +6,6 @@ import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
 import { CanvasWidthControl } from "./CanvasWidthControl"
 import { SectionTabs } from "./SectionTabs"
 import type { EditorSection } from "./useStoryboardEditor"
-import { FlowOverlay } from "./responsive/FlowOverlay"
 
 export interface EditorCanvasProps {
   pageId: string
@@ -22,7 +21,8 @@ const CanvasBody = memo(function CanvasBody({ fixed }: { fixed: boolean }) {
     return (
       <>
         <HtmlEditor.Canvas.Viewport>
-          <FlowOverlay />
+          <HtmlEditor.Canvas.FlowControls />
+          <HtmlEditor.Canvas.FlowToolbar />
         </HtmlEditor.Canvas.Viewport>
         <HtmlEditor.Canvas.FlowStatusBar />
       </>
@@ -82,6 +82,7 @@ export const EditorCanvas = memo(function EditorCanvas({
       )}
 
       <CanvasBody fixed={fixed} />
+      <HtmlEditor.Canvas.ContextMenu />
     </HtmlEditor.Canvas>
   )
 })

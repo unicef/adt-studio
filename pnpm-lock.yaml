@@ -409,8 +409,8 @@ importers:
         specifier: ^3.13.23
         version: 3.13.23(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       adt-html-editor:
-        specifier: npm:@zignaggo/adt-html-editor@0.2.0
-        version: '@zignaggo/adt-html-editor@0.2.0(@base-ui/react@1.8.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(class-variance-authority@0.7.1)(cmdk@1.1.1(@types/react-dom@19.2.3(@types/react@19.2.13))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(lucide-react@0.469.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-resizable-panels@4.12.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)'
+        specifier: npm:@zignaggo/adt-html-editor@0.3.0
+        version: '@zignaggo/adt-html-editor@0.3.0(@base-ui/react@1.8.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(class-variance-authority@0.7.1)(cmdk@1.1.1(@types/react-dom@19.2.3(@types/react@19.2.13))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(lucide-react@0.469.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-resizable-panels@4.12.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)'
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -3799,8 +3799,8 @@ packages:
     resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
     engines: {node: '>=10.0.0'}
 
-  '@zignaggo/adt-html-editor@0.2.0':
-    resolution: {integrity: sha512-b56ec0l9nVN5RNkPXqSgV7hk6Ov0C/vOLMO6tSokSX85tEws/jUD6hpb/5nmNzrgGtiiqR55gUpLm8KHmgT3jw==, tarball: https://npm.pkg.github.com/download/@zignaggo/adt-html-editor/0.2.0/22ae5d8973df92b0baeec0bbd5a20465888c5a08}
+  '@zignaggo/adt-html-editor@0.3.0':
+    resolution: {integrity: sha512-X1Cq2lp3dF5U4X0InBdLEHRmuaL8A4PzM0xIZnCGClquqHRHa10NIfsaypontbNH+e1HRhfoYgEmp+b3/9eDow==, tarball: https://npm.pkg.github.com/download/@zignaggo/adt-html-editor/0.3.0/b922979258231edbba790cc6f273a4255e4b09c0}
     peerDependencies:
       '@base-ui/react': ^1.8.0
       class-variance-authority: ^0.7.0
@@ -10065,7 +10065,7 @@ snapshots:
 
   '@xmldom/xmldom@0.8.13': {}
 
-  '@zignaggo/adt-html-editor@0.2.0(@base-ui/react@1.8.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(class-variance-authority@0.7.1)(cmdk@1.1.1(@types/react-dom@19.2.3(@types/react@19.2.13))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(lucide-react@0.469.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-resizable-panels@4.12.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)':
+  '@zignaggo/adt-html-editor@0.3.0(@base-ui/react@1.8.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(class-variance-authority@0.7.1)(cmdk@1.1.1(@types/react-dom@19.2.3(@types/react@19.2.13))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(lucide-react@0.469.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-resizable-panels@4.12.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 3.1.0
       '@atlaskit/pragmatic-drag-and-drop-auto-scroll': 3.2.1

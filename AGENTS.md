@@ -317,21 +317,25 @@ provider around the whole body:
   skin depends on it and only a recent version exists.
 
 **Responsive controls experiment:** the direct canvas controls prototyped on this
-branch now ship in `adt-html-editor` (0.2.0+). `StoryboardShell` turns them on with
+branch now ship in `adt-html-editor` (0.3.0+). `StoryboardShell` turns them on with
 `flowLayout={{ directControls: true }}`, and `EditorCanvas` composes the library's
 `Canvas.FlowControls` and `Canvas.FlowToolbar` inside `Canvas.Viewport`, followed by
 `Canvas.FlowStatusBar`. Gestures, Reposition, the Layout menu, text wrapping, box
-height/inner space and the tag picker (`Inspector.TagHeader`) all come from the
-library; see its README ("Flow layout controls", "Tag picker").
-Two Studio-side pieces have no library counterpart yet and stay in
-`editor/responsive/`. `inspection/` adds the Styles panel's **Inline CSS**,
+height/inner space, multi-selection groups, **Wrap in container** (the button at the
+end of the status bar), the tag picker (`Inspector.TagHeader`) and **Free transform**
+(`Inspector.FlowPosition`, mounted in the Styles panel between Spacing and Sizing)
+all come from the library; see its README ("Flow layout controls", "Tag picker").
+**Context menu:** right-clicking an element in the canvas opens the library's menu
+(Duplicate, Delete, Copy, Paste, Copy style, Paste style, Select parent, Lock).
+The library's README says `Canvas.Viewport` and `Canvas.FixedPage` render it, but in
+0.3.0 only its default canvas composition does, so `EditorCanvas` mounts
+`Canvas.ContextMenu` once for both layouts. If a later version moves it into the
+viewport, drop that line or the menu shows twice.
+The library's labels are English-only for now — it takes no translated strings.
+One Studio-side piece has no library counterpart yet and stays in
+`editor/responsive/`: `inspection/` adds the Styles panel's **Inline CSS**,
 **Tailwind Classes** and **Computed CSS** accordions (open state is a local sidebar
-preference) and the gesture tooltip. `position/` adds the **Position** section below
-Spacing: X/Y offsets written as inline CSS `translate`, and **Free transform**, which
-drags the selection (arrows nudge 1px, Shift 10px, Escape exits) in one Undo step.
-`FlowOverlay` mounts it in the viewport and hides the library controls while it is
-active. `PositionProvider` and `StyleInspection` keep that UI state out of the saved
-HTML. See [the finding](docs/experiments/responsive-canvas-controls.md) for the
+preference). See [the finding](docs/experiments/responsive-canvas-controls.md) for the
 experiment's history; it is not an approved production contract.
 
 ## Key Rules

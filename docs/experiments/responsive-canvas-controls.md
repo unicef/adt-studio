@@ -74,7 +74,7 @@ each row below share that directory.
 | Integration and feature toggle | `editor/EditorCanvas.tsx`, `editor/StoryboardShell.tsx`, `panel/StylesPanel.tsx` |
 | Selection, gesture routing and handles | `editor/responsive/ResponsiveCanvas.tsx`, `useDragRouting.ts`, `useFlowGestures.ts`, `ComponentMoveHandle.tsx` |
 | Placement, layout and wrapping | `editor/responsive/useArrangeGesture.ts`, `componentDrop.ts`, `componentLayout.ts`, `textFlow.ts`, `visualLayout.ts`, `elementContainer.ts` |
-| Styles, offsets and tags | `editor/responsive/inspection/`, `editor/responsive/position/`, `editor/responsive/tags/` |
+| Styles, offsets and tags | `editor/responsive/inspection/`, `editor/responsive/position/` (replaced by the library's `Inspector.FlowPosition` in 0.3.0), `editor/responsive/tags/` |
 | Reproducible samples | `editor/responsive/playground.tsx`, `bookSample.ts`; `scripts/experiments/responsive-*.mjs` at the repo root |
 
 ## Try the prototype
