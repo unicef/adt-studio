@@ -3580,6 +3580,9 @@ msgstr "Détecte les exercices et les quiz intégrés dans le livre et les class
 msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
 msgstr "Détecte le texte estampillé à l’identique sur toutes les pages — comme une mention diagonale « pour lecture en ligne uniquement » — et le supprime des rendus de pages, des figures extraites et du texte du livre. Désactivez pour conserver les pages exactement telles qu’imprimées."
 
+msgid "Device"
+msgstr "Appareil"
+
 msgid "Diagnostics"
 msgstr "Diagnostics"
 
@@ -4223,6 +4226,9 @@ msgstr "Exclure du rendu"
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Les sessions de révision existantes conservent leur propre instantané de liste de contrôle. Les modifications de liste de contrôle s'appliquent aux sessions nouvellement créées."
 
+msgid "Exit full screen"
+msgstr "Quitter le plein écran"
+
 msgid "Expand"
 msgstr "Développer"
 
@@ -4691,6 +4697,9 @@ msgstr "Contrôle total sur les stratégies de rendu, l'élagage et les filtres.
 msgid "Full project backup & transfer"
 msgstr "Sauvegarde et transfert complet du projet"
 
+msgid "Full screen"
+msgstr "Plein écran"
+
 msgid "Full-size source page preview."
 msgstr "Aperçu de la page source en taille réelle."
 
@@ -5025,6 +5034,10 @@ msgstr "Regroupe les régions d'image en illustrations distinctes sur chaque pag
 
 msgid "Guidance for this book"
 msgstr "Consignes pour ce livre"
+
+msgctxt "Height"
+msgid "H"
+msgstr "H"
 
 #. placeholder {0}: entry.level
 msgid "H{0}"
@@ -7423,6 +7436,9 @@ msgstr "Ouvrir l'aperçu de l'image"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Ouvrez-le dans n'importe quelle liseuse EPUB 3 ou outil d'accessibilité."
 
+msgid "Open in the browser"
+msgstr "Ouvrir dans le navigateur"
+
 msgid "Open linked page in preview"
 msgstr "Ouvrir la page liée dans l'aperçu"
 
@@ -9064,8 +9080,14 @@ msgstr "Rétablir la couleur d'accent du livre"
 msgid "Reset zoom"
 msgstr "Réinitialiser le zoom"
 
+msgid "Resize height"
+msgstr "Redimensionner la hauteur"
+
 msgid "Resize panel"
 msgstr "Redimensionner le panneau"
+
+msgid "Resize width"
+msgstr "Redimensionner la largeur"
 
 msgid "Resolving source language..."
 msgstr "Résolution de la langue source..."
@@ -10079,6 +10101,9 @@ msgstr "Afficher toutes les traductions"
 
 #~ msgid "Show API key"
 #~ msgstr "Afficher la clé API"
+
+#~ msgid "Show controls"
+#~ msgstr "Afficher les commandes"
 
 msgid "Show credential"
 msgstr "Afficher l'identifiant"
@@ -12227,6 +12252,10 @@ msgstr "Voix et accents"
 
 msgid "Volcanic Origins"
 msgstr "Origines volcaniques"
+
+msgctxt "Width"
+msgid "W"
+msgstr "L"
 
 msgid "Wait for glossary generation to finish"
 msgstr "Attendre la fin de la génération du glossaire"

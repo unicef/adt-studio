@@ -3578,6 +3578,9 @@ msgstr "Detects exercises and quizzes embedded in the book and classifies them a
 msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
 msgstr "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
 
+msgid "Device"
+msgstr "Device"
+
 msgid "Diagnostics"
 msgstr "Diagnostics"
 
@@ -4221,6 +4224,9 @@ msgstr "Exclude from render"
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 
+msgid "Exit full screen"
+msgstr "Exit full screen"
+
 msgid "Expand"
 msgstr "Expand"
 
@@ -4689,6 +4695,9 @@ msgstr "Full control over render strategies, pruning, and filters."
 msgid "Full project backup & transfer"
 msgstr "Full project backup & transfer"
 
+msgid "Full screen"
+msgstr "Full screen"
+
 msgid "Full-size source page preview."
 msgstr "Full-size source page preview."
 
@@ -5023,6 +5032,10 @@ msgstr "Groups image regions into discrete illustrations on each page."
 
 msgid "Guidance for this book"
 msgstr "Guidance for this book"
+
+msgctxt "Height"
+msgid "H"
+msgstr "H"
 
 #. placeholder {0}: entry.level
 msgid "H{0}"
@@ -7421,6 +7434,9 @@ msgstr "Open image preview"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 
+msgid "Open in the browser"
+msgstr "Open in the browser"
+
 msgid "Open linked page in preview"
 msgstr "Open linked page in preview"
 
@@ -9062,8 +9078,14 @@ msgstr "Reset to the book's accent"
 msgid "Reset zoom"
 msgstr "Reset zoom"
 
+msgid "Resize height"
+msgstr "Resize height"
+
 msgid "Resize panel"
 msgstr "Resize panel"
+
+msgid "Resize width"
+msgstr "Resize width"
 
 msgid "Resolving source language..."
 msgstr "Resolving source language..."
@@ -10077,6 +10099,9 @@ msgstr "Show all translations"
 
 #~ msgid "Show API key"
 #~ msgstr "Show API key"
+
+#~ msgid "Show controls"
+#~ msgstr "Show controls"
 
 msgid "Show credential"
 msgstr "Show credential"
@@ -12225,6 +12250,10 @@ msgstr "Voices & Accents"
 
 msgid "Volcanic Origins"
 msgstr "Volcanic Origins"
+
+msgctxt "Width"
+msgid "W"
+msgstr "W"
 
 msgid "Wait for glossary generation to finish"
 msgstr "Wait for glossary generation to finish"

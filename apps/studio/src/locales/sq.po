@@ -3580,6 +3580,9 @@ msgstr "Zbulon ushtrimet dhe kuizet e ngulura në libër dhe i klasifikon si sek
 msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
 msgstr "Zbulon tekstin e vulosur në mënyrë identike në të gjitha faqet — si një njoftim diagonal “vetëm për lexim në internet” — dhe e heq atë nga faqet e renderuara, figurat e nxjerra dhe teksti i librit. Çaktivizojeni për t’i ruajtur faqet saktësisht siç janë shtypur."
 
+msgid "Device"
+msgstr "Pajisja"
+
 msgid "Diagnostics"
 msgstr "Diagnostikime"
 
@@ -4223,6 +4226,9 @@ msgstr "Përjashto nga renderimi"
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Seancat ekzistuese të rishikuesit ruajnë fotografinë e tyre të listës së kontrollit. Ndryshimet e reja të listës zbatohen për seancat e krijuara rishtazi."
 
+msgid "Exit full screen"
+msgstr "Dil nga ekrani i plotë"
+
 msgid "Expand"
 msgstr "Zgjer"
 
@@ -4691,6 +4697,9 @@ msgstr "Kontroll i plotë mbi strategjitë e renderimit, prerjes dhe filtrave."
 msgid "Full project backup & transfer"
 msgstr "Kopje rezervë dhe transferim i plotë i projektit"
 
+msgid "Full screen"
+msgstr "Ekran i plotë"
+
 msgid "Full-size source page preview."
 msgstr "Pamje paraprake e faqes burimore në madhësi të plotë."
 
@@ -5025,6 +5034,10 @@ msgstr "Grupon rajonet e imazheve në ilustrime të veçanta në çdo faqe."
 
 msgid "Guidance for this book"
 msgstr "Udhëzime për këtë libër"
+
+msgctxt "Height"
+msgid "H"
+msgstr "L"
 
 #. placeholder {0}: entry.level
 msgid "H{0}"
@@ -7423,6 +7436,9 @@ msgstr "Hapni pamjen paraprake të imazhit"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Hapeni në çdo lexues EPUB 3, e-reader, ose mjet aksesueshmërie."
 
+msgid "Open in the browser"
+msgstr "Hape në shfletues"
+
 msgid "Open linked page in preview"
 msgstr "Hap faqen e lidhur në parapamje"
 
@@ -9064,8 +9080,14 @@ msgstr "Rikthe ngjyrën e theksit të librit"
 msgid "Reset zoom"
 msgstr "Rivendos zmadhimin"
 
+msgid "Resize height"
+msgstr "Ndrysho lartësinë"
+
 msgid "Resize panel"
 msgstr "Ripërmasoni panelin"
+
+msgid "Resize width"
+msgstr "Ndrysho gjerësinë"
 
 msgid "Resolving source language..."
 msgstr "Duke zgjidhur gjuhën burimore..."
@@ -10079,6 +10101,9 @@ msgstr "Shfaq të gjitha përkthimet"
 
 #~ msgid "Show API key"
 #~ msgstr "Shfaq çelësin API"
+
+#~ msgid "Show controls"
+#~ msgstr "Shfaq kontrollet"
 
 msgid "Show credential"
 msgstr "Shfaq kredencialin"
@@ -12227,6 +12252,10 @@ msgstr "Zëra dhe akcente"
 
 msgid "Volcanic Origins"
 msgstr "Origjina vullkanike"
+
+msgctxt "Width"
+msgid "W"
+msgstr "Gj"
 
 msgid "Wait for glossary generation to finish"
 msgstr "Prit të përfundojë gjenerimi i glosariumit"
