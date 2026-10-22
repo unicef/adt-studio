@@ -6084,6 +6084,9 @@ msgstr "Loading text catalog..."
 msgid "Loading text sizes…"
 msgstr "Loading text sizes…"
 
+msgid "Loading the page"
+msgstr "Loading the page"
+
 msgid "Loading the page HTML…"
 msgstr "Loading the page HTML…"
 

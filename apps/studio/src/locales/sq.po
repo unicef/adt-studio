@@ -6086,6 +6086,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
 
+msgid "Loading the page"
+msgstr "Po ngarkohet faqja"
+
 msgid "Loading the page HTML…"
 msgstr "Po ngarkohet HTML-ja e faqes…"
 

@@ -64,10 +64,10 @@ export function PreviewScreen({ label, targetSectionId, targetHref, onBack }: Pr
       )}
 
       <div className="relative flex min-h-0 flex-1">
-        {src ? (
-          <PreviewFrame src={src} size={size} onResize={setSize} fullscreen={fullscreen.fullscreen} />
-        ) : (
+        {pkg.error ? (
           <PreviewStatusPanel error={pkg.error} onRetry={pkg.repackage} />
+        ) : (
+          <PreviewFrame src={src} size={size} onResize={setSize} fullscreen={fullscreen.fullscreen} />
         )}
       </div>
     </div>

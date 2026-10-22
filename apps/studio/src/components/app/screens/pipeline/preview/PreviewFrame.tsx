@@ -2,6 +2,7 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { useCanvasPane } from "@/components/app/screens/pipeline/canvas/canvasLayout"
 import { cn } from "@/lib/utils"
+import { PreviewLoading } from "./PreviewLoading"
 import { PreviewResizeHandle, type ResizeEdge } from "./PreviewResizeHandle"
 import { clampSize, type PreviewSize } from "./previewSize"
 
@@ -21,7 +22,7 @@ interface Drag {
 }
 
 export interface PreviewFrameProps {
-  src: string
+  src: string | null
   size: PreviewSize
   onResize: (size: PreviewSize) => void
   fullscreen: boolean
@@ -33,6 +34,7 @@ export function PreviewFrame({ src, size, onResize, fullscreen }: PreviewFramePr
   const { pane } = useCanvasPane(paneRef, true)
   const dragRef = useRef<Drag | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
 
   const scale =
     pane.width && pane.height
@@ -104,25 +106,29 @@ export function PreviewFrame({ src, size, onResize, fullscreen }: PreviewFramePr
       >
         <div
           className={cn(
-            "size-full overflow-hidden bg-white",
+            "relative size-full overflow-hidden bg-white",
             !fullscreen && "shadow-[0_1px_3px_rgba(0,0,0,0.08)] ring-1 ring-black/5",
           )}
         >
-          <iframe
-            src={src}
-            title={t`Book preview`}
-            className={cn("border-0 bg-white", fullscreen && "size-full", dragging && "pointer-events-none")}
-            style={
-              fullscreen
-                ? undefined
-                : {
-                    width: size.width,
-                    height: size.height,
-                    transform: `scale(${scale})`,
-                    transformOrigin: "0 0",
-                  }
-            }
-          />
+          {src && (
+            <iframe
+              src={src}
+              title={t`Book preview`}
+              onLoad={() => setLoadedSrc(src)}
+              className={cn("border-0 bg-white", fullscreen && "size-full", dragging && "pointer-events-none")}
+              style={
+                fullscreen
+                  ? undefined
+                  : {
+                      width: size.width,
+                      height: size.height,
+                      transform: `scale(${scale})`,
+                      transformOrigin: "0 0",
+                    }
+              }
+            />
+          )}
+          <PreviewLoading phase={!src ? "building" : loadedSrc !== src ? "loading" : null} />
         </div>
         {!fullscreen && (
           <>
