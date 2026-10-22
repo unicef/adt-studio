@@ -8,6 +8,7 @@ import type { OutputStatus } from "@adt/types"
 const join = (strings: TemplateStringsArray, ...values: unknown[]) =>
   strings.reduce((text, part, index) => text + part + (index < values.length ? String(values[index]) : ""), "")
 const state = vi.hoisted(() => ({ setExtra: (_extra: ReactNode) => {}, save: (() => undefined) as () => void | Promise<void>, stay: async () => {} }))
+vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ isRunning: false }) }))
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: ReactNode }) => <>{children}</>,
   useLingui: () => ({ t: join, i18n: { locale: "en", _: (d: {message: string}) => d.message } }),

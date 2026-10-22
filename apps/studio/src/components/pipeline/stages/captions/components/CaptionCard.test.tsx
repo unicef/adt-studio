@@ -7,6 +7,7 @@ import type { OutputStatus } from "@adt/types"
 
 const join = (strings: TemplateStringsArray, ...values: unknown[]) =>
   strings.reduce((text, part, index) => text + part + (index < values.length ? String(values[index]) : ""), "")
+vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ isRunning: false }) }))
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: ReactNode }) => <>{children}</>,
   useLingui: () => ({ t: join, i18n: { locale: "en" } }),

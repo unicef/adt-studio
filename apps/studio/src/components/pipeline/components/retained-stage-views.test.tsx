@@ -4,6 +4,8 @@ import { afterEach, expect, it, vi } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
+vi.mock("../pipeline-i18n", () => ({ getStageLabelI18n: (value: string) => value }))
+vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ isRunning: false }) }))
 vi.mock("@/hooks/use-stage-status", () => ({ useStageStatus: () => ({ isCompleted: false, isRunning: false, hasError: false }) }))
 vi.mock("./output-review/OutputReviewPanel", () => ({ OutputReviewPanel: () => null }))
 vi.mock("../stages/languages/LanguageView", () => ({ LanguageView: () => <p>Saved translations</p> }))
