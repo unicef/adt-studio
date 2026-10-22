@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-const speechRouting = vi.hoisted(() => ({ config: {} as Record<string, unknown>, available: [] as string[], globalAvailable: false, queueRun: vi.fn() }))
+const speechRouting = vi.hoisted(() => ({ config: {} as Record<string, unknown>, tts: { languages: {} } as { languages: Record<string, { entries: unknown[] }> }, available: [] as string[], globalAvailable: false, queueRun: vi.fn() }))
 const saveActions = vi.hoisted(() => ({ stay: async () => {}, restoring: (_next: boolean) => {}, speechRestoring: false, discard: () => {}, speechEditing: (_id: string, _language: string, _editing: boolean) => {} }))
 const join = (strings: TemplateStringsArray, ...values: unknown[]) => strings.reduce((text, part, index) => text + part + (values[index] ?? ""), "")
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({ message: join(strings, ...values) }) }))
@@ -19,7 +19,7 @@ vi.mock("@/hooks/use-book-tasks", () => ({ useBookTasks: () => ({ isTaskRunning:
 vi.mock("@/hooks/use-stage-missing-counts", () => ({ useStageMissingCounts: () => ({ translate: 0, speech: 0 }) }))
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ isAvailable: (_modality: string, model: string) => speechRouting.available.includes(model?.split(":")[0]), hasSpeechProvider: speechRouting.globalAvailable, hasTranscriber: false }), useBookStructuredTextAvailability: () => true }))
 vi.mock("@/hooks/use-elevenlabs-voices", () => ({ useElevenLabsVoices: () => ({ describeVoice: () => "" }) }))
-vi.mock("@/hooks/use-tts", () => ({ useTTSData: () => ({ data: { languages: {} } }) }))
+vi.mock("@/hooks/use-tts", () => ({ useTTSData: () => ({ data: speechRouting.tts }) }))
 vi.mock("../../components/StepViewRouter", () => ({ useStepHeader: () => ({ headerSlotEl: document.body }) }))
 vi.mock("../../components/OutputReview", () => ({ OutputReview: () => null, useOutputs: () => ({ data: { outputs: [] } }) }))
 vi.mock("./components/CoreTtsSpeechEditor", () => ({ CoreTtsBadges: () => null, CoreTtsSpeechEditor: ({ onEditingChange, restoring }: { onEditingChange: typeof saveActions.speechEditing; restoring: boolean }) => { saveActions.speechEditing = onEditingChange; saveActions.speechRestoring = restoring; return null } }))
@@ -29,13 +29,13 @@ vi.mock("@/components/pipeline/components/VersionPicker", () => ({ VersionPicker
   saveActions.restoring = onRestoringChange
   return <button disabled={!dirty || saving} onClick={() => { void onSave().catch(() => {}) }}>Save translation</button>
 } }))
-vi.mock("@/api/client", () => ({ BASE_URL: "", getAudioUrl: () => "", api: { getTextCatalog: vi.fn(), getEasyRead: vi.fn().mockResolvedValue(null), listTranslatedImages: vi.fn().mockResolvedValue({ images: [] }), updateTranslation: vi.fn(), getVoiceMappings: vi.fn().mockResolvedValue({}) } }))
+vi.mock("@/api/client", () => ({ BASE_URL: "", getAudioUrl: () => "", api: { getTextCatalog: vi.fn(), getEasyRead: vi.fn().mockResolvedValue(null), listTranslatedImages: vi.fn().mockResolvedValue({ images: [] }), updateTranslation: vi.fn(), getVoiceMappings: vi.fn().mockResolvedValue({}), getWordTimestamps: vi.fn(), saveWordTimestamps: vi.fn() } }))
 
 const { api } = await import("@/api/client")
 const { TooltipProvider } = await import("@/components/ui/tooltip")
 const { LanguageView } = await import("./LanguageView")
 let client: QueryClient
-beforeEach(() => { vi.clearAllMocks(); speechRouting.config = {}; speechRouting.available = []; speechRouting.globalAvailable = false; saveActions.stay = async () => { throw new Error("Save controls have not rendered") } })
+beforeEach(() => { vi.clearAllMocks(); speechRouting.config = {}; speechRouting.tts = { languages: {} }; speechRouting.available = []; speechRouting.globalAvailable = false; saveActions.stay = async () => { throw new Error("Save controls have not rendered") } })
 afterEach(() => { cleanup(); client?.clear() })
 
 it.each(["conflict", "successor"])("Save & leave retains a translation %s draft and permits a guarded retry", async mode => {
@@ -224,4 +224,44 @@ it.each([
   fireEvent.click(run)
   expect(speechRouting.queueRun).toHaveBeenCalledTimes(scenario.enabled ? 1 : 0)
   if (scenario.enabled) expect(speechRouting.queueRun).toHaveBeenCalledWith(expect.objectContaining({fromStage: "speech", toStage: "speech"}))
+})
+
+it("protects timing drafts across pending saves, language/voice selection and external removal", async () => {
+  speechRouting.tts = { languages: { fr: { entries: ["primary", "secondary"].map(voiceSlot => ({ textId: "pg001_text", fileName: `legacy-${voiceSlot}.mp3`, voice: voiceSlot === "primary" ? "First narrator" : "Second narrator", voiceSlot })) } } }
+  const timing = { textId: "pg001_text", language: "fr", version: 1, audioIdentity: "legacy", words: [{ word: "Bonjour", start: 0, end: 1 }], duration: 1 }
+  vi.mocked(api.getWordTimestamps).mockResolvedValue({ entries: { pg001_text: timing }, generatedAt: "old" })
+  let finish!: (value: unknown) => void
+  vi.mocked(api.saveWordTimestamps).mockImplementationOnce(() => new Promise(resolve => { finish = resolve })).mockRejectedValue(new Error("Audio changed"))
+  renderLanguages("speech")
+  fireEvent.click(await screen.findByRole("button", { name: /words/ }))
+  act(() => {
+    fireEvent.change(screen.getByTitle("Start"), { target: { value: "0.100" } })
+    fireEvent.click(screen.getByRole("button", { name: /Spanish.*es/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Second narrator" }))
+  })
+  fireEvent.blur(screen.getByTitle("Start"))
+  fireEvent.click(screen.getByRole("button", { name: "Save", exact: true }))
+  await waitFor(() => expect(api.saveWordTimestamps).toHaveBeenCalledTimes(1))
+  fireEvent.change(screen.getByTitle("Start"), { target: { value: "0.200" } })
+  const spanish = screen.getByRole("button", { name: /Spanish.*es/ }) as HTMLButtonElement
+  const secondVoice = screen.getByRole("button", { name: "Second narrator" }) as HTMLButtonElement
+  expect(spanish.disabled).toBe(true)
+  expect(secondVoice.disabled).toBe(true)
+  expect((screen.getByTitle("Delete all speech") as HTMLButtonElement).disabled).toBe(true)
+  fireEvent.click(spanish)
+  fireEvent.click(secondVoice)
+  await act(async () => { finish({ ok: true, entry: { ...timing, version: 2, audioHash: "snapshot", audioIdentity: "snapshot" } }) })
+  expect((screen.getByTitle("Start") as HTMLInputElement).value).toBe("0.200")
+  // Another writer removes the last source and its audio/timings. The draft
+  // remains visible, and saving still uses our own old acknowledgement.
+  speechRouting.tts = { languages: {} }
+  act(() => {
+    client.setQueryData(["books", "book", "text-catalog"], { version: 5, entries: [], translations: {} })
+    client.setQueryData(["books", "book", "tts-timestamps", "fr"], { entries: {}, generatedAt: "new" })
+  })
+  expect((await screen.findByTitle("Start") as HTMLInputElement).value).toBe("0.200")
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Save", exact: true })) })
+  expect(api.saveWordTimestamps).toHaveBeenLastCalledWith("book", "fr", "pg001_text", expect.objectContaining({ baseVersion: 2, audioIdentity: "snapshot", words: [{ word: "Bonjour", start: 0.2, end: 1 }] }))
+  expect(screen.getByRole("alert").textContent).toBe("Audio changed")
+  expect((screen.getByTitle("Start") as HTMLInputElement).value).toBe("0.200")
 })

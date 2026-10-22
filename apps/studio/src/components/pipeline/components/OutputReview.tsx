@@ -90,7 +90,7 @@ function OutputReviewItem({ bookLabel, output, outputs, reviewTargets, dirty = f
     <div className="flex flex-wrap items-center gap-2">
       <span className="font-medium">{label}</span>
       {(output.manual || edited) && <span>{edited ? t`Unsaved edit` : t`Edited manually`}</span>}
-      {output.updateNeeded && <span className="font-medium">{t`Update needed`}</span>}
+      {output.updateNeeded && <span className="font-medium">{t`Out of sync`}</span>}
       {warnings.length > 0 && <span className="inline-flex items-center gap-1 font-medium"><AlertTriangle className="h-3 w-3" />{t`Warning`}</span>}
       {output.missing && <span className="font-medium">{t`Missing`}</span>}
     </div>

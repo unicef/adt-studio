@@ -9022,6 +9022,9 @@ msgstr "Po segmentohet…"
 msgid "Select a .zip project archive exported from ADT Studio."
 msgstr "Zgjidhni një arkivë projekti .zip të eksportuar nga ADT Studio."
 
+msgid "Select a language before saving timings"
+msgstr "Zgjidhni një gjuhë para se të ruani kohët"
+
 msgid "Select a node type and enter an item ID to view versions."
 msgstr "Zgjidhni një lloj nyje dhe shkruani një ID elementi për të parë versionet."
 
@@ -10928,8 +10931,8 @@ msgstr "Përditësim i disponueshëm"
 msgid "Update filtered items"
 msgstr "Përditëso elementet e filtruara"
 
-msgid "Update needed"
-msgstr "Nevojitet përditësim"
+#~ msgid "Update needed"
+#~ msgstr "Nevojitet përditësim"
 
 msgid "Update ready to install"
 msgstr "Përditësimi është gati për instalim"

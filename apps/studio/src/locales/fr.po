@@ -9022,6 +9022,9 @@ msgstr "Segmentation…"
 msgid "Select a .zip project archive exported from ADT Studio."
 msgstr "Sélectionnez une archive de projet .zip exportée depuis ADT Studio."
 
+msgid "Select a language before saving timings"
+msgstr "Sélectionnez une langue avant d’enregistrer les repères temporels"
+
 msgid "Select a node type and enter an item ID to view versions."
 msgstr "Sélectionnez un type de nœud et saisissez un ID d'élément pour voir les versions."
 
@@ -10928,8 +10931,8 @@ msgstr "Mise à jour disponible"
 msgid "Update filtered items"
 msgstr "Mettre à jour les éléments filtrés"
 
-msgid "Update needed"
-msgstr "Mise à jour nécessaire"
+#~ msgid "Update needed"
+#~ msgstr "Mise à jour nécessaire"
 
 msgid "Update ready to install"
 msgstr "Mise à jour prête à être installée"

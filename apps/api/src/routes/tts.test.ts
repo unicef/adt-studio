@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createHash } from "node:crypto"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, restoreSpeechOutput } from "@adt/storage"
 const { transcribeWithWhisperMock } = vi.hoisted(() => ({
   transcribeWithWhisperMock: vi.fn(),
 }))
@@ -1686,5 +1686,117 @@ describe("word timestamps are slot-specific", () => {
     } finally {
       after.close()
     }
+  })
+})
+
+describe("manual legacy timing saves", () => {
+  const label = "legacy-timing-save"
+  const id = "pg001_t001"
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-legacy-timings-"))
+    configPath = path.join(tmpDir, "config.yaml")
+    writeConfig()
+  })
+  afterEach(() => { vi.restoreAllMocks(); fs.rmSync(tmpDir, { recursive: true, force: true }) })
+
+  function setup(namespace = "en", emptyHash = false) {
+    seedBook(label)
+    const storage = createBookStorage(label, tmpDir)
+    const dir = path.join(tmpDir, label, "audio", namespace)
+    fs.mkdirSync(dir, { recursive: true })
+    const entries = ["primary", "secondary"].map((voiceSlot) => {
+      const fileName = `legacy-${voiceSlot}.mp3`
+      fs.writeFileSync(path.join(dir, fileName), `legacy ${voiceSlot} recording`)
+      return { textId: id, language: namespace, fileName, ...(emptyHash ? { audioHash: "" } : {}), voiceSlot, voice: "alloy", model: "tts", provider: "openai", cached: false }
+    })
+    storage.putNodeData("tts", namespace, { entries, generatedAt: "old" })
+    storage.putNodeData("tts-timestamps", namespace, { entries: Object.fromEntries(entries.map((entry) => [entry.voiceSlot === "primary" ? id : `${id}--secondary`, {
+      textId: id, language: namespace, voiceSlot: entry.voiceSlot, ...(emptyHash ? { audioHash: "" } : {}), source: "manual", words: [{ word: "Hello", start: 0, end: 1 }], duration: 1,
+    }])), generatedAt: "old" })
+    storage.close()
+    return { app: createTTSRoutes(tmpDir, configPath), dir, namespace, language: namespace.replace("_", "-") }
+  }
+  async function read(fixture: ReturnType<typeof setup>) {
+    const response = await fixture.app.request(`/books/${label}/tts/timestamps/${fixture.language}`)
+    expect(response.status).toBe(200)
+    return (await response.json()).entries[id]
+  }
+  function save(fixture: ReturnType<typeof setup>, receipt: { version: number; audioIdentity?: string }, voiceSlot = "primary") {
+    return fixture.app.request(`/books/${label}/tts/timestamps/${fixture.language}/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ baseVersion: receipt.version, audioIdentity: receipt.audioIdentity, voiceSlot, words: [{ word: "Hello", start: 0.1, end: 1 }], duration: 1 }) })
+  }
+  function inspect<T>(fn: (storage: ReturnType<typeof createBookStorage>) => T) {
+    const storage = createBookStorage(label, tmpDir)
+    try { return fn(storage) } finally { storage.close() }
+  }
+
+  it.each(["en", "pt_BR"])("edits legacy timings using the read receipt and preserves restorable audio (%s)", async namespace => {
+    const fixture = setup(namespace)
+    const mediaReads: string[] = []
+    const originalRead = fs.readFileSync
+    const spy = vi.spyOn(fs, "readFileSync").mockImplementation(((...args: Parameters<typeof fs.readFileSync>) => {
+      if (String(args[0]).endsWith(".mp3")) mediaReads.push(String(args[0]))
+      return originalRead(...args)
+    }) as typeof fs.readFileSync)
+    const receipt = await read(fixture)
+    await read(fixture)
+    expect(receipt.audioHash).toBeUndefined()
+    expect(receipt.audioIdentity).toEqual(expect.any(String))
+    expect(mediaReads).toEqual([])
+    inspect(storage => {
+      expect(storage.getAllNodeVersions("tts", namespace)).toHaveLength(1)
+      expect(storage.getAllNodeVersions("tts-timestamps", namespace)).toHaveLength(1)
+    })
+    spy.mockRestore()
+    const saved = await save(fixture, receipt)
+    expect(saved.status).toBe(200)
+    const acknowledgement = await saved.json()
+    expect(acknowledgement).toMatchObject({ ok: true, entry: { source: "manual", audioHash: expect.any(String), audioIdentity: expect.any(String), version: expect.any(Number), words: [{ word: "Hello", start: 0.1, end: 1 }] } })
+    expect(await read(fixture)).toEqual(acknowledgement.entry)
+    inspect(storage => {
+      const timings = storage.getLatestNodeData("tts-timestamps", namespace)!.data as { entries: Record<string, { words: unknown; source: string }> }
+      expect(timings.entries[`${id}--secondary`]).toMatchObject({ source: "manual", words: [{ word: "Hello", start: 0, end: 1 }] })
+      expect(restoreSpeechOutput(storage, path.join(tmpDir, label), namespace, 1)).toBe(true)
+      const restored = storage.getLatestNodeData("tts", namespace)!.data as { entries: { fileName: string }[] }
+      expect(fs.readFileSync(path.join(fixture.dir, restored.entries[0].fileName), "utf8")).toBe("legacy primary recording")
+      expect(storage.getLatestNodeData("tts-timestamps", namespace)!.data).toMatchObject({ entries: { [id]: { words: [{ word: "Hello", start: 0, end: 1 }] } } })
+    })
+    expect(readLatestLogParams(label)).toBeUndefined()
+  })
+
+  it("issues a usable identity when historical rows contain empty audio hashes", async () => {
+    const fixture = setup("en", true)
+    const receipt = await read(fixture)
+    expect(receipt.audioHash).toBe("")
+    expect((await save(fixture, receipt)).status).toBe(200)
+  })
+
+  it.each(["audio", "timings", "missing-file", "voice", "namespace"])("rejects stale or unavailable legacy writes without changing state (%s)", async change => {
+    const fixture = setup(change === "namespace" ? "pt_BR" : "en")
+    const receipt = await read(fixture)
+    inspect(storage => {
+      if (change === "audio" || change === "namespace") {
+        const row = storage.getLatestNodeData("tts", fixture.namespace)!
+        const data = row.data as { entries: { fileName: string }[] }
+        storage.putNodeData("tts", change === "namespace" ? "pt-BR" : fixture.namespace, { ...data, entries: data.entries.map(entry => ({ ...entry, fileName: "replacement.mp3" })) })
+      }
+      if (change === "timings") storage.putNodeData("tts-timestamps", fixture.namespace, storage.getLatestNodeData("tts-timestamps", fixture.namespace)!.data)
+    })
+    if (change === "missing-file") fs.unlinkSync(path.join(fixture.dir, "legacy-primary.mp3"))
+    const before = inspect(storage => [storage.getAllNodeVersions("tts", fixture.namespace), storage.getAllNodeVersions("tts-timestamps", fixture.namespace)])
+    expect((await save(fixture, receipt, change === "voice" ? "secondary" : "primary")).status).toBe(409)
+    expect(inspect(storage => [storage.getAllNodeVersions("tts", fixture.namespace), storage.getAllNodeVersions("tts-timestamps", fixture.namespace)])).toEqual(before)
+  })
+
+  it("rejects a duplicate save and rolls back failed physical publication", async () => {
+    const fixture = setup()
+    const receipt = await read(fixture)
+    const before = inspect(storage => [storage.getAllNodeVersions("tts", "en"), storage.getAllNodeVersions("tts-timestamps", "en")])
+    const fail = vi.spyOn(fs, "linkSync").mockImplementation(() => { throw Object.assign(new Error("Disk failure"), { code: "EIO" }) })
+    expect((await save(fixture, receipt)).status).toBe(500)
+    expect(inspect(storage => [storage.getAllNodeVersions("tts", "en"), storage.getAllNodeVersions("tts-timestamps", "en")])).toEqual(before)
+    expect(fs.readFileSync(path.join(fixture.dir, "legacy-primary.mp3"), "utf8")).toBe("legacy primary recording")
+    fail.mockRestore()
+    expect((await save(fixture, receipt)).status).toBe(200)
+    expect((await save(fixture, receipt)).status).toBe(409)
   })
 })

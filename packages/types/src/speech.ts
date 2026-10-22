@@ -407,6 +407,35 @@ export const WordTimestampEntry = z.object({
 })
 export type WordTimestampEntry = z.infer<typeof WordTimestampEntry>
 
+/** Read-time metadata receipt. It never hashes or snapshots media on opening. */
+export const WordTimestampEditGuard = z.object({
+  baseVersion: z.number().int().nonnegative(),
+  audioHash: z.string().min(1).optional(),
+  audioIdentity: z.string().min(1).optional(),
+})
+export type WordTimestampEditGuard = z.infer<typeof WordTimestampEditGuard>
+
+export const WordTimestampSaveRequest = WordTimestampEditGuard.extend({
+  words: z.array(WordTimestamp),
+  duration: z.number(),
+  voiceSlot: VoiceSlot.optional(),
+}).strict().refine((guard) => !!(guard.audioIdentity || guard.audioHash), {
+  message: "An audio identity or audio hash is required",
+})
+export type WordTimestampSaveRequest = z.infer<typeof WordTimestampSaveRequest>
+
+export const WordTimestampReadEntry = WordTimestampEntry.extend({
+  version: z.number().int().nonnegative(),
+  audioIdentity: z.string().optional(),
+})
+export type WordTimestampReadEntry = z.infer<typeof WordTimestampReadEntry>
+
+export const WordTimestampSaveResponse = z.object({
+  ok: z.literal(true),
+  entry: WordTimestampReadEntry,
+})
+export type WordTimestampSaveResponse = z.infer<typeof WordTimestampSaveResponse>
+
 export const WordTimestampOutput = z.object({
   entries: z.record(z.string(), WordTimestampEntry),
   generatedAt: z.string(),

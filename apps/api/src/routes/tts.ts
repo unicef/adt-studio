@@ -1,8 +1,8 @@
-import { captureOutputReferences } from "@adt/pipeline"
+import { captureOutputReferences, inputSignature } from "@adt/pipeline"
 import { catalogOutputs, assertEditVersion } from "../services/catalog-output-service.js"
 import { assertOutputPublication, outputIdentityKey, selectedForGeneration, outputEvidence, timestampInputSignature } from "@adt/pipeline"
-import { OutputReplacement, OutputRunScope } from "@adt/types"
-import { publishSpeechOutput, publishSpeechTimings } from "@adt/storage"
+import { OutputReplacement, OutputRunScope, WordTimestampSaveRequest } from "@adt/types"
+import { publishSpeechOutput, publishSpeechTimings, bookAssetExists } from "@adt/storage"
 import { reconcileSpeechInputs, loadCoreTtsProfiles } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
@@ -217,6 +217,25 @@ function getLatestTtsOutput(
     storage.getLatestNodeData("tts", legacyLanguage)
 
   return row ? (row.data as TTSOutput) : undefined
+}
+
+/** Use the actual persisted locale namespace, including pre-normalization books. */
+function timingState(storage: ReturnType<typeof createBookStorage>, language: string) {
+  const normalized = normalizeLocale(language)
+  const legacy = normalized.replace("-", "_")
+  const canonical = storage.getLatestNodeData("tts", normalized)
+  const namespace = canonical ? normalized : storage.getLatestNodeData("tts", legacy) ? legacy : normalized
+  const audioRow = canonical ?? storage.getLatestNodeData("tts", namespace)
+  const audio = TTSOutput.safeParse(audioRow?.data)
+  const timingRow = storage.getLatestNodeData("tts-timestamps", namespace)
+  return { namespace, audio: audio.success ? audio.data.entries : [], timingRow }
+}
+
+function timingAudioIdentity(namespace: string, entries: SpeechFileEntry[], textId: string, voiceSlot: VoiceSlot) {
+  const matches = entries.filter((entry) => entry.textId === textId && resolveEntryVoiceSlot(entry) === voiceSlot)
+  // Ambiguous legacy identities must not authorize a write to either recording.
+  const audio = matches.length === 1 ? matches[0] : undefined
+  return { audio, audioIdentity: audio ? inputSignature({ namespace, audio }) : undefined }
 }
 
 function mergeSpeechEntry(
@@ -1324,13 +1343,17 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const normalizedLanguage = normalizeLocale(language)
-      const row = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-      if (!row) {
-        return c.json({ entries: {}, generatedAt: null, version: 0 })
-      }
-      const data = row.data as WordTimestampOutput
-      return c.json({ ...data, version: row.version, entries: Object.fromEntries(Object.entries(data.entries).map(([id, entry]) => [id, { ...entry, version: row.version }])) })
+      return storage.readSnapshot(() => {
+        const { namespace, audio, timingRow: row } = timingState(storage, language)
+        if (!row) return c.json({ entries: {}, generatedAt: null, version: 0 })
+        const data = row.data as WordTimestampOutput
+        return c.json({ ...data, version: row.version, entries: Object.fromEntries(
+          Object.entries(data.entries).map(([id, entry]) => [id, {
+            ...entry, version: row.version,
+            audioIdentity: timingAudioIdentity(namespace, audio, entry.textId, resolveEntryVoiceSlot(entry)).audioIdentity,
+          }]),
+        ) })
+      })
     } finally {
       storage.close()
     }
@@ -1353,19 +1376,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       throw new HTTPException(400, { message: "Invalid JSON body" })
     }
 
-    const schema = z.object({
-      baseVersion: z.number().int().nonnegative(),
-      audioHash: z.string().min(1),
-      words: z.array(z.object({
-        word: z.string(),
-        start: z.number(),
-        end: z.number(),
-      })),
-      duration: z.number(),
-      voiceSlot: VoiceSlot.optional(),
-    }).strict()
-
-    const parsed = schema.safeParse(body)
+    const parsed = WordTimestampSaveRequest.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid request: ${parsed.error.message}`,
@@ -1377,47 +1388,62 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const storage = createBookStorage(safeLabel, booksDir)
 
     try {
-      const existingRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-      assertEditVersion(existingRow?.version, parsed.data.baseVersion)
-      const audio = getLatestTtsEntries(storage, normalizedLanguage).find((entry) => entry.textId === textId && resolveEntryVoiceSlot(entry) === voiceSlot)
-      if (!audio) throw new HTTPException(404, { message: "Audio not found for these timings." })
-      if (!audio.audioHash || audio.audioHash !== parsed.data.audioHash) throw new HTTPException(409, { message: "Audio changed. Refresh before saving timings." })
-      const existingData = existingRow
-        ? (existingRow.data as WordTimestampOutput)
-        : undefined
-      const existing = existingData?.entries ?? {}
-      const slotEntryId = voiceSlotEntryId(textId, voiceSlot)
-      const status = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { timestamps: true })
-        .find((output) => output.identity.kind === "timestamps" && output.identity.id === textId && output.identity.language === normalizedLanguage && output.identity.voiceSlot === voiceSlot)
+      return storage.transaction(() => {
+        const { namespace, audio: audioEntries, timingRow: existingRow } = timingState(storage, normalizedLanguage)
+        assertEditVersion(existingRow?.version, parsed.data.baseVersion)
+        const { audio, audioIdentity } = timingAudioIdentity(namespace, audioEntries, textId, voiceSlot)
+        if (!audio) throw new HTTPException(409, { message: "Audio is missing or ambiguous. Refresh before saving timings." })
+        if (parsed.data.audioIdentity ? parsed.data.audioIdentity !== audioIdentity : !audio.audioHash || audio.audioHash !== parsed.data.audioHash) {
+          throw new HTTPException(409, { message: "Audio changed. Refresh before saving timings." })
+        }
+        if (!bookAssetExists(path.join(booksDir, safeLabel), path.join("audio", namespace, audio.fileName))) {
+          throw new HTTPException(409, { message: "Audio file is unavailable. Restore it before saving timings." })
+        }
+        const existingData = existingRow
+          ? (existingRow.data as WordTimestampOutput)
+          : undefined
+        const existing = existingData?.entries ?? {}
+        const slotEntryId = voiceSlotEntryId(textId, voiceSlot)
+        const status = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { timestamps: true })
+          .find((output) => output.identity.kind === "timestamps" && output.identity.id === textId && output.identity.language === normalizedLanguage && output.identity.voiceSlot === voiceSlot)
 
-      const updatedEntry: WordTimestampEntry = {
-        source: "manual", audioHash: audio.audioHash,
-        input: status ? outputEvidence(status.signature, { words: parsed.data.words, duration: parsed.data.duration }) : undefined,
-        textId,
-        language: normalizedLanguage,
-        words: parsed.data.words,
-        duration: parsed.data.duration,
-        voiceSlot,
-      }
+        const updatedEntry: WordTimestampEntry = {
+          source: "manual", audioHash: audio.audioHash,
+          input: status ? outputEvidence(status.signature, { words: parsed.data.words, duration: parsed.data.duration }) : undefined,
+          textId,
+          language: normalizedLanguage,
+          words: parsed.data.words,
+          duration: parsed.data.duration,
+          voiceSlot,
+        }
 
-      const merged: Record<string, WordTimestampEntry> = {
-        ...existing,
-        [slotEntryId]: updatedEntry,
-      }
+        const merged: Record<string, WordTimestampEntry> = {
+          ...existing,
+          [slotEntryId]: updatedEntry,
+        }
 
-      // A manual edit resolves this item — drop it from the failed list while
-      // preserving any other still-failed items.
-      const remainingFailed = (existingData?.failed ?? []).filter(
-        (f) => !(f.textId === textId && resolveEntryVoiceSlot(f) === voiceSlot)
-      )
+        // A manual edit resolves this item — drop it from the failed list while
+        // preserving any other still-failed items.
+        const remainingFailed = (existingData?.failed ?? []).filter(
+          (f) => !(f.textId === textId && resolveEntryVoiceSlot(f) === voiceSlot)
+        )
 
-      publishSpeechTimings(storage, normalizedLanguage, {
-        entries: merged,
-        generatedAt: new Date().toISOString(),
-        ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
-      } satisfies WordTimestampOutput)
+        publishSpeechTimings(storage, namespace, {
+          ...existingData,
+          entries: merged,
+          generatedAt: new Date().toISOString(),
+          failed: remainingFailed.length > 0 ? remainingFailed : undefined,
+        } satisfies WordTimestampOutput)
 
-      return c.json({ ok: true })
+        // Return this transaction's acknowledgement; a later refetch may belong
+        // to a different writer and must never advance an unsaved draft's guard.
+        const saved = timingState(storage, normalizedLanguage)
+        const savedEntry = (saved.timingRow!.data as WordTimestampOutput).entries[slotEntryId]
+        if (!savedEntry) throw new Error("Timing publication did not retain the edited entry")
+        return c.json({ ok: true as const, entry: { ...savedEntry, version: saved.timingRow!.version,
+          audioIdentity: timingAudioIdentity(saved.namespace, saved.audio, textId, voiceSlot).audioIdentity,
+        } })
+      })
     } finally {
       storage.close()
     }

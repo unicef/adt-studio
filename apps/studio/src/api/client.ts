@@ -1,3 +1,5 @@
+import type { WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
+export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/types"
 import type { OutputSkipRequest } from "@adt/types"
 import type { OutputStatus, OutputSummary, OutputStageSummaryResponse, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement, StageName } from "@adt/types"
 import { isElectron } from "@/lib/utils"
@@ -753,6 +755,7 @@ export interface WordTimestamp {
 }
 
 export interface WordTimestampEntry {
+  audioIdentity?: string
   version: number
   audioHash?: string
   textId: string
@@ -1996,8 +1999,8 @@ export const api = {
       body: JSON.stringify({ textId, language, voiceSlot }),
     }),
 
-  saveWordTimestamps: (label: string, language: string, textId: string, data: { words: WordTimestamp[]; duration: number; voiceSlot?: "primary" | "secondary"; baseVersion: number; audioHash: string }) =>
-    request<{ ok: boolean }>(`/books/${label}/tts/timestamps/${language}/${textId}`, {
+  saveWordTimestamps: (label: string, language: string, textId: string, data: WordTimestampSaveRequest) =>
+    request<WordTimestampSaveResponse>(`/books/${label}/tts/timestamps/${language}/${textId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
