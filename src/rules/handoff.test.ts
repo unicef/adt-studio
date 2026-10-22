@@ -152,3 +152,35 @@ describe('placing a card leaves its people alone', () => {
     expect(h.unassign).toEqual([])
   })
 })
+
+describe('reviews on the PR', () => {
+  it('review requested while the card waits in To review: the reviewer takes it', () => {
+    const h = handoff({ from: 'to-review', to: 'reviewing', assignees: [], mover: 'eli', credits: [credit('build', 'eli')], take: ['rech'], via: 'when @rech was asked to review PR #975' }, at)
+    expect(h).toEqual({ credit: null, comment: null, assign: ['rech'], unassign: [] })
+  })
+
+  it('review requested while still in Doing: code done, the reviewer takes it', () => {
+    const h = handoff({ from: 'doing', to: 'reviewing', assignees: ['eli'], mover: 'eli', credits: [], take: ['rech'], via: 'when @rech was asked to review PR #975' }, at)
+    expect(h.credit).toEqual(credit('build', 'eli'))
+    expect(h.assign).toEqual(['rech'])
+    expect(h.unassign).toEqual(['eli'])
+    expect(h.comment).toContain('**Code done by @eli**, moved from Doing to Reviewing when @rech was asked to review PR #975.')
+  })
+
+  it('changes requested: back to the PR author, the reviewer is off it', () => {
+    const h = handoff({ from: 'reviewing', to: 'doing', assignees: ['rech'], mover: 'eli', credits: [credit('build', 'eli')], take: ['eli'], via: 'when @rech requested changes on PR #975' }, at)
+    expect(h).toEqual({ credit: null, comment: null, assign: ['eli'], unassign: ['rech'] })
+  })
+
+  it('reaching Done without anyone in Reviewing credits the PR approvers (#959)', () => {
+    const h = handoff({ from: 'to-review', to: 'done', assignees: [], mover: null, approvers: ['rech'], credits: [credit('build', 'eli')] }, at)
+    expect(h.credit).toEqual(credit('review', 'rech'))
+    expect(h.comment).toContain('**Reviewed and tested by @rech**, moved from To review to Done.')
+    expect(h.comment).toContain('Finished. Code @eli · Review & test @rech')
+  })
+
+  it('a review already credited is not credited twice at Done', () => {
+    const h = handoff({ from: 'to-review', to: 'done', assignees: [], mover: null, approvers: ['rech'], credits: [credit('build', 'eli'), credit('review', 'dani')] }, at)
+    expect(h.credit).toBeNull()
+  })
+})

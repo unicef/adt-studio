@@ -65,6 +65,7 @@ Fill the form top to bottom:
 | | everything else | No access |
 | Permissions → Account | all | No access |
 | **Subscribe to events** | **Projects v2 item** | ✅ checked. It appears once *Organization → Projects* is set. Not "Projects v2", which is about whole Projects, not their cards. |
+| | **Pull request** and **Pull request review** | ✅ checked: the board follows reviews on the PRs (needs only *Pull requests: Read-only*). |
 | | everything else | unchecked |
 | **Where can this GitHub App be installed?** | | **Only on this account** (so only unicef can ever install it) |
 

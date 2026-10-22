@@ -27,7 +27,9 @@ Inbox → Approved → To spec → Specing → Spec review → To do → Doing �
 | a finished spec goes to **Spec review** | nothing: it waits for approval, the writer stays on it |
 | someone else moves it on (Spec review → To do) | comments **"Spec written by @writer, approved by @them"** with the spec PR |
 | the **spec PR is merged** | moves the card to To do (within the hour), crediting the PR's author and approvers |
-| a **PR that closes the issue is merged** | the Project moves the card to Done; the bot credits the PR's approvers and posts the story |
+| a **review is requested** on the PR (or someone reviews it) | moves the card to **Reviewing** and assigns the reviewer (from Doing: "Code done by @author") |
+| the reviewer **requests changes** | moves the card back to **Doing**, assigned to the PR's author |
+| a **PR that closes the issue is merged** | the Project moves the card to Done; the bot credits the PR's approvers (even if the card never went through Reviewing) and posts the story |
 | a card goes back for changes | reassigns whoever did that stage before |
 | a card is just placed (triage: Inbox → To review) | nothing: nobody finished anything, the people on it stay |
 | work starts on a card with no block | gives it the current block (the Project's Block field only) |
@@ -36,6 +38,7 @@ Inbox → Approved → To spec → Specing → Spec review → To do → Doing �
 
 ```
 Card moved on #46 ──projects_v2_item webhook──▶ Worker (src/worker.ts)
+Review on a PR ─────pull_request(_review) webhook──▶   (finds the PR's issue cards, moves them, then same as a move)
                                                   │ 1. check GitHub's signature
                                                   │ 2. keep only Issue cards on #46, moved by a person
                                                   │    (or by the Project's automation, to Done)

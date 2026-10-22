@@ -96,6 +96,20 @@ The Project's **Block** field says which block a card's work is planned in. It l
 
 **Approving does not set a block.** Approve now, plan for B3 later.
 
+### When a PR is reviewed
+
+The review usually happens on the pull request, so the board follows it. The bot finds the PR's issues the same way as for merges (GitHub's link, "Closes #N", `**Issue:** #N`, the branch name) and moves their cards:
+
+| On the PR | The card | Who is on it | Comment |
+|---|---|---|---|
+| a **review is requested** from someone (card in To review, or still in Doing) | → **Reviewing** | the reviewer | from Doing: **"Code done by @author"**, moved … when @reviewer was asked to review PR #N |
+| someone **reviews** it without being asked (comment or approval) | → **Reviewing** | the reviewer | as above |
+| another reviewer joins a card already in Reviewing | stays | the new reviewer is added | none |
+| the reviewer **requests changes** | → **Doing** | the PR's author | none (a send-back) |
+| **approved and merged** (the PR closes the issue) | → **Done**, by the Project | nobody | **"Reviewed and tested by @approver"** and the story, even if the card never went through Reviewing |
+
+Draft PRs are left alone until they are ready for review; a review requested from a team (not a person) moves the card without an assignee. The author reviewing or commenting on their own PR does nothing.
+
 ### When PRs are merged
 
 | Merged | What happens | How |

@@ -35,12 +35,17 @@ export function issueNumbersFromTitle(title: string): number[] {
 export type PrLinkInput = { title: string; body: string | null; headRefName: string; closing: number[] }
 
 export function linkedIssues(pr: PrLinkInput, knownIssues: Set<number>): number[] {
+  return issueCandidates(pr).filter((n) => knownIssues.has(n))
+}
+
+// Every number the PR points at; some may be PRs or issues not on the board.
+export function issueCandidates(pr: PrLinkInput): number[] {
   const candidates = new Set<number>(pr.closing)
   const fromBranch = issueNumberFromBranch(pr.headRefName)
   if (fromBranch !== null) candidates.add(fromBranch)
   for (const n of issueNumbersFromBody(pr.body)) candidates.add(n)
   for (const n of issueNumbersFromTitle(pr.title)) candidates.add(n)
-  return [...candidates].filter((n) => knownIssues.has(n))
+  return [...candidates]
 }
 
 // A spec PR adds or edits a spec: docs/specs/SPEC-NNNN-slug.md (editing only

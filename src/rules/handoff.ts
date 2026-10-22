@@ -32,6 +32,12 @@ export type HandoffInput = {
   // Earlier hand-offs on this card, oldest first.
   credits: Credit[]
   specPr?: SpecPr | null
+  // Who takes the card in its new working column, when the move says so (the
+  // reviewer a PR review was requested from; the PR's author when changes are
+  // requested). Replaces whoever was on it.
+  take?: string[]
+  // How the card moved, when nobody dragged it: "when @x was asked to review PR #9".
+  via?: string
 }
 
 export type Handoff = {
@@ -86,6 +92,11 @@ export function handoff(input: HandoffInput, now = Date.now()): Handoff {
     const logins = people(approvers.length ? approvers : input.assignees.length ? input.assignees : mover)
     if (logins.length) credit = { stage: from.stage, logins, at: now }
   }
+  // Reaching Done with the review never credited (reviewed on the PR, the card
+  // never in Reviewing): the PR's approvers did the review.
+  if (!credit && to.kind === 'done' && !lastCredit(input.credits, 'review') && input.approvers?.length) {
+    credit = { stage: 'review', logins: people(input.approvers), at: now }
+  }
 
   // In a column where work happens: whoever did this stage before (going
   // back), whoever already took it, or else whoever moved it.
@@ -97,6 +108,7 @@ export function handoff(input: HandoffInput, now = Date.now()): Handoff {
   let target: string[] = []
   if (to.kind === 'review') target = input.assignees // waiting for approval: nobody changes
   else if (to.kind !== 'active' && !workEnds) target = input.assignees
+  else if (to.kind === 'active' && input.take?.length) target = people(input.take)
   else if (to.kind === 'active') {
     const before = forward ? undefined : lastCredit(input.credits, to.stage)?.logins
     target = before ?? (leftWork ? [] : input.assignees)
@@ -110,7 +122,7 @@ export function handoff(input: HandoffInput, now = Date.now()): Handoff {
   const by = (logins: string[]) => logins.map((l) => `@${l}`).join(', ')
   if (credit) {
     const approved = credit.approvers?.length ? `, approved by ${by(credit.approvers)}` : ''
-    const how = input.specPr?.merged && !input.mover ? ` when spec PR #${input.specPr.number} was merged` : input.mover ? ` by @${input.mover}` : ''
+    const how = input.via ? ` ${input.via}` : input.specPr?.merged && !input.mover ? ` when spec PR #${input.specPr.number} was merged` : input.mover ? ` by @${input.mover}` : ''
     lines.push(`**${DONE_BY[credit.stage]} by ${by(credit.logins)}${approved}**, moved from ${from.name} to ${to.name}${how}.`)
     if (credit.stage === 'spec' && input.specPr && !(input.specPr.merged && !input.mover)) lines.push(`Spec PR: #${input.specPr.number}`)
   }
