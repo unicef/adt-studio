@@ -1301,11 +1301,17 @@ msgstr "Raisonnement de l'analyse de l'IA"
 msgid "AI Edit"
 msgstr "Modification IA"
 
+msgid "AI edit complete"
+msgstr "Modification IA terminée"
+
 msgid "AI edit failed"
 msgstr "La modification IA a échoué"
 
 msgid "AI edit history"
 msgstr "Historique des modifications IA"
+
+msgid "AI editing can't do this"
+msgstr "La modification par IA ne peut pas faire cela"
 
 msgid "AI editing..."
 msgstr "Modification par IA..."
@@ -4826,8 +4832,8 @@ msgstr "Recadrage d'images"
 msgid "Image Cropping Prompt"
 msgstr "Image Cropping Invite"
 
-msgid "Image edit complete"
-msgstr "Modification de l'image terminée"
+#~ msgid "Image edit complete"
+#~ msgstr "Modification de l'image terminée"
 
 msgid "Image Edit Prompt"
 msgstr "Image Modifier Invite"
@@ -6547,6 +6553,9 @@ msgstr "Non trouvé dans le texte du livre"
 
 msgid "Not generated"
 msgstr "Non généré"
+
+msgid "Not possible with AI editing"
+msgstr "Impossible avec la modification par IA"
 
 msgid "Not rendered yet"
 msgstr "Pas encore rendu"
@@ -10042,6 +10051,9 @@ msgstr "Elles libèrent de l'oxygène directement dans l'air."
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Cette activité ne contient aucun texte ni aucune réponse adressable. Régénérez-la ou utilisez \"Modifier la mise en page\" pour modifier directement la page."
+
+msgid "This AI edit may not have been fully applied"
+msgstr "Cette modification IA n'a peut-être pas été entièrement appliquée"
 
 msgid "This archive can't be opened safely"
 msgstr "Cette archive ne peut pas être ouverte en toute sécurité"
