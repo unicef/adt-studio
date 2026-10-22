@@ -24,7 +24,7 @@ async function isDirectory(target: string) {
   }
 }
 
-async function fileOrNull(target: string) {
+export async function fileOrNull(target: string) {
   try {
     return (await fs.stat(target)).isFile() ? target : null
   } catch {
@@ -32,7 +32,7 @@ async function fileOrNull(target: string) {
   }
 }
 
-async function conversionFiles(dir: string): Promise<ConversionFiles | null> {
+export async function conversionFiles(dir: string): Promise<ConversionFiles | null> {
   const name = path.basename(dir)
   let db = await fileOrNull(path.join(dir, `${name}.db`))
   if (!db) {
@@ -51,14 +51,23 @@ async function conversionFiles(dir: string): Promise<ConversionFiles | null> {
   }
 }
 
-export function defaultFolder(start = process.cwd()): string | null {
+function findUp(start: string, matches: (dir: string) => boolean): string | null {
   let dir = path.resolve(start)
   for (;;) {
-    if (existsSync(path.join(dir, "pnpm-workspace.yaml")) && existsSync(path.join(dir, "books"))) return dir
+    if (matches(dir)) return dir
     const parent = path.dirname(dir)
     if (parent === dir) return null
     dir = parent
   }
+}
+
+export function defaultFolder(start = process.cwd()): string | null {
+  return findUp(start, (dir) => existsSync(path.join(dir, "pnpm-workspace.yaml")) && existsSync(path.join(dir, "books")))
+}
+
+export function adtAssetsDir(start = process.cwd()): string | null {
+  const root = findUp(start, (dir) => existsSync(path.join(dir, "assets", "adt", "tailwind_css.css")))
+  return root ? path.join(root, "assets", "adt") : null
 }
 
 export async function listConversions(folder: string): Promise<ConversionListing> {
@@ -136,25 +145,59 @@ function coverImagePath(dbPath: string): string | null {
         : db.all("select page_id from pages order by page_number asc limit 1")
     ) as { page_id: string }[]
     if (!page) return null
-    const [image] = db.all("select path from images where image_id = ?", [`${page.page_id}_page`]) as { path: string }[]
-    return image ? image.path : null
+    return page ? imagePathIn(db, `${page.page_id}_page`) : null
   } finally {
     db.close()
   }
 }
 
-const COVER_TYPES: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp" }
+function imagePathIn(db: InstanceType<typeof Database>, imageId: string): string | null {
+  const [image] = db.all("select path from images where image_id = ?", [imageId]) as { path: string }[]
+  return image ? image.path : null
+}
 
-export async function readCover(booksDir: string, name: string): Promise<{ bytes: Buffer; type: string } | null> {
-  const dir = resolveConversionDir(booksDir, name)
-  const files = await conversionFiles(dir)
-  if (!files) return null
-  const relative = coverImagePath(files.db)
+function imagePath(dbPath: string, imageId: string): string | null {
+  const db = new Database(dbPath, { readOnly: true, fileMustExist: true })
+  try {
+    const tables = new Set((db.all("select name from sqlite_master where type = 'table'") as { name: string }[]).map((r) => r.name))
+    return tables.has("images") ? imagePathIn(db, imageId) : null
+  } finally {
+    db.close()
+  }
+}
+
+const IMAGE_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+}
+
+export interface ImageFile {
+  bytes: Buffer
+  type: string
+}
+
+async function readImageFile(dir: string, relative: string | null): Promise<ImageFile | null> {
   if (!relative) return null
   const file = path.resolve(dir, relative)
-  const type = COVER_TYPES[path.extname(file).toLowerCase()]
+  const type = IMAGE_TYPES[path.extname(file).toLowerCase()]
   if (!type || !file.startsWith(dir + path.sep) || !(await fileOrNull(file))) return null
   return { bytes: await fs.readFile(file), type }
+}
+
+export async function readCover(booksDir: string, name: string): Promise<ImageFile | null> {
+  const dir = resolveConversionDir(booksDir, name)
+  const files = await conversionFiles(dir)
+  return files ? readImageFile(dir, coverImagePath(files.db)) : null
+}
+
+export async function readBookImage(booksDir: string, name: string, imageId: string): Promise<ImageFile | null> {
+  const dir = resolveConversionDir(booksDir, name)
+  const files = await conversionFiles(dir)
+  return files ? readImageFile(dir, imagePath(files.db, imageId)) : null
 }
 
 export async function readConversion(booksDir: string, name: string): Promise<ConversionSummary> {

@@ -17,6 +17,13 @@ export interface ConversionSummary {
   metrics: RunMetrics
 }
 
+export interface BookPage {
+  pageId: string
+  pageNumber: number
+  hasImage: boolean
+  sectionTypes: string[] | null
+}
+
 export interface StepRun {
   step: string
   status: string

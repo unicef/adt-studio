@@ -15,13 +15,14 @@ import { TaskTable } from "../report/TaskTable"
 import { TokensCard } from "../report/TokensCard"
 import { SummaryMatrix, TaskMatrix } from "../compare/ComparisonMatrix"
 import { ModelComparison } from "../compare/ModelComparison"
+import { PageComparison } from "../pages/PageComparison"
 import { Panel, ReadingRuns, runTitle, type DashboardProps } from "./shared"
 import type { Workspace } from "../../hooks/useWorkspace"
 import { comparisonNotes, type Note } from "../../lib/comparison"
 import { fmtInt } from "../../lib/format"
 import type { RunView } from "../../lib/run-view"
 
-type TabId = "overview" | "models" | "time" | "calls" | "tokens" | "errors" | "tasks"
+type TabId = "overview" | "pages" | "models" | "time" | "calls" | "tokens" | "errors" | "tasks"
 
 interface TabDef {
   id: TabId
@@ -31,6 +32,7 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { id: "overview", label: "Overview", count: (notes) => notes.filter((n) => n.tone === "warn").length },
+  { id: "pages", label: "Pages" },
   { id: "models", label: "Models" },
   { id: "time", label: "Time" },
   { id: "calls", label: "Call durations" },
@@ -128,6 +130,8 @@ function TabContent({ tab, workspace, runs, notes }: { tab: TabId; workspace: Wo
           <SummaryMatrix workspace={workspace} runs={runs} />
         </>
       )
+    case "pages":
+      return <PageComparison workspace={workspace} runs={runs} />
     case "models":
       return <ModelComparison workspace={workspace} runs={runs} />
     case "time":

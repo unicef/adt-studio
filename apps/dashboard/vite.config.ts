@@ -9,7 +9,10 @@ export default defineConfig({
     port: 5190,
     host: "localhost",
   },
+  optimizeDeps: {
+    exclude: ["postcss", "@tailwindcss/postcss"],
+  },
   ssr: {
-    external: ["node-sqlite3-wasm"],
+    external: ["node-sqlite3-wasm", "postcss", "@tailwindcss/postcss"],
   },
 })

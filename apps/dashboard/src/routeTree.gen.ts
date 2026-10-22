@@ -11,6 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CoverRouteImport } from './routes/cover'
+import { Route as PageRouteImport } from './routes/page'
+import { Route as PageCssRouteImport } from './routes/page-css'
+import { Route as PageImageRouteImport } from './routes/page-image'
+import { Route as AdtAssetsSplatRouteImport } from './routes/adt-assets.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +26,75 @@ const CoverRoute = CoverRouteImport.update({
   path: '/cover',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PageRoute = PageRouteImport.update({
+  id: '/page',
+  path: '/page',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PageCssRoute = PageCssRouteImport.update({
+  id: '/page-css',
+  path: '/page-css',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PageImageRoute = PageImageRouteImport.update({
+  id: '/page-image',
+  path: '/page-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdtAssetsSplatRoute = AdtAssetsSplatRouteImport.update({
+  id: '/adt-assets/$',
+  path: '/adt-assets/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cover': typeof CoverRoute
+  '/page': typeof PageRoute
+  '/page-css': typeof PageCssRoute
+  '/page-image': typeof PageImageRoute
+  '/adt-assets/$': typeof AdtAssetsSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cover': typeof CoverRoute
+  '/page': typeof PageRoute
+  '/page-css': typeof PageCssRoute
+  '/page-image': typeof PageImageRoute
+  '/adt-assets/$': typeof AdtAssetsSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/cover': typeof CoverRoute
+  '/page': typeof PageRoute
+  '/page-css': typeof PageCssRoute
+  '/page-image': typeof PageImageRoute
+  '/adt-assets/$': typeof AdtAssetsSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cover'
+  fullPaths:
+    '/' | '/cover' | '/page' | '/page-css' | '/page-image' | '/adt-assets/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cover'
-  id: '__root__' | '/' | '/cover'
+  to: '/' | '/cover' | '/page' | '/page-css' | '/page-image' | '/adt-assets/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/cover'
+    | '/page'
+    | '/page-css'
+    | '/page-image'
+    | '/adt-assets/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CoverRoute: typeof CoverRoute
+  PageRoute: typeof PageRoute
+  PageCssRoute: typeof PageCssRoute
+  PageImageRoute: typeof PageImageRoute
+  AdtAssetsSplatRoute: typeof AdtAssetsSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +113,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoverRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/page': {
+      id: '/page'
+      path: '/page'
+      fullPath: '/page'
+      preLoaderRoute: typeof PageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/page-css': {
+      id: '/page-css'
+      path: '/page-css'
+      fullPath: '/page-css'
+      preLoaderRoute: typeof PageCssRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/page-image': {
+      id: '/page-image'
+      path: '/page-image'
+      fullPath: '/page-image'
+      preLoaderRoute: typeof PageImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/adt-assets/$': {
+      id: '/adt-assets/$'
+      path: '/adt-assets/$'
+      fullPath: '/adt-assets/$'
+      preLoaderRoute: typeof AdtAssetsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CoverRoute: CoverRoute,
+  PageRoute: PageRoute,
+  PageCssRoute: PageCssRoute,
+  PageImageRoute: PageImageRoute,
+  AdtAssetsSplatRoute: AdtAssetsSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -17,10 +17,15 @@ export interface Workspace {
   loads: Record<string, LoadState>
   runs: RunView[]
   pending: boolean
+  booksDir: string
+  modified: (name: string) => number
+  bookUrl: (route: BookRoute, name: string, params?: Record<string, string>) => string
   coverUrl: (name: string) => string
   toggle: (name: string) => void
   makeBase: (name: string) => void
 }
+
+export type BookRoute = "/cover" | "/page" | "/page-image"
 
 const NO_CONVERSIONS: ConversionEntry[] = []
 
@@ -55,6 +60,9 @@ export function useWorkspace(listing: ConversionListing | undefined): Workspace 
     : []
 
   const commit = (items: Selection[]) => setState({ booksDir, items })
+  const modified = (name: string) => entries.get(name)?.dbModified ?? 0
+  const bookUrl = (route: BookRoute, name: string, params: Record<string, string> = {}) =>
+    `${route}?${new URLSearchParams({ booksDir, name, ...params, v: String(modified(name)) })}`
 
   return {
     conversions,
@@ -62,7 +70,10 @@ export function useWorkspace(listing: ConversionListing | undefined): Workspace 
     loads,
     runs,
     pending: selected.length > 0 && !allReady && !queries.some((q) => q.isError),
-    coverUrl: (name) => `/cover?${new URLSearchParams({ booksDir, name, v: String(entries.get(name)?.dbModified ?? 0) })}`,
+    booksDir,
+    modified,
+    bookUrl,
+    coverUrl: (name) => bookUrl("/cover", name),
     toggle(name) {
       if (selected.some((s) => s.name === name)) {
         commit(selected.filter((s) => s.name !== name))
