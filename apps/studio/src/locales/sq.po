@@ -3010,6 +3010,9 @@ msgstr "Kopjo daljen e gabimit"
 msgid "Copy link"
 msgstr "Kopjo lidhjen"
 
+msgid "Copy style"
+msgstr "Kopjo stilin"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Rifet koraliere mbulojnë më pak se 1% të dyshemesë së oqeanit, por mbështesin rreth 25% të të gjitha specieve detare. Shpesh të quajtura 'pyjet e shiut të detit', këto ekosisteme nënujore ndërtohen nga kafshë të vogla të quajtura polipe korali."
 
@@ -3970,6 +3973,9 @@ msgstr "Përpjekje"
 
 msgid "El tranvía de la tarde · O bonde da tarde · Le tram de l'après-midi"
 msgstr "El tranvía de la tarde · O bonde da tarde · Le tram de l'après-midi"
+
+msgid "Element actions"
+msgstr "Veprimet e elementit"
 
 msgid "Element style editor"
 msgstr "Redaktues i stilit të elementit"
@@ -7979,6 +7985,9 @@ msgstr "Kaloi"
 msgid "Paste"
 msgstr "Ngjit"
 
+msgid "Paste style"
+msgstr "Ngjit stilin"
+
 msgid "Paste your key to connect this provider."
 msgstr "Ngjitni çelësin tuaj për të lidhur këtë ofrues."
 
@@ -9896,6 +9905,9 @@ msgstr "Zgjidhni llojin e nyjes..."
 
 #~ msgid "Select or wrap a container to offset this element."
 #~ msgstr "Zgjidh një kontejner ose mbështille këtë element në një për ta zhvendosur."
+
+msgid "Select parent"
+msgstr "Zgjidh prindin"
 
 msgid "Select reviewer session"
 msgstr "Zgjidhni sesionin e rishikuesit"
@@ -11831,6 +11843,9 @@ msgstr "Slug i hapit i panjohur: {step}"
 
 msgid "Unknown step: {step}"
 msgstr "Hap i panjohur: {step}"
+
+msgid "Unlock"
+msgstr "Shkyç"
 
 #~ msgid "Unlock this element and its contents first."
 #~ msgstr "Fillimisht zhblloko këtë element dhe përmbajtjen e tij."

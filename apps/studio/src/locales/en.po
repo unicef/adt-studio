@@ -3008,6 +3008,9 @@ msgstr "Copy error output"
 msgid "Copy link"
 msgstr "Copy link"
 
+msgid "Copy style"
+msgstr "Copy style"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 
@@ -3968,6 +3971,9 @@ msgstr "Effort"
 
 msgid "El tranvía de la tarde · O bonde da tarde · Le tram de l'après-midi"
 msgstr "El tranvía de la tarde · O bonde da tarde · Le tram de l'après-midi"
+
+msgid "Element actions"
+msgstr "Element actions"
 
 msgid "Element style editor"
 msgstr "Element style editor"
@@ -7977,6 +7983,9 @@ msgstr "Passed"
 msgid "Paste"
 msgstr "Paste"
 
+msgid "Paste style"
+msgstr "Paste style"
+
 msgid "Paste your key to connect this provider."
 msgstr "Paste your key to connect this provider."
 
@@ -9894,6 +9903,9 @@ msgstr "Select node type..."
 
 #~ msgid "Select or wrap a container to offset this element."
 #~ msgstr "Select or wrap a container to offset this element."
+
+msgid "Select parent"
+msgstr "Select parent"
 
 msgid "Select reviewer session"
 msgstr "Select reviewer session"
@@ -11829,6 +11841,9 @@ msgstr "Unknown step slug: {step}"
 
 msgid "Unknown step: {step}"
 msgstr "Unknown step: {step}"
+
+msgid "Unlock"
+msgstr "Unlock"
 
 #~ msgid "Unlock this element and its contents first."
 #~ msgstr "Unlock this element and its contents first."

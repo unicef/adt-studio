@@ -3008,6 +3008,9 @@ msgstr "Copiar saída de erro"
 msgid "Copy link"
 msgstr "Copiar link"
 
+msgid "Copy style"
+msgstr "Copiar estilo"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Os recifes de coral cobrem menos de 1% do fundo do oceano, mas sustentam cerca de 25% de todas as espécies marinhas. Frequentemente chamados de 'florestas tropicais do mar', esses ecossistemas subaquáticos são construídos por pequenos animais chamados pólipos de coral."
 
@@ -3968,6 +3971,9 @@ msgstr "Esforço"
 
 msgid "El tranvía de la tarde · O bonde da tarde · Le tram de l'après-midi"
 msgstr "El tranvía de la tarde · O bonde da tarde · Le tram de l'après-midi"
+
+msgid "Element actions"
+msgstr "Ações do elemento"
 
 msgid "Element style editor"
 msgstr "Editor de estilo de elemento"
@@ -7977,6 +7983,9 @@ msgstr "Aprovado"
 msgid "Paste"
 msgstr "Colar"
 
+msgid "Paste style"
+msgstr "Colar estilo"
+
 msgid "Paste your key to connect this provider."
 msgstr "Cole sua chave para conectar este provedor."
 
@@ -9894,6 +9903,9 @@ msgstr "Selecionar tipo de nó..."
 
 #~ msgid "Select or wrap a container to offset this element."
 #~ msgstr "Selecione um contêiner ou envolva este elemento em um para deslocá-lo."
+
+msgid "Select parent"
+msgstr "Selecionar pai"
 
 msgid "Select reviewer session"
 msgstr "Selecionar sessão de revisor"
@@ -11829,6 +11841,9 @@ msgstr "Slug de etapa desconhecido: {0}"
 
 msgid "Unknown step: {step}"
 msgstr "Etapa desconhecida: {0}"
+
+msgid "Unlock"
+msgstr "Desbloquear"
 
 #~ msgid "Unlock this element and its contents first."
 #~ msgstr "Primeiro desbloqueie este elemento e seu conteúdo."

@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react/macro"
 import { useLayoutMode } from "adt-html-editor"
 import { HtmlEditor } from "adt-html-editor/shadcn"
 import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
+import { CanvasContextMenu } from "./CanvasContextMenu"
 import { CanvasWidthControl } from "./CanvasWidthControl"
 import { SectionTabs } from "./SectionTabs"
 import type { EditorSection } from "./useStoryboardEditor"
@@ -82,7 +83,7 @@ export const EditorCanvas = memo(function EditorCanvas({
       )}
 
       <CanvasBody fixed={fixed} />
-      <HtmlEditor.Canvas.ContextMenu />
+      <CanvasContextMenu />
     </HtmlEditor.Canvas>
   )
 })

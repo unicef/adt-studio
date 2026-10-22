@@ -325,13 +325,15 @@ height/inner space, multi-selection groups, **Wrap in container** (the button at
 end of the status bar), the tag picker (`Inspector.TagHeader`) and **Free transform**
 (`Inspector.FlowPosition`, mounted in the Styles panel between Spacing and Sizing)
 all come from the library; see its README ("Flow layout controls", "Tag picker").
-**Context menu:** right-clicking an element in the canvas opens the library's menu
-(Duplicate, Delete, Copy, Paste, Copy style, Paste style, Select parent, Lock).
-The library's README says `Canvas.Viewport` and `Canvas.FixedPage` render it, but in
-0.3.0 only its default canvas composition does, so `EditorCanvas` mounts
-`Canvas.ContextMenu` once for both layouts. If a later version moves it into the
-viewport, drop that line or the menu shows twice.
-The library's labels are English-only for now — it takes no translated strings.
+**Context menu:** right-clicking an element in the canvas opens the menu (Duplicate,
+Delete, Copy, Paste, Copy style, Paste style, Select parent, Lock/Unlock). The library
+decides the actions and runs them (`useContextMenu`); `editor/CanvasContextMenu.tsx`
+renders them with icons and translated labels on the Studio's Radix dropdown, and
+gives focus back to the canvas on close so its shortcuts keep working. The library's
+own `Canvas.ContextMenu` (labels only, English) is not used. Its README says
+`Canvas.Viewport` and `Canvas.FixedPage` render that menu, but in 0.3.0 only its
+default canvas composition does; if a later version moves it into the viewport, the
+Studio menu and the library one would both open.
 One Studio-side piece has no library counterpart yet and stays in
 `editor/responsive/`: `inspection/` adds the Styles panel's **Inline CSS**,
 **Tailwind Classes** and **Computed CSS** accordions (open state is a local sidebar
