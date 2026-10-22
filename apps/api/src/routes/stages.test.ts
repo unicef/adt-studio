@@ -378,6 +378,22 @@ describe("retireSectionIdsForClearedSectioning", () => {
     expect(audioExists("en", `${textId}.mp3`)).toBe(true)
   })
 
+  it("preserves unrelated step records inside an exact catalog review range", () => {
+    withStorage(storage => {
+      storage.markStepCompleted("image-captioning")
+      storage.markStepCompleted("glossary")
+      storage.markStepCompleted("toc-generation")
+      storage.markStepCompleted("catalog-translation")
+      storage.markStepCompleted("tts")
+    })
+    makeBeforeRun(label, "captions", "speech", tmpDir, { selection: { identities: [
+      { kind: "caption", id: "image" }, { kind: "audio", id: "phrase", language: "en" },
+    ] } })()
+    expect(withStorage(storage => storage.getStepRuns().map(run => run.step))).toEqual(expect.arrayContaining(["glossary", "toc-generation", "catalog-translation"]))
+    expect(withStorage(storage => storage.getStepRuns().map(run => run.step))).not.toContain("image-captioning")
+    expect(withStorage(storage => storage.getStepRuns().map(run => run.step))).not.toContain("tts")
+  })
+
   it("reconciles both the canonical and legacy language row spellings", () => {
     const retiredSection = formatSectionId(pageId, 3)
     seedTts("pt-BR", [{ textId: `${retiredSection}_ans_a`, manual: true }])

@@ -51,6 +51,32 @@ it("keeps manual translations stored under a legacy locale key on ordinary Trans
   } finally { verify.close() }
 })
 
+it("replaces a legacy translation and its speech text together without stale replacement guards", async () => {
+  await createStageRunner().run(label, options(), { emit: () => {} })
+  const db = storage()
+  try {
+    const translated = db.getLatestNodeData("text-catalog-translation", "fr-FR")!.data as TextCatalogOutput
+    const prepared = db.getLatestNodeData("core-tts-catalog", "fr-FR")!.data as CoreTtsCatalogOutput
+    db.putNodeData("text-catalog-translation", "fr-FR", { ...translated, entries: translated.entries.map(({ source: _source, input: _input, ...entry }) => entry) })
+    db.putNodeData("core-tts-catalog", "fr-FR", { ...prepared, entries: prepared.entries.map(({ source: _source, input: _input, ...entry }) => entry) })
+    db.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionId: "pg001_sec001", sectionType: "content", reasoning: "", html: '<p data-id="a">Changed sentence</p><p data-id="b">World</p>' }] })
+    const read = () => readOutputCatalog({ storage: db, config: loadBookConfig(label, options().booksDir, options().configPath), bookDir: db.bookDir!, promptsDir: options().promptsDir, configDir: path.join(root, "config") })
+    const targets = read().filter(output => output.identity.id === "a" && output.identity.language === "fr-FR" && ["translation", "preparation"].includes(output.identity.kind))
+    expect(targets).toHaveLength(2)
+    expect(targets.every(output => output.protected)).toBe(true)
+    transport.mockClear()
+    await createStageRunner().run(label, { ...options(), outputScope: {
+      selection: { identities: targets.map(output => output.identity) },
+      replace: targets.map(({ identity, signature, contentHash }) => ({ identity, signature, contentHash })),
+    } }, { emit: () => {} })
+    const result = read().filter(output => output.identity.id === "a" && output.identity.language === "fr-FR" && ["translation", "preparation"].includes(output.identity.kind))
+    expect(result.every(output => output.current && !output.protected && !output.warnings.length)).toBe(true)
+    expect(result.every(output => output.text === "Generated Changed sentence")).toBe(true)
+    expect(transport).toHaveBeenCalledTimes(1)
+    expect((db.getLatestNodeData("text-catalog-translation", "fr-FR")!.data as TextCatalogOutput).entries.find(entry => entry.id === "b")!.text).toBe("Generated World")
+  } finally { db.close() }
+})
+
 it("prepares translated speech in current source order after a move, independent of retained translation order", async () => {
   fs.writeFileSync(path.join(root, "config", "core_tts_profiles.yaml"), "fr: Normalize French.\n")
   const seed = storage()

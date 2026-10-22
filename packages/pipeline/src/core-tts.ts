@@ -317,7 +317,9 @@ export async function prepareCoreTtsCatalog(options: {
     const metadata = previous ? { ...previous, source: previous.generation.mode === "manual" ? "manual" as const : previous.source } : undefined
     const status = withOutputLocations(deriveOutputStatus({ identity: { kind: "preparation", id: entry.id, language }, signature,
       content: previous?.speechText, metadata, usable: !!previous?.speechText?.trim(),
-      recoverableFailure: previous?.status === "failed" && previous.generation.mode === "generated",
+      // Legacy invalidation wrote failed entries as mode "unchanged"; only manual
+      // speech is authored content worth protecting without a usable text.
+      recoverableFailure: previous?.status === "failed" && previous.generation.mode !== "manual",
     }), entry)
     const explicitRetry = options.retryIds?.includes(entry.id)
     // Only a failed attempt is reused until retry or an input change. A fallback

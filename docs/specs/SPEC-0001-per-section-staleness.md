@@ -208,8 +208,9 @@ and the old attempt/review remains in entity history. This clarifies AC-14,
 without broadening the deferred provider-failure classifier.
 
 **October 21 legacy recovery assumption:** A pre-evidence preparation explicitly
-recorded as a failed generated attempt with no usable speech is unfinished work,
-not protected authored speech. It may be prepared on a requested Language run or
+recorded as a failed non-manual attempt with no usable speech (a failed generation,
+or a preparation the pre-evidence code invalidated as `unchanged`) is unfinished
+work, not protected authored speech. It may be prepared on a requested Language run or
 Retry; subsequent attempts obey the normal evidence-based retry rules. An absent
 physical audio file likewise permits requested synthesis unless its row declares
 manual origin (including `provider: manual`). Usable unknown-origin content and

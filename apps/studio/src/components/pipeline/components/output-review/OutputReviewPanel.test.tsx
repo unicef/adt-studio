@@ -139,10 +139,10 @@ it("resolves a shared upstream source once before updating its filtered consumer
   setup(consumers, [source, ...consumers, output("unrelated")])
   expect(screen.getByText(/Includes linked source items in: Easy Read\./)).toBeTruthy()
   fireEvent.click(screen.getByRole("button", { name: "Update all" }))
-  await waitFor(() => expect(calls.run).toHaveBeenCalledTimes(2))
-  expect(calls.run.mock.calls.map((args) => args[2].fromStage)).toEqual(["easy-read", "translate"])
-  expect(calls.run.mock.calls[0][2].outputScope.selection.identities).toEqual([source.identity])
-  expect(calls.run.mock.calls[1][2].outputScope.selection.identities).toEqual(consumers.map((item) => item.identity))
+  await waitFor(() => expect(calls.run).toHaveBeenCalledTimes(1))
+  expect(calls.run.mock.calls[0][2]).toMatchObject({ fromStage: "easy-read", toStage: "translate" })
+  expect(calls.run.mock.calls[0][2].outputScope.selection.identities).toEqual(expect.arrayContaining([source.identity, ...consumers.map(item => item.identity)]))
+  expect(calls.run.mock.calls[0][2].outputScope.selection.identities).toHaveLength(3)
 })
 
 it("accepts protected source warnings and usable fallbacks once with guards, without generating", async () => {
@@ -270,7 +270,7 @@ it("preserves actual page/section pairs for shared text, images and conflict war
   fireEvent.change(section, { target: { value: "A" } })
   expect(screen.getByText("Items needing attention: 4")).toBeTruthy()
   fireEvent.click(screen.getByRole("button", { name: "Update filtered items" }))
-  await waitFor(() => expect(calls.run).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(calls.run).toHaveBeenCalledTimes(1))
   expect(calls.run.mock.calls.flatMap((args) => args[2].outputScope.selection.identities)).toEqual(expect.arrayContaining([shared.identity, image.identity, local.identity]))
   expect(calls.run.mock.calls.flatMap((args) => args[2].outputScope.selection.identities)).toHaveLength(3)
   fireEvent.change(page, { target: { value: "pg002" } })

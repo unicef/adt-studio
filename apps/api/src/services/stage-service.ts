@@ -54,6 +54,8 @@ export interface BookRunStatus {
 
 export interface StageRunOptions {
   outputScope?: OutputRunScope
+  /** Internal publication boundary for one guarded catalog review operation. */
+  publishReviewSource?: (identities: OutputIdentity[], publish: () => void) => void
   booksDir: string
   /** Request-scoped provider credentials. Values are never persisted. */
   credentials: ResolvedCredentials

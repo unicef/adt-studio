@@ -40,7 +40,7 @@ export function deriveOutputStatus(options: {
   content: unknown
   metadata?: OutputMetadata
   usable: boolean
-  /** No usable artifact remains: a failed generated preparation or an absent
+  /** No usable artifact remains: a failed nonmanual preparation or an absent
    * nonmanual recording. This never overrides manual or usable content. */
   recoverableFailure?: boolean
   excluded?: boolean

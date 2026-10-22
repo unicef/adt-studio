@@ -284,12 +284,14 @@ describe("speech fallback and retry admission", () => {
 })
 
 
-it.each(["ordinary", "retry"])("%s preparation recovers a legacy generated failure without usable speech", async action => {
+it.each([["ordinary", "generated"], ["retry", "generated"], ["ordinary", "unchanged"], ["retry", "unchanged"]] as const)("%s preparation recovers a legacy %s failure without usable speech", async (action, mode) => {
   const entries = [{id: "t1", text: "Hello"}]
   const profile = {key: "en", guidance: "Normalize English."}
   const previous = resolveCoreTtsSpeechCatalog({entries, language: "en", config, profile})
+  // Pre-branch invalidation wrote mode "unchanged" with the display-text reason.
   previous.entries[0] = {...previous.entries[0], speechText: null, status: "failed", source: undefined, input: undefined, fallbackReason: undefined,
-    generation: {...previous.entries[0].generation, mode: "generated"}}
+    failureReason: mode === "unchanged" ? "Display text changed; rerun Core TTS preparation." : previous.entries[0].failureReason,
+    generation: {...previous.entries[0].generation, mode}}
   const llm = modelWith([{id: "t1", speech_text: "Hello aloud", transformation_kinds: ["language-normalization"], failure_reason: null}])
   const result = await prepareCoreTtsCatalog({entries, language: "en", config, profile, previous, llmModel: llm, ...(action === "retry" ? {retryIds: ["t1"]} : {})})
   expect(llm.generateObject).toHaveBeenCalledTimes(1)

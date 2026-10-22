@@ -8,7 +8,7 @@ import type { TTSResponse } from "@/api/client"
 import type { StageState } from "@/hooks/use-book-run"
 import { shouldShowMissingSpeech } from "../stages/languages/lib/speech-review-state"
 
-const calls = vi.hoisted(() => ({ run: vi.fn(), saveSpeech: vi.fn() }))
+const calls = vi.hoisted(() => ({ run: vi.fn(), saveSpeech: vi.fn(), review: vi.fn() }))
 vi.mock("@lingui/react/macro", () => ({ Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>, useLingui: () => ({
   i18n: { locale: "en" },
   t: (strings: TemplateStringsArray, ...values: unknown[]) => strings.reduce((text, part, index) => text + part + (values[index] ?? ""), ""),
@@ -20,7 +20,7 @@ vi.mock("../pipeline-i18n", () => ({ getStageLabelI18n: (value: string) => value
 vi.mock("./floating-save", () => ({ useFloatingSaveDirtyEntries: () => [], useFloatingSave: () => {} }))
 vi.mock("@/api/client", () => ({ api: {
   getOutputs: async () => ({ outputs: [], summary: { updates: 0, warnings: 0, missing: 0 } }),
-  runStages: calls.run, updateCoreTtsEntry: calls.saveSpeech,
+  runStages: calls.run, updateCoreTtsEntry: calls.saveSpeech, reviewOutput: calls.review,
 } }))
 
 const { OutputReview, CatalogSummary } = await import("./OutputReview")
@@ -93,7 +93,7 @@ it("keeps manual authorship quiet and requires an explicit replacement after ope
   expect(calls.run).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole("button", { name: "Regenerate and replace my edit" }))
   await waitFor(() => expect(calls.run).toHaveBeenCalledWith("book", undefined, expect.objectContaining({ outputScope: {
-    selection: { kinds: ["translation"], ids: ["phrase"], languages: ["fr"] },
+    selection: { identities: [status().identity] }, retry: [],
     replace: [{ identity: status().identity, signature: "inputs", contentHash: "content" }],
   } })))
 })
@@ -175,9 +175,81 @@ it("offers missing audio after a speech run through a quiet action scoped to one
   fireEvent.click(screen.getByRole("button", { name: "Generate selected output" }))
   await waitFor(() => expect(calls.run).toHaveBeenCalledWith("book", undefined, {
     fromStage: "speech", toStage: "speech", outputScope: {
-      selection: { kinds: ["audio"], ids: ["phrase"], languages: ["fr"], voiceSlots: ["primary"] },
+      selection: { identities: [{ kind: "audio", id: "phrase", language: "fr", voiceSlot: "primary" }] }, retry: [],
     },
   }))
+})
+
+it.each(["keep", "replace", "replace from source"])("resolves an inherited audio warning with one %s action", async action => {
+  const source = status({ identity: { kind: "preparation", id: "phrase", language: "fr" }, manual: false, current: false,
+    text: "Previous speech text", warnings: [{ reason: "source-changed" }] })
+  const audio = status({ identity: { kind: "audio", id: "phrase", language: "fr", voiceSlot: "primary" }, manual: false,
+    current: false, warnings: [{ reason: "upstream", source: source.identity }] })
+  render(<OutputReview {...review} kinds={["audio"]} />, { wrapper: setup([source, audio, status({ identity: { kind: "translation", id: "unrelated", language: "fr" } })]) })
+  fireEvent.click(screen.getByRole("button", { name: "Audio: Needs review" }))
+  if (action === "keep") {
+    fireEvent.click(screen.getByRole("button", { name: "Keep existing content" }))
+    await waitFor(() => expect(calls.review).toHaveBeenCalledWith("book", { identity: source.identity, signature: source.signature, contentHash: source.contentHash, action: "keep" }))
+    expect(calls.review).toHaveBeenCalledTimes(1)
+    expect(calls.run).not.toHaveBeenCalled()
+    return
+  }
+  if (action === "replace from source") fireEvent.click(screen.getByRole("button", { name: "Review source" }))
+  fireEvent.click(screen.getAllByRole("button", { name: "Regenerate", exact: true }).at(-1)!)
+  expect(screen.getAllByText(/Previous speech text/).length).toBeGreaterThan(0)
+  expect(screen.getByText(/Regenerate and replace 2 protected items/)).toBeTruthy()
+  expect(calls.run).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole("button", { name: "Regenerate and replace my edit" }))
+  await waitFor(() => expect(calls.run).toHaveBeenCalledTimes(1))
+  expect(calls.run.mock.calls[0][2]).toMatchObject({ fromStage: "translate", toStage: "speech", outputScope: {
+    selection: { identities: [audio.identity, source.identity] },
+    replace: [audio, source].map(({ identity, signature, contentHash }) => ({ identity, signature, contentHash })),
+  } })
+})
+
+it("routes retry of protected legacy preparation through explicit replacement instead of a no-op", async () => {
+  const source = status({ identity: { kind: "preparation", id: "phrase", language: "fr" }, manual: false,
+    warnings: [{ reason: "preparation-failed" }] })
+  render(<OutputReview {...review} kinds={["preparation"]} />, { wrapper: setup([source]) })
+  fireEvent.click(screen.getByRole("button", { name: "Speech text: Needs review" }))
+  fireEvent.click(screen.getByRole("button", { name: "Retry preparation" }))
+  expect(calls.run).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole("button", { name: "Regenerate and replace my edit" }))
+  await waitFor(() => expect(calls.run).toHaveBeenCalledTimes(1))
+  expect(calls.run.mock.calls[0][2]).toMatchObject({ fromStage: "translate", toStage: "translate", outputScope: {
+    selection: { identities: [source.identity] }, retry: [source.identity],
+    replace: [{ identity: source.identity, signature: source.signature, contentHash: source.contentHash }],
+  } })
+})
+
+it("discloses a single linked protected source before replacing it from an audio warning", () => {
+  const source = status({ identity: { kind: "preparation", id: "phrase", language: "fr" }, text: "Protected pronunciation",
+    current: false, warnings: [{ reason: "source-changed" }] })
+  const audio = status({ identity: { kind: "audio", id: "phrase", language: "fr", voiceSlot: "primary" },
+    manual: false, protected: false, current: false, warnings: [{ reason: "upstream", source: source.identity }] })
+  render(<OutputReview {...review} kinds={["audio"]} />, { wrapper: setup([source, audio]) })
+  fireEvent.click(screen.getByRole("button", { name: "Audio: Needs review" }))
+  fireEvent.click(screen.getByRole("button", { name: "Regenerate", exact: true }))
+  expect(screen.getByText(/Protected pronunciation/)).toBeTruthy()
+  expect(calls.run).not.toHaveBeenCalled()
+})
+
+it("keeps the selected protected audio in a retry started from its generated preparation fallback", async () => {
+  const source = status({ identity: { kind: "preparation", id: "phrase", language: "fr" }, manual: false, protected: false,
+    warnings: [{ reason: "preparation-failed" }] })
+  const audio = status({ identity: { kind: "audio", id: "phrase", language: "fr", voiceSlot: "primary" }, manual: false,
+    current: false, warnings: [{ reason: "upstream", source: source.identity }] })
+  render(<OutputReview {...review} kinds={["audio"]} />, { wrapper: setup([source, audio]) })
+  fireEvent.click(screen.getByRole("button", { name: "Audio: Needs review" }))
+  fireEvent.click(screen.getByRole("button", { name: "Review source" }))
+  fireEvent.click(screen.getByRole("button", { name: "Retry preparation" }))
+  expect(calls.run).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole("button", { name: "Regenerate and replace my edit" }))
+  await waitFor(() => expect(calls.run).toHaveBeenCalledTimes(1))
+  expect(calls.run.mock.calls[0][2]).toMatchObject({ fromStage: "translate", toStage: "speech", outputScope: {
+    selection: { identities: [audio.identity, source.identity] }, retry: [source.identity],
+    replace: [{ identity: audio.identity, signature: audio.signature, contentHash: audio.contentHash }],
+  } })
 })
 
 const stored: CoreTtsCatalogEntry = {

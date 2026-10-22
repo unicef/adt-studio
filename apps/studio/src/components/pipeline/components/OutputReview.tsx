@@ -1,5 +1,5 @@
 import { OutputReviewPanel } from "./output-review/OutputReviewPanel"
-import { hasOutputConflict, outputLocationCount } from "./output-review/review-plan"
+import { buildReviewPlan, hasOutputConflict, identityKey, outputLocationCount, reviewGuard, reviewRunOptions } from "./output-review/review-plan"
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { useFloatingSaveDirtyEntries } from "./floating-save"
-import { useStageStatus } from "@/hooks/use-stage-status"
+import { useBookRun } from "@/hooks/use-book-run"
+import { refreshRunStatus } from "@/hooks/run-query-invalidation"
+import { getStageLabelI18n } from "../pipeline-i18n"
 
 import { useOutputs } from "@/hooks/use-outputs"
 export { useOutputs } from "@/hooks/use-outputs"
@@ -38,8 +40,8 @@ export function OutputReview({ bookLabel, id, kinds, language, voiceSlot, dirty 
   return <div className={compact ? "flex flex-wrap items-center gap-1" : "space-y-1"}>{outputs.map((output) => <OutputReviewItem key={JSON.stringify(output.identity)} bookLabel={bookLabel} output={output} outputs={data?.outputs ?? []} dirty={dirty} compact={compact} edited={edited} description={description} />)}</div>
 }
 
-function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosure = false, detail = false, compact = false, inline = false, edited = false, description }: {
-  bookLabel: string; output: OutputStatus; outputs: OutputStatus[]; dirty?: boolean; disclosure?: boolean; detail?: boolean; compact?: boolean; inline?: boolean; edited?: boolean; description?: string
+function OutputReviewItem({ bookLabel, output, outputs, reviewTargets, dirty = false, disclosure = false, detail = false, compact = false, inline = false, edited = false, description }: {
+  bookLabel: string; output: OutputStatus; outputs: OutputStatus[]; reviewTargets?: OutputStatus[]; dirty?: boolean; disclosure?: boolean; detail?: boolean; compact?: boolean; inline?: boolean; edited?: boolean; description?: string
 }) {
   const { t } = useLingui()
   const { apiKey } = useApiKey()
@@ -48,26 +50,33 @@ function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosur
   const hasDraft = dirty || edited || dirtyEntries.length > 0
   const [replace, setReplace] = useState(false)
   const [showSource, setShowSource] = useState(false)
-  const { isRunning } = useStageStatus(OUTPUT_KIND_TO_STAGE[output.identity.kind])
+  const { isRunning } = useBookRun()
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["books", bookLabel] })
   const mutation = useMutation({
     mutationFn: async (action: "keep" | "checked" | "generate" | "replace" | "retry" | "skip") => {
       if (action === "skip") return api.skipOutputs(bookLabel, { identities: [output.identity] })
-      if (action === "keep" || action === "checked") return api.reviewOutput(bookLabel, { identity: output.identity, signature: output.signature, contentHash: output.contentHash, action })
-      const stage = OUTPUT_KIND_TO_STAGE[output.identity.kind]
-      return api.runStages(bookLabel, apiKey, { fromStage: stage, toStage: stage, outputScope: {
-        selection: { kinds: [output.identity.kind], ids: [output.identity.id], ...(output.identity.language ? { languages: [output.identity.language] } : {}), ...(output.identity.voiceSlot ? { voiceSlots: [output.identity.voiceSlot] } : {}) },
-        ...(action === "retry" ? { retry: [output.identity] } : {}),
-        ...(action === "replace" ? { replace: [{ identity: output.identity, signature: output.signature, contentHash: output.contentHash }] } : {}),
-      } })
-    }, onSuccess: async () => { setReplace(false); await refresh() },
+      if (hasDraft || isRunning) return
+      if (action === "checked") return api.reviewOutput(bookLabel, { ...reviewGuard(output), action })
+      if (action === "keep") {
+        for (const item of plan.keep) await api.reviewOutput(bookLabel, { ...reviewGuard(item), action: item.protected ? "keep" : "checked" })
+        return
+      }
+      const targets = action === "replace" ? plan.replacement : plan.update
+      if (targets.length) return api.runStages(bookLabel, apiKey, reviewRunOptions(targets, action === "replace"))
+    },
+    onSuccess: () => setReplace(false),
+    onSettled: (_data, error, action) => error || ["keep", "checked", "skip"].includes(action) ? refresh() : refreshRunStatus(queryClient, bookLabel),
   })
+  const disabled = mutation.isPending || isRunning
   if (output.excluded) return null
   const warnings = output.warnings
-  const fallback = output.identity.kind === "preparation" && warnings.some((warning) => !warning.source && warning.reason.startsWith("preparation-"))
-  const ownWarning = !hasOutputConflict(output) && warnings.some((warning) => !warning.source && warning.reason !== "source-conflict" && warning.reason !== "output-conflict")
-  const upstream = outputs.filter((item) => warnings.some(({ source }) => source && item.identity.kind === source.kind && item.identity.id === source.id && item.identity.language === source.language && item.identity.voiceSlot === source.voiceSlot))
   if (!warnings.length && !output.updateNeeded && !output.missing && !output.manual && !edited) return null
+  const targets = reviewTargets ?? [output]
+  const plan = buildReviewPlan(targets, outputs, true)
+  const sources = plan.sourceStages.map(getStageLabelI18n).join(", ")
+  const count = plan.replace.length
+  const fallback = output.identity.kind === "preparation" && warnings.some((warning) => !warning.source && warning.reason.startsWith("preparation-"))
+  const upstream = outputs.filter((item) => warnings.some(({ source }) => source && item.identity.kind === source.kind && item.identity.id === source.id && item.identity.language === source.language && item.identity.voiceSlot === source.voiceSlot))
   const label = output.identity.kind === "translation" ? t`Translation` : output.identity.kind === "preparation" ? t`Speech text` : output.identity.kind === "audio" ? t`Audio` : output.identity.kind === "caption" ? t`Caption` : output.identity.kind === "easy-read" ? t`Easy Read` : output.identity.kind === "timestamps" ? t`Timestamps` : t`Image translation`
   const reasons = [...new Set(warnings.map((warning) => warning.reason === "legacy" ? t`Freshness is unknown. Existing content has been kept.`
     : warning.reason === "output-conflict" ? t`Multiple retained outputs share this ID. Save one reviewed value or explicitly replace it. Earlier versions remain in history.`
@@ -91,19 +100,24 @@ function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosur
     {description && <p className="mt-1 text-muted-foreground">{description}</p>}
     {disclosure && <p>{output.included ? t`Existing output is included.` : t`Missing output is omitted.`}</p>}
     {hasDraft && <p className="text-muted-foreground">{t`Save or cancel your draft before reviewing outputs.`}</p>}
+    {!disclosure && sources && <p className="text-muted-foreground">{t`Includes linked source items in: ${sources}.`}</p>}
     {!compact && !inline && !hasDraft && !disclosure && ["easy-read", "preparation", "audio", "caption"].includes(output.identity.kind) && <p className="mt-1 text-muted-foreground">{t`Generation uses required section or page context and publishes only selected outputs. Current and protected outputs are kept.`}</p>}
     {!hasDraft && !disclosure && <div className="mt-1 flex flex-wrap gap-1">
       {isRunning && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("skip")}>{t`Skip this run`}</Button>}
-      {output.usable && output.protected && ownWarning && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("keep")}>{output.manual ? t`Keep my edit` : t`Keep existing content`}</Button>}
-      {fallback && output.usable && !hasOutputConflict(output) && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("checked")}>{t`Mark checked`}</Button>}
-      {fallback && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("retry")}>{t`Retry preparation`}</Button>}
-      {(output.updateNeeded || output.missing) && (!output.protected) && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("generate")}>{t`Generate selected output`}</Button>}
-      {output.protected && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => setReplace(!replace)}>{t`Regenerate`}</Button>}
-      {replace && <Button size="sm" variant="outline" disabled={mutation.isPending} onClick={() => mutation.mutate("replace")}>{t`Regenerate and replace my edit`}</Button>}
+      {plan.keep.length > 0 && <Button size="sm" variant="ghost" disabled={disabled} onClick={() => mutation.mutate("keep")}>{output.manual ? t`Keep my edit` : t`Keep existing content`}</Button>}
+      {fallback && output.usable && !hasOutputConflict(output) && <Button size="sm" variant="ghost" disabled={disabled} onClick={() => mutation.mutate("checked")}>{t`Mark checked`}</Button>}
+      {fallback && <Button size="sm" variant="ghost" disabled={disabled} onClick={() => count > 0 ? setReplace(true) : mutation.mutate("retry")}>{t`Retry preparation`}</Button>}
+      {!fallback && !output.protected && plan.update.length > 0 && <Button size="sm" variant="ghost" disabled={disabled} onClick={() => mutation.mutate("generate")}>{t`Generate selected output`}</Button>}
+      {count > 0 && <Button size="sm" variant="ghost" disabled={disabled} onClick={() => setReplace(!replace)}>{t`Regenerate`}</Button>}
+      {replace && <div className="space-y-2">
+        {count > 0 && <><p>{t`Regenerate and replace ${count} protected items? This replaces the edits listed below and updates their affected outputs.`}</p>
+          <ul className="max-h-32 list-disc overflow-auto pl-4">{plan.replace.map(item => <li key={identityKey(item.identity)}>{item.text || item.sourceText || item.identity.id} {item.identity.language}</li>)}</ul></>}
+        <Button size="sm" variant="outline" disabled={disabled} onClick={() => mutation.mutate("replace")}>{t`Regenerate and replace my edit`}</Button>
+      </div>}
       {upstream.length > 0 && <Button size="sm" variant="ghost" onClick={() => setShowSource(!showSource)}>{t`Review source`}</Button>}
     </div>}
     {output.identity.kind === "easy-read" && outputLocationCount(output) > 1 && <p className="mt-1 text-muted-foreground">{t`This text is shared by ${outputLocationCount(output)} sections. Updating it changes the shared text in every referring section.`}</p>}
-    {showSource && upstream.map((source) => <div key={JSON.stringify(source.identity)} className="mt-2 border-l pl-2"><p className="mb-1 font-mono">{source.identity.id} {source.identity.language}</p><OutputReviewItem bookLabel={bookLabel} output={source} outputs={outputs} dirty={dirty} disclosure={disclosure} detail inline={inline} /></div>)}
+    {showSource && upstream.map((source) => <div key={JSON.stringify(source.identity)} className="mt-2 border-l pl-2"><p className="mb-1 font-mono">{source.identity.id} {source.identity.language}</p><OutputReviewItem bookLabel={bookLabel} output={source} outputs={outputs} reviewTargets={targets} dirty={dirty} disclosure={disclosure} detail inline={inline} /></div>)}
     {mutation.error && <p className="mt-1 text-red-700">{mutation.error.message}</p>}
   </div>
   if (!compact) return content

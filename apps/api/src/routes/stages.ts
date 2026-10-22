@@ -7,7 +7,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
+import { OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
@@ -166,7 +166,7 @@ export function retireSectionIdsForClearedSectioning(
 /** Build a beforeRun callback that clears downstream data for a stage.
  *  The returned function is idempotent — only runs once even if called multiple times.
  *  Exported so tests can pin the preserve-retirement-clear boundary. */
-export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
+export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string, outputScope?: OutputRunScope): () => void {
   let ran = false
   return () => {
     if (ran) return
@@ -212,8 +212,10 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
         const stepsToClear = PIPELINE
           .filter((s) => stagesToClear.includes(s.name))
           .flatMap((s) => s.steps.map((step) => step.name))
-        const selectedStages = new Set(STAGE_ORDER.slice(STAGE_ORDER.indexOf(fromStage), STAGE_ORDER.indexOf(toStage) + 1))
-        storage.clearStepRuns(stepsToClear.filter(step => !SourceGeneratorStep.safeParse(step).success || selectedStages.has(STEP_TO_STAGE[step])))
+        const selectedStages = new Set(STAGE_ORDER.slice(STAGE_ORDER.indexOf(fromStage), STAGE_ORDER.indexOf(toStage) + 1)
+          .filter(stage => !outputScope?.selection?.identities || outputScope.selection.identities.some(identity => OUTPUT_KIND_TO_STAGE[identity.kind] === stage)))
+        storage.clearStepRuns(stepsToClear.filter(step => selectedStages.has(STEP_TO_STAGE[step]) ||
+          (!outputScope?.selection?.identities && !SourceGeneratorStep.safeParse(step).success)))
       }
     } finally {
       storage.close()
@@ -269,7 +271,8 @@ export function createStageRoutes(
     const toIndex = STAGE_ORDER.indexOf(toStage)
     assertStageRunModelCredentials(
       loadBookConfig(label, booksDir, configPath),
-      fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER,
+      (fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER)
+        .filter(stage => !outputScope?.selection?.identities || outputScope.selection.identities.some(identity => OUTPUT_KIND_TO_STAGE[identity.kind] === stage)),
       credentials,
     )
 
@@ -278,7 +281,7 @@ export function createStageRoutes(
       `credentialProviders=${Object.keys(credentials).join(",") || "(none)"}`,
     )
 
-    const clearData = makeBeforeRun(label, fromStage, toStage, booksDir)
+    const clearData = makeBeforeRun(label, fromStage, toStage, booksDir, outputScope)
 
     const result = stageService.startStageRun(label, {
       booksDir,

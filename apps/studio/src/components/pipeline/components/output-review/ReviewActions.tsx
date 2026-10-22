@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
 import { RefreshCw } from "lucide-react"
-import { OUTPUT_KIND_TO_STAGE, STAGE_ORDER, type OutputStatus } from "@adt/types"
+import type { OutputStatus } from "@adt/types"
 import { api } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useFloatingSaveDirtyEntries } from "../floating-save"
 import { getStageLabelI18n } from "../../pipeline-i18n"
-import { buildReviewPlan, hasFallback, identityKey, reviewGuard, outputLocationCount } from "./review-plan"
+import { buildReviewPlan, identityKey, reviewGuard, reviewRunOptions, outputLocationCount } from "./review-plan"
 
 export function ReviewActions({ bookLabel, outputs, catalog, filtered, heading, detailsButton, scopeKey }: {
   bookLabel: string; outputs: OutputStatus[]; catalog: OutputStatus[]; filtered: boolean
@@ -42,16 +42,9 @@ export function ReviewActions({ bookLabel, outputs, catalog, filtered, heading, 
         return
       }
       const targets = action === "replace" ? plan.replacement : plan.update
-      for (const stage of STAGE_ORDER) {
-        const work = targets.filter((output) => OUTPUT_KIND_TO_STAGE[output.identity.kind] === stage)
-        if (!work.length) continue
-        const run = await api.runStages(bookLabel, apiKey, { fromStage: stage, toStage: stage, outputScope: {
-          selection: { identities: work.map((output) => output.identity) },
-          retry: work.filter(hasFallback).map((output) => output.identity),
-          ...(action === "replace" ? { replace: work.filter((output) => output.protected).map(reviewGuard) } : {}),
-        } })
-        await accepted(run.id)
-      }
+      if (!targets.length) return
+      const run = await api.runStages(bookLabel, apiKey, reviewRunOptions(targets, action === "replace"))
+      await accepted(run.id)
     },
     onSuccess: () => setConfirmReplace(false),
     // Generation admission has not published anything yet. The run boundary

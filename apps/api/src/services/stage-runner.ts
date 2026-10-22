@@ -1,4 +1,6 @@
 import { collectQuizPages } from "@adt/pipeline"
+import { OUTPUT_KIND_TO_STAGE, type OutputIdentity } from "@adt/types"
+import { outputRunReview } from "./output-run-review.js"
 import { putSourceNodeData, putReflowableRendering, assertReflowableSectioning, captureSourceGeneration, publishSourceGeneration } from "@adt/pipeline"
 import { bookAssetExists, readBookAsset } from "@adt/storage"
 import { reconcileSectioningIdentities } from "@adt/pipeline"
@@ -957,6 +959,7 @@ export function createStageRunner(): StageRunner {
       const completionStorage = createBookStorage(label, booksDir)
       const runningSteps = new Set<StepName>()
       try {
+        options = { ...options, publishReviewSource: outputRunReview(options.outputScope, () => readRunOutputs(label, options, completionStorage)) }
         const trackingProgress: StageRunProgress = {
           emit(event) {
             if (event.type === "step-start") {
@@ -984,6 +987,9 @@ export function createStageRunner(): StageRunner {
         for (let i = fromIndex; i <= toIndex; i++) {
           if (options.signal?.aborted) throw new RunCancelledError()
           const stage = STAGE_ORDER[i]
+          // Exact catalog selections never run unrelated source generators in
+          // the interval (e.g. Glossary between Captions and Language).
+          if (options.outputScope?.selection?.identities && !options.outputScope.selection.identities.some(identity => OUTPUT_KIND_TO_STAGE[identity.kind] === stage)) continue
           try {
             await STAGE_RUNNERS[stage](label, options, trackingProgress)
             progress.emit({ type: "stage-complete", stage })
@@ -2089,7 +2095,7 @@ async function runCaptionsStep(
           options.signal?.throwIfAborted()
           const publishable = result.captions.filter((entry) => !outputSkipped(options.outputScope, { kind: "caption", id: entry.imageId }))
           if (!publishable.length) return
-          storage.transaction(() => {
+          publishReviewSource(options, publishable.map(entry => ({ kind: "caption", id: entry.imageId })), () => storage.transaction(() => {
             if (storage.getLatestNodeData("image-captioning", page.pageId)?.version !== previousRow?.version) throw new Error("Caption target changed during generation")
             assertOutputPublication(captured, readOutputs(), publishable.map((entry) => ({ kind: "caption", id: entry.imageId })))
             const merged = new Map(previousById)
@@ -2100,7 +2106,7 @@ async function runCaptionsStep(
             }
             storage.putNodeData("image-captioning", page.pageId, { captions: [...merged.values()] })
             reconcileTextCatalog(storage)
-          })
+          }))
 
           completedCaptions++
           progress.emit({
@@ -2318,6 +2324,11 @@ function readRunOutputs(label: string, options: StageRunOptions, storage: Storag
     configDir: options.configPath ? path.join(path.dirname(options.configPath), "config") : path.resolve("config") })
 }
 
+function publishReviewSource(options: StageRunOptions, identities: OutputIdentity[], publish: () => void) {
+  if (options.publishReviewSource) options.publishReviewSource(identities, publish)
+  else publish()
+}
+
 async function runEasyReadStep(
   label: string,
   options: StageRunOptions,
@@ -2441,13 +2452,16 @@ async function runEasyReadStep(
           },
         })
         options.signal?.throwIfAborted()
-        if (easyRead !== previousEasyRead) storage.transaction(() => {
-          if (storage.getLatestNodeData("easy-read", "book")?.version !== previousEasyReadRow?.version) throw new Error("Easy Read changed during generation")
-          const previousById = new Map((previousEasyRead?.blocks ?? []).flatMap((block) => block.entries.map((entry) => [entry.easyReadId, entry] as const)))
-          const changed = easyRead.blocks.flatMap((block) => block.entries.filter((entry) => inputSignature(entry) !== inputSignature(previousById.get(entry.easyReadId))))
-          assertOutputPublication(captured, readRunOutputs(label, options, storage), changed.map((entry) => ({ kind: "easy-read", id: entry.easyReadId, language })))
-          storage.putNodeData("easy-read", "book", easyRead)
-        })
+        if (easyRead !== previousEasyRead) {
+          const previousById = new Map((previousEasyRead?.blocks ?? []).flatMap(block => block.entries.map(entry => [entry.easyReadId, entry] as const)))
+          const changed = easyRead.blocks.flatMap(block => block.entries.filter(entry => inputSignature(entry) !== inputSignature(previousById.get(entry.easyReadId))))
+          const identities: OutputIdentity[] = changed.map(entry => ({ kind: "easy-read", id: entry.easyReadId, language }))
+          publishReviewSource(options, identities, () => storage.transaction(() => {
+            if (storage.getLatestNodeData("easy-read", "book")?.version !== previousEasyReadRow?.version) throw new Error("Easy Read changed during generation")
+            assertOutputPublication(captured, readRunOutputs(label, options, storage), identities)
+            storage.putNodeData("easy-read", "book", easyRead)
+          }))
+        }
         easyReadEntries = flattenEasyReadEntries(easyRead)
         progress.emit({
           type: "step-progress",
@@ -2571,12 +2585,15 @@ async function runTranslateStep(
         const output = await translateCatalog({ entries: translationEntries, language: lang, config: translationConfig,
           llmModel: translationModel, previous, references: captureOutputReferences(storage, "translation", lang), scope: options.outputScope, signal: options.signal })
         options.signal?.throwIfAborted()
-        if (output !== previous) storage.transaction(() => {
-          if (readTranslation()?.version !== previousRow?.version) throw new Error("Translation changed during generation")
+        if (output !== previous) {
           const changed = output.entries.filter((entry) => inputSignature(entry) !== inputSignature(previous?.entries.find((prior) => prior.id === entry.id)))
-          assertOutputPublication(captured, readRunOutputs(label, options, storage), changed.map((entry) => ({ kind: "translation", id: entry.id, language: lang })))
-          storage.putNodeData("text-catalog-translation", itemId, output)
-        })
+          const identities: OutputIdentity[] = changed.map(entry => ({ kind: "translation", id: entry.id, language: lang }))
+          publishReviewSource(options, identities, () => storage.transaction(() => {
+            if (readTranslation()?.version !== previousRow?.version) throw new Error("Translation changed during generation")
+            assertOutputPublication(captured, readRunOutputs(label, options, storage), identities)
+            storage.putNodeData("text-catalog-translation", itemId, output)
+          }))
+        }
       }
 
       progress.emit({ type: "step-complete", step: "catalog-translation" })
@@ -2615,12 +2632,12 @@ async function runTranslateStep(
       scope: options.outputScope, signal: options.signal,
     })
     options.signal?.throwIfAborted()
-    storage.transaction(() => {
+    const sourcePrepIdentities = sourcePrepBefore.filter(status => status.identity.kind === "preparation" && status.identity.language === language).map(status => status.identity)
+    publishReviewSource(options, sourcePrepIdentities, () => storage.transaction(() => {
       if (storage.getLatestNodeData("core-tts-catalog", language)?.version !== sourcePrepVersion) throw new Error("Speech text changed during preparation")
-      const identities = sourcePrepBefore.filter((status) => status.identity.kind === "preparation" && status.identity.language === language).map((status) => status.identity)
-      assertOutputPublication(sourcePrepBefore, readRunOutputs(label, options, storage), identities)
+      assertOutputPublication(sourcePrepBefore, readRunOutputs(label, options, storage), sourcePrepIdentities)
       if (inputSignature(getCoreTtsCatalog(storage, language)?.entries) !== inputSignature(sourceCoreTts.entries)) storage.putNodeData("core-tts-catalog", language, sourceCoreTts)
-    })
+    }))
     const sourceContext = buildCoreTtsSourceContext(
       sourceDisplayEntries,
       sourceCoreTts,
@@ -2652,12 +2669,12 @@ async function runTranslateStep(
         sourceContext,
       })
       options.signal?.throwIfAborted()
-      storage.transaction(() => {
+      const targetPrepIdentities = targetPrepBefore.filter(status => status.identity.kind === "preparation" && status.identity.language === lang).map(status => status.identity)
+      publishReviewSource(options, targetPrepIdentities, () => storage.transaction(() => {
         if (storage.getLatestNodeData("core-tts-catalog", lang)?.version !== targetPrepVersion) throw new Error("Speech text changed during preparation")
-        const identities = targetPrepBefore.filter((status) => status.identity.kind === "preparation" && status.identity.language === lang).map((status) => status.identity)
-        assertOutputPublication(targetPrepBefore, readRunOutputs(label, options, storage), identities)
+        assertOutputPublication(targetPrepBefore, readRunOutputs(label, options, storage), targetPrepIdentities)
         if (inputSignature(getCoreTtsCatalog(storage, lang)?.entries) !== inputSignature(targetCoreTts.entries)) storage.putNodeData("core-tts-catalog", lang, targetCoreTts)
-      })
+      }))
       preparedLanguages++
       progress.emit({
         type: "step-progress",

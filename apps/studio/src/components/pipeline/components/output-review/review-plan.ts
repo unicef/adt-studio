@@ -23,27 +23,31 @@ export const reviewGuard = (output: OutputStatus) => ({
 /** Resolve inherited warnings at their source, once even when many rows share it.
  * Dependents remain selected so the runner can recheck them after a source update.
  * This plans explicit UI actions; the server remains authoritative about freshness. */
-export function buildReviewPlan(selected: OutputStatus[], catalog: OutputStatus[]) {
-  const index = new Map(catalog.map((output) => [identityKey(output.identity), output]))
+export function buildReviewPlan(selected: OutputStatus[], catalog: OutputStatus[], force = false) {
+  let index: Map<string, OutputStatus> | undefined
   const closure = new Map<string, OutputStatus>()
   function visit(output: OutputStatus) {
     const key = identityKey(output.identity)
     if (output.excluded || closure.has(key)) return
     closure.set(key, output)
     for (const warning of output.warnings) {
-      const source = warning.source && index.get(identityKey(warning.source))
+      if (!warning.source) continue
+      index ??= new Map(catalog.map(item => [identityKey(item.identity), item]))
+      const source = index.get(identityKey(warning.source))
       if (source) visit(source)
     }
   }
-  selected.filter(needsAttention).forEach(visit)
+  selected.filter(output => force || needsAttention(output)).forEach(visit)
+  const forced = new Set(force ? selected.map(output => identityKey(output.identity)) : [])
   const outputs = [...closure.values()]
   const keep = outputs.filter((output) => output.usable && !hasOutputConflict(output) && (
     output.protected && output.warnings.some((warning) => !warning.source && warning.reason !== "source-conflict" && warning.reason !== "output-conflict") || hasFallback(output)
   ))
-  const replace = outputs.filter((output) => output.protected && needsAttention(output))
+  const canReplace = (output: OutputStatus) => output.protected && (needsAttention(output) || forced.has(identityKey(output.identity)))
+  const replace = outputs.filter(canReplace)
 
   function generationTargets(replacing: boolean) {
-    const targets = new Set(outputs.filter((output) => replacing && output.protected && needsAttention(output) ||
+    const targets = new Set(outputs.filter((output) => replacing && canReplace(output) ||
       !output.protected && (output.updateNeeded || output.missing || hasFallback(output)))
       .map((output) => identityKey(output.identity)))
     // A warning can cross multiple stages; add consumers only when a source in
@@ -69,4 +73,17 @@ export function buildReviewPlan(selected: OutputStatus[], catalog: OutputStatus[
   const sourceStages = STAGE_ORDER.filter((stage) => outputs.some((output) =>
     !selectedKeys.has(identityKey(output.identity)) && OUTPUT_KIND_TO_STAGE[output.identity.kind] === stage))
   return { keep, replace, update, replacement, sourceStages }
+}
+
+/** Submit one operation so source updates and consumers share a writer lease. */
+export function reviewRunOptions(targets: OutputStatus[], replace = false) {
+  const stages = STAGE_ORDER.filter(stage => targets.some(output => OUTPUT_KIND_TO_STAGE[output.identity.kind] === stage))
+  return {
+    fromStage: stages[0], toStage: stages[stages.length - 1],
+    outputScope: {
+      selection: { identities: targets.map(output => output.identity) },
+      retry: targets.filter(hasFallback).map(output => output.identity),
+      ...(replace ? { replace: targets.filter(output => output.protected).map(reviewGuard) } : {}),
+    },
+  }
 }
