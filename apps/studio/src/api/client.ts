@@ -693,18 +693,8 @@ export interface EasyReadResponse {
 
 // --- TTS types ---
 
-export interface TTSEntry {
-  textId: string
-  language?: string
-  fileName: string
-  voice: string
-  model: string
-  cached: boolean
-  provider?: string
-  voiceSlot: "primary" | "secondary"
-  voiceLabel?: string
-  cacheKey?: string
-}
+export type { TTSReadEntry as TTSEntry, TTSReadLanguage as TTSLanguageData, TTSReadResponse as TTSResponse } from "@adt/types"
+import type { TTSReadEntry as TTSEntry, TTSReadResponse as TTSResponse } from "@adt/types"
 
 export interface TTSFailedEntry {
   textId: string
@@ -724,20 +714,6 @@ export interface VoiceSlotsConfig {
 
 export type VoiceMapEntry = string | VoiceSlotsConfig
 export type VoiceMappings = Record<string, Record<string, VoiceMapEntry>>
-
-export interface TTSLanguageData {
-  entries: TTSEntry[]
-  /** Items whose generation failed in the run that produced this data */
-  failed?: TTSFailedEntry[]
-  generatedAt: string
-  version: number
-}
-
-export interface TTSResponse {
-  languages: Record<string, TTSLanguageData>
-  /** True when served from an in-flight speech run's live snapshot */
-  live?: boolean
-}
 
 export interface GenerateSingleTTSResponse {
   entry: TTSEntry

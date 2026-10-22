@@ -1116,12 +1116,13 @@ export function LanguageView({
   // Build audio lookup — use selected language, or editing language when no output languages
   const audioMap = new Map<
     string,
-    { fileName: string; voice: string; cacheKey?: string }
+    { fileName: string; voice: string; cacheKey?: string; storageLanguage?: string }
   >();
   if (ttsData && audioLang && ttsData.languages[audioLang]) {
     for (const e of ttsData.languages[audioLang].entries) {
       if ((e.voiceSlot ?? "primary") !== selectedVoiceSlot) continue;
       audioMap.set(e.textId, {
+        storageLanguage: ttsData.languages[audioLang].storageLanguage,
         fileName: e.fileName,
         voice: e.voice,
         cacheKey: e.cacheKey,
@@ -1148,7 +1149,7 @@ export function LanguageView({
   // Separate base-language audio map for the source column in translation view
   const baseAudioMap = new Map<
     string,
-    { fileName: string; voice: string; cacheKey?: string }
+    { fileName: string; voice: string; cacheKey?: string; storageLanguage?: string }
   >();
   if (
     ttsData &&
@@ -1159,6 +1160,7 @@ export function LanguageView({
     for (const e of ttsData.languages[editingLanguage].entries) {
       if ((e.voiceSlot ?? "primary") !== selectedVoiceSlot) continue;
       baseAudioMap.set(e.textId, {
+        storageLanguage: ttsData.languages[editingLanguage].storageLanguage,
         fileName: e.fileName,
         voice: e.voice,
         cacheKey: e.cacheKey,
@@ -2748,10 +2750,10 @@ export function LanguageView({
                                 baseAudio &&
                                 editingLanguage && (
                                   <WaveformPlayer
-                                    key={`base-${editingLanguage}:${baseAudio.fileName}:${baseAudio.cacheKey ?? ""}`}
+                                    key={`base-${baseAudio.storageLanguage ?? editingLanguage}:${baseAudio.fileName}:${baseAudio.cacheKey ?? ""}`}
                                     audioUrl={getAudioUrl(
                                       bookLabel,
-                                      editingLanguage,
+                                      baseAudio.storageLanguage ?? editingLanguage,
                                       baseAudio.fileName,
                                       baseAudio.cacheKey,
                                     )}
@@ -3272,7 +3274,7 @@ function AudioAction({
   isSavingTimestamps,
   timestampColumns = 2,
 }: {
-  audio?: { fileName: string; voice: string; cacheKey?: string };
+  audio?: { fileName: string; voice: string; cacheKey?: string; storageLanguage?: string };
   audioLang: string | null;
   bookLabel: string;
   textId: string;
@@ -3350,10 +3352,10 @@ function AudioAction({
           <div className="mb-1 flex justify-end">{uploadButton}</div>
         )}
         <WaveformPlayer
-          key={`${audioLang}:${audio.fileName}:${audio.cacheKey ?? ""}`}
+          key={`${audio.storageLanguage ?? audioLang}:${audio.fileName}:${audio.cacheKey ?? ""}`}
           audioUrl={getAudioUrl(
             bookLabel,
-            audioLang,
+            audio.storageLanguage ?? audioLang,
             audio.fileName,
             audio.cacheKey,
           )}

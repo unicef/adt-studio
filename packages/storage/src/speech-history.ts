@@ -11,7 +11,7 @@ function equal(a: unknown, b: unknown) { return JSON.stringify(a) === JSON.strin
  * Carry only evidence that matched the previous identity; stale reviews must
  * stay stale. These are canonical JSON string hashes, as in inputSignature.
  */
-function withAudioIdentity(entry: SpeechFileEntry, asset: { fileName: string; audioHash: string }): SpeechFileEntry {
+export function withSpeechAudioIdentity(entry: SpeechFileEntry, asset: { fileName: string; audioHash: string }): SpeechFileEntry {
   const hash = (value: string) => createHash("sha256").update(JSON.stringify(value)).digest("hex")
   const before = hash(entry.audioHash ?? entry.fileName)
   const after = hash(asset.audioHash)
@@ -35,7 +35,7 @@ function verifyAudio(bookDir: string, language: string, entry: SpeechFileEntry):
 function copyRetainedAudio(bookDir: string, from: string, to: string, entry: SpeechFileEntry): SpeechFileEntry {
   const bytes = verifyAudio(bookDir, from, entry)
   const asset = storeImmutableAsset(bookDir, ["audio", to], voiceSlotEntryId(entry.textId, entry.voiceSlot), path.extname(entry.fileName).slice(1), bytes)
-  return withAudioIdentity(entry, { fileName: asset.fileName, audioHash: asset.contentHash })
+  return withSpeechAudioIdentity(entry, { fileName: asset.fileName, audioHash: asset.contentHash })
 }
 
 /** Publish a paired manifest. Unmatched old timings remain historical but can
@@ -63,13 +63,15 @@ export function publishSpeechOutput(storage: Storage, language: string, output: 
       output = { ...output, entries: output.entries.map((entry) => {
         const replacement = replacements.get(voiceSlotEntryId(entry.textId, entry.voiceSlot))
         return replacement?.previous.fileName === entry.fileName && replacement.retained.audioHash && (!entry.audioHash || entry.audioHash === replacement.retained.audioHash)
-          ? withAudioIdentity(entry, { fileName: replacement.retained.fileName, audioHash: replacement.retained.audioHash }) : entry
+          ? withSpeechAudioIdentity(entry, { fileName: replacement.retained.fileName, audioHash: replacement.retained.audioHash }) : entry
       }) }
     }
     const previous = storage.getLatestNodeData("tts", language)
     const old = TTSOutput.safeParse(previous?.data)
     let timestampRow = storage.getLatestNodeData("tts-timestamps", language)
     const oldTiming = WordTimestampOutput.safeParse(timestampRow?.data)
+    // Validation must not strip unknown historical metadata from retained entries.
+    if (oldTiming.success) oldTiming.data = structuredClone(timestampRow!.data) as WordTimestampOutput
     const timingAliases = new Map<string, { audioHash: string; legacyAudioFileName: string }>()
     let snapshotted = false
     if (old.success && previous && storage.bookDir && old.data.entries.some((entry) => !entry.audioHash)) {
@@ -102,7 +104,7 @@ export function publishSpeechOutput(storage: Storage, language: string, output: 
       const verified = new Map(old.data.entries.map((entry, index) => [entry.fileName, snapshots[index]]))
       output = { ...output, entries: output.entries.map((entry) => {
         const snapshot = !entry.audioHash ? verified.get(entry.fileName) : undefined
-        return snapshot?.audioHash ? withAudioIdentity(entry, { fileName: snapshot.fileName, audioHash: snapshot.audioHash }) : entry
+        return snapshot?.audioHash ? withSpeechAudioIdentity(entry, { fileName: snapshot.fileName, audioHash: snapshot.audioHash }) : entry
       }) }
       // The bytes are unchanged: keep their matching legacy timings even
       // though the active filename is now immutable.
@@ -122,7 +124,7 @@ export function publishSpeechOutput(storage: Storage, language: string, output: 
     }
     let timingVersion = timestampRow?.version ?? null
     const timingFailures = timestamps ? timestamps.failed : oldTiming.success ? oldTiming.data.failed : undefined
-    const nextTiming = { entries, generatedAt: timestamps?.generatedAt ?? new Date().toISOString(), ...(timingFailures?.length ? { failed: timingFailures } : {}) }
+    const nextTiming = { ...(oldTiming.success ? oldTiming.data : {}), ...timestamps, entries, generatedAt: timestamps?.generatedAt ?? new Date().toISOString(), failed: timingFailures?.length ? timingFailures : undefined }
     if (!equal(oldTiming.success ? oldTiming.data.entries : {}, entries) || !equal(oldTiming.success ? oldTiming.data.failed : undefined, timingFailures)) {
       timingVersion = storage.putNodeData("tts-timestamps", language, nextTiming)
     }

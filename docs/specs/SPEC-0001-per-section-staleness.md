@@ -274,6 +274,26 @@ the actual locale storage namespace as well as its inputs; equal version numbers
 in legacy and canonical locale namespaces are not interchangeable. Manual saves
 retain that namespace and its history. Same-entry conflicts remain rejected.
 
+The same per-entry merge rule applies to manual word-timestamp edits. Compare
+both the complete timing entry and its target failure records against the actual
+requested historical version; unrelated timing changes do not prevent Save &
+leave. The recording receipt must still match. The first physical snapshot of a
+legacy recording is the sole representation exception: its retained
+`legacySnapshotOf` relation and paired timing version must prove that only the
+filename/hash alias changed. An alias without that history is insufficient.
+Missing/future baselines, changed targets, changed recordings and namespace
+switches remain conflicts. A hash-only older client cannot distinguish equal
+versions in coexisting legacy/canonical locale chains and must obtain a
+namespace-bound receipt before saving there.
+
+Speech reads expose normalized language selection and the selected physical
+storage namespace separately. Playback uses the latter (including `pt_BR`),
+while editing uses the selected language and its namespace-bound receipt. A
+canonical record takes precedence even when empty or malformed; reads must not
+revive the older namespace or rewrite the book. These are compatibility and
+safe-save clarifications of AC-7, AC-9, AC-11 and AC-12, not a new migration.
+
+
 The stage summary is a neutral, compact panel with one count of affected items across the book, not a checklist of every output. Offer **Update all** and **Keep all existing content** directly when applicable. Update regenerates eligible outdated/missing output and retries preparation fallbacks, preserving protected content. Keep acknowledges existing protected content or usable preparation fallbacks using the existing guarded review actions; it does not accept missing output or ordinary outdated generated output. Resolve inherited warnings at their linked sources, deduplicating shared sources and naming any source stages affected by the bulk actions. Queue source updates before their selected consumers, using the pipeline's stage order. **Replace edits…** separately lists the protected content before an explicit replacement action.
 
 Show compact, clickable counts for **Out of sync**, **Needs review**, **Warnings** and **Missing** beside the summary. Each item has one primary issue (missing first, then outdated generated content, then protected content needing a keep/replace decision, then other warnings); details retain every warning reason. These counts reflect the selected content, language, page and section, so switching the issue filter remains possible. Style **Update all** as a small amber button with a refresh icon, matching the stage warning icon, with text meeting WCAG AA contrast. While updates run it reads “Updating…”, stays focusable and reports that it is busy. When the stage rail is collapsed, the stage icon carries the same amber attention badge.
@@ -441,7 +461,7 @@ the repository root. Results and pending acceptance live in the [verification le
 | Generator stale-input notices, Keep/Re-run, first-attempt reset and captured-input guards | AC-5, AC-9, AC-15 | `apps/api/src/routes/pages.test.ts`, `apps/api/src/routes/stages.test.ts`, `apps/api/src/services/output-review-run.integration.test.ts`; change source, retain generated content, Keep only the shown input basis and reject changed-during-review requests. Generator algorithms remain outside scope. |
 | Reject new/changed duplicate IDs with 409; reserve historical and derived IDs; reject new blank IDs; preserve unchanged legacy collisions | AC-4, AC-7, AC-9 | `apps/api/src/routes/pages.test.ts`, `apps/api/src/routes/rendered-ownership.integration.test.ts`, `packages/pipeline/src/__tests__/rendered-identity.test.ts`; assert atomic rejection and preserved corrections/history, including assistant and clone paths. Positional-ID carry-over and historical blank repair remain deferred. |
 | Edits during a pending save remain recoverable; only the save's acknowledgement advances their guard; restore blocks editing and retains failed drafts | AC-7, AC-9 | Studio `LanguageView.save.test.tsx`, `components/WordTimestampViewer.test.tsx`, `EasyReadEditor.test.tsx`, `EasyReadEditor.restore.test.tsx`, `VersionPicker.restore.test.tsx`; delayed success, later-writer refetch, conflict, navigation and restore failure. |
-| Speech entry merges across collection versions and actual locale namespaces | AC-7, AC-9 | `apps/api/src/routes/speech-freshness.integration.test.ts`, `apps/api/src/services/scoped-speech.integration.test.ts`; accept only unchanged target/source receipts, preserve other entries, and reject ambiguous or stale target evidence. |
+| Speech entry merges across collection versions and actual locale namespaces | AC-7, AC-9 | `apps/api/src/routes/speech-freshness.integration.test.ts`, `apps/api/src/routes/timing-entry-merge.integration.test.ts`, `apps/api/src/services/scoped-speech.integration.test.ts`; accept only unchanged target/source receipts, preserve other entries, and reject ambiguous or stale target evidence. |
 | Legacy timing edits without an audio hash | AC-7, AC-9, AC-11 | `apps/api/src/routes/tts.test.ts`; GET issues a metadata-only identity without media reads/writes, PUT validates that identity and timing version, uses existing physical preservation, and returns its own persisted receipt. Changed/missing audio rejects the write; retained audio and prior timings remain restorable. First modifying saves may snapshot; merely opening does not. |
 | First-open accepted baseline, writer admission and one-time receipt | AC-7, AC-9, AC-11 | `apps/api/src/services/legacy-output-baseline.integration.test.ts`, `packages/storage/src/__tests__/speech-history.test.ts`; idempotent metadata-only migration, busy-writer retry, no provider/media reads, and no silent acceptance after restore. |
 | Failed legacy preparation recovery and unchanged fallback/audio reuse | AC-6, AC-7, AC-13, AC-14 | `packages/pipeline/src/__tests__/core-tts.test.ts`, `apps/api/src/services/catalog-preparation.integration.test.ts`; recover known nonmanual failures (including pre-evidence invalidated `unchanged` entries), preserve manual/unknown content, and count transport calls for reuse/retry. |

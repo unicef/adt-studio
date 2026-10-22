@@ -1,3 +1,4 @@
+import { timingState, timingAudioIdentity, assertTimingEdit } from "../services/timing-edit.js"
 import { captureOutputReferences, inputSignature } from "@adt/pipeline"
 import { catalogOutputs, assertEditVersion } from "../services/catalog-output-service.js"
 import { assertOutputPublication, outputIdentityKey, selectedForGeneration, outputEvidence, timestampInputSignature } from "@adt/pipeline"
@@ -20,6 +21,7 @@ import {
   type SpeechFileEntry,
   type SpeechFailedEntry,
   type TTSProviderConfig,
+  type TTSReadLanguage,
   type TextCatalogEntry,
   type TextCatalogOutput,
   type WordTimestampEntry,
@@ -217,25 +219,6 @@ function getLatestTtsOutput(
     storage.getLatestNodeData("tts", legacyLanguage)
 
   return row ? (row.data as TTSOutput) : undefined
-}
-
-/** Use the actual persisted locale namespace, including pre-normalization books. */
-function timingState(storage: ReturnType<typeof createBookStorage>, language: string) {
-  const normalized = normalizeLocale(language)
-  const legacy = normalized.replace("-", "_")
-  const canonical = storage.getLatestNodeData("tts", normalized)
-  const namespace = canonical ? normalized : storage.getLatestNodeData("tts", legacy) ? legacy : normalized
-  const audioRow = canonical ?? storage.getLatestNodeData("tts", namespace)
-  const audio = TTSOutput.safeParse(audioRow?.data)
-  const timingRow = storage.getLatestNodeData("tts-timestamps", namespace)
-  return { namespace, audio: audio.success ? audio.data.entries : [], timingRow }
-}
-
-function timingAudioIdentity(namespace: string, entries: SpeechFileEntry[], textId: string, voiceSlot: VoiceSlot) {
-  const matches = entries.filter((entry) => entry.textId === textId && resolveEntryVoiceSlot(entry) === voiceSlot)
-  // Ambiguous legacy identities must not authorize a write to either recording.
-  const audio = matches.length === 1 ? matches[0] : undefined
-  return { audio, audioIdentity: audio ? inputSignature({ namespace, audio }) : undefined }
 }
 
 function mergeSpeechEntry(
@@ -551,7 +534,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       })
     }
 
-    const languages: Record<string, { entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string; voiceSlot: VoiceSlot; voiceLabel?: string; cacheKey?: string }>; failed?: SpeechFailedEntry[]; generatedAt: string; version: number }> = {}
+    const languages: Record<string, TTSReadLanguage> = {}
 
     // While a speech run is active, serve its live snapshot — node data is
     // only persisted at the end of the run, but audio files land on disk per
@@ -559,7 +542,10 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const live = getLiveSpeechRun(safeLabel)
     if (live) {
       for (const [lang, data] of Object.entries(live.languages)) {
-        languages[lang] = {
+        const normalized = normalizeLocale(lang)
+        if (lang !== normalized && Object.hasOwn(live.languages, normalized)) continue
+        languages[normalized] = {
+          storageLanguage: lang,
           entries: mapEntries(lang, data.entries),
           ...(data.failed.length > 0 ? { failed: data.failed } : {}),
           generatedAt: live.startedAt,
@@ -580,14 +566,20 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         ["tts"]
       ) as Array<{ item_id: string; data: string; version: number }>
       const seen = new Set<string>()
+      const namespaces = new Set(rows.map(row => row.item_id))
       for (const row of rows) {
         if (seen.has(row.item_id)) continue
         seen.add(row.item_id)
+        const normalized = normalizeLocale(row.item_id)
+        // Select the authoritative namespace before parsing: an empty or
+        // malformed canonical row must never resurrect older legacy audio.
+        if (row.item_id !== normalized && namespaces.has(normalized)) continue
         try {
           const parsed = JSON.parse(row.data)
           const validated = TTSOutput.safeParse(parsed)
           if (!validated.success) continue
-          languages[row.item_id] = {
+          languages[normalized] = {
+            storageLanguage: row.item_id,
             entries: mapEntries(row.item_id, validated.data.entries),
             ...(validated.data.failed && validated.data.failed.length > 0
               ? { failed: validated.data.failed }
@@ -1390,12 +1382,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     try {
       return storage.transaction(() => {
         const { namespace, audio: audioEntries, timingRow: existingRow } = timingState(storage, normalizedLanguage)
-        assertEditVersion(existingRow?.version, parsed.data.baseVersion)
-        const { audio, audioIdentity } = timingAudioIdentity(namespace, audioEntries, textId, voiceSlot)
-        if (!audio) throw new HTTPException(409, { message: "Audio is missing or ambiguous. Refresh before saving timings." })
-        if (parsed.data.audioIdentity ? parsed.data.audioIdentity !== audioIdentity : !audio.audioHash || audio.audioHash !== parsed.data.audioHash) {
-          throw new HTTPException(409, { message: "Audio changed. Refresh before saving timings." })
-        }
+        const audio = assertTimingEdit(storage, { namespace, audio: audioEntries, timingRow: existingRow }, textId, voiceSlot, parsed.data)
         if (!bookAssetExists(path.join(booksDir, safeLabel), path.join("audio", namespace, audio.fileName))) {
           throw new HTTPException(409, { message: "Audio file is unavailable. Restore it before saving timings." })
         }
@@ -1408,6 +1395,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           .find((output) => output.identity.kind === "timestamps" && output.identity.id === textId && output.identity.language === normalizedLanguage && output.identity.voiceSlot === voiceSlot)
 
         const updatedEntry: WordTimestampEntry = {
+          ...existing[slotEntryId], review: undefined,
           source: "manual", audioHash: audio.audioHash,
           input: status ? outputEvidence(status.signature, { words: parsed.data.words, duration: parsed.data.duration }) : undefined,
           textId,

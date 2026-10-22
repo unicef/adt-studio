@@ -380,6 +380,21 @@ export const TTSOutput = z.object({
 })
 export type TTSOutput = z.infer<typeof TTSOutput>
 
+/** Playback uses a normalized selection key but retains the physical namespace.
+ * Optional on the wire for compatibility with clients/tests from older servers. */
+export const TTSReadEntry = SpeechFileEntry.pick({
+  textId: true, language: true, fileName: true, voice: true, model: true,
+  cached: true, provider: true, voiceLabel: true,
+}).extend({ language: z.string().optional(), voiceSlot: VoiceSlot, cacheKey: z.string().optional() })
+export type TTSReadEntry = z.infer<typeof TTSReadEntry>
+export const TTSReadLanguage = z.object({
+  entries: z.array(TTSReadEntry), failed: z.array(SpeechFailedEntry).optional(),
+  generatedAt: z.string(), version: z.number(), storageLanguage: z.string().optional(),
+})
+export type TTSReadLanguage = z.infer<typeof TTSReadLanguage>
+export const TTSReadResponse = z.object({ languages: z.record(z.string(), TTSReadLanguage), live: z.boolean().optional() })
+export type TTSReadResponse = z.infer<typeof TTSReadResponse>
+
 export const WordTimestamp = z.object({
   word: z.string(),
   start: z.number(),

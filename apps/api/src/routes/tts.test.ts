@@ -1,3 +1,4 @@
+import type { WordTimestampOutput } from "@adt/types"
 import { catalogOutputs } from "../services/catalog-output-service.js"
 import fs from "node:fs"
 import os from "node:os"
@@ -1779,7 +1780,11 @@ describe("manual legacy timing saves", () => {
         const data = row.data as { entries: { fileName: string }[] }
         storage.putNodeData("tts", change === "namespace" ? "pt-BR" : fixture.namespace, { ...data, entries: data.entries.map(entry => ({ ...entry, fileName: "replacement.mp3" })) })
       }
-      if (change === "timings") storage.putNodeData("tts-timestamps", fixture.namespace, storage.getLatestNodeData("tts-timestamps", fixture.namespace)!.data)
+      if (change === "timings") {
+        const changed = storage.getLatestNodeData("tts-timestamps", fixture.namespace)!.data as WordTimestampOutput
+        changed.entries[id].words[0].start = 0.4
+        storage.putNodeData("tts-timestamps", fixture.namespace, changed)
+      }
     })
     if (change === "missing-file") fs.unlinkSync(path.join(fixture.dir, "legacy-primary.mp3"))
     const before = inspect(storage => [storage.getAllNodeVersions("tts", fixture.namespace), storage.getAllNodeVersions("tts-timestamps", fixture.namespace)])

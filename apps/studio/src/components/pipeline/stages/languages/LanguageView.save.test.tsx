@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-const speechRouting = vi.hoisted(() => ({ config: {} as Record<string, unknown>, tts: { languages: {} } as { languages: Record<string, { entries: unknown[] }> }, available: [] as string[], globalAvailable: false, queueRun: vi.fn() }))
+const speechRouting = vi.hoisted(() => ({ config: {} as Record<string, unknown>, tts: { languages: {} } as { languages: Record<string, { entries: unknown[]; storageLanguage?: string }> }, available: [] as string[], globalAvailable: false, queueRun: vi.fn() }))
 const saveActions = vi.hoisted(() => ({ stay: async () => {}, restoring: (_next: boolean) => {}, speechRestoring: false, discard: () => {}, speechEditing: (_id: string, _language: string, _editing: boolean) => {} }))
 const join = (strings: TemplateStringsArray, ...values: unknown[]) => strings.reduce((text, part, index) => text + part + (values[index] ?? ""), "")
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({ message: join(strings, ...values) }) }))
@@ -29,9 +29,9 @@ vi.mock("@/components/pipeline/components/VersionPicker", () => ({ VersionPicker
   saveActions.restoring = onRestoringChange
   return <button disabled={!dirty || saving} onClick={() => { void onSave().catch(() => {}) }}>Save translation</button>
 } }))
-vi.mock("@/api/client", () => ({ BASE_URL: "", getAudioUrl: () => "", api: { getTextCatalog: vi.fn(), getEasyRead: vi.fn().mockResolvedValue(null), listTranslatedImages: vi.fn().mockResolvedValue({ images: [] }), updateTranslation: vi.fn(), getVoiceMappings: vi.fn().mockResolvedValue({}), getWordTimestamps: vi.fn(), saveWordTimestamps: vi.fn() } }))
+vi.mock("@/api/client", () => ({ BASE_URL: "", getAudioUrl: vi.fn(() => ""), api: { getTextCatalog: vi.fn(), getEasyRead: vi.fn().mockResolvedValue(null), listTranslatedImages: vi.fn().mockResolvedValue({ images: [] }), updateTranslation: vi.fn(), getVoiceMappings: vi.fn().mockResolvedValue({}), getWordTimestamps: vi.fn(), saveWordTimestamps: vi.fn() } }))
 
-const { api } = await import("@/api/client")
+const { api, getAudioUrl } = await import("@/api/client")
 const { TooltipProvider } = await import("@/components/ui/tooltip")
 const { LanguageView } = await import("./LanguageView")
 let client: QueryClient
@@ -264,4 +264,15 @@ it("protects timing drafts across pending saves, language/voice selection and ex
   expect(api.saveWordTimestamps).toHaveBeenLastCalledWith("book", "fr", "pg001_text", expect.objectContaining({ baseVersion: 2, audioIdentity: "snapshot", words: [{ word: "Bonjour", start: 0.2, end: 1 }] }))
   expect(screen.getByRole("alert").textContent).toBe("Audio changed")
   expect((screen.getByTitle("Start") as HTMLInputElement).value).toBe("0.200")
+})
+
+
+it("uses the returned physical namespace for selected and source-language audio", async () => {
+  speechRouting.tts = { languages: Object.fromEntries(["en", "fr"].map(language => [language, {
+    storageLanguage: `${language}_legacy`, entries: [{ textId: "pg001_text", fileName: `${language}.mp3`, voice: "Narrator", voiceSlot: "primary" }],
+  }])) }
+  vi.mocked(api.getWordTimestamps).mockResolvedValue({ entries: {}, generatedAt: "old" })
+  renderLanguages("speech")
+  await waitFor(() => expect(getAudioUrl).toHaveBeenCalledWith("book", "fr_legacy", "fr.mp3", undefined))
+  expect(getAudioUrl).toHaveBeenCalledWith("book", "en_legacy", "en.mp3", undefined)
 })
