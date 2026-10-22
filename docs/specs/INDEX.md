@@ -29,6 +29,10 @@ The [develop integration evidence](../verification/spec-0001-develop-integration
 records conflict resolution, full checks and real UI/packaging verification; it does
 not change the approval or historical-book acceptance status.
 
+The [timing/locale correction evidence](../verification/spec-0001-timing-locale-2026-10-22.md)
+records two additional regression fixes and their full-suite, UI and packaging
+checks without changing those acceptance limits.
+
 Legacy notes, from before this process existed, now in [`docs/analysis/`](../analysis/):
 [SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),
 [SECTIONING_VALIDATION_FAILURES.md](../analysis/SECTIONING_VALIDATION_FAILURES.md)
