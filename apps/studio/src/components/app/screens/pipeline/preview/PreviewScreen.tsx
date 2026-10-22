@@ -1,19 +1,16 @@
 import { useState } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, Eye, RotateCcw } from "lucide-react"
+import { Trans } from "@lingui/react/macro"
+import { Minimize2 } from "lucide-react"
 import { getAdtUrl } from "@/api/client"
-import { PreviewViewportToggle } from "@/components/pipeline/components/PreviewViewportToggle"
-import { STAGES } from "@/components/pipeline/stage-config"
-import { TitleBarControls } from "@/components/title-bar/title-bar-controls"
-import { NO_DRAG_REGION } from "@/constants"
 import { useAdtPages } from "@/hooks/use-adt-pages"
 import { previewHrefForSection } from "@/components/app/screens/pipeline/shared/previewTarget"
 import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
 import { PreviewFrame } from "./PreviewFrame"
+import { PreviewHeader } from "./PreviewHeader"
 import { PreviewStatusPanel } from "./PreviewStatusPanel"
+import { DEVICE_SIZE, type PreviewSize } from "./previewSize"
+import { usePreviewFullscreen } from "./usePreviewFullscreen"
 import { usePreviewPackage } from "./usePreviewPackage"
-
-const PREVIEW_HEX = STAGES.find((stage) => stage.slug === "preview")?.hex ?? "#4b5563"
 
 export interface PreviewScreenProps {
   label: string
@@ -23,8 +20,9 @@ export interface PreviewScreenProps {
 }
 
 export function PreviewScreen({ label, targetSectionId, targetHref, onBack }: PreviewScreenProps) {
-  const { t } = useLingui()
-  const [viewport, setViewport] = useState<Viewport>("desktop")
+  const [device, setDevice] = useState<Viewport>("desktop")
+  const [size, setSize] = useState<PreviewSize>(DEVICE_SIZE.desktop)
+  const fullscreen = usePreviewFullscreen()
 
   const pkg = usePreviewPackage(label, true)
   const packaged = pkg.status === "ready" && pkg.version !== null
@@ -33,62 +31,43 @@ export function PreviewScreen({ label, targetSectionId, targetHref, onBack }: Pr
   const manifestQuery = useAdtPages(label, { enabled: packaged && needsManifest })
   const targetResolved = !needsManifest || manifestQuery.isSuccess || manifestQuery.isError
   const href = targetHref ?? previewHrefForSection(targetSectionId, manifestQuery.data) ?? ""
+  const src = packaged && targetResolved ? `${getAdtUrl(label)}/v-${pkg.version}/${href}` : null
+
+  const selectDevice = (next: Viewport) => {
+    setDevice(next)
+    setSize(DEVICE_SIZE[next])
+  }
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
-      <header
-        className="drag-region flex h-12.5 shrink-0 items-center gap-3 px-3.5 text-white"
-        style={{ background: PREVIEW_HEX }}
-      >
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
+      {fullscreen.fullscreen ? (
         <button
           type="button"
-          onClick={onBack}
-          style={NO_DRAG_REGION}
-          className="flex h-7 items-center gap-1.5 rounded-lg bg-white/16 px-2.5 text-xs font-semibold transition-colors hover:bg-white/24"
+          onClick={fullscreen.exit}
+          className="absolute top-3 left-3 z-10 flex h-8 items-center gap-1.5 rounded-lg border bg-card/90 px-2.5 text-[13px] font-medium text-foreground shadow-md backdrop-blur transition-colors hover:bg-card"
         >
-          <ArrowLeft className="size-3.5" />
-          <Trans>Storyboard</Trans>
+          <Minimize2 className="size-3.5" />
+          <Trans>Exit full screen</Trans>
         </button>
-
-        <span className="grid size-6.5 place-items-center rounded-full bg-white/20">
-          <Eye className="size-3.5" strokeWidth={2.4} />
-        </span>
-        <span className="text-sm font-semibold">
-          <Trans>Preview</Trans>
-        </span>
-
-        <div className="flex flex-1 items-center justify-center">
-          {packaged && (
-            <div style={NO_DRAG_REGION}>
-              <PreviewViewportToggle value={viewport} onChange={setViewport} />
-            </div>
-          )}
-        </div>
-
-        <div style={NO_DRAG_REGION} className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={pkg.repackage}
-            disabled={pkg.status === "packaging"}
-            aria-label={t`Rebuild the preview`}
-            title={t`Rebuild the preview`}
-            className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-white/16 disabled:pointer-events-none disabled:opacity-50"
-          >
-            <RotateCcw className="size-3.5" />
-          </button>
-        </div>
-
-        <TitleBarControls darkMode className="-my-px -mr-3.5 h-12.5" />
-      </header>
+      ) : (
+        <PreviewHeader
+          src={src}
+          packaging={pkg.status === "packaging"}
+          device={device}
+          size={size}
+          onBack={onBack}
+          onRebuild={pkg.repackage}
+          onFullscreen={fullscreen.enter}
+          onDeviceChange={selectDevice}
+          onSizeChange={setSize}
+        />
+      )}
 
       <div className="relative flex min-h-0 flex-1">
-        {packaged && targetResolved ? (
-          <PreviewFrame
-            src={`${getAdtUrl(label)}/v-${pkg.version}/${href}`}
-            viewport={viewport}
-          />
+        {pkg.error ? (
+          <PreviewStatusPanel error={pkg.error} onRetry={pkg.repackage} />
         ) : (
-          <PreviewStatusPanel hex={PREVIEW_HEX} error={pkg.error} onRetry={pkg.repackage} />
+          <PreviewFrame src={src} size={size} onResize={setSize} fullscreen={fullscreen.fullscreen} />
         )}
       </div>
     </div>

@@ -1643,6 +1643,9 @@ msgstr "Uma imagem com IA está sendo gerada. Cancelar e navegar?"
 msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
 msgstr "Uma chave de API definida no ambiente do servidor tem prioridade sobre este login. Remova-a de lá para usar a conta conectada."
 
+#~ msgid "An existing style is preventing this offset."
+#~ msgstr "Um estilo existente está impedindo este deslocamento."
+
 msgid "An open-ended answer activity."
 msgstr "Uma atividade de resposta aberta."
 
@@ -2497,6 +2500,9 @@ msgstr "Alterações detectadas"
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Alterar as fontes afeta como as páginas são renderizadas — execute novamente o Storyboard e a Exportação para aplicar as novas fontes."
 
+#~ msgid "Changing styles"
+#~ msgstr "Alterações de estilo"
+
 msgid "Changing the language resets downstream work."
 msgstr "Alterar o idioma redefine o trabalho posterior."
 
@@ -2827,6 +2833,9 @@ msgstr "Abrangente"
 msgid "Compressed archive · ~ 42 MB"
 msgstr "Arquivo compactado · ~ 42 MB"
 
+msgid "Computed CSS"
+msgstr "CSS calculado"
+
 msgid "Concise"
 msgstr "Conciso"
 
@@ -2998,6 +3007,9 @@ msgstr "Copiar saída de erro"
 
 msgid "Copy link"
 msgstr "Copiar link"
+
+msgid "Copy style"
+msgstr "Copiar estilo"
 
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Os recifes de coral cobrem menos de 1% do fundo do oceano, mas sustentam cerca de 25% de todas as espécies marinhas. Frequentemente chamados de 'florestas tropicais do mar', esses ecossistemas subaquáticos são construídos por pequenos animais chamados pólipos de coral."
@@ -3566,6 +3578,9 @@ msgstr "Detecta exercícios e questionários embutidos no livro e os classifica 
 msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
 msgstr "Detecta texto carimbado de forma idêntica em todas as páginas — como um aviso diagonal de “somente para leitura on-line” — e o remove das páginas renderizadas, das figuras extraídas e do texto do livro. Desative para manter as páginas exatamente como impressas."
 
+msgid "Device"
+msgstr "Dispositivo"
+
 msgid "Diagnostics"
 msgstr "Diagnósticos"
 
@@ -3629,6 +3644,9 @@ msgstr "concluído"
 msgid "Done"
 msgstr "Concluído"
 
+#~ msgid "Done transforming"
+#~ msgstr "Concluir transformação"
+
 msgid "Download"
 msgstr "Baixar"
 
@@ -3658,6 +3676,9 @@ msgstr "Baixa na extração"
 
 msgid "Draft"
 msgstr "Rascunho"
+
+#~ msgid "Drag · arrows 1px · Shift 10px · Esc to finish"
+#~ msgstr "Arrastar · setas 1px · Shift 10px · Esc para concluir"
 
 msgid "Drag & drop font files here"
 msgstr "Arraste e solte arquivos de fonte aqui"
@@ -3902,6 +3923,9 @@ msgstr "Editar texto falado"
 msgid "Edit spreads"
 msgstr "Editar spreads"
 
+msgid "Edit Tailwind classes"
+msgstr "Editar classes Tailwind"
+
 msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
 msgstr "Edite o modelo Liquid/HTML abaixo. As alterações são salvas ao clicar em Salvar."
 
@@ -3950,6 +3974,9 @@ msgstr "Esforço"
 
 msgid "El tranvía de la tarde · O bonde da tarde · Le tram de l'après-midi"
 msgstr "El tranvía de la tarde · O bonde da tarde · Le tram de l'après-midi"
+
+msgid "Element actions"
+msgstr "Ações do elemento"
 
 msgid "Element style editor"
 msgstr "Editor de estilo de elemento"
@@ -4003,6 +4030,9 @@ msgstr "EN"
 #. placeholder {0}: section.label
 msgid "Enable {0}"
 msgstr "Ativar {0}"
+
+#~ msgid "Enable Direct controls to drag."
+#~ msgstr "Ative os controles diretos para arrastar."
 
 msgid "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
 msgstr "Ative ou desative as revisões com lista de verificação criadas por revisores para este livro. A avaliação automática de acessibilidade continua disponível de qualquer forma."
@@ -4193,6 +4223,9 @@ msgstr "Excluir da renderização"
 
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "As sessões de revisor existentes mantêm seu próprio snapshot da lista de verificação. Novas alterações na lista valem apenas para sessões criadas depois."
+
+msgid "Exit full screen"
+msgstr "Sair da tela cheia"
 
 msgid "Expand"
 msgstr "Expandir"
@@ -4484,6 +4517,9 @@ msgstr "Filtra imagens decorativas ou sem conteúdo em cada página."
 msgid "Final Page"
 msgstr "Página Final"
 
+msgid "Finish editing classes"
+msgstr "Concluir edição de classes"
+
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Conclua o login com o ChatGPT na janela do navegador que acabou de abrir."
 
@@ -4623,6 +4659,9 @@ msgstr "Francês"
 msgid "Free rectangle — resize without skewing"
 msgstr "Retângulo livre — redimensione sem distorcer"
 
+#~ msgid "Free transform"
+#~ msgstr "Transformação livre"
+
 msgid "Free-form polygon — move, add, and remove points"
 msgstr "Polígono livre — mova, adicione e remova pontos"
 
@@ -4655,6 +4694,9 @@ msgstr "Controle total sobre estratégias de renderização, poda e filtros."
 
 msgid "Full project backup & transfer"
 msgstr "Backup completo do projeto e transferência"
+
+msgid "Full screen"
+msgstr "Tela cheia"
 
 msgid "Full-size source page preview."
 msgstr "Pré-visualização da página de origem em tamanho real."
@@ -4990,6 +5032,10 @@ msgstr "Agrupa regiões de imagem em ilustrações distintas em cada página."
 
 msgid "Guidance for this book"
 msgstr "Orientações para este livro"
+
+msgctxt "Height"
+msgid "H"
+msgstr "A"
 
 #. placeholder {0}: entry.level
 msgid "H{0}"
@@ -5470,6 +5516,9 @@ msgstr "Herdado de um elemento pai. Escolha um valor aqui para substituir neste 
 
 msgid "Initial Page"
 msgstr "Página Inicial"
+
+msgid "Inline CSS"
+msgstr "CSS inline"
 
 msgid "Input"
 msgstr "Entrada"
@@ -6034,6 +6083,9 @@ msgstr "Carregando catálogo de textos..."
 
 msgid "Loading text sizes…"
 msgstr "Carregando tamanhos de texto…"
+
+msgid "Loading the page"
+msgstr "Carregando a página"
 
 msgid "Loading the page HTML…"
 msgstr "Carregando o HTML da página…"
@@ -7385,6 +7437,9 @@ msgstr "Abrir pré-visualização da imagem"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Abra em qualquer leitor EPUB 3, leitor eletrônico ou ferramenta de acessibilidade."
 
+msgid "Open in the browser"
+msgstr "Abrir no navegador"
+
 msgid "Open linked page in preview"
 msgstr "Abrir a página vinculada na pré-visualização"
 
@@ -7946,6 +8001,9 @@ msgstr "Aprovado"
 
 msgid "Paste"
 msgstr "Colar"
+
+msgid "Paste style"
+msgstr "Colar estilo"
 
 msgid "Paste your key to connect this provider."
 msgstr "Cole sua chave para conectar este provedor."
@@ -8930,6 +8988,9 @@ msgstr "Estratégia de renderização"
 msgid "Rendered pages replace this panel as each page is built."
 msgstr "As páginas renderizadas substituem este painel conforme cada página é construída."
 
+msgid "Rendered size"
+msgstr "Tamanho renderizado"
+
 msgid "Rendering Prompt"
 msgstr "Prompt de renderização"
 
@@ -8999,6 +9060,9 @@ msgstr "Redefinir fontes"
 msgid "Reset fonts to default?"
 msgstr "Redefinir as fontes para o padrão?"
 
+#~ msgid "Reset offsets"
+#~ msgstr "Redefinir deslocamentos"
+
 msgid "Reset to defaults"
 msgstr "Restaurar padrões"
 
@@ -9017,8 +9081,14 @@ msgstr "Restaurar a cor de destaque do livro"
 msgid "Reset zoom"
 msgstr "Redefinir zoom"
 
+msgid "Resize height"
+msgstr "Redimensionar altura"
+
 msgid "Resize panel"
 msgstr "Redimensionar o painel"
+
+msgid "Resize width"
+msgstr "Redimensionar largura"
 
 msgid "Resolving source language..."
 msgstr "Resolvendo idioma de origem..."
@@ -9808,6 +9878,9 @@ msgstr "Selecione um arquivo de projeto .zip exportado do ADT Studio."
 msgid "Select a node type and enter an item ID to view versions."
 msgstr "Selecione um tipo de nó e insira um ID de item para ver as versões."
 
+#~ msgid "Select a normal-flow container for this positioned element."
+#~ msgstr "Selecione um contêiner no fluxo normal para este elemento posicionado."
+
 msgid "Select a page grouping to continue"
 msgstr "Selecione um agrupamento de páginas para continuar"
 
@@ -9853,6 +9926,12 @@ msgstr "Selecionar imagens para traduzir"
 msgid "Select node type..."
 msgstr "Selecionar tipo de nó..."
 
+#~ msgid "Select or wrap a container to offset this element."
+#~ msgstr "Selecione um contêiner ou envolva este elemento em um para deslocá-lo."
+
+msgid "Select parent"
+msgstr "Selecionar pai"
+
 msgid "Select reviewer session"
 msgstr "Selecionar sessão de revisor"
 
@@ -9867,6 +9946,9 @@ msgstr "Selecionar guia de estilo..."
 
 msgid "Select template..."
 msgstr "Selecionar template..."
+
+#~ msgid "Select the outer container to offset this transformed group."
+#~ msgstr "Selecione o contêiner externo para deslocar este grupo transformado."
 
 msgid "Select the pages the quiz is written from, then choose where it appears using the buttons between pages."
 msgstr "Selecione as páginas em que o questionário se baseia e escolha onde ele aparece usando os botões entre as páginas."
@@ -10020,6 +10102,9 @@ msgstr "Mostrar todas as traduções"
 
 #~ msgid "Show API key"
 #~ msgstr "Mostrar chave de API"
+
+#~ msgid "Show controls"
+#~ msgstr "Mostrar controles"
 
 msgid "Show credential"
 msgstr "Mostrar credencial"
@@ -10700,6 +10785,9 @@ msgstr "Tablet"
 msgid "Tailwind classes"
 msgstr "Classes Tailwind"
 
+msgid "Tailwind Classes"
+msgstr "Classes Tailwind"
+
 msgid "Takes liberties and produces something similar."
 msgstr "Toma liberdades e produz algo semelhante."
 
@@ -11197,6 +11285,9 @@ msgstr "Este computador"
 
 msgid "This connection isn't available yet."
 msgstr "Esta conexão ainda não está disponível."
+
+#~ msgid "This element has no visible box."
+#~ msgstr "Este elemento não tem uma caixa visível."
 
 msgid "This entry has no speakable text, so no audio was generated and no request was sent to the provider."
 msgstr "Esta entrada não tem texto pronunciável, portanto nenhum áudio foi gerado e nenhuma solicitação foi enviada ao provedor."
@@ -11779,6 +11870,12 @@ msgstr "Slug de etapa desconhecido: {0}"
 msgid "Unknown step: {step}"
 msgstr "Etapa desconhecida: {0}"
 
+msgid "Unlock"
+msgstr "Desbloquear"
+
+#~ msgid "Unlock this element and its contents first."
+#~ msgstr "Primeiro desbloqueie este elemento e seu conteúdo."
+
 msgid "Unprune image"
 msgstr "Restaurar imagem"
 
@@ -12115,6 +12212,9 @@ msgstr "Pistas visuais e sensoriais"
 msgid "Visual Layout"
 msgstr "Layout Visual"
 
+#~ msgid "Visual offset · keeps its space · all screen sizes"
+#~ msgstr "Deslocamento visual · mantém seu espaço · todos os tamanhos de tela"
+
 msgid "Visual Review"
 msgstr "Revisão Visual"
 
@@ -12153,6 +12253,10 @@ msgstr "Vozes e Sotaques"
 
 msgid "Volcanic Origins"
 msgstr "Origens Vulcânicas"
+
+msgctxt "Width"
+msgid "W"
+msgstr "L"
 
 msgid "Wait for glossary generation to finish"
 msgstr "Aguarde o término da geração do glossário"
@@ -12404,6 +12508,12 @@ msgstr "Escreva com IA o feedback de acerto/erro para cada etapa"
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."
 msgstr "Escreva sua frase com um marcador {0}."
+
+#~ msgid "X"
+#~ msgstr "X"
+
+#~ msgid "Y"
+#~ msgstr "Y"
 
 msgid "Yes"
 msgstr "Sim"

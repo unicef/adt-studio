@@ -1645,6 +1645,9 @@ msgstr "Po gjenerohet një imazh me AI. Ta anulosh dhe të vazhdosh?"
 msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
 msgstr "Një kyç API i caktuar në mjedisin e serverit ka përparësi ndaj kësaj hyrjeje. Hiqeni atje për të përdorur llogarinë me të cilën keni hyrë."
 
+#~ msgid "An existing style is preventing this offset."
+#~ msgstr "Një stil ekzistues po e pengon këtë zhvendosje."
+
 msgid "An open-ended answer activity."
 msgstr "Një aktivitet me përgjigje të hapur."
 
@@ -2499,6 +2502,9 @@ msgstr "U zbuluan ndryshime"
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzekutoni Storyboard dhe Eksportin për të zbatuar fontet e reja."
 
+#~ msgid "Changing styles"
+#~ msgstr "Ndryshimet e stileve"
+
 msgid "Changing the language resets downstream work."
 msgstr "Ndryshimi i gjuhës rivendos punën e mëvonshme."
 
@@ -2829,6 +2835,9 @@ msgstr "Gjithëpërfshirës"
 msgid "Compressed archive · ~ 42 MB"
 msgstr "Arkiv i kompresuar · ~ 42 MB"
 
+msgid "Computed CSS"
+msgstr "CSS e llogaritur"
+
 msgid "Concise"
 msgstr "Konciz"
 
@@ -3000,6 +3009,9 @@ msgstr "Kopjo daljen e gabimit"
 
 msgid "Copy link"
 msgstr "Kopjo lidhjen"
+
+msgid "Copy style"
+msgstr "Kopjo stilin"
 
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Rifet koraliere mbulojnë më pak se 1% të dyshemesë së oqeanit, por mbështesin rreth 25% të të gjitha specieve detare. Shpesh të quajtura 'pyjet e shiut të detit', këto ekosisteme nënujore ndërtohen nga kafshë të vogla të quajtura polipe korali."
@@ -3568,6 +3580,9 @@ msgstr "Zbulon ushtrimet dhe kuizet e ngulura në libër dhe i klasifikon si sek
 msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
 msgstr "Zbulon tekstin e vulosur në mënyrë identike në të gjitha faqet — si një njoftim diagonal “vetëm për lexim në internet” — dhe e heq atë nga faqet e renderuara, figurat e nxjerra dhe teksti i librit. Çaktivizojeni për t’i ruajtur faqet saktësisht siç janë shtypur."
 
+msgid "Device"
+msgstr "Pajisja"
+
 msgid "Diagnostics"
 msgstr "Diagnostikime"
 
@@ -3631,6 +3646,9 @@ msgstr "u krye"
 msgid "Done"
 msgstr "U krye"
 
+#~ msgid "Done transforming"
+#~ msgstr "Përfundo transformimin"
+
 msgid "Download"
 msgstr "Shkarko"
 
@@ -3660,6 +3678,9 @@ msgstr "Shkarkohet gjatë nxjerrjes"
 
 msgid "Draft"
 msgstr "Draft"
+
+#~ msgid "Drag · arrows 1px · Shift 10px · Esc to finish"
+#~ msgstr "Tërhiq · shigjetat 1px · Shift 10px · Esc për të përfunduar"
 
 msgid "Drag & drop font files here"
 msgstr "Tërhiq dhe lësho skedarët e fontit këtu"
@@ -3904,6 +3925,9 @@ msgstr "Redakto tekstin e të folurit"
 msgid "Edit spreads"
 msgstr "Redakto faqet e përbashkëta"
 
+msgid "Edit Tailwind classes"
+msgstr "Redakto klasat Tailwind"
+
 msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
 msgstr "Modifiko shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikon Ruaj."
 
@@ -3952,6 +3976,9 @@ msgstr "Përpjekje"
 
 msgid "El tranvía de la tarde · O bonde da tarde · Le tram de l'après-midi"
 msgstr "El tranvía de la tarde · O bonde da tarde · Le tram de l'après-midi"
+
+msgid "Element actions"
+msgstr "Veprimet e elementit"
 
 msgid "Element style editor"
 msgstr "Redaktues i stilit të elementit"
@@ -4005,6 +4032,9 @@ msgstr "EN"
 #. placeholder {0}: section.label
 msgid "Enable {0}"
 msgstr "Aktivizo {0}"
+
+#~ msgid "Enable Direct controls to drag."
+#~ msgstr "Aktivizo kontrollet e drejtpërdrejta për të tërhequr."
 
 msgid "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
 msgstr "Aktivizo ose çaktivizo rishikimet e listës së kontrollit të bëra nga rishikuesi për këtë libër. Vlerësimi i automatizuar i aksesueshmërisë mbetet i disponueshëm në çdo rast."
@@ -4195,6 +4225,9 @@ msgstr "Përjashto nga renderimi"
 
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Seancat ekzistuese të rishikuesit ruajnë fotografinë e tyre të listës së kontrollit. Ndryshimet e reja të listës zbatohen për seancat e krijuara rishtazi."
+
+msgid "Exit full screen"
+msgstr "Dil nga ekrani i plotë"
 
 msgid "Expand"
 msgstr "Zgjer"
@@ -4486,6 +4519,9 @@ msgstr "Filtron imazhet dekorative ose pa përmbajtje nga çdo faqe."
 msgid "Final Page"
 msgstr "Faqja e fundit"
 
+msgid "Finish editing classes"
+msgstr "Përfundo redaktimin e klasave"
+
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Përfundoni hyrjen me ChatGPT në dritaren e shfletuesit që sapo u hap."
 
@@ -4625,6 +4661,9 @@ msgstr "Français"
 msgid "Free rectangle — resize without skewing"
 msgstr "Drejtkëndësh i lirë — ripërmaso pa shtrembëruar"
 
+#~ msgid "Free transform"
+#~ msgstr "Transformim i lirë"
+
 msgid "Free-form polygon — move, add, and remove points"
 msgstr "Poligon i lirë — lëviz, shto dhe hiq pika"
 
@@ -4657,6 +4696,9 @@ msgstr "Kontroll i plotë mbi strategjitë e renderimit, prerjes dhe filtrave."
 
 msgid "Full project backup & transfer"
 msgstr "Kopje rezervë dhe transferim i plotë i projektit"
+
+msgid "Full screen"
+msgstr "Ekran i plotë"
 
 msgid "Full-size source page preview."
 msgstr "Pamje paraprake e faqes burimore në madhësi të plotë."
@@ -4992,6 +5034,10 @@ msgstr "Grupon rajonet e imazheve në ilustrime të veçanta në çdo faqe."
 
 msgid "Guidance for this book"
 msgstr "Udhëzime për këtë libër"
+
+msgctxt "Height"
+msgid "H"
+msgstr "L"
 
 #. placeholder {0}: entry.level
 msgid "H{0}"
@@ -5472,6 +5518,9 @@ msgstr "Trashëguar nga një element prind. Zgjidhni një vlerë këtu për ta a
 
 msgid "Initial Page"
 msgstr "Faqja fillestare"
+
+msgid "Inline CSS"
+msgstr "CSS brenda elementit"
 
 msgid "Input"
 msgstr "Hyrje"
@@ -6036,6 +6085,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
+
+msgid "Loading the page"
+msgstr "Po ngarkohet faqja"
 
 msgid "Loading the page HTML…"
 msgstr "Po ngarkohet HTML-ja e faqes…"
@@ -7387,6 +7439,9 @@ msgstr "Hapni pamjen paraprake të imazhit"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Hapeni në çdo lexues EPUB 3, e-reader, ose mjet aksesueshmërie."
 
+msgid "Open in the browser"
+msgstr "Hape në shfletues"
+
 msgid "Open linked page in preview"
 msgstr "Hap faqen e lidhur në parapamje"
 
@@ -7948,6 +8003,9 @@ msgstr "Kaloi"
 
 msgid "Paste"
 msgstr "Ngjit"
+
+msgid "Paste style"
+msgstr "Ngjit stilin"
 
 msgid "Paste your key to connect this provider."
 msgstr "Ngjitni çelësin tuaj për të lidhur këtë ofrues."
@@ -8932,6 +8990,9 @@ msgstr "Strategjia e Renderimit"
 msgid "Rendered pages replace this panel as each page is built."
 msgstr "Faqet e renderizuara e zëvendësojnë këtë panel sapo ndërtohet secila faqe."
 
+msgid "Rendered size"
+msgstr "Madhësia e shfaqur"
+
 msgid "Rendering Prompt"
 msgstr "Kërkesa e Renderimit"
 
@@ -9001,6 +9062,9 @@ msgstr "Rivendos fontet"
 msgid "Reset fonts to default?"
 msgstr "Të rivendosen fontet në parazgjedhje?"
 
+#~ msgid "Reset offsets"
+#~ msgstr "Rivendos zhvendosjet"
+
 msgid "Reset to defaults"
 msgstr "Rivendos në paracaktimet"
 
@@ -9019,8 +9083,14 @@ msgstr "Rikthe ngjyrën e theksit të librit"
 msgid "Reset zoom"
 msgstr "Rivendos zmadhimin"
 
+msgid "Resize height"
+msgstr "Ndrysho lartësinë"
+
 msgid "Resize panel"
 msgstr "Ripërmasoni panelin"
+
+msgid "Resize width"
+msgstr "Ndrysho gjerësinë"
 
 msgid "Resolving source language..."
 msgstr "Duke zgjidhur gjuhën burimore..."
@@ -9810,6 +9880,9 @@ msgstr "Zgjidhni një arkivë projekti .zip të eksportuar nga ADT Studio."
 msgid "Select a node type and enter an item ID to view versions."
 msgstr "Zgjidhni një lloj nyje dhe shkruani një ID elementi për të parë versionet."
 
+#~ msgid "Select a normal-flow container for this positioned element."
+#~ msgstr "Zgjidh një kontejner në rrjedhën normale për këtë element të pozicionuar."
+
 msgid "Select a page grouping to continue"
 msgstr "Zgjidhni një grupim faqesh për të vazhduar"
 
@@ -9855,6 +9928,12 @@ msgstr "Zgjidhni imazhet për të përkthyer"
 msgid "Select node type..."
 msgstr "Zgjidhni llojin e nyjes..."
 
+#~ msgid "Select or wrap a container to offset this element."
+#~ msgstr "Zgjidh një kontejner ose mbështille këtë element në një për ta zhvendosur."
+
+msgid "Select parent"
+msgstr "Zgjidh prindin"
+
 msgid "Select reviewer session"
 msgstr "Zgjidhni sesionin e rishikuesit"
 
@@ -9869,6 +9948,9 @@ msgstr "Zgjidhni udhëzuesin e stilit..."
 
 msgid "Select template..."
 msgstr "Zgjidhni shabllonin..."
+
+#~ msgid "Select the outer container to offset this transformed group."
+#~ msgstr "Zgjidh kontejnerin e jashtëm për ta zhvendosur këtë grup të transformuar."
 
 msgid "Select the pages the quiz is written from, then choose where it appears using the buttons between pages."
 msgstr "Zgjidhni faqet nga të cilat është shkruar kuizi, pastaj zgjidhni ku shfaqet duke përdorur butonat ndërmjet faqeve."
@@ -10022,6 +10104,9 @@ msgstr "Shfaq të gjitha përkthimet"
 
 #~ msgid "Show API key"
 #~ msgstr "Shfaq çelësin API"
+
+#~ msgid "Show controls"
+#~ msgstr "Shfaq kontrollet"
 
 msgid "Show credential"
 msgstr "Shfaq kredencialin"
@@ -10702,6 +10787,9 @@ msgstr "Tabletë"
 msgid "Tailwind classes"
 msgstr "Klasa Tailwind"
 
+msgid "Tailwind Classes"
+msgstr "Klasat Tailwind"
+
 msgid "Takes liberties and produces something similar."
 msgstr "Merr liri dhe prodhon diçka të ngjashme."
 
@@ -11199,6 +11287,9 @@ msgstr "Ky kompjuter"
 
 msgid "This connection isn't available yet."
 msgstr "Kjo lidhje nuk është ende e disponueshme."
+
+#~ msgid "This element has no visible box."
+#~ msgstr "Ky element nuk ka kuti të dukshme."
 
 msgid "This entry has no speakable text, so no audio was generated and no request was sent to the provider."
 msgstr "Kjo hyrje nuk ka tekst të shqiptueshëm, kështu që nuk u krijua audio dhe nuk u dërgua asnjë kërkesë tek ofruesi."
@@ -11781,6 +11872,12 @@ msgstr "Slug i hapit i panjohur: {step}"
 msgid "Unknown step: {step}"
 msgstr "Hap i panjohur: {step}"
 
+msgid "Unlock"
+msgstr "Shkyç"
+
+#~ msgid "Unlock this element and its contents first."
+#~ msgstr "Fillimisht zhblloko këtë element dhe përmbajtjen e tij."
+
 msgid "Unprune image"
 msgstr "Rikthe imazhin"
 
@@ -12117,6 +12214,9 @@ msgstr "Sinjale vizuale dhe shqisore"
 msgid "Visual Layout"
 msgstr "Paraqitje vizuale"
 
+#~ msgid "Visual offset · keeps its space · all screen sizes"
+#~ msgstr "Zhvendosje vizuale · ruan hapësirën · të gjitha madhësitë e ekranit"
+
 msgid "Visual Review"
 msgstr "Rishikim vizual"
 
@@ -12155,6 +12255,10 @@ msgstr "Zëra dhe akcente"
 
 msgid "Volcanic Origins"
 msgstr "Origjina vullkanike"
+
+msgctxt "Width"
+msgid "W"
+msgstr "Gj"
 
 msgid "Wait for glossary generation to finish"
 msgstr "Prit të përfundojë gjenerimi i glosariumit"
@@ -12406,6 +12510,12 @@ msgstr "Shkruani me AI reagimin e saktë/gabuar për çdo hap"
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."
 msgstr "Shkruani fjalinë tuaj me një shënues {0}."
+
+#~ msgid "X"
+#~ msgstr "X"
+
+#~ msgid "Y"
+#~ msgstr "Y"
 
 msgid "Yes"
 msgstr "Po"

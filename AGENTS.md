@@ -316,6 +316,30 @@ provider around the whole body:
 - **`cn` is exempt from `minimumReleaseAge`** in `pnpm-workspace.yaml` — the
   skin depends on it and only a recent version exists.
 
+**Responsive controls experiment:** the direct canvas controls prototyped on this
+branch now ship in `adt-html-editor` (0.3.0+). `StoryboardShell` turns them on with
+`flowLayout={{ directControls: true }}`, and `EditorCanvas` composes the library's
+`Canvas.FlowControls` and `Canvas.FlowToolbar` inside `Canvas.Viewport`, followed by
+`Canvas.FlowStatusBar`. Gestures, Reposition, the Layout menu, text wrapping, box
+height/inner space, multi-selection groups, **Wrap in container** (the button at the
+end of the status bar), the tag picker (`Inspector.TagHeader`) and **Free transform**
+(`Inspector.FlowPosition`, mounted in the Styles panel between Spacing and Sizing)
+all come from the library; see its README ("Flow layout controls", "Tag picker").
+**Context menu:** right-clicking an element in the canvas opens the menu (Duplicate,
+Delete, Copy, Paste, Copy style, Paste style, Select parent, Lock/Unlock). The library
+decides the actions and runs them (`useContextMenu`); `editor/CanvasContextMenu.tsx`
+renders them with icons and translated labels on the Studio's Radix dropdown, and
+gives focus back to the canvas on close so its shortcuts keep working. The library's
+own `Canvas.ContextMenu` (labels only, English) is not used. Its README says
+`Canvas.Viewport` and `Canvas.FixedPage` render that menu, but in 0.3.0 only its
+default canvas composition does; if a later version moves it into the viewport, the
+Studio menu and the library one would both open.
+One Studio-side piece has no library counterpart yet and stays in
+`editor/responsive/`: `inspection/` adds the Styles panel's **Inline CSS**,
+**Tailwind Classes** and **Computed CSS** accordions (open state is a local sidebar
+preference). See [the finding](docs/experiments/responsive-canvas-controls.md) for the
+experiment's history; it is not an approved production contract.
+
 ## Key Rules
 
 - All types defined as Zod schemas in `packages/types/`, infer TS types with `z.infer<>`
