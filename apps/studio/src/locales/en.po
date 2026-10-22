@@ -11186,8 +11186,8 @@ msgstr "Used for"
 msgid "Used for Azure Speech TTS provider."
 msgstr "Used for Azure Speech TTS provider."
 
-msgid "Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)"
-msgstr "Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)"
+msgid "Used for Claude models (claude-opus-5-5, claude-sonnet-5-5, etc.)"
+msgstr "Used for Claude models (claude-opus-5-5, claude-sonnet-5-5, etc.)"
 
 msgid "Used for ElevenLabs text-to-speech."
 msgstr "Used for ElevenLabs text-to-speech."

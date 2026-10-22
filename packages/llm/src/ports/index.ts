@@ -1,5 +1,6 @@
 export {
   AiProviderError,
+  ModelRefusalError,
   type AiProviderErrorDetails,
   type CredentialValidationIssue,
 } from "./errors.js"
@@ -16,11 +17,12 @@ export type {
   TokenUsage,
 } from "./common.js"
 
-export type {
-  StructuredTextBackend,
-  StructuredTextRequest,
-  StructuredTextResult,
-  StructuredRequestTraits,
+export {
+  appendSystemAdditions,
+  type StructuredTextBackend,
+  type StructuredTextRequest,
+  type StructuredTextResult,
+  type StructuredRequestTraits,
 } from "./structured-text-backend.js"
 
 export {
