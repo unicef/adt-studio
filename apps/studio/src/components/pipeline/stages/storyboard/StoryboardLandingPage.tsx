@@ -266,7 +266,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to run storyboard.</Trans>
+    <Trans>Connect an AI provider to run storyboard.</Trans>
   ) : !hasExtractedPages && pagesError ? (
     <Trans>Unable to load pages. Refresh and try again.</Trans>
   ) : undefined
@@ -274,6 +274,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   return (
     <LandingPageShell
       bookLabel={bookLabel}
+      requiresProvider
       stageSlug="storyboard"
       settingsTab="general"
       colorClass="bg-violet-600 hover:bg-violet-700"

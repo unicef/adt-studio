@@ -107,7 +107,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const providerOptions = useMemo(
     () => {
-      const disabledHint = t`Add this provider's API key in Book settings.`
+      const disabledHint = t`Add this provider's API key in Settings → AI providers.`
       return [
         {
           value: "openai" as const,
@@ -172,7 +172,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const disabledReason = selectedProviderKeyMissing ? (
-    <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
+    <Trans>Add the selected provider's API key in Settings → AI providers to run speech.</Trans>
   ) : !translateReady ? (
     <Trans>Run Language first — speech narrates the translated text.</Trans>
   ) : undefined
@@ -228,7 +228,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
             selectedProviderKeyMissing ? (
               <Trans>
                 No API key for {linguiI18n._(PROVIDER_LABELS[provider])} yet.
-                Add one in Book settings to enable this provider.
+                Add one in Settings → AI providers to enable this provider.
               </Trans>
             ) : (
               linguiI18n._(PROVIDER_HINTS[provider])
@@ -252,12 +252,12 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
                   {disabledProviderLabels.length === 1 ? (
                     <Trans>
                       {disabledProvidersText} is disabled — add its API key in
-                      Book settings to enable it.
+                      Settings → AI providers to enable it.
                     </Trans>
                   ) : (
                     <Trans>
                       {disabledProvidersText} are disabled — add their API keys
-                      in Book settings to enable them.
+                      in Settings → AI providers to enable them.
                     </Trans>
                   )}
                 </span>

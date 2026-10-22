@@ -18,6 +18,7 @@ import { PartialMergeNotice } from "@/components/parts/PartialMergeNotice"
 import { getStageLabelI18n } from "../pipeline-i18n"
 import { CascadeResetDialog } from "./CascadeResetDialog"
 import { RunWarningDialog } from "./RunWarningDialog"
+import { MissingKeyNotice } from "./MissingKeyNotice"
 
 export function LandingPageShell({
   bookLabel,
@@ -33,6 +34,7 @@ export function LandingPageShell({
   canRun,
   extraDisabled = false,
   disabledReason,
+  requiresProvider = false,
   runLabel,
   rerunLabel,
   previewLabel,
@@ -58,6 +60,8 @@ export function LandingPageShell({
   canRun: boolean
   extraDisabled?: boolean
   disabledReason?: ReactNode
+  /** Show the missing-provider notice at the top when no AI provider is connected. */
+  requiresProvider?: boolean
   runLabel: ReactNode
   rerunLabel: ReactNode
   previewLabel: string
@@ -170,6 +174,7 @@ export function LandingPageShell({
           {BOOK_LEVEL_STAGES.has(stageSlug as StageName) && (
             <PartialMergeNotice bookLabel={bookLabel} />
           )}
+          {requiresProvider && <MissingKeyNotice bookLabel={bookLabel} />}
           {children}
         </div>
 

@@ -107,7 +107,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to run sectioning.</Trans>
+    <Trans>Connect an AI provider to run sectioning.</Trans>
   ) : !hasExtractedPages && pagesError ? (
     <Trans>Unable to load pages. Refresh and try again.</Trans>
   ) : undefined
@@ -115,6 +115,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   return (
     <LandingPageShell
       bookLabel={bookLabel}
+      requiresProvider
       stageSlug="sectioning"
       settingsTab="section-types"
       colorClass="bg-sky-600 hover:bg-sky-700"

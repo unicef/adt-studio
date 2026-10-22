@@ -4,11 +4,12 @@ import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextStatus } from "@/hooks/use-api-key"
 import { ExtractPageDetail } from "./components/ExtractPageDetail"
 import { SpreadReview } from "./components/SpreadReview"
 import { BookHeader } from "./BookHeader"
 import { LoadingState } from "../../components/LoadingState"
+import { MissingKeyNotice } from "../../components/MissingKeyNotice"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -124,7 +125,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   const { data: pages, isLoading } = usePages(bookLabel)
   const { stageState, stepState, queueRun } = useBookRun()
   const { apiKey } = useApiKey()
-  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
+  const { available: hasStructuredTextProvider, ready: providerStatusReady } = useBookStructuredTextStatus(bookLabel)
   const selectedPageId = selectedPageIdProp ?? null
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()
@@ -250,7 +251,8 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
       )}
       <div className="p-4">
       {showRunCard ? (
-        <>
+        <div className="flex flex-col gap-4">
+          <MissingKeyNotice bookLabel={bookLabel} />
           {hasPages && !extractRunning && (
             <div className="mb-4">
               <LandingPageWarning
@@ -272,8 +274,13 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
             completed={extractDone}
             onRun={handleRetryExtract}
             disabled={(!extractError && !extractInterrupted) || !hasStructuredTextProvider || extractRunning || hasPages}
+            disabledReason={
+              providerStatusReady && !hasStructuredTextProvider ? (
+                <Trans>Connect an AI provider to retry.</Trans>
+              ) : undefined
+            }
           />
-        </>
+        </div>
       ) : pageList.length === 0 ? (
         <StageEmptyState
           icon={FileText}

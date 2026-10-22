@@ -25,6 +25,9 @@ status remains `in-review` pending integration approval and final historical-boo
 acceptance. Development verification is not release verification.
 The [October 22 corrective evidence](../verification/spec-0001-oct22-timing-corrections.md)
 records legacy timing/editor fixes and clarifies which acceptance checks remain pending.
+The [develop integration evidence](../verification/spec-0001-develop-integration-2026-10-22.md)
+records conflict resolution, full checks and real UI/packaging verification; it does
+not change the approval or historical-book acceptance status.
 
 Legacy notes, from before this process existed, now in [`docs/analysis/`](../analysis/):
 [SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),

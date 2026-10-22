@@ -123,7 +123,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to run extraction.</Trans>
+    <Trans>Connect an AI provider to run extraction.</Trans>
   ) : hasExtractedPages ? (
     <Trans>
       This book already has extracted pages. Re-extracting an existing book is
@@ -136,6 +136,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
     <LandingPageShell
       bookLabel={bookLabel}
       stageSlug="extract"
+      requiresProvider
       settingsTab="general"
       colorClass="bg-blue-600 hover:bg-blue-700"
       accentColor="#2563eb"
