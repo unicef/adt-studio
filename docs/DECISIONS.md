@@ -871,7 +871,7 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 **Date**: 2026-09-11
 
-**Updated**: 2026-10-17
+**Updated**: 2026-10-22
 
 **Spec**: [SPEC-0001](specs/SPEC-0001-per-section-staleness.md)
 
@@ -925,8 +925,9 @@ physical assets referenced by history independently of disposable caches.
 
 - V1 covers captions, easy-read, Translate's existing steps and Speech's existing
   steps. Storyboard freshness and Sectioning-to-Storyboard selection are deferred.
-  Existing glossary/quiz catalog entries participate; their generation and TOC
-  generation remain outside scope.
+  Existing glossary/quiz catalog entries participate. Their input freshness notices
+  and guarded Keep/Re-run interactions are included; changing their generation
+  algorithms or adding glossary/quiz/TOC generation to catalog-scoped execution is excluded.
 - Cosmetic changes do not invalidate content. Stable identity and explicit context
   are required; transport batching alone does not authorize replacing unchanged IDs.
   Cache identity differs from freshness, so no fixed cost saving is promised.
@@ -941,7 +942,7 @@ physical assets referenced by history independently of disposable caches.
   disclose included/omitted/fallback output, and add no warning-approval popup.
   Export does not resolve warnings or freshness.
 - Legacy ownership may use the narrow mutually unique leaf-ID fallback specified
-  in SPEC-0001's October 13 Teams clarification. This is an accepted compatibility
+  in SPEC-0001's linked legacy ownership decision C2. This is an accepted compatibility
   assumption, not historical proof; whole-tree moves can mislead it. Read-time
   recovery does not write or certify freshness. Historical reconstruction and a
   repair screen are deferred; fixed-layout compatibility is retained.

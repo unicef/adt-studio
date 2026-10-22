@@ -23,6 +23,8 @@ already holds its number — check both before taking one
 SPEC-0001 product clarifications were ratified in October 16 review Note 7; its
 status remains `in-review` pending integration approval and final historical-book
 acceptance. Development verification is not release verification.
+The [October 22 corrective evidence](../verification/spec-0001-oct22-timing-corrections.md)
+records legacy timing/editor fixes and clarifies which acceptance checks remain pending.
 
 Legacy notes, from before this process existed, now in [`docs/analysis/`](../analysis/):
 [SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),
