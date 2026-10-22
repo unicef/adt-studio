@@ -42,7 +42,7 @@ describe("pipeline effects", () => {
     expect(getStageRerunClearNodes("glossary", "glossary")).not.toContain("glossary")
     expect(getStageRerunClearNodes("storyboard", "package")).not.toContain("glossary")
     expect(getStageClearNodes("storyboard")).toContain("glossary")
-    expect(getStageRerunClearNodes("storyboard", "storyboard")).toContain("glossary")
+    expect(getStageRerunClearNodes("storyboard", "storyboard")).not.toContain("glossary")
   })
 
   it("keeps merge inputs while clearing derived speech timestamps", () => {

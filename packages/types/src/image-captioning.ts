@@ -1,6 +1,8 @@
+import { OutputMetadata } from "./output-freshness.js"
 import { z } from "zod"
 
 export const ImageCaption = z.object({
+  ...OutputMetadata.shape,
   imageId: z.string(),
   reasoning: z.string(),
   caption: z.string(),
@@ -13,7 +15,7 @@ export const ImageCaption = z.object({
   /**
    * Provenance of this entry. "manual" entries (the user edited the caption or
    * toggled decorative) are preserved wholesale when captioning is re-run;
-   * "ai" entries are regenerated. Absent is treated as "ai".
+   * "ai" entries are regenerated. Absent is protected as unknown authorship.
    */
   source: z.enum(["ai", "manual"]).optional(),
 })
