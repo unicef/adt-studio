@@ -33,6 +33,13 @@ export interface PageErrorDecisions {
   /** Resolve every pending decision for a label and drop its apply-to-all
    *  policy. Called at run end (success/error) and cancel. Defaults to "stop". */
   clearForRun(label: string, action?: PageErrorAction): void
+  skipPages(label: string, pageIds: string[]): void
+  isPageSkipped(label: string, pageId: string): boolean
+  getSkippedPages(label: string): string[]
+  clearSkippedPages(label: string): void
+  onPageSkip(label: string, listener: (pageId: string) => void): () => void
+  resumePages(label: string, pageIds: string[]): void
+  onPageResume(label: string, listener: (pageId: string) => void): () => void
 }
 
 interface PendingEntry {
@@ -53,6 +60,33 @@ export function createPageErrorDecisions(
   const pending = new Map<string, PendingEntry>()
   // Per-label "apply to all" policy set once the user checks the box.
   const bulkPolicy = new Map<string, PageErrorAction>()
+  const skippedPages = new Map<string, Set<string>>()
+  const skipListeners = new Map<string, Set<(pageId: string) => void>>()
+  const resumeListeners = new Map<string, Set<(pageId: string) => void>>()
+
+  function subscribe(
+    registry: Map<string, Set<(pageId: string) => void>>,
+    label: string,
+    listener: (pageId: string) => void,
+  ): () => void {
+    const listeners = registry.get(label) ?? new Set<(pageId: string) => void>()
+    registry.set(label, listeners)
+    listeners.add(listener)
+    return () => {
+      listeners.delete(listener)
+      if (listeners.size === 0) registry.delete(label)
+    }
+  }
+
+  function markSkipped(label: string, pageId: string): void {
+    const skipped = skippedPages.get(label) ?? new Set<string>()
+    skippedPages.set(label, skipped)
+    skipped.add(pageId)
+  }
+
+  function recordRenderingSkip(label: string, step: string, pageId: string, action: PageErrorAction): void {
+    if (action === "skip" && step === "web-rendering") markSkipped(label, pageId)
+  }
 
   function finish(entry: PendingEntry, action: PageErrorAction): void {
     if (entry.resolved) return
@@ -60,6 +94,7 @@ export function createPageErrorDecisions(
     if (entry.safetyTimer) clearTimeout(entry.safetyTimer)
     if (entry.graceTimer) clearInterval(entry.graceTimer)
     pending.delete(entry.decisionId)
+    recordRenderingSkip(entry.label, entry.step, entry.pageId, action)
     entry.resolve(action)
   }
 
@@ -80,7 +115,10 @@ export function createPageErrorDecisions(
     requestDecision(input: RequestDecisionInput): Promise<PageErrorAction> {
       // Honor a previously chosen "apply to all" without prompting again.
       const bulk = bulkPolicy.get(input.label)
-      if (bulk) return Promise.resolve(bulk)
+      if (bulk) {
+        recordRenderingSkip(input.label, input.step, input.pageId, bulk)
+        return Promise.resolve(bulk)
+      }
 
       const decisionId = crypto.randomUUID()
       return new Promise<PageErrorAction>((resolve) => {
@@ -158,6 +196,45 @@ export function createPageErrorDecisions(
       for (const entry of [...pending.values()]) {
         if (entry.label === label) finish(entry, action)
       }
+    },
+
+    skipPages(label: string, pageIds: string[]): void {
+      const requested = new Set(pageIds)
+      for (const pageId of requested) markSkipped(label, pageId)
+      for (const entry of [...pending.values()]) {
+        if (entry.label === label && requested.has(entry.pageId)) finish(entry, "skip")
+      }
+      for (const listener of [...(skipListeners.get(label) ?? [])]) {
+        for (const pageId of requested) listener(pageId)
+      }
+    },
+
+    isPageSkipped(label: string, pageId: string): boolean {
+      return skippedPages.get(label)?.has(pageId) ?? false
+    },
+
+    getSkippedPages(label: string): string[] {
+      return [...(skippedPages.get(label) ?? [])]
+    },
+
+    clearSkippedPages(label: string): void {
+      skippedPages.delete(label)
+    },
+
+    onPageSkip(label: string, listener: (pageId: string) => void): () => void {
+      return subscribe(skipListeners, label, listener)
+    },
+
+    resumePages(label: string, pageIds: string[]): void {
+      const skipped = skippedPages.get(label)
+      const resumed = [...new Set(pageIds)].filter((pageId) => skipped?.delete(pageId))
+      for (const listener of [...(resumeListeners.get(label) ?? [])]) {
+        for (const pageId of resumed) listener(pageId)
+      }
+    },
+
+    onPageResume(label: string, listener: (pageId: string) => void): () => void {
+      return subscribe(resumeListeners, label, listener)
     },
   }
 }

@@ -67,6 +67,11 @@ export interface StageRunOptions {
     pageId: string
     error: string
   }) => Promise<PageErrorAction>
+  pageSkips?: {
+    isSkipped(pageId: string): boolean
+    onSkip(listener: (pageId: string) => void): () => void
+    onResume?(listener: (pageId: string) => void): () => void
+  }
 }
 
 export interface StageRunProgress {
@@ -97,6 +102,14 @@ export interface StageService {
 }
 
 let nextId = 1
+
+function runIncludesStage(options: Pick<StageRunOptions, "fromStage" | "toStage">, stage: StageName): boolean {
+  const index = STAGE_ORDER.indexOf(stage)
+  return (
+    STAGE_ORDER.indexOf(options.fromStage as StageName) <= index &&
+    index <= STAGE_ORDER.indexOf(options.toStage as StageName)
+  )
+}
 
 export function createStageService(
   runner: StageRunner,
@@ -134,7 +147,16 @@ export function createStageService(
       requestPageDecision: decisions
         ? (input) => decisions.requestDecision({ label, ...input })
         : undefined,
+      pageSkips: decisions
+        ? {
+            isSkipped: (pageId) => decisions.isPageSkipped(label, pageId),
+            onSkip: (listener) => decisions.onPageSkip(label, listener),
+            onResume: (listener) => decisions.onPageResume(label, listener),
+          }
+        : undefined,
     }
+
+    if (runIncludesStage(options, "storyboard")) decisions?.clearSkippedPages(label)
 
     try {
       options.beforeRun?.()

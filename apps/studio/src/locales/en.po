@@ -7083,6 +7083,9 @@ msgstr "Page Sectioning Prompt"
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Page Sectioning Refinement Prompt"
 
+msgid "Page skipped"
+msgstr "Page skipped"
+
 msgid "Page text, headings, and quiz content."
 msgstr "Page text, headings, and quiz content."
 
@@ -8063,6 +8066,9 @@ msgstr "Render Reasoning"
 msgid "Render Strategy"
 msgstr "Render Strategy"
 
+msgid "Render this page"
+msgstr "Render this page"
+
 msgid "Rendering Prompt"
 msgstr "Rendering Prompt"
 
@@ -8198,6 +8204,9 @@ msgstr "Resume target"
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Resume target: page {0}"
 msgstr "Resume target: page {0}"
+
+msgid "Resume this page"
+msgstr "Resume this page"
 
 msgid "Retries"
 msgstr "Retries"
@@ -9146,6 +9155,12 @@ msgstr "Sizing"
 #~ msgid "sk-ant-..."
 #~ msgstr "sk-ant-..."
 
+msgid "Skip all failed pages"
+msgstr "Skip all failed pages"
+
+msgid "Skip all failed pages ({failedCount})"
+msgstr "Skip all failed pages ({failedCount})"
+
 msgid "Skip for now"
 msgstr "Skip for now"
 
@@ -9154,6 +9169,9 @@ msgstr "Skip page and continue"
 
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Skip segmentation for images whose shortest side is below this threshold."
+
+msgid "Skip this page"
+msgstr "Skip this page"
 
 msgid "Skip this page and continue the step, or stop the step entirely."
 msgstr "Skip this page and continue the step, or stop the step entirely."
@@ -10171,6 +10189,12 @@ msgstr "This page has no translatable text entries"
 
 msgid "This page has not been reviewed yet"
 msgstr "This page has not been reviewed yet"
+
+msgid "This page was skipped during storyboard rendering"
+msgstr "This page was skipped during storyboard rendering"
+
+msgid "This page will not be rendered in this run"
+msgstr "This page will not be rendered in this run"
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
