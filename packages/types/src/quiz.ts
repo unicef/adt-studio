@@ -18,10 +18,17 @@ export class QuizIdentityError extends Error {
 }
 
 export const QuizOption = z.object({
+  /** Stable leaf identity; legacy readers derive it once before editing. */
+  optionId: z.string().regex(/^qz[0-9]+_o(?:[0-9]+|_[a-f0-9-]{36})$/).optional(),
   text: z.string(),
   explanation: z.string(),
 })
 export type QuizOption = z.infer<typeof QuizOption>
+export function resolveQuizOptionId(option: QuizOption, quizId: string, index: number): string {
+  const id = option.optionId ?? `${quizId}_o${index}`
+  if (!id.startsWith(`${quizId}_o`)) throw new QuizIdentityError("Option identity belongs to a different quiz")
+  return id
+}
 
 export const Quiz = z.object({
   /**
@@ -131,12 +138,17 @@ export function withResolvedQuizIds(
 ): QuizGenerationOutput {
   const ids = output.quizzes.map(resolveQuizId)
   assertUniqueQuizIds(ids)
-  if (output.quizzes.every((q) => q.quizId)) return output
+  for (const [index, quiz] of output.quizzes.entries()) {
+    const options = quiz.options.map((option, i) => resolveQuizOptionId(option, ids[index], i))
+    if (new Set(options).size !== options.length) throw new QuizIdentityError("Duplicate quiz option identity")
+  }
+  if (output.quizzes.every((q) => q.quizId && q.options.every((option) => option.optionId))) return output
   return {
     ...output,
     quizzes: output.quizzes.map((quiz, index) => ({
       ...quiz,
       quizId: ids[index],
+      options: quiz.options.map((option, i) => ({ ...option, optionId: resolveQuizOptionId(option, ids[index], i) })),
     })),
   }
 }

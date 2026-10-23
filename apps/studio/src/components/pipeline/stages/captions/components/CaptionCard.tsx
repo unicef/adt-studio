@@ -1,3 +1,4 @@
+import { OutputReview } from "../../../components/OutputReview"
 import { useEffect, useRef } from "react"
 import { Eye, EyeOff, Maximize2, Pencil } from "lucide-react"
 import { BASE_URL } from "@/api/client"
@@ -17,6 +18,8 @@ interface CaptionCardProps {
   onOpenLightbox: (entries: LightboxEntry[], index: number) => void
   pageId: string
   pageNumber: number
+  /** The caption differs from its saved version (open draft or staged edit). */
+  edited?: boolean
 }
 
 export function CaptionCard({
@@ -32,6 +35,7 @@ export function CaptionCard({
   onOpenLightbox,
   pageId,
   pageNumber,
+  edited = false,
 }: CaptionCardProps) {
   const { t } = useLingui()
   const isDecorative = cap.decorative === true
@@ -111,6 +115,8 @@ export function CaptionCard({
             />
             {cap.imageId}
           </span>
+          {/* Same compact pill as Language: details and regenerate live in its popover. */}
+          <OutputReview bookLabel={bookLabel} id={cap.imageId} kinds={["caption"]} dirty={isEditing} edited={edited} compact />
           <button
             type="button"
             onClick={() => onToggleDecorative(cap.imageId)}

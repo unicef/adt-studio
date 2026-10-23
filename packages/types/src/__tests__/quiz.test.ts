@@ -76,7 +76,7 @@ describe("ensureQuizIds", () => {
     expect(result.quizzes.map((q) => q.quizId)).toEqual(["qz001", "qz002", "qz003"])
   })
 
-  it("is a no-op when every quiz already has an id", () => {
+  it("pins legacy option identities once, then is a no-op", () => {
     const input = output([quiz("one", { quizId: "qz005" })])
     const { output: result, changed } = ensureQuizIds(input)
 
@@ -129,10 +129,12 @@ describe("withResolvedQuizIds", () => {
     ])
   })
 
-  it("is a no-op when every quiz already has an id", () => {
+  it("pins legacy option identities once, then is a no-op", () => {
     const input = output([quiz("one", { quizId: "qz009" })])
 
-    expect(withResolvedQuizIds(input)).toBe(input)
+    const resolved = withResolvedQuizIds(input)
+    expect(resolved.quizzes[0].options.map((option) => option.optionId)).toEqual(["qz009_o0", "qz009_o1", "qz009_o2"])
+    expect(withResolvedQuizIds(resolved)).toBe(resolved)
   })
 
   it("agrees with resolveQuizId, which is what the read paths use", () => {

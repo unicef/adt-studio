@@ -4,7 +4,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { AccessibilityAssessmentOutput, parseBookLabel, withResolvedQuizIds, type QuizGenerationOutput } from "@adt/types"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, readCurrentNodeRow } from "@adt/storage"
 
 function getDbPath(label: string, booksDir: string): string {
   const safeLabel = parseBookLabel(label)
@@ -247,23 +247,20 @@ export function createDebugRoutes(
 
     const db = openBookDb(dbPath)
     try {
-      const rows = db.all(
-        "SELECT version, data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-        ["accessibility-assessment", "book"]
-      ) as Array<{ version: number; data: string }>
+      const row = readCurrentNodeRow(db, "accessibility-assessment", "book")
 
-      if (rows.length === 0) {
+      if (!row) {
         return c.json({ version: null, assessment: null })
       }
 
-      const parsed = AccessibilityAssessmentOutput.safeParse(JSON.parse(rows[0].data))
+      const parsed = AccessibilityAssessmentOutput.safeParse(JSON.parse(row.data))
       if (!parsed.success) {
         throw new HTTPException(500, {
           message: `Stored accessibility assessment is invalid: ${parsed.error.message}`,
         })
       }
 
-      return c.json({ version: rows[0].version, assessment: parsed.data })
+      return c.json({ version: row.version, assessment: parsed.data })
     } finally {
       db.close()
     }

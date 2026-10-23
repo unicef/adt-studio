@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
 import {
   ArrowDownAZ,
   ArrowDownWideNarrow,
@@ -25,6 +26,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
+import { toast } from "@/components/ui/sonner"
 import { api, BASE_URL, getSignLanguageVideoUrl } from "@/api/client"
 import type { GlossaryItem, GlossaryOutput, SignLanguageVideo, VersionEntry } from "@/api/client"
 import { useGlossary } from "@/hooks/use-glossary"
@@ -60,7 +62,7 @@ import { GlossaryHintBanner } from "./components/GlossaryHintBanner"
 import { useGlossaryOccurrences, type TermOccurrence } from "./lib/occurrences"
 
 
-type GlossaryData = Omit<GlossaryOutput, "version">
+type GlossaryData = Omit<GlossaryOutput, "version"> & { version?: number }
 type GlossaryFilter = "all" | "active" | "pruned"
 type SortMode = "default" | "az" | "za" | "usage-desc" | "usage-asc"
 
@@ -91,18 +93,32 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     queueRun({ fromStage: "glossary", toStage: "glossary", apiKey })
   }, [hasStructuredTextProvider, glossaryRunning, apiKey, queueRun])
 
-  const [pending, setPending] = useState<GlossaryData | null>(null)
+  const { restoring, restoringRef, onRestoringChange } = useVersionRestoreBusy(bookLabel)
+  const [pending, setPendingState] = useState<GlossaryData | null>(null)
+  const pendingRef = useRef<GlossaryData | null>(null)
+  const setPending = useCallback((next: GlossaryData | null) => {
+    if (restoringRef.current) return
+    pendingRef.current = next
+    setPendingState(next)
+  }, [])
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
+  const bookScope = useMemo(() => ({ bookLabel }), [bookLabel])
+  const bookScopeRef = useRef(bookScope)
+  bookScopeRef.current = bookScope
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<GlossaryFilter>("active")
   const [manualOnly, setManualOnly] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>("default")
 
-  // Reset pending when data changes
+  // Background refetches (including after a conflict) must not discard edits.
+  // Successful save, explicit discard and restore clear the draft themselves.
   useEffect(() => {
     setPending(null)
-  }, [data?.version])
+    savingRef.current = false
+    setSaving(false)
+  }, [bookLabel])
 
   const effective = pending ?? data ?? null
   const items = effective?.items ?? []
@@ -200,23 +216,58 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     setShowAddDialog(true)
   }, [])
 
-  const saveGlossary = useCallback(async () => {
-    if (!pending) return
+  const saveGlossary = useCallback(async (forNavigation = false) => {
+    if (savingRef.current || restoringRef.current) {
+      // The navigation guard must stay while a different save owns the draft.
+      if (forNavigation) {
+        const message = t`A save is still in progress. Wait for it to finish before leaving.`
+        toast.error(message)
+        throw new Error(message)
+      }
+      return
+    }
+    const submitted = pendingRef.current
+    if (!submitted) return
+    const submittedScope = bookScope
+    savingRef.current = true
     setSaving(true)
     const minDelay = new Promise((r) => setTimeout(r, 400))
-    const result = await api.updateGlossary(bookLabel, pending)
-    setPending(null)
-    if (result.imageRequirementsChanged) {
-      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
-      invalidateStoryboardDependents(queryClient, bookLabel)
+    try {
+      const result = await api.updateGlossary(bookLabel, submitted)
+      if (bookScopeRef.current === submittedScope) {
+        const current = pendingRef.current
+        if (current === submitted) setPending(null)
+        else if (current) setPending({ ...current, version: result.version, identitySignature: result.identitySignature })
+      }
+      if (result.imageRequirementsChanged) {
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+        invalidateStoryboardDependents(queryClient, bookLabel)
+      } else {
+        // Glossary text feeds Language and Speech; refresh the sidebar's
+        // attention (the branch above already does, so don't read it twice).
+        void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] })
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "glossary"] }),
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "text-catalog"] }),
+      ])
+    } catch (error) {
+      if (bookScopeRef.current === submittedScope) toast.error(t`Couldn't save the glossary. Your draft is kept; check for newer changes before trying again.`)
+      if (forNavigation) throw error
+    } finally {
+      await minDelay
+      if (bookScopeRef.current === submittedScope) {
+        savingRef.current = false
+        setSaving(false)
+      }
     }
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "glossary"] }),
-      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "text-catalog"] }),
-    ])
-    await minDelay
-    setSaving(false)
-  }, [pending, bookLabel, queryClient])
+    // A successor was never submitted; successful navigation would lose it.
+    if (forNavigation && bookScopeRef.current === submittedScope && pendingRef.current) {
+      const message = t`Newer edits are still unsaved. Save them before leaving.`
+      toast.error(message)
+      throw new Error(message)
+    }
+  }, [bookLabel, bookScope, queryClient, setPending, t])
 
   // Use ref so the header always calls the latest save
   const saveRef = useRef(saveGlossary)
@@ -230,14 +281,16 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
           step="glossary"
           itemId="book"
           currentVersion={currentVersion}
-          saving={saving}
+          saving={saving || restoring}
           dirty={dirty}
           bookLabel={bookLabel}
           saveDisabledReason={glossaryRunning ? t`Wait for glossary generation to finish` : undefined}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
+          onRestoringChange={onRestoringChange}
           onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
+          onSaveStay={() => saveRef.current(true)}
           onDiscard={() => setPending(null)}
           diff={{
             items: (d) => (d as GlossaryData | null)?.items?.filter((i) => !i.pruned) ?? [],
@@ -269,7 +322,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       </div>
     )
     return () => setExtra(null)
-  }, [visibleCount, saving, dirty, bookLabel, currentVersion, glossaryRunning, t, setExtra, pendingLabel, pendingLabelKey])
+  }, [visibleCount, saving, restoring, onRestoringChange, dirty, bookLabel, currentVersion, glossaryRunning, t, setExtra, pendingLabel, pendingLabelKey])
 
   const updateDefinition = (itemId: string, newDefinition: string) => {
     const base = pending ?? data ?? createEmptyGlossary()
@@ -346,6 +399,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-all duration-200 cursor-pointer"
 
   return (
+    <EditorBusyBoundary busy={restoring}>
     <StageContentGuard
       stageSlug="glossary"
       isLoading={isLoading && !effective}
@@ -545,6 +599,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
         />
       </div>
     </StageContentGuard>
+    </EditorBusyBoundary>
   )
 }
 

@@ -14,7 +14,9 @@ import {
   getEasyReadElementEligibility,
   isDeterministicEmptyEasyReadOutput,
 } from "../easy-read.js"
-import type { EasyReadOutput } from "@adt/types"
+import type { EasyReadOutput, OutputRunScope } from "@adt/types"
+import { easyReadInputSignature } from "../easy-read.js"
+import { outputEvidence } from "../output-freshness.js"
 
 function makeFakeModel(
   fn: (texts: Array<{ index: number; text: string }>) => string[],
@@ -65,6 +67,44 @@ function makeBlock(
   }
 }
 
+it("AC-4/5/8/9 generates one shared Easy Read identity with every consumer's context and converges", async () => {
+  const blocks = [makeBlock("pg001", 0, 2), makeBlock("pg002", 1, 2)]
+  for (const block of blocks) Object.assign(block.entries[0], { sourceId: "shared", easyReadId: "shared_easy_read", text: "Shared", originalText: "Shared" })
+  const calls: GenerateObjectOptions[] = []
+  const model = makeFakeModel((texts) => texts.map((entry) => `Easy ${entry.text}`), (call) => calls.push(call))
+  const config = buildEasyReadConfig({ easy_read: { enabled: true } } as Parameters<typeof buildEasyReadConfig>[0], "en")
+  const scope: OutputRunScope = { selection: { sectionIds: [blocks[1].sectionId], identities: [{ kind: "easy-read", id: "shared_easy_read", language: "en" }] } }
+  const result = await generateEasyRead(blocks, config, model, { scope })
+  const sharedCalls = calls.filter((call) => (call.context?.texts as Array<{ text: string }>).some((entry) => entry.text === "Shared"))
+  expect(sharedCalls).toHaveLength(1)
+  expect(sharedCalls[0].context?.section_text).toContain(blocks[0].entries[1].originalText)
+  expect(sharedCalls[0].context?.section_text).toContain(blocks[1].entries[1].originalText)
+  expect(result.blocks.map((block) => block.entries[0].text)).toEqual(["Easy Shared", "Easy Shared"])
+  expect(flattenEasyReadEntries(result)).toEqual([expect.objectContaining({ id: "shared_easy_read", locations: blocks.map((block) => ({ pageId: block.pageId, sectionId: block.sectionId })) })])
+  const signature = result.blocks[0].entries[0].input!.signature
+  expect(signature).toBe(easyReadInputSignature(blocks, "shared", config))
+  const count = calls.length
+  expect(await generateEasyRead(blocks, config, model, { previous: result, scope })).toEqual(result)
+  expect(calls).toHaveLength(count)
+  blocks[1].entries[1].originalText = "Changed neighboring context"
+  const updated = await generateEasyRead(blocks, config, model, { previous: result, scope })
+  expect(calls).toHaveLength(count + 1)
+  expect(updated.blocks[0].entries[0].input!.signature).not.toBe(signature)
+})
+
+it.each([0, 1])("AC-4/7 keeps a protected shared copy in section %s even when another copy is generated", async (manualIndex) => {
+  const blocks = [makeBlock("pg001", 0, 1), makeBlock("pg002", 1, 1)]
+  for (const block of blocks) Object.assign(block.entries[0], { sourceId: "shared", easyReadId: "shared_easy_read", text: "Shared", originalText: "Shared" })
+  const previous = { blocks: structuredClone(blocks), generatedAt: "before" }
+  previous.blocks[manualIndex].entries[0] = { ...previous.blocks[manualIndex].entries[0], text: "My correction", source: "manual" }
+  const generated = previous.blocks[1 - manualIndex].entries[0]
+  Object.assign(generated, { text: "Generated copy", source: "ai", input: outputEvidence("old", "Generated copy") })
+  const config = buildEasyReadConfig({ easy_read: { enabled: true } } as Parameters<typeof buildEasyReadConfig>[0], "en")
+  const model = makeFakeModel(() => { throw new Error("Protected identity must not generate") })
+  expect(await generateEasyRead(blocks, config, model, { previous })).toEqual(previous)
+  expect(flattenEasyReadEntries(previous)[0]).toMatchObject({ text: "My correction", source: "manual", locations: blocks.map((block) => ({ pageId: block.pageId, sectionId: block.sectionId })) })
+})
+
 describe("buildPageEasyReadBlocks", () => {
   it("selects non-interactive body text and excludes headings, images, and activity controls", () => {
     const blocks = buildPageEasyReadBlocks(
@@ -72,6 +112,7 @@ describe("buildPageEasyReadBlocks", () => {
       {
         sections: [
           {
+            sectionId: "pg001_sec001",
             sectionIndex: 0,
             sectionType: "text_only",
             reasoning: "",
@@ -85,6 +126,7 @@ describe("buildPageEasyReadBlocks", () => {
             `,
           },
           {
+            sectionId: "pg001_sec002",
             sectionIndex: 1,
             sectionType: "activity_multiple_choice",
             reasoning: "",
@@ -198,6 +240,7 @@ describe("buildPageEasyReadBlocks", () => {
       {
         sections: [
           {
+            sectionId: "pg001_sec001",
             sectionIndex: 0,
             sectionType: "text_only",
             reasoning: "",
@@ -210,6 +253,7 @@ describe("buildPageEasyReadBlocks", () => {
             `,
           },
           {
+            sectionId: "pg001_sec002",
             sectionIndex: 1,
             sectionType: "activity_open_ended_answer",
             reasoning: "",
@@ -268,6 +312,7 @@ describe("buildPageEasyReadBlocks", () => {
       {
         sections: [
           {
+            sectionId: "pg001_sec001",
             sectionIndex: 0,
             sectionType: "activity_open_ended_answer",
             reasoning: "",
@@ -372,7 +417,7 @@ describe("generateEasyRead", () => {
     )
 
     expect(sawValidator).toBe(true)
-    expect(flattenEasyReadEntries(output)).toEqual([
+    expect(flattenEasyReadEntries(output).map(({ id, text }) => ({ id, text }))).toEqual([
       { id: "pg001_tx001_easy_read", text: "Easy: A complex sentence." },
     ])
   })
@@ -501,7 +546,7 @@ describe("generateEasyRead", () => {
       model,
     )
 
-    expect(flattenEasyReadEntries(output)).toEqual([
+    expect(flattenEasyReadEntries(output).map(({ id, text }) => ({ id, text }))).toEqual([
       { id: "pg001_tx001_easy_read", text: outputs[0] },
       { id: "pg001_tx002_easy_read", text: outputs[1] },
       { id: "pg001_tx003_easy_read", text: outputs[2] },
