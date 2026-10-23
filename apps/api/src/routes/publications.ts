@@ -490,6 +490,24 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   })
 
+  /**
+   * The share routes skip the writer-lease middleware so a second share still hears
+   * `publish_in_progress` from `beginPublish`, not BOOK_BUSY. Past that guard they take the lease
+   * themselves, and the run inside `streamSSE` keeps it after the handler returns.
+   */
+  const underShareLease = (
+    label: string,
+    release: () => void,
+    handler: () => Promise<Response>,
+  ): Promise<Response> => {
+    try {
+      return withBookWriter(path.join(deps.booksDir, label), handler)
+    } catch (error) {
+      release()
+      throw error
+    }
+  }
+
   app.post("/books/:label/publication", async (c) => {
     const label = parseBookLabel(c.req.param("label"))
     requireBook(label)
@@ -498,55 +516,57 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     if (guard instanceof Response) return guard
     const { release } = guard
 
-    const body = BookPublishRequest.safeParse(await readBody(c))
-    if (!body.success) {
-      release()
-      return c.json({ error: body.error.message, code: "invalid_request" }, 400)
-    }
-
-    const connection = store.read()
-    if (!connection) {
-      release()
-      return failure(
-        c,
-        412,
-        "publish_not_connected",
-        "Connect a Cloudflare account before publishing this book",
-      )
-    }
-
-    const record = readPublicationRecord(label, deps.booksDir)
-    if (isActiveRecord(record)) {
-      release()
-      return failure(
-        c,
-        409,
-        "published_already",
-        "This book is already published — use Update site to publish a new version",
-      )
-    }
-
-    return streamSSE(c, async (stream) => {
-      const emit = async (event: PublishProgressEvent) => {
-        await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
-      }
-
-      /** `streamSSE` returns before this callback settles, and the request's writer lease goes
-       *  with it — so the run holds its own while it rewrites `adt/` and uploads the snapshot. */
-      try {
-        await withBookWriter(path.join(deps.booksDir, label), async () => publishBook({
-          ...publishDeps(label),
-          connection,
-          emit,
-          expiresAt: body.data.expires_at ?? null,
-          accessCode: body.data.access_code ?? null,
-          ...(body.data.features ? { features: body.data.features } : {}),
-        }))
-      } catch (error) {
-        await emit(toPublishErrorEvent(error))
-      } finally {
+    return underShareLease(label, release, async () => {
+      const body = BookPublishRequest.safeParse(await readBody(c))
+      if (!body.success) {
         release()
+        return c.json({ error: body.error.message, code: "invalid_request" }, 400)
       }
+
+      const connection = store.read()
+      if (!connection) {
+        release()
+        return failure(
+          c,
+          412,
+          "publish_not_connected",
+          "Connect a Cloudflare account before publishing this book",
+        )
+      }
+
+      const record = readPublicationRecord(label, deps.booksDir)
+      if (isActiveRecord(record)) {
+        release()
+        return failure(
+          c,
+          409,
+          "published_already",
+          "This book is already published — use Update site to publish a new version",
+        )
+      }
+
+      return streamSSE(c, async (stream) => {
+        const emit = async (event: PublishProgressEvent) => {
+          await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
+        }
+
+        /** `streamSSE` returns before this callback settles, and the handler's writer lease goes
+         *  with it — so the run holds its own while it rewrites `adt/` and uploads the snapshot. */
+        try {
+          await withBookWriter(path.join(deps.booksDir, label), async () => publishBook({
+            ...publishDeps(label),
+            connection,
+            emit,
+            expiresAt: body.data.expires_at ?? null,
+            accessCode: body.data.access_code ?? null,
+            ...(body.data.features ? { features: body.data.features } : {}),
+          }))
+        } catch (error) {
+          await emit(toPublishErrorEvent(error))
+        } finally {
+          release()
+        }
+      })
     })
   })
 
@@ -558,52 +578,54 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     if (guard instanceof Response) return guard
     const { release } = guard
 
-    const body = BookPublishRequest.safeParse(await readBody(c))
-    if (!body.success) {
-      release()
-      return c.json({ error: body.error.message, code: "invalid_request" }, 400)
-    }
-
-    const connection = store.read()
-    if (!connection) {
-      release()
-      return failure(
-        c,
-        412,
-        "publish_not_connected",
-        "Connect a Cloudflare account before publishing this book",
-      )
-    }
-
-    const record = readPublicationRecord(label, deps.booksDir)
-    if (!isActiveRecord(record)) {
-      release()
-      return failure(
-        c,
-        409,
-        "not_published",
-        "This book has no active publication — publish it first",
-      )
-    }
-
-    return streamSSE(c, async (stream) => {
-      const emit = async (event: PublishProgressEvent) => {
-        await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
-      }
-
-      try {
-        await withBookWriter(path.join(deps.booksDir, label), async () => republishBook({
-          ...publishDeps(label),
-          connection,
-          emit,
-          record,
-          ...(body.data.features ? { features: body.data.features } : {}),
-        }))
-      } catch (error) {
-        await emit(toPublishErrorEvent(error))
-      } finally {
+    return underShareLease(label, release, async () => {
+      const body = BookPublishRequest.safeParse(await readBody(c))
+      if (!body.success) {
         release()
+        return c.json({ error: body.error.message, code: "invalid_request" }, 400)
       }
+
+      const connection = store.read()
+      if (!connection) {
+        release()
+        return failure(
+          c,
+          412,
+          "publish_not_connected",
+          "Connect a Cloudflare account before publishing this book",
+        )
+      }
+
+      const record = readPublicationRecord(label, deps.booksDir)
+      if (!isActiveRecord(record)) {
+        release()
+        return failure(
+          c,
+          409,
+          "not_published",
+          "This book has no active publication — publish it first",
+        )
+      }
+
+      return streamSSE(c, async (stream) => {
+        const emit = async (event: PublishProgressEvent) => {
+          await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
+        }
+
+        try {
+          await withBookWriter(path.join(deps.booksDir, label), async () => republishBook({
+            ...publishDeps(label),
+            connection,
+            emit,
+            record,
+            ...(body.data.features ? { features: body.data.features } : {}),
+          }))
+        } catch (error) {
+          await emit(toPublishErrorEvent(error))
+        } finally {
+          release()
+        }
+      })
     })
   })
 

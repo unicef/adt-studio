@@ -3,6 +3,7 @@ import { withBookWriter } from "@adt/storage"
 import { requireExistingBook } from "../utils/book-exists.js"
 
 const PUBLISH_WORKER_ONLY = ["/publication/comments", "/publication/room-ticket"]
+const PUBLISH_RUNS = ["/publication", "/publication/versions"]
 
 /** Adapted from published SPEC-0010/#886. Reads remain read-only; queued runs
  * and cancellation are admitted by their service when execution starts. */
@@ -18,6 +19,8 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     if (suffix.startsWith("/stages") || suffix.startsWith("/tasks")) return next()
     // Shared-link feedback only reaches the publish Worker; the book stays untouched.
     if (PUBLISH_WORKER_ONLY.some((prefix) => suffix.startsWith(prefix))) return next()
+    // A share takes the lease itself, after telling a second share about the running one.
+    if (c.req.method === "POST" && PUBLISH_RUNS.includes(suffix)) return next()
     return withBookWriter(bookDir, next)
   }
 }
