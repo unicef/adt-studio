@@ -718,6 +718,24 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   })
 
+  /**
+   * The share routes skip the writer-lease middleware so a second share still hears
+   * `publish_in_progress` from `beginPublish`, not BOOK_BUSY. Past that guard they take the lease
+   * themselves, and the run inside `streamSSE` keeps it after the handler returns.
+   */
+  const underShareLease = (
+    label: string,
+    release: () => void,
+    handler: () => Promise<Response>,
+  ): Promise<Response> => {
+    try {
+      return withBookWriter(path.join(deps.booksDir, label), handler)
+    } catch (error) {
+      release()
+      throw error
+    }
+  }
+
   app.post("/books/:label/publication", async (c) => {
     const label = parseBookLabel(c.req.param("label"))
     requireBook(label)
@@ -726,62 +744,64 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     if (guard instanceof Response) return guard
     const { release } = guard
 
-    const body = BookPublishRequest.safeParse(await readBody(c))
-    if (!body.success) {
-      release()
-      return c.json({ error: body.error.message, code: "invalid_request" }, 400)
-    }
-
-    const connection = store.read()
-    if (!connection) {
-      release()
-      return failure(
-        c,
-        412,
-        "publish_not_connected",
-        "Connect a Cloudflare account before publishing this book",
-      )
-    }
-
-    await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
-    const record = readPublicationRecord(label, deps.booksDir)
-    if (hasLiveLink(record, connection, (deps.now ?? (() => new Date()))())) {
-      release()
-      return failure(
-        c,
-        409,
-        "published_already",
-        "This book is already published — use Update site to publish a new version",
-      )
-    }
-
-    runs.begin(label, "publish")
-    return streamSSE(c, async (stream) => {
-      /** Recorded before it is written: the stream may already be gone — the author reloaded or
-       *  left the page — and the run carries on regardless, so the snapshot is the record. */
-      const emit = async (event: PublishProgressEvent) => {
-        runs.record(label, event)
-        await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
-      }
-
-      /** `streamSSE` returns before this callback settles, and the request's writer lease goes
-       *  with it — so the run holds its own while it rewrites `adt/` and uploads the snapshot. */
-      try {
-        await withBookWriter(path.join(deps.booksDir, label), async () => publishBook({
-          ...publishDeps(label),
-          connection,
-          bookHost: await bookHostFor(c, connection),
-          emit,
-          expiresAt: body.data.expires_at ?? null,
-          accessCode: body.data.access_code ?? null,
-          ...(body.data.features ? { features: body.data.features } : {}),
-        }))
-      } catch (error) {
-        if (error instanceof PublishCancelledError) runs.cancelled(label)
-        else await emit(toPublishErrorEvent(error))
-      } finally {
+    return underShareLease(label, release, async () => {
+      const body = BookPublishRequest.safeParse(await readBody(c))
+      if (!body.success) {
         release()
+        return c.json({ error: body.error.message, code: "invalid_request" }, 400)
       }
+
+      const connection = store.read()
+      if (!connection) {
+        release()
+        return failure(
+          c,
+          412,
+          "publish_not_connected",
+          "Connect a Cloudflare account before publishing this book",
+        )
+      }
+
+      await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
+      const record = readPublicationRecord(label, deps.booksDir)
+      if (hasLiveLink(record, connection, (deps.now ?? (() => new Date()))())) {
+        release()
+        return failure(
+          c,
+          409,
+          "published_already",
+          "This book is already published — use Update site to publish a new version",
+        )
+      }
+
+      runs.begin(label, "publish")
+      return streamSSE(c, async (stream) => {
+        /** Recorded before it is written: the stream may already be gone — the author reloaded or
+         *  left the page — and the run carries on regardless, so the snapshot is the record. */
+        const emit = async (event: PublishProgressEvent) => {
+          runs.record(label, event)
+          await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
+        }
+
+        /** `streamSSE` returns before this callback settles, and the handler's writer lease goes
+         *  with it — so the run holds its own while it rewrites `adt/` and uploads the snapshot. */
+        try {
+          await withBookWriter(path.join(deps.booksDir, label), async () => publishBook({
+            ...publishDeps(label),
+            connection,
+            bookHost: await bookHostFor(c, connection),
+            emit,
+            expiresAt: body.data.expires_at ?? null,
+            accessCode: body.data.access_code ?? null,
+            ...(body.data.features ? { features: body.data.features } : {}),
+          }))
+        } catch (error) {
+          if (error instanceof PublishCancelledError) runs.cancelled(label)
+          else await emit(toPublishErrorEvent(error))
+        } finally {
+          release()
+        }
+      })
     })
   })
 
@@ -793,59 +813,61 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     if (guard instanceof Response) return guard
     const { release } = guard
 
-    const body = BookPublishRequest.safeParse(await readBody(c))
-    if (!body.success) {
-      release()
-      return c.json({ error: body.error.message, code: "invalid_request" }, 400)
-    }
-
-    const connection = store.read()
-    if (!connection) {
-      release()
-      return failure(
-        c,
-        412,
-        "publish_not_connected",
-        "Connect a Cloudflare account before publishing this book",
-      )
-    }
-
-    await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
-    const record = readPublicationRecord(label, deps.booksDir)
-    if (!isActiveRecord(record, connection)) {
-      release()
-      return failure(
-        c,
-        409,
-        "not_published",
-        "This book has no active publication — publish it first",
-      )
-    }
-
-    runs.begin(label, "update")
-    return streamSSE(c, async (stream) => {
-      /** Recorded before it is written: the stream may already be gone — the author reloaded or
-       *  left the page — and the run carries on regardless, so the snapshot is the record. */
-      const emit = async (event: PublishProgressEvent) => {
-        runs.record(label, event)
-        await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
-      }
-
-      try {
-        await withBookWriter(path.join(deps.booksDir, label), async () => republishBook({
-          ...publishDeps(label),
-          connection,
-          bookHost: await bookHostFor(c, connection),
-          emit,
-          record,
-          ...(body.data.features ? { features: body.data.features } : {}),
-        }))
-      } catch (error) {
-        if (error instanceof PublishCancelledError) runs.cancelled(label)
-        else await emit(toPublishErrorEvent(error))
-      } finally {
+    return underShareLease(label, release, async () => {
+      const body = BookPublishRequest.safeParse(await readBody(c))
+      if (!body.success) {
         release()
+        return c.json({ error: body.error.message, code: "invalid_request" }, 400)
       }
+
+      const connection = store.read()
+      if (!connection) {
+        release()
+        return failure(
+          c,
+          412,
+          "publish_not_connected",
+          "Connect a Cloudflare account before publishing this book",
+        )
+      }
+
+      await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
+      const record = readPublicationRecord(label, deps.booksDir)
+      if (!isActiveRecord(record, connection)) {
+        release()
+        return failure(
+          c,
+          409,
+          "not_published",
+          "This book has no active publication — publish it first",
+        )
+      }
+
+      runs.begin(label, "update")
+      return streamSSE(c, async (stream) => {
+        /** Recorded before it is written: the stream may already be gone — the author reloaded or
+         *  left the page — and the run carries on regardless, so the snapshot is the record. */
+        const emit = async (event: PublishProgressEvent) => {
+          runs.record(label, event)
+          await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
+        }
+
+        try {
+          await withBookWriter(path.join(deps.booksDir, label), async () => republishBook({
+            ...publishDeps(label),
+            connection,
+            bookHost: await bookHostFor(c, connection),
+            emit,
+            record,
+            ...(body.data.features ? { features: body.data.features } : {}),
+          }))
+        } catch (error) {
+          if (error instanceof PublishCancelledError) runs.cancelled(label)
+          else await emit(toPublishErrorEvent(error))
+        } finally {
+          release()
+        }
+      })
     })
   })
 

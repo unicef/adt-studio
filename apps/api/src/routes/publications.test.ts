@@ -744,7 +744,56 @@ describe("sharing under the book's writer lease", () => {
     }
 
     await streamed
+    const { run } = (await (await app.request(`/books/${LABEL}/publication/run`)).json()) as {
+      run: PublishRunSnapshot | null
+    }
+    expect(run?.status).toBe("cancelled")
     expect(fs.existsSync(lockFile())).toBe(false)
+  })
+
+  it("tells a second share about the running one instead of reporting the book busy", async () => {
+    let open: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      open = resolve
+    })
+    const { app: inner } = routes({
+      prepareExportFn: (async () => {
+        await gate
+        return {}
+      }) as never,
+    })
+    const app = guarded(inner)
+
+    const first = app.request(`/books/${LABEL}/publication`, { method: "POST" }).then(drain)
+    try {
+      await vi.waitFor(() => expect(fs.existsSync(lockFile())).toBe(true))
+      const share = await app.request(`/books/${LABEL}/publication`, { method: "POST" })
+      const update = await app.request(`/books/${LABEL}/publication/versions`, { method: "POST" })
+
+      expect(share.status).toBe(409)
+      expect(await share.json()).toMatchObject({ code: "publish_in_progress" })
+      expect(update.status).toBe(409)
+      expect(await update.json()).toMatchObject({ code: "publish_in_progress" })
+    } finally {
+      open()
+    }
+
+    expect((await first).at(-1)).toMatchObject({ type: "complete" })
+    expect(fs.existsSync(lockFile())).toBe(false)
+  })
+
+  it("refuses a share while another writer holds the book, and frees the slot", async () => {
+    const { app: inner } = routes()
+    const app = guarded(inner)
+    fs.writeFileSync(lockFile(), "{}")
+
+    const busy = await app.request(`/books/${LABEL}/publication`, { method: "POST" })
+    expect(busy.status).toBe(409)
+    expect(await busy.json()).toMatchObject({ code: "BOOK_BUSY" })
+
+    fs.rmSync(lockFile())
+    const events = await drain(await app.request(`/books/${LABEL}/publication`, { method: "POST" }))
+    expect(events.at(-1)).toMatchObject({ type: "complete" })
   })
 
   it("keeps shared-link feedback working while another writer holds the book", async () => {
