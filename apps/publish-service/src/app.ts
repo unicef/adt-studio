@@ -146,7 +146,11 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
   app.post("/api/publication-uploads/:uploadId/commit", async (c) => {
     const result = await resolveStore(c.env).commitUpload(c.req.param("uploadId"), timestamp())
     if (!result.ok) return errorResponse(c, result.reason === "not_found" ? "not_found" : "invalid_request", result.reason === "not_found" ? 404 : result.reason === "incomplete" ? 400 : 409)
-    return c.json({ upload_id: c.req.param("uploadId"), ...result.committed, url: shareUrl(c, result.committed.publication.token) }, 201)
+    /** `has_access_code`, not the store's camelCase `hasAccessCode`: spreading the record put a
+     *  key the response schema does not read into the body, so every publish came back as
+     *  `false` by default and the Studio recorded a gated book as an open one. */
+    const { hasAccessCode, ...committed } = result.committed
+    return c.json({ upload_id: c.req.param("uploadId"), ...committed, has_access_code: hasAccessCode, url: shareUrl(c, result.committed.publication.token) }, 201)
   })
 
   app.delete("/api/publication-uploads/:uploadId", async (c) => {

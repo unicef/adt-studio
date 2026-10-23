@@ -229,7 +229,13 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       if (!publication) return { ok: false, reason: "not_found" }
       const nextPublication: Publication = upload.kind === "create" ? publication : { ...publication, current_version: upload.version }
       const version: PublicationVersion = { version: upload.version, page_manifest: upload.pageManifest, created_at: committedAt }
-      const committed: CommittedPublicationUpload = { publication: nextPublication, version, hasAccessCode: upload.kind === "create" && upload.accessCode !== null ? true : (await readRecord(upload.token))?.accessCode !== null }
+      /** A create is answered by its own upload and nothing else: the row does not exist yet,
+       *  so reading it back gives `undefined`, and `undefined !== null` reported every open
+       *  book as gated. A version keeps whatever the publication already had. */
+      const hasAccessCode = upload.kind === "create"
+        ? upload.accessCode !== null
+        : ((await readRecord(upload.token))?.accessCode ?? null) !== null
+      const committed: CommittedPublicationUpload = { publication: nextPublication, version, hasAccessCode }
       try {
         const statements = upload.kind === "create"
           ? [
