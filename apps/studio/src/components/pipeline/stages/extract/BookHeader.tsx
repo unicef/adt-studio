@@ -19,11 +19,10 @@ import { useForm, useStore } from "@tanstack/react-form"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { BookMetadata } from "@adt/types"
 import type { PageSummaryItem } from "@/api/client"
-import { useBook, useUpdateBookMetadata, useRegenerateBookSummary } from "@/hooks/use-books"
+import { useBook, useUpdateBookMetadata } from "@/hooks/use-books"
 import { usePageImage } from "@/hooks/use-pages"
-import { useApiKey } from "@/hooks/use-api-key"
 import { LanguagePicker } from "@/components/LanguagePicker"
-import { getBaseLanguage, getDisplayName, normalizeLocale } from "@/lib/languages"
+import { getDisplayName, normalizeLocale } from "@/lib/languages"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -60,7 +59,7 @@ function toDraft(metadata: BookMetadata): MetadataDraft {
  * via the Edit button, so users discover that title/authors/publisher/language
  * are correctable right where they read them. Cover, page count, and extraction
  * rationale stay read-only. Changing the language warns before saving because
- * it resets the language-dependent downstream stages.
+ * it can change language-dependent inputs. Saving never starts generation.
  */
 export function BookHeader({
   bookLabel,
@@ -73,9 +72,7 @@ export function BookHeader({
 }) {
   const { t } = useLingui()
   const { data: book } = useBook(bookLabel)
-  const { apiKey } = useApiKey()
   const updateMetadata = useUpdateBookMetadata()
-  const regenerateSummary = useRegenerateBookSummary()
 
   const [editing, setEditing] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -105,19 +102,11 @@ export function BookHeader({
           ? normalizeLocale(value.language_code)
           : null,
       }
-      // A base-language change (es -> fr) makes the book summary stale; regenerate
-      // just that step in the new language instead of re-running the whole stage.
-      const baseChanged =
-        getBaseLanguage(payload.language_code ?? "") !==
-        getBaseLanguage(original.language_code)
       updateMetadata.mutate(
         { label: bookLabel, metadata: payload },
         {
           onSuccess: () => {
             setEditing(false)
-            if (baseChanged && apiKey) {
-              regenerateSummary.mutate({ label: bookLabel, apiKey })
-            }
           },
         },
       )
@@ -150,7 +139,7 @@ export function BookHeader({
     setEditing(true)
   }
 
-  // A language change resets language-dependent downstream stages, so route
+  // A language change can affect retained downstream work, so route
   // through the confirmation dialog first; otherwise submit straight away.
   const handleSave = () => {
     if (!isModified || !canSubmit || updateMetadata.isPending) return
@@ -428,13 +417,12 @@ export function BookHeader({
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                         <p className="text-xs leading-relaxed text-foreground">
                           <span className="font-semibold">
-                            <Trans>Changing the language resets downstream work.</Trans>
+                            <Trans>Changing the language may affect saved work.</Trans>
                           </span>{" "}
                           <span className="text-muted-foreground">
                             <Trans>
-                              Completed language-based stages (quizzes, glossary,
-                              captions, audio) will be cleared and need to run again.
-                              You'll confirm first.
+                              Saved content is kept. Review language-dependent outputs
+                              after saving. No generation starts automatically.
                             </Trans>
                           </span>
                         </p>
@@ -538,8 +526,8 @@ export function BookHeader({
         title={<Trans>Change the book language?</Trans>}
         description={
           <Trans>
-            The completed stages below will be reset and need to run again so
-            they use the new language. Your page sections are kept.
+            Saved content and page sections are kept. Review the affected
+            stages after changing the language. No generation starts automatically.
           </Trans>
         }
         confirmLabel={<Trans>Change language</Trans>}

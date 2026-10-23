@@ -7,6 +7,7 @@
  */
 import fs from "node:fs"
 import path from "node:path"
+import { createHash } from "node:crypto"
 import { buildPreviewTailwindCss } from "./tailwind.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "./html-semantics.js"
 
@@ -75,6 +76,7 @@ export async function buildScreenshotHtml(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="${SCREENSHOT_CONTENT_SECURITY_POLICY}" />
   <style>${tailwindCss}</style>
   <style>${fontCss}</style>
 </head>
@@ -160,8 +162,7 @@ function buildInlineFontCss(webAssetsDir: string): string {
  * hydrateFitbSentences() logic but without event listeners or accessibility
  * features — purely visual so the visual review LLM sees actual input fields.
  */
-const FITB_HYDRATION_SCRIPT = `<script>
-(function() {
+const FITB_HYDRATION_SCRIPT_CONTENT = `(function() {
   function replaceBlanks(html) {
     return html.replace(
       /\\[\\[blank:item-(\\d+)(?::([^\\]]+))?\\]\\]/g,
@@ -204,8 +205,26 @@ const FITB_HYDRATION_SCRIPT = `<script>
     if (hasDescendantMarker) continue;
     el.innerHTML = replaceBlanks(el.innerHTML);
   }
-})();
-</script>`
+})();`
+
+export const FITB_HYDRATION_SCRIPT = `<script>${FITB_HYDRATION_SCRIPT_CONTENT}</script>`
+
+const fitbHydrationScriptHash = createHash("sha256")
+  .update(FITB_HYDRATION_SCRIPT_CONTENT)
+  .digest("base64")
+
+export const SCREENSHOT_CONTENT_SECURITY_POLICY = [
+  "default-src 'none'",
+  "img-src data:",
+  "font-src data:",
+  "style-src 'unsafe-inline'",
+  `script-src 'sha256-${fitbHydrationScriptHash}'`,
+  "connect-src 'none'",
+  "object-src 'none'",
+  "frame-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+].join("; ")
 
 function escapeAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;")

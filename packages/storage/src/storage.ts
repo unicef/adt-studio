@@ -1,6 +1,6 @@
 import type { ExtractedPage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import type { RenderMethodValue } from "@adt/types"
+import type { OutputInputEvidence, RenderMethodValue } from "@adt/types"
 
 export interface PageData {
   pageId: string
@@ -49,10 +49,13 @@ export interface SegmentedImageInput {
 }
 
 export interface TranslatedImageInput {
+  input?: OutputInputEvidence
   sourceImageId: string
   pageId: string
   languageCode: string
   buffer: Buffer
+  /** MIME type of the buffer; selects the on-disk extension. Defaults to PNG. */
+  mimeType?: string
   width: number
   height: number
 }
@@ -67,11 +70,16 @@ export interface SignLanguageVideoData {
 }
 
 export interface Storage {
+  /** Canonical book-owned asset root, available on real filesystem storage. */
+  readonly bookDir?: string
   /** Run all storage operations in one SQLite transaction. Nested calls join
    *  the outer transaction. Any thrown error rolls the whole operation back. */
   transaction<T>(operation: () => T): T
+  /** Synchronous consistent read in a deferred transaction. Joins an existing
+   * transaction; never retain the snapshot across provider calls or awaits. */
+  readSnapshot<T>(operation: () => T): T
   clearExtractedData(): void
-  clearNodesByType(nodes: string[]): void
+  clearNodesByType(nodes: string[], itemId?: string): void
   putExtractedPage(page: ExtractedPage): void
   deletePage(pageId: string): void
 
@@ -80,7 +88,7 @@ export interface Storage {
   getImageBase64(imageId: string): string
   getImageDimensions(imageId: string): { width: number; height: number } | null
   /** Look up basic metadata for an image: its page id and book-relative path on disk. */
-  getImageMeta(imageId: string): { pageId: string; relativePath: string } | null
+  getImageMeta(imageId: string): { pageId: string; relativePath: string; hash?: string; width?: number; height?: number } | null
   getPageImages(pageId: string): ImageData[]
 
   /** Write a cropped image to disk as {imageId}_crop_v{version}.png and register it in the DB with source="crop". */
@@ -89,10 +97,10 @@ export interface Storage {
   /** Write a segmented image to disk as {sourceImageId}_seg{NNN}_v{version}.png and register it in the DB with source="segment". */
   putSegmentedImage(input: SegmentedImageInput): void
 
-  /** Write a localized image variant to disk as {sourceImageId}_tr_{langCode}.png and register it in the DB with source="translate". Returns the new image id. */
+  /** Write a localized image variant to disk as {sourceImageId}_tr_{langCode}.{ext} (extension from input.mimeType, default png) and register it in the DB with source="translate". Returns the new image id. */
   putTranslatedImage(input: TranslatedImageInput): string
 
-  /** Delete all translated image rows and their on-disk files. Optionally restrict to a set of source image ids and/or languages. */
+  /** Retire translated image rows, retaining physical files and version history. Optionally restrict to a set of source image ids and/or languages. */
   clearTranslatedImages(filter?: { sourceImageIds?: string[]; languageCodes?: string[] }): void
 
   putNodeData(node: string, itemId: string, data: unknown): number

@@ -31,15 +31,21 @@ interface PreviewAccessibilityCardProps {
   onFindingHover?: (finding: AccessibilityFinding | null) => void
 }
 
+function issueCountLabel(i18n: I18n, count: number): string {
+  return i18n._(msg`${count} {count, plural, one {issue} other {issues}}`)
+}
+
+function reviewCountLabel(i18n: I18n, count: number): string {
+  return i18n._(msg`${count} {count, plural, one {manual review item} other {manual review items}}`)
+}
+
 function formatFindingCount(
   i18n: I18n,
   issueCount: number,
   reviewCount: number,
 ): string {
-  const issuesLabel = issueCount > 0 ? i18n._(msg`${issueCount} ${issueCount === 1 ? "issue" : "issues"}`) : null
-  const reviewLabel = reviewCount > 0
-    ? i18n._(msg`${reviewCount} ${reviewCount === 1 ? "manual review item" : "manual review items"}`)
-    : null
+  const issuesLabel = issueCount > 0 ? issueCountLabel(i18n, issueCount) : null
+  const reviewLabel = reviewCount > 0 ? reviewCountLabel(i18n, reviewCount) : null
 
   if (issuesLabel && reviewLabel) {
     return i18n._(msg`${issuesLabel}, ${reviewLabel}`)

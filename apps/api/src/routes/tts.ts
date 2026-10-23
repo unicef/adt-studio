@@ -1,3 +1,10 @@
+import { timingState, timingAudioIdentity, assertTimingEdit } from "../services/timing-edit.js"
+import { captureOutputReferences, inputSignature } from "@adt/pipeline"
+import { catalogOutputs, assertEditVersion } from "../services/catalog-output-service.js"
+import { assertOutputPublication, outputIdentityKey, selectedForGeneration, outputEvidence, timestampInputSignature } from "@adt/pipeline"
+import { OutputReplacement, OutputRunScope, WordTimestampSaveRequest } from "@adt/types"
+import { publishSpeechOutput, publishSpeechTimings, bookAssetExists } from "@adt/storage"
+import { reconcileSpeechInputs, loadCoreTtsProfiles } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -14,12 +21,13 @@ import {
   type SpeechFileEntry,
   type SpeechFailedEntry,
   type TTSProviderConfig,
+  type TTSReadLanguage,
   type TextCatalogEntry,
   type TextCatalogOutput,
   type WordTimestampEntry,
   type WordTimestampOutput,
 } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, storeImmutableAsset, UnsafeAssetPathError, CURRENT_VERSION_ORDER } from "@adt/storage"
 import {
   AiProviderError,
   createAzureTTSSynthesizer,
@@ -41,6 +49,9 @@ import {
   resolveSpeechVoice,
   resolveVoice,
   generateSpeechFile,
+  generatePageSpeechFiles,
+  speechPageId,
+  supportsPageBatchedSpeech,
   generateWordTimestamps,
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
@@ -57,6 +68,7 @@ import {
   readProviderCredentials,
   serverAwareCredentialValue,
 } from "../middleware/provider-credentials.js"
+import { resolvePathWithin } from "../utils/path-security.js"
 
 /**
  * Word timestamps come from Whisper, so the transcription provider is fixed
@@ -75,6 +87,7 @@ const GenerateSingleTTSBody = z
     textId: z.string().min(1),
     language: z.string().min(1),
     voiceSlot: VoiceSlot.optional(),
+    replacement: OutputReplacement.optional(),
   })
   .strict()
 
@@ -90,6 +103,22 @@ const GEMINI_FLASH_PREVIEW_TTS_MODEL = "gemini-2.5-flash-preview-tts"
 const GEMINI_PRO_PREVIEW_TTS_MODEL = "gemini-2.5-pro-preview-tts"
 const SAFE_AUDIO_LANGUAGE_RE = /^[A-Za-z0-9_-]+$/
 const SAFE_AUDIO_TEXT_ID_RE = /^[A-Za-z0-9._-]+$/
+
+function normalizeSafeAudioLanguage(rawLanguage: string): string {
+  const normalized = normalizeLocale(rawLanguage)
+  if (!SAFE_AUDIO_LANGUAGE_RE.test(normalized)) {
+    throw new HTTPException(400, { message: `Invalid language: ${normalized}` })
+  }
+  return normalized
+}
+
+function resolveAudioDirectory(booksDir: string, label: string, language: string): string {
+  const audioDir = resolvePathWithin(booksDir, label, "audio", language)
+  if (!audioDir) {
+    throw new HTTPException(400, { message: "Invalid audio directory" })
+  }
+  return audioDir
+}
 const AUDIO_UPLOAD_FORMAT_BY_MIME: Record<string, "mp3" | "wav" | "ogg"> = {
   "audio/mpeg": "mp3",
   "audio/mp3": "mp3",
@@ -426,7 +455,7 @@ function clearWordTimestampEntry(
     (f) => !(f.textId === textId && resolveEntryVoiceSlot(f) === voiceSlot)
   )
 
-  storage.putNodeData("tts-timestamps", normalizedLanguage, {
+  publishSpeechTimings(storage, normalizedLanguage, {
     entries: nextEntries,
     generatedAt: new Date().toISOString(),
     ...(nextFailed.length > 0 ? { failed: nextFailed } : {}),
@@ -458,7 +487,7 @@ function appendSingleTtsLog(
   storage.appendLlmLog(logEntry)
 }
 
-export function createTTSRoutes(booksDir: string, configPath?: string, taskService?: import("../services/task-service.js").TaskService): Hono {
+export function createTTSRoutes(booksDir: string, configPath?: string, taskService?: import("../services/task-service.js").TaskService, promptsDir = path.resolve("prompts")): Hono {
   const app = new Hono()
 
   // GET /books/:label/tts — Get all TTS data grouped by language
@@ -477,9 +506,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       const storage = createBookStorage(safeLabel, booksDir)
       let readyIds: Set<string>
       try {
-        readyIds = new Set(
-          getReadyCoreTtsEntries(storage, language).map((entry) => entry.id),
-        )
+        const { config, language: sourceLanguage } = getSourceLanguage(storage, booksDir, safeLabel, configPath)
+        readyIds = storage.readSnapshot(() => new Set(reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [language], profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir: path.join(resolvedBooksDir, safeLabel), persist: false })[0].entries.map((entry) => entry.id)))
       } finally {
         storage.close()
       }
@@ -506,7 +534,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       })
     }
 
-    const languages: Record<string, { entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string; voiceSlot: VoiceSlot; voiceLabel?: string; cacheKey?: string }>; failed?: SpeechFailedEntry[]; generatedAt: string; version: number }> = {}
+    const languages: Record<string, TTSReadLanguage> = {}
 
     // While a speech run is active, serve its live snapshot — node data is
     // only persisted at the end of the run, but audio files land on disk per
@@ -514,7 +542,10 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const live = getLiveSpeechRun(safeLabel)
     if (live) {
       for (const [lang, data] of Object.entries(live.languages)) {
-        languages[lang] = {
+        const normalized = normalizeLocale(lang)
+        if (lang !== normalized && Object.hasOwn(live.languages, normalized)) continue
+        languages[normalized] = {
+          storageLanguage: lang,
           entries: mapEntries(lang, data.entries),
           ...(data.failed.length > 0 ? { failed: data.failed } : {}),
           generatedAt: live.startedAt,
@@ -529,19 +560,26 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       // TTS is stored per language: node="tts", item_id=language code
       // Get latest version per language
       const rows = db.all(
-        `SELECT item_id, data, version FROM node_data
-         WHERE node = ? AND (item_id, version) IN (
-           SELECT item_id, MAX(version) FROM node_data WHERE node = ? GROUP BY item_id
-         )`,
-        ["tts", "tts"]
+        `SELECT nd.item_id AS item_id, nd.data AS data, nd.version AS version FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ? ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
+        ["tts"]
       ) as Array<{ item_id: string; data: string; version: number }>
-
+      const seen = new Set<string>()
+      const namespaces = new Set(rows.map(row => row.item_id))
       for (const row of rows) {
+        if (seen.has(row.item_id)) continue
+        seen.add(row.item_id)
+        const normalized = normalizeLocale(row.item_id)
+        // Select the authoritative namespace before parsing: an empty or
+        // malformed canonical row must never resurrect older legacy audio.
+        if (row.item_id !== normalized && namespaces.has(normalized)) continue
         try {
           const parsed = JSON.parse(row.data)
           const validated = TTSOutput.safeParse(parsed)
           if (!validated.success) continue
-          languages[row.item_id] = {
+          languages[normalized] = {
+            storageLanguage: row.item_id,
             entries: mapEntries(row.item_id, validated.data.entries),
             ...(validated.data.failed && validated.data.failed.length > 0
               ? { failed: validated.data.failed }
@@ -560,7 +598,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     }
   })
 
-  // DELETE /books/:label/tts — Clear all TTS data and audio files
+  // DELETE /books/:label/tts — Reset active output, retaining restorable history
   app.delete("/books/:label/tts", (c) => {
     const { label } = c.req.param()
     const safeLabel = safeParseLabel(label)
@@ -572,15 +610,10 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      storage.clearNodesByType(["tts", "tts-timestamps"])
-      storage.clearStepRuns(["tts"])
-
-      // Remove audio files on disk
-      const bookDir = path.join(path.resolve(booksDir), safeLabel)
-      const audioDir = path.join(bookDir, "audio")
-      if (fs.existsSync(audioDir)) {
-        fs.rmSync(audioDir, { recursive: true, force: true })
-      }
+      storage.transaction(() => {
+        for (const language of storage.getNodeItemIds("tts")) publishSpeechOutput(storage, language, { entries: [], generatedAt: new Date().toISOString() })
+        storage.clearStepRuns(["tts", "word-timestamps"])
+      })
 
       return c.json({ ok: true })
     } finally {
@@ -621,12 +654,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
 
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
-    if (!SAFE_AUDIO_LANGUAGE_RE.test(normalizedLanguage)) {
-      throw new HTTPException(400, {
-        message: `Invalid language: ${normalizedLanguage}`,
-      })
-    }
+    const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
+    resolveAudioDirectory(booksDir, safeLabel, normalizedLanguage)
 
     const storage = createBookStorage(safeLabel, booksDir)
 
@@ -637,6 +666,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         safeLabel,
         configPath
       )
+      reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [normalizedLanguage], profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir: path.join(path.resolve(booksDir), safeLabel) })
       const languageEntries = getCatalogEntriesForLanguage(
         storage,
         sourceLanguage,
@@ -672,6 +702,15 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       }
       const voiceLabel = profile.label
 
+      let requestedBaseline: unknown
+      try { requestedBaseline = JSON.parse(String(formData.get("baseline") ?? "null")) } catch { /* Validated below. */ }
+      const baseline = OutputReplacement.safeParse(requestedBaseline)
+      const identity = { kind: "audio" as const, id: textEntry.id, language: normalizedLanguage, voiceSlot }
+      const before = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath)
+      const status = before.find((item) => outputIdentityKey(item.identity) === outputIdentityKey(identity))
+      if (!baseline.success || outputIdentityKey(baseline.data.identity) !== outputIdentityKey(identity) || !status || status.signature !== baseline.data.signature || status.contentHash !== baseline.data.contentHash) {
+        throw new HTTPException(409, { message: "Audio or its inputs changed. Refresh before uploading your recording." })
+      }
       const format = resolveUploadedAudioFormat(audioFile)
       const nextEntry: SpeechFileEntry = {
         textId: textEntry.id,
@@ -681,6 +720,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         model: "uploaded",
         cached: false,
         provider: "manual",
+        source: "manual",
         voiceSlot,
         ...(voiceLabel ? { voiceLabel } : {}),
       }
@@ -693,40 +733,24 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       }
 
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
-      const audioRoot = path.resolve(bookDir, "audio")
-      const audioDir = path.resolve(audioRoot, normalizedLanguage)
-      if (
-        audioDir !== audioRoot &&
-        !audioDir.startsWith(audioRoot + path.sep)
-      ) {
-        throw new HTTPException(400, { message: "Invalid audio directory" })
-      }
-
-      const outputPath = path.resolve(audioDir, nextEntry.fileName)
-      if (!outputPath.startsWith(audioDir + path.sep)) {
-        throw new HTTPException(400, { message: "Invalid audio file path" })
-      }
-
       const existingEntries = getLatestTtsEntries(storage, normalizedLanguage)
-      const existingEntry = existingEntries.find(
-        (entry) => entry.textId === textEntry.id && resolveEntryVoiceSlot(entry) === voiceSlot
-      )
-
-      fs.mkdirSync(audioDir, { recursive: true })
-      fs.writeFileSync(outputPath, buffer)
-
-      if (
-        existingEntry &&
-        existingEntry.fileName !== nextEntry.fileName
-      ) {
-        const previousPath = path.resolve(audioDir, existingEntry.fileName)
-        if (
-          previousPath.startsWith(audioDir + path.sep) &&
-          fs.existsSync(previousPath)
-        ) {
-          fs.rmSync(previousPath, { force: true })
-        }
+      const destination = resolvePathWithin(booksDir, safeLabel, "audio", normalizedLanguage, nextEntry.fileName)
+      if (!destination) throw new HTTPException(400, { message: "Invalid audio file path" })
+      let asset: ReturnType<typeof storeImmutableAsset>
+      try {
+        asset = storeImmutableAsset(bookDir, ["audio", normalizedLanguage], voiceSlotEntryId(textEntry.id, voiceSlot), format, buffer, { repairCorruptFile: true })
+      } catch (error) {
+        if (error instanceof UnsafeAssetPathError) throw new HTTPException(400, { message: "Invalid audio file path" })
+        throw error
       }
+      nextEntry.fileName = asset.fileName
+      nextEntry.audioHash = asset.contentHash
+      nextEntry.input = outputEvidence(status.signature, asset.contentHash, captureOutputReferences(storage, status.identity.kind, status.identity.language))
+      c.req.raw.signal.throwIfAborted()
+      assertOutputPublication(before, catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath), [identity])
+      const outputPath = resolvePathWithin(booksDir, safeLabel, "audio", normalizedLanguage, asset.fileName)
+      if (!outputPath) throw new HTTPException(400, { message: "Invalid audio file path" })
+
 
       const mergedEntries = mergeSpeechEntry(
         existingEntries,
@@ -734,13 +758,10 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         languageEntries.map((entry) => entry.id)
       )
 
-      const version = storage.putNodeData(
-        "tts",
-        normalizedLanguage,
+      const version = publishSpeechOutput(storage, normalizedLanguage,
         buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id, voiceSlot)
       )
 
-      clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id, voiceSlot)
 
       const completion = getTtsCompletionSummary(
         storage,
@@ -815,7 +836,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const azureSpeechRegion = serverAwareCredentialValue(credentials, "azure", "region")
     const elevenLabsApiKey = serverAwareCredentialValue(credentials, "elevenlabs", "apiKey")
 
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
+    const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
 
     try {
@@ -863,10 +884,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         azureSpeechRegion,
         elevenLabsApiKey,
       })
-      if (missingKeyMessage) {
-        throw new HTTPException(400, { message: missingKeyMessage })
-      }
-
+      reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [normalizedLanguage], profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir: path.join(path.resolve(booksDir), safeLabel) })
       const languageEntries = getCatalogEntriesForLanguage(
         storage,
         sourceLanguage,
@@ -882,6 +900,20 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         })
       }
 
+      const before = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath)
+      const identity = { kind: "audio" as const, id: textEntry.id, language: normalizedLanguage, voiceSlot }
+      const status = before.find((item) => outputIdentityKey(item.identity) === outputIdentityKey(identity))
+      const existingEntry = getLatestTtsEntries(storage, normalizedLanguage).find((item) => item.textId === textEntry.id && resolveEntryVoiceSlot(item) === voiceSlot)
+      if (!status || status.excluded) throw new HTTPException(409, { message: "This audio is excluded or its input is unavailable." })
+      if (status.protected && !parsed.data.replacement) throw new HTTPException(409, { message: "Existing content is protected. Review it and choose Regenerate and replace my edit." })
+      if (!selectedForGeneration(status, existingEntry, { replace: parsed.data.replacement ? [parsed.data.replacement] : [] })) {
+        return c.json({ entry: existingEntry, version: storage.getLatestNodeData("tts", normalizedLanguage)?.version, reused: true })
+      }
+      if (missingKeyMessage) throw new HTTPException(400, { message: missingKeyMessage })
+      const assertPublication = () => {
+        c.req.raw.signal.throwIfAborted()
+        assertOutputPublication(before, catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath), [identity])
+      }
       const instructionsMap = loadSpeechInstructions(configDir)
       const format = resolveSpeechFormat(provider, config.speech?.format)
       // Cross-provider fallback is deliberately primary-only. A secondary
@@ -943,8 +975,29 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         targetProvider: string
         targetModel: string
         targetVoice: string
-      }) =>
-        generateSpeechFile({
+      }) => {
+        const pageId = speechPageId(textEntry.id, status.pageIds)
+        const pageBatch = config.speech?.batch_by_page && options.targetProvider === "gemini" && supportsPageBatchedSpeech(normalizedLanguage) && pageId && !textEntry.id.endsWith("_easy_read")
+        const itemFallback = !!pageBatch && !openaiApiKey && !config.speech?.word_highlighting
+        if (pageBatch && !itemFallback) {
+          if (!openaiApiKey) throw new HTTPException(400, { message: "Page-batched speech requires an OpenAI key for audio alignment." })
+          const pageEntries = languageEntries.filter((item) => speechPageId(item.id, before.find((output) => output.identity.kind === "audio" && output.identity.id === item.id && output.identity.language === normalizedLanguage)?.pageIds ?? []) === pageId && !isTtsExcluded(item.id, config.speech))
+          const generated = await generatePageSpeechFiles({
+            entries: pageEntries, language: normalizedLanguage, model: options.targetModel, voice: options.targetVoice,
+            instructions: resolveInstructions(normalizedLanguage, instructionsMap), format, bookDir, cacheDir,
+            provider: options.targetProvider, voiceSlot, voiceLabel,
+            geminiTemperature: config.speech?.temperature, geminiSeed: config.speech?.seed,
+            signal: c.req.raw.signal, whisperApiKey: openaiApiKey,
+            ttsSynthesizer: createGeminiTTSSynthesizer({ apiKey: geminiApiKey }),
+            onWhisperLog: (log) => storage.appendLlmLog(log),
+          })
+          // The whole page is required context, but only the requested output
+          // enters the manifest. Neighboring manual/generated files survive.
+          return generated.find((entry) => entry.textId === textEntry.id) ?? null
+        }
+        const entry = await generateSpeechFile({
+          sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate,
+          signal: c.req.raw.signal,
           textId: textEntry.id,
           text: textEntry.text,
           language: normalizedLanguage,
@@ -1010,6 +1063,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           // cache key as stage-runner.ts and pipeline-dag.ts.
           ...elevenLabsVoiceSettingsFromConfig(config.speech),
         })
+        return entry && itemFallback ? { ...entry, pageBatchFallback: "single-item" as const } : entry
+      }
 
       /**
        * `synthesizeEntry` plus the ElevenLabs 429/5xx retry.
@@ -1108,15 +1163,15 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           params: logParamsFor(usedProvider, usedModel, usedVoice),
         })
 
+        if (entry.speechInputSignature && entry.audioHash) entry.input = outputEvidence(entry.speechInputSignature, entry.audioHash, captureOutputReferences(storage, "audio", normalizedLanguage))
         const mergedEntries = mergeSpeechEntry(
           getLatestTtsEntries(storage, normalizedLanguage),
           entry,
           languageEntries.map((item) => item.id)
         )
 
-        const version = storage.putNodeData(
-          "tts",
-          normalizedLanguage,
+        assertPublication()
+        const version = publishSpeechOutput(storage, normalizedLanguage,
           buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id, voiceSlot)
         )
 
@@ -1189,15 +1244,15 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 params: logParamsFor(attempt.provider, attempt.model, attempt.voice),
               })
 
+              if (entry.speechInputSignature && entry.audioHash) entry.input = outputEvidence(entry.speechInputSignature, entry.audioHash, captureOutputReferences(storage, "audio", normalizedLanguage))
               const mergedEntries = mergeSpeechEntry(
                 getLatestTtsEntries(storage, normalizedLanguage),
                 entry,
                 languageEntries.map((item) => item.id)
               )
 
-              const version = storage.putNodeData(
-                "tts",
-                normalizedLanguage,
+              assertPublication()
+        const version = publishSpeechOutput(storage, normalizedLanguage,
                 buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id, voiceSlot)
               )
 
@@ -1280,13 +1335,17 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const normalizedLanguage = normalizeLocale(language)
-      const row = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-      if (!row) {
-        return c.json({ entries: {}, generatedAt: null })
-      }
-      const data = row.data as WordTimestampOutput
-      return c.json(data)
+      return storage.readSnapshot(() => {
+        const { namespace, audio, timingRow: row } = timingState(storage, language)
+        if (!row) return c.json({ entries: {}, generatedAt: null, version: 0 })
+        const data = row.data as WordTimestampOutput
+        return c.json({ ...data, version: row.version, entries: Object.fromEntries(
+          Object.entries(data.entries).map(([id, entry]) => [id, {
+            ...entry, version: row.version,
+            audioIdentity: timingAudioIdentity(namespace, audio, entry.textId, resolveEntryVoiceSlot(entry)).audioIdentity,
+          }]),
+        ) })
+      })
     } finally {
       storage.close()
     }
@@ -1309,17 +1368,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       throw new HTTPException(400, { message: "Invalid JSON body" })
     }
 
-    const schema = z.object({
-      words: z.array(z.object({
-        word: z.string(),
-        start: z.number(),
-        end: z.number(),
-      })),
-      duration: z.number(),
-      voiceSlot: VoiceSlot.optional(),
-    }).strict()
-
-    const parsed = schema.safeParse(body)
+    const parsed = WordTimestampSaveRequest.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid request: ${parsed.error.message}`,
@@ -1331,39 +1380,58 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const storage = createBookStorage(safeLabel, booksDir)
 
     try {
-      const existingRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-      const existingData = existingRow
-        ? (existingRow.data as WordTimestampOutput)
-        : undefined
-      const existing = existingData?.entries ?? {}
-      const slotEntryId = voiceSlotEntryId(textId, voiceSlot)
+      return storage.transaction(() => {
+        const { namespace, audio: audioEntries, timingRow: existingRow } = timingState(storage, normalizedLanguage)
+        const audio = assertTimingEdit(storage, { namespace, audio: audioEntries, timingRow: existingRow }, textId, voiceSlot, parsed.data)
+        if (!bookAssetExists(path.join(booksDir, safeLabel), path.join("audio", namespace, audio.fileName))) {
+          throw new HTTPException(409, { message: "Audio file is unavailable. Restore it before saving timings." })
+        }
+        const existingData = existingRow
+          ? (existingRow.data as WordTimestampOutput)
+          : undefined
+        const existing = existingData?.entries ?? {}
+        const slotEntryId = voiceSlotEntryId(textId, voiceSlot)
+        const status = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { timestamps: true })
+          .find((output) => output.identity.kind === "timestamps" && output.identity.id === textId && output.identity.language === normalizedLanguage && output.identity.voiceSlot === voiceSlot)
 
-      const updatedEntry: WordTimestampEntry = {
-        textId,
-        language: normalizedLanguage,
-        words: parsed.data.words,
-        duration: parsed.data.duration,
-        voiceSlot,
-      }
+        const updatedEntry: WordTimestampEntry = {
+          ...existing[slotEntryId], review: undefined,
+          source: "manual", audioHash: audio.audioHash,
+          input: status ? outputEvidence(status.signature, { words: parsed.data.words, duration: parsed.data.duration }) : undefined,
+          textId,
+          language: normalizedLanguage,
+          words: parsed.data.words,
+          duration: parsed.data.duration,
+          voiceSlot,
+        }
 
-      const merged: Record<string, WordTimestampEntry> = {
-        ...existing,
-        [slotEntryId]: updatedEntry,
-      }
+        const merged: Record<string, WordTimestampEntry> = {
+          ...existing,
+          [slotEntryId]: updatedEntry,
+        }
 
-      // A manual edit resolves this item — drop it from the failed list while
-      // preserving any other still-failed items.
-      const remainingFailed = (existingData?.failed ?? []).filter(
-        (f) => !(f.textId === textId && resolveEntryVoiceSlot(f) === voiceSlot)
-      )
+        // A manual edit resolves this item — drop it from the failed list while
+        // preserving any other still-failed items.
+        const remainingFailed = (existingData?.failed ?? []).filter(
+          (f) => !(f.textId === textId && resolveEntryVoiceSlot(f) === voiceSlot)
+        )
 
-      storage.putNodeData("tts-timestamps", normalizedLanguage, {
-        entries: merged,
-        generatedAt: new Date().toISOString(),
-        ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
-      } satisfies WordTimestampOutput)
+        publishSpeechTimings(storage, namespace, {
+          ...existingData,
+          entries: merged,
+          generatedAt: new Date().toISOString(),
+          failed: remainingFailed.length > 0 ? remainingFailed : undefined,
+        } satisfies WordTimestampOutput)
 
-      return c.json({ ok: true })
+        // Return this transaction's acknowledgement; a later refetch may belong
+        // to a different writer and must never advance an unsaved draft's guard.
+        const saved = timingState(storage, normalizedLanguage)
+        const savedEntry = (saved.timingRow!.data as WordTimestampOutput).entries[slotEntryId]
+        if (!savedEntry) throw new Error("Timing publication did not retain the edited entry")
+        return c.json({ ok: true as const, entry: { ...savedEntry, version: saved.timingRow!.version,
+          audioIdentity: timingAudioIdentity(saved.namespace, saved.audio, textId, voiceSlot).audioIdentity,
+        } })
+      })
     } finally {
       storage.close()
     }
@@ -1395,9 +1463,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
 
-    const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
-
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
+    const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
+    resolveAudioDirectory(booksDir, safeLabel, normalizedLanguage)
     const storage = createBookStorage(safeLabel, booksDir)
 
     try {
@@ -1413,7 +1480,13 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       }
 
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
-      const audioPath = path.resolve(bookDir, "audio", normalizedLanguage, ttsEntry.fileName)
+      const audioPath = resolvePathWithin(
+        booksDir, safeLabel, "audio", normalizedLanguage,
+        ttsEntry.fileName,
+      )
+      if (!audioPath) {
+        throw new HTTPException(400, { message: "Invalid audio file path" })
+      }
       if (!fs.existsSync(audioPath)) {
         throw new HTTPException(404, {
           message: `Audio file not found: ${ttsEntry.fileName}`,
@@ -1423,20 +1496,24 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       const audioBuffer = Buffer.from(fs.readFileSync(audioPath))
       const baseLanguage = getBaseLanguage(normalizedLanguage)
 
-      // Look up the source text to use as a Whisper prompt for improved accuracy
       const { config, language: sourceLanguage } = getSourceLanguage(storage, booksDir, safeLabel, configPath)
-      void config
-      let textPrompt: string | undefined
-      try {
-        const catalogEntries = getCatalogEntriesForLanguage(storage, sourceLanguage, normalizedLanguage)
-        const entry = catalogEntries.find((e) => e.id === parsed.data.textId)
-        if (entry?.text) textPrompt = entry.text
-      } catch {
-        // Non-critical — proceed without prompt
-      }
+      const speech = reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [normalizedLanguage],
+        profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir, persist: false })[0]
+      const textPrompt = speech.entries.find((entry) => entry.id === parsed.data.textId)?.speechText ?? undefined
 
+      const before = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { timestamps: true })
+      const identity = { kind: "timestamps" as const, id: parsed.data.textId, language: normalizedLanguage, voiceSlot }
+      const status = before.find((item) => outputIdentityKey(item.identity) === outputIdentityKey(identity))
+      const originalRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
+      const originalAudioVersion = storage.getLatestNodeData("tts", normalizedLanguage)?.version
+      const original = (originalRow?.data as WordTimestampOutput | undefined)?.entries[voiceSlotEntryId(parsed.data.textId, voiceSlot)]
+      if (!status || status.excluded) throw new HTTPException(409, { message: "Timing input is no longer available or is excluded." })
+      if (status.protected && !parsed.data.replacement) throw new HTTPException(409, { message: "Existing timings are protected. Review before replacing them." })
+      if (!selectedForGeneration(status, original, { replace: parsed.data.replacement ? [parsed.data.replacement] : [] })) return c.json({ entry: original, reused: true })
+      const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
       const result = await generateWordTimestamps({
         audioBuffer,
+        audioHash: ttsEntry.audioHash,
         fileName: ttsEntry.fileName,
         apiKey: openaiApiKey,
         language: baseLanguage,
@@ -1445,7 +1522,10 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         onLog: (entry) => storage.appendLlmLog(entry),
       })
 
+      const timingAudioHash = result.audioHash
       const timestampEntry: WordTimestampEntry = {
+        source: "ai", audioHash: timingAudioHash,
+        input: outputEvidence(timestampInputSignature(timingAudioHash, normalizedLanguage, textPrompt ?? ""), { words: result.words, duration: result.duration }, captureOutputReferences(storage, "timestamps", normalizedLanguage)),
         textId: parsed.data.textId,
         language: normalizedLanguage,
         words: result.words,
@@ -1472,7 +1552,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         (f) => !(f.textId === parsed.data.textId && resolveEntryVoiceSlot(f) === voiceSlot),
       )
 
-      storage.putNodeData("tts-timestamps", normalizedLanguage, {
+      c.req.raw.signal.throwIfAborted()
+      assertEditVersion(storage.getLatestNodeData("tts", normalizedLanguage)?.version, originalAudioVersion ?? 0)
+      assertEditVersion(storage.getLatestNodeData("tts-timestamps", normalizedLanguage)?.version, originalRow?.version ?? 0)
+      assertOutputPublication(before, catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { timestamps: true }), [identity])
+      publishSpeechTimings(storage, normalizedLanguage, {
         entries: merged,
         generatedAt: new Date().toISOString(),
         ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
@@ -1501,172 +1585,88 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       throw new HTTPException(400, { message: "Invalid JSON body" })
     }
 
-    const parsed = z.object({ language: z.string().min(1) }).strict().safeParse(body)
-    if (!parsed.success) {
-      throw new HTTPException(400, {
-        message: `Invalid request: ${parsed.error.message}`,
+    const parsed = z.object({ language: z.string().min(1), outputScope: OutputRunScope.optional() }).strict().safeParse(body)
+    if (!parsed.success) throw new HTTPException(400, { message: `Invalid request: ${parsed.error.message}` })
+    const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
+    resolveAudioDirectory(booksDir, safeLabel, normalizedLanguage)
+    const scope = parsed.data.outputScope
+    const select = (storage: ReturnType<typeof createBookStorage>) => {
+      const statuses = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { timestamps: true })
+      const previous = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)?.data as WordTimestampOutput | undefined
+      return getLatestTtsEntries(storage, normalizedLanguage).filter((entry) => {
+        const identity = { kind: "timestamps" as const, id: entry.textId, language: normalizedLanguage, voiceSlot: resolveEntryVoiceSlot(entry) }
+        const status = statuses.find((item) => outputIdentityKey(item.identity) === outputIdentityKey(identity))
+        const audio = statuses.find((item) => item.identity.kind === "audio" && item.identity.id === entry.textId && item.identity.language === normalizedLanguage && item.identity.voiceSlot === identity.voiceSlot)
+        return status && audio?.usable && selectedForGeneration(status, previous?.entries[voiceSlotEntryId(entry.textId, identity.voiceSlot)], scope)
       })
     }
 
-    const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
-
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
-
-    // Pre-check: count how many need transcribing before submitting task
     const preStorage = createBookStorage(safeLabel, booksDir)
     let totalToTranscribe: number
     try {
-      const ttsEntries = getLatestTtsEntries(preStorage, normalizedLanguage)
-      if (ttsEntries.length === 0) {
-        return c.json({ taskId: null, count: 0, skipped: 0 })
-      }
-      const existingRow = preStorage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-      const existing = existingRow
-        ? (existingRow.data as WordTimestampOutput).entries
-        : {}
-      totalToTranscribe = ttsEntries.filter(
-        (e) => !existing[voiceSlotEntryId(e.textId, resolveEntryVoiceSlot(e))]
-      ).length
-      if (totalToTranscribe === 0) {
-        return c.json({ taskId: null, count: 0, skipped: ttsEntries.length })
-      }
-    } finally {
-      preStorage.close()
-    }
-
-    if (!taskService) {
-      throw new HTTPException(500, { message: "Task service not available" })
-    }
-
-    const { taskId } = taskService.submitTask(
-      safeLabel,
-      "transcribe-timestamps",
-      `Transcribing ${totalToTranscribe} entries (${normalizedLanguage})`,
-      async (emitProgress) => {
+      totalToTranscribe = select(preStorage).length
+      if (!totalToTranscribe) return c.json({ taskId: null, count: 0, skipped: getLatestTtsEntries(preStorage, normalizedLanguage).length })
+    } finally { preStorage.close() }
+    const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
+    if (!taskService) throw new HTTPException(500, { message: "Task service not available" })
+    const { taskId } = taskService.submitTask(safeLabel, "transcribe-timestamps",
+      `Transcribing ${totalToTranscribe} entries (${normalizedLanguage})`, async (emitProgress) => {
+        resolveAudioDirectory(booksDir, safeLabel, normalizedLanguage)
         const storage = createBookStorage(safeLabel, booksDir)
         try {
-          const ttsEntries = getLatestTtsEntries(storage, normalizedLanguage)
-          const existingRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-          const existing = existingRow
-            ? (existingRow.data as WordTimestampOutput).entries
-            : {}
-
-          const toTranscribe = ttsEntries.filter(
-            (e) => !existing[voiceSlotEntryId(e.textId, resolveEntryVoiceSlot(e))]
-          )
-          if (toTranscribe.length === 0) return { count: 0, skipped: ttsEntries.length }
-
+          // Re-select after shared writer admission. No queued snapshot can
+          // authorize replacement of content edited while waiting.
+          const entries = select(storage)
           const bookDir = path.join(path.resolve(booksDir), safeLabel)
-          const baseLanguage = getBaseLanguage(normalizedLanguage)
-
-          // Load text catalog for prompts
           const { config, language: sourceLanguage } = getSourceLanguage(storage, booksDir, safeLabel, configPath)
-          void config
-          let textMap = new Map<string, string>()
-          try {
-            const catalogEntries = getCatalogEntriesForLanguage(storage, sourceLanguage, normalizedLanguage)
-            textMap = new Map(catalogEntries.map((e) => [e.id, e.text]))
-          } catch {
-            // Non-critical
-          }
-
+          const speech = reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [normalizedLanguage],
+            profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir, persist: false })[0]
+          const textMap = new Map(speech.entries.map((entry) => [entry.id, entry.speechText ?? ""]))
           let count = 0
-          const newlyFailed: SpeechFailedEntry[] = []
-          const succeededIds = new Set<string>()
-
-          for (const ttsEntry of toTranscribe) {
-            const slot = resolveEntryVoiceSlot(ttsEntry)
-            const slotEntryId = voiceSlotEntryId(ttsEntry.textId, slot)
+          let failed = 0
+          for (const entry of entries) {
+            const voiceSlot = resolveEntryVoiceSlot(entry)
+            const identity = { kind: "timestamps" as const, id: entry.textId, language: normalizedLanguage, voiceSlot }
+            const key = voiceSlotEntryId(entry.textId, voiceSlot)
+            const before = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { timestamps: true })
+            const timingRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
+            const audioVersion = storage.getLatestNodeData("tts", normalizedLanguage)?.version
+            const assertCurrent = () => {
+              assertEditVersion(storage.getLatestNodeData("tts", normalizedLanguage)?.version, audioVersion ?? 0)
+              assertEditVersion(storage.getLatestNodeData("tts-timestamps", normalizedLanguage)?.version, timingRow?.version ?? 0)
+              assertOutputPublication(before, catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { timestamps: true }), [identity])
+            }
+            const previous = timingRow?.data as WordTimestampOutput | undefined
             try {
-              const audioPath = path.resolve(bookDir, "audio", normalizedLanguage, ttsEntry.fileName)
-              if (!fs.existsSync(audioPath)) {
-                throw new Error(`Audio file not found: ${ttsEntry.fileName}`)
-              }
-
+              const audioPath = resolvePathWithin(booksDir, safeLabel, "audio", normalizedLanguage, entry.fileName)
+              if (!audioPath) throw new Error(`Invalid audio file path: ${entry.fileName}`)
               const audioBuffer = Buffer.from(fs.readFileSync(audioPath))
-              const textPrompt = textMap.get(ttsEntry.textId)
-              const result = await generateWordTimestamps({
-                audioBuffer,
-                fileName: ttsEntry.fileName,
-                apiKey: openaiApiKey,
-                language: baseLanguage,
-                prompt: textPrompt,
-                cacheDir: path.join(bookDir, ".cache"),
-                onLog: (entry) => storage.appendLlmLog(entry),
-              })
-
-              const entry: WordTimestampEntry = {
-                textId: ttsEntry.textId,
-                language: normalizedLanguage,
-                words: result.words,
-                duration: result.duration,
-                voiceSlot: slot,
-              }
-
-              // Write incrementally to avoid overwriting concurrent user edits;
-              // clear this item from the failed list on success.
-              const currentRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-              const currentData = currentRow
-                ? (currentRow.data as WordTimestampOutput)
-                : undefined
-              const current = currentData?.entries ?? {}
-              const remainingFailed = (currentData?.failed ?? []).filter(
-                (f) => !(f.textId === ttsEntry.textId && resolveEntryVoiceSlot(f) === slot),
-              )
-              storage.putNodeData("tts-timestamps", normalizedLanguage, {
-                entries: { ...current, [slotEntryId]: entry },
-                generatedAt: new Date().toISOString(),
-                ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
-              } satisfies WordTimestampOutput)
-
-              succeededIds.add(slotEntryId)
+              const result = await generateWordTimestamps({ audioBuffer, audioHash: entry.audioHash, fileName: entry.fileName, apiKey: openaiApiKey,
+                language: getBaseLanguage(normalizedLanguage), prompt: textMap.get(entry.textId), cacheDir: path.join(bookDir, ".cache"),
+                onLog: (log) => storage.appendLlmLog(log) })
+              assertCurrent()
+              const audioHash = result.audioHash
+              const timing: WordTimestampEntry = { textId: entry.textId, language: normalizedLanguage, voiceSlot,
+                source: "ai", audioHash, words: result.words, duration: result.duration,
+                input: outputEvidence(timestampInputSignature(audioHash, normalizedLanguage, textMap.get(entry.textId) ?? ""), { words: result.words, duration: result.duration }, captureOutputReferences(storage, "timestamps", normalizedLanguage)) }
+              publishSpeechTimings(storage, normalizedLanguage, { entries: { ...previous?.entries, [key]: timing },
+                failed: previous?.failed?.filter((item) => voiceSlotEntryId(item.textId, item.voiceSlot) !== key), generatedAt: new Date().toISOString() })
               count++
-            } catch (err) {
-              // Record the failure and keep going — one bad item (e.g. an empty
-              // page-number slice) shouldn't abort the whole batch.
-              newlyFailed.push({
-                textId: ttsEntry.textId,
-                error: err instanceof Error ? err.message : String(err),
-                voiceSlot: slot,
-              })
+            } catch (error) {
+              // A conflict aborts without adding a stale failure record. Provider
+              // failure preserves prior timings and allows independent work.
+              assertCurrent()
+              publishSpeechTimings(storage, normalizedLanguage, { entries: previous?.entries ?? {},
+                failed: [...(previous?.failed ?? []).filter((item) => voiceSlotEntryId(item.textId, item.voiceSlot) !== key),
+                  { textId: entry.textId, voiceSlot, error: error instanceof Error ? error.message : String(error) }],
+                generatedAt: new Date().toISOString() })
+              failed++
             }
-            emitProgress(
-              `${count + newlyFailed.length}/${toTranscribe.length}`,
-              Math.round(((count + newlyFailed.length) / toTranscribe.length) * 100),
-            )
+            emitProgress(`${count + failed}/${entries.length}`, Math.round((count + failed) / entries.length * 100))
           }
-
-          // Fold this batch's failures into the persisted failed list (dropping
-          // any that succeeded in this pass).
-          if (newlyFailed.length > 0) {
-            const currentRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-            const currentData = currentRow ? (currentRow.data as WordTimestampOutput) : undefined
-            const failedById = new Map<string, SpeechFailedEntry>()
-            for (const f of currentData?.failed ?? []) {
-              failedById.set(voiceSlotEntryId(f.textId, resolveEntryVoiceSlot(f)), f)
-            }
-            for (const f of newlyFailed) {
-              failedById.set(voiceSlotEntryId(f.textId, resolveEntryVoiceSlot(f)), f)
-            }
-            for (const id of succeededIds) failedById.delete(id)
-            const failed = [...failedById.values()]
-            storage.putNodeData("tts-timestamps", normalizedLanguage, {
-              entries: currentData?.entries ?? {},
-              generatedAt: new Date().toISOString(),
-              ...(failed.length > 0 ? { failed } : {}),
-            } satisfies WordTimestampOutput)
-          }
-
-          return {
-            count,
-            skipped: ttsEntries.length - toTranscribe.length,
-            failed: newlyFailed.length,
-          }
-        } finally {
-          storage.close()
-        }
-      }
-    )
+          return { count, failed, skipped: getLatestTtsEntries(storage, normalizedLanguage).length - entries.length }
+        } finally { storage.close() }
+      })
 
     return c.json({ taskId })
   })
@@ -1675,8 +1675,6 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
   app.get("/books/:label/audio/:language/:fileName", (c) => {
     const { label, language, fileName } = c.req.param()
     const safeLabel = safeParseLabel(label)
-    const resolvedDir = path.resolve(booksDir)
-    const bookDir = path.join(resolvedDir, safeLabel)
 
     // Validate language and fileName to prevent path traversal
     if (!/^[a-zA-Z0-9_-]+$/.test(language)) {
@@ -1686,9 +1684,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       throw new HTTPException(400, { message: "Invalid file name" })
     }
 
-    const audioPath = path.resolve(bookDir, "audio", language, fileName)
-    // Verify path doesn't escape book directory
-    if (!audioPath.startsWith(bookDir + path.sep)) {
+    const audioPath = resolvePathWithin(booksDir, safeLabel, "audio", language, fileName)
+    if (!audioPath) {
       throw new HTTPException(400, { message: "Invalid audio path" })
     }
 

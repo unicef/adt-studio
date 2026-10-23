@@ -1,0 +1,277 @@
+{
+  "runtimeCommit": "40f56eba167b5cda0c65e10abf41d2296134f0a2",
+  "startingHead": "d0afa178a1327cd988b486be2134299c861bae08",
+  "developBase": "0b18602f8b42f4b52b4d2ccf2927635d5a4db572",
+  "pullRequest": "https://github.com/unicef/adt-studio/pull/879",
+  "specStatus": "in-review",
+  "implementation": "All four slices under documented narrow compatibility assumptions; human acceptance pending",
+  "checks": {
+    "fullSuite": {
+      "status": "passed",
+      "files": 333,
+      "tests": 4149,
+      "command": "pnpm test"
+    },
+    "typecheck": "passed",
+    "runtimeTypecheck": "passed",
+    "build": "passed",
+    "lint": {
+      "status": "passed",
+      "errors": 0,
+      "warnings": 8,
+      "baseline": "preceding compatibility ledger"
+    },
+    "lingui": {
+      "status": "passed",
+      "messages": 3731,
+      "missingTranslations": 0,
+      "locales": [
+        "en",
+        "pt-BR",
+        "es",
+        "fr",
+        "sq"
+      ]
+    },
+    "independentReview": {
+      "status": "passed",
+      "tests": 162,
+      "remainingMustFixFindings": 0,
+      "additionalEvidence": [
+        "real SQLite read/write probes",
+        "compiled API/assistant reorder probes",
+        "queued AI snapshot guards"
+      ]
+    },
+    "desktopUnpacked": {
+      "status": "passed",
+      "platform": "macOS arm64",
+      "signing": "ad hoc",
+      "notarization": "not run"
+    },
+    "desktopPackagedApi": {
+      "status": 200,
+      "books": 1,
+      "outputs": 230,
+      "runRevisionAvailable": true,
+      "packagedApi": "/Users/ksokolovic/Development/adt-studio/tmp/spec-0001-implementation/apps/desktop/release/mac-arm64/ADT-Studio-Beta.app/Contents/Resources/api/api-server.mjs"
+    },
+    "dockerCleanAppBuild": {
+      "status": "blocked",
+      "failure": "Debian package signature validation during Playwright dependency install",
+      "environment": "Docker filesystem 100% full; zero space available"
+    },
+    "dockerRuntime": {
+      "status": "passed",
+      "baseImage": "adt-studio:spec0001-review-9f7eaa14",
+      "currentBundlesMountedReadOnly": true
+    },
+    "invariantCommand": {
+      "status": "not-run",
+      "reason": "No standalone lint:invariants script; invariant coverage through suites"
+    },
+    "actualDecodablePg006": {
+      "status": "not-run",
+      "owner": "elasticsounds",
+      "delegatedByUser": true
+    }
+  },
+  "acceptance": {
+    "api": {
+      "health": true,
+      "bookCount": 3,
+      "outputCount": 230,
+      "cosmeticSavePreservesOutputs": true,
+      "concurrentSourceEditRejectsStaleSave": true,
+      "retainedFrenchUnchanged": true,
+      "invalidatedAccessibilityAbsent": true
+    },
+    "workedExamples": {
+      "evidence": [
+        "Example 1: cosmetic Save preserves all output signatures and status",
+        "Example 2: changed source appears beside protected French; unrelated caption unchanged",
+        "Example 3: glossary save discovers new image-caption work without changing Storyboard or inventing caption text consumers",
+        "Example 4: new and retired IDs render correctly; restoring original source reactivates retained French correction",
+        "Preview and Export show disclosure without changing freshness or review evidence"
+      ],
+      "errors": []
+    },
+    "retainedAndRepresentative": {
+      "retainedTocEditableAfterReset": true,
+      "retainedGlossaryVisibleAfterReset": true,
+      "versionedSave": true,
+      "noGenerationRequests": true,
+      "representativePreview": true,
+      "representativeTextLength": 59,
+      "errors": []
+    },
+    "legacyBrowser": {
+      "ownershipAndContentVersionsUnchangedOnRead": true,
+      "validationCacheCreated": true,
+      "previewRendersActivity": true,
+      "editorIndexMatchesSource": true,
+      "cloneKeepsNeighborHtmlAndManualTranslations": true,
+      "noRepairUI": true,
+      "noGenerationRequests": true,
+      "errors": [],
+      "after": [
+        {
+          "node": "accessibility-assessment",
+          "itemId": "book",
+          "version": 2
+        },
+        {
+          "node": "metadata",
+          "itemId": "book",
+          "version": 1
+        },
+        {
+          "node": "page-sectioning",
+          "itemId": "pg001",
+          "version": 2
+        },
+        {
+          "node": "text-catalog",
+          "itemId": "book",
+          "version": 2
+        },
+        {
+          "node": "text-catalog-translation",
+          "itemId": "fr",
+          "version": 1
+        },
+        {
+          "node": "web-rendering",
+          "itemId": "pg001",
+          "version": 3
+        }
+      ],
+      "originalRenderingVersionRetained": true
+    },
+    "export": {
+      "exportDownloaded": true,
+      "suggestedFilename": "Catalog acceptance_ plant science-adt.zip",
+      "disclosures": [
+        "http://127.0.0.1:4216/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Afalse%2C%22quizzes%22%3Afalse%2C%22readAloud%22%3Atrue%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D",
+        "http://127.0.0.1:4216/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Afalse%2C%22quizzes%22%3Afalse%2C%22readAloud%22%3Afalse%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D"
+      ],
+      "errors": []
+    },
+    "zip": {
+      "entries": 76,
+      "pages": 4,
+      "retainedFrenchDisplayAndSpeechText": true,
+      "disabledAudioEmpty": true
+    },
+    "restart": {
+      "restartPreservesCatalogAndReviewEvidence": true,
+      "books": [
+        "catalog-acceptance",
+        "legacy-leaf-acceptance"
+      ]
+    }
+  },
+  "criteria": [
+    {
+      "id": "AC-1",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-2",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-3",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-4",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-5",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-6",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-7",
+      "status": "passed",
+      "scope": "recorded development verification",
+      "manualVerification": "De-codable pg006 not run; assigned to elasticsounds"
+    },
+    {
+      "id": "AC-8",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-9",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-10",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-11",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-12",
+      "status": "passed",
+      "scope": "recorded development verification",
+      "manualVerification": "De-codable pg006 not run; assigned to elasticsounds"
+    },
+    {
+      "id": "AC-13",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-14",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-15",
+      "status": "passed",
+      "scope": "recorded development verification"
+    },
+    {
+      "id": "AC-16",
+      "status": "passed",
+      "scope": "recorded development verification"
+    }
+  ],
+  "assumptions": [
+    "Unique same-page same-type unclaimed complete leaf-ID matching only when both owner declarations are absent",
+    "Whole content-tree movement can produce misleading inference; accepted limitation",
+    "No positional matching or contradictory-owner override",
+    "Unresolved content/history retained and disclosed; no automatic owner",
+    "Successful edits version ownership; reads do not migrate ownership",
+    "Existing explicit structural operation semantics remain; arbitrary scripts are not partitioned",
+    "No migration framework, history reconstruction or repair UI in this patch"
+  ],
+  "notClaimed": [
+    "Human spec approval",
+    "Actual De-codable pg006 acceptance",
+    "Fresh combined Docker app image",
+    "Live paid-provider quality or billing",
+    "Complete Electron GUI walkthrough",
+    "Signed or notarized installers",
+    "Windows/Linux desktop packages",
+    "Release certification"
+  ]
+}

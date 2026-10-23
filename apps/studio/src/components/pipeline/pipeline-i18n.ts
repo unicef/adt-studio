@@ -80,7 +80,7 @@ export const STEP_LABEL_MESSAGES: Record<StepName, MessageDescriptor> = {
   "text-catalog": msg`Text Catalog`,
   "easy-read": msg`Easy Read`,
   "catalog-translation": msg`Catalog Translation`,
-  "core-tts-catalog": msg`TTS Normalization`,
+  "core-tts-catalog": msg`Speech Preparation`,
   "image-translation": msg`Image Translation`,
   tts: msg`Speech Generation`,
   "word-timestamps": msg`Word Highlighting`,

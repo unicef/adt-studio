@@ -1,8 +1,13 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { createHash } from "node:crypto"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { buildScreenshotHtml } from "../screenshot-html.js"
+import {
+  buildScreenshotHtml,
+  FITB_HYDRATION_SCRIPT,
+  SCREENSHOT_CONTENT_SECURITY_POLICY,
+} from "../screenshot-html.js"
 
 function createWebAssets(webAssetsDir: string): void {
   fs.mkdirSync(webAssetsDir, { recursive: true })
@@ -74,5 +79,28 @@ describe("buildScreenshotHtml", () => {
 
     expect(html).toContain('<h1 data-id="tx001">Lesson heading</h1>')
     expect(html).not.toContain('<h2 data-id="tx001">Lesson heading</h2>')
+  })
+
+  it("emits a CSP that permits only the generated FITB hydration script", async () => {
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    createWebAssets(webAssetsDir)
+    const html = await buildScreenshotHtml({
+      sectionHtml: '<p>Complete [[blank:item-1:answer]]</p>',
+      label: "book",
+      images: new Map(),
+      webAssetsDir,
+    })
+    const scriptContent = FITB_HYDRATION_SCRIPT
+      .replace(/^<script>/, "")
+      .replace(/<\/script>$/, "")
+    const hash = createHash("sha256").update(scriptContent).digest("base64")
+
+    expect(SCREENSHOT_CONTENT_SECURITY_POLICY).toContain(
+      `script-src 'sha256-${hash}'`,
+    )
+    expect(html).toContain(
+      `<meta http-equiv="Content-Security-Policy" content="${SCREENSHOT_CONTENT_SECURITY_POLICY}" />`,
+    )
+    expect(html).toContain(FITB_HYDRATION_SCRIPT)
   })
 })

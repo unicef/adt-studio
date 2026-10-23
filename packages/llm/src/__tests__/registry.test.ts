@@ -270,7 +270,7 @@ describe("built-in provider registry", () => {
       "gemini",
     ])
     expect(registry.providersFor("stt").map((m) => m.manifest.id)).toEqual(["openai"])
-    expect(registry.providersFor("image").map((m) => m.manifest.id)).toEqual(["openai"])
+    expect(registry.providersFor("image").map((m) => m.manifest.id)).toEqual(["openai", "google"])
   })
 
   it("declares the long-running request timeout floor in provider manifests", () => {

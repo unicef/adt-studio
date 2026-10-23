@@ -37,7 +37,7 @@ export function describePackagingWarnings(
   const pages = [...new Set(warnings.map((w) => w.pageId))].sort()
   const pageList = pages.join(", ")
   return i18n._(
-    msg`Some content was left out of the bundle: ${warnings.length} rendered section(s) on ${pageList} have no sectioning row, so they could not be included. Re-run the storyboard render for those pages, then package again.`,
+    msg`Some content was left out of the bundle: ${warnings.length} rendered section(s) on ${pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again.`,
   )
 }
 
