@@ -56,6 +56,7 @@ export interface PublishRoutesDeps {
   booksDir: string
   webAssetsDir: string
   configPath?: string
+  promptsDir?: string
   stateDir?: string
   fetchFn?: FetchLike
   now?: () => Date
@@ -161,6 +162,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     booksDir: deps.booksDir,
     webAssetsDir: deps.webAssetsDir,
     ...(deps.configPath === undefined ? {} : { configPath: deps.configPath }),
+    ...(deps.promptsDir === undefined ? {} : { promptsDir: deps.promptsDir }),
     ...(deps.prepareExportFn === undefined ? {} : { prepareExportFn: deps.prepareExportFn }),
     ...(deps.now === undefined ? {} : { now: deps.now }),
     ...(deps.generateToken === undefined ? {} : { generateToken: deps.generateToken }),
