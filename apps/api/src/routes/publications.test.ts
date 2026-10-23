@@ -744,6 +744,10 @@ describe("sharing under the book's writer lease", () => {
     }
 
     await streamed
+    const { run } = (await (await app.request(`/books/${LABEL}/publication/run`)).json()) as {
+      run: PublishRunSnapshot | null
+    }
+    expect(run?.status).toBe("cancelled")
     expect(fs.existsSync(lockFile())).toBe(false)
   })
 
