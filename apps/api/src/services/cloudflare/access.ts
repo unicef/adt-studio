@@ -48,7 +48,10 @@ export async function probeCloudflareAccess(
           accountNotFound: false,
         }
       }
-    } catch {
+    } catch (error) {
+      /** Cloudflare saying no is an invalid token; never hearing from Cloudflare is not. Offline,
+       *  this used to tell the author their permissions were missing. */
+      if (!(error instanceof CloudflareApiError)) throw error
       return {
         ok: false,
         accountName: null,

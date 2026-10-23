@@ -40,7 +40,7 @@ export function AccountPickerStep({
       description={
         <Trans>
           Your Cloudflare login covers more than one account. Pick the one your books should be
-          published into — you can change it later by disconnecting and connecting again.
+          shared from — you can change it later by disconnecting and connecting again.
         </Trans>
       }
       footer={
@@ -60,7 +60,7 @@ export function AccountPickerStep({
         role="radiogroup"
         aria-label={t`Cloudflare accounts`}
         data-testid="oauth-account-picker"
-        className="grid gap-3 pt-1 sm:grid-cols-2 lg:grid-cols-3"
+        className="grid content-start gap-3 pt-1 sm:grid-cols-2 lg:grid-cols-3"
       >
         {accounts.map((account) => {
           const isSelected = account.id === selected
@@ -75,8 +75,8 @@ export function AccountPickerStep({
                 "relative flex h-full cursor-pointer flex-col items-center gap-3 rounded-xl border px-4 py-5 text-center transition-all duration-200 motion-reduce:transition-none",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 isSelected
-                  ? "border-indigo-300 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-200"
-                  : "bg-card hover:border-zinc-300 hover:shadow-sm",
+                  ? "border-primary/50 bg-brand-50 shadow-sm ring-1 ring-primary/25"
+                  : "bg-card hover:border-foreground/25 hover:shadow-sm",
               )}
             >
               <span className="absolute right-3 top-3">
@@ -87,8 +87,8 @@ export function AccountPickerStep({
                 className={cn(
                   "flex size-12 shrink-0 items-center justify-center rounded-xl text-base font-semibold ring-1 transition-colors duration-200 motion-reduce:transition-none",
                   isSelected
-                    ? "bg-indigo-700 text-white ring-indigo-700"
-                    : "bg-white text-zinc-500 shadow-sm ring-zinc-200",
+                    ? "bg-primary text-primary-foreground ring-primary"
+                    : "bg-background text-muted-foreground shadow-sm ring-border",
                 )}
               >
                 {initialOf(account)}

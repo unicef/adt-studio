@@ -156,6 +156,37 @@ describe("publication upload lifecycle", () => {
     expect((await env.SNAPSHOTS.list()).objects).toHaveLength(objectsBefore)
   })
 
+  /** An update keeps the version its readers are on in the deploy, and asks for just its own
+   *  book's files: every other book has its own Worker now. */
+  it("lists one book's live files when asked by token", async () => {
+    const app = createApp()
+    const publishStatic = async (token: string, hash: string) => {
+      const started = await app.request(`${BASE}/api/publication-uploads`, {
+        method: "POST",
+        headers: { ...headers(), "content-type": "application/json" },
+        body: JSON.stringify({
+          kind: "create",
+          token,
+          title: token,
+          book_label: token,
+          page_manifest: [{ section_id: "page-1", href: "index.html", page_number: 1 }],
+          files: [{ path: "index.html", bytes: 1, sha256: digest("x"), asset_hash: hash }],
+        }),
+      }, env)
+      const { upload_id: uploadId } = await started.json() as { upload_id: string }
+      await app.request(`${BASE}/api/publication-uploads/${uploadId}/complete-static-assets`, { method: "POST", headers: headers() }, env)
+      await app.request(`${BASE}/api/publication-uploads/${uploadId}/commit`, { method: "POST", headers: headers() }, env)
+    }
+    await publishStatic(TOKEN, "a".repeat(32))
+    await publishStatic("OtherTokenAbcdefghijklmnopqrs1234", "b".repeat(32))
+
+    const all = await (await app.request(`${BASE}/api/static-assets/manifest`, { headers: headers() }, env)).json() as { assets: Array<{ hash: string }> }
+    expect(all.assets.map((asset) => asset.hash).sort()).toEqual(["a".repeat(32), "b".repeat(32)])
+
+    const one = await (await app.request(`${BASE}/api/static-assets/manifest?token=${TOKEN}`, { headers: headers() }, env)).json() as { assets: Array<{ hash: string }> }
+    expect(one.assets.map((asset) => asset.hash)).toEqual(["a".repeat(32)])
+  })
+
   it("rejects incomplete, wrong, and undeclared files and only advances after a complete republish", async () => {
     const first = await start("create", { "index.html": "one" })
     expect((await first.app.request(`${BASE}/api/publication-uploads/${first.upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)).status).toBe(400)
@@ -169,6 +200,67 @@ describe("publication upload lifecycle", () => {
     expect((await put(second.app, second.upload.upload_id, "index.html", "two")).status).toBe(200)
     expect((await second.app.request(`${BASE}/api/publication-uploads/${second.upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)).status).toBe(201)
     await expect((await second.app.request(`${BASE}/p/${TOKEN}/`, {}, env)).text()).resolves.toBe("two")
+  })
+
+  /** A run that lost its connection after starting leaves its upload open. Without this the
+   *  version's one open slot stayed taken and every later update was refused for good. */
+  it("lets a new update replace an upload a lost run left open", async () => {
+    const first = await start("create", { "index.html": "live" })
+    expect((await put(first.app, first.upload.upload_id, "index.html", "live")).status).toBe(200)
+    await first.app.request(`${BASE}/api/publication-uploads/${first.upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)
+
+    const stranded = await start("version", { "index.html": "lost" })
+    const retry = await start("version", { "index.html": "two" })
+    expect(retry.upload.version).toBe(2)
+
+    expect((await put(stranded.app, stranded.upload.upload_id, "index.html", "lost")).status).toBe(409)
+    expect((await stranded.app.request(`${BASE}/api/publication-uploads/${stranded.upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)).status).not.toBe(201)
+
+    expect((await put(retry.app, retry.upload.upload_id, "index.html", "two")).status).toBe(200)
+    expect((await retry.app.request(`${BASE}/api/publication-uploads/${retry.upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)).status).toBe(201)
+    await expect((await retry.app.request(`${BASE}/p/${TOKEN}/`, {}, env)).text()).resolves.toBe("two")
+  })
+
+  /** A Studio that lost a commit's reply asks how the upload ended rather than committing it. */
+  it("says how an upload ended without changing it", async () => {
+    const { app, upload } = await start("create", { "index.html": "one" })
+    const read = async () => (await app.request(`${BASE}/api/publication-uploads/${upload.upload_id}`, { headers: headers() }, env)).json() as Promise<Record<string, unknown>>
+
+    expect(await read()).toEqual({ upload_id: upload.upload_id, state: "open" })
+    expect((await put(app, upload.upload_id, "index.html", "one")).status).toBe(200)
+    expect(await read()).toMatchObject({ state: "open" })
+
+    await app.request(`${BASE}/api/publication-uploads/${upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)
+    expect(await read()).toMatchObject({
+      upload_id: upload.upload_id,
+      state: "committed",
+      publication: { token: TOKEN, current_version: 1 },
+      version: { version: 1 },
+      has_access_code: false,
+    })
+    expect((await app.request(`${BASE}/api/publication-uploads/missing-upload`, { headers: headers() }, env)).status).toBe(404)
+  })
+
+  /** Accounts set up since files moved to Static Assets have no bucket, and their Worker has no
+   *  binding for one — retiring an upload or deleting a book used to answer 500 there. */
+  it("retires an upload and deletes a book on an account with no file bucket", async () => {
+    const bucketless = { ...env, SNAPSHOTS: undefined }
+    const app = createApp()
+    const started = await app.request(`${BASE}/api/publication-uploads`, {
+      method: "POST",
+      headers: { ...headers(), "content-type": "application/json" },
+      body: JSON.stringify({
+        kind: "create", token: TOKEN, title: "No bucket", book_label: "nobucket",
+        page_manifest: [{ section_id: "page-1", href: "index.html", page_number: 1 }],
+        files: [{ path: "index.html", bytes: 1, sha256: digest("x"), asset_hash: "c".repeat(32) }],
+      }),
+    }, bucketless)
+    const { upload_id: uploadId } = await started.json() as { upload_id: string }
+    expect((await app.request(`${BASE}/api/publication-uploads/${uploadId}`, { method: "DELETE", headers: headers() }, bucketless)).status).toBe(200)
+
+    const again = await start("create", { "index.html": "x" })
+    await again.app.request(`${BASE}/api/publication-uploads/${again.upload.upload_id}/complete-static-assets`, { method: "POST", headers: headers() }, bucketless)
+    expect((await app.request(`${BASE}/api/publications/${TOKEN}`, { method: "DELETE", headers: headers() }, bucketless)).status).toBe(200)
   })
 
   it("aborts an upload without touching the active snapshot", async () => {

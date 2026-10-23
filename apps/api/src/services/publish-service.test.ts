@@ -9,10 +9,18 @@ import { createFakePublishWorker, type FakePublishWorker } from "./fake-publish-
 import {
   isPublishStepError,
   publishBook,
+  readAllPublicationTokens,
+  readPendingCommit,
   readPublicationRecord,
+  reconcilePendingCommit,
   republishBook,
+  restoreInterruptedPublishConfig,
+  toPublishErrorEvent,
 } from "./publish-service.js"
+import { BookHostDeployError } from "./cloudflare/book-host-deploy.js"
+import { CloudflareTimeoutError } from "./cloudflare/client.js"
 import { createPublishWorkerClient } from "./publish-worker-client.js"
+import { createFakeBookHost, uploadedAssetText } from "./cloudflare/fake-book-host.js"
 
 const LABEL = "raven"
 const TOKEN = "TokenRavenTokenRavenTokenRaven12"
@@ -76,21 +84,25 @@ function connection(worker: FakePublishWorker): CloudflareConnectionRecord {
     workers_dev_subdomain: "example",
     d1_database_name: "adt-publish",
     d1_database_uuid: "uuid",
-    r2_bucket_name: "adt-publish",
     mgmt_secret: "fake-mgmt-secret",
     provisioned_at: NOW,
     updated_at: NOW,
   }
 }
 
-function harness() {
-  const worker = createFakePublishWorker({ now: NOW })
+function harness(
+  bookHostOptions: Parameters<typeof createFakeBookHost>[0] = {},
+  workerOptions: Parameters<typeof createFakePublishWorker>[0] = {},
+) {
+  const worker = createFakePublishWorker({ now: NOW, ...workerOptions })
+  const bookHost = createFakeBookHost(bookHostOptions)
   const events: PublishProgressEvent[] = []
   const options = {
     label: LABEL,
     booksDir: tmpDir,
     webAssetsDir: path.join(tmpDir, "assets-web"),
     connection: connection(worker),
+    bookHost: bookHost.deps,
     emit: async (event: PublishProgressEvent) => {
       events.push(event)
     },
@@ -104,7 +116,7 @@ function harness() {
         fetchFn: worker.fetchFn,
       }),
   }
-  return { worker, events, options }
+  return { worker, events, options, cloudflare: bookHost.fake }
 }
 
 function uploadedFiles(worker: FakePublishWorker, version: number) {
@@ -113,27 +125,33 @@ function uploadedFiles(worker: FakePublishWorker, version: number) {
 
 describe("publishing a book", () => {
   it("uploads the snapshot, registers it, and records the link", async () => {
-    const { worker, events, options } = harness()
+    const { worker, events, options, cloudflare } = harness()
 
     const result = await publishBook(options)
 
     expect(result.publication.token).toBe(TOKEN)
     expect(result.version.version).toBe(1)
-    expect(result.url).toBe(worker.shareUrl(TOKEN))
+    /** The reader is served by this book's own Worker, not the control plane. */
+    expect(result.url).toMatch(
+      new RegExp(`^https://adt-book-[0-9a-f]{32}\\.teacher\\.workers\\.dev/p/${TOKEN}/$`),
+    )
 
     const paths = uploadedFiles(worker, 1).map((file) => file.path)
     expect(paths).toContain("index.html")
     expect(paths).toContain("assets/config.json")
     expect(paths).toContain("content/pages.json")
-    const config = uploadedFiles(worker, 1).find((file) => file.path === "assets/config.json")
-    expect(JSON.parse(config!.text)).toEqual({
+    /** The bytes went straight to Cloudflare, so the content is asserted where it landed. */
+    const uploadId = worker.state.uploads.keys().next().value as string
+    const config = uploadedAssetText(cloudflare, `/uploads/${uploadId}/assets/config.json`)
+    expect(JSON.parse(config!)).toEqual({
       ...CONFIG,
       features: { ...CONFIG.features, comments: true },
     })
 
     const record = readPublicationRecord(LABEL, tmpDir)
     expect(record?.token).toBe(TOKEN)
-    expect(record?.base_url).toBe(worker.shareUrl(TOKEN))
+    /** The record remembers this book's own host, which is what the author shares. */
+    expect(record?.base_url).toBe(result.url)
     expect(record?.versions).toHaveLength(1)
     expect(record?.versions[0]?.page_count).toBe(1)
 
@@ -191,7 +209,7 @@ describe("publishing a book", () => {
 
 describe("updating a published book", () => {
   it("adds a version and keeps the original share link", async () => {
-    const { worker, options } = harness()
+    const { worker, options, cloudflare } = harness()
     const first = await publishBook(options)
 
     fs.writeFileSync(
@@ -205,8 +223,133 @@ describe("updating a published book", () => {
     expect(second.url).toBe(first.url)
     expect(second.record.versions.map((version) => version.version)).toEqual([1, 2])
 
-    const served = uploadedFiles(worker, 2).find((file) => file.path === "index.html")
-    expect(served?.text).toContain("revised")
+    const uploadIds = [...worker.state.uploads.keys()]
+    const served = uploadedAssetText(
+      cloudflare,
+      `/uploads/${uploadIds[uploadIds.length - 1]}/index.html`,
+    )
+    expect(served).toContain("revised")
+  })
+
+  /** A deploy replaces every file the book's Worker serves, and readers stay on the old version
+   *  until the commit. An update that deployed only its own files served 404s in between — and
+   *  for good if the commit never came. */
+  it("keeps the version readers are on in an update's deployment", async () => {
+    const { worker, options, cloudflare } = harness({ assetRememberUploads: true })
+    const published = await publishBook(options)
+    const [firstUpload] = [...worker.state.uploads.keys()]
+
+    fs.writeFileSync(
+      path.join(tmpDir, LABEL, "adt", "index.html"),
+      "<!doctype html><title>Raven, revised</title>",
+    )
+    await republishBook({ ...options, record: published.record })
+    const secondUpload = [...worker.state.uploads.keys()].at(-1)
+
+    expect(worker.state.calls.some((call) => call.path === "/api/static-assets/manifest" && call.search === `?token=${TOKEN}`)).toBe(true)
+    const deployed = Object.keys(cloudflare.state.staticAssetManifests.at(-1) ?? {})
+    expect(deployed).toContain(`/uploads/${firstUpload}/index.html`)
+    expect(deployed).toContain(`/uploads/${secondUpload}/index.html`)
+    expect(uploadedAssetText(cloudflare, `/uploads/${firstUpload}/index.html`)).not.toContain("revised")
+  })
+
+  describe("when an update fails", () => {
+    const MANIFEST = "/api/static-assets/manifest"
+    const COMMIT = /^\/api\/publication-uploads\/[^/]+\/commit$/
+
+    /** A client whose requests to the given paths fail with the given status. */
+    function failing(worker: FakePublishWorker, fails: (pathname: string) => number | null) {
+      return () =>
+        createPublishWorkerClient({
+          workerUrl: worker.baseUrl,
+          mgmtSecret: "fake-mgmt-secret",
+          fetchFn: async (input, init) => {
+            const status = fails(new URL(input).pathname)
+            if (status !== null) return Response.json({ error: "internal_error" }, { status })
+            return worker.fetchFn(input, init)
+          },
+        })
+    }
+
+    async function publishThenEdit() {
+      const built = harness({ assetRememberUploads: true })
+      const published = await publishBook(built.options)
+      const [firstUpload] = [...built.worker.state.uploads.keys()]
+      fs.writeFileSync(
+        path.join(tmpDir, LABEL, "adt", "index.html"),
+        "<!doctype html><title>Raven, revised</title>",
+      )
+      return { ...built, published, firstUpload: String(firstUpload) }
+    }
+
+    function deployedPaths(cloudflare: ReturnType<typeof harness>["cloudflare"]): string[] {
+      return Object.keys(cloudflare.state.staticAssetManifests.at(-1) ?? {})
+    }
+
+    it("refuses before registering or deploying anything when it can't read what readers are on", async () => {
+      const { worker, options, cloudflare, published, firstUpload } = await publishThenEdit()
+      const uploadsBefore = worker.state.uploads.size
+      const deploysBefore = cloudflare.state.staticAssetManifests.length
+
+      const error = await republishBook({
+        ...options,
+        record: published.record,
+        createClient: failing(worker, (pathname) => (pathname === MANIFEST ? 503 : null)),
+      }).catch((caught: unknown) => caught)
+
+      expect(error).toMatchObject({ code: "upload_failed", stepId: "upload" })
+      expect((error as Error).message).toContain("nothing was changed")
+      expect(worker.state.uploads.size).toBe(uploadsBefore)
+      expect(cloudflare.state.staticAssetManifests.length).toBe(deploysBefore)
+      expect(worker.state.publications.get(TOKEN)?.current_version).toBe(1)
+      expect(deployedPaths(cloudflare)).toContain(`/uploads/${firstUpload}/index.html`)
+    })
+
+    it("keeps the version readers are on, page and files, when the commit fails after the deploy", async () => {
+      const { worker, options, cloudflare, published, firstUpload } = await publishThenEdit()
+
+      await expect(
+        republishBook({
+          ...options,
+          record: published.record,
+          createClient: failing(worker, (pathname) => (COMMIT.test(pathname) ? 500 : null)),
+        }),
+      ).rejects.toThrow()
+
+      expect(worker.state.publications.get(TOKEN)?.current_version).toBe(1)
+      const deployed = deployedPaths(cloudflare)
+      for (const file of uploadedFiles(worker, 1)) {
+        expect(deployed).toContain(`/uploads/${firstUpload}/${file.path}`)
+      }
+      expect(uploadedAssetText(cloudflare, `/uploads/${firstUpload}/index.html`)).not.toContain(
+        "revised",
+      )
+    })
+
+    it.each([
+      ["the lookup", (pathname: string) => (pathname === MANIFEST ? 503 : null)],
+      ["the commit", (pathname: string) => (COMMIT.test(pathname) ? 500 : null)],
+    ])("goes through on the next try after %s failed", async (_label, fails) => {
+      const { worker, options, cloudflare, published } = await publishThenEdit()
+      await expect(
+        republishBook({ ...options, record: published.record, createClient: failing(worker, fails) }),
+      ).rejects.toThrow()
+
+      const retried = await republishBook({ ...options, record: published.record })
+
+      expect(retried.version.version).toBe(2)
+      expect(worker.state.publications.get(TOKEN)?.current_version).toBe(2)
+      const latestUpload = [...worker.state.uploads.keys()].at(-1)
+      expect(uploadedAssetText(cloudflare, `/uploads/${latestUpload}/index.html`)).toContain(
+        "revised",
+      )
+    })
+
+    it("never asks what is live on a first share", async () => {
+      const { worker, options } = harness()
+      await publishBook(options)
+      expect(worker.state.calls.some((call) => call.path === MANIFEST)).toBe(false)
+    })
   })
 
   it("repeats the feature selection the first publish was made with", async () => {
@@ -249,6 +392,55 @@ describe("updating a published book", () => {
     await republishBook({ ...options, record: first.record, promptsDir: "/srv/adt/prompts", prepareExportFn: recordPromptsDir })
 
     expect(seen).toEqual(["/srv/adt/prompts", "/srv/adt/prompts"])
+  })
+})
+
+describe("the book host version", () => {
+  /** Recorded so the Studio can tell which links still run an older reader. */
+  it("records the host a share deployed, and the host an update deployed", async () => {
+    const { options } = harness()
+    const first = await publishBook(options)
+    expect(first.record.host_version).toBe(options.bookHost.artifact.metadata.version)
+
+    const newer = {
+      ...options.bookHost,
+      artifact: { ...options.bookHost.artifact, metadata: { ...options.bookHost.artifact.metadata, version: "9.9.9" } },
+    }
+    const second = await republishBook({ ...options, bookHost: newer, record: first.record })
+    expect(second.record.host_version).toBe("9.9.9")
+    expect(readPublicationRecord(LABEL, tmpDir)?.host_version).toBe("9.9.9")
+  })
+
+  /** A host newer than the control plane it reads and joins could half-work against it. */
+  it("refuses to deploy a host the control plane is too old for, before building anything", async () => {
+    const { options, events, cloudflare } = harness()
+    const needsNewer = {
+      ...options.bookHost,
+      artifact: {
+        ...options.bookHost.artifact,
+        metadata: { ...options.bookHost.artifact.metadata, min_control_plane_version: "99.0.0" },
+      },
+    }
+
+    await expect(publishBook({ ...options, bookHost: needsNewer })).rejects.toSatisfy(
+      (error: unknown) => isPublishStepError(error) && error.code === "worker_outdated",
+    )
+    expect(events).toHaveLength(0)
+    expect(cloudflare.state.staticAssetManifests).toHaveLength(0)
+  })
+
+  it("lets a control plane with no recorded version through rather than guess", async () => {
+    const { options } = harness()
+    const unknown = { ...options.connection, worker_version: null }
+    const needsNewer = {
+      ...options.bookHost,
+      artifact: {
+        ...options.bookHost.artifact,
+        metadata: { ...options.bookHost.artifact.metadata, min_control_plane_version: "99.0.0" },
+      },
+    }
+
+    await expect(publishBook({ ...options, connection: unknown, bookHost: needsNewer })).resolves.toBeTruthy()
   })
 })
 
@@ -296,3 +488,155 @@ describe("when the upload goes wrong", () => {
     expect((error as { code: string }).code).toBe("package_failed")
   })
 })
+
+/** A commit whose reply never made it back left a version live on Cloudflare that this computer
+ *  had no record of — a first share's link the author never got. */
+describe("a commit whose reply was lost", () => {
+  it("asks again, since a commit is safe to repeat, and files the record", async () => {
+    const { worker, options } = harness({}, { loseCommitReplies: 1 })
+    const result = await publishBook({ ...options, accessCode: "RAVEN7" })
+
+    expect(result.record.token).toBe(TOKEN)
+    expect(readPublicationRecord(LABEL, tmpDir)?.access_code).toBe("RAVEN7")
+    expect(readPendingCommit(LABEL, tmpDir)).toBeNull()
+    expect([...worker.state.uploads.values()].filter((upload) => upload.state === "committed")).toHaveLength(1)
+  })
+
+  it("files the record later when the reply never came back at all", async () => {
+    const { options } = harness({}, { loseCommitReplies: 99 })
+    await expect(publishBook({ ...options, accessCode: "RAVEN7" })).rejects.toThrow()
+    expect(readPublicationRecord(LABEL, tmpDir)).toBeNull()
+    expect(readPendingCommit(LABEL, tmpDir)?.token).toBe(TOKEN)
+
+    const recovered = await reconcilePendingCommit(LABEL, tmpDir, options.createClient())
+
+    expect(recovered?.token).toBe(TOKEN)
+    expect(recovered?.access_code).toBe("RAVEN7")
+    expect(recovered?.versions.map((version) => version.version)).toEqual([1])
+    expect(readPublicationRecord(LABEL, tmpDir)?.base_url).toBe(recovered?.base_url)
+    expect(readPendingCommit(LABEL, tmpDir)).toBeNull()
+  })
+
+  it("adds the version an update committed to the book's history", async () => {
+    const first = harness()
+    const published = await publishBook(first.options)
+    const lossy = harness({}, { loseCommitReplies: 99 })
+    /** Same book, a control plane that already holds the first version. */
+    const worker = lossy.worker
+    worker.state.publications = first.worker.state.publications
+    worker.state.versions = first.worker.state.versions
+    worker.state.uploads = first.worker.state.uploads
+
+    await expect(republishBook({ ...lossy.options, record: published.record })).rejects.toThrow()
+    expect(readPublicationRecord(LABEL, tmpDir)?.versions.map((version) => version.version)).toEqual([1])
+
+    const recovered = await reconcilePendingCommit(LABEL, tmpDir, lossy.options.createClient())
+    expect(recovered?.versions.map((version) => version.version)).toEqual([1, 2])
+    expect(recovered?.base_url).toBe(published.record.base_url)
+  })
+
+  it("settles the note of a run that never committed, and files nothing", async () => {
+    const { worker, options } = harness({}, { failCommitStatus: 500 })
+    await expect(publishBook(options)).rejects.toThrow()
+    expect(readPendingCommit(LABEL, tmpDir)).not.toBeNull()
+
+    expect(await reconcilePendingCommit(LABEL, tmpDir, options.createClient())).toBeNull()
+    expect(readPublicationRecord(LABEL, tmpDir)).toBeNull()
+    expect(readPendingCommit(LABEL, tmpDir)).toBeNull()
+    expect([...worker.state.uploads.values()].every((upload) => upload.state !== "open")).toBe(true)
+  })
+
+  it("leaves the note for next time while the service can't be reached", async () => {
+    const { options } = harness({}, { loseCommitReplies: 99 })
+    await expect(publishBook(options)).rejects.toThrow()
+    const offline = createFakePublishWorker({ now: NOW, unreachable: true })
+    const client = createPublishWorkerClient({ workerUrl: offline.baseUrl, mgmtSecret: "fake-mgmt-secret", fetchFn: offline.fetchFn })
+
+    expect(await reconcilePendingCommit(LABEL, tmpDir, client)).toBeNull()
+    expect(readPendingCommit(LABEL, tmpDir)).not.toBeNull()
+  })
+})
+
+describe("the share tokens a teardown looks for", () => {
+  it("includes a first share that only left an unconfirmed note behind", async () => {
+    const { options } = harness({}, { loseCommitReplies: 99 })
+    await expect(publishBook(options)).rejects.toThrow()
+
+    expect(readPublicationRecord(LABEL, tmpDir)).toBeNull()
+    expect(readAllPublicationTokens(tmpDir)).toEqual([TOKEN])
+  })
+
+  it("includes a published book", async () => {
+    const { options } = harness()
+    await publishBook(options)
+    expect(readAllPublicationTokens(tmpDir)).toEqual([TOKEN])
+  })
+})
+
+describe("a first share that fails", () => {
+  /** Each failed share used to leave its book's Worker behind, counting against the account's
+   *  limit of live books. */
+  it("removes the Worker it deployed once nothing went live", async () => {
+    const { worker, options, cloudflare } = harness({}, { failCommitStatus: 500 })
+    await expect(publishBook(options)).rejects.toThrow()
+
+    expect([...worker.state.uploads.values()].every((upload) => upload.state === "aborted")).toBe(true)
+    expect([...cloudflare.state.scripts.keys()].some((name) => name.startsWith("adt-book-"))).toBe(false)
+  })
+
+  it("keeps the Worker when it can't confirm nothing went live", async () => {
+    const { options, cloudflare } = harness({}, { loseCommitReplies: 99 })
+    await expect(publishBook(options)).rejects.toThrow()
+
+    expect([...cloudflare.state.scripts.keys()].some((name) => name.startsWith("adt-book-"))).toBe(true)
+  })
+})
+
+describe("the book's config during a share", () => {
+  const configPath = () => path.join(tmpDir, LABEL, "adt", "assets", "config.json")
+
+  it("leaves the config as it found it, with no copies behind", async () => {
+    const before = fs.readFileSync(configPath(), "utf-8")
+    const { options } = harness()
+    await publishBook(options)
+
+    expect(fs.readFileSync(configPath(), "utf-8")).toBe(before)
+    expect(fs.existsSync(path.join(tmpDir, LABEL, ".publish-restore"))).toBe(false)
+  })
+
+  /** Quitting mid-share skipped the restore, and the next offline export shipped with comments
+   *  switched on. */
+  it("restores the config a share was interrupted while patching", () => {
+    const before = fs.readFileSync(configPath(), "utf-8")
+    const restoreDir = path.join(tmpDir, LABEL, ".publish-restore")
+    fs.mkdirSync(restoreDir, { recursive: true })
+    fs.writeFileSync(path.join(restoreDir, "config.json"), before)
+    fs.writeFileSync(configPath(), JSON.stringify({ ...CONFIG, features: { ...CONFIG.features, comments: true } }))
+
+    restoreInterruptedPublishConfig(path.join(tmpDir, LABEL))
+
+    expect(fs.readFileSync(configPath(), "utf-8")).toBe(before)
+    expect(fs.existsSync(restoreDir)).toBe(false)
+  })
+})
+
+describe("what a failed send to Cloudflare is called", () => {
+  it("names a full account, so the author deletes a book instead of retrying", () => {
+    expect(toPublishErrorEvent(new BookHostDeployError("full", undefined, true))).toMatchObject({
+      code: "account_book_limit",
+      step_id: "upload",
+    })
+  })
+
+  it("names a dropped connection as one", () => {
+    expect(toPublishErrorEvent(new BookHostDeployError("deploy", new CloudflareTimeoutError(60_000)))).toMatchObject({
+      code: "worker_unreachable",
+      step_id: "upload",
+    })
+  })
+
+  it("puts any other deploy failure on the upload step", () => {
+    expect(toPublishErrorEvent(new Error("Cloudflare refused"))).toMatchObject({ code: "upload_failed", step_id: "upload" })
+  })
+})
+

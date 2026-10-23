@@ -4,7 +4,9 @@ import {
   COMMENTER_PIN_MAX_LENGTH as SHARED_PIN_MAX,
   COMMENTER_PIN_MIN_LENGTH as SHARED_PIN_MIN,
   PUBLISH_COMMENT_BODY_MAX_LENGTH as SHARED_BODY_MAX,
+  PUBLISH_COMMENT_SELECTOR_MAX_LENGTH as SHARED_SELECTOR_MAX,
 } from "@adt/types"
+import { ROOM_SELECTOR_MAX_LENGTH } from "./anchor"
 import {
   COMMENT_BODY_MAX_LENGTH,
   COMMENTER_NAME_MAX_LENGTH,
@@ -22,6 +24,7 @@ describe("comment contract caps", () => {
   it("matches @adt/types", () => {
     expect(COMMENT_BODY_MAX_LENGTH).toBe(SHARED_BODY_MAX)
     expect(COMMENTER_NAME_MAX_LENGTH).toBe(SHARED_NAME_MAX)
+    expect(ROOM_SELECTOR_MAX_LENGTH).toBe(SHARED_SELECTOR_MAX)
   })
 
   it("keeps the PIN input inside the contract's range", () => {

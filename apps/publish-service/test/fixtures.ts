@@ -1,5 +1,7 @@
 import { env } from "cloudflare:test"
+import { clientHandle, throttleSecretFor } from "../src/access-throttle.js"
 import { createD1PublicationStore } from "../src/d1-store.js"
+import type { WriteKind } from "../src/store.js"
 
 /** Fresh bindings for route tests, using the same D1/R2 implementation as the Worker. */
 export async function resetBindings(): Promise<void> {
@@ -17,6 +19,24 @@ export async function resetBindings(): Promise<void> {
     if (page.objects.length) await env.SNAPSHOTS.delete(page.objects.map(({ key }) => key))
     cursor = page.truncated ? page.cursor : undefined
   } while (cursor)
+}
+
+/** Writes already on record for one caller, as `writeAllowance` would have left them: a limit
+ *  is reached in one batch rather than a hundred requests. */
+export async function seedWrites(
+  token: string,
+  secret: string,
+  caller: { ip: string } | { session: string },
+  kind: WriteKind,
+  count: number,
+): Promise<void> {
+  const client =
+    "ip" in caller
+      ? await clientHandle(caller.ip, (await throttleSecretFor({ MGMT_SECRET: secret }, token)) as string)
+      : `session:${caller.session}`
+  const insert = env.DB.prepare("INSERT INTO access_attempts (token, client, kind, at) VALUES (?, ?, ?, ?)")
+  const at = new Date().toISOString()
+  await env.DB.batch(Array.from({ length: count }, () => insert.bind(token, client, kind, at)))
 }
 
 export function createTestStore() {

@@ -3,8 +3,11 @@ import { PUBLISH_WORKER_VERSION } from "@adt/types"
 import {
   CLOUDFLARE_API_BASE_URL,
   CloudflareApiError,
+  CloudflareTimeoutError,
   createCloudflareClient,
+  describeCloudflareFailure,
   fetchWorkerHealth,
+  isRetryableCloudflareError,
   retryCloudflareOperation,
   type FetchLike,
 } from "./client.js"
@@ -79,6 +82,25 @@ describe("cloudflare client", () => {
     expect(result).toBe("done")
     expect(calls).toBe(3)
     expect(waits).toEqual([25, 25])
+  })
+
+  it("retries a transient transport failure and keeps its network code", async () => {
+    let calls = 0
+    const transport = new TypeError("fetch failed", {
+      cause: Object.assign(new Error("socket closed"), { code: "ECONNRESET" }),
+    })
+
+    await expect(retryCloudflareOperation(
+      async () => {
+        calls += 1
+        if (calls === 1) throw transport
+        return "done"
+      },
+      { sleep: async () => undefined },
+    )).resolves.toBe("done")
+
+    expect(calls).toBe(2)
+    expect(describeCloudflareFailure(transport)).toBe("ECONNRESET — socket closed")
   })
 
   it("retries a rate-limited R2 object delete before removing its bucket", async () => {
@@ -171,3 +193,19 @@ describe("cloudflare client", () => {
     ).resolves.toEqual({ reachable: false, version: null })
   })
 })
+
+describe("deadlines", () => {
+  /** A connection that died mid-request used to hang until the system gave up — minutes. */
+  it("gives up on a Cloudflare request that never answers, as a retryable timeout", async () => {
+    const hang: FetchLike = (_input, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason))
+      })
+    const client = createCloudflareClient({ token: "t", accountId: "a", fetchFn: hang, requestTimeoutMs: 20 })
+
+    const error = await client.listWorkerScripts().catch((caught: unknown) => caught)
+    expect(error).toBeInstanceOf(CloudflareTimeoutError)
+    expect(isRetryableCloudflareError(error)).toBe(true)
+  })
+})
+

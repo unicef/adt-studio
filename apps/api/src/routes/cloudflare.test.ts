@@ -7,6 +7,7 @@ import {
   CLOUDFLARE_ACCOUNT_ID_HEADER,
   CLOUDFLARE_TOKEN_HEADER,
   CLOUDFLARE_WORKER_NAME,
+  PROVISION_STEPS,
   PUBLISH_WORKER_VERSION,
   type CloudflareVerifyResponse,
   type ProvisionProgressEvent,
@@ -18,6 +19,7 @@ import {
   savePublicationRecord,
 } from "../services/publish-service.js"
 import { createCloudflareRoutes, type CloudflareRoutesDeps } from "./cloudflare.js"
+import { bookWorkerName } from "../services/cloudflare/book-host.js"
 import type { FetchLike } from "../services/cloudflare/client.js"
 import {
   createConnectionStore,
@@ -523,7 +525,9 @@ describe("cloudflare routes", () => {
     })
 
     it("emits a taxonomy error event instead of failing the stream", async () => {
-      const { app } = buildApp({ subdomain: null })
+      /** Registering is refused, which is the one case where the author has to open the
+       *  dashboard — an account with simply no subdomain now gets one reserved for it. */
+      const { app } = buildApp({ subdomain: null, subdomainCreateForbidden: true })
       const res = await app.request("/api/cloudflare/provision", { method: "POST", headers: AUTH })
 
       const events = parseSSE(await res.text())
@@ -531,8 +535,10 @@ describe("cloudflare routes", () => {
       expect(last?.type).toBe("error")
       if (last?.type !== "error") throw new Error("expected an error event")
       expect(last.code).toBe("no_workers_subdomain")
-      expect(last.step_id).toBe("enable-workers-dev")
-      expect(last.resume_from_step).toBe(6)
+      expect(last.step_id).toBe("verify-token")
+      expect(last.resume_from_step).toBe(
+        PROVISION_STEPS.find((step) => step.id === "verify-token")?.number,
+      )
     })
 
     it("reports the missing scopes on the error event", async () => {
@@ -606,6 +612,67 @@ describe("cloudflare routes", () => {
       const first = await firstRequest
       expect(first.status).toBe(200)
       await first.text()
+    })
+  })
+
+  describe("GET /cloudflare/provision/run", () => {
+    it("reports no run before one has started", async () => {
+      const { app } = buildApp()
+      const res = await app.request("/api/cloudflare/provision/run")
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ run: null })
+    })
+
+    /** The browser drops the SSE stream on reload, but the run keeps going. Without this the
+     *  wizard comes back up looking idle while resources are still being created. */
+    it("still reports the run while the stream is open", async () => {
+      const fake = createFakeCloudflare()
+      const gate = deferred<void>()
+      let started = false
+      const holdingFetch: FetchLike = async (input, init) => {
+        started = true
+        await gate.promise
+        return fake.fetchFn(input, init)
+      }
+      const app = new Hono()
+      app.onError(errorHandler)
+      app.route(
+        "/api",
+        createCloudflareRoutes({
+          booksDir: tmpDir,
+          projectRoot: tmpDir,
+          stateDir,
+          artifactDir,
+          migrationsDir,
+          fetchFn: holdingFetch,
+          sleep: async () => {},
+          now: () => new Date("2026-08-03T12:00:00.000Z"),
+          generateSecret: () => "mgmt-secret-1",
+          healthAttempts: 2,
+        }),
+      )
+
+      const inFlight = app.request("/api/cloudflare/provision", { method: "POST", headers: AUTH })
+      await waitUntil(() => started)
+
+      const during = await app.request("/api/cloudflare/provision/run")
+      const body = (await during.json()) as { run: { status: string; finished_at: string | null } }
+      expect(body.run.status).toBe("running")
+      expect(body.run.finished_at).toBeNull()
+
+      gate.resolve()
+      await (await inFlight).text()
+
+      const after = await app.request("/api/cloudflare/provision/run")
+      const settled = (await after.json()) as {
+        run: { status: string; step_states: string[]; finished_at: string | null }
+      }
+      expect(settled.run.status).toBe("done")
+      expect(settled.run.finished_at).not.toBeNull()
+      expect(settled.run.step_states.every((value) => value === "done" || value === "skipped")).toBe(
+        true,
+      )
     })
   })
 
@@ -762,6 +829,169 @@ describe("cloudflare routes", () => {
      * be spotted later: it matches the new connection and reports the book as published behind
      * a link that no longer resolves.
      */
+    describe("each shared book's own Worker", () => {
+      const LIVE = "LiveTokenAbcdefghijklmnopq1"
+      const EXPIRED_OR_REVOKED = "RevokedTokenAbcdefghijklmn3"
+      const INTERRUPTED = "InterruptedTokenAbcdefghij4"
+      const LOCAL_ONLY = "SeededTokenAbcdefghijklmnop12"
+      const UNRELATED = "someone-elses-worker"
+      const DATABASE = { uuid: "db-uuid-1", name: "adt-publish" }
+
+      /** The database lists published books (revoked and expired rows included) and, through
+       *  `publication_uploads`, a first share that registered but never committed. */
+      const D1_TOKENS = { publications: [LIVE, EXPIRED_OR_REVOKED], uploads: [LIVE, INTERRUPTED] }
+      const BOOK_WORKERS = [LIVE, EXPIRED_OR_REVOKED, INTERRUPTED, LOCAL_ONLY].map(bookWorkerName)
+
+      function deleteEverything(app: Hono) {
+        return app.request("/api/cloudflare/connection?delete_resources=1", {
+          method: "DELETE",
+          headers: AUTH,
+        })
+      }
+
+      it("deletes the Worker of every share the database or a book names, and nothing unrelated", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const { app, fake } = buildApp({
+          databases: [DATABASE],
+          scripts: [CLOUDFLARE_WORKER_NAME, UNRELATED, ...BOOK_WORKERS],
+          d1Tokens: D1_TOKENS,
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const res = await deleteEverything(app)
+
+        expect(res.status).toBe(200)
+        expect([...fake.state.scripts.keys()]).toEqual([UNRELATED])
+        expect(fake.state.databases).toEqual([])
+        expect(store.read()).toBeNull()
+      })
+
+      it("deletes nothing when the database's list of shares cannot be read", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const scripts = [CLOUDFLARE_WORKER_NAME, ...BOOK_WORKERS]
+        const { app, fake } = buildApp({
+          databases: [DATABASE],
+          scripts,
+          d1Tokens: D1_TOKENS,
+          d1TokenQueryFails: true,
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const res = await deleteEverything(app)
+
+        expect(res.status).toBe(502)
+        expect((await res.json()).error).toContain("nothing was deleted")
+        expect([...fake.state.scripts.keys()].sort()).toEqual([...scripts].sort())
+        expect(fake.state.databases).toHaveLength(1)
+        expect(store.read()).not.toBeNull()
+        expect(readPublicationRecord("raven", tmpDir)).not.toBeNull()
+      })
+
+      it("keeps the shared pieces and the records when a book Worker resists, then finishes on retry", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const stuck = bookWorkerName(LIVE)
+        const failing = buildApp({
+          databases: [DATABASE],
+          scripts: [CLOUDFLARE_WORKER_NAME, ...BOOK_WORKERS],
+          d1Tokens: D1_TOKENS,
+          workerDeleteFailsFor: [stuck],
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const failed = await deleteEverything(failing.app)
+
+        expect(failed.status).toBe(502)
+        expect((await failed.json()).error).toContain(stuck)
+        expect([...failing.fake.state.scripts.keys()].sort()).toEqual(
+          [CLOUDFLARE_WORKER_NAME, stuck].sort(),
+        )
+        expect(failing.fake.state.databases).toHaveLength(1)
+        expect(store.read()).not.toBeNull()
+        expect(readPublicationRecord("raven", tmpDir)).not.toBeNull()
+
+        const retry = buildApp({
+          databases: [...failing.fake.state.databases],
+          scripts: [...failing.fake.state.scripts.keys()],
+          d1Tokens: D1_TOKENS,
+        })
+        const finished = await deleteEverything(retry.app)
+
+        expect(finished.status).toBe(200)
+        expect(retry.fake.state.scripts.size).toBe(0)
+        expect(retry.fake.state.databases).toEqual([])
+        expect(readPublicationRecord("raven", tmpDir)).toBeNull()
+      })
+
+      it("works from the books' own tokens when the database is already gone", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const { app, fake } = buildApp({
+          databases: [],
+          scripts: [CLOUDFLARE_WORKER_NAME, bookWorkerName(LOCAL_ONLY)],
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const res = await deleteEverything(app)
+
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject({ inventory_incomplete: true, leftover_book_workers: [] })
+        expect(fake.state.scripts.size).toBe(0)
+        expect(store.read()).toBeNull()
+      })
+
+      /** A share made from another machine is named only in the database. With the database
+       *  gone nothing ties its Worker to this setup, so it is reported, never deleted. */
+      it("reports, without deleting, a book Worker only another machine's share could name", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const remoteOnly = bookWorkerName(LIVE)
+        const { app, fake } = buildApp({
+          databases: [],
+          scripts: [CLOUDFLARE_WORKER_NAME, UNRELATED, remoteOnly, bookWorkerName(LOCAL_ONLY)],
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const res = await deleteEverything(app)
+
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject({
+          forgotten: true,
+          inventory_incomplete: true,
+          leftover_book_workers: [remoteOnly],
+        })
+        expect([...fake.state.scripts.keys()].sort()).toEqual([remoteOnly, UNRELATED].sort())
+      })
+
+      it("says the leftovers are unknown when the account's Workers cannot be listed", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const { app } = buildApp({ databases: [], scripts: [], scriptListFails: true })
+
+        const res = await deleteEverything(app)
+
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject({ inventory_incomplete: true, leftover_book_workers: null })
+      })
+
+      it("reports a complete inventory when the database could be read", async () => {
+        const store = createConnectionStore(stateDir)
+        store.write(record)
+        const { app } = buildApp({
+          databases: [DATABASE],
+          scripts: [CLOUDFLARE_WORKER_NAME, ...BOOK_WORKERS],
+          d1Tokens: D1_TOKENS,
+        })
+        seedPublishedBook(tmpDir, "raven", record.worker_url)
+
+        const res = await deleteEverything(app)
+
+        expect(await res.json()).toMatchObject({ inventory_incomplete: false, leftover_book_workers: [] })
+      })
+    })
+
     it("makes the books forget links that died with the account", async () => {
       const store = createConnectionStore(stateDir)
       store.write(record)

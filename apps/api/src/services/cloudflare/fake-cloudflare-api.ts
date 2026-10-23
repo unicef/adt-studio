@@ -15,11 +15,21 @@ export interface FakeCloudflareState {
   bucketObjects: Map<string, string[]>
   scripts: Map<string, FakeUploadedScript>
   subdomainEnabledFor: string[]
+  /** The account's workers.dev subdomain, which a provision may register. */
+  subdomain: string | null
+  subdomainsCreated: string[]
+  /** Counts down the transient upload failures still owed. */
+  assetUploadFailuresLeft: number
   migrationRows: Array<{ name: string; applied_at: string }>
   executedSql: string[]
+  /** Every D1 query body, in order. */
+  d1Queries: string[]
   uploadCount: number
   staticAssetManifests: Array<Record<string, unknown>>
   staticAssetUploads: Array<Record<string, string>>
+  /** Per upload call, the `Content-Type` carried by each asset part — the value Cloudflare
+   * would replay when serving that asset. */
+  staticAssetUploadPartTypes: Array<Record<string, string>>
   healthCalls: number
   calls: Array<{ method: string; url: string }>
   tokenRequests: Array<Record<string, string>>
@@ -50,9 +60,39 @@ export interface FakeCloudflareOptions {
   rejectMigrationTag?: boolean
   workerVersion?: string
   workerCreateConflict?: boolean
+  /** Refuses every script deletion, for testing a teardown that only half succeeds. */
+  workerDeleteFails?: boolean
+  /** Fails deleting only these Workers, every time, until removed from the list. */
+  workerDeleteFailsFor?: string[]
+  /** Share tokens the control plane's database holds, by table. */
+  d1Tokens?: { publications?: string[]; uploads?: string[] }
+  /** Fails every D1 query that reads share tokens, as a transient error. */
+  d1TokenQueryFails?: boolean
+  /** Fails listing the account's Worker scripts. */
+  scriptListFails?: boolean
+  /** Cloudflare refuses to register a workers.dev subdomain — reported on some accounts, and
+   *  the case that sends the author to the dashboard by hand. */
+  subdomainCreateForbidden?: boolean
+  /** Labels already claimed elsewhere on workers.dev, to exercise the collision retry. */
+  subdomainsTaken?: string[]
   healthFailures?: number
   healthUnreachable?: boolean
   assetUploadBuckets?: string[][]
+  /** Every Cloudflare API call fails as if the machine were offline. */
+  apiUnreachable?: boolean
+  /** Create the D1 database, then lose this many replies on the way back. */
+  d1CreateLostReplies?: number
+  /** Behave like Cloudflare: ask only for the hashes it doesn't already hold. */
+  assetKnownHashes?: string[]
+  /** Like `assetKnownHashes`, but what it holds is whatever was uploaded earlier in the test. */
+  assetRememberUploads?: boolean
+  /** Ask for every hash in the manifest, which is what a real account does on a first publish
+   *  when it holds none of the content yet. */
+  assetUploadAllBuckets?: boolean
+  assetSessionErrorMessage?: string
+  assetUploadErrorMessage?: string
+  /** Fail this many bucket uploads with a 5xx before accepting any, to exercise the retry. */
+  assetUploadTransientFailures?: number
   /** Accounts the OAuth grant can see. Defaults to the single configured account. */
   oauthAccounts?: Array<{ id: string; name: string }> | null
   accountsListForbidden?: boolean
@@ -92,10 +132,30 @@ async function readFormText(body: unknown, field: string): Promise<string> {
   return typeof value === "string" ? value : await value.text()
 }
 
+interface StaticAssetParts {
+  assets: Record<string, string>
+  partTypes: Record<string, string>
+}
+
+/** Cloudflare's direct-upload format: one part per asset, whose field name *and* filename are
+ * the content hash, carrying the base64 body and the type to serve it as. Returning null for
+ * anything else is the point of this helper — a shape the live API would reject has to fail
+ * here too, or the suite goes green on a request that cannot work against real Cloudflare. */
+async function readStaticAssetParts(body: unknown): Promise<StaticAssetParts | null> {
+  if (!(body instanceof FormData)) return null
+  const assets: Record<string, string> = {}
+  const partTypes: Record<string, string> = {}
+  for (const [name, value] of body.entries()) {
+    if (typeof value === "string" || value.name !== name) return null
+    assets[name] = await value.text()
+    partTypes[name] = value.type
+  }
+  return { assets, partTypes }
+}
+
 export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeCloudflare {
   const accountId = options.accountId ?? "acct-1"
   const accountName = options.accountName ?? "Test Account"
-  const subdomain = options.subdomain === undefined ? "teacher" : options.subdomain
   const denied = new Set(options.denyScopes ?? [])
 
   const state: FakeCloudflareState = {
@@ -106,11 +166,16 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     ),
     scripts: new Map((options.scripts ?? []).map((name) => [name, { script: "", metadata: {} }])),
     subdomainEnabledFor: [],
+    subdomain: options.subdomain === undefined ? "teacher" : options.subdomain,
+    subdomainsCreated: [],
+    assetUploadFailuresLeft: options.assetUploadTransientFailures ?? 0,
     migrationRows: [...(options.migrationRows ?? [])],
     executedSql: [],
+    d1Queries: [],
     uploadCount: 0,
     staticAssetManifests: [],
     staticAssetUploads: [],
+    staticAssetUploadPartTypes: [],
     healthCalls: 0,
     calls: [],
     tokenRequests: [],
@@ -124,6 +189,7 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     return Object.fromEntries(new URLSearchParams(String(init?.body ?? "")).entries())
   }
 
+  let lostD1CreateReplies = 0
   const fetchFn: FetchLike = async (input, init) => {
     const method = (init?.method ?? "GET").toUpperCase()
     state.calls.push({ method, url: input })
@@ -170,6 +236,10 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
         throw new TypeError("fetch failed")
       }
       return json({ ok: true, version: options.workerVersion ?? PUBLISH_WORKER_VERSION })
+    }
+
+    if (options.apiUnreachable && input.startsWith(CLOUDFLARE_API_BASE_URL)) {
+      throw new TypeError("fetch failed", { cause: { code: "ENETUNREACH" } })
     }
 
     if (!input.startsWith(CLOUDFLARE_API_BASE_URL)) {
@@ -221,11 +291,20 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
         if (options.d1CreateConflict) {
           return fail(409, 7502, "a database with that name already exists")
         }
+        /** Like Cloudflare, a name is taken once — which is what turns a retried create back
+         *  into "already exists". */
+        if (state.databases.some((entry) => entry.name === body.name)) {
+          return fail(409, 7502, "a database with that name already exists")
+        }
         const created = {
           uuid: options.createdDatabaseUuid ?? "db-uuid-1",
           name: body.name ?? "unnamed",
         }
         state.databases.push(created)
+        if (lostD1CreateReplies < (options.d1CreateLostReplies ?? 0)) {
+          lostD1CreateReplies += 1
+          throw new TypeError("fetch failed", { cause: { code: "ECONNRESET" } })
+        }
         return ok(created)
       }
     }
@@ -235,6 +314,21 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       if (denied.has("D1:Edit")) return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
       const body = JSON.parse(String(init?.body ?? "{}")) as { sql?: string; params?: string[] }
       const sql = body.sql ?? ""
+      state.d1Queries.push(sql)
+
+      if (/SELECT token FROM publications/i.test(sql)) {
+        if (!state.databases.some((entry) => entry.uuid === queryMatch[1])) {
+          return fail(404, 7404, "The database could not be found")
+        }
+        if (options.d1TokenQueryFails) return fail(503, 7500, "D1 is temporarily unavailable")
+        const tokens = [
+          ...new Set([
+            ...(options.d1Tokens?.publications ?? []),
+            ...(options.d1Tokens?.uploads ?? []),
+          ]),
+        ]
+        return ok([{ success: true, results: tokens.map((token) => ({ token })) }])
+      }
 
       if (/CREATE TABLE IF NOT EXISTS _migrations/i.test(sql)) {
         return ok([{ success: true, results: [] }])
@@ -244,8 +338,19 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
           { success: true, results: state.migrationRows.map((row) => ({ name: row.name })) },
         ])
       }
-      if (/INSERT OR IGNORE INTO _migrations/i.test(sql)) {
-        const [name, appliedAt] = body.params ?? []
+      const recordAt = sql.search(/INSERT OR IGNORE INTO _migrations/i)
+      if (recordAt >= 0) {
+        const migrationSql = sql.slice(0, recordAt).trim()
+        if (migrationSql !== "" && options.migrationErrorMessage) {
+          return fail(500, 7500, options.migrationErrorMessage)
+        }
+        const literal = /VALUES \('((?:[^']|'')*)', '((?:[^']|'')*)'\)/i.exec(sql.slice(recordAt))
+        const [name, appliedAt] = body.params?.length
+          ? body.params
+          : literal
+            ? [literal[1]!.replace(/''/g, "'"), literal[2]!]
+            : []
+        if (migrationSql !== "") state.executedSql.push(migrationSql)
         if (name && !state.migrationRows.some((row) => row.name === name)) {
           state.migrationRows.push({ name, applied_at: appliedAt ?? "" })
         }
@@ -318,6 +423,7 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       if (denied.has("Workers Scripts:Edit")) {
         return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
       }
+      if (options.scriptListFails) return fail(503, 10013, "Workers could not be listed")
       return ok([...state.scripts.keys()].map((id) => ({ id })))
     }
 
@@ -338,8 +444,25 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       if (denied.has("Workers Scripts:Edit")) {
         return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
       }
-      if (subdomain === null) return ok({ subdomain: null })
-      return ok({ subdomain })
+      if (state.subdomain === null) return ok({ subdomain: null })
+      return ok({ subdomain: state.subdomain })
+    }
+
+    if (path === "/workers/subdomain" && method === "PUT") {
+      if (denied.has("Workers Scripts:Edit")) {
+        return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
+      }
+      if (options.subdomainCreateForbidden) {
+        return fail(403, 10000, "Authentication error")
+      }
+      const body = JSON.parse(String(init?.body ?? "{}")) as { subdomain?: string }
+      if (!body.subdomain) return fail(400, 10013, "A subdomain is required")
+      if ((options.subdomainsTaken ?? []).includes(body.subdomain)) {
+        return fail(409, 10035, `The subdomain ${body.subdomain} is already taken`)
+      }
+      state.subdomain = body.subdomain
+      state.subdomainsCreated.push(body.subdomain)
+      return ok({ subdomain: body.subdomain })
     }
 
     const subdomainMatch = path.match(/^\/workers\/scripts\/([^/]+)\/subdomain$/)
@@ -354,14 +477,51 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       if (denied.has("Workers Scripts:Edit")) {
         return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
       }
+      if (options.assetSessionErrorMessage) {
+        return fail(500, 10001, options.assetSessionErrorMessage)
+      }
       const body = JSON.parse(String(init?.body ?? "{}")) as { manifest?: Record<string, unknown> }
-      state.staticAssetManifests.push(body.manifest ?? {})
-      return ok({ jwt: "asset-upload-jwt", buckets: options.assetUploadBuckets ?? [] })
+      const manifest = (body.manifest ?? {}) as Record<string, { hash?: string }>
+      state.staticAssetManifests.push(manifest)
+      const everyHash = Object.values(manifest).flatMap((entry) =>
+        typeof entry?.hash === "string" ? [entry.hash] : [],
+      )
+      const held = options.assetKnownHashes
+        ? new Set(options.assetKnownHashes)
+        : options.assetRememberUploads
+          ? new Set(state.staticAssetUploads.flatMap((payload) => Object.keys(payload)))
+          : null
+      const unknown = held ? [...new Set(everyHash.filter((hash) => !held.has(hash)))] : null
+      const buckets =
+        options.assetUploadBuckets ??
+        (unknown !== null
+          ? unknown.length > 0 ? [unknown] : []
+          : options.assetUploadAllBuckets && everyHash.length > 0 ? [everyHash] : [])
+      return ok({ jwt: "asset-upload-jwt", buckets })
     }
 
     if (path === "/workers/assets/upload" && method === "POST") {
-      const body = await readFormText(init?.body, "body")
-      state.staticAssetUploads.push(JSON.parse(body || "{}") as Record<string, string>)
+      if (options.assetUploadErrorMessage) {
+        return fail(500, 10001, options.assetUploadErrorMessage)
+      }
+      if (state.assetUploadFailuresLeft > 0) {
+        state.assetUploadFailuresLeft -= 1
+        return fail(503, 10001, "Service temporarily unavailable")
+      }
+      const parts = await readStaticAssetParts(init?.body)
+      if (!parts) {
+        return fail(400, 10047, "Each asset must be a file part named after its content hash")
+      }
+      state.staticAssetUploads.push(parts.assets)
+      state.staticAssetUploadPartTypes.push(parts.partTypes)
+
+      /** Cloudflare's asset upload service issues the completion token only once the whole
+       *  collection has arrived; every earlier bucket answers `202 Accepted` carrying nothing.
+       *  Handing one back every time hid a real multi-bucket upload failure behind a suite
+       *  where every book fitted in a single bucket. */
+      const expected = (options.assetUploadBuckets ?? []).length
+      const outstanding = expected > 0 && state.staticAssetUploads.length < expected
+      if (outstanding) return json({ success: true, errors: [], messages: [], result: {} }, 202)
       return ok({ jwt: "asset-complete-jwt" })
     }
 
@@ -388,7 +548,11 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     }
 
     if (scriptMatch && method === "DELETE") {
-      state.scripts.delete(decodeURIComponent(scriptMatch[1]))
+      const scriptName = decodeURIComponent(scriptMatch[1])
+      if (options.workerDeleteFails || options.workerDeleteFailsFor?.includes(scriptName)) {
+        return fail(500, 10001, "Worker could not be deleted")
+      }
+      state.scripts.delete(scriptName)
       return ok(null)
     }
 

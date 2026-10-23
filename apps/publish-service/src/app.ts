@@ -12,22 +12,16 @@ import {
   type PublicationResponse,
   type PublishWorkerHealth,
 } from "@adt/types"
-import { accessGate, registerAccessRoute } from "./access.js"
-import { registerCommentRoutes } from "./comments.js"
 import { createD1PublicationStore } from "./d1-store.js"
 import type { Env } from "./env.js"
 import { errorResponse } from "./errors.js"
 import { readJsonBody } from "./http.js"
 import { hashAccessCode, randomId } from "./identity.js"
 import { mgmtAuth } from "./middleware/mgmt-auth.js"
-import { publicationLookup, type PublicationVariables } from "./middleware/publication-lookup.js"
-import { registerRoomRoutes } from "./room-routes.js"
-import {
-  cacheControlFor,
-  conditionalEtag,
-  contentTypeFor,
-  snapshotPathFromUrl,
-} from "./serve.js"
+import { type PublicationVariables } from "./middleware/publication-lookup.js"
+import { registerReaderRoutes } from "./reader-routes.js"
+import { evictRoomReaders } from "./room-notify.js"
+import { registerRoomTicketRoute } from "./room-routes.js"
 import {
   deleteSnapshotObjects,
   normalizeSnapshotPath,
@@ -52,7 +46,6 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     injected ?? (options.createStore ?? ((e: Env) => createD1PublicationStore(e.DB)))(env)
   const now = options.now ?? (() => new Date())
   const timestamp = (): string => now().toISOString()
-  const requirePublication = publicationLookup(resolveStore)
 
   const shareUrl = (c: Context, token: string): string =>
     `${new URL(c.req.url).origin}/p/${token}/`
@@ -141,9 +134,11 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", body))).map((byte) => byte.toString(16).padStart(2, "0")).join("")
     if (body.byteLength !== expected.bytes || digest !== expected.sha256) return errorResponse(c, "invalid_request", 400, "File does not match its declared size and digest")
     if (expected.completedAt !== null) return c.json({ path, bytes: expected.bytes })
-    await c.env.SNAPSHOTS.put(`${upload.snapshotPrefix}/${path}`, body)
+    const bucket = c.env.SNAPSHOTS
+    if (!bucket) return errorResponse(c, "invalid_request", 409, "This account stores books as Static Assets; files are not uploaded here")
+    await bucket.put(`${upload.snapshotPrefix}/${path}`, body)
     if (!(await store.completeUploadFile(uploadId, path, timestamp()))) {
-      await c.env.SNAPSHOTS.delete(`${upload.snapshotPrefix}/${path}`)
+      await bucket.delete(`${upload.snapshotPrefix}/${path}`)
       return errorResponse(c, "invalid_request", 409, "Upload is no longer open")
     }
     return c.json({ path, bytes: expected.bytes })
@@ -167,7 +162,10 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
    * to one Worker version, so sending only the book currently being published would make every
    * other active book disappear on the next deploy. */
   app.get("/api/static-assets/manifest", async (c) => {
-    return c.json({ assets: await resolveStore(c.env).listCurrentStaticAssets() })
+    /** With a token, just that book: each book now has its own Worker, and an update keeps the
+     *  version its readers are on in the deploy until the new one is committed. */
+    const token = c.req.query("token")
+    return c.json({ assets: await resolveStore(c.env).listCurrentStaticAssets(token) })
   })
 
   app.post("/api/publication-uploads/:uploadId/commit", async (c) => {
@@ -178,6 +176,24 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
      *  `false` by default and the Studio recorded a gated book as an open one. */
     const { hasAccessCode, ...committed } = result.committed
     return c.json({ upload_id: c.req.param("uploadId"), ...committed, has_access_code: hasAccessCode, url: shareUrl(c, result.committed.publication.token) }, 201)
+  })
+
+  /** How an upload ended, and nothing else: a Studio that lost a commit's reply asks this rather
+   *  than committing again, so it can never publish a version the author didn't finish. */
+  app.get("/api/publication-uploads/:uploadId", async (c) => {
+    const upload = await resolveStore(c.env).findUpload(c.req.param("uploadId"))
+    if (!upload) return errorResponse(c, "not_found", 404)
+    if (upload.state !== "committed" || upload.committedResult === null) {
+      return c.json({ upload_id: upload.uploadId, state: upload.state })
+    }
+    const { hasAccessCode, ...committed } = upload.committedResult
+    return c.json({
+      upload_id: upload.uploadId,
+      state: "committed",
+      ...committed,
+      has_access_code: hasAccessCode,
+      url: shareUrl(c, committed.publication.token),
+    })
   })
 
   app.delete("/api/publication-uploads/:uploadId", async (c) => {
@@ -201,6 +217,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     if (!publication) {
       return errorResponse(c, "not_found", 404)
     }
+    await evictRoomReaders(c.env, token.data, inBackground(c))
 
     return c.json(await publicationBody(store, publication))
   })
@@ -243,6 +260,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       prefixes.map((prefix) => deleteSnapshotObjects(c.env.SNAPSHOTS, prefix)),
     )
     const publication = await store.deletePublication(token.data)
+    await evictRoomReaders(c.env, token.data, inBackground(c))
 
     return c.json({
       token: token.data,
@@ -285,6 +303,9 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     if (!publication) {
       return errorResponse(c, "not_found", 404)
     }
+    /** A new code makes every old grant worthless, and a new end date may already be past; the
+     *  readers who still qualify reconnect on their own. */
+    await evictRoomReaders(c.env, token.data, inBackground(c))
 
     return c.json(await publicationBody(store, publication))
   })
@@ -328,87 +349,14 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json(body)
   })
 
-  const serveSnapshot = async (c: Context<AppEnv>): Promise<Response> => {
-    const publication = c.get("publication")
-    const requested = snapshotPathFromUrl(c.req.url, publication.token)
-    const relative = normalizeSnapshotPath(requested)
-    if (relative === null) {
-      return errorResponse(c, "not_found", 404)
-    }
+  registerRoomTicketRoute(app, { resolveStore, timestamp, newId: options.newId ?? (() => randomId()) })
 
-    const prefix = await resolveStore(c.env).findSnapshotPrefix(
-      publication.token,
-      publication.current_version,
-      relative,
-    )
-    if (prefix === null) return errorResponse(c, "not_found", 404)
-    const key = `${prefix}/${relative}`
-
-    if (c.env.ASSETS) {
-      const assetUrl = new URL(`/${key}`, c.req.url)
-      const asset = await c.env.ASSETS.fetch(new Request(assetUrl, c.req.raw))
-      if (asset.status !== 404) {
-        const headers = new Headers(asset.headers)
-        headers.set("content-type", contentTypeFor(relative))
-        headers.set("cache-control", cacheControlFor(relative, c.get("accessCodeHash") !== null))
-        return new Response(asset.body, { status: asset.status, statusText: asset.statusText, headers })
-      }
-    }
-
-    const ifNoneMatch = conditionalEtag(c.req.header("If-None-Match"))
-    const object = await c.env.SNAPSHOTS.get(
-      key,
-      ifNoneMatch === undefined ? undefined : { onlyIf: { etagDoesNotMatch: ifNoneMatch } },
-    )
-
-    if (!object) {
-      return errorResponse(c, "not_found", 404)
-    }
-
-    const headers = new Headers({
-      "content-type": contentTypeFor(relative),
-      "cache-control": cacheControlFor(relative, c.get("accessCodeHash") !== null),
-      etag: object.httpEtag,
-    })
-
-    if (!("body" in object)) {
-      return new Response(null, { status: 304, headers })
-    }
-
-    headers.set("content-length", String(object.size))
-    return new Response(object.body, { headers })
-  }
-
-  app.use("/p/:token", requirePublication)
-  app.use("/p/:token/*", requirePublication)
-
-  /** Order is load-bearing three times over. The lookup ladder runs first, so an unknown token
-   *  is still `404` and a revoked one still `410` — the gate only ever guards requests that
-   *  would otherwise be served. `POST /access` is registered *before* the gate, because a
-   *  handler that answers without calling `next()` ends the chain: the code prompt's own form
-   *  target cannot sit behind the prompt. Everything after the gate — comments included — is
-   *  reachable only with a valid grant or `MGMT_SECRET`.
-   *
-   *  The door shares the comment routes' deps because it now mints commenter sessions too: the
-   *  gate collects the visitor's name, so both cookies are set on the one response. */
-  const sessionDeps = {
+  registerReaderRoutes(app, {
     resolveStore,
     timestamp,
     newId: options.newId ?? (() => randomId()),
-  }
+  })
 
-  registerAccessRoute(app, sessionDeps)
-
-  /** Ahead of the gate because a room ticket is an alternative credential to the reader grant. */
-  registerRoomRoutes(app, sessionDeps)
-
-  app.use("/p/:token", accessGate)
-  app.use("/p/:token/*", accessGate)
-
-  registerCommentRoutes(app, sessionDeps)
-
-  app.get("/p/:token", serveSnapshot)
-  app.get("/p/:token/*", serveSnapshot)
 
   app.notFound((c) => errorResponse(c, "not_found", 404))
 
@@ -418,4 +366,17 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
   })
 
   return app
+}
+
+/** Work that may outlive the response. Outside a request context (the route suites call the app
+ *  directly) the promise is detached with its rejection swallowed. */
+function inBackground(c: Context) {
+  return (work: Promise<unknown>): void => {
+    const settled = work.catch(() => undefined)
+    try {
+      c.executionCtx.waitUntil(settled)
+    } catch {
+      void settled
+    }
+  }
 }

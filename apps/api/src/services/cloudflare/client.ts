@@ -2,6 +2,15 @@ import { PublishWorkerHealth } from "@adt/types"
 
 export const CLOUDFLARE_API_BASE_URL = "https://api.cloudflare.com/client/v4"
 
+/** Cloudflare attaches each upload part's `Content-Type` to the asset and replays it when
+ * serving. The publish Worker always re-derives the type from the snapshot path before it
+ * answers, so sending a real type here would only create a second source of truth that can
+ * disagree with the first. `application/null` is the sentinel their API parses as "attach no
+ * Content-Type", and it is what Wrangler sends when it cannot determine one. It also has to be
+ * a non-empty, standard main type: form-data encoders replace a falsy value with
+ * `application/octet-stream`, which would then be served as a real type. */
+const STATIC_ASSET_PART_TYPE = "application/null"
+
 export type FetchLike = (
   input: string,
   init?: RequestInit,
@@ -52,8 +61,79 @@ export class CloudflareApiError extends Error {
   }
 }
 
-export function isRetryableCloudflareError(error: unknown): error is CloudflareApiError {
-  return error instanceof CloudflareApiError && (error.status === 429 || error.status >= 500)
+const TRANSIENT_TRANSPORT_CODES = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "EAI_AGAIN",
+  "ENETDOWN",
+  "ENETUNREACH",
+  "ETIMEDOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
+])
+
+/** Long enough for any ordinary API call on a slow link; short enough that a connection that
+ *  died mid-request is reported in a minute instead of whenever the system gives up. */
+const REQUEST_TIMEOUT_MS = 60_000
+/** A Worker script or a batch of a book's files can be tens of megabytes on a slow uplink. */
+const UPLOAD_TIMEOUT_MS = 300_000
+
+/** A request Cloudflare never finished answering. Carries `ETIMEDOUT`, so it reads — and
+ *  retries, where the operation allows — like the transport timeout it is. */
+export class CloudflareTimeoutError extends Error {
+  readonly code = "ETIMEDOUT"
+  constructor(timeoutMs: number, cause?: unknown) {
+    super(`Cloudflare didn't answer within ${Math.round(timeoutMs / 1000)} seconds`, { cause })
+    this.name = "CloudflareTimeoutError"
+  }
+}
+
+/** Fetches and reads the whole body under one deadline: a response whose headers arrived but
+ *  whose body stalled hangs exactly as long as one that never answered. */
+async function fetchWithin(
+  fetchFn: FetchLike,
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<{ response: Response; text: string }> {
+  const deadline = AbortSignal.timeout(timeoutMs)
+  const signal = init.signal ? AbortSignal.any([init.signal, deadline]) : deadline
+  try {
+    const response = await fetchFn(url, { ...init, signal })
+    const text = await response.text()
+    return { response, text }
+  } catch (error) {
+    if (deadline.aborted) throw new CloudflareTimeoutError(timeoutMs, error)
+    throw error
+  }
+}
+
+function transportCause(error: unknown): { code: string | null; message: string } {
+  let current = error
+  let deepest = error instanceof Error ? error.message : String(error)
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    deepest = current.message || deepest
+    const code = (current as { code?: unknown }).code
+    if (typeof code === "string" && code.length > 0) {
+      return { code, message: deepest }
+    }
+    current = (current as { cause?: unknown }).cause
+  }
+  return { code: null, message: deepest }
+}
+
+export function describeCloudflareFailure(error: unknown): string {
+  if (error instanceof CloudflareApiError) return error.message
+  const transport = transportCause(error)
+  return transport.code ? `${transport.code} — ${transport.message}` : transport.message
+}
+
+export function isRetryableCloudflareError(error: unknown): boolean {
+  if (error instanceof CloudflareApiError) return error.status === 429 || error.status >= 500
+  const transport = transportCause(error)
+  return TRANSIENT_TRANSPORT_CODES.has(transport.code ?? "") ||
+    (error instanceof TypeError && /fetch failed|network error/i.test(error.message))
 }
 
 export async function retryCloudflareOperation<T>(
@@ -69,7 +149,8 @@ export async function retryCloudflareOperation<T>(
       return await operation()
     } catch (error) {
       if (!isRetryableCloudflareError(error) || attempt >= attempts - 1) throw error
-      await sleep(error.retryAfterMs ?? delays[attempt] ?? 8_000)
+      const retryAfter = error instanceof CloudflareApiError ? error.retryAfterMs : null
+      await sleep(retryAfter ?? delays[attempt] ?? 8_000)
     }
   }
 }
@@ -119,12 +200,23 @@ export interface CloudflareClient {
   createR2Bucket(name: string): Promise<void>
   deleteR2Bucket(name: string): Promise<void>
   createStaticAssetUploadSession(name: string, manifest: StaticAssetManifest): Promise<StaticAssetUploadSession>
-  uploadStaticAssetBucket(uploadJwt: string, assets: Record<string, string>): Promise<string>
+  /** `assets` maps each content hash Cloudflare asked for to that file's base64 body, and
+   * `uploadJwt` is the token the upload *session* issued — the same one for every bucket.
+   * Returns the completion JWT, which only the response completing the collection carries;
+   * every earlier bucket answers `202 Accepted` with nothing, and null says so. */
+  uploadStaticAssetBucket(
+    uploadJwt: string,
+    assets: Record<string, string>,
+  ): Promise<string | null>
   listWorkerScripts(): Promise<Array<{ id: string }>>
   createWorker(name: string): Promise<void>
   uploadWorkerScript(upload: WorkerScriptUpload): Promise<void>
   deleteWorkerScript(name: string): Promise<void>
   getWorkersDevSubdomain(): Promise<string | null>
+  /** Registers the account's workers.dev subdomain. Account-global and awkward to change
+   *  afterwards, so the caller picks the name deliberately. Returns what Cloudflare recorded,
+   *  which is not always what was asked for. */
+  createWorkersDevSubdomain(subdomain: string): Promise<string>
   enableScriptSubdomain(name: string): Promise<void>
 }
 
@@ -133,6 +225,9 @@ export interface CloudflareClientOptions {
   accountId: string
   fetchFn?: FetchLike
   baseUrl?: string
+  /** Deadlines, overridable so tests need not wait a minute. */
+  requestTimeoutMs?: number
+  uploadTimeoutMs?: number
 }
 
 interface CloudflareEnvelope<T> {
@@ -171,16 +266,31 @@ export function createCloudflareClient(
 ): CloudflareClient {
   const { token, accountId } = options
   const fetchFn: FetchLike = options.fetchFn ?? ((input, init) => fetch(input, init))
+  const requestTimeoutMs = options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS
+  const uploadTimeoutMs = options.uploadTimeoutMs ?? UPLOAD_TIMEOUT_MS
   const baseUrl = (options.baseUrl ?? CLOUDFLARE_API_BASE_URL).replace(/\/$/, "")
+  const traceEnabled = process.env.ADT_CLOUDFLARE_TRACE === "1"
+
+  function trace(entry: Record<string, unknown>): void {
+    if (!traceEnabled) return
+    console.info("[cloudflare trace]", JSON.stringify(entry))
+  }
 
   async function request<T>(
     pathname: string,
     init: RequestInit = {},
+    timeoutMs: number = requestTimeoutMs,
   ): Promise<T | undefined> {
     const headers = new Headers(init.headers)
     headers.set("Authorization", `Bearer ${token}`)
-    const response = await fetchFn(`${baseUrl}${pathname}`, { ...init, headers })
-    const text = await response.text()
+    let response: Response
+    let text: string
+    try {
+      ;({ response, text } = await fetchWithin(fetchFn, `${baseUrl}${pathname}`, { ...init, headers }, timeoutMs))
+    } catch (error) {
+      trace({ method: init.method ?? "GET", path: pathname, network_error: String(error) })
+      throw error
+    }
 
     let envelope: CloudflareEnvelope<T> | null = null
     if (text.length > 0) {
@@ -190,6 +300,13 @@ export function createCloudflareClient(
         envelope = null
       }
     }
+    trace({
+      method: init.method ?? "GET",
+      path: pathname,
+      status: response.status,
+      ray_id: response.headers.get("cf-ray"),
+      errors: normalizeIssues(envelope?.errors),
+    })
 
     if (!response.ok || envelope?.success === false) {
       throw new CloudflareApiError(
@@ -354,25 +471,51 @@ export function createCloudflareClient(
 
     async uploadStaticAssetBucket(uploadJwt, assets) {
       const form = new FormData()
-      form.append("body", JSON.stringify(assets))
-      const response = await fetchFn(`${baseUrl}${account}/workers/assets/upload?base64=true`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${uploadJwt}`,
-        },
-        body: form,
-      })
-      const text = await response.text()
+      for (const [hash, content] of Object.entries(assets)) {
+        form.append(hash, new File([content], hash, { type: STATIC_ASSET_PART_TYPE }), hash)
+      }
+      let response: Response
+      let text: string
+      try {
+        ;({ response, text } = await fetchWithin(
+          fetchFn,
+          `${baseUrl}${account}/workers/assets/upload?base64=true`,
+          { method: "POST", headers: { Authorization: `Bearer ${uploadJwt}` }, body: form },
+          uploadTimeoutMs,
+        ))
+      } catch (error) {
+        trace({ method: "POST", path: `${account}/workers/assets/upload`, network_error: String(error) })
+        throw error
+      }
       let envelope: CloudflareEnvelope<{ jwt?: string }> | null = null
       try { envelope = text ? JSON.parse(text) as CloudflareEnvelope<{ jwt?: string }> : null } catch { envelope = null }
-      if (!response.ok || envelope?.success === false || !envelope?.result?.jwt) {
+      trace({
+        method: "POST",
+        path: `${account}/workers/assets/upload`,
+        status: response.status,
+        ray_id: response.headers.get("cf-ray"),
+        content_type: response.headers.get("content-type"),
+        response_bytes: text.length,
+        location: response.headers.get("location"),
+        retry_after: response.headers.get("retry-after"),
+        preference_applied: response.headers.get("preference-applied"),
+        result_keys: envelope?.result && typeof envelope.result === "object" ? Object.keys(envelope.result) : [],
+        has_completion_jwt: Boolean(envelope?.result?.jwt),
+        errors: normalizeIssues(envelope?.errors),
+      })
+      if (!response.ok || envelope?.success === false) {
         throw new CloudflareApiError(
           response.status,
           normalizeIssues(envelope?.errors),
           `Cloudflare static asset upload failed with status ${response.status}`,
+          retryAfterMs(response),
         )
       }
-      return envelope.result.jwt
+      /** Every bucket but the last answers `202 Accepted` with no JWT: Cloudflare's asset
+       * upload service issues the completion token only once the collection is whole. Demanding
+       * one from each bucket turns the ordinary middle of a multi-bucket upload into a failure,
+       * which no single-bucket book ever reveals. */
+      return envelope?.result?.jwt ?? null
     },
 
     async listWorkerScripts() {
@@ -396,10 +539,11 @@ export function createCloudflareClient(
         new Blob([script], { type: "application/javascript+module" }),
         mainModule,
       )
-      await request(`${account}/workers/scripts/${encodeURIComponent(name)}`, {
-        method: "PUT",
-        body: form,
-      })
+      await request(
+        `${account}/workers/scripts/${encodeURIComponent(name)}`,
+        { method: "PUT", body: form },
+        uploadTimeoutMs,
+      )
     },
 
     async deleteWorkerScript(name) {
@@ -421,6 +565,15 @@ export function createCloudflareClient(
         }
         throw error
       }
+    },
+
+    async createWorkersDevSubdomain(subdomain) {
+      const result = await requestJson<{ subdomain?: string | null }>(
+        `${account}/workers/subdomain`,
+        "PUT",
+        { subdomain },
+      )
+      return result?.subdomain || subdomain
     },
 
     async enableScriptSubdomain(name) {

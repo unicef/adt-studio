@@ -6,6 +6,7 @@ import { followedPeerAtom } from "@/features/comments/state/follow.atoms"
 import { otherPeersAtom } from "@/features/comments/state/presence.atoms"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
+import { goToPage } from "@/features/comments/lib/go-to-page"
 
 /**
  * Keeps this reader on the page the followed peer is reading, until they say stop.
@@ -30,9 +31,14 @@ export function useFollowPeer(enabled: boolean): void {
 
   /** Set the moment the followed peer leaves the roster, cleared when they come back. */
   const missingSinceRef = useRef<number | null>(null)
-  /** One navigation per document: `location.href` does not take effect synchronously, and a
-   *  second assignment while the first is in flight can land on the wrong page. */
+  /** One navigation per page: a navigation does not take effect synchronously, and a second one
+   *  started while the first is in flight can land on the wrong page. It is released when a new
+   *  page arrives — which, when pages are swapped in place rather than reloaded, is the only
+   *  thing that lets the follow keep turning pages after the first. */
   const navigatedRef = useRef(false)
+  useEffect(() => {
+    navigatedRef.current = false
+  }, [sectionId])
 
   const stop = (announce?: string): void => {
     setFollowedPeer(null)
@@ -68,7 +74,7 @@ export function useFollowPeer(enabled: boolean): void {
     if (outcome.kind !== "navigate") return
 
     navigatedRef.current = true
-    window.location.href = outcome.href
+    goToPage(outcome.href)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, peerId, name, pages, peers, sectionId])
 
