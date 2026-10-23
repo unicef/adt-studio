@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { z } from "zod"
 import type { Storage } from "@adt/storage"
 import { WebRenderingOutput, PageSectioningOutput } from "@adt/types"
+import { withSourceGenerationTracking, putSourceNodeData, stampRenderedOwner, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
 import { createLLMModel } from "@adt/llm"
 import type { AgentCredentials } from "./credentials.js"
 import { buildSectioningSectionFromHtml } from "./tools/build-sectioning.js"
@@ -64,7 +65,8 @@ function loadSectionHtml(
   if (!parsed.success) {
     throw new Error(`Invalid web-rendering data for ${pageId}`)
   }
-  const section = parsed.data.sections.find(
+  const rendering = withLegacyRenderingOwnership(storage, pageId, parsed.data, true)
+  const section = rendering.sections.find(
     (s) => s.sectionIndex === sectionIndex,
   )
   if (!section) {
@@ -72,7 +74,7 @@ function loadSectionHtml(
       `Section ${sectionIndex} not found on page ${pageId}`,
     )
   }
-  return { html: section.html, rendering: parsed.data }
+  return { html: section.html, rendering }
 }
 
 function loadSectioning(
@@ -151,6 +153,23 @@ export async function mirrorLayout(
         target.pageId,
         target.sectionIndex,
       )
+      const renderingVersion = storage.getLatestNodeData("web-rendering", target.pageId)?.version
+      const sectioningVersion = storage.getLatestNodeData("page-sectioning", target.pageId)?.version
+      const targetSection = rendering.sections.find(
+        (s) => s.sectionIndex === target.sectionIndex,
+      )
+      const sectioning = loadSectioning(storage, target.pageId)
+      const oldSection = targetSection ? resolveRenderedSection(targetSection, sectioning.sections, rendering.sections) : undefined
+      // sectionIds are allocated once and never reused, so one cannot be
+      // derived from an array position — a guessed id would likely name a
+      // *different* section, and it names this section's HTML file in every
+      // bundle. No sectioning row means rendering and sectioning are out of
+      // sync; say so rather than guess.
+      if (!oldSection) {
+        throw new Error(
+          `Cannot mirror onto section ${target.sectionIndex} of ${target.pageId}: it has a rendering entry but no sectioning row, so its sectionId is unknown. Restore matching sectioning/rendering versions before editing this section.`,
+        )
+      }
       const targetIds = extractDataIds(targetHtml)
 
       const { object } = await model.generateObject<
@@ -179,7 +198,7 @@ export async function mirrorLayout(
         },
       })
 
-      const cleaned = stripHtmlFence(object.content)
+      let cleaned = stripHtmlFence(object.content)
       if (!cleaned.includes("<section")) {
         results.push({
           ...target,
@@ -203,36 +222,22 @@ export async function mirrorLayout(
         continue
       }
 
-      const updated: WebRenderingOutput = {
-        sections: rendering.sections.map((s) =>
-          s.sectionIndex === target.sectionIndex
-            ? { ...s, html: cleaned, reasoning: object.reasoning || s.reasoning }
-            : s,
-        ),
-      }
-
       // Rebuild the sectioning tree from the rewritten HTML so it stays in sync
       // with the section's markup — updateSection in book-tools does the same.
       // Without this, a mirror that legitimately drops elements (allowed up to
       // the ¼ threshold above) leaves orphaned sectioning leaves keyed by
       // data-ids no longer present, which desyncs the edit panel and corrupts
       // downstream text-catalog / TTS / translation.
-      const targetSection = rendering.sections.find(
-        (s) => s.sectionIndex === target.sectionIndex,
-      )
-      const sectioning = loadSectioning(storage, target.pageId)
-      const oldSection = sectioning.sections[target.sectionIndex]
-      // sectionIds are allocated once and never reused, so one cannot be
-      // derived from an array position — a guessed id would likely name a
-      // *different* section, and it names this section's HTML file in every
-      // bundle. No sectioning row means rendering and sectioning are out of
-      // sync; say so rather than guess.
-      if (!oldSection) {
-        throw new Error(
-          `Cannot mirror onto section ${target.sectionIndex} of ${target.pageId}: it has a rendering entry but no sectioning row, so its sectionId is unknown. Re-run the storyboard render for this page to bring the two back in sync.`,
-        )
-      }
       const sectionId = oldSection.sectionId
+      cleaned = stampRenderedOwner(cleaned, sectionId)
+      const updated: WebRenderingOutput = {
+        sections: rendering.sections.map((s) =>
+          s.sectionIndex === target.sectionIndex
+            ? { ...s, sectionId, html: cleaned, reasoning: object.reasoning || s.reasoning }
+            : s,
+        ),
+      }
+
       const sectionType =
         targetSection?.sectionType ?? oldSection.sectionType ?? "content"
       const newSectioningSection = buildSectioningSectionFromHtml({
@@ -243,19 +248,21 @@ export async function mirrorLayout(
         // palette, source pages, placement, and leaf roles across rather than
         // rebuilding from defaults (that dropped TOC entries and page numbers).
         base: oldSection,
+        previousHtml: targetSection?.html,
       })
       const updatedSectioning: PageSectioningOutput = {
         ...sectioning,
-        sections: sectioning.sections.map((s, i) =>
-          i === target.sectionIndex ? newSectioningSection : s,
+        sections: sectioning.sections.map((s) =>
+          s.sectionId === sectionId ? newSectioningSection : s,
         ),
       }
-      storage.putNodeData("page-sectioning", target.pageId, updatedSectioning)
-      const version = storage.putNodeData(
-        "web-rendering",
-        target.pageId,
-        updated,
-      )
+      const version = withSourceGenerationTracking(storage, () => {
+        if (storage.getLatestNodeData("web-rendering", target.pageId)?.version !== renderingVersion || storage.getLatestNodeData("page-sectioning", target.pageId)?.version !== sectioningVersion) {
+          throw new Error("Section changed while mirroring. Refresh before trying again.")
+        }
+        putSourceNodeData(storage, "page-sectioning", target.pageId, updatedSectioning)
+        return putSourceNodeData(storage, "web-rendering", target.pageId, updated)
+      })
       results.push({
         ...target,
         ok: true,

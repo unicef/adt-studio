@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import { createHash } from "node:crypto"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
@@ -12,6 +13,8 @@ vi.mock("@adt/pipeline", async () => ({
 }))
 import { createTTSRoutes } from "./tts.js"
 import { createAdtPreviewRoutes } from "./adt-preview.js"
+import { catalogOutputs } from "../services/catalog-output-service.js"
+import { resolvePathWithin } from "../utils/path-security.js"
 
 let root: string
 let books: string
@@ -45,7 +48,10 @@ beforeEach(() => {
   } finally {
     storage.close()
   }
-  transcribe.mockReset().mockResolvedValue({ words: [{ word: "Hello", start: 0, end: 1 }], duration: 1 })
+  transcribe.mockReset().mockImplementation(async ({ audioBuffer, audioHash }) => ({
+    words: [{ word: "Hello", start: 0, end: 1 }], duration: 1,
+    audioHash: audioHash ?? createHash("sha256").update(audioBuffer).digest("hex"),
+  }))
 })
 afterEach(() => {
   vi.restoreAllMocks()
@@ -57,6 +63,16 @@ function upload() {
   form.append("textId", textId)
   form.append("language", "en")
   form.append("audio", new File(["UPLOAD CANARY"], "sample.wav", { type: "audio/wav" }))
+  // Supply the same reviewed baseline as Studio, unless the book root itself
+  // is unsafe. That case must fail before the route opens storage.
+  if (resolvePathWithin(books, label)) {
+    const storage = createBookStorage(label, books)
+    try {
+      const status = catalogOutputs(storage, label, books, path.resolve("prompts"), config)
+        .find((item) => item.identity.kind === "audio" && item.identity.id === textId)
+      if (status) form.set("baseline", JSON.stringify({ identity: status.identity, signature: status.signature, contentHash: status.contentHash }))
+    } finally { storage.close() }
+  }
   return createTTSRoutes(books, config).request(`/books/${label}/tts/upload-one`, { method: "POST", body: form })
 }
 
@@ -72,12 +88,13 @@ function readTts() {
   try { return storage.getLatestNodeData("tts", "en") } finally { storage.close() }
 }
 
-it.each([false, true])("rejects outside upload links (destination exists: %s) without changing audio or manifest", async (exists) => {
+it.each([false, true])("rejects outside immutable upload destination links (target exists: %s) without changing audio or manifest", async (exists) => {
   const audioDir = path.join(book, "audio", "en")
   fs.mkdirSync(audioDir, { recursive: true })
   const target = path.join(outside, "target")
   if (exists) fs.writeFileSync(target, "PRESERVE")
-  fs.symlinkSync(target, path.join(audioDir, fileName))
+  const immutableName = `${textId}--${createHash("sha256").update("UPLOAD CANARY").digest("hex")}.wav`
+  fs.symlinkSync(target, path.join(audioDir, immutableName))
   const before = readTts()
   expect((await upload()).status).toBe(400)
   expect(fs.existsSync(target)).toBe(exists)
@@ -144,7 +161,8 @@ it("rechecks containment when the batch executor runs", async () => {
   fs.renameSync(audioDir, `${audioDir}-original`)
   fs.symlinkSync(outside, audioDir, "junction")
   expect(executor).toBeDefined()
-  expect(await executor!(() => {})).toMatchObject({ count: 0, failed: 1 })
+  await expect(executor!(() => {})).rejects.toThrow("Invalid audio directory")
+  expect(fs.readFileSync(path.join(outside, fileName), "utf8")).toBe("OUTSIDE CANARY")
   expect(transcribe).not.toHaveBeenCalled()
 })
 
@@ -160,17 +178,21 @@ it.each([false, true])("rejects an outside audio file link in transcription (bat
   })
   if (batch) {
     expect(response.status).toBe(200)
-    expect(await executor!(() => {})).toMatchObject({ count: 0, failed: 1 })
+    expect(await response.json()).toMatchObject({ taskId: null, count: 0, skipped: 1 })
+    expect(executor).toBeUndefined()
   } else {
     expect(response.status).toBe(400)
   }
   expect(transcribe).not.toHaveBeenCalled()
+  expect(fs.readFileSync(path.join(outside, fileName), "utf8")).toBe("OUTSIDE CANARY")
 })
 
 it("preserves first upload, serving, single and batch transcription", async () => {
   expect(fs.existsSync(path.join(book, "audio"))).toBe(false)
-  expect((await upload()).status).toBe(201)
-  const audio = await createTTSRoutes(books, config).request(`/books/${label}/audio/en/${fileName}`)
+  const uploaded = await upload()
+  expect(uploaded.status).toBe(201)
+  const { entry } = await uploaded.json()
+  const audio = await createTTSRoutes(books, config).request(`/books/${label}/audio/en/${entry.fileName}`)
   expect(audio.status).toBe(200)
   expect(await audio.text()).toBe("UPLOAD CANARY")
   let executor: TaskExecutor | undefined
@@ -179,8 +201,10 @@ it("preserves first upload, serving, single and batch transcription", async () =
     getActiveTasks: () => [],
   })).status).toBe(200)
   expect(await executor!(() => {})).toMatchObject({ count: 1, failed: 0 })
-  expect((await requestTranscription()).status).toBe(200)
-  expect(transcribe).toHaveBeenCalledTimes(2)
+  const single = await requestTranscription()
+  expect(single.status).toBe(200)
+  expect(await single.json()).toMatchObject({ reused: true })
+  expect(transcribe).toHaveBeenCalledTimes(1)
   expect(transcribe.mock.calls[0][0].audioBuffer.toString()).toBe("UPLOAD CANARY")
 })
 
@@ -225,7 +249,7 @@ it("preserves safe aliases and their MIME types when serving media", async () =>
   }
 })
 
-it("unlinks an old audio alias without deleting its contained target", async () => {
+it("retains an old audio alias and its target when publishing an immutable upload", async () => {
   const audioDir = path.join(book, "audio", "en")
   fs.mkdirSync(audioDir, { recursive: true })
   const original = path.join(audioDir, "original.mp3")
@@ -236,8 +260,10 @@ it("unlinks an old audio alias without deleting its contained target", async () 
   try {
     storage.putNodeData("tts", "en", { entries: [{ textId, language: "en", fileName: oldName, voice: "uploaded", model: "uploaded", cached: false, provider: "manual" }], generatedAt: new Date().toISOString() })
   } finally { storage.close() }
-  expect((await upload()).status).toBe(201)
-  expect(fs.existsSync(path.join(audioDir, oldName))).toBe(false)
+  const uploaded = await upload()
+  expect(uploaded.status).toBe(201)
+  const { entry } = await uploaded.json()
+  expect(fs.lstatSync(path.join(audioDir, oldName)).isSymbolicLink()).toBe(true)
   expect(fs.readFileSync(original, "utf8")).toBe("PRESERVE ORIGINAL")
-  expect(fs.readFileSync(path.join(audioDir, fileName), "utf8")).toBe("UPLOAD CANARY")
+  expect(fs.readFileSync(path.join(audioDir, entry.fileName), "utf8")).toBe("UPLOAD CANARY")
 })

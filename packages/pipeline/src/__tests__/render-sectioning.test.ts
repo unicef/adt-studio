@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
-import { getRenderSectioning, getRenderSectioningRow } from "../render-sectioning.js"
+import { getRenderSectioning, getRenderSectioningRow, renderedSectionId } from "../render-sectioning.js"
 
 describe("render-sectioning resolver", () => {
   const tmpDirs: string[] = []
@@ -64,5 +64,25 @@ describe("render-sectioning resolver", () => {
     } finally {
       storage.close()
     }
+  })
+})
+
+
+describe("retained rendered ownership", () => {
+  const rendering = (html: string, sectionId?: string) => ({ sectionIndex: 0, sectionType: "text", reasoning: "", html, sectionId })
+  it("accepts a stable root inside layout wrappers and HTML documents", () => {
+    expect(renderedSectionId(rendering('<div id="content"><section data-section-id="A"><p>Text</p></section></div>'))).toBe("A")
+    expect(renderedSectionId(rendering('<!doctype html><html><head><title>Page</title></head><body><main><section data-section-id="A">Text</section></main></body></html>'))).toBe("A")
+    expect(renderedSectionId(rendering('<div id="content">Positioned output</div>', "A"))).toBe("A")
+  })
+  it("trusts a consistent stored owner covering decorative siblings", () => {
+    expect(renderedSectionId(rendering('<section data-section-id="A">Text</section><div class="decoration"></div>', "A"))).toBe("A")
+    expect(renderedSectionId(rendering('<section data-section-id="A">Text</section><div></div>', "B"))).toBeUndefined()
+  })
+  it("does not let a descendant owner claim sibling content or contradictory metadata", () => {
+    expect(renderedSectionId(rendering('<section><p>Unowned question</p><div data-section-id="B">Other content</div></section>'))).toBeUndefined()
+    expect(renderedSectionId(rendering('<section data-section-id="A">A</section>', "B"))).toBeUndefined()
+    expect(renderedSectionId(rendering('<section data-section-id="A">A</section><section data-section-id="B">B</section>'))).toBeUndefined()
+    expect(renderedSectionId(rendering('<p data-id="stable-leaf">No proven section</p>'))).toBeUndefined()
   })
 })

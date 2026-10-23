@@ -1,3 +1,4 @@
+import { inputSignature, projectMaterializedGlossary, reconcileGlossaryEditIds } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -5,15 +6,15 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import {
   GlossaryOutput,
+  GlossaryEditRequest,
   IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
-  IMAGE_SET_CHANGE_CLEAR_STEPS,
   parseBookLabel,
 } from "@adt/types"
 import type { ImageCaptioningOutput } from "@adt/types"
-import { openBookDb, createBookStorage, readCurrentNodeRow } from "@adt/storage"
+import { createBookStorage, withBookWriter } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import {
-  buildTextCatalog,
+  buildTextCatalogSnapshot,
   buildGlossaryConfig,
   generateGlossaryItem,
   loadBookConfig,
@@ -98,34 +99,24 @@ export function createGlossaryRoutes(
       })
     }
 
-    const db = openBookDb(dbPath)
+    const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const row = readCurrentNodeRow(db, "glossary", "book")
-
-      if (!row) {
-        return c.json(null)
-      }
-
-      let parsed: unknown
-      try {
-        parsed = JSON.parse(row.data)
-      } catch {
-        throw new HTTPException(500, {
-          message: `Stored glossary data is corrupted for book: ${safeLabel}`,
-        })
-      }
-
-      const validated = GlossaryOutput.safeParse(parsed)
-      if (!validated.success) {
-        throw new HTTPException(500, {
-          message: `Stored glossary data is invalid for book: ${safeLabel}`,
-        })
-      }
-
-      return c.json({ ...validated.data, version: row.version })
-    } finally {
-      db.close()
-    }
+      return storage.readSnapshot(() => {
+        let row
+        try { row = storage.getLatestNodeData("glossary", "book") } catch (error) {
+          if (error instanceof SyntaxError) throw new HTTPException(500, { message: `Stored glossary data is corrupted for book: ${safeLabel}` })
+          throw error
+        }
+        if (!row) return c.json(null)
+        const validated = GlossaryOutput.safeParse(row.data)
+        if (!validated.success) throw new HTTPException(500, { message: `Stored glossary data is invalid for book: ${safeLabel}` })
+        // A read never competes with generation for the book writer. PUT and
+        // generation materialize these same deterministic IDs before mutation.
+        const projected = projectMaterializedGlossary(storage, validated.data) ?? validated.data
+        return c.json({ ...projected, version: row.version,
+          identitySignature: inputSignature({ version: row.version, ids: projected.items.map(item => item.id) }) })
+      })
+    } finally { storage.close() }
   })
 
   // PUT /books/:label/glossary — Update glossary
@@ -134,7 +125,7 @@ export function createGlossaryRoutes(
     const safeLabel = safeParseLabel(label)
 
     const body = await c.req.json()
-    const parsed = GlossaryOutput.safeParse(body)
+    const parsed = GlossaryEditRequest.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid glossary data: ${parsed.error.message}`,
@@ -143,26 +134,41 @@ export function createGlossaryRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      return withBookWriter(storage.bookDir!, () => storage.transaction(() => {
+      const current = storage.getLatestNodeData("glossary", "book")
+      if (parsed.data.version !== undefined && parsed.data.version !== current?.version) {
+        throw new HTTPException(409, { message: "Glossary changed since it was loaded. Reload before saving; your draft has not been applied." })
+      }
+      if (parsed.data.identitySignature !== undefined) {
+        const retained = GlossaryOutput.safeParse(current?.data)
+        const projected = retained.success ? projectMaterializedGlossary(storage, retained.data) ?? retained.data : undefined
+        const signature = projected && inputSignature({ version: current!.version, ids: projected.items.map(item => item.id) })
+        if (parsed.data.identitySignature !== signature || parsed.data.version !== current?.version) {
+          throw new HTTPException(409, { message: "Glossary identities changed since it was loaded. Reload before saving; your draft has not been applied." })
+        }
+      }
+      const next = reconcileGlossaryEditIds(storage, GlossaryOutput.parse(parsed.data), parsed.data.version, parsed.data.identitySignature)
       const previousRow = storage.getLatestNodeData("glossary", "book")
       const previous = GlossaryOutput.safeParse(previousRow?.data)
       const imageRequirementsChanged = needsCaptionRerun(
         storage,
         previous.success ? previous.data : undefined,
-        parsed.data,
+        next,
       )
 
-      const version = storage.putNodeData("glossary", "book", parsed.data)
+      const version = storage.putNodeData("glossary", "book", next)
       if (imageRequirementsChanged) {
         // A glossary picture that has never been captioned changes the captions
         // output, which invalidates every derived translation/audio/package
         // result — same cascade as adding an image elsewhere in the book.
         storage.clearNodesByType([...IMAGE_SET_CHANGE_CLEAR_NODE_TYPES])
-        storage.clearStepRuns([...IMAGE_SET_CHANGE_CLEAR_STEPS])
       }
       const pages = storage.getPages()
-      const catalog = await buildTextCatalog(storage, pages)
+      const catalog = buildTextCatalogSnapshot(storage, pages)
       storage.putNodeData("text-catalog", "book", catalog)
-      return c.json({ version, imageRequirementsChanged })
+      return c.json({ version, imageRequirementsChanged,
+        identitySignature: inputSignature({ version, ids: next.items.map(item => item.id) }) })
+      }))
     } finally {
       storage.close()
     }

@@ -45,7 +45,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey, isAvailable } = useApiKey()
+  const { apiKey, hasTranscriber, isAvailable } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("speech")
   const translateStatus = useStageStatus("translate")
@@ -94,7 +94,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!providerAvailable(provider) || (wordHighlighting && !hasApiKey) || !translateReady || status.isRunning) return
+    if (!providerAvailable(provider) || (wordHighlighting && !hasTranscriber) || !translateReady || status.isRunning) return
     queueRun({ fromStage: "speech", toStage: "speech", apiKey, viewAfter: true })
   }
 
@@ -107,7 +107,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const providerOptions = useMemo(
     () => {
-      const disabledHint = t`Add this provider's API key in Book settings.`
+      const disabledHint = t`Add this provider's API key in Settings → AI providers.`
       return [
         {
           value: "openai" as const,
@@ -145,7 +145,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const selectedProviderKeyMissing = !providerKeyAvailable[provider]
-  const highlightingKeyMissing = wordHighlighting && !hasApiKey
+  const highlightingKeyMissing = wordHighlighting && !hasTranscriber
 
   const disabledProviderLabels = useMemo(
     () =>
@@ -172,11 +172,9 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     [t],
   )
 
-  const providerMissingReason = (
-    <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
-  )
-  const disabledReason = selectedProviderKeyMissing ? providerMissingReason
-  : highlightingKeyMissing ? (
+  const disabledReason = selectedProviderKeyMissing ? (
+    <Trans>Add the selected provider's API key in Settings → AI providers to run speech.</Trans>
+  ) : highlightingKeyMissing ? (
     <Trans>Add an OpenAI API key to generate per-word highlighting.</Trans>
   ) : !translateReady ? (
     <Trans>Run Language first — speech narrates the translated text.</Trans>
@@ -233,7 +231,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
             selectedProviderKeyMissing ? (
               <Trans>
                 No API key for {linguiI18n._(PROVIDER_LABELS[provider])} yet.
-                Add one in Book settings to enable this provider.
+                Add one in Settings → AI providers to enable this provider.
               </Trans>
             ) : (
               linguiI18n._(PROVIDER_HINTS[provider])
@@ -247,27 +245,25 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
               onValueChange={handleProviderChange}
             />
             {disabledProviderLabels.length > 0 && (
-              <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800">
-                <div className="flex items-start gap-2">
-                  <AlertCircle
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                  <span>
-                    {disabledProviderLabels.length === 1 ? (
-                      <Trans>
-                        {disabledProvidersText} is disabled — add its API key in
-                        Book settings to enable it.
-                      </Trans>
-                    ) : (
-                      <Trans>
-                        {disabledProvidersText} are disabled — add their API keys
-                        in Book settings to enable them.
-                      </Trans>
-                    )}
-                  </span>
-                </div>
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800">
+                <AlertCircle
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                <span>
+                  {disabledProviderLabels.length === 1 ? (
+                    <Trans>
+                      {disabledProvidersText} is disabled — add its API key in
+                      Settings → AI providers to enable it.
+                    </Trans>
+                  ) : (
+                    <Trans>
+                      {disabledProvidersText} are disabled — add their API keys
+                      in Settings → AI providers to enable them.
+                    </Trans>
+                  )}
+                </span>
               </div>
             )}
           </div>

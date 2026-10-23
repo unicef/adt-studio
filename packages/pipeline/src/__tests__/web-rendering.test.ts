@@ -975,7 +975,7 @@ describe("renderPage", () => {
     const activityHtmlResponse = {
       reasoning: "activity reasoning",
       content:
-        '<div id="content" class="container"><section data-section-type="activity_multiple_choice" data-section-id="pg001_sec001"><div data-id="pg001_gp001_tx001">Question</div><div data-id="activity_gen_opt1">Option A</div></section></div>',
+        '<div id="content" class="container"><section data-section-type="activity_multiple_choice" data-section-id="pg001_sec001"><div data-id="pg001_gp001_tx001">Question</div><label data-id="activity_gen_opt1"><input type="radio" data-activity-item="activity_gen_opt1"/>Option A</label></section></div>',
     }
     const activityAnswersResponse = {
       reasoning: "answer reasoning",
@@ -1044,6 +1044,9 @@ describe("renderPage", () => {
     expect(result.sections).toHaveLength(1)
     expect(result.sections[0].activityReasoning).toBe("answer reasoning")
     expect(result.sections[0].activityAnswers).toEqual({ activity_gen_opt1: "A" })
+    expect(result.sections[0].html).toContain('data-activity-item="activity_gen_opt1"')
+    expect(result.sections[0].html).toMatch(/data-id="pg001_sec001_activity_[a-f0-9]+"/)
+    expect(result.sections[0].html).not.toContain('data-id="activity_gen_opt1"')
   })
 
   it("derives ordering ranks deterministically without a second LLM call", async () => {

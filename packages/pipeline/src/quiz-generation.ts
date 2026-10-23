@@ -1,13 +1,14 @@
 import { z } from "zod"
-import { parseDocument, DomUtils } from "htmlparser2"
+import { renderedText } from "./rendered-text.js"
+import type { Storage } from "@adt/storage"
+import { getSemanticSectioning } from "./render-sectioning.js"
 import type {
   AppConfig,
-  WebRenderingOutput,
   PageSectioningOutput,
   QuizGenerationOutput,
   Quiz,
 } from "@adt/types"
-import { quizLLMSchema, DEFAULT_LLM_MAX_RETRIES } from "@adt/types"
+import { quizLLMSchema, DEFAULT_LLM_MAX_RETRIES, WebRenderingOutput as WebRenderingSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { processWithConcurrency } from "./concurrency.js"
 import { buildLanguageContext, normalizeLocale } from "./language-context.js"
@@ -24,7 +25,9 @@ export interface QuizConfig {
 
 export interface QuizPageInput {
   pageId: string
-  rendering: WebRenderingOutput
+  // Validate only after eligibility/batching. An invalid excluded page must
+  // not prevent quizzes for pages whose inputs are usable.
+  rendering: unknown
   sectioning: PageSectioningOutput
 }
 
@@ -91,8 +94,26 @@ export function buildQuizGenerationConfig(
  * Uses htmlparser2 (already an @adt/pipeline dependency).
  */
 export function extractTextFromHtml(html: string): string {
-  const doc = parseDocument(html)
-  return DomUtils.textContent(doc).trim()
+  return renderedText(html)
+}
+
+/** Shared by Studio, CLI and source-edit tracking. Fixed-layout eligibility
+ * comes from semantic sectioning, just as it does for reflowed books. */
+export function collectQuizPages(storage: Storage): QuizPageInput[] {
+  return storage.getPages().flatMap(page => {
+    const rendering = storage.getLatestNodeData("web-rendering", page.pageId)
+    const sectioning = getSemanticSectioning(storage, page.pageId)
+    if (!rendering || !sectioning) return []
+    return [{ pageId: page.pageId, rendering: rendering.data, sectioning }]
+  })
+}
+
+export function collectQuizPageTexts(batch: QuizPageInput[]) {
+  return batch.map(page => {
+    const parsed = WebRenderingSchema.safeParse(page.rendering)
+    if (!parsed.success) throw new Error(`Invalid web-rendering output for page: ${page.pageId}: ${parsed.error.message}`)
+    return { pageId: page.pageId, text: extractTextFromHtml(parsed.data.sections.map(section => section.html).join("\n")) }
+  })
 }
 
 /**
@@ -139,13 +160,7 @@ export async function generateQuiz(
   config: QuizConfig,
   llmModel: LLMModel
 ): Promise<Quiz> {
-  const pageTexts = batch.map((page) => {
-    const combinedHtml = page.rendering.sections.map((s) => s.html).join("\n")
-    return {
-      pageId: page.pageId,
-      text: extractTextFromHtml(combinedHtml),
-    }
-  })
+  const pageTexts = collectQuizPageTexts(batch)
 
   const result = await llmModel.generateObject<{
     reasoning: string

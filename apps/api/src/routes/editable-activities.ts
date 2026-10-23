@@ -15,6 +15,7 @@ import {
 } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import {
+  withLegacyRenderingOwnership,
   extractEditableActivity,
   supportsEditableActivity,
   buildActivityOutline,
@@ -172,7 +173,7 @@ export function createEditableActivitiesRoutes(
         const renderRow = storage.getLatestNodeData("web-rendering", pageId)
         const rendering = renderRow ? WebRenderingOutput.safeParse(renderRow.data) : null
         const section = rendering?.success
-          ? rendering.data.sections.find((s) => s.sectionIndex === sectionIndex)
+          ? withLegacyRenderingOwnership(storage, pageId, rendering.data, true).sections.find((s) => s.sectionIndex === sectionIndex)
           : undefined
         if (!renderRow || !section) {
           return c.json({
@@ -234,7 +235,7 @@ export function createEditableActivitiesRoutes(
         if (!rendering.success) {
           throw new HTTPException(500, { message: "Invalid rendering data" })
         }
-        const section = rendering.data.sections.find((s) => s.sectionIndex === sectionIndex)
+        const section = withLegacyRenderingOwnership(storage, pageId, rendering.data, true).sections.find((s) => s.sectionIndex === sectionIndex)
         if (!section) {
           throw new HTTPException(404, { message: `Section not found: ${sectionIndex}` })
         }

@@ -4,7 +4,8 @@ import path from "node:path"
 import sqlite from "node-sqlite3-wasm"
 import { afterEach, describe, expect, it } from "vitest"
 import { SCHEMA_VERSION } from "@adt/types"
-import { openBookDb } from "../db.js"
+import { cleanupInterruptedSteps, openBookDb } from "../db.js"
+import { createBookStorage } from "../book-storage.js"
 
 const dirs: string[] = []
 
@@ -132,5 +133,48 @@ describe("openBookDb", () => {
     expect(() => openBookDb(dbPath)).toThrow(
       `Schema version mismatch: found v1, expected v${SCHEMA_VERSION}`
     )
+  })
+})
+
+describe("cleanupInterruptedSteps", () => {
+  function booksRoot(): string {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-storage-startup-"))
+    dirs.push(root)
+    return root
+  }
+  function seedBook(root: string, label: string, running = false): string {
+    const storage = createBookStorage(label, root)
+    if (running) storage.markStepStarted("tts")
+    storage.close()
+    return path.join(root, label)
+  }
+
+  it("removes a stale WASM lock directory when no live writer holds the book", () => {
+    const root = booksRoot()
+    const bookDir = seedBook(root, "crashed", true)
+    const databaseLock = path.join(bookDir, "crashed.db.lock")
+    fs.mkdirSync(databaseLock)
+    expect(() => cleanupInterruptedSteps(root)).not.toThrow()
+    expect(fs.existsSync(databaseLock)).toBe(false)
+    const storage = createBookStorage("crashed", root)
+    try {
+      expect(storage.getStepRuns().find((run) => run.step === "tts")?.status).toBe("error")
+    } finally { storage.close() }
+  })
+
+  it("continues past a book whose directory cannot take the writer lease", () => {
+    const root = booksRoot()
+    const unwritable = seedBook(root, "readonly")
+    seedBook(root, "healthy", true)
+    fs.chmodSync(unwritable, 0o555)
+    try {
+      expect(() => cleanupInterruptedSteps(root)).not.toThrow()
+    } finally {
+      fs.chmodSync(unwritable, 0o755)
+    }
+    const storage = createBookStorage("healthy", root)
+    try {
+      expect(storage.getStepRuns().find((run) => run.step === "tts")?.status).toBe("error")
+    } finally { storage.close() }
   })
 })

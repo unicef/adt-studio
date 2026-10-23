@@ -1,0 +1,207 @@
+{
+  "runtimeCommit": "9f7eaa14dbff8b8069f9dd0b908c6b6007bc9c37",
+  "testFiles": 321,
+  "tests": 4024,
+  "lint": {
+    "errors": 0,
+    "warnings": 8
+  },
+  "typecheck": true,
+  "runtimeTypecheck": true,
+  "build": true,
+  "linguiExtract": true,
+  "linguiStrictCompile": true,
+  "locales": [
+    "en",
+    "pt-BR",
+    "es",
+    "fr",
+    "sq"
+  ],
+  "docker": {
+    "target": "app",
+    "image": "adt-studio:spec0001-review-9f7eaa14",
+    "platform": "linux/arm64"
+  },
+  "desktop": {
+    "unpackedBuild": true,
+    "platform": "macOS arm64",
+    "signedInstallerVerified": false,
+    "runtimeLaunched": false
+  },
+  "workedExamples": {
+    "evidence": [
+      "Example 1: cosmetic Save preserves all output signatures and status",
+      "Example 2: changed source appears beside protected French; unrelated caption unchanged",
+      "Example 3: glossary save discovers new image-caption work without changing Storyboard or inventing caption text consumers",
+      "Example 4: new and retired IDs render correctly; restoring original source reactivates retained French correction",
+      "Preview and Export show disclosure without changing freshness or review evidence"
+    ],
+    "errors": []
+  },
+  "api": {
+    "health": true,
+    "bookCount": 3,
+    "outputCount": 230,
+    "cosmeticSavePreservesOutputs": true,
+    "concurrentSourceEditRejectsStaleSave": true,
+    "retainedFrenchUnchanged": true,
+    "invalidatedAccessibilityAbsent": true
+  },
+  "review": {
+    "sourceSave": true,
+    "stageBadgeMatchesProjection": true,
+    "inlineKeep": true,
+    "manualTextPreserved": true,
+    "unrelatedTranslationsUnchanged": true,
+    "reloadKeepsCounts": true,
+    "before": {
+      "updates": 0,
+      "reviews": 16,
+      "warnings": 0,
+      "missing": 14,
+      "applicable": 30,
+      "current": false
+    },
+    "after": {
+      "updates": 0,
+      "reviews": 15,
+      "warnings": 0,
+      "missing": 14,
+      "applicable": 30,
+      "current": false
+    },
+    "generation": [],
+    "errors": []
+  },
+  "compatibility": {
+    "unknownOwnerDisclosure": true,
+    "unsafeSectionOmitted": true,
+    "rawContentAndProjectionUnchanged": true,
+    "explicitKnownVersionRestore": true,
+    "representativePreview": true,
+    "representativeTextLength": 88,
+    "errors": []
+  },
+  "export": {
+    "exportDownloaded": true,
+    "suggestedFilename": "Catalog acceptance_ plant science-adt.zip",
+    "disclosures": [
+      "http://127.0.0.1:4206/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Atrue%2C%22quizzes%22%3Atrue%2C%22readAloud%22%3Atrue%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D",
+      "http://127.0.0.1:4206/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Atrue%2C%22quizzes%22%3Atrue%2C%22readAloud%22%3Afalse%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D"
+    ],
+    "errors": []
+  },
+  "zipInspection": {
+    "fileCount": 78,
+    "fourSections": true,
+    "retainedFrench": true,
+    "updatedEnglish": true,
+    "readAloudFalse": true,
+    "audioExcluded": true
+  },
+  "restart": {
+    "restartPreservesCatalogAndReviews": true
+  },
+  "mediaMeasurement": {
+    "node": "v22.23.2",
+    "providerCalls": 0,
+    "results": [
+      {
+        "url": "/books/media-book/pages/pg001",
+        "sample": 1,
+        "status": 200,
+        "ms": 1021,
+        "responseBytes": 1254,
+        "mediaReads": 0,
+        "mediaBytes": 0
+      },
+      {
+        "url": "/books/media-book/pages/pg001",
+        "sample": 2,
+        "status": 200,
+        "ms": 862,
+        "responseBytes": 1254,
+        "mediaReads": 0,
+        "mediaBytes": 0
+      },
+      {
+        "url": "/books/media-book/pages/pg001",
+        "sample": 3,
+        "status": 200,
+        "ms": 831,
+        "responseBytes": 1254,
+        "mediaReads": 0,
+        "mediaBytes": 0
+      },
+      {
+        "url": "/books/media-book/outputs",
+        "sample": 1,
+        "status": 200,
+        "ms": 883,
+        "responseBytes": 4578024,
+        "mediaReads": 0,
+        "mediaBytes": 0
+      },
+      {
+        "url": "/books/media-book/outputs",
+        "sample": 2,
+        "status": 200,
+        "ms": 951,
+        "responseBytes": 4578024,
+        "mediaReads": 0,
+        "mediaBytes": 0
+      },
+      {
+        "url": "/books/media-book/outputs",
+        "sample": 3,
+        "status": 200,
+        "ms": 909,
+        "responseBytes": 4578024,
+        "mediaReads": 0,
+        "mediaBytes": 0
+      },
+      {
+        "url": "/books/media-book/outputs/summary",
+        "sample": 1,
+        "status": 200,
+        "ms": 836,
+        "responseBytes": 662,
+        "mediaReads": 0,
+        "mediaBytes": 0
+      },
+      {
+        "url": "/books/media-book/outputs/summary",
+        "sample": 2,
+        "status": 200,
+        "ms": 850,
+        "responseBytes": 662,
+        "mediaReads": 0,
+        "mediaBytes": 0
+      },
+      {
+        "url": "/books/media-book/outputs/summary",
+        "sample": 3,
+        "status": 200,
+        "ms": 852,
+        "responseBytes": 662,
+        "mediaReads": 0,
+        "mediaBytes": 0
+      }
+    ]
+  },
+  "independentReview": {
+    "accepted": true,
+    "runtimeCommit": "9f7eaa14dbff8b8069f9dd0b908c6b6007bc9c37",
+    "retainedProbes": 18,
+    "initialFocusedTests": 116,
+    "targetedFinalProbes": 6,
+    "versionBoundaryAssertions": true,
+    "affectedTestsBeforeUIOnlyFix": 51,
+    "finalHeadUiTests": 24,
+    "compatibilityQualifications": [
+      "AC-7",
+      "AC-12"
+    ]
+  }
+}

@@ -288,6 +288,7 @@ function addPagesAndRenderings(label: string, count: number): void {
       storage.putNodeData("web-rendering", pageId, {
         sections: [
           {
+            sectionId,
             sectionIndex: 0,
             sectionType: "content",
             reasoning: "ok",
@@ -649,7 +650,8 @@ describe("exportEpub — fixed-layout", () => {
         storage.putNodeData("web-rendering", pageId, {
           sections: [
             {
-              sectionIndex: 0,
+              sectionId,
+            sectionIndex: 0,
               sectionType: "fixed-layout-page",
               reasoning: "Fixed-layout",
               html: `<div id="content" style="position:relative;width:400px;height:300px;margin:0 auto;overflow:hidden">

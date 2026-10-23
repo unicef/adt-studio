@@ -84,6 +84,7 @@ export async function prepareExport(
   configPath?: string,
   features?: ExportFeatures,
   defaultSettingsOverride?: ExportDefaultSettings,
+  promptsDir = path.resolve("prompts"),
 ): Promise<PrepareExportResult> {
   const safeLabel = parseBookLabel(label)
   const resolvedDir = path.resolve(booksDir)
@@ -159,6 +160,7 @@ export async function prepareExport(
     })()
 
     const opts = {
+      promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
       bookDir,
       label: safeLabel,
       language,
@@ -166,6 +168,7 @@ export async function prepareExport(
       title,
       webAssetsDir,
       applyBodyBackground: config.apply_body_background,
+      config,
       speechConfig: config.speech,
       features,
       defaultSettings: mergedDefaultSettings,

@@ -1,3 +1,4 @@
+import { refreshRunStatus, reconcileRunPublication } from "./run-query-invalidation"
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
@@ -61,12 +62,15 @@ export interface QueueRunOptions {
 
 /** Shape returned by the enriched GET /books/:label/step-status endpoint. */
 interface StepStatusResponse {
+  sourceUpdateStages?: string[]
   stages: Record<string, string>
   steps: Record<string, string>
   error: string | null
   stepErrors?: Record<string, string> | null
   stepMessages?: Record<string, string> | null
   runStatus?: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
+  runRevision?: string
+  publicationAgeMs?: number
   pendingDecisions?: PendingDecision[]
 }
 
@@ -75,6 +79,8 @@ interface StepStatusResponse {
 // ---------------------------------------------------------------------------
 
 export interface BookRunContextValue {
+  /** Retained generator content affected by a source edit; independent of run state. */
+  sourceUpdateStages?: string[]
   /** Stage state: idle / queued / running / done / error */
   stageState(stage: string): StageState
   /** Step state: idle / running / done / error */
@@ -156,6 +162,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     queryFn: () => api.getStepStatus(label),
     enabled: !!label,
     refetchInterval: (query) => {
+      if (["running", "cancelling"].includes(query.state.data?.runStatus ?? "")) return 2000
       const stages = query.state.data?.stages
       if (!stages) return false
       return Object.values(stages).some((s) => s === "running" || s === "queued")
@@ -163,6 +170,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         : false
     },
   })
+
+  // One authoritative publication receipt per settled run, including missed SSE
+  // and service restarts. Step completion is not a publication boundary: prior
+  // successful step records can remain done throughout a scoped rerun.
+  useEffect(() => {
+    if (data?.runRevision) void reconcileRunPublication(queryClient, label, data.runRevision, data.publicationAgeMs)
+  }, [data?.runRevision, data?.publicationAgeMs, label, queryClient])
 
   // Sub-step progress is cosmetic (page X/Y during a running step).
   // Stored in a ref + state counter so we don't trigger full re-renders on
@@ -208,7 +222,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
     // Refetch on (re)connection to catch up on any missed events
     es.addEventListener("open", () => {
-      queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+      void refreshRunStatus(queryClient, label, false)
     })
 
     es.addEventListener("progress", (e) => {
@@ -234,6 +248,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           if (!old) return old
           return {
             ...old,
+            runStatus: "running",
             stages: { ...old.stages, [uiStage]: "running" },
             steps: { ...old.steps, [pipelineStep]: "running" },
             stepMessages: removeStepMessage(old.stepMessages, pipelineStep),
@@ -280,6 +295,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           }
           return {
             ...old,
+            runStatus: "running",
             stages: { ...old.stages, [uiStage]: "running" },
             steps: { ...old.steps, [pipelineStep]: "running" },
             stepMessages: nextStepMessages,
@@ -364,11 +380,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
         progressRef.current.delete(pipelineStep)
 
-        // Also invalidate data queries for the completed step's stage
-        invalidateStageData(queryClient, label, uiStage)
+        // Aggregate outputs refresh once at the run boundary. Retained done
+        // steps can otherwise make every step look like a completed stage.
         if (pipelineStep === "metadata") {
-          queryClient.invalidateQueries({ queryKey: ["books", label] })
-          queryClient.invalidateQueries({ queryKey: ["books"] })
+          queryClient.invalidateQueries({ queryKey: ["books", label], exact: true })
+          queryClient.invalidateQueries({ queryKey: ["books"], exact: true })
         }
       } else if (d.type === "step-error") {
         queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
@@ -423,7 +439,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       lastPageInvalidateRef.current = 0
       errorCountByStepRef.current.clear()
       runErrorNotifiedRef.current = false
-      queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+      void refreshRunStatus(queryClient, label)
     })
 
     // Run completed — full refetch to reconcile with DB
@@ -434,8 +450,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // A cancel that raced past the last checkpoint resolves as a normal
       // completion — clear the intermediate "cancelling…" state here too.
       setIsCancelling(false)
-      queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
-      invalidateBookQueries(queryClient, label)
+      void refreshRunStatus(queryClient, label)
     })
 
     // Cancellation finished unwinding — reset in-flight steps to idle and clear
@@ -464,8 +479,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       })
       announceRef.current(i18n._(msg`Run cancelled`))
       toast.info(i18n._(msg`Run cancelled`))
-      queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
-      invalidateBookQueries(queryClient, label)
+      void refreshRunStatus(queryClient, label)
     })
 
     // A page failed and the run is waiting for a skip/stop decision.
@@ -507,8 +521,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           }
         } catch { /* ignore */ }
       }
-      // Refetch to get the authoritative state
-      queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+      // A failed run may have published successful siblings before failing.
+      void refreshRunStatus(queryClient, label, !!me.data)
     })
 
     // Handle ad-hoc task events (image generation, packaging, etc.)
@@ -806,7 +820,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         } finally {
           // Refetch to reconcile — the backend either cleared step_runs or
           // never touched them.
-          queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+          void refreshRunStatus(queryClient, label)
         }
       })
     },
@@ -850,7 +864,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     [data]
   )
 
-  const isRunning = Object.values(data?.stages ?? {}).some(
+  const isRunning = data?.runStatus === "running" || data?.runStatus === "cancelling" || Object.values(data?.stages ?? {}).some(
     (s) => s === "running" || s === "queued"
   )
 
@@ -863,7 +877,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     void api.cancelRun(label).catch(() => {
       // 404s resolve inside api.cancelRun; anything else means the request
       // didn't take — refetch so the UI reflects the true state.
-      queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+      void refreshRunStatus(queryClient, label)
     })
   }, [label, queryClient])
 
@@ -873,7 +887,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // already resolved) is treated as success.
       setPendingDecisions((prev) => prev.filter((p) => p.decisionId !== decisionId))
       void api.resolveDecision(label, { decisionId, action, applyToAll }).catch(() => {
-        queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+        void refreshRunStatus(queryClient, label)
       })
     },
     [label, queryClient]
@@ -913,6 +927,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   }, [polledDecisions])
 
   return {
+    sourceUpdateStages: data?.sourceUpdateStages ?? [],
     stageState,
     stepState: stepStateAccessor,
     stepProgress: stepProgressAccessor,
@@ -950,13 +965,6 @@ function taskCompleteMessage(kind: string | undefined): string {
   }
 }
 
-function invalidateBookQueries(qc: ReturnType<typeof useQueryClient>, label: string) {
-  qc.invalidateQueries({ queryKey: ["books", label] })
-  qc.invalidateQueries({ queryKey: ["books"] })
-  qc.invalidateQueries({ queryKey: ["books", label, "pages"] })
-  qc.invalidateQueries({ queryKey: ["package-adt-status", label] })
-  qc.invalidateQueries({ queryKey: ["debug"] })
-}
 
 function removeStepMessage(
   messages: Record<string, string> | null | undefined,
@@ -976,43 +984,4 @@ function removeStepError(
   const next = { ...errors }
   delete next[step]
   return Object.keys(next).length > 0 ? next : null
-}
-
-/** Invalidate data queries when a stage completes so views refresh. */
-function invalidateStageData(qc: ReturnType<typeof useQueryClient>, label: string, stage: string) {
-  // Invalidate stage-specific data
-  switch (stage) {
-    case "extract":
-      qc.invalidateQueries({ queryKey: ["books", label, "pages"] })
-      qc.invalidateQueries({ queryKey: ["books", label] })
-      qc.invalidateQueries({ queryKey: ["books"] })
-      break
-    case "storyboard":
-      qc.invalidateQueries({ queryKey: ["books", label, "pages"] })
-      qc.invalidateQueries({ queryKey: ["books", label] })
-      break
-    case "quizzes":
-      qc.invalidateQueries({ queryKey: ["books", label, "quizzes"] })
-      break
-    case "captions":
-      qc.invalidateQueries({ queryKey: ["books", label, "pages"] })
-      break
-    case "glossary":
-      qc.invalidateQueries({ queryKey: ["books", label, "glossary"] })
-      qc.invalidateQueries({ queryKey: ["books", label, "sign-language-videos"] })
-      break
-    case "easy-read":
-      qc.invalidateQueries({ queryKey: ["books", label, "easy-read"] })
-      qc.invalidateQueries({ queryKey: ["books", label, "text-catalog"] })
-      break
-    case "translate":
-      qc.invalidateQueries({ queryKey: ["books", label, "text-catalog"] })
-      qc.invalidateQueries({ queryKey: ["books", label, "translated-images"] })
-      qc.invalidateQueries({ queryKey: ["books", label, "captioned-images"] })
-      break
-    case "speech":
-      qc.invalidateQueries({ queryKey: ["books", label, "tts"] })
-      qc.invalidateQueries({ queryKey: ["books", label, "tts-timestamps"] })
-      break
-  }
 }

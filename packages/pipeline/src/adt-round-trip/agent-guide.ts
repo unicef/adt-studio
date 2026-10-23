@@ -7,7 +7,7 @@ import type {
   QuizGenerationOutput,
   TextCatalogOutput,
 } from "@adt/types"
-import { resolveQuizId } from "@adt/types"
+import { resolveQuizId, resolveQuizOptionId } from "@adt/types"
 
 import { getGlossaryItemTextId } from "../glossary.js"
 import { ACTIVITY_CLASSIFICATION_GUIDE } from "./activity.js"
@@ -98,7 +98,7 @@ export function renderAdtAgentGuide(
     const correctAnswers: Record<string, boolean> = {}
     const explanations: Record<string, string> = {}
     const options = quiz.options.map((option, index) => {
-      const optionId = `${quizId}_o${index}`
+      const optionId = resolveQuizOptionId(option, quizId, index)
       const explanationId = `${optionId}_exp`
       correctAnswers[optionId] = index === quiz.answerIndex
       explanations[optionId] = explanationId

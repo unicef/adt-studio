@@ -1,8 +1,14 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { createHash } from "node:crypto"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { buildScreenshotHtml } from "../screenshot-html.js"
+import {
+  buildScreenshotHtml,
+  FITB_HYDRATION_SCRIPT,
+  SCREENSHOT_CONTENT_SECURITY_POLICY,
+  screenshotContentSecurityPolicy,
+} from "../screenshot-html.js"
 
 function createWebAssets(webAssetsDir: string): void {
   fs.mkdirSync(webAssetsDir, { recursive: true })
@@ -95,5 +101,33 @@ describe("buildScreenshotHtml", () => {
     expect(html).toContain('<div id="content" class="container storybook-root">')
     expect(html).toContain('src="data:image/jpeg;base64,YWJjMTIz"')
     expect(html).not.toContain("adt-recovery-temp")
+    expect(html).toContain(
+      `<meta http-equiv="Content-Security-Policy" content="${screenshotContentSecurityPolicy("http://127.0.0.1:3001/api/books/final-book/adt/")}" />`,
+    )
+    expect(screenshotContentSecurityPolicy("http://127.0.0.1:3001/api/books/final-book/adt/"))
+      .toContain("style-src 'unsafe-inline' http://127.0.0.1:3001")
+  })
+
+  it("emits a CSP that permits only the generated FITB hydration script", async () => {
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    createWebAssets(webAssetsDir)
+    const html = await buildScreenshotHtml({
+      sectionHtml: '<p>Complete [[blank:item-1:answer]]</p>',
+      label: "book",
+      images: new Map(),
+      webAssetsDir,
+    })
+    const scriptContent = FITB_HYDRATION_SCRIPT
+      .replace(/^<script>/, "")
+      .replace(/<\/script>$/, "")
+    const hash = createHash("sha256").update(scriptContent).digest("base64")
+
+    expect(SCREENSHOT_CONTENT_SECURITY_POLICY).toContain(
+      `script-src 'sha256-${hash}'`,
+    )
+    expect(html).toContain(
+      `<meta http-equiv="Content-Security-Policy" content="${SCREENSHOT_CONTENT_SECURITY_POLICY}" />`,
+    )
+    expect(html).toContain(FITB_HYDRATION_SCRIPT)
   })
 })

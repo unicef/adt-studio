@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import {
   Liquid,
   Tag,
@@ -35,6 +36,8 @@ export interface PromptResolution {
 }
 
 export interface PromptEngine {
+  fingerprint(templateName: string, options?: PromptRenderOptions): string
+  renderText(templateName: string, context: Record<string, unknown>, options?: PromptRenderOptions): Promise<string>
   renderPrompt(
     templateName: string,
     context: Record<string, unknown>,
@@ -55,10 +58,34 @@ export function createPromptEngine(
   const basePromptModelId = options?.basePromptModelId ?? DEFAULT_BASE_PROMPT_MODEL_ID
 
   return {
+    fingerprint(templateName: string, renderOptions?: PromptRenderOptions): string {
+      const resolved = resolvePromptTemplate(roots, templateName, renderOptions, basePromptModelId)
+      const searchRoots = renderRootsForResolution(roots, resolved)
+      const sources = new Map<string, string>()
+      const visit = (filePath: string) => {
+        if (sources.has(filePath)) return
+        const source = fs.readFileSync(filePath, "utf-8")
+        sources.set(filePath, source)
+        if (/{%-?\s*(?:include|render)\s+[^"'\s]/.test(source)) throw new Error("Dynamic prompt includes need an explicit input basis before catalog generation")
+        for (const match of source.matchAll(/{%-?\s*(?:include|render)\s+["']([^"']+)["']/g)) {
+          const name = match[1].replace(/\.liquid$/, "")
+          const partial = searchRoots.map((root) => path.join(root, `${name}.liquid`)).find((candidate) => fs.existsSync(candidate))
+          if (!partial) throw new Error(`Prompt partial not found: ${name}`)
+          visit(partial)
+        }
+      }
+      visit(resolved.filePath)
+      // Paths/versions are incidental; resolved content and include order matter.
+      return createHash("sha256").update(JSON.stringify([...sources.values()])).digest("hex")
+    },
     resolvePrompt(templateName: string, renderOptions?: PromptRenderOptions): PromptResolution {
       return resolvePromptTemplate(roots, templateName, renderOptions, basePromptModelId)
     },
 
+    async renderText(templateName, context, renderOptions) {
+      const resolved = resolvePromptTemplate(roots, templateName, renderOptions, basePromptModelId)
+      return createLiquidEngine(renderRootsForResolution(roots, resolved)).parseAndRender(fs.readFileSync(resolved.filePath, "utf-8"), context)
+    },
     async renderPrompt(
       templateName: string,
       context: Record<string, unknown>,

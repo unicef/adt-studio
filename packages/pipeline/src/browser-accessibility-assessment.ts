@@ -11,6 +11,7 @@ import {
   accessibilityAuditIpcReplySchema,
   accessibilityAuditIpcRequestSchema,
 } from "@adt/types"
+import { buildBrowserChildEnv } from "./browser-env.js"
 import type { Progress } from "./progress.js"
 import { nullProgress } from "./progress.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
@@ -105,10 +106,13 @@ export function buildBrowserAccessibilityRecheckPlan(
 async function _createPlaywrightAccessibilityAuditor(): Promise<AccessibilityAuditor> {
   const pw = await import("playwright" as string) as {
     chromium: {
-      launch(opts: { headless: boolean }): Promise<PlaywrightBrowser>
+      launch(opts: { headless: boolean; env: Record<string, string> }): Promise<PlaywrightBrowser>
     }
   }
-  const browser = await pw.chromium.launch({ headless: true })
+  const browser = await pw.chromium.launch({
+    headless: true,
+    env: buildBrowserChildEnv(),
+  })
 
   return {
     async audit({ filePath, ruleIds, axeSource, viewport = DEFAULT_VIEWPORT }) {

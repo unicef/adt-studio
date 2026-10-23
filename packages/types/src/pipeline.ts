@@ -276,3 +276,15 @@ export const IMPORTED_ADT_LOCKED_STAGES: ReadonlySet<StageName> = new Set<StageN
   ...IMPORTED_ADT_UNAVAILABLE_STAGES,
   "storyboard",
 ])
+
+/** Catalog output ownership, derived through the shared step-to-stage map. */
+export const OUTPUT_KIND_TO_STEP = {
+  caption: "image-captioning", translation: "catalog-translation", "easy-read": "easy-read",
+  preparation: "core-tts-catalog", audio: "tts", timestamps: "word-timestamps", "image-translation": "image-translation",
+} as const satisfies Record<import("./output-freshness.js").OutputKind, StepName>
+export const OUTPUT_KIND_TO_STAGE = Object.fromEntries(Object.entries(OUTPUT_KIND_TO_STEP).map(([kind, step]) => [kind, STEP_TO_STAGE[step]])) as Record<import("./output-freshness.js").OutputKind, StageName>
+
+/** Generators outside catalog freshness whose attempts reset on source edits. */
+export const SOURCE_GENERATION_RESET_STEPS = PIPELINE
+  .filter((stage) => stage.name === "quizzes" || stage.name === "glossary" || stage.name === "toc")
+  .flatMap((stage) => stage.steps.map((step) => step.name))

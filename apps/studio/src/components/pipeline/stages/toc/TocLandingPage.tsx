@@ -69,7 +69,7 @@ export function TocLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to run TOC generation.</Trans>
+    <Trans>Connect an AI provider to run TOC generation.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — the table of contents lists the typed sections it produces.</Trans>
   ) : undefined
@@ -77,6 +77,7 @@ export function TocLandingPage({ bookLabel }: { bookLabel: string }) {
   return (
     <LandingPageShell
       bookLabel={bookLabel}
+      requiresProvider
       stageSlug="toc"
       settingsTab="general"
       colorClass="bg-amber-600 hover:bg-amber-700"
