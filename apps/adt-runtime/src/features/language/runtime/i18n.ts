@@ -313,6 +313,7 @@ export interface LoadTranslationsResult {
 export async function loadTranslations(
   lang: string,
   bundleVersion?: string,
+  isCurrent: () => boolean = () => true,
 ): Promise<LoadTranslationsResult> {
   const versionParam = bundleVersion ? `?v=${bundleVersion}` : ""
 
@@ -320,6 +321,10 @@ export async function loadTranslations(
     loadInterfaceTranslations(lang, versionParam),
     loadContentFiles(lang, versionParam),
   ])
+
+  // A language switch or reader disposal can supersede this request while
+  // any catalog is loading. Do not publish stale content, including fallbacks.
+  if (!isCurrent()) return { interface: interfaceData, content }
 
   const store = getDefaultStore()
   // Interface keys + content text keys live in the same translation map (legacy
@@ -438,6 +443,10 @@ export function applyTranslationsToDOM(
     const id = titleMeta.getAttribute("content")
     if (id && translations[id]) document.title = translations[id]
   }
+
+  // Activities embedded in translated text must rebuild their controls after
+  // the DOM replacement, not when the dictionary is first published.
+  document.dispatchEvent(new Event("adt:translations-applied"))
 
   // Re-run fixed-layout auto-fit after rebuilding segment spans — the new
   // elements have no `data-adt-fs` cache and the translated content has a

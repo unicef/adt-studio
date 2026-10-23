@@ -7,6 +7,7 @@ import {
   parseBookLabel,
   PIPELINE,
   BookMetadata,
+  SourceGeneratorStep,
   LLMModelId,
   SpeechGenerationModelId,
   type AiModality,
@@ -19,7 +20,7 @@ import {
 } from "@adt/llm"
 import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
-import { normalizeLocale, getBaseLanguage } from "@adt/pipeline"
+import { normalizeLocale, getBaseLanguage, loadBookConfig, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
 import {
   listBooks,
   getBook,
@@ -104,6 +105,7 @@ export function createBookRoutes(
   configPath?: string,
   taskService?: TaskService,
   registry: ProviderRegistry = getDefaultProviderRegistry(),
+  promptsDir = path.resolve("prompts"),
 ): Hono {
   const app = new Hono()
 
@@ -400,56 +402,30 @@ export function createBookRoutes(
       const prevLanguage = normalizeLocale(previous.language_code ?? "")
       const nextLanguage = normalizeLocale(parsed.data.language_code ?? "")
       const languageChanged = prevLanguage !== nextLanguage
-      // A base-language change (es -> fr) also needs the book summary
-      // regenerated; the client triggers that via the book-summary regenerate
-      // endpoint (which keeps the existing summary visible until it lands)
-      // rather than clearing it here, so the Extract stage isn't reset.
+      // Keep this response field for clients that display the scope of the
+      // change. It is not an instruction to start generation after saving.
       const baseLanguageChanged =
         getBaseLanguage(prevLanguage) !== getBaseLanguage(nextLanguage)
 
-      const version = storage.putNodeData("metadata", "book", parsed.data)
-
-      if (languageChanged) {
-        // The detected language drives the editing language used by every
-        // language-dependent step downstream of Storyboard (captions, quizzes,
-        // glossary, ToC, easy read, translation, speech, packaging). Clearing
-        // these mirrors a "re-run from Storyboard" cascade. Sectioning and
-        // Storyboard themselves (page structure, rendering) are language-agnostic
-        // and intentionally preserved, along with manual section edits.
-        storage.clearNodesByType([
-          "quiz-generation",
-          "image-captioning",
-          "glossary",
-          "toc-generation",
-          "text-catalog",
-          "easy-read",
-          "text-catalog-translation",
-          "core-tts-catalog",
-          "tts",
-          "tts-timestamps",
-          "accessibility-assessment",
-        ])
-        storage.clearStepRuns([
-          "quiz-generation",
-          "image-captioning",
-          "glossary",
-          "toc-generation",
-          "text-catalog",
-          "easy-read",
-          "catalog-translation",
-          "core-tts-catalog",
-          "image-translation",
-          "tts",
-          "word-timestamps",
-          "package-web",
-          "accessibility-assessment",
-        ])
-        // Language-specific translated image variants live in the images table.
-        storage.clearTranslatedImages()
-      } else {
-        // Title/authors/publisher only feed packaging metadata.
+      const config = languageChanged ? loadBookConfig(label, booksDir, configPath) : undefined
+      const effectiveLanguageChanged = languageChanged &&
+        normalizeLocale(config?.editing_language ?? previous.language_code ?? "en") !==
+        normalizeLocale(config?.editing_language ?? parsed.data.language_code ?? "en")
+      const version = storage.transaction(() => {
+        const nextVersion = storage.putNodeData("metadata", "book", parsed.data)
+        if (effectiveLanguageChanged) {
+          // Retain source generators and translated images as usable output.
+          // Catalog freshness is derived from the effective language; generator
+          // review uses the existing Keep/Run contract, never null publication.
+          for (const step of SourceGeneratorStep.options) {
+            markSourceGenerationNeedsUpdate(storage, step)
+          }
+          storage.clearStepRuns(["accessibility-assessment"])
+        }
+        // Packaging uses bibliographic metadata as well as the language.
         storage.clearStepRuns(["package-web"])
-      }
+        return nextVersion
+      })
 
       return c.json({ version, languageChanged, baseLanguageChanged })
     } finally {
@@ -489,13 +465,13 @@ export function createBookRoutes(
         // — the export otherwise completes looking clean while the bundle is
         // short.
         async () =>
-          await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings),
+          await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings, promptsDir),
         { url: `/books/${safeLabel}/export-${format}` }
       )
       return c.json({ status: "submitted", taskId, label: safeLabel })
     }
 
-    const { warnings } = await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings)
+    const { warnings } = await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings, promptsDir)
     return c.json({ status: "completed", label: safeLabel, warnings })
   })
 

@@ -9,6 +9,13 @@ function putReadyCoreTts(
   storage: ReturnType<typeof createBookStorage>,
   ...ids: string[]
 ): void {
+  const page = storage.getPages()[0]
+  const rendered = storage.getLatestNodeData("web-rendering", page.pageId)!.data as { sections: Array<{ html: string }> }
+  rendered.sections[0].html = rendered.sections[0].html.replace("</section>", ids.map((id) => `<p data-id="${id}">${id}</p>`).join("") + "</section>")
+  storage.putNodeData("web-rendering", page.pageId, rendered)
+  const audioDir = path.join(storage.bookDir, "audio", "en")
+  fs.mkdirSync(audioDir, { recursive: true })
+  for (const id of ids) for (const suffix of ["", "--secondary"]) fs.writeFileSync(path.join(audioDir, `${id}${suffix}.mp3`), "playable-fixture")
   storage.putNodeData("core-tts-catalog", "en", {
     language: "en",
     entries: ids.map((id) => ({
@@ -220,6 +227,10 @@ describe("ADT preview routes", () => {
           },
         ],
       })
+      const rendering = storage.getLatestNodeData("web-rendering", `${label}_p1`)!.data as { sections: Array<{ sectionIndex: number; sectionId?: string; html: string }> }
+      rendering.sections[1].sectionId = `${label}_p1_s2`
+      rendering.sections[1].html = rendering.sections[1].html.replace(`${label}_p1_sec002`, `${label}_p1_s2`)
+      storage.putNodeData("web-rendering", `${label}_p1`, rendering)
     } finally {
       storage.close()
     }
@@ -244,6 +255,28 @@ describe("ADT preview routes", () => {
     expect(html).toContain('data-id="hero-image" src="/api/books/preview-book/images/hero-image" alt="Preview hero image"')
     expect(html).toContain('data-id="hero-image-duplicate" src="/api/books/preview-book/images/hero-image-duplicate" alt=""')
   })
+
+  it.each([{ captions: [] }, { captions: [{ imageId: "hero-image", caption: "  " }] }])(
+    "does not expose renderer alt when its stored caption is missing or blank (%j)",
+    async ({ captions }) => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const row = storage.getLatestNodeData("web-rendering", `${label}_p1`)!
+        const data = row.data as { sections: Array<{ html: string }> }
+        data.sections[1].html = data.sections[1].html.replace('<img data-id="hero-image"', '<img alt="Stale renderer description" data-id="hero-image"')
+        storage.putNodeData("web-rendering", `${label}_p1`, data)
+        storage.putNodeData("image-captioning", `${label}_p1`, { captions })
+      } finally {
+        storage.close()
+      }
+      const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+      const res = await app.request(`/books/${label}/adt-preview/${label}_p1_sec002.html`)
+      expect(res.status).toBe(200)
+      const html = await res.text()
+      expect(html).toContain('alt="" data-id="hero-image"')
+      expect(html).not.toContain("Stale renderer description")
+    },
+  )
 
   it("hides decorative images from assistive tech in preview output", async () => {
     const storage = createBookStorage(label, tmpDir)
@@ -354,9 +387,10 @@ describe("ADT preview routes", () => {
     expect(traversal.status).toBe(400)
   })
 
-  it("serves prepared speech separately and withholds failed entries from audio", async () => {
+  it("uses display fallback for failed preparation and preserves manual speech", async () => {
     const storage = createBookStorage(label, tmpDir)
     try {
+      putReadyCoreTts(storage, "pg001_tx001", "pg001_tx002")
       storage.putNodeData("core-tts-catalog", "en", {
         language: "en",
         entries: [
@@ -368,7 +402,7 @@ describe("ADT preview routes", () => {
             transformations: ["latex-to-speech"],
             status: "ready",
             generation: {
-              mode: "generated",
+              mode: "manual",
               generatedAt: "2026-01-01T00:00:00.000Z",
               enabledTransformations: ["latex-to-speech"],
               sourceTextHash: "source",
@@ -422,8 +456,8 @@ describe("ADT preview routes", () => {
     const speechRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)
     const audioRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)
 
-    expect(await speechRes.json()).toEqual({ pg001_tx001: "x squared" })
-    expect(await audioRes.json()).toEqual({ pg001_tx001: "pg001_tx001.mp3" })
+    expect(await speechRes.json()).toMatchObject({ pg001_tx001: "x squared", pg001_tx002: "pg001_tx002" })
+    expect(await audioRes.json()).toEqual({ pg001_tx001: "pg001_tx001.mp3", pg001_tx002: "pg001_tx002.mp3" })
   })
 
   // The preview manifest must resolve narrator names exactly the way the
@@ -440,6 +474,7 @@ describe("ADT preview routes", () => {
     }
 
     const putTts = (entries: Record<string, unknown>[]) => {
+      fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "speech:\n  secondary_voices:\n    en:\n      provider: openai\n      voice: shimmer\n")
       const storage = createBookStorage(label, tmpDir)
       try {
         putReadyCoreTts(storage, "pg001_tx001")
@@ -660,6 +695,7 @@ describe("ADT preview routes", () => {
 	        ],
 	        generatedAt: "2026-01-01T00:00:00.000Z",
 	      })
+	      putReadyCoreTts(storage, "pg001_t001", "pg001_t002")
 	      storage.putNodeData("core-tts-catalog", "en", {
 	        language: "en",
 	        generatedAt: "2026-01-01T00:00:00.000Z",
@@ -923,6 +959,7 @@ describe("ADT preview routes", () => {
   })
 
   it("uses metadata language for preview i18n when no config language is stored", async () => {
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "easy_read:\n  enabled: true\n")
     const storage = createBookStorage(label, tmpDir)
     try {
       storage.clearNodesByType(["config"])

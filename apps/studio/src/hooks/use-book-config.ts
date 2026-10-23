@@ -24,6 +24,9 @@ export function useUpdateBookConfig() {
       queryClient.invalidateQueries({ queryKey: ["validation", "catalog", label] })
       queryClient.invalidateQueries({ queryKey: ["debug", "config", label] })
       queryClient.invalidateQueries({ queryKey: ["debug"] })
+      // Settings (read-aloud content, languages, voices, prompts, models) change
+      // which outputs apply and their inputs; refresh the sidebar's attention.
+      queryClient.invalidateQueries({ queryKey: ["books", label, "outputs"] })
     },
   })
 }

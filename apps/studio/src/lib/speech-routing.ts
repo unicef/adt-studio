@@ -60,6 +60,24 @@ export function resolveSpeechProviderForLanguage(
   return defaultProvider
 }
 
+/** Providers configured for the requested book languages. Availability allows
+ * entering a run when any configured narrator is available; the server still
+ * validates credentials for the actual selected work. */
+export function speechProvidersForLanguages(languages: string[], speechConfig: unknown): string[] {
+  const providers = new Set(languages.map(language => resolveSpeechProviderForLanguage(language, speechConfig)))
+  const activeLanguages = new Set(languages.map(language => normalizeLocale(language).toLowerCase()))
+  const secondary = speechConfig && typeof speechConfig === "object"
+    ? (speechConfig as Record<string, unknown>).secondary_voices : undefined
+  if (secondary && typeof secondary === "object") {
+    for (const [language, value] of Object.entries(secondary)) {
+      if (!activeLanguages.has(normalizeLocale(language).toLowerCase()) || !value || typeof value !== "object") continue
+      const voice = value as Record<string, unknown>
+      if (typeof voice.provider === "string" && typeof voice.voice === "string" && voice.voice.trim()) providers.add(voice.provider)
+    }
+  }
+  return [...providers]
+}
+
 export function languageUsesSpeechProvider(
   languageCode: string,
   providerName: string,

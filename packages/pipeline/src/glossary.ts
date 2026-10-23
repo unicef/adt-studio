@@ -1,15 +1,19 @@
-import { parseDocument, DomUtils } from "htmlparser2"
+import { getGlossaryItemTextId, collectSpentContentIds } from "./content-ids.js"
+export { getGlossaryItemTextId } from "./content-ids.js"
+import { renderedText } from "./rendered-text.js"
 import type { AppConfig, GlossaryItem, GlossaryOutput } from "@adt/types"
 import {
   glossaryLLMSchema,
   WebRenderingOutput,
+  GlossaryOutput as GlossaryOutputSchema,
   DEFAULT_LLM_MAX_RETRIES,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { processWithConcurrency } from "./concurrency.js"
-import { getRenderSectioning } from "./render-sectioning.js"
+import { withLegacyRenderingOwnership, getRenderSectioning, resolveRenderedSection } from "./render-sectioning.js"
 import { buildLanguageContext } from "./language-context.js"
+import { inputSignature } from "./output-freshness.js"
 
 export interface GlossaryConfig {
   promptName: string
@@ -46,17 +50,125 @@ export function buildGlossaryConfig(
 }
 
 export function stripHtml(html: string): string {
-  const doc = parseDocument(html)
-  const text = DomUtils.textContent(doc)
-  return text.replace(/\s+/g, " ").trim()
+  return renderedText(html)
 }
 
 function normalizeGlossaryWord(word: string): string {
   return word.trim().toLocaleLowerCase()
 }
 
-export function getGlossaryItemTextId(item: Pick<GlossaryItem, "id">, index: number): string {
-  return item.id?.trim() || `gl${String(index + 1).padStart(3, "0")}`
+
+function glossaryIdentityAllocator(storage: Storage, extraIds: string[] = []) {
+  const reserved = new Set([...collectSpentContentIds(storage), ...extraIds])
+  for (const row of storage.getAllNodeVersions("glossary", "book")) {
+    const parsed = GlossaryOutputSchema.safeParse(row.data)
+    if (parsed.success) parsed.data.items.forEach((item, index) => reserved.add(getGlossaryItemTextId(item, index)))
+  }
+  let next = 1
+  return () => {
+    let id: string
+    do { id = `gl${String(next++).padStart(3, "0")}` } while (reserved.has(id) || reserved.has(`${id}_def`))
+    reserved.add(id)
+    return id
+  }
+}
+
+/** Call under the existing book writer before exposing legacy terms for edit.
+ * Preserve the IDs already used by their catalog consumers exactly once. */
+export function materializeGlossaryIds(storage: Storage) {
+  const row = storage.getLatestNodeData("glossary", "book")
+  const data = projectMaterializedGlossary(storage, row?.data)
+  if (!data) return row
+  storage.putNodeData("glossary", "book", data)
+  return storage.getLatestNodeData("glossary", "book")
+}
+
+/** The same materialization without writing it, for reads that cannot take
+ * the writer lease. Deterministic for a given book state, so a later write
+ * under the lease assigns the identical ids. Null when nothing is missing. */
+export function projectMaterializedGlossary(storage: Storage, data: unknown): GlossaryOutput | null {
+  const parsed = GlossaryOutputSchema.safeParse(data)
+  if (!parsed.success) return null
+  const ids = parsed.data.items.map(getGlossaryItemTextId)
+  if (parsed.data.items.every((item) => item.id?.trim()) && new Set(ids).size === ids.length) return null
+  const allocate = glossaryIdentityAllocator(storage, ids)
+  const seen = new Set<string>()
+  return { ...parsed.data, items: parsed.data.items.map((item, index) => {
+    // Catalog readers have always used the first copy of an identity. A later
+    // legacy collision must never acquire that first term's manual outputs.
+    const id = seen.has(ids[index]) ? allocate() : ids[index]
+    seen.add(id)
+    return { ...item, id }
+  }) }
+}
+
+/** Older clients may submit an idless subset. Match only a unique retained
+ * word; new/renamed ambiguous terms get fresh IDs, never another term's slot. */
+export function reconcileGlossaryEditIds(storage: Storage, edited: GlossaryOutput, verifiedVersion?: number, identitySignature?: string): GlossaryOutput {
+  const base = storage.getLatestNodeData("glossary", "book")
+  const baseItems = GlossaryOutputSchema.safeParse(base?.data)
+  const verifiedIds = new Set<string>()
+  if (base && verifiedVersion === base.version && baseItems.success) {
+    // GET projects legacy IDs without persisting them. A version-guarded
+    // edit may trust that exact projection, including a deliberately renamed
+    // term among colliding legacy IDs.
+    const projected = projectMaterializedGlossary(storage, baseItems.data) ?? baseItems.data
+    const signature = inputSignature({ version: base.version, ids: projected.items.map(item => item.id) })
+    const ids = (identitySignature === signature ? projected : baseItems.data).items.map((item) => item.id?.trim())
+    for (const id of ids) if (id && ids.filter((candidate) => candidate === id).length === 1) verifiedIds.add(id)
+  }
+  const current = GlossaryOutputSchema.safeParse(materializeGlossaryIds(storage)?.data)
+  const previous = current.success ? current.data.items : []
+  const reserved = collectSpentContentIds(storage)
+  const collided = new Set<string>()
+  for (const row of storage.getAllNodeVersions("glossary", "book")) {
+    const data = GlossaryOutputSchema.safeParse(row.data)
+    if (data.success) {
+      const seen = new Set<string>()
+      data.data.items.forEach((item, index) => {
+        const id = getGlossaryItemTextId(item, index)
+        if (seen.has(id)) collided.add(id)
+        seen.add(id)
+        reserved.add(id)
+      })
+    }
+  }
+  const currentIds = new Set(previous.map((item) => item.id))
+  const historical = new Set(reserved)
+  for (const item of edited.items) if (item.id) reserved.add(item.id)
+  const previousWords = uniqueGlossaryWordIndexes(previous)
+  const editedWords = uniqueGlossaryWordIndexes(edited.items)
+  const assigned = new Set<string>()
+  const contentKey = (item: GlossaryItem) => inputSignature({
+    word: item.word, definition: item.definition, variations: item.variations,
+    emojis: item.emojis, pruned: item.pruned === true, imageId: item.imageId,
+  })
+  const previousKeys = previous.map(contentKey)
+  const editedKeys = edited.items.map(contentKey)
+  let next = 1
+  return { ...edited, items: edited.items.map((item, index) => {
+    const word = normalizeGlossaryWord(item.word)
+    const matches = previousKeys.flatMap((key, i) => key === editedKeys[index] ? [i] : [])
+    const exactIndex = matches.length === 1 && editedKeys.filter((key) => key === editedKeys[index]).length === 1 ? matches[0] : undefined
+    const previousIndex = exactIndex ?? (editedWords.get(word) === index ? previousWords.get(word) : undefined)
+    // An older editor can submit an explicit duplicate ID captured before
+    // migration. A unique retained word identifies its migrated slot safely.
+    const submittedId = item.id?.trim()
+    // An old duplicate ID alone cannot prove ownership, even when that ID is
+    // still assigned to the first term. Preserve its outputs in history and
+    // allocate a fresh identity if neither retained content nor word is unique.
+    let id = submittedId && currentIds.has(submittedId) && (!collided.has(submittedId) || verifiedIds.has(submittedId))
+      ? submittedId
+      : previousIndex === undefined
+        ? submittedId && !collided.has(submittedId) ? submittedId : undefined
+        : previous[previousIndex].id
+    if (!id || assigned.has(id) || ((historical.has(id) || historical.has(`${id}_def`)) && !currentIds.has(id))) {
+      do { id = `gl${String(next++).padStart(3, "0")}` } while (reserved.has(id) || reserved.has(`${id}_def`))
+      reserved.add(id)
+    }
+    assigned.add(id)
+    return { ...item, id }
+  }) }
 }
 
 export function isManualGlossaryItem(item: Pick<GlossaryItem, "source">): boolean {
@@ -100,9 +212,10 @@ export function mergeGeneratedGlossaryWithManualItems(
       mergedItems[existingIndex] = {
         ...generatedItem,
         ...manualItem,
-        id: getGlossaryItemTextId(generatedItem, existingIndex),
+        id: manualItem.id ?? generatedItem.id,
         source: "manual",
       }
+      existingIndexByWord.delete(normalizedWord)
       continue
     }
 
@@ -113,13 +226,8 @@ export function mergeGeneratedGlossaryWithManualItems(
   }
 
   // Re-add pruned AI items so the user can still see / unprune them.
-  const wordsInMerged = new Set(mergedItems.map((item) => normalizeGlossaryWord(item.word)))
   for (const prunedItem of prunedItems) {
-    const normalizedWord = normalizeGlossaryWord(prunedItem.word)
-    if (!wordsInMerged.has(normalizedWord)) {
-      mergedItems.push({ ...prunedItem, source: prunedItem.source ?? "ai", pruned: true })
-      wordsInMerged.add(normalizedWord)
-    }
+    mergedItems.push({ ...prunedItem, source: prunedItem.source ?? "ai", pruned: true })
   }
 
   return {
@@ -145,9 +253,8 @@ function uniqueGlossaryWordIndexes(items: GlossaryItem[]): Map<string, number> {
   return indexes
 }
 
-/** Carry media from unchanged terms into a regenerated glossary. Images live
- * on the glossary entity; videos remain in the reusable video pool and are
- * remapped because positional `glNNN` ids can shift when terms are reordered. */
+/** Carry media from unchanged terms. Stable term IDs retain video assignments;
+ * removed or ambiguous terms lose only their active assignment. */
 function preserveGlossaryMedia(
   regenerated: GlossaryOutput,
   existingItems: GlossaryItem[],
@@ -179,6 +286,7 @@ function preserveGlossaryMedia(
   for (const video of storage.getSignLanguageVideos()) {
     const sectionId = video.sectionId
     if (!sectionId) continue
+    if (items.some(item => item.id === sectionId) && existingIndexByTextId.has(sectionId)) continue
 
     const existingIndex = existingIndexByTextId.get(sectionId)
     let nextSectionId: string | null | undefined
@@ -220,12 +328,12 @@ export function collectPageTexts(
         `Invalid web-rendering output for page: ${page.pageId}: ${parsed.error.message}`
       )
     }
-    const rendering = parsed.data
+    const rendering = withLegacyRenderingOwnership(storage, page.pageId, parsed.data)
     // Filter out pruned sections (resolver: positioned tree for fixed-layout)
     const sectioning = getRenderSectioning(storage, page.pageId)
     const htmlParts = rendering.sections
       .filter(
-        (s) => !sectioning || !sectioning.sections[s.sectionIndex]?.isPruned
+        (s) => !sectioning || !resolveRenderedSection(s, sectioning.sections, rendering.sections)?.isPruned
       )
       .map((s) => s.html)
     const text = stripHtml(htmlParts.join(" "))
@@ -352,13 +460,44 @@ export async function generateGlossary(
 export async function regenerateGlossaryPreservingEdits(
   options: Omit<GenerateGlossaryOptions, "excludedWords">
 ): Promise<GlossaryOutput> {
-  const existingRow = options.storage.getLatestNodeData("glossary", "book")
-  const existingItems = (existingRow?.data as GlossaryOutput | undefined)?.items ?? []
+  // Run may be the first operation on an old book. Resolve positional/explicit
+  // collisions in its original order before generated ordering can choose a
+  // different owner for retained translations, recordings or manual edits.
+  const existingRow = materializeGlossaryIds(options.storage)
+  const existingItems = ((existingRow?.data as GlossaryOutput | undefined)?.items ?? [])
+    .map((item, index) => ({ ...item, id: getGlossaryItemTextId(item, index) }))
   const generated = await generateGlossary({
     ...options,
     excludedWords: getPrunedGlossaryWords(existingItems),
   })
-  const regenerated = mergeGeneratedGlossaryWithManualItems(generated, existingItems)
+  const merged = mergeGeneratedGlossaryWithManualItems(generated, existingItems)
+  // Legacy positional IDs are materialized before merging. Reserve every ID in
+  // history so deleting a term or restoring an old version cannot reassign its
+  // translations, recordings or corrections to a different term.
+  const reserved = new Set([...collectSpentContentIds(options.storage), ...existingItems.map((item) => item.id)])
+  for (const row of options.storage.getAllNodeVersions("glossary", "book")) {
+    const historical = GlossaryOutputSchema.safeParse(row.data)
+    if (historical.success) historical.data.items.forEach((item, index) => reserved.add(getGlossaryItemTextId(item, index)))
+  }
+  const historicalIds = new Set(reserved)
+  for (const item of merged.items) if (item.id) reserved.add(item.id)
+  let next = 1
+  const existingByWord = uniqueGlossaryWordIndexes(existingItems)
+  const generatedByWord = uniqueGlossaryWordIndexes(merged.items)
+  const assigned = new Set<string>()
+  const regenerated = { ...merged, items: merged.items.map((item, index) => {
+    const word = normalizeGlossaryWord(item.word)
+    const previousIndex = generatedByWord.get(word) === index ? existingByWord.get(word) : undefined
+    let id = previousIndex === undefined ? item.id : existingItems[previousIndex].id
+    const retainedIdentity = existingItems.some((previous) => previous.id === id && normalizeGlossaryWord(previous.word) === word)
+    // Seed settings can carry a stale ID from another book or retired term.
+    if (!id || assigned.has(id) || ((historicalIds.has(id) || historicalIds.has(`${id}_def`)) && !retainedIdentity)) {
+      do { id = `gl${String(next++).padStart(3, "0")}` } while (reserved.has(id) || reserved.has(`${id}_def`))
+      reserved.add(id)
+    }
+    assigned.add(id)
+    return { ...item, id }
+  }) }
 
   return preserveGlossaryMedia(regenerated, existingItems, options.storage)
 }

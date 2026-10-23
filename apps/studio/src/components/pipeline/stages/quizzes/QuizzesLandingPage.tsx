@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Plus } from "lucide-react"
+import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -167,8 +168,19 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
             label={<Trans>Quiz frequency</Trans>}
             hint={
               <Trans>
-                How many pages of content go into each quiz. A lower number
-                means more quizzes across the book.
+                How many eligible pages go into each quiz. A lower number means
+                more quizzes across the book. Only pages with the section types
+                chosen in{" "}
+                <Link
+                  to="/books/$label/$step/settings"
+                  params={{ label: bookLabel, step: "quizzes" }}
+                  search={{ tab: "general" }}
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  Quiz settings
+                </Link>{" "}
+                count; covers, the table of contents and pruned sections are
+                skipped.
               </Trans>
             }
           >
