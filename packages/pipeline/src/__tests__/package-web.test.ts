@@ -38,6 +38,15 @@ function createMockStorage(
   pages: PageData[],
   nodeData: Record<string, Record<string, unknown>>,
 ): Storage {
+  // These fixtures are paired source/render publications, not identityless legacy imports.
+  for (const [pageId, value] of Object.entries(nodeData["web-rendering"] ?? {})) {
+    const rendering = value as { sections: Array<{ sectionIndex: number; sectionId?: string }> }
+    const source = (nodeData["fixed-layout-sectioning"]?.[pageId] ?? nodeData["page-sectioning"]?.[pageId]) as { sections: Array<{ sectionId: string }> } | undefined
+    for (const entry of rendering.sections) {
+      const owner = source?.sections[entry.sectionIndex]?.sectionId
+      if (owner) entry.sectionId = owner
+    }
+  }
   return {
     getLatestNodeData(node: string, itemId: string) {
       const data = nodeData[node]?.[itemId]
@@ -47,12 +56,14 @@ function createMockStorage(
     getPageImageBase64: () => "",
     getImageBase64: () => "",
     getPageImages: () => [],
+    getImageMeta: () => null,
     putNodeData: () => 1,
     clearExtractedData: () => {},
     putExtractedPage: () => {},
     appendLlmLog: () => {},
     getSignLanguageVideos: () => [],
     getSignLanguageVideoPath: () => null,
+    getNodeItemIds: () => [],
     getNodeVersionFingerprint: (excludeNodes: string[] = []) =>
       Object.entries(nodeData)
         .filter(([node]) => !excludeNodes.includes(node))
@@ -138,6 +149,37 @@ function createMinimalStorage(): Storage {
 }
 
 describe("renderPageHtml", () => {
+  it("publishes section-owned text answer keys without translating structural answers or rewriting inputs", () => {
+    const answers = { answer1: "sun", activity_gen_legacy: "moon", open: "", numeric: 100, choice: true }
+    const window: Record<string, unknown> = {}
+    for (const sectionId of ["pg012_s2", "pg012_sec003"]) {
+      const html = renderPageHtml({
+        content: '<section><input data-activity-item="answer1"></section>',
+        language: "en", sectionId, pageTitle: "Legacy", pageIndex: 1,
+        hasMath: false, bundleVersion: "1", activityAnswers: answers,
+      })
+      const dom = new JSDOM(html)
+      for (const script of dom.window.document.querySelectorAll("script")) {
+        if (script.textContent?.includes("window.activityAnswerTextIds")) runInNewContext(script.textContent, { window })
+      }
+      expect(window.activityAnswerTextIds).toEqual({
+        answer1: `${sectionId}_ans_answer1`,
+        activity_gen_legacy: `${sectionId}_ans_${sectionId}__activity_gen_legacy`,
+      })
+      expect(dom.window.document.querySelector("input")?.getAttribute("type")).toBeNull()
+      dom.window.close()
+    }
+    const plain = new JSDOM(renderPageHtml({
+      content: "<p>Following page</p>", language: "en", sectionId: "next",
+      pageTitle: "Legacy", pageIndex: 2, hasMath: false, bundleVersion: "1",
+    }))
+    for (const script of plain.window.document.querySelectorAll("script")) {
+      if (script.textContent?.includes("window.activityAnswerTextIds")) runInNewContext(script.textContent, { window })
+    }
+    expect(window.activityAnswerTextIds).toEqual({})
+    plain.window.close()
+  })
+
   it("does not emit font preload links (fonts are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
@@ -1715,7 +1757,7 @@ describe("packageAdtWeb", () => {
     expect(activityHtml).not.toContain('role="activity"')
   })
 
-  it("uses image_associated_text as a fallback alt source for single-image sections", async () => {
+  it("does not use source caption text as an alt fallback when the caption store has no description", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")
     const imagesDir = path.join(bookDir, "images")
@@ -1788,7 +1830,8 @@ describe("packageAdtWeb", () => {
     })
 
     const pageHtml = readFirstPage(path.join(bookDir, "adt"))
-    expect(pageHtml).toContain('alt="A lifecycle diagram with six stages"')
+    expect(pageHtml).toContain('alt=""')
+    expect(pageHtml).not.toContain('alt="A lifecycle diagram with six stages"')
   })
 
   it("sets activities true from the rendered section type, not the sectioning's", async () => {
@@ -1924,7 +1967,7 @@ describe("packageAdtWeb", () => {
     ])
 
     const warning = messages.find((m) => m.startsWith("Warning:"))
-    expect(warning).toContain("skipped 1 rendered section(s) with no sectioning row")
+    expect(warning).toContain("skipped 1 rendered section(s) with no verified section owner")
     expect(warning).toContain("pg001[1]")
   })
 
@@ -2775,13 +2818,23 @@ describe("rewriteImageUrls", () => {
     expect(out).toContain('alt="A labeled diagram"')
   })
 
-  it("preserves existing alt text when caption data is also available", () => {
-    const html = `<img data-id="abc123" src="/api/books/mybook/images/abc123" alt="Existing alt">`
+  it.each([undefined, new Map<string, string>(), new Map([["abc123", "  "]])])(
+    "clears renderer alt when the caption description is missing or blank (%s)",
+    (captions) => {
+      const html = '<img data-id="abc123" src="/api/books/mybook/images/abc123" alt="Stale renderer description">'
+      const { html: output } = rewriteImageUrls(html, "mybook", new Map([["abc123", "photo.jpg"]]), captions)
+      expect(output).toContain('alt=""')
+      expect(output).not.toContain("Stale renderer description")
+    },
+  )
+
+  it("replaces a renderer alt with the caption store's description", () => {
+    const html = `<img data-id="abc123" src="/api/books/mybook/images/abc123" alt="Renderer alt">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
     const altMap = new Map([["abc123", "Caption alt"]])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap, altMap)
-    expect(out).toContain('alt="Existing alt"')
-    expect(out).not.toContain('alt="Caption alt"')
+    expect(out).toContain('alt="Caption alt"')
+    expect(out).not.toContain('alt="Renderer alt"')
   })
 
 

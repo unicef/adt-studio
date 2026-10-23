@@ -65,10 +65,10 @@ describe("CascadeResetDialog", () => {
 
   it("omits the reset block when no stage would be affected", () => {
     // Structural ops confirm even with nothing downstream to lose; an empty
-    // "Will be reset · 0" block would be misleading.
+    // "May need attention · 0" block would be misleading.
     renderDialog({ affectedStages: [] })
 
-    expect(screen.queryByText(/will be reset/i)).toBeNull()
+    expect(screen.queryByText(/may need attention/i)).toBeNull()
     expect(confirmButton()).toBeTruthy()
   })
 

@@ -1,3 +1,9 @@
+import { buildImageInventory } from "../catalog-reconciliation.js"
+import { answerTextId, resolveQuizOptionId } from "@adt/types"
+import { scopeLegacyActivityIds } from "../catalog-reconciliation.js"
+import { reconcileSpeechInputs } from "../speech-inputs.js"
+import { loadCoreTtsProfiles } from "../core-tts.js"
+import { readOutputCatalog } from "../output-catalog.js"
 import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
@@ -6,6 +12,7 @@ import { pathToFileURL } from "node:url"
 import { parseDocument, DomUtils } from "htmlparser2"
 import temml from "temml"
 import type { Storage } from "@adt/storage"
+import { bookAssetExists } from "@adt/storage"
 import type {
   ContentNodeData,
   PageSectioningSection,
@@ -22,7 +29,7 @@ import type {
   TocGenerationOutput,
   Quiz,
   ImageCaptioningOutput,
-  PackagingWarning,
+  PackagingWarning, AppConfig, OutputStatus,
 } from "@adt/types"
 import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
@@ -53,9 +60,10 @@ import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { buildTextCatalog } from "../text-catalog.js"
-import { flattenEasyReadEntries } from "../easy-read.js"
+import { flattenEasyReadEntries, buildEasyReadSourceBlocks } from "../easy-read.js"
+import { activeEasyRead } from "../retained-catalog.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
-import { getRenderSectioning } from "../render-sectioning.js"
+import { renderingOwnershipWarnings } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
 import { orderTocEntries } from "../toc-reading-order.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
@@ -63,6 +71,9 @@ import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.j
 import { buildTailwindCss } from "../tailwind.js"
 
 export interface PackageAdtWebOptions {
+  config?: AppConfig
+  promptsDir?: string
+  configDir?: string
   bookDir: string
   label: string
   language: string
@@ -180,7 +191,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 6
+const PACKAGING_FORMAT_VERSION = 16
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -193,6 +204,8 @@ export interface ComputePackagingInputHashOptions {
   bundleVersion?: string
   applyBodyBackground?: boolean
   config: Record<string, unknown>
+  promptsDir?: string
+  configDir?: string
 }
 
 export function computePackagingInputHash(options: ComputePackagingInputHashOptions): string {
@@ -223,6 +236,13 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   // 3. Book config (affects rendering, accessibility, etc.)
   hash.update(JSON.stringify(options.config))
 
+  // Effective prompt/profile content changes disclosure even when output bytes
+  // are deliberately retained. Include these files in the package cache basis.
+  for (const directory of [options.promptsDir, options.configDir, path.join(options.bookDir, "prompts")]) {
+    if (!directory) continue
+    hash.update(JSON.stringify(collectDirectoryFingerprint(directory).sort((a, b) => a[0].localeCompare(b[0])).map(([file]) => [file, hashValue(fs.readFileSync(path.join(directory, file), "utf8"))])))
+  }
+
   // 4. Sign-language metadata. Assigning or reassigning a video only updates
   // SQLite, so the videos directory fingerprint below does not detect it.
   const signLanguageVideos = options.storage.getSignLanguageVideos()
@@ -234,10 +254,25 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   const assetEntries = collectDirectoryFingerprint(options.webAssetsDir).sort((a, b) => a[0].localeCompare(b[0]))
   hash.update(JSON.stringify(assetEntries))
 
-  // 6. Images directory fingerprint
-  const imagesDir = path.join(options.bookDir, "images")
-  const imageEntries = collectDirectoryFingerprint(imagesDir).sort((a, b) => a[0].localeCompare(b[0]))
-  hash.update(JSON.stringify(imageEntries))
+  // 6. Active asset references and availability. Entity data above records
+  // immutable hashes/filenames. Retained historical files do not invalidate the
+  // package and are never read just to compute its cache key.
+  const activeAssets = new Set<string>()
+  for (const image of buildImageInventory(options.storage)) {
+    const source = options.storage.getImageMeta(image.id)
+    if (source) activeAssets.add(source.relativePath)
+    for (const language of options.outputLanguages) {
+      const translated = options.storage.getLatestNodeData("image-translation", `${image.id}_tr_${language}`)?.data as { relativePath?: string } | undefined
+      const legacy = options.storage.getImageMeta(`${image.id}_tr_${language}`)
+      const relative = translated?.relativePath ?? legacy?.relativePath
+      if (relative) activeAssets.add(relative)
+    }
+  }
+  for (const language of options.storage.getNodeItemIds("tts")) {
+    const output = options.storage.getLatestNodeData("tts", language)?.data as TTSOutput | undefined
+    for (const entry of output?.entries ?? []) activeAssets.add(path.join("audio", language, entry.fileName))
+  }
+  hash.update(JSON.stringify([...activeAssets].sort().map((file) => [file, bookAssetExists(options.bookDir, file)])))
 
   // 7. Videos directory fingerprint
   const videosDir = path.join(options.bookDir, "videos")
@@ -332,17 +367,21 @@ export async function packageAdtWeb(
   // Collect data from storage
   // ------------------------------------------------------------------
   const pages = storage.getPages()
-  const imageMap = buildImageMap(path.join(bookDir, "images"))
+  const imageMap = buildImageMap(path.join(bookDir, "images"), storage)
 
   // Always rebuild the text catalog to avoid staleness; only persist if changed
-  const catalog = await buildTextCatalog(storage, pages)
-  const catalogRow = storage.getLatestNodeData("text-catalog", "book")
-  const storedEntries = catalogRow
-    ? JSON.stringify((catalogRow.data as TextCatalogOutput).entries)
-    : null
-  if (JSON.stringify(catalog.entries) !== storedEntries) {
-    storage.putNodeData("text-catalog", "book", catalog)
-  }
+  const snapshot = await buildTextCatalog(storage, pages)
+  const catalog = { ...snapshot, entries: snapshot.entries.filter((entry) => !entry.locations?.length || entry.locations.some((location) => location.group === "glossary" ? features?.glossary !== false : location.group === "quizzes" ? features?.quizzes !== false : true)) }
+  // Packaging is a projection: opening/exporting does not save a catalog,
+  // accept warnings, or change derivation/review evidence.
+  const resolvedSpeech = options.config ? reconcileSpeechInputs({ storage, config: options.config, sourceLanguage: language,
+    languages: outputLanguages, profiles: loadCoreTtsProfiles(options.configDir ?? path.resolve("config")),
+    promptsDir: options.promptsDir ?? path.resolve("prompts"), bookDir, persist: false }) : undefined
+  const speechEntries = (lang: string) => ((resolvedSpeech?.find((item) => item.language === lang) ?? getCoreTtsCatalog(storage, lang))?.entries ?? []).filter((entry) => !options.config || eligibleIds.has(entry.id))
+  const freshness = options.config ? readOutputCatalog({ storage, config: options.config, bookDir,
+    promptsDir: options.promptsDir ?? path.resolve("prompts"), configDir: options.configDir ?? path.resolve("config") }) : []
+  const included = new Set<string>()
+  const captionConsumers = new Set(buildImageInventory(storage).filter((image) => image.catalogLocations.length > 0).map((image) => image.id))
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
   const glossary = glossaryRow?.data as GlossaryOutput | undefined
@@ -356,9 +395,11 @@ export async function packageAdtWeb(
   const tocRow = storage.getLatestNodeData("toc-generation", "book")
   const llmToc = tocRow?.data as TocGenerationOutput | undefined
 
-  const easyReadRow = storage.getLatestNodeData("easy-read", "book")
-  const easyRead = easyReadRow?.data as EasyReadOutput | undefined
+  const easyRead = options.config
+    ? options.config.easy_read?.enabled ? activeEasyRead(storage, buildEasyReadSourceBlocks(storage, pages)) : undefined
+    : storage.getLatestNodeData("easy-read", "book")?.data as EasyReadOutput | undefined
   const easyReadEntries = flattenEasyReadEntries(easyRead)
+  const eligibleIds = new Set([...catalog.entries, ...easyReadEntries].map((entry) => entry.id))
 
   // ------------------------------------------------------------------
   // Process pages
@@ -372,22 +413,7 @@ export async function packageAdtWeb(
   const copiedImages = new Set<string>()
   // Keep reporting orphaned renderings even though the shared order resolver
   // correctly omits entries without a real sectionId.
-  const orphanedRenderings: PackagingWarning[] = []
-  for (const page of pages) {
-    const sectioning = getRenderSectioning(storage, page.pageId)
-    const row = storage.getLatestNodeData("web-rendering", page.pageId)
-    const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
-    if (!parsed?.success) continue
-    for (const rendering of [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)) {
-      if (!sectioning?.sections[rendering.sectionIndex]) {
-        orphanedRenderings.push({
-          kind: "orphaned-rendering",
-          pageId: page.pageId,
-          sectionIndex: rendering.sectionIndex,
-        })
-      }
-    }
-  }
+  const orphanedRenderings = renderingOwnershipWarnings(storage)
 
   // The book's output sequence — the same resolver the live preview uses, so
   // the two cannot drift.
@@ -448,7 +474,8 @@ export async function packageAdtWeb(
       continue
     }
 
-    const { pageId, section: sectionMeta, rendering: rs, id: sectionId } = item
+    const { pageId, section: sectionMeta, id: sectionId } = item
+    const rs = scopeLegacyActivityIds(item.rendering, sectionId)
     const decorativeImageIds = decorativeImageIdsFor(pageId)
     const editableActivities = editableActivitiesFor(pageId)
 
@@ -558,10 +585,10 @@ export async function packageAdtWeb(
       type: "step-progress",
       step,
       message:
-        `Warning: skipped ${orphanedRenderings.length} rendered section(s) with no sectioning row ` +
+        `Warning: skipped ${orphanedRenderings.length} rendered section(s) with no verified section owner ` +
         `(${orphanedRenderings.map((w) => `${w.pageId}[${w.sectionIndex}]`).join(", ")}). ` +
         `They are absent from the bundle. ` +
-        `Re-run the storyboard render for these pages to bring rendering back in sync with sectioning.`,
+        `Review their section identities in Storyboard before packaging again.`,
     })
   }
 
@@ -661,13 +688,16 @@ export async function packageAdtWeb(
   }
 
   const hasTTS = (features?.readAloud !== false) && outputLanguages.some((lang) => {
-    const readyIds = new Set(getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id))
+    const readyIds = new Set(speechEntries(lang).filter((entry) => entry.speechText).map((entry) => entry.id))
     const legacyLang = lang.replace("-", "_")
     const row =
       storage.getLatestNodeData("tts", lang) ??
       storage.getLatestNodeData("tts", legacyLang)
     const data = row?.data as TTSOutput | undefined
-    return data?.entries.some((entry) => readyIds.has(entry.textId)) === true
+    return data?.entries.some((entry) => readyIds.has(entry.textId) && !isTtsExcluded(entry.textId, speechConfig) &&
+      (options.config
+        ? freshness.some((output) => output.identity.kind === "audio" && output.identity.id === entry.textId && output.identity.language === lang && output.identity.voiceSlot === resolveEntryVoiceSlot(entry) && output.usable && !output.excluded)
+        : fs.existsSync(path.join(bookDir, "audio", lang, entry.fileName)) || fs.existsSync(path.join(bookDir, "audio", legacyLang, entry.fileName)))) === true
   })
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
 
@@ -692,7 +722,8 @@ export async function packageAdtWeb(
         storage.getLatestNodeData("text-catalog-translation", legacyLang)
       if (transRow) {
         const translated = transRow.data as TextCatalogOutput
-        for (const e of translated.entries) textsMap[e.id] = e.text
+        const activeIds = new Set([...catalog.entries, ...easyReadEntries].map((entry) => entry.id))
+        for (const e of translated.entries) if (activeIds.has(e.id) && !Object.hasOwn(textsMap, e.id)) textsMap[e.id] = e.text
       }
     }
     // Convert any LaTeX in text catalog entries to MathML
@@ -702,13 +733,13 @@ export async function packageAdtWeb(
       }
     }
     writeJson(path.join(localeDir, "texts.json"), textsMap)
+    for (const id of Object.keys(textsMap)) for (const kind of ["translation", "caption", "easy-read"]) included.add(JSON.stringify([kind, id, kind === "caption" ? "" : lang, ""]))
 
     // speech_texts.json is intentionally separate from display content. Failed
     // conversions are omitted, which also withholds their audio below.
-    const coreTtsCatalog = getCoreTtsCatalog(storage, lang)
     const speechTextsMap: Record<string, string> = {}
-    for (const entry of coreTtsCatalog?.entries ?? []) {
-      if (entry.status === "ready" && entry.speechText !== null) {
+    for (const entry of speechEntries(lang)) {
+      if ((entry.status === "ready" || entry.fallbackReason) && entry.speechText !== null) {
         speechTextsMap[entry.id] = entry.speechText
       }
     }
@@ -747,6 +778,7 @@ export async function packageAdtWeb(
       if (ttsData?.entries) {
         for (const entry of ttsData.entries) {
           if (!readySpeechIds.has(entry.textId)) continue
+          if (options.config && !freshness.some((output) => output.identity.kind === "audio" && output.identity.id === entry.textId && output.identity.language === lang && output.identity.voiceSlot === resolveEntryVoiceSlot(entry) && output.usable && !output.excluded)) continue
           // Exclusions apply at packaging time too, so muting an element
           // takes effect without regenerating speech.
           if (isTtsExcluded(entry.textId, speechConfig)) continue
@@ -759,6 +791,7 @@ export async function packageAdtWeb(
             const slot = resolveEntryVoiceSlot(entry)
             audioVoices[slot].audios[entry.textId] = entry.fileName
             copiedBySlot[slot].push(entry)
+            included.add(JSON.stringify(["audio", entry.textId, lang, slot]))
           }
         }
       }
@@ -777,18 +810,21 @@ export async function packageAdtWeb(
     const timecodeDir = path.join(localeDir, "timecode")
     fs.mkdirSync(timecodeDir, { recursive: true })
     const timestamps = getWordTimestamps(storage, lang)
+    const timingIds = (slot: "primary" | "secondary") => new Set(copiedBySlot[slot].filter((entry) => !options.config || freshness.some((output) => output.identity.kind === "timestamps" && output.identity.id === entry.textId && output.identity.language === lang && output.identity.voiceSlot === slot && output.usable)).map((entry) => entry.textId))
     const primaryTimecodes = highlightEnabled
-      ? buildRuntimeTimecodeMap(timestamps, speechConfig, readySpeechIds, "primary")
+      ? buildRuntimeTimecodeMap(timestamps, speechConfig, timingIds("primary"), "primary")
       : {}
     writeJson(path.join(timecodeDir, "timecode_output.json"), primaryTimecodes)
     if (Object.keys(audioVoices.secondary.audios).length > 0) {
       writeJson(path.join(timecodeDir, "timecode_voices.json"), {
         primary: primaryTimecodes,
         secondary: highlightEnabled
-          ? buildRuntimeTimecodeMap(timestamps, speechConfig, readySpeechIds, "secondary")
+          ? buildRuntimeTimecodeMap(timestamps, speechConfig, timingIds("secondary"), "secondary")
           : {},
       })
     }
+
+    if (highlightEnabled) for (const slot of ["primary", "secondary"] as const) for (const id of timingIds(slot)) included.add(JSON.stringify(["timestamps", id, lang, slot]))
 
     // videos.json — map sectionId → video filename for assigned sign language
     // videos. Files live in a "video/" directory beside this manifest.
@@ -845,7 +881,8 @@ export async function packageAdtWeb(
     for (const originalImageId of copiedImages) {
       const variantId = `${originalImageId}${variantSuffix}`
       const variantFilename = imageMap.get(variantId)
-      if (!variantFilename) continue
+      if (!variantFilename || options.config && (!options.config.image_translation?.enabled || !options.config.image_translation.selected_image_ids?.includes(originalImageId))) continue
+      if (options.config && !freshness.some((output) => output.identity.kind === "image-translation" && output.identity.id === originalImageId && output.identity.language === lang && output.usable)) continue
       const destPath = path.join(imageDir, variantFilename)
       if (!fs.existsSync(destPath)) {
         fs.copyFileSync(
@@ -854,8 +891,17 @@ export async function packageAdtWeb(
         )
       }
       imagesMap[originalImageId] = variantFilename
+      included.add(JSON.stringify(["image-translation", originalImageId, lang, ""]))
     }
     writeJson(path.join(localeDir, "images.json"), imagesMap)
+    const disclosure = freshness.filter((output) => !output.excluded && (!output.identity.language || output.identity.language === lang) &&
+      (output.identity.kind !== "caption" || captionConsumers.has(output.identity.id)) &&
+      (output.group !== "glossary" || features?.glossary !== false || output.sectionIds.length > 0 || copiedImages.has(output.identity.id)) &&
+      (!output.group || output.group !== "quizzes" || features?.quizzes !== false) &&
+      (!["audio", "preparation", "timestamps"].includes(output.identity.kind) || features?.readAloud !== false))
+      .filter((output) => output.updateNeeded || output.missing || output.warnings.length)
+      .map((output) => ({ ...output, included: output.identity.kind === "preparation" ? !!speechTextsMap[output.identity.id] : included.has(JSON.stringify([output.identity.kind, output.identity.id, output.identity.language ?? "", output.identity.voiceSlot ?? ""])) }))
+    writeJson(path.join(localeDir, "freshness.json"), { outputs: disclosure })
 
     if (features?.glossary !== false) {
       const glossaryJson = buildGlossaryJson(
@@ -1209,10 +1255,18 @@ function fixedLayoutWebFit(dockReserveFallbackPx: number): { headStyle: string; 
           c.style.transform = "translate(-50%, -50%) scale(" + s + ")";
           c.style.visibility = "visible";
         }
+        // Re-executed on every in-place page swap, so drop the previous
+        // page's listeners (they close over a detached #content) first.
+        if (window.__adtFlFitDispose) window.__adtFlFitDispose();
         fit();
         window.addEventListener("resize", fit);
         window.addEventListener("load", fit);
         window.addEventListener("adt:dock-resize", fit);
+        window.__adtFlFitDispose = function () {
+          window.removeEventListener("resize", fit);
+          window.removeEventListener("load", fit);
+          window.removeEventListener("adt:dock-resize", fit);
+        };
       })();
     </script>`
   return { headStyle, bodyScript }
@@ -1345,10 +1399,20 @@ export function renderPageHtml(opts: RenderPageOptions): string {
   // so no client-side math library is needed.
   const mathScript = ""
 
-  const answersScript =
+  // Keep answer identities aligned with text-catalog.ts, including historical
+  // generated keys. String values receive IDs, but only free-text validators
+  // consult this map; choice/slot validators retain their structural rules.
+  const answerTextIds = Object.fromEntries(
+    Object.entries(opts.activityAnswers ?? {})
+      .filter(([, answer]) => typeof answer === "string" && answer.length > 0)
+      .map(([key]) => [key, answerTextId(opts.sectionId,
+        key.startsWith("activity_gen_") ? `${opts.sectionId}__${key}` : key)]),
+  )
+  const answerTextIdsScript = `\n    <script type="text/javascript">\n        window.activityAnswerTextIds = JSON.parse('${escapeInlineScriptJson(JSON.stringify(answerTextIds))}');\n    </script>`
+  const answersScript = answerTextIdsScript + (
     opts.activityAnswers && Object.keys(opts.activityAnswers).length > 0
       ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
-      : ""
+      : "")
 
   // Stepper JSON payloads are masked for the whole assembly below — the
   // regex passes over the page HTML (contenteditable strip, background-color
@@ -1636,10 +1700,10 @@ export function renderQuizHtml(
   const explanationMapping: Record<string, string> = {}
 
   for (let i = 0; i < quiz.options.length; i++) {
-    const optionId = `${quizId}_o${i}`
+    const optionId = resolveQuizOptionId(quiz.options[i], quizId, i)
     correctAnswers[optionId] = i === quiz.answerIndex
 
-    const expId = `${quizId}_o${i}_exp`
+    const expId = `${resolveQuizOptionId(quiz.options[i], quizId, i)}_exp`
     if (texts.has(expId)) {
       explanationMapping[optionId] = expId
     }
@@ -1647,7 +1711,7 @@ export function renderQuizHtml(
 
   let optionsHtml = ""
   for (let i = 0; i < quiz.options.length; i++) {
-    const optionId = `${quizId}_o${i}`
+    const optionId = resolveQuizOptionId(quiz.options[i], quizId, i)
     const optionText = texts.get(optionId) ?? quiz.options[i].text
     const expId = explanationMapping[optionId]
     const expText = expId ? (texts.get(expId) ?? quiz.options[i].explanation) : ""
@@ -1738,7 +1802,7 @@ ${JSON.stringify(explanationMapping)}
 export function buildQuizAnswers(quiz: Quiz, quizId: string): Record<string, boolean> {
   const answers: Record<string, boolean> = {}
   for (let i = 0; i < quiz.options.length; i++) {
-    answers[`${quizId}_o${i}`] = i === quiz.answerIndex
+    answers[resolveQuizOptionId(quiz.options[i], quizId, i)] = i === quiz.answerIndex
   }
   return answers
 }
@@ -1748,45 +1812,39 @@ export function buildQuizAnswers(quiz: Quiz, quizId: string): Record<string, boo
 // ---------------------------------------------------------------------------
 
 /** Scan the images directory and build imageId → filename map */
-export function buildImageMap(imagesDir: string): Map<string, string> {
+export function buildImageMap(imagesDir: string, storage?: Storage): Map<string, string> {
   const map = new Map<string, string>()
   if (!fs.existsSync(imagesDir)) return map
 
   for (const file of fs.readdirSync(imagesDir)) {
     const ext = path.extname(file)
     if (ext === ".jpg" || ext === ".png") {
-      const id = path.basename(file, ext)
+      const id = path.basename(file, ext).replace(/--[a-f0-9]{64}$/, "")
+      const meta = storage?.getImageMeta(id)
+      if (storage && id.includes("_tr_") && !meta) continue
+      if (meta && path.basename(meta.relativePath) !== file) continue
       map.set(id, file)
     }
   }
   return map
 }
 
-function loadImageCaptionMap(storage: Storage, pageId: string): Map<string, string> {
-  const row = storage.getLatestNodeData("image-captioning", pageId)
-  if (!row) return new Map<string, string>()
-
-  const data = row.data as ImageCaptioningOutput
-  const map = new Map<string, string>()
-  for (const caption of data.captions ?? []) {
-    if (caption.caption?.trim()) {
-      map.set(caption.imageId, caption.caption.trim())
-    }
+function pageCaptions(storage: Storage, pageId: string): ImageCaptioningOutput["captions"] {
+  const local = (storage.getLatestNodeData("image-captioning", pageId)?.data as ImageCaptioningOutput | undefined)?.captions ?? []
+  const captions = new Map(local.map((entry) => [entry.imageId, entry]))
+  for (const image of buildImageInventory(storage)) {
+    if (!image.pageIds.includes(pageId) || !image.pageId || image.pageId === pageId) continue
+    const owner = storage.getLatestNodeData("image-captioning", image.pageId)?.data as ImageCaptioningOutput | undefined
+    const caption = owner?.captions.find((entry) => entry.imageId === image.id)
+    if (caption) captions.set(image.id, caption)
   }
-  return map
+  return [...captions.values()]
 }
-
-/** Build the set of image IDs the user has marked as decorative for a page. */
+function loadImageCaptionMap(storage: Storage, pageId: string): Map<string, string> {
+  return new Map(pageCaptions(storage, pageId).filter((entry) => entry.caption?.trim()).map((entry) => [entry.imageId, entry.caption.trim()]))
+}
 export function buildDecorativeImageIdSet(storage: Storage, pageId: string): Set<string> {
-  const row = storage.getLatestNodeData("image-captioning", pageId)
-  const ids = new Set<string>()
-  if (!row) return ids
-
-  const data = row.data as ImageCaptioningOutput
-  for (const caption of data.captions ?? []) {
-    if (caption.decorative) ids.add(caption.imageId)
-  }
-  return ids
+  return new Set(pageCaptions(storage, pageId).filter((entry) => entry.decorative).map((entry) => entry.imageId))
 }
 
 /** Collect every non-pruned image_group node in a section along with its image id. */
@@ -1804,35 +1862,6 @@ function collectImageGroups(section: PageSectioningSection): Array<{ group: Cont
   }
   for (const n of section.nodes) walk(n)
   return out
-}
-
-/** Collect all non-pruned leaf texts matching a role within a subtree. */
-function collectLeafTextsByRole(node: ContentNodeData, role: string): string[] {
-  const out: string[] = []
-  const walk = (n: ContentNodeData): void => {
-    if (n.isPruned) return
-    if (n.role === role && n.text) {
-      const trimmed = n.text.replace(/\s+/g, " ").trim()
-      if (trimmed.length > 0) out.push(trimmed)
-    }
-    if (n.children) {
-      for (const c of n.children) walk(c)
-    }
-  }
-  walk(node)
-  return out
-}
-
-function buildSectionImageAltMap(section: PageSectioningSection): Map<string, string> {
-  const imageGroups = collectImageGroups(section)
-  const map = new Map<string, string>()
-  if (imageGroups.length !== 1) return map
-
-  const captions = collectLeafTextsByRole(imageGroups[0].group, "caption")
-  if (captions.length === 0) return map
-
-  map.set(imageGroups[0].imageId, captions.join(" "))
-  return map
 }
 
 function applyDuplicateImageAltPolicy(
@@ -1865,13 +1894,10 @@ export function buildPreferredImageAltMap(
   pageId: string,
   section?: PageSectioningSection,
 ): Map<string, string> {
-  const imageCaptionMap = loadImageCaptionMap(storage, pageId)
-  const sectionImageAltMap = section ? buildSectionImageAltMap(section) : new Map<string, string>()
-  const preferredImageAltMap = new Map(sectionImageAltMap)
-  for (const [imageId, altText] of imageCaptionMap) {
-    preferredImageAltMap.set(imageId, altText)
-  }
-  return section ? applyDuplicateImageAltPolicy(section, preferredImageAltMap) : preferredImageAltMap
+  // Source caption-role text and renderer alt attributes are retained authoring
+  // data, but are not image descriptions. Only the caption store supplies alt.
+  const captions = loadImageCaptionMap(storage, pageId)
+  return section ? applyDuplicateImageAltPolicy(section, captions) : captions
 }
 
 /** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
@@ -1922,11 +1948,10 @@ export function rewriteImageUrls(
       img.attribs.role = "presentation"
       img.attribs["aria-hidden"] = "true"
     } else {
-      const hasPreferredAlt = imageIdForAlt ? altTextByImageId?.has(imageIdForAlt) ?? false : false
       const altText = imageIdForAlt ? altTextByImageId?.get(imageIdForAlt)?.trim() ?? "" : ""
-      if (hasPreferredAlt && (img.attribs.alt === undefined || img.attribs.alt.trim() === "")) {
-        img.attribs.alt = altText
-      }
+      // The caption store is the only source of an image description; the
+      // renderer's own alt attribute is never authoritative (decision 2026-10-16).
+      img.attribs.alt = altText
     }
   }
 
@@ -2390,7 +2415,7 @@ async function renderAgentsMd(
     const correctAnswers: Record<string, boolean> = {}
     const explanations: Record<string, string> = {}
     const options = quiz.options.map((opt, i) => {
-      const optId = `${quizId}_o${i}`
+      const optId = resolveQuizOptionId(quiz.options[i], quizId, i)
       const expId = `${optId}_exp`
       correctAnswers[optId] = i === quiz.answerIndex
       explanations[optId] = expId
@@ -2624,6 +2649,20 @@ function generateScormAdapter(
   }
 
   API.LMSCommit('');
+
+  // --- Soft navigation ---
+  // Served bundles turn pages in place (no document load), so the location
+  // has to be re-reported and progress committed on every page change instead
+  // of only on unload.
+  document.addEventListener('adt:page-changed', function (event) {
+    var nextId = event && event.detail ? event.detail.sectionId : null;
+    if (nextId) {
+      pageId = nextId;
+      API.LMSSetValue('cmi.core.lesson_location', pageId);
+    }
+    if (hasActivities) applyStatus();
+    API.LMSCommit('');
+  });
 
   // --- Session close ---
   window.addEventListener('beforeunload', function () {

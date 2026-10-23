@@ -131,6 +131,7 @@
     "success-try-next-activity": "¡Buen trabajo! ¡Intenta la siguiente actividad!",
     "previous-page": "Página anterior",
     "next-page": "Página siguiente",
+    "page-n-of-m": "Página ${n} de ${m}",
     "sign-language-quick-toggle-label": "Botón de activación rápida de lengua de señas",
     "character-profile-emoji": "Emoji de perfil",
     "notepad-open-label": "Abrir el bloc de notas",

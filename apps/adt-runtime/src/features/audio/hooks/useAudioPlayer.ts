@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react"
 import {
   activeMediaAtom,
   audioSpeedAtom,
@@ -14,6 +14,7 @@ import {
 } from "@/features/audio/state/audio.atoms"
 import {
   audioFilesAtom,
+  audioLanguageAtom,
   audioVoicesAtom,
   currentLanguageAtom,
   narratorVoiceAtom,
@@ -21,6 +22,7 @@ import {
   speechTextsAtom,
   translationsAtom,
 } from "@/features/language/state/language.atoms"
+import { pageEpochAtom } from "@/features/navigation/state/nav.atoms"
 import { easyReadModeAtom } from "@/shared/state/ui.atoms"
 import {
   clearBlockHighlight,
@@ -161,12 +163,14 @@ export function useAudioPlayer(): UseAudioPlayer {
   const translations = useAtomValue(translationsAtom)
   const speechTexts = useAtomValue(speechTextsAtom)
   const language = useAtomValue(currentLanguageAtom) as string
+  const audioLanguage = useAtomValue(audioLanguageAtom)
   const easyReadMode = useAtomValue(easyReadModeAtom) as boolean
   const speed = useAtomValue(audioSpeedAtom) as number
   const volume = useAtomValue(audioVolumeAtom) as number
   const autoplayMode = useAtomValue(autoplayModeAtom) as boolean
   const readAloudMode = useAtomValue(readAloudModeAtom) as boolean
   const setReadAloudMode = useSetAtom(readAloudModeAtom)
+  const pageEpoch = useAtomValue(pageEpochAtom)
   const wordHighlightMode = useAtomValue(wordHighlightModeAtom) as boolean
   const describeImagesMode = useAtomValue(describeImagesModeAtom) as boolean
   const timecodeMaps = useAtomValue(timecodeMapsAtom)
@@ -176,11 +180,20 @@ export function useAudioPlayer(): UseAudioPlayer {
   const volumeRef = useRef(volume)
   const initialResumeRef = useRef<boolean>(isPlaying || autoplayMode)
   const narratorVoiceRef = useRef(narratorVoice)
+  const selectedLanguageRef = useRef(language)
+  const settledLanguageRef = useRef(audioLanguage)
+  const resumeAfterLanguageLoadRef = useRef(false)
+  const selectedItemRef = useRef<{ id: string; pageEpoch: number } | null>(null)
+  const readyItemsRef = useRef<{ items: PlayableItem[]; pageEpoch: number } | null>(null)
 
   wordHighlightModeRef.current = wordHighlightMode
   speedRef.current = speed
   volumeRef.current = volume
 
+  // `pageEpoch` is a dependency, not a decoration: an in-place page swap
+  // replaces <main> without changing any of the other inputs, so without it
+  // this memo would keep serving `el` references into the detached previous
+  // page and read-aloud would narrate content that is no longer on screen.
   const items = useMemo(() => {
     const all = gatherPlayableItems(
       audioFiles,
@@ -190,7 +203,17 @@ export function useAudioPlayer(): UseAudioPlayer {
     )
     if (describeImagesMode) return all
     return all.filter((item) => item.el.tagName.toLowerCase() !== "img")
-  }, [audioFiles, translations, speechTexts, easyReadMode, describeImagesMode])
+  }, [audioFiles, translations, speechTexts, easyReadMode, describeImagesMode, pageEpoch])
+
+  // A partial language response can change which recordings are available
+  // before the complete catalog publishes. Keep pending controls anchored to
+  // the last ready page's order; resolve their selected data ID on publication.
+  useEffect(() => {
+    if (language === audioLanguage) readyItemsRef.current = { items, pageEpoch }
+  }, [language, audioLanguage, items, pageEpoch])
+  const navigationItems = language !== audioLanguage && readyItemsRef.current?.pageEpoch === pageEpoch
+    ? readyItemsRef.current.items
+    : items
 
   const teardownActive = useCallback(() => {
     const active = activeRef.current
@@ -239,6 +262,9 @@ export function useAudioPlayer(): UseAudioPlayer {
   )
 
   const stopAndClear = useCallback(() => {
+    // Resolving/rejecting play() may outlive pause(), load(), or an unmount.
+    // Both initial play and resume must lose ownership at this boundary.
+    playSessionRef.current++
     teardownActive()
     const audio = audioRef.current
     if (!audio) return
@@ -254,20 +280,38 @@ export function useAudioPlayer(): UseAudioPlayer {
   useEffect(() => {
     if (narratorVoiceRef.current === narratorVoice) return
     narratorVoiceRef.current = narratorVoice
+    // A language may add/remove a narrator and thereby change the effective
+    // voice. That must not discard the target queued during its catalog load.
+    if (language === audioLanguage && settledLanguageRef.current === language) {
+      selectedItemRef.current = null
+      setCurrentIndex(0)
+    }
     stopAndClear()
     setIsPlaying(false)
-    setCurrentIndex(0)
-  }, [narratorVoice, setCurrentIndex, setIsPlaying, stopAndClear])
+  }, [narratorVoice, language, audioLanguage, setCurrentIndex, setIsPlaying, stopAndClear])
 
   const playAtIndex = useCallback(
     (index: number) => {
       hasAutoStartedRef.current = true
-      const session = ++playSessionRef.current
-      if (index < 0 || index >= items.length) {
+      const requestedItem = navigationItems[index]
+      if (!requestedItem) {
+        resumeAfterLanguageLoadRef.current = false
         stopAndClear()
         setIsPlaying(false)
         return
       }
+      selectedItemRef.current = {
+        id: requestedItem.el.getAttribute("data-id") ?? requestedItem.id,
+        pageEpoch,
+      }
+      setCurrentIndex(index)
+      if (language !== audioLanguage) {
+        resumeAfterLanguageLoadRef.current = true
+        stopAndClear()
+        setIsPlaying(false)
+        return
+      }
+      const session = ++playSessionRef.current
       const item = items[index]
       const url = `./content/i18n/${language}/audio/${item.filename}`
 
@@ -336,7 +380,6 @@ export function useAudioPlayer(): UseAudioPlayer {
 
       setupHighlight(item, audio)
 
-      setCurrentIndex(index)
       audio
         .play()
         .then(() => {
@@ -353,7 +396,10 @@ export function useAudioPlayer(): UseAudioPlayer {
     },
     [
       items,
+      navigationItems,
+      pageEpoch,
       language,
+      audioLanguage,
       setIsPlaying,
       setCurrentIndex,
       setActiveMedia,
@@ -365,15 +411,20 @@ export function useAudioPlayer(): UseAudioPlayer {
   )
 
   const pause = useCallback(() => {
+    resumeAfterLanguageLoadRef.current = false
+    playSessionRef.current++
     const audio = audioRef.current
-    if (!audio || audio.paused) return
-    audio.pause()
+    if (audio && !audio.paused) audio.pause()
     setIsPlaying(false)
   }, [setIsPlaying])
 
   const play = useCallback(() => {
-    if (items.length === 0) return
+    if (navigationItems.length === 0) return
     setReadAloudMode(true)
+    if (language !== audioLanguage) {
+      playAtIndex(currentIndex || 0)
+      return
+    }
     const audio = audioRef.current
     if (
       audio &&
@@ -381,18 +432,24 @@ export function useAudioPlayer(): UseAudioPlayer {
       audio.currentTime > 0 &&
       audio.currentTime < audio.duration
     ) {
+      const session = ++playSessionRef.current
       audio
         .play()
         .then(() => {
+          if (session !== playSessionRef.current) return
           setActiveMedia("tts")
           setIsPlaying(true)
         })
-        .catch(() => setIsPlaying(false))
+        .catch(() => {
+          if (session === playSessionRef.current) setIsPlaying(false)
+        })
       return
     }
     playAtIndex(currentIndex || 0)
   }, [
-    items.length,
+    navigationItems.length,
+    language,
+    audioLanguage,
     currentIndex,
     playAtIndex,
     setActiveMedia,
@@ -407,22 +464,49 @@ export function useAudioPlayer(): UseAudioPlayer {
   }, [pause, play])
 
   const playNext = useCallback(() => {
-    if (items.length === 0) return
-    const next = Math.min(currentIndex + 1, items.length - 1)
+    if (navigationItems.length === 0) return
+    const next = Math.min(currentIndex + 1, navigationItems.length - 1)
     playAtIndex(next)
-  }, [currentIndex, items.length, playAtIndex])
+  }, [currentIndex, navigationItems.length, playAtIndex])
 
   const playPrevious = useCallback(() => {
-    if (items.length === 0) return
+    if (navigationItems.length === 0) return
     const prev = Math.max(currentIndex - 1, 0)
     playAtIndex(prev)
-  }, [currentIndex, items.length, playAtIndex])
+  }, [currentIndex, navigationItems.length, playAtIndex])
 
   const stop = useCallback(() => {
+    resumeAfterLanguageLoadRef.current = false
+    selectedItemRef.current = null
     stopAndClear()
     setIsPlaying(false)
     setCurrentIndex(0)
   }, [stopAndClear, setIsPlaying, setCurrentIndex])
+
+  // Page turned in place. The audio element and every playback atom survived,
+  // but the nodes they referred to did not: stop the track that belongs to the
+  // previous page, rewind to its first item, and — if the reader was listening
+  // — pick up on the new one. This mirrors what a full document reload does
+  // via the persisted `isPlaying` flag.
+  //
+  // Self-contained rather than delegating to the auto-start effect below,
+  // whose `items.length` dependency does not change between two pages that
+  // happen to hold the same number of readable blocks.
+  const onPageTurned = useEffectEvent(() => {
+    selectedItemRef.current = null
+    initialResumeRef.current = isPlaying || autoplayMode
+    stopAndClear()
+    setCurrentIndex(0)
+    hasAutoStartedRef.current = false
+    if (!readAloudMode || !isPlaying) return
+    hasAutoStartedRef.current = true
+    playAtIndex(0)
+  })
+
+  useEffect(() => {
+    if (pageEpoch <= 1) return
+    onPageTurned()
+  }, [pageEpoch])
 
   useEffect(() => {
     if (hasAutoStartedRef.current) return
@@ -435,6 +519,8 @@ export function useAudioPlayer(): UseAudioPlayer {
 
   useEffect(() => {
     if (readAloudMode) return
+    resumeAfterLanguageLoadRef.current = false
+    selectedItemRef.current = null
     stopAndClear()
     setIsPlaying(false)
     setCurrentIndex(0)
@@ -442,6 +528,8 @@ export function useAudioPlayer(): UseAudioPlayer {
 
   useEffect(() => {
     if (activeMedia !== "sign-language") return
+    resumeAfterLanguageLoadRef.current = false
+    selectedItemRef.current = null
     stopAndClear()
     setIsPlaying(false)
     setCurrentIndex(0)
@@ -462,9 +550,32 @@ export function useAudioPlayer(): UseAudioPlayer {
     if (audioRef.current) audioRef.current.volume = Math.max(0, Math.min(1, volume))
   }, [volume])
 
+  // Selection changes before async catalogs arrive. Never combine a new
+  // language directory with the previous language's manifest filenames.
+  // Resume only after the current DOM/catalog/timings have all published.
+  const onLanguageReady = useEffectEvent(() => {
+    if (selectedLanguageRef.current !== language) {
+      selectedLanguageRef.current = language
+      settledLanguageRef.current = null
+      resumeAfterLanguageLoadRef.current = resumeAfterLanguageLoadRef.current || isPlaying
+      stopAndClear()
+      setIsPlaying(false)
+    }
+    if (audioLanguage !== language) return
+    settledLanguageRef.current = language
+    const resume = resumeAfterLanguageLoadRef.current && readAloudMode
+    resumeAfterLanguageLoadRef.current = false
+    const selected = selectedItemRef.current
+    const index = selected?.pageEpoch === pageEpoch
+      ? items.findIndex((item) => (item.el.getAttribute("data-id") ?? item.id) === selected.id)
+      : 0
+    setCurrentIndex(Math.max(0, index))
+    if (resume && index >= 0) playAtIndex(index)
+  })
+
   useEffect(() => {
-    if (isPlaying && audioRef.current) playAtIndex(currentIndex)
-  }, [language])
+    onLanguageReady()
+  }, [language, audioLanguage])
 
   // When Easy Read mode toggles, the on-screen text has already swapped (via
   // applyTranslationsToDOM) and `items` has been rebuilt to point at the
@@ -495,7 +606,7 @@ export function useAudioPlayer(): UseAudioPlayer {
 
   return {
     isPlaying,
-    hasItems: items.length > 0,
+    hasItems: navigationItems.length > 0,
     play,
     pause,
     togglePlayPause,

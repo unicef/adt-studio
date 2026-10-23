@@ -5,6 +5,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
+import { resolvePathWithin } from "../utils/path-security.js"
 
 const SAFE_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/
 const AssignBody = z.object({ sectionId: z.string().regex(SAFE_ID_RE).nullable() })
@@ -97,9 +98,14 @@ export function createSignLanguageVideoRoutes(booksDir: string): Hono {
       throw new HTTPException(400, { message: "Invalid video ID" })
     }
 
-    const storage = createBookStorage(label, booksDir)
+    const safeLabel = parseBookLabel(label)
+    const videosDir = resolvePathWithin(booksDir, safeLabel, "videos")
+    if (!videosDir) throw new HTTPException(403, { message: "Forbidden" })
+    const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const filePath = storage.getSignLanguageVideoPath(videoId)
+      const storedPath = storage.getSignLanguageVideoPath(videoId)
+      const filePath = storedPath ? resolvePathWithin(videosDir, storedPath) : null
+      if (storedPath && !filePath) throw new HTTPException(403, { message: "Forbidden" })
       if (!filePath || !fs.existsSync(filePath)) {
         throw new HTTPException(404, { message: `Video not found: ${videoId}` })
       }

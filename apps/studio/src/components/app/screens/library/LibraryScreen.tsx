@@ -24,12 +24,12 @@ export function LibraryScreen() {
   if (isLoading || error) return <ScreenFallback error={error} />
 
   return (
-    <div className="relative flex h-full flex-col bg-background pt-10">
-      <TopBar className="absolute top-0 drag-region" />
+    <div className="relative flex h-full flex-col bg-background">
+      <TopBar className="shrink-0 drag-region" />
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {books.length === 0 ? (
-          <div className="flex h-full flex-col px-[30px] pb-10 pt-1">
+          <div className="flex h-full flex-col px-[30px] pb-10 pt-4">
             <div className="mb-1.5 text-2xl font-bold leading-none tracking-[-0.02em]">
               <Trans>Library</Trans>
             </div>
