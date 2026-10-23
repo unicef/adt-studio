@@ -180,6 +180,8 @@
     "comments-mode-label": "Commenter",
     "comments-mode-hint": "Cliquez n'importe où sur la page pour laisser un commentaire",
     "comments-mode-exit-label": "Terminer les commentaires",
+    "comments-mode-active-label": "Mode commentaire",
+    "comments-add-label": "Ajouter un commentaire",
     "comments-closed-label": "Ce lien n'accepte plus de commentaires",
     "comments-count-label": "${count} commentaires sur cette page",
     "comments-empty-label": "Aucun commentaire sur cette page pour l'instant",

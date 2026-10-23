@@ -190,8 +190,10 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
       announceToScreenReader(t("comments-move-cancelled-label"))
       return
     }
+    /** An open thread is closed by this same Esc below; leaving comment mode waits for the next. */
+    if (openThreadId) return
     setCommentMode(false)
-  }, [movingId, setCommentMode, t])
+  }, [movingId, openThreadId, setCommentMode, t])
 
   const walkerActive = ((commentMode as boolean) && !draft) || movingId !== null
   const walker = useContentWalker({
@@ -243,6 +245,8 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
     return () => window.clearTimeout(timer)
   }, [flashedId, setFlashed])
 
+  /** Esc steps back one layer at a time: the open box first, then comment mode itself. A pin
+   *  being moved is the walker's to cancel. */
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return
@@ -250,28 +254,34 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
         setDraft(null)
         return
       }
-      if (openThreadId) closeThread()
+      if (openThreadId) {
+        closeThread()
+        return
+      }
+      if (movingId) return
+      if (commentMode as boolean) setCommentMode(false)
     }
     document.addEventListener("keydown", onKeyDown)
     return () => document.removeEventListener("keydown", onKeyDown)
-  }, [closeThread, draft, openThreadId, setDraft])
+  }, [closeThread, commentMode, draft, movingId, openThreadId, setCommentMode, setDraft])
 
   /** Where the "+" pin stood when its comment was posted. The new comment is not measured until
    *  the next frame; without this it would be drawn for that frame in the page-level stack beside
    *  the page, and appear to come from there. */
   const postedPointRef = useRef<{ id: string; x: number; y: number } | null>(null)
 
+  /** Comment mode stays on after a post, as a review tool's comment tool does: the next click on
+   *  the page starts the next comment. */
   const onRootPosted = useCallback(
     async (comment: PublishComment) => {
       if (draftPoint) postedPointRef.current = { id: comment.id, x: draftPoint.x, y: draftPoint.y }
       setDraft(null)
-      setCommentMode(false)
       await refresh()
       setOpenThreadId(comment.id)
       setSettling(comment.id)
       announceToScreenReader(t("comments-posted-label"))
     },
-    [draftPoint, refresh, setCommentMode, setDraft, setOpenThreadId, setSettling, t],
+    [draftPoint, refresh, setDraft, setOpenThreadId, setSettling, t],
   )
 
   const openThread = useCallback(

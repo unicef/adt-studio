@@ -171,6 +171,8 @@
     "comments-mode-label": "Comentar",
     "comments-mode-hint": "Clique em qualquer lugar da página para deixar um comentário",
     "comments-mode-exit-label": "Concluir comentários",
+    "comments-mode-active-label": "Comentando",
+    "comments-add-label": "Adicionar um comentário",
     "comments-closed-label": "Este link não aceita mais comentários",
     "comments-count-label": "${count} comentários nesta página",
     "comments-empty-label": "Ainda não há comentários nesta página",
