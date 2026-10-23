@@ -533,6 +533,9 @@ export interface PublishExportOptions {
   booksDir: string
   webAssetsDir: string
   configPath?: string
+  /** The prompts the export fingerprints speech preparation against — the same directory the
+   *  rest of the API uses. Left out, the export resolves `prompts/` from the working directory. */
+  promptsDir?: string
   prepareExportFn?: typeof prepareExport
   /** What to leave out of the snapshot. Absent publishes the whole book. */
   features?: PublishFeatureSelection
@@ -591,6 +594,8 @@ async function buildSnapshot(
       options.webAssetsDir,
       options.configPath,
       options.features,
+      undefined,
+      options.promptsDir,
     )
   } catch (error) {
     throw new PublishStepError("export_failed", "export", describeHttp(error))

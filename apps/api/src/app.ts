@@ -150,6 +150,7 @@ app.route(
     webAssetsDir,
     configPath,
     projectRoot,
+    promptsDir,
   }),
 )
 

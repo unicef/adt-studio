@@ -376,6 +376,23 @@ describe("updating a published book", () => {
 
     expect(seen).toEqual([{ readAloud: false }])
   })
+
+  /** The export fingerprints speech preparation against the prompts. Left to its default it
+   *  resolves `prompts/` from the working directory, which is not the API's prompts under
+   *  `pnpm dev` or a custom PROMPTS_DIR — and the shared copy then lost its prepared speech. */
+  it("hands the API's prompts directory to the export", async () => {
+    const { options } = harness()
+    const seen: unknown[] = []
+    const recordPromptsDir = (async (...args: unknown[]) => {
+      seen.push(args[7])
+      return {}
+    }) as never
+
+    const first = await publishBook({ ...options, promptsDir: "/srv/adt/prompts", prepareExportFn: recordPromptsDir })
+    await republishBook({ ...options, record: first.record, promptsDir: "/srv/adt/prompts", prepareExportFn: recordPromptsDir })
+
+    expect(seen).toEqual(["/srv/adt/prompts", "/srv/adt/prompts"])
+  })
 })
 
 describe("the book host version", () => {
