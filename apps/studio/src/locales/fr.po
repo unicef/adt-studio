@@ -2748,8 +2748,8 @@ msgstr "Choisissez une image existante de ce projet"
 msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
 msgstr "Choisissez un modèle existant ou saisissez un nouvel id provider:model. La création de fichiers enregistre le modèle dans les paramètres globaux des prompts et copie le contenu actuel du prompt de base dans les versions propres au modèle qui manquent."
 
-msgid "Choose Cloudflare for hosting"
-msgstr "Choisissez Cloudflare pour l’hébergement"
+#~ msgid "Choose Cloudflare for hosting"
+#~ msgstr "Choisissez Cloudflare pour l’hébergement"
 
 msgid "Choose features to include in this export"
 msgstr "Choisissez les fonctionnalités à inclure dans cette exportation"
@@ -11727,8 +11727,8 @@ msgstr "Les termes suivants sont utilisés tout au long de ce manuel. La connais
 msgid "The foreword or introduction."
 msgstr "L'avant-propos ou l'introduction."
 
-msgid "The free plan covers normal classroom use and keeps your books in an account you control."
-msgstr "Le forfait gratuit couvre une utilisation normale en classe et conserve vos livres dans un compte que vous contrôlez."
+#~ msgid "The free plan covers normal classroom use and keeps your books in an account you control."
+#~ msgstr "Le forfait gratuit couvre une utilisation normale en classe et conserve vos livres dans un compte que vous contrôlez."
 
 msgid "The front cover of the book."
 msgstr "La première de couverture du livre."
@@ -13547,8 +13547,8 @@ msgstr "Votre connexion est toujours là, donc rien n'est à moitié oublié. Vo
 msgid "Your content is retained. Re-run this stage to update it from the edited book."
 msgstr "Votre contenu est conservé. Relancez cette étape pour le mettre à jour à partir du livre modifié."
 
-msgid "Your finished books will live in your own Cloudflare account."
-msgstr "Vos livres terminés seront hébergés dans votre propre compte Cloudflare."
+#~ msgid "Your finished books will live in your own Cloudflare account."
+#~ msgstr "Vos livres terminés seront hébergés dans votre propre compte Cloudflare."
 
 msgid "Your font has been applied to captions."
 msgstr "Votre police a été appliquée aux légendes."

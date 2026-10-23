@@ -2746,8 +2746,8 @@ msgstr "Choose an existing image from this project"
 msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
 msgstr "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
 
-msgid "Choose Cloudflare for hosting"
-msgstr "Choose Cloudflare for hosting"
+#~ msgid "Choose Cloudflare for hosting"
+#~ msgstr "Choose Cloudflare for hosting"
 
 msgid "Choose features to include in this export"
 msgstr "Choose features to include in this export"
@@ -11725,8 +11725,8 @@ msgstr "The following terms are used throughout this manual. Familiarity with th
 msgid "The foreword or introduction."
 msgstr "The foreword or introduction."
 
-msgid "The free plan covers normal classroom use and keeps your books in an account you control."
-msgstr "The free plan covers normal classroom use and keeps your books in an account you control."
+#~ msgid "The free plan covers normal classroom use and keeps your books in an account you control."
+#~ msgstr "The free plan covers normal classroom use and keeps your books in an account you control."
 
 msgid "The front cover of the book."
 msgstr "The front cover of the book."
@@ -13545,8 +13545,8 @@ msgstr "Your connection is still here, so nothing is half-forgotten. You can try
 msgid "Your content is retained. Re-run this stage to update it from the edited book."
 msgstr "Your content is retained. Re-run this stage to update it from the edited book."
 
-msgid "Your finished books will live in your own Cloudflare account."
-msgstr "Your finished books will live in your own Cloudflare account."
+#~ msgid "Your finished books will live in your own Cloudflare account."
+#~ msgstr "Your finished books will live in your own Cloudflare account."
 
 msgid "Your font has been applied to captions."
 msgstr "Your font has been applied to captions."

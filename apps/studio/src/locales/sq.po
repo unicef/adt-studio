@@ -2748,8 +2748,8 @@ msgstr "Zgjidhni një imazh ekzistues nga ky projekt"
 msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
 msgstr "Zgjidhni një model ekzistues ose shkruani një id të ri provider:model. Krijimi i skedarëve e ruan modelin te cilësimet globale të prompteve dhe kopjon përmbajtjen aktuale të promptit bazë te versionet specifike për modelin që mungojnë."
 
-msgid "Choose Cloudflare for hosting"
-msgstr "Zgjidhni Cloudflare për strehim"
+#~ msgid "Choose Cloudflare for hosting"
+#~ msgstr "Zgjidhni Cloudflare për strehim"
 
 msgid "Choose features to include in this export"
 msgstr "Zgjidhni funksionet për t'i përfshirë në këtë eksportim"
@@ -11727,8 +11727,8 @@ msgstr "Termat e mëposhtëm përdoren gjatë gjithë këtij manuali. Njohja me 
 msgid "The foreword or introduction."
 msgstr "Parathënia ose hyrja."
 
-msgid "The free plan covers normal classroom use and keeps your books in an account you control."
-msgstr "Plani falas mbulon përdorimin normal në klasë dhe i mban librat tuaj në një llogari që e kontrolloni."
+#~ msgid "The free plan covers normal classroom use and keeps your books in an account you control."
+#~ msgstr "Plani falas mbulon përdorimin normal në klasë dhe i mban librat tuaj në një llogari që e kontrolloni."
 
 msgid "The front cover of the book."
 msgstr "Kapaku i përparmë i librit."
@@ -13547,8 +13547,8 @@ msgstr "Lidhja juaj është ende këtu, kështu që asgjë nuk është gjysmë e
 msgid "Your content is retained. Re-run this stage to update it from the edited book."
 msgstr "Përmbajtja juaj ruhet. Ekzekutojeni sërish këtë fazë për ta përditësuar nga libri i redaktuar."
 
-msgid "Your finished books will live in your own Cloudflare account."
-msgstr "Librat tuaj të përfunduar do të ruhen në llogarinë tuaj Cloudflare."
+#~ msgid "Your finished books will live in your own Cloudflare account."
+#~ msgstr "Librat tuaj të përfunduar do të ruhen në llogarinë tuaj Cloudflare."
 
 msgid "Your font has been applied to captions."
 msgstr "Fonti juaj u zbatua te përshkrimet."

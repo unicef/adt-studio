@@ -2746,8 +2746,8 @@ msgstr "Escolha uma imagem existente deste projeto"
 msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
 msgstr "Escolha um modelo existente ou digite um novo id provider:model. Criar arquivos salva o modelo nas configurações globais de prompts e copia o conteúdo atual do prompt base para as versões específicas do modelo que estiverem faltando."
 
-msgid "Choose Cloudflare for hosting"
-msgstr "Escolha o Cloudflare para hospedagem"
+#~ msgid "Choose Cloudflare for hosting"
+#~ msgstr "Escolha o Cloudflare para hospedagem"
 
 msgid "Choose features to include in this export"
 msgstr "Escolha os recursos a incluir nesta exportação"
@@ -11725,8 +11725,8 @@ msgstr "Os seguintes termos são usados ao longo deste manual. Familiaridade com
 msgid "The foreword or introduction."
 msgstr "O prefácio ou introdução."
 
-msgid "The free plan covers normal classroom use and keeps your books in an account you control."
-msgstr "O plano gratuito cobre o uso normal em sala de aula e mantém seus livros em uma conta que você controla."
+#~ msgid "The free plan covers normal classroom use and keeps your books in an account you control."
+#~ msgstr "O plano gratuito cobre o uso normal em sala de aula e mantém seus livros em uma conta que você controla."
 
 msgid "The front cover of the book."
 msgstr "A capa do livro."
@@ -13545,8 +13545,8 @@ msgstr "Sua conexão ainda está aqui, então nada está meio esquecido. Você p
 msgid "Your content is retained. Re-run this stage to update it from the edited book."
 msgstr "Seu conteúdo é preservado. Execute esta etapa novamente para atualizá-lo a partir do livro editado."
 
-msgid "Your finished books will live in your own Cloudflare account."
-msgstr "Seus livros concluídos ficarão na sua própria conta Cloudflare."
+#~ msgid "Your finished books will live in your own Cloudflare account."
+#~ msgstr "Seus livros concluídos ficarão na sua própria conta Cloudflare."
 
 msgid "Your font has been applied to captions."
 msgstr "Sua fonte foi aplicada às legendas."
