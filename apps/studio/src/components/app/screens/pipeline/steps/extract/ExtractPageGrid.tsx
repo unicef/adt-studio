@@ -1,22 +1,23 @@
 import { ExtractPageCard } from "./ExtractPageCard"
 import { PendingPageCard } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
-import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
+import type { PageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 
 export function ExtractPageGrid({
   label,
   pages,
   onOpen,
+  aspect,
   pendingCount = 0,
   hex,
 }: {
   label: string
   pages: PipelinePage[]
   onOpen: (pageId: string) => void
+  aspect: PageAspect
   pendingCount?: number
   hex?: string
 }) {
-  const aspect = usePageAspect(label, pages)
   return (
     <div className={aspect.gridClass}>
       {pages.map((page) => (

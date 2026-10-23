@@ -7,7 +7,7 @@ import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { FOUNDATIONS, PLUGINS, type DockEntry, type DockSlug } from "./plugins"
 import { STEP_PREREQ, isStepLocked, type StageEvidence } from "./stepPrereq"
-import { useFlowSim } from "@/components/app/lab/flowSim"
+import { simPending, simState, useBookSimFor } from "@/components/app/lab/bookSim"
 
 export type DockState = "done" | "running" | "queued" | "error" | "ready" | "locked"
 
@@ -18,6 +18,9 @@ export interface DockItem extends DockEntry {
 }
 
 export interface PipelinePage extends PageSummaryItem {
+  captionCount: number
+  decorativeCount: number
+  uncaptionedCount: number
   missingCaptions: number
   isDiscarded: boolean
 }
@@ -46,7 +49,7 @@ export const ARTIFACT_DERIVED_SLUGS: ReadonlySet<DockSlug> = new Set<DockSlug>([
 ])
 
 export function usePipelineState(label: string): PipelineState {
-  const [flowSim] = useFlowSim()
+  const bookSim = useBookSimFor(label)
   const booksQuery = useBooks()
   const pagesQuery = usePages(label)
   const { stageState } = useBookRun()
@@ -72,7 +75,10 @@ export function usePipelineState(label: string): PipelineState {
     const raw = pagesQuery.data ?? NO_PAGES
     const pages: PipelinePage[] = raw.map((page) => ({
       ...page,
-      missingCaptions: page.hasCaptioning ? 0 : page.imageCount,
+      captionCount: page.captionCount ?? 0,
+      decorativeCount: page.decorativeCount ?? 0,
+      uncaptionedCount: page.uncaptionedCount ?? 0,
+      missingCaptions: page.hasCaptioning ? (page.uncaptionedCount ?? 0) : page.imageCount,
       isDiscarded: page.sectionCount > 0 && page.prunedSections.length >= page.sectionCount,
     }))
 
@@ -105,7 +111,8 @@ export function usePipelineState(label: string): PipelineState {
     // step_runs with no notion of running or queued, so a re-run of a finished
     // stage kept showing it as done.
     const resolveState = (slug: DockSlug, locked: boolean): DockState => {
-      if (slug === "glossary" && flowSim.content !== "final") return flowSim.content === "running" ? "running" : "error"
+      const simulated = FOUNDATIONS.some((entry) => entry.slug === slug) ? null : simState(bookSim, slug)
+      if (simulated) return simulated
       if (slug === "sign-language" && signLanguageDone) return "done"
       if (slug === "validation" && validationDone) return "done"
       const run = stageState(slug)
@@ -118,7 +125,7 @@ export function usePipelineState(label: string): PipelineState {
       return {
         ...item,
         state,
-        pending: state === "done" ? pendingFor(item.slug) : 0,
+        pending: state === "done" ? simPending(bookSim, item.slug) ?? pendingFor(item.slug) : 0,
         lockedBy: locked ? STEP_PREREQ[item.slug] ?? undefined : undefined,
       }
     }
@@ -140,5 +147,5 @@ export function usePipelineState(label: string): PipelineState {
       foundations: FOUNDATIONS.map((item) => toItem(item, isLocked(item.slug))),
       plugins: PLUGINS.map((item) => toItem(item, isLocked(item.slug))),
     }
-  }, [book, pagesQuery.data, booksQuery.isLoading, pagesQuery.isLoading, booksQuery.error, pagesQuery.error, stageState, signLanguageDone, validationDone, flowSim.content])
+  }, [book, pagesQuery.data, booksQuery.isLoading, pagesQuery.isLoading, booksQuery.error, pagesQuery.error, stageState, signLanguageDone, validationDone, bookSim])
 }

@@ -15,7 +15,7 @@ type RenderingData = NonNullable<PageDetail["rendering"]>
 const NOOP = () => undefined
 
 const TRIGGER =
-  "bg-muted font-mono text-muted-foreground hover:bg-accent hover:text-foreground"
+  "bg-muted font-mono text-foreground/70 hover:bg-accent hover:text-foreground"
 
 function renderedSection(data: unknown, sectionIndex: number) {
   return (data as RenderingData | null | undefined)?.sections.find(
@@ -27,6 +27,7 @@ export interface StoryboardVersionPickerProps {
   label: string
   page: PipelinePage
   viewport: Viewport
+  triggerClassName?: string
 }
 
 /**
@@ -41,6 +42,7 @@ export function StoryboardVersionPicker({
   label,
   page,
   viewport,
+  triggerClassName,
 }: StoryboardVersionPickerProps) {
   const { t } = useLingui()
   const sectionIndex = useMemo(
@@ -102,7 +104,8 @@ export function StoryboardVersionPicker({
       previewViewport={viewport}
       getChangedPreviewViewports={getChangedPreviewViewports}
       renderPreview={renderPreview}
-      triggerClassName={TRIGGER}
+      triggerClassName={triggerClassName ?? TRIGGER}
+      triggerLabel={page.renderingVersion != null ? t`Page version ${page.renderingVersion}. Change version` : undefined}
     />
   )
 }

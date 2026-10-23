@@ -2,7 +2,7 @@ import { memo, useCallback } from "react"
 import { useLingui } from "@lingui/react/macro"
 import type { TTSEntry, WordTimestampEntry, CoreTtsCatalogEntry } from "@/api/client"
 import { cn } from "@/lib/utils"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { AudioAction } from "@/components/pipeline/stages/languages/components/AudioAction"
 import {
   CoreTtsBadges,

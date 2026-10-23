@@ -2,7 +2,7 @@ import { useVariant } from "@/components/app/lab/variants"
 import { memo, useMemo } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import type { CatalogCategory } from "@/components/pipeline/stages/languages/lib/catalog-entries"
 import { CATEGORY_KEYS } from "./translateState"
 

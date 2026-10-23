@@ -3,12 +3,12 @@ import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Sparkles } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useAiPanelOpen } from "@/hooks/use-ai-panel"
+import { focusPanelToggle, useRightPanelOpen } from "@/components/app/screens/pipeline/shared/panelFit"
 import { useAiEditHistory } from "@/hooks/use-pages"
 import type { PageSummarySection } from "@/api/client"
 import { cn } from "@/lib/utils"
-import { useVariant } from "@/components/app/lab/variants"
-import { HistoryTurn, Shell } from "./AiEditShell"
+import { useVariant, type VariantState } from "@/components/app/lab/variants"
+import { HistoryTurn, Shell, type ShellHeader } from "./AiEditShell"
 import { AiEditPanelWired } from "./AiEditPanelWired"
 
 const STARTERS: MessageDescriptor[] = [
@@ -33,6 +33,9 @@ export interface AiEditPanelProps {
   selectedSectionIndex?: number | null
   onSelectSection?: (sectionIndex: number) => void
   suppressed?: boolean
+  floatingToggle?: boolean
+  embedded?: boolean
+  header?: ShellHeader
 }
 
 interface PanelContentProps extends AiEditPanelProps {
@@ -48,6 +51,7 @@ function PanelContent({
   empty,
   open,
   onCollapse,
+  header,
 }: PanelContentProps) {
   const { t, i18n } = useLingui()
   const history = useAiEditHistory(label, pageId ?? "", sectionIndex, {
@@ -62,6 +66,7 @@ function PanelContent({
         meta={t`no history`}
         composerPlaceholder={t`Say how to split the book…`}
         onCollapse={onCollapse}
+        header={header}
       >
         <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-hidden px-3.5 py-4">
           <div className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed px-2 py-6 text-center">
@@ -101,6 +106,7 @@ function PanelContent({
       meta={pageLabel ? t`history · ${pageLabel}` : ""}
       composerPlaceholder={t`Ask the AI to edit this page…`}
       onCollapse={onCollapse}
+      header={header}
     >
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-3 p-3.5">
@@ -131,18 +137,47 @@ function PanelContent({
   )
 }
 
-export function AiEditPanel(props: AiEditPanelProps) {
+export function aiPanelAvailable(variant: VariantState["ai"], context: AiEditPanelProps["context"]): boolean {
+  return variant !== "hidden" && !(variant === "wired" && context !== "storyboard")
+}
+
+export function AiEditPanel({ floatingToggle = true, embedded = false, ...props }: AiEditPanelProps) {
   const { t } = useLingui()
-  const [storedOpen, setOpen] = useAiPanelOpen()
+  const [storedOpen, setOpen] = useRightPanelOpen()
   const variant = useVariant("ai")
   const open = storedOpen && !props.suppressed
+  const collapse = () => {
+    setOpen(false)
+    focusPanelToggle("ai-show")
+  }
 
-  if (variant === "hidden" || (variant === "wired" && props.context !== "storyboard")) return null
+  if (!aiPanelAvailable(variant, props.context)) return null
+
+  const body =
+    variant === "wired" ? (
+      <AiEditPanelWired
+        label={props.label}
+        pageId={props.pageId}
+        pageLabel={props.pageLabel}
+        sections={props.sections}
+        sectionIndex={props.selectedSectionIndex}
+        onSelectSection={props.onSelectSection}
+        empty={props.empty}
+        open={open}
+        onCollapse={collapse}
+        header={props.header}
+      />
+    ) : (
+      <PanelContent {...props} open={open} onCollapse={collapse} />
+    )
+
+  if (embedded) return body
 
   return (
     <>
       <aside
         data-chrome="ai"
+        aria-label={t`Edit with AI`}
         inert={!open}
         aria-hidden={!open}
         data-ai-panel={open && variant !== "mock" ? "open" : undefined}
@@ -151,38 +186,30 @@ export function AiEditPanel(props: AiEditPanelProps) {
           open ? "w-[326px] opacity-100" : "w-0 opacity-0",
         )}
       >
-        {variant === "wired" ? (
-          <AiEditPanelWired
-            label={props.label}
-            pageId={props.pageId}
-            pageLabel={props.pageLabel}
-            sections={props.sections}
-            sectionIndex={props.selectedSectionIndex}
-            onSelectSection={props.onSelectSection}
-            empty={props.empty}
-            open={open}
-            onCollapse={() => setOpen(false)}
-          />
-        ) : (
-          <PanelContent {...props} open={open} onCollapse={() => setOpen(false)} />
-        )}
+        {body}
       </aside>
 
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        inert={open}
-        aria-hidden={open}
-        title={t`Edit with AI`}
-        aria-label={t`Edit with AI`}
-        style={{ viewTransitionName: "step-ai-toggle" }}
-        className={cn(
-          "absolute bottom-5.5 right-5 z-20 grid size-11 place-items-center rounded-full bg-brand-600 text-white shadow-[0_12px_30px_-12px_rgba(0,0,0,0.55)] transition-[opacity,transform] duration-300 ease-out hover:bg-brand-700 motion-reduce:transition-none",
-          open ? "pointer-events-none scale-50 opacity-0" : "scale-100 opacity-100",
-        )}
-      >
-        <Sparkles className="size-[19px]" />
-      </button>
+      {floatingToggle && (
+        <button
+          type="button"
+          data-panel-toggle="ai-show"
+          onClick={() => {
+            setOpen(true)
+            focusPanelToggle("ai-hide")
+          }}
+          inert={open}
+          aria-hidden={open}
+          title={t`Edit with AI`}
+          aria-label={t`Edit with AI`}
+          style={{ viewTransitionName: "step-ai-toggle" }}
+          className={cn(
+            "absolute bottom-5.5 right-5 z-20 grid size-11 place-items-center rounded-full bg-brand-600 text-white shadow-[0_12px_30px_-12px_rgba(0,0,0,0.55)] transition-[opacity,transform] duration-300 ease-out hover:bg-brand-700 motion-reduce:transition-none",
+            open ? "pointer-events-none scale-50 opacity-0" : "scale-100 opacity-100",
+          )}
+        >
+          <Sparkles className="size-[19px]" />
+        </button>
+      )}
     </>
   )
 }

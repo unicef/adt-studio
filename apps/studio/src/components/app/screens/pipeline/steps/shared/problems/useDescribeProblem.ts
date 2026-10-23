@@ -1,5 +1,7 @@
 import { useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
+import type { StageName } from "@adt/types"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 
 export interface ProblemPage {
   pageId: string
@@ -15,13 +17,26 @@ export interface DescribedProblem {
   body: string
   details: string | null
   pages: ProblemPage[]
+  items: number
+}
+
+export type ProblemStage = StageName | "sign-language"
+
+export interface ProblemItems {
+  count: number
+  title: string
 }
 
 const PAGE_ID = /\bpg\d{3,}\b/g
 
 export function useDescribeProblem() {
   const { t } = useLingui()
-  return (stage: "extract" | "sectioning", raw: string | null | undefined, known: readonly ProblemPage[] = []): DescribedProblem => {
+  return (
+    stage: ProblemStage,
+    raw: string | null | undefined,
+    known: readonly ProblemPage[] = [],
+    items?: ProblemItems,
+  ): DescribedProblem => {
     const details = raw?.trim() || null
     const text = details ?? ""
     const ids = [...new Set(text.match(PAGE_ID) ?? [])]
@@ -41,6 +56,7 @@ export function useDescribeProblem() {
         body: t`It got too many requests in a short time. Wait a minute, then try again.`,
         details,
         pages: [],
+        items: 0,
       }
     }
     if (/password/i.test(text)) {
@@ -51,6 +67,7 @@ export function useDescribeProblem() {
         body: t`Remove the password from the PDF, then add the book again.`,
         details,
         pages: [],
+        items: 0,
       }
     }
     if (/\b401\b|unauthori[sz]ed|invalid.{0,20}(api )?key|incorrect api key/i.test(text)) {
@@ -61,6 +78,18 @@ export function useDescribeProblem() {
         body: t`Check the key in AI access, then run again.`,
         details,
         pages: [],
+        items: 0,
+      }
+    }
+    if (items && items.count > 0) {
+      return {
+        level: "partial",
+        fix: "retry",
+        title: items.title,
+        body: t`Everything else is fine, so you can keep going. Show them to see which ones, then try again.`,
+        details,
+        pages: [],
+        items: items.count,
       }
     }
     if (ids.length > 0) {
@@ -74,15 +103,18 @@ export function useDescribeProblem() {
           : t`Some pages couldn't be read. Every other page is fine, so you can keep going and fix this later.`,
         details,
         pages,
+        items: 0,
       }
     }
+    const stageName = getStageLabelI18n(stage)
     return {
       level: "blocked",
       fix: "retry",
-      title: stage === "extract" ? t`Extraction failed` : t`Sectioning failed`,
-      body: t`Something went wrong. Try again, and open the details if it keeps happening.`,
+      title: t`${stageName} didn't finish`,
+      body: t`Nothing was changed. Open Details to see what went wrong, then try again.`,
       details,
       pages: [],
+      items: 0,
     }
   }
 }

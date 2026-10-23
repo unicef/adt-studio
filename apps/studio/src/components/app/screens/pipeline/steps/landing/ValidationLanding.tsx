@@ -29,6 +29,8 @@ export function ValidationLanding({
 
   return (
     <StepLandingShell
+      title={<>{friendly ? <Trans>Accessibility check</Trans> : <Trans>Validation</Trans>}</>}
+      description={<Trans> Package the book and run whole-book accessibility checks over the result, so the findings describe exactly what a reader gets. Reviewer notes captured in Preview show up here too. </Trans>}
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="validation"
@@ -47,18 +49,6 @@ export function ValidationLanding({
       onRun={() => packageAdt.mutate(bookLabel)}
       preview={<ValidationPreview />}
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          {friendly ? <Trans>Accessibility check</Trans> : <Trans>Validation</Trans>}
-        </h1>
-        <p className="text-[14px] leading-relaxed text-muted-foreground">
-          <Trans>
-            Package the book and run whole-book accessibility checks over the
-            result, so the findings describe exactly what a reader gets. Reviewer
-            notes captured in Preview show up here too.
-          </Trans>
-        </p>
-      </div>
 
       {!storyboardReady && (
         <LandingPageWarning

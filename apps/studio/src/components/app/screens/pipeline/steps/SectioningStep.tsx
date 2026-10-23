@@ -1,22 +1,21 @@
 import { useMemo } from "react"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
 import { usePages } from "@/hooks/use-pages"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { NextStepCard } from "@/components/app/screens/pipeline/chrome/NextStepCard"
-import { useDescribeProblem } from "./shared/problems/useDescribeProblem"
+import { useStageProblem } from "./shared/problems/useStageProblem"
 import { RunErrorNotice } from "./shared/RunErrorNotice"
-import { useStageStatus } from "@/hooks/use-stage-status"
 import { LiveRunStrip } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
 import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { useSectioningRun } from "@/components/app/screens/pipeline/runs/useSectioningRun"
-import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
-import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
+import { useStageRerun } from "@/components/app/screens/pipeline/runs/useStageRerun"
+import { useRerunConfirm } from "@/components/app/screens/pipeline/runs/useRerunConfirm"
 import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView, useStepRunningView } from "./shared/StepShell"
 import { StepBody, StepRail } from "./shared/ui"
-import { usePageDetailKeys } from "./shared/usePageDetailKeys"
-import { useDetailFocus, usePageParam } from "./shared/usePageParam"
+import { usePageNav } from "./shared/usePageNav"
 import { SectioningPageDetail } from "./sectioning/SectioningPageDetail"
 import { SectioningPageGrid } from "./sectioning/SectioningPageGrid"
 import type { StepProps } from "./shared/types"
@@ -28,13 +27,26 @@ export function SectioningStep(props: StepProps) {
   const sectioning = useStageActivity("sectioning")
   const extract = useStageActivity("extract")
   const sectioningRun = useSectioningRun(label)
-  const failed = useStageStatus("sectioning").hasError
-  const describeProblem = useDescribeProblem()
+  const retry = useRerunConfirm("sectioning", useStageRerun(label, "sectioning"))
   const pagesQuery = usePages(label)
-  const { pageParam, openPage, stepPage, closeDetail } = usePageParam(label, plugin.slug)
-  useDetailFocus(pageParam)
-  const sectionProblem = failed && !sectioning.isActive ? describeProblem("sectioning", run.error, pages) : null
-  const firstFailed = sectionProblem?.pages[0]
+  const {
+    selected: selectedPage,
+    prevId: prevPageId,
+    nextId: nextPageId,
+    open: openPage,
+    step: stepPage,
+    close: closeDetail,
+  } = usePageNav({ label, slug: plugin.slug, pages })
+  const stageProblem = useStageProblem({
+    stage: "sectioning",
+    pages,
+    retry: retry.request,
+    onOpenPage: openPage,
+    partialBody: (first) =>
+      first
+        ? t`The storyboard will still be built. Page ${first.pageNumber} may have missing sections until you fix it.`
+        : t`The storyboard will still be built. Some pages may have missing sections until you fix them.`,
+  })
 
   const sectionedCount = useMemo(
     () => pages.reduce((sum, page) => sum + (page.sectionCount > 0 ? 1 : 0), 0),
@@ -46,22 +58,7 @@ export function SectioningStep(props: StepProps) {
     [pages],
   )
 
-  const currentIndex = useMemo(
-    () => (pageParam ? pages.findIndex((page) => page.pageId === pageParam) : -1),
-    [pages, pageParam],
-  )
-  const selectedPage = currentIndex >= 0 ? pages[currentIndex] : null
   const pageAspect = usePageAspect(label, pages)
-  const prevPageId = currentIndex > 0 ? pages[currentIndex - 1].pageId : null
-  const nextPageId =
-    currentIndex >= 0 && currentIndex < pages.length - 1 ? pages[currentIndex + 1].pageId : null
-
-  usePageDetailKeys({
-    enabled: !!selectedPage,
-    prevPageId,
-    nextPageId,
-    onStep: stepPage,
-  })
 
   const loading = useStepLoading(props, {
     isLoading: pagesQuery.isPending,
@@ -81,7 +78,7 @@ export function SectioningStep(props: StepProps) {
     ...props,
     onRun: sectioningRun.run,
     canRun: sectioningRun.canRun,
-    runDisabledReason: sectioningRun.hasApiKey ? undefined : <Trans>Add an API key in Book settings to run sectioning.</Trans>,
+    runDisabledReason: sectioningRun.hasProvider ? undefined : <Trans>Set up AI access in Book settings to run sectioning.</Trans>,
     prerequisites: [
       {
         key: "pages",
@@ -90,8 +87,8 @@ export function SectioningStep(props: StepProps) {
       },
       {
         key: "api-key",
-        met: sectioningRun.hasApiKey,
-        label: t`API key set in Book settings`,
+        met: sectioningRun.hasProvider,
+        label: t`AI access set up for this book`,
       },
     ],
   })
@@ -104,7 +101,6 @@ export function SectioningStep(props: StepProps) {
       {...props}
       railEmpty={!selectedPage}
       chips={[t`${plural(total, { one: "# section", other: "# sections" })}`, pruned > 0 ? t`${pruned} dropped` : t`All kept`]}
-      canApply={total - pruned > 0}
       rail={
         <StepRail
           heading={<Trans>Sections by page</Trans>}
@@ -132,55 +128,38 @@ export function SectioningStep(props: StepProps) {
         />
       }
     >
-      <FloatingSaveProvider barClassName="bottom-27">
-        <UnsavedChangesGuard />
-        {selectedPage ? (
-          <SectioningPageDetail
-            label={label}
-            pageId={selectedPage.pageId}
-            accent={plugin.hex}
-            prevPageId={prevPageId}
-            nextPageId={nextPageId}
-            onStep={stepPage}
-            onClose={closeDetail}
-          />
-        ) : (
-          <StepBody title={<Trans>Sectioning</Trans>} meta={t`${plural(total, { one: "# section", other: "# sections" })}`}>
-            {sectioning.isActive && (
-              <LiveRunStrip stage={sectioning} outcome={t`Sections show up here as each page is structured.`} />
-            )}
-            {failed && (
-              <RunErrorNotice
-                label={label}
-                stage="sectioning"
-                hex={plugin.hex}
-                pages={pages}
-                onOpenPage={openPage}
-                onRetry={sectioningRun.run}
-                canRetry={sectioningRun.canRun}
-              />
-            )}
-            <NextStepCard
+      {selectedPage ? (
+        <SectioningPageDetail
+          label={label}
+          pageId={selectedPage.pageId}
+          accent={plugin.hex}
+          prevPageId={prevPageId}
+          nextPageId={nextPageId}
+          onStep={stepPage}
+          onClose={closeDetail}
+        />
+      ) : (
+        <StepBody title={getStageLabelI18n("sectioning")} meta={t`${plural(total, { one: "# section", other: "# sections" })}`}>
+          {sectioning.isActive && (
+            <LiveRunStrip stage={sectioning} outcome={t`Sections show up here as each page is structured.`} />
+          )}
+          {stageProblem.failed && (
+            <RunErrorNotice
               label={label}
-              slug={plugin.slug}
-              partial={sectionProblem?.level === "partial"}
-              confirm={
-                sectionProblem?.level === "partial"
-                  ? {
-                      title: sectionProblem.title,
-                      body: firstFailed
-                        ? t`The storyboard will still be built. Page ${firstFailed.pageNumber} may have missing sections until you fix it.`
-                        : t`The storyboard will still be built. Some pages may have missing sections until you fix them.`,
-                      reviewLabel: firstFailed ? t`Open page ${firstFailed.pageNumber}` : t`Try again`,
-                      onReview: () => (firstFailed ? openPage(firstFailed.pageId) : sectioningRun.run()),
-                    }
-                  : null
-              }
+              stage="sectioning"
+              hex={plugin.hex}
+              pages={pages}
+              onOpenPage={openPage}
+              onRetry={retry.request}
+              canRetry={retry.canRun}
+              retryReason={retry.disabledReason}
             />
-            <SectioningPageGrid label={label} pages={pages} onOpen={openPage} />
-          </StepBody>
-        )}
-      </FloatingSaveProvider>
+          )}
+          {retry.dialogs}
+          <NextStepCard label={label} slug={plugin.slug} partial={stageProblem.partial} confirm={stageProblem.partialConfirm} />
+          <SectioningPageGrid label={label} pages={pages} onOpen={openPage} aspect={pageAspect} />
+        </StepBody>
+      )}
     </StepShell>
   )
 }

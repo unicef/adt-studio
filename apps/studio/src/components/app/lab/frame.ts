@@ -5,7 +5,6 @@ export const IN_LAB_FRAME = !!params?.has("lab-frame")
 if (IN_LAB_FRAME && params) {
   const memory = new Map<string, string>([
     ["adt.lab.variants", params.get("lab-v") ?? "{}"],
-    ["adt.lab.visible", "false"],
     ["adt.theme", params.get("lab-theme") ?? "light"],
     ["adt:locale", params.get("lang") ?? "en"],
   ])

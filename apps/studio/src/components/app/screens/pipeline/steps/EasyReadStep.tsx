@@ -3,10 +3,9 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { RotateCcw, Search, X } from "lucide-react"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
-import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
-import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
+import { LiveRunStrip } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
 import { PageLightbox } from "@/components/pipeline/components/PageLightbox"
-import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
+import { StepVersionPicker } from "./shared/StepVersionPicker"
 import { easyReadVersionDiff } from "./shared/versionDiffs"
 import { useRunEasyRead } from "@/components/pipeline/stages/easy-read/use-run-easy-read"
 import { StepEmpty, StepLoading, StepRunning, StepShell, useStepLoading } from "./shared/StepShell"
@@ -21,7 +20,7 @@ export function EasyReadStep(props: StepProps) {
   const run = useRunActivity()
   const stage = useStageActivity("easy-read")
   const { runEasyRead, hasStructuredTextProvider } = useRunEasyRead(label)
-  const edits = useEasyReadEdits(label)
+  const edits = useEasyReadEdits(label, { locked: stage.isActive })
 
   const [activePageId, setActivePageId] = useState<string | null>(null)
   const [lightboxPageId, setLightboxPageId] = useState<string | null>(null)
@@ -103,16 +102,13 @@ export function EasyReadStep(props: StepProps) {
   const searchActive = search.trim().length > 0
 
   const versionPicker = (
-    <VersionPicker
+    <StepVersionPicker
+      label={label}
       step="easy-read"
-      itemId="book"
       currentVersion={edits.version}
-      saving={edits.saving}
+      isSaving={edits.saving}
       dirty={edits.dirty}
-      bookLabel={label}
       onRestored={edits.discard}
-      onSave={edits.save}
-      onDiscard={edits.discard}
       diff={versionDiff}
     />
   )
@@ -122,7 +118,6 @@ export function EasyReadStep(props: StepProps) {
       {...props}
       chips={[t`${total} blocks`, t`${blocks.length} sections`]}
       headerExtra={versionPicker}
-      canApply={total > 0}
       rail={
         <StepRail
           heading={<Trans>Blocks by page</Trans>}
@@ -134,78 +129,76 @@ export function EasyReadStep(props: StepProps) {
         />
       }
     >
-      <FloatingSaveProvider barClassName="bottom-27">
-        <UnsavedChangesGuard />
-        <StepBody
-          title={<Trans>Easy Read</Trans>}
-          meta={t`${total} blocks`}
-          actions={
-            <>
-              <div className="relative w-64">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={t`Search original or Easy Read text…`}
-                  aria-label={t`Search original or Easy Read text…`}
-                  className="h-8 w-full rounded-lg border bg-background pl-8 pr-8 text-[12px] placeholder:text-muted-foreground/60 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_var(--brand-50)]"
-                />
-                {search && (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    aria-label={t`Clear search`}
-                    className="absolute right-1 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    <X className="size-3" />
-                  </button>
-                )}
-              </div>
-              <DetailNavButton
-                icon={RotateCcw}
-                label={t`Regenerate Easy Read`}
-                onClick={() => void runEasyRead()}
-                disabled={!hasStructuredTextProvider || isRunning || edits.dirty}
-              >
-                <Trans>Regenerate</Trans>
-              </DetailNavButton>
-            </>
-          }
-        >
-          <SaveError error={edits.saveError} />
-
-          {pageGroups.length === 0 ? (
-            <StepEmptyHint>
-              <span className="flex flex-col items-center gap-2">
-                <Trans>No matching blocks</Trans>
-                {searchActive && (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="font-medium underline-offset-2 hover:underline"
-                    style={{ color: plugin.hex }}
-                  >
-                    <Trans>Clear search</Trans>
-                  </button>
-                )}
-              </span>
-            </StepEmptyHint>
-          ) : (
-            pageGroups.map((group) => (
-              <EasyReadPageSection
-                key={group.pageId}
-                label={label}
-                group={group}
-                accent={plugin.hex}
-                disabled={isRunning || edits.saving}
-                onUpdateEntry={edits.updateEntry}
-                onOpenPage={openPage}
+      <StepBody
+        title={<Trans>Easy Read</Trans>}
+        meta={t`${total} blocks`}
+        actions={
+          <>
+            <div className="relative w-64">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t`Search original or Easy Read text…`}
+                aria-label={t`Search original or Easy Read text…`}
+                className="h-8 w-full rounded-lg border bg-background pl-8 pr-8 text-[12px] placeholder:text-muted-foreground/60 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_var(--brand-50)]"
               />
-            ))
-          )}
-        </StepBody>
-      </FloatingSaveProvider>
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  aria-label={t`Clear search`}
+                  className="absolute right-1 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+            </div>
+            <DetailNavButton
+              icon={RotateCcw}
+              label={t`Regenerate Easy Read`}
+              onClick={() => void runEasyRead()}
+              disabled={!hasStructuredTextProvider || isRunning || edits.dirty}
+            >
+              <Trans>Regenerate</Trans>
+            </DetailNavButton>
+          </>
+        }
+      >
+        {stage.isActive && <LiveRunStrip stage={stage} outcome={t`Editing is paused until Easy Read finishes.`} />}
+        <SaveError error={edits.saveError} />
+
+        {pageGroups.length === 0 ? (
+          <StepEmptyHint>
+            <span className="flex flex-col items-center gap-2">
+              <Trans>No matching blocks</Trans>
+              {searchActive && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="font-medium underline-offset-2 hover:underline"
+                  style={{ color: plugin.hex }}
+                >
+                  <Trans>Clear search</Trans>
+                </button>
+              )}
+            </span>
+          </StepEmptyHint>
+        ) : (
+          pageGroups.map((group) => (
+            <EasyReadPageSection
+              key={group.pageId}
+              label={label}
+              group={group}
+              accent={plugin.hex}
+              disabled={isRunning || edits.saving}
+              onUpdateEntry={edits.updateEntry}
+              onOpenPage={openPage}
+            />
+          ))
+        )}
+      </StepBody>
 
       <PageLightbox
         bookLabel={label}

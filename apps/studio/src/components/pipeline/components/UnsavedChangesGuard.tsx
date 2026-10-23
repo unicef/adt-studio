@@ -53,13 +53,15 @@ export function UnsavedChangesGuard() {
   const dirtyEntries = useDirtyTabEntries()
   const floatingDirtyEntries = useFloatingSaveDirtyEntries()
   const ephemeralDirtyTabs = useEphemeralDirtyTabs()
-  const { canSave, willRerun, resetStages, saveAndStay } = useFloatingSaveLeaveAction()
+  const { canSave, willRerun, resetStages, saveAndStay, discardAll } = useFloatingSaveLeaveAction()
   const [saving, setSaving] = useState(false)
 
   const hasUnsavedRef = useRef(hasUnsaved)
   hasUnsavedRef.current = hasUnsaved
   const ephemeralDirtyRef = useRef(ephemeralDirtyTabs)
   ephemeralDirtyRef.current = ephemeralDirtyTabs
+  const dirtyScopesRef = useRef(floatingDirtyEntries.map((entry) => entry.scope))
+  dirtyScopesRef.current = floatingDirtyEntries.map((entry) => entry.scope)
 
   const shouldBlockFn = useCallback<ShouldBlockFn>(
     ({ current, next }) =>
@@ -68,6 +70,7 @@ export function UnsavedChangesGuard() {
         next: toNavigationLocation(next),
         hasUnsaved: hasUnsavedRef.current,
         ephemeralDirtyTabs: ephemeralDirtyRef.current,
+        dirtyScopes: dirtyScopesRef.current,
       }),
     [],
   )
@@ -246,7 +249,10 @@ export function UnsavedChangesGuard() {
           <Button
             variant="ghost"
             disabled={saving}
-            onClick={() => proceed?.()}
+            onClick={() => {
+              discardAll()
+              proceed?.()
+            }}
             className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
             <Trans>Discard &amp; leave</Trans>

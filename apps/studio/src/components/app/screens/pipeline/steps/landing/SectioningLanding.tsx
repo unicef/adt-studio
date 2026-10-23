@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo , type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { StepLandingShell } from "./StepLandingShell"
+import { useLandingRunGate } from "./useLandingRunGate"
 import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { CascadeWarning } from "@/components/pipeline/components/CascadeWarning"
 import { LandingPageWarning } from "@/components/pipeline/components/LandingPageWarning"
@@ -29,9 +30,10 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
   const { data: splitStatus, isLoading: splitStatusLoading } = useSplitStatus(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("sectioning")
+  const gate = useLandingRunGate(bookLabel, "sectioning")
   const extractStatus = useStageStatus("extract")
   const extractReady = extractStatus.isCompleted
   const extractCovered = extractStatus.isCompleted || extractStatus.isRunning
@@ -84,7 +86,7 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
   }
 
   const handleRun = () => {
-    if (!hasApiKey || status.isRunning || resolvingStoredState) return
+    if (gate.blocked || status.isRunning || resolvingStoredState) return
     const fromStage = resolveSectioningStartStage(extractCovered, hasAssembledPages)
     queueRun({ fromStage, toStage: "sectioning", apiKey })
   }
@@ -97,9 +99,6 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run sectioning.</Trans>
-  ) : undefined
 
   return (
     <StepLandingShell
@@ -148,8 +147,8 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || resolvingStoredState}
-      disabledReason={disabledReason}
+      extraDisabled={gate.blocked || resolvingStoredState}
+      disabledReason={gate.disabledReason}
       runLabel={<Trans>Run Sectioning</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
       previewLabel={t`Sectioning Preview`}

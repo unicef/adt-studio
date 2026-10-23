@@ -5,6 +5,8 @@ import { AlertCircle, Images, Pencil, X } from "lucide-react"
 import { SettingExplainer } from "./ui/SettingExplainer"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { StepLandingShell } from "./StepLandingShell"
+import { useLandingRunGate } from "./useLandingRunGate"
+import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   FixedLayoutWarningBanner,
@@ -45,7 +47,7 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const { data: book } = useBook(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("translate")
   const storyboardStatus = useStageStatus("storyboard")
@@ -164,25 +166,25 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (gate.blocked || status.isRunning) return
     queueRun({ fromStage: "translate", toStage: "translate", apiKey })
   }
 
   const hasLanguages = outputLanguages.size > 0
+  const gate = useLandingRunGate(bookLabel, "translate", [
+    { ok: storyboardReady, reason: <Trans>Run Storyboard first — translation needs the typed sections placed by Storyboard.</Trans> },
+    { ok: hasLanguages, reason: <Trans>Add at least one output language to run translation.</Trans> },
+  ])
   const hasAdditionalLanguages = Array.from(outputLanguages).some(
     (code) => normalizeLocale(code) !== baseLanguage,
   )
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run translation.</Trans>
-  ) : !storyboardReady ? (
-    <Trans>Run Storyboard first — translation needs the typed sections placed by Storyboard.</Trans>
-  ) : !hasLanguages ? (
-    <Trans>Add at least one output language to run translation.</Trans>
-  ) : undefined
 
   return (
     <StepLandingShell
+      title={<>{friendly ? <Trans>Languages</Trans> : <Trans>Language</Trans>}</>}
+      description={<Trans> Translate the book into additional languages. Each language is generated alongside the original, ready for narration, captions, and on-page reading. </Trans>}
+      notice={status.hasError ? <RunErrorNotice label={bookLabel} stage="translate" /> : undefined}
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="translate"
@@ -190,8 +192,8 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady || !hasLanguages}
-      disabledReason={disabledReason}
+      extraDisabled={gate.blocked}
+      disabledReason={gate.disabledReason}
       runLabel={friendly ? <Trans>Translate</Trans> : <Trans>Run Translation</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
       previewLabel={friendly ? t`Example: a translated page` : t`Translation Preview`}
@@ -214,18 +216,6 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
           : null
       }
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          {friendly ? <Trans>Languages</Trans> : <Trans>Language</Trans>}
-        </h1>
-        <p className="text-[14px] text-muted-foreground leading-relaxed">
-          <Trans>
-            Translate the book into additional languages. Each language is
-            generated alongside the original, ready for narration, captions,
-            and on-page reading.
-          </Trans>
-        </p>
-      </div>
 
       <PrereqGuard
         upstreamSlug="storyboard"

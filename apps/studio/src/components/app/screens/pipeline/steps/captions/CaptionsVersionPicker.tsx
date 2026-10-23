@@ -1,49 +1,48 @@
-import { Image as ImageIcon } from "lucide-react"
+import { useMemo } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
-import { PendingChip } from "@/components/pipeline/components/floating-save"
+import type { VersionDiffDescriptor } from "@/components/pipeline/components/VersionCompareDialog"
 import type { CaptionEntry } from "@/components/pipeline/stages/captions/lib/types"
+import { StepVersionPicker } from "../shared/StepVersionPicker"
 import { CaptionDiffItem } from "./CaptionDiffItem"
-import type { CaptionEdits } from "./useCaptionEdits"
 
 export function CaptionsVersionPicker({
   label,
   pageId,
-  pageNumber,
   currentVersion,
-  edits,
+  saving,
+  dirty,
+  onRestored,
 }: {
   label: string
   pageId: string
-  pageNumber: number
   currentVersion: number | null
-  edits: CaptionEdits
+  saving: boolean
+  dirty: boolean
+  onRestored: () => void
 }) {
   const { t } = useLingui()
+  const diff = useMemo<VersionDiffDescriptor>(
+    () => ({
+      items: (data) => (data as { captions?: CaptionEntry[] } | null)?.captions ?? [],
+      keyOf: (item) => (item as CaptionEntry).imageId,
+      diffText: (item) => (item as CaptionEntry).caption ?? "",
+      searchText: (item) => `${(item as CaptionEntry).imageId} ${(item as CaptionEntry).caption ?? ""}`,
+      searchPlaceholder: t`Search descriptions or image IDs…`,
+      hideUnchanged: true,
+      renderItem: (item, ctx) => <CaptionDiffItem label={label} cap={item as CaptionEntry} diff={ctx?.diff} />,
+    }),
+    [label, t],
+  )
   return (
-    <VersionPicker
+    <StepVersionPicker
+      label={label}
       step="image-captioning"
-      currentVersion={currentVersion}
-      saving={edits.saving}
-      dirty={edits.dirty}
-      bookLabel={label}
       itemId={pageId}
-      pendingLabel={
-        <PendingChip icon={ImageIcon}>{t`Page ${String(pageNumber)} captions`}</PendingChip>
-      }
-      pendingLabelKey={`captions:${pageNumber}`}
-      onRestored={edits.discard}
-      onSave={edits.saveCaptions}
-      onDiscard={edits.discard}
-      diff={{
-        items: (data) => (data as { captions?: CaptionEntry[] } | null)?.captions ?? [],
-        keyOf: (item) => (item as CaptionEntry).imageId,
-        diffText: (item) => (item as CaptionEntry).caption ?? "",
-        hideUnchanged: true,
-        renderItem: (item, ctx) => (
-          <CaptionDiffItem label={label} cap={item as CaptionEntry} diff={ctx?.diff} />
-        ),
-      }}
+      currentVersion={currentVersion}
+      isSaving={saving}
+      dirty={dirty}
+      onRestored={onRestored}
+      diff={diff}
     />
   )
 }

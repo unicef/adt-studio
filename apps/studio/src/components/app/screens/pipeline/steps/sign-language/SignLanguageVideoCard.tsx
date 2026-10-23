@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import type { SectionEntry } from "@/components/pipeline/stages/sign-language/components/types"
 import { RowAction, StepCard } from "../shared/ui"
 

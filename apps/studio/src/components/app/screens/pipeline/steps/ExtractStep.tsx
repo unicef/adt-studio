@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
 import { BookOpen, FileText, ScanText, SkipForward, Sparkles } from "lucide-react"
@@ -7,19 +8,18 @@ import { usePages } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { cn } from "@/lib/utils"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 import { BookInfoPopover } from "@/components/app/screens/pipeline/chrome/BookInfoPopover"
 import { NextStepCard } from "@/components/app/screens/pipeline/chrome/NextStepCard"
 import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { useExtractRun } from "@/components/app/screens/pipeline/runs/useExtractRun"
-import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
-import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
+import { useStageRerun } from "@/components/app/screens/pipeline/runs/useStageRerun"
+import { useRerunConfirm } from "@/components/app/screens/pipeline/runs/useRerunConfirm"
 import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView, useStepRunningView } from "./shared/StepShell"
 import { StepBody, StepRail } from "./shared/ui"
-import { usePageDetailKeys } from "./shared/usePageDetailKeys"
-import { useDetailFocus, usePageParam } from "./shared/usePageParam"
+import { usePageNav } from "./shared/usePageNav"
 import { ExtractPageDetail } from "./extract/ExtractPageDetail"
 import { ExtractPageGrid } from "./extract/ExtractPageGrid"
 import { LiveRunStrip, progressCounts } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
@@ -28,7 +28,7 @@ import { useSpreadReview } from "./extract/useSpreadReview"
 import type { StepProps } from "./shared/types"
 import type { StepNote } from "./shared/notes/NoteRow"
 import { NotesStrip } from "./shared/notes/NotesStrip"
-import { useDescribeProblem } from "./shared/problems/useDescribeProblem"
+import { useStageProblem } from "./shared/problems/useStageProblem"
 
 export function ExtractStep(props: StepProps) {
   const { label, plugin, pages } = props
@@ -38,21 +38,22 @@ export function ExtractStep(props: StepProps) {
   const extract = useStageActivity("extract")
   const bookRun = useBookRun()
   const extractRun = useExtractRun(label)
-  const describeProblem = useDescribeProblem()
+  const retry = useRerunConfirm("extract", useStageRerun(label, "extract"))
   const pagesQuery = usePages(label)
-  const { pageParam, openPage, stepPage, closeDetail } = usePageParam(label, plugin.slug)
-  useDetailFocus(pageParam)
+  const {
+    selected: selectedPage,
+    prevId: prevPageId,
+    nextId: nextPageId,
+    open: openPage,
+    step: stepPage,
+    close: closeDetail,
+  } = usePageNav({ label, slug: plugin.slug, pages })
 
   const hasPages = pages.length > 0
   const warnCount = useMemo(
     () => pages.filter((page) => page.extractionWarning).length,
     [pages],
   )
-  const currentIndex = useMemo(
-    () => (pageParam ? pages.findIndex((page) => page.pageId === pageParam) : -1),
-    [pages, pageParam],
-  )
-  const selectedPage = currentIndex >= 0 ? pages[currentIndex] : null
   const spreads = useSpreadReview(label, pages)
   const spreadsPending = spreads.eligible && (spreads.confirmCount > 0 || spreads.applying)
   const pairs = spreads.toConfirm.map((suggestion) => `${suggestion.lead}–${suggestion.lead + 1}`).join(", ")
@@ -116,20 +117,16 @@ export function ExtractStep(props: StepProps) {
         }
       : null
   const notes = [spreadsNote, skippedNote, scannedNote].filter((note): note is StepNote => note !== null)
-  const runProblem = extractRun.hasError && !extract.isActive ? describeProblem("extract", run.error, pages) : null
-  const partial = runProblem?.level === "partial"
-  const firstFailed = runProblem?.pages[0]
-  const partialConfirm =
-    partial && runProblem
-      ? {
-          title: runProblem.title,
-          body: firstFailed
-            ? t`Sectioning will still run on every page. Page ${firstFailed.pageNumber} may be missing some text or images until you fix it.`
-            : t`Sectioning will still run on every page. Some pages may be missing text or images until you fix them.`,
-          reviewLabel: firstFailed ? t`Open page ${firstFailed.pageNumber}` : t`Try again`,
-          onReview: () => (firstFailed ? openPage(firstFailed.pageId) : extractRun.run()),
-        }
-      : null
+  const { partial, partialConfirm } = useStageProblem({
+    stage: "extract",
+    pages,
+    retry: retry.request,
+    onOpenPage: openPage,
+    partialBody: (first) =>
+      first
+        ? t`Sectioning will still run on every page. Page ${first.pageNumber} may be missing some text or images until you fix it.`
+        : t`Sectioning will still run on every page. Some pages may be missing text or images until you fix them.`,
+  })
   const bannerConfirm =
     spreads.eligible && spreads.confirmCount > 0
       ? {
@@ -140,16 +137,6 @@ export function ExtractStep(props: StepProps) {
         }
       : null
   const pageAspect = usePageAspect(label, pages)
-  const prevPageId = currentIndex > 0 ? pages[currentIndex - 1].pageId : null
-  const nextPageId =
-    currentIndex >= 0 && currentIndex < pages.length - 1 ? pages[currentIndex + 1].pageId : null
-
-  usePageDetailKeys({
-    enabled: !!selectedPage,
-    prevPageId,
-    nextPageId,
-    onStep: stepPage,
-  })
 
   const loading = useStepLoading(props, {
     isLoading: pagesQuery.isPending,
@@ -188,8 +175,6 @@ export function ExtractStep(props: StepProps) {
           ? t`${plural(warnCount, { one: "# page recovered from images", other: "# pages recovered from images" })}`
           : t`Text layer on every page`,
       ]}
-      canApply={false}
-
       rail={
         <StepRail
           heading={<Trans>Pages</Trans>}
@@ -217,69 +202,68 @@ export function ExtractStep(props: StepProps) {
         />
       }
     >
-      <FloatingSaveProvider barClassName="bottom-27">
-        <UnsavedChangesGuard />
-        {selectedPage ? (
-          <ExtractPageDetail
-            key={selectedPage.pageId}
+      {selectedPage ? (
+        <ExtractPageDetail
+          key={selectedPage.pageId}
+          label={label}
+          pageId={selectedPage.pageId}
+          prevPageId={prevPageId}
+          nextPageId={nextPageId}
+          onStep={stepPage}
+          onClose={closeDetail}
+        />
+      ) : (
+        <StepBody
+          title={getStageLabelI18n("extract")}
+          meta={t`${plural(pages.length, { one: "# page", other: "# pages" })}`}
+          actions={
+            <div className="flex items-center gap-2">
+              <BookInfoPopover
+                label={label}
+                withLabel
+                triggerClassName="h-8 rounded-lg border px-2.5 text-[12px] font-medium text-foreground transition-colors hover:bg-muted"
+                triggerStyle={{ borderColor: tint(plugin.hex, 0.3) }}
+              />
+              <a
+                href={`${BASE_URL}/books/${label}/source-pdf`}
+                target="_blank"
+                rel="noreferrer"
+                className={cn(
+                  "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium",
+                  "text-foreground transition-colors hover:bg-muted",
+                )}
+                style={{ borderColor: tint(plugin.hex, 0.3) }}
+              >
+                <FileText className="size-3.5" />
+                <Trans>Open source PDF</Trans>
+              </a>
+            </div>
+          }
+        >
+          {extract.isActive && <LiveRunStrip stage={extract} />}
+
+          <ExtractRunBanner label={label} run={extractRun} pages={pages} onOpenPage={openPage} retry={{ run: retry.request, canRun: retry.canRun, reason: retry.disabledReason }} />
+          {retry.dialogs}
+
+          <NextStepCard label={label} slug={plugin.slug} partial={partial} confirm={partialConfirm ?? bannerConfirm} />
+
+          <NotesStrip notes={notes} hex={plugin.hex} />
+          {spreads.picker}
+
+          <ExtractPageGrid
             label={label}
-            pageId={selectedPage.pageId}
-            prevPageId={prevPageId}
-            nextPageId={nextPageId}
-            onStep={stepPage}
-            onClose={closeDetail}
-          />
-        ) : (
-          <StepBody
-            title={<Trans>Extraction</Trans>}
-            meta={t`${plural(pages.length, { one: "# page", other: "# pages" })}`}
-            actions={
-              <div className="flex items-center gap-2">
-                <BookInfoPopover
-                  label={label}
-                  withLabel
-                  triggerClassName="h-8 rounded-lg border px-2.5 text-[12px] font-medium text-foreground transition-colors hover:bg-muted"
-                  triggerStyle={{ borderColor: tint(plugin.hex, 0.3) }}
-                />
-                <a
-                  href={`${BASE_URL}/books/${label}/source-pdf`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={cn(
-                    "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium",
-                    "text-foreground transition-colors hover:bg-muted",
-                  )}
-                  style={{ borderColor: tint(plugin.hex, 0.3) }}
-                >
-                  <FileText className="size-3.5" />
-                  <Trans>Open source PDF</Trans>
-                </a>
-              </div>
+            pages={pages}
+            onOpen={openPage}
+            aspect={pageAspect}
+            hex={plugin.hex}
+            pendingCount={
+              extract.isActive
+                ? Math.max(0, (progressCounts(extract)?.total ?? pages.length) - pages.length)
+                : 0
             }
-          >
-            {extract.isActive && <LiveRunStrip stage={extract} />}
-
-            <ExtractRunBanner label={label} run={extractRun} pages={pages} onOpenPage={openPage} />
-
-            <NextStepCard label={label} slug={plugin.slug} partial={partial} confirm={partialConfirm ?? bannerConfirm} />
-
-            <NotesStrip notes={notes} hex={plugin.hex} />
-            {spreads.picker}
-
-            <ExtractPageGrid
-              label={label}
-              pages={pages}
-              onOpen={openPage}
-              hex={plugin.hex}
-              pendingCount={
-                extract.isActive
-                  ? Math.max(0, (progressCounts(extract)?.total ?? pages.length) - pages.length)
-                  : 0
-              }
-            />
-          </StepBody>
-        )}
-      </FloatingSaveProvider>
+          />
+        </StepBody>
+      )}
     </StepShell>
   )
 }

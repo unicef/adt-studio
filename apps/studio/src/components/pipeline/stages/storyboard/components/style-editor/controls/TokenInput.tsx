@@ -88,7 +88,7 @@ export function TokenInput({
             {matched ? (
               <>
                 <span>{matched.label}</span>
-                <span className="ml-1.5 text-[11px] text-muted-foreground">
+                <span className="ml-1.5 text-[11px] text-foreground/70">
                   {value}
                   {suffix}
                 </span>

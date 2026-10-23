@@ -8,6 +8,7 @@ export interface QuizRailRowProps {
   pageNumber: number | null
   active: boolean
   onSelect: () => void
+  tabIndex?: number
 }
 
 function QuizThumb({ quiz, active }: { quiz: QuizItem; active: boolean }) {
@@ -50,13 +51,14 @@ function QuizThumb({ quiz, active }: { quiz: QuizItem; active: boolean }) {
   )
 }
 
-export function QuizRailRow({ quiz, pageNumber, active, onSelect }: QuizRailRowProps) {
+export function QuizRailRow({ quiz, pageNumber, active, onSelect, tabIndex }: QuizRailRowProps) {
   const { t } = useLingui()
 
   return (
     <button
       type="button"
       onClick={onSelect}
+      tabIndex={tabIndex}
       aria-current={active ? "page" : undefined}
       title={
         pageNumber == null
@@ -79,7 +81,7 @@ export function QuizRailRow({ quiz, pageNumber, active, onSelect }: QuizRailRowP
         </span>
         <span className="line-clamp-2 text-[11px] text-muted-foreground">{quiz.question}</span>
         {pageNumber != null && (
-          <span className="font-mono text-[10px] text-muted-foreground/70">
+          <span className="font-mono text-[10px] text-muted-foreground">
             {t`after page ${pageNumber}`}
           </span>
         )}

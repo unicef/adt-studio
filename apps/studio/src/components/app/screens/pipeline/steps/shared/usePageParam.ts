@@ -45,8 +45,12 @@ export function useDetailFocus(pageParam: string | null) {
       const pageId = lastOpened.current
       frame = requestAnimationFrame(() => {
         const card = document.querySelector<HTMLElement>(`[data-page-card="${CSS.escape(pageId)}"]`)
-        card?.scrollIntoView({ block: "center" })
-        card?.focus({ preventScroll: true })
+        if (!card) {
+          document.querySelector<HTMLElement>("[data-step-heading]")?.focus({ preventScroll: true })
+          return
+        }
+        card.scrollIntoView({ block: "center" })
+        card.focus({ preventScroll: true })
       })
     }
     return () => cancelAnimationFrame(frame)

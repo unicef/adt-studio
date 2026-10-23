@@ -18,11 +18,15 @@ import { PageEmptyState } from "./PageEmptyState";
 import { sectionPreviewUrl } from "./previewUrls";
 import { useCanvasEditing } from "./editing/CanvasEditing";
 import { EditableSectionSlice } from "./editing/EditableSectionSlice";
+import { SectionFrame } from "./editing/SectionFrame";
+import { withPendingPrune } from "./editing/sectioningDraft";
+import { useStoryboardTools } from "./tools/StoryboardToolsContext";
 import type { Viewport } from "@/components/app/screens/pipeline/shared/types";
 import type { SectioningRun } from "@/components/app/screens/pipeline/runs/useSectioningRun";
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState";
 
 const SECTION_FRAME_HEIGHT = 640;
+const TOOLBAR_CLEARANCE = 40;
 
 export interface PageCanvasProps {
   label: string;
@@ -74,8 +78,8 @@ function SectionSlice({
       )}
       frameTitle={
         section.isActivity
-          ? t`Activity in section ${sectionIndex + 1}`
-          : t`Section ${sectionIndex + 1}`
+          ? t`Page ${page.pageNumber}, activity in section ${sectionIndex + 1}`
+          : t`Page ${page.pageNumber}, section ${sectionIndex + 1}`
       }
       frameWidth={CAPTURE_WIDTH[viewport]}
       frameHeight={SECTION_FRAME_HEIGHT}
@@ -96,9 +100,11 @@ export function PageCanvas({
   storyboardRunning,
   onOpenSectioning,
 }: PageCanvasProps) {
+  const { t } = useLingui();
   const scrollRef = useRef<HTMLDivElement>(null);
   const editing = useCanvasEditing();
-  const sections = page.sections.filter((s) => !s.isPruned);
+  const highlighted = useStoryboardTools()?.highlighted ?? null;
+  const sections = withPendingPrune(page.sections, editing.pendingSectioning);
   const building =
     !!storyboardRunning && !page.hasRendering && !page.isDiscarded;
   const empty = sections.length === 0 || building;
@@ -121,27 +127,33 @@ export function PageCanvas({
 
   const contentWidth = canvasContentWidth(viewport, pane, zoom);
 
-  const slices = sections.map((section) =>
-    editing.enabled && page.hasRendering ? (
-      <EditableSectionSlice
-        key={section.sectionId}
-        label={label}
-        pageId={page.pageId}
-        section={section}
-        viewport={viewport}
-      />
-    ) : (
-      <SectionSlice
-        key={section.sectionId}
-        label={label}
-        page={page}
-        section={section}
-        viewport={viewport}
-        contentWidth={contentWidth}
-        animateHeight={!resizing}
-      />
-    ),
-  );
+  const slices = sections.map((section) => (
+    <SectionFrame
+      key={section.sectionId}
+      sectionIndex={section.sectionIndex}
+      pruned={section.isPruned}
+      highlighted={highlighted === section.sectionIndex}
+    >
+      {editing.enabled && page.hasRendering ? (
+        <EditableSectionSlice
+          label={label}
+          pageId={page.pageId}
+          pageNumber={page.pageNumber}
+          section={section}
+          viewport={viewport}
+        />
+      ) : (
+        <SectionSlice
+          label={label}
+          page={page}
+          section={section}
+          viewport={viewport}
+          contentWidth={contentWidth}
+          animateHeight={!resizing}
+        />
+      )}
+    </SectionFrame>
+  ));
 
   const captionsWarning = page.missingCaptions > 0 && (
     <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
@@ -152,8 +164,8 @@ export function PageCanvas({
 
   if (viewport !== "desktop") {
     return (
-      <ScrollArea ref={scrollRef} horizontal className="min-h-0 w-full flex-1">
-        <div className="flex min-w-max flex-col items-center gap-4 px-6 pb-10 pt-6">
+      <ScrollArea ref={scrollRef} horizontal viewportLabel={t`Page ${page.pageNumber}`} className="min-h-0 w-full flex-1">
+        <div className="flex min-w-max flex-col items-center gap-4 px-6 pb-10 pt-16">
           {captionsWarning}
           <PageDeviceFrame
             viewport={viewport}
@@ -161,7 +173,7 @@ export function PageCanvas({
             zoom={zoom}
             available={{
               width: pane.width - CANVAS_PADDING,
-              height: pane.height - DEVICE_PADDING,
+              height: pane.height - DEVICE_PADDING - TOOLBAR_CLEARANCE,
             }}
           >
             {slices}
@@ -172,8 +184,8 @@ export function PageCanvas({
   }
 
   return (
-    <ScrollArea ref={scrollRef} horizontal className="min-h-0 w-full flex-1">
-      <div className="flex min-w-max justify-center px-6 pb-[190px] pt-6">
+    <ScrollArea ref={scrollRef} horizontal viewportLabel={t`Page ${page.pageNumber}`} className="min-h-0 w-full flex-1">
+      <div className="flex min-w-max justify-center px-6 pb-[190px] pt-16">
         <div
           className={cn(
             "flex flex-col gap-4",

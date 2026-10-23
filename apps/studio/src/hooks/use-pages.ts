@@ -23,11 +23,17 @@ export function usePages(
   })
 }
 
-export function usePage(label: string, pageId: string) {
-  return useQuery({
+export function pageQueryOptions(label: string, pageId: string) {
+  return queryOptions({
     queryKey: ["books", label, "pages", pageId],
     queryFn: () => api.getPage(label, pageId),
-    enabled: !!label && !!pageId,
+  })
+}
+
+export function usePage(label: string, pageId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    ...pageQueryOptions(label, pageId),
+    enabled: !!label && !!pageId && (options?.enabled ?? true),
   })
 }
 

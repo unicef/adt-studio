@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Loader2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { RunStepRows } from "./RunStepRows"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import type { RunStageActivity } from "./useRunActivity"
 
 export interface StageRunningPanelProps {

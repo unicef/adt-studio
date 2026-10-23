@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { shouldBlockNavigation, type NavigationLocation } from "./unsavedNavigation"
+import type { FloatingSaveScope } from "./floating-save"
 
 const pipeline = (
   routeId: string,
@@ -10,8 +11,10 @@ const pipeline = (
 const workspace = () => pipeline("/_app/pipeline/$label/", {})
 const page = (pageId: string) =>
   pipeline("/_app/pipeline/$label/pages/$pageId", { pageId }, `/pipeline/book/pages/${pageId}`)
-const step = (slug: string) =>
-  pipeline("/_app/pipeline/$label/$step/", { step: slug }, `/pipeline/book/${slug}`)
+const step = (slug: string, search: Record<string, string> = {}): NavigationLocation => ({
+  ...pipeline("/_app/pipeline/$label/$step/", { step: slug }, `/pipeline/book/${slug}`),
+  search,
+})
 const settings = (slug: string, tab: string) =>
   pipeline(
     "/_app/pipeline/$label/$step/settings/$tab",
@@ -36,7 +39,8 @@ const block = (
   current: NavigationLocation,
   next: NavigationLocation,
   ephemeralDirtyTabs: string[] = [],
-) => shouldBlockNavigation({ current, next, hasUnsaved: true, ephemeralDirtyTabs })
+  dirtyScopes: FloatingSaveScope[] = [],
+) => shouldBlockNavigation({ current, next, hasUnsaved: true, ephemeralDirtyTabs, dirtyScopes })
 
 describe("shouldBlockNavigation", () => {
   it("never blocks when nothing is unsaved", () => {
@@ -58,11 +62,60 @@ describe("shouldBlockNavigation", () => {
     expect(block(page("p1"), page("p2"))).toBe(false)
     expect(block(workspace(), step("captions"))).toBe(false)
     expect(block(page("p1"), preview())).toBe(false)
-    expect(block(step("captions"), workspace())).toBe(false)
+    expect(block(workspace(), page("p1"))).toBe(false)
+    expect(block(preview(), workspace())).toBe(false)
+  })
+
+  describe("a stage screen", () => {
+    it("blocks leaving it, since its drafts unmount with it", () => {
+      expect(block(step("captions"), workspace())).toBe(true)
+      expect(block(step("captions"), page("p1"))).toBe(true)
+      expect(block(step("captions"), preview())).toBe(true)
+      expect(block(step("captions"), step("glossary"))).toBe(true)
+      expect(block(step("captions"), settings("captions", "prompt"))).toBe(true)
+      expect(block(step("captions"), library)).toBe(true)
+    })
+
+    it("allows moving between its own pages when no draft belongs to a page", () => {
+      expect(block(step("easy-read"), step("easy-read", { page: "p1" }))).toBe(false)
+      expect(block(step("easy-read", { page: "p1" }), step("easy-read", { page: "p2" }))).toBe(false)
+      expect(block(step("easy-read", { page: "p1" }), step("easy-read"))).toBe(false)
+    })
+
+    it("blocks changing or closing the page a draft belongs to", () => {
+      const scoped = [{ page: "p1" }]
+      expect(block(step("sectioning", { page: "p1" }), step("sectioning", { page: "p2" }), [], scoped)).toBe(true)
+      expect(block(step("sectioning", { page: "p1" }), step("sectioning"), [], scoped)).toBe(true)
+      expect(block(step("sectioning", { page: "p1" }), step("sectioning", { page: "p1" }), [], scoped)).toBe(false)
+    })
+
+    it("blocks opening a page's detail from a gallery draft of that same page", () => {
+      expect(block(step("captions"), step("captions", { page: "p1" }), [], [{ page: "p1" }])).toBe(true)
+      expect(block(step("captions"), step("captions", { page: "p2" }), [], [{ page: "p1" }])).toBe(true)
+    })
+
+    it("ignores search changes that don't touch the draft's page or language", () => {
+      const pageScoped = [{ page: "p1" }]
+      expect(block(step("captions"), step("captions", { language: "en" }), [], pageScoped)).toBe(false)
+      expect(block(step("sectioning", { page: "p1" }), step("sectioning", { page: "p1", language: "en" }), [], pageScoped)).toBe(false)
+      expect(block(step("translate", { language: "en" }), step("translate", { language: "en", page: "p1" }), [], [{ language: "en" }])).toBe(false)
+    })
+
+    it("never asks when only the interface language changes", () => {
+      const scoped = [{ language: "en" }]
+      expect(block(step("translate", { language: "en", lang: "en" }), step("translate", { language: "en", lang: "pt-BR" }), [], scoped)).toBe(false)
+      expect(block(step("sectioning", { page: "p1", lang: "en" }), step("sectioning", { page: "p1", lang: "fr" }), [], [{ page: "p1" }])).toBe(false)
+    })
+
+    it("blocks switching the content language a draft belongs to", () => {
+      const scoped = [{ language: "en" }]
+      expect(block(step("translate", { language: "en" }), step("translate", { language: "es" }), [], scoped)).toBe(true)
+      expect(block(step("translate", { language: "en" }), step("translate"), [], scoped)).toBe(true)
+    })
   })
 
   it("allows entering settings but blocks leaving them", () => {
-    expect(block(step("captions"), settings("captions", "prompt"))).toBe(false)
+    expect(block(workspace(), settings("captions", "prompt"))).toBe(false)
     expect(block(settings("captions", "prompt"), step("captions"))).toBe(true)
     expect(block(settings("captions", "prompt"), workspace())).toBe(true)
   })

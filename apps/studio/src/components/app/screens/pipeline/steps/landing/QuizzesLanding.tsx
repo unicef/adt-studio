@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef , type ReactNode } from "react"
+import { useState, useEffect, useMemo, useRef , type ReactNode } from "react"
 import { Plus } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,11 @@ import {
   type SegmentedControlOption,
 } from "@/components/ui/segmented-control"
 import { StepLandingShell } from "./StepLandingShell"
+import { useLandingRunGate } from "./useLandingRunGate"
+import { RunErrorNotice } from "../shared/RunErrorNotice"
+import { HistoryRestoreNotice } from "../shared/HistoryRestoreNotice"
+import { quizzesVersionDiff } from "../shared/versionDiffs"
+import { useQuizzes } from "@/hooks/use-quizzes"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   SettingsCard,
@@ -28,14 +33,27 @@ type QuizMode = "frequency" | "specific"
 
 export function QuizzesLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
   const { t } = useLingui()
+  const quizzesQuery = useQuizzes(bookLabel)
+  const historyDiff = useMemo(() => quizzesVersionDiff(t), [t])
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("quizzes")
   const storyboardStatus = useStageStatus("storyboard")
   const storyboardReady = storyboardStatus.isCompleted
+  const gate = useLandingRunGate(bookLabel, "quizzes", [
+    {
+      ok: storyboardReady,
+      reason: (
+        <Trans>
+          Run Storyboard first — quizzes are written from the content placed into
+          pages by Storyboard.
+        </Trans>
+      ),
+    },
+  ])
 
   const [mode, setMode] = useState<QuizMode>("frequency")
   const [showAddQuiz, setShowAddQuiz] = useState(false)
@@ -71,20 +89,13 @@ export function QuizzesLanding({ bookLabel, beforeRun }: { bookLabel: string; be
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (gate.blocked || status.isRunning) return
     queueRun({ fromStage: "quizzes", toStage: "quizzes", apiKey })
   }
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to generate quizzes.</Trans>
-  ) : !storyboardReady ? (
-    <Trans>
-      Run Storyboard first — quizzes are written from the content placed into
-      pages by Storyboard.
-    </Trans>
-  ) : status.isRunning ? (
+  const disabledReason = gate.disabledReason ?? (status.isRunning ? (
     <Trans>Quizzes are generating. Wait for the run to finish before adding a quiz.</Trans>
-  ) : undefined
+  ) : undefined)
 
   const modeOptions: SegmentedControlOption<QuizMode>[] = [
     { value: "frequency", label: t`Every few pages` },
@@ -93,6 +104,22 @@ export function QuizzesLanding({ bookLabel, beforeRun }: { bookLabel: string; be
 
   return (
     <StepLandingShell
+      title={<Trans>Quizzes</Trans>}
+      description={<Trans> Generate multiple-choice comprehension quizzes from the book's content. Create them automatically across the whole book, or add a single quiz from specific pages. </Trans>}
+      notice={
+        status.hasError ? (
+          <RunErrorNotice label={bookLabel} stage="quizzes" />
+        ) : (
+          <HistoryRestoreNotice
+            label={bookLabel}
+            step="quiz-generation"
+            message={<Trans>There's an earlier version of these questions. Restore it instead of running again.</Trans>}
+            version={quizzesQuery.data?.version ?? null}
+            historyVersion={quizzesQuery.data?.historyVersion ?? null}
+            diff={historyDiff}
+          />
+        )
+      }
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="quizzes"
@@ -100,7 +127,7 @@ export function QuizzesLanding({ bookLabel, beforeRun }: { bookLabel: string; be
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
+      extraDisabled={gate.blocked}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Quizzes</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
@@ -109,18 +136,6 @@ export function QuizzesLanding({ bookLabel, beforeRun }: { bookLabel: string; be
       hideRunButton={mode === "specific"}
       preview={<QuizzesPreview pagesPerQuiz={Number(pagesPerQuiz)} mode={mode} />}
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Quizzes</Trans>
-        </h1>
-        <p className="text-[14px] text-muted-foreground leading-relaxed">
-          <Trans>
-            Generate multiple-choice comprehension quizzes from the book's
-            content. Create them automatically across the whole book, or add a
-            single quiz from specific pages.
-          </Trans>
-        </p>
-      </div>
 
       <PrereqGuard
         upstreamSlug="storyboard"
@@ -194,7 +209,7 @@ export function QuizzesLanding({ bookLabel, beforeRun }: { bookLabel: string; be
           >
             <Button
               onClick={() => setShowAddQuiz(true)}
-              disabled={!hasApiKey || !storyboardReady || status.isRunning}
+              disabled={gate.blocked || status.isRunning}
               className="h-10 gap-1.5 border-0 bg-orange-600 px-4 text-white hover:bg-orange-700"
             >
               <Plus className="h-4 w-4" />

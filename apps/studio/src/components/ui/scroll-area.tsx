@@ -17,12 +17,15 @@ interface ScrollAreaProps
      without any visible affordance. Opt in to a horizontal bar when the content
      can outgrow the viewport (zoomed canvases, wide tables). */
   horizontal?: boolean
+  /* Names the viewport and makes it focusable, so keyboard users can scroll
+     content that has no focusable children of its own. */
+  viewportLabel?: string
 }
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
   ScrollAreaProps
->(({ className, children, viewportClassName, viewportRef, horizontal, ...props }, ref) => (
+>(({ className, children, viewportClassName, viewportRef, horizontal, viewportLabel, ...props }, ref) => (
   <ScrollAreaPrimitive.Root
     ref={ref}
     className={cn("relative overflow-hidden", className)}
@@ -34,6 +37,9 @@ const ScrollArea = React.forwardRef<
         column keeps it at the viewport width so width-constrained layouts work. */}
     <ScrollAreaPrimitive.Viewport
       ref={viewportRef}
+      tabIndex={viewportLabel ? 0 : undefined}
+      role={viewportLabel ? "region" : undefined}
+      aria-label={viewportLabel}
       className={cn("h-full w-full rounded-[inherit] [&>div]:flex! [&>div]:flex-col!", viewportClassName)}
     >
       {children}

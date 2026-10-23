@@ -5,8 +5,6 @@ import type { DockItem } from "@/components/app/screens/pipeline/shared/usePipel
 
 export type DockKey = StageGroup | "accessibility"
 export type DockLayout = "groups" | "flat" | "path"
-export type NextCue = "chip" | "card" | "menu"
-export type DockOrder = "none" | "arrow" | "cluster"
 
 export interface KeyedGroup {
   key: DockKey

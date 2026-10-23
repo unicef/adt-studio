@@ -1,240 +1,198 @@
 import { useCallback, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Loader2, Plus, Search, X } from "lucide-react"
-import type { QuizItem, QuizOption } from "@/api/client"
+import { plural } from "@lingui/core/macro"
 import { useQuizzes } from "@/hooks/use-quizzes"
-import { useApiKey } from "@/hooks/use-api-key"
-import { useStageStatus } from "@/hooks/use-stage-status"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { PageLightbox } from "@/components/pipeline/components/PageLightbox"
 import { AddQuizDialog } from "@/components/pipeline/stages/quizzes/AddQuizDialog"
-import { useSaveQuizzes } from "./shared/mutations"
-import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
+import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
+import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
+import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView, useStepRunningView } from "./shared/StepShell"
 import { StepVersionPicker } from "./shared/StepVersionPicker"
-import { DetailNavButton, SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
+import { StepRail } from "./shared/ui"
 import { quizzesVersionDiff } from "./shared/versionDiffs"
-import { QuizCard } from "./quizzes/QuizCard"
+import { usePageNav } from "./shared/usePageNav"
+import { usePageRailEntries } from "./shared/usePageRailEntries"
+import { usePageScopedItems } from "./shared/list/usePageScopedItems"
+import { useExpandedRows } from "./shared/list/useExpandedRows"
+import { useStageSurface } from "./shared/useStageSurface"
+import { useQuizEdits } from "./quizzes/useQuizEdits"
+import type { QuizRow } from "./quizzes/quizRows"
+import type { QuizRowContext } from "./quizzes/QuizRowItem"
+import { QuizzesOverview } from "./quizzes/QuizzesOverview"
+import { QuizzesPageDetail } from "./quizzes/QuizzesPageDetail"
 import type { StepProps } from "./shared/types"
+
+const afterPage = (quiz: QuizRow) => [quiz.afterPageId]
 
 export function QuizzesStep(props: StepProps) {
   const { label, plugin, pages } = props
   const { t } = useLingui()
   const query = useQuizzes(label)
-  const save = useSaveQuizzes(label)
-  const saveQuizzes = save.mutate
+  const activity = useStageActivity("quizzes")
+  const run = useRunActivity()
+  const hasProvider = useBookStructuredTextAvailability(label)
+  const edits = useQuizEdits(label, query.data, activity.isActive)
+  const quizzes = edits.items
 
-  const { hasApiKey } = useApiKey()
-  const quizzesStatus = useStageStatus("quizzes")
-
-  const output = query.data?.quizzes ?? null
-  const quizzes = useMemo(() => output?.quizzes ?? [], [output])
-  const [activePageId, setActivePageId] = useState<string | null>(null)
-  const [lightboxPageId, setLightboxPageId] = useState<string | null>(null)
-  const [showAdd, setShowAdd] = useState(false)
-  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(null)
   const [search, setSearch] = useState("")
+  const [showAdd, setShowAdd] = useState(false)
+  const [showRows, setShowRows] = useState(false)
+  const [lightboxPageId, setLightboxPageId] = useState<string | null>(null)
+  const expandedRows = useExpandedRows()
 
-  const pageNumbers = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const page of pages) map.set(page.pageId, page.pageNumber)
-    return map
-  }, [pages])
+  const pageNumbers = useMemo(() => new Map(pages.map((page) => [page.pageId, page.pageNumber])), [pages])
+  const scoped = usePageScopedItems({ pages, items: quizzes, pagesOf: afterPage })
+  const pageAspect = usePageAspect(label, scoped.navPages)
+  const nav = usePageNav({ label, slug: plugin.slug, pages: scoped.navPages, allPages: pages })
+  const positions = useMemo(() => new Map(quizzes.map((quiz, index) => [quiz.quizId, index + 1])), [quizzes])
+  const positionOf = useCallback((quiz: QuizRow) => positions.get(quiz.quizId) ?? 0, [positions])
 
-  const byPage = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const quiz of quizzes) counts.set(quiz.afterPageId, (counts.get(quiz.afterPageId) ?? 0) + 1)
-    return [...counts.entries()].map(([pageId, count]) => ({
-      key: pageId,
-      title: t`After page ${pageNumbers.get(pageId) ?? "—"}`,
-      count,
-    }))
-  }, [quizzes, pageNumbers, t])
+  const shown = useMemo(() => {
+    const needle = search.trim().toLocaleLowerCase()
+    if (!needle) return quizzes
+    return quizzes.filter((quiz) =>
+      [quiz.question, ...quiz.options.flatMap((option) => [option.text, option.explanation])].join(" ").toLocaleLowerCase().includes(needle),
+    )
+  }, [quizzes, search])
+
+  const locked = activity.isActive
+  const { editQuiz, editOption, remove, editedKeys } = edits
+  const ctx = useMemo<QuizRowContext>(
+    () => ({
+      label,
+      hex: plugin.hex,
+      locked,
+      ratio: pageAspect.ratio,
+      pageNumbers,
+      isEdited: (quiz) => editedKeys.has(quiz.quizId),
+      onOpenPage: nav.open,
+      onOpenThumb: setLightboxPageId,
+      onQuiz: editQuiz,
+      onOption: editOption,
+      onRemove: remove,
+    }),
+    [label, plugin.hex, locked, pageAspect.ratio, pageNumbers, editedKeys, nav.open, editQuiz, editOption, remove],
+  )
+
+  const count = quizzes.length
+  const questionsLabel = t`${plural(count, { one: "# question", other: "# questions" })}`
+  const every = query.data?.quizzes?.pagesPerQuiz ?? 1
+  const surface = useStageSurface({
+    label,
+    slug: "quizzes",
+    hex: plugin.hex,
+    ready: count > 0,
+    outcome: t`Editing is paused until Quizzes finishes.`,
+    hint: {
+      title: t`How quizzes work`,
+      body: t`AI wrote these questions from the pages listed under each one. Edit any question, answer or feedback, change the correct answer, or remove a question. Saving creates a new version, so you can always go back.`,
+    },
+    onOpenPage: nav.open,
+  })
+
+  const railEntries = usePageRailEntries(label, scoped.navPages, {
+    aspect: pageAspect,
+    count: (page) => scoped.countOn(page.pageId),
+    subtitle: (page) => scoped.itemsOn(page.pageId)[0]?.question,
+  })
 
   const versionDiff = useMemo(() => quizzesVersionDiff(t), [t])
+  const serverCount = query.data?.quizzes?.quizzes.length ?? 0
+  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: serverCount > 0 })
+  const runningView = useStepRunningView({
+    ...props,
+    stage: activity,
+    isCancelling: run.isCancelling,
+    onCancel: run.cancelRun,
+    outcome: t`Questions show up here once they are written.`,
+  })
+  const loadingView = useStepLoadingView(props, { shape: "list" })
+  const emptyView = useStepEmptyView(props)
+  const phaseView = activity.isActive && serverCount === 0 ? runningView : loading ? loadingView : serverCount === 0 ? emptyView : null
+  if (phaseView) return <StepShell {...props} {...phaseView} />
 
-  const patchQuiz = useCallback(
-    (quizIndex: number, changes: Partial<QuizItem>) => {
-      if (!output) return
-      saveQuizzes({
-        ...output,
-        quizzes: output.quizzes.map((q) => (q.quizIndex === quizIndex ? { ...q, ...changes } : q)),
-      })
-    },
-    [output, saveQuizzes],
-  )
+  const addDisabledReason = locked
+    ? t`Wait for the quizzes to finish generating.`
+    : edits.dirty
+      ? t`Save or discard your edits first.`
+      : !hasProvider
+        ? t`Set up AI access in Book settings to add a quiz.`
+        : undefined
 
-  const patchOption = useCallback(
-    (quizIndex: number, optionIndex: number, changes: Partial<QuizOption>) => {
-      if (!output) return
-      saveQuizzes({
-        ...output,
-        quizzes: output.quizzes.map((q) =>
-          q.quizIndex === quizIndex
-            ? {
-                ...q,
-                options: q.options.map((o, i) => (i === optionIndex ? { ...o, ...changes } : o)),
-              }
-            : q,
-        ),
-      })
-    },
-    [output, saveQuizzes],
-  )
-
-  const openPage = useCallback((pageId: string) => setLightboxPageId(pageId), [])
-  const requestDelete = useCallback((quizIndex: number) => setConfirmDeleteIndex(quizIndex), [])
-
-  // Removes the quiz and renumbers quizIndex (it's positional). A deleted quiz
-  // can still be recovered from the version history.
-  const deleteQuiz = useCallback(
-    (quizIndex: number) => {
-      if (!output) return
-      saveQuizzes(
-        {
-          ...output,
-          quizzes: output.quizzes
-            .filter((q) => q.quizIndex !== quizIndex)
-            .map((q, i) => ({ ...q, quizIndex: i })),
-        },
-        { onSettled: () => setConfirmDeleteIndex(null) },
-      )
-    },
-    [output, saveQuizzes],
-  )
-
-  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: quizzes.length > 0 })
-  if (loading) return <StepLoading {...props} />
-  if (quizzes.length === 0) return <StepEmpty {...props} />
-
-  const byActivePage = activePageId
-    ? quizzes.filter((q) => q.afterPageId === activePageId)
-    : quizzes
-  const normalizedSearch = search.trim().toLowerCase()
-  const shown = normalizedSearch
-    ? byActivePage.filter((q) =>
-        [q.question, ...q.options.flatMap((o) => [o.text, o.explanation])]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedSearch),
-      )
-    : byActivePage
+  const selected = nav.selected
+  const version = query.data?.version ?? null
+  const historyVersion = query.data?.historyVersion ?? null
 
   return (
     <StepShell
       {...props}
-      chips={[t`${quizzes.length} questions`, t`every ${output?.pagesPerQuiz ?? 1} pages`]}
+      railEmpty={!selected}
+      chips={[questionsLabel, t`${plural(every, { one: "A quiz after every page", other: "A quiz every # pages" })}`]}
       headerExtra={
         <StepVersionPicker
           label={label}
           step="quiz-generation"
-          currentVersion={query.data?.version ?? null}
-          isSaving={save.isPending}
+          currentVersion={version}
+          historyVersion={historyVersion}
+          currentVersionInactive={version == null && historyVersion != null}
+          isSaving={edits.saving}
+          dirty={edits.dirty}
+          onRestored={edits.discard}
           diff={versionDiff}
         />
       }
-      canApply={quizzes.length > 0}
       rail={
         <StepRail
           heading={<Trans>Questions by page</Trans>}
           hex={plugin.hex}
-          entries={[{ key: "", title: t`All quizzes`, count: quizzes.length }, ...byPage]}
-          activeKey={activePageId ?? ""}
-          onSelect={(key) =>
-            key ? setActivePageId((cur) => (cur === key ? null : key)) : setActivePageId(null)
-          }
-          footer={<Trans>Select a page to filter. Click again to show all.</Trans>}
+          entries={railEntries}
+          activeKey={selected?.pageId ?? ""}
+          onSelect={(key) => (key ? nav.open(key) : nav.close())}
+          footer={<Trans>Counts show how many questions come right after each page.</Trans>}
         />
       }
     >
-      <StepBody
-        title={<Trans>Quizzes</Trans>}
-        meta={t`${quizzes.length} questions`}
-        actions={
-          <>
-            <div className="relative w-72">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t`Search questions, answers, or explanations…`}
-                aria-label={t`Search questions or options…`}
-                className="h-8 w-full rounded-lg border bg-background pl-8 pr-8 text-[12px] placeholder:text-muted-foreground/60 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_var(--brand-50)]"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  aria-label={t`Clear search`}
-                  className="absolute right-1 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <X className="size-3" />
-                </button>
-              )}
-            </div>
-            <DetailNavButton
-              icon={Plus}
-              label={
-                !hasApiKey
-                  ? t`Add an API key in Book settings to add a quiz.`
-                  : quizzesStatus.isRunning
-                    ? t`Quizzes are generating. Wait for the run to finish before adding a quiz.`
-                    : t`Add quiz`
-              }
-              onClick={() => setShowAdd(true)}
-              disabled={!hasApiKey || quizzesStatus.isRunning}
-            >
-              <Trans>Add quiz</Trans>
-            </DetailNavButton>
-          </>
-        }
-      >
-        <SaveError error={save.error} />
-
-        {shown.length === 0 ? (
-          <StepEmptyHint>
-            {normalizedSearch ? (
-              <span className="flex flex-col items-center gap-2">
-                <Trans>No quizzes match your search</Trans>
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  className="font-medium underline-offset-2 hover:underline"
-                  style={{ color: plugin.hex }}
-                >
-                  <Trans>Clear search</Trans>
-                </button>
-              </span>
-            ) : (
-              <Trans>No questions for this page.</Trans>
-            )}
-          </StepEmptyHint>
-        ) : (
-          shown.map((quiz) => (
-            <QuizCard
-              key={quiz.quizIndex}
-              label={label}
-              quiz={quiz}
-              accent={plugin.hex}
-              pageNumbers={pageNumbers}
-              saving={save.isPending}
-              onPatchQuiz={patchQuiz}
-              onPatchOption={patchOption}
-              onOpenPage={openPage}
-              onRequestDelete={requestDelete}
-            />
-          ))
-        )}
-      </StepBody>
-
+      {selected ? (
+        <QuizzesPageDetail
+          key={selected.pageId}
+          label={label}
+          pageId={selected.pageId}
+          pageNumber={selected.pageNumber}
+          quizzes={scoped.itemsOn(selected.pageId)}
+          positionOf={positionOf}
+          ctx={ctx}
+          prevPageId={nav.prevId}
+          nextPageId={nav.nextId}
+          onStep={nav.step}
+          onClose={nav.close}
+        />
+      ) : (
+        <QuizzesOverview
+          label={label}
+          hex={plugin.hex}
+          meta={questionsLabel}
+          top={surface.top}
+          help={surface.help}
+          quizzes={quizzes}
+          shown={shown}
+          positionOf={positionOf}
+          search={search}
+          onSearch={setSearch}
+          saveError={edits.saveError}
+          ctx={ctx}
+          expanded={expandedRows.open}
+          onToggle={expandedRows.toggle}
+          addDisabledReason={addDisabledReason}
+          onAdd={() => setShowAdd(true)}
+          navPages={scoped.navPages}
+          aspect={pageAspect}
+          quizzesOn={scoped.itemsOn}
+          onOpenPage={nav.open}
+          showRows={showRows}
+          onShowRows={() => setShowRows(true)}
+        />
+      )}
       <PageLightbox
         bookLabel={label}
         pageId={lightboxPageId}
@@ -243,57 +201,7 @@ export function QuizzesStep(props: StepProps) {
           if (!open) setLightboxPageId(null)
         }}
       />
-
-      <AddQuizDialog
-        open={showAdd}
-        onOpenChange={setShowAdd}
-        bookLabel={label}
-        onCreated={() => setShowAdd(false)}
-      />
-
-      <Dialog
-        open={confirmDeleteIndex != null}
-        onOpenChange={(open) => {
-          if (!open && !save.isPending) setConfirmDeleteIndex(null)
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Delete this quiz?</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>
-                This quiz will be removed from the book. You can still restore it from the version
-                history.
-              </Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmDeleteIndex(null)}
-              disabled={save.isPending}
-            >
-              <Trans>Cancel</Trans>
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => confirmDeleteIndex != null && deleteQuiz(confirmDeleteIndex)}
-              disabled={save.isPending}
-            >
-              {save.isPending ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin motion-reduce:animate-none" />
-                  <Trans>Deleting…</Trans>
-                </>
-              ) : (
-                <Trans>Delete quiz</Trans>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddQuizDialog open={showAdd} onOpenChange={setShowAdd} bookLabel={label} onCreated={() => setShowAdd(false)} />
     </StepShell>
   )
 }

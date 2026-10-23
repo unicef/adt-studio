@@ -69,8 +69,8 @@ export function TocPreview({ mode }: { mode: TocModeKey }) {
               className={cn(
                 "ml-auto rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors",
                 mode === "extract"
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-amber-50 text-amber-700 ring-1 ring-border",
+                  ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                  : "bg-amber-50 text-amber-700 ring-1 ring-border dark:bg-amber-500/10 dark:text-amber-300",
               )}
               style={{ viewTransitionName: "toc-mode-badge" }}
             >
@@ -107,7 +107,7 @@ export function TocPreview({ mode }: { mode: TocModeKey }) {
                 </span>
                 <span
                   className={cn(
-                    "shrink-0 font-mono text-[10px] tabular-nums text-[#a3a3a3] opacity-0 transition-opacity group-hover:opacity-100",
+                    "shrink-0 font-mono text-[10px] tabular-nums text-[#a3a3a3] opacity-0 transition-opacity group-hover:opacity-100 dark:text-muted-foreground",
                     entry.level === 1 && "opacity-60",
                   )}
                 >
@@ -118,7 +118,7 @@ export function TocPreview({ mode }: { mode: TocModeKey }) {
           </ul>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 rounded-md bg-amber-50  dark:bg-background dark:text-amber-500 px-2.5 py-1.5 text-[10.5px] text-amber-800">
+        <div className="flex shrink-0 items-center gap-2 rounded-md bg-amber-50  dark:bg-amber-500/10 dark:text-amber-300 px-2.5 py-1.5 text-[10.5px] text-amber-800">
           {mode === "extract" ? (
             <Hash className="h-3 w-3 shrink-0" strokeWidth={2.25} aria-hidden />
           ) : (

@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, Puzzle } from "lucide-react"
+import { AlertTriangle, Puzzle, Search, X } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import type { QuizItem } from "@/api/client"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { STORYBOARD_HEX } from "@/components/app/screens/pipeline/shared/plugins"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { QuizRailRow } from "./QuizRailRow"
 import { groupQuizzesByPage } from "./railOrder"
 import { RailCollapseButton } from "./SideRail"
+import { SegmentedTabs, tabPanelProps } from "@/components/app/screens/pipeline/shared/SegmentedTabs"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
 
 export interface PagesRailProps {
@@ -24,6 +26,7 @@ export interface PagesRailProps {
   tab?: RailTab
   onTabChange?: (tab: RailTab) => void
   layers?: React.ReactNode
+  layersDisabled?: boolean
 }
 
 export type RailTab = "pages" | "layers"
@@ -48,20 +51,29 @@ export function PagesRail({
   tab,
   onTabChange,
   layers,
+  layersDisabled = false,
 }: PagesRailProps) {
   const { t } = useLingui()
+
+  const [query, setQuery] = useState("")
+  const fieldShown = tab !== "layers"
+  const needle = fieldShown ? query.trim().toLowerCase() : ""
 
   const items = useMemo<RailItem[]>(() => {
     const quizzesByPage = groupQuizzesByPage(quizzes)
     const out: RailItem[] = []
     for (const page of pages) {
+      if (needle) {
+        if (String(page.pageNumber).startsWith(needle) || page.textPreview.toLowerCase().includes(needle)) out.push({ type: "page", page })
+        continue
+      }
       out.push({ type: "page", page })
       for (const quiz of quizzesByPage.get(page.pageId) ?? []) {
         out.push({ type: "quiz", quiz, pageNumber: page.pageNumber })
       }
     }
     return out
-  }, [pages, quizzes])
+  }, [pages, quizzes, needle])
 
   const activeIndex = useMemo(
     () =>
@@ -73,6 +85,9 @@ export function PagesRail({
     [items, activePageId, activeQuizIndex],
   )
 
+  const idBase = useId()
+  const tabbed = !!tab && !!onTabChange
+  const focusIndex = activeIndex >= 0 ? activeIndex : 0
   const parentRef = useRef<HTMLDivElement>(null)
   const virtualizer = useVirtualizer({
     count: items.length,
@@ -86,27 +101,91 @@ export function PagesRail({
     if (activeIndex >= 0) virtualizer.scrollToIndex(activeIndex, { align: "auto" })
   }, [activeIndex, virtualizer])
 
+  const moveFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const from = Number((event.target as HTMLElement).closest<HTMLElement>("[data-index]")?.dataset.index ?? focusIndex)
+    const step = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0
+    const target = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : step ? from + step : -1
+    if (target < 0 || target >= items.length) return
+    event.preventDefault()
+    virtualizer.scrollToIndex(target, { align: "auto" })
+    requestAnimationFrame(() => parentRef.current?.querySelector<HTMLElement>(`[data-index="${target}"] button`)?.focus())
+  }
+
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
-      <div className="flex items-center gap-2 px-3.5 pb-2 pt-3.5">
+    <aside aria-label={tabbed ? t`Pages and layers` : t`Pages`} className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
+      <div data-chrome="railhead" className="flex h-11 shrink-0 items-center gap-1.5 border-b px-2.5">
+        <RailCollapseButton className="size-7 rounded-md" />
         {tab && onTabChange ? (
-          <RailTabs value={tab} onChange={onTabChange} pageCount={pages.length} />
+          <SegmentedTabs
+            idBase={idBase}
+            label={t`Left panel`}
+            value={tab}
+            onChange={onTabChange}
+            tabs={[
+              {
+                value: "pages",
+                ariaLabel: t`Pages, ${pages.length}`,
+                label: (
+                  <>
+                    <Trans>Pages</Trans>
+                    <span aria-hidden className="font-mono text-[10.5px] text-foreground/60">{pages.length}</span>
+                  </>
+                ),
+              },
+              { value: "layers", label: <Trans>Layers</Trans>, disabled: layersDisabled, hint: layersDisabled ? t`Quizzes have no layers to edit` : undefined },
+            ]}
+          />
         ) : (
           <>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <h2 className="pl-1 text-[13px] font-semibold">
               <Trans>Pages</Trans>
-            </span>
-            <span className="ml-auto font-mono text-[11px] text-muted-foreground">{pages.length}</span>
+            </h2>
+            <span className="mr-auto font-mono text-[11px] text-muted-foreground">{pages.length}</span>
           </>
         )}
-        <RailCollapseButton className="-mr-1" />
       </div>
 
-      {tab === "layers" && layers}
+      {fieldShown && (
+        <label className="mx-2.5 mt-2 flex h-8 shrink-0 items-center gap-2 rounded-lg bg-muted/70 px-2.5 transition-[background-color,box-shadow] duration-150 focus-within:bg-card focus-within:ring-2 focus-within:ring-ring/60 focus-within:ring-inset">
+          <Search aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                const first = items.find((item) => item.type === "page")
+                if (first?.type === "page") onSelect(first.page.pageId)
+              } else if (event.key === "Escape") setQuery("")
+            }}
+            placeholder={t`Go to page or find text`}
+            aria-label={t`Go to page or find text`}
+            className="min-w-0 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-muted-foreground"
+          />
+          {needle && (
+            <>
+              <span className="shrink-0 font-mono text-[10.5px] text-muted-foreground tabular-nums">{items.length}</span>
+              <button type="button" aria-label={t`Clear`} onClick={() => setQuery("")} className="grid size-5 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-foreground/10 hover:text-foreground">
+                <X className="size-3" />
+              </button>
+            </>
+          )}
+        </label>
+      )}
+      {needle && items.length === 0 && tab !== "layers" && (
+        <p className="px-4 py-6 text-center text-[12px] text-muted-foreground animate-in fade-in duration-200">{t`No pages match “${query.trim()}”.`}</p>
+      )}
+      {tab === "layers" && (
+        <div {...tabPanelProps(idBase, "layers")} className="flex min-h-0 flex-1 flex-col focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
+          {layers}
+        </div>
+      )}
       <ScrollArea
+        {...(tabbed ? tabPanelProps(idBase, "pages") : {})}
+        tabIndex={-1}
+        onKeyDown={moveFocus}
         className={cn("min-h-0 flex-1", tab === "layers" && "hidden")}
         viewportRef={parentRef}
-        viewportClassName="px-2.5 pb-2.5"
+        viewportClassName="px-2.5 pb-2.5 pt-2"
       >
         <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
           {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -129,6 +208,7 @@ export function PagesRail({
                   className="pb-1.5"
                 >
                   <QuizRailRow
+                    tabIndex={virtualRow.index === focusIndex ? 0 : -1}
                     quiz={item.quiz}
                     pageNumber={item.pageNumber}
                     active={item.quiz.quizIndex === activeQuizIndex}
@@ -153,7 +233,17 @@ export function PagesRail({
               >
                 <button
                   type="button"
+                  tabIndex={virtualRow.index === focusIndex ? 0 : -1}
                   onClick={() => onSelect(page.pageId)}
+                  aria-label={[
+                    t`Page ${page.pageNumber}`,
+                    page.isDiscarded ? t`discarded` : null,
+                    pending ? t`still being built` : null,
+                    outdated ? t`out of date` : null,
+                    hasActivity ? t`has an interactive activity` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
                   aria-current={active ? "page" : undefined}
                   aria-busy={pending || undefined}
                   title={
@@ -163,13 +253,16 @@ export function PagesRail({
                         ? t`Page ${page.pageNumber} is still being built`
                         : undefined
                   }
+                  style={{ ["--tint" as string]: STORYBOARD_HEX }}
                   className={cn(
-                    "flex w-full gap-2.5 rounded-[9px] p-2 text-left transition-colors",
-                    active ? "bg-brand-50 shadow-[inset_0_0_0_1px_var(--brand-200)]" : "hover:bg-muted",
-                    page.isDiscarded && "opacity-50",
+                    "flex w-full gap-2.5 rounded-[9px] p-2 text-left transition-[background-color,box-shadow] duration-150 ease-out motion-reduce:transition-none",
+                    active
+                      ? "bg-[color-mix(in_srgb,var(--tint)_8%,transparent)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--tint)_30%,transparent)] dark:bg-[color-mix(in_srgb,var(--tint)_16%,transparent)]"
+                      : "hover:bg-muted",
+                    page.isDiscarded && "[&>*]:opacity-50",
                   )}
                 >
-                  <span className="relative shrink-0">
+                  <span className={cn("relative shrink-0 rounded-[6px] transition-shadow duration-150", active && "ring-2 ring-[var(--tint)] ring-offset-1 ring-offset-card")}>
                     <PageThumb
                       label={label}
                       pageId={page.pageId}
@@ -200,13 +293,13 @@ export function PagesRail({
                     <span
                       className={cn(
                         "text-xs font-semibold",
-                        active && "text-brand-700",
+                        active && "text-[color-mix(in_srgb,var(--tint)_82%,black)] dark:text-violet-200",
                         page.isDiscarded && "line-through",
                       )}
                     >
                       {t`Page ${page.pageNumber}`}
                     </span>
-                    <span className="truncate text-[11px] text-muted-foreground">
+                    <span className={cn("line-clamp-2 text-[11px] leading-snug", active ? "text-foreground/75" : "text-muted-foreground")}>
                       {page.textPreview || t`No text`}
                     </span>
                   </div>
@@ -217,37 +310,5 @@ export function PagesRail({
         </div>
       </ScrollArea>
     </aside>
-  )
-}
-
-
-function RailTabs({ value, onChange, pageCount }: { value: RailTab; onChange: (tab: RailTab) => void; pageCount: number }) {
-  return (
-    <div role="tablist" className="relative mr-auto grid grid-cols-2 rounded-lg bg-muted p-0.5 text-[11.5px] font-medium">
-      <span
-        aria-hidden
-        className="absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-card shadow-sm transition-transform duration-250 ease-[cubic-bezier(.22,.61,.36,1)] motion-reduce:transition-none"
-        style={{ transform: value === "layers" ? "translateX(100%)" : "translateX(0)" }}
-      />
-      <button
-        type="button"
-        role="tab"
-        aria-selected={value === "pages"}
-        onClick={() => onChange("pages")}
-        className={cn("relative z-10 flex items-center justify-center gap-1.5 px-3 py-1 transition-colors", value === "pages" ? "text-foreground" : "text-muted-foreground")}
-      >
-        <Trans>Pages</Trans>
-        <span className="font-mono text-[10px] text-muted-foreground">{pageCount}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={value === "layers"}
-        onClick={() => onChange("layers")}
-        className={cn("relative z-10 px-3 py-1 transition-colors", value === "layers" ? "text-foreground" : "text-muted-foreground")}
-      >
-        <Trans>Layers</Trans>
-      </button>
-    </div>
   )
 }

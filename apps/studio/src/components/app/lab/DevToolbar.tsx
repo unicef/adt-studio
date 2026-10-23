@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { ChevronDown, FlaskConical, X } from "lucide-react"
+import { ChevronDown, FlaskConical, GripVertical, X } from "lucide-react"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
+import { useToolbarDrag } from "./useToolbarDrag"
 
 export interface LabOption {
   value: string
@@ -28,6 +29,7 @@ export interface LabGroup {
   icon?: ReactNode
   controls: LabControl[]
   note?: ReactNode
+  content?: ReactNode
 }
 
 export type LabValues = Record<string, string>
@@ -62,6 +64,22 @@ function Segment({ control, value, onChange }: { control: LabControl; value: str
   )
 }
 
+export function MoveGrip({ drag, label, pointer = true }: { drag: ReturnType<typeof useToolbarDrag>; label: string; pointer?: boolean }) {
+  const { t } = useLingui()
+  return (
+    <button
+      type="button"
+      {...(pointer ? drag.handleProps : {})}
+      {...drag.gripProps}
+      aria-label={label}
+      title={t`Drag to move · double-click to reset`}
+      className="grid h-8 w-5 shrink-0 cursor-grab touch-none place-items-center rounded-[10px] text-white/40 transition-[background-color,color] duration-150 ease-out hover:bg-white/10 hover:text-white/80 in-data-dragging:cursor-grabbing in-data-dragging:text-white"
+    >
+      <GripVertical className="size-3.5" />
+    </button>
+  )
+}
+
 export function DevToolbar({
   controls,
   groups = [],
@@ -83,6 +101,8 @@ export function DevToolbar({
   const [collapsed, setCollapsed] = collapsedStore.use()
   const [shown, setShown] = useState(false)
   const root = useRef<HTMLDivElement>(null)
+  const frame = useRef<HTMLDivElement>(null)
+  const drag = useToolbarDrag(frame, "adt.lab.toolbar-offset", "right")
   const group = groups.find((candidate) => candidate.key === groupKey) ?? groups[0]
   const groupControls = group?.controls ?? []
   const cycled = groupControls.find((control) => control.cycle) ?? controls.find((control) => control.cycle) ?? groupControls[0] ?? controls[0]
@@ -117,13 +137,21 @@ export function DevToolbar({
   if (new URLSearchParams(window.location.search).get("toolbar") === "0") return null
 
   return (
-    <div data-lab-toolbar="" className="pointer-events-none fixed right-4 bottom-4 z-[2147483000] flex justify-end">
+    <div
+      ref={frame}
+      data-lab-toolbar=""
+      data-dragging={drag.dragging || undefined}
+      style={drag.style}
+      className="group/labbar pointer-events-none fixed right-4 bottom-4 z-[2147483000] flex justify-end data-dragging:select-none"
+    >
       {hidden ? (
         <button
           type="button"
           onClick={() => setHidden(false)}
+          {...drag.handleProps}
           aria-label={t`Show lab toolbar`}
-          className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-full bg-zinc-900/90 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70 shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md transition-[color,transform] duration-150 ease-out hover:text-white active:scale-[0.97]"
+          title={t`Click to open, drag to move`}
+          className="pointer-events-auto flex h-8 cursor-grab touch-none items-center gap-1.5 rounded-full bg-zinc-900/90 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70 shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md transition-[color,transform,box-shadow] duration-150 ease-out hover:text-white active:scale-[0.97] group-data-dragging/labbar:cursor-grabbing group-data-dragging/labbar:scale-[1.03] group-data-dragging/labbar:shadow-[0_18px_44px_rgba(0,0,0,0.36)]"
         >
           <FlaskConical className="size-3.5" />
           {t`Lab`}
@@ -132,13 +160,14 @@ export function DevToolbar({
         <div
           ref={root}
           className={
-            "pointer-events-auto flex w-[min(400px,calc(100vw-32px))] flex-col items-stretch gap-1 rounded-2xl bg-zinc-900/90 p-1.5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none " +
+            "pointer-events-auto flex w-[min(400px,calc(100vw-32px))] flex-col items-stretch gap-1 rounded-2xl bg-zinc-900/90 p-1.5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md transition-[opacity,transform,box-shadow] duration-200 group-data-dragging/labbar:shadow-[0_18px_44px_rgba(0,0,0,0.4)] group-data-dragging/labbar:ring-white/20 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none " +
             (shown ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")
           }
         >
           {group && (
             <>
-              <div role="tablist" aria-label={t`Lab groups`} className="flex items-center gap-0.5 rounded-xl bg-white/5 p-1">
+              <div role="tablist" aria-label={t`Lab groups`} className="flex flex-wrap items-center gap-0.5 rounded-xl bg-white/5 p-1">
+                <MoveGrip drag={drag} label={t`Move lab toolbar`} />
                 {groups.map((candidate) => {
                   const active = candidate.key === group.key
                   return (
@@ -188,6 +217,7 @@ export function DevToolbar({
                 {group.controls.map((control) => (
                   <Segment key={control.key} control={control} value={values[control.key]} onChange={(value) => onChange(control.key, value)} />
                 ))}
+                {group.content}
                 {group.note !== undefined && <p className="px-2 pt-0.5 pb-1 text-[11.5px] leading-snug text-white/55">{group.note}</p>}
               </div>
               {controls.length > 0 && <div className="mx-2 my-0.5 h-px bg-white/10" />}
@@ -198,6 +228,7 @@ export function DevToolbar({
           ))}
           {note !== undefined && <span className="shrink-0 px-2 text-[12px] font-medium text-white/70">{note}</span>}
           <div className="flex items-center justify-end gap-0.5">
+          {!group && <MoveGrip drag={drag} label={t`Move lab toolbar`} />}
           {actions.map((action) => (
             <button
               key={action.key}

@@ -1,5 +1,5 @@
-import { useState, type CSSProperties, type ReactNode } from "react"
-import { ChevronDown, Loader2, Play, Settings, X } from "lucide-react"
+import { useId, useState, type CSSProperties, type ReactNode } from "react"
+import { Loader2, Play, Settings, X } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { BOOK_LEVEL_STAGES, type StageName } from "@adt/types"
 import { Button } from "@/components/ui/button"
@@ -12,13 +12,14 @@ import { STAGES } from "@/components/pipeline/stage-config"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
 import { cn } from "@/lib/utils"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { StepLandingLayout } from "./StepLandingLayout"
-import { useStepVariant } from "@/components/app/screens/pipeline/shared/useStepVariant"
-import { hasFullHeightLanding } from "./fullHeight"
 import { isStepSettingsSlug } from "@/components/app/screens/pipeline/settings/slugs"
 import { useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import { useStageError } from "../shared/RunErrorNotice"
+import { useDescribeProblem, type ProblemStage } from "../shared/problems/useDescribeProblem"
+import { problemTone, TONE_BUTTON } from "../shared/problems/problemTone"
 
 export interface StepLandingShellProps {
   bookLabel: string
@@ -72,13 +73,10 @@ export function StepLandingShell({
   const downstreamAffected = useDownstreamWithOutput(stageSlug)
   const needsConfirmation = isCompleted && downstreamAffected.length > 0
   const { isCancelling, cancelRun } = useBookRun()
-  const landingVariant = useStepVariant("landing", stageSlug)
-  const actionFirst = landingVariant === "action-first"
-  const compact = landingVariant === "compact"
   const navigate = useNavigate()
   const hasAi = useBookStructuredTextAvailability(bookLabel)
   const aiLink =
-    (landingVariant !== "current" || title) && !hasAi ? (
+    !hasAi ? (
       <button
         type="button"
         onClick={() => void navigate({ to: "/pipeline/$label/settings/$section", params: { label: bookLabel, section: "api-keys" } })}
@@ -87,7 +85,11 @@ export function StepLandingShell({
         <Trans>Set up AI access</Trans>
       </button>
     ) : null
-  const [exampleOpen, setExampleOpen] = useState(false)
+  const reasonId = useId()
+  const stageError = useStageError(stageSlug as ProblemStage)
+  const describe = useDescribeProblem()
+  const errorTone = problemTone(describe(stageSlug as ProblemStage, stageError).level)
+  const errorFill = errorTone === "critical" ? "bg-destructive" : "bg-amber-700"
 
   const stage = STAGES.find((s) => s.slug === stageSlug)
   const hex = stage?.hex ?? "#4b5563"
@@ -144,16 +146,17 @@ export function StepLandingShell({
     <Button
       onClick={handleRunClick}
       disabled={isDisabled}
-      style={hasError ? undefined : { background: hex }}
+      aria-describedby={isDisabled && disabledReason ? reasonId : undefined}
+      style={hasError || isDisabled ? undefined : { background: hex }}
       className={cn(
         "h-10 border-0 px-5 font-medium text-white hover:opacity-90",
         pressable,
-        "disabled:cursor-default disabled:opacity-50",
-        hasError && "bg-destructive hover:bg-destructive",
+        "disabled:cursor-default disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none",
+        hasError && TONE_BUTTON[errorTone],
       )}
     >
       <Play className="mr-2 size-4" />
-      {isCompleted || hasError ? rerunLabel : runLabel}
+      {hasError ? <Trans>Try again</Trans> : isCompleted ? rerunLabel : runLabel}
     </Button>
   )
 
@@ -198,114 +201,23 @@ export function StepLandingShell({
   )
   const reasonLine = showReason ? (
     <div className="flex flex-wrap items-center gap-2">
-      <p className="text-[11.5px] leading-snug text-muted-foreground">{disabledReason}</p>
+      <p id={reasonId} className="text-[11.5px] leading-snug text-foreground/75">{disabledReason}</p>
       {aiLink}
     </div>
   ) : null
 
   return (
     <div className="@container/landing h-full w-full" style={accentStyle}>
-      {hasFullHeightLanding(stageSlug) ? (
-        <StepLandingLayout
-          heading={heading}
-          notices={notices}
-          settings={children}
-          beforeRun={beforeRun}
-          action={hideRunButton ? null : runButton}
-          reason={hideRunButton ? null : reasonLine}
-          advanced={isStepSettingsSlug(stageSlug) ? advancedLink : null}
-          preview={previewCard}
-        />
-      ) : compact ? (
-        <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-2 py-8 pb-40 animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none">
-          {BOOK_LEVEL_STAGES.has(stageSlug as StageName) && <PartialMergeNotice bookLabel={bookLabel} />}
-          {children}
-          {beforeRun}
-          {!hideRunButton && (
-            <div className="sticky bottom-[104px] z-10 flex items-center gap-3 rounded-xl border bg-card/95 p-2.5 shadow-[0_14px_32px_-18px_rgba(0,0,0,0.4)] backdrop-blur-md">
-              {runButton}
-              {isDisabled && !isRunning && disabledReason && (
-                <p className="min-w-0 text-[11.5px] leading-snug text-muted-foreground">{disabledReason}</p>
-              )}
-              {isDisabled && !isRunning && aiLink}
-            </div>
-          )}
-          <div className="border-t pt-3">
-            <button
-              type="button"
-              onClick={() => setExampleOpen((open) => !open)}
-              aria-expanded={exampleOpen}
-              className="flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <ChevronDown className={cn("size-3.5 transition-transform duration-200", exampleOpen && "rotate-180")} />
-              {exampleOpen ? <Trans>Hide the example</Trans> : <Trans>Show an example of the result</Trans>}
-            </button>
-            <div
-              className={cn(
-                "grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
-                exampleOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-              )}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <div className="mx-auto mt-3 aspect-[650/812] w-full max-w-[380px]">
-                  <LandingPreviewShell label={previewLabel} className="h-full w-full" bodyClassName={previewBodyClassName ?? ""}>
-                    {preview}
-                  </LandingPreviewShell>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-      <div
-        className={cn(
-          "mx-auto flex w-full max-w-[1080px] gap-7 px-2 py-7 pb-40 @[900px]/landing:flex-row @[900px]/landing:items-start @[900px]/landing:gap-9",
-          actionFirst ? "flex-col" : "flex-col-reverse",
-        )}
-      >
-        <div className="flex min-w-0 flex-col gap-5 @[900px]/landing:w-[370px] @[900px]/landing:shrink-0">
-          {BOOK_LEVEL_STAGES.has(stageSlug as StageName) && (
-            <PartialMergeNotice bookLabel={bookLabel} />
-          )}
-          {children}
-          {beforeRun}
-
-          {!hideRunButton && (
-            <div
-              className={cn(
-                "flex flex-col items-start gap-2 pt-0.5",
-                actionFirst && "sticky bottom-[104px] z-10 -mx-2 rounded-xl bg-background/90 px-2 py-2 backdrop-blur-md",
-              )}
-            >
-              {runButton}
-              {isDisabled && !isRunning && disabledReason && (
-                <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-                  {disabledReason}
-                </p>
-              )}
-              {isDisabled && !isRunning && aiLink}
-            </div>
-          )}
-        </div>
-
-        <div className="flex min-w-0 flex-1 justify-center">
-          <div
-            className={cn(
-              "aspect-[650/812] w-full transition-[max-width] duration-300 @[900px]/landing:max-w-none",
-              actionFirst ? "max-w-[340px]" : "max-w-[500px]",
-            )}
-          >
-            <LandingPreviewShell
-              label={previewLabel}
-              className="h-full w-full"
-              bodyClassName={previewBodyClassName ?? ""}
-            >
-              {preview}
-            </LandingPreviewShell>
-          </div>
-        </div>
-      </div>
-      )}
+      <StepLandingLayout
+        heading={heading}
+        notices={notices}
+        settings={children}
+        beforeRun={beforeRun}
+        action={hideRunButton ? null : runButton}
+        reason={hideRunButton ? null : reasonLine}
+        advanced={isStepSettingsSlug(stageSlug) ? advancedLink : null}
+        preview={previewCard}
+      />
 
       <CascadeResetDialog
         open={confirmOpen}
@@ -320,7 +232,7 @@ export function StepLandingShell({
           </Trans>
         }
         confirmLabel={rerunLabel}
-        confirmColorClass={hasError ? "bg-destructive" : (stage?.color ?? "bg-gray-600")}
+        confirmColorClass={hasError ? errorFill : (stage?.color ?? "bg-gray-600")}
         onConfirm={() => {
           setConfirmOpen(false)
           onRun()
@@ -334,7 +246,7 @@ export function StepLandingShell({
           title={runWarning.title}
           description={runWarning.description}
           confirmLabel={runWarning.confirmLabel}
-          confirmColorClass={hasError ? "bg-destructive" : (stage?.color ?? "bg-gray-600")}
+          confirmColorClass={hasError ? errorFill : (stage?.color ?? "bg-gray-600")}
           onConfirm={() => {
             setWarnOpen(false)
             proceedRun()

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Trans } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { StyleLabel } from "../controls/StyleLabel"
 import { Section } from "../controls/Section"
 import { Select, type SelectOption } from "../controls/Select"
@@ -22,6 +22,7 @@ const SHADOW_OPTIONS: ReadonlyArray<SelectOption<string>> = [
 ]
 
 export function AppearanceSection() {
+  const { t } = useLingui()
   const bgColor = useElementStyles(backgroundColorClassMap, "")
   const opacity = useElementStyles(opacityClassMap, 100)
   // Local draft so dragging the slider doesn't fire a class update / refreshCss
@@ -60,6 +61,7 @@ export function AppearanceSection() {
       <StyleLabel label={<Trans>Opacity</Trans>} override={opacity.override}>
         <input
           type="range"
+          aria-label={t`Opacity`}
           min={0}
           max={100}
           step={5}

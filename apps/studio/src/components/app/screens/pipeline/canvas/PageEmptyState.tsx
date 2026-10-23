@@ -175,9 +175,9 @@ export function PageEmptyState({
               <Trans>Open sectioning</Trans>
             </Button>
           </div>
-          {!sectioning.hasApiKey && (
+          {!sectioning.hasProvider && (
             <p className="text-[11.5px] text-muted-foreground">
-              <Trans>Add an API key in Book settings to run sectioning.</Trans>
+              <Trans>Set up AI access in Book settings to run sectioning.</Trans>
             </p>
           )}
         </div>

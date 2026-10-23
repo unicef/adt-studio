@@ -12,6 +12,7 @@ import {
   isStepSettingsSlug,
 } from "@/components/app/screens/pipeline/settings/slugs"
 import { isDockSlug } from "./plugins"
+import { skipEntryGateOnce } from "./entryGate"
 
 export interface PipelineNavigation {
   openWorkspace: () => void
@@ -38,6 +39,7 @@ export function usePipelineNavigation(label: string): PipelineNavigation {
           return
         }
       }
+      skipEntryGateOnce()
       void navigate({ to: "/pipeline/$label", params: { label } })
     }
 

@@ -1,13 +1,13 @@
 import { useCallback } from "react"
 import { PIPELINE, STAGE_BY_NAME, type StageName } from "@adt/types"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { usePages } from "@/hooks/use-pages"
 
 export interface StageRun {
   run: () => void
   canRun: boolean
-  hasApiKey: boolean
+  hasProvider: boolean
   isRunning: boolean
   isRunnable: boolean
 }
@@ -26,7 +26,8 @@ export interface StageRun {
  * a row all get scheduled.
  */
 export function useStageRun(label: string, slug: string): StageRun {
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasProvider = useBookStructuredTextAvailability(label)
   const { queueRun, stageState } = useBookRun()
   const { isLoading: pagesLoading } = usePages(label)
 
@@ -35,12 +36,12 @@ export function useStageRun(label: string, slug: string): StageRun {
   const isRunning = state === "running" || state === "queued"
 
   const isRunnable = def != null
-  const canRun = isRunnable && hasApiKey && !isRunning && !pagesLoading
+  const canRun = isRunnable && hasProvider && !isRunning && !pagesLoading
 
   const run = useCallback(() => {
     if (!canRun || !def) return
     queueRun({ fromStage: def.name, toStage: def.name, apiKey })
   }, [canRun, def, queueRun, apiKey])
 
-  return { run, canRun, hasApiKey, isRunning, isRunnable }
+  return { run, canRun, hasProvider, isRunning, isRunnable }
 }

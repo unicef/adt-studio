@@ -148,6 +148,8 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
 
   return (
     <StepLandingShell
+      title={<Trans>Sign Language</Trans>}
+      description={<Trans> Upload sign-language videos for each section of the book. The reader shows the matching video in a small player as the user scrolls through the page. </Trans>}
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="sign-language"
@@ -170,19 +172,6 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
         className="hidden"
         onChange={handleFileChange}
       />
-
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Sign Language</Trans>
-        </h1>
-        <p className="text-[14px] text-muted-foreground leading-relaxed">
-          <Trans>
-            Upload sign-language videos for each section of the book. The
-            reader shows the matching video in a small player as the user
-            scrolls through the page.
-          </Trans>
-        </p>
-      </div>
 
       <LandingPageWarning
         show={!storyboardReady}

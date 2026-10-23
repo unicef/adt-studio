@@ -105,10 +105,14 @@ export interface BookPreviewFrameHandle {
    *  in the iframe yet or a value can't be parsed. */
   getComputedTypographyStyles: (dataId: string) => ComputedTypographyStyles
   getAnchorViewportRect: (anchor: ActivityAnchor) => DOMRect | null
+  /** On-screen rect (app viewport coordinates, scale applied) of the element
+   *  with the given data-id, or null when it isn't rendered. */
+  getElementViewportRect: (dataId: string) => DOMRect | null
 }
 
 export interface BookPreviewFrameProps {
   html: string
+  title?: string
   /** Book label — used to load the correct Tailwind CSS and font assets from the API */
   bookLabel: string
   className?: string
@@ -185,6 +189,7 @@ export interface BookPreviewFrameProps {
  * editing data-id elements, communicating changes back via postMessage.
  */
 export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFrameProps>(function BookPreviewFrame({
+  title,
   html,
   bookLabel,
   className,
@@ -341,6 +346,20 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
         fontFamily: family || null,
         inlineFontFamily: inlineFamily || null,
       }
+    },
+    getElementViewportRect: (dataId: string): DOMRect | null => {
+      const doc = iframeRef.current?.contentDocument
+      const iframeRect = iframeRef.current?.getBoundingClientRect()
+      if (!doc || !iframeRect) return null
+      const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`)
+      if (!el) return null
+      const r = el.getBoundingClientRect()
+      return new DOMRect(
+        iframeRect.left + r.left * scale,
+        iframeRect.top + r.top * scale,
+        r.width * scale,
+        r.height * scale,
+      )
     },
     getAnchorViewportRect: (anchor: ActivityAnchor): DOMRect | null => {
       const doc = iframeRef.current?.contentDocument
@@ -998,6 +1017,7 @@ ${selectors}:hover {
   const iframeNode = (
     <iframe
       ref={initIframe}
+      title={title}
       srcDoc={srcdoc}
       className="block"
       style={{

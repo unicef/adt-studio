@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo , type ReactNode } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { StepLandingShell } from "./StepLandingShell"
+import { useLandingRunGate } from "./useLandingRunGate"
+import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   SettingsCard,
@@ -22,11 +24,14 @@ export function TocLanding({ bookLabel, beforeRun }: { bookLabel: string; before
   const { t } = useLingui()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("toc")
   const storyboardStatus = useStageStatus("storyboard")
   const storyboardReady = storyboardStatus.isCompleted
+  const gate = useLandingRunGate(bookLabel, "toc", [
+    { ok: storyboardReady, reason: <Trans>Run Storyboard first — the table of contents lists the typed sections it produces.</Trans> },
+  ])
 
   const [tocMode, setTocMode] = useState<TocModeKey>("extract")
 
@@ -55,7 +60,7 @@ export function TocLanding({ bookLabel, beforeRun }: { bookLabel: string; before
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (gate.blocked || status.isRunning) return
     queueRun({ fromStage: "toc", toStage: "toc", apiKey })
   }
 
@@ -67,14 +72,12 @@ export function TocLanding({ bookLabel, beforeRun }: { bookLabel: string; before
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run TOC generation.</Trans>
-  ) : !storyboardReady ? (
-    <Trans>Run Storyboard first — the table of contents lists the typed sections it produces.</Trans>
-  ) : undefined
 
   return (
     <StepLandingShell
+      title={<Trans>Table of Contents</Trans>}
+      description={<Trans> Build a navigable table of contents for the book. Decide whether entries mirror the typed section headings exactly or whether the model rephrases them into descriptive chapter titles. </Trans>}
+      notice={status.hasError ? <RunErrorNotice label={bookLabel} stage="toc" /> : undefined}
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="toc"
@@ -82,26 +85,14 @@ export function TocLanding({ bookLabel, beforeRun }: { bookLabel: string; before
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
-      disabledReason={disabledReason}
+      extraDisabled={gate.blocked}
+      disabledReason={gate.disabledReason}
       runLabel={<Trans>Run TOC</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
       previewLabel={t`TOC Preview`}
       onRun={handleRun}
       preview={<TocPreview mode={tocMode} />}
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Table of Contents</Trans>
-        </h1>
-        <p className="text-[14px] text-muted-foreground leading-relaxed">
-          <Trans>
-            Build a navigable table of contents for the book. Decide whether
-            entries mirror the typed section headings exactly or whether the
-            model rephrases them into descriptive chapter titles.
-          </Trans>
-        </p>
-      </div>
 
       <PrereqGuard
         upstreamSlug="storyboard"

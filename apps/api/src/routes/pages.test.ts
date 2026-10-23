@@ -131,6 +131,28 @@ describe("Page routes", () => {
       expect(body[1].pageHeight).toBe(600)
     })
 
+    it("counts captions, decorative images and images still to describe from the current captioning", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("image-captioning", `${label}_p1`, {
+          captions: [{ imageId: "a", reasoning: "", caption: "old" }],
+        })
+        storage.putNodeData("image-captioning", `${label}_p1`, {
+          captions: [
+            { imageId: "a", reasoning: "", caption: "A boat" },
+            { imageId: "b", reasoning: "", caption: "", decorative: true },
+            { imageId: "c", reasoning: "", caption: "  " },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+      const res = await app.request(`/api/books/${label}/pages`)
+      const body = await res.json()
+      expect(body[0]).toMatchObject({ hasCaptioning: true, captionCount: 3, decorativeCount: 1, uncaptionedCount: 1 })
+      expect(body[1]).toMatchObject({ hasCaptioning: false, captionCount: 0, decorativeCount: 0, uncaptionedCount: 0 })
+    })
+
     it("returns 404 for nonexistent book", async () => {
       const res = await app.request("/api/books/no-such-book/pages")
       expect(res.status).toBe(404)

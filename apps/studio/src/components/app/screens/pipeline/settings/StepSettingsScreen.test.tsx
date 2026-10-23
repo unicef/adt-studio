@@ -133,7 +133,9 @@ describe("StepSettingsScreen", () => {
   it("renders the step's settings for the active tab", () => {
     renderScreen()
 
-    expect(screen.getByText("Extraction settings")).toBeTruthy()
+    const location = screen.getByRole("navigation", { name: "Location" })
+    expect(location.textContent).toContain("Extraction")
+    expect(location.textContent).toContain("Settings")
     expect(screen.getByTestId("extract-settings").textContent).toContain("extract-settings:demo-book:general")
   })
 

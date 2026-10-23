@@ -3,12 +3,12 @@ import { useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
 import { getStageDescriptionI18n, getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
-import { useFlowSim } from "@/components/app/lab/flowSim"
+import { simOutOfDate, useBookSimFor } from "@/components/app/lab/bookSim"
 import type { DockSlug } from "./plugins"
 import { usePipelineState, type DockItem } from "./usePipelineState"
 
 export const TRANSLATION_SOURCES: readonly DockSlug[] = ["captions", "quizzes", "glossary", "toc", "easy-read"]
-export const RECOMMENDED_ORDER: readonly DockSlug[] = ["captions", "toc", "easy-read", "sign-language"]
+export const RECOMMENDED_ORDER: readonly DockSlug[] = ["captions"]
 
 const IN_BOOK = new Set<DockItem["state"]>(["done", "running", "queued", "error"])
 
@@ -28,15 +28,15 @@ export interface ContentFlow {
 
 export function useContentFlow(label: string): ContentFlow {
   const state = usePipelineState(label)
-  const [sim] = useFlowSim()
+  const bookSim = useBookSimFor(label)
   return useMemo(() => {
     const unfinished = state.plugins.filter(
       (item) => TRANSLATION_SOURCES.includes(item.slug) && (item.state === "running" || item.state === "queued" || item.state === "error"),
     )
     const translate = state.plugins.find((item) => item.slug === "translate")
-    const outOfDate: OutOfDate | null = sim.changed === "terms" && translate?.state === "done" ? { count: 3, source: "glossary" } : null
+    const outOfDate: OutOfDate | null = simOutOfDate(bookSim) && translate?.state === "done" ? { count: 3, source: "glossary" } : null
     return { unfinished, outOfDate }
-  }, [state.plugins, sim.changed])
+  }, [state.plugins, bookSim])
 }
 
 export function useFlowCopy() {

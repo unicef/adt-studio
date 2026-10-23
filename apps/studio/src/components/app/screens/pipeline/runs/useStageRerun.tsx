@@ -15,6 +15,8 @@ import type { DockSlug } from "@/components/app/screens/pipeline/shared/plugins"
 import { stepPrereqReason } from "@/components/app/screens/pipeline/shared/stepPrereq"
 import { useStageRun } from "./useStageRun"
 import { useStepPrereq } from "./useStepPrereq"
+import { rerunBlock } from "./rerunGate"
+import { useHasUnsavedChanges } from "@/components/pipeline/components/floating-save"
 import { useContentFlow, useFlowCopy } from "@/components/app/screens/pipeline/shared/contentFlow"
 import { Trans } from "@lingui/react/macro"
 
@@ -26,6 +28,7 @@ export interface StageRerunWarning {
 
 export interface StageRerun {
   hasRun: boolean
+  hasError?: boolean
   isRunning: boolean
   isCancelling: boolean
   canRun: boolean
@@ -61,13 +64,18 @@ export function useStageRerun(label: string, slug: DockSlug): StageRerun {
   const name = getStageLabelI18n(slug)
   const prereqReason = stepPrereqReason(slug)
 
-  const disabledReason = !prereq.isMet
-    ? prereqReason
-      ? i18n._(prereqReason)
-      : t`Run ${prereq.upstreamLabel} first.`
-    : !stageRun.hasApiKey
-      ? t`Add an API key in Book settings to re-run ${name}.`
-      : null
+  const hasUnsaved = useHasUnsavedChanges()
+  const block = rerunBlock({ hasUnsaved, prereqMet: prereq.isMet, hasProvider: stageRun.hasProvider })
+  const disabledReason =
+    block === "unsaved"
+      ? t`Save or discard your edits first.`
+      : block === "prereq"
+        ? prereqReason
+          ? i18n._(prereqReason)
+          : t`Run ${prereq.upstreamLabel} first.`
+        : block === "provider"
+          ? t`Set up AI access in Book settings to re-run ${name}.`
+          : null
 
   const contentWarning: StageRerunWarning | null =
     (slug === "translate" || slug === "speech") && flow.unfinished.length > 0
@@ -93,9 +101,10 @@ export function useStageRerun(label: string, slug: DockSlug): StageRerun {
 
   return {
     hasRun: stageRun.isRunnable && stageState(slug) !== "idle",
+    hasError: stageRun.isRunnable && stageState(slug) === "error",
     isRunning: stageRun.isRunning,
     isCancelling,
-    canRun: prereq.isMet && stageRun.canRun,
+    canRun: block === null && stageRun.canRun,
     disabledReason,
     downstreamToReset,
     warning,

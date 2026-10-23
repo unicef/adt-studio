@@ -1,7 +1,9 @@
-import { useCallback, useMemo, useState } from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useCallback, useMemo } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { useLingui } from "@lingui/react/macro"
 import { api, type EasyReadSectionBlock } from "@/api/client"
 import { useEasyRead } from "../shared/queries"
+import { useDocumentEdits } from "../shared/useDocumentEdits"
 
 export interface EasyReadBlockKey {
   pageId: string
@@ -16,42 +18,38 @@ export interface EasyReadEdits {
   dirty: boolean
   saving: boolean
   saveError: Error | null
+  editedKeys: ReadonlySet<string>
   updateEntry: (blockKey: EasyReadBlockKey, easyReadId: string, text: string) => void
-  save: () => void
+  save: () => Promise<void>
   discard: () => void
 }
 
-const NO_BLOCKS: EasyReadSectionBlock[] = []
+type EasyReadDoc = NonNullable<ReturnType<typeof useEasyRead>["data"]>
 
-export function useEasyReadEdits(label: string): EasyReadEdits {
+export function easyReadBlockKey(block: EasyReadBlockKey): string {
+  return `${block.pageId}:${block.sectionId}:${block.sectionIndex}`
+}
+
+const getBlocks = (doc: EasyReadDoc) => doc.blocks
+const setBlocks = (doc: EasyReadDoc, blocks: EasyReadSectionBlock[]) => ({ ...doc, blocks })
+
+export function useEasyReadEdits(label: string, options: { locked?: boolean } = {}): EasyReadEdits {
+  const { t } = useLingui()
   const query = useEasyRead(label)
   const queryClient = useQueryClient()
-  const [draft, setDraft] = useState<EasyReadSectionBlock[] | null>(null)
 
-  // A version bump means a save, restore, or regeneration landed — reset the
-  // draft during render so `dirty` is already false on the next render.
-  const versionKey = String(query.data?.version ?? "none")
-  const [lastVersionKey, setLastVersionKey] = useState(versionKey)
-  if (lastVersionKey !== versionKey) {
-    setLastVersionKey(versionKey)
-    setDraft(null)
-  }
-
-  const serverBlocks = query.data?.blocks ?? NO_BLOCKS
-  const blocks = draft ?? serverBlocks
-  const dirty = draft !== null
-
-  const saveMutation = useMutation({
-    mutationFn: (nextBlocks: EasyReadSectionBlock[]) =>
+  const save = useCallback(
+    (next: EasyReadDoc) =>
       api.updateEasyRead(label, {
-        blocks: nextBlocks,
-        generatedAt: query.data?.generatedAt ?? new Date().toISOString(),
+        blocks: next.blocks,
+        generatedAt: next.generatedAt ?? new Date().toISOString(),
       }),
-    onSuccess: async () => {
-      setDraft(null)
-      // Easy Read feeds the text catalog, TTS, packaging, and the
-      // accessibility assessment — refresh them all.
-      await Promise.all([
+    [label],
+  )
+
+  const afterSave = useCallback(
+    () =>
+      Promise.all([
         queryClient.invalidateQueries({ queryKey: ["books", label, "easy-read"] }),
         queryClient.invalidateQueries({ queryKey: ["books", label, "text-catalog"] }),
         queryClient.invalidateQueries({ queryKey: ["books", label, "tts"] }),
@@ -61,63 +59,47 @@ export function useEasyReadEdits(label: string): EasyReadEdits {
         queryClient.invalidateQueries({
           queryKey: ["debug", "versions", label, "accessibility-assessment", "book"],
         }),
-      ])
-    },
+      ]),
+    [queryClient, label],
+  )
+
+  const noun = useMemo(() => ({ one: t`section`, other: t`sections` }), [t])
+
+  const edits = useDocumentEdits({
+    id: "easy-read",
+    stage: "easy-read",
+    doc: query.data,
+    versionKey: String(query.data?.version ?? "none"),
+    getItems: getBlocks,
+    setItems: setBlocks,
+    keyOf: easyReadBlockKey,
+    noun,
+    save,
+    afterSave,
+    locked: options.locked,
+    lockedReason: t`Editing is paused until Easy Read finishes.`,
   })
 
+  const { update } = edits
   const updateEntry = useCallback(
-    (blockKey: EasyReadBlockKey, easyReadId: string, text: string) => {
-      setDraft((prev) => {
-        const base = prev ?? serverBlocks
-        return base.map((block) => {
-          if (
-            block.pageId !== blockKey.pageId ||
-            block.sectionId !== blockKey.sectionId ||
-            block.sectionIndex !== blockKey.sectionIndex
-          ) {
-            return block
-          }
-          return {
-            ...block,
-            entries: block.entries.map((entry) =>
-              entry.easyReadId === easyReadId ? { ...entry, text } : entry,
-            ),
-          }
-        })
-      })
-    },
-    [serverBlocks],
+    (blockKey: EasyReadBlockKey, easyReadId: string, text: string) =>
+      update(easyReadBlockKey(blockKey), (block) => ({
+        ...block,
+        entries: block.entries.map((entry) => (entry.easyReadId === easyReadId ? { ...entry, text } : entry)),
+      })),
+    [update],
   )
 
-  const saveMutate = saveMutation.mutate
-  const save = useCallback(() => {
-    if (draft) saveMutate(draft)
-  }, [draft, saveMutate])
-
-  const discard = useCallback(() => setDraft(null), [])
-
-  return useMemo(
-    () => ({
-      blocks,
-      isLoading: query.isLoading,
-      version: query.data?.version ?? null,
-      dirty,
-      saving: saveMutation.isPending,
-      saveError: (saveMutation.error as Error | null) ?? null,
-      updateEntry,
-      save,
-      discard,
-    }),
-    [
-      blocks,
-      query.isLoading,
-      query.data?.version,
-      dirty,
-      saveMutation.isPending,
-      saveMutation.error,
-      updateEntry,
-      save,
-      discard,
-    ],
-  )
+  return {
+    blocks: edits.items,
+    isLoading: query.isLoading,
+    version: query.data?.version ?? null,
+    dirty: edits.dirty,
+    saving: edits.saving,
+    saveError: edits.saveError,
+    editedKeys: edits.editedKeys,
+    updateEntry,
+    save: edits.save,
+    discard: edits.discard,
+  }
 }

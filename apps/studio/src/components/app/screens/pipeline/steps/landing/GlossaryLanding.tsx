@@ -6,6 +6,8 @@ import type { GlossaryItem } from "@/api/client"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { CustomInstructionsField } from "./ui/CustomInstructionsField"
 import { StepLandingShell } from "./StepLandingShell"
+import { useLandingRunGate } from "./useLandingRunGate"
+import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   SettingsCard,
@@ -28,11 +30,14 @@ export function GlossaryLanding({ bookLabel, beforeRun }: { bookLabel: string; b
   const { t } = useLingui()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("glossary")
   const storyboardStatus = useStageStatus("storyboard")
   const storyboardReady = storyboardStatus.isCompleted
+  const gate = useLandingRunGate(bookLabel, "glossary", [
+    { ok: storyboardReady, reason: <Trans>Run Storyboard first — the glossary is built from the typed sections placed by Storyboard.</Trans> },
+  ])
   const { compose: composeBookContext, canAutoFill } = useComposeBookContext(
     bookLabel,
     t`Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page.`,
@@ -84,18 +89,16 @@ export function GlossaryLanding({ bookLabel, beforeRun }: { bookLabel: string; b
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (gate.blocked || status.isRunning) return
     queueRun({ fromStage: "glossary", toStage: "glossary", apiKey })
   }
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run the glossary.</Trans>
-  ) : !storyboardReady ? (
-    <Trans>Run Storyboard first — the glossary is built from the typed sections placed by Storyboard.</Trans>
-  ) : undefined
 
   return (
     <StepLandingShell
+      title={<Trans>Glossary</Trans>}
+      description={<Trans> Build a glossary of key terms found in the book. Choose how much ground to cover, and add custom instructions to steer term selection toward what your audience needs. </Trans>}
+      notice={status.hasError ? <RunErrorNotice label={bookLabel} stage="glossary" /> : undefined}
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="glossary"
@@ -103,26 +106,14 @@ export function GlossaryLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
-      disabledReason={disabledReason}
+      extraDisabled={gate.blocked}
+      disabledReason={gate.disabledReason}
       runLabel={<Trans>Run Glossary</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
       previewLabel={t`Glossary Preview`}
       onRun={handleRun}
       preview={<GlossaryPreview amount={amount} />}
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Glossary</Trans>
-        </h1>
-        <p className="text-[14px] text-muted-foreground leading-relaxed">
-          <Trans>
-            Build a glossary of key terms found in the book. Choose how much
-            ground to cover, and add custom instructions to steer term
-            selection toward what your audience needs.
-          </Trans>
-        </p>
-      </div>
 
       <PrereqGuard
         upstreamSlug="storyboard"

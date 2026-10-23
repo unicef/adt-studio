@@ -206,6 +206,14 @@ export const CORE_STAGE_ORDER: StageName[] = (() => {
   return stages
 })()
 
+/** Map stage name → the stages that list it directly in `dependsOn`, in pipeline order */
+export const STAGE_DEPENDENTS: Record<StageName, StageName[]> = Object.fromEntries(
+  PIPELINE.map((stage) => [
+    stage.name,
+    PIPELINE.filter((candidate) => candidate.dependsOn.includes(stage.name)).map((candidate) => candidate.name),
+  ])
+) as Record<StageName, StageName[]>
+
 /** Map step name → parent stage name */
 export const STEP_TO_STAGE: Record<StepName, StageName> = Object.fromEntries(
   PIPELINE.flatMap((stage) => stage.steps.map((step) => [step.name, stage.name]))

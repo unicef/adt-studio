@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { StyleLabelContext } from "./StyleLabel"
 
 const COMMIT_DEBOUNCE_MS = 200
 
@@ -35,6 +36,7 @@ export function UnitInput({
   units = ["px", "%"],
   placeholder = "0",
 }: UnitInputProps) {
+  const labelledBy = useContext(StyleLabelContext)
   const [draft, setDraft] = useState(value.value)
   const [open, setOpen] = useState(false)
   const [focused, setFocused] = useState(false)
@@ -103,6 +105,7 @@ export function UnitInput({
       <input
         type="text"
         inputMode="decimal"
+        aria-labelledby={labelledBy}
         value={displayValue}
         onChange={(e) => handleInput(e.target.value)}
         onFocus={() => setFocused(true)}

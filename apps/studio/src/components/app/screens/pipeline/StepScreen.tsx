@@ -4,6 +4,8 @@ import { usePipelineNavigation } from "./shared/usePipelineNavigation"
 import { usePipelineState } from "./shared/usePipelineState"
 import { StepEmpty } from "./steps/shared/StepShell"
 import { isHiddenByJourney, useScenario } from "@/components/app/lab/simulate"
+import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
+import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
 
 export interface StepScreenProps {
   label: string
@@ -31,9 +33,15 @@ export function StepScreen({ label, slug }: StepScreenProps) {
     sectionCount: state.sectionCount,
   }
   const StepView = STEP_VIEWS[slug]
-  if (isHiddenByJourney(slug)) {
-    return <StepEmpty key={slug} label={label} plugin={entry} pages={state.pages} frame={frame} />
-  }
 
-  return <StepView key={slug} label={label} plugin={entry} pages={state.pages} frame={frame} />
+  return (
+    <FloatingSaveProvider key={`${label}:${slug}`} barClassName="bottom-27">
+      <UnsavedChangesGuard />
+      {isHiddenByJourney(slug) ? (
+        <StepEmpty label={label} plugin={entry} pages={state.pages} frame={frame} />
+      ) : (
+        <StepView label={label} plugin={entry} pages={state.pages} frame={frame} />
+      )}
+    </FloatingSaveProvider>
+  )
 }

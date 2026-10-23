@@ -94,18 +94,14 @@ export function quizzesVersionDiff(t: Translate): VersionDiffDescriptor {
   return {
     unifiedList: true,
     items: (data) => (data as { quizzes?: QuizItem[] } | null)?.quizzes ?? [],
-    // quizIndex is positional (renumbered 0..n on add/delete), so it is not a
-    // stable cross-version identity — one delete would shift every index and
-    // report the whole set as changed. Key by the question text instead, which
-    // reads add/delete correctly at the cost of showing an edited question as
-    // remove + add.
-    keyOf: (item) => (item as QuizItem).question,
+    keyOf: (item) => (item as QuizItem).quizId ?? (item as QuizItem).question,
     isEqual: (a, b) => {
       const x = a as QuizItem
       const y = b as QuizItem
       return (
         x.question === y.question &&
         x.answerIndex === y.answerIndex &&
+        x.afterPageId === y.afterPageId &&
         JSON.stringify(x.options) === JSON.stringify(y.options)
       )
     },
@@ -113,7 +109,7 @@ export function quizzesVersionDiff(t: Translate): VersionDiffDescriptor {
       const quiz = item as QuizItem
       return `${quiz.question} ${quiz.options.flatMap((o) => [o.text, o.explanation]).join(" ")}`
     },
-    searchPlaceholder: t`Search questions, answers, or explanations…`,
+    searchPlaceholder: t`Search questions and answers…`,
     renderItem: (item, ctx) => (
       <QuizVersionDiffItem quiz={item as QuizItem} previous={ctx?.before as QuizItem | undefined} />
     ),

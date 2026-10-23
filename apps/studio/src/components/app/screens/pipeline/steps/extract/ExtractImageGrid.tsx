@@ -75,6 +75,7 @@ export function ExtractImageGrid({
               bookLabel={label}
               pendingLabel={images.pendingLabel}
               pendingLabelKey={images.pendingLabelKey}
+              pendingScope={{ page: pageId }}
               onRestored={images.discardChanges}
               onSave={images.saveChanges}
               onDiscard={images.discardChanges}

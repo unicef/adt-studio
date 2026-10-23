@@ -5,13 +5,14 @@ import { ensurePages } from "@/components/app/screens/pipeline/shared/ensurePage
 import { pagesQueryOptions } from "@/hooks/use-pages"
 import { booksQueryOptions } from "@/hooks/use-books"
 import { getVariant } from "@/components/app/lab/variants"
+import { consumeEntryGateSkip } from "@/components/app/screens/pipeline/shared/entryGate"
 
 export const Route = createFileRoute("/_app/pipeline/$label/")({
   // The workspace always lives on a page route. This is the entry point every
   // "close" lands on, so it resolves which page that is: the one the canvas was
   // last showing, else the book's first.
   beforeLoad: async ({ context, params }) => {
-    if (getVariant("entry") !== "current") {
+    if (getVariant("entry") !== "current" && !consumeEntryGateSkip()) {
       const books = context.queryClient.getQueryState(booksQueryOptions().queryKey)?.isInvalidated
         ? await context.queryClient.fetchQuery(booksQueryOptions())
         : await context.queryClient.ensureQueryData(booksQueryOptions())

@@ -1,17 +1,18 @@
 import { SectioningPageCard } from "./SectioningPageCard"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
-import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
+import type { PageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 
 export function SectioningPageGrid({
   label,
   pages,
   onOpen,
+  aspect,
 }: {
   label: string
   pages: PipelinePage[]
   onOpen: (pageId: string) => void
+  aspect: PageAspect
 }) {
-  const aspect = usePageAspect(label, pages)
   return (
     <div className={aspect.gridClass}>
       {pages.map((page) => (

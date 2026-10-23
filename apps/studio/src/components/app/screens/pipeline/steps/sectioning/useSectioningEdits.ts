@@ -304,6 +304,7 @@ export function useSectioningEdits(label: string, pageId: string, page: PageDeta
     saveDisabledReason: structuralBusy
       ? t`Please wait for the current operation to finish`
       : undefined,
+    scope: { page: pageId },
   })
 
   return {

@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
-import { useSideRailOpen } from "@/hooks/use-side-rail"
+import { focusPanelToggle, useRailOpen } from "@/components/app/screens/pipeline/shared/panelFit"
 import { cn } from "@/lib/utils"
 
 export function RailCollapseButton({ className }: { className?: string }) {
   const { t } = useLingui()
-  const [, setOpen] = useSideRailOpen()
+  const [, setOpen] = useRailOpen()
 
   return (
     <button
       type="button"
-      onClick={() => setOpen(false)}
-      title={t`Hide the sidebar`}
-      aria-label={t`Hide the sidebar`}
+      data-panel-toggle="rail-hide"
+      onClick={() => {
+        setOpen(false)
+        focusPanelToggle("rail-show")
+      }}
+      title={t`Hide the left panel`}
+      aria-label={t`Hide the left panel`}
       className={cn(
         "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
         className,
@@ -35,7 +39,7 @@ let revealOnNextMount = false
 
 export function SideRail({ widthClass, children, empty = false }: SideRailProps) {
   const { t } = useLingui()
-  const [userOpen, setOpen] = useSideRailOpen()
+  const [userOpen, setOpen] = useRailOpen()
   const [revealing, setRevealing] = useState(() => !empty && revealOnNextMount)
 
   useEffect(() => {
@@ -70,18 +74,23 @@ export function SideRail({ widthClass, children, empty = false }: SideRailProps)
 
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        data-panel-toggle="rail-show"
+        onClick={() => {
+          setOpen(true)
+          focusPanelToggle("rail-hide")
+        }}
         inert={open || empty}
         aria-hidden={open || empty}
-        title={t`Show the sidebar`}
-        aria-label={t`Show the sidebar`}
+        title={t`Show the left panel`}
+        aria-label={t`Show the left panel`}
         style={{ viewTransitionName: "step-rail-show" }}
         className={cn(
-          "absolute bottom-5.5 left-5 z-20 grid size-10 place-items-center rounded-full border bg-card text-foreground shadow-[0_12px_30px_-12px_rgba(0,0,0,0.45)] transition-[opacity,transform] duration-300 ease-out hover:bg-muted motion-reduce:transition-none",
-          open || empty || revealing ? "pointer-events-none scale-50 opacity-0" : "scale-100 opacity-100",
+          "absolute top-6 left-6 z-20 grid size-8 place-items-center rounded-lg border bg-card/85 text-muted-foreground shadow-sm backdrop-blur-sm",
+          "transition-[opacity,scale,background-color,color] ease-out hover:bg-muted hover:text-foreground motion-reduce:transition-none",
+          open || empty || revealing ? "pointer-events-none scale-90 opacity-0 duration-100" : "scale-100 opacity-100 delay-150 duration-200",
         )}
       >
-        <PanelLeftOpen className="size-[18px]" />
+        <PanelLeftOpen className="size-3.5" />
       </button>
     </>
   )

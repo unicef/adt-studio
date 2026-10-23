@@ -61,13 +61,13 @@ export function AmountRow({
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring/40",
         checked
           ? ""
-          : "border-[#e5e5e5] bg-white hover:border-[#d4d4d4] hover:bg-[#fafafa]",
+          : "border-[#e5e5e5] bg-white hover:border-[#d4d4d4] hover:bg-[#fafafa] dark:border-border dark:bg-card dark:hover:border-border dark:hover:bg-muted/50",
       )}
     >
       <span
         className={cn(
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors",
-          checked ? "text-white" : "bg-[#f5f5f5] text-[#737373]",
+          checked ? "text-white" : "bg-[#f5f5f5] text-[#737373] dark:bg-muted dark:text-muted-foreground",
         )}
         style={checked ? { background: ACCENT_VAR } : undefined}
         aria-hidden
@@ -78,20 +78,20 @@ export function AmountRow({
         <span
           className={cn(
             "text-[13.5px] font-semibold leading-tight",
-            checked ? "" : "text-[#0a0a0a]",
+            checked ? "" : "text-[#0a0a0a] dark:text-foreground",
           )}
           style={checked ? { color: ACCENT_VAR } : undefined}
         >
           {linguiI18n._(option.label)}
         </span>
-        <p className="text-[12px] leading-snug text-[#737373]">
+        <p className="text-[12px] leading-snug text-[#737373] dark:text-muted-foreground">
           {linguiI18n._(option.description)}
         </p>
       </div>
       <span
         className={cn(
           "ml-2 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors",
-          checked ? "text-white" : "border-[#d4d4d4] bg-white",
+          checked ? "text-white" : "border-[#d4d4d4] bg-white dark:border-border dark:bg-background",
         )}
         style={
           checked

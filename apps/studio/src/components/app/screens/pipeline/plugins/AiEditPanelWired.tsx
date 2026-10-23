@@ -11,7 +11,7 @@ import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-ke
 import { bookTasksKey, useBookTasks } from "@/hooks/use-book-tasks"
 import { useAiEditHistory } from "@/hooks/use-pages"
 import { cn } from "@/lib/utils"
-import { HistoryTurn, Shell } from "./AiEditShell"
+import { HistoryTurn, Shell, type ShellHeader } from "./AiEditShell"
 
 const SUGGESTIONS: MessageDescriptor[] = [
   msg`Make the title larger and bolder`,
@@ -30,6 +30,7 @@ export interface AiEditPanelWiredProps {
   empty?: boolean
   open: boolean
   onCollapse: () => void
+  header?: ShellHeader
 }
 
 export function AiEditPanelWired({
@@ -42,6 +43,7 @@ export function AiEditPanelWired({
   empty,
   open,
   onCollapse,
+  header,
 }: AiEditPanelWiredProps) {
   const { t, i18n } = useLingui()
   const queryClient = useQueryClient()
@@ -167,6 +169,7 @@ export function AiEditPanelWired({
       composerPlaceholder=""
       composer={composer}
       onCollapse={onCollapse}
+      header={header}
     >
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-3 p-3.5">

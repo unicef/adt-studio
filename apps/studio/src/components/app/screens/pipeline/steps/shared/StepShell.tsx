@@ -10,12 +10,10 @@ import { PreRunChecklist } from "@/components/app/screens/pipeline/plugins/PreRu
 import { PluginRailEmpty } from "@/components/app/screens/pipeline/plugins/PluginRailEmpty"
 import { StepLanding, hasStepLanding } from "./StepLanding"
 import { hasFullHeightLanding } from "../landing/fullHeight"
-import { StepRail } from "./ui"
-import { LoadingState, type StageSlug } from "@/components/pipeline/components/LoadingState"
+import { StepBodySkeleton, StepRailSkeleton, type StepLoadingShape } from "./StepLoadingSkeleton"
+import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 import { PluginWorkspace } from "@/components/app/screens/pipeline/plugins/PluginWorkspace"
-import { StageRunningPanel } from "@/components/app/screens/pipeline/runs/StageRunningPanel"
-import { LiveRunPanel, RunChecklist, RunStripOnly, progressCounts } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
-import { useStepVariant } from "@/components/app/screens/pipeline/shared/useStepVariant"
+import { LiveRunPanel, RunChecklist, progressCounts } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
 import { useOptionalStageActivity, useRunActivity, type RunStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { useStageRun } from "@/components/app/screens/pipeline/runs/useStageRun"
 import { isStepSettingsSlug } from "@/components/app/screens/pipeline/settings/slugs"
@@ -23,14 +21,12 @@ import { stepPrereqReason } from "@/components/app/screens/pipeline/shared/stepP
 import { useStepPrereq } from "@/components/app/screens/pipeline/runs/useStepPrereq"
 import { useBookRun } from "@/hooks/use-book-run"
 import { ARTIFACT_DERIVED_SLUGS } from "@/components/app/screens/pipeline/shared/usePipelineState"
-import type { DockSlug } from "@/components/app/screens/pipeline/shared/plugins"
 import type { StepProps } from "./types"
 
 export interface StepShellProps extends StepProps {
   chips: string[]
   /** Version picker for the step header, alongside the chips. */
   headerExtra?: React.ReactNode
-  canApply: boolean
   rail: React.ReactNode
   railEmpty?: boolean
   bodyViewportClassName?: string
@@ -40,11 +36,8 @@ export interface StepShellProps extends StepProps {
 export function StepShell({
   label,
   plugin,
-  pages,
   frame,
-  chips,
   headerExtra,
-  canApply,
   rail,
   railEmpty,
   bodyViewportClassName,
@@ -54,18 +47,11 @@ export function StepShell({
     <PluginWorkspace
       label={label}
       plugin={plugin}
-      chips={chips}
       headerExtra={headerExtra}
-      canApply={canApply}
       rail={rail}
       railEmpty={railEmpty}
-      pages={pages}
-      hasSections={frame.hasSections}
-      foundations={frame.foundations}
-      plugins={frame.plugins}
       bodyViewportClassName={bodyViewportClassName}
       onBack={frame.onBack}
-      onOpenPlugin={frame.onOpenPlugin}
       onOpenSettings={
         isStepSettingsSlug(plugin.slug) ? () => frame.onOpenSettings(plugin.slug) : undefined
       }
@@ -77,7 +63,6 @@ export function StepShell({
 
 export interface StepView {
   chips: string[]
-  canApply: boolean
   rail: React.ReactNode
   railEmpty?: boolean
   bodyViewportClassName?: string
@@ -116,11 +101,9 @@ export function useStepEmptyView({
   const activity = useOptionalStageActivity(plugin.slug)
   const run = useRunActivity()
   const prereq = useStepPrereq(label, plugin.slug)
-  const landingVariant = useStepVariant("landing", plugin.slug)
-  const runningVariant = useStepVariant("running", plugin.slug)
   const packageActivity = useOptionalStageActivity("package")
   const landingRunning =
-    runningVariant !== "current" && plugin.slug === "validation" && (packageActivity?.isActive ?? false)
+    plugin.slug === "validation" && (packageActivity?.isActive ?? false)
   const failed = useStageStatus(plugin.slug).hasError
   const runningView = useStepRunningView({ ...props, stage: activity ?? null, isCancelling: run.isCancelling, onCancel: run.cancelRun })
 
@@ -137,8 +120,8 @@ export function useStepEmptyView({
     )
   ) : (
     runDisabledReason ??
-    (!stageRun.isRunnable ? null : !stageRun.hasApiKey ? (
-      <Trans>Add an API key in Book settings to run {name}.</Trans>
+    (!stageRun.isRunnable ? null : !stageRun.hasProvider ? (
+      <Trans>Set up AI access in Book settings to run {name}.</Trans>
     ) : null)
   )
 
@@ -166,8 +149,8 @@ export function useStepEmptyView({
         ? [
             {
               key: "api-key",
-              met: stageRun.hasApiKey,
-              label: t`API key set in Book settings`,
+              met: stageRun.hasProvider,
+              label: t`AI access set up for this book`,
             },
           ]
         : []),
@@ -193,13 +176,12 @@ export function useStepEmptyView({
         ? []
         : [
             statusChip,
-            ...(landingVariant !== "current" && !prereq.isMet && prereq.upstreamLabel
+            ...(!prereq.isMet && prereq.upstreamLabel
               ? [t`Needs ${prereq.upstreamLabel}`]
               : plugin.slug === "extract"
                 ? []
                 : [pagesReady]),
           ],
-      canApply: false,
       rail,
       railEmpty: true,
       children: <StepLanding label={label} slug={plugin.slug} beforeRun={<PreRunChecklist items={checklist} />} />,
@@ -208,7 +190,6 @@ export function useStepEmptyView({
 
   return {
     chips: [statusChip, pagesReady],
-    canApply: false,
     rail,
     railEmpty: true,
     children: (
@@ -247,12 +228,9 @@ export function useStepRunningView({
   ...props
 }: Omit<StepRunningProps, "stage"> & { stage: RunStageActivity | null }): StepView {
   const { plugin, pages, frame } = props
-  const runningVariant = useStepVariant("running", plugin.slug)
-  const live = runningVariant === "live"
-  const checklist = live && (progressCounts(stage)?.done ?? 0) === 0
+  const checklist = (progressCounts(stage)?.done ?? 0) === 0
   return {
     chips: [],
-    canApply: false,
     railEmpty: true,
     bodyViewportClassName: checklist ? "[&>div]:my-auto" : undefined,
     rail: (
@@ -261,87 +239,35 @@ export function useStepRunningView({
         title={getStageLabelI18n(plugin.slug)}
         pageCount={pages.length}
         sectionCount={frame.sectionCount}
-        running={runningVariant !== "current"}
+        running
       />
     ),
     children: !stage ? null : checklist ? (
         <RunChecklist stage={stage} outcome={outcome} />
-      ) : live ? (
-        <LiveRunPanel stage={stage} total={pages.length || 12} outcome={outcome} label={props.label} pages={pages} />
-      ) : runningVariant === "strip" ? (
-        <RunStripOnly stage={stage} outcome={outcome} />
       ) : (
-        <StageRunningPanel
-          stage={stage}
-          isCancelling={isCancelling}
-          onCancel={onCancel}
-          outcome={outcome}
-        />
+        <LiveRunPanel stage={stage} total={pages.length || 12} outcome={outcome} label={props.label} pages={pages} />
       ),
   }
 }
-
-function loaderStage(slug: DockSlug): StageSlug | undefined {
-  return slug === "sign-language" ? undefined : slug
+export interface StepLoadingOptions {
+  shape?: StepLoadingShape
 }
 
-export function StepLoading(props: StepProps) {
-  const view = useStepLoadingView(props)
+export function StepLoading({ shape, ...props }: StepProps & StepLoadingOptions) {
+  const view = useStepLoadingView(props, { shape })
   return <StepShell {...props} {...view} />
 }
 
-export function useStepLoadingView(props: StepProps): StepView {
-  const { t } = useLingui()
-  const { plugin } = props
-  const contentLoaders = useStepVariant("loaders", plugin.slug) === "content"
+export function useStepLoadingView(props: StepProps, { shape = "grid" }: StepLoadingOptions = {}): StepView {
+  const { label, pages } = props
+  const aspect = usePageAspect(label, pages)
   const search = useSearch({ strict: false })
   const pageOpen = typeof search.page === "string" && search.page !== ""
-  if (contentLoaders) {
-    return {
-        chips: [],
-        canApply: false,
-        railEmpty: !pageOpen,
-        rail: (
-          <div role="status" aria-busy className="flex flex-col gap-2 motion-safe:animate-pulse">
-            <span className="sr-only">{t`Loading…`}</span>
-            <div className="mb-1 h-2.5 w-20 rounded bg-muted-foreground/15" />
-            {Array.from({ length: 8 }, (_, index) => (
-              <div key={index} className="flex items-center gap-2.5 rounded-lg p-1.5">
-                <div className="h-[52px] w-[38px] shrink-0 rounded bg-muted" />
-                <div className="flex flex-1 flex-col gap-1.5">
-                  <div className="h-2.5 w-14 rounded bg-muted-foreground/15" />
-                  <div className="h-2 w-full rounded bg-muted-foreground/10" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ),
-        children: (
-        <div aria-hidden className="mx-auto flex w-full max-w-[860px] flex-col gap-4 py-7 motion-safe:animate-pulse">
-          <div className="h-6 w-48 rounded bg-muted-foreground/15" />
-          <div className="h-3 w-72 rounded bg-muted-foreground/10" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 8 }, (_, index) => (
-              <div key={index} className="flex flex-col overflow-hidden rounded-xl border bg-card">
-                <div className="aspect-[3/4] bg-muted" />
-                <div className="flex flex-col gap-1.5 px-2.5 py-2">
-                  <div className="h-2.5 w-16 rounded bg-muted-foreground/15" />
-                  <div className="h-2 w-full rounded bg-muted-foreground/10" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        ),
-    }
-  }
   return {
-    chips: [t`Loading…`],
-    canApply: false,
-    bodyViewportClassName: "[&>div]:my-auto",
-    rail: <StepRail heading={getStageLabelI18n(plugin.slug)} hex={plugin.hex} entries={[]} />,
-    railEmpty: true,
-    children: <LoadingState stageSlug={loaderStage(plugin.slug)} label={t`Loading…`} />,
+    chips: [],
+    railEmpty: !pageOpen,
+    rail: <StepRailSkeleton thumbClassName={pages[0] ? aspect.railThumbClassOf(pages[0]) : "h-[52px] w-[38px]"} />,
+    children: <StepBodySkeleton shape={shape} aspect={aspect} />,
   }
 }
 

@@ -3,6 +3,7 @@ import {
   createRootRouteWithContext,
   Outlet,
   useNavigate,
+  useRouterState,
   type ErrorComponentProps,
 } from "@tanstack/react-router"
 import type { QueryClient } from "@tanstack/react-query"
@@ -37,6 +38,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootLayout() {
   const navigate = useNavigate()
+  const ownsLandmarks = useRouterState({ select: (state) => state.location.pathname.startsWith("/pipeline/") })
+  const Content = ownsLandmarks ? "div" : "main"
   const openSettings = useCallback(
     (section: SettingsSection = "default-model") => {
       if (section === "api-keys") void navigate({ to: "/settings/providers" })
@@ -50,9 +53,9 @@ function RootLayout() {
     <SettingsContext value={{ openSettings }}>
       <UpdateDialogProvider>
         <div className="flex h-screen flex-col bg-background text-foreground">
-          <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <Content className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Outlet />
-          </main>
+          </Content>
           <AppToaster />
           <VariantBar />
         </div>

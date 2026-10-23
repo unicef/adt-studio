@@ -35,37 +35,6 @@ const returnStates: LabState[] = [
   { id: "back", label: msg`Back on the storyboard`, path: `/pipeline/${DONE}/pages/pg008009`, sim: null },
 ]
 
-const storyboardStates: LabState[] = [
-  { id: "page", label: msg`Storyboard · page 8`, path: `/pipeline/${DONE}/pages/pg008009` },
-  { id: "cover", label: msg`Storyboard · cover`, path: `/pipeline/${DONE}/pages/pg001` },
-  { id: "stage", label: msg`A stage page`, hint: msg`Quizzes`, path: `/pipeline/${DONE}/quizzes` },
-]
-
-const chromeStates: LabState[] = [
-  { id: "page", label: msg`Storyboard · page 8`, path: `/pipeline/${DONE}/pages/pg008009` },
-  { id: "stage", label: msg`A stage with results`, hint: msg`Quizzes`, path: `/pipeline/${DONE}/quizzes` },
-  { id: "sectioning", label: msg`Sectioning, never run`, hint: msg`"[Lab] Hyena and Raven"`, path: `/pipeline/${FRESH}/sectioning` },
-]
-
-const topbarStates: LabState[] = [
-  { id: "storyboard", label: msg`Storyboard`, path: `/pipeline/${DONE}/pages/pg008009`, sim: null },
-  { id: "building", label: msg`Storyboard building`, path: `/pipeline/${DONE}/pages/pg001`, sim: JOURNEY, atMs: EXTRACT_MS + SECTIONING_MS + 12000 },
-  { id: "extract-running", label: msg`Extract running`, path: `/pipeline/${DONE}/extract`, sim: JOURNEY, atMs: 9000 },
-  { id: "results", label: msg`A step with results`, hint: msg`Image descriptions`, path: `/pipeline/${DONE}/captions`, sim: null },
-  {
-    id: "step-running",
-    label: msg`A step running`,
-    hint: msg`Image descriptions`,
-    path: `/pipeline/${DONE}/captions`,
-    sim: { kind: "run", book: DONE, stage: "captions", step: "image-captioning", durationMs: 30000, total: 21, loop: true },
-    atMs: 9000,
-  },
-  { id: "quizzes", label: msg`Quizzes`, hint: msg`Has a version`, path: `/pipeline/${DONE}/quizzes`, sim: null },
-  { id: "settings", label: msg`Step settings`, hint: msg`Quizzes settings`, path: `/pipeline/${DONE}/quizzes/settings`, sim: null },
-  { id: "preview", label: msg`Preview`, path: `/pipeline/${DONE}/preview`, sim: null },
-  { id: "export", label: msg`Export`, path: `/pipeline/${DONE}/export`, sim: null },
-]
-
 const bootStates: LabState[] = [
   { id: "loading", label: msg`Loading (held)`, hint: msg`Reloads and keeps the loading screen up`, path: `/pipeline/${DONE}/glossary`, sim: HELD_LOAD, reload: true },
   { id: "loaded", label: msg`Loaded`, path: `/pipeline/${DONE}/glossary`, sim: null, reload: true },
@@ -141,16 +110,6 @@ const STATES: Record<string, LabState[]> = {
   "running-validation": runStates(`/pipeline/${DONE}/validation`, 30000),
   "return-banner": returnStates,
   "return-toast": returnStates,
-  "chrome-panels": chromeStates,
-  "top-nav": topbarStates,
-  "top-step": topbarStates,
-  "top-status": topbarStates,
-  "top-action": topbarStates,
-  "top-other": topbarStates.slice(5),
-  "top-book": topbarStates.slice(0, 2),
-  "tree-rail": storyboardStates,
-  "tree-floating": storyboardStates,
-  editor: storyboardStates,
   ai: [
     { id: "page", label: msg`Storyboard · page 8`, path: `/pipeline/${DONE}/pages/pg008009` },
     { id: "stage", label: msg`A stage page`, hint: msg`Image Captions`, path: `/pipeline/${DONE}/captions` },
@@ -237,12 +196,3 @@ export function applyState(
   else navigate(path)
 }
 
-export function stepState(direction: 1 | -1, navigate: (path: string) => void) {
-  const active = activeStore.get()
-  if (!active) return
-  const test = LAB_TESTS.find((candidate) => candidate.id === active.testId)
-  const states = statesFor(test)
-  const index = states.findIndex((state) => state.id === active.stateId)
-  const next = states[index + direction]
-  if (test && next) applyState(test, next, navigate)
-}

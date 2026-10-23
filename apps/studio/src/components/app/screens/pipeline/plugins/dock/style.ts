@@ -9,7 +9,7 @@ export const suggestedRowClassName = "ring-1 ring-inset ring-brand-500/35 bg-bra
 export const rowEnterClassName = "animate-in fade-in slide-in-from-bottom-1 fill-mode-both duration-300 motion-reduce:animate-none"
 
 export const tabFocusClassName =
-  "focus-visible:ring-2 focus-visible:ring-[var(--tint)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--dock-surface)]"
+  "focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--dock-surface)]"
 
 export const SKIN = {
   shell: cn(
@@ -23,7 +23,6 @@ export const SKIN = {
   row: "hover:bg-zinc-950/[0.045] dark:hover:bg-white/[0.07]",
   rowHere: "bg-zinc-950/[0.05] dark:bg-white/[0.1]",
   divider: "bg-zinc-950/[0.08] dark:bg-white/[0.08]",
-  cluster: "bg-zinc-950/[0.035] dark:bg-white/[0.05]",
   minimize: "bg-white ring-1 ring-zinc-950/[0.07] text-zinc-500 shadow-[0_6px_16px_-8px_rgba(15,23,42,0.3)] hover:text-zinc-950 dark:bg-zinc-950 dark:ring-white/[0.08] dark:text-white/60 dark:hover:text-white",
   tip: "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950",
   surface: cn("[--dock-surface:#ffffff] [--dock-chip:10%] dark:[--dock-surface:#09090b] dark:[--dock-chip:18%]"),
@@ -32,3 +31,11 @@ export const SKIN = {
 export function stagger(index: number) {
   return { animationDelay: `${60 + index * 28}ms` }
 }
+
+export const toneTextClassName = "text-[color-mix(in_srgb,var(--tone)_72%,black)] dark:text-[color-mix(in_srgb,var(--tone)_55%,white)]"
+
+export const primaryCtaClassName =
+  "bg-brand-700 text-white hover:bg-brand-800 dark:text-zinc-950"
+
+export const focusRingClassName =
+  "outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--dock-surface)]"

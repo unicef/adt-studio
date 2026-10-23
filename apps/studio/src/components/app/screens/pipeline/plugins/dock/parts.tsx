@@ -72,7 +72,21 @@ export interface StepRowProps {
   suggested: boolean
   notice: string | undefined
   explain?: boolean
+  essential?: boolean
   onClick: () => void
+}
+
+function EssentialBadge({ done }: { done: boolean }) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-full px-1.5 py-px text-[9.5px] font-bold uppercase leading-[14px] tracking-[0.06em]",
+        done ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/15 text-amber-800 dark:text-amber-200",
+      )}
+    >
+      <Trans>Essential</Trans>
+    </span>
+  )
 }
 
 function Description({ slug }: { slug: string }) {
@@ -81,7 +95,7 @@ function Description({ slug }: { slug: string }) {
   return <span className={cn("line-clamp-2 text-[11.5px] leading-snug", SKIN.muted)}>{description}</span>
 }
 
-export function StepRow({ item, index, here, suggested, notice, explain = false, onClick }: StepRowProps) {
+export function StepRow({ item, index, here, suggested, notice, explain = false, essential = false, onClick }: StepRowProps) {
   return (
     <button
       type="button"
@@ -89,7 +103,7 @@ export function StepRow({ item, index, here, suggested, notice, explain = false,
       onClick={onClick}
       title={getStageDescriptionI18n(item.slug) ?? undefined}
       style={stagger(index)}
-      className={cn(rowClassName, explain && "items-start", here ? SKIN.rowHere : SKIN.row, suggested && suggestedRowClassName, rowEnterClassName)}
+      className={cn(rowClassName, explain && "items-start", essential && "col-span-2", here ? SKIN.rowHere : SKIN.row, suggested && suggestedRowClassName, rowEnterClassName)}
     >
       <span
         className="relative grid size-8 shrink-0 place-items-center rounded-[10px] transition-transform duration-200 ease-out group-hover/row:scale-105 motion-reduce:transition-none"
@@ -98,7 +112,10 @@ export function StepRow({ item, index, here, suggested, notice, explain = false,
         <item.icon className="size-4" strokeWidth={1.9} style={{ color: item.hex }} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className={cn("truncate text-[13px] font-medium", SKIN.strong)}>{getStageLabelI18n(item.slug)}</span>
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className={cn("truncate text-[13px] font-medium", SKIN.strong)}>{getStageLabelI18n(item.slug)}</span>
+          {essential && <EssentialBadge done={item.state === "done"} />}
+        </span>
         {explain && <Description slug={item.slug} />}
         {notice ? (
           <span className={noticeClassName} title={notice}>
@@ -120,19 +137,40 @@ export function StepRow({ item, index, here, suggested, notice, explain = false,
   )
 }
 
-export function AddRow({ item, index, suggested, notice, explain = false, onClick }: Omit<StepRowProps, "here">) {
+export function AddRow({ item, index, suggested, notice, explain = false, essential = false, onClick }: Omit<StepRowProps, "here">) {
   return (
     <button
       type="button"
       onClick={onClick}
       style={stagger(index)}
-      className={cn(rowClassName, explain && "items-start", SKIN.row, suggested && suggestedRowClassName, rowEnterClassName)}
+      className={cn(
+        rowClassName,
+        explain && "items-start",
+        essential
+          ? "col-span-2 bg-amber-500/[0.06] ring-1 ring-inset ring-amber-500/30 hover:bg-amber-500/[0.1] dark:bg-amber-400/[0.08] dark:ring-amber-400/30"
+          : SKIN.row,
+        !essential && suggested && suggestedRowClassName,
+        rowEnterClassName,
+      )}
     >
       <NotInBookIcon item={item} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className={cn("truncate text-[13px] font-medium", SKIN.strong)}>{getStageLabelI18n(item.slug)}</span>
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className={cn("truncate text-[13px] font-medium", SKIN.strong)}>{getStageLabelI18n(item.slug)}</span>
+          {essential && <EssentialBadge done={false} />}
+        </span>
         {explain && <Description slug={item.slug} />}
-        {suggested ? (
+        {essential ? (
+          <>
+            <span className="text-[11.5px] font-medium text-amber-700 dark:text-amber-300">
+              <Trans>Not in the book yet. Screen-reader users won't know what the pictures show.</Trans>
+            </span>
+            <span className="mt-1.5 flex h-7 items-center gap-1 self-start rounded-[9px] bg-brand-600 px-2.5 text-[12px] font-semibold text-white transition-colors duration-150 group-hover/row:bg-brand-700">
+              <Plus className="size-3.5" strokeWidth={2.5} />
+              <Trans>Add to book</Trans>
+            </span>
+          </>
+        ) : suggested ? (
           <span className="text-[11.5px] font-medium text-brand-700 dark:text-brand-300">
             <Trans>Suggested next</Trans>
           </span>

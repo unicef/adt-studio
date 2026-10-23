@@ -16,8 +16,8 @@ export function StepLandingLayout({ heading, notices, settings, beforeRun, actio
     <div className="@container/landing-layout flex h-full min-h-[520px] w-full animate-in fade-in duration-300 motion-reduce:animate-none">
       <aside className="flex w-full shrink-0 flex-col overflow-hidden @[1000px]/landing-layout:w-[560px] @[1000px]/landing-layout:border-r">
         <div className="flex shrink-0 flex-col gap-4 border-b px-8 pt-8 pb-5">
-          {notices}
           {heading}
+          {notices}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {action}
             {advanced}

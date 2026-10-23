@@ -1,4 +1,3 @@
-import { useVariant } from "@/components/app/lab/variants"
 import { useState, useEffect, useMemo , type ReactNode } from "react"
 import { BookOpen, GraduationCap, Sprout } from "lucide-react"
 import { CustomInstructionsField } from "./ui/CustomInstructionsField"
@@ -6,7 +5,10 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { i18n as linguiI18n } from "@lingui/core"
 import type { MessageDescriptor } from "@lingui/core"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { StepLandingShell } from "./StepLandingShell"
+import { useLandingRunGate } from "./useLandingRunGate"
+import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   SettingsCard,
@@ -30,22 +32,18 @@ const GRADE_LEVEL_HINTS: Record<GradeLevelKey, MessageDescriptor> = {
   advanced: msg`Detailed, technical captions for college and adult readers.`,
 }
 
-const FRIENDLY_GRADE_LEVEL_HINTS: Record<GradeLevelKey, MessageDescriptor> = {
-  early: msg`Short, simple sentences for kindergarten through 5th grade.`,
-  middle: msg`Clear descriptions for middle and high school readers.`,
-  advanced: msg`Detailed descriptions for college and adult readers.`,
-}
-
 export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
   const { t } = useLingui()
-  const friendly = useVariant("features") === "suggested"
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("captions")
   const storyboardStatus = useStageStatus("storyboard")
   const storyboardReady = storyboardStatus.isCompleted
+  const gate = useLandingRunGate(bookLabel, "captions", [
+    { ok: storyboardReady, reason: <Trans>Run Storyboard first — captions describe the images placed by Storyboard.</Trans> },
+  ])
   const { compose: composeBookContext, canAutoFill } = useComposeBookContext(
     bookLabel,
     t`When describing images, mention any culturally specific objects, locations, or recurring characters by name.`,
@@ -80,7 +78,7 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (gate.blocked || status.isRunning) return
     queueRun({ fromStage: "captions", toStage: "captions", apiKey })
   }
 
@@ -107,14 +105,12 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run captions.</Trans>
-  ) : !storyboardReady ? (
-    <Trans>Run Storyboard first — captions describe the images placed by Storyboard.</Trans>
-  ) : undefined
 
   return (
     <StepLandingShell
+      title={getStageLabelI18n("captions")}
+      description={<Trans>Write a short description of every picture in the book, so screen readers and translations can tell readers what's in it.</Trans>}
+      notice={status.hasError ? <RunErrorNotice label={bookLabel} stage="captions" /> : undefined}
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="captions"
@@ -122,33 +118,14 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
-      disabledReason={disabledReason}
-      runLabel={friendly ? <Trans>Describe the images</Trans> : <Trans>Run Captions</Trans>}
+      extraDisabled={gate.blocked}
+      disabledReason={gate.disabledReason}
+      runLabel={<Trans>Describe images</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
-      previewLabel={friendly ? t`Example: image descriptions` : t`Captions Preview`}
+      previewLabel={t`Captions Preview`}
       onRun={handleRun}
-      preview={<CaptionsPreview grade={gradeLevel} friendly={friendly} />}
+      preview={<CaptionsPreview grade={gradeLevel} />}
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          {friendly ? <Trans>Image descriptions</Trans> : <Trans>Image Captions</Trans>}
-        </h1>
-        <p className="text-[14px] text-muted-foreground leading-relaxed">
-          {friendly ? (
-            <Trans>
-              Write a description of every picture in the book. Pick a reading level so the descriptions suit your
-              readers, and add instructions if you want to nudge the tone or focus.
-            </Trans>
-          ) : (
-            <Trans>
-            Generate descriptive captions for every image in the book. Pick a
-            reading level so captions match your audience, and add custom
-            instructions if you want to nudge the tone or focus.
-          </Trans>
-          )}
-        </p>
-      </div>
 
       <PrereqGuard
         upstreamSlug="storyboard"
@@ -164,7 +141,7 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       <SettingsCard>
         <SettingsField
           label={<Trans>Grade Level</Trans>}
-          hint={linguiI18n._((friendly ? FRIENDLY_GRADE_LEVEL_HINTS : GRADE_LEVEL_HINTS)[gradeLevel])}
+          hint={linguiI18n._(GRADE_LEVEL_HINTS[gradeLevel])}
         >
           <SegmentedControl
             options={gradeOptions}

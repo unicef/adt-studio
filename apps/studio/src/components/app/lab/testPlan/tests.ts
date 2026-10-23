@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import type { FaultScenario, JourneyScenario, RunScenario, SlowLoadScenario } from "../simulate"
-import { GROUP_META, TIERS, VARIANT_GROUPS, type VariantKey, type VariantTier } from "../variants"
+import type { VariantKey } from "../variants"
 
 export type LabSim = Omit<RunScenario, "startedAt"> | SlowLoadScenario | Omit<JourneyScenario, "startedAt"> | Omit<FaultScenario, "startedAt">
 
@@ -315,63 +315,6 @@ export const LAB_TESTS: LabTest[] = [
     compare: msg`Compare with the banner test right before this one.`,
   },
   {
-    id: "tree-rail",
-    group: "tree",
-    title: msg`Layers: element tree in the rail`,
-    changes: msg`A Pages | Layers switch in the left rail; the tree lists the page's real elements and selection syncs with the canvas.`,
-    variants: { tree: "rail" },
-    path: `/pipeline/${DONE}/pages/pg008009`,
-    steps: [
-      msg`Click Layers at the top of the rail.`,
-      msg`Click a "Text" row — the matching verse line is outlined on the canvas.`,
-      msg`Click a different line on the canvas — its row highlights and scrolls into view.`,
-      msg`Collapse and expand a Group. Switch pages from the Pages tab and come back.`,
-    ],
-    lookFor: [
-      msg`Is "Group / Text / Image" the right level of detail?`,
-      msg`Note: with Layers on, the canvas text is editable in place — is that welcome or surprising?`,
-    ],
-    compare: msg`Switch Layers to Floating to compare placement.`,
-  },
-  {
-    id: "tree-floating",
-    group: "tree",
-    title: msg`Layers: floating panel`,
-    changes: msg`The same tree in a panel floating over the canvas, so the Pages rail stays visible.`,
-    variants: { tree: "floating" },
-    path: `/pipeline/${DONE}/pages/pg008009`,
-    steps: [
-      msg`Use the floating Layers panel at the top-left of the canvas; collapse it with its header.`,
-      msg`Select rows and canvas elements as in the rail test.`,
-    ],
-    lookFor: [
-      msg`Does it cover content you need? Rail or floating?`,
-    ],
-    compare: msg`Compare with the rail test.`,
-  },
-  {
-    id: "editor",
-    group: "editor",
-    title: msg`Style editor: Tailwind controls back on the storyboard`,
-    changes: msg`Click an element to open the style panel; edits apply live and save as a new version. Saves go to "[Lab] Triste…" only — your own books are untouched.`,
-    variants: { editor: "panel" },
-    path: `/pipeline/${DONE}/pages/pg008009`,
-    steps: [
-      msg`Click a verse line: the panel opens on the right with Sizing, Position, Spacing, Typography, Appearance, Advanced.`,
-      msg`Make it bold and change its color — the canvas updates instantly and "Unsaved changes on this page" appears.`,
-      msg`Press Save, then check the version picker next to "Page 8" moved up a version. Reload: the change persists.`,
-      msg`Change something else and press Discard — it reverts.`,
-      msg`Change something and switch to another page without saving — a toast says it was saved.`,
-      msg`Select a line and use Delete in the panel header — the element disappears and the save bar appears (Discard brings it back).`,
-      msg`Switch Style editor to Floating inspector: the same controls float over the canvas and the AI panel stays visible.`,
-    ],
-    lookFor: [
-      msg`Is the panel sized right next to the canvas? Is the AI panel hiding while you style OK?`,
-      msg`Image elements only get styling for now — no crop/replace yet.`,
-    ],
-    compare: msg`Switch Style editor to Off: clicking does nothing.`,
-  },
-  {
     id: "ai",
     group: "ai",
     title: msg`AI panel: hidden vs wired`,
@@ -441,131 +384,6 @@ export const LAB_TESTS: LabTest[] = [
       msg`Should Export also live in the storyboard top bar or the dock?`,
     ],
     compare: msg`Switch Export to Current: Preview has no way out to export.`,
-  },
-  {
-    id: "chrome-panels",
-    group: "panels",
-    title: msg`Workspace style: Arc`,
-    changes: msg`The sidebars and the top bar share one neutral color and the content sits inside as a rounded container, like the Arc browser. Same structure as today: pages, the page, AI.`,
-    variants: { panels: "arc" },
-    path: `/pipeline/${DONE}/pages/pg008009`,
-    steps: [
-      msg`Storyboard: one white surface holds the pages, the top bar and the AI panel; the page area is a rounded container inside it.`,
-      msg`State 2 (Quizzes): the frame stays neutral; the stage shows itself through its colored icon in the top bar.`,
-      msg`State 3 (Sectioning): the setup bar sits in the frame too.`,
-      msg`Try dark mode, and switch to Current to compare.`,
-    ],
-    lookFor: [
-      msg`Without the solid colored bars, is it still obvious which step you're on?`,
-      msg`Does the container read clearly against the white frame?`,
-    ],
-    compare: msg`Current: white top bar, hard borders, solid colored bars on stages.`,
-  },
-  {
-    id: "top-nav",
-    group: "topnav",
-    title: msg`Top bar · location: where am I?`,
-    changes: msg`What the left of the bar shows on step pages. The storyboard already shows Book › Page.`,
-    variants: { panels: "arc", topnav: "book-step" },
-    path: `/pipeline/${DONE}/captions`,
-    steps: [
-      msg`Step only (current): a back button, then the step's icon and name — the book title only appears on the storyboard.`,
-      msg`Book › Step: the book title comes first on step pages too.`,
-      msg`Breadcrumb nav: no back button — click the book title to go back to the storyboard (Home during setup).`,
-      msg`Walk the states: storyboard, a step with results, a step running, settings.`,
-    ],
-    lookFor: [
-      msg`Do you always know which book you're in?`,
-      msg`Is going back obvious without a back button?`,
-    ],
-    compare: msg`Step only is today's bar.`,
-  },
-  {
-    id: "top-step",
-    group: "topstep",
-    title: msg`Top bar · which step am I on?`,
-    changes: msg`Without the colored bar, the step needs a clearer indicator. Three options; the storyboard (home) never gets a step color.`,
-    variants: { panels: "arc", topstep: "pill" },
-    path: `/pipeline/${DONE}/captions`,
-    steps: [
-      msg`Colored pill: the step's icon and name in a soft pill of its color.`,
-      msg`Accent edge: the content container gets a thin outline in the step's color; the name takes the color too.`,
-      msg`Pipeline map: dots for every step after the name, the current one stretched in its color, plus "5/14".`,
-      msg`Walk Extract, Image descriptions and Quizzes (states 3–6): can you tell them apart at a glance?`,
-    ],
-    lookFor: [
-      msg`Can you tell where you are without reading?`,
-    ],
-    compare: msg`Icon + name is today's indicator on the neutral bar.`,
-  },
-  {
-    id: "top-status",
-    group: "topstatus",
-    title: msg`Top bar · status in the middle`,
-    changes: msg`What the center of the bar shows, at rest and while something runs.`,
-    variants: { panels: "arc", topstatus: "summary" },
-    path: `/pipeline/${DONE}/captions`,
-    steps: [
-      msg`Current: several chips; while running, the progress is added on top ("Describing the images…", "Describing images · page 4/21", "68 images", "All described").`,
-      msg`One summary: one compact chip at rest ("68 images · All described"), one progress pill while running.`,
-      msg`Only running: empty at rest, one progress pill while running.`,
-      msg`Nothing: no center; progress is the thin line under the bar.`,
-      msg`Check the storyboard too (states 1 and 2): it gets a page count at rest and the build progress while building.`,
-    ],
-    lookFor: [
-      msg`Does the center help, or is it noise you never read?`,
-    ],
-    compare: msg`Current is today's chips.`,
-  },
-  {
-    id: "top-action",
-    group: "topaction",
-    title: msg`Top bar · the main action`,
-    changes: msg`Run, Re-run and Cancel look the same everywhere.`,
-    variants: { panels: "arc", topaction: "quiet" },
-    path: `/pipeline/${DONE}/captions`,
-    steps: [
-      msg`Quiet: Re-run and Cancel are calm outlined buttons; Cancel only turns red on hover.`,
-      msg`Clear: Re-run is the same calm button; Cancel is always a solid red button while something runs.`,
-      msg`Compare on the storyboard while it builds (state 2) and on a step running (state 5).`,
-    ],
-    lookFor: [
-      msg`Is Cancel easy to find when you need it, without shouting all the time?`,
-    ],
-    compare: msg`Current: red text Cancel on the storyboard, solid red Cancel on steps.`,
-  },
-  {
-    id: "top-other",
-    group: "topother",
-    title: msg`Top bar · settings, Preview and Export`,
-    changes: msg`The secondary screens either keep their solid colored bars or use the same Arc bar.`,
-    variants: { panels: "arc", topother: "arc" },
-    path: `/pipeline/${DONE}/quizzes/settings`,
-    steps: [
-      msg`Step settings (state 2): neutral bar with the step's colored icon; the settings list sits on the frame, the form in the container.`,
-      msg`Preview (state 3) and Export (state 4): same neutral bar and container.`,
-      msg`Switch to Colored bars to compare.`,
-    ],
-    lookFor: [
-      msg`Do these screens now feel like part of the same app?`,
-    ],
-    compare: msg`Colored bars: orange settings, slate Preview, indigo Export.`,
-  },
-  {
-    id: "top-book",
-    group: "topbook",
-    title: msg`Top bar · the book on the storyboard`,
-    changes: msg`The storyboard's left side: just the title, or a small cover next to it.`,
-    variants: { panels: "arc", topbook: "cover" },
-    path: `/pipeline/${DONE}/pages/pg008009`,
-    steps: [
-      msg`Cover + title: a small cover before the book title, then › Page 8.`,
-      msg`Book › Page: today's text-only title.`,
-    ],
-    lookFor: [
-      msg`Does the cover make it feel like the book's home?`,
-    ],
-    compare: msg`Book › Page is today's bar.`,
   },
   {
     id: "landing-compact",
@@ -647,25 +465,3 @@ export const LAB_TESTS: LabTest[] = [
     compare: msg`Switch Loading states to Current on the same state: spinners and blank thumbnails.`,
   },
 ]
-
-export const COMBINED_STEPS: MessageDescriptor[] = [
-  msg`Open "[Lab] Hyena and Raven" in the pipeline.`,
-  msg`Read the Sectioning landing; then start the simulated sectioning run below and watch it.`,
-  msg`When it finishes, use the way back to the storyboard.`,
-  msg`On "[Lab] Triste…": storyboard color, Layers, Style editor and AI panel together on Page 8.`,
-  msg`Visit two stages from the dock and come back each time.`,
-  msg`Preview → Export.`,
-  msg`Reload the window on a stage (cold load).`,
-]
-
-const GROUP_ORDER = new Map(VARIANT_GROUPS.map((group, index) => [group.key, index]))
-const TIER_ORDER = new Map(TIERS.map((tier, index) => [tier.key, index]))
-const rank = (test: LabTest) => (TIER_ORDER.get(GROUP_META[test.group].tier) ?? 0) * 100 + (GROUP_ORDER.get(test.group) ?? 0)
-export const ORDERED_TESTS = [
-  ...LAB_TESTS.filter((test) => (test.section ?? "solo") === "solo").sort((a, b) => rank(a) - rank(b)),
-  ...LAB_TESTS.filter((test) => test.section === "flow"),
-]
-
-export function testSection(test: LabTest): VariantTier | "values" {
-  return test.section === "flow" ? "values" : GROUP_META[test.group].tier
-}

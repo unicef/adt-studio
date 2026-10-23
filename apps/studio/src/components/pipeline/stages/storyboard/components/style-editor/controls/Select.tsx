@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useContext, type ReactNode } from "react"
 import {
   Select as RadixSelect,
   SelectContent,
@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { StyleLabelContext } from "./StyleLabel"
 
 export interface SelectOption<T extends string> {
   value: T
@@ -38,6 +39,7 @@ export function Select<T extends string>({
   className,
 }: SelectProps<T>) {
   const selectedLabel = options.find((o) => o.value === value)?.label
+  const labelledBy = useContext(StyleLabelContext)
   return (
     <RadixSelect
       value={value}
@@ -45,6 +47,7 @@ export function Select<T extends string>({
       disabled={disabled}
     >
       <SelectTrigger
+        aria-labelledby={labelledBy}
         className={cn(
           "h-8 w-full text-[12px] px-2 py-0 border-0 bg-muted/60 ring-offset-0 focus:ring-1 focus:ring-inset focus:ring-violet-500 focus:ring-offset-0 data-[state=open]:bg-background data-[state=open]:ring-1 data-[state=open]:ring-inset data-[state=open]:ring-violet-500",
           className

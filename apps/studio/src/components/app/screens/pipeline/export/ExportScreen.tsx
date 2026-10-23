@@ -1,5 +1,4 @@
 import { Trans } from "@lingui/react/macro"
-import { useVariant } from "@/components/app/lab/variants"
 import { useChromeRoot } from "@/components/app/lab/chrome"
 import { FileDown } from "lucide-react"
 import { TopBar } from "@/components/app/screens/pipeline/chrome/PipelineChrome"
@@ -17,23 +16,13 @@ export interface ExportScreenProps {
 
 export function ExportScreen({ label }: ExportScreenProps) {
   const exportWatcher = useExportWatcherSetup(label)
-  const otherArc = useVariant("topother") === "arc"
-  const otherChrome = useChromeRoot(EXPORT_HEX, otherArc ? "arc" : "current")
+  const otherChrome = useChromeRoot(EXPORT_HEX)
   return (
     <ExportWatcherProvider value={exportWatcher}>
     <div {...otherChrome} className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground animate-in fade-in duration-300">
       <TopBar
         tone={{ hex: EXPORT_HEX, stage: true }}
-        left={
-          <>
-            <span data-stage-icon="" className="grid size-6.5 place-items-center rounded-full bg-white/20">
-              <FileDown className="size-3.5" strokeWidth={2.4} />
-            </span>
-            <span className="text-sm font-semibold">
-              <Trans>Export</Trans>
-            </span>
-          </>
-        }
+        location={{ icon: FileDown, hex: EXPORT_HEX, area: <Trans>Export</Trans> }}
       />
       <div data-chrome="row" className="flex min-h-0 flex-1">
       <ScrollArea data-chrome="center" className="min-h-0 flex-1">

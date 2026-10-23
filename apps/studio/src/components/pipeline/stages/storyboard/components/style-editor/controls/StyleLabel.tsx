@@ -1,4 +1,4 @@
-import { useState, type MouseEvent, type ReactNode } from "react"
+import { createContext, useId, useState, type MouseEvent, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import { Monitor, RotateCcw, Smartphone, Tablet } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/tooltip"
 import type { DeviceView } from "../device-breakpoint"
 import type { OverrideInfo } from "../use-element-styles"
+
+export const StyleLabelContext = createContext<string | undefined>(undefined)
 
 interface StyleLabelProps {
   label: ReactNode
@@ -88,6 +90,7 @@ export function StyleLabel({
   className,
 }: StyleLabelProps) {
   const [resetOpen, setResetOpen] = useState(false)
+  const labelId = useId()
 
   const handleLabelClick = (e: MouseEvent<HTMLLabelElement>) => {
     if (!override) return
@@ -105,13 +108,14 @@ export function StyleLabel({
   const showInherited = !!inherited && !override
   const labelEl = (
     <label
+      id={labelId}
       htmlFor={override ? undefined : htmlFor}
       onClick={handleLabelClick}
       className={cn(
         "h-8 self-start flex items-center gap-1.5 pl-3 text-[11px] font-normal select-none truncate",
         override
           ? "rounded text-violet-700 bg-violet-100/70 hover:bg-violet-100 cursor-pointer"
-          : "text-muted-foreground/80",
+          : "text-muted-foreground",
         showInherited && "cursor-help"
       )}
     >
@@ -191,7 +195,7 @@ export function StyleLabel({
         labelEl
       )}
       <div className="min-w-0 min-h-8 flex items-center gap-1.5">
-        {children}
+        <StyleLabelContext value={labelId}>{children}</StyleLabelContext>
       </div>
     </div>
   )

@@ -2,6 +2,8 @@ import type { ReactNode } from "react"
 import { ArrowDown, PencilLine, ToggleRight, History } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { StepLandingShell } from "./StepLandingShell"
+import { useLandingRunGate } from "./useLandingRunGate"
+import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   FixedLayoutWarningBanner,
@@ -14,19 +16,20 @@ import { useRunEasyRead } from "@/components/pipeline/stages/easy-read/use-run-e
 
 export function EasyReadLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
   const { t } = useLingui()
-  const { runEasyRead, hasStructuredTextProvider } = useRunEasyRead(bookLabel)
+  const { runEasyRead } = useRunEasyRead(bookLabel)
   const status = useStageStatus("easy-read")
   const storyboardReady = useStageStatus("storyboard").isCompleted
   const isFixedLayout = useIsFixedLayout(bookLabel)
 
-  const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to generate Easy Read content.</Trans>
-  ) : !storyboardReady ? (
-    <Trans>Run Storyboard first — Easy Read simplifies the text it places on each page.</Trans>
-  ) : undefined
+  const gate = useLandingRunGate(bookLabel, "easy-read", [
+    { ok: storyboardReady, reason: <Trans>Run Storyboard first — Easy Read simplifies the text it places on each page.</Trans> },
+  ])
 
   return (
     <StepLandingShell
+      title={<Trans>Easy Read</Trans>}
+      description={<Trans> Generate a simplified, easier-to-read version of every text block in the book. Readers turn it on with the Easy Read toggle in the ADT; you can review and edit each simplified block before packaging. </Trans>}
+      notice={status.hasError ? <RunErrorNotice label={bookLabel} stage="easy-read" /> : undefined}
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="easy-read"
@@ -34,8 +37,8 @@ export function EasyReadLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasStructuredTextProvider || !storyboardReady}
-      disabledReason={disabledReason}
+      extraDisabled={gate.blocked}
+      disabledReason={gate.disabledReason}
       runLabel={<Trans>Run Easy Read</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
       previewLabel={t`Easy Read Preview`}
@@ -51,19 +54,6 @@ export function EasyReadLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       }
     >
       <FixedLayoutWarningBanner show={isFixedLayout} />
-
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Easy Read</Trans>
-        </h1>
-        <p className="text-[14px] text-muted-foreground leading-relaxed">
-          <Trans>
-            Generate a simplified, easier-to-read version of every text block in
-            the book. Readers turn it on with the Easy Read toggle in the ADT;
-            you can review and edit each simplified block before packaging.
-          </Trans>
-        </p>
-      </div>
 
       <PrereqGuard
         upstreamSlug="storyboard"

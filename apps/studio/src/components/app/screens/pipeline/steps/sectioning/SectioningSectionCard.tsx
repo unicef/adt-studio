@@ -1,7 +1,7 @@
 import { memo } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { PageSectioningSection } from "@adt/types"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
 import { SectionActionsDropdown } from "@/components/pipeline/stages/storyboard/components/SectionActionsDropdown"
 import {

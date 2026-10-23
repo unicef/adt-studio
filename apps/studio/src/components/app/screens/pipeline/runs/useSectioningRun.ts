@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 import { resolveSectioningStartStage } from "@/components/pipeline/stages/sectioning/SectioningLandingPage.helpers"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { usePages } from "@/hooks/use-pages"
 import { useSplitStatus } from "@/hooks/use-parts"
@@ -8,12 +8,13 @@ import { useSplitStatus } from "@/hooks/use-parts"
 export interface SectioningRun {
   run: () => void
   canRun: boolean
-  hasApiKey: boolean
+  hasProvider: boolean
   isRunning: boolean
 }
 
 export function useSectioningRun(label: string): SectioningRun {
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasProvider = useBookStructuredTextAvailability(label)
   const { queueRun, stageState } = useBookRun()
   const { data: pages, isLoading: pagesLoading } = usePages(label)
   const { data: splitStatus, isLoading: splitStatusLoading } = useSplitStatus(label)
@@ -27,7 +28,7 @@ export function useSectioningRun(label: string): SectioningRun {
   const hasAssembledPages = hasExtractedPages && splitStatus?.hasMergeActivity === true
   const resolvingStoredState =
     !extractCovered && (pagesLoading || (hasExtractedPages && splitStatusLoading))
-  const canRun = hasApiKey && !isRunning && !resolvingStoredState
+  const canRun = hasProvider && !isRunning && !resolvingStoredState
 
   const run = useCallback(() => {
     if (!canRun) return
@@ -38,5 +39,5 @@ export function useSectioningRun(label: string): SectioningRun {
     })
   }, [canRun, queueRun, extractCovered, hasAssembledPages, apiKey])
 
-  return { run, canRun, hasApiKey, isRunning }
+  return { run, canRun, hasProvider, isRunning }
 }

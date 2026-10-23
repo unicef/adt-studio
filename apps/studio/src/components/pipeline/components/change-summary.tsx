@@ -131,7 +131,7 @@ export function usePendingChanges<T>(opts: PendingChangesOptions<T>): {
    * the server. Lets callers auto-dismiss the save bar when edits are reverted. */
   hasChanges: boolean
 } {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const {
     prev,
     next,
@@ -179,6 +179,7 @@ export function usePendingChanges<T>(opts: PendingChangesOptions<T>): {
       pruned: t`pruned`,
       restored: t`restored`,
     }
+    const rules = new Intl.PluralRules(i18n.locale)
     const parts = labelKey.split("|").map((seg) => {
       const [kind, count] = seg.split(":")
       return { kind: kind as ChangeKind, n: Number(count) }
@@ -187,12 +188,12 @@ export function usePendingChanges<T>(opts: PendingChangesOptions<T>): {
       <div className="flex items-center gap-1">
         {parts.map(({ kind, n }) => (
           <PendingChip key={kind} icon={KIND_ICON[kind]}>
-            {n} {n === 1 ? noun.one : noun.other} {verbs[kind]}
+            {n} {rules.select(n) === "one" ? noun.one : noun.other} {verbs[kind]}
           </PendingChip>
         ))}
       </div>
     )
-  }, [labelKey, noun.one, noun.other, t])
+  }, [labelKey, noun.one, noun.other, t, i18n.locale])
 
   return { label, labelKey, hasChanges: active.length > 0 }
 }

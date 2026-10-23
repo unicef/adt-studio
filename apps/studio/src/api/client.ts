@@ -447,6 +447,9 @@ export interface PageSummaryItem {
   hasCaptioning: boolean
   textPreview: string
   imageCount: number
+  captionCount?: number
+  decorativeCount?: number
+  uncaptionedCount?: number
   wordCount: number
   sectionCount: number
   prunedSections: number[]

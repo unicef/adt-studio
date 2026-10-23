@@ -1,213 +1,240 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { EyeOff, Plus, Search, Sparkles, Trash2, Undo2 } from "lucide-react"
-import type { GlossaryItem } from "@/api/client"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { plural } from "@lingui/core/macro"
+import type { SignLanguageVideo } from "@/api/client"
 import { useGlossary } from "@/hooks/use-glossary"
-import { cn } from "@/lib/utils"
+import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
+import { getGlossaryItemTextId } from "@/lib/glossary-video"
 import { AddGlossaryDialog } from "@/components/pipeline/stages/glossary/AddGlossaryDialog"
-import { useSaveGlossary } from "./shared/mutations"
-import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
+import { useGlossaryOccurrences } from "@/components/pipeline/stages/glossary/lib/occurrences"
+import { useVariant } from "@/components/app/lab/variants"
+import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
+import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
+import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView, useStepRunningView } from "./shared/StepShell"
 import { StepVersionPicker } from "./shared/StepVersionPicker"
-import { EditableText, RowAction, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
+import { StepRail } from "./shared/ui"
 import { glossaryVersionDiff } from "./shared/versionDiffs"
+import { usePageNav } from "./shared/usePageNav"
+import { usePageRailEntries } from "./shared/usePageRailEntries"
+import { usePageScopedItems } from "./shared/list/usePageScopedItems"
+import { useExpandedRows } from "./shared/list/useExpandedRows"
+import { useRowFlash } from "./shared/list/useRowFlash"
+import { useStageSurface } from "./shared/useStageSurface"
+import { useGlossaryEdits } from "./glossary/useGlossaryEdits"
+import { buildGlossaryList, occurrenceKey, type GlossaryFilter } from "./glossary/glossaryList"
+import type { GlossarySort } from "./glossary/SortMenu"
+import type { GlossaryRowContext } from "./glossary/GlossaryTermRow"
+import type { OccurrencePage } from "./glossary/TermOccurrences"
+import type { GlossaryRow } from "./glossary/glossaryRows"
+import { GlossaryOverview } from "./glossary/GlossaryOverview"
+import { GlossaryPageDetail } from "./glossary/GlossaryPageDetail"
 import type { StepProps } from "./shared/types"
 
+const NO_VIDEOS: SignLanguageVideo[] = []
+
 export function GlossaryStep(props: StepProps) {
-  const { label, plugin } = props
+  const { label, plugin, pages } = props
   const { t } = useLingui()
   const query = useGlossary(label)
-  const save = useSaveGlossary(label)
+  const activity = useStageActivity("glossary")
+  const run = useRunActivity()
+  const edits = useGlossaryEdits(label, query.data, activity.isActive)
+  const rows = edits.items
+  const prunedMode = useVariant("pruned")
 
   const [search, setSearch] = useState("")
-  const [letter, setLetter] = useState<string>("")
+  const [filter, setFilter] = useState<GlossaryFilter>("active")
+  const [mineOnly, setMineOnly] = useState(false)
+  const [sort, setSort] = useState<GlossarySort>("book")
   const [showAdd, setShowAdd] = useState(false)
+  const [showRows, setShowRows] = useState(false)
+  const expandedRows = useExpandedRows()
+  const { flashKey, reveal } = useRowFlash()
 
-  const items = useMemo(() => query.data?.items ?? [], [query.data])
+  const { byItem: occurrences, isLoading: occurrencesLoading } = useGlossaryOccurrences(label, rows)
+  const videosQuery = useSignLanguageVideos(label)
+  const videos = videosQuery.data?.videos ?? NO_VIDEOS
 
-  const letters = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const item of items) {
-      const key = (item.word[0] ?? "?").toUpperCase()
-      counts.set(key, (counts.get(key) ?? 0) + 1)
-    }
-    return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([key, count]) => ({
-      key,
-      title: key,
-      count,
-    }))
-  }, [items])
+  const pageByNumber = useMemo(() => new Map(pages.map((page) => [page.pageNumber, page])), [pages])
+  const occurrencePagesOf = useCallback(
+    (row: GlossaryRow): OccurrencePage[] =>
+      (occurrences.get(occurrenceKey(row))?.pages ?? [])
+        .map((pageNumber) => pageByNumber.get(pageNumber))
+        .filter((page): page is NonNullable<typeof page> => !!page)
+        .map((page) => ({ pageId: page.pageId, pageNumber: page.pageNumber })),
+    [occurrences, pageByNumber],
+  )
+  const pageIdsOf = useCallback((row: GlossaryRow) => occurrencePagesOf(row).map((page) => page.pageId), [occurrencePagesOf])
+  const scoped = usePageScopedItems({ pages, items: rows, pagesOf: pageIdsOf })
+  const pageAspect = usePageAspect(label, scoped.navPages)
+  const nav = usePageNav({ label, slug: plugin.slug, pages: scoped.navPages, allPages: pages })
 
-  const shown = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return items.filter((item) => {
-      if (letter !== "" && (item.word[0] ?? "?").toUpperCase() !== letter) return false
-      if (!q) return true
-      return (item.word + " " + item.definition + " " + item.variations.join(" ")).toLowerCase().includes(q)
-    })
-  }, [items, search, letter])
+  const textIds = useMemo(() => new Map(rows.map((row, index) => [row._key, getGlossaryItemTextId(row, index)])), [rows])
+  const videoBySection = useMemo(() => {
+    const map = new Map<string, SignLanguageVideo>()
+    for (const video of videos) if (video.sectionId) map.set(video.sectionId, video)
+    return map
+  }, [videos])
 
-  const persist = (next: GlossaryItem[]) => {
-    if (!query.data) return
-    save.mutate({ ...query.data, items: next })
-  }
+  const list = useMemo(
+    () => buildGlossaryList(rows, occurrences, prunedMode, { search, filter, mineOnly, sort }),
+    [rows, occurrences, prunedMode, search, filter, mineOnly, sort],
+  )
+  const active = list.counts.active
+  const prunedCount = list.counts.pruned
+  const termsLabel = t`${plural(active, { one: "# term", other: "# terms" })}`
 
-  const patch = (index: number, changes: Partial<GlossaryItem>) => {
-    persist(items.map((item, i) => (i === index ? { ...item, ...changes } : item)))
-  }
+  const locked = activity.isActive
+  const lockedReason = t`Wait for the glossary to finish generating.`
+  const dirtyReason = t`Save or discard your edits first.`
 
-  const addTerm = (item: GlossaryItem) => {
-    persist([item, ...items])
-    setLetter("")
-    setSearch("")
-  }
-
-  const removeTerm = (index: number) => {
-    persist(items.filter((_, i) => i !== index))
-  }
-
-  const versionDiff = useMemo(() => glossaryVersionDiff(t), [t])
-
-  const addDialog = (
-    <AddGlossaryDialog
-      open={showAdd}
-      onOpenChange={setShowAdd}
-      bookLabel={label}
-      existingItems={items}
-      onAdd={addTerm}
-    />
+  const { editText, setPicture, setPruned, removeTerm, editedKeys } = edits
+  const ctx = useMemo<GlossaryRowContext>(
+    () => ({
+      label,
+      hex: plugin.hex,
+      locked,
+      videoBlockedReason: locked ? lockedReason : edits.dirty ? dirtyReason : undefined,
+      videos,
+      occurrencesLoading,
+      occurrenceOf: (row) => occurrences.get(occurrenceKey(row)),
+      pagesOf: occurrencePagesOf,
+      textIdOf: (row) => textIds.get(row._key) ?? "",
+      videoOf: (row) => videoBySection.get(textIds.get(row._key) ?? "") ?? null,
+      isEdited: (row) => editedKeys.has(row._key),
+      onOpenPage: nav.open,
+      onText: editText,
+      onPicture: setPicture,
+      onPrune: setPruned,
+      onRemove: removeTerm,
+    }),
+    [label, plugin.hex, locked, lockedReason, edits.dirty, dirtyReason, videos, occurrencesLoading, occurrences, occurrencePagesOf, textIds, videoBySection, editedKeys, nav.open, editText, setPicture, setPruned, removeTerm],
   )
 
-  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: items.length > 0 })
-  if (loading) return <StepLoading {...props} />
-  if (items.length === 0) {
-    return (
-      <>
-        <StepEmpty {...props} onManual={() => setShowAdd(true)} />
-        {addDialog}
-      </>
-    )
+  const surface = useStageSurface({
+    label,
+    slug: "glossary",
+    hex: plugin.hex,
+    ready: active > 0,
+    outcome: t`Editing is paused until Glossary finishes.`,
+    hint: {
+      title: t`How the glossary works`,
+      body: t`AI picked these terms from the book. Edit a definition, its emojis or picture, add your own terms, or prune the ones you don't want. Pruned terms stay out of the book and out of future runs. Saving creates a new version, so you can always go back.`,
+    },
+    onOpenPage: nav.open,
+  })
+
+  const railEntries = usePageRailEntries(label, scoped.navPages, {
+    aspect: pageAspect,
+    total: active,
+    count: (page) => scoped.countOn(page.pageId),
+    subtitle: (page) =>
+      scoped
+        .itemsOn(page.pageId)
+        .slice(0, 3)
+        .map((row) => row.word)
+        .join(", "),
+  })
+
+  const versionDiff = useMemo(() => glossaryVersionDiff(t), [t])
+  const serverCount = query.data?.items.length ?? 0
+  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: serverCount > 0 })
+  const runningView = useStepRunningView({
+    ...props,
+    stage: activity,
+    isCancelling: run.isCancelling,
+    onCancel: run.cancelRun,
+    outcome: t`Terms show up here once the glossary is written.`,
+  })
+  const loadingView = useStepLoadingView(props, { shape: "list" })
+  const emptyView = useStepEmptyView(props)
+  const phaseView = activity.isActive && serverCount === 0 ? runningView : loading ? loadingView : serverCount === 0 ? emptyView : null
+  if (phaseView) return <StepShell {...props} {...phaseView} />
+
+  const addTerm = (item: Parameters<typeof edits.addTerm>[0]) => {
+    const key = edits.addTerm(item)
+    setSearch("")
+    setFilter("active")
+    setMineOnly(false)
+    setShowRows(true)
+    expandedRows.expand(key)
+    reveal(key)
   }
 
-  const active = items.filter((i) => !i.pruned).length
+  const selected = nav.selected
 
   return (
     <StepShell
       {...props}
-      chips={[t`${active} terms`]}
+      railEmpty={!selected}
+      chips={[termsLabel, prunedCount > 0 ? t`${plural(prunedCount, { one: "# pruned", other: "# pruned" })}` : t`None pruned`]}
       headerExtra={
         <StepVersionPicker
           label={label}
           step="glossary"
           currentVersion={query.data?.version ?? null}
-          isSaving={save.isPending}
+          isSaving={edits.saving}
+          dirty={edits.dirty}
+          onRestored={edits.discard}
           diff={versionDiff}
         />
       }
-      canApply={active > 0}
       rail={
         <StepRail
-          heading={<Trans>Terms by letter</Trans>}
+          heading={<Trans>Terms by page</Trans>}
           hex={plugin.hex}
-          entries={[{ key: "", title: t`All terms`, count: items.length }, ...letters]}
-          activeKey={letter}
-          onSelect={(key) => setLetter(key ?? "")}
-          footer={<Trans>{active} kept · {items.length - active} pruned</Trans>}
+          entries={railEntries}
+          activeKey={selected?.pageId ?? ""}
+          onSelect={(key) => (key ? nav.open(key) : nav.close())}
+          footer={<Trans>Counts show how many terms appear on each page.</Trans>}
         />
       }
     >
-      <StepBody
-        title={<Trans>Glossary</Trans>}
-        meta={t`${items.length} terms`}
-        actions={
-          <>
-            <Input
-              wrapperClassName="w-[220px]"
-              className="h-8"
-              prependIcon={<Search className="size-3.5" />}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t`Search terms…`}
-            />
-            <Button size="sm" variant="outline" onClick={() => setShowAdd(true)}>
-              <Plus className="size-3.5" />
-              <Trans>Add term</Trans>
-            </Button>
-          </>
-        }
-      >
-        <SaveError error={save.error} />
-
-        {shown.length === 0 ? (
-          <StepEmptyHint>
-            <Trans>No terms match this filter.</Trans>
-          </StepEmptyHint>
-        ) : (
-          shown.map((item) => {
-            const index = items.indexOf(item)
-            return (
-              <StepCard key={item.id ?? `${item.word}-${index}`} muted={item.pruned} accent={plugin.hex}>
-                <div className="flex items-center gap-2">
-                  {item.source === "ai" ? (
-                    <Sparkles className="size-3 shrink-0" style={{ color: plugin.hex }} />
-                  ) : (
-                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      <Trans>manual</Trans>
-                    </span>
-                  )}
-                  <EditableText
-                    value={item.word}
-                    multiline={false}
-                    ariaLabel={t`term`}
-                    isSaving={save.isPending}
-                    onSave={(word) => patch(index, { word })}
-                    className="text-sm font-bold"
-                  />
-                  {item.emojis.length > 0 && (
-                    <span className="shrink-0 tracking-[2px]">{item.emojis.join("")}</span>
-                  )}
-                  {item.variations.map((variation) => (
-                    <span
-                      key={variation}
-                      className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
-                    >
-                      {variation}
-                    </span>
-                  ))}
-                  <div className="ml-auto flex shrink-0 gap-1">
-                    {item.source === "manual" ? (
-                      <RowAction
-                        icon={Trash2}
-                        label={t`Remove manual glossary term`}
-                        tone="danger"
-                        onClick={() => removeTerm(index)}
-                      />
-                    ) : (
-                      <RowAction
-                        icon={item.pruned ? Undo2 : EyeOff}
-                        label={item.pruned ? t`Restore term` : t`Prune term`}
-                        onClick={() => patch(index, { pruned: !item.pruned })}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <EditableText
-                  value={item.definition}
-                  ariaLabel={t`definition of ${item.word}`}
-                  placeholder={t`Add a definition…`}
-                  isSaving={save.isPending}
-                  onSave={(definition) => patch(index, { definition })}
-                  className={cn("text-[12.5px] leading-relaxed")}
-                />
-              </StepCard>
-            )
-          })
-        )}
-      </StepBody>
-
-      {addDialog}
+      {selected ? (
+        <GlossaryPageDetail
+          key={selected.pageId}
+          label={label}
+          pageId={selected.pageId}
+          pageNumber={selected.pageNumber}
+          rows={scoped.itemsOn(selected.pageId)}
+          ctx={ctx}
+          prevPageId={nav.prevId}
+          nextPageId={nav.nextId}
+          onStep={nav.step}
+          onClose={nav.close}
+        />
+      ) : (
+        <GlossaryOverview
+          label={label}
+          hex={plugin.hex}
+          meta={termsLabel}
+          top={surface.top}
+          help={surface.help}
+          list={list}
+          search={search}
+          onSearch={setSearch}
+          filter={filter}
+          onFilter={setFilter}
+          mineOnly={mineOnly}
+          onMineOnly={setMineOnly}
+          sort={sort}
+          onSort={setSort}
+          saveError={edits.saveError}
+          ctx={ctx}
+          expanded={expandedRows.open}
+          onToggle={expandedRows.toggle}
+          flashKey={flashKey}
+          addDisabledReason={locked ? lockedReason : undefined}
+          onAdd={() => setShowAdd(true)}
+          navPages={scoped.navPages}
+          aspect={pageAspect}
+          rowsOn={scoped.itemsOn}
+          onOpenPage={nav.open}
+          showRows={showRows}
+          onShowRows={() => setShowRows(true)}
+        />
+      )}
+      <AddGlossaryDialog open={showAdd} onOpenChange={setShowAdd} bookLabel={label} existingItems={rows} onAdd={addTerm} />
     </StepShell>
   )
 }

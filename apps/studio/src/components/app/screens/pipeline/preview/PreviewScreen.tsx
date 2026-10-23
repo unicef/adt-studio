@@ -1,9 +1,7 @@
-import { useNavigate } from "@tanstack/react-router"
 import { useChromeRoot } from "@/components/app/lab/chrome"
-import { useVariant } from "@/components/app/lab/variants"
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Eye, RotateCcw, FileDown } from "lucide-react"
+import { Eye, RotateCcw } from "lucide-react"
 import { getAdtUrl } from "@/api/client"
 import { PreviewViewportToggle } from "@/components/pipeline/components/PreviewViewportToggle"
 import { STAGES } from "@/components/pipeline/stage-config"
@@ -15,6 +13,7 @@ import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
 import { PreviewFrame } from "./PreviewFrame"
 import { PreviewStatusPanel } from "./PreviewStatusPanel"
 import { usePreviewPackage } from "./usePreviewPackage"
+import { cn } from "@/lib/utils"
 
 const PREVIEW_HEX = STAGES.find((stage) => stage.slug === "preview")?.hex ?? "#4b5563"
 
@@ -28,10 +27,7 @@ export interface PreviewScreenProps {
 export function PreviewScreen({ label, targetSectionId, targetHref }: PreviewScreenProps) {
   const { t } = useLingui()
   const [viewport, setViewport] = useState<Viewport>("desktop")
-  const navigate = useNavigate()
-  const exportVariant = useVariant("export")
-  const otherArc = useVariant("topother") === "arc"
-  const otherChrome = useChromeRoot(PREVIEW_HEX, otherArc ? "arc" : "current")
+  const otherChrome = useChromeRoot(PREVIEW_HEX)
 
   const pkg = usePreviewPackage(label, true)
   const packaged = pkg.status === "ready" && pkg.version !== null
@@ -45,16 +41,7 @@ export function PreviewScreen({ label, targetSectionId, targetHref }: PreviewScr
     <div {...otherChrome} className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
       <TopBar
         tone={{ hex: PREVIEW_HEX, stage: true }}
-        left={
-          <>
-            <span data-stage-icon="" className="grid size-6.5 place-items-center rounded-full bg-white/20">
-              <Eye className="size-3.5" strokeWidth={2.4} />
-            </span>
-            <span className="text-sm font-semibold">
-              <Trans>Preview</Trans>
-            </span>
-          </>
-        }
+        location={{ icon: Eye, hex: PREVIEW_HEX, area: <Trans>Preview</Trans> }}
         center={
           packaged && (
             <div style={NO_DRAG_REGION}>
@@ -64,25 +51,19 @@ export function PreviewScreen({ label, targetSectionId, targetHref }: PreviewScr
         }
         right={
           <>
-            {exportVariant !== "current" && (
-              <button
-                type="button"
-                onClick={() => void navigate({ to: "/pipeline/$label/export", params: { label } })}
-                className="flex h-7 items-center gap-1.5 rounded-lg bg-white px-2.5 text-xs font-semibold text-foreground shadow-sm transition-transform duration-150 hover:scale-[1.03] active:scale-95 animate-in fade-in zoom-in-95 duration-300"
-              >
-                <FileDown className="size-3.5" />
-                <Trans>Export</Trans>
-              </button>
-            )}
             <button
               type="button"
               onClick={pkg.repackage}
               disabled={pkg.status === "packaging"}
               aria-label={t`Rebuild the preview`}
               title={t`Rebuild the preview`}
-              className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-white/16 disabled:pointer-events-none disabled:opacity-50"
+              className={cn(
+                "place-items-center rounded-lg transition-colors disabled:pointer-events-none disabled:opacity-50",
+                "flex h-8 items-center gap-1.5 px-2.5 text-[13px] font-medium hover:bg-muted",
+              )}
             >
               <RotateCcw className="size-3.5" />
+              <Trans>Rebuild</Trans>
             </button>
           </>
         }

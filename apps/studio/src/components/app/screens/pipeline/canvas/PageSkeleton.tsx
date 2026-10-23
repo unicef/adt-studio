@@ -31,15 +31,5 @@ export function SectionSkeleton({ className }: { className?: string }) {
 }
 
 export function ThumbSkeleton({ className }: { className?: string }) {
-  return (
-    <div
-      role="status"
-      aria-busy
-      className={cn("bg-muted motion-safe:animate-pulse", className)}
-    >
-      <span className="sr-only">
-        <Trans>Loading page preview…</Trans>
-      </span>
-    </div>
-  )
+  return <div aria-hidden className={cn("bg-muted motion-safe:animate-pulse", className)} />
 }

@@ -11,9 +11,11 @@ export function ExtractRunBanner({
   run,
   pages,
   onOpenPage,
+  retry,
 }: {
   label: string
   run: ExtractRun
+  retry?: { run: () => void; canRun: boolean; reason?: string | null }
   pages?: readonly ProblemPage[]
   onOpenPage?: (pageId: string) => void
 }) {
@@ -36,7 +38,7 @@ export function ExtractRunBanner({
         details={problem.details}
         pages={problem.pages}
         onOpenPage={onOpenPage}
-        action={actionFor(problem, run)}
+        action={actionFor(problem, retry ?? run)}
       />
     )
   }

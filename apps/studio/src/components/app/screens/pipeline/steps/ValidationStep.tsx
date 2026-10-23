@@ -69,7 +69,6 @@ export function ValidationStep(props: StepProps) {
         summary.violationCount === 1 ? t`1 issue` : t`${summary.violationCount} issues`,
         summary.pageCount === 1 ? t`1 page checked` : t`${summary.pageCount} pages checked`,
       ]}
-      canApply={false}
       rail={
         <StepRail
           heading={<Trans>Checks</Trans>}

@@ -11,6 +11,10 @@ import { useSettingsAnchor } from "@/components/app/screens/settings/useSettings
 import { BookSettingsBody } from "./BookSettingsBody";
 import { BookSettingsSidebar } from "./BookSettingsSidebar";
 import { bookSettingsScope } from "./sections";
+import { BOOK_SETTINGS_SECTION_BY_KEY } from "./nav";
+import { Settings } from "lucide-react";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { TopBar as ChromeTopBar } from "@/components/app/screens/pipeline/chrome/PipelineChrome";
 
 export interface BookSettingsScreenProps {
     label: string;
@@ -39,6 +43,8 @@ function BookSettingsFrame({
     onBack,
 }: BookSettingsScreenProps) {
     const [discardNonce, setDiscardNonce] = useState(0);
+    const { i18n } = useLingui();
+    const sectionEntry = BOOK_SETTINGS_SECTION_BY_KEY[section];
     const { data: book, error } = useBook(label);
     useSettingsAnchor();
     const fullWidth = bookSettingsScope(section) === "storyboard";
@@ -69,6 +75,15 @@ function BookSettingsFrame({
 
             <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
                 <TopBar className="absolute inset-x-0 top-0 z-[3] drag-region" />
+                <ChromeTopBar
+                    tone={{ hex: "#52525b" }}
+                    location={{
+                        icon: Settings,
+                        hex: "#52525b",
+                        area: <Trans>Book settings</Trans>,
+                        item: sectionEntry ? i18n._(sectionEntry.label) : undefined,
+                    }}
+                />
                 {fullWidth ? (
                     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto pb-20 pt-1">
                         <div className="p-4 pb-0">

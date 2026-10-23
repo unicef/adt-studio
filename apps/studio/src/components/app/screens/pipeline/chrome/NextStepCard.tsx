@@ -1,8 +1,12 @@
 import { useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { msg } from "@lingui/core/macro"
+import type { MessageDescriptor } from "@lingui/core"
 import { ArrowRight } from "lucide-react"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useNextStep } from "@/components/app/screens/pipeline/shared/useNextStep"
+import { NextStepQuiet } from "./NextStepQuiet"
 
 export interface NextStepConfirm {
   title: ReactNode
@@ -11,25 +15,44 @@ export interface NextStepConfirm {
   onReview: () => void
 }
 
+const WHY: Record<string, MessageDescriptor> = {
+  sectioning: msg`Group each page's text and images into sections. The storyboard is built from them.`,
+  storyboard: msg`Turn the sections into the pages your readers will see.`,
+  translate: msg`Translate the book's text, descriptions and extras into your readers' languages.`,
+  speech: msg`Read every passage aloud, in each language, with words highlighted as they are spoken.`,
+  validation: msg`Package the book and check it against accessibility guidelines.`,
+  preview: msg`See it in your book.`,
+  export: msg`Download the finished book to share or publish.`,
+}
+
 export function NextStepCard({
   label,
   slug,
   partial = false,
+  ready = true,
   confirm,
 }: {
   label: string
   slug: string
   partial?: boolean
+  ready?: boolean
   confirm?: NextStepConfirm | null
 }) {
-  const { t } = useLingui()
+  const { i18n } = useLingui()
   const next = useNextStep(label, slug, { partial })
   const [asking, setAsking] = useState(false)
   if (!next) return null
-  const why =
-    next.slug === "sectioning"
-      ? t`Group each page's text and images into sections. The storyboard is built from them.`
-      : t`Turn the sections into the pages your readers will see.`
+  if (!ready) {
+    const stage = getStageLabelI18n(slug)
+    return (
+      <p className="flex h-12 items-center rounded-xl border bg-card px-4 text-[12.5px] text-muted-foreground animate-in fade-in duration-300 motion-reduce:animate-none">
+        <Trans>Nothing from {stage} reaches the book yet.</Trans>
+      </p>
+    )
+  }
+  const whyMessage = WHY[next.slug]
+  const why = whyMessage ? i18n._(whyMessage) : null
+  if (next.slug === "preview" || next.slug === "export") return <NextStepQuiet slug={slug} next={next} why={why} />
 
   const goButton = (
     <button
@@ -56,7 +79,7 @@ export function NextStepCard({
           <p className="text-[14px] font-semibold leading-snug">
             <Trans>Next: {next.name}</Trans>
           </p>
-          <p className="mt-0.5 text-[12.5px] leading-relaxed text-white/85">{why}</p>
+          {why && <p className="mt-0.5 text-[12.5px] leading-relaxed text-white/85">{why}</p>}
         </div>
         {confirm ? (
           <Popover open={asking} onOpenChange={setAsking}>

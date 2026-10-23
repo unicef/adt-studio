@@ -95,7 +95,7 @@ function buildStageActivity(def: StageDef, run: BookRunContextValue): RunStageAc
         error: run.stepError(step.name),
       }
     }),
-    isActive,
+    state === "running",
   )
 
   const running = steps.filter((step) => step.state === "running")

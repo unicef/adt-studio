@@ -146,7 +146,6 @@ export function SpeechStep(props: StepProps) {
           diff={versionDiff}
         />
       }
-      canApply={entries.length > 0}
       bodyViewportClassName={STEP_FILL_VIEWPORT_CLASSNAME}
       rail={
         <StepRail

@@ -8,7 +8,7 @@ import type { DescribedProblem } from "./useDescribeProblem"
 export function useProblemAction(label: string) {
   const navigate = useNavigate()
   const nav = usePipelineNavigation(label)
-  return (problem: DescribedProblem, retry?: { run: () => void; canRun: boolean }): ProblemAction | undefined => {
+  return (problem: DescribedProblem, retry?: { run: () => void; canRun: boolean; reason?: string | null }): ProblemAction | undefined => {
     if (problem.fix === "key") {
       return {
         label: <Trans>Set up AI access</Trans>,
@@ -18,7 +18,7 @@ export function useProblemAction(label: string) {
     }
     if (problem.fix === "pdf") return { label: <Trans>Book settings</Trans>, icon: Settings, onClick: nav.openBookInfo }
     if (!retry) return undefined
-    return { label: <Trans>Try again</Trans>, icon: RotateCcw, onClick: retry.run, disabled: !retry.canRun }
+    return { label: <Trans>Try again</Trans>, icon: RotateCcw, onClick: retry.run, disabled: !retry.canRun, disabledReason: retry.canRun ? undefined : (retry.reason ?? undefined) }
   }
 }
 

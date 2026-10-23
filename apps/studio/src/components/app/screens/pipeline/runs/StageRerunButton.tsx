@@ -1,16 +1,15 @@
-import { useState } from "react"
+import { useId } from "react"
 import { Loader2, RotateCcw, X } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
-import { CascadeResetDialog } from "@/components/pipeline/components/CascadeResetDialog"
-import { RunWarningDialog } from "@/components/pipeline/components/RunWarningDialog"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
-import { STAGES } from "@/components/pipeline/stage-config"
 import { NO_DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
 import type { StageRerun } from "./useStageRerun"
+import type { ProblemTone } from "@/components/app/screens/pipeline/steps/shared/problems/problemTone"
+import { useRerunConfirm } from "./useRerunConfirm"
 
-export type StageRerunVariant = "header" | "topbar" | "banner"
+export type StageRerunVariant = "header" | "topbar" | "banner" | "bar"
 
 const VARIANT_BASE: Record<StageRerunVariant, string> = {
   header: cn(
@@ -21,15 +20,32 @@ const VARIANT_BASE: Record<StageRerunVariant, string> = {
   ),
   topbar: "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] font-medium transition-colors",
   banner: "flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[11.5px] font-semibold transition-colors",
+  bar: "flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12.5px] font-medium transition-colors duration-150",
 }
 
 const VARIANT_RUN: Record<StageRerunVariant, string> = {
-  header: "bg-white/16 hover:bg-white/24 disabled:cursor-default disabled:bg-white/8 disabled:opacity-55",
-  topbar: "text-foreground hover:bg-muted disabled:pointer-events-none disabled:opacity-50",
+  header: "bg-white/16 hover:bg-white/24 aria-disabled:cursor-default aria-disabled:bg-muted! aria-disabled:text-muted-foreground!",
+  topbar: "text-foreground hover:bg-muted aria-disabled:pointer-events-none",
   banner: cn(
-    "border-amber-300 bg-white/70 text-amber-900 hover:bg-amber-100 disabled:pointer-events-none disabled:opacity-60",
+    "border-amber-300 bg-white/70 text-amber-900 hover:bg-amber-100 aria-disabled:pointer-events-none",
     "dark:border-amber-800 dark:bg-transparent dark:text-amber-100 dark:hover:bg-amber-900/50",
   ),
+  bar: "text-foreground hover:bg-muted aria-disabled:pointer-events-none",
+}
+
+const VARIANT_RETRY: Record<ProblemTone, Record<StageRerunVariant, string>> = {
+  attention: {
+    header: "bg-amber-500/12! text-amber-800! hover:bg-amber-500/20! dark:text-amber-300! aria-disabled:cursor-default aria-disabled:bg-muted! aria-disabled:text-muted-foreground!",
+    topbar: "border-amber-300 text-amber-800 hover:bg-amber-500/10 dark:text-amber-300 aria-disabled:pointer-events-none",
+    banner: "border-amber-300 text-amber-800 hover:bg-amber-500/10 dark:text-amber-300 aria-disabled:pointer-events-none",
+    bar: "text-amber-800 hover:bg-amber-500/10 dark:text-amber-300 aria-disabled:pointer-events-none",
+  },
+  critical: {
+    header: "bg-destructive/12! text-destructive! hover:bg-destructive/20! aria-disabled:cursor-default aria-disabled:bg-muted! aria-disabled:text-muted-foreground!",
+    topbar: "border-destructive/30 text-destructive hover:bg-destructive/10 aria-disabled:pointer-events-none",
+    banner: "border-destructive/30 text-destructive hover:bg-destructive/10 aria-disabled:pointer-events-none",
+    bar: "text-destructive hover:bg-destructive/10 aria-disabled:pointer-events-none",
+  },
 }
 
 const VARIANT_CANCEL: Record<StageRerunVariant, string> = {
@@ -42,28 +58,25 @@ const VARIANT_CANCEL: Record<StageRerunVariant, string> = {
     "border-red-300 bg-white/70 text-red-700 hover:bg-red-50 disabled:pointer-events-none disabled:opacity-60",
     "dark:border-red-900 dark:bg-transparent dark:text-red-300 dark:hover:bg-red-950/40",
   ),
+  bar: "text-red-600 hover:bg-red-50 disabled:pointer-events-none disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/40",
 }
 
 export interface StageRerunButtonProps {
   slug: string
   rerun: StageRerun
   variant?: StageRerunVariant
+  tone?: ProblemTone
+  labelClassName?: string
 }
 
-export function StageRerunButton({ slug, rerun, variant = "header" }: StageRerunButtonProps) {
+export function StageRerunButton({ slug, rerun, variant = "header", tone = "critical", labelClassName }: StageRerunButtonProps) {
   const { t } = useLingui()
-  const [cascadeOpen, setCascadeOpen] = useState(false)
-  const [warnOpen, setWarnOpen] = useState(false)
+  const confirm = useRerunConfirm(slug, rerun)
+  const reasonId = useId()
 
   if (!rerun.hasRun) return null
 
   const name = getStageLabelI18n(slug)
-  const confirmColorClass = STAGES.find((s) => s.slug === slug)?.color ?? "bg-gray-600"
-
-  const proceed = () => {
-    if (rerun.downstreamToReset.length > 0) setCascadeOpen(true)
-    else rerun.run()
-  }
 
   if (rerun.isRunning) {
     return (
@@ -92,64 +105,59 @@ export function StageRerunButton({ slug, rerun, variant = "header" }: StageRerun
   }
 
   const resetCount = rerun.downstreamToReset.length
+  const retry = rerun.hasError === true
+  const action = retry ? t`Try ${name} again` : t`Re-run ${name}`
   const title = !rerun.canRun
-    ? (rerun.disabledReason ?? t`Re-run ${name}`)
+    ? (rerun.disabledReason ?? action)
     : resetCount > 0
-      ? t`Re-run ${name} — ${plural(resetCount, {
-          one: "# completed stage will be reset",
-          other: "# completed stages will be reset",
-        })}`
-      : t`Re-run ${name}`
+      ? retry
+        ? t`Try ${name} again — ${plural(resetCount, {
+            one: "# completed stage will be reset",
+            other: "# completed stages will be reset",
+          })}`
+        : t`Re-run ${name} — ${plural(resetCount, {
+            one: "# completed stage will be reset",
+            other: "# completed stages will be reset",
+          })}`
+      : action
+
+  const blockedReason = !rerun.canRun ? (rerun.disabledReason ?? null) : null
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => (rerun.warning ? setWarnOpen(true) : proceed())}
-        disabled={!rerun.canRun}
-        style={NO_DRAG_REGION}
-        title={title}
-        aria-label={title}
-        className={cn(VARIANT_BASE[variant], VARIANT_RUN[variant])}
-      >
-        <RotateCcw className="size-3.5" />
-        <Trans>Re-run</Trans>
-      </button>
+      <span className="group/rerun relative inline-flex shrink-0">
+        <button
+          type="button"
+          onClick={confirm.request}
+          aria-disabled={!rerun.canRun || undefined}
+          aria-describedby={blockedReason ? reasonId : undefined}
+          style={NO_DRAG_REGION}
+          aria-label={!rerun.canRun ? action : title}
+          data-retry={retry || undefined}
+          className={cn(
+            "group/rerun-button",
+            VARIANT_BASE[variant],
+            retry ? VARIANT_RETRY[tone][variant] : VARIANT_RUN[variant],
+            !rerun.canRun && "cursor-default",
+          )}
+        >
+          <RotateCcw className="size-3.5" />
+          <span className={cn(variant === "bar" && "max-xl:hidden", labelClassName)}>
+            {retry ? <Trans>Try again</Trans> : <Trans>Re-run</Trans>}
+          </span>
+        </button>
+        {blockedReason && (
+          <span
+            id={reasonId}
+            role="tooltip"
+            className="pointer-events-none invisible absolute right-0 top-full z-50 mt-1.5 w-max max-w-[260px] rounded-md bg-foreground px-2.5 py-1.5 text-[11.5px] font-medium leading-snug text-background opacity-0 shadow-lg transition-opacity duration-150 group-focus-within/rerun:visible group-focus-within/rerun:opacity-100 group-hover/rerun:visible group-hover/rerun:opacity-100 motion-reduce:transition-none"
+          >
+            {blockedReason}
+          </span>
+        )}
+      </span>
 
-      <CascadeResetDialog
-        open={cascadeOpen}
-        onOpenChange={setCascadeOpen}
-        affectedStages={rerun.downstreamToReset}
-        headerStageSlug={slug}
-        title={<Trans>Re-run {name}?</Trans>}
-        description={
-          <Trans>
-            The completed stages below will be reset and need to run again before
-            final outputs are available.
-          </Trans>
-        }
-        confirmLabel={<Trans>Re-run</Trans>}
-        confirmColorClass={confirmColorClass}
-        onConfirm={() => {
-          setCascadeOpen(false)
-          rerun.run()
-        }}
-      />
-
-      {rerun.warning && (
-        <RunWarningDialog
-          open={warnOpen}
-          onOpenChange={setWarnOpen}
-          title={rerun.warning.title}
-          description={rerun.warning.description}
-          confirmLabel={rerun.warning.confirmLabel}
-          confirmColorClass={confirmColorClass}
-          onConfirm={() => {
-            setWarnOpen(false)
-            proceed()
-          }}
-        />
-      )}
+      {confirm.dialogs}
     </>
   )
 }

@@ -249,7 +249,7 @@ export function ElementActions({
       <Type className="h-3 w-3 text-muted-foreground shrink-0" />
       {textTypes && onChangeTextType ? (
         <Select value={textType ?? ""} onValueChange={(val) => onChangeTextType(dataId, val)}>
-          <SelectTrigger className="h-6 text-[10px] px-1.5 py-0 min-w-[90px] border-0 bg-muted/50">
+          <SelectTrigger aria-label={t`Text role`} className="h-6 text-[10px] px-1.5 py-0 min-w-[90px] border-0 bg-muted/50">
             <SelectValue>{textType ?? ""}</SelectValue>
           </SelectTrigger>
           <SelectContent>

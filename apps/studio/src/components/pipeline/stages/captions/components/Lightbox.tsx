@@ -32,6 +32,7 @@ export function Lightbox({
   onToggleDecorative,
   onSave,
   onDiscard,
+  readOnly = false,
 }: {
   bookLabel: string
   entries: LightboxEntry[]
@@ -44,6 +45,7 @@ export function Lightbox({
   onToggleDecorative: (entry: LightboxEntry) => void
   onSave: () => void
   onDiscard: () => void
+  readOnly?: boolean
 }) {
   const { t } = useLingui()
   const entry = entries[index]
@@ -75,7 +77,7 @@ export function Lightbox({
       <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="shrink-0 space-y-1 border-b px-5 py-3 pr-12 text-left">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <ImageIcon className="h-4 w-4 text-teal-600" />
+            <ImageIcon className="h-4 w-4 text-teal-600 dark:text-teal-400" />
             <Trans>Edit caption</Trans>
           </DialogTitle>
           <DialogDescription className="flex items-center gap-2 text-[11px]">
@@ -125,7 +127,7 @@ export function Lightbox({
 
           <aside className="flex w-full shrink-0 flex-col gap-3 sm:w-64">
             {isDecorative ? (
-              <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-[12px] leading-relaxed text-amber-700 animate-in fade-in duration-200">
+              <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-[12px] leading-relaxed text-amber-700 animate-in fade-in duration-200 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
                 <Trans>
                   This image is decorative. Screen readers will skip it and no caption is needed.
                 </Trans>
@@ -138,9 +140,10 @@ export function Lightbox({
                 <textarea
                   value={cap.caption}
                   onChange={(e) => onCaptionChange(entry, e.target.value)}
+                  readOnly={readOnly}
                   aria-label={t`Caption for ${cap.imageId}`}
                   placeholder={t`Describe this image…`}
-                  className="min-h-[160px] flex-1 resize-none rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-200 transition-colors"
+                  className="min-h-[160px] flex-1 resize-none rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-200 transition-colors read-only:bg-muted/40 read-only:text-muted-foreground dark:focus:ring-teal-400/30"
                 />
               </>
             )}
@@ -152,11 +155,12 @@ export function Lightbox({
             type="button"
             onClick={() => onToggleDecorative(entry)}
             aria-pressed={isDecorative}
+            disabled={readOnly}
             className={`flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] font-semibold shadow-sm transition-colors cursor-pointer ${
               isDecorative
-                ? "border-amber-400 bg-amber-100 text-amber-800 hover:bg-amber-200"
-                : "border-amber-300 bg-amber-50 text-amber-700 hover:border-amber-400 hover:bg-amber-100"
-            }`}
+                ? "border-amber-400 bg-amber-100 text-amber-800 hover:bg-amber-200 dark:border-amber-400/50 dark:bg-amber-400/20 dark:text-amber-100 dark:hover:bg-amber-400/30"
+                : "border-amber-300 bg-amber-50 text-amber-700 hover:border-amber-400 hover:bg-amber-100 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200 dark:hover:bg-amber-400/20"
+            } disabled:cursor-not-allowed disabled:opacity-50`}
           >
             {isDecorative ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {isDecorative ? t`Decorative` : t`Mark as decorative`}
@@ -173,7 +177,7 @@ export function Lightbox({
             <button
               type="button"
               onClick={onSave}
-              disabled={!dirty || saving}
+              disabled={!dirty || saving || readOnly}
               className="flex items-center gap-1 text-[11px] font-medium rounded-md px-2.5 py-1.5 bg-teal-600 hover:bg-teal-500 text-white cursor-pointer transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-teal-600"
             >
               {saving ? (

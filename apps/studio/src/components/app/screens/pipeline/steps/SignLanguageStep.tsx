@@ -85,7 +85,6 @@ export function SignLanguageStep(props: StepProps) {
     <StepShell
       {...props}
       chips={[t`${videos.length} videos`, t`${assigned} assigned`]}
-      canApply={assigned > 0}
       rail={
         <StepRail
           heading={<Trans>Videos by page</Trans>}

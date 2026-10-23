@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Check, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import type { RunStageActivity } from "./useRunActivity"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"

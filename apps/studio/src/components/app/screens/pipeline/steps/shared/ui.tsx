@@ -3,27 +3,41 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Check, Loader2, Pencil, X } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { RailCollapseButton } from "@/components/app/screens/pipeline/rail/SideRail"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { StepRailHeader } from "@/components/app/screens/pipeline/rail/StepRailHeader"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
+import { StatusDot } from "./StatusDot"
+
+export type StepBodyWidth = "full" | "reading" | "wide"
+
+const BODY_WIDTH: Record<StepBodyWidth, string> = {
+  full: "container",
+  reading: "w-full max-w-[920px]",
+  wide: "w-full max-w-[1240px]",
+}
 
 export function StepBody({
   title,
   meta,
+  titleExtra,
   actions,
+  width = "full",
   children,
 }: {
   title: React.ReactNode
   meta?: React.ReactNode
+  titleExtra?: React.ReactNode
   actions?: React.ReactNode
+  width?: StepBodyWidth
   children: React.ReactNode
 }) {
   return (
-    <ScrollArea className="h-full w-full">
-      <div className="mx-auto flex container flex-col gap-4 px-4 py-7">
+    <ScrollArea className="h-full w-full" viewportClassName="[&>div]:block!">
+      <div className={cn("mx-auto flex flex-col gap-4 px-4 pt-7 pb-36", BODY_WIDTH[width])}>
 
         <div className="flex items-baseline gap-3">
           <h1 data-step-heading="" tabIndex={-1} className="text-[19px] font-bold tracking-[-0.01em] outline-none">{title}</h1>
           {meta && <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>}
+          {titleExtra}
           <div className="ml-auto flex items-center gap-2">{actions}</div>
         </div>
         {children}
@@ -47,18 +61,20 @@ export function StepScrollBody({
   actions,
   toolbar,
   viewportRef,
+  width = "full",
   children,
 }: {
   title: React.ReactNode
   meta?: React.ReactNode
   actions?: React.ReactNode
+  width?: StepBodyWidth
   toolbar?: React.ReactNode
   /** Handed to TanStack Virtual's `getScrollElement`. */
   viewportRef: React.Ref<HTMLDivElement>
   children: React.ReactNode
 }) {
   return (
-    <div className="mx-auto flex h-full min-h-0 w-full container flex-col gap-3 px-4 py-7">
+    <div className={cn("mx-auto flex h-full min-h-0 w-full flex-col gap-3 px-4 py-7", BODY_WIDTH[width])}>
       <div className="flex items-baseline gap-3">
         <h1 className="text-[19px] font-bold tracking-[-0.01em]">{title}</h1>
         {meta && <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>}
@@ -74,31 +90,47 @@ export function StepScrollBody({
 
 export function StepCard({
   children,
+  muted = false,
+  mutedLabel,
   accent,
   className,
 }: {
   children: React.ReactNode
   muted?: boolean
+  mutedLabel?: string
   accent?: string
   className?: string
 }) {
   return (
     <div
+      data-muted={muted || undefined}
+      aria-description={muted ? mutedLabel : undefined}
       className={cn(
-        "flex flex-col gap-2 rounded-xl border bg-card p-3.5 transition-opacity",
+        "flex flex-col gap-2 rounded-xl border p-3.5 transition-colors duration-200 motion-reduce:transition-none",
+        muted ? MUTED_CONTAINER : "bg-card",
         className,
       )}
-      style={accent ? { borderColor: tint(accent, 0.3) } : undefined}
+      style={accent && !muted ? { borderColor: tint(accent, 0.3) } : undefined}
     >
       {children}
     </div>
   )
 }
 
+export const MUTED_CONTAINER = "border-dashed bg-card"
+export const MUTED_PRIMARY = "text-muted-foreground line-through decoration-muted-foreground/50 decoration-1"
+export const MUTED_MEDIA = "opacity-50 grayscale"
+export const QUIET_CHIP = "inline-flex items-center rounded-full border bg-transparent px-2 py-0.5 text-[10.5px] text-muted-foreground"
+
 export interface EditableTextProps {
   value: string
-  onSave: (next: string) => void
+  onCommit: (next: string) => void
   isSaving?: boolean
+  edited?: boolean
+  accent?: string
+  disabled?: boolean
+  startEditing?: boolean
+  onCancel?: () => void
   placeholder?: string
   multiline?: boolean
   ariaLabel: string
@@ -107,53 +139,86 @@ export interface EditableTextProps {
 
 export function EditableText({
   value,
-  onSave,
+  onCommit,
   isSaving,
+  edited = false,
+  accent,
+  disabled = false,
+  startEditing = false,
+  onCancel,
   placeholder,
   multiline = true,
   ariaLabel,
   className,
 }: EditableTextProps) {
   const { t } = useLingui()
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(startEditing)
   const [draft, setDraft] = useState(value)
   const ref = useRef<HTMLTextAreaElement | HTMLInputElement>(null)
+  const displayRef = useRef<HTMLButtonElement>(null)
+  const refocus = useRef(false)
+  const selectOnFocus = useRef(startEditing)
+
+  useEffect(() => {
+    if (editing || !refocus.current) return
+    refocus.current = false
+    displayRef.current?.focus()
+  }, [editing])
 
   useEffect(() => {
     if (!editing) setDraft(value)
   }, [value, editing])
 
   useEffect(() => {
-    if (editing) ref.current?.focus()
+    if (!editing) return
+    ref.current?.focus()
+    if (selectOnFocus.current) {
+      ref.current?.select()
+      selectOnFocus.current = false
+    }
   }, [editing])
 
-  const commit = () => {
-    setEditing(false)
+  const commit = (returnFocus = false) => {
     const next = draft.trim()
-    if (next !== value) onSave(next)
+    if (next !== value.trim()) onCommit(next)
+    refocus.current = returnFocus
+    setEditing(false)
   }
 
   const cancel = () => {
     setDraft(value)
+    refocus.current = true
     setEditing(false)
   }
 
-  if (!editing) {
+  if (!editing || disabled) {
     return (
       <button
+        ref={displayRef}
         type="button"
         onClick={() => setEditing(true)}
+        disabled={disabled}
         aria-label={t`Edit ${ariaLabel}`}
+        aria-description={edited ? t`edited` : undefined}
         className={cn(
-          "group flex w-full items-start gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-muted",
+          "group flex w-full items-start gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-muted disabled:cursor-default disabled:hover:bg-transparent",
           className,
         )}
       >
         <span className={cn("flex-1", !value && "text-muted-foreground")}>{value || placeholder}</span>
+        {edited && (
+          <span
+            aria-hidden
+            className="mt-1.5 size-1.5 shrink-0 rounded-full bg-amber-500 animate-in fade-in zoom-in-50 duration-200 motion-reduce:animate-none"
+            style={accent ? { background: accent } : undefined}
+          />
+        )}
         {isSaving ? (
           <Loader2 className="mt-0.5 size-3 shrink-0 animate-spin text-muted-foreground" />
         ) : (
-          <Pencil className="mt-0.5 size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+          !disabled && (
+            <Pencil className="mt-0.5 size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+          )
         )}
       </button>
     )
@@ -164,12 +229,16 @@ export function EditableText({
     value: draft,
     "aria-label": ariaLabel,
     onChange: (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => setDraft(e.target.value),
-    onBlur: commit,
+    onBlur: () => commit(false),
     onKeyDown: (e: React.KeyboardEvent) => {
-      if (e.key === "Escape") cancel()
+      if (e.key === "Escape") {
+        e.preventDefault()
+        onCancel?.()
+        cancel()
+      }
       if (e.key === "Enter" && (!multiline || e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        commit()
+        commit(true)
       }
     },
     className: cn(
@@ -254,6 +323,7 @@ export interface RailEntry {
   count: number
   thumb?: React.ReactNode
   subtitle?: string
+  failed?: boolean
 }
 
 export function StepRail({
@@ -271,14 +341,11 @@ export function StepRail({
   onSelect?: (key: string | null) => void
   footer?: React.ReactNode
 }) {
+  const { t } = useLingui()
+  const failedLabel = t`Has failures`
   return (
     <>
-      <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          {heading}
-        </span>
-        <RailCollapseButton className="-mr-1 -my-1" />
-      </div>
+      <StepRailHeader>{heading}</StepRailHeader>
 
       <ScrollArea className="-mx-1 min-h-0 flex-1" viewportClassName="[&>div]:block!">
         <div className="flex flex-col gap-0.5 px-1">
@@ -299,6 +366,7 @@ export function StepRail({
                 {entry.thumb && <span className="shrink-0">{entry.thumb}</span>}
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="flex items-center gap-1.5">
+                    {entry.failed && <StatusDot tone="failed" label={failedLabel} />}
                     <span className="min-w-0 flex-1 truncate">{entry.title}</span>
                     <span className="font-mono text-[10px] opacity-70">{entry.count}</span>
                   </span>

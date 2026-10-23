@@ -10,10 +10,12 @@ const mocks = vi.hoisted(() => ({
   runInFlight: { value: false },
   pagesLoading: { value: false },
   stageStates: { value: {} as Record<string, string> },
+  hasProvider: { value: true },
 }))
 
 vi.mock("@/hooks/use-api-key", () => ({
-  useApiKey: () => ({ apiKey: "sk-test", hasApiKey: true }),
+  useApiKey: () => ({ apiKey: "", hasApiKey: false }),
+  useBookStructuredTextAvailability: () => mocks.hasProvider.value,
 }))
 
 vi.mock("@/hooks/use-pages", () => ({
@@ -42,6 +44,23 @@ describe("useStageRun", () => {
     mocks.runInFlight.value = false
     mocks.pagesLoading.value = false
     mocks.stageStates.value = {}
+    mocks.hasProvider.value = true
+  })
+
+  it("runs on a book whose provider needs no global OpenAI key", () => {
+    const result = run("glossary")
+
+    expect(result.current.canRun).toBe(true)
+    expect(mocks.queueRun).toHaveBeenCalledOnce()
+  })
+
+  it("refuses to run when the book's model has no provider available", () => {
+    mocks.hasProvider.value = false
+    const result = run("glossary")
+
+    expect(result.current.hasProvider).toBe(false)
+    expect(result.current.canRun).toBe(false)
+    expect(mocks.queueRun).not.toHaveBeenCalled()
   })
 
   it("queues Language as its own stage, not the whole range behind it", () => {

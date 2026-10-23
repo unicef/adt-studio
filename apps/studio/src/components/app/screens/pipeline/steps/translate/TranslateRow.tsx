@@ -2,7 +2,7 @@ import { memo } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { BASE_URL } from "@/api/client"
 import { cn } from "@/lib/utils"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { EditableText } from "../shared/ui"
 import type { TranslateRow as TranslateRowData } from "./translateState"
 
@@ -88,7 +88,7 @@ export const TranslateRow = memo(function TranslateRow({
             ariaLabel={t`text of ${row.id}`}
             placeholder={t`Empty`}
             isSaving={isSaving}
-            onSave={(text) => onSave(row.id, text)}
+            onCommit={(text) => onSave(row.id, text)}
             className="min-w-0 flex-1 text-[12.5px] leading-relaxed"
           />
         </div>
@@ -114,7 +114,7 @@ export const TranslateRow = memo(function TranslateRow({
               ariaLabel={t`translation of ${row.id}`}
               placeholder={t`Pending…`}
               isSaving={isSaving}
-              onSave={(text) => onSave(row.id, text)}
+              onCommit={(text) => onSave(row.id, text)}
               className="text-[12.5px] leading-relaxed"
             />
           </div>

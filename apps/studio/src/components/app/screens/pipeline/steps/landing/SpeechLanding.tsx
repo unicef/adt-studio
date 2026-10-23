@@ -7,6 +7,8 @@ import { msg } from "@lingui/core/macro"
 import { i18n as linguiI18n } from "@lingui/core"
 import type { MessageDescriptor } from "@lingui/core"
 import { StepLandingShell } from "./StepLandingShell"
+import { useLandingRunGate } from "./useLandingRunGate"
+import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   SettingsCard,
@@ -93,7 +95,7 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !translateReady || status.isRunning) return
+    if (gate.blocked || status.isRunning) return
     queueRun({ fromStage: "speech", toStage: "speech", apiKey })
   }
 
@@ -164,20 +166,23 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run speech.</Trans>
-  ) : selectedProviderKeyMissing ? (
-    <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
-  ) : !translateReady ? (
-    friendly ? (
-      <Trans>Run Languages first — Read aloud speaks the text it prepares, even if you keep only the book's own language.</Trans>
-    ) : (
-      <Trans>Run Language first — speech narrates the translated text.</Trans>
-    )
-  ) : undefined
+  const gate = useLandingRunGate(bookLabel, "speech", [
+    { ok: !selectedProviderKeyMissing, reason: <Trans>Add the selected provider's API key in Book settings to run speech.</Trans> },
+    {
+      ok: translateReady,
+      reason: friendly ? (
+        <Trans>Run Languages first — Read aloud speaks the text it prepares, even if you keep only the book's own language.</Trans>
+      ) : (
+        <Trans>Run Language first — speech narrates the translated text.</Trans>
+      ),
+    },
+  ])
 
   return (
     <StepLandingShell
+      title={<>{friendly ? <Trans>Read aloud</Trans> : <Trans>Speech</Trans>}</>}
+      description={<Trans> Generate audio narration for every page of the book. Pick a provider and choose whether to highlight each word as it's read aloud. </Trans>}
+      notice={status.hasError ? <RunErrorNotice label={bookLabel} stage="speech" /> : undefined}
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="speech"
@@ -190,26 +195,14 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || selectedProviderKeyMissing || !translateReady}
-      disabledReason={disabledReason}
+      extraDisabled={gate.blocked}
+      disabledReason={gate.disabledReason}
       runLabel={friendly ? <Trans>Create the audio</Trans> : <Trans>Run Speech</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
       previewLabel={friendly ? t`Example: read aloud` : t`Speech Preview`}
       onRun={handleRun}
       preview={<SpeechPreview wordHighlighting={wordHighlighting} />}
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          {friendly ? <Trans>Read aloud</Trans> : <Trans>Speech</Trans>}
-        </h1>
-        <p className="text-[14px] text-muted-foreground leading-relaxed">
-          <Trans>
-            Generate audio narration for every page of the book. Pick a
-            provider and choose whether to highlight each word as it's read
-            aloud.
-          </Trans>
-        </p>
-      </div>
 
       <PrereqGuard
         upstreamSlug="translate"

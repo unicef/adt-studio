@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useId, useState } from "react"
 import { Trans } from "@lingui/react/macro"
 import { Section } from "../controls/Section"
 import { useElementContext } from "../element-context"
@@ -11,6 +11,7 @@ import { useElementContext } from "../element-context"
 export function AdvancedSection() {
   const { dataId, classes, onClassesChange } = useElementContext()
   const [draft, setDraft] = useState(classes.join(" "))
+  const fieldId = useId()
 
   useEffect(() => {
     setDraft(classes.join(" "))
@@ -29,10 +30,11 @@ export function AdvancedSection() {
 
   return (
     <Section title={<Trans>Advanced</Trans>}>
-      <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <label htmlFor={fieldId} className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
         <Trans>Tailwind classes</Trans>
       </label>
       <textarea
+        id={fieldId}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}

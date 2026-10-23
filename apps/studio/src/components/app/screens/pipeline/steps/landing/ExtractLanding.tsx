@@ -5,6 +5,7 @@ import type { FigureExtractionMode } from "@adt/types"
 import { useBook } from "@/hooks/use-books"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { StepLandingShell } from "./StepLandingShell"
+import { useLandingRunGate } from "./useLandingRunGate"
 import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { CascadeWarning } from "@/components/pipeline/components/CascadeWarning"
 import { SettingsCard, SettingsField } from "./ui/SettingsCard"
@@ -34,9 +35,10 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("extract")
+  const gate = useLandingRunGate(bookLabel, "extract")
   const { data: book } = useBook(bookLabel)
   const { data: sourcePdfInfo, isPending: sourcePdfPending } = useSourcePdfInfo(bookLabel)
   const { data: partInfo } = usePartInfo(bookLabel)
@@ -99,13 +101,10 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
   const pageRangeDisabled = sourcePdfPending || !totalPages
 
   const handleRun = () => {
-    if (!hasApiKey || status.isRunning) return
+    if (gate.blocked || status.isRunning) return
     queueRun({ fromStage: "extract", toStage: "extract", apiKey })
   }
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run extraction.</Trans>
-  ) : undefined
 
   return (
     <StepLandingShell
@@ -125,8 +124,8 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey}
-      disabledReason={disabledReason}
+      extraDisabled={gate.blocked}
+      disabledReason={gate.disabledReason}
       runLabel={<Trans>Run Extract</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
       previewLabel={t`Extract Preview`}

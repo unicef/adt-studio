@@ -1,12 +1,11 @@
+import { useEffect, useState } from "react"
 import { useRouterState } from "@tanstack/react-router"
 import { setFriendlyStageNames } from "@/components/pipeline/pipeline-i18n"
 import { LabSimulationDriver } from "./simulate"
-import { GuideBar } from "./GuideBar"
-import { LabPanel } from "./LabPanel"
-import { NAV_LAB_PARAM, NavLab, useNavLab } from "./NavLab"
+import { DOCK_SHOW_PARAM, DockShowcase } from "./dockShowcase/DockShowcase"
+import { NavLab, setNavLabOn, useNavLab } from "./NavLab"
 import { useLabDeepLink } from "./deepLink"
 import { IN_LAB_FRAME } from "./frame"
-import { useGuide } from "./testPlan/guide"
 import { LAB_ENABLED, getVariant } from "./variants"
 
 if (LAB_ENABLED) setFriendlyStageNames(() => getVariant("features") === "suggested")
@@ -23,15 +22,28 @@ export function VariantBar() {
 
 function LabChrome() {
   useLabDeepLink()
+  const [showcase, setShowcase] = useState(() => new URLSearchParams(window.location.search).has(DOCK_SHOW_PARAM))
   if (IN_LAB_FRAME) return null
+  if (showcase)
+    return (
+      <DockShowcase
+        onClose={() => {
+          const url = new URL(window.location.href)
+          url.searchParams.delete(DOCK_SHOW_PARAM)
+          window.history.replaceState(window.history.state, "", url)
+          setShowcase(false)
+        }}
+      />
+    )
   return <LabChromeBars />
 }
 
 function LabChromeBars() {
   const onLab = useRouterState({ select: (state) => state.location.pathname === "/lab" })
-  const [guide] = useGuide()
   const [navLab] = useNavLab()
-  if ((navLab.on || new URLSearchParams(window.location.search).has(NAV_LAB_PARAM)) && !onLab) return <NavLab />
-  if (guide) return onLab ? null : <GuideBar />
-  return <LabPanel />
+  useEffect(() => {
+    if (!navLab.on) setNavLabOn(true)
+  }, [navLab.on])
+  if (onLab) return null
+  return <NavLab />
 }

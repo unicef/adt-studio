@@ -5,16 +5,19 @@ import type { TocSection } from "@/api/client"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 
 export interface TocSectionPickerProps {
   value: string
   sections: TocSection[]
   hex: string
+  disabled?: boolean
+  loadFailed?: boolean
+  onRetry?: () => void
   onChange: (sectionId: string, href: string) => void
 }
 
-export function TocSectionPicker({ value, sections, hex, onChange }: TocSectionPickerProps) {
+export function TocSectionPicker({ value, sections, hex, disabled = false, loadFailed = false, onRetry, onChange }: TocSectionPickerProps) {
   const { t } = useLingui()
   const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState("")
@@ -36,7 +39,7 @@ export function TocSectionPicker({ value, sections, hex, onChange }: TocSectionP
 
   const linked = value !== ""
   const triggerLabel = current
-    ? t`p${current.pageNumber}`
+    ? t`p${current.pageNumber} · ${current.title}`
     : linked
       ? value.slice(0, 12)
       : t`Link page`
@@ -52,9 +55,17 @@ export function TocSectionPicker({ value, sections, hex, onChange }: TocSectionP
       <PopoverTrigger asChild>
         <button
           type="button"
-          title={linked ? t`Linked to ${value}` : t`No page linked`}
+          disabled={disabled}
+          aria-label={
+            current
+              ? t`Links to page ${current.pageNumber}: ${current.title}`
+              : linked
+                ? t`Links to section ${value}`
+                : t`Link to a page`
+          }
+          title={current ? t`Links to page ${current.pageNumber}: ${current.title}` : linked ? t`Linked to ${value}` : t`No page linked`}
           className={cn(
-            "flex h-6 max-w-[150px] shrink-0 items-center gap-1 rounded-md border px-2 text-[11px] transition-colors",
+            "flex h-6 max-w-[180px] shrink-0 items-center gap-1 rounded-md border px-2 text-[11px] transition-colors disabled:cursor-default disabled:opacity-100",
             !linked && "border-dashed text-muted-foreground hover:text-foreground",
           )}
           style={
@@ -82,7 +93,16 @@ export function TocSectionPicker({ value, sections, hex, onChange }: TocSectionP
         </div>
 
         <div className="max-h-60 overflow-y-auto p-1">
-          {shown.length === 0 ? (
+          {loadFailed ? (
+            <div role="alert" className="flex items-center justify-center gap-2 px-2 py-4 text-[11px] text-muted-foreground">
+              <Trans>Couldn't load sections</Trans>
+              {onRetry && (
+                <button type="button" onClick={onRetry} className="font-medium text-foreground underline-offset-4 hover:underline">
+                  <Trans>Retry</Trans>
+                </button>
+              )}
+            </div>
+          ) : shown.length === 0 ? (
             <div className="px-2 py-4 text-center text-[11px] text-muted-foreground">
               <Trans>No matching sections.</Trans>
             </div>

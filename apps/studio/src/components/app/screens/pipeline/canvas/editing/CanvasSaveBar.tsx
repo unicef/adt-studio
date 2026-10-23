@@ -2,18 +2,22 @@ import { Trans } from "@lingui/react/macro"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useCanvasEditing } from "./CanvasEditing"
+import { useStoryboardTools } from "../tools/StoryboardToolsContext"
 
 export function CanvasSaveBar() {
   const { dirty, saving, save, discard } = useCanvasEditing()
+  const tools = useStoryboardTools()
   const visible = dirty || saving
+  const lift = tools?.htmlVisible ? tools.htmlHeight + 12 : 0
   return (
     <div
       aria-hidden={!visible}
       inert={!visible}
       className={cn(
-        "pointer-events-none absolute inset-x-0 bottom-[104px] z-30 flex justify-center transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none",
+        "pointer-events-none absolute inset-x-0 z-30 flex justify-center transition-[opacity,transform,bottom] duration-300 ease-out motion-reduce:transition-none",
         visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
       )}
+      style={{ bottom: 104 + lift }}
     >
       <div className="pointer-events-auto flex items-center gap-2 rounded-full border bg-card/95 py-1 pl-4 pr-1 text-[12px] shadow-[0_14px_36px_-16px_rgba(0,0,0,0.45)] backdrop-blur-md">
         <span className="size-1.5 rounded-full bg-amber-500" />

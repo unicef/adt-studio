@@ -896,7 +896,7 @@ body:has([data-pipeline-dock="shown"]) [data-sonner-toaster][data-y-position="bo
 }
 
 [data-chrome-panels="arc"] [data-chrome="row"] {
-  padding: 0 8px 8px 0;
+  padding: 8px 8px 8px 0;
   transition: padding-left 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 [data-chrome-panels="arc"] [data-chrome="row"]:has([data-chrome="rail"][aria-hidden="true"]) {
@@ -906,6 +906,41 @@ body:has([data-pipeline-dock="shown"]) [data-sonner-toaster][data-y-position="bo
   [data-chrome-panels="arc"] [data-chrome="row"] {
     transition: none;
   }
+}
+
+[data-chrome-panels="arc"] :is([data-chrome="railhead"], [data-chrome="aihead"]) {
+  position: relative;
+  height: 3.5rem;
+  gap: 8px;
+  padding-inline: 12px;
+  border-bottom-color: transparent;
+}
+[data-chrome-panels="arc"] :is([data-chrome="railhead"], [data-chrome="aihead"])::after {
+  content: "";
+  position: absolute;
+  inset-inline: 12px;
+  bottom: 0;
+  height: 1px;
+  background: var(--border);
+}
+[data-chrome-panels="arc"] :is([data-chrome="railhead"], [data-chrome="aihead"]) [role="tablist"] {
+  height: 2.25rem;
+  padding: 3px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+[data-chrome-panels="arc"] :is([data-chrome="railhead"], [data-chrome="aihead"]) [role="tablist"] > span[aria-hidden] {
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  border-radius: 7px;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.05),
+    0 1px 2px rgb(0 0 0 / 0.1);
+}
+.dark [data-chrome-panels="arc"] :is([data-chrome="railhead"], [data-chrome="aihead"]) [role="tablist"] > span[aria-hidden] {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
 }
 
 :root:active-view-transition :is([data-chrome="rail"], [data-chrome="row"]) {
@@ -996,30 +1031,19 @@ body:has([data-pipeline-dock="shown"]) [data-sonner-toaster][data-y-position="bo
   background: var(--muted);
 }
 
-[data-tb-action="quiet"] [data-chrome="topbar"] button:is([aria-label^="Cancel"], [aria-label^="Re-run"], [aria-label^="Run "]),
-[data-tb-action="clear"] [data-chrome="topbar"] button:is([aria-label^="Re-run"], [aria-label^="Run "]) {
-  border: 1px solid color-mix(in oklab, currentColor 20%, transparent) !important;
-  background: transparent !important;
-  color: inherit !important;
-  box-shadow: none !important;
-  transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
-}
-[data-tb-action="quiet"] [data-chrome="topbar"] button:is([aria-label^="Cancel"], [aria-label^="Re-run"], [aria-label^="Run "]):hover,
-[data-tb-action="clear"] [data-chrome="topbar"] button:is([aria-label^="Re-run"], [aria-label^="Run "]):hover {
-  background: color-mix(in oklab, currentColor 10%, transparent) !important;
-}
-[data-tb-action="quiet"] [data-chrome="topbar"] button[aria-label^="Cancel"]:hover {
-  border-color: color-mix(in oklab, var(--destructive) 45%, transparent) !important;
-  color: var(--destructive) !important;
-}
-[data-tb-action="clear"] [data-chrome="topbar"] button[aria-label^="Cancel"] {
-  border: 0 !important;
-  background: var(--destructive) !important;
-  color: white !important;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12) !important;
-}
-[data-tb-action="clear"] [data-chrome="topbar"] button[aria-label^="Cancel"]:hover {
-  background: color-mix(in oklab, var(--destructive) 88%, black) !important;
+[data-chrome="topbar"][data-tb-style="workspace"] {
+  --bar-solid: color-mix(in oklab, var(--chrome-hex) 80%, black);
+  --bar-solid-hover: color-mix(in oklab, var(--chrome-hex) 68%, black);
+  --bar-solid-dark: color-mix(in oklab, var(--chrome-hex) 72%, white);
+  --bar-solid-dark-hover: color-mix(in oklab, var(--chrome-hex) 60%, white);
+  --bar-tint: color-mix(in oklab, var(--chrome-hex) 9%, var(--card));
+  --bar-tint-hover: color-mix(in oklab, var(--chrome-hex) 15%, var(--card));
+  --bar-tint-dark: color-mix(in oklab, var(--chrome-hex) 18%, var(--card));
+  --bar-tint-dark-hover: color-mix(in oklab, var(--chrome-hex) 26%, var(--card));
+  --bar-ink: color-mix(in oklab, var(--chrome-hex) 72%, black);
+  --bar-ink-dark: color-mix(in oklab, var(--chrome-hex) 35%, white);
+  --bar-line: color-mix(in oklab, var(--chrome-hex) 32%, transparent);
+  --bar-glow: color-mix(in oklab, var(--chrome-hex) 60%, transparent);
 }
 [data-chrome-panels="arc"] [data-chrome="topbar"][data-stage] [data-stage-icon] {
   background: var(--chrome-hex);
@@ -1030,25 +1054,3 @@ body:has([data-pipeline-dock="shown"]) [data-sonner-toaster][data-y-position="bo
   background: transparent;
 }
 
-[data-top-step="pill"] [data-chrome="topbar"] [data-stage-label] {
-  padding: 3px 12px 3px 3px;
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--chrome-hex) 13%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--chrome-hex) 26%, transparent);
-  color: color-mix(in oklab, var(--chrome-hex) 78%, black);
-}
-.dark [data-top-step="pill"] [data-chrome="topbar"] [data-stage-label] {
-  background: color-mix(in oklab, var(--chrome-hex) 22%, transparent);
-  color: color-mix(in oklab, var(--chrome-hex) 55%, white);
-}
-[data-top-step="accent"] [data-chrome="center"] {
-  box-shadow:
-    0 0 0 1.5px var(--chrome-hex),
-    0 14px 36px -20px color-mix(in oklab, var(--chrome-hex) 55%, transparent) !important;
-}
-[data-top-step="accent"] [data-chrome="topbar"] [data-stage-label] {
-  color: color-mix(in oklab, var(--chrome-hex) 82%, black);
-}
-.dark [data-top-step="accent"] [data-chrome="topbar"] [data-stage-label] {
-  color: color-mix(in oklab, var(--chrome-hex) 55%, white);
-}

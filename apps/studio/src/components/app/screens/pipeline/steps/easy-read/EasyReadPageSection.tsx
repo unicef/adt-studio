@@ -3,7 +3,7 @@ import { Sparkles } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { EasyReadSectionBlock } from "@/api/client"
 import { cn } from "@/lib/utils"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import type { EasyReadBlockKey } from "./useEasyReadEdits"
 

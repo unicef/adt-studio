@@ -12,7 +12,7 @@ import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { usePartInfo } from "@/hooks/use-parts"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { normalizeLeads } from "@/components/spread-picker/pairs"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { getSourcePdfUrl, api } from "@/api/client"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
 

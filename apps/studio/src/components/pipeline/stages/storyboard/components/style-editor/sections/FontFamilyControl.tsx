@@ -20,7 +20,7 @@ function isRestricted(font: BookFontWithStatus): boolean {
  *  render every option in its own face. Once the picker has been opened, also
  *  pulls the curated Google subset via a single combined stylesheet so those
  *  rows preview correctly without fetching webfonts no one looks at. */
-function FontPreviewAssets({
+export function FontPreviewAssets({
   label,
   fonts,
   includePopular,

@@ -53,6 +53,7 @@ interface StyleEditorPanelProps {
   isFixedLayout?: boolean
   /** Book label, forwarded to the font control so it can list attached fonts. */
   bookLabel?: string
+  as?: "aside" | "div"
 }
 
 export function StyleEditorPanel({
@@ -68,6 +69,7 @@ export function StyleEditorPanel({
   computedTypography,
   isFixedLayout = false,
   bookLabel,
+  as: Root = "aside",
 }: StyleEditorPanelProps) {
   const { t } = useLingui()
 
@@ -106,11 +108,11 @@ export function StyleEditorPanel({
   }, [displayElementProps, displayTagName])
 
   return (
-    <aside
-      aria-label={t`Element style editor`}
+    <Root
+      aria-label={Root === "aside" ? t`Element style editor` : undefined}
       aria-hidden={!open}
       className={cn(
-        "h-full shrink-0 overflow-hidden transition-[width] duration-200 ease-in-out",
+        "h-full shrink-0 overflow-hidden transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
         open ? "w-[300px]" : "w-0"
       )}
     >
@@ -123,7 +125,7 @@ export function StyleEditorPanel({
           </div>
           {displayDataId ? (
             <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
-              <span className="text-[11px] font-mono text-muted-foreground/80 truncate leading-tight">
+              <span className="text-[11px] font-mono text-muted-foreground truncate leading-tight">
                 {DATA_ID_PREFIX}
                 {displayDataId}
                 {DATA_ID_SUFFIX}
@@ -197,7 +199,7 @@ export function StyleEditorPanel({
         ) : null}
       </div>
       </div>
-    </aside>
+    </Root>
   )
 }
 

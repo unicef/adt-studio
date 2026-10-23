@@ -8,29 +8,20 @@ import {
   ScanLine,
   FileDown,
   Hourglass,
-  MapPin,
-  Activity,
-  SignpostBig,
-  BookOpenCheck,
-  BookImage,
   MousePointerClick,
-  Navigation,
-  PanelTopDashed,
-  PanelsTopLeft,
-  Layers,
   Loader,
   PanelTop,
-  Paintbrush,
   Undo2,
-  StickyNote,
-  TriangleAlert,
-  LayoutGrid,
-  MoveHorizontal,
   PanelBottom,
-  PanelBottomOpen,
-  Palette,
-  Tag,
+  OctagonAlert,
+  LayoutGrid,
+  Rows3,
+  Columns2,
+  Languages,
+  Lightbulb,
+  Archive,
   type LucideIcon,
+  Sparkles,
 } from "lucide-react"
 import { useMemo } from "react"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
@@ -42,33 +33,27 @@ export interface VariantOption {
 }
 
 export interface VariantState {
-  panels: "current" | "arc"
-  topnav: "current" | "book-step" | "crumbs"
-  topstep: "current" | "pill" | "accent" | "map"
-  topstatus: "current" | "summary" | "running" | "none"
-  topaction: "current" | "quiet" | "clear"
-  topother: "current" | "arc"
-  topbook: "current" | "cover"
   entry: "current" | "gated"
   landing: "current" | "action-first" | "compact"
-  dockstyle: "pills" | "leading"
-  docklabels: "current" | "hover"
-  tbstyle: "current" | "workspace"
   docklayout: "groups" | "flat" | "path"
-  hoverstyle: "popover" | "sheet" | "morph"
-  nextcue: "chip" | "card" | "menu"
-  dockorder: "none" | "arrow" | "cluster"
-  tbleft: "book" | "tabs"
-  tbcenter: "location" | "status"
+  dockpin: "off" | "on"
+  sbsim: "real" | "building" | "failed" | "outdated" | "setupfail"
+  setupsplit: "single" | "before" | "attached"
+  dockfocus: "tiles" | "islands" | "base" | "tray"
   running: "current" | "live" | "strip"
   return: "current" | "banner" | "toast"
-  tree: "off" | "rail" | "floating"
-  editor: "off" | "panel" | "floating"
   ai: "mock" | "hidden" | "wired"
   boot: "current" | "shell" | "splash"
   export: "current" | "preview-button" | "topbar"
   features: "current" | "add" | "suggested"
   loaders: "current" | "content"
+  stagefail: "banner" | "marks" | "quiet"
+  pageview: "pages" | "items"
+  listview: "rows" | "cards" | "pages"
+  detailpane: "side" | "top" | "peek"
+  langnav: "cards" | "pills" | "menu"
+  hints: "note" | "help" | "none"
+  pruned: "inline" | "tray"
 }
 
 export type VariantKey = keyof VariantState
@@ -81,75 +66,6 @@ export interface VariantGroup {
 }
 
 export const VARIANT_GROUPS = [
-  {
-    key: "panels",
-    icon: PanelsTopLeft,
-    label: msg`Workspace style`,
-    options: [
-      { value: "current", label: msg`Current`, hint: msg`Edge-to-edge panels separated by hard borders, a white top bar.` },
-      { value: "arc", label: msg`Arc`, hint: msg`Like the Arc browser: the sidebars and top bar share one surface — white in light mode, dark in dark mode — and the content sits inside as a rounded container.` },
-    ],
-  },
-  {
-    key: "topnav",
-    icon: Navigation,
-    label: msg`Top bar · location`,
-    options: [
-      { value: "current", label: msg`Step only`, hint: msg`On step pages: a back button, then the step's icon and name.` },
-      { value: "book-step", label: msg`Book › Step`, hint: msg`On step pages too, the book title comes first: back · Book › Step.` },
-      { value: "crumbs", label: msg`Breadcrumb nav`, hint: msg`No back button: the breadcrumb is the navigation — click the book to go back to the storyboard.` },
-    ],
-  },
-  {
-    key: "topstep",
-    icon: MapPin,
-    label: msg`Top bar · step indicator`,
-    options: [
-      { value: "current", label: msg`Icon + name`, hint: msg`The step's colored icon and its name — on a neutral bar that's easy to miss.` },
-      { value: "pill", label: msg`Colored pill`, hint: msg`The step's icon and name sit in a soft pill of the step's color.` },
-      { value: "accent", label: msg`Accent edge`, hint: msg`The content container gets a thin outline in the step's color, and the step name takes that color.` },
-      { value: "map", label: msg`Pipeline map`, hint: msg`A row of dots for every step after the name; the current one stretches out in its color.` },
-    ],
-  },
-  {
-    key: "topstatus",
-    icon: Activity,
-    label: msg`Top bar · status`,
-    options: [
-      { value: "current", label: msg`Current`, hint: msg`Several chips in the middle. Run progress shows inside the page.` },
-      { value: "summary", label: msg`One summary`, hint: msg`One compact summary. On the storyboard, one progress pill while pages build.` },
-      { value: "running", label: msg`Only running`, hint: msg`Nothing at rest. On the storyboard, one progress pill while pages build.` },
-      { value: "none", label: msg`Nothing`, hint: msg`No center at all; progress only shows inside the page.` },
-    ],
-  },
-  {
-    key: "topaction",
-    icon: MousePointerClick,
-    label: msg`Top bar · main action`,
-    options: [
-      { value: "current", label: msg`Current`, hint: msg`Red text Cancel on the storyboard, solid red Cancel on steps.` },
-      { value: "quiet", label: msg`Quiet`, hint: msg`Run, Re-run and Cancel are calm neutral buttons; Cancel only turns red on hover.` },
-      { value: "clear", label: msg`Clear`, hint: msg`Run and Re-run neutral; Cancel is always a solid red button while something runs.` },
-    ],
-  },
-  {
-    key: "topother",
-    icon: PanelTopDashed,
-    label: msg`Top bar · other screens`,
-    options: [
-      { value: "current", label: msg`Colored bars`, hint: msg`Step settings, Preview and Export keep their solid colored bars.` },
-      { value: "arc", label: msg`Same Arc bar`, hint: msg`Step settings, Preview and Export use the same neutral Arc bar and container.` },
-    ],
-  },
-  {
-    key: "topbook",
-    icon: BookImage,
-    label: msg`Top bar · storyboard title`,
-    options: [
-      { value: "current", label: msg`Book › Page`, hint: msg`The book title, then the page and its version.` },
-      { value: "cover", label: msg`Cover + title`, hint: msg`A small book cover before the title.` },
-    ],
-  },
   {
     key: "entry",
     icon: DoorOpen,
@@ -170,15 +86,6 @@ export const VARIANT_GROUPS = [
     ],
   },
   {
-    key: "dockstyle",
-    icon: PanelBottom,
-    label: msg`Dock style`,
-    options: [
-      { value: "pills", label: msg`Pills`, hint: msg`Today's dock: every step is its own coloured circle.` },
-      { value: "leading", label: msg`Storyboard first`, hint: msg`Storyboard leads the bar, then icon groups: Setup, Accessibility, Enhancements and Languages & voices. Whatever you're on fills with its colour.` },
-    ],
-  },
-  {
     key: "docklayout",
     icon: PanelBottom,
     label: msg`Dock layout`,
@@ -189,69 +96,45 @@ export const VARIANT_GROUPS = [
     ],
   },
   {
-    key: "hoverstyle",
+    key: "dockpin",
     icon: MousePointerClick,
-    label: msg`Step hover`,
+    label: msg`Keep menu open`,
     options: [
-      { value: "popover", label: msg`Popover`, hint: msg`A detailed card floats above the step you hover.` },
-      { value: "sheet", label: msg`Sheet`, hint: msg`The dock opens upward like its menus and shows the step in a wide layout.` },
-      { value: "morph", label: msg`Morph`, hint: msg`The dock grows a bubble upward right where you hover, and the card unfolds inside it.` },
+      { value: "off", label: msg`Off`, hint: msg`Menus open on hover or click, as in the app.` },
+      { value: "on", label: msg`On`, hint: msg`Lab only: the hover sheet or Add menu stays open so you can compare options without hovering again.` },
     ],
   },
   {
-    key: "nextcue",
-    icon: SignpostBig,
-    label: msg`What's next cue`,
+    key: "setupsplit",
+    icon: MousePointerClick,
+    label: msg`Setup steps`,
     options: [
-      { value: "chip", label: msg`Chip on the dock`, hint: msg`A small "Next" badge on the dock group to visit next; the step is marked inside.` },
-      { value: "card", label: msg`Card above the dock`, hint: msg`A card above the dock on the storyboard: the suggested step, Open and Not now.` },
-      { value: "menu", label: msg`Inside the menu`, hint: msg`Nothing on the bar; the suggestion shows when you open the group.` },
+      { value: "single", label: msg`One tile`, hint: msg`Today: Extract and Sectioning share one Setup tile that opens a panel.` },
+      { value: "before", label: msg`Two tiles`, hint: msg`Two tiles like the features, left of the Storyboard button.` },
+      { value: "attached", label: msg`Attached`, hint: msg`Two icon segments joined to the Storyboard button, like a split button.` },
     ],
   },
   {
-    key: "dockorder",
-    icon: SignpostBig,
-    label: msg`Dock order`,
+    key: "dockfocus",
+    icon: MousePointerClick,
+    label: msg`Storyboard focus`,
     options: [
-      { value: "none", label: msg`Hidden`, hint: msg`The groups sit side by side; the order only shows through hints and warnings.` },
-      { value: "arrow", label: msg`Arrow`, hint: msg`A small arrow before Languages & voices: your content first, then languages.` },
-      { value: "cluster", label: msg`Grouped`, hint: msg`Accessibility and Enhancements share a soft background, then an arrow to Languages & voices.` },
+      { value: "tiles", label: msg`Two tiles`, hint: msg`Extract and Sectioning as tiles, then Storyboard, then every extra.` },
+      { value: "islands", label: msg`Islands`, hint: msg`The book and the extras are two bars; the extras collapse and Storyboard re-centres.` },
+      { value: "base", label: msg`Base`, hint: msg`Storyboard is a bigger block with the cover and page count; Extract and Sectioning sit inside it.` },
+      { value: "tray", label: msg`Tray`, hint: msg`Only the book path stays in the dock; the extras open from one Extras button.` },
     ],
   },
   {
-    key: "tbstyle",
-    icon: PanelTop,
-    label: msg`Top bar style`,
+    key: "sbsim",
+    icon: MousePointerClick,
+    label: msg`Simulate storyboard`,
     options: [
-      { value: "current", label: msg`Today`, hint: msg`Home, then what each screen puts in the bar.` },
-      { value: "workspace", label: msg`Workspace`, hint: msg`One bar for the whole book, like a design tool: logo, book, where you are, then run status, Preview and Export.` },
-    ],
-  },
-  {
-    key: "tbleft",
-    icon: PanelTop,
-    label: msg`Top bar left`,
-    options: [
-      { value: "book", label: msg`Book name`, hint: msg`The logo and the book's name.` },
-      { value: "tabs", label: msg`Area tabs`, hint: msg`The logo and tabs for Storyboard, Settings and Export.` },
-    ],
-  },
-  {
-    key: "tbcenter",
-    icon: PanelTop,
-    label: msg`Top bar centre`,
-    options: [
-      { value: "location", label: msg`Where you are`, hint: msg`The page or step you're looking at sits in the middle; step status moves to the right.` },
-      { value: "status", label: msg`Step status`, hint: msg`The step's status sits in the middle; the page or step name moves to the left.` },
-    ],
-  },
-  {
-    key: "docklabels",
-    icon: Tag,
-    label: msg`Dock names`,
-    options: [
-      { value: "current", label: msg`Current`, hint: msg`Only the open step shows its name; the others show it in the slow browser tooltip.` },
-      { value: "hover", label: msg`On hover`, hint: msg`Hovering or focusing a step shows its name in a small label above it, without moving anything.` },
+      { value: "real", label: msg`Real`, hint: msg`The book's real state.` },
+      { value: "building", label: msg`Building`, hint: msg`Lab books pretend the storyboard is being built.` },
+      { value: "failed", label: msg`Failed`, hint: msg`Lab books pretend building the storyboard failed.` },
+      { value: "outdated", label: msg`Out of date`, hint: msg`Lab books pretend setup changed after the storyboard was built.` },
+      { value: "setupfail", label: msg`Setup problem`, hint: msg`Lab books pretend Extract or Sectioning needs attention.` },
     ],
   },
   {
@@ -272,26 +155,6 @@ export const VARIANT_GROUPS = [
       { value: "current", label: msg`Current`, hint: msg`Back goes to the storyboard's last page; nothing happens when a run ends.` },
       { value: "banner", label: msg`Keep page + banner`, hint: msg`Back lands on the page you were on; a finished run offers a way back in the stage header.` },
       { value: "toast", label: msg`Keep page + toast`, hint: msg`Back lands on the page you were on; a finished run pops a toast with a way back.` },
-    ],
-  },
-  {
-    key: "tree",
-    icon: Layers,
-    label: msg`Layers`,
-    options: [
-      { value: "off", label: msg`Off`, hint: msg`No element tree.` },
-      { value: "rail", label: msg`Rail tab`, hint: msg`Pages and Layers tabs share the left rail.` },
-      { value: "floating", label: msg`Floating`, hint: msg`A small layers panel floats over the canvas.` },
-    ],
-  },
-  {
-    key: "editor",
-    icon: Paintbrush,
-    label: msg`Style editor`,
-    options: [
-      { value: "off", label: msg`Off`, hint: msg`The canvas is read-only.` },
-      { value: "panel", label: msg`Side panel`, hint: msg`Click an element to select it; its Tailwind styles open in the right panel.` },
-      { value: "floating", label: msg`Floating inspector`, hint: msg`The same controls in a card floating over the canvas, so the AI panel stays where it is.` },
     ],
   },
   {
@@ -343,6 +206,74 @@ export const VARIANT_GROUPS = [
       { value: "content", label: msg`Show content`, hint: msg`Stage loads show the shape of the stage; a page being built shows your real PDF page with a scan passing over it.` },
     ],
   },
+  {
+    key: "stagefail",
+    icon: OctagonAlert,
+    label: msg`Failed run`,
+    options: [
+      { value: "banner", label: msg`Banner`, hint: msg`One error notice at the top of the stage, like Sectioning. (All stages)` },
+      { value: "marks", label: msg`Banner + marks`, hint: msg`The notice, plus red marks on the pages and items that failed and a Failed filter. Marks only differ on page stages; on Glossary, Quizzes and TOC it looks like Banner. (All stages)` },
+      { value: "quiet", label: msg`Quiet strip`, hint: msg`A slim one-line strip under the title plus the marks, no big notice. (All stages)` },
+    ],
+  },
+  {
+    key: "pageview",
+    icon: LayoutGrid,
+    label: msg`Page-by-page stages`,
+    options: [
+      { value: "pages", label: msg`Page grid`, hint: msg`A grid of page cards; open one to work on it, like Sectioning. (Captions, Easy Read, Sign language, Translate, Speech)` },
+      { value: "items", label: msg`One long feed`, hint: msg`Every item in one long list grouped by page, like Captions and Easy Read today. (Captions, Easy Read, Sign language, Translate, Speech)` },
+    ],
+  },
+  {
+    key: "listview",
+    icon: Rows3,
+    label: msg`Book-wide lists`,
+    options: [
+      { value: "rows", label: msg`Rows`, hint: msg`One line per term, question or entry; open a row to edit it. (Glossary, Quizzes, TOC)` },
+      { value: "cards", label: msg`Open cards`, hint: msg`Every item fully open and editable at once. TOC shows rows. (Glossary, Quizzes, TOC)` },
+      { value: "pages", label: msg`By page`, hint: msg`A page grid with item counts; the list only shows inside a page. (Glossary, Quizzes, TOC)` },
+    ],
+  },
+  {
+    key: "detailpane",
+    icon: Columns2,
+    label: msg`Page detail`,
+    options: [
+      { value: "side", label: msg`Page beside`, hint: msg`The page image on the left, the stage's items on the right, like Sectioning. (Every page detail)` },
+      { value: "top", label: msg`Page on top`, hint: msg`The page image as a strip you can collapse above full-width items. (Every page detail)` },
+      { value: "peek", label: msg`Peek`, hint: msg`No image by default; a floating Show page button opens it over the items. (Every page detail)` },
+    ],
+  },
+  {
+    key: "langnav",
+    icon: Languages,
+    label: msg`Languages`,
+    options: [
+      { value: "cards", label: msg`Language cards`, hint: msg`Cards with each language's progress on the overview, a menu inside a page. (Translate, Speech)` },
+      { value: "pills", label: msg`Pills`, hint: msg`A row of language pills under the title everywhere, like the classic screens. (Translate, Speech)` },
+      { value: "menu", label: msg`Menu`, hint: msg`One language menu in the header everywhere. (Translate, Speech)` },
+    ],
+  },
+  {
+    key: "hints",
+    icon: Lightbulb,
+    label: msg`How it works`,
+    options: [
+      { value: "note", label: msg`Note`, hint: msg`A "How it works" note in the notes strip; once dismissed it stays away. (All stages)` },
+      { value: "help", label: msg`Help button`, hint: msg`A small ? next to the title opens the explanation. (All stages)` },
+      { value: "none", label: msg`Nothing`, hint: msg`No explanation. (All stages)` },
+    ],
+  },
+  {
+    key: "pruned",
+    icon: Archive,
+    label: msg`Pruned items`,
+    options: [
+      { value: "inline", label: msg`In place`, hint: msg`Pruned items stay where they are, muted, behind an Active / Pruned / All filter. (Glossary)` },
+      { value: "tray", label: msg`Tray`, hint: msg`Pruned items collapse into one "Pruned" group at the end of the list; open it to restore. (Glossary)` },
+    ],
+  },
 ] satisfies VariantGroup[]
 
 export type VariantTier = "layout" | "flow" | "step"
@@ -354,45 +285,39 @@ export const TIERS: { key: VariantTier; label: MessageDescriptor; hint: MessageD
 ]
 
 export const GROUP_META: Record<VariantKey, { tier: VariantTier }> = {
-  panels: { tier: "layout" },
-  topnav: { tier: "layout" },
-  topstep: { tier: "layout" },
-  topstatus: { tier: "layout" },
-  topaction: { tier: "layout" },
-  topother: { tier: "layout" },
-  topbook: { tier: "layout" },
   features: { tier: "layout" },
   ai: { tier: "layout" },
-  tree: { tier: "layout" },
-  editor: { tier: "layout" },
   export: { tier: "layout" },
   boot: { tier: "layout" },
   entry: { tier: "flow" },
   return: { tier: "flow" },
   landing: { tier: "step" },
-  dockstyle: { tier: "layout" },
-  docklabels: { tier: "layout" },
-  tbstyle: { tier: "layout" },
   docklayout: { tier: "layout" },
-  hoverstyle: { tier: "layout" },
-  nextcue: { tier: "layout" },
-  dockorder: { tier: "layout" },
-  tbleft: { tier: "layout" },
-  tbcenter: { tier: "layout" },
+  sbsim: { tier: "layout" },
+  setupsplit: { tier: "layout" },
+  dockfocus: { tier: "layout" },
+  dockpin: { tier: "layout" },
   running: { tier: "step" },
   loaders: { tier: "step" },
+  stagefail: { tier: "step" },
+  pageview: { tier: "step" },
+  listview: { tier: "step" },
+  detailpane: { tier: "step" },
+  langnav: { tier: "step" },
+  hints: { tier: "step" },
+  pruned: { tier: "step" },
 }
 
 
 export type LabStep = "extract" | "sectioning" | "storyboard" | "output" | "validation" | "preview"
 
 export const STEP_GROUPS: Record<LabStep, VariantKey[]> = {
-  extract: ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder", "panels", "topnav", "topstep", "topstatus", "topaction", "topother"],
-  sectioning: ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder", "panels", "topnav", "topstep", "topstatus", "topaction", "topother"],
-  storyboard: ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder", "panels", "topbook", "topnav", "topstatus", "topaction", "features", "tree", "editor", "ai", "loaders", "boot"],
-  output: ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder", "panels", "topnav", "topstep", "topstatus", "topaction", "topother", "landing", "running", "return", "features"],
-  validation: ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder", "panels", "topnav", "topstep", "topstatus", "topaction", "topother", "landing", "running", "return"],
-  preview: ["topother", "export"],
+  extract: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
+  sectioning: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
+  storyboard: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "features", "ai", "loaders", "boot"],
+  output: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "features", "stagefail", "pageview", "listview", "detailpane", "langnav", "hints", "pruned"],
+  validation: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "stagefail", "hints"],
+  preview: ["export"],
 }
 
 export function stepOf(pathname: string): { step: LabStep; slug: string } | null {
@@ -407,33 +332,27 @@ export function stepOf(pathname: string): { step: LabStep; slug: string } | null
 }
 
 export const DEFAULT_VARIANTS: VariantState = {
-  panels: "current",
-  topnav: "current",
-  topstep: "current",
-  topstatus: "current",
-  topaction: "current",
-  topother: "current",
-  topbook: "current",
   entry: "current",
   landing: "current",
-  dockstyle: "pills",
-  docklabels: "current",
-  tbstyle: "workspace",
   docklayout: "groups",
-  hoverstyle: "popover",
-  nextcue: "chip",
-  dockorder: "arrow",
-  tbleft: "book",
-  tbcenter: "location",
+  sbsim: "real",
+  setupsplit: "single",
+  dockfocus: "tiles",
+  dockpin: "off",
   running: "current",
   return: "current",
-  tree: "off",
-  editor: "off",
   ai: "mock",
   boot: "current",
   export: "current",
   features: "current",
   loaders: "current",
+  stagefail: "marks",
+  pageview: "pages",
+  listview: "rows",
+  detailpane: "side",
+  langnav: "cards",
+  hints: "note",
+  pruned: "tray",
 }
 
 function isVariantRecord(value: unknown): value is Partial<Record<string, string>> {
@@ -481,13 +400,5 @@ export function setVariantValue(key: VariantKey, value: string) {
 export function resetVariants() {
   store.set({})
 }
-
-const visibleStore = createPersistentStore<boolean>(
-  "adt.lab.visible",
-  true,
-  (value): value is boolean => typeof value === "boolean",
-)
-
-export const useLabVisible = visibleStore.use
 
 export const LAB_ENABLED = import.meta.env.DEV

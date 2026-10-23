@@ -123,7 +123,6 @@ export function TranslateStep(props: StepProps) {
           diff={versionDiff}
         />
       }
-      canApply={total > 0}
       bodyViewportClassName={STEP_FILL_VIEWPORT_CLASSNAME}
       rail={
         <StepRail

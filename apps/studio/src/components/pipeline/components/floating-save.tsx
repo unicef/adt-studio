@@ -69,6 +69,12 @@ export interface FloatingSaveEntry {
    * re-renders; entries with a static label can omit it.
    */
   labelKey?: string
+  scope?: FloatingSaveScope
+}
+
+export interface FloatingSaveScope {
+  page?: string
+  language?: string
 }
 
 /** Fields whose change must re-render the host (label content excluded — see labelKey). */
@@ -86,6 +92,8 @@ function signature(e: FloatingSaveEntry): string {
     e.labelKey ?? "",
     e.stage ?? "",
     e.resetStages?.join(",") ?? "",
+    e.scope?.page ?? "",
+    e.scope?.language ?? "",
   ].join("|")
 }
 
@@ -257,6 +265,7 @@ export interface FloatingSaveDirtyEntry {
   id: string
   stage?: StageName
   label?: ReactNode
+  scope?: FloatingSaveScope
 }
 
 export function useFloatingSaveDirtyEntries(): FloatingSaveDirtyEntry[] {
@@ -267,7 +276,7 @@ export function useFloatingSaveDirtyEntries(): FloatingSaveDirtyEntry[] {
     store ? store.getVersion : () => 0,
   )
   if (!store) return []
-  return store.active().map((e) => ({ id: e.id, stage: e.stage, label: e.label }))
+  return store.active().map((e) => ({ id: e.id, stage: e.stage, label: e.label, scope: e.scope }))
 }
 
 export interface FloatingSaveLeaveAction {
@@ -275,6 +284,7 @@ export interface FloatingSaveLeaveAction {
   willRerun: boolean
   resetStages: StageName[]
   saveAndStay: () => Promise<void>
+  discardAll: () => void
 }
 
 export function useFloatingSaveLeaveAction(): FloatingSaveLeaveAction {
@@ -297,7 +307,11 @@ export function useFloatingSaveLeaveAction(): FloatingSaveLeaveAction {
       store.active().map((e) => Promise.resolve((e.onSaveStay ?? e.onSave)?.())),
     )
   }
-  return { canSave, willRerun, resetStages, saveAndStay }
+  const discardAll = () => {
+    if (!store) return
+    store.active().forEach((e) => e.onDiscard?.())
+  }
+  return { canSave, willRerun, resetStages, saveAndStay, discardAll }
 }
 
 /**

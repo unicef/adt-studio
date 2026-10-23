@@ -1,13 +1,8 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type FocusEventHandler,
-  type SVGProps,
-} from "react"
+import { useContext, useEffect, useRef, useState, type FocusEventHandler, type SVGProps } from "react"
 import { LayoutGrid, Square } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
+import { StyleLabelContext } from "./StyleLabel"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 export interface BoxValue {
@@ -74,7 +69,7 @@ export function BoxInput({
             )}
           />
           {unit ? (
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/70 select-none pointer-events-none">
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-foreground/70 select-none pointer-events-none">
               {unit}
             </span>
           ) : null}
@@ -87,10 +82,10 @@ export function BoxInput({
           onValueChange={(v) => v && setMode(v as "single" | "split")}
           className="w-auto shrink-0"
         >
-          <ToggleGroupItem value="single" title={t`Single value`}>
+          <ToggleGroupItem value="single" title={t`Single value`} aria-label={t`Single value`}>
             <Square className="h-3.5 w-3.5" />
           </ToggleGroupItem>
-          <ToggleGroupItem value="split" title={t`Individual sides`}>
+          <ToggleGroupItem value="split" title={t`Individual sides`} aria-label={t`Individual sides`}>
             {splitIcon}
           </ToggleGroupItem>
         </ToggleGroup>
@@ -135,6 +130,7 @@ function SideField({
   return (
     <div className="flex flex-col items-stretch gap-0.5 min-w-0">
       <NumericInput
+        ariaLabel={label}
         value={value}
         onCommit={onCommit}
         onFocus={onFocus}
@@ -161,6 +157,7 @@ function NumericInput({
   className,
   onFocus,
   onBlur,
+  ariaLabel,
 }: {
   value: number
   onCommit: (n: number) => void
@@ -168,7 +165,9 @@ function NumericInput({
   className?: string
   onFocus?: FocusEventHandler<HTMLInputElement>
   onBlur?: FocusEventHandler<HTMLInputElement>
+  ariaLabel?: string
 }) {
+  const labelledBy = useContext(StyleLabelContext)
   const [draft, setDraft] = useState(String(value))
   const [focused, setFocused] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -200,6 +199,8 @@ function NumericInput({
     <input
       type="text"
       inputMode="numeric"
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabel ? undefined : labelledBy}
       value={draft}
       placeholder="0"
       disabled={disabled}

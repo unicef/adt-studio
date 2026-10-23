@@ -119,6 +119,9 @@ interface PageSummary {
   hasCaptioning: boolean
   textPreview: string
   imageCount: number
+  captionCount: number
+  decorativeCount: number
+  uncaptionedCount: number
   wordCount: number
   sectionCount: number
   prunedSections: number[]
@@ -203,6 +206,26 @@ function derivePageFonts(data: unknown): PageDetail["fonts"] {
   return [...sizesByFamily.entries()]
     .map(([family, sizes]) => ({ family, sizes: [...sizes].sort((a, b) => a - b) }))
     .sort((a, b) => a.family.localeCompare(b.family))
+}
+
+interface CaptionCounts {
+  captionCount: number
+  decorativeCount: number
+  uncaptionedCount: number
+}
+
+const NO_CAPTIONS: CaptionCounts = { captionCount: 0, decorativeCount: 0, uncaptionedCount: 0 }
+
+export function countCaptions(data: unknown): CaptionCounts {
+  const captions = (data as { captions?: Array<{ caption?: unknown; decorative?: unknown }> } | null)?.captions
+  if (!Array.isArray(captions)) return NO_CAPTIONS
+  let decorativeCount = 0
+  let uncaptionedCount = 0
+  for (const entry of captions) {
+    if (entry?.decorative === true) decorativeCount += 1
+    else if (typeof entry?.caption !== "string" || entry.caption.trim() === "") uncaptionedCount += 1
+  }
+  return { captionCount: captions.length, decorativeCount, uncaptionedCount }
 }
 
 function getDbPath(label: string, booksDir: string): string {
@@ -911,6 +934,24 @@ export function createPageRoutes(
         captioned.add(row.item_id)
       }
 
+      const captionCounts = new Map<string, CaptionCounts>()
+      const currentCaptionRows = db.all(
+        `SELECT nd.item_id AS item_id, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
+        ["image-captioning"]
+      ) as Array<{ item_id: string; data: string }>
+      for (const row of currentCaptionRows) {
+        if (captionCounts.has(row.item_id)) continue
+        try {
+          captionCounts.set(row.item_id, countCaptions(JSON.parse(row.data)))
+        } catch {
+          captionCounts.set(row.item_id, NO_CAPTIONS)
+        }
+      }
+
       // Get image counts per page from image-filtering node data
       const imageCounts = new Map<string, number>()
       const imageRows = db.all(
@@ -1034,6 +1075,7 @@ export function createPageRoutes(
         hasCaptioning: captioned.has(p.page_id),
         textPreview: structuredText.get(p.page_id) ?? p.text.slice(0, 150),
         imageCount: imageCounts.get(p.page_id) ?? 0,
+        ...(captionCounts.get(p.page_id) ?? NO_CAPTIONS),
         wordCount: p.text.trim() ? p.text.trim().split(/\s+/).length : 0,
         sectionCount: sectionCounts.get(p.page_id) ?? 0,
         prunedSections: prunedSections.get(p.page_id) ?? [],

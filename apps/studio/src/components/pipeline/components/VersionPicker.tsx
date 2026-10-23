@@ -26,7 +26,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { STAGES } from "../stage-config"
-import { useFloatingSave, PendingChip } from "./floating-save"
+import { useFloatingSave, PendingChip, type FloatingSaveScope } from "./floating-save"
 import { KIND_TEXT_CLASS } from "./change-summary"
 import { LazyThumb, PreviewSkeleton, useReservedHeight } from "./LazyThumb"
 import {
@@ -129,6 +129,8 @@ interface VersionPickerProps {
   pendingLabel?: ReactNode
   /** Primitive that changes when pendingLabel content changes. */
   pendingLabelKey?: string
+  pendingScope?: FloatingSaveScope
+  confirmRestore?: (version: number) => Promise<boolean>
   /**
    * Renders a version's stored data as read-only visible content (scaling to
    * fit its container). When provided, the picker shows a thumbnail chip per
@@ -163,6 +165,7 @@ interface VersionPickerProps {
    * background — the new pipeline's step toolbars — pass their own.
    */
   triggerClassName?: string
+  triggerLabel?: string
 }
 
 export function VersionPicker({
@@ -181,11 +184,14 @@ export function VersionPicker({
   renderSaveBar = true,
   pendingLabel,
   pendingLabelKey,
+  pendingScope,
+  confirmRestore,
   renderPreview,
   previewViewport,
   getChangedPreviewViewports,
   diff,
   triggerClassName,
+  triggerLabel,
 }: VersionPickerProps) {
   const { t, i18n } = useLingui()
   const queryClient = useQueryClient()
@@ -251,6 +257,7 @@ export function VersionPicker({
     onSave,
     onDiscard,
     saveDisabledReason,
+    scope: pendingScope,
   })
 
   // Per-kind change counts vs current, precomputed once per version set (avoids
@@ -319,6 +326,11 @@ export function VersionPicker({
     }
   }
 
+  const requestRestore = async (version: number) => {
+    if (confirmRestore && !(await confirmRestore(version))) return
+    await restoreTo(version)
+  }
+
   // Pick a version. With onRestored, roll back to it. Otherwise fall back to
   // the legacy pending-edit flow.
   const handlePick = async (v: VersionEntry) => {
@@ -332,7 +344,7 @@ export function VersionPicker({
       return
     }
     setOpen(false)
-    void restoreTo(v.version)
+    void requestRestore(v.version)
   }
 
   const defaultCompare =
@@ -455,7 +467,7 @@ export function VersionPicker({
         type="button"
         onClick={() => {
           setOpen(false)
-          void restoreTo(latestVersion)
+          void requestRestore(latestVersion)
         }}
         className="rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:bg-accent cursor-pointer"
         style={{ color: accentColor }}
@@ -572,6 +584,7 @@ export function VersionPicker({
         <PopoverTrigger asChild>
           <button
             type="button"
+            aria-label={triggerLabel}
             className={`flex items-center gap-0.5 text-[10px] font-normal normal-case tracking-normal rounded px-1.5 py-0.5 transition-colors ${triggerClassName ?? styling.triggerClass}`}
           >
             v{currentVersion}
@@ -581,6 +594,7 @@ export function VersionPicker({
         </PopoverTrigger>
         <PopoverContent
           align="end"
+          aria-label={t`Version history`}
           className={`origin-[var(--radix-popover-content-transform-origin)] motion-reduce:animate-none ${
             renderPreview ? "w-56 p-0" : diff ? "w-64 p-0" : "w-auto min-w-[120px] p-1"
           }`}
@@ -684,7 +698,7 @@ export function VersionPicker({
           renderPreview={renderPreview}
           accentColor={accentColor}
           icon={stageIcon}
-          onRestore={restoreTo}
+          onRestore={requestRestore}
           cacheKey={`${bookLabel}:${step}:${itemId}`}
           initialViewport={previewViewport}
           getChangedViewports={getChangedPreviewViewports}
@@ -699,7 +713,7 @@ export function VersionPicker({
           descriptor={diff}
           accentColor={accentColor}
           icon={stageIcon}
-          onRestore={restoreTo}
+          onRestore={requestRestore}
         />
       ) : null}
     </>

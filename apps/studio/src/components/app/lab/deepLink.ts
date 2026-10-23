@@ -31,7 +31,7 @@ export function useLabDeepLink() {
       const path = window.location.pathname
       const test: LabTest = {
         id: "canvas-frame",
-        group: "panels",
+        group: "features",
         title: msg`Canvas preview`,
         changes: msg`Canvas preview`,
         variants,

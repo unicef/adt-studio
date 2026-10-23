@@ -87,10 +87,10 @@ export function CanvasEmptyPanel({
           onOpenSettings={onOpenSettings}
           canGenerate={emptyRun.canRun}
           disabledReason={
-            emptyRun.hasApiKey ? undefined : phase === "render" ? (
+            ("hasProvider" in emptyRun ? emptyRun.hasProvider : emptyRun.hasApiKey) ? undefined : phase === "render" ? (
               <Trans>Add an API key in Book settings to run the storyboard.</Trans>
             ) : (
-              <Trans>Add an API key in Book settings to run sectioning.</Trans>
+              <Trans>Set up AI access in Book settings to run sectioning.</Trans>
             )
           }
         />

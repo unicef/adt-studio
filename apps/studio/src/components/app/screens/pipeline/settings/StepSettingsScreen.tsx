@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { useVariant } from "@/components/app/lab/variants"
 import { useChromeRoot } from "@/components/app/lab/chrome"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Settings, X } from "lucide-react"
@@ -12,7 +11,6 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { SettingsDirtyTabsProvider } from "@/hooks/use-settings-dirty-tabs"
 import { SettingsRemountProvider } from "@/hooks/use-settings-remount"
 import { SettingsReturnProvider } from "@/hooks/use-settings-return"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import type { DockItem } from "@/components/app/screens/pipeline/shared/usePipelineState"
 import { hasStepLanding } from "@/components/app/screens/pipeline/steps/shared/StepLanding"
 import { useSettingsAnchor } from "@/components/app/screens/settings/useSettingsAnchor"
@@ -63,8 +61,7 @@ function StepSettingsFrame({
   const hex = stage?.hex ?? "#4b5563"
   const StageIcon = stage?.icon ?? Settings
   const name = getStageLabelI18n(slug)
-  const otherArc = useVariant("topother") === "arc"
-  const otherChrome = useChromeRoot(hex, otherArc ? "arc" : "current")
+  const otherChrome = useChromeRoot(hex)
   const showOverview = hasStepLanding(slug) && landingReachable
   const tabs = stepSettingsTabs(slug, i18n, showOverview)
   const activeTab = tabs.some((entry) => entry.key === tab) ? tab : (tabs[0]?.key ?? "general")
@@ -73,16 +70,7 @@ function StepSettingsFrame({
     <div {...otherChrome} className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
       <TopBar
         tone={{ hex, stage: true }}
-        left={
-          <>
-            <span data-stage-icon="" className="grid size-6.5 place-items-center rounded-full bg-white/20">
-              <StageIcon className="size-3.5" strokeWidth={2.4} />
-            </span>
-            <span className="text-sm font-semibold">
-              <Trans>{name} settings</Trans>
-            </span>
-          </>
-        }
+        location={{ icon: StageIcon, hex, area: name, onArea: onClose, item: <Trans>Settings</Trans> }}
         right={
           <button
             type="button"
@@ -100,7 +88,6 @@ function StepSettingsFrame({
         <aside
           data-chrome="rail"
           className="flex w-64 shrink-0 flex-col gap-2.5 border-r bg-card p-3"
-          style={otherArc ? undefined : { backgroundColor: tint(hex, 0.03) }}
         >
           <SettingsTabsRail
             slug={slug}

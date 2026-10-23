@@ -1,204 +1,65 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useMemo } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
 import { api, type PageDetail } from "@/api/client"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
-import type {
-  CaptionEdit,
-  CaptionEntry,
-  CaptioningData,
-} from "@/components/pipeline/stages/captions/lib/types"
+import type { CaptionEntry, CaptioningData } from "@/components/pipeline/stages/captions/lib/types"
+import type { DraftStore } from "../shared/pageview/draftStore"
+import { useDocumentEdits } from "../shared/useDocumentEdits"
+import { sameCaption, stampSources } from "./captionSources"
 
-export interface CaptionEdits {
-  captions: CaptionEntry[]
-  dirty: boolean
-  saving: boolean
-  saveError: string | null
-  editing: CaptionEdit | null
-  saveCaptions: () => void
-  applyCaption: (imageId: string, newCaption: string) => void
-  toggleDecorative: (imageId: string) => void
-  startEdit: (cap: CaptionEntry) => void
-  changeDraft: (value: string) => void
-  commitEdit: () => void
-  cancelEdit: () => void
-  discard: () => void
-}
+const captionsOf = (doc: CaptioningData) => doc.captions
+const withCaptions = (doc: CaptioningData, captions: CaptionEntry[]): CaptioningData => ({ ...doc, captions: stampSources(captions, doc.captions) })
+const imageKey = (entry: CaptionEntry) => entry.imageId
 
-/**
- * Caption edit state for one page. Two write paths, ported from the classic
- * captions gallery: `pending` stages lightbox edits behind the floating save
- * bar, while card-level edits auto-save through an `optimistic` overlay that
- * holds the new value until the refetch lands (no flicker).
- */
-export function useCaptionEdits(label: string, pageId: string, page: PageDetail): CaptionEdits {
+export function useCaptionEdits(label: string, pageId: string, page: PageDetail | undefined, locked: boolean, store?: DraftStore<CaptionEntry>) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const doc = page?.imageCaptioning ?? null
 
-  const [pending, setPending] = useState<CaptioningData | null>(null)
-  const [optimistic, setOptimistic] = useState<CaptioningData | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [editing, setEditing] = useState<CaptionEdit | null>(null)
-
-  // A version bump means a save or restore landed; a pageId change means
-  // navigation. Both reset local edit state — during render, so `dirty` is
-  // already false on the first render after the change.
-  const resetKey = `${pageId}:${page.versions.imageCaptioning ?? "none"}`
-  const [lastResetKey, setLastResetKey] = useState(resetKey)
-  if (lastResetKey !== resetKey) {
-    setLastResetKey(resetKey)
-    setPending(null)
-    setOptimistic(null)
-    setEditing(null)
-    setSaveError(null)
-  }
-
-  const serverData = page.imageCaptioning
-  const effective = pending ?? optimistic ?? serverData
-  const captions = effective?.captions ?? []
-  const dirty = pending != null
-
-  const refreshAfterSave = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["books", label, "pages", pageId] })
-    await queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+  const save = useCallback((next: CaptioningData) => api.updateImageCaptioning(label, pageId, next), [label, pageId])
+  const afterSave = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["books", label, "pages", pageId] }),
+      queryClient.invalidateQueries({ queryKey: ["books", label, "pages"], exact: true }),
+    ])
     invalidateStoryboardDependents(queryClient, label)
   }, [queryClient, label, pageId])
 
-  const saveCaptions = useCallback(() => {
-    if (!pending || saving) return
-    setSaving(true)
-    setSaveError(null)
-    const minDelay = new Promise((resolve) => setTimeout(resolve, 400))
-    void (async () => {
-      try {
-        await api.updateImageCaptioning(label, pageId, pending)
-        await refreshAfterSave()
-        setEditing(null)
-      } catch (err) {
-        // Keep the pending edits so a failed save never discards work.
-        setSaveError(err instanceof Error ? err.message : t`Save failed`)
-      } finally {
-        await minDelay
-        setSaving(false)
-      }
-    })()
-  }, [pending, saving, label, pageId, refreshAfterSave, t])
+  const noun = useMemo(() => ({ one: t`image`, other: t`images` }), [t])
+  const scope = useMemo(() => ({ page: pageId }), [pageId])
+  const versionKey = `${pageId}:${page?.versions.imageCaptioning ?? "none"}`
+  const keepDraft = useMemo(() => (store && page ? store.bind(pageId, versionKey) : undefined), [store, page, pageId, versionKey])
 
-  // Stage a lightbox edit behind the explicit save bar.
-  const applyCaption = useCallback(
-    (imageId: string, newCaption: string) => {
-      const base = pending ?? serverData
-      if (!base) return
-      setPending({
-        ...base,
-        captions: base.captions.map((c) =>
-          c.imageId === imageId ? { ...c, caption: newCaption, source: "manual" as const } : c,
-        ),
-      })
-    },
-    [pending, serverData],
+  const edits = useDocumentEdits<CaptioningData, CaptionEntry>({
+    id: `captions:${pageId}`,
+    stage: "captions",
+    doc,
+    versionKey,
+    getItems: captionsOf,
+    setItems: withCaptions,
+    keyOf: imageKey,
+    isEqual: sameCaption,
+    noun,
+    save,
+    afterSave,
+    locked,
+    lockedReason: t`Wait for Image Captions to finish.`,
+    scope,
+    keepDraft,
+  })
+
+  const { update } = edits
+  const setCaption = useCallback(
+    (imageId: string, caption: string) => update(imageId, (entry) => (entry.caption === caption ? entry : { ...entry, caption })),
+    [update],
+  )
+  const setDecorative = useCallback(
+    (imageId: string, decorative: boolean) => update(imageId, (entry) => ({ ...entry, decorative })),
+    [update],
   )
 
-  // Persist a single field change immediately (no save bar): show it via the
-  // optimistic overlay and hold it until the refetch lands.
-  const persistCaption = useCallback(
-    (imageId: string, patch: Partial<CaptionEntry>) => {
-      const base = optimistic ?? pending ?? serverData
-      if (!base) return
-      const next: CaptioningData = {
-        ...base,
-        captions: base.captions.map((c) =>
-          c.imageId === imageId ? { ...c, ...patch, source: "manual" as const } : c,
-        ),
-      }
-      setOptimistic(next)
-      setSaveError(null)
-      void (async () => {
-        try {
-          await api.updateImageCaptioning(label, pageId, next)
-          await refreshAfterSave()
-        } catch (err) {
-          setOptimistic(null)
-          setSaveError(err instanceof Error ? err.message : t`Save failed`)
-        }
-      })()
-    },
-    [optimistic, pending, serverData, label, pageId, refreshAfterSave, t],
-  )
-
-  const toggleDecorative = useCallback(
-    (imageId: string) => {
-      const current = (optimistic ?? pending ?? serverData)?.captions.find(
-        (c) => c.imageId === imageId,
-      )
-      if (!current) return
-      persistCaption(imageId, { decorative: !current.decorative })
-    },
-    [optimistic, pending, serverData, persistCaption],
-  )
-
-  const commitCaptionEdit = useCallback(
-    (imageId: string, draft: string) => {
-      const current = (optimistic ?? pending ?? serverData)?.captions.find(
-        (c) => c.imageId === imageId,
-      )
-      if (!current || current.caption === draft) return
-      persistCaption(imageId, { caption: draft })
-    },
-    [optimistic, pending, serverData, persistCaption],
-  )
-
-  // Latest-editing ref so startEdit/commitEdit keep a stable identity across
-  // keystrokes — otherwise every draft change would re-render all caption
-  // cards through their (memoized) callbacks.
-  const editingRef = useRef<CaptionEdit | null>(null)
-  useEffect(() => {
-    editingRef.current = editing
-  }, [editing])
-
-  const startEdit = useCallback(
-    (cap: CaptionEntry) => {
-      const prev = editingRef.current
-      if (prev && prev.imageId !== cap.imageId) {
-        commitCaptionEdit(prev.imageId, prev.draft)
-      }
-      setEditing({ imageId: cap.imageId, draft: cap.caption })
-    },
-    [commitCaptionEdit],
-  )
-
-  const changeDraft = useCallback((value: string) => {
-    setEditing((prev) => (prev ? { ...prev, draft: value } : prev))
-  }, [])
-
-  const commitEdit = useCallback(() => {
-    const prev = editingRef.current
-    if (!prev) return
-    commitCaptionEdit(prev.imageId, prev.draft)
-    setEditing(null)
-  }, [commitCaptionEdit])
-
-  const cancelEdit = useCallback(() => setEditing(null), [])
-
-  const discard = useCallback(() => {
-    setPending(null)
-    setSaveError(null)
-  }, [])
-
-  return {
-    captions,
-    dirty,
-    saving,
-    saveError,
-    editing,
-    saveCaptions,
-    applyCaption,
-    toggleDecorative,
-    startEdit,
-    changeDraft,
-    commitEdit,
-    cancelEdit,
-    discard,
-  }
+  return { ...edits, setCaption, setDecorative }
 }
+
+export type CaptionEdits = ReturnType<typeof useCaptionEdits>

@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
 import { Sparkles } from "lucide-react"
-import { RailCollapseButton } from "@/components/app/screens/pipeline/rail/SideRail"
+import { StepRailHeader } from "@/components/app/screens/pipeline/rail/StepRailHeader"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 
 export interface PluginRailEmptyProps {
@@ -17,12 +17,7 @@ export function PluginRailEmpty({ hex, title, pageCount, sectionCount, running =
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          {title}
-        </span>
-        <RailCollapseButton className="-my-1 -mr-1" />
-      </div>
+      <StepRailHeader>{title}</StepRailHeader>
 
       <div aria-hidden className="relative flex h-28 items-center justify-center">
         <span className="absolute left-3.5 top-3.5 h-[82px] w-16 -rotate-[8deg] rounded-md border bg-card" />

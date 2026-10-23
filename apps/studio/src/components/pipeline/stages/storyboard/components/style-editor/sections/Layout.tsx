@@ -141,6 +141,7 @@ export function LayoutSection() {
           <StyleLabel label={<Trans>Gap</Trans>} override={gap.override}>
             <input
               type="number"
+              aria-label={t`Gap`}
               value={gap.value}
               onChange={(e) => gap.setValue(Number(e.target.value) || 0)}
               min={0}

@@ -41,7 +41,6 @@ export function WorkspaceScreen({ label, pageId }: WorkspaceScreenProps) {
       onSelectPage={nav.openPage}
       onOpenStep={nav.openStep}
       onOpenSettings={nav.openStepSettings}
-      onOpenPreview={nav.openPreview}
     />
   )
 }

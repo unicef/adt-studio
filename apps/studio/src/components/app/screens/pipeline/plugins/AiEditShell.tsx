@@ -18,6 +18,8 @@ function Composer({ placeholder }: { placeholder: string }) {
   )
 }
 
+export type ShellHeader = "panel" | "bar" | "none"
+
 export function Shell({
   title,
   meta,
@@ -25,6 +27,7 @@ export function Shell({
   composerPlaceholder,
   composer,
   onCollapse,
+  header = "panel",
 }: {
   title: React.ReactNode
   meta: React.ReactNode
@@ -32,23 +35,38 @@ export function Shell({
   composerPlaceholder: string
   composer?: React.ReactNode
   onCollapse: () => void
+  header?: ShellHeader
 }) {
   const { t } = useLingui()
+  const bar = header === "bar"
+  const collapse = (
+    <button
+      type="button"
+      data-panel-toggle="ai-hide"
+      onClick={onCollapse}
+      title={t`Hide the AI panel`}
+      aria-label={t`Hide the AI panel`}
+      className={cn(
+        "grid shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+        bar ? "size-7" : "-mr-1 size-6",
+      )}
+    >
+      <PanelRightClose className="size-3.5" />
+    </button>
+  )
   return (
-    <div className="flex h-full w-[326px] flex-col border-l bg-card">
-      <div className="flex items-center gap-2 border-b px-3.5 py-3">
-        <span className="text-[13px] font-semibold">{title}</span>
-        <span className="ml-auto truncate font-mono text-[11px] text-muted-foreground">{meta}</span>
-        <button
-          type="button"
-          onClick={onCollapse}
-          title={t`Hide the AI panel`}
-          aria-label={t`Hide the AI panel`}
-          className="-mr-1 grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+    <div className={cn("flex flex-col", header === "none" ? "min-h-0 flex-1" : "h-full w-[326px] border-l bg-card")}>
+      {header !== "none" && (
+        <div
+          data-chrome={bar ? "aihead" : undefined}
+          className={cn("flex items-center gap-2 border-b", bar ? "h-11 shrink-0 px-2.5" : "px-3.5 py-3")}
         >
-          <PanelRightClose className="size-3.5" />
-        </button>
-      </div>
+          {bar && collapse}
+          <h2 className="text-[13px] font-semibold">{title}</h2>
+          <span className="ml-auto truncate font-mono text-[11px] text-muted-foreground">{meta}</span>
+          {!bar && collapse}
+        </div>
+      )}
       {children}
       {composer ?? <Composer placeholder={composerPlaceholder} />}
     </div>
