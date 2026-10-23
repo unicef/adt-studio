@@ -139,6 +139,7 @@ export async function renderSectionTemplate(
   }
 
   return {
+    sectionId: section.sectionId,
     sectionIndex: input.sectionIndex,
     sectionType: section.sectionType,
     reasoning: "template-based rendering",

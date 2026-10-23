@@ -346,6 +346,9 @@ export function AddQuizDialog({
           geminiApiKey: geminiKey || undefined,
         }
       )
+      // Quiz text feeds Language and Speech. Refresh the sidebar's attention
+      // without holding the dialog open for the book-wide output read.
+      void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] })
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["books", bookLabel, "quizzes"],

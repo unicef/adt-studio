@@ -381,8 +381,8 @@ export function GlossaryImagePickerDialog({
         }}
         affectedStages={affectedStages}
         headerStageSlug="glossary"
-        title={t`Adding a new image resets downstream work`}
-        description={t`Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again.`}
+        title={t`Adding a new image may affect other stages`}
+        description={t`Creating a new glossary image changes the book's image set. Review the affected stages after this change.`}
         confirmLabel={
           pendingNewImageAction === "crop"
             ? t`Continue to crop`

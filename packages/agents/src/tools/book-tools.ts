@@ -1,4 +1,7 @@
+import { withSourceGenerationTracking, putSourceNodeData, buildTextCatalogSnapshot, findIntroducedCatalogConflict } from "@adt/pipeline"
+import { stampRenderedOwner } from "@adt/pipeline"
 import { z } from "zod"
+import { parseDocument, DomUtils } from "htmlparser2"
 import type { AgentToolSet } from "@adt/llm"
 import type { Storage } from "@adt/storage"
 import {
@@ -8,7 +11,7 @@ import {
   type PageSectioningSection,
   type SectionRendering,
 } from "@adt/types"
-import { createSectionIdFactory } from "@adt/pipeline"
+import { collectSpentContentIds, renderedTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision, createSectionIdFactory, renderedSectionId, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
 import { buildSectioningSectionFromHtml } from "./build-sectioning.js"
 import {
   TEMPLATED_ACTIVITY_TYPES,
@@ -91,6 +94,35 @@ function extractDataIds(html: string): string[] {
   return [...ids]
 }
 
+
+/** New text cannot inherit another entity's corrections. Existing local IDs
+ * and unchanged legacy duplicates may survive an edit; images remain shared. */
+function assertUnusedTextIds(storage: Storage, proposed: string[], previous: string[] = []): void {
+  if (findIntroducedBlankContentId(proposed, previous) !== undefined) throw new Error("New content requires a non-blank data-id. Retry with unused IDs; preserve existing local IDs and shared image IDs.")
+  const collision = findIntroducedDerivedIdCollision(proposed, previous)
+  if (collision) throw new Error(`New content conflicts with derived data-id "${collision}". Retry with distinct unused IDs.`)
+  const spent = collectSpentContentIds(storage)
+  const priorCounts = new Map<string, number>()
+  for (const id of previous) priorCounts.set(id, (priorCounts.get(id) ?? 0) + 1)
+  const counts = new Map<string, number>()
+  for (const id of proposed) {
+    if (spent.has(id) && !priorCounts.has(id)) throw new Error(`New content cannot reuse data-id "${id}" from existing or historical content. Retry with unused IDs; preserve existing local IDs and shared image IDs.`)
+    const count = (counts.get(id) ?? 0) + 1
+    counts.set(id, count)
+    if (count > Math.max(1, priorCounts.get(id) ?? 0)) throw new Error(`New content repeats data-id "${id}". Retry with a distinct unused ID for each text element.`)
+  }
+}
+
+function publishSourceEdit<T>(storage: Storage, mutate: () => T): T {
+  return withSourceGenerationTracking(storage, () => {
+    const before = buildTextCatalogSnapshot(storage, storage.getPages()).conflicts
+    const result = mutate()
+    const conflict = findIntroducedCatalogConflict(before, buildTextCatalogSnapshot(storage, storage.getPages()).conflicts)
+    if (conflict) throw new Error(`Conflicting catalog data ID: ${conflict.id}. Give different content distinct IDs before saving.`)
+    return result
+  })
+}
+
 function loadSectioning(
   storage: Storage,
   pageId: string,
@@ -115,7 +147,7 @@ function loadRendering(storage: Storage, pageId: string): WebRenderingOutput {
   if (!parsed.success) {
     throw new Error(`Invalid web-rendering data for ${pageId}`)
   }
-  return parsed.data
+  return withLegacyRenderingOwnership(storage, pageId, parsed.data, true)
 }
 
 function ensureWritable(ctx: BookToolsContext, pageId: string): void {
@@ -217,9 +249,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
         const rendering = loadRendering(ctx.storage, pageId)
         const sectioning = loadSectioning(ctx.storage, pageId)
         const sections = rendering.sections.map((r): SectionSummary => {
-          const s = sectioning.sections[r.sectionIndex] as
-            | PageSectioningSection
-            | undefined
+          const s = resolveRenderedSection(r, sectioning.sections, rendering.sections)
           return {
             sectionIndex: r.sectionIndex,
             sectionId: s?.sectionId ?? `unknown_${r.sectionIndex}`,
@@ -256,7 +286,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           )
         }
         const sectioning = loadSectioning(ctx.storage, pageId)
-        const s = sectioning.sections[sectionIndex]
+        const s = resolveRenderedSection(r, sectioning.sections, rendering.sections)
         return {
           sectionIndex: r.sectionIndex,
           sectionId: s?.sectionId ?? `unknown_${sectionIndex}`,
@@ -340,22 +370,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
               : undefined
           const effectiveAnswers = activityAnswers ?? derivedAnswers ?? null
 
-          const updatedRendering: WebRenderingOutput = {
-            sections: rendering.sections.map((s) =>
-              s.sectionIndex === sectionIndex
-                ? {
-                    ...s,
-                    html,
-                    reasoning: reasoning || s.reasoning,
-                    ...(effectiveAnswers ? { activityAnswers: effectiveAnswers } : {}),
-                  }
-                : s,
-            ),
-          }
-
           // Refresh the sectioning tree so the edit panel and downstream
           // steps stay in sync with the rewritten HTML.
-          const oldSection = sectioning.sections[sectionIndex]
+          const oldSection = resolveRenderedSection(found, sectioning.sections, rendering.sections)
           // sectionIds are allocated once and never reused, so one cannot be
           // derived from an array position — a guessed id would likely name a
           // *different* section, and it names this section's HTML file in every
@@ -363,10 +380,26 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           // and sectioning are out of sync; say so rather than guess.
           if (!oldSection) {
             throw new Error(
-              `Cannot update section ${sectionIndex} of ${pageId}: it has a rendering entry but no sectioning row, so its sectionId is unknown. Re-run the storyboard render for this page to bring the two back in sync.`,
+              `Cannot update section ${sectionIndex} of ${pageId}: it has a rendering entry but no sectioning row, so its sectionId is unknown. Restore matching sectioning/rendering versions before editing this section.`,
             )
           }
           const sectionId = oldSection.sectionId
+          html = stampRenderedOwner(html, sectionId)
+          assertUnusedTextIds(ctx.storage, renderedTextIds(html), renderedTextIds(found.html))
+          const updatedRendering: WebRenderingOutput = {
+            sections: rendering.sections.map((s) =>
+              s.sectionIndex === sectionIndex
+                ? {
+                    ...s,
+                    html,
+                    sectionId,
+                    reasoning: reasoning || s.reasoning,
+                    ...(effectiveAnswers ? { activityAnswers: effectiveAnswers } : {}),
+                  }
+                : s,
+            ),
+          }
+
           const sectionType = found.sectionType
           const newSectioningSection = buildSectioningSectionFromHtml({
             html,
@@ -375,23 +408,18 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
             // Rewriting in place — keep the section's pageNumber, palette,
             // placement, and prior leaf roles instead of resetting to defaults.
             base: oldSection,
+            previousHtml: found.html,
           })
           const updatedSectioning: PageSectioningOutput = {
             ...sectioning,
-            sections: sectioning.sections.map((s, i) =>
-              i === sectionIndex ? newSectioningSection : s,
+            sections: sectioning.sections.map((s) =>
+              s.sectionId === sectionId ? newSectioningSection : s,
             ),
           }
-          ctx.storage.putNodeData(
-            "page-sectioning",
-            pageId,
-            updatedSectioning,
-          )
-          const version = ctx.storage.putNodeData(
-            "web-rendering",
-            pageId,
-            updatedRendering,
-          )
+          const version = publishSourceEdit(ctx.storage, () => {
+            putSourceNodeData(ctx.storage, "page-sectioning", pageId, updatedSectioning)
+            return putSourceNodeData(ctx.storage, "web-rendering", pageId, updatedRendering)
+          })
           touchedPageIds.add(pageId)
           return { ok: true, version, sectionIndex }
         },
@@ -487,6 +515,13 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
             ...(n.children ? { children: n.children.map(promote) } : {}),
           })
           const nodes = sectioning.nodes.map(promote)
+          const proposedIds: string[] = []
+          const collect = (node: ContentNodeData): void => {
+            if (node.role !== "image") proposedIds.push(node.nodeId)
+            node.children?.forEach(collect)
+          }
+          nodes.forEach(collect)
+          assertUnusedTextIds(ctx.storage, proposedIds)
 
           const { section, rendering: newRendering } =
             await renderSyntheticActivity({
@@ -505,6 +540,10 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
               credentials: ctx.credentials,
             })
 
+          // The renderer may invent additional leaves. Check the actual HTML
+          // as well as the proposed tree before either entity is published.
+          assertUnusedTextIds(ctx.storage, renderedTextIds(newRendering.html))
+
           // The renderer returns sectionIndex/sectionType etc., but its
           // sectionIndex is whatever we asked for. Persist alongside the
           // existing sections.
@@ -515,16 +554,10 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
             ...existingSectioning,
             sections: [...existingSectioning.sections, section],
           }
-          ctx.storage.putNodeData(
-            "page-sectioning",
-            pageId,
-            updatedSectioning,
-          )
-          const version = ctx.storage.putNodeData(
-            "web-rendering",
-            pageId,
-            updatedRendering,
-          )
+          const version = publishSourceEdit(ctx.storage, () => {
+            putSourceNodeData(ctx.storage, "page-sectioning", pageId, updatedSectioning)
+            return putSourceNodeData(ctx.storage, "web-rendering", pageId, updatedRendering)
+          })
           touchedPageIds.add(pageId)
           return {
             ok: true,
@@ -619,9 +652,19 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
               ? extractAnswersFromHtml(html)
               : undefined
           const effectiveAnswers = activityAnswers ?? derivedAnswers ?? null
+          // Ownership is allocated by the server, never supplied by the model.
+          // Rewriting a copied owner can break scripts selecting that owner.
+          // Reject before either write so the agent can correct its markup.
+          const owners = DomUtils.findAll(element => element.type === "tag" && element.attribs["data-section-id"] !== undefined, parseDocument(html).children)
+          if (owners.length > 1 || owners.some(owner => owner.attribs["data-section-id"] !== sectionId)) {
+            throw new Error("New sections cannot copy data-section-id from another section. Retry without data-section-id; the server assigns it. Register the activity using document.currentScript.closest('section'), preserving its local IDs and answer keys.")
+          }
+          assertUnusedTextIds(ctx.storage, renderedTextIds(html))
+          html = stampRenderedOwner(html, sectionId)
 
           const newRendering: SectionRendering = {
             sectionIndex: nextIndex,
+            sectionId,
             sectionType,
             reasoning,
             html,
@@ -637,16 +680,10 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
             ...sectioning,
             sections: [...sectioning.sections, newSectioningSection],
           }
-          ctx.storage.putNodeData(
-            "page-sectioning",
-            pageId,
-            updatedSectioning,
-          )
-          const version = ctx.storage.putNodeData(
-            "web-rendering",
-            pageId,
-            updatedRendering,
-          )
+          const version = publishSourceEdit(ctx.storage, () => {
+            putSourceNodeData(ctx.storage, "page-sectioning", pageId, updatedSectioning)
+            return putSourceNodeData(ctx.storage, "web-rendering", pageId, updatedRendering)
+          })
           touchedPageIds.add(pageId)
           return {
             ok: true,

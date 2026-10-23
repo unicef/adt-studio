@@ -81,7 +81,7 @@ describe("UnsavedChangesGuard", () => {
     expect(screen.getByText("1 section edited")).toBeTruthy()
     expect(screen.getByRole("button", { name: /save & leave/i })).toBeTruthy()
     expect(screen.queryByText("Heads up")).toBeNull()
-    expect(screen.getByText(/completed stages below will be reset/i)).toBeTruthy()
+    expect(screen.getByText(/review the affected stages/i)).toBeTruthy()
     expect(screen.getByText("storyboard")).toBeTruthy()
     expect(screen.getByText("quizzes")).toBeTruthy()
   })

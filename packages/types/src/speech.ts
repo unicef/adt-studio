@@ -1,3 +1,4 @@
+import { OutputMetadata } from "./output-freshness.js"
 import { z } from "zod"
 import { TextCatalogCategory, getTextCatalogCategory } from "./text-catalog.js"
 
@@ -303,9 +304,15 @@ export function isTtsExcluded(
 }
 
 export const SpeechFileEntry = z.object({
+  ...OutputMetadata.shape,
   textId: z.string(),
   language: z.string(),
   fileName: z.string(),
+  audioHash: z.string().optional(),
+  speechInputSignature: z.string().optional(),
+  /** Explicit single-item synthesis under a page-batch preference when no
+   * alignment key was available. Its input/context remains per item. */
+  pageBatchFallback: z.literal("single-item").optional(),
   voice: z.string(),
   model: z.string(),
   cached: z.boolean(),
@@ -363,6 +370,8 @@ export function sortSpeechEntries<T extends { textId: string; voiceSlot?: VoiceS
 }
 
 export const TTSOutput = z.object({
+  legacySnapshotOf: z.number().int().positive().optional(),
+  timingVersion: z.number().int().positive().nullable().optional(),
   entries: z.array(SpeechFileEntry),
   generatedAt: z.string(),
   /** Per-item failures from the run that produced this output, so the UI can
@@ -370,6 +379,21 @@ export const TTSOutput = z.object({
   failed: z.array(SpeechFailedEntry).optional(),
 })
 export type TTSOutput = z.infer<typeof TTSOutput>
+
+/** Playback uses a normalized selection key but retains the physical namespace.
+ * Optional on the wire for compatibility with clients/tests from older servers. */
+export const TTSReadEntry = SpeechFileEntry.pick({
+  textId: true, language: true, fileName: true, voice: true, model: true,
+  cached: true, provider: true, voiceLabel: true,
+}).extend({ language: z.string().optional(), voiceSlot: VoiceSlot, cacheKey: z.string().optional() })
+export type TTSReadEntry = z.infer<typeof TTSReadEntry>
+export const TTSReadLanguage = z.object({
+  entries: z.array(TTSReadEntry), failed: z.array(SpeechFailedEntry).optional(),
+  generatedAt: z.string(), version: z.number(), storageLanguage: z.string().optional(),
+})
+export type TTSReadLanguage = z.infer<typeof TTSReadLanguage>
+export const TTSReadResponse = z.object({ languages: z.record(z.string(), TTSReadLanguage), live: z.boolean().optional() })
+export type TTSReadResponse = z.infer<typeof TTSReadResponse>
 
 export const WordTimestamp = z.object({
   word: z.string(),
@@ -379,6 +403,12 @@ export const WordTimestamp = z.object({
 export type WordTimestamp = z.infer<typeof WordTimestamp>
 
 export const WordTimestampEntry = z.object({
+  ...OutputMetadata.shape,
+  audioHash: z.string().optional(),
+  /** Verified representation change on the first physical audio snapshot.
+   * Existing input/review signatures can still name this legacy filename;
+   * valid only while audioHash matches the active audio. No media is rehashed. */
+  legacyAudioFileName: z.string().optional(),
   textId: z.string(),
   language: z.string(),
   words: z.array(WordTimestamp),
@@ -391,6 +421,35 @@ export const WordTimestampEntry = z.object({
   voiceSlot: VoiceSlot.optional(),
 })
 export type WordTimestampEntry = z.infer<typeof WordTimestampEntry>
+
+/** Read-time metadata receipt. It never hashes or snapshots media on opening. */
+export const WordTimestampEditGuard = z.object({
+  baseVersion: z.number().int().nonnegative(),
+  audioHash: z.string().min(1).optional(),
+  audioIdentity: z.string().min(1).optional(),
+})
+export type WordTimestampEditGuard = z.infer<typeof WordTimestampEditGuard>
+
+export const WordTimestampSaveRequest = WordTimestampEditGuard.extend({
+  words: z.array(WordTimestamp),
+  duration: z.number(),
+  voiceSlot: VoiceSlot.optional(),
+}).strict().refine((guard) => !!(guard.audioIdentity || guard.audioHash), {
+  message: "An audio identity or audio hash is required",
+})
+export type WordTimestampSaveRequest = z.infer<typeof WordTimestampSaveRequest>
+
+export const WordTimestampReadEntry = WordTimestampEntry.extend({
+  version: z.number().int().nonnegative(),
+  audioIdentity: z.string().optional(),
+})
+export type WordTimestampReadEntry = z.infer<typeof WordTimestampReadEntry>
+
+export const WordTimestampSaveResponse = z.object({
+  ok: z.literal(true),
+  entry: WordTimestampReadEntry,
+})
+export type WordTimestampSaveResponse = z.infer<typeof WordTimestampSaveResponse>
 
 export const WordTimestampOutput = z.object({
   entries: z.record(z.string(), WordTimestampEntry),
