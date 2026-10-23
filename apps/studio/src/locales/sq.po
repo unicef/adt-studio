@@ -8847,8 +8847,8 @@ msgstr "Shkurtuar: {reason}"
 msgid "PT"
 msgstr "PT"
 
-msgid "Publish again"
-msgstr "Publiko përsëri"
+#~ msgid "Publish again"
+#~ msgstr "Publiko përsëri"
 
 #~ msgid "Publish for review"
 #~ msgstr "Publiko për shqyrtim"
@@ -10433,6 +10433,9 @@ msgstr "Zgjedhja e \"Asnjë\" i lejon LLM-it të zgjedhë stilin e tij për çdo
 
 msgid "Self-contained ADT web app"
 msgstr "Aplikacion web ADT i pavarur"
+
+msgid "Send a fresh copy"
+msgstr "Dërgo një kopje të re"
 
 msgid "Send a sample notification using these settings."
 msgstr "Dërgo një njoftim shembull duke përdorur këto cilësime."

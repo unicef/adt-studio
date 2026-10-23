@@ -113,7 +113,7 @@ function HeroIdentity({ link, onOpenSettings, quiet }: { link: DashLink; onOpenS
               className="-mx-1.5 flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
             >
               <RefreshCw className="size-3.5" aria-hidden="true" />
-              <Trans>Publish again</Trans>
+              <Trans>Send a fresh copy</Trans>
             </button>
           </p>
         )}

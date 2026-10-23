@@ -8845,8 +8845,8 @@ msgstr "Pruned: {reason}"
 msgid "PT"
 msgstr "PT"
 
-msgid "Publish again"
-msgstr "Publish again"
+#~ msgid "Publish again"
+#~ msgstr "Publish again"
 
 #~ msgid "Publish for review"
 #~ msgstr "Publish for review"
@@ -10431,6 +10431,9 @@ msgstr "Selecting \"None\" lets the LLM choose its own styling for each page."
 
 msgid "Self-contained ADT web app"
 msgstr "Self-contained ADT web app"
+
+msgid "Send a fresh copy"
+msgstr "Send a fresh copy"
 
 msgid "Send a sample notification using these settings."
 msgstr "Send a sample notification using these settings."

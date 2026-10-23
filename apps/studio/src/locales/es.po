@@ -8845,8 +8845,8 @@ msgstr "Eliminado: {0}"
 msgid "PT"
 msgstr "PT"
 
-msgid "Publish again"
-msgstr "Publicar de nuevo"
+#~ msgid "Publish again"
+#~ msgstr "Publicar de nuevo"
 
 #~ msgid "Publish for review"
 #~ msgstr "Publicar para revisión"
@@ -10431,6 +10431,9 @@ msgstr "Seleccionar \\\"Ninguno\\\" permite al LLM elegir su propio estilo para 
 
 msgid "Self-contained ADT web app"
 msgstr "Aplicación web ADT autónoma"
+
+msgid "Send a fresh copy"
+msgstr "Enviar una copia nueva"
 
 msgid "Send a sample notification using these settings."
 msgstr "Enviar una notificación de muestra usando estos ajustes."

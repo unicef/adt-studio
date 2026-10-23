@@ -8847,8 +8847,8 @@ msgstr "Élagué : {reason}"
 msgid "PT"
 msgstr "PT"
 
-msgid "Publish again"
-msgstr "Publier à nouveau"
+#~ msgid "Publish again"
+#~ msgstr "Publier à nouveau"
 
 #~ msgid "Publish for review"
 #~ msgstr "Publier pour révision"
@@ -10433,6 +10433,9 @@ msgstr "Sélectionner \\\"Aucun\\\" laisse le LLM choisir son propre style pour 
 
 msgid "Self-contained ADT web app"
 msgstr "Application web ADT autonome"
+
+msgid "Send a fresh copy"
+msgstr "Envoyer une nouvelle copie"
 
 msgid "Send a sample notification using these settings."
 msgstr "Envoyer une notification d'exemple en utilisant ces paramètres."
