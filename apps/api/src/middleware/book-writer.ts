@@ -2,6 +2,8 @@ import type { MiddlewareHandler } from "hono"
 import { withBookWriter } from "@adt/storage"
 import { requireExistingBook } from "../utils/book-exists.js"
 
+const PUBLISH_WORKER_ONLY = ["/publication/comments", "/publication/room-ticket"]
+
 /** Adapted from published SPEC-0010/#886. Reads remain read-only; queued runs
  * and cancellation are admitted by their service when execution starts. */
 export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
@@ -14,6 +16,8 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     const bookDir = requireExistingBook(label, booksDir)
     // Match #886: admission must not recreate a book after its deletion.
     if (suffix.startsWith("/stages") || suffix.startsWith("/tasks")) return next()
+    // Shared-link feedback only reaches the publish Worker; the book stays untouched.
+    if (PUBLISH_WORKER_ONLY.some((prefix) => suffix.startsWith(prefix))) return next()
     return withBookWriter(bookDir, next)
   }
 }

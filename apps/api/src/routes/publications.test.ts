@@ -2,9 +2,12 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { Hono } from "hono"
 import { openBookDb } from "@adt/storage"
 import { PUBLISH_WORKER_VERSION, type PublishProgressEvent } from "@adt/types"
 import type { PublishRunSnapshot } from "../services/publish-run-progress.js"
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
+import { errorHandler } from "../middleware/error-handler.js"
 import { createConnectionStore } from "../services/cloudflare/connection-store.js"
 import type { CloudflareConnectionRecord } from "../services/cloudflare/connection-store.js"
 import {
@@ -676,6 +679,67 @@ describe("a share run the browser lost", () => {
     const { app } = routes()
     const cancel = await app.request(`/books/${LABEL}/publication/run/cancel`, { method: "POST" })
     expect(await cancel.json()).toEqual({ cancelled: false })
+  })
+})
+
+describe("sharing under the book's writer lease", () => {
+  const lockFile = () => path.join(tmpDir, LABEL, ".book-writer.json")
+
+  /** Mounted the way `app.ts` mounts it, behind the writer-lease middleware every book write
+   *  goes through. */
+  function guarded(inner: Hono): Hono {
+    const app = new Hono()
+    app.onError(errorHandler)
+    app.use("/books/:label", bookWriterMiddleware(tmpDir))
+    app.use("/books/:label/*", bookWriterMiddleware(tmpDir))
+    app.route("/", inner)
+    return app
+  }
+
+  it("holds the lease while the export rewrites the book, then lets it go", async () => {
+    const held: boolean[] = []
+    const { app: inner } = routes({
+      prepareExportFn: (async () => {
+        held.push(fs.existsSync(lockFile()))
+        return {}
+      }) as never,
+    })
+    const app = guarded(inner)
+
+    const published = await drain(await app.request(`/books/${LABEL}/publication`, { method: "POST" }))
+    const updated = await drain(
+      await app.request(`/books/${LABEL}/publication/versions`, { method: "POST" }),
+    )
+
+    expect(published.at(-1)).toMatchObject({ type: "complete" })
+    expect(updated.at(-1)).toMatchObject({ type: "complete" })
+    expect(held).toEqual([true, true])
+    expect(fs.existsSync(lockFile())).toBe(false)
+  })
+
+  it("keeps shared-link feedback working while another writer holds the book", async () => {
+    const createComment = vi.fn().mockResolvedValue({ comment: { id: "comment-1" } })
+    const roomTicket = vi.fn().mockResolvedValue({
+      ticket: "v1.1893456000.nonce.tag",
+      ws_url: "wss://worker.example/p/token/room",
+      expires_at: "2029-12-31T00:00:00.000Z",
+    })
+    const app = guarded(routes({ clientOverrides: { createComment, roomTicket } }).app)
+    await drain(await app.request(`/books/${LABEL}/publication`, { method: "POST" }))
+    fs.writeFileSync(lockFile(), "{}")
+
+    const comment = await app.request(`/books/${LABEL}/publication/comments`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ page_section_id: "pg001_sec001", body: "Looks good" }),
+    })
+    const ticket = await app.request(`/books/${LABEL}/publication/room-ticket`, { method: "POST" })
+    const update = await app.request(`/books/${LABEL}/publication/versions`, { method: "POST" })
+
+    expect(comment.status).toBe(201)
+    expect(ticket.status).toBe(200)
+    expect(update.status).toBe(409)
+    expect(await update.json()).toMatchObject({ code: "BOOK_BUSY" })
   })
 })
 
