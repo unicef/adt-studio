@@ -23,7 +23,7 @@ export interface PublishRunScreenProps {
 /**
  * A run the author stopped is not a run that failed, but the controller has no fourth status for
  * it: `error` with nothing to explain is that shape. The distinction matters to the copy — a
- * failure offers "Try again", a stop offers "Publish again" and never apologises for something the
+ * failure offers "Try again", a stop offers "Share again" and never apologises for something the
  * author chose.
  */
 export function isAuthorStopped(status: string, failure: unknown): boolean {

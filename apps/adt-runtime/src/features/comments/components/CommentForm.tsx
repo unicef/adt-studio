@@ -5,6 +5,7 @@ import { Input } from "@/shared/ui/input"
 import { Textarea } from "@/shared/ui/textarea"
 import { cn } from "@/shared/lib/utils"
 import { CommentsApiError } from "@/features/comments/lib/api"
+import { isSubmitKey } from "@/features/comments/lib/submit-key"
 import type { CommentAnchor } from "@/features/comments/lib/anchor"
 import {
   COMMENT_BODY_MAX_LENGTH,
@@ -69,6 +70,8 @@ export function CommentForm({
 
   const bodyRef = useRef<HTMLTextAreaElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
+  /** `busy` reaches the button a render late; a second Enter in between must not post twice. */
+  const postingRef = useRef(false)
 
   useEffect(() => {
     if (session && step === "identity") setStep("body")
@@ -92,6 +95,7 @@ export function CommentForm({
   )
 
   const post = useCallback(async () => {
+    if (postingRef.current) return
     const trimmedBody = body.trim()
     if (!trimmedBody) {
       setError(t("comments-body-required-label"))
@@ -110,6 +114,7 @@ export function CommentForm({
       return
     }
 
+    postingRef.current = true
     setBusy(true)
     setError(null)
     try {
@@ -148,6 +153,7 @@ export function CommentForm({
       }
       setError(t("comments-failed-label"))
     } finally {
+      postingRef.current = false
       setBusy(false)
     }
   }, [
@@ -167,10 +173,9 @@ export function CommentForm({
   ])
 
   const onBodyKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-      event.preventDefault()
-      void post()
-    }
+    if (!isSubmitKey(event)) return
+    event.preventDefault()
+    void post()
   }
 
   const remaining = COMMENT_BODY_MAX_LENGTH - body.length

@@ -215,6 +215,8 @@
     "comments-mode-label": "Comment",
     "comments-mode-hint": "Click anywhere on the page to leave a comment",
     "comments-mode-exit-label": "Done commenting",
+    "comments-mode-active-label": "Commenting",
+    "comments-add-label": "Add a comment",
     "comments-closed-label": "Commenting is closed for this link",
     "comments-count-label": "${count} comments on this page",
     "comments-empty-label": "No comments on this page yet",

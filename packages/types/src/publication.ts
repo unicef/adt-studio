@@ -12,7 +12,7 @@ export const PUBLISH_WORKER_VERSION = "0.14.6"
  * did not always have — publishing then asks for the update instead of deploying a host that
  * would half-work against the old one.
  */
-export const BOOK_HOST_MIN_CONTROL_PLANE_VERSION = "0.13.0"
+export const BOOK_HOST_MIN_CONTROL_PLANE_VERSION = "0.14.0"
 
 /** Numeric dotted-version comparison: `true` when `version` is `minimum` or newer. Anything
  *  that does not parse is treated as unknown and allowed, so a missing version never blocks. */

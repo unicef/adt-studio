@@ -3,8 +3,9 @@ import { readableTextColor } from "@adt/types/color"
 import { initialOf } from "@/features/comments/lib/initial"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { currentLanguageAtom } from "@/features/language/state/language.atoms"
-import { Check, X } from "lucide-react"
+import { Check, MessageSquarePlus, X } from "lucide-react"
 import { useEffect, useMemo, useRef } from "react"
+import { Button } from "@/shared/ui/button"
 import { Switch } from "@/shared/ui/switch"
 import { cn } from "@/shared/lib/utils"
 import { hrefForSection, pageLabelForSection } from "@/features/comments/lib/follow"
@@ -15,7 +16,9 @@ import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import { PresencePeerList } from "@/features/comments/components/PresencePeerList"
 import {
   bookCommentsAtom,
+  commentModeAtom,
   commentScopeAtom,
+  commentsWritableAtom,
   pageResolvedCountAtom,
   showResolvedAtom,
   type CommentScope,
@@ -59,6 +62,8 @@ export function CommentsSidebar({
   const language = useAtomValue(currentLanguageAtom) as string
   const [showResolved, setShowResolved] = useAtom(showResolvedAtom)
   const [scope, setScope] = useAtom(commentScopeAtom)
+  const [commentMode, setCommentMode] = useAtom(commentModeAtom)
+  const writable = useAtomValue(commentsWritableAtom)
   const resolvedCount = useAtomValue(pageResolvedCountAtom)
   const bookComments = useAtomValue(bookCommentsAtom)
   const peers = useAtomValue(otherPeersAtom)
@@ -227,9 +232,22 @@ export function CommentsSidebar({
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {shown.length === 0 ? (
-          <p className="px-1.5 py-6 text-center text-xs text-muted-foreground">
-            {whole ? t("comments-book-empty-label") : t("comments-empty-label")}
-          </p>
+          <div className="flex flex-col items-center gap-3 px-1.5 py-6 text-center">
+            <p className="text-xs text-muted-foreground">
+              {whole ? t("comments-book-empty-label") : t("comments-empty-label")}
+            </p>
+            {writable && !(commentMode as boolean) ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setCommentMode(true)}
+                className="gap-1.5 duration-200 animate-in fade-in-0 motion-reduce:animate-none"
+              >
+                <MessageSquarePlus aria-hidden className="size-3.5" />
+                {t("comments-add-label")}
+              </Button>
+            ) : null}
+          </div>
         ) : (
           <ul className="flex flex-col gap-1">
             {shown.map((comment) => {

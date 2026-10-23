@@ -13,6 +13,7 @@ import {
 } from "@/shared/ui/dropdown-menu"
 import { cn } from "@/shared/lib/utils"
 import { relativeTime } from "@/features/comments/lib/relative-time"
+import { isSubmitKey } from "@/features/comments/lib/submit-key"
 import { COMMENT_BODY_MAX_LENGTH, type PublishComment } from "@/features/comments/lib/contract"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import type { CommentActionResult } from "@/features/comments/hooks/useCommentActions"
@@ -180,7 +181,7 @@ export function CommentEntry({
               value={draft}
               onChange={(event) => setDraft(event.target.value.slice(0, COMMENT_BODY_MAX_LENGTH))}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                if (isSubmitKey(event)) {
                   event.preventDefault()
                   void save()
                 }

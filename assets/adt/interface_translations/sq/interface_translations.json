@@ -137,6 +137,8 @@
     "comments-mode-label": "Komento",
     "comments-mode-hint": "Klikoni kudo në faqe për të lënë një koment",
     "comments-mode-exit-label": "Përfundo komentimin",
+    "comments-mode-active-label": "Duke komentuar",
+    "comments-add-label": "Shto një koment",
     "comments-closed-label": "Kjo lidhje nuk pranon më komente",
     "comments-count-label": "${count} komente në këtë faqe",
     "comments-empty-label": "Nuk ka ende komente në këtë faqe",
