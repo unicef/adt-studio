@@ -487,7 +487,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
           <div className="rounded-md border divide-y">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50">
               <span className="h-3.5 w-3.5 shrink-0" />
-              <span className="text-xs font-medium text-muted-foreground shrink-0 w-40">{<Trans>Type</Trans>}</span>
+              <span className="text-xs font-medium text-muted-foreground shrink-0 w-48">{<Trans>Type</Trans>}</span>
               <span className="text-xs font-medium text-muted-foreground flex-1 min-w-0">{<Trans>Description</Trans>}</span>
               <span className="text-xs font-medium text-muted-foreground shrink-0 w-48 text-left">{<Trans>Render Strategy</Trans>}</span>
               <span className="shrink-0 w-5" />
@@ -504,7 +504,10 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
                   className={`flex items-center gap-2 px-3 py-1.5 group ${disabled ? "opacity-50" : pruned ? "bg-muted/30" : ""}`}
                 >
                   <PruneToggle pruned={pruned} onToggle={() => togglePruned(key)} />
-                  <span className={`text-xs shrink-0 w-40 truncate font-mono ${disabled ? "text-muted-foreground line-through" : pruned ? "text-muted-foreground line-through" : "font-medium"}`}>
+                  <span
+                    title={getSectionTypeDisplayLabel(key)}
+                    className={`text-xs shrink-0 w-48 truncate font-mono ${disabled ? "text-muted-foreground line-through" : pruned ? "text-muted-foreground line-through" : "font-medium"}`}
+                  >
                     {getSectionTypeDisplayLabel(key)}
                   </span>
                   <Input

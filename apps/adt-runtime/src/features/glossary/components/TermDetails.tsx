@@ -13,6 +13,7 @@ import {
   isGlossaryTermOnPage,
   locateGlossaryTerm,
 } from "@/features/glossary/lib/locate"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 
 export function TermDetails() {
@@ -44,11 +45,11 @@ export function TermDetails() {
     const target = await findPageWithGlossaryTerm(entry, otherPages).catch(
       () => null,
     )
-    if (!target) {
-      setLocating(false)
-      return
-    }
-    window.location.href = `${target.href}#glossary=${encodeURIComponent(entry.word)}`
+    setLocating(false)
+    if (!target) return
+    setDockMenuValue("")
+    setSelected(null)
+    navigateToPage(`${target.href}#glossary=${encodeURIComponent(entry.word)}`)
   }
 
   return (

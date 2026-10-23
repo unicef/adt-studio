@@ -55,11 +55,11 @@ export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[16.5px] font-bold tracking-[-0.01em]">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="whitespace-nowrap text-[16.5px] font-bold tracking-[-0.01em]">
                   <Trans>Convert a PDF</Trans>
                 </span>
-                <Badge className="rounded-full px-2 py-0.5 text-[9.5px] uppercase tracking-[0.06em]">
+                <Badge className="whitespace-nowrap rounded-full px-2 py-0.5 text-[9.5px] uppercase tracking-[0.06em]">
                   <Trans>Most common</Trans>
                 </Badge>
               </div>

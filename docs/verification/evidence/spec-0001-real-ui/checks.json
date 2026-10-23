@@ -1,0 +1,51 @@
+{
+  "runtimeHead": "7ca3609a282ead5cf58100344dd9be3a55e0d4ce",
+  "startingPublishedHead": "e7b9c702cb708b26876e71c937217e913f4a793d",
+  "base": "0b18602f8b42f4b52b4d2ccf2927635d5a4db572",
+  "tests": {
+    "files": 338,
+    "tests": 4194,
+    "seconds": 254.94,
+    "status": "passed"
+  },
+  "focusedRegressionCases": 5,
+  "baselineMixedSaveCases": {
+    "cases": 4,
+    "failed": 2
+  },
+  "independentMountedAndBackPropagationTests": 13,
+  "typecheck": "passed",
+  "runtimeTypecheck": "passed",
+  "lint": {
+    "errors": 0,
+    "warnings": 8
+  },
+  "studioBuild": "passed",
+  "desktopUnpackedMacArm64": "passed unsigned; no Electron GUI claim",
+  "i18n": {
+    "messages": 3735,
+    "missing": 0,
+    "locales": [
+      "en",
+      "pt-BR",
+      "es",
+      "fr",
+      "sq"
+    ]
+  },
+  "realUi": "actual built Studio controls, packaged API, isolated real SQLite books, local stub transport",
+  "providerRequests": 3,
+  "providerCallsDuringSave": 0,
+  "pendingAcceptance": [
+    "actual De-codable pg006 by elasticsounds",
+    "authentic books from fixed-layout affected releases",
+    "clean combined Docker app image",
+    "Electron GUI",
+    "fresh-PDF CLI walkthrough",
+    "paid-provider quality and billing",
+    "signed cross-platform release artifacts"
+  ],
+  "fullProductionAcceptance": false,
+  "specApproval": "pending",
+  "finalHeadHostedCi": "pending at ledger publication"
+}

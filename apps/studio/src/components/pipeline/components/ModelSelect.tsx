@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLingui } from "@lingui/react/macro"
+import { GOOGLE_IMAGE_MODELS } from "@adt/types"
 
 export interface ModelGroup {
   provider: string
@@ -292,6 +293,7 @@ export const LLM_MODEL_GROUPS: ModelGroup[] = [
 
 /** Image generation / image-edit models */
 export const IMAGE_MODEL_GROUPS: ModelGroup[] = [
+  { provider: "google", models: Object.keys(GOOGLE_IMAGE_MODELS) },
   {
     provider: "openai",
     models: [

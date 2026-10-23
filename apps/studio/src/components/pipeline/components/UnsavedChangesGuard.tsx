@@ -196,12 +196,11 @@ export function UnsavedChangesGuard() {
             <div className="rounded-lg border border-amber-200 bg-amber-50/70 px-3.5 py-3">
               <p className="text-xs leading-relaxed text-amber-900">
                 <Trans>
-                  The completed stages below will be reset and need to run again before final
-                  outputs are available.
+                  Review the affected stages after this change.
                 </Trans>
               </p>
               <p className="mb-2 mt-3 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
-                <Trans>Will be reset</Trans>
+                <Trans>May need attention</Trans>
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {resetStageDefs.map((stage) => {

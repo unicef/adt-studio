@@ -31,8 +31,8 @@ export function HomeScreen() {
   const hasBooks = vms.length > 0
 
   return (
-    <div className="relative flex h-full flex-col bg-background pt-4">
-      <TopBar className="absolute top-0 drag-region z-10" />
+    <div className="relative flex h-full flex-col bg-background">
+      <TopBar className="shrink-0 drag-region" />
       <div className="pointer-events-none absolute -top-[120px] right-[-80px] size-[440px] animate-hero-drift rounded-full bg-[radial-gradient(circle,rgba(43,127,255,.12),transparent_70%)]" />
 
       {hasBooks ? (
@@ -46,7 +46,7 @@ export function HomeScreen() {
           />
         </div>
       ) : (
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-auto px-11 py-12">
+        <div className="topbar-scroll-fade relative flex min-h-0 flex-1 flex-col overflow-auto px-11 pb-12 pt-4">
           <WelcomeHero onOpenAdd={openAdd} />
           <WelcomeFeatures />
         </div>

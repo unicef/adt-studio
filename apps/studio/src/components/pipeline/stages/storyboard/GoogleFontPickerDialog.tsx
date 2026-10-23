@@ -212,7 +212,7 @@ export function GoogleFontPicker({
                         {added && (
                           <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] text-secondary-foreground">
                             <Check className="h-3 w-3" aria-hidden="true" />
-                            {t`Added`}
+                            {t({ message: "Added", context: "font badge" })}
                           </span>
                         )}
                         {pending && (

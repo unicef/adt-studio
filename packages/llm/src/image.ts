@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
-import { safeParseModelId } from "@adt/types"
+import { ImageAspectRatio, safeParseModelId } from "@adt/types"
+import { validateGeneratedImage } from "./image-validation.js"
 import {
   computeCacheKeyV2,
   computeHash,
@@ -28,6 +29,7 @@ export interface GenerateImageWithCacheOptions {
   modelId: string
   prompt: string
   size?: `${number}x${number}`
+  aspectRatio?: number
   referenceImages?: Array<{
     data: Buffer
     mimeType?: string
@@ -50,6 +52,8 @@ export interface GenerateImageWithCacheResult {
   base64: string
   mimeType: string
   cached: boolean
+  width: number
+  height: number
 }
 
 export async function generateImageWithCache(
@@ -59,6 +63,7 @@ export async function generateImageWithCache(
     modelId,
     prompt,
     size,
+    aspectRatio,
     referenceImages = [],
     cacheDir,
     timeoutMs = 180_000,
@@ -82,6 +87,8 @@ export async function generateImageWithCache(
   // A resolution failure is a configuration error — logged once, never retried.
   let resolved
   try {
+    signal?.throwIfAborted()
+    if (aspectRatio !== undefined) ImageAspectRatio.parse(aspectRatio)
     resolved = registry.resolveImage(modelId, {
       credentials: resolveCredentials(options),
       logLevel,
@@ -98,6 +105,7 @@ export async function generateImageWithCache(
   const schema = {
     type: "image-generation",
     size,
+    ...(aspectRatio !== undefined ? { aspectRatio } : {}),
     referenceImageCount: referenceImages.length,
   }
   const hash = computeCacheKeyV2({
@@ -115,13 +123,23 @@ export async function generateImageWithCache(
     : null
 
   if (cacheDir) {
-    const cached = readCache<ImageResult>(cacheDir, hash)
+    const readValidImage = (key: string) => {
+      const entry = readCache<unknown>(cacheDir, key)
+      if (entry === null) return null
+      try {
+        return validateGeneratedImage(entry)
+      } catch {
+        logger.info(`[LLM] ${label} | ignoring invalid cached image`)
+        return null
+      }
+    }
+    const cached = readValidImage(hash)
     if (cached) {
       logger.info(`[LLM] ${label} | cached | ${Date.now() - startedAt}ms`)
       emitLog({ requestId, modelId, startedAt, messages, logOptions, onLog, result: cached, cacheHit: true })
       return { ...cached, cached: true }
     }
-    const legacyCached = legacyHash ? readCache<ImageResult>(cacheDir, legacyHash) : null
+    const legacyCached = legacyHash ? readValidImage(legacyHash) : null
     if (legacyCached) {
       // Promote the legacy hit into v2 so future reads skip the fallback.
       writeCache(cacheDir, hash, legacyCached)
@@ -142,10 +160,13 @@ export async function generateImageWithCache(
           resolved.modelId,
         )
       }
-      result = await resolved.backend.edit({ prompt, size, referenceImages, timeoutMs, signal })
+      result = await resolved.backend.edit({ prompt, size, aspectRatio, referenceImages, timeoutMs, signal })
     } else {
-      result = await resolved.backend.generate({ prompt, size, timeoutMs, signal })
+      result = await resolved.backend.generate({ prompt, size, aspectRatio, timeoutMs, signal })
     }
+
+    const validated = validateGeneratedImage(result)
+    signal?.throwIfAborted()
 
     if (cacheDir) {
       writeCache(cacheDir, hash, result)
@@ -154,7 +175,7 @@ export async function generateImageWithCache(
     logger.info(`[LLM] ${label} | ok | ${Date.now() - startedAt}ms`)
     emitLog({ requestId, modelId, startedAt, messages, logOptions, onLog, result, cacheHit: false })
 
-    return { ...result, cached: false }
+    return { ...validated, cached: false }
   } catch (error) {
     const message = formatProviderError(error)
     logger.error(`[LLM] ${label} | error | ${message}`)

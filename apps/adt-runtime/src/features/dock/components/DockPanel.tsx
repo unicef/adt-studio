@@ -85,12 +85,20 @@ function DockPanel({
         // are handled by the button's own onClick — don't also treat them as
         // an outside-press dismissal, or the panel would flicker/toggle. Any
         // other outside-press (a click in the book) closes the panel.
+        //
+        // The same click also moves focus to that button in browsers that
+        // focus buttons on press (Chrome, Edge), which arrives as a separate
+        // focus-out dismissal. Ignore it too, so turning the page keeps the
+        // open panel open, as it already does in Safari.
+        const destination =
+          eventDetails.reason === "outside-press"
+            ? eventDetails.event?.target
+            : eventDetails.reason === "focus-out"
+              ? (eventDetails.event as FocusEvent | undefined)?.relatedTarget
+              : null
         if (
-          eventDetails.reason === "outside-press" &&
-          eventDetails.event &&
-          (eventDetails.event.target as HTMLElement | null)?.closest(
-            "[data-dock-trigger]",
-          )
+          destination instanceof Element &&
+          destination.closest("[data-dock-trigger]")
         ) {
           return
         }

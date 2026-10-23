@@ -6,6 +6,7 @@ import { PIPELINE, STAGE_BY_NAME, STEP_TO_STAGE } from "@adt/types"
 import type { StepName, StageName, ProgressEvent } from "@adt/types"
 import { parseCliArgs, USAGE } from "./cli-args.js"
 import { runFullPipeline } from "./pipeline-dag.js"
+import { diagnoseBook, diagnoseBooks, formatDiagnosis, hasFindings } from "./book-doctor.js"
 import type { Progress } from "./progress.js"
 
 function log(msg: string): void {
@@ -28,8 +29,21 @@ function createCliProgress(): Progress & { stop(): void } {
     ...PIPELINE.flatMap((s) => s.steps.map((st) => st.label.length)),
   )
   const stageFormat = (label: string) => ` ${label}`
-  const stepFormat = (label: string) =>
-    `   ${label.padEnd(maxLabel + 2)} [{bar}] {value}/{total}`
+  // A skipped step never ran, so its bar stays empty and says so instead of
+  // showing a filled bar that looks like a completed step.
+  const stepFormat =
+    (label: string): cliProgress.GenericFormatter =>
+    (options, params, payload: { skipped?: boolean }) => {
+      const name = `   ${label.padEnd(maxLabel + 2)} `
+      const bar = cliProgress.Format.BarFormat(
+        payload.skipped ? 0 : params.progress,
+        options,
+      )
+      const status = payload.skipped
+        ? "skipped"
+        : `${params.value}/${params.total}`
+      return `${name}[${bar}] ${status}`
+    }
 
   const multibar = new cliProgress.MultiBar(
     {
@@ -60,9 +74,15 @@ function createCliProgress(): Progress & { stop(): void } {
 
   return {
     emit(event: ProgressEvent) {
-      if (event.type === "step-complete" || event.type === "step-skip") {
+      if (event.type === "step-complete") {
         const bar = bars.get(event.step)
         if (bar) bar.update(bar.getTotal())
+        return
+      }
+
+      if (event.type === "step-skip") {
+        const bar = bars.get(event.step)
+        if (bar) bar.update(0, { skipped: true })
         return
       }
 
@@ -90,12 +110,36 @@ function createCliProgress(): Progress & { stop(): void } {
   }
 }
 
+/** `pipeline doctor [books-dir] [--label <label>] [--json]`: read-only. */
+function runDoctor(args: string[]): void {
+  let booksDir = "books"
+  let label: string | undefined
+  let json = false
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]
+    if (arg === "--json") json = true
+    else if (arg === "--label") label = args[++index]
+    else if (arg.startsWith("--")) throw new Error(`Unknown doctor option: ${arg}`)
+    else booksDir = arg
+  }
+  const reports = label ? [diagnoseBook(booksDir, label)] : diagnoseBooks(booksDir)
+  if (json) process.stdout.write(JSON.stringify(reports, null, 2) + "\n")
+  else if (reports.length === 0) process.stdout.write(`No books found under ${path.resolve(booksDir)}\n`)
+  else process.stdout.write(reports.map(formatDiagnosis).join("\n") + "\n")
+  process.exitCode = reports.some((report) => report.error) ? 2 : reports.some(hasFindings) ? 1 : 0
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
 
   if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
     process.stderr.write(USAGE + "\n")
     process.exit(args.length === 0 ? 1 : 0)
+  }
+
+  if (args[0] === "doctor") {
+    runDoctor(args.slice(1))
+    return
   }
 
   const { label, pdfPath, startPage, endPage, booksRoot, concurrency } =
