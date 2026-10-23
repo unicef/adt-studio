@@ -968,7 +968,7 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
   const emit = options.emit
   const built = await buildSnapshot(options, emit)
   /** Read after the build, not after the upload: it has to describe the content that went into
-   *  the snapshot, and a big book can be uploading for minutes while the author keeps editing. */
+   *  the snapshot, whatever reaches the book once the run lets go of it. */
   const contentRevision = readContentRevision(options.label, options.booksDir)
   const token = (options.generateToken ?? mintPublicationToken)()
   const client = clientFor(options)
