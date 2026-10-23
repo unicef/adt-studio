@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { ClipboardCheck, LayoutGrid, Link2, ListChecks, PanelBottom, PanelTop, RotateCcw } from "lucide-react"
+import { ClipboardCheck, Link2, ListChecks, PanelBottom, RotateCcw } from "lucide-react"
 import { useRouter, useRouterState } from "@tanstack/react-router"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { readThemeMode, setThemeMode } from "@/lib/theme"
@@ -61,28 +61,6 @@ function pathFor(book: string, screen: string): string {
   if (screen === "setup") return `/pipeline/${label}/sectioning`
   if (book === "none") return `/pipeline/${label}`
   return `/pipeline/${label}/pages/pg008009`
-}
-
-function TopBarPending() {
-  const { t } = useLingui()
-  const items = [
-    t`Previous and next page buttons (storyboard header)`,
-    t`Book overview page (book card, how it works, stage cards)`,
-    t`View HTML source`,
-    t`Prune or restore a section`,
-    t`Mirror layout from another section`,
-    t`Generate an activity from a description`,
-  ]
-  return (
-    <span className="flex flex-col gap-1">
-      <span>{t`Decided and built: book menu, two-line location with the version centred, no counts, a progress ring only while something runs (stage icon + ! when failed, hidden on its own stage), two action groups, title shrinks first, Arc panels. Still from the old UI, to discuss:`}</span>
-      <span className="flex flex-col gap-0.5 pl-2">
-        {items.map((item) => (
-          <span key={item}>· {item}</span>
-        ))}
-      </span>
-    </span>
-  )
 }
 
 export function NavLab() {
@@ -184,33 +162,6 @@ export function NavLab() {
           : []),
       ],
       note: t`Decided: Storyboard first, Ink · theme, every step as a tile, sheet card, scale highlight, instant screen changes. Outputs join the book once they run.`,
-    },
-    {
-      key: "storyboard",
-      label: t`Storyboard`,
-      icon: <LayoutGrid className="size-3.5" />,
-      controls: [
-        {
-          key: "sbsim",
-          label: t`Simulate`,
-          options: [
-            { value: "real", label: t`Real` },
-            { value: "building", label: t`Building` },
-            { value: "failed", label: t`Failed` },
-            { value: "outdated", label: t`Out of date` },
-            { value: "setupfail", label: t`Setup problem` },
-          ],
-        },
-      ],
-      note: t`Decided: until the storyboard is built, the dock shows Extract › Sectioning › Storyboard as steps; then Storyboard becomes the button with the Setup entry. Pick Book "None" to see the steps.`,
-    },
-    {
-      key: "topbar",
-      label: t`Top bar`,
-      icon: <PanelTop className="size-3.5" />,
-      controls: [
-      ],
-      note: <TopBarPending />,
     },
   ]
   const controls: LabControl[] = [

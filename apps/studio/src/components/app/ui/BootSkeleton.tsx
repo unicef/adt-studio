@@ -55,14 +55,18 @@ function StageBootSkeleton({ hex, slug }: { hex: string; slug: string }) {
       <span className="sr-only">
         <Trans>Opening the book…</Trans>
       </span>
-      <header className="flex h-12.5 shrink-0 items-center gap-3 px-3.5" style={{ background: hex }}>
-        <div className="h-7 w-24 rounded-lg bg-white/20" />
-        <div className="size-6.5 rounded-full bg-white/20" />
-        <div className="h-3 w-24 rounded bg-white/30" />
+      <header className="flex h-12.5 shrink-0 items-center gap-3 border-b px-3.5">
+        <div className="size-7 rounded-lg bg-muted" />
+        <div className="size-6 rounded-md bg-muted" />
+        <Bar className="h-3 w-40" />
         <div className="flex-1" />
-        <div className="h-5 w-28 rounded-full bg-white/18" />
+        <div className="flex items-center gap-2">
+          <div className="size-5 rounded-full opacity-70" style={{ background: hex }} />
+          <Bar className="h-3 w-20" />
+        </div>
         <div className="flex-1" />
-        <div className="h-7 w-16 rounded-lg bg-white/16" />
+        <div className="h-8 w-20 rounded-lg border" />
+        <div className="h-8 w-18 rounded-lg bg-muted" />
       </header>
       <div className="flex min-h-0 flex-1 motion-safe:animate-pulse">
         <aside className="flex w-56 shrink-0 flex-col gap-2 border-r p-3">

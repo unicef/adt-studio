@@ -2,10 +2,10 @@ import { useState } from "react"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { useLingui } from "@lingui/react/macro"
-import { Check, ChevronRight } from "lucide-react"
+import { Check, ChevronRight, X } from "lucide-react"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { cn } from "@/lib/utils"
-import { applyStageState, type StageState, type StageStates } from "./stageStates"
+import { applyStageState, clearStageState, type StageState, type StageStates } from "./stageStates"
 
 interface RouteStage {
   pages: string[]
@@ -72,7 +72,26 @@ export function ChecklistPanel({ stageStates, active }: { stageStates: StageStat
 
   if (!stageStates) return <p className="px-2 py-1 text-[11.5px] text-white/55">{t`The checklist needs the local lab canvas files (lab/canvas).`}</p>
 
+  const activeState = active ? stageStates.byPage[active.page]?.find((state) => state.id === active.id) : undefined
+
   return (
+    <div className="flex flex-col gap-1.5">
+    {activeState && (
+      <div className="flex items-center gap-2 rounded-xl bg-white/10 py-1.5 pr-1.5 pl-3 text-[12px] animate-in fade-in duration-200 motion-reduce:animate-none">
+        <span className="min-w-0 flex-1 truncate text-white/75">{t`Showing: ${activeState.label}`}</span>
+        <button
+          type="button"
+          onClick={() => {
+            clearStageState()
+            window.location.reload()
+          }}
+          className="flex shrink-0 items-center gap-1 rounded-lg bg-white px-2.5 py-1 font-semibold text-zinc-900 transition-[transform,background-color] duration-150 hover:bg-white/90 active:scale-[0.97]"
+        >
+          <X className="size-3" />
+          {t`Back to real data`}
+        </button>
+      </div>
+    )}
     <ul className="flex max-h-[58vh] flex-col gap-0.5 overflow-y-auto rounded-xl bg-white/5 p-1">
       {ROUTE.map((stage) => {
         const states = stage.pages.flatMap((page) => (stageStates.byPage[page] ?? []).map((state) => ({ page, state })))
@@ -114,5 +133,6 @@ export function ChecklistPanel({ stageStates, active }: { stageStates: StageStat
         )
       })}
     </ul>
+    </div>
   )
 }
