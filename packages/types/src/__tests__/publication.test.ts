@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest"
 import {
+  BOOK_HOST_MIN_CONTROL_PLANE_VERSION,
   PUBLISH_WORKER_VERSION,
   Publication,
   PublicationUploadStartRequest,
   PublicationToken,
   PublicationVersion,
+  isVersionAtLeast,
   publicationStateAt,
 } from "../publication.js"
 import { readableTextColor } from "../commenter-color.js"
@@ -202,5 +204,19 @@ describe("readableTextColor", () => {
   it("falls back to white for anything that is not a six-digit hex", () => {
     expect(readableTextColor("#fff")).toBe("#ffffff")
     expect(readableTextColor("nonsense")).toBe("#ffffff")
+  })
+})
+
+describe("the book host's control-plane floor", () => {
+  /** 0.13.0 and 0.13.1 each name several control planes, some from before the realtime room and
+   *  the access and comment changes, so a book host deployed against them can fail on every retry. */
+  it("sends every 0.13 control plane to the update", () => {
+    for (const version of ["0.13.0", "0.13.1"]) {
+      expect(isVersionAtLeast(version, BOOK_HOST_MIN_CONTROL_PLANE_VERSION)).toBe(false)
+    }
+  })
+
+  it("is met by the control plane this Studio installs", () => {
+    expect(isVersionAtLeast(PUBLISH_WORKER_VERSION, BOOK_HOST_MIN_CONTROL_PLANE_VERSION)).toBe(true)
   })
 })
