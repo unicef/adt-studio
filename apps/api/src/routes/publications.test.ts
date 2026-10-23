@@ -2,8 +2,11 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { Hono } from "hono"
 import { openBookDb } from "@adt/storage"
 import type { PublishProgressEvent } from "@adt/types"
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
+import { errorHandler } from "../middleware/error-handler.js"
 import { createConnectionStore } from "../services/cloudflare/connection-store.js"
 import type { CloudflareConnectionRecord } from "../services/cloudflare/connection-store.js"
 import {
@@ -88,6 +91,7 @@ function routes(
     connected?: boolean
     worker?: FakePublishWorker
     clientOverrides?: Partial<PublishWorkerClient>
+    prepareExportFn?: unknown
   } = {},
 ) {
   const worker = options.worker ?? createFakePublishWorker({ now: NOW })
@@ -101,7 +105,7 @@ function routes(
     now: () => new Date(NOW),
     generateToken: () => TOKEN,
     sleep: async () => {},
-    prepareExportFn: (async () => ({})) as never,
+    prepareExportFn: (options.prepareExportFn ?? (async () => ({}))) as never,
     createClient: () =>
       Object.assign(
         createPublishWorkerClient({
@@ -314,6 +318,67 @@ describe("publishing a book over SSE", () => {
     const response = await app.request(`/books/${LABEL}/publication/versions`, { method: "POST" })
     expect(response.status).toBe(409)
     expect(await response.json()).toMatchObject({ code: "not_published" })
+  })
+})
+
+describe("sharing under the book's writer lease", () => {
+  const lockFile = () => path.join(tmpDir, LABEL, ".book-writer.json")
+
+  /** Mounted the way `app.ts` mounts it, behind the writer-lease middleware every book write
+   *  goes through. */
+  function guarded(inner: Hono): Hono {
+    const app = new Hono()
+    app.onError(errorHandler)
+    app.use("/books/:label", bookWriterMiddleware(tmpDir))
+    app.use("/books/:label/*", bookWriterMiddleware(tmpDir))
+    app.route("/", inner)
+    return app
+  }
+
+  it("holds the lease while the export rewrites the book, then lets it go", async () => {
+    const held: boolean[] = []
+    const { app: inner, worker } = routes({
+      prepareExportFn: async () => {
+        held.push(fs.existsSync(lockFile()))
+        return {}
+      },
+    })
+    const app = guarded(inner)
+
+    const published = await drain(await app.request(`/books/${LABEL}/publication`, { method: "POST" }))
+    const updated = await drain(
+      await app.request(`/books/${LABEL}/publication/versions`, { method: "POST" }),
+    )
+
+    expect(published.at(-1)).toMatchObject({ type: "complete", url: worker.shareUrl(TOKEN) })
+    expect(updated.at(-1)).toMatchObject({ type: "complete", url: worker.shareUrl(TOKEN) })
+    expect(held).toEqual([true, true])
+    expect(fs.existsSync(lockFile())).toBe(false)
+  })
+
+  it("keeps shared-link feedback working while another writer holds the book", async () => {
+    const createComment = vi.fn().mockResolvedValue({ comment: { id: "comment-1" } })
+    const roomTicket = vi.fn().mockResolvedValue({
+      ticket: "v1.1893456000.nonce.tag",
+      ws_url: "wss://worker.example/p/token/room",
+      expires_at: "2029-12-31T00:00:00.000Z",
+    })
+    const app = guarded(routes({ clientOverrides: { createComment, roomTicket } }).app)
+    await drain(await app.request(`/books/${LABEL}/publication`, { method: "POST" }))
+    fs.writeFileSync(lockFile(), "{}")
+
+    const comment = await app.request(`/books/${LABEL}/publication/comments`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ page_section_id: "pg001_sec001", body: "Looks good" }),
+    })
+    const ticket = await app.request(`/books/${LABEL}/publication/room-ticket`, { method: "POST" })
+    const update = await app.request(`/books/${LABEL}/publication/versions`, { method: "POST" })
+
+    expect(comment.status).toBe(201)
+    expect(ticket.status).toBe(200)
+    expect(update.status).toBe(409)
+    expect(await update.json()).toMatchObject({ code: "BOOK_BUSY" })
   })
 })
 

@@ -27,6 +27,7 @@ import {
   type PublishErrorCodeStudio,
   type PublishProgressEvent,
 } from "@adt/types"
+import { withBookWriter } from "@adt/storage"
 import type { FetchLike } from "../services/cloudflare/client.js"
 import {
   createConnectionStore,
@@ -530,15 +531,17 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
       }
 
+      /** `streamSSE` returns before this callback settles, and the request's writer lease goes
+       *  with it — so the run holds its own while it rewrites `adt/` and uploads the snapshot. */
       try {
-        await publishBook({
+        await withBookWriter(path.join(deps.booksDir, label), async () => publishBook({
           ...publishDeps(label),
           connection,
           emit,
           expiresAt: body.data.expires_at ?? null,
           accessCode: body.data.access_code ?? null,
           ...(body.data.features ? { features: body.data.features } : {}),
-        })
+        }))
       } catch (error) {
         await emit(toPublishErrorEvent(error))
       } finally {
@@ -589,13 +592,13 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       }
 
       try {
-        await republishBook({
+        await withBookWriter(path.join(deps.booksDir, label), async () => republishBook({
           ...publishDeps(label),
           connection,
           emit,
           record,
           ...(body.data.features ? { features: body.data.features } : {}),
-        })
+        }))
       } catch (error) {
         await emit(toPublishErrorEvent(error))
       } finally {
