@@ -30,6 +30,7 @@ import { Route as AppSettingsNotificationsRouteImport } from "./routes/_app.sett
 import { Route as AppSettingsModelsRouteImport } from "./routes/_app.settings.models"
 import { Route as AppSettingsLanguageRouteImport } from "./routes/_app.settings.language"
 import { Route as AppSettingsAboutRouteImport } from "./routes/_app.settings.about"
+import { Route as AppSettingsPublishingRouteImport } from "./routes/_app.settings.publishing"
 import { Route as BooksLabelStepIndexRouteImport } from "./routes/books.$label.$step.index"
 import { Route as BooksLabelStepSettingsRouteImport } from "./routes/books.$label.$step.settings"
 import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.$step.$pageId"
@@ -139,6 +140,11 @@ const AppSettingsAboutRoute = AppSettingsAboutRouteImport.update({
   path: "/about",
   getParentRoute: () => AppSettingsRoute,
 } as any)
+const AppSettingsPublishingRoute = AppSettingsPublishingRouteImport.update({
+  id: "/publishing",
+  path: "/publishing",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 const BooksLabelStepIndexRoute = BooksLabelStepIndexRouteImport.update({
   id: "/",
   path: "/",
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/settings/about": typeof AppSettingsAboutRoute
+  "/settings/publishing": typeof AppSettingsPublishingRoute
   "/settings/language": typeof AppSettingsLanguageRoute
   "/settings/models": typeof AppSettingsModelsRoute
   "/settings/notifications": typeof AppSettingsNotificationsRoute
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   "/prompts/settings": typeof PromptsSettingsRoute
   "/": typeof AppIndexRoute
   "/settings/about": typeof AppSettingsAboutRoute
+  "/settings/publishing": typeof AppSettingsPublishingRoute
   "/settings/language": typeof AppSettingsLanguageRoute
   "/settings/models": typeof AppSettingsModelsRoute
   "/settings/notifications": typeof AppSettingsNotificationsRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   "/prompts/settings": typeof PromptsSettingsRoute
   "/_app/": typeof AppIndexRoute
   "/_app/settings/about": typeof AppSettingsAboutRoute
+  "/_app/settings/publishing": typeof AppSettingsPublishingRoute
   "/_app/settings/language": typeof AppSettingsLanguageRoute
   "/_app/settings/models": typeof AppSettingsModelsRoute
   "/_app/settings/notifications": typeof AppSettingsNotificationsRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | "/books/new"
     | "/prompts/settings"
     | "/settings/about"
+    | "/settings/publishing"
     | "/settings/language"
     | "/settings/models"
     | "/settings/notifications"
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | "/prompts/settings"
     | "/"
     | "/settings/about"
+    | "/settings/publishing"
     | "/settings/language"
     | "/settings/models"
     | "/settings/notifications"
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | "/prompts/settings"
     | "/_app/"
     | "/_app/settings/about"
+    | "/_app/settings/publishing"
     | "/_app/settings/language"
     | "/_app/settings/models"
     | "/_app/settings/notifications"
@@ -463,6 +475,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppSettingsAboutRouteImport
       parentRoute: typeof AppSettingsRoute
     }
+    "/_app/settings/publishing": {
+      id: "/_app/settings/publishing"
+      path: "/publishing"
+      fullPath: "/settings/publishing"
+      preLoaderRoute: typeof AppSettingsPublishingRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     "/books/$label/$step/": {
       id: "/books/$label/$step/"
       path: "/"
@@ -495,6 +514,7 @@ interface AppSettingsRouteChildren {
   AppSettingsPromptsRoute: typeof AppSettingsPromptsRoute
   AppSettingsProvidersRoute: typeof AppSettingsProvidersRoute
   AppSettingsThemeRoute: typeof AppSettingsThemeRoute
+  AppSettingsPublishingRoute: typeof AppSettingsPublishingRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
@@ -506,6 +526,7 @@ const AppSettingsRouteChildren: AppSettingsRouteChildren = {
   AppSettingsPromptsRoute: AppSettingsPromptsRoute,
   AppSettingsProvidersRoute: AppSettingsProvidersRoute,
   AppSettingsThemeRoute: AppSettingsThemeRoute,
+  AppSettingsPublishingRoute: AppSettingsPublishingRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
 
