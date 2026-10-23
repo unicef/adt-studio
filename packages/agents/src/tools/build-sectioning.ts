@@ -1,5 +1,6 @@
 import { parseDocument } from "htmlparser2"
 import { DomUtils } from "htmlparser2"
+import { inputSignature, sourceGenerationBasis } from "@adt/pipeline"
 import type {
   ContentNodeData,
   PageSectioningSection,
@@ -43,7 +44,21 @@ export function buildSectioningSectionFromHtml(args: {
   sectionType: string
   /** The section being replaced, when this is a rewrite rather than a create. */
   base?: PageSectioningSection
+  /** Prior rendering of base, used to recognize appearance-only rewrites. */
+  previousHtml?: string
 }): PageSectioningSection {
+  if (args.base && args.previousHtml !== undefined &&
+      args.base.sectionId === args.sectionId && args.base.sectionType === args.sectionType) {
+    const basis = (html: string) => sourceGenerationBasis("web-rendering", {
+      sections: [{ sectionId: args.sectionId, sectionIndex: 0,
+        sectionType: args.sectionType, reasoning: "", html }],
+    })
+    if (inputSignature(basis(args.previousHtml)) === inputSignature(basis(args.html))) {
+      // HTML cannot represent the original hierarchy, hidden pruned nodes or
+      // heading metadata. A cosmetic rewrite must not reconstruct that tree.
+      return args.base
+    }
+  }
   const doc = parseDocument(args.html)
   const priorRoles = collectRolesByNodeId(args.base)
   const elements = DomUtils.findAll(

@@ -90,7 +90,7 @@ export function GlossaryLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to run the glossary.</Trans>
+    <Trans>Connect an AI provider to run the glossary.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — the glossary is built from the typed sections placed by Storyboard.</Trans>
   ) : undefined
@@ -98,6 +98,7 @@ export function GlossaryLandingPage({ bookLabel }: { bookLabel: string }) {
   return (
     <LandingPageShell
       bookLabel={bookLabel}
+      requiresProvider
       stageSlug="glossary"
       settingsTab="general"
       colorClass="bg-lime-600 hover:bg-lime-700"

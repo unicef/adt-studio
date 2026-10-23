@@ -2,7 +2,7 @@ import { spawn } from "node:child_process"
 import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { imageFileExtension } from "../shared/image-media-type.js"
+import { imageFileExtension } from "@adt/types"
 import { CODEX_CLI_INSTALL_HINT, resolveCodexExecutable } from "./executable.js"
 
 export interface CodexCliUsage {

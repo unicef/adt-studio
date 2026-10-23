@@ -13,7 +13,14 @@ Options:
   --end-page <n>      End at page N (inclusive)
   --books-dir <dir>   Books root directory (default: books)
   --concurrency <n>   Max parallel LLM calls (default: from config or 5)
-  -h, --help          Show this help`
+  -h, --help          Show this help
+
+Doctor (read-only compatibility check of existing books):
+  pnpm pipeline doctor [books-dir] [--label <label>] [--json]
+              Reports per book: schema version, stale lock files, rendered
+              sections without a provable owner, duplicate text ids, and
+              catalog ids that re-key on this version. Writes nothing.
+              Exit code 0 = no findings, 1 = findings, 2 = a book could not be read.`
 
 const ParsedCliArgsSchema = z
   .object({

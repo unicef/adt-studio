@@ -53,12 +53,18 @@ How to use this template (see docs/SPEC_DRIVEN_DEVELOPMENT.md §5):
 <!-- Testable checkboxes. The implementation review checks these boxes, not vibes.
      Model: #708 (21 checkboxes incl. concurrency rules and i18n requirements). -->
 
-- [ ] ...
+- [ ] AC-1: ...
 
 ## Test plan
 
 <!-- Which tests, at which level (unit / API / e2e over the fixture corpus), where they
-     live, what fixtures they need. Every acceptance criterion maps to at least one test. -->
+     live, what fixtures they need. Every acceptance criterion maps to at least one test,
+     and that test's title starts with the tag, e.g. it("AC-1: ...") — see
+     docs/SPEC_DRIVEN_DEVELOPMENT.md §5a. -->
+
+| AC | Level | Test file | Test title |
+|----|-------|-----------|------------|
+| AC-1 | unit | `packages/.../foo.test.ts` | `AC-1: ...` |
 
 ## Rollout
 

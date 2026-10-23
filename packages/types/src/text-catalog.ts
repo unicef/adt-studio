@@ -1,14 +1,28 @@
+import { OutputLocation, OutputMetadata } from "./output-freshness.js"
 import { z } from "zod"
 
 export const TextCatalogEntry = z.object({
+  ...OutputMetadata.shape,
   id: z.string(),
   text: z.string(),
+  locations: z.array(OutputLocation).optional(),
 })
 export type TextCatalogEntry = z.infer<typeof TextCatalogEntry>
+
+/** A legacy identity collision is visible without making reads destructive. */
+export const CatalogConflict = z.object({
+  id: z.string(),
+  texts: z.array(z.string()),
+  locations: z.array(OutputLocation).optional(),
+  pageIds: z.array(z.string()),
+  sectionIds: z.array(z.string()),
+})
+export type CatalogConflict = z.infer<typeof CatalogConflict>
 
 export const TextCatalogOutput = z.object({
   entries: z.array(TextCatalogEntry),
   generatedAt: z.string(),
+  conflicts: z.array(CatalogConflict).optional(),
 })
 export type TextCatalogOutput = z.infer<typeof TextCatalogOutput>
 
