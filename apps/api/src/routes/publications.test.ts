@@ -717,6 +717,36 @@ describe("sharing under the book's writer lease", () => {
     expect(fs.existsSync(lockFile())).toBe(false)
   })
 
+  it("still lets the author stop a run that holds the book", async () => {
+    let open: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      open = resolve
+    })
+    const app = guarded(
+      routes({ prepareExportFn: (async () => { await gate; return {} }) as never }).app,
+    )
+
+    const streamed = app.request(`/books/${LABEL}/publication`, { method: "POST" }).then(drain)
+    try {
+      await vi.waitFor(async () => {
+        const { run } = (await (await app.request(`/books/${LABEL}/publication/run`)).json()) as {
+          run: PublishRunSnapshot | null
+        }
+        expect(run?.status).toBe("running")
+        expect(fs.existsSync(lockFile())).toBe(true)
+      })
+
+      const cancel = await app.request(`/books/${LABEL}/publication/run/cancel`, { method: "POST" })
+      expect(cancel.status).toBe(200)
+      expect(await cancel.json()).toEqual({ cancelled: true })
+    } finally {
+      open()
+    }
+
+    await streamed
+    expect(fs.existsSync(lockFile())).toBe(false)
+  })
+
   it("keeps shared-link feedback working while another writer holds the book", async () => {
     const createComment = vi.fn().mockResolvedValue({ comment: { id: "comment-1" } })
     const roomTicket = vi.fn().mockResolvedValue({
