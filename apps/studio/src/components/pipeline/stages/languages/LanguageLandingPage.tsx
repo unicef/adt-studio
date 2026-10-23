@@ -321,8 +321,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
             </span>
             <p className="text-xs leading-relaxed text-[#737373]">
               <Trans>
-                Turns math and LaTeX into spoken words, so formulas are never
-                read out as raw notation.
+                Prepares math and LaTeX as spoken words for audio.
               </Trans>
             </p>
           </div>

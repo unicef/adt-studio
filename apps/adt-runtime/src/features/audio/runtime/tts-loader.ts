@@ -18,6 +18,7 @@ interface RawTimecodeEntry {
 export async function loadTimecodes(
   lang: string,
   bundleVersion?: string,
+  isCurrent: () => boolean = () => true,
 ): Promise<TimecodeMap> {
   const versionParam = bundleVersion ? `?v=${bundleVersion}` : ""
   const url = `./content/i18n/${lang}/timecode/timecode_output.json${versionParam}`
@@ -25,7 +26,7 @@ export async function loadTimecodes(
   try {
     const res = await fetch(url)
     if (!res.ok) {
-      getDefaultStore().set(timecodeMapsAtom, { primary: {}, secondary: {} })
+      if (isCurrent()) getDefaultStore().set(timecodeMapsAtom, { primary: {}, secondary: {} })
       return {}
     }
     const raw = (await res.json()) as Record<string, RawTimecodeEntry>
@@ -49,11 +50,11 @@ export async function loadTimecodes(
     } catch {
       // Optional for legacy and single-narrator packages.
     }
-    getDefaultStore().set(timecodeMapsAtom, maps)
+    if (isCurrent()) getDefaultStore().set(timecodeMapsAtom, maps)
     return map
   } catch (err) {
     console.warn(`[tts] failed to load ${url}`, err)
-    getDefaultStore().set(timecodeMapsAtom, { primary: {}, secondary: {} })
+    if (isCurrent()) getDefaultStore().set(timecodeMapsAtom, { primary: {}, secondary: {} })
     return {}
   }
 }

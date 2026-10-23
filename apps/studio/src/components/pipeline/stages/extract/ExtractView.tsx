@@ -253,12 +253,27 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
       {showRunCard ? (
         <div className="flex flex-col gap-4">
           <MissingKeyNotice bookLabel={bookLabel} />
+          {hasPages && !extractRunning && (
+            <div className="mb-4">
+              <LandingPageWarning
+                variant="prereq"
+                title={t`Re-extraction is not available in this version`}
+                description={
+                  <Trans>
+                    This book already has extracted pages, so extraction cannot run
+                    again here. Its content is preserved. To extract again, create a
+                    new book from the PDF.
+                  </Trans>
+                }
+              />
+            </div>
+          )}
           <StageRunCard
             stageSlug="extract"
             isRunning={extractRunning}
             completed={extractDone}
             onRun={handleRetryExtract}
-            disabled={(!extractError && !extractInterrupted) || !hasStructuredTextProvider || extractRunning}
+            disabled={(!extractError && !extractInterrupted) || !hasStructuredTextProvider || extractRunning || hasPages}
             disabledReason={
               providerStatusReady && !hasStructuredTextProvider ? (
                 <Trans>Connect an AI provider to retry.</Trans>

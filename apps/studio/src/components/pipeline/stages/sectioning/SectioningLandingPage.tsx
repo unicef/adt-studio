@@ -24,7 +24,7 @@ type SectioningModeKey = "dynamic" | "page"
 export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
-  const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
+  const { data: pages, isPending: pagesPending, isFetching: pagesFetching, isError: pagesError } = usePages(bookLabel)
   const { data: splitStatus, isLoading: splitStatusLoading } = useSplitStatus(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
@@ -40,7 +40,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   const hasExtractedPages = (pages?.length ?? 0) > 0
   const hasAssembledPages = hasExtractedPages && splitStatus?.hasMergeActivity === true
   const resolvingStoredState =
-    !extractCovered && (pagesLoading || (hasExtractedPages && splitStatusLoading))
+    !extractCovered && ((!hasExtractedPages && (pagesPending || pagesFetching || pagesError)) || (hasExtractedPages && splitStatusLoading))
 
   const [sectioningMode, setSectioningMode] = useState<SectioningModeKey>("dynamic")
   // Single flag honored by sectioning + web-rendering (via the `activity_`
@@ -92,10 +92,9 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
     // Cue from here even if Extract hasn't run yet. If Extract is already
     // done/running/queued it will produce its output, so queue Sectioning
     // behind it; only pull Extract into the run when it isn't covered.
-    // An assembled split book already has extracted pages, but its part-local
-    // outline is deliberately stale. Start at Sectioning: the API rebuilds the
-    // authoritative outline from those stored pages without clearing them.
-    const fromStage = resolveSectioningStartStage(extractCovered, hasAssembledPages)
+    // Existing pages cannot be destructively re-extracted, even when the
+    // Extract completion marker is absent (restored or interrupted books).
+    const fromStage = resolveSectioningStartStage(extractCovered, hasExtractedPages)
     queueRun({ fromStage, toStage: "sectioning", apiKey, viewAfter: true })
   }
 
@@ -109,6 +108,8 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Connect an AI provider to run sectioning.</Trans>
+  ) : !hasExtractedPages && pagesError ? (
+    <Trans>Unable to load pages. Refresh and try again.</Trans>
   ) : undefined
 
   return (
@@ -158,7 +159,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
             </Trans>
           }
         />
-      ) : !extractCovered ? (
+      ) : !extractCovered && !hasExtractedPages && !resolvingStoredState ? (
         <LandingPageWarning
           variant="prereq"
           title={<Trans>Extract hasn't run yet</Trans>}

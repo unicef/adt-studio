@@ -387,8 +387,9 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
         <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-3 py-2">
           <div className="text-xs text-amber-900">
             <Trans>
-              Sectioning has changed since these pages were rendered. Re-run Storyboard to
-              regenerate them.
+              Sectioning has changed since some sections were rendered. Open a section and
+              use “Re-render this section” to update it, or re-run Storyboard to regenerate
+              every page.
             </Trans>
           </div>
           <Button
@@ -481,12 +482,19 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     return <LoadingState stageSlug="storyboard" label={<Trans>Loading page...</Trans>} />
   }
 
+  const ownershipWarning = page.sectioningSynchronization?.sections.some(section => section.status === "structural-drift") && (
+      <div role="status" className="border-b border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+        <Trans>Some retained renderings no longer match this page’s sections. Their content and history are preserved, but they are omitted from Preview and export. Editing a section changes only its matching rendering.</Trans>
+      </div>
+    )
+
   if (!page.sectioningTree) {
     if (storyboardRunning) {
       return <LoadingState stageSlug="storyboard" label={<Trans>Waiting for page to be processed...</Trans>} />
     }
     return (
       <div className="p-4">
+        {ownershipWarning}
         <StageRunCard
           stageSlug="storyboard"
           isRunning={storyboardRunning}
@@ -500,16 +508,21 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   if (sectionCount === 0) {
     return (
+      <>
+      {ownershipWarning}
       <StageEmptyState
         icon={LayoutGrid}
         color="violet"
         title={<Trans>No sections for this page</Trans>}
         subtitle={<Trans>This page has no storyboard sections</Trans>}
       />
+      </>
     )
   }
 
   return withStaleBanner(
+    <>
+    {ownershipWarning}
     <StoryboardSectionDetail
       bookLabel={bookLabel}
       pageId={selectedPageId!}
@@ -522,5 +535,6 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       hasPrevPage={!!prevPageId}
       hasNextPage={!!nextPageId}
     />
+    </>
   )
 }

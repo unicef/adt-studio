@@ -1,3 +1,7 @@
+import type { WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
+export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/types"
+import type { OutputSkipRequest } from "@adt/types"
+import type { OutputStatus, OutputSummary, OutputStageSummaryResponse, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement, StageName } from "@adt/types"
 import { isElectron } from "@/lib/utils"
 import { readEventStream } from "@/api/sse"
 import {
@@ -354,6 +358,7 @@ export interface StageRunProviderCredentials {
 }
 
 export interface RunStagesOptions {
+  outputScope?: OutputRunScope
   fromStage: string
   toStage: string
   /** When true, skip page-sectioning and only re-render from existing section data. */
@@ -501,6 +506,7 @@ export interface PendingDecision {
 }
 
 export interface StageRunStatus {
+  id?: string
   label: string
   status: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
   fromStage?: string
@@ -566,6 +572,8 @@ export interface AiEditHistoryTurn {
 }
 
 export interface PageDetail {
+  sectioningSynchronization?: import("@adt/types").SectioningSynchronization | null
+  captionSourceSignature: string
   pageId: string
   pageNumber: number
   text: string
@@ -649,6 +657,7 @@ export interface GlossaryItem {
 }
 
 export interface GlossaryOutput {
+  identitySignature?: string
   items: GlossaryItem[]
   pageCount: number
   generatedAt: string
@@ -718,10 +727,7 @@ export interface QuizzesResponse {
 
 // --- Text Catalog types ---
 
-export interface TextCatalogEntry {
-  id: string
-  text: string
-}
+export type TextCatalogEntry = import("@adt/types").TextCatalogEntry
 
 export interface CoreTtsCatalogEntry {
   id: string
@@ -742,8 +748,9 @@ export interface TextCatalogResponse {
   entries: TextCatalogEntry[]
   generatedAt: string
   version: number
-  translations: Record<string, { entries: TextCatalogEntry[]; version: number }>
-  speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number }>
+  translations: Record<string, { entries: TextCatalogEntry[]; version: number; sourceSignature: string }>
+  translationSourceSignatures?: Record<string, string>
+  speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number; sourceSignature: string }>
 }
 
 export interface TranslationEvaluationStatusResponse {
@@ -787,6 +794,7 @@ export interface EasyReadSectionBlock {
 }
 
 export interface EasyReadResponse {
+  sourceSignature: string
   blocks: EasyReadSectionBlock[]
   generatedAt: string
   version: number
@@ -794,18 +802,8 @@ export interface EasyReadResponse {
 
 // --- TTS types ---
 
-export interface TTSEntry {
-  textId: string
-  language?: string
-  fileName: string
-  voice: string
-  model: string
-  cached: boolean
-  provider?: string
-  voiceSlot: "primary" | "secondary"
-  voiceLabel?: string
-  cacheKey?: string
-}
+export type { TTSReadEntry as TTSEntry, TTSReadLanguage as TTSLanguageData, TTSReadResponse as TTSResponse } from "@adt/types"
+import type { TTSReadEntry as TTSEntry, TTSReadResponse as TTSResponse } from "@adt/types"
 
 export interface TTSFailedEntry {
   textId: string
@@ -826,20 +824,6 @@ export interface VoiceSlotsConfig {
 export type VoiceMapEntry = string | VoiceSlotsConfig
 export type VoiceMappings = Record<string, Record<string, VoiceMapEntry>>
 
-export interface TTSLanguageData {
-  entries: TTSEntry[]
-  /** Items whose generation failed in the run that produced this data */
-  failed?: TTSFailedEntry[]
-  generatedAt: string
-  version: number
-}
-
-export interface TTSResponse {
-  languages: Record<string, TTSLanguageData>
-  /** True when served from an in-flight speech run's live snapshot */
-  live?: boolean
-}
-
 export interface GenerateSingleTTSResponse {
   entry: TTSEntry
   version: number
@@ -856,6 +840,9 @@ export interface WordTimestamp {
 }
 
 export interface WordTimestampEntry {
+  audioIdentity?: string
+  version: number
+  audioHash?: string
   textId: string
   language: string
   voiceSlot?: "primary" | "secondary"
@@ -1425,7 +1412,7 @@ export const api = {
     options: RunStagesOptions,
     providerCredentials?: StageRunProviderCredentials
   ) =>
-    request<{ status: string; label: string; fromStage: string; toStage: string }>(
+    request<{ id: string; status: string; label: string; fromStage: string; toStage: string }>(
       `/books/${label}/stages/run`,
       {
         method: "POST",
@@ -1433,6 +1420,9 @@ export const api = {
         body: JSON.stringify(options),
       }
     ),
+
+  skipOutputs: (label: string, body: OutputSkipRequest) =>
+    request(`/books/${label}/stages/skip-outputs`, { method: "POST", body: JSON.stringify(body) }),
 
   getStagesStatus: (label: string) =>
     request<StageRunStatus>(`/books/${label}/stages/status`),
@@ -1984,7 +1974,7 @@ export const api = {
     request<GlossaryOutput | null>(`/books/${label}/glossary`),
 
   updateGlossary: (label: string, data: unknown) =>
-    request<{ version: number; imageRequirementsChanged: boolean }>(
+    request<{ version: number; identitySignature: string; imageRequirementsChanged: boolean }>(
       `/books/${label}/glossary`,
       {
         method: "PUT",
@@ -2019,13 +2009,18 @@ export const api = {
   getTocSections: (label: string) =>
     request<TocSection[]>(`/books/${label}/toc/sections`),
 
+  getOutputDisclosure: (label: string, features: OutputDisclosureOptions = {}) => request<{ outputs: OutputStatus[]; summary: OutputSummary; summaries?: import("@adt/types").OutputSummaries; conflicts?: import("@adt/types").CatalogConflict[]; ownershipWarnings?: import("@adt/types").PackagingWarning[] }>(`/books/${label}/outputs/disclosure?features=${encodeURIComponent(JSON.stringify(features))}`),
+  getOutputSummary: (label: string) => request<OutputStageSummaryResponse>(`/books/${label}/outputs/summary`),
+  getOutputs: (label: string) => request<{ missingStages: StageName[]; outputs: OutputStatus[]; summary: OutputSummary; summaries?: import("@adt/types").OutputSummaries; conflicts?: import("@adt/types").CatalogConflict[]; ownershipWarnings?: import("@adt/types").PackagingWarning[] }>(`/books/${label}/outputs`),
+  reviewOutput: (label: string, review: OutputReviewRequest) => request<{ version: number }>(`/books/${label}/outputs/review`, { method: "POST", body: JSON.stringify(review) }),
+
   getTextCatalog: (label: string) =>
     request<TextCatalogResponse | null>(`/books/${label}/text-catalog`),
 
   getEasyRead: (label: string) =>
     request<EasyReadResponse | null>(`/books/${label}/easy-read`),
 
-  updateEasyRead: (label: string, data: { blocks: EasyReadSectionBlock[]; generatedAt: string }) =>
+  updateEasyRead: (label: string, data: { blocks: EasyReadSectionBlock[]; generatedAt: string; baseVersion: number; sourceSignature: string }) =>
     request<{ version: number }>(`/books/${label}/easy-read`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -2048,12 +2043,14 @@ export const api = {
     language: string,
     entryId: string,
     speechText: string,
+    baseVersion: number,
+    sourceSignature: string,
   ) =>
     request<{ version: number; entry: CoreTtsCatalogEntry }>(
       `/books/${label}/core-tts-catalog/${language}/${entryId}`,
       {
         method: "PUT",
-        body: JSON.stringify({ speechText }),
+        body: JSON.stringify({ speechText, baseVersion, sourceSignature }),
       },
     ),
 
@@ -2087,13 +2084,23 @@ export const api = {
       { method: "POST" },
     ),
 
+  /** Accept retained Quiz, Glossary or TOC content as current for today's inputs. */
+  keepSourceGeneration: (label: string, stage: string) =>
+    request<{ stage: string; step: string; inputSignature: string }>(
+      `/books/${label}/source-generation/${stage}/keep`,
+      { method: "POST" },
+    ),
+
   getStepStatus: (label: string) =>
     request<{
+      sourceUpdateStages: string[]
       stages: Record<string, string>
       steps: Record<string, string>
       error: string | null
       stepErrors: Record<string, string> | null
       stepMessages: Record<string, string> | null
+      runRevision?: string
+      publicationAgeMs?: number
       runStatus: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
       pendingDecisions: PendingDecision[]
     }>(`/books/${label}/step-status`),
@@ -2131,8 +2138,10 @@ export const api = {
     language: string,
     voiceSlot: "primary" | "secondary",
     file: File,
+    baseline: OutputReplacement,
   ) => {
     const formData = new FormData()
+    formData.append("baseline", JSON.stringify(baseline))
     formData.append("audio", file)
     formData.append("textId", textId)
     formData.append("language", language)
@@ -2153,8 +2162,8 @@ export const api = {
       body: JSON.stringify({ textId, language, voiceSlot }),
     }),
 
-  saveWordTimestamps: (label: string, language: string, textId: string, data: { words: WordTimestamp[]; duration: number; voiceSlot?: "primary" | "secondary" }) =>
-    request<{ ok: boolean }>(`/books/${label}/tts/timestamps/${language}/${textId}`, {
+  saveWordTimestamps: (label: string, language: string, textId: string, data: WordTimestampSaveRequest) =>
+    request<WordTimestampSaveResponse>(`/books/${label}/tts/timestamps/${language}/${textId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
