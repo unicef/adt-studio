@@ -54,6 +54,7 @@ export interface VariantState {
   langnav: "cards" | "pills" | "menu"
   hints: "note" | "help" | "none"
   pruned: "inline" | "tray"
+  topborder: "on" | "off"
 }
 
 export type VariantKey = keyof VariantState
@@ -123,6 +124,15 @@ export const VARIANT_GROUPS = [
       { value: "islands", label: msg`Islands`, hint: msg`The book and the extras are two bars; the extras collapse and Storyboard re-centres.` },
       { value: "base", label: msg`Base`, hint: msg`Storyboard is a bigger block with the cover and page count; Extract and Sectioning sit inside it.` },
       { value: "tray", label: msg`Tray`, hint: msg`Only the book path stays in the dock; the extras open from one Extras button.` },
+    ],
+  },
+  {
+    key: "topborder",
+    icon: LayoutGrid,
+    label: msg`Top bar border`,
+    options: [
+      { value: "on", label: msg`On`, hint: msg`Today: a thin line under the top bar.` },
+      { value: "off", label: msg`Off`, hint: msg`No line under the top bar (testing).` },
     ],
   },
   {
@@ -285,6 +295,7 @@ export const TIERS: { key: VariantTier; label: MessageDescriptor; hint: MessageD
 ]
 
 export const GROUP_META: Record<VariantKey, { tier: VariantTier }> = {
+  topborder: { tier: "layout" },
   features: { tier: "layout" },
   ai: { tier: "layout" },
   export: { tier: "layout" },
@@ -312,11 +323,11 @@ export const GROUP_META: Record<VariantKey, { tier: VariantTier }> = {
 export type LabStep = "extract" | "sectioning" | "storyboard" | "output" | "validation" | "preview"
 
 export const STEP_GROUPS: Record<LabStep, VariantKey[]> = {
-  extract: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
-  sectioning: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
-  storyboard: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "features", "ai", "loaders", "boot"],
-  output: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "features", "stagefail", "pageview", "listview", "detailpane", "langnav", "hints", "pruned"],
-  validation: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "stagefail", "hints"],
+  extract: ["topborder", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
+  sectioning: ["topborder", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
+  storyboard: ["topborder", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "features", "ai", "loaders", "boot"],
+  output: ["topborder", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "features", "stagefail", "pageview", "listview", "detailpane", "langnav", "hints", "pruned"],
+  validation: ["topborder", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "stagefail", "hints"],
   preview: ["export"],
 }
 
@@ -332,6 +343,7 @@ export function stepOf(pathname: string): { step: LabStep; slug: string } | null
 }
 
 export const DEFAULT_VARIANTS: VariantState = {
+  topborder: "off",
   entry: "current",
   landing: "current",
   docklayout: "groups",

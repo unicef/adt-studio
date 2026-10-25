@@ -11,11 +11,6 @@ export const TONE_BORDER: Record<ProblemTone, string> = {
   critical: "border-destructive/40",
 }
 
-export const TONE_TILE: Record<ProblemTone, string> = {
-  attention: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
-  critical: "bg-destructive/10 text-destructive",
-}
-
 export const TONE_BUTTON: Record<ProblemTone, string> = {
   attention: "bg-amber-700 text-white hover:bg-amber-800 dark:bg-amber-400 dark:text-amber-950 dark:hover:bg-amber-300",
   critical: "bg-destructive text-white hover:bg-destructive/90",

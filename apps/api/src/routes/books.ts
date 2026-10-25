@@ -19,6 +19,7 @@ import {
 } from "@adt/llm"
 import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
+import { renderSourcePdfThumbnail } from "../services/source-pdf-thumbnails.js"
 import { normalizeLocale, getBaseLanguage } from "@adt/pipeline"
 import {
   listBooks,
@@ -68,6 +69,17 @@ function assertModelSupported(
     throw error
   }
 }
+
+const SourcePdfThumbnailQuery = z.object({
+  page: z.coerce.number().int().min(1),
+  width: z.coerce
+    .number()
+    .int()
+    .min(64)
+    .max(1200)
+    .default(300)
+    .transform((width) => Math.ceil(width / 50) * 50),
+})
 
 const BookConfigUpdateRequest = z.object({
   config: z
@@ -148,6 +160,40 @@ export function createBookRoutes(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       throw new HTTPException(500, { message: `Failed to read source PDF: ${message}` })
+    }
+  })
+
+  // GET /books/:label/source-pdf/pages/:page/thumbnail?width= — One page of the
+  // source PDF as a JPEG, so the Extract landing can show the book before
+  // extraction without shipping the whole PDF to the browser.
+  app.get("/books/:label/source-pdf/pages/:page/thumbnail", (c) => {
+    const { label } = c.req.param()
+    let safeLabel: string
+    try {
+      safeLabel = parseBookLabel(label)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new HTTPException(400, { message })
+    }
+    const parsed = SourcePdfThumbnailQuery.safeParse({ page: c.req.param("page"), width: c.req.query("width") })
+    if (!parsed.success) {
+      throw new HTTPException(400, { message: "Invalid page or width" })
+    }
+    const pdfPath = path.join(booksDir, safeLabel, `${safeLabel}.pdf`)
+    if (!fs.existsSync(pdfPath)) {
+      throw new HTTPException(404, { message: "Source PDF not found" })
+    }
+    try {
+      const { jpeg, etag } = renderSourcePdfThumbnail(pdfPath, parsed.data.page, parsed.data.width)
+      c.header("ETag", etag)
+      c.header("Cache-Control", "private, max-age=3600")
+      if (c.req.header("If-None-Match") === etag) return c.body(null, 304)
+      c.header("Content-Type", "image/jpeg")
+      return c.body(new Uint8Array(jpeg))
+    } catch (err) {
+      if (err instanceof RangeError) throw new HTTPException(404, { message: err.message })
+      const message = err instanceof Error ? err.message : String(err)
+      throw new HTTPException(500, { message: `Failed to render source PDF page: ${message}` })
     }
   })
 

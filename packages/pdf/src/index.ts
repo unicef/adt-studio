@@ -1,4 +1,5 @@
-export { extractPdf, extractPdfStream, extractPages, computeGroups, renderPdfCover, countPdfPages } from "./extract.js";
+export { extractPdf, extractPdfStream, extractPages, computeGroups, renderPdfCover, countPdfPages, openPdfPageRenderer } from "./extract.js";
+export type { PdfPageRenderer } from "./extract.js";
 export type {
   ExtractInput,
   ExtractedPage,

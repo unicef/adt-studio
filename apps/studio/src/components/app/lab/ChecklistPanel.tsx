@@ -29,7 +29,7 @@ const ROUTE: RouteStage[] = [
   { pages: ["export"], label: msg`Export` },
 ]
 
-const checkedStore = createPersistentStore<Record<string, boolean>>(
+export const checkedStore = createPersistentStore<Record<string, boolean>>(
   "adt.lab.checklist",
   {},
   (value): value is Record<string, boolean> => typeof value === "object" && value !== null && !Array.isArray(value),

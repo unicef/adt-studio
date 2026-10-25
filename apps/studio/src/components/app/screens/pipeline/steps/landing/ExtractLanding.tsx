@@ -28,6 +28,7 @@ import { usePersistConfig } from "@/hooks/use-persist-config"
 import { PageGroupingVisual } from "@/components/pipeline/stages/extract/components/PageGroupingVisual"
 import { ExtractPreview } from "@/components/pipeline/stages/extract/components/ExtractPreview"
 import { readFigureExtractionMode } from "../extract/figureMode"
+import { LandingBookCanvas } from "./book-canvas/LandingBookCanvas"
 
 type SpreadModeKey = "single" | "spread"
 
@@ -130,6 +131,7 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
       rerunLabel={<Trans>Re-run</Trans>}
       previewLabel={t`Extract Preview`}
       onRun={handleRun}
+      canvas={<LandingBookCanvas bookLabel={bookLabel} range={pageRange} spread={spreadMode === "spread"} totalPages={totalPages} />}
       preview={
         <ExtractPreview
           bookTitle={book?.title ?? bookLabel}

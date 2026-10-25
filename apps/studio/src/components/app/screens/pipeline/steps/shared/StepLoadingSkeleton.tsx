@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react/macro"
-import type { PageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
+import { isLandscapeRatio, pageGridClass, type PageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 
 export type StepLoadingShape = "grid" | "list" | "report"
 
@@ -25,26 +25,41 @@ export function StepRailSkeleton({ thumbClassName }: { thumbClassName: string })
   )
 }
 
-function Heading() {
+const HEADER_ACTIONS: Record<string, number[]> = {
+  extract: [131, 145],
+}
+
+function Heading({ slug }: { slug?: string }) {
   return (
-    <>
-      <div className={`h-6 w-48 ${BAR}`} />
-      <div className={`h-3 w-72 ${LINE}`} />
-    </>
+    <div className="flex h-9 items-center gap-3">
+      <div className={`h-5 w-28 ${BAR}`} />
+      <div className={`h-2.5 w-14 ${LINE}`} />
+      <div className="ml-auto flex items-center gap-2">
+        {(HEADER_ACTIONS[slug ?? ""] ?? []).map((width, index) => (
+          <div key={index} className="h-9 rounded-[10px] border bg-card shadow-sm" style={{ width }} />
+        ))}
+      </div>
+    </div>
   )
 }
 
-function GridSkeleton({ aspect }: { aspect: PageAspect }) {
+function GridSkeleton({ ratio, slug }: { ratio: number; slug?: string }) {
   return (
     <div aria-hidden className="mx-auto flex container flex-col gap-4 px-4 py-7 motion-safe:animate-pulse">
-      <Heading />
-      <div className={aspect.gridClass}>
-        {Array.from({ length: 8 }, (_, index) => (
+      <Heading slug={slug} />
+      <div className={pageGridClass(isLandscapeRatio(ratio))}>
+        {Array.from({ length: 12 }, (_, index) => (
           <div key={index} className="flex flex-col overflow-hidden rounded-xl border bg-card">
-            <div className="bg-muted" style={{ aspectRatio: aspect.ratio }} />
-            <div className="flex flex-col gap-1.5 px-2.5 py-2">
-              <div className={`h-2.5 w-16 ${BAR}`} />
-              <div className={`h-2 w-full ${LINE}`} />
+            <div className="border-b bg-muted" style={{ aspectRatio: ratio }} />
+            <div className="flex flex-col gap-0.5 px-2.5 py-2">
+              <div className="flex h-[18px] items-center justify-between gap-2">
+                <div className={`h-2.5 w-12 ${BAR}`} />
+                <div className={`h-2 w-8 ${LINE}`} />
+              </div>
+              <div className="flex h-9 flex-col justify-center gap-2.5">
+                <div className={`h-2 w-full ${LINE}`} />
+                <div className={`h-2 w-3/4 ${LINE}`} />
+              </div>
             </div>
           </div>
         ))}
@@ -53,10 +68,10 @@ function GridSkeleton({ aspect }: { aspect: PageAspect }) {
   )
 }
 
-function ListSkeleton() {
+function ListSkeleton({ slug }: { slug?: string }) {
   return (
     <div aria-hidden className="mx-auto flex w-full max-w-[920px] flex-col gap-4 px-4 py-7 motion-safe:animate-pulse">
-      <Heading />
+      <Heading slug={slug} />
       <div className="flex items-center gap-2 py-2">
         {[64, 72, 52].map((width, index) => (
           <div key={index} className="h-7 rounded-md bg-muted" style={{ width }} />
@@ -76,10 +91,10 @@ function ListSkeleton() {
   )
 }
 
-function ReportSkeleton() {
+function ReportSkeleton({ slug }: { slug?: string }) {
   return (
     <div aria-hidden className="mx-auto flex w-full max-w-[920px] flex-col gap-4 px-4 py-7 motion-safe:animate-pulse">
-      <Heading />
+      <Heading slug={slug} />
       <div className="grid grid-cols-3 divide-x rounded-xl border bg-card">
         {Array.from({ length: 3 }, (_, index) => (
           <div key={index} className="flex flex-col gap-2 p-4">
@@ -104,8 +119,12 @@ function ReportSkeleton() {
   )
 }
 
-export function StepBodySkeleton({ shape, aspect }: { shape: StepLoadingShape; aspect: PageAspect }) {
-  if (shape === "list") return <ListSkeleton />
-  if (shape === "report") return <ReportSkeleton />
-  return <GridSkeleton aspect={aspect} />
+export function StageContentSkeleton({ shape = "grid", ratio, slug }: { shape?: StepLoadingShape; ratio: number; slug?: string }) {
+  if (shape === "list") return <ListSkeleton slug={slug} />
+  if (shape === "report") return <ReportSkeleton slug={slug} />
+  return <GridSkeleton ratio={ratio} slug={slug} />
+}
+
+export function StepBodySkeleton({ shape, aspect, slug }: { shape: StepLoadingShape; aspect: PageAspect; slug?: string }) {
+  return <StageContentSkeleton shape={shape} ratio={aspect.ratio} slug={slug} />
 }

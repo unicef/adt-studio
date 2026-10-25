@@ -2,28 +2,25 @@ import { useMemo } from "react"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
-import { BookOpen, FileText, ScanText, SkipForward, Sparkles } from "lucide-react"
-import { BASE_URL } from "@/api/client"
+import { BookOpen, ScanText, SkipForward, Sparkles } from "lucide-react"
 import { usePages } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
-import { cn } from "@/lib/utils"
-import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
-import { BookInfoPopover } from "@/components/app/screens/pipeline/chrome/BookInfoPopover"
 import { NextStepCard } from "@/components/app/screens/pipeline/chrome/NextStepCard"
-import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
+import { useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { useExtractRun } from "@/components/app/screens/pipeline/runs/useExtractRun"
 import { useStageRerun } from "@/components/app/screens/pipeline/runs/useStageRerun"
 import { useRerunConfirm } from "@/components/app/screens/pipeline/runs/useRerunConfirm"
-import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView, useStepRunningView } from "./shared/StepShell"
+import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView } from "./shared/StepShell"
 import { StepBody, StepRail } from "./shared/ui"
 import { usePageNav } from "./shared/usePageNav"
 import { ExtractPageDetail } from "./extract/ExtractPageDetail"
 import { ExtractPageGrid } from "./extract/ExtractPageGrid"
 import { LiveRunStrip, progressCounts } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
-import { ExtractRunBanner } from "./extract/ExtractRunBanner"
+import { ExtractProblemLine, ExtractRunBanner } from "./extract/ExtractRunBanner"
+import { ExtractHeaderActions } from "./extract/ExtractHeaderActions"
 import { useSpreadReview } from "./extract/useSpreadReview"
 import type { StepProps } from "./shared/types"
 import type { StepNote } from "./shared/notes/NoteRow"
@@ -34,7 +31,6 @@ export function ExtractStep(props: StepProps) {
   const { label, plugin, pages } = props
   const { t } = useLingui()
   const pdf = useSourcePdfInfo(label)
-  const run = useRunActivity()
   const extract = useStageActivity("extract")
   const bookRun = useBookRun()
   const extractRun = useExtractRun(label)
@@ -143,13 +139,6 @@ export function ExtractStep(props: StepProps) {
     hasOutput: hasPages,
   })
 
-  const runningView = useStepRunningView({
-    ...props,
-    stage: extract,
-    isCancelling: run.isCancelling,
-    onCancel: run.cancelRun,
-    outcome: t`Each page shows up here — text, fonts and images — as it is extracted.`,
-  })
   const loadingView = useStepLoadingView(props)
   const pdfPages = pdf.data?.pageCount ?? 0
   const emptyView = useStepEmptyView({
@@ -162,7 +151,7 @@ export function ExtractStep(props: StepProps) {
       },
     ],
   })
-  const phaseView = extract.isActive && !hasPages ? runningView : loading ? loadingView : !hasPages ? emptyView : null
+  const phaseView = loading && !extract.isActive ? loadingView : !hasPages && !extract.isActive ? emptyView : null
   if (phaseView) return <StepShell {...props} {...phaseView} />
 
   return (
@@ -216,36 +205,20 @@ export function ExtractStep(props: StepProps) {
         <StepBody
           title={getStageLabelI18n("extract")}
           meta={t`${plural(pages.length, { one: "# page", other: "# pages" })}`}
-          actions={
-            <div className="flex items-center gap-2">
-              <BookInfoPopover
-                label={label}
-                withLabel
-                triggerClassName="h-8 rounded-lg border px-2.5 text-[12px] font-medium text-foreground transition-colors hover:bg-muted"
-                triggerStyle={{ borderColor: tint(plugin.hex, 0.3) }}
-              />
-              <a
-                href={`${BASE_URL}/books/${label}/source-pdf`}
-                target="_blank"
-                rel="noreferrer"
-                className={cn(
-                  "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium",
-                  "text-foreground transition-colors hover:bg-muted",
-                )}
-                style={{ borderColor: tint(plugin.hex, 0.3) }}
-              >
-                <FileText className="size-3.5" />
-                <Trans>Open source PDF</Trans>
-              </a>
-            </div>
-          }
+          actions={<ExtractHeaderActions label={label} hex={plugin.hex} />}
         >
           {extract.isActive && <LiveRunStrip stage={extract} />}
 
-          <ExtractRunBanner label={label} run={extractRun} pages={pages} onOpenPage={openPage} retry={{ run: retry.request, canRun: retry.canRun, reason: retry.disabledReason }} />
+          <ExtractRunBanner label={label} run={extractRun} pages={pages} onOpenPage={openPage} retry={{ run: retry.request, canRun: retry.canRun, reason: retry.disabledReason }} hidePartial />
           {retry.dialogs}
 
-          <NextStepCard label={label} slug={plugin.slug} partial={partial} confirm={partialConfirm ?? bannerConfirm} />
+          <NextStepCard
+            label={label}
+            slug={plugin.slug}
+            partial={partial}
+            confirm={partialConfirm ?? bannerConfirm}
+            aside={<ExtractProblemLine label={label} run={extractRun} pages={pages} onOpenPage={openPage} retry={{ run: retry.request, canRun: retry.canRun, reason: retry.disabledReason }} />}
+          />
 
           <NotesStrip notes={notes} hex={plugin.hex} />
           {spreads.picker}
@@ -258,7 +231,7 @@ export function ExtractStep(props: StepProps) {
             hex={plugin.hex}
             pendingCount={
               extract.isActive
-                ? Math.max(0, (progressCounts(extract)?.total ?? pages.length) - pages.length)
+                ? Math.max(0, (progressCounts(extract)?.total || pdf.data?.pageCount || pages.length) - pages.length)
                 : 0
             }
           />

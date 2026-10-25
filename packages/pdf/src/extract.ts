@@ -4317,6 +4317,43 @@ export function renderPdfCover(
   }
 }
 
+export interface PdfPageRenderer {
+  pageCount: number;
+  renderJpeg(pageNumber: number, width: number, quality?: number): Buffer;
+  destroy(): void;
+}
+
+/**
+ * Keep one PDF open and render 1-indexed pages as JPEG thumbnails of a given
+ * width. Used to preview a source PDF page by page before extraction runs.
+ */
+export function openPdfPageRenderer(pdfBuffer: Buffer): PdfPageRenderer {
+  const doc = openPdfFromBuffer(pdfBuffer);
+  const pageCount = doc.countPages();
+  return {
+    pageCount,
+    renderJpeg(pageNumber, width, quality = 80) {
+      if (pageNumber < 1 || pageNumber > pageCount) throw new RangeError(`Page ${pageNumber} is out of range`);
+      const page = doc.loadPage(pageNumber - 1);
+      try {
+        const bounds = page.getBounds();
+        const scale = width / (bounds[2] - bounds[0]);
+        const pixmap = page.toPixmap(mupdf.Matrix.scale(scale, scale), mupdf.ColorSpace.DeviceRGB, false);
+        try {
+          return Buffer.from(pixmap.asJPEG(quality, false));
+        } finally {
+          pixmap.destroy();
+        }
+      } finally {
+        page.destroy();
+      }
+    },
+    destroy() {
+      doc.destroy();
+    },
+  };
+}
+
 /** @internal Exported for testing */
 export const _testing = {
   parseSvgPathBbox,

@@ -4,6 +4,7 @@ import { setFriendlyStageNames } from "@/components/pipeline/pipeline-i18n"
 import { LabSimulationDriver } from "./simulate"
 import { DOCK_SHOW_PARAM, DockShowcase } from "./dockShowcase/DockShowcase"
 import { NavLab, setNavLabOn, useNavLab } from "./NavLab"
+import { PlanMenu } from "./plan/PlanMenu"
 import { useLabDeepLink } from "./deepLink"
 import { IN_LAB_FRAME } from "./frame"
 import { LAB_ENABLED, getVariant } from "./variants"
@@ -45,5 +46,10 @@ function LabChromeBars() {
     if (!navLab.on) setNavLabOn(true)
   }, [navLab.on])
   if (onLab) return null
-  return <NavLab />
+  return (
+    <>
+      <PlanMenu />
+      <NavLab />
+    </>
+  )
 }

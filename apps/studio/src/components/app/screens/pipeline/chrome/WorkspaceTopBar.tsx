@@ -38,13 +38,14 @@ export function WorkspaceTopBar({ label, section, stage, slotRefs }: WorkspaceTo
   const waitId = useId()
   const onPreview = section === "preview"
   const onExport = section === "export"
+  const borderless = useVariant("topborder") === "off"
 
   return (
     <header
       data-chrome="topbar"
       data-tb-style="workspace"
       data-stage={stage ? "" : undefined}
-      className="drag-region relative grid h-13 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b bg-card px-2.5"
+      className={cn("drag-region relative grid h-13 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b bg-card px-2.5", borderless && "border-b-transparent!")}
     >
       <SkipToCanvas />
       <h1 className="sr-only">{title}</h1>

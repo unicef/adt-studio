@@ -13,8 +13,11 @@ import { usePartInfo } from "@/hooks/use-parts"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { normalizeLeads } from "@/components/spread-picker/pairs"
 import { tint } from "@/components/app/screens/pipeline/shared/tint"
+import { STAGES } from "@/components/pipeline/stage-config"
 import { getSourcePdfUrl, api } from "@/api/client"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
+
+const EXTRACT_HEX = STAGES.find((stage) => stage.slug === "extract")?.hex
 
 const SpreadPickerDialog = lazy(() =>
   import("@/components/spread-picker/SpreadPickerDialog").then((m) => ({
@@ -167,6 +170,7 @@ export function useSpreadReview(label: string, pages: PipelinePage[]): SpreadRev
         mergedLeads={[...appliedLeads]}
         initialSelection={pickerSelection}
         defaultView={pickerView}
+        accent={EXTRACT_HEX}
       />
     </Suspense>
   )

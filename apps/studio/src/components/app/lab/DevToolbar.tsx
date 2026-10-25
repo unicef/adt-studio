@@ -34,6 +34,13 @@ export interface LabGroup {
 
 export type LabValues = Record<string, string>
 
+export interface LabToggle {
+  label: string
+  hint: string
+  on: boolean
+  onChange: (on: boolean) => void
+}
+
 const hiddenStore = createPersistentStore<boolean>("adt.lab.toolbar-hidden", false, (value): value is boolean => typeof value === "boolean")
 const collapsedStore = createPersistentStore<boolean>("adt.lab.toolbar-collapsed", false, (value): value is boolean => typeof value === "boolean")
 const groupStore = createPersistentStore<string>("adt.lab.toolbar-group", "", (value): value is string => typeof value === "string")
@@ -87,6 +94,7 @@ export function DevToolbar({
   onChange,
   actions = [],
   note,
+  toggle,
 }: {
   controls: LabControl[]
   groups?: LabGroup[]
@@ -94,6 +102,7 @@ export function DevToolbar({
   onChange: (key: string, value: string) => void
   actions?: LabAction[]
   note?: ReactNode
+  toggle?: LabToggle
 }) {
   const { t } = useLingui()
   const [hidden, setHidden] = hiddenStore.use()
@@ -190,13 +199,34 @@ export function DevToolbar({
                     </button>
                   )
                 })}
+                {toggle && (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={toggle.on}
+                    title={toggle.hint}
+                    onClick={() => {
+                      toggle.onChange(!toggle.on)
+                      setCollapsed(false)
+                    }}
+                    className={
+                      "ml-auto flex h-8 items-center gap-1.5 rounded-[10px] pr-2 pl-2.5 text-[12px] font-semibold transition-[background-color,color] duration-150 ease-out " +
+                      (toggle.on ? "bg-emerald-500/20 text-emerald-200" : "text-white/65 hover:bg-white/10 hover:text-white")
+                    }
+                  >
+                    {toggle.label}
+                    <span className={"relative h-4 w-7 rounded-full transition-colors duration-200 " + (toggle.on ? "bg-emerald-500" : "bg-white/20")}>
+                      <span className={"absolute top-0.5 left-0.5 size-3 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none " + (toggle.on ? "translate-x-3" : "translate-x-0")} />
+                    </span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setCollapsed((current) => !current)}
                   aria-expanded={!collapsed}
                   aria-label={collapsed ? t`Expand the lab toolbar` : t`Collapse the lab toolbar`}
                   title={collapsed ? t`Expand` : t`Collapse`}
-                  className="ml-auto grid size-8 shrink-0 place-items-center rounded-[10px] text-white/60 transition-[background-color,color] duration-150 ease-out hover:bg-white/10 hover:text-white"
+                  className={(toggle ? "" : "ml-auto ") + "grid size-8 shrink-0 place-items-center rounded-[10px] text-white/60 transition-[background-color,color] duration-150 ease-out hover:bg-white/10 hover:text-white"}
                 >
                   <ChevronDown className={"size-4 transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none " + (collapsed ? "rotate-180" : "rotate-0")} />
                 </button>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { ClipboardCheck, Link2, ListChecks, PanelBottom, RotateCcw } from "lucide-react"
+import { ClipboardCheck, Link2, ListChecks, PanelBottom, RotateCcw, ShieldCheck } from "lucide-react"
 import { useRouter, useRouterState } from "@tanstack/react-router"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { readThemeMode, setThemeMode } from "@/lib/theme"
@@ -11,13 +11,15 @@ import { resetNextSkipped } from "@/components/app/screens/pipeline/shared/conte
 import { stopScenario } from "./simulate"
 import { clearActiveState } from "./testPlan/states"
 import { RECOMMENDED, TEST_BOOKS } from "./testPlan/tests"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { ChecklistPanel } from "./ChecklistPanel"
+import { VerifyPanel, verifyModeStore } from "./VerifyPanel"
 import { applyStageState, clearStageState, pageKeyFor, useActiveStageState, useStageStates } from "./stageStates"
 import { getVariant, resetVariants, setVariantValue, useVariants, type VariantKey } from "./variants"
 
 export const NAV_LAB_PARAM = "navlab"
 
-const DOCK_KEYS = ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"] as const
+const DOCK_KEYS = ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "topborder"] as const
 
 interface NavLabState {
   on: boolean
@@ -69,6 +71,7 @@ export function NavLab() {
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname })
   const stageStates = useStageStates()
   const [activeStage] = useActiveStageState()
+  const [verifying, setVerifying] = verifyModeStore.use()
   const pageKey = pageKeyFor(pathname)
   const pageStates = (pageKey && stageStates?.byPage[pageKey]) || []
   const kindOrder = Object.keys(stageStates?.kinds ?? {})
@@ -119,6 +122,7 @@ export function NavLab() {
       label: t`Dock`,
       icon: <PanelBottom className="size-3.5" />,
       controls: [
+        { key: "topborder", label: t`Top bar border`, options: [{ value: "on", label: t`On` }, { value: "off", label: t`Off` }] },
         {
           key: "docklayout",
           label: t`Layout`,
@@ -210,6 +214,7 @@ export function NavLab() {
     setupsplit: variants.setupsplit,
     dockfocus: variants.dockfocus,
     dockpin: variants.dockpin,
+    topborder: variants.topborder,
     book: BOOKS[state.book] ? state.book : "all",
     theme: readThemeMode() === "dark" ? "dark" : "light",
   }
@@ -253,8 +258,13 @@ export function NavLab() {
 
   return (
     <DevToolbar
-      controls={controls}
-      groups={groups}
+      controls={verifying ? [] : controls}
+      groups={
+        verifying
+          ? [{ key: "verify", label: pageKey ? getStageLabelI18n(pageKey) : t`This screen`, icon: <ShieldCheck className="size-3.5" />, controls: [], content: <VerifyPanel page={pageKey} stageStates={stageStates} active={activeStage} /> }]
+          : groups
+      }
+      toggle={{ label: t`Verify`, hint: t`Verification mode: step through this stage's states and mark each one`, on: verifying, onChange: setVerifying }}
       values={values}
       onChange={onChange}
       actions={[

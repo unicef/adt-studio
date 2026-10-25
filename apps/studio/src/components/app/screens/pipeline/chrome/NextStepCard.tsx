@@ -31,12 +31,14 @@ export function NextStepCard({
   partial = false,
   ready = true,
   confirm,
+  aside,
 }: {
   label: string
   slug: string
   partial?: boolean
   ready?: boolean
   confirm?: NextStepConfirm | null
+  aside?: ReactNode
 }) {
   const { i18n } = useLingui()
   const next = useNextStep(label, slug, { partial })
@@ -69,7 +71,7 @@ export function NextStepCard({
   return (
     <section
       className="overflow-hidden rounded-xl text-white shadow-sm animate-in fade-in slide-in-from-top-1 duration-300 motion-reduce:animate-none"
-      style={{ background: next.hex }}
+      style={{ background: next.hex, ["--next-hex" as string]: next.hex }}
     >
       <div className="flex items-center gap-3.5 px-5 py-4">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/20">
@@ -116,6 +118,7 @@ export function NextStepCard({
           goButton
         )}
       </div>
+      {aside && <div className="flex flex-wrap items-center gap-2 border-t empty:hidden border-white/15 bg-black/10 px-5 py-2.5 text-[12.5px] text-white/90 animate-in fade-in duration-300 motion-reduce:animate-none">{aside}</div>}
     </section>
   )
 }

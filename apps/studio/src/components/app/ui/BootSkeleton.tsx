@@ -1,5 +1,8 @@
 import { Trans } from "@lingui/react/macro"
 import { STAGES } from "@/components/pipeline/stage-config"
+import { StageContentSkeleton } from "@/components/app/screens/pipeline/steps/shared/StepLoadingSkeleton"
+import { useChromeRoot } from "@/components/app/lab/chrome"
+import { rememberedPageRatio } from "@/components/app/screens/pipeline/shared/usePageAspect"
 
 function Bar({ className }: { className: string }) {
   return <div className={`rounded bg-muted-foreground/12 ${className}`} />
@@ -39,23 +42,24 @@ export function AppBootSkeleton() {
   )
 }
 
-function stageFromPath(): { slug: string; hex: string } | null {
+function stageFromPath(): { slug: string; hex: string; label: string } | null {
   if (typeof window === "undefined") return null
-  const segment = window.location.pathname.split("/")[3]
+  const [, , label = "", segment] = window.location.pathname.split("/")
   const stage = STAGES.find((candidate) => candidate.slug === segment)
-  return stage && stage.slug !== "storyboard" ? { slug: stage.slug, hex: stage.hex } : null
+  return stage && stage.slug !== "storyboard" ? { slug: stage.slug, hex: stage.hex, label: decodeURIComponent(label) } : null
 }
 
 const LIST_STAGES = new Set(["quizzes", "glossary", "toc", "translate", "speech", "easy-read", "validation", "sign-language"])
 
-function StageBootSkeleton({ hex, slug }: { hex: string; slug: string }) {
+function StageBootSkeleton({ hex, slug, label }: { hex: string; slug: string; label: string }) {
   const list = LIST_STAGES.has(slug)
+  const chrome = useChromeRoot(hex)
   return (
-    <div role="status" aria-busy className="flex h-full w-full flex-col bg-background">
+    <div role="status" aria-busy {...chrome} className="flex h-full w-full flex-col">
       <span className="sr-only">
         <Trans>Opening the book…</Trans>
       </span>
-      <header className="flex h-12.5 shrink-0 items-center gap-3 border-b px-3.5">
+      <header className="flex h-13 shrink-0 items-center gap-3 px-3.5">
         <div className="size-7 rounded-lg bg-muted" />
         <div className="size-6 rounded-md bg-muted" />
         <Bar className="h-3 w-40" />
@@ -68,46 +72,9 @@ function StageBootSkeleton({ hex, slug }: { hex: string; slug: string }) {
         <div className="h-8 w-20 rounded-lg border" />
         <div className="h-8 w-18 rounded-lg bg-muted" />
       </header>
-      <div className="flex min-h-0 flex-1 motion-safe:animate-pulse">
-        <aside className="flex w-56 shrink-0 flex-col gap-2 border-r p-3">
-          <Bar className="mb-2 h-2.5 w-16" />
-          {[0, 1, 2, 3, 4, 5, 6].map((row) => (
-            <div key={row} className="flex gap-2.5 rounded-lg p-1.5">
-              <div className="h-[52px] w-[38px] shrink-0 rounded bg-muted" />
-              <div className="flex flex-1 flex-col gap-1.5 pt-1">
-                <Bar className="h-2.5 w-14" />
-                <Bar className="h-2 w-full" />
-              </div>
-            </div>
-          ))}
-        </aside>
-        <div className="flex flex-1 justify-center px-6 pt-7">
-          <div className="flex w-full max-w-[860px] flex-col gap-4">
-            <Bar className="h-6 w-48" />
-            {list ? (
-              <div className="flex flex-col gap-3">
-                {[0, 1, 2, 3].map((row) => (
-                  <div key={row} className="flex flex-col gap-2.5 rounded-xl border bg-card p-4">
-                    <Bar className="h-3 w-2/5" />
-                    <Bar className="h-2.5 w-full" />
-                    <Bar className="h-2.5 w-4/5" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-            <div className="grid grid-cols-4 gap-3">
-              {[0, 1, 2, 3, 4, 5, 6, 7].map((card) => (
-                <div key={card} className="flex flex-col overflow-hidden rounded-xl border bg-card">
-                  <div className="aspect-[3/4] bg-muted" />
-                  <div className="flex flex-col gap-1.5 p-3">
-                    <Bar className="h-2.5 w-16" />
-                    <Bar className="h-2 w-full" />
-                  </div>
-                </div>
-              ))}
-            </div>
-            )}
-          </div>
+      <div className="min-h-0 flex-1 p-2">
+        <div data-chrome="center" className="h-full overflow-hidden rounded-xl">
+          <StageContentSkeleton shape={list ? "list" : "grid"} ratio={rememberedPageRatio(label)} slug={slug} />
         </div>
       </div>
     </div>
@@ -116,7 +83,7 @@ function StageBootSkeleton({ hex, slug }: { hex: string; slug: string }) {
 
 export function PipelineBootSkeleton() {
   const stage = stageFromPath()
-  if (stage) return <StageBootSkeleton hex={stage.hex} slug={stage.slug} />
+  if (stage) return <StageBootSkeleton {...stage} />
   return (
     <div role="status" aria-busy className="flex h-full w-full flex-col bg-background">
       <span className="sr-only">

@@ -259,7 +259,7 @@ export function StepLoading({ shape, ...props }: StepProps & StepLoadingOptions)
 }
 
 export function useStepLoadingView(props: StepProps, { shape = "grid" }: StepLoadingOptions = {}): StepView {
-  const { label, pages } = props
+  const { label, pages, plugin } = props
   const aspect = usePageAspect(label, pages)
   const search = useSearch({ strict: false })
   const pageOpen = typeof search.page === "string" && search.page !== ""
@@ -267,7 +267,7 @@ export function useStepLoadingView(props: StepProps, { shape = "grid" }: StepLoa
     chips: [],
     railEmpty: !pageOpen,
     rail: <StepRailSkeleton thumbClassName={pages[0] ? aspect.railThumbClassOf(pages[0]) : "h-[52px] w-[38px]"} />,
-    children: <StepBodySkeleton shape={shape} aspect={aspect} />,
+    children: <StepBodySkeleton shape={shape} aspect={aspect} slug={plugin.slug} />,
   }
 }
 

@@ -28,6 +28,7 @@ export function ToggleCard({
 
   return (
     <div
+      data-settings-card=""
       role="switch"
       id={id}
       aria-checked={checked}

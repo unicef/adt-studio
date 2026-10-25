@@ -42,6 +42,7 @@ export interface StepLandingShellProps {
   title?: ReactNode
   description?: ReactNode
   notice?: ReactNode
+  canvas?: ReactNode
   children: ReactNode
 }
 
@@ -66,6 +67,7 @@ export function StepLandingShell({
   title,
   description,
   notice,
+  canvas,
   children,
 }: StepLandingShellProps) {
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -217,6 +219,7 @@ export function StepLandingShell({
         reason={hideRunButton ? null : reasonLine}
         advanced={isStepSettingsSlug(stageSlug) ? advancedLink : null}
         preview={previewCard}
+        canvas={canvas}
       />
 
       <CascadeResetDialog

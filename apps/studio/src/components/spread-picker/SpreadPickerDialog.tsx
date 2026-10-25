@@ -40,6 +40,8 @@ interface SpreadPickerDialogProps {
   initialSelection?: number[]
   /** Which view to open on ("spreads" jumps straight to the marked pairs). */
   defaultView?: PageView
+  /** Accent colour for the dialog's primary controls (e.g. the stage colour). */
+  accent?: string
 }
 
 export function SpreadPickerDialog({
@@ -56,6 +58,7 @@ export function SpreadPickerDialog({
   mergedLeads,
   initialSelection,
   defaultView = "all",
+  accent,
 }: SpreadPickerDialogProps) {
   const { t } = useLingui()
   const [view, setView] = useState<PageView>(defaultView)
@@ -99,7 +102,10 @@ export function SpreadPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[90vh] max-h-[900px] w-full max-w-[960px] flex-col gap-4">
+      <DialogContent
+        className="flex h-[90vh] max-h-[900px] w-full max-w-[960px] flex-col gap-4"
+        style={accent ? { ["--primary" as string]: accent, ["--primary-foreground" as string]: "#ffffff", ["--ring" as string]: accent, ["--suggested" as string]: accent } : undefined}
+      >
         <DialogHeader>
           <DialogTitle>
             <Trans>Review spreads</Trans>

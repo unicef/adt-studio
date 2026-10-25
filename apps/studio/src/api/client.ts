@@ -90,6 +90,10 @@ export function getSourcePdfUrl(label: string): string {
   return `${BASE_URL}/books/${label}/source-pdf`
 }
 
+export function getSourcePdfThumbnailUrl(label: string, page: number, width: number): string {
+  return `${BASE_URL}/books/${label}/source-pdf/pages/${page}/thumbnail?width=${width}`
+}
+
 export function getBookCoverUrl(label: string, cacheKey?: string): string {
   const base = `${BASE_URL}/books/${label}/cover`
   if (!cacheKey) return base

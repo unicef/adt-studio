@@ -364,9 +364,9 @@ function SpreadTile({
   const frame = merged
     ? "border-emerald-500 bg-emerald-500/5"
     : suggested
-      ? "border-amber-500 bg-amber-500/5"
+      ? "border-[var(--suggested,#f59e0b)] bg-[color-mix(in_srgb,var(--suggested,#f59e0b)_6%,transparent)]"
       : "border-primary bg-primary/5"
-  const pill = merged ? "bg-emerald-600" : suggested ? "bg-amber-500" : "bg-primary"
+  const pill = merged ? "bg-emerald-600" : suggested ? "bg-[var(--suggested,#f59e0b)]" : "bg-primary"
   const label = merged
     ? t`Merged ${left}–${right}`
     : suggested

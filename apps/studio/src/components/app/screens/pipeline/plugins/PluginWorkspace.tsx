@@ -12,7 +12,6 @@ import { useChromeRoot } from "@/components/app/lab/chrome"
 import { usePanelFit } from "@/components/app/screens/pipeline/shared/panelFit"
 import { TopBar } from "@/components/app/screens/pipeline/chrome/PipelineChrome"
 import { useRunFinished } from "@/components/app/screens/pipeline/runs/useRunFinished"
-import { RunFinishedBanner } from "@/components/app/screens/pipeline/runs/RunFinishedBanner"
 import { LiveRunStrip } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
 import { usePageParam } from "@/components/app/screens/pipeline/steps/shared/usePageParam"
 import { usePipelineState } from "@/components/app/screens/pipeline/shared/usePipelineState"
@@ -61,7 +60,7 @@ export function PluginWorkspace({
   const rowRef = useRef<HTMLDivElement>(null)
   usePanelFit(rowRef)
   const [finished, dismissFinished] = useRunFinished(activity)
-  const showBanner = finished && returnVariant === "banner"
+
 
   useEffect(() => {
     if (!finished || returnVariant !== "toast") return
@@ -86,7 +85,6 @@ export function PluginWorkspace({
         item: detailPage ? t`Page ${detailPage.pageNumber}` : undefined,
         version: headerExtra,
       }}
-      center={showBanner ? <RunFinishedBanner name={name} onReturn={onBack} onDismiss={dismissFinished} /> : undefined}
       settings={onOpenSettings ? { label: t`${name} settings`, onOpen: onOpenSettings } : undefined}
     />
   )
