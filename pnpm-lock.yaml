@@ -580,7 +580,7 @@ importers:
         specifier: ^0.4.4
         version: 0.4.4
       mupdf:
-        specifier: ^1.27.0
+        specifier: 1.27.0
         version: 1.27.0
       pngjs:
         specifier: ^7.0.0
