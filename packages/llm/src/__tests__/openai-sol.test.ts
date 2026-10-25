@@ -62,7 +62,7 @@ describe("Sol migration", () => {
     "AC-2: normalizes Luna effort %s, keeping none", (effort) => {
       expect(lunaInferenceOptions({ openai: { reasoningEffort: effort, topP: 0.9 } })).toEqual({
         endpoint: "responses",
-        providerOptions: { openai: { reasoningEffort: [undefined, "minimal"].includes(effort) ? "low" : effort } },
+        providerOptions: { openai: { reasoningEffort: effort === undefined ? "medium" : effort === "minimal" ? "low" : effort } },
       })
     },
   )

@@ -40,7 +40,7 @@ export function solInferenceOptions(providerOptions?: Record<string, unknown>): 
 export function lunaInferenceOptions(providerOptions?: Record<string, unknown>): InferenceOptions {
   const effort = requestedEffort(providerOptions)
   return responsesOptions(LunaReasoningEffort.parse(
-    effort === undefined || effort === "minimal" ? "low" : effort,
+    effort === undefined ? "medium" : effort === "minimal" ? "low" : effort,
   ))
 }
 
