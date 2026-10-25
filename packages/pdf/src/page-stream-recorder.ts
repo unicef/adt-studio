@@ -26,6 +26,7 @@ import mupdf, {
   type StrokeState,
 } from "mupdf"
 import { colorToCss } from "./color-utils.js"
+import { imageHasMask } from "./mupdf-image-refs.js"
 
 // mupdf's path/text getBounds() typings require a StrokeState, but the
 // runtime accepts null for unstroked-bound queries. Cast at call sites.
@@ -296,7 +297,7 @@ export function recordPageStream(
         nativeWidth: image.getWidth(),
         nativeHeight: image.getHeight(),
         currentTransformationMatrix: ctm,
-        hasMask: !!image.getMask(),
+        hasMask: imageHasMask(image),
         activeClipBbox: activeClipBbox(),
         activeClipPaths: activeClipPaths(),
         blendMode: activeBlendMode(),
