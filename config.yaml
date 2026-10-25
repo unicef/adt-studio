@@ -3,13 +3,15 @@
 # override this one. This can also be changed in Studio under Settings > Models.
 default_model: "openai:gpt-6-luna"
 
-# Visual review and activity rendering run on GPT-6.1 Sol; every other text task
-# uses default_model unless it sets its own model (Settings > Models).
+# Visual review and activity rendering run on GPT-6.1 Sol and book outline on
+# GPT-6 Luna; every other text task uses default_model unless it sets its own
+# model (Settings > Models).
 visual_review:
   model: "openai:gpt-6.1-sol"
 
 book_outline:
   prompt: book_outline
+  model: "openai:gpt-6-luna"
   timeout: 300
 
 default_image_generation_model: "openai:gpt-image-2"
@@ -247,6 +249,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_multi_select:
     render_type: activity
     config:
@@ -257,6 +260,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_underline_text:
     render_type: activity
     config:
@@ -267,6 +271,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_true_false:
     render_type: activity
     config:
@@ -277,6 +282,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_fill_in_the_blank:
     render_type: activity
     config:
@@ -287,6 +293,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_fill_in_a_table:
     render_type: activity
     config:
@@ -297,6 +304,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_matching:
     render_type: activity
     config:
@@ -307,6 +315,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_sorting:
     render_type: activity
     config:
@@ -317,6 +326,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_ordering:
     render_type: activity
     config:
@@ -326,6 +336,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
   activity_open_ended_answer:
     render_type: activity
     config:
@@ -335,6 +346,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+      reasoning_effort: "medium"
 
 section_render_strategies:
   activity_multiple_choice: activity_multiple_choice

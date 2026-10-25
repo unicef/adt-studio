@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
-import { Brain, Search, TriangleAlert, X } from "lucide-react"
+import { Brain, Search, X } from "lucide-react"
 import { ModelSelect } from "@/components/pipeline/components/ModelSelect"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -83,16 +83,13 @@ export function ModelsTable(props: ModelsTableProps) {
   const inheritCount = tasks.tasks.filter(
     (task) => !tasks.isCustom(task.id) && tasks.inheritedOf(task.id).source.kind === "default",
   ).length
-  const inheritanceHint = (taskId: string): { text: string; override: boolean } | null => {
+  const inheritanceHint = (taskId: string): string | null => {
     if (tasks.isCustom(taskId)) return null
-    const { model, source } = tasks.inheritedOf(taskId)
-    if (source.kind === "override") {
-      return { text: t`${model} overrides the default LLM for this task`, override: true }
-    }
+    const { source } = tasks.inheritedOf(taskId)
     if (source.kind !== "task") return null
     const sourceTask = tasks.tasks.find((entry) => entry.id === source.taskId)
     const sourceLabel = sourceTask ? tasks.labelOf(sourceTask) : source.taskId
-    return { text: t`Inherited from ${sourceLabel}`, override: false }
+    return t`Inherited from ${sourceLabel}`
   }
 
   const clearSearch = () => {
@@ -304,15 +301,7 @@ export function ModelsTable(props: ModelsTableProps) {
                         commitOnInput
                       />
                       {hint && (
-                        <p
-                          className={cn(
-                            "mt-1 flex items-start gap-1.5 text-[11.5px]",
-                            hint.override ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground",
-                          )}
-                        >
-                          {hint.override && <TriangleAlert className="mt-px size-3 shrink-0" aria-hidden="true" />}
-                          <span className="text-pretty">{hint.text}</span>
-                        </p>
+                        <p className="mt-1 text-pretty text-[11.5px] text-muted-foreground">{hint}</p>
                       )}
                       <UnsupportedModelNotice support={tasks.supportFor(task.id)} modality="text" className="mt-1.5" />
                     </td>

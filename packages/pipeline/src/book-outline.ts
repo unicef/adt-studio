@@ -18,7 +18,6 @@ export const BOOK_OUTLINE_CHUNK_PAGE_LIMIT = 24
 const BOOK_OUTLINE_CHUNK_PROMPT = "book_outline_chunk"
 const BOOK_OUTLINE_SYNTHESIS_PROMPT = "book_outline_synthesis"
 const BOOK_OUTLINE_CHUNK_MAX_TOKENS = 16_384
-export const DEFAULT_OPENAI_BOOK_OUTLINE_MODEL_ID = "openai:gpt-5.4-mini"
 
 export interface BookOutlineConfig {
   promptName: string
@@ -35,18 +34,9 @@ export interface PageOutlineContext {
 
 export function buildBookOutlineConfig(appConfig: AppConfig): BookOutlineConfig {
   const config = appConfig.book_outline
-  const inheritedModel = appConfig.default_model ?? DEFAULT_LLM_MODEL_ID
   return {
     promptName: config?.prompt ?? "book_outline",
-    // Whole-book hierarchy is a bounded classification/extraction task, not a
-    // frontier-model task. Keep non-OpenAI selections intact, but use the fast
-    // multimodal mini variant for the shipped OpenAI default. A per-step model
-    // override remains authoritative when a book genuinely needs the full model.
-    modelId: config?.model ?? (
-      inheritedModel === DEFAULT_LLM_MODEL_ID
-        ? DEFAULT_OPENAI_BOOK_OUTLINE_MODEL_ID
-        : inheritedModel
-    ),
+    modelId: config?.model ?? appConfig.default_model ?? DEFAULT_LLM_MODEL_ID,
     maxRetries: config?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     timeoutMs: (config?.timeout ?? 300) * 1000,
   }

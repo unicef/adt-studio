@@ -482,8 +482,8 @@ msgstr "{model} ne prend pas en charge le réglage de l'effort de raisonnement. 
 msgid "{model} does not support the {level} effort. Choose another level."
 msgstr "{model} ne prend pas en charge l'effort {level}. Choisissez un autre niveau."
 
-msgid "{model} overrides the default LLM for this task"
-msgstr "{model} remplace le LLM par défaut pour cette tâche"
+#~ msgid "{model} overrides the default LLM for this task"
+#~ msgstr "{model} remplace le LLM par défaut pour cette tâche"
 
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} signalés"

@@ -480,8 +480,8 @@ msgstr "{model} não aceita configuração de esforço de raciocínio. Use o pad
 msgid "{model} does not support the {level} effort. Choose another level."
 msgstr "{model} não aceita o esforço {level}. Escolha outro nível."
 
-msgid "{model} overrides the default LLM for this task"
-msgstr "{model} substitui o LLM padrão nesta tarefa"
+#~ msgid "{model} overrides the default LLM for this task"
+#~ msgstr "{model} substitui o LLM padrão nesta tarefa"
 
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} sinalizados"

@@ -482,8 +482,8 @@ msgstr "{model} nuk mbështet cilësimin e përpjekjes së arsyetimit. Përdorni
 msgid "{model} does not support the {level} effort. Choose another level."
 msgstr "{model} nuk mbështet përpjekjen {level}. Zgjidhni një nivel tjetër."
 
-msgid "{model} overrides the default LLM for this task"
-msgstr "{model} zëvendëson LLM-në e parazgjedhur për këtë detyrë"
+#~ msgid "{model} overrides the default LLM for this task"
+#~ msgstr "{model} zëvendëson LLM-në e parazgjedhur për këtë detyrë"
 
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} të shënuara"

@@ -356,7 +356,7 @@ describe("book outline evidence", () => {
 
 describe("book outline generation", () => {
   it.each([undefined, DEFAULT_LLM_MODEL_ID])(
-    "uses the fast mini model for the shipped OpenAI default (%s)",
+    "uses the default LLM without a mini fallback (%s)",
     (defaultModel) => {
       expect(
         buildBookOutlineConfig({
@@ -364,7 +364,7 @@ describe("book outline generation", () => {
           structure_types: {},
           role_types: {},
         }).modelId,
-      ).toBe("openai:gpt-5.4-mini")
+      ).toBe(DEFAULT_LLM_MODEL_ID)
     },
   )
 

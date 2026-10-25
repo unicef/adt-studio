@@ -97,8 +97,8 @@ and its source, and structured-call logs record the resolved file path.
 
 The distributed execution default is `openai:gpt-6-luna`. The shipped
 `config.yaml` pins `openai:gpt-6.1-sol` for visual review (`visual_review.model`)
-and for every activity render strategy (`render_strategies.activity_*.config.model`);
-agents keep the provider's agent default, `gpt-6.1-sol`. Each of these is a
+and for every activity render strategy (`render_strategies.activity_*.config.model`),
+and `openai:gpt-6-luna` for book outline (`book_outline.model`); agents keep the provider's agent default, `gpt-6.1-sol`. Each of these is a
 task-model override shown in Settings > Models. Base prompt provenance remains `openai:gpt-5.4`;
 selecting GPT-5.4 still resolves the legacy base prompts.
 
@@ -224,9 +224,9 @@ keep their existing lookup and contracts. The broader rewrite and representative
 complete that evaluation or claim its acceptance criteria.
 
 Image generation/editing and image translation use specialized image models.
-The independent book-outline task retains its pinned mini model
-(`openai:gpt-5.4-mini`) while `default_model` is the shipped default, and uses
-base prompts. Uploaded overrides and saved book files are never rewritten by the
+The shipped config pins the book-outline task to `openai:gpt-6-luna` through
+`book_outline.model`; without that value it follows `default_model` like any
+other task, with no mini-model fallback, and uses base prompts. Uploaded overrides and saved book files are never rewritten by the
 default change.
 
 Settings > Models shows the model each task actually runs on. A task without its
@@ -234,8 +234,7 @@ own model shows its inherited model as the placeholder, with the source under it
 another task (translation, quiz, captioning, glossary and TOC inherit
 `page_sectioning`; easy read inherits `translation`, then `page_sectioning`;
 TTS preparation inherits `translation`; image cropping inherits
-`image_meaningfulness`) or, for book outline, an amber notice that the pinned
-`gpt-5.4-mini` overrides the default LLM. The
+`image_meaningfulness`). The
 chains are declared in `STEP_TASK_MODEL_TARGETS` (`packages/types/src/task-models.ts`),
 and `apps/api/src/services/task-models.test.ts` checks them against the pipeline's
 own config builders, so a change to a fallback chain fails that test until the
@@ -245,9 +244,9 @@ Sol and Luna use Responses for all inference, including structured tool-call
 fallback and agent turns. The installed AI SDK 4/OpenAI 1.3 adapter does not
 recognize GPT-6 reasoning or preserve opaque reasoning output, so both use a
 scoped REST adapter (`packages/llm/src/providers/openai/sol.ts`) without changing
-dependencies or other providers. Effective effort is `low` when omitted. Sol
-rejects `none` and `minimal`, so they become `low`; Luna accepts `none` and
-maps only `minimal` to `low`. Explicit supported efforts are preserved, and each
+dependencies or other providers. When omitted, effective effort is `low` on Sol
+and `medium` on Luna. Sol rejects `none` and `minimal`, so they become `low`;
+Luna accepts `none` and maps only `minimal` to `low`. Explicit supported efforts are preserved, and each
 model has its own adapter version in the cache fingerprint.
 
 ### Reasoning effort per step
@@ -276,7 +275,7 @@ The field exists on every `StepConfig` step (`metadata`, `book_summary`,
 `styleguide_generation`, `visual_review`), on `core_tts` and on a render
 strategy's `config` (HTML generation and activity answers). A task without its
 own value uses `default_reasoning_effort`; with neither, the model's own default
-applies (`low` on Sol and Luna). Visual review reads `visual_review.reasoning_effort`,
+applies (`low` on Sol, `medium` on Luna). Visual review reads `visual_review.reasoning_effort`,
 then the strategy's `visual_refinement.reasoning_effort`, then the default.
 
 Which levels a model accepts is declared in its provider manifest

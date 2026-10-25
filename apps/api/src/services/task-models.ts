@@ -1,6 +1,4 @@
-import { DEFAULT_OPENAI_BOOK_OUTLINE_MODEL_ID } from "@adt/pipeline"
 import {
-  DEFAULT_LLM_MODEL_ID,
   STEP_TASK_MODEL_TARGETS,
   type AppConfig,
   type ReasoningEffort,
@@ -36,9 +34,6 @@ export function listTaskModels(config: AppConfig): TaskModelEntry[] {
       model: step?.model ?? null,
       reasoningEffort: step?.reasoning_effort ?? null,
       inheritsFrom: [...(target.inheritsFrom ?? [])],
-      defaultModelOverride: target.configKey === "book_outline"
-        ? { whenDefaultModel: DEFAULT_LLM_MODEL_ID, model: DEFAULT_OPENAI_BOOK_OUTLINE_MODEL_ID }
-        : null,
     }
   })
 
@@ -54,7 +49,6 @@ export function listTaskModels(config: AppConfig): TaskModelEntry[] {
         model: strategyConfig?.model ?? null,
         reasoningEffort: strategyConfig?.reasoning_effort ?? null,
         inheritsFrom: [],
-        defaultModelOverride: null,
       }
     })
 

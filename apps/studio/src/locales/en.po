@@ -480,8 +480,8 @@ msgstr "{model} does not support a reasoning effort setting. Use the default."
 msgid "{model} does not support the {level} effort. Choose another level."
 msgstr "{model} does not support the {level} effort. Choose another level."
 
-msgid "{model} overrides the default LLM for this task"
-msgstr "{model} overrides the default LLM for this task"
+#~ msgid "{model} overrides the default LLM for this task"
+#~ msgstr "{model} overrides the default LLM for this task"
 
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} flagged"

@@ -92,9 +92,9 @@ describe("task model display matches the pipeline runtime", () => {
     }
   })
 
-  it("shows the pinned outline model for the shipped default", () => {
+  it("ships book outline on GPT-6 Luna", () => {
     const tasks = listTaskModels(shipped)
     const outline = tasks.find((task) => task.id === "book_outline")!
-    expect(displayedModel(tasks, outline, shipped.default_model!)).toBe("openai:gpt-5.4-mini")
+    expect(displayedModel(tasks, outline, shipped.default_model!)).toBe("openai:gpt-6-luna")
   })
 })

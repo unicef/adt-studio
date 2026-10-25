@@ -480,8 +480,8 @@ msgstr "{model} no admite configurar el esfuerzo de razonamiento. Usa el predete
 msgid "{model} does not support the {level} effort. Choose another level."
 msgstr "{model} no admite el esfuerzo {level}. Elige otro nivel."
 
-msgid "{model} overrides the default LLM for this task"
-msgstr "{model} reemplaza el LLM predeterminado en esta tarea"
+#~ msgid "{model} overrides the default LLM for this task"
+#~ msgstr "{model} reemplaza el LLM predeterminado en esta tarea"
 
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} marcados"

@@ -550,7 +550,6 @@ export {
   TaskModelsResponse,
   UpdateTaskModelRequest,
   UpdateDefaultReasoningEffortRequest,
-  DefaultModelOverride,
   resolveInheritedTaskModel,
   type InheritedModelSource,
 } from "./task-models.js"

@@ -108,12 +108,6 @@ export const STEP_TASK_MODEL_TARGETS: readonly StepTaskModelTarget[] = [
 export const TaskModelKind = z.enum(["step", "render-strategy"])
 export type TaskModelKind = z.infer<typeof TaskModelKind>
 
-export const DefaultModelOverride = z.object({
-  whenDefaultModel: z.string(),
-  model: z.string(),
-})
-export type DefaultModelOverride = z.infer<typeof DefaultModelOverride>
-
 export const TaskModelEntry = z.object({
   id: z.string(),
   kind: TaskModelKind,
@@ -123,24 +117,19 @@ export const TaskModelEntry = z.object({
   model: z.string().nullable(),
   reasoningEffort: ReasoningEffort.nullable(),
   inheritsFrom: z.array(z.string()),
-  defaultModelOverride: DefaultModelOverride.nullable(),
 })
 export type TaskModelEntry = z.infer<typeof TaskModelEntry>
 
-export type InheritedModelSource = { kind: "default" } | { kind: "task"; taskId: string } | { kind: "override" }
+export type InheritedModelSource = { kind: "default" } | { kind: "task"; taskId: string }
 
 export function resolveInheritedTaskModel(
-  task: Pick<TaskModelEntry, "inheritsFrom" | "defaultModelOverride">,
+  task: Pick<TaskModelEntry, "inheritsFrom">,
   modelOf: (taskId: string) => string | null | undefined,
   defaultModel: string,
 ): { model: string; source: InheritedModelSource } {
   for (const taskId of task.inheritsFrom) {
     const model = modelOf(taskId)
     if (model) return { model, source: { kind: "task", taskId } }
-  }
-  const override = task.defaultModelOverride
-  if (override && override.whenDefaultModel === defaultModel) {
-    return { model: override.model, source: { kind: "override" } }
   }
   return { model: defaultModel, source: { kind: "default" } }
 }
