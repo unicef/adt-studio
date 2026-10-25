@@ -132,5 +132,12 @@
     "stepper-word-bank": "Fjalë për të zgjedhur",
     "stepper-open-ended-saved": "Të lumtë — përgjigjja jote u ruajt.",
     "stepper-open-ended-rephrase": "Të jemi të sjellshëm — provo ta riformulosh përgjigjen tënde.",
-    "open-ended-answer-label": "Përgjigjja jote"
+    "open-ended-answer-label": "Përgjigjja jote",
+    "activity-page-checking": "Duke kontrolluar…",
+    "activity-page-complete": "Faqja u përfundua",
+    "activity-page-next-section": "Seksioni tjetër",
+    "activity-page-check-section": "Kontrollo seksionin",
+    "activity-page-check-page": "Kontrollo faqen",
+    "activity-page-progress": "${done} nga ${total} seksione të përfunduara",
+    "activity-page-error": "Ky seksion nuk mund të kontrollohej. Provoni përsëri."
 }

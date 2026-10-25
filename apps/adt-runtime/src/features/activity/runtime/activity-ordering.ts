@@ -1,3 +1,4 @@
+import { activityStore, activityAnswers } from "./activity-scope"
 import { getDefaultStore } from "jotai"
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine"
 import {
@@ -40,7 +41,7 @@ function findNextPageHref(): string | null {
 }
 
 function readCorrectOrder(section: HTMLElement, itemIds: string[]): string[] {
-  const answers = window.correctAnswers
+  const answers = activityAnswers(section)
   if (answers && Object.keys(answers).length > 0) {
     const ranked = itemIds.map((itemId) => ({ itemId, rank: Number(answers[itemId]) }))
     const ranks = ranked.map(({ rank }) => rank)
@@ -85,9 +86,9 @@ function itemLabel(item: HTMLElement): string {
   )
 }
 
-export function initializeOrderingActivity(): (() => void) | null {
+export function initializeOrderingActivity(root?: ParentNode): (() => void) | null {
   if (typeof document === "undefined") return null
-  const section = document.querySelector<HTMLElement>(ORDERING_SELECTOR)
+  const section = (root ?? document).querySelector<HTMLElement>(ORDERING_SELECTOR)
   const list = section?.querySelector<HTMLElement>("[data-activity-order-list]")
   if (!section || !list) return null
 
@@ -97,7 +98,7 @@ export function initializeOrderingActivity(): (() => void) | null {
   const correctOrder = readCorrectOrder(section, itemIds)
   if (correctOrder.length !== itemIds.length || new Set(correctOrder).size !== itemIds.length) return null
 
-  const store = getDefaultStore()
+  const store = activityStore(section)
   const hasNextPage = findNextPageHref() !== null
   let validated = false
   const cleanups: Array<() => void> = []

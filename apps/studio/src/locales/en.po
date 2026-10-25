@@ -3958,6 +3958,9 @@ msgstr "Expand"
 msgid "Expand all sections"
 msgstr "Expand all sections"
 
+msgid "Experimental activity pages"
+msgstr "Experimental activity pages"
+
 msgid "Experimental configurations"
 msgstr "Experimental configurations"
 
@@ -4722,8 +4725,17 @@ msgstr "Group by needs attention"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 
+msgid "Group sections — check one section at a time"
+msgstr "Group sections — check one section at a time"
+
+msgid "Group sections — check whole page"
+msgstr "Group sections — check whole page"
+
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Groups image regions into discrete illustrations on each page."
+
+msgid "Groups supported activity sections from the same PDF page in Preview and exports. Works with either sectioning mode. Existing sections can be tried immediately; run Sectioning and Storyboard to detect activities on new pages. Custom scripts, step-by-step activities and fixed layouts stay separate."
+msgstr "Groups supported activity sections from the same PDF page in Preview and exports. Works with either sectioning mode. Existing sections can be tried immediately; run Sectioning and Storyboard to detect activities on new pages. Custom scripts, step-by-step activities and fixed layouts stay separate."
 
 msgid "Guidance for this book"
 msgstr "Guidance for this book"
@@ -5339,6 +5351,9 @@ msgstr "Keep pages whole by default, but split when distinct activity types are 
 
 #~ msgid "Keep selected content"
 #~ msgstr "Keep selected content"
+
+msgid "Keeps each source page together while detecting separate activities."
+msgstr "Keeps each source page together while detecting separate activities."
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Keeps pages whole unless mixed activity types require splitting."

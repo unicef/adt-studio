@@ -1,3 +1,4 @@
+import { activityStore, activityAnswers } from "./activity-scope"
 import { getDefaultStore } from "jotai"
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine"
 import {
@@ -49,7 +50,7 @@ function tr(key: string, fallback: string): string {
   return dict[key] || fallback
 }
 
-// `window.correctAnswers` is declared once in ./activity-globals.d.ts. For
+// Legacy window.correctAnswers is declared in activity-globals.d.ts; composed pages use block-local answers. For
 // sorting, it maps each item id (`data-activity-item`) to the id of the
 // category (`data-activity-category`) it belongs in.
 
@@ -63,8 +64,8 @@ function readCorrectAnswers(section: HTMLElement): Record<string, string> {
       // fall through
     }
   }
-  if (typeof window !== "undefined" && window.correctAnswers) {
-    return mapToStrings(window.correctAnswers)
+  if (typeof window !== "undefined" && activityAnswers(section)) {
+    return mapToStrings(activityAnswers(section))
   }
   return {}
 }
@@ -169,12 +170,12 @@ function findNextPageHref(): string | null {
   return pages[idx + 1].href
 }
 
-export function initializeSortingActivity(): (() => void) | null {
+export function initializeSortingActivity(root?: ParentNode): (() => void) | null {
   if (typeof document === "undefined") return null
-  const section = document.querySelector<HTMLElement>(SORTING_SELECTOR)
+  const section = (root ?? document).querySelector<HTMLElement>(SORTING_SELECTOR)
   if (!section) return null
 
-  const store = getDefaultStore()
+  const store = activityStore(section)
   const correctAnswers = readCorrectAnswers(section)
   const hasNextPage = findNextPageHref() !== null
 

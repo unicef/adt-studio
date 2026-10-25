@@ -3958,6 +3958,9 @@ msgstr "Expandir"
 msgid "Expand all sections"
 msgstr "Expandir todas as seções"
 
+msgid "Experimental activity pages"
+msgstr "Páginas de atividades experimentais"
+
 msgid "Experimental configurations"
 msgstr "Configurações experimentais"
 
@@ -4722,8 +4725,17 @@ msgstr "Agrupar pelo que precisa de atenção"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Agrupe o texto e as imagens de cada página em seções classificadas com uma árvore de conteúdo estruturada. As seções determinam como as etapas posteriores renderizam, traduzem e leem o livro em voz alta."
 
+msgid "Group sections — check one section at a time"
+msgstr "Agrupar seções — verificar uma seção por vez"
+
+msgid "Group sections — check whole page"
+msgstr "Agrupar seções — verificar a página inteira"
+
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Agrupa regiões de imagem em ilustrações distintas em cada página."
+
+msgid "Groups supported activity sections from the same PDF page in Preview and exports. Works with either sectioning mode. Existing sections can be tried immediately; run Sectioning and Storyboard to detect activities on new pages. Custom scripts, step-by-step activities and fixed layouts stay separate."
+msgstr "Agrupa as seções de atividades compatíveis da mesma página do PDF na prévia e nas exportações. Funciona com ambos os modos de divisão em seções. As seções existentes podem ser testadas imediatamente; execute a divisão em seções e o storyboard para detectar atividades em novas páginas. Scripts personalizados, atividades passo a passo e layouts fixos permanecem separados."
 
 msgid "Guidance for this book"
 msgstr "Orientações para este livro"
@@ -5339,6 +5351,9 @@ msgstr "Mantenha as páginas inteiras por padrão, mas divida quando tipos disti
 
 #~ msgid "Keep selected content"
 #~ msgstr "Manter o conteúdo selecionado"
+
+msgid "Keeps each source page together while detecting separate activities."
+msgstr "Mantém cada página de origem unida enquanto detecta atividades separadas."
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mantém páginas inteiras, a menos que tipos mistos de atividade exijam divisão."
