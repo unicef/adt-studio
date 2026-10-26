@@ -178,3 +178,40 @@ describe("ModelsSection — provider-aware model defaults", () => {
     )
   })
 })
+
+describe("ModelsSection — speech model (i) tooltip", () => {
+  beforeEach(() => {
+    // An open tooltip positions itself with ResizeObserver, which jsdom lacks.
+    globalThis.ResizeObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver
+  })
+
+  const infoButton = () => screen.getByRole("button", { name: "More info" })
+  const isOpen = () => infoButton().getAttribute("data-state") !== "closed"
+  // A mouse click: Radix closes an open tooltip on pointer down, before the click.
+  const mouseClick = () => {
+    fireEvent.pointerDown(infoButton())
+    fireEvent.click(infoButton())
+  }
+
+  it("opens and closes on mouse clicks", async () => {
+    await renderLoaded()
+
+    mouseClick()
+    await waitFor(() => expect(isOpen()).toBe(true))
+    mouseClick()
+    await waitFor(() => expect(isOpen()).toBe(false))
+  })
+
+  it("toggles on a keyboard click, which has no pointer down", async () => {
+    await renderLoaded()
+
+    fireEvent.click(infoButton())
+    await waitFor(() => expect(isOpen()).toBe(true))
+    fireEvent.click(infoButton())
+    await waitFor(() => expect(isOpen()).toBe(false))
+  })
+})

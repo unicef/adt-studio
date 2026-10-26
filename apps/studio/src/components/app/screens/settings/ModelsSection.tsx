@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Link } from "@tanstack/react-router"
 import { AudioLines, Brain, ImageIcon, Info, Loader2, TriangleAlert } from "lucide-react"
@@ -98,11 +98,14 @@ function SaveButton({
 /**
  * (i) icon whose tooltip opens on hover and focus like any tooltip, and also
  * toggles on click. Radix closes a tooltip on trigger click by default, so the
- * open state is controlled and the click handler prevents that default.
+ * open state is controlled and the click handler prevents that default. Radix
+ * also closes it on pointer down, before the click, so a mouse or touch click
+ * toggles from the state it had before that pointer down.
  */
 function InfoTooltip({ content }: { content: React.ReactNode }) {
   const { t } = useLingui()
   const [open, setOpen] = useState(false)
+  const openAtPointerDown = useRef<boolean | null>(null)
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip open={open} onOpenChange={setOpen}>
@@ -110,9 +113,14 @@ function InfoTooltip({ content }: { content: React.ReactNode }) {
           <button
             type="button"
             aria-label={t`More info`}
+            onPointerDown={() => {
+              openAtPointerDown.current = open
+            }}
             onClick={(event) => {
               event.preventDefault()
-              setOpen((current) => !current)
+              const wasOpen = openAtPointerDown.current
+              openAtPointerDown.current = null
+              setOpen((current) => !(wasOpen ?? current))
             }}
             className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
