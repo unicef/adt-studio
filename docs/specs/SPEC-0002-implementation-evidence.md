@@ -1,5 +1,7 @@
 # SPEC-0002 implementation evidence
 
+> **2026-10-26 local develop integration:** [current integration assessment](../verification/spec-0002-develop-integration-2026-10-26.md) supersedes the implementation/readiness conclusions below. It records merged SPEC-0001 compatibility, independent review, the retained owner deferrals, new checks and outstanding Docker/private-book acceptance. Changes are local only; no new hosted CI, approval or release certification is claimed.
+
 > **2026-10-12 qualified implementation:** [the refreshed integration audit](../verification/spec-0002-oct12-audit.md)
 > supersedes the historical reports below. Source `7b53e448` is integrated onto
 > SPEC-0001 `aefe4185`; F1–F4 and the additional independent findings are fixed

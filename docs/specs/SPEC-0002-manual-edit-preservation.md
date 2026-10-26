@@ -8,7 +8,7 @@ issues: ["#736", "#144"]
 prs: ["#880"]
 adr: ""
 created: 2026-09-21
-updated: 2026-10-11
+updated: 2026-10-26
 ---
 
 <!-- Drafted by an agent from #736, #144, SPEC-0001 and the codebase on 2026-09-21
