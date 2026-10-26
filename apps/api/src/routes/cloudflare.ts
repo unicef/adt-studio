@@ -70,6 +70,9 @@ const OAuthAccountBody = CloudflareOAuthAccountRequest.extend({
 export interface CloudflareRoutesDeps {
   booksDir: string
   projectRoot: string
+  /** The app's one Cloudflare login service, shared with the sharing routes so their renewals
+   *  are deduplicated together. Built here when left out. */
+  oauth?: CloudflareOAuthService
   stateDir?: string
   artifactDir?: string
   migrationsDir?: string
@@ -99,7 +102,7 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
     deps.stateDir ?? resolvePublishStateDir(deps.booksDir),
   )
 
-  const oauth: CloudflareOAuthService = createCloudflareOAuthService({
+  const oauth: CloudflareOAuthService = deps.oauth ?? createCloudflareOAuthService({
     store,
     ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
     ...(deps.now === undefined ? {} : { now: deps.now }),

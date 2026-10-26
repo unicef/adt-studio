@@ -60,7 +60,7 @@ import { bookWorkerName } from "../services/cloudflare/book-host.js"
 import { deleteBookHost } from "../services/cloudflare/book-host-deploy.js"
 import { createCloudflareClient, type CloudflareClient } from "../services/cloudflare/client.js"
 import { resolveCloudflareCredentials } from "../services/cloudflare/credentials.js"
-import { createCloudflareOAuthService } from "../services/cloudflare/oauth.js"
+import { createCloudflareOAuthService, type CloudflareOAuthService } from "../services/cloudflare/oauth.js"
 import {
   loadBookHostArtifact,
   resolveWorkerArtifactPaths,
@@ -82,6 +82,10 @@ function secretRejected(error: { status?: number | null }): boolean {
 
 export interface PublishRoutesDeps {
   booksDir: string
+  /** The app's one Cloudflare login service, shared with the Cloudflare routes. Two services on
+   *  one store would each renew on their own, and the loser's refused refresh token could sign
+   *  the author out. Built here when left out. */
+  oauth?: CloudflareOAuthService
   webAssetsDir: string
   configPath?: string
   promptsDir?: string
@@ -219,7 +223,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     deps.stateDir ?? resolvePublishStateDir(deps.booksDir),
   )
 
-  const oauth = createCloudflareOAuthService({
+  const oauth = deps.oauth ?? createCloudflareOAuthService({
     store,
     ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
   })
