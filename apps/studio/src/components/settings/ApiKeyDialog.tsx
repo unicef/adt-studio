@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react"
-import { Eye, EyeOff, Check } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Check, ExternalLink, Eye, EyeOff } from "lucide-react"
+import type { CredentialFieldManifest, ProviderDescriptor } from "@adt/types"
 import {
   Dialog,
   DialogContent,
@@ -8,430 +9,327 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { cn } from "@/lib/utils"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/sonner"
-import { Trans } from "@lingui/react/macro"
-import { useLingui } from "@lingui/react/macro"
-
-type TabKey = "openai" | "anthropic" | "google" | "custom" | "azure" | "elevenlabs"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { i18n } from "@lingui/core"
+import { useProviderCredentials } from "@/hooks/use-provider-credentials"
+import { isProviderAvailable, type ProviderCredentialValues } from "@/api/provider-credentials"
+import type { AppLocale } from "@/i18n/locales"
+import { ProviderConnectionStatus } from "./ProviderConnectionStatus"
 
 interface ApiKeyDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   embedded?: boolean
-  apiKey: string
-  onSaveApiKey: (key: string) => void
-  anthropicKey: string
-  onSaveAnthropicKey: (key: string) => void
-  googleKey: string
-  onSaveGoogleKey: (key: string) => void
-  customBaseUrl: string
-  onSaveCustomBaseUrl: (url: string) => void
-  customApiKey: string
-  onSaveCustomApiKey: (key: string) => void
-  azureKey: string
-  onSaveAzureKey: (key: string) => void
-  azureRegion: string
-  onSaveAzureRegion: (region: string) => void
-  elevenLabsKey: string
-  onSaveElevenLabsKey: (key: string) => void
 }
 
-function isValidOpenAIKey(key: string): boolean {
-  return key.trim().length > 0 && key.trim().startsWith("sk-")
+function localized(
+  text: Record<AppLocale, string> | undefined,
+  locale: AppLocale,
+): string | undefined {
+  return text?.[locale] ?? text?.en
+}
+
+function fieldValue(
+  values: ProviderCredentialValues,
+  providerId: string,
+  fieldKey: string,
+): string {
+  return values[providerId]?.[fieldKey] ?? ""
+}
+
+function valuesEqual(
+  providers: readonly ProviderDescriptor[],
+  left: ProviderCredentialValues,
+  right: ProviderCredentialValues,
+): boolean {
+  return providers.every(({ manifest }) =>
+    manifest.credentialFields.every(
+      (field) =>
+        fieldValue(left, manifest.id, field.key).trim() ===
+        fieldValue(right, manifest.id, field.key).trim(),
+    ),
+  )
 }
 
 export function ApiKeyDialog({
   open,
   onOpenChange,
   embedded = false,
-  apiKey,
-  onSaveApiKey,
-  anthropicKey,
-  onSaveAnthropicKey,
-  googleKey,
-  onSaveGoogleKey,
-  customBaseUrl,
-  onSaveCustomBaseUrl,
-  customApiKey,
-  onSaveCustomApiKey,
-  azureKey,
-  onSaveAzureKey,
-  azureRegion,
-  onSaveAzureRegion,
-  elevenLabsKey,
-  onSaveElevenLabsKey,
 }: ApiKeyDialogProps) {
   const { t } = useLingui()
-  const [tab, setTab] = useState<TabKey>("openai")
-  const [openaiDraft, setOpenaiDraft] = useState(apiKey)
-  const [anthropicDraft, setAnthropicDraft] = useState(anthropicKey)
-  const [googleDraft, setGoogleDraft] = useState(googleKey)
-  const [customBaseUrlDraft, setCustomBaseUrlDraft] = useState(customBaseUrl)
-  const [customApiKeyDraft, setCustomApiKeyDraft] = useState(customApiKey)
-  const [azureKeyDraft, setAzureKeyDraft] = useState(azureKey)
-  const [azureRegionDraft, setAzureRegionDraft] = useState(azureRegion)
-  const [elevenLabsKeyDraft, setElevenLabsKeyDraft] = useState(elevenLabsKey)
-  const [showKey, setShowKey] = useState(false)
-  const prevOpenRef = useRef(false)
+  const {
+    providers,
+    credentials,
+    setCredential,
+    isLoading,
+    error,
+  } = useProviderCredentials()
+  const locale = i18n.locale as AppLocale
+  const [activeProvider, setActiveProvider] = useState("")
+  const [drafts, setDrafts] = useState<ProviderCredentialValues>({})
+  const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
 
-  const tabs = [
-    { key: "openai" as const, label: t`OpenAI` },
-    { key: "anthropic" as const, label: t`Anthropic` },
-    { key: "google" as const, label: t`Google` },
-    { key: "custom" as const, label: t`Custom` },
-    { key: "azure" as const, label: t`Azure` },
-    { key: "elevenlabs" as const, label: t`ElevenLabs` },
-  ]
-
-  // Reset drafts only when dialog opens (not on every prop change while open)
   useEffect(() => {
-    if (open && !prevOpenRef.current) {
-      setOpenaiDraft(apiKey)
-      setAnthropicDraft(anthropicKey)
-      setGoogleDraft(googleKey)
-      setCustomBaseUrlDraft(customBaseUrl)
-      setCustomApiKeyDraft(customApiKey)
-      setAzureKeyDraft(azureKey)
-      setAzureRegionDraft(azureRegion)
-      setElevenLabsKeyDraft(elevenLabsKey)
-      setShowKey(false)
+    if (!open) return
+    setDrafts(structuredClone(credentials))
+    setVisibleSecrets({})
+  }, [open, credentials])
+
+  useEffect(() => {
+    if (providers.length === 0) return
+    if (!providers.some(({ manifest }) => manifest.id === activeProvider)) {
+      setActiveProvider(providers[0].manifest.id)
     }
-    prevOpenRef.current = open
-  }, [open, apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, elevenLabsKey])
+  }, [providers, activeProvider])
 
-  function handleSave() {
-    // Save all tabs, not just the active one.
-    const trimmedOpenai = openaiDraft.trim()
-    if (isValidOpenAIKey(trimmedOpenai) || trimmedOpenai === "") onSaveApiKey(trimmedOpenai)
+  const fieldErrors = useMemo(() => {
+    const errors = new Map<string, string>()
+    for (const { manifest } of providers) {
+      for (const field of manifest.credentialFields) {
+        const value = fieldValue(drafts, manifest.id, field.key).trim()
+        if (!value) continue
+        const errorKey = `${manifest.id}:${field.key}`
+        if (field.maxLength && value.length > field.maxLength) {
+          errors.set(errorKey, t`Maximum length is ${field.maxLength} characters.`)
+          continue
+        }
+        if (field.kind === "url") {
+          try {
+            const url = new URL(value)
+            if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
+              errors.set(errorKey, t`Enter a valid HTTP or HTTPS URL.`)
+              continue
+            }
+          } catch {
+            errors.set(errorKey, t`Enter a valid HTTP or HTTPS URL.`)
+            continue
+          }
+        }
+        if (field.pattern) {
+          try {
+            if (!new RegExp(field.pattern).test(value)) {
+              errors.set(errorKey, t`Invalid value.`)
+            }
+          } catch {
+            // The manifest was already server-validated. Ignore an unsupported
+            // client RegExp feature and let the server schema remain authoritative.
+          }
+        }
+      }
+    }
+    return errors
+  }, [drafts, providers, t])
 
-    onSaveAnthropicKey(anthropicDraft.trim())
-    onSaveGoogleKey(googleDraft.trim())
-    onSaveCustomBaseUrl(customBaseUrlDraft.trim())
-    onSaveCustomApiKey(customApiKeyDraft.trim())
-    onSaveAzureKey(azureKeyDraft.trim())
-    onSaveAzureRegion(azureRegionDraft.trim())
-    onSaveElevenLabsKey(elevenLabsKeyDraft.trim())
+  const hasChanges = !valuesEqual(providers, drafts, credentials)
+  const canSave = hasChanges && fieldErrors.size === 0
 
-    if (embedded) toast.success(t`API keys saved.`)
-    if (!embedded) onOpenChange(false)
+  const updateDraft = (providerId: string, fieldKey: string, value: string) => {
+    setDrafts((current) => ({
+      ...current,
+      [providerId]: { ...current[providerId], [fieldKey]: value },
+    }))
   }
 
-  // Check if there are any meaningful changes to save
-  const hasChanges =
-    openaiDraft.trim() !== apiKey.trim() ||
-    anthropicDraft.trim() !== anthropicKey.trim() ||
-    googleDraft.trim() !== googleKey.trim() ||
-    customBaseUrlDraft.trim() !== customBaseUrl.trim() ||
-    customApiKeyDraft.trim() !== customApiKey.trim() ||
-    azureKeyDraft.trim() !== azureKey.trim() ||
-    azureRegionDraft.trim() !== azureRegion.trim() ||
-    elevenLabsKeyDraft.trim() !== elevenLabsKey.trim()
+  const handleSave = () => {
+    for (const { manifest } of providers) {
+      for (const field of manifest.credentialFields) {
+        setCredential(
+          manifest.id,
+          field.key,
+          fieldValue(drafts, manifest.id, field.key),
+        )
+      }
+    }
+    if (embedded) toast.success(t`Provider credentials saved.`)
+    else onOpenChange(false)
+  }
 
-  // Validate the OpenAI key if it was changed to a non-empty value
-  const openaiValid = openaiDraft.trim() === "" || openaiDraft.trim() === apiKey.trim() || isValidOpenAIKey(openaiDraft)
-  const canSave = hasChanges && openaiValid
+  const renderField = (provider: ProviderDescriptor, field: CredentialFieldManifest) => {
+    const providerId = provider.manifest.id
+    const id = `provider-${providerId}-${field.key}`
+    const secretKey = `${providerId}:${field.key}`
+    const value = fieldValue(drafts, providerId, field.key)
+    const fieldError = fieldErrors.get(secretKey)
+    const fieldStatus = provider.fieldStatus.find((status) => status.key === field.key)
+    const isSecretVisible = visibleSecrets[secretKey] === true
+    const help = localized(field.help, locale)
 
-  const content = (
-    <>
-        {!embedded && (
-          <DialogHeader>
-            <DialogTitle><Trans>API Keys</Trans></DialogTitle>
-            <DialogDescription>
-              <Trans>Configure API keys for AI pipeline features.</Trans>
-            </DialogDescription>
-          </DialogHeader>
-        )}
-
-        <div className="flex gap-1 border-b mb-3">
-          {tabs.map((item) => {
-            const isSaved =
-              item.key === "openai" ? apiKey.length > 0
-                : item.key === "anthropic" ? anthropicKey.length > 0
-                  : item.key === "google" ? googleKey.length > 0
-                    : item.key === "custom" ? customBaseUrl.length > 0
-                      : item.key === "azure" ? azureKey.length > 0
-                        : elevenLabsKey.length > 0
-            return (
-              <button
-                type="button"
-                key={item.key}
-                onClick={() => { setTab(item.key); setShowKey(false) }}
-                className={cn(
-                  "flex min-h-11 items-center gap-1 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
-                  tab === item.key
-                    ? "border-foreground text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {item.label}
-                {isSaved && <Check className="h-3 w-3 text-green-500" />}
-              </button>
-            )
-          })}
+    return (
+      <div key={field.key} className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Label htmlFor={id}>{localized(field.label, locale)}</Label>
+          <Badge variant="outline">
+            {field.required ? <Trans>Required</Trans> : <Trans>Optional</Trans>}
+          </Badge>
+          {fieldStatus?.configuredOnServer && (
+            <Badge variant="secondary"><Trans>Configured on server</Trans></Badge>
+          )}
         </div>
 
-        {tab === "openai" && (
-          <div className="space-y-2">
-            <Label htmlFor="openai-key-input">
-              <Trans>OpenAI API Key</Trans>
-            </Label>
-            <div className="relative">
-              <Input
-                id="openai-key-input"
-                type={showKey ? "text" : "password"}
-                placeholder={t`sk-...`}
-                value={openaiDraft}
-                onChange={(e) => setOpenaiDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSave() }}
-                className="pr-10"
-              />
+        {field.kind === "select" ? (
+          <Select value={value} onValueChange={(next) => updateDraft(providerId, field.key, next)}>
+            <SelectTrigger id={id} aria-invalid={Boolean(fieldError)}>
+              <SelectValue placeholder={field.placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {(field.options ?? []).map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {localized(option.label, locale)}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="relative">
+            <Input
+              id={id}
+              type={field.kind === "secret" && !isSecretVisible ? "password" : "text"}
+              inputMode={field.kind === "url" ? "url" : "text"}
+              placeholder={field.placeholder}
+              maxLength={field.maxLength}
+              value={value}
+              aria-invalid={Boolean(fieldError)}
+              onChange={(event) => updateDraft(providerId, field.key, event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && canSave) handleSave()
+              }}
+              className={field.kind === "secret" ? "pr-10" : undefined}
+            />
+            {field.kind === "secret" && (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 top-0 h-10 w-10"
-                onClick={() => setShowKey(!showKey)}
-                aria-label={showKey ? t`Hide API key` : t`Show API key`}
-                title={showKey ? t`Hide API key` : t`Show API key`}
+                className="absolute right-0 top-0"
+                onClick={() =>
+                  setVisibleSecrets((current) => ({
+                    ...current,
+                    [secretKey]: !isSecretVisible,
+                  }))
+                }
+                aria-label={isSecretVisible ? t`Hide credential` : t`Show credential`}
+                title={isSecretVisible ? t`Hide credential` : t`Show credential`}
               >
-                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {isSecretVisible ? <EyeOff /> : <Eye />}
               </Button>
-            </div>
-            {openaiDraft.length > 0 && !isValidOpenAIKey(openaiDraft) && (
-              <p className="text-sm text-destructive">
-                <Trans>Key must start with "sk-"</Trans>
-              </p>
             )}
           </div>
         )}
 
-        {tab === "anthropic" && (
-          <div className="space-y-2">
-            <Label htmlFor="anthropic-key-input">
-              <Trans>Anthropic API Key</Trans>
-            </Label>
-            <div className="relative">
-              <Input
-                id="anthropic-key-input"
-                type={showKey ? "text" : "password"}
-                placeholder={t`sk-ant-...`}
-                value={anthropicDraft}
-                onChange={(e) => setAnthropicDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSave() }}
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-10 w-10"
-                onClick={() => setShowKey(!showKey)}
-                aria-label={showKey ? t`Hide API key` : t`Show API key`}
-                title={showKey ? t`Hide API key` : t`Show API key`}
-              >
-                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <Trans>
-                Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)
-              </Trans>
-            </p>
-          </div>
-        )}
-
-        {tab === "google" && (
-          <div className="space-y-2">
-            <Label htmlFor="google-key-input">
-              <Trans>Google AI API Key</Trans>
-            </Label>
-            <div className="relative">
-              <Input
-                id="google-key-input"
-                type={showKey ? "text" : "password"}
-                placeholder={t`AIza...`}
-                value={googleDraft}
-                onChange={(e) => setGoogleDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSave() }}
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-10 w-10"
-                onClick={() => setShowKey(!showKey)}
-                aria-label={showKey ? t`Hide API key` : t`Show API key`}
-                title={showKey ? t`Hide API key` : t`Show API key`}
-              >
-                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <Trans>
-                Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)
-              </Trans>
-            </p>
-          </div>
-        )}
-
-        {tab === "custom" && (
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="custom-base-url-input">
-                <Trans>Base URL</Trans>
-              </Label>
-              <Input
-                id="custom-base-url-input"
-                placeholder={t`e.g. http://localhost:11434/v1`}
-                value={customBaseUrlDraft}
-                onChange={(e) => setCustomBaseUrlDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSave() }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="custom-api-key-input">
-                <Trans>API Key (optional)</Trans>
-              </Label>
-              <div className="relative">
-                <Input
-                  id="custom-api-key-input"
-                  type={showKey ? "text" : "password"}
-                  placeholder={t`Leave empty if not required`}
-                  value={customApiKeyDraft}
-                  onChange={(e) => setCustomApiKeyDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSave() }}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-10 w-10"
-                  onClick={() => setShowKey(!showKey)}
-                  aria-label={showKey ? t`Hide API key` : t`Show API key`}
-                  title={showKey ? t`Hide API key` : t`Show API key`}
-                >
-                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <Trans>
-                Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the "custom:" prefix when selecting models, e.g. custom:llama3.
-              </Trans>
-            </p>
-          </div>
-        )}
-
-        {tab === "azure" && (
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="azure-key-input">
-                <Trans>Azure Speech Subscription Key</Trans>
-              </Label>
-              <div className="relative">
-                <Input
-                  id="azure-key-input"
-                  type={showKey ? "text" : "password"}
-                  placeholder={t`Azure Speech subscription key`}
-                  value={azureKeyDraft}
-                  onChange={(e) => setAzureKeyDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSave() }}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-10 w-10"
-                  onClick={() => setShowKey(!showKey)}
-                  aria-label={showKey ? t`Hide API key` : t`Show API key`}
-                  title={showKey ? t`Hide API key` : t`Show API key`}
-                >
-                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="azure-region-input">
-                <Trans>Region</Trans>
-              </Label>
-              <Input
-                id="azure-region-input"
-                placeholder={t`e.g. eastus, westeurope`}
-                value={azureRegionDraft}
-                onChange={(e) => setAzureRegionDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSave() }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <Trans>Used for Azure Speech TTS provider.</Trans>
-            </p>
-          </div>
-        )}
-
-        {tab === "elevenlabs" && (
-          <div className="space-y-2">
-            <Label htmlFor="elevenlabs-key-input">
-              <Trans>ElevenLabs API Key</Trans>
-            </Label>
-            <div className="relative">
-              <Input
-                id="elevenlabs-key-input"
-                type={showKey ? "text" : "password"}
-                placeholder={t`ElevenLabs API key`}
-                value={elevenLabsKeyDraft}
-                onChange={(e) => setElevenLabsKeyDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSave() }}
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-10 w-10"
-                onClick={() => setShowKey(!showKey)}
-                aria-label={showKey ? t`Hide API key` : t`Show API key`}
-                title={showKey ? t`Hide API key` : t`Show API key`}
-              >
-                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <Trans>Used for the ElevenLabs TTS provider.</Trans>
-            </p>
-          </div>
-        )}
-
-        <DialogFooter>
-          {!embedded && (
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              <Trans>Cancel</Trans>
-            </Button>
-          )}
-          <Button onClick={handleSave} disabled={!canSave}>
-            <Trans>Save</Trans>
-          </Button>
-        </DialogFooter>
-    </>
-  )
-
-  if (embedded) {
-    return (
-      <div className="rounded-xl border bg-card p-5">
-        {content}
+        {fieldError ? (
+          <p className="text-sm text-destructive">{fieldError}</p>
+        ) : help ? (
+          <p className="text-xs text-muted-foreground">{help}</p>
+        ) : null}
       </div>
     )
   }
 
+  const content = (
+    <>
+      {!embedded && (
+        <DialogHeader>
+          <DialogTitle><Trans>AI provider credentials</Trans></DialogTitle>
+          <DialogDescription>
+            <Trans>Configure the credentials used by AI features on this device.</Trans>
+          </DialogDescription>
+        </DialogHeader>
+      )}
+
+      {isLoading ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          <Trans>Loading AI providers…</Trans>
+        </p>
+      ) : error ? (
+        <Alert variant="destructive">
+          <AlertTitle><Trans>Providers unavailable</Trans></AlertTitle>
+          <AlertDescription>
+            <Trans>Could not load the AI provider catalogue.</Trans>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Tabs value={activeProvider} onValueChange={setActiveProvider}>
+          <TabsList className="h-auto w-full justify-start overflow-x-auto">
+            {providers.map((provider) => {
+              const available = isProviderAvailable(provider, drafts)
+              return (
+                <TabsTrigger key={provider.manifest.id} value={provider.manifest.id}>
+                  {provider.manifest.displayName}
+                  {available && <Check data-icon="inline-end" />}
+                </TabsTrigger>
+              )
+            })}
+          </TabsList>
+
+          {providers.map((provider) => {
+            const help = localized(provider.manifest.localizedHelp, locale)
+            return (
+              <TabsContent
+                key={provider.manifest.id}
+                value={provider.manifest.id}
+                className="flex flex-col gap-4 pt-3"
+              >
+                <ProviderConnectionStatus
+                  providerId={provider.manifest.id}
+                  draftCredentials={drafts[provider.manifest.id]}
+                />
+                {provider.manifest.credentialFields.length > 0 ? (
+                  provider.manifest.credentialFields.map((field) => renderField(provider, field))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    <Trans>This provider does not require local credentials.</Trans>
+                  </p>
+                )}
+                {help && <p className="text-xs text-muted-foreground">{help}</p>}
+                {provider.manifest.docsUrl && (
+                  <Button asChild variant="link" className="h-auto w-fit p-0">
+                    <a href={provider.manifest.docsUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink data-icon="inline-start" />
+                      <Trans>Provider documentation</Trans>
+                    </a>
+                  </Button>
+                )}
+              </TabsContent>
+            )
+          })}
+        </Tabs>
+      )}
+
+      <DialogFooter>
+        {!embedded && (
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Trans>Cancel</Trans>
+          </Button>
+        )}
+        <Button onClick={handleSave} disabled={!canSave}>
+          <Trans>Save</Trans>
+        </Button>
+      </DialogFooter>
+    </>
+  )
+
+  if (embedded) return <div className="rounded-xl border bg-card p-5">{content}</div>
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">{content}</DialogContent>
+      <DialogContent className="sm:max-w-fit">{content}</DialogContent>
     </Dialog>
   )
 }

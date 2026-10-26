@@ -118,6 +118,20 @@ describe("useFloatingSaveLeaveAction", () => {
     expect(leave.current?.willRerun).toBe(false)
   })
 
+  it("does not offer navigation-save for an invalid editor", () => {
+    const leave = renderLeaveAction([
+      {
+        id: "settings:speech",
+        dirty: true,
+        saving: false,
+        onSaveStay: vi.fn(),
+        saveDisabledReason: "Select a second voice before saving",
+      },
+    ])
+
+    expect(leave.current?.canSave).toBe(false)
+  })
+
   it("prefers onSaveStay over onSave when both are registered", async () => {
     const onSave = vi.fn()
     const onSaveStay = vi.fn()

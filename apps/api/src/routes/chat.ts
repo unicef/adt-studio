@@ -17,6 +17,7 @@ import {
   type ChatThread,
   type ChatUiMessage,
 } from "@adt/chat"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import { createChatService, type ChatService } from "../services/chat/chat-service.js"
 import { buildChatSystemPrompt } from "../services/chat/system-prompt.js"
 import { buildBookOverview } from "../services/chat/tools/book-overview.js"
@@ -227,6 +228,7 @@ export function createChatRoutes(
       chatId,
       threadId,
       credentials,
+      providerCredentials: readProviderCredentials(c),
       locale,
       screen,
       stageService,

@@ -9,6 +9,7 @@ const useSearchMock = vi.fn(() => ({ tab: "accessibility-summary" }))
 const reviewerCatalogMock = vi.fn(() => ({ data: { enabled: false }, isLoading: false, error: null }))
 const isTaskRunningMock = vi.fn(() => false)
 const getTaskMock = vi.fn(() => undefined)
+const warningToastMock = vi.fn()
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
@@ -26,8 +27,22 @@ vi.mock("@lingui/react/macro", () => ({
       }
       return text
     },
+    i18n: { _: (descriptor: { id?: string }) => descriptor.id ?? "" },
   }),
 }))
+
+vi.mock("@lingui/core/macro", () => ({
+  msg(strings: TemplateStringsArray, ...values: unknown[]) {
+    let text = ""
+    for (let index = 0; index < strings.length; index += 1) {
+      text += strings[index]
+      if (index < values.length) text += String(values[index])
+    }
+    return { id: text }
+  },
+}))
+
+vi.mock("sonner", () => ({ toast: { warning: (message: string) => warningToastMock(message) } }))
 
 vi.mock("@/api/client", () => ({
   api: {
@@ -109,5 +124,30 @@ describe("ValidationView", () => {
     await waitFor(() => expect(screen.getByText("Accessibility Summary")).toBeTruthy())
 
     expect(screen.getByText(/accessibility-summary:demo-book/)).toBeTruthy()
+  })
+
+  it("warns when the bundle it validates is missing content", async () => {
+    // Validation reports on the packaged bundle, so it has to repeat what
+    // packaging left out — a clean validation over a short bundle reads as
+    // "the book is fine".
+    packageAdtMock.mockResolvedValue({
+      status: "completed",
+      label: "demo-book",
+      warnings: [{ kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 1 }],
+    } as never)
+
+    const { ValidationView } = await import("./ValidationView")
+    render(<ValidationView bookLabel="demo-book" />)
+
+    await waitFor(() => expect(warningToastMock).toHaveBeenCalledTimes(1))
+    expect(String(warningToastMock.mock.calls[0][0])).toContain("pg002")
+  })
+
+  it("stays quiet when packaging left nothing out", async () => {
+    const { ValidationView } = await import("./ValidationView")
+    render(<ValidationView bookLabel="demo-book" />)
+
+    await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book"))
+    expect(warningToastMock).not.toHaveBeenCalled()
   })
 })

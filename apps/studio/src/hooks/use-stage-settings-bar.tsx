@@ -5,7 +5,7 @@ import { useSettingsRemount } from "./use-settings-remount"
 import { useSettingsReturn } from "./use-settings-return"
 import { useRegisterDirtyTabs } from "./use-settings-dirty-tabs"
 import { useBookRun } from "./use-book-run"
-import { useApiKey } from "./use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "./use-api-key"
 import { useLingui } from "@lingui/react/macro"
 
 export function useStageSettingsBar({
@@ -16,6 +16,7 @@ export function useStageSettingsBar({
   saving,
   save,
   showSaveOnly = false,
+  disabledReason,
 }: {
   stage: StageName
   bookLabel: string
@@ -24,12 +25,14 @@ export function useStageSettingsBar({
   saving: boolean
   save: () => Promise<void>
   showSaveOnly?: boolean
+  disabledReason?: string
 }) {
   const { t } = useLingui()
   const remount = useSettingsRemount()
   const returnToStage = useSettingsReturn()
   const { queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const navigate = useNavigate()
 
   useRegisterDirtyTabs(`settings:${stage}`, stage, dirtyTabs)
@@ -57,6 +60,8 @@ export function useStageSettingsBar({
       queueRun({ fromStage: stage, toStage: stage, apiKey })
     },
     onDiscard: remount,
-    rerunDisabledReason: hasApiKey ? undefined : t`Add an API key to re-run`,
+    saveDisabledReason: disabledReason,
+    rerunDisabledReason:
+      disabledReason ?? (hasStructuredTextProvider ? undefined : t`Add an API key to re-run`),
   })
 }

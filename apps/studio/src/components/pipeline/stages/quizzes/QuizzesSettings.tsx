@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
@@ -34,7 +34,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const queryClient = useQueryClient()
-  const { hasApiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const quizzesStatus = useStageStatus("quizzes")
   const [showAddQuiz, setShowAddQuiz] = useState(false)
 
@@ -191,14 +191,14 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
                 size="sm"
                 variant="outline"
                 className="h-8 shrink-0 gap-1.5"
-                disabled={!hasApiKey || quizzesStatus.isRunning}
+                disabled={!hasStructuredTextProvider || quizzesStatus.isRunning}
                 onClick={() => setShowAddQuiz(true)}
               >
                 <Plus className="h-3.5 w-3.5" />
                 {t`Add quiz`}
               </Button>
             </div>
-            {!hasApiKey ? (
+            {!hasStructuredTextProvider ? (
               <p className="text-xs text-muted-foreground">
                 {t`Add an API key in Book settings to generate a quiz.`}
               </p>

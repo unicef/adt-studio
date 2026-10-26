@@ -41,6 +41,7 @@ function rendering(html: string) {
 beforeEach(() => {
   booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-chat-mutations-"))
   createBookStorage(LABEL, booksDir).close()
+  fs.writeFileSync(path.join(booksDir, "config.yaml"), "structure_types: {}\nrole_types: {}\n")
   startStageRun = vi.fn(() => ({ status: "started" as const, id: "run-1" }))
   ctx = {
     paths: {
@@ -53,6 +54,7 @@ beforeEach(() => {
     chatId: "chat-1",
     threadId: "thread-1",
     credentials: { openaiApiKey: "sk-test" },
+    providerCredentials: { openai: { apiKey: "sk-test" } },
     locale: "en",
     screen: {},
     stageService: {
@@ -126,13 +128,13 @@ describe("run_stages", () => {
     expect(result.clearedNodes).toContain("catalog-translation")
   })
 
-  it("refuses without an OpenAI key, whatever the chat model is", async () => {
+  it("refuses when the book models lack credentials, whatever the chat model is", async () => {
     const result = (await runStages.execute(
-      { ...ctx, credentials: { anthropicApiKey: "sk-ant" } },
+      { ...ctx, credentials: { anthropicApiKey: "sk-ant" }, providerCredentials: {} },
       { fromStage: "glossary", toStage: "glossary" } as never,
     )) as { status: string; message: string }
     expect(result.status).toBe("error")
-    expect(result.message).toMatch(/OpenAI/)
+    expect(result.message).toMatch(/Settings → Providers/)
     expect(startStageRun).not.toHaveBeenCalled()
   })
 })

@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="480" viewBox="0 0 720 480">
+  <defs>
+    <linearGradient id="spectrum" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2563eb" />
+      <stop offset="0.14" stop-color="#0284c7" />
+      <stop offset="0.28" stop-color="#7c3aed" />
+      <stop offset="0.42" stop-color="#0d9488" />
+      <stop offset="0.56" stop-color="#ea580c" />
+      <stop offset="0.70" stop-color="#65a30d" />
+      <stop offset="0.84" stop-color="#db2777" />
+      <stop offset="0.94" stop-color="#e11d48" />
+      <stop offset="1" stop-color="#3b82f7" />
+    </linearGradient>
+    <filter id="sketch" x="-20%" y="-30%" width="140%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="16" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.55" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+    <symbol id="image" viewBox="0 0 24 24">
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+    </symbol>
+    <symbol id="help" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <path d="M12 17h.01" />
+    </symbol>
+    <symbol id="book" viewBox="0 0 24 24">
+      <path d="M12 7v14" />
+      <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+    </symbol>
+    <symbol id="file" viewBox="0 0 24 24">
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8" />
+    </symbol>
+    <symbol id="languages" viewBox="0 0 24 24">
+      <path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6" />
+    </symbol>
+    <symbol id="audio" viewBox="0 0 24 24">
+      <path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3" />
+    </symbol>
+    <style>
+      .ui { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; }
+      .feature-icon { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.2; }
+      .feature-label { fill: #475569; font-size: 6.5px; font-weight: 700; letter-spacing: .38px; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect width="720" height="480" fill="#ffffff" />
+  <rect width="720" height="8" fill="url(#spectrum)" />
+
+  <text class="ui" x="360" y="94" fill="#09162f" font-size="38.5" font-weight="600" letter-spacing="-2.35" text-anchor="middle">Built for <tspan fill="#2563eb">every reader.</tspan></text>
+
+  <path d="M142 147H577" fill="none" stroke="#d9e7fb" stroke-width="2" />
+
+  <g class="ui">
+    <g color="#0d9488">
+      <circle cx="142" cy="147" r="15.5" fill="#fff" stroke="currentColor" stroke-width="1.6" />
+      <use href="#image" class="feature-icon" x="133" y="138" width="18" height="18" />
+      <text class="feature-label" x="142" y="173">CAPTIONS</text>
+    </g>
+    <g color="#ea580c">
+      <circle cx="229" cy="147" r="15.5" fill="#fff" stroke="currentColor" stroke-width="1.6" />
+      <use href="#help" class="feature-icon" x="220" y="138" width="18" height="18" />
+      <text class="feature-label" x="229" y="173">QUIZZES</text>
+    </g>
+    <g color="#65a30d">
+      <circle cx="316" cy="147" r="15.5" fill="#fff" stroke="currentColor" stroke-width="1.6" />
+      <use href="#book" class="feature-icon" x="307" y="138" width="18" height="18" />
+      <text class="feature-label" x="316" y="173">GLOSSARY</text>
+    </g>
+    <g color="#c026d3">
+      <circle cx="403" cy="147" r="15.5" fill="#fff" stroke="currentColor" stroke-width="1.6" />
+      <use href="#file" class="feature-icon" x="394" y="138" width="18" height="18" />
+      <text class="feature-label" x="403" y="173">EASY READ</text>
+    </g>
+    <g color="#db2777">
+      <circle cx="490" cy="147" r="15.5" fill="#fff" stroke="currentColor" stroke-width="1.6" />
+      <use href="#languages" class="feature-icon" x="481" y="138" width="18" height="18" />
+      <text class="feature-label" x="490" y="173">TRANSLATE</text>
+    </g>
+    <g color="#e11d48">
+      <circle cx="577" cy="147" r="15.5" fill="#fff" stroke="currentColor" stroke-width="1.6" />
+      <use href="#audio" class="feature-icon" x="568" y="138" width="18" height="18" />
+      <text class="feature-label" x="577" y="173">SPEECH</text>
+    </g>
+  </g>
+
+  <path d="M216 271C314 223 430 224 505 270" fill="none" stroke="#93c5fd" stroke-width="2" stroke-dasharray="2 11" stroke-linecap="round" opacity=".45" />
+
+  <g filter="url(#sketch)" fill="none" stroke="#2563eb" stroke-linecap="round">
+    <path d="M250 337C298 315 374 312 485 326" stroke-width="4.25" />
+    <path d="M456 310C469 316 479 322 486 326C475 333 464 339 453 346" stroke-width="4.25" stroke-linejoin="round" />
+  </g>
+  <path d="M251 335C299 313 375 310 486 324" fill="none" stroke="#2563eb" stroke-width="1" stroke-linecap="round" opacity=".42" />
+  <text x="368" y="369" fill="#40516a" font-family="Bradley Hand, Marker Felt, cursive" font-size="13" font-weight="700" text-anchor="middle" transform="rotate(-2 368 369)">drag to Applications</text>
+</svg>

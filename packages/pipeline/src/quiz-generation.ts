@@ -245,6 +245,8 @@ export async function generateAllQuizzes(
   // Sort by index since parallel execution may complete out of order
   quizzes.sort((a, b) => a.quizIndex - b.quizIndex)
 
+  // Identity is allocated by saveQuizOutput at persistence, against the book's
+  // complete history. A cached LLM result is still a new quiz on regeneration.
   return {
     generatedAt: new Date().toISOString(),
     language: config.language,

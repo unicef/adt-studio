@@ -70,6 +70,7 @@ const updates = {
 const onboarding = {
   getStatus: (): Promise<boolean> =>
     ipcRenderer.invoke('onboarding:get-status'),
+  open: (): Promise<void> => ipcRenderer.invoke('onboarding:open'),
   finish: (startPath: string): Promise<void> =>
     ipcRenderer.invoke('onboarding:finish', startPath),
 }

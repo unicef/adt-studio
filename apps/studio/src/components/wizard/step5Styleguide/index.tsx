@@ -36,7 +36,7 @@ function StyleguideOption({
       onClick={onSelect}
       className={cn(
         "flex w-full cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 shadow-sm text-left",
-        "bg-white border-border",
+        "bg-card border-border",
         "hover:bg-muted hover:border-input",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         selected && "border",
@@ -50,7 +50,7 @@ function StyleguideOption({
       <div
         className={cn(
           "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
-          selected ? "text-white" : "border-muted-foreground/30 bg-white",
+          selected ? "text-white" : "border-muted-foreground/30 bg-card",
         )}
         style={
           selected

@@ -86,7 +86,7 @@ export function LibraryView({ books, onOpen, onAddBook }: LibraryViewProps) {
     "inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-2 text-[13px] font-medium text-foreground transition-[transform,border-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-brand-300 active:scale-[0.97]"
 
   return (
-    <div className="flex h-full flex-col px-8 pt-1">
+    <div className="flex h-full flex-col px-10 pt-1">
       <div className="flex items-center justify-between gap-4 pb-3">
         <div>
           <h1 className="text-[22px] font-bold tracking-[-0.02em]">

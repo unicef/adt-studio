@@ -3,6 +3,7 @@
     "sidebar-title": "IA Universal",
     "language-label": "Idioma",
     "tts-label": "Texto para fala",
+    "narrator-voice-label": "Voz do narrador",
     "eli5-label": "Explique-me",
     "eli5-content-lang": "Toque em qualquer coisa para que eu explique.",
     "submit-text": "Enviar",

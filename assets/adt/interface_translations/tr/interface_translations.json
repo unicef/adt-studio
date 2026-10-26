@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Hız",
     "toc-title": "Dizin",
     "tts-label": "Metinden sese",
+    "narrator-voice-label": "Anlatıcı sesi",
     "tutorial-closed-announcement": "Eğitim kapatıldı. Erişilebilirlik menüsünü açmak ve kapatmak için Alt artı Shift artı A, sayfalar arasında gezinmek için Alt artı Shift artı oklar ve gezinmeyi açmak ve kapatmak için Alt artı Shift artı X kullanabileceğinizi unutmayın. Sağ köşedeki düğme ile daha fazla erişilebilirlik işlevine erişebilirsiniz.",
     "tutorial-completed-announcement": "Eğitim tamamlandı. Erişilebilirlik menüsünü açmak ve kapatmak için Alt artı Shift artı A, sayfalar arasında gezinmek için Alt artı Shift artı oklar ve gezinmeyi açmak ve kapatmak için Alt artı Shift artı X kullanabileceğinizi unutmayın.",
     "tutorial-description-content": "Başlamadan önce, size nasıl gezineceğinizi, menüyü kullanacağınızı ve kullanışlı özelliklere erişeceğinizi gösterecek kısa bir tur. <br> Uzun sürmeyecek!",

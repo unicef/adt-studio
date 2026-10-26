@@ -54,4 +54,9 @@ export interface WordTimestamp {
   end: number
 }
 export type TimecodeMap = Record<string, WordTimestamp[]>
-export const timecodeMapAtom = ephemeralAtom<TimecodeMap>({})
+/** Word timings per narrator voice. Single-narrator books simply leave
+ *  `secondary` empty. */
+export const timecodeMapsAtom = ephemeralAtom<Record<"primary" | "secondary", TimecodeMap>>({
+  primary: {},
+  secondary: {},
+})

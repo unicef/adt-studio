@@ -23,7 +23,7 @@ export function LibraryScreen() {
   if (isLoading || error) return <ScreenFallback error={error} />
 
   return (
-    <div className="relative flex h-full flex-col bg-background pt-8">
+    <div className="relative flex h-full flex-col bg-background pt-10">
       <TopBar className="absolute top-0 drag-region" />
 
       <div className="min-h-0 flex-1 overflow-hidden">

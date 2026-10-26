@@ -28,6 +28,10 @@ const ScrollArea = React.forwardRef<
     className={cn("relative overflow-hidden", className)}
     {...props}
   >
+    {/* Radix wraps children in a `display: table` box, which is shrink-to-fit:
+        a `truncate` descendant reports its full text as min-content and widens
+        the wrapper past the viewport instead of ellipsizing. Forcing a flex
+        column keeps it at the viewport width so width-constrained layouts work. */}
     <ScrollAreaPrimitive.Viewport
       ref={viewportRef}
       className={cn("h-full w-full rounded-[inherit] [&>div]:flex! [&>div]:flex-col!", viewportClassName)}

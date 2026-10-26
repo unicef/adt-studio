@@ -15,7 +15,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useComposeBookContext } from "@/hooks/use-compose-book-context"
 import {
@@ -33,7 +33,8 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("captions")
   const storyboardStatus = useStageStatus("storyboard")
@@ -72,7 +73,7 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (!hasStructuredTextProvider || !storyboardReady || status.isRunning) return
     queueRun({ fromStage: "captions", toStage: "captions", apiKey, viewAfter: true })
   }
 
@@ -99,7 +100,7 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run captions.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — captions describe the images placed by Storyboard.</Trans>
@@ -117,7 +118,7 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
+      extraDisabled={!hasStructuredTextProvider || !storyboardReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Captions</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

@@ -4,6 +4,7 @@ import { i18n } from "@lingui/core"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { getBookCoverUrl, type BookSummary } from "@/api/client"
 
+/** Cover backgrounds picked deterministically per book label. */
 const COVER_PALETTE = [
   { bg: "#1e40af", accent: "#7dd3fc" },
   { bg: "#166534", accent: "#86efac" },
@@ -62,6 +63,7 @@ export interface StageDisc {
 
 const STAGE_ORDER = STAGES.filter((s) => s.slug !== "book")
 
+/** Completed stages, mapped to disc glyphs in canonical pipeline order. */
 export function presentDiscs(book: BookSummary): StageDisc[] {
   const done = new Set(book.completedStages)
   return STAGE_ORDER.filter((s) => done.has(s.slug)).map((s) => ({
@@ -71,16 +73,17 @@ export function presentDiscs(book: BookSummary): StageDisc[] {
   }))
 }
 
+/** Compact relative time — "2h ago", "yesterday", "3 days ago", else a date. */
 export function formatRelative(iso: string, locale: string): string {
   const then = new Date(iso).getTime()
   if (Number.isNaN(then)) return ""
   const diffMs = Date.now() - then
-  const mins = Math.round(diffMs / 60_000)
+  const mins = Math.floor(diffMs / 60_000)
   if (mins < 1) return i18n._(msg`just now`)
   if (mins < 60) return i18n._(msg`${mins}m ago`)
-  const hours = Math.round(mins / 60)
+  const hours = Math.floor(mins / 60)
   if (hours < 24) return i18n._(msg`${hours}h ago`)
-  const days = Math.round(hours / 24)
+  const days = Math.floor(hours / 24)
   if (days === 1) return i18n._(msg`yesterday`)
   if (days < 7) return i18n._(msg`${days} days ago`)
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(then)

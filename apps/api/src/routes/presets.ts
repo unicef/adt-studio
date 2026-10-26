@@ -11,7 +11,14 @@ import {
   DefaultModelConfig,
   SpecializedModelDefaultsConfig,
   StyleguideName,
+  type AiModality,
 } from "@adt/types"
+import {
+  AiProviderError,
+  getDefaultProviderRegistry,
+  resolveModelIdFor,
+  type ProviderRegistry,
+} from "@adt/llm"
 import {
   getStyleguideSearchDirs,
   getWritableStyleguidesDir,
@@ -19,6 +26,21 @@ import {
   StyleguideWriteError,
   writeStyleguideFiles,
 } from "../services/styleguide.js"
+
+function assertModelSupported(
+  registry: ProviderRegistry,
+  modelId: string,
+  modality: AiModality,
+): void {
+  try {
+    resolveModelIdFor(registry, modelId, modality)
+  } catch (error) {
+    if (AiProviderError.is(error)) {
+      throw new HTTPException(400, { message: error.message })
+    }
+    throw error
+  }
+}
 
 function setTopLevelYamlValue(
   content: string,
@@ -48,7 +70,11 @@ function throwStyleguideWriteError(error: unknown): never {
   throw error
 }
 
-export function createPresetRoutes(configPath: string, booksDir: string): Hono {
+export function createPresetRoutes(
+  configPath: string,
+  booksDir: string,
+  registry: ProviderRegistry = getDefaultProviderRegistry(),
+): Hono {
   const app = new Hono()
 
   app.get("/styleguides", (c) => {
@@ -170,6 +196,8 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
       throw new HTTPException(400, { message: "Invalid default model id" })
     }
 
+    assertModelSupported(registry, result.data.model, "structured-text")
+
     const content = fs.readFileSync(configPath, "utf-8")
     const parsed = yaml.load(content) as Record<string, unknown>
     AppConfig.parse({ ...parsed, default_model: result.data.model })
@@ -214,6 +242,8 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
         message: "Invalid specialized model defaults",
       })
     }
+
+    assertModelSupported(registry, result.data.imageGeneration, "image")
 
     const content = fs.readFileSync(configPath, "utf-8")
     const parsed = yaml.load(content) as Record<string, unknown>

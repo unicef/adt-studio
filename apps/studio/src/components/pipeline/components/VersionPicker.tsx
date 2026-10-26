@@ -95,6 +95,8 @@ interface VersionPickerProps {
   step: VersionedStep
   itemId: string
   currentVersion: number | null
+  /** The selected quiz version invalidates active output but retains history. */
+  currentVersionInactive?: boolean
   saving: boolean
   dirty: boolean
   bookLabel: string
@@ -167,6 +169,7 @@ export function VersionPicker({
   step,
   itemId,
   currentVersion,
+  currentVersionInactive = false,
   saving,
   dirty,
   bookLabel,
@@ -201,7 +204,7 @@ export function VersionPicker({
   // version, so a cached list is only ever a starting frame, never the answer.
   const history = useQuery({
     queryKey: ["books", bookLabel, "versions", step, itemId],
-    queryFn: () => api.getVersionHistory(bookLabel, step, itemId, true),
+    queryFn: () => api.getVersionHistory(bookLabel, step, itemId, true, step === "quiz-generation"),
     enabled: open,
     staleTime: 0,
   })
@@ -425,6 +428,9 @@ export function VersionPicker({
             </span>
           )}
         </span>
+        {step === "quiz-generation" && v.data === null && (
+          <span className="text-[10px] text-muted-foreground">{t`Invalidated`}</span>
+        )}
         {b &&
           (b.total === 0 ? (
             <span className="shrink-0 text-[10px] text-muted-foreground">{t`no changes`}</span>
@@ -569,6 +575,7 @@ export function VersionPicker({
             className={`flex items-center gap-0.5 text-[10px] font-normal normal-case tracking-normal rounded px-1.5 py-0.5 transition-colors ${triggerClassName ?? styling.triggerClass}`}
           >
             v{currentVersion}
+            {currentVersionInactive && <span className="ml-1">{t`Invalidated`}</span>}
             <ChevronDown className="h-2.5 w-2.5" />
           </button>
         </PopoverTrigger>

@@ -5,6 +5,10 @@ import { useLingui } from "@lingui/react/macro"
 import { api, type WordTimestamp } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
 
+// Dual narrator voices are a classic-UI feature; this step has no secondary
+// slot surface yet, so every per-clip action targets the primary narrator.
+const VOICE_SLOT = "primary" as const
+
 /**
  * Per-clip audio actions for one language: regenerate, upload a replacement,
  * transcribe word timestamps, and correct them by hand. Errors are kept per
@@ -54,7 +58,7 @@ export function useSpeechAudio(label: string, language: string) {
   const generate = useMutation({
     mutationFn: async (textId: string) => {
       if (!geminiKey) throw new Error(i18n._(msg`Gemini API key is required to generate audio.`))
-      return api.generateGeminiTTSForItem(label, textId, language, {
+      return api.generateGeminiTTSForItem(label, textId, language, VOICE_SLOT, {
         geminiApiKey: geminiKey,
         openaiApiKey: apiKey || undefined,
         azure: azureKey && azureRegion ? { key: azureKey, region: azureRegion } : undefined,
@@ -68,7 +72,7 @@ export function useSpeechAudio(label: string, language: string) {
 
   const upload = useMutation({
     mutationFn: ({ textId, file }: { textId: string; file: File }) =>
-      api.uploadTTSForItem(label, textId, language, file),
+      api.uploadTTSForItem(label, textId, language, VOICE_SLOT, file),
     onMutate: ({ textId }) => clearError(textId),
     onSuccess: invalidateAudio,
     onError: (error, { textId }) => recordError(textId, error),
@@ -77,7 +81,7 @@ export function useSpeechAudio(label: string, language: string) {
   const transcribe = useMutation({
     mutationFn: async (textId: string) => {
       if (!apiKey) throw new Error(i18n._(msg`OpenAI API key is required for transcription.`))
-      return api.transcribeOne(label, textId, language, apiKey)
+      return api.transcribeOne(label, textId, language, VOICE_SLOT, apiKey)
     },
     onMutate: clearError,
     onSuccess: () =>

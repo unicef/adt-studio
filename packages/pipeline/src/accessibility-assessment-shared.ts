@@ -8,6 +8,7 @@ import type {
   AccessibilityPageResult,
   BrowserAccessibilityAssessmentOutput,
 } from "@adt/types"
+import { parseSectionId } from "@adt/types"
 
 export const DEFAULT_AXE_RUN_ONLY_TAGS = [
   "wcag2a",
@@ -41,8 +42,7 @@ export const PackagedPageManifestEntry = z.object({
 export type PackagedPageManifestEntry = z.infer<typeof PackagedPageManifestEntry>
 
 export function derivePageId(sectionId: string): string | null {
-  const match = /^(.*)_sec\d+$/.exec(sectionId)
-  return match?.[1] ?? null
+  return parseSectionId(sectionId)?.pageId ?? null
 }
 
 export function getPackagedPageEntries(bookDir: string): PackagedPageManifestEntry[] {

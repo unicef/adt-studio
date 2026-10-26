@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createBookStorage } from "@adt/storage"
-import type { LLMModel } from "@adt/llm"
+import type { LLMModel, ResolvedCredentials } from "@adt/llm"
 import type { TranslationEvaluationRunRequest } from "@adt/types"
 import { DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL } from "@adt/types"
 import { evaluateTranslationInApi, describeMissingJudgeCredential, translationEvaluationRunnerInternals } from "./translation-evaluation-runner.js"
@@ -75,47 +75,45 @@ describe("judge model defaults", () => {
 })
 
 describe("describeMissingJudgeCredential", () => {
-  const none = { apiKey: "" }
+  const none: ResolvedCredentials = {}
 
   it("accepts an OpenAI judge with an OpenAI key", () => {
-    expect(describeMissingJudgeCredential("openai:gpt-5.4", { apiKey: "sk-test" })).toBeNull()
+    expect(
+      describeMissingJudgeCredential("openai:gpt-5.4", { openai: { apiKey: "sk-test" } }),
+    ).toBeNull()
   })
 
   it("does not demand an OpenAI key for a non-OpenAI judge", () => {
     expect(
       describeMissingJudgeCredential("anthropic:claude-opus-4-8", {
-        apiKey: "",
-        anthropicApiKey: "sk-ant",
+        anthropic: { apiKey: "sk-ant" },
       }),
     ).toBeNull()
     expect(
       describeMissingJudgeCredential("google:gemini-2.5-pro", {
-        apiKey: "",
-        googleApiKey: "goog",
+        google: { apiKey: "goog" },
       }),
     ).toBeNull()
   })
 
-  it("names the credential the configured judge actually needs", () => {
+  it("names the provider whose credential the configured judge needs", () => {
     expect(describeMissingJudgeCredential("anthropic:claude-opus-4-8", none)).toContain(
-      "Anthropic API key",
+      'Provider "anthropic" requires API key',
     )
     expect(describeMissingJudgeCredential("google:gemini-2.5-pro", none)).toContain(
-      "Google API key",
+      'Provider "google" requires API key',
     )
-    expect(describeMissingJudgeCredential("openai:gpt-5.4", none)).toContain("OpenAI API key")
   })
 
-  // resolveModel passes `apiKey || "dummy"` for custom, so a local model behind
-  // a base URL with no auth is a valid setup.
+  // The custom provider's manifest marks apiKey optional, so a local model
+  // behind a base URL with no auth is a valid setup.
   it("keys the custom provider on its base URL, not an API key", () => {
     expect(
       describeMissingJudgeCredential("custom:local-model", {
-        apiKey: "",
-        customBaseUrl: "http://localhost:1234/v1",
+        custom: { baseUrl: "http://localhost:1234/v1" },
       }),
     ).toBeNull()
-    expect(describeMissingJudgeCredential("custom:local-model", none)).toContain("base URL")
+    expect(describeMissingJudgeCredential("custom:local-model", none)).toContain("Base URL")
   })
 
   it("accepts a server-configured key from the environment", () => {
@@ -129,9 +127,18 @@ describe("describeMissingJudgeCredential", () => {
     }
   })
 
-  it("treats a bare model id as OpenAI, matching resolveModel", () => {
-    expect(describeMissingJudgeCredential("gpt-5.4", { apiKey: "sk-test" })).toBeNull()
-    expect(describeMissingJudgeCredential("gpt-5.4", none)).toContain("OpenAI API key")
+  it("treats a bare model id as OpenAI, matching the registry default", () => {
+    expect(
+      describeMissingJudgeCredential("gpt-5.4", { openai: { apiKey: "sk-test" } }),
+    ).toBeNull()
+  })
+
+  it("does not leak the credential value into the message", () => {
+    expect(
+      describeMissingJudgeCredential("anthropic:claude-opus-4-8", {
+        openai: { apiKey: "sk-secret-openai" },
+      }),
+    ).not.toContain("sk-secret-openai")
   })
 })
 
@@ -190,7 +197,7 @@ describe("evaluateTranslationInApi", () => {
 
     const result = await evaluateTranslationInApi(request, {
       booksDir: tmpDir,
-      apiKey: "sk-test",
+      credentials: { openai: { apiKey: "sk-test" } },
       createModel: () => model,
     })
 
@@ -240,7 +247,7 @@ describe("evaluateTranslationInApi", () => {
       buildRequest(label),
       {
         booksDir: tmpDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         createModel: () => model,
       },
     )
@@ -314,7 +321,7 @@ describe("evaluateTranslationInApi", () => {
       },
       {
         booksDir: tmpDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         createModel: () => model,
       },
     )
@@ -383,7 +390,7 @@ describe("evaluateTranslationInApi", () => {
       },
       {
         booksDir: tmpDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         createModel: () => model,
       },
     )
@@ -494,7 +501,7 @@ describe("evaluateTranslationInApi", () => {
       buildRequest(label),
       {
         booksDir: tmpDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         createModel: () => model,
       },
     )
@@ -547,7 +554,7 @@ describe("evaluateTranslationInApi", () => {
       },
       {
         booksDir: tmpDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         createModel: () => model,
       },
     )

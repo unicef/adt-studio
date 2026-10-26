@@ -81,6 +81,7 @@ beforeEach(() => {
     chatId: "chat-1",
     threadId: "thread-1",
     credentials: {},
+    providerCredentials: {},
     locale: "en",
     screen: {},
     stageService: {} as StageService,

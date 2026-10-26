@@ -20,7 +20,7 @@ export function EasyReadStep(props: StepProps) {
   const { t } = useLingui()
   const run = useRunActivity()
   const stage = useStageActivity("easy-read")
-  const { runEasyRead, hasApiKey } = useRunEasyRead(label)
+  const { runEasyRead, hasStructuredTextProvider } = useRunEasyRead(label)
   const edits = useEasyReadEdits(label)
 
   const [activePageId, setActivePageId] = useState<string | null>(null)
@@ -96,7 +96,7 @@ export function EasyReadStep(props: StepProps) {
   }
   if (loading) return <StepLoading {...props} />
   if (blocks.length === 0) {
-    return <StepEmpty {...props} onRun={() => void runEasyRead()} canRun={hasApiKey && !isRunning} />
+    return <StepEmpty {...props} onRun={() => void runEasyRead()} canRun={hasStructuredTextProvider && !isRunning} />
   }
 
   const total = blocks.reduce((sum, block) => sum + block.entries.length, 0)
@@ -166,7 +166,7 @@ export function EasyReadStep(props: StepProps) {
                 icon={RotateCcw}
                 label={t`Regenerate Easy Read`}
                 onClick={() => void runEasyRead()}
-                disabled={!hasApiKey || isRunning || edits.dirty}
+                disabled={!hasStructuredTextProvider || isRunning || edits.dirty}
               >
                 <Trans>Regenerate</Trans>
               </DetailNavButton>

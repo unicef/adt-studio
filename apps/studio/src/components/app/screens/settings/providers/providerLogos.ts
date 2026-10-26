@@ -7,6 +7,12 @@ import geminiLogo from "@/assets/providers/gemini.svg?raw"
 import elevenLabsLogo from "@/assets/providers/elevenlabs.svg?raw"
 import ollamaLogo from "@/assets/providers/ollama.svg?raw"
 
+/**
+ * Real brand marks (vendored monochrome SVGs from simple-icons). Imported as raw markup and
+ * inlined so the path fills with `currentColor` (`fill-current`) — the glyph inherits the
+ * theme-aware brand color set by `glyph`, and `tile` sets the container wash. Azure's mark was
+ * removed from simple-icons, so it falls back to a tinted Cloud lucide glyph.
+ */
 export interface Brand {
   logoSvg?: string
   icon?: LucideIcon

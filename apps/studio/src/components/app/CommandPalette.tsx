@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Search, House, BookMarked, Split, Settings, Plus, Upload, CornerDownLeft, BookOpen, type LucideIcon } from "lucide-react"
+import { Search, House, BookMarked, Split, Settings, Plus, Upload, CornerDownLeft, BookOpen, Check, type LucideIcon } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -9,8 +9,10 @@ import type { BookSummary } from "@/api/client"
 import { toBookVM, type CoverSpec } from "./data"
 import { BookCover } from "./BookCover"
 import { Kbd } from "./ui/Kbd"
+import { useShortcutLabel } from "@/hooks/use-platform"
 import { APP_PATHS } from "./nav"
 import { rankBySearch, searchTokens } from "./search"
+import { buildQuickActions } from "./quick-actions"
 import { useOpenBook } from "./use-open-book"
 import { SETTINGS_PATHS } from "./screens/settings/nav"
 import {
@@ -30,6 +32,7 @@ interface PaletteItem {
   icon?: LucideIcon
   cover?: CoverSpec
   author?: string
+  active?: boolean
   run: () => void
 }
 interface PaletteGroup {
@@ -46,6 +49,7 @@ export interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onClose, books, locale, onOpenAdd }: CommandPaletteProps) {
+  const toggleShortcut = useShortcutLabel("K")
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
@@ -66,7 +70,7 @@ export function CommandPalette({ open, onClose, books, locale, onOpenAdd }: Comm
             <Trans>open</Trans>
           </span>
           <span className="ml-auto font-mono text-[11px]">
-            <Trans>⌘K to toggle</Trans>
+            <Trans>{toggleShortcut} to toggle</Trans>
           </span>
         </div>
       </DialogContent>
@@ -112,6 +116,9 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
         run: () => openBook(b.label),
       }
     })
+    const quickActions: PaletteItem[] = buildQuickActions(i18n, {
+      goToLibrary: () => navigate({ to: APP_PATHS.library }),
+    })
     const settingsItems: PaletteItem[] = buildSettingsSearchItems(
       i18n,
       tokens.length > 0 ? SETTINGS_SEARCH_ENTRIES : SETTINGS_SECTION_ENTRIES,
@@ -133,6 +140,7 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
     return [
       { label: t`Navigation`, items: rank(nav) },
       { label: t`Books`, items: rank(bookItems) },
+      { label: t`Change`, items: rank(quickActions) },
       { label: t`Settings`, items: rank(settingsItems) },
       { label: t`Actions`, items: rank(actions) },
     ].filter((g) => g.items.length > 0)
@@ -236,6 +244,12 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
                       <div className="text-[13.5px] font-medium text-foreground">{it.title}</div>
                       {it.sub && <div className="truncate text-xs text-muted-foreground">{it.sub}</div>}
                     </div>
+                    {it.active && (
+                      <Check
+                        className="size-3.5 shrink-0 text-brand-600"
+                        aria-label={t`Currently active`}
+                      />
+                    )}
                     {isActive && <CornerDownLeft className="size-3.5 text-muted-foreground" />}
                   </div>
                 )

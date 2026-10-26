@@ -26,7 +26,7 @@ function estimateCost(inputTokens: number, outputTokens: number): string {
 }
 
 export function StatsTab({ label, isRunning }: StatsTabProps) {
-  const { i18n } = useLingui()
+  const { i18n, t } = useLingui()
   const { data, isLoading, error } = usePipelineStats(label, {
     refetchInterval: isRunning ? 3000 : false,
   })
@@ -158,7 +158,18 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
                         {s.step}
                       </Badge>
                     </td>
-                    <td className="py-2.5 px-4 text-right tabular-nums">{s.calls}</td>
+                    {/* Skipped rows are excluded from `calls`, so without this
+                        the Log tab would show more rows than Stats counts with
+                        nothing to explain the gap. Only rendered when non-zero:
+                        for almost every step there is nothing to say. */}
+                    <td className="py-2.5 px-4 text-right tabular-nums">
+                      {s.calls}
+                      {s.skipped > 0 && (
+                        <span className="ml-1 text-muted-foreground font-normal">
+                          {t`(+${s.skipped} skipped)`}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2.5 px-4 text-right tabular-nums">{s.cacheHits}</td>
                     <td className="py-2.5 px-4 text-right tabular-nums">{s.cacheMisses}</td>
                     <td className="py-2.5 px-4 text-right tabular-nums">
@@ -169,6 +180,9 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
                     </td>
                     <td className="py-2.5 px-4 text-right tabular-nums">
                       {formatDuration(s.avgDurationMs)}
+                    </td>
+                    <td className="py-2.5 px-4 text-right tabular-nums text-muted-foreground">
+                      {s.skipped > 0 ? s.skipped : "—"}
                     </td>
                     <td className="py-2.5 px-4 text-right tabular-nums">
                       {s.errorCount > 0 ? (

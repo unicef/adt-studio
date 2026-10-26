@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useStageStatus } from "@/hooks/use-stage-status"
 
 const MAX_SOURCE_PAGES = 5
@@ -211,13 +211,13 @@ export function AddQuizDialog({
   const { data: existingQuizzes } = useQuizzes(bookLabel)
   const {
     apiKey,
-    hasApiKey,
     anthropicKey,
     googleKey,
     customBaseUrl,
     customApiKey,
     geminiKey,
   } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   // A running (or queued) quiz-generation stage rewrites the whole quiz set when
@@ -324,7 +324,7 @@ export function AddQuizDialog({
 
   const handleGenerate = async () => {
     if (
-      !hasApiKey ||
+      !hasStructuredTextProvider ||
       selected.length === 0 ||
       !afterPageId ||
       generating ||
@@ -572,7 +572,7 @@ export function AddQuizDialog({
             onClick={handleGenerate}
             disabled={
               generating ||
-              !hasApiKey ||
+              !hasStructuredTextProvider ||
               selected.length === 0 ||
               !afterPageId ||
               stageRunning

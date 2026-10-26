@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { RefreshCw, AlertTriangle } from "lucide-react"
+import { RefreshCw, AlertTriangle, MinusCircle } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
@@ -21,17 +21,23 @@ import { ALL_STEP_NAMES } from "@adt/types"
 
 const STEP_FILTERS = Array.from(ALL_STEP_NAMES)
 
+/** Mirrors NO_SPEAKABLE_TEXT_REASON in @adt/pipeline — the studio can't import
+ *  from packages, so the one known reason is matched by value here and any other
+ *  reason falls back to showing the raw string. */
+const NO_SPEAKABLE_TEXT = "no-speakable-text"
+
 interface LlmLogsTabProps {
   label: string
   isRunning: boolean
 }
 
-type RowStatus = "success" | "cached" | "error"
+type RowStatus = "success" | "cached" | "error" | "skipped"
 
 const STATUS_DOT: Record<RowStatus, string> = {
   success: "bg-green-500",
   cached: "bg-yellow-400",
   error: "bg-red-500",
+  skipped: "bg-slate-400",
 }
 
 function formatSeconds(ms: number): string {
@@ -40,13 +46,20 @@ function formatSeconds(ms: number): string {
   return `${(ms / 60_000).toFixed(1)}m`
 }
 
-function getStatus(entry: LlmLogEntry): RowStatus {
+/**
+ * Exported for tests: the precedence between an error, a deliberate skip, and a
+ * cache hit is the part worth pinning down.
+ */
+export function getStatus(entry: LlmLogEntry): RowStatus {
   if (entry.data.success === false) return "error"
   if (
     entry.data.success === undefined &&
     entry.data.validationErrors &&
     entry.data.validationErrors.length > 0
   ) return "error"
+  // A skipped call produced no artifact at all, so it must not read as a
+  // success — but a failure still outranks it: that's what needs acting on.
+  if (entry.data.skippedReason) return "skipped"
   if (entry.data.cacheHit) return "cached"
   return "success"
 }
@@ -159,7 +172,11 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
             <div className="text-muted-foreground mb-0.5">
               <Trans>Cache</Trans>
             </div>
-            <div className="font-medium">{data.cacheHit ? t`Hit` : t`Miss`}</div>
+            {/* A skipped call never consulted the cache, so "Miss" would be a
+                lie about a lookup that never happened. */}
+            <div className="font-medium">
+              {data.skippedReason ? "—" : data.cacheHit ? t`Hit` : t`Miss`}
+            </div>
           </div>
           {data.usage && (
             <>
@@ -259,6 +276,24 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
             </pre>
           </div>
         )}
+
+        {/* Nothing failed here — the step deliberately produced no output. Kept
+            visible so the log answers "why is there no audio for this item?"
+            instead of leaving an unexplained gap. Neutral styling, separate
+            from the Error block above. */}
+        {data.skippedReason && (
+          <div>
+            <div className="font-medium text-muted-foreground mb-1 flex items-center gap-1">
+              <MinusCircle className="h-3 w-3" />
+              <Trans>No audio</Trans>
+            </div>
+            <p className="bg-muted p-3 rounded text-[11px] text-muted-foreground">
+              {data.skippedReason === NO_SPEAKABLE_TEXT
+                ? t`This entry has no speakable text, so no audio was generated and no request was sent to the provider.`
+                : data.skippedReason}
+            </p>
+          </div>
+        )}
       </div>
     </td>
   )
@@ -273,6 +308,7 @@ function HistoryLogRow({ entry, label }: { entry: LlmLogEntry; label: string }) 
     success: t`Success`,
     cached: t`Cached`,
     error: t`Error`,
+    skipped: t`No audio`,
   }
 
   function formatTimestamp(iso: string): string {

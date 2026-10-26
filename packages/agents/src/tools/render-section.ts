@@ -13,7 +13,7 @@ import type {
 } from "@adt/types"
 import type { Storage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
-import type { AgentCredentials } from "../resolve-model.js"
+import type { AgentCredentials } from "../credentials.js"
 
 export interface RenderSyntheticActivityInput {
   storage: Storage
@@ -25,7 +25,11 @@ export interface RenderSyntheticActivityInput {
   anchorPageId: string
   /** The section index this activity will occupy after createSection's storage write. */
   sectionIndex: number
-  /** Stable section id, e.g. `${pageId}_s${nextIndex}`. */
+  /**
+   * The section's immutable id, e.g. `pg001_sec004`. Allocate it with
+   * `createSectionIdFactory` from `@adt/pipeline` — never derive it from an
+   * array index, which is reused as soon as a delete leaves a gap.
+   */
   sectionId: string
   sectionType: string
   /** The agent-emitted sectioning nodes. */
@@ -130,13 +134,13 @@ export async function renderSyntheticActivity(
     input.bookLabel,
     "prompts",
   )
-  const promptEngine = createPromptEngine([bookPromptsDir, input.promptsDir])
+  const promptEngine = createPromptEngine([bookPromptsDir, input.promptsDir], { basePromptModelId: config.base_prompt_model })
   const llmModel = createLLMModel({
     modelId: renderConfig.modelId,
     cacheDir,
     promptEngine,
     onLog: (entry) => input.storage.appendLlmLog(entry),
-    credentials: input.credentials,
+    providerCredentials: input.credentials,
   })
 
   const renderContext = buildRenderContext(section, images, input.bookLabel)

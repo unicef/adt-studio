@@ -30,7 +30,7 @@ export function FigureExtractionModeControl({
 
   return (
     <div
-      className="flex w-full flex-col gap-3 rounded-lg border border-border bg-white px-4 py-3 shadow-sm"
+      className="flex w-full flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >

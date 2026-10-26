@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query"
+import { safeParseModelId } from "@adt/types"
 import type { PromptResponse } from "@/api/client"
 import type { ModelGroup } from "@/components/pipeline/components/ModelSelect"
 import { LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect"
@@ -50,18 +51,17 @@ export function mergePromptModelGroups(
   const existing = new Set(modelIdsFromGroups(groups))
 
   for (const rawModelId of additionalModelIds) {
-    const modelId = normalizePromptModelInput(rawModelId)
-    if (!modelId || existing.has(modelId)) continue
-    existing.add(modelId)
+    const parsed = safeParseModelId(rawModelId, { defaultProviderId: "custom" })
+    if (!parsed.ok || existing.has(parsed.value.qualified)) continue
+    existing.add(parsed.value.qualified)
 
-    const separatorIndex = modelId.indexOf(":")
-    const provider = separatorIndex > 0 ? modelId.slice(0, separatorIndex) : "custom"
-    const model = separatorIndex > 0 ? modelId.slice(separatorIndex + 1) : modelId
-    const group = groups.find((candidate) => candidate.provider === provider)
+    const group = groups.find(
+      (candidate) => candidate.provider === parsed.value.providerId,
+    )
     if (group) {
-      group.models.push(model)
+      group.models.push(parsed.value.modelId)
     } else {
-      groups.push({ provider, models: [model] })
+      groups.push({ provider: parsed.value.providerId, models: [parsed.value.modelId] })
     }
   }
 

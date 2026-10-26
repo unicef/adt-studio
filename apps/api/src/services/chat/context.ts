@@ -1,4 +1,5 @@
 import type { ChatCredentials } from "@adt/chat"
+import type { ResolvedCredentials } from "@adt/llm"
 import type { StageService } from "../stage-service.js"
 import type { TaskService } from "../task-service.js"
 
@@ -29,6 +30,8 @@ export interface ChatToolContext {
   chatId: string
   threadId: string
   credentials: ChatCredentials
+  /** Request-scoped pipeline credentials, the same ones a stage run reads. */
+  providerCredentials: ResolvedCredentials
   locale: string
   screen: ChatScreenContext
   stageService: StageService

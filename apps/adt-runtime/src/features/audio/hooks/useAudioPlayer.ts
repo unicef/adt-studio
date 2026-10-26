@@ -9,12 +9,15 @@ import {
   describeImagesModeAtom,
   isPlayingAtom,
   readAloudModeAtom,
-  timecodeMapAtom,
+  timecodeMapsAtom,
   wordHighlightModeAtom,
 } from "@/features/audio/state/audio.atoms"
 import {
   audioFilesAtom,
+  audioVoicesAtom,
   currentLanguageAtom,
+  narratorVoiceAtom,
+  type NarratorVoiceSlot,
   speechTextsAtom,
   translationsAtom,
 } from "@/features/language/state/language.atoms"
@@ -142,7 +145,19 @@ export function useAudioPlayer(): UseAudioPlayer {
   const [currentIndex, setCurrentIndex] = useAtom(currentAudioIndexAtom)
   const activeMedia = useAtomValue(activeMediaAtom)
   const setActiveMedia = useSetAtom(activeMediaAtom)
-  const audioFiles = useAtomValue(audioFilesAtom)
+  const primaryAudioFiles = useAtomValue(audioFilesAtom)
+  const audioVoices = useAtomValue(audioVoicesAtom)
+  const narratorVoiceValue = useAtomValue(narratorVoiceAtom)
+  // A slot with an empty audios map is not a usable voice — a manifest can ship
+  // one when every clip for that slot failed to generate. `??` would happily
+  // accept `{}` and play silence, so test for content rather than presence.
+  const slotAudios = (slot: NarratorVoiceSlot): Record<string, string> | undefined => {
+    const audios = audioVoices?.voices[slot]?.audios
+    return audios && Object.keys(audios).length > 0 ? audios : undefined
+  }
+  const narratorVoice: NarratorVoiceSlot =
+    narratorVoiceValue === "secondary" && slotAudios("secondary") ? "secondary" : "primary"
+  const audioFiles = slotAudios(narratorVoice) ?? primaryAudioFiles
   const translations = useAtomValue(translationsAtom)
   const speechTexts = useAtomValue(speechTextsAtom)
   const language = useAtomValue(currentLanguageAtom) as string
@@ -154,11 +169,13 @@ export function useAudioPlayer(): UseAudioPlayer {
   const setReadAloudMode = useSetAtom(readAloudModeAtom)
   const wordHighlightMode = useAtomValue(wordHighlightModeAtom) as boolean
   const describeImagesMode = useAtomValue(describeImagesModeAtom) as boolean
-  const timecodeMap = useAtomValue(timecodeMapAtom)
+  const timecodeMaps = useAtomValue(timecodeMapsAtom)
+  const timecodeMap = timecodeMaps[narratorVoice]
   const wordHighlightModeRef = useRef(wordHighlightMode)
   const speedRef = useRef(speed)
   const volumeRef = useRef(volume)
   const initialResumeRef = useRef<boolean>(isPlaying || autoplayMode)
+  const narratorVoiceRef = useRef(narratorVoice)
 
   wordHighlightModeRef.current = wordHighlightMode
   speedRef.current = speed
@@ -233,6 +250,14 @@ export function useAudioPlayer(): UseAudioPlayer {
     audio.removeAttribute("src")
     audio.load()
   }, [teardownActive])
+
+  useEffect(() => {
+    if (narratorVoiceRef.current === narratorVoice) return
+    narratorVoiceRef.current = narratorVoice
+    stopAndClear()
+    setIsPlaying(false)
+    setCurrentIndex(0)
+  }, [narratorVoice, setCurrentIndex, setIsPlaying, stopAndClear])
 
   const playAtIndex = useCallback(
     (index: number) => {

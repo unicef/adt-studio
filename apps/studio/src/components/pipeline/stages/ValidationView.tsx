@@ -8,6 +8,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { api } from "@/api/client"
+import { toastPackagingWarnings } from "@/lib/packaging-warnings"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { AccessibilityOverviewTab } from "@/components/validation/AccessibilityValidationTabs"
@@ -27,7 +28,7 @@ function normalizeValidationTab(value: string | undefined) {
 }
 
 export function ValidationView({ bookLabel }: { bookLabel: string }) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { tab?: string }
   const { stageState, isStatusLoading } = useBookRun()
@@ -56,6 +57,10 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
         setPendingPackagingTaskId(taskId)
         return
       }
+      // Packaged inline (cache hit). Validation reports on the bundle, so
+      // anything left out of it has to be said out loud here too — otherwise a
+      // clean validation reads as "the book is fine" over a short bundle.
+      toastPackagingWarnings(result, i18n)
     } catch (e) {
       setError(e instanceof Error ? e.message : t`Packaging failed`)
     } finally {
@@ -63,7 +68,7 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
         setIsSubmittingPackage(false)
       }
     }
-  }, [bookLabel, t])
+  }, [bookLabel, t, i18n])
 
   useEffect(() => {
     if (!storyboardDone || ranRef.current) return
@@ -80,12 +85,13 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
     if (task.status === "completed") {
       setPendingPackagingTaskId(null)
       setIsSubmittingPackage(false)
+      toastPackagingWarnings(task.result, i18n)
     } else if (task.status === "failed") {
       setError(task.error ?? t`Packaging failed`)
       setPendingPackagingTaskId(null)
       setIsSubmittingPackage(false)
     }
-  }, [getTask, pendingPackagingTaskId, t])
+  }, [getTask, pendingPackagingTaskId, t, i18n])
 
   if (isStatusLoading || prunedLoading) {
     return <LoadingState stageSlug="validation" label={<Trans>Loading validation...</Trans>} />

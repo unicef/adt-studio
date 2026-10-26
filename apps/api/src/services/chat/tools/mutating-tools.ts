@@ -1,7 +1,15 @@
 import { z } from "zod"
 import { defineChatTool, type ChatTool } from "@adt/chat"
-import { StageName, WebRenderingOutput, type StageName as StageNameType } from "@adt/types"
+import {
+  DEFAULT_LLM_MODEL_ID,
+  STAGE_ORDER,
+  StageName,
+  WebRenderingOutput,
+  type StageName as StageNameType,
+} from "@adt/types"
 import { createBookStorage } from "@adt/storage"
+import { collectStageRunModelChecks, describeMissingModelCredential } from "@adt/llm"
+import { loadBookConfig } from "@adt/pipeline"
 import { getBookConfig, updateBookConfig } from "../../book-service.js"
 import { aiEditSection } from "../../page-edit-service.js"
 import { getRunningSteps, activePipelineRunMessage } from "../../pipeline-run-guard.js"
@@ -35,6 +43,28 @@ function blockedByRun(ctx: ChatToolContext): BlockedByRun | null {
   }
 }
 
+function missingStageRunCredential(
+  ctx: ChatToolContext,
+  fromStage: StageNameType,
+  toStage: StageNameType,
+): string | null {
+  const config = loadBookConfig(ctx.safeLabel, ctx.paths.booksDir, ctx.paths.configPath)
+  const fromIndex = STAGE_ORDER.indexOf(fromStage)
+  const toIndex = STAGE_ORDER.indexOf(toStage)
+  const stages = fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER
+  for (const check of collectStageRunModelChecks(config, stages)) {
+    const missing = describeMissingModelCredential(check.modality, check.modelId, ctx.providerCredentials)
+    if (missing) return `${check.field}: ${missing}`
+  }
+  return null
+}
+
+function missingAiEditCredential(ctx: ChatToolContext): string | null {
+  const config = loadBookConfig(ctx.safeLabel, ctx.paths.booksDir, ctx.paths.configPath)
+  const modelId = config.page_sectioning?.model ?? config.default_model ?? DEFAULT_LLM_MODEL_ID
+  return describeMissingModelCredential("structured-text", modelId, ctx.providerCredentials)
+}
+
 export const runStages = defineChatTool<
   ChatToolContext,
   { fromStage: StageNameType; toStage: StageNameType; renderOnly?: boolean }
@@ -55,11 +85,11 @@ export const runStages = defineChatTool<
     const blocked = blockedByRun(ctx)
     if (blocked) return blocked
 
-    if (!ctx.credentials.openaiApiKey) {
+    const missingCredential = missingStageRunCredential(ctx, input.fromStage, input.toStage)
+    if (missingCredential) {
       return {
         status: "error" as const,
-        message:
-          "A pipeline run needs an OpenAI key — the stage runner uses it regardless of the chat model. Add one in Settings → Providers.",
+        message: `${missingCredential} Add it in Settings → Providers.`,
       }
     }
 
@@ -73,9 +103,7 @@ export const runStages = defineChatTool<
 
     const result = ctx.stageService.startStageRun(ctx.safeLabel, {
       booksDir: ctx.paths.booksDir,
-      apiKey: ctx.credentials.openaiApiKey,
-      anthropicApiKey: ctx.credentials.anthropicApiKey,
-      googleApiKey: ctx.credentials.googleApiKey,
+      credentials: ctx.providerCredentials,
       promptsDir: ctx.paths.promptsDir,
       webAssetsDir: ctx.paths.webAssetsDir,
       configPath: ctx.paths.configPath,
@@ -286,11 +314,11 @@ export const rerunWithInstructions = defineChatTool<
     const blocked = blockedByRun(ctx)
     if (blocked) return blocked
 
-    if (!ctx.credentials.openaiApiKey) {
+    const missingCredential = missingAiEditCredential(ctx)
+    if (missingCredential) {
       return {
         status: "error" as const,
-        message:
-          "The AI section editor runs on OpenAI. Add an OpenAI key in Settings → Providers.",
+        message: `${missingCredential} Add it in Settings → Providers.`,
       }
     }
 
@@ -303,7 +331,7 @@ export const rerunWithInstructions = defineChatTool<
       promptsDir: ctx.paths.promptsDir,
       webAssetsDir: ctx.paths.webAssetsDir,
       configPath: ctx.paths.configPath,
-      apiKey: ctx.credentials.openaiApiKey,
+      credentials: ctx.providerCredentials,
     })
 
     const storage = createBookStorage(ctx.safeLabel, ctx.paths.booksDir)

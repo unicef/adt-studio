@@ -5,7 +5,7 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
   type UIMessage,
 } from "ai"
-import { api, chatCredentialHeaders, chatMessagesUrl, type ChatCredentials } from "@/api/client"
+import { api, chatMessagesUrl, chatRequestHeaders, type ChatCredentials } from "@/api/client"
 
 export interface ChatScreenContext {
   screen?: string
@@ -53,7 +53,7 @@ export function useBookChat({
     () =>
       new DefaultChatTransport<UIMessage>({
         api: chatMessagesUrl(label, threadId),
-        headers: () => chatCredentialHeaders(latest.current.credentials),
+        headers: () => chatRequestHeaders(latest.current.credentials),
         body: () => ({
           model: latest.current.model,
           locale: latest.current.locale,

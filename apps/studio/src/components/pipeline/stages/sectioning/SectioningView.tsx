@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, LayoutGrid, Table2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { LoadingState } from "../../components/LoadingState"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -20,7 +20,8 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const [overviewMode, setOverviewMode] = useState(false)
   const { setExtra, setOnLabelClick } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const sectioningState = stageState("sectioning")
   const sectioningDone = sectioningState === "done"
   const sectioningRunning = sectioningState === "running" || sectioningState === "queued"
@@ -30,9 +31,9 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
     : !sectioningDone
 
   const handleRunSectioning = useCallback(() => {
-    if (!hasApiKey || sectioningRunning) return
+    if (!hasStructuredTextProvider || sectioningRunning) return
     queueRun({ fromStage: "sectioning", toStage: "sectioning", apiKey })
-  }, [hasApiKey, sectioningRunning, apiKey, queueRun])
+  }, [hasStructuredTextProvider, sectioningRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
 
@@ -190,7 +191,7 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={sectioningRunning}
           completed={sectioningDone}
           onRun={handleRunSectioning}
-          disabled={!hasApiKey || sectioningRunning}
+          disabled={!hasStructuredTextProvider || sectioningRunning}
         />
       </div>
     )
@@ -238,7 +239,7 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={sectioningRunning}
           completed={sectioningDone}
           onRun={handleRunSectioning}
-          disabled={!hasApiKey || sectioningRunning}
+          disabled={!hasStructuredTextProvider || sectioningRunning}
         />
       </div>
     )

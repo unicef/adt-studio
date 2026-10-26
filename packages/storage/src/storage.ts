@@ -96,7 +96,26 @@ export interface Storage {
   clearTranslatedImages(filter?: { sourceImageIds?: string[]; languageCodes?: string[] }): void
 
   putNodeData(node: string, itemId: string, data: unknown): number
+  /** Current output, or null when absent or explicitly invalidated. */
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null
+  /**
+   * Every stored version for (node, itemId), oldest first — including versions
+   * the current pointer has moved past and null invalidation versions.
+   * Used to allocate ids that were never
+   * used by *any* version, so a rollback can't make a fresh id collide with a
+   * retired one.
+   */
+  getAllNodeVersions(node: string, itemId: string): NodeDataRow[]
+  /**
+   * Every item id this node holds data for, in id order.
+   *
+   * For the book-scoped nodes whose item id is a language code (`tts`,
+   * `tts-timestamps`), where a caller reconciling the whole book has to reach
+   * every language row — including the legacy `pt_BR` spelling alongside the
+   * canonical `pt-BR`. Reading and writing back the id this returns keeps that
+   * alias handling out of the caller entirely.
+   */
+  getNodeItemIds(node: string): string[]
   /** Point (node, itemId) at an existing version without creating a new one
    *  (rollback). Returns false if that version doesn't exist. */
   setCurrentNodeVersion(node: string, itemId: string, version: number): boolean

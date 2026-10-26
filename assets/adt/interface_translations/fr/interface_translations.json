@@ -96,6 +96,7 @@
     "text-read-aloud-speed": "Vitesse",
     "toc-title": "Index",
     "tts-label": "Texte à voix",
+    "narrator-voice-label": "Voix du narrateur",
     "tutorial-closed-announcement": "Tutoriel fermé. N'oubliez pas que vous pouvez utiliser Alt plus Maj plus A pour ouvrir et fermer le menu d'accessibilité, Alt plus Maj plus flèches pour naviguer entre les pages, et Alt plus Maj plus X pour ouvrir et fermer le menu de navigation. Vous pouvez accéder à plus de fonctions d'accessibilité avec le bouton dans le coin droit.",
     "tutorial-completed-announcement": "Tutoriel terminé. N'oubliez pas que vous pouvez utiliser Alt plus Maj plus A pour ouvrir et fermer le menu d'accessibilité, Alt plus Maj plus flèches pour naviguer entre les pages, et Alt plus Maj plus X pour ouvrir et fermer le menu de navigation.",
     "tutorial-description-content": "Avant de commencer, voici une visite rapide pour vous montrer comment naviguer, utiliser le menu et accéder aux fonctionnalités utiles.<br> Cela ne prendra pas longtemps !",

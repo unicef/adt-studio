@@ -133,46 +133,42 @@ export function BetaVersionsView({
             <Trans>Try again</Trans>
           </Button>
         </div>
+      ) : view === "details" && selected ? (
+        <ReleaseDetails
+          release={selected}
+          locale={i18n.locale}
+          preparing={preparing}
+          checking={status.phase === "checking"}
+          error={error}
+          onBack={returnToLibrary}
+          onInstall={startInstall}
+        />
       ) : (
         <ScrollArea className="min-h-0 flex-1">
-          {view === "details" && selected ? (
-            <ReleaseDetails
-              release={selected}
-              locale={i18n.locale}
-              preparing={preparing}
-              checking={status.phase === "checking"}
-              error={error}
-              onBack={returnToLibrary}
-              onInstall={startInstall}
-            />
-          ) : (
-            <>
-              <BetaLibraryHero
-                ref={searchInput}
-                value={query}
-                onValueChange={setQuery}
+          <BetaLibraryHero
+            ref={searchInput}
+            value={query}
+            onValueChange={setQuery}
+          />
+          <main className="flex flex-col px-5 py-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
+            {filteredVersions.length > 0 ? (
+              <BetaVersionLibrary
+                releases={filteredVersions}
+                initialActiveVersion={initialActiveVersion}
+                disabled={preparing}
+                onOpen={(version) => {
+                  installMutation.reset();
+                  openDetails(version);
+                }}
+                onCardRef={(version, node) => {
+                  if (node) cardRefs.current.set(version, node);
+                  else cardRefs.current.delete(version);
+                }}
               />
-              <main className="flex flex-col px-5 py-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
-                {filteredVersions.length > 0 ? (
-                  <BetaVersionLibrary
-                    releases={filteredVersions}
-                    initialActiveVersion={initialActiveVersion}
-                    disabled={preparing}
-                    onOpen={(version) => {
-                      installMutation.reset();
-                      openDetails(version);
-                    }}
-                    onCardRef={(version, node) => {
-                      if (node) cardRefs.current.set(version, node);
-                      else cardRefs.current.delete(version);
-                    }}
-                  />
-                ) : (
-                  <BetaVersionSearchEmptyState />
-                )}
-              </main>
-            </>
-          )}
+            ) : (
+              <BetaVersionSearchEmptyState />
+            )}
+          </main>
         </ScrollArea>
       )}
     </div>
@@ -197,27 +193,22 @@ function ReleaseDetails({
   onInstall: () => void;
 }) {
   return (
-    <main className="px-5 py-5 md:px-7">
-      <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
+    <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-5 md:px-7">
+      <div className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft />
           <Trans>Back to beta versions</Trans>
         </Button>
       </div>
 
-      <div className="mt-5 flex gap-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 motion-safe:delay-100 motion-safe:fill-mode-backwards">
-        <ReleaseCover release={release} className="w-100" />
-        <div className="min-w-0">
+      <div className="mt-5 flex shrink-0 items-start gap-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 motion-safe:delay-100 motion-safe:fill-mode-backwards">
+        <ReleaseCover release={release} className="w-100 shrink-0" />
+        <div className="min-w-0 flex-1 pt-1">
           <ReleaseDirectionBadge direction={release.direction} />
           <h2 className="mt-3 max-w-3xl text-balance text-2xl font-semibold tracking-tight">
             {release.title ?? formatVersion(release.version)}
           </h2>
           <ReleaseMetadata release={release} locale={locale} />
-          {release.description?.trim() && (
-            <p className="mt-3 max-w-2xl text-pretty text-sm leading-6 text-muted-foreground">
-              {release.description}
-            </p>
-          )}
           <div className="mt-5">
             <BetaReleaseInstallButton
               release={release}
@@ -230,8 +221,8 @@ function ReleaseDetails({
         </div>
       </div>
 
-      <div className="mt-7 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 motion-safe:delay-200 motion-safe:fill-mode-backwards">
-        <section className="min-w-0 rounded-lg border bg-card p-5">
+      <div className="mt-7 grid min-h-0 flex-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 motion-safe:delay-200 motion-safe:fill-mode-backwards">
+        <section className="h-full min-w-0 overflow-y-auto overscroll-contain rounded-lg border bg-card p-5">
           <h3 className="mb-4 text-sm font-semibold">
             <Trans>Release notes</Trans>
           </h3>
@@ -243,7 +234,10 @@ function ReleaseDetails({
             </p>
           )}
         </section>
-        <ReleaseSourceCard source={release.source} />
+        <ReleaseSourceCard
+          source={release.source}
+          className="max-h-full self-start"
+        />
       </div>
     </main>
   );
@@ -256,6 +250,10 @@ function ReleaseMetadata({
   release: AvailableRelease;
   locale?: string;
 }) {
+  const author =
+    release.source?.prs.find((pullRequest) => pullRequest.author)?.author ??
+    release.author;
+
   return (
     <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted-foreground tabular-nums">
       <span>{formatVersion(release.version)}</span>
@@ -271,6 +269,14 @@ function ReleaseMetadata({
         <>
           <span aria-hidden>·</span>
           <span>{formatBytes(release.totalBytes)}</span>
+        </>
+      )}
+      {author && (
+        <>
+          <span aria-hidden>·</span>
+          <span>
+            <Trans>By</Trans> @{author}
+          </span>
         </>
       )}
     </p>

@@ -4,6 +4,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { openBookDb } from "../db.js"
+import { readCurrentNodeRow } from "../node-current.js"
 import type { ExtractedPage } from "@adt/pdf"
 import { createBookStorage, resolveBookPaths } from "../book-storage.js"
 
@@ -536,6 +537,45 @@ describe("putNodeData / getLatestNodeData", () => {
     storage.close()
   })
 
+  it("getAllNodeVersions returns every version oldest-first, past the current pointer", () => {
+    const { storage } = createTempStorage()
+
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "v1" })
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "v2" })
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "v3" })
+    // Rolling the pointer back must not hide the versions after it — id
+    // allocation reads history so a restore can't make a fresh id collide
+    // with one a later version already used.
+    expect(storage.setCurrentNodeVersion("page-sectioning", "pg001", 1)).toBe(true)
+
+    expect(storage.getAllNodeVersions("page-sectioning", "pg001")).toEqual([
+      { version: 1, data: { reasoning: "v1" } },
+      { version: 2, data: { reasoning: "v2" } },
+      { version: 3, data: { reasoning: "v3" } },
+    ])
+    expect(storage.getAllNodeVersions("page-sectioning", "pg999")).toEqual([])
+
+    storage.close()
+  })
+
+  it("getNodeItemIds lists each item once, regardless of version count", () => {
+    const { storage } = createTempStorage()
+
+    // `tts` is keyed by language, and both the canonical and legacy spellings
+    // can coexist — a caller reconciling the whole book has to reach both.
+    storage.putNodeData("tts", "pt-BR", { entries: [] })
+    storage.putNodeData("tts", "pt-BR", { entries: [], generatedAt: "later" })
+    storage.putNodeData("tts", "pt_BR", { entries: [] })
+    storage.putNodeData("tts", "en", { entries: [] })
+    storage.putNodeData("tts-timestamps", "en", { entries: {} })
+
+    expect(storage.getNodeItemIds("tts")).toEqual(["en", "pt-BR", "pt_BR"])
+    expect(storage.getNodeItemIds("tts-timestamps")).toEqual(["en"])
+    expect(storage.getNodeItemIds("page-sectioning")).toEqual([])
+
+    storage.close()
+  })
+
   it("handles different nodes independently", () => {
     const { storage } = createTempStorage()
 
@@ -707,5 +747,87 @@ describe("debug_images", () => {
       expect(fp?.version).toBe(1)
       storage.close()
     })
+  })
+})
+
+
+describe("quiz history retention on invalidation", () => {
+  it("hides invalidated output in both current readers, retains history, and is idempotent", () => {
+    const { storage, paths } = createTempStorage()
+    try {
+      const first = { quizzes: [{ quizId: "qz001" }] }
+      storage.putNodeData("quiz-generation", "book", first)
+      storage.putNodeData("quiz-generation", "book", { quizzes: [{ quizId: "qz002" }] })
+      storage.putNodeData("text-catalog", "book", { entries: [] })
+      storage.setCurrentNodeVersion("quiz-generation", "book", 1)
+      storage.clearNodesByType(["quiz-generation", "text-catalog"])
+      storage.clearNodesByType(["quiz-generation"])
+      expect(storage.getLatestNodeData("quiz-generation", "book")).toBeNull()
+      expect(storage.getAllNodeVersions("quiz-generation", "book")).toEqual([
+        { version: 1, data: first }, { version: 2, data: { quizzes: [{ quizId: "qz002" }] } },
+        { version: 3, data: null },
+      ])
+      expect(storage.getAllNodeVersions("text-catalog", "book")).toEqual([])
+      const db = openBookDb(paths.dbPath)
+      try {
+        expect(readCurrentNodeRow(db, "quiz-generation", "book")).toBeNull()
+        expect(readCurrentNodeRow(db, "quiz-generation", "book", { includeInvalidated: true })).toEqual({ version: 3, data: "null" })
+        // A book without a pointer must not fall back past the tombstone.
+        db.run("DELETE FROM node_current WHERE node = ?", ["quiz-generation"])
+        expect(readCurrentNodeRow(db, "quiz-generation", "book")).toBeNull()
+        expect(readCurrentNodeRow(db, "quiz-generation", "book", { includeInvalidated: true })).toEqual({ version: 3, data: "null" })
+      } finally { db.close() }
+      expect(storage.getLatestNodeData("quiz-generation", "book")).toBeNull()
+      expect(storage.setCurrentNodeVersion("quiz-generation", "book", 1)).toBe(true)
+      expect(storage.getLatestNodeData("quiz-generation", "book")?.data).toEqual(first)
+    } finally { storage.close() }
+  })
+
+  it("preserves nullable payload semantics for nodes outside quiz invalidation", () => {
+    const { storage, paths } = createTempStorage()
+    try {
+      storage.putNodeData("metadata", "book", null)
+      expect(storage.getLatestNodeData("metadata", "book")).toEqual({ version: 1, data: null })
+      const db = openBookDb(paths.dbPath)
+      try {
+        expect(readCurrentNodeRow(db, "metadata", "book")).toEqual({ version: 1, data: "null" })
+      } finally { db.close() }
+    } finally { storage.close() }
+  })
+
+  it("rolls quiz invalidation and dependent deletion back with a failed transaction", () => {
+    const { storage } = createTempStorage()
+    try {
+      storage.putNodeData("quiz-generation", "book", { quizzes: [] })
+      storage.putNodeData("text-catalog", "book", { entries: [] })
+      expect(() => storage.transaction(() => {
+        storage.clearNodesByType(["quiz-generation", "text-catalog"])
+        throw new Error("transaction failed")
+      })).toThrow("transaction failed")
+      expect(storage.getLatestNodeData("quiz-generation", "book")?.version).toBe(1)
+      expect(storage.getAllNodeVersions("quiz-generation", "book")).toHaveLength(1)
+      expect(storage.getLatestNodeData("text-catalog", "book")?.version).toBe(1)
+    } finally { storage.close() }
+  })
+
+  it("retains quiz versions and fonts while extraction clears source and derived output", () => {
+    const { storage } = createTempStorage()
+    try {
+      storage.putExtractedPage(makePage(1))
+      storage.putNodeData("quiz-generation", "book", { quizzes: [{ quizId: "qz001" }] })
+      storage.putNodeData("font-registry", "book", { fonts: [] })
+      storage.putNodeData("web-rendering", "pg001", { sections: [] })
+      storage.markStepCompleted("quiz-generation")
+      storage.clearExtractedData()
+      storage.clearExtractedData()
+      expect(storage.getPages()).toEqual([])
+      expect(storage.getStepRuns()).toEqual([])
+      expect(storage.getLatestNodeData("web-rendering", "pg001")).toBeNull()
+      expect(storage.getLatestNodeData("font-registry", "book")?.version).toBe(1)
+      expect(storage.getLatestNodeData("quiz-generation", "book")).toBeNull()
+      expect(storage.getAllNodeVersions("quiz-generation", "book")).toEqual([
+        { version: 1, data: { quizzes: [{ quizId: "qz001" }] } }, { version: 2, data: null },
+      ])
+    } finally { storage.close() }
   })
 })

@@ -228,9 +228,9 @@ export function SectioningPageDetail({
 
   /**
    * Gate for the server-side structural ops (split / duplicate / merge /
-   * cross-page merge / delete). They apply immediately and rewrite sectionIds,
-   * so they are confirmed first — and, like the save, they invalidate the
-   * storyboard chain, which the dialog spells out.
+   * cross-page merge / delete). They apply immediately and restructure the
+   * section list, so they are confirmed first — and, like the save, they
+   * invalidate the storyboard chain, which the dialog spells out.
    */
   const requestStructuralOp = useCallback(
     (op: PendingOp) => {
@@ -285,8 +285,8 @@ export function SectioningPageDetail({
       : undefined,
   })
 
-  // Server-side structural ops (merge/split/clone/delete) rewrite sectionIds,
-  // so they are blocked while there are unsaved local edits.
+  // Server-side structural ops (merge/split/clone/delete) rewrite the stored
+  // section list, so they are blocked while there are unsaved local edits.
   const structuralDisabled = saving || structuralBusy || dirty
 
   const runStructural = useCallback(
@@ -546,8 +546,8 @@ export function SectioningPageDetail({
                   textRoles={textTypes}
                   containerStructures={groupTypes}
                   disabled={saving || structuralBusy}
-                  // A split is a server-side op that rewrites sectionIds, so it
-                  // can't run over unsaved local edits. Disable it visibly
+                  // A split is a server-side op that rewrites the stored section
+                  // list, so it can't run over unsaved local edits. Disable it visibly
                   // rather than failing with an easily-missed inline error.
                   splitDisabledReason={
                     dirty

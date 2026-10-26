@@ -160,10 +160,10 @@ describe("global default model", () => {
       body: JSON.stringify({ model: " Anthropic:Claude-Sonnet-4-6 " }),
     })
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ model: "anthropic:claude-sonnet-4-6" })
+    expect(await response.json()).toEqual({ model: "anthropic:Claude-Sonnet-4-6" })
     expect(fs.readFileSync(configPath, "utf-8")).toContain("# keep this comment")
     expect(await (await routes.request("/config/default-model")).json()).toEqual({
-      model: "anthropic:claude-sonnet-4-6",
+      model: "anthropic:Claude-Sonnet-4-6",
     })
   })
 
@@ -193,10 +193,10 @@ describe("global specialized model defaults", () => {
       body: JSON.stringify({ imageGeneration: " OpenAI:DALL-E-3 ", speechGeneration: " TTS-1-HD " }),
     })
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ imageGeneration: "openai:dall-e-3", speechGeneration: "tts-1-hd" })
+    expect(await response.json()).toEqual({ imageGeneration: "openai:DALL-E-3", speechGeneration: "tts-1-hd" })
     const content = fs.readFileSync(configPath, "utf-8")
     expect(content).toContain("# keep this comment")
-    expect(content).toContain('default_image_generation_model: "openai:dall-e-3"')
+    expect(content).toContain('default_image_generation_model: "openai:DALL-E-3"')
     expect(content).toContain('default_speech_generation_model: "tts-1-hd"')
   })
 

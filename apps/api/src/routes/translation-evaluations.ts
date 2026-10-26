@@ -14,13 +14,15 @@ import {
   type TranslationEvaluationRunPage,
   type TranslationEvaluationRunRequest,
 } from "@adt/types"
+import type { ResolvedCredentials } from "@adt/llm"
 import type { TaskProgressEmitter, TaskService } from "../services/task-service.js"
 import {
   getTranslationEvaluationStatus,
   listTranslationEvaluationStatuses,
   saveTranslationEvaluationResult,
 } from "../services/translation-evaluation-service.js"
-import { evaluateTranslationInApi, describeMissingJudgeCredential } from "../services/translation-evaluation-runner.js"
+import { evaluateTranslationInApi, assertJudgeCredentials } from "../services/translation-evaluation-runner.js"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
 const TranslationEvaluationLanguageParam = z.string().min(1)
 const TranslationEvaluationRunBody = z.object({
@@ -49,39 +51,6 @@ function parseLanguage(language: string): string {
     })
   }
   return parsed.data
-}
-
-function getBearerToken(authorizationHeader: string | undefined): string {
-  const match = authorizationHeader?.match(/^Bearer\s+(.+)$/i)
-  return match?.[1]?.trim() ?? ""
-}
-
-/**
- * Provider credentials for the run. The judge model is configurable, so the key
- * that matters depends on which provider it names — the runner picks.
- */
-function getProviderCredentialsFromRequest(c: {
-  req: { header: (name: string) => string | undefined }
-}): {
-  anthropicApiKey?: string
-  googleApiKey?: string
-  customBaseUrl?: string
-  customApiKey?: string
-} {
-  return {
-    anthropicApiKey: c.req.header("X-Anthropic-API-Key")?.trim() || undefined,
-    googleApiKey: c.req.header("X-Google-API-Key")?.trim() || undefined,
-    customBaseUrl: c.req.header("X-Custom-Base-URL")?.trim() || undefined,
-    customApiKey: c.req.header("X-Custom-API-Key")?.trim() || undefined,
-  }
-}
-
-function getOpenAIApiKeyFromRequest(c: { req: { header: (name: string) => string | undefined } }): string {
-  return c.req.header("X-OpenAI-Key")?.trim()
-    || c.req.header("X-ADT-OpenAI-Key")?.trim()
-    || getBearerToken(c.req.header("Authorization"))
-    || process.env.OPENAI_API_KEY?.trim()
-    || ""
 }
 
 function hashText(text: string): string {
@@ -387,7 +356,7 @@ function withAcceptedAnyway(
 
 export type TranslationEvaluationRunner = (
   request: TranslationEvaluationRunRequest,
-  options: { booksDir: string; apiKey: string },
+  options: { booksDir: string; credentials: ResolvedCredentials },
   emitProgress?: TaskProgressEmitter,
 ) => Promise<TranslationEvaluationResult>
 
@@ -445,8 +414,7 @@ export function createTranslationEvaluationRoutes(
     const { label, language } = c.req.param()
     const safeLabel = safeParseLabel(label)
     const safeLanguage = parseLanguage(language)
-    const apiKey = getOpenAIApiKeyFromRequest(c)
-    const providerCredentials = getProviderCredentialsFromRequest(c)
+    const credentials = readProviderCredentials(c)
     const body = await parseRunBody(c)
     const config = configPath ? loadBookConfig(safeLabel, booksDir, configPath) : null
     const resolvedConfig = resolveTranslationEvaluationConfig(config?.translation_evaluation)
@@ -486,13 +454,7 @@ export function createTranslationEvaluationRoutes(
     })
     // Checked here rather than earlier: which credential is needed depends on
     // the judge model, which only exists once the request is built.
-    const missingCredential = describeMissingJudgeCredential(request.judge_model, {
-      apiKey,
-      ...providerCredentials,
-    })
-    if (missingCredential) {
-      throw new HTTPException(400, { message: missingCredential })
-    }
+    assertJudgeCredentials(request.judge_model, credentials)
 
     if (
       evaluation.evaluation &&
@@ -522,7 +484,7 @@ export function createTranslationEvaluationRoutes(
         emitProgress("Evaluating visible translations", 40)
         const result = await evaluateTranslation(
           request,
-          { booksDir, apiKey, ...providerCredentials },
+          { booksDir, credentials },
           emitProgress,
         )
         assertMatchingEvaluationResult(request, result)
