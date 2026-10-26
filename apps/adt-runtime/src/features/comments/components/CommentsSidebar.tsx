@@ -156,6 +156,22 @@ export function CommentsSidebar({
       <header className="flex flex-col gap-2.5 border-b border-border px-3.5 py-3">
         <div className="flex items-center gap-2">
           <h2 className="flex-1 text-sm font-semibold">{t("comments-list-label")}</h2>
+          {writable && shown.length > 0 && !(commentMode as boolean) ? (
+            <button
+              type="button"
+              aria-label={t("comments-add-label")}
+              title={t("comments-add-label")}
+              onClick={() => setCommentMode(true)}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground",
+                "transition-colors hover:bg-muted hover:text-foreground focus:outline-none",
+                "focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
+                "duration-150 animate-in fade-in-0",
+              )}
+            >
+              <MessageSquarePlus aria-hidden className="h-4 w-4" />
+            </button>
+          ) : null}
           <button
             ref={closeRef}
             type="button"

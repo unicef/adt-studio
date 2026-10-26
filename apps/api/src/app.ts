@@ -42,6 +42,8 @@ import { createAgentRoutes } from "./routes/agents.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
 import { createProviderRoutes } from "./routes/providers.js"
 import { createCloudflareRoutes } from "./routes/cloudflare.js"
+import { createConnectionStore, resolvePublishStateDir } from "./services/cloudflare/connection-store.js"
+import { createCloudflareOAuthService } from "./services/cloudflare/oauth.js"
 import { createPublishRoutes } from "./routes/publications.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
@@ -136,17 +138,24 @@ app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, con
 app.route("/api", createSignLanguageVideoRoutes(booksDir))
 app.route("/api", createAgentRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTranslationEvaluationRoutes(booksDir, configPath, taskService))
+/** One Cloudflare login service for both route groups below, so a renewal is never raced by a
+ *  second service on the same saved login. */
+const cloudflareOAuth = createCloudflareOAuthService({
+  store: createConnectionStore(resolvePublishStateDir(booksDir)),
+})
 app.route(
   "/api",
   createCloudflareRoutes({
     booksDir,
     projectRoot,
+    oauth: cloudflareOAuth,
   }),
 )
 app.route(
   "/api",
   createPublishRoutes({
     booksDir,
+    oauth: cloudflareOAuth,
     webAssetsDir,
     configPath,
     projectRoot,
