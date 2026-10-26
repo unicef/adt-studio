@@ -1,3 +1,5 @@
+export { indexPreservedEntries, isProtectedContent, stampManualEdits, mergePreservingManual } from "./manual-edits.js"
+
 export {
   type Progress,
   nullProgress,
@@ -489,7 +491,7 @@ export { timestampInputSignature } from "./output-catalog.js"
 
 export { scopeLegacyActivityIds } from "./catalog-reconciliation.js"
 
-export { retainedCoreTts, retainedEasyRead, activeEasyRead } from "./retained-catalog.js"
+export { retainedCoreTts, retainedEasyRead, activeEasyRead, retainedTranslation } from "./retained-catalog.js"
 
 
 export { outputSkipped } from "./output-freshness.js"

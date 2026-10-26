@@ -13661,3 +13661,106 @@ msgstr "Zoom avant"
 
 msgid "Zoom out"
 msgstr "Zoom arrière"
+
+msgid "Also regenerate these pages and replace their saved content"
+msgstr "Régénérer aussi ces pages et remplacer leur contenu enregistré"
+
+msgid "Changes not saved"
+msgstr "Modifications non enregistrées"
+
+msgid "Conflicting changes detected"
+msgstr "Modifications en conflit détectées"
+
+msgid "Could not load saved content."
+msgstr "Impossible de charger le contenu enregistré."
+
+msgid "Could not load saved content. Retry"
+msgstr "Impossible de charger le contenu enregistré. Réessayer"
+
+msgid "Could not revert this page. Your edits were kept. Try again."
+msgstr "Impossible d’annuler les modifications de cette page. Vos modifications ont été conservées. Réessayez."
+
+msgid "Discard this draft and load the entire latest saved table of contents."
+msgstr "Abandonnez ce brouillon et chargez la dernière table des matières enregistrée dans son intégralité."
+
+msgid "Keep my changes"
+msgstr "Conserver mes modifications"
+
+msgid "Keep the values you entered where changes overlap."
+msgstr "Conservez les valeurs que vous avez saisies là où les modifications se chevauchent."
+
+msgid "Keep your entire table of contents, including its chapter targets and order."
+msgstr "Conservez toute votre table des matières, y compris les destinations et l’ordre des chapitres."
+
+msgid "Legacy · protected"
+msgstr "Ancien contenu · protégé"
+
+msgid "Load latest saved values"
+msgstr "Charger les dernières valeurs enregistrées"
+
+msgid "Loading saved content…"
+msgstr "Chargement du contenu enregistré…"
+
+msgid "Manual edits reverted for page {pageNumber}"
+msgstr "Modifications manuelles annulées pour la page {pageNumber}"
+
+msgid "No earlier AI-generated version is available for this page."
+msgstr "Aucune version antérieure générée par l’IA n’est disponible pour cette page."
+
+msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+msgstr "Les pages ci-dessous conserveront leur contenu enregistré, sauf si vous choisissez de le remplacer. Toutes les autres pages seront régénérées."
+
+msgid "Pages with manual edits or unknown authorship:"
+msgstr "Pages avec des modifications manuelles ou d’origine inconnue :"
+
+msgid "Protected quizzes to replace:"
+msgstr "Quiz protégés à remplacer :"
+
+msgid "Replace protected quizzes"
+msgstr "Remplacer les quiz protégés"
+
+msgid "Replace your overlapping changes with the latest saved values."
+msgstr "Remplacez vos modifications qui se chevauchent par les dernières valeurs enregistrées."
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "Échec de la requête : {0}"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Résolvez les modifications en conflit avant d’enregistrer"
+
+msgid "Revert manual edits"
+msgstr "Annuler les modifications manuelles"
+
+msgid "Revert manual edits on page {pageNumber}?"
+msgstr "Annuler les modifications manuelles de la page {pageNumber} ?"
+
+msgid "Review the chosen document, then save again."
+msgstr "Vérifiez le document choisi, puis enregistrez-le à nouveau."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "Le contenu enregistré est indisponible ; votre brouillon est conservé"
+
+msgid "The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again."
+msgstr "La table des matières a été réorganisée ou remplacée. Votre brouillon est intact. Choisissez le document complet à conserver avant de reprendre la modification."
+
+msgid "This page changed or a run started. Your edits were kept. Try again."
+msgstr "Cette page a changé ou un traitement a démarré. Vos modifications ont été conservées. Réessayez."
+
+msgid "This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved."
+msgstr "Cette page a été modifiée après le début de votre saisie. Certaines valeurs ne correspondent donc plus. Vos modifications n’ont pas été enregistrées."
+
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "Cette action remplace la table des matières modifiée manuellement ou héritée. Sa version enregistrée reste dans l’historique."
+
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+msgstr "Cela restaure le dernier découpage en sections généré pour cette page. Votre version modifiée reste dans l’historique. Les autres pages conservent leurs modifications. Cette page pourra être régénérée lors de la prochaine relance."
+
+msgid "This table of contents has conflicting chapter identities. Restore an earlier version before editing."
+msgstr "Cette table des matières contient des identités de chapitres en conflit. Restaurez une version antérieure avant de la modifier."
+
+msgid "Your changes are still here. Review them before saving again."
+msgstr "Vos modifications sont toujours là. Vérifiez-les avant d’enregistrer à nouveau."
+
+msgid "Your other edits will be kept. Review the result, then save again."
+msgstr "Vos autres modifications seront conservées. Vérifiez le résultat, puis enregistrez à nouveau."

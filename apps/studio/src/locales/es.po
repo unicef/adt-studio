@@ -13659,3 +13659,106 @@ msgstr "Acercar"
 
 msgid "Zoom out"
 msgstr "Alejar"
+
+msgid "Also regenerate these pages and replace their saved content"
+msgstr "También regenerar estas páginas y reemplazar su contenido guardado"
+
+msgid "Changes not saved"
+msgstr "Cambios sin guardar"
+
+msgid "Conflicting changes detected"
+msgstr "Se detectaron cambios en conflicto"
+
+msgid "Could not load saved content."
+msgstr "No se pudo cargar el contenido guardado."
+
+msgid "Could not load saved content. Retry"
+msgstr "No se pudo cargar el contenido guardado. Reintentar"
+
+msgid "Could not revert this page. Your edits were kept. Try again."
+msgstr "No se pudieron deshacer los cambios de esta página. Se conservaron tus cambios. Inténtalo de nuevo."
+
+msgid "Discard this draft and load the entire latest saved table of contents."
+msgstr "Descarta este borrador y carga la última versión completa del índice guardado."
+
+msgid "Keep my changes"
+msgstr "Conservar mis cambios"
+
+msgid "Keep the values you entered where changes overlap."
+msgstr "Conserva los valores que introdujiste donde los cambios se superponen."
+
+msgid "Keep your entire table of contents, including its chapter targets and order."
+msgstr "Conserva todo tu índice, incluidos los destinos y el orden de los capítulos."
+
+msgid "Legacy · protected"
+msgstr "Heredado · protegido"
+
+msgid "Load latest saved values"
+msgstr "Cargar los últimos valores guardados"
+
+msgid "Loading saved content…"
+msgstr "Cargando contenido guardado…"
+
+msgid "Manual edits reverted for page {pageNumber}"
+msgstr "Se deshicieron los cambios manuales de la página {pageNumber}"
+
+msgid "No earlier AI-generated version is available for this page."
+msgstr "No hay ninguna versión anterior generada por IA disponible para esta página."
+
+msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+msgstr "Las páginas indicadas abajo conservarán su contenido guardado a menos que elijas reemplazarlo. Todas las demás páginas se regenerarán."
+
+msgid "Pages with manual edits or unknown authorship:"
+msgstr "Páginas con cambios manuales o autoría desconocida:"
+
+msgid "Protected quizzes to replace:"
+msgstr "Cuestionarios protegidos que se reemplazarán:"
+
+msgid "Replace protected quizzes"
+msgstr "Reemplazar cuestionarios protegidos"
+
+msgid "Replace your overlapping changes with the latest saved values."
+msgstr "Reemplaza tus cambios superpuestos por los últimos valores guardados."
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "La solicitud falló: {0}"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Resuelve los cambios en conflicto antes de guardar"
+
+msgid "Revert manual edits"
+msgstr "Deshacer cambios manuales"
+
+msgid "Revert manual edits on page {pageNumber}?"
+msgstr "¿Deshacer los cambios manuales de la página {pageNumber}?"
+
+msgid "Review the chosen document, then save again."
+msgstr "Revisa el documento elegido y vuelve a guardar."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "El contenido guardado no está disponible; tu borrador se conserva"
+
+msgid "The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again."
+msgstr "El índice se ha reorganizado o reemplazado. Tu borrador sigue intacto. Elige qué documento completo conservar antes de seguir editando."
+
+msgid "This page changed or a run started. Your edits were kept. Try again."
+msgstr "Esta página cambió o se inició una ejecución. Se conservaron tus cambios. Inténtalo de nuevo."
+
+msgid "This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved."
+msgstr "Esta página cambió después de que empezaras a editarla, por lo que algunos valores ya no coinciden. Tus cambios no se han guardado."
+
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "Esto reemplaza el índice editado manualmente o heredado. Su versión guardada permanece en el historial."
+
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+msgstr "Esto restaura la última división en secciones generada para esta página. Tu versión editada permanece en el historial. Las demás páginas conservan sus cambios. Esta página podrá regenerarse en la próxima ejecución."
+
+msgid "This table of contents has conflicting chapter identities. Restore an earlier version before editing."
+msgstr "Esta tabla de contenidos tiene identidades de capítulos en conflicto. Restaura una versión anterior antes de editarla."
+
+msgid "Your changes are still here. Review them before saving again."
+msgstr "Tus cambios siguen aquí. Revísalos antes de volver a guardar."
+
+msgid "Your other edits will be kept. Review the result, then save again."
+msgstr "Se conservarán tus demás cambios. Revisa el resultado y vuelve a guardar."

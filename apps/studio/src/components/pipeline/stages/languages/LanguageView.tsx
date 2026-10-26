@@ -1,6 +1,8 @@
 import { WordTimestampViewer } from "./components/WordTimestampViewer"
 import { useTTSData } from "@/hooks/use-tts";
 import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
+import { useGuardedDraft } from "@/hooks/use-guarded-draft"
+import { DraftConflict } from "../../components/DraftConflict"
 import { OutputReview, useOutputs } from "../../components/OutputReview"
 import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent } from "react"
 import { createPortal } from "react-dom"
@@ -685,15 +687,7 @@ export function LanguageView({
 
   const { restoring, restoringRef, onRestoringChange } = useVersionRestoreBusy(JSON.stringify([bookLabel, selectedLang]))
   // Pending state for edits (keyed by language)
-  const [pendingEntries, setPendingEntriesState] = useState<
-    TextCatalogEntry[] | null
-  >(null);
   const pendingEntriesRef = useRef<TextCatalogEntry[] | null>(null);
-  const setPendingEntries = useCallback((next: TextCatalogEntry[] | null) => {
-    if (restoringRef.current) return;
-    pendingEntriesRef.current = next;
-    setPendingEntriesState(next);
-  }, []);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const pendingVersions = useRef({ baseVersion: 0, sourceVersion: 0, sourceSignature: "" });
@@ -723,6 +717,23 @@ export function LanguageView({
   const translationVersion = isSourceLang
     ? (catalog?.version ?? null)
     : (translationData?.version ?? (translationSourceSignature ? 0 : null));
+
+  const recoveredVersions = useRef(pendingVersions.current);
+  const draft = useGuardedDraft<TextCatalogEntry[]>(translatedEntries, translationVersion, async () => {
+    const latest = await api.getTextCatalog(bookLabel);
+    const translation = translationItemId ? latest?.translations?.[translationItemId] : undefined;
+    if (!latest || !translation) throw new Error(t`Saved content is unavailable; your draft is retained`);
+    queryClient.setQueryData(["books", bookLabel, "text-catalog"], latest);
+    recoveredVersions.current = { baseVersion: translation.version ?? 0, sourceVersion: latest.version ?? 0, sourceSignature: translation.sourceSignature ?? "" };
+    return { value: translation.entries, version: translation.version ?? 0 };
+  });
+  const { pending: pendingEntries } = draft;
+  const setPendingEntries = useCallback((next: TextCatalogEntry[] | null) => {
+    if (restoringRef.current) return;
+    pendingEntriesRef.current = next;
+    draft.setPending(next);
+  }, [draft.setPending]);
+  pendingEntriesRef.current = pendingEntries;
 
   // Language changes are allowed only after the current draft/save is settled.
   useEffect(() => {
@@ -829,6 +840,7 @@ export function LanguageView({
       }
       return;
     }
+    if (draft.conflict) throw new Error(t`Resolve conflicting edits before saving`);
     const submitted = pendingEntriesRef.current;
     if (!submitted || !translationItemId) return;
     const submittedVersions = pendingVersions.current;
@@ -844,6 +856,7 @@ export function LanguageView({
     });
     if (translationScopeRef.current === submittedScope && pendingVersions.current === submittedVersions) {
       pendingVersions.current = { ...submittedVersions, baseVersion: result.version };
+      draft.acknowledge(submitted, result.version);
     }
     await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] });
     await queryClient.invalidateQueries({
@@ -867,6 +880,11 @@ export function LanguageView({
     }
     } catch (error) {
       if (translationScopeRef.current === submittedScope) setSaveError(error instanceof Error ? error.message : String(error));
+      if (translationScopeRef.current === submittedScope) {
+        await draft.handleError(error, undefined, () => {
+          if (translationScopeRef.current === submittedScope) pendingVersions.current = recoveredVersions.current;
+        });
+      }
       if (forNavigation) throw error;
     }
     finally {
@@ -880,7 +898,7 @@ export function LanguageView({
       setSaveError(message);
       throw new Error(message);
     }
-  }, [translationItemId, translationScope, bookLabel, queryClient, setPendingEntries, t]);
+  }, [translationItemId, translationScope, bookLabel, queryClient, setPendingEntries, t, draft]);
 
   const saveRef = useRef(saveTranslation);
   saveRef.current = saveTranslation;
@@ -2006,7 +2024,7 @@ export function LanguageView({
       {headerSlotEl &&
         headerControls &&
         createPortal(headerControls, headerSlotEl)}
-      <div className="flex flex-col h-full">
+      <div className="flex min-w-0 flex-col h-full">
         {/* Fixed header: alerts, language tabs, column headers */}
         <div className="shrink-0 px-4 pt-4 space-y-3">
           {isSpeechStage && hasStageError && runError && (
@@ -2362,7 +2380,7 @@ export function LanguageView({
               </div>
             )}
 
-          {saveError && <p role="alert" className="text-xs text-red-700">{saveError}</p>}
+          <DraftConflict error={draft.error ?? saveError} paths={draft.conflict?.paths} onResolve={draft.resolve} />
           {!isSourceLang && !isSpeechStage && evaluationStatus?.isStale && (
             <div
               role="status"

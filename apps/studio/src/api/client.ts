@@ -1,5 +1,7 @@
 import type { WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
 export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/types"
+import { i18n } from "@lingui/core"
+import { msg } from "@lingui/core/macro"
 import type { OutputSkipRequest } from "@adt/types"
 import type { OutputStatus, OutputSummary, OutputStageSummaryResponse, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement, StageName } from "@adt/types"
 import { isElectron } from "@/lib/utils"
@@ -180,11 +182,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     } catch {
       message = text || undefined
     }
-    /* `ApiError`, not `Error`: callers branch on `code` to tell "not connected yet" from "the
-     * worker didn't answer", and a bare Error left them printing the transport text instead —
-     * which is how a raw "404 Not Found" reached the publishing dashboard. */
-    // eslint-disable-next-line lingui/no-unlocalized-strings -- HTTP response fallback.
-    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
+    throw new ApiError(message ?? i18n._(msg`Request failed: ${res.status}`), res.status, code)
   }
 
   return res.json()
@@ -358,6 +356,8 @@ export interface StageRunProviderCredentials {
 }
 
 export interface RunStagesOptions {
+  replaceManual?: boolean
+  protectedReplacements?: import("@adt/types").AuthoredReplacement[]
   outputScope?: OutputRunScope
   fromStage: string
   toStage: string
@@ -599,6 +599,7 @@ export interface PageDetail {
     }>
   } | null
   sectioningTree: {
+    source?: "ai" | "manual"
     reasoning: string
     sections: Array<{
       sectionId: string
@@ -679,6 +680,7 @@ export interface TocEntry {
 }
 
 export interface TocGenerationOutput {
+  source?: "ai" | "manual"
   entries: TocEntry[]
   pageCount: number
   generatedAt: string
@@ -700,6 +702,7 @@ export interface QuizOption {
 }
 
 export interface QuizItem {
+  source?: "ai" | "manual"
   /** Stable output-page id (`qz001`). Filled in by GET /quizzes; optional only
    *  because a book written before it existed has none stored. Round-trip it on
    *  every write — it keys the quiz's catalog entries, translations and audio. */
@@ -1500,7 +1503,7 @@ export const api = {
   saveStoryboard: (
     label: string,
     pageId: string,
-    data: { sectioning?: unknown; rendering?: unknown; renderingInSync?: boolean }
+    data: { sectioning?: unknown; rendering?: unknown; renderingInSync?: boolean; baseVersion?: number }
   ) =>
     request<{ sectioningVersion: number | null; renderingVersion: number | null }>(
       `/books/${label}/pages/${pageId}/storyboard`,
@@ -1513,20 +1516,22 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  cloneSection: (label: string, pageId: string, sectionIndex: number) =>
+  cloneSection: (label: string, pageId: string, sectionIndex: number, baseVersion: number) =>
     request<{
       clonedSectionIndex: number
       sectioningVersion: number
       renderingVersion: number | null
     }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/clone`, {
       method: "POST",
+      body: JSON.stringify({ baseVersion }),
     }),
 
   splitSection: (
     label: string,
     pageId: string,
     sectionIndex: number,
-    at: { beforeNodeIndex: number } | { beforeNodeId: string }
+    at: { beforeNodeIndex: number } | { beforeNodeId: string },
+    baseVersion: number
   ) =>
     request<{
       splitSectionIndex: number
@@ -1534,7 +1539,7 @@ export const api = {
       renderingVersion: number | null
     }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/split`, {
       method: "POST",
-      body: JSON.stringify(at),
+      body: JSON.stringify({ ...at, baseVersion }),
     }),
 
   /** `renderingInSync` is for callers that re-render the affected sections
@@ -1544,7 +1549,8 @@ export const api = {
     pageId: string,
     sectionIndex: number,
     direction: "next" | "prev" = "next",
-    renderingInSync = false
+    renderingInSync: boolean,
+    baseVersion: number
   ) =>
     request<{
       mergedSectionIndex: number
@@ -1552,18 +1558,29 @@ export const api = {
       renderingVersion: number | null
     }>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge?direction=${direction}${renderingInSync ? "&renderingInSync=1" : ""}`,
-      { method: "POST" }
+      { method: "POST", body: JSON.stringify({ baseVersion }) }
     ),
 
   /** Moves a section across a page boundary and empties both renderings. The
    *  Storyboard is always marked stale until reRenderPages repairs both. */
-  mergeSectionCrossPage: (
+  mergeSectionCrossPage: async (
     label: string,
     pageId: string,
     sectionIndex: number,
-    direction: "next" | "prev"
-  ) =>
-    request<{
+    direction: "next" | "prev",
+    baseVersion: number,
+    targetBaseVersion?: number
+  ) => {
+    // The source guard is the displayed version. Load the adjacent page before
+    // this immediate structural action if it is not already visible/cached.
+    if (targetBaseVersion === undefined) {
+      const pages = await api.getPages(label)
+      const index = pages.findIndex((p) => p.pageId === pageId)
+      const target = pages[index + (direction === "next" ? 1 : -1)]
+      if (!target) throw new Error("Adjacent page no longer exists")
+      targetBaseVersion = (await api.getPage(label, target.pageId)).versions.sectioning ?? 0
+    }
+    return request<{
       sourcePageId: string
       targetPageId: string
       targetSectionIndex: number
@@ -1573,16 +1590,18 @@ export const api = {
       targetRenderingVersion: number | null
     }>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge-cross-page?direction=${direction}`,
-      { method: "POST" }
-    ),
+      { method: "POST", body: JSON.stringify({ baseVersion, targetBaseVersion }) }
+    )
+  },
 
-  deleteSection: (label: string, pageId: string, sectionIndex: number) =>
+  deleteSection: (label: string, pageId: string, sectionIndex: number, baseVersion: number) =>
     request<{
       sectioningVersion: number
       renderingVersion: number | null
       remainingSections: number
     }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}`, {
       method: "DELETE",
+      body: JSON.stringify({ baseVersion }),
     }),
 
   reRenderPage: async (label: string, pageId: string, apiKey: string, sectionIndex?: number, prompt?: string) =>
@@ -1613,7 +1632,8 @@ export const api = {
     sectionIndex: number,
     instruction: string,
     apiKey: string,
-    currentHtml?: string,
+    currentHtml: string | undefined,
+    baseVersion: number,
   ) =>
     request<{
       taskId?: string
@@ -1626,7 +1646,7 @@ export const api = {
       {
         method: "POST",
         headers: await buildApiHeaders(apiKey),
-        body: JSON.stringify({ instruction, currentHtml }),
+        body: JSON.stringify({ instruction, currentHtml, baseVersion }),
         signal: AbortSignal.timeout(30_000),
       }
     ),
@@ -1863,10 +1883,10 @@ export const api = {
 
   /** Roll an entity back to an existing version (moves the current-version
    *  pointer; does not create a new version). */
-  restoreVersion: (label: string, node: string, itemId: string, version: number) =>
+  restoreVersion: (label: string, node: string, itemId: string, version: number, baseVersion: number) =>
     request<{ node: string; itemId: string; version: number }>(
       `/books/${label}/versions/${node}/${itemId}/restore`,
-      { method: "POST", body: JSON.stringify({ version }) }
+      { method: "POST", body: JSON.stringify({ version, baseVersion }) }
     ),
 
   getBookConfig: (label: string) =>
@@ -1960,6 +1980,8 @@ export const api = {
       pageIds: string[]
       afterPageId: string
       placement?: "replace" | "after"
+      baseVersion: number
+      replaceQuizIds?: string[]
     },
     providerCredentials?: StageRunProviderCredentials
   ) =>
@@ -2106,6 +2128,7 @@ export const api = {
       publicationAgeMs?: number
       runStatus: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
       pendingDecisions: PendingDecision[]
+      protectedWork?: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }>
     }>(`/books/${label}/step-status`),
 
   getTTS: (label: string) =>

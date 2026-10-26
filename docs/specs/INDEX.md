@@ -11,7 +11,7 @@ already holds its number — check both before taking one
 | Spec      | Title                                                           | Status | Owner       | Needed by |
 |-----------|-----------------------------------------------------------------|--------|-------------|-----------|
 | SPEC-0001 | Catalog-based freshness and scoped regeneration | in-review | @ksokolovic | Block 1 |
-| SPEC-0002 | Manual-edit preservation for translation, quiz, sectioning, TOC | draft  | @ksokolovic | Block 1   |
+| [SPEC-0002](SPEC-0002-manual-edit-preservation.md) | Manual-edit preservation for translation, quiz, sectioning, TOC | draft  | @ksokolovic | Block 1   |
 | SPEC-0003 | Three sectioning modes and auto cross-page merge                | draft  | TBD         | Block 2   |
 | SPEC-0004 | Style guide, Styles panel, token-enforced rendering             | draft  | TBD         | Block 2   |
 | SPEC-0005 | Acceptance harness over the acceptance set                      | draft  | TBD         | Block 1   |

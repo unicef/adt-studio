@@ -437,6 +437,7 @@ export function StoryboardSectionDetail({
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
   const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string; consequence?: string } | null>(null)
+  const sectioningBaseVersion = useRef<number | null>(null)
   const [pendingSectioning, setPendingSectioningState] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRenderingState] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
@@ -459,13 +460,14 @@ export function StoryboardSectionDetail({
   )
   const markPending = useCallback((category: PendingCategory) => {
     if (restoringRef.current) return
+    sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
     setPendingCategories((prev) => {
       if (prev.has(category)) return prev
       const next = new Set(prev)
       next.add(category)
       return next
     })
-  }, [])
+  }, [page.versions.sectioning])
   // Tracks whether saved sectioning will still require an explicit LLM re-render.
   // Pure prune/delete can be resolved locally; unprune/type change/reorder need LLM.
   const needsRerenderRef = useRef(false)
@@ -478,8 +480,10 @@ export function StoryboardSectionDetail({
     if (restoringRef.current) return
     const value = typeof next === "function" ? next(latestDraftRef.current.sectioning) : next
     latestDraftRef.current.sectioning = value
+    if (value === null) sectioningBaseVersion.current = null
+    else sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
     setPendingSectioningState(value)
-  }, [])
+  }, [page.versions.sectioning])
   const setPendingRendering = useCallback((next: SetStateAction<RenderingData | null>) => {
     if (restoringRef.current) return
     const value = typeof next === "function" ? next(latestDraftRef.current.rendering) : next
@@ -967,12 +971,16 @@ export function StoryboardSectionDetail({
       ) : { sectioning: pendingSectioning, renderingInSync }
 
       // Both nodes in one request so a failure can't split them apart.
-      await api.saveStoryboard(bookLabel, pageId, {
+      const saved = await api.saveStoryboard(bookLabel, pageId, {
         ...sourceSave,
+        baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
         rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
       })
 
       const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
+      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.sectioningVersion != null) {
+        sectioningBaseVersion.current = saved.sectioningVersion
+      }
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
@@ -1035,11 +1043,15 @@ export function StoryboardSectionDetail({
         getRenderedSectionByIndex(page.rendering, sectionIndex)?.html ?? "",
         needsRerenderRef.current,
       )
-      await api.saveStoryboard(bookLabel, pageId, {
+      const saved = await api.saveStoryboard(bookLabel, pageId, {
         rendering: stripTransientIds(renderingToSave),
         ...sourceSave,
+        baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
       })
       const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
+      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.sectioningVersion != null) {
+        sectioningBaseVersion.current = saved.sectioningVersion
+      }
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
@@ -1109,7 +1121,7 @@ export function StoryboardSectionDetail({
     if (cloning || dirty || renderingDirty || saving || storyboardRunning) return
     setCloning(true)
     try {
-      const result = await api.cloneSection(bookLabel, pageId, sectionIndex)
+      const result = await api.cloneSection(bookLabel, pageId, sectionIndex, page.versions.sectioning ?? 0)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
@@ -1135,6 +1147,7 @@ export function StoryboardSectionDetail({
         sectionIndex,
         direction,
         hasStructuredTextProvider,
+        page.versions.sectioning ?? 0,
       )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
@@ -1166,6 +1179,7 @@ export function StoryboardSectionDetail({
         pageId,
         sectionIndex,
         direction,
+        page.versions.sectioning ?? 0,
       )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.sourcePageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.targetPageId] })
@@ -1263,7 +1277,7 @@ export function StoryboardSectionDetail({
     setConfirmDeleteSection(false)
     setDeleting(true)
     try {
-      const result = await api.deleteSection(bookLabel, pageId, sectionIndex)
+      const result = await api.deleteSection(bookLabel, pageId, sectionIndex, page.versions.sectioning ?? 0)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
@@ -2320,6 +2334,7 @@ export function StoryboardSectionDetail({
       instruction,
       apiKey,
       currentHtml,
+      page.versions.sectioning ?? 0,
     ).catch((err) => {
       setAiError(err instanceof Error ? err.message : t`AI edit failed`)
     })

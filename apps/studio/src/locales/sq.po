@@ -13661,3 +13661,106 @@ msgstr "Zmadhim"
 
 msgid "Zoom out"
 msgstr "Zvogëlim"
+
+msgid "Also regenerate these pages and replace their saved content"
+msgstr "Rigjenero edhe këto faqe dhe zëvendëso përmbajtjen e tyre të ruajtur"
+
+msgid "Changes not saved"
+msgstr "Ndryshimet nuk janë ruajtur"
+
+msgid "Conflicting changes detected"
+msgstr "U zbuluan ndryshime që bien ndesh"
+
+msgid "Could not load saved content."
+msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej."
+
+msgid "Could not load saved content. Retry"
+msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej. Provo përsëri"
+
+msgid "Could not revert this page. Your edits were kept. Try again."
+msgstr "Ndryshimet e kësaj faqeje nuk mund të zhbëheshin. Ndryshimet tuaja u ruajtën. Provoni përsëri."
+
+msgid "Discard this draft and load the entire latest saved table of contents."
+msgstr "Hidhni poshtë këtë draft dhe ngarkoni të gjithë tabelën e fundit të ruajtur të përmbajtjes."
+
+msgid "Keep my changes"
+msgstr "Mbaj ndryshimet e mia"
+
+msgid "Keep the values you entered where changes overlap."
+msgstr "Mbani vlerat që keni futur aty ku ndryshimet mbivendosen."
+
+msgid "Keep your entire table of contents, including its chapter targets and order."
+msgstr "Mbani të gjithë tabelën tuaj të përmbajtjes, përfshirë destinacionet dhe renditjen e kapitujve."
+
+msgid "Legacy · protected"
+msgstr "Përmbajtje e vjetër · e mbrojtur"
+
+msgid "Load latest saved values"
+msgstr "Ngarko vlerat e fundit të ruajtura"
+
+msgid "Loading saved content…"
+msgstr "Duke ngarkuar përmbajtjen e ruajtur…"
+
+msgid "Manual edits reverted for page {pageNumber}"
+msgstr "Ndryshimet manuale të faqes {pageNumber} u zhbënë"
+
+msgid "No earlier AI-generated version is available for this page."
+msgstr "Nuk ka version të mëparshëm të gjeneruar nga IA-ja për këtë faqe."
+
+msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+msgstr "Faqet e renditura më poshtë do ta ruajnë përmbajtjen e tyre, përveç nëse zgjidhni ta zëvendësoni. Të gjitha faqet e tjera do të rigjenerohen."
+
+msgid "Pages with manual edits or unknown authorship:"
+msgstr "Faqe me ndryshime manuale ose autorësi të panjohur:"
+
+msgid "Protected quizzes to replace:"
+msgstr "Kuizet e mbrojtura për t’u zëvendësuar:"
+
+msgid "Replace protected quizzes"
+msgstr "Zëvendëso kuizet e mbrojtura"
+
+msgid "Replace your overlapping changes with the latest saved values."
+msgstr "Zëvendësoni ndryshimet tuaja që mbivendosen me vlerat e fundit të ruajtura."
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "Kërkesa dështoi: {0}"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Zgjidh ndryshimet në konflikt para ruajtjes"
+
+msgid "Revert manual edits"
+msgstr "Zhbëj ndryshimet manuale"
+
+msgid "Revert manual edits on page {pageNumber}?"
+msgstr "Të zhbëhen ndryshimet manuale të faqes {pageNumber}?"
+
+msgid "Review the chosen document, then save again."
+msgstr "Rishikoni dokumentin e zgjedhur dhe ruajeni përsëri."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "Përmbajtja e ruajtur nuk është e disponueshme; drafti yt ruhet"
+
+msgid "The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again."
+msgstr "Tabela e përmbajtjes është riorganizuar ose zëvendësuar. Drafti juaj është i paprekur. Zgjidhni cilin dokument të plotë të mbani para se të vazhdoni redaktimin."
+
+msgid "This page changed or a run started. Your edits were kept. Try again."
+msgstr "Kjo faqe ndryshoi ose filloi një ekzekutim. Ndryshimet tuaja u ruajtën. Provoni përsëri."
+
+msgid "This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved."
+msgstr "Kjo faqe u ndryshua pasi filluat redaktimin, prandaj disa vlera tani nuk përputhen. Ndryshimet tuaja nuk janë ruajtur."
+
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "Kjo zëvendëson tabelën e përmbajtjes të redaktuar manualisht ose të vjetër. Versioni i saj i ruajtur mbetet në historik."
+
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+msgstr "Kjo rikthen ndarjen e fundit në seksione të gjeneruar për këtë faqe. Versioni juaj i redaktuar mbetet në historik. Faqet e tjera i ruajnë ndryshimet e tyre. Kjo faqe mund të rigjenerohet në ekzekutimin e ardhshëm."
+
+msgid "This table of contents has conflicting chapter identities. Restore an earlier version before editing."
+msgstr "Kjo tabelë e përmbajtjes ka identitete kapitujsh që bien ndesh. Riktheni një version të mëparshëm para redaktimit."
+
+msgid "Your changes are still here. Review them before saving again."
+msgstr "Ndryshimet tuaja janë ende këtu. Rishikojini para se të ruani përsëri."
+
+msgid "Your other edits will be kept. Review the result, then save again."
+msgstr "Ndryshimet tuaja të tjera do të ruhen. Rishikoni rezultatin, pastaj ruani përsëri."

@@ -1,3 +1,4 @@
+import type { RunStagesOptions } from "@/api/client"
 import { useState, useEffect, useMemo } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
@@ -87,7 +88,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
     persist({ generate_activities: next })
   }
 
-  const handleRun = () => {
+  const handleRun = (options?: Pick<RunStagesOptions, "replaceManual" | "protectedReplacements">) => {
     if (!hasStructuredTextProvider || status.isRunning || resolvingStoredState) return
     // Cue from here even if Extract hasn't run yet. If Extract is already
     // done/running/queued it will produce its output, so queue Sectioning
@@ -95,7 +96,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
     // Existing pages cannot be destructively re-extracted, even when the
     // Extract completion marker is absent (restored or interrupted books).
     const fromStage = resolveSectioningStartStage(extractCovered, hasExtractedPages)
-    queueRun({ fromStage, toStage: "sectioning", apiKey, viewAfter: true })
+    queueRun({ fromStage, toStage: "sectioning", apiKey, viewAfter: true, ...options })
   }
 
   const modeOptions = useMemo(

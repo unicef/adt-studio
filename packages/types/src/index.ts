@@ -1,4 +1,6 @@
 export { SectionSyncStatus, SectionSyncResult, SectioningSynchronization } from "./sectioning-sync.js"
+export { AuthoredContent, AuthoredSaveGuard, AuthoredReplacement, AuthoredRunOptions } from "./content-authorship.js"
+
 export {
   SCHEMA_VERSION,
   ImageSource,
