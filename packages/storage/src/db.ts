@@ -98,6 +98,12 @@ export function openBookDb(dbPath: string): sqlite.Database {
   }
 }
 
+/** Open a book database read-only: no schema init, no migrations, no writes.
+ * Throws when the file does not exist. */
+export function openBookDbReadOnly(dbPath: string): sqlite.Database {
+  return new Database(dbPath, { readOnly: true, fileMustExist: true })
+}
+
 /** Read a book database's schema version without opening it for writing and
  * without running migrations. Null means the file has no schema table. */
 export function readBookSchemaVersion(dbPath: string): number | null {

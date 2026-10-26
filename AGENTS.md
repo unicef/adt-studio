@@ -150,6 +150,7 @@ pnpm typecheck     # TypeScript strict check (tsc --build; excludes apps/adt-run
 pnpm lint          # Lint apps/studio — the only package with an eslint config
 pnpm build         # Build all packages
 pnpm pipeline doctor [books-dir]   # Read-only compatibility check of existing books (schema, locks, ownership, duplicate ids, re-keyed catalog ids)
+pnpm pipeline extract-report [books-dir] [--label <l>] [--compare <l2>] [--json] [--csv pages|tasks]   # Read-only Extract metrics per book: text layer, images and duplicates, pruning, per-task calls/cache/tokens/cost; --compare diffs two books of the same PDF
 ```
 
 ESLint is configured for `apps/studio` only (`apps/studio/eslint.config.js`), so
