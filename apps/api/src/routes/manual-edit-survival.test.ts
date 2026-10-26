@@ -881,3 +881,40 @@ it("protected quiz rerun must not accept its changed input basis", async () => {
   expect(generateObject).not.toHaveBeenCalled()
   expect(read("source-generation-state", "quiz-generation")?.data).toMatchObject({ needsUpdate: true })
 })
+
+it("partial protected generation keeps actual source-change warning until explicit HTTP Keep", async () => {
+  fs.appendFileSync(configPath, "quiz_generation:\n  pages_per_quiz: 1\n")
+  const db = book()
+  const previous = db.getLatestNodeData("quiz-generation", "book")!
+  db.putNodeData("quiz-generation", "book", { ...previous.data as object, quizzes: [{ ...quiz("Protected question"), quizId: "qz001", source: "manual" }] })
+  db.close()
+  const oldRendering = read("web-rendering", "pg001")!.data as import("@adt/types").WebRenderingOutput
+  expect((await send("pages/pg001/rendering", { ...oldRendering, sections: oldRendering.sections.map((s) => ({ ...s, html: s.html.replace("Saved page text", "Source changed after quiz") })) })).status).toBe(200)
+  expect(read("source-generation-state", "quiz-generation")?.data).toMatchObject({ needsUpdate: true })
+  const actualPipeline = await vi.importActual<typeof import("@adt/pipeline")>("@adt/pipeline")
+  generateAllQuizzes.mockImplementation(actualPipeline.generateAllQuizzes)
+  generateObject.mockResolvedValue({ object: { question: "Generated question", reasoning: "Generated", answer_index: 0, options: quiz().options } })
+  expect((await run("quizzes")).status).toBe("completed")
+  expect(generateObject).toHaveBeenCalledTimes(2)
+  expect(read("quiz-generation")?.data).toMatchObject({ quizzes: expect.arrayContaining([expect.objectContaining({ quizId: "qz001", source: "manual", question: "Protected question" })]) })
+  expect(read("source-generation-state", "quiz-generation")?.data).toMatchObject({ needsUpdate: true })
+  const beforeKeep = read("quiz-generation")
+  expect((await send("source-generation/quizzes/keep", {}, "POST")).status).toBe(200)
+  expect(read("source-generation-state", "quiz-generation")?.data).toMatchObject({ needsUpdate: false })
+  expect(read("quiz-generation")).toEqual(beforeKeep)
+  expect(generateObject).toHaveBeenCalledTimes(2)
+})
+
+it("incomplete publication still rejects a competing source mutation atomically", async () => {
+  const db = book()
+  const actualPipeline = await vi.importActual<typeof import("@adt/pipeline")>("@adt/pipeline")
+  const receipt = actualPipeline.captureSourceGeneration(db, "quiz-generation")
+  const oldRendering = db.getLatestNodeData("web-rendering", "pg001")!.data as import("@adt/types").WebRenderingOutput
+  actualPipeline.putSourceNodeData(db, "web-rendering", "pg001", { ...oldRendering, sections: oldRendering.sections.map((s) => ({ ...s, html: s.html.replace("Saved page text", "Competing text") })) })
+  const before = db.getNodeVersionFingerprint()
+  const publisher = vi.fn(() => db.putNodeData("quiz-generation", "book", { broken: true }))
+  expect(() => actualPipeline.publishSourceGeneration(db, receipt, publisher, false)).toThrow("Source inputs changed")
+  expect(publisher).not.toHaveBeenCalled()
+  expect(db.getNodeVersionFingerprint()).toEqual(before)
+  db.close()
+})
