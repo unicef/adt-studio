@@ -676,6 +676,22 @@ describe("cloudflare routes", () => {
     })
   })
 
+  /** Found by hand: disconnect, sign in again, and the new wizard adopted the old run's "done",
+   *  said sharing was set up, and never set it up. */
+  it("forgets the last setup run once the connection it built is disconnected", async () => {
+    const { app } = buildApp()
+    await (await app.request("/api/cloudflare/provision", { method: "POST", headers: AUTH })).text()
+    const before = (await (await app.request("/api/cloudflare/provision/run")).json()) as {
+      run: { status: string } | null
+    }
+    expect(before.run?.status).toBe("done")
+
+    const disconnected = await app.request("/api/cloudflare/connection", { method: "DELETE" })
+    expect(disconnected.status).toBe(200)
+
+    expect(await (await app.request("/api/cloudflare/provision/run")).json()).toEqual({ run: null })
+  })
+
   describe("GET /cloudflare/connection", () => {
     it("reports a disconnected status before provisioning", async () => {
       const { app } = buildApp()
