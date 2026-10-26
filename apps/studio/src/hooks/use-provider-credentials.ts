@@ -70,7 +70,8 @@ export function useProviderCredentials() {
     [providers, storageRevision],
   )
   // Plus the manifest-declared fallbacks (Gemini Speech ← Google): what
-  // availability checks and request headers must see.
+  // availability checks must see. Never send these as request credentials —
+  // the API applies the fallbacks itself, after any key the server holds.
   const credentials = useMemo(
     () =>
       applySharedCredentialFallbacks(

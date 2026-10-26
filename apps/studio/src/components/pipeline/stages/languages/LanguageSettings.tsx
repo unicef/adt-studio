@@ -20,7 +20,7 @@ import { ModelSelect, OPENAI_TTS_MODELS, AZURE_TTS_MODELS, GEMINI_TTS_MODELS, EL
 import { UnavailableHint } from "@/components/pipeline/components/UnavailableHint"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useWordHighlightingUnavailable } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
@@ -1401,13 +1401,10 @@ function SpeechLanguageCards({
     hasAzureKey,
     hasGeminiKey,
     hasElevenLabsKey,
-    hasTranscriber,
-    isLoading: providersLoading,
   } = useApiKey()
-  // Word timestamps come from OpenAI Whisper; without an OpenAI key the speech
-  // run skips them, so the toggle is shown off and disabled. The saved
-  // preference is kept so it applies again once a key is added.
-  const wordHighlightingUnavailable = !providersLoading && !hasTranscriber
+  // Without an OpenAI key (Whisper) the toggle is shown off and disabled. The
+  // saved preference is kept so it applies again once a key is added.
+  const wordHighlightingUnavailable = useWordHighlightingUnavailable()
   const effectiveWordHighlighting = wordHighlighting && !wordHighlightingUnavailable
   const providerKeyAvailable: ProviderKeyAvailability = {
     openai: hasApiKey,

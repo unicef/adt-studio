@@ -15,7 +15,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useWordHighlightingUnavailable } from "@/hooks/use-api-key"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "./components/SpeechPreview"
@@ -45,7 +45,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, isAvailable, hasTranscriber, isLoading: providersLoading } = useApiKey()
+  const { apiKey, isAvailable } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("speech")
   const translateStatus = useStageStatus("translate")
@@ -53,9 +53,8 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const [wordHighlighting, setWordHighlighting] = useState(false)
   const [provider, setProvider] = useState<ProviderKey>("openai")
-  // Word timestamps come from OpenAI Whisper; without an OpenAI key the
-  // speech run skips them, so per-word highlighting is shown as unavailable.
-  const wordHighlightingUnavailable = !providersLoading && !hasTranscriber
+  // Without an OpenAI key (Whisper) per-word highlighting is shown as unavailable.
+  const wordHighlightingUnavailable = useWordHighlightingUnavailable()
   const effectiveWordHighlighting = wordHighlighting && !wordHighlightingUnavailable
 
   const providerAvailable = (providerId: ProviderKey) =>

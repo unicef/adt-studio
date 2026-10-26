@@ -19,14 +19,18 @@ import { LoadingState } from "../../components/LoadingState"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
-import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import {
+  useApiKey,
+  useBookStructuredTextAvailability,
+  useWordHighlightingUnavailable,
+} from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { UnavailableHint } from "../../components/UnavailableHint"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { normalizeLocale } from "@/lib/languages"
-import { languageUsesSpeechProvider, resolveSpeechProviderForLanguage, speechProvidersForLanguages } from "@/lib/speech-routing"
+import { bookSpeechProviders, languageUsesSpeechProvider, resolveSpeechProviderForLanguage } from "@/lib/speech-routing"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -299,7 +303,6 @@ export function LanguageView({
   const {
     apiKey,
     hasTranscriber,
-    isLoading: providersLoading,
     isAvailable,
     azureKey,
     azureRegion,
@@ -377,9 +380,8 @@ export function LanguageView({
     isTranslationEvaluationEnabled(merged?.translation_evaluation);
   const wordHighlightingEnabled =
     speechConfigRecord?.word_highlighting === true;
-  // Word timestamps come from OpenAI Whisper; without an OpenAI key the speech
-  // run skips them, so the toggle is shown off and disabled.
-  const wordHighlightingUnavailable = !providersLoading && !hasTranscriber;
+  // Without an OpenAI key (Whisper) the toggle is shown off and disabled.
+  const wordHighlightingUnavailable = useWordHighlightingUnavailable();
   const effectiveWordHighlighting =
     wordHighlightingEnabled && !wordHighlightingUnavailable;
   const configExcludedTextIds = useMemo(
@@ -425,8 +427,7 @@ export function LanguageView({
   const configuredEditingLanguage = merged?.editing_language as
     string | undefined;
 
-  const speechLanguages = [configuredEditingLanguage ?? bookLanguage ?? "en", ...outputLanguages];
-  const hasBookSpeechProvider = !!activeConfigData && speechProvidersForLanguages(speechLanguages, speechConfig)
+  const hasBookSpeechProvider = !!activeConfigData && bookSpeechProviders(merged, bookLanguage)
     .some(provider => {
       const modelId = `${provider}:default`;
       return isAvailable("tts", modelId);
