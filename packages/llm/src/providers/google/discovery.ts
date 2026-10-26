@@ -51,6 +51,26 @@ function modalitiesFor(id: string, methods: string[] | undefined): AiModality[] 
   return modalitiesForMethods(methods)
 }
 
+const GoogleErrorResponse = z.object({
+  error: z.object({
+    details: z.array(z.object({ reason: z.string().optional() }).passthrough()).optional(),
+  }),
+})
+
+/**
+ * Google answers a typo'd or revoked AI Studio key (AIza…) with HTTP 400 and
+ * reason API_KEY_INVALID, not 401/403. Any other 400 is not a key problem.
+ */
+async function isInvalidApiKeyResponse(response: Response): Promise<boolean> {
+  if (response.status !== 400) return false
+  try {
+    const parsed = GoogleErrorResponse.safeParse(await response.json())
+    return parsed.success && (parsed.data.error.details ?? []).some((d) => d.reason === "API_KEY_INVALID")
+  } catch {
+    return false
+  }
+}
+
 export async function listGoogleModels(
   apiKey: string,
   signal?: AbortSignal,
@@ -71,7 +91,7 @@ export async function listGoogleModels(
 
   if (!response.ok) {
     const code =
-      response.status === 401 || response.status === 403
+      response.status === 401 || response.status === 403 || (await isInvalidApiKeyResponse(response))
         ? "missing-credential"
         : "unreachable"
     throw new ModelDiscoveryError(code, `Model listing failed with HTTP ${response.status}`)

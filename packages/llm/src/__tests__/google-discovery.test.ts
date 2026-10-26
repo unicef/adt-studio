@@ -63,4 +63,38 @@ describe("Google model discovery, shared with Gemini Speech", () => {
     expect(health.ok).toBe(false)
     expect(health.code).toBe("invalid-credential")
   })
+
+  it("reports an invalid AI Studio key, which Google answers with HTTP 400, as rejected", async () => {
+    // The live API's answer to a typo'd or revoked AIza… key.
+    fetchMock.mockImplementation(async () =>
+      Response.json(
+        {
+          error: {
+            code: 400,
+            status: "INVALID_ARGUMENT",
+            message: "API key not valid. Please pass a valid API key.",
+            details: [{ "@type": "type.googleapis.com/google.rpc.ErrorInfo", reason: "API_KEY_INVALID" }],
+          },
+        },
+        { status: 400 },
+      ),
+    )
+    const health = await checkProviderConnection(registry, "gemini", {
+      credentials: { gemini: { apiKey: "AIza-typo" } },
+    })
+    expect(health.ok).toBe(false)
+    expect(health.code).toBe("invalid-credential")
+  })
+
+  it("keeps any other HTTP 400 as unreachable, not as a bad key", async () => {
+    fetchMock.mockImplementation(async () =>
+      Response.json(
+        { error: { code: 400, status: "INVALID_ARGUMENT", message: "Invalid page size." } },
+        { status: 400 },
+      ),
+    )
+    const health = await checkProviderConnection(registry, "gemini", { credentials })
+    expect(health.ok).toBe(false)
+    expect(health.code).toBe("unreachable")
+  })
 })
