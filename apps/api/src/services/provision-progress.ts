@@ -39,6 +39,8 @@ export interface ProvisionRunView {
   begin: () => void
   record: (event: ProvisionProgressEvent) => void
   get: () => ProvisionRunSnapshot | null
+  /** Forgets a finished run. A run still going is kept: it is creating resources right now. */
+  clear: () => void
 }
 
 export function createProvisionRunView(now: () => Date = () => new Date()): ProvisionRunView {
@@ -87,6 +89,10 @@ export function createProvisionRunView(now: () => Date = () => new Date()): Prov
 
     get() {
       return run ? { ...run, step_states: [...run.step_states] } : null
+    },
+
+    clear() {
+      if (run?.status !== "running") run = null
     },
   }
 }

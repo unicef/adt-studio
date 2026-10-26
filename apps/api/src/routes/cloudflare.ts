@@ -390,6 +390,9 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
     }
 
     store.clear()
+    /** The last setup run describes the connection just forgotten. Left in place, the wizard of
+     *  the next connection adopts its "done" and claims sharing is set up without setting it up. */
+    provisionRun.clear()
     const oauthCleared = await oauth.signOut()
     const response: CloudflareConnectionDeleteResponse = {
       forgotten: true,
