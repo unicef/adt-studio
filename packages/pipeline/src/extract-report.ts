@@ -69,7 +69,7 @@ export interface ExtractReport {
   settingsError?: string
   pages: { count: number; withoutText: number; textProfile: TextProfile; charsMedian: number; charsP10: number; totalChars: number }
   images: { bySource: Record<string, number>; extracted: number; distinctHashes: number; duplicates: number; perPageMean: number; perPageMax: number; debug: Record<string, number> | null }
-  filtering: { classified: number; pruned: number; byReason: Record<string, number>; sentToLlm: number; meaningful: number; notMeaningful: number; maxImagesPerCall: number }
+  filtering: { classified: number; pruned: number; byReason: Record<string, number>; sentToLlm: number; meaningful: number; notMeaningful: number; maxImagesPerCall: number; unreadablePages: number }
   /** Final verdict per image id from the meaningfulness model, for `--compare`. */
   verdicts: Record<string, boolean>
   steps: Array<{ step: string; status: string; message: string | null; error: string | null }>
@@ -256,7 +256,8 @@ function reportOpenBook(db: BookDb, report: ExtractReport): void {
     const row: PageRow = { pageId: page.page_id, pageNumber: page.page_number, textChars: nonWhitespace(page.text), extractedImages: counts.extracted, duplicateImages: counts.duplicates, pruned: 0, sentToLlm: 0, meaningful: 0, notMeaningful: 0, meaningfulnessInputTokens: 0, meaningfulnessMs: 0 }
     const filtering = readCurrentNodeRow(db, "image-filtering", page.page_id)
     let parsed: ReturnType<typeof ImageClassificationOutput.safeParse> | null = null
-    try { parsed = filtering ? ImageClassificationOutput.safeParse(JSON.parse(filtering.data)) : null } catch { /* a malformed row is skipped, not fatal */ }
+    try { parsed = filtering ? ImageClassificationOutput.safeParse(JSON.parse(filtering.data)) : null } catch { /* counted below, not fatal */ }
+    if (filtering && !parsed?.success) report.filtering.unreadablePages++
     if (parsed?.success) {
       for (const image of parsed.data.images) {
         report.filtering.classified++
@@ -316,6 +317,7 @@ function collectFindings(report: ExtractReport): void {
     if (task.misses.promptChanged) report.findings.push(`${task.misses.promptChanged} ${task.task} call(s) missed the cache because the prompt changed since the previous run`)
     if (task.misses.modelChanged) report.findings.push(`${task.misses.modelChanged} ${task.task} call(s) missed the cache because the model changed since the previous run`)
   }
+  if (filtering.unreadablePages) report.findings.push(`${filtering.unreadablePages} page(s) have an image-filtering row that cannot be read; their pruning is not counted`)
   if (filtering.sentToLlm && filtering.notMeaningful / Math.max(1, filtering.meaningful + filtering.notMeaningful) >= 0.5) {
     report.findings.push(`the meaningfulness model rejected ${filtering.notMeaningful} of ${filtering.meaningful + filtering.notMeaningful} images it was sent`)
   }
@@ -326,7 +328,7 @@ function emptyReport(label: string): ExtractReport {
     label, schemaVersion: null, schemaStatus: "unreadable", staleLockDir: false, settings: null,
     pages: { count: 0, withoutText: 0, textProfile: "text-rich", charsMedian: 0, charsP10: 0, totalChars: 0 },
     images: { bySource: {}, extracted: 0, distinctHashes: 0, duplicates: 0, perPageMean: 0, perPageMax: 0, debug: null },
-    filtering: { classified: 0, pruned: 0, byReason: {}, sentToLlm: 0, meaningful: 0, notMeaningful: 0, maxImagesPerCall: 0 },
+    filtering: { classified: 0, pruned: 0, byReason: {}, sentToLlm: 0, meaningful: 0, notMeaningful: 0, maxImagesPerCall: 0, unreadablePages: 0 },
     verdicts: {}, steps: [], tasks: [], pageRows: [], findings: [],
   }
 }

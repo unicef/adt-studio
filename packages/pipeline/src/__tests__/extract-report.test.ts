@@ -50,6 +50,8 @@ it("measures the text layer, duplicate images, pruning, verdicts and attributes 
     db.putNodeData("image-filtering", "pg001", { images: [{ imageId: "pg001_page", isPruned: true, reason: "full-page render" }, { imageId: "pg001_im001", isPruned: true, reason: "not meaningful: a logo" }, { imageId: "pg001_im002", isPruned: false }] })
     db.putNodeData("image-filtering", "pg002", { images: [{ imageId: "pg002_page", isPruned: true, reason: "full-page render" }, { imageId: "pg002_im001", isPruned: true, reason: "not meaningful: a logo" }, { imageId: "pg002_im002", isPruned: true, reason: "shortest side 20px < min_side 100px" }] })
     db.putNodeData("extraction-debug", "pg001", { pageId: "pg001", groupsBeforeMerge: 5, groupsAfterMerge: 2, textOnlyGroupsSkipped: 1, groups: [] })
+    db.putExtractedPage(page("pg003", 3, ""))
+    db.putNodeData("image-filtering", "pg003", "{\"images\": [truncated")
     // First run: both pages classified. Second run: pg001 hit the cache, pg002 missed because the prompt changed.
     db.appendLlmLog(meaningfulness("pg001", "2026-05-01T10:00:00.000Z", "old prompt", ["logo", "figure-a"], [["pg001_im001", false], ["pg001_im002", true]]))
     db.appendLlmLog(meaningfulness("pg002", "2026-05-01T10:00:01.000Z", "old prompt", ["logo"], [["pg002_im001", false]]))
@@ -60,24 +62,25 @@ it("measures the text layer, duplicate images, pruning, verdicts and attributes 
     db.markStepCompleted("image-meaningfulness", "2/2")
   })
   const report = reportExtract(root, "scanned")
-  expect(report.pages).toMatchObject({ count: 2, withoutText: 2, textProfile: "image-only", totalChars: 0 })
-  expect(report.images).toMatchObject({ extracted: 4, distinctHashes: 3, duplicates: 1, perPageMean: 2, perPageMax: 2, bySource: { "extract/vector": 3, "extract/raster": 1 }, debug: { groupsBeforeMerge: 5, groupsAfterMerge: 2, textOnlyGroupsSkipped: 1 } })
-  expect(report.filtering).toMatchObject({ classified: 6, pruned: 5, byReason: { "full-page render": 2, "not meaningful": 2, min_side: 1 }, sentToLlm: 3, meaningful: 1, notMeaningful: 2, maxImagesPerCall: 2 })
+  expect(report.pages).toMatchObject({ count: 3, withoutText: 3, textProfile: "image-only", totalChars: 0 })
+  expect(report.images).toMatchObject({ extracted: 4, distinctHashes: 3, duplicates: 1, perPageMean: 1.3, perPageMax: 2, bySource: { "extract/vector": 3, "extract/raster": 1 }, debug: { groupsBeforeMerge: 5, groupsAfterMerge: 2, textOnlyGroupsSkipped: 1 } })
+  expect(report.filtering).toMatchObject({ classified: 6, pruned: 5, byReason: { "full-page render": 2, "not meaningful": 2, min_side: 1 }, sentToLlm: 3, meaningful: 1, notMeaningful: 2, maxImagesPerCall: 2, unreadablePages: 1 })
   expect(report.verdicts).toEqual({ pg001_im001: false, pg001_im002: true, pg002_im001: false })
   expect(report.tasks).toHaveLength(1)
   expect(report.tasks[0]).toMatchObject({ task: "image-meaningfulness", model: "openai:gpt-5.4", calls: 5, cacheHits: 1, misses: { firstRun: 2, promptChanged: 1, unknown: 1 }, failures: 1, inputTokens: 4000, outputTokens: 200, maxDurationMs: 2500 })
   expect(report.tasks[0].estimatedCostUsd).toBeCloseTo((4000 * 2.5 + 200 * 15) / 1_000_000, 6)
-  expect(report.pageRows.map((row) => [row.pageId, row.extractedImages, row.duplicateImages, row.pruned, row.sentToLlm, row.meaningful, row.notMeaningful])).toEqual([["pg001", 2, 0, 2, 2, 1, 1], ["pg002", 2, 1, 3, 1, 0, 1]])
+  expect(report.pageRows.map((row) => [row.pageId, row.extractedImages, row.duplicateImages, row.pruned, row.sentToLlm, row.meaningful, row.notMeaningful])).toEqual([["pg001", 2, 0, 2, 2, 1, 1], ["pg002", 2, 1, 3, 1, 0, 1], ["pg003", 0, 0, 0, 0, 0, 0]])
   expect(report.findings).toEqual([
-    "image-only source: 2/2 pages have no text layer, so metadata, book summary and book outline run without text",
+    "image-only source: 3/3 pages have no text layer, so metadata, book summary and book outline run without text",
     "1 of 4 extracted images are byte-identical copies of an image on another page",
     "image-meaningfulness completed but 1 call(s) failed in the log",
     "1 image-meaningfulness call(s) missed the cache because the prompt changed since the previous run",
+    "1 page(s) have an image-filtering row that cannot be read; their pruning is not counted",
     "the meaningfulness model rejected 2 of 3 images it was sent",
   ])
   const formatted = formatExtractReport(report)
   expect(formatted).toContain("scanned: schema")
-  expect(formatted).toContain("text layer: 0/2 pages with text")
+  expect(formatted).toContain("text layer: 0/3 pages with text")
   expect(formatted).toContain("images: 4 extracted (3 distinct, 1 duplicates)")
   expect(formatted).toContain("image-meaningfulness (openai:gpt-5.4): 5 calls, 1 cached (20%), misses: firstRun 2, promptChanged 1, unknown 1; 1 failed")
   expect(formatted).toContain("! image-only source")
