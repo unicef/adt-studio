@@ -441,7 +441,9 @@ export function diffExtractReports(a: ExtractReport, b: ExtractReport): ExtractR
 
 export function formatExtractReportDiff(diff: ExtractReportDiff): string {
   const lines = [`${diff.labels[0]} → ${diff.labels[1]}: ${diff.deltas.length} metric(s) changed, ${diff.verdictFlips.length} verdict flip(s)`]
-  for (const delta of diff.deltas) lines.push(`  ${delta.metric}: ${delta.a} → ${delta.b} (${delta.delta > 0 ? "+" : ""}${Math.round(delta.delta * 100) / 100})`)
+  // Keep sub-cent cost deltas visible instead of rounding them to 0.
+  const shown = (value: number) => Math.round(value * 10_000) / 10_000
+  for (const delta of diff.deltas) lines.push(`  ${delta.metric}: ${shown(delta.a)} → ${shown(delta.b)} (${delta.delta > 0 ? "+" : ""}${shown(delta.delta)})`)
   for (const flip of diff.verdictFlips.slice(0, 50)) lines.push(`  verdict ${flip.imageId}: ${flip.a ? "meaningful" : "not meaningful"} → ${flip.b ? "meaningful" : "not meaningful"}`)
   if (diff.verdictFlips.length > 50) lines.push(`  … ${diff.verdictFlips.length - 50} more flips`)
   return lines.join("\n")
