@@ -636,8 +636,7 @@ export function SectioningPageDetail({
               <>
                 {pendingOp.description ? " " : null}
                 <Trans>
-                  The completed stages below will be reset and need to run again
-                  before final outputs are available.
+                  Review the affected stages after this change.
                 </Trans>
               </>
             )}

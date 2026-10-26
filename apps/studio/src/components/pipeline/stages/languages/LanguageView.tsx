@@ -1,11 +1,15 @@
+import { WordTimestampViewer } from "./components/WordTimestampViewer"
+import { useTTSData } from "@/hooks/use-tts";
+import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
+import { OutputReview, useOutputs } from "../../components/OutputReview"
 import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent } from "react"
 import { createPortal } from "react-dom"
 import { Link } from "@tanstack/react-router"
-import { AudioLines, Check, ChevronDown, ChevronRight, ChevronUp, CircleStop, Languages, Loader2, Play, Pause, Plus, RotateCcw, Save, Settings, Trash2, TriangleAlert, Type, Upload, Volume2, VolumeX, WandSparkles, X } from "lucide-react"
+import { AudioLines, Check, ChevronDown, ChevronRight, CircleStop, Languages, Loader2, Play, Pause, Plus, RotateCcw, Save, Settings, Trash2, TriangleAlert, Type, Upload, Volume2, VolumeX, WandSparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { DEFAULT_OPENAI_TTS_MODEL_ID, DEFAULT_ELEVENLABS_TTS_MODEL_ID, DEFAULT_ELEVENLABS_VOICE_ID } from "@adt/types"
 import { api, getAudioUrl, BASE_URL } from "@/api/client"
-import type { CoreTtsCatalogEntry, TextCatalogEntry, TranslationEvaluationStatusResponse, WordTimestamp, WordTimestampEntry } from "@/api/client"
+import type { CoreTtsCatalogEntry, TextCatalogEntry, TranslationEvaluationStatusResponse, WordTimestamp, WordTimestampEntry, WordTimestampEditGuard, WordTimestampSaveResponse } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
@@ -15,26 +19,24 @@ import { LoadingState } from "../../components/LoadingState"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
-import {
-  useApiKey,
-  useBookSpeechAvailability,
-  useBookStructuredTextAvailability,
-} from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { UnavailableHint } from "../../components/UnavailableHint"
 import { StageEmptyState } from "../../components/StageEmptyState"
-import { useVirtualizer } from "@tanstack/react-virtual"
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { normalizeLocale } from "@/lib/languages"
-import { languageUsesSpeechProvider, resolveSpeechProviderForLanguage } from "@/lib/speech-routing"
+import { languageUsesSpeechProvider, resolveSpeechProviderForLanguage, speechProvidersForLanguages } from "@/lib/speech-routing"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { isTranslationEvaluationEnabled, resolveTranslationLanguageState } from "./lib/translations-view-state"
+import { shouldShowMissingSpeech } from "./lib/speech-review-state"
 import {
   type CatalogCategory,
   getEntryCategory,
+  entryBelongsToPage,
   getEntryTtsExclusion,
   isAnswerEntry,
   isEasyReadEntry,
@@ -48,7 +50,7 @@ import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
 import { CoreTtsBadges, CoreTtsSpeechEditor } from "./components/CoreTtsSpeechEditor";
 import { SpeechHighlightedText } from "./components/SpeechHighlightedText";
-import { usePendingChanges } from "../../components/change-summary";
+import { diffById, usePendingChanges } from "../../components/change-summary";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 
@@ -309,7 +311,6 @@ export function LanguageView({
     customApiKey,
   } = useApiKey();
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel);
-  const hasSpeechProvider = useBookSpeechAvailability(bookLabel);
   // Resolve opaque ElevenLabs voice IDs to names for the speech summary chip.
   const { describeVoice: describeElevenLabsVoice } = useElevenLabsVoices();
   const translateState = stageState("translate");
@@ -318,22 +319,7 @@ export function LanguageView({
   const stageDone = activeState === "done";
   const hasStageError = activeState === "error";
   const isRunning = activeState === "running" || activeState === "queued";
-  const canRunStage =
-    hasStructuredTextProvider && (!isSpeechStage || hasSpeechProvider);
   const geminiTtsAvailable = isAvailable("tts", "gemini:default");
-
-  const handleRun = useCallback(() => {
-    if (!canRunStage || isRunning) return;
-    // Speech depends on translate, so always start from translate when running
-    // speech — new catalog entries (e.g. from a glossary addition) need their
-    // translations populated before TTS can synthesize them. The per-item cache
-    // makes already-translated entries near-instant.
-    queueRun({
-      fromStage: "translate",
-      toStage: stageSlug as "translate" | "speech",
-      apiKey,
-    });
-  }, [canRunStage, isRunning, apiKey, queueRun, stageSlug]);
 
   const stageMissing = useStageMissingCounts(bookLabel);
   const missingForCurrentStage = isSpeechStage
@@ -346,12 +332,12 @@ export function LanguageView({
 
   const handleDeleteTTS = useCallback(async () => {
     await api.deleteTTS(bookLabel);
-    await queryClient.invalidateQueries({
-      queryKey: ["books", bookLabel, "tts"],
-    });
-    await queryClient.invalidateQueries({
-      queryKey: ["books", bookLabel, "step-status"],
-    });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "tts"] }),
+      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "tts-timestamps"] }),
+      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "step-status"] }),
+      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] }),
+    ]);
   }, [bookLabel, queryClient]);
 
   const { data: catalog, isLoading } = useQuery({
@@ -370,11 +356,9 @@ export function LanguageView({
     enabled: !!bookLabel,
   });
 
-  const { data: ttsData } = useQuery({
-    queryKey: ["books", bookLabel, "tts"],
-    queryFn: () => api.getTTS(bookLabel),
-    enabled: !!bookLabel,
-  });
+  const { data: outputCatalog } = useOutputs(bookLabel);
+  const { data: ttsData } = useTTSData(bookLabel);
+  const showMissingSpeech = shouldShowMissingSpeech(speechState, ttsData);
   const { data: voiceMappings } = useQuery({
     queryKey: ["voice-mappings"],
     queryFn: () => api.getVoiceMappings(),
@@ -441,6 +425,22 @@ export function LanguageView({
   const configuredEditingLanguage = merged?.editing_language as
     string | undefined;
 
+  const speechLanguages = [configuredEditingLanguage ?? bookLanguage ?? "en", ...outputLanguages];
+  const hasBookSpeechProvider = !!activeConfigData && speechProvidersForLanguages(speechLanguages, speechConfig)
+    .some(provider => {
+      const modelId = `${provider}:default`;
+      return isAvailable("tts", modelId);
+    });
+  const canRunStage = isSpeechStage ? hasBookSpeechProvider : hasStructuredTextProvider;
+  const handleRun = useCallback(() => {
+    if (!canRunStage || isRunning || speechDraftsRef.current.size > 0) return;
+    queueRun({
+      fromStage: isSpeechStage ? "speech" : "translate",
+      toStage: stageSlug as "translate" | "speech",
+      apiKey,
+    });
+  }, [canRunStage, isRunning, apiKey, queueRun, stageSlug, isSpeechStage]);
+
   const hasExplicitOutputLanguages = outputLanguages.length > 0;
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
@@ -487,22 +487,23 @@ export function LanguageView({
     }
   }, [outputLanguages.length, hasExplicitOutputLanguages]);
 
-  const easyReadEntries = useMemo(
-    () =>
-      (easyReadData?.blocks ?? []).flatMap((block) =>
-        block.entries.map((entry) => ({
-          id: entry.easyReadId,
-          text: entry.text,
-        })),
-      ),
-    [easyReadData],
-  );
+  const easyReadEntries = useMemo(() => {
+    const byId = new Map<string, { id: string; text: string; locations: Array<{ pageId: string; sectionId: string }> }>();
+    // The API resolves one authoritative value for a shared identity. Preserve
+    // every location without duplicating language/audio rows and counts.
+    for (const block of easyReadData?.blocks ?? []) for (const entry of block.entries) {
+      const value = byId.get(entry.easyReadId) ?? { id: entry.easyReadId, text: entry.text, locations: [] };
+      if (!value.locations.some((location) => location.pageId === block.pageId && location.sectionId === block.sectionId)) value.locations.push({ pageId: block.pageId, sectionId: block.sectionId });
+      byId.set(entry.easyReadId, value);
+    }
+    return [...byId.values()];
+  }, [easyReadData]);
   const entries = useMemo(() => {
     const base = catalog?.entries ?? [];
     return easyReadEntries.length > 0 ? [...base, ...easyReadEntries] : base;
   }, [catalog?.entries, easyReadEntries]);
   const sourceEntriesById = useMemo(
-    () => new Map(entries.map((entry) => [entry.id, entry.text])),
+    () => new Map([...entries].reverse().map((entry) => [entry.id, entry.text])),
     [entries],
   );
 
@@ -531,7 +532,7 @@ export function LanguageView({
     return uniq.length > 8 ? `${shown}…` : shown;
   }, [pageNumberEntries]);
   const pageFilteredEntries = selectedPageId
-    ? entries.filter((e) => e.id.startsWith(selectedPageId + "_"))
+    ? entries.filter((entry) => entryBelongsToPage(entry, selectedPageId))
     : entries;
   const categoryFilteredEntries =
     categoryFilter === "all"
@@ -561,13 +562,10 @@ export function LanguageView({
   const currentLanguageUsesGemini =
     !!audioLang &&
     languageUsesSpeechProvider(audioLang, "gemini", speechConfig);
-  // Speech keeps the entry list on screen during runs (audio fills in live via
-  // the run's snapshot) and after failures (failed rows are marked); the run
-  // card only shows before the first speech run. Translate keeps the original
-  // behavior: run card until the stage is done.
-  const showRunCard = isSpeechStage
-    ? !(stageDone || isRunning || hasStageError)
-    : !stageDone || isRunning;
+  // Job invalidation must not hide retained content or an unsaved draft.
+  const hasSavedOutputs = outputCatalog?.outputs.some((output) =>
+    (isSpeechStage ? ["audio", "timestamps"] : ["translation", "image-translation"]).includes(output.identity.kind) && (output.usable || output.protected)) ?? false;
+  const showRunCard = !(stageDone || isRunning || hasSavedOutputs || isSpeechStage && hasStageError);
   const ttsProgress =
     isSpeechStage && isRunning ? stepProgress("tts") : undefined;
 
@@ -684,11 +682,20 @@ export function LanguageView({
     return map;
   }, [selectedVoiceSlot, timestampMap]);
 
+  const { restoring, restoringRef, onRestoringChange } = useVersionRestoreBusy(JSON.stringify([bookLabel, selectedLang]))
   // Pending state for edits (keyed by language)
-  const [pendingEntries, setPendingEntries] = useState<
+  const [pendingEntries, setPendingEntriesState] = useState<
     TextCatalogEntry[] | null
   >(null);
+  const pendingEntriesRef = useRef<TextCatalogEntry[] | null>(null);
+  const setPendingEntries = useCallback((next: TextCatalogEntry[] | null) => {
+    if (restoringRef.current) return;
+    pendingEntriesRef.current = next;
+    setPendingEntriesState(next);
+  }, []);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const pendingVersions = useRef({ baseVersion: 0, sourceVersion: 0, sourceSignature: "" });
   const [generateErrorById, setGenerateErrorById] = useState<
     Record<string, string>
   >({});
@@ -697,28 +704,61 @@ export function LanguageView({
   >({});
 
   // Get translated entries for selected language
-  const translationData = selectedLang
-    ? catalog?.translations?.[selectedLang]
+  const legacyTranslationItemId = selectedLang?.replace("-", "_");
+  const translationItemId = selectedLang && !catalog?.translations?.[selectedLang] &&
+    legacyTranslationItemId && catalog?.translations?.[legacyTranslationItemId]
+    ? legacyTranslationItemId : selectedLang;
+  const translationScope = useMemo(() => ({ bookLabel, translationItemId }), [bookLabel, translationItemId]);
+  const translationScopeRef = useRef(translationScope);
+  translationScopeRef.current = translationScope;
+  const translationData = translationItemId
+    ? catalog?.translations?.[translationItemId]
     : undefined;
+  const translationSourceSignature = translationData?.sourceSignature ??
+    (selectedLang ? catalog?.translationSourceSignatures?.[normalizeLocale(selectedLang)] : undefined);
   const translatedEntries = isSourceLang
     ? entries
     : (translationData?.entries ?? []);
   const translationVersion = isSourceLang
     ? (catalog?.version ?? null)
-    : (translationData?.version ?? null);
+    : (translationData?.version ?? (translationSourceSignature ? 0 : null));
 
-  // Reset pending when version or language changes
+  // Language changes are allowed only after the current draft/save is settled.
   useEffect(() => {
     setPendingEntries(null);
     setAppliedSuggestionEntryIds(new Set());
-  }, [translationVersion, selectedLang]);
+    savingRef.current = false;
+    setSaving(false);
+  }, [bookLabel, selectedLang]);
 
   // Effective translated entries (pending overrides fetched data)
   const effectiveEntries = pendingEntries ?? translatedEntries;
   const translatedMap = useMemo(
-    () => new Map(effectiveEntries.map((entry) => [entry.id, entry.text])),
+    () => new Map([...effectiveEntries].reverse().map((entry) => [entry.id, entry.text])),
     [effectiveEntries],
   );
+  const savedTranslatedMap = useMemo(
+    () => new Map([...translatedEntries].reverse().map((entry) => [entry.id, entry.text])),
+    [translatedEntries],
+  );
+  const [speechDrafts, setSpeechDrafts] = useState<Set<string>>(() => new Set());
+  const speechDraftsRef = useRef(speechDrafts);
+  const onSpeechEditingChange = useCallback((id: string, language: string, editing: boolean) => {
+    const key = JSON.stringify([id, language]);
+    const previous = speechDraftsRef.current;
+    if (previous.has(key) === editing) return;
+    const next = new Set(previous);
+    if (editing) next.add(key);
+    else next.delete(key);
+    speechDraftsRef.current = next;
+    setSpeechDrafts(next);
+  }, []);
+  const timestampDraftIds = new Set([...speechDrafts].flatMap(key => {
+    const [id] = JSON.parse(key) as [string, string];
+    return id.startsWith("timings:") ? [id.slice(id.indexOf(":", 8) + 1)] : [];
+  }));
+  const hasTimestampDraft = timestampDraftIds.size > 0;
+  const hasOutputDraft = !!pendingEntries || speechDrafts.size > 0;
 
   const speechCatalogFor = useCallback(
     (language: string | null | undefined) => {
@@ -765,15 +805,46 @@ export function LanguageView({
     noun: { one: t`translation`, other: t`translations` },
   });
 
-  const saveTranslation = useCallback(async () => {
-    if (!pendingEntries || !selectedLang) return;
+  const languageSwitchBlocked = dirty || speechDrafts.size > 0 || saving || restoring;
+  const languageSwitchReason = dirty || speechDrafts.size > 0
+    ? t`Save or discard your edits first`
+    : t`Please wait for the current operation to finish`;
+  const selectLanguage = (language: string) => {
+    // Read the synchronous draft as well as disabling the pills. Reverting all
+    // text to the saved value must allow switching without an unavailable Save.
+    const pending = pendingEntriesRef.current;
+    const diff = pending && diffById(translatedEntries, pending, entry => entry.id, (a, b) => a.text === b.text);
+    if (diff && (diff.added.length || diff.removed.length || diff.changed.length) || savingRef.current || restoringRef.current || speechDraftsRef.current.size > 0) return;
+    setSelectedLang(language);
+  };
+
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saveTranslation = useCallback(async (forNavigation = false) => {
+    if (savingRef.current || restoringRef.current) {
+      if (forNavigation) {
+        const message = t`A save is still in progress. Wait for it to finish before leaving.`;
+        setSaveError(message);
+        throw new Error(message);
+      }
+      return;
+    }
+    const submitted = pendingEntriesRef.current;
+    if (!submitted || !translationItemId) return;
+    const submittedVersions = pendingVersions.current;
+    const submittedScope = translationScope;
+    savingRef.current = true;
     setSaving(true);
+    setSaveError(null);
+    try {
     const minDelay = new Promise((r) => setTimeout(r, 400));
-    await api.updateTranslation(bookLabel, selectedLang, {
-      entries: pendingEntries,
+    const result = await api.updateTranslation(bookLabel, translationItemId, {
+      entries: submitted,
+      ...submittedVersions,
     });
-    setPendingEntries(null);
-    setAppliedSuggestionEntryIds(new Set());
+    if (translationScopeRef.current === submittedScope && pendingVersions.current === submittedVersions) {
+      pendingVersions.current = { ...submittedVersions, baseVersion: result.version };
+    }
+    await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] });
     await queryClient.invalidateQueries({
       queryKey: ["books", bookLabel, "text-catalog"],
     });
@@ -788,13 +859,33 @@ export function LanguageView({
       queryKey: ["books", bookLabel, "step-status"],
     });
     await minDelay;
-    setSaving(false);
-  }, [pendingEntries, selectedLang, bookLabel, queryClient]);
+    if (translationScopeRef.current === submittedScope) {
+      if (pendingEntriesRef.current === submitted) setPendingEntries(null);
+      setSaveError(null);
+      setAppliedSuggestionEntryIds(new Set());
+    }
+    } catch (error) {
+      if (translationScopeRef.current === submittedScope) setSaveError(error instanceof Error ? error.message : String(error));
+      if (forNavigation) throw error;
+    }
+    finally {
+      if (translationScopeRef.current === submittedScope) {
+        savingRef.current = false;
+        setSaving(false);
+      }
+    }
+    if (forNavigation && translationScopeRef.current === submittedScope && pendingEntriesRef.current) {
+      const message = t`Newer edits are still unsaved. Save them before leaving.`;
+      setSaveError(message);
+      throw new Error(message);
+    }
+  }, [translationItemId, translationScope, bookLabel, queryClient, setPendingEntries, t]);
 
   const saveRef = useRef(saveTranslation);
   saveRef.current = saveTranslation;
 
   const updateEntry = (entryId: string, newText: string) => {
+    if (!pendingEntries) pendingVersions.current = { baseVersion: translationData?.version ?? 0, sourceVersion: catalog?.version ?? 0, sourceSignature: translationSourceSignature ?? "" };
     const base = pendingEntries ?? translatedEntries;
     // If no existing entry for this id, add one
     const exists = base.some((e) => e.id === entryId);
@@ -1032,12 +1123,13 @@ export function LanguageView({
   // Build audio lookup — use selected language, or editing language when no output languages
   const audioMap = new Map<
     string,
-    { fileName: string; voice: string; cacheKey?: string }
+    { fileName: string; voice: string; cacheKey?: string; storageLanguage?: string }
   >();
   if (ttsData && audioLang && ttsData.languages[audioLang]) {
     for (const e of ttsData.languages[audioLang].entries) {
       if ((e.voiceSlot ?? "primary") !== selectedVoiceSlot) continue;
       audioMap.set(e.textId, {
+        storageLanguage: ttsData.languages[audioLang].storageLanguage,
         fileName: e.fileName,
         voice: e.voice,
         cacheKey: e.cacheKey,
@@ -1064,7 +1156,7 @@ export function LanguageView({
   // Separate base-language audio map for the source column in translation view
   const baseAudioMap = new Map<
     string,
-    { fileName: string; voice: string; cacheKey?: string }
+    { fileName: string; voice: string; cacheKey?: string; storageLanguage?: string }
   >();
   if (
     ttsData &&
@@ -1075,6 +1167,7 @@ export function LanguageView({
     for (const e of ttsData.languages[editingLanguage].entries) {
       if ((e.voiceSlot ?? "primary") !== selectedVoiceSlot) continue;
       baseAudioMap.set(e.textId, {
+        storageLanguage: ttsData.languages[editingLanguage].storageLanguage,
         fileName: e.fileName,
         voice: e.voice,
         cacheKey: e.cacheKey,
@@ -1164,10 +1257,10 @@ export function LanguageView({
   );
   const hasSecondaryVoice = !!configuredSecondaryVoice || !!secondaryVoiceEntry;
   useEffect(() => {
-    if (!hasSecondaryVoice && selectedVoiceSlot === "secondary") {
+    if (!hasSecondaryVoice && selectedVoiceSlot === "secondary" && !hasTimestampDraft) {
       setSelectedVoiceSlot("primary");
     }
-  }, [hasSecondaryVoice, selectedVoiceSlot]);
+  }, [hasSecondaryVoice, selectedVoiceSlot, hasTimestampDraft]);
   // Muted entries neither need audio nor count as missing
   const speakableEntries = displayEntries.filter(
     (entry) => !getEntryTtsExclusion(entry.id, ttsExclusionConfig).excluded,
@@ -1186,7 +1279,18 @@ export function LanguageView({
   );
   const missingFilterActive =
     isSpeechStage && showMissingOnly && missingAudioCount > 0;
-  const visibleEntries = missingFilterActive ? missingEntries : displayEntries;
+  const retainedTimingRows = useRef(new Map<string, TextCatalogEntry>());
+  const filteredEntries = missingFilterActive ? missingEntries : displayEntries;
+  // Keep an edited row recoverable if a refetch removes its source. Its
+  // original receipt still guards the eventual save.
+  for (const [id] of retainedTimingRows.current) {
+    if (!timestampDraftIds.has(id)) retainedTimingRows.current.delete(id);
+  }
+  for (const entry of filteredEntries) {
+    if (timestampDraftIds.has(entry.id)) retainedTimingRows.current.set(entry.id, entry);
+  }
+  const visibleEntries = [...filteredEntries, ...[...retainedTimingRows.current.values()]
+    .filter(entry => !filteredEntries.some(current => current.id === entry.id))];
 
   // Once every missing item has been generated (or the language changes so the
   // pill disappears), drop back to the full list instead of leaving the user
@@ -1205,10 +1309,13 @@ export function LanguageView({
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 60,
     overscan: 5,
+    getItemKey: (index) => visibleEntries[index].id,
+    rangeExtractor: (range) => [...new Set([...defaultRangeExtractor(range), ...visibleEntries.flatMap((entry, index) => timestampDraftIds.has(entry.id) ? [index] : [])])].sort((a, b) => a - b),
   });
 
   const showReviewFilter = useCallback(
     (filter: ReviewFilter, scrollToFirst = false) => {
+      if (hasTimestampDraft) return;
       setReviewFilter(filter);
       if (scrollToFirst) {
         window.setTimeout(
@@ -1217,7 +1324,7 @@ export function LanguageView({
         );
       }
     },
-    [virtualizer],
+    [virtualizer, hasTimestampDraft],
   );
 
   // After a review finishes, jump straight to what needs attention.
@@ -1273,6 +1380,7 @@ export function LanguageView({
     },
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] }),
         queryClient.invalidateQueries({
           queryKey: ["books", bookLabel, "tts"],
         }),
@@ -1307,14 +1415,18 @@ export function LanguageView({
       language: string;
       voiceSlot: VoiceSlot;
       file: File;
-    }) =>
-      api.uploadTTSForItem(
+    }) => {
+      const baseline = outputCatalog?.outputs.find((output) => output.identity.kind === "audio" && output.identity.id === variables.textId && output.identity.language === variables.language && output.identity.voiceSlot === variables.voiceSlot);
+      if (!baseline) throw new Error(t`Refresh audio status before uploading a recording.`);
+      return api.uploadTTSForItem(
         bookLabel,
         variables.textId,
         variables.language,
         variables.voiceSlot,
         variables.file,
-      ),
+        { identity: baseline.identity, signature: baseline.signature, contentHash: baseline.contentHash },
+      );
+    },
     onMutate: (variables) => {
       setUploadErrorById((prev) => {
         if (!(variables.textId in prev)) return prev;
@@ -1331,6 +1443,7 @@ export function LanguageView({
     },
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] }),
         queryClient.invalidateQueries({
           queryKey: ["books", bookLabel, "tts"],
         }),
@@ -1370,9 +1483,9 @@ export function LanguageView({
         apiKey,
       );
     },
-    onSuccess: async () => {
+    onSuccess: async (_receipt, variables) => {
       await queryClient.invalidateQueries({
-        queryKey: ["books", bookLabel, "tts-timestamps", audioLang],
+        queryKey: ["books", bookLabel, "tts-timestamps", variables.language],
       });
     },
   });
@@ -1391,37 +1504,40 @@ export function LanguageView({
       voiceSlot: VoiceSlot;
       words: WordTimestamp[];
       duration: number;
+      guard: WordTimestampEditGuard;
     }) => {
       return api.saveWordTimestamps(
         bookLabel,
         variables.language,
         variables.textId,
         {
+          ...variables.guard,
           words: variables.words,
           duration: variables.duration,
           voiceSlot: variables.voiceSlot,
         },
       );
     },
-    onSuccess: async () => {
+    onSuccess: async (_receipt, variables) => {
       await queryClient.invalidateQueries({
-        queryKey: ["books", bookLabel, "tts-timestamps", audioLang],
+        queryKey: ["books", bookLabel, "tts-timestamps", variables.language],
       });
     },
   });
 
   const handleSaveTimestamps = useCallback(
-    (textId: string, words: WordTimestamp[], duration: number) => {
-      if (!audioLang) return;
-      saveTimestampsMutation.mutate({
+    async (textId: string, words: WordTimestamp[], duration: number, guard: WordTimestampEditGuard) => {
+      if (!audioLang) throw new Error(t`Select a language before saving timings`);
+      return saveTimestampsMutation.mutateAsync({
         textId,
         language: audioLang,
         voiceSlot: selectedVoiceSlot,
         words,
         duration,
+        guard,
       });
     },
-    [audioLang, saveTimestampsMutation, selectedVoiceSlot],
+    [audioLang, saveTimestampsMutation, selectedVoiceSlot, t],
   );
 
   const handleTranscribe = useCallback(
@@ -1485,7 +1601,8 @@ export function LanguageView({
       {currentLanguageUsesGemini && missingAudioCount > 0 && (
         <button
           type="button"
-          onClick={() => setShowMissingOnly((v) => !v)}
+          disabled={hasTimestampDraft}
+          onClick={() => { if (!hasTimestampDraft) setShowMissingOnly((v) => !v); }}
           aria-pressed={missingFilterActive}
           title={
             missingFilterActive
@@ -1509,18 +1626,20 @@ export function LanguageView({
         !isSpeechStage && (
           <VersionPicker
             step="text-catalog-translation"
-            itemId={selectedLang}
+            itemId={translationItemId ?? selectedLang}
             currentVersion={translationVersion}
-            saving={saving}
+            saving={saving || restoring}
             dirty={dirty}
             bookLabel={bookLabel}
             pendingLabel={pendingLabel}
             pendingLabelKey={pendingLabelKey}
+            onRestoringChange={onRestoringChange}
             onRestored={() => {
               setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
             }}
             onSave={() => saveRef.current()}
+            onSaveStay={() => saveRef.current(true)}
             onDiscard={() => {
               setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
@@ -1579,9 +1698,10 @@ export function LanguageView({
           step="core-tts-catalog"
           itemId={normalizeLocale(audioLang)}
           currentVersion={speechCatalogVersion}
-          saving={false}
+          saving={saving || restoring || speechDrafts.size > 0}
           dirty={false}
           bookLabel={bookLabel}
+          onRestoringChange={onRestoringChange}
           onRestored={() => undefined}
           onDiscard={() => undefined}
           diff={{
@@ -1651,14 +1771,7 @@ export function LanguageView({
       <div className="w-px h-4 bg-white/20" />
       <button
         type="button"
-        onClick={() => {
-          if (!canRunStage || isRunning) return;
-          queueRun({
-            fromStage: "translate",
-            toStage: stageSlug as "translate" | "speech",
-            apiKey,
-          });
-        }}
+        onClick={handleRun}
         disabled={!canRunStage || isRunning}
         title={isSpeechStage ? t`Re-run speech` : t`Re-run translation`}
         className="text-white/60 hover:text-white transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-default"
@@ -1681,7 +1794,7 @@ export function LanguageView({
               transcribeAllMutation.mutate(audioLang);
             }}
             disabled={
-              !hasTranscriber ||
+              !hasTranscriber || hasTimestampDraft ||
               totalAudioFiles === 0 ||
               isRunning ||
               transcribeAllMutation.isPending ||
@@ -1707,7 +1820,7 @@ export function LanguageView({
                 return;
               handleDeleteTTS();
             }}
-            disabled={totalAudioFiles === 0 || isRunning}
+            disabled={totalAudioFiles === 0 || isRunning || hasTimestampDraft}
             title={t`Delete all speech`}
             className="text-white/60 hover:text-white transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-default"
           >
@@ -1740,7 +1853,7 @@ export function LanguageView({
     );
   }
 
-  if (showRunCard || !catalog || entries.length === 0) {
+  if ((showRunCard || !catalog || entries.length === 0) && !hasTimestampDraft) {
     return (
       <>
         {headerSlotEl &&
@@ -1894,7 +2007,7 @@ export function LanguageView({
 
   // Language tabs + entries
   return (
-    <>
+    <EditorBusyBoundary busy={restoring}>
       {headerSlotEl &&
         headerControls &&
         createPortal(headerControls, headerSlotEl)}
@@ -1913,8 +2026,8 @@ export function LanguageView({
             <div className="flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
               <div className="text-xs text-amber-900">
                 {isSpeechStage
-                  ? t`${missingForCurrentStage} entry/entries are missing audio. Re-run to generate the missing items.`
-                  : t`${missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items.`}
+                  ? t`${missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items.`
+                  : t`${missingForCurrentStage} language outputs are missing. Re-run to fill the missing items.`}
               </div>
               <Button
                 size="sm"
@@ -1944,7 +2057,7 @@ export function LanguageView({
                     onClick={() =>
                       muteEntries(pageNumberEntries.map((e) => e.id))
                     }
-                    disabled={updateConfig.isPending}
+                    disabled={updateConfig.isPending || hasTimestampDraft}
                   >
                     <VolumeX className="mr-1 h-3 w-3" />
                     {t`Mute all from read-aloud`}
@@ -1980,9 +2093,11 @@ export function LanguageView({
                   <button
                     key={lang}
                     type="button"
-                    onClick={() => setSelectedLang(lang)}
+                    onClick={() => selectLanguage(lang)}
+                    disabled={!isActive && languageSwitchBlocked}
+                    title={!isActive && languageSwitchBlocked ? languageSwitchReason : undefined}
                     className={cn(
-                      "text-xs px-3 rounded-md font-medium transition-colors cursor-pointer text-left",
+                      "text-xs px-3 rounded-md font-medium transition-colors cursor-pointer text-left disabled:cursor-default disabled:opacity-50",
                       isSpeechStage && ttsSummary ? "h-auto py-1.5" : "h-7",
                       isActive
                         ? "bg-foreground text-background"
@@ -2017,6 +2132,9 @@ export function LanguageView({
                   </button>
                 );
               })}
+              {languageSwitchBlocked && (
+                <span className="text-xs text-muted-foreground">{languageSwitchReason}</span>
+              )}
               {!isSpeechStage && (
                 <Link
                   to="/books/$label/$step/settings"
@@ -2083,7 +2201,9 @@ export function LanguageView({
                     size="sm"
                     variant={selectedVoiceSlot === option.slot ? "default" : "ghost"}
                     className="h-7 text-xs"
-                    onClick={() => setSelectedVoiceSlot(option.slot)}
+                    disabled={languageSwitchBlocked}
+                    title={languageSwitchBlocked ? languageSwitchReason : undefined}
+                    onClick={() => { if (!languageSwitchBlocked && speechDraftsRef.current.size === 0) setSelectedVoiceSlot(option.slot); }}
                   >
                     {option.label}
                   </Button>
@@ -2116,7 +2236,8 @@ export function LanguageView({
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setCategoryFilter(key)}
+                    disabled={hasTimestampDraft}
+                    onClick={() => { if (!hasTimestampDraft) setCategoryFilter(key); }}
                     className={cn(
                       "text-xs h-7 px-3 rounded-md font-medium transition-colors cursor-pointer",
                       categoryFilter === key
@@ -2246,6 +2367,7 @@ export function LanguageView({
               </div>
             )}
 
+          {saveError && <p role="alert" className="text-xs text-red-700">{saveError}</p>}
           {!isSourceLang && !isSpeechStage && evaluationStatus?.isStale && (
             <div
               role="status"
@@ -2311,7 +2433,7 @@ export function LanguageView({
             label={t`Resolving source language...`}
           />
         ) : hasReviewResults &&
-          displayEntries.length === 0 &&
+          visibleEntries.length === 0 &&
           categoryFilteredEntries.length > 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
@@ -2330,7 +2452,7 @@ export function LanguageView({
             </p>
           </div>
         ) : selectedPageId &&
-          displayEntries.length === 0 &&
+          visibleEntries.length === 0 &&
           entries.length > 0 ? (
           <StageEmptyState
             icon={isSpeechStage ? AudioLines : Languages}
@@ -2386,10 +2508,13 @@ export function LanguageView({
                 const muteToggle = (
                   <TtsMuteToggle
                     muted={exclusion.excluded}
-                    lockedReason={muteLockedReason}
-                    onToggle={() => toggleEntryMuted(entry.id)}
+                    lockedReason={hasTimestampDraft ? languageSwitchReason : muteLockedReason}
+                    onToggle={() => { if (!hasTimestampDraft) toggleEntryMuted(entry.id); }}
                   />
                 );
+                const audioReview = (language: string | null) => !isSpeechStage && language && !exclusion.excluded ? (
+                  <OutputReview bookLabel={bookLabel} id={entry.id} kinds={["audio"]} language={language} voiceSlot={selectedVoiceSlot} dirty={hasOutputDraft} showMissing={showMissingSpeech} compact />
+                ) : null;
                 // Audio status for the selected language: a recorded failure shows
                 // immediately (even mid-run); plain "no audio" only after a run has
                 // finished. Muting an entry clears both — it no longer needs audio.
@@ -2403,8 +2528,7 @@ export function LanguageView({
                   !exclusion.excluded &&
                   !audio &&
                   !audioFailure &&
-                  !isRunning &&
-                  (stageDone || hasStageError);
+                  showMissingSpeech;
                 // Word-highlighting failed but the audio itself is fine — the
                 // clip plays, it just has no per-word timings. Only shown when
                 // there's no more fundamental audio problem to report.
@@ -2456,6 +2580,7 @@ export function LanguageView({
                     }}
                   >
                     <div className="pb-1">
+                      {isSpeechStage && <OutputReview bookLabel={bookLabel} id={entry.id} kinds={["audio", "timestamps"]} language={audioLang ?? undefined} voiceSlot={selectedVoiceSlot} dirty={hasOutputDraft} showMissing={showMissingSpeech} compact />}
                       {isSourceLang ? (
                         <div
                           className={cn(
@@ -2478,25 +2603,28 @@ export function LanguageView({
                               />
                             )}
                             <div className="flex-1 min-w-0">
-                              <span className="text-[10px] text-muted-foreground">
-                                {entry.id}
-                                {isAnswer && (
-                                  <span className="ml-1.5 text-[9px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5">{t`Answer`}</span>
-                                )}
-                                {exclusion.excluded && (
-                                  <span className="ml-1.5 text-[9px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5">{t`Muted`}</span>
-                                )}
-                                {audioStatusBadges}
-                                <CoreTtsBadges entry={speechEntry} />
-                                {isSpeechStage &&
-                                  audio &&
-                                  !exclusion.excluded && (
-                                    <span className="ml-1.5 text-[9px] text-muted-foreground/60">
-                                      {audio.fileName}
-                                    </span>
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="text-[10px] text-muted-foreground">
+                                  {entry.id}
+                                  {isAnswer && (
+                                    <span className="ml-1.5 text-[9px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5">{t`Answer`}</span>
                                   )}
-                                {muteToggle}
-                              </span>
+                                  {exclusion.excluded && (
+                                    <span className="ml-1.5 text-[9px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5">{t`Muted`}</span>
+                                  )}
+                                  {audioStatusBadges}
+                                  <CoreTtsBadges entry={speechEntry} />
+                                  {isSpeechStage &&
+                                    audio &&
+                                    (!exclusion.excluded || timestampDraftIds.has(entry.id)) && (
+                                      <span className="ml-1.5 text-[9px] text-muted-foreground/60">
+                                        {audio.fileName}
+                                      </span>
+                                    )}
+                                  {muteToggle}
+                                </span>
+                                {audioReview(audioLang)}
+                              </div>
                               <SpeechHighlightedText
                                 text={entry.text}
                                 timestamps={
@@ -2509,8 +2637,14 @@ export function LanguageView({
                               />
                               {audioLang ? (
                                 <CoreTtsSpeechEditor
+                                      restoring={restoring}
+                                  showSpeechStatus={isSpeechStage}
+                                  dirty={hasOutputDraft}
+                                  onEditingChange={onSpeechEditingChange}
                                   bookLabel={bookLabel}
                                   language={audioLang}
+                                  version={speechCatalogFor(audioLang)?.version ?? 0}
+                                  sourceSignature={speechCatalogFor(audioLang)?.sourceSignature ?? ""}
                                   displayText={entry.text}
                                   entry={speechEntry}
                                 />
@@ -2519,16 +2653,16 @@ export function LanguageView({
                           </div>
                           {isSpeechStage &&
                             !isAnswer &&
-                            !exclusion.excluded &&
-                            (audio || !isRunning) && (
+                            (!exclusion.excluded || timestampDraftIds.has(entry.id)) &&
+                            (audio || !isRunning || timestampDraftIds.has(entry.id)) && (
                               <AudioAction
                                 audio={audio}
                                 audioLang={audioLang}
                                 bookLabel={bookLabel}
                                 textId={entry.id}
-                                canGenerate={currentLanguageUsesGemini}
+                                canGenerate={currentLanguageUsesGemini && !hasTimestampDraft}
                                 hasGeminiKey={geminiTtsAvailable}
-                                onGenerate={handleGenerateAudio}
+                                onGenerate={(id) => { if (!hasTimestampDraft) handleGenerateAudio(id); }}
                                 isGenerating={
                                   generateAudioMutation.isPending &&
                                   generateAudioMutation.variables?.textId ===
@@ -2536,7 +2670,7 @@ export function LanguageView({
                                   generateAudioMutation.variables?.language ===
                                     audioLang
                                 }
-                                onUpload={handleUploadAudio}
+                                onUpload={hasTimestampDraft ? undefined : handleUploadAudio}
                                 isUploading={
                                   uploadAudioMutation.isPending &&
                                   uploadAudioMutation.variables?.textId ===
@@ -2548,8 +2682,9 @@ export function LanguageView({
                                   uploadErrorById[entry.id] ??
                                   generateErrorById[entry.id]
                                 }
+                                onTimestampEditingChange={onSpeechEditingChange}
                                 timestamps={selectedTimestampMap[entry.id]}
-                                onTranscribe={handleTranscribe}
+                                onTranscribe={hasTimestampDraft ? undefined : handleTranscribe}
                                 isTranscribing={
                                   transcribeMutation.isPending &&
                                   transcribeMutation.variables?.textId ===
@@ -2564,8 +2699,8 @@ export function LanguageView({
                                   if (!p) setPlayingEntryId(null);
                                   else setPlayingEntryId(entry.id);
                                 }}
-                                onSaveTimestamps={(words, dur) =>
-                                  handleSaveTimestamps(entry.id, words, dur)
+                                onSaveTimestamps={(words, dur, guard) =>
+                                  handleSaveTimestamps(entry.id, words, dur, guard)
                                 }
                                 isSavingTimestamps={
                                   saveTimestampsMutation.isPending &&
@@ -2599,32 +2734,41 @@ export function LanguageView({
                                     }
                                   />
                                 )}
-                                <div className="min-w-0">
-                                  <span className="text-[10px] text-muted-foreground">
-                                    {entry.id}
-                                    {isAnswer && (
-                                      <span className="ml-1.5 text-[9px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5">{t`Answer`}</span>
-                                    )}
-                                    {exclusion.excluded && (
-                                      <span className="ml-1.5 text-[9px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5">{t`Muted`}</span>
-                                    )}
-                                    <CoreTtsBadges entry={sourceSpeechEntry} />
-                                    {isSpeechStage &&
-                                      baseAudio &&
-                                      !exclusion.excluded && (
-                                        <span className="ml-1.5 text-[9px] text-muted-foreground/60">
-                                          {baseAudio.fileName}
-                                        </span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {entry.id}
+                                      {isAnswer && (
+                                        <span className="ml-1.5 text-[9px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5">{t`Answer`}</span>
                                       )}
-                                    {muteToggle}
-                                  </span>
+                                      {exclusion.excluded && (
+                                        <span className="ml-1.5 text-[9px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5">{t`Muted`}</span>
+                                      )}
+                                      <CoreTtsBadges entry={sourceSpeechEntry} />
+                                      {isSpeechStage &&
+                                        baseAudio &&
+                                        (!exclusion.excluded || timestampDraftIds.has(entry.id)) && (
+                                          <span className="ml-1.5 text-[9px] text-muted-foreground/60">
+                                            {baseAudio.fileName}
+                                          </span>
+                                        )}
+                                      {muteToggle}
+                                    </span>
+                                    {audioReview(editingLanguage)}
+                                  </div>
                                   <p className="text-sm leading-relaxed mt-0.5">
                                     {entry.text}
                                   </p>
                                   {editingLanguage ? (
                                     <CoreTtsSpeechEditor
+                                      restoring={restoring}
+                                      showSpeechStatus={isSpeechStage}
+                                      dirty={hasOutputDraft}
+                                      onEditingChange={onSpeechEditingChange}
                                       bookLabel={bookLabel}
                                       language={editingLanguage}
+                                      version={speechCatalogFor(editingLanguage)?.version ?? 0}
+                                      sourceSignature={speechCatalogFor(editingLanguage)?.sourceSignature ?? ""}
                                       displayText={entry.text}
                                       entry={sourceSpeechEntry}
                                     />
@@ -2637,10 +2781,10 @@ export function LanguageView({
                                 baseAudio &&
                                 editingLanguage && (
                                   <WaveformPlayer
-                                    key={`base-${editingLanguage}:${baseAudio.fileName}:${baseAudio.cacheKey ?? ""}`}
+                                    key={`base-${baseAudio.storageLanguage ?? editingLanguage}:${baseAudio.fileName}:${baseAudio.cacheKey ?? ""}`}
                                     audioUrl={getAudioUrl(
                                       bookLabel,
-                                      editingLanguage,
+                                      baseAudio.storageLanguage ?? editingLanguage,
                                       baseAudio.fileName,
                                       baseAudio.cacheKey,
                                     )}
@@ -2682,18 +2826,25 @@ export function LanguageView({
                                     );
                                   })()}
                                 <div className="min-w-0 flex-1">
-                                  <span className="text-[10px] text-muted-foreground">
-                                    &nbsp;
-                                    {audioStatusBadges}
-                                    <CoreTtsBadges entry={speechEntry} />
-                                    {isSpeechStage &&
-                                      audio &&
-                                      !exclusion.excluded && (
-                                        <span className="text-[9px] text-muted-foreground/60">
-                                          {audio.fileName}
-                                        </span>
-                                      )}
-                                  </span>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="text-[10px] text-muted-foreground">
+                                      &nbsp;
+                                      {audioStatusBadges}
+                                      <CoreTtsBadges entry={speechEntry} />
+                                      {isSpeechStage &&
+                                        audio &&
+                                        (!exclusion.excluded || timestampDraftIds.has(entry.id)) && (
+                                          <span className="text-[9px] text-muted-foreground/60">
+                                            {audio.fileName}
+                                          </span>
+                                        )}
+                                    </span>
+                                    {!isSpeechStage && <div className="flex items-center gap-1">
+                                      <OutputReview bookLabel={bookLabel} id={entry.id} kinds={["translation"]} language={selectedLang ?? undefined} dirty={hasOutputDraft}
+                                        edited={!!pendingEntries && (translated ?? "") !== (savedTranslatedMap.get(entry.id) ?? "")} compact />
+                                      {audioReview(audioLang)}
+                                    </div>}
+                                  </div>
                                   {isSpeechStage ? (
                                     <>
                                       <SpeechHighlightedText
@@ -2708,8 +2859,14 @@ export function LanguageView({
                                       />
                                       {audioLang ? (
                                         <CoreTtsSpeechEditor
+                                      restoring={restoring}
+                                          showSpeechStatus={isSpeechStage}
+                                          dirty={hasOutputDraft}
+                                          onEditingChange={onSpeechEditingChange}
                                           bookLabel={bookLabel}
                                           language={audioLang}
+                                          version={speechCatalogFor(audioLang)?.version ?? 0}
+                                          sourceSignature={speechCatalogFor(audioLang)?.sourceSignature ?? ""}
                                           displayText={translated || ""}
                                           entry={speechEntry}
                                         />
@@ -2717,24 +2874,30 @@ export function LanguageView({
                                     </>
                                   ) : (
                                     <>
-                                    <textarea
-                                      value={translated ?? ""}
-                                      onChange={(e) =>
-                                        updateEntry(entry.id, e.target.value)
-                                      }
-                                      placeholder={t`Pending...`}
-                                      className="w-full text-sm leading-relaxed mt-0.5 resize-none rounded border border-transparent bg-transparent p-1.5 -ml-1.5 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground placeholder:italic"
-                                      style={
-                                        {
-                                          fieldSizing: "content",
-                                        } as React.CSSProperties
-                                      }
-                                      rows={1}
-                                    />
+                                      <textarea
+                                        value={translated ?? ""}
+                                        onChange={(e) =>
+                                          updateEntry(entry.id, e.target.value)
+                                        }
+                                        placeholder={t`Pending...`}
+                                        className="w-full text-sm leading-relaxed mt-0.5 resize-none rounded border border-transparent bg-transparent p-1.5 -ml-1.5 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground placeholder:italic"
+                                        style={
+                                          {
+                                            fieldSizing: "content",
+                                          } as React.CSSProperties
+                                        }
+                                        rows={1}
+                                      />
                                       {audioLang ? (
                                         <CoreTtsSpeechEditor
+                                      restoring={restoring}
+                                          showSpeechStatus={isSpeechStage}
+                                          dirty={hasOutputDraft}
+                                          onEditingChange={onSpeechEditingChange}
                                           bookLabel={bookLabel}
                                           language={audioLang}
+                                          version={speechCatalogFor(audioLang)?.version ?? 0}
+                                          sourceSignature={speechCatalogFor(audioLang)?.sourceSignature ?? ""}
                                           displayText={translated || ""}
                                           entry={speechEntry}
                                         />
@@ -2766,16 +2929,16 @@ export function LanguageView({
                               </div>
                               {isSpeechStage &&
                                 !isAnswer &&
-                                !exclusion.excluded &&
-                                (audio || !isRunning) && (
+                                (!exclusion.excluded || timestampDraftIds.has(entry.id)) &&
+                                (audio || !isRunning || timestampDraftIds.has(entry.id)) && (
                                   <AudioAction
                                     audio={audio}
                                     audioLang={audioLang}
                                     bookLabel={bookLabel}
                                     textId={entry.id}
-                                    canGenerate={currentLanguageUsesGemini}
+                                    canGenerate={currentLanguageUsesGemini && !hasTimestampDraft}
                                     hasGeminiKey={geminiTtsAvailable}
-                                    onGenerate={handleGenerateAudio}
+                                    onGenerate={(id) => { if (!hasTimestampDraft) handleGenerateAudio(id); }}
                                     isGenerating={
                                       generateAudioMutation.isPending &&
                                       generateAudioMutation.variables
@@ -2783,7 +2946,7 @@ export function LanguageView({
                                       generateAudioMutation.variables
                                         ?.language === audioLang
                                     }
-                                    onUpload={handleUploadAudio}
+                                    onUpload={hasTimestampDraft ? undefined : handleUploadAudio}
                                     isUploading={
                                       uploadAudioMutation.isPending &&
                                       uploadAudioMutation.variables?.textId ===
@@ -2795,8 +2958,9 @@ export function LanguageView({
                                       uploadErrorById[entry.id] ??
                                       generateErrorById[entry.id]
                                     }
-                                    timestamps={selectedTimestampMap[entry.id]}
-                                    onTranscribe={handleTranscribe}
+                                    onTimestampEditingChange={onSpeechEditingChange}
+                                timestamps={selectedTimestampMap[entry.id]}
+                                    onTranscribe={hasTimestampDraft ? undefined : handleTranscribe}
                                     isTranscribing={
                                       transcribeMutation.isPending &&
                                       transcribeMutation.variables?.textId ===
@@ -2811,8 +2975,8 @@ export function LanguageView({
                                       if (!p) setPlayingEntryId(null);
                                       else setPlayingEntryId(entry.id);
                                     }}
-                                    onSaveTimestamps={(words, dur) =>
-                                      handleSaveTimestamps(entry.id, words, dur)
+                                    onSaveTimestamps={(words, dur, guard) =>
+                                      handleSaveTimestamps(entry.id, words, dur, guard)
                                     }
                                     isSavingTimestamps={
                                       saveTimestampsMutation.isPending &&
@@ -2841,7 +3005,7 @@ export function LanguageView({
           />
         )}
       </div>
-    </>
+    </EditorBusyBoundary>
   );
 }
 
@@ -3079,274 +3243,6 @@ function WaveformPlayer({
 /** Editable timecode field with visible up/down clicker arrows, increments by 0.1.
  * Clamps to [min, max]. Flashes red briefly when the user attempts to push past
  * a bound. */
-function TimecodeInput({
-  value,
-  onChange,
-  min = 0,
-  max = Number.POSITIVE_INFINITY,
-  title,
-  className,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  min?: number;
-  max?: number;
-  title?: string;
-  className?: string;
-}) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const [flash, setFlash] = useState(false);
-  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const display = draft ?? value.toFixed(3);
-
-  useEffect(
-    () => () => {
-      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-    },
-    [],
-  );
-
-  const triggerFlash = () => {
-    setFlash(true);
-    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-    flashTimerRef.current = setTimeout(() => setFlash(false), 400);
-  };
-
-  const tryChange = (requested: number) => {
-    const clamped = Math.max(min, Math.min(max, requested));
-    if (clamped !== value) onChange(clamped);
-    if (Math.abs(clamped - requested) > 1e-6) triggerFlash();
-  };
-
-  const nudge = (direction: 1 | -1) => {
-    const next = Math.round((value + direction * 0.1) * 1000) / 1000;
-    tryChange(next);
-    setDraft(null);
-  };
-
-  return (
-    <span className="inline-flex items-center">
-      <input
-        type="text"
-        inputMode="decimal"
-        value={display}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          if (draft != null) {
-            const v = parseFloat(draft);
-            if (!isNaN(v)) tryChange(v);
-            setDraft(null);
-          }
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.currentTarget.blur();
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            nudge(1);
-          } else if (e.key === "ArrowDown") {
-            e.preventDefault();
-            nudge(-1);
-          }
-        }}
-        title={title}
-        className={cn(className, flash && "!text-red-500 !border-red-500/60")}
-      />
-      <span className="inline-flex flex-col -ml-0.5 shrink-0">
-        <button
-          type="button"
-          tabIndex={-1}
-          onClick={() => nudge(1)}
-          className="flex items-center justify-center w-3 h-2.5 text-muted-foreground/40 hover:text-foreground transition-colors cursor-pointer"
-        >
-          <ChevronUp className="w-2.5 h-2.5" />
-        </button>
-        <button
-          type="button"
-          tabIndex={-1}
-          onClick={() => nudge(-1)}
-          className="flex items-center justify-center w-3 h-2.5 text-muted-foreground/40 hover:text-foreground transition-colors cursor-pointer"
-        >
-          <ChevronDown className="w-2.5 h-2.5" />
-        </button>
-      </span>
-    </span>
-  );
-}
-
-/** Collapsible timestamp detail view — collapsed by default, expandable multi-column table. */
-function WordTimestampViewer({
-  timestamps,
-  onSave,
-  isSaving,
-  columns = 2,
-}: {
-  timestamps: WordTimestampEntry;
-  onSave?: (words: WordTimestamp[], duration: number) => void;
-  isSaving?: boolean;
-  columns?: number;
-}) {
-  const { t } = useLingui();
-  const [expanded, setExpanded] = useState(false);
-  const [editWords, setEditWords] = useState<WordTimestamp[] | null>(null);
-
-  const words = editWords ?? timestamps.words;
-  const dirty = editWords != null;
-
-  const handleExpand = () => {
-    setExpanded(!expanded);
-    setEditWords(null);
-  };
-
-  const updateWord = (index: number, field: "start" | "end", value: number) => {
-    const base = editWords ?? [...timestamps.words];
-    const current = base[index];
-    // Clamp to keep boundaries non-overlapping: start ≥ prev.end and ≤ own end;
-    // end ≥ own start and ≤ next.start. First word's lower bound is 0; last
-    // word's upper bound is unbounded.
-    let clamped = Math.max(0, value);
-    if (field === "start") {
-      const lower = index > 0 ? base[index - 1].end : 0;
-      clamped = Math.max(lower, Math.min(clamped, current.end));
-    } else {
-      const upper =
-        index < base.length - 1
-          ? base[index + 1].start
-          : Number.POSITIVE_INFINITY;
-      clamped = Math.min(upper, Math.max(clamped, current.start));
-    }
-    const updated = base.map((w, i) =>
-      i === index ? { ...w, [field]: clamped } : w,
-    );
-    setEditWords(updated);
-  };
-
-  const handleSave = () => {
-    if (!editWords || !onSave) return;
-    const maxEnd = editWords.reduce((max, w) => Math.max(max, w.end), 0);
-    onSave(editWords, maxEnd);
-    setEditWords(null);
-  };
-
-  // Split words into column chunks for multi-column layout
-  const rowCount = Math.ceil(words.length / columns);
-  const columnChunks: WordTimestamp[][] = [];
-  for (let c = 0; c < columns; c++) {
-    columnChunks.push(words.slice(c * rowCount, (c + 1) * rowCount));
-  }
-
-  const inputClass =
-    "w-14 tabular-nums text-[10px] text-muted-foreground bg-transparent border-b border-transparent hover:border-muted-foreground/30 focus:border-pink-500 focus:outline-none transition-colors text-right appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]";
-
-  return (
-    <div className="mt-1.5">
-      {/* Collapsed summary row */}
-      <button
-        type="button"
-        onClick={handleExpand}
-        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-      >
-        {expanded ? (
-          <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ChevronRight className="h-3 w-3" />
-        )}
-        <Type className="h-3 w-3" />
-        <span>
-          {timestamps.words.length} {t`words`} ·{" "}
-          {timestamps.duration.toFixed(1)}s
-        </span>
-      </button>
-
-      {/* Expanded multi-column table */}
-      {expanded && (
-        <div className="mt-1.5 border rounded-md overflow-hidden">
-          <div className="max-h-56 overflow-y-auto">
-            <div
-              className={cn(
-                "grid gap-x-3",
-                columns === 1 && "grid-cols-1",
-                columns === 2 && "grid-cols-2",
-                columns === 3 && "grid-cols-3",
-                columns >= 4 && "grid-cols-4",
-              )}
-            >
-              {columnChunks.map((chunk, colIdx) => (
-                <div key={colIdx} className={cn(colIdx > 0 && "border-l")}>
-                  {chunk.map((w, rowIdx) => {
-                    const globalIdx = colIdx * rowCount + rowIdx;
-                    const prevEnd =
-                      globalIdx > 0 ? words[globalIdx - 1].end : 0;
-                    const nextStart =
-                      globalIdx < words.length - 1
-                        ? words[globalIdx + 1].start
-                        : Number.POSITIVE_INFINITY;
-                    return (
-                      <div
-                        key={globalIdx}
-                        className={cn(
-                          "flex items-center gap-1 px-1.5 py-0.5 text-xs",
-                          rowIdx > 0 && "border-t",
-                        )}
-                      >
-                        <span className="flex-1 min-w-0 truncate">
-                          {w.word}
-                        </span>
-                        <TimecodeInput
-                          value={w.start}
-                          onChange={(v) => updateWord(globalIdx, "start", v)}
-                          min={prevEnd}
-                          max={w.end}
-                          title={t`Start`}
-                          className={inputClass}
-                        />
-                        <TimecodeInput
-                          value={w.end}
-                          onChange={(v) => updateWord(globalIdx, "end", v)}
-                          min={w.start}
-                          max={nextStart}
-                          title={t`End`}
-                          className={inputClass}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Save/discard bar */}
-          {dirty && onSave && (
-            <div className="flex items-center justify-end gap-1.5 px-2 py-1.5 border-t bg-muted/30">
-              <button
-                type="button"
-                onClick={() => setEditWords(null)}
-                className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                <X className="h-3 w-3" />
-                {t`Discard`}
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex items-center gap-1 text-[10px] font-medium text-pink-600 hover:text-pink-700 transition-colors cursor-pointer disabled:opacity-40"
-              >
-                {isSaving ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Save className="h-3 w-3" />
-                )}
-                {t`Save`}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** Per-entry read-aloud mute toggle. Locked (non-interactive) when the mute
  * comes from a content-type switch or is inherited from the source entry. */
 function TtsMuteToggle({
@@ -3387,7 +3283,7 @@ function TtsMuteToggle({
 }
 
 function AudioAction({
-  audio,
+  audio: fetchedAudio,
   audioLang,
   bookLabel,
   textId,
@@ -3398,7 +3294,8 @@ function AudioAction({
   onUpload,
   isUploading,
   errorMessage,
-  timestamps,
+  timestamps: fetchedTimestamps,
+  onTimestampEditingChange,
   onTranscribe,
   isTranscribing,
   hasTranscriber,
@@ -3408,7 +3305,7 @@ function AudioAction({
   isSavingTimestamps,
   timestampColumns = 2,
 }: {
-  audio?: { fileName: string; voice: string; cacheKey?: string };
+  audio?: { fileName: string; voice: string; cacheKey?: string; storageLanguage?: string };
   audioLang: string | null;
   bookLabel: string;
   textId: string;
@@ -3420,16 +3317,25 @@ function AudioAction({
   isUploading?: boolean;
   errorMessage?: string;
   timestamps?: WordTimestampEntry;
+  onTimestampEditingChange?: (id: string, language: string, editing: boolean) => void;
   onTranscribe?: (textId: string) => void;
   isTranscribing?: boolean;
   hasTranscriber?: boolean;
   onTimeUpdate?: (time: number) => void;
   onPlayingChange?: (playing: boolean) => void;
-  onSaveTimestamps?: (words: WordTimestamp[], duration: number) => void;
+  onSaveTimestamps?: (words: WordTimestamp[], duration: number, guard: WordTimestampEditGuard) => Promise<WordTimestampSaveResponse>;
   isSavingTimestamps?: boolean;
   timestampColumns?: number;
 }) {
   const { t } = useLingui();
+  const [timingDraft, setTimingDraft] = useState(false);
+  const retained = useRef({ audio: fetchedAudio, timestamps: fetchedTimestamps });
+  if (!timingDraft) retained.current = { audio: fetchedAudio, timestamps: fetchedTimestamps };
+  const { audio, timestamps } = retained.current;
+  const timestampEditing = useCallback((id: string, language: string, editing: boolean) => {
+    setTimingDraft(editing);
+    onTimestampEditingChange?.(id, language, editing);
+  }, [onTimestampEditingChange]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -3477,10 +3383,10 @@ function AudioAction({
           <div className="mb-1 flex justify-end">{uploadButton}</div>
         )}
         <WaveformPlayer
-          key={`${audioLang}:${audio.fileName}:${audio.cacheKey ?? ""}`}
+          key={`${audio.storageLanguage ?? audioLang}:${audio.fileName}:${audio.cacheKey ?? ""}`}
           audioUrl={getAudioUrl(
             bookLabel,
-            audioLang,
+            audio.storageLanguage ?? audioLang,
             audio.fileName,
             audio.cacheKey,
           )}
@@ -3489,10 +3395,13 @@ function AudioAction({
         />
         {timestamps ? (
           <WordTimestampViewer
+            bookLabel={bookLabel}
+            onEditingChange={timestampEditing}
+            key={`${bookLabel}:${audioLang}:${textId}:${timestamps.voiceSlot ?? "primary"}`}
             timestamps={timestamps}
             onSave={
               onSaveTimestamps
-                ? (words, duration) => onSaveTimestamps(words, duration)
+                ? (words, duration, guard) => onSaveTimestamps(words, duration, guard)
                 : undefined
             }
             isSaving={isSavingTimestamps}

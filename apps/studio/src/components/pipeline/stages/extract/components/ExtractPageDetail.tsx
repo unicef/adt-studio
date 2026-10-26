@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { EditorBusyBoundary, useVersionRestoreBusy } from "../../../components/version-restore"
 import { AlertTriangle, Check, Crop, Eye, EyeOff, FileText, Image, ImageOff, Layers, Loader2, ChevronDown, Scissors, Square, Type, X } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { usePage, usePageImage } from "@/hooks/use-pages"
@@ -129,7 +130,10 @@ export function ExtractPageDetail({
   const storyboardDone = stageState("storyboard") === "done"
   const metadataRunning = stepState("metadata") === "running"
   const imageFilterRunning = stepState("image-filtering") === "running"
+  const { restoring, restoringRef, onRestoringChange, isCurrent } = useVersionRestoreBusy(JSON.stringify([bookLabel, pageId]))
   const [savingImages, setSavingImages] = useState(false)
+  const savingImagesRef = useRef(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [pendingImageData, setPendingImageData] = useState<ImageClassData | null>(null)
   const [cropTarget, setCropTarget] = useState<string | null>(null)
   const [cropPageSrc, setCropPageSrc] = useState<string | null>(null)
@@ -149,14 +153,18 @@ export function ExtractPageDetail({
   // Clear pending state when page changes
   useEffect(() => {
     setPendingImageData(null)
+    savingImagesRef.current = false
+    setSavingImages(false)
+    setSaveError(null)
     setCropTarget(null)
     setCropPageSrc(null)
     setSegmentingId(null)
     setSegmentPreview(null)
     setSegmentError(null)
-  }, [pageId])
+  }, [bookLabel, pageId])
 
   const handleRecropFromPage = useCallback(async (imageId: string) => {
+    if (restoringRef.current || savingImagesRef.current) return
     try {
       const { imageBase64 } = await api.getPageImage(bookLabel, pageId)
       setCropTarget(imageId)
@@ -167,6 +175,7 @@ export function ExtractPageDetail({
   }, [bookLabel, pageId])
 
   const handleCropApply = useCallback(async (blob: Blob) => {
+    if (restoringRef.current || savingImagesRef.current) return
     if (!cropTarget) return
     try {
       const result = await api.uploadCroppedImage(bookLabel, pageId, cropTarget, blob)
@@ -194,6 +203,7 @@ export function ExtractPageDetail({
   // boxes). The editor always opens: if the LLM detects a composite we seed its
   // boxes, otherwise we seed a single full-image box the user can adjust to crop.
   const handleSegment = useCallback(async (imageId: string) => {
+    if (restoringRef.current || savingImagesRef.current) return
     if (!hasStructuredTextProvider || segmentingId) return
     setSegmentError(null)
     setSegmentingId(imageId)
@@ -227,6 +237,7 @@ export function ExtractPageDetail({
   // images to the image-filtering classification. The original is kept but
   // pruned so it stays inspectable/restorable rather than disappearing).
   const handleSegmentApply = useCallback(async (confirmedRegions: SegmentRegion[]) => {
+    if (restoringRef.current || savingImagesRef.current) return
     if (!segmentPreview) return
     const { imageId } = segmentPreview
     setSegmentError(null)
@@ -293,6 +304,7 @@ export function ExtractPageDetail({
   }, [page?.imagesMeta])
 
   const toggleImagePrune = (imageId: string) => {
+    if (restoringRef.current || savingImagesRef.current) return
     const base = pendingImageData ?? page?.imageClassification
     if (!base) return
     setPendingImageData({
@@ -305,14 +317,23 @@ export function ExtractPageDetail({
   }
 
   const saveImageChanges = async () => {
+    if (restoringRef.current || savingImagesRef.current) throw new Error(t`Please wait for the current operation to finish`)
     if (!pendingImageData || storyboardRunning) return
+    savingImagesRef.current = true
     setSavingImages(true)
+    setSaveError(null)
     const minDelay = new Promise((r) => setTimeout(r, 400))
-    await api.updateImageClassification(bookLabel, pageId, pendingImageData)
-    setPendingImageData(null)
-    await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
-    await minDelay
-    setSavingImages(false)
+    try {
+      await api.updateImageClassification(bookLabel, pageId, pendingImageData)
+      if (isCurrent()) setPendingImageData(null)
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+    } catch (error) {
+      if (isCurrent()) setSaveError(error instanceof Error ? error.message : t`Save failed`)
+      throw error
+    } finally {
+      await minDelay
+      if (isCurrent()) { savingImagesRef.current = false; setSavingImages(false) }
+    }
   }
 
   if (isLoading) {
@@ -331,6 +352,8 @@ export function ExtractPageDetail({
     : null
 
   return (
+    <EditorBusyBoundary busy={restoring || savingImages}>
+    {saveError && <p role="alert" className="p-3 text-xs text-destructive">{saveError}</p>}
     <div className="space-y-2 p-4">
       {storyboardDone && (
         <div className="flex items-center gap-2 rounded border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
@@ -358,13 +381,15 @@ export function ExtractPageDetail({
                   step="image-filtering"
                   itemId={pageId}
                   currentVersion={page.versions.imageClassification}
-                  saving={savingImages}
+                  saving={savingImages || restoring}
                   dirty={imageDirty}
                   bookLabel={bookLabel}
                   pendingLabel={pendingLabel}
                   pendingLabelKey={pendingLabelKey}
+                  onRestoringChange={onRestoringChange}
                   onRestored={() => setPendingImageData(null)}
-                  onSave={saveImageChanges}
+                  onSave={() => saveImageChanges().catch(() => {})}
+                  onSaveStay={saveImageChanges}
                   onDiscard={() => setPendingImageData(null)}
                   diff={{
                     items: (d) => (d as ImageClassData | null)?.images ?? [],
@@ -616,5 +641,6 @@ export function ExtractPageDetail({
         />
       )}
     </div>
+    </EditorBusyBoundary>
   )
 }

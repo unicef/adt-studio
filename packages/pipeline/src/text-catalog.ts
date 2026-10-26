@@ -1,3 +1,5 @@
+import { resolveQuizOptionId } from "@adt/types"
+import { extractImageIds } from "./image-captioning.js"
 import { parseDocument, DomUtils } from "htmlparser2"
 import type {
   WebRenderingOutput,
@@ -17,12 +19,7 @@ import {
 } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
-import { getRenderSectioning } from "./render-sectioning.js"
-
-/** Zero-padded 3-digit number */
-function pad3(n: number): string {
-  return String(n).padStart(3, "0")
-}
+import { withLegacyRenderingOwnership, getRenderSectioning, renderedSectionId, resolveRenderedSection } from "./render-sectioning.js"
 
 /**
  * Like DomUtils.textContent but skips the children of any <script>/<style>
@@ -51,22 +48,25 @@ function textContentExcludingScripts(node: any): string {
  * Walks the DOM looking for elements with data-id attributes.
  * - Non-img elements: extract text content
  * - img elements: look up caption from image-captioning node
- * - activity_gen_* elements: reassign to {pageId}_ac{NNN}
+ * - legacy activity_gen_* elements: scope to their stable owning section
  */
 function extractPageEntries(
   pageId: string,
   rendering: WebRenderingOutput,
   captionMap: Map<string, string>,
-  prunedSectionIndices?: Set<number>,
   sectioning?: PageSectioningOutputType
 ): TextCatalogEntry[] {
   const entries: TextCatalogEntry[] = []
-  let activityCounter = 0
 
-  for (const section of rendering.sections) {
-    if (prunedSectionIndices?.has(section.sectionIndex)) continue
+  for (const section of [...rendering.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)) {
+    const owner = resolveRenderedSection(section, sectioning?.sections, rendering.sections)
+    // Match reader eligibility before deduplication: retained, omitted HTML
+    // must never supply a live owner's text or certify its downstream outputs.
+    if (!owner || owner.isPruned) continue
 
     const doc = parseDocument(section.html)
+    const sectionId = renderedSectionId(section)
+    const location = { pageId, sectionId }
 
     // Only catalog leaves of the data-id tree. A wrapper element with a
     // data-id whose descendants also have data-ids would otherwise emit an
@@ -96,12 +96,15 @@ function extractPageEntries(
         // Look up caption for this image
         const caption = captionMap.get(dataId)
         if (caption) {
-          entries.push({ id: dataId, text: caption })
+          entries.push({ id: dataId, text: caption, locations: [{ ...location, role: "caption" }] })
         }
       } else {
-        // Reassign activity_gen_* IDs to stable page-scoped IDs
+        // Never assign catalog identities by reading position. New generated
+        // activity IDs are persisted before planning; legacy IDs are scoped by
+        // their owning section and cannot inherit positional corrections.
+        if (dataId.startsWith("activity_gen_") && !sectionId) continue
         const id = dataId.startsWith("activity_gen_")
-          ? `${pageId}_ac${pad3(++activityCounter)}`
+          ? `${sectionId ?? pageId}__${dataId}`
           : dataId
 
         // Belt-and-braces: even for non-custom sections, exclude any inline
@@ -110,14 +113,14 @@ function extractPageEntries(
         // the catalog.
         const text = textContentExcludingScripts(el).replace(/\s+/g, " ").trim()
         if (text.length > 0) {
-          entries.push({ id, text })
+          entries.push({ id, text, locations: [{ ...location, role: el.name }] })
         }
       }
     }
 
     // Emit activity answer entries so they appear in the text catalog
     // for viewing, editing, and translation
-    entries.push(...extractAnswerEntries(pageId, section, sectioning))
+    entries.push(...extractAnswerEntries(pageId, section))
   }
 
   return entries
@@ -129,8 +132,7 @@ function extractPageEntries(
  */
 function extractAnswerEntries(
   pageId: string,
-  section: SectionRendering,
-  sectioning?: PageSectioningOutputType
+  section: SectionRendering
 ): TextCatalogEntry[] {
   const answers = section.activityAnswers
   if (!answers || Object.keys(answers).length === 0) return []
@@ -139,14 +141,14 @@ function extractAnswerEntries(
   // from an array position. With no sectioning row to read the real id from,
   // a guessed `_secNNN` would likely belong to a *different* section — and
   // these ids key the answers' translations and generated audio. Skip instead.
-  const sectionId = sectioning?.sections[section.sectionIndex]?.sectionId
+  const sectionId = renderedSectionId(section)
   if (!sectionId) return []
 
   const entries: TextCatalogEntry[] = []
   for (const [key, value] of Object.entries(answers)) {
     const text = String(value)
     if (text.length > 0) {
-      entries.push({ id: answerTextId(sectionId, key), text })
+      entries.push({ id: answerTextId(sectionId, key.startsWith("activity_gen_") ? `${sectionId}__${key}` : key), text, locations: [{ pageId, sectionId, role: "answer" }] })
     }
   }
   return entries
@@ -157,17 +159,16 @@ function extractAnswerEntries(
  */
 function loadCaptionMap(
   storage: Storage,
-  pageId: string
+  pageId: string,
+  imageIds: string[],
 ): Map<string, string> {
   const map = new Map<string, string>()
-  const row = storage.getLatestNodeData("image-captioning", pageId)
-  if (!row) return map
-
-  const data = row.data as ImageCaptioningOutput
-  if (data.captions) {
-    for (const caption of data.captions) {
-      map.set(caption.imageId, caption.caption)
-    }
+  const byOwner = new Map<string, ImageCaptioningOutput | undefined>()
+  for (const id of imageIds) {
+    const owner = storage.getImageMeta?.(id)?.pageId ?? pageId
+    if (!byOwner.has(owner)) byOwner.set(owner, storage.getLatestNodeData("image-captioning", owner)?.data as ImageCaptioningOutput | undefined)
+    const caption = byOwner.get(owner)?.captions?.find((entry) => entry.imageId === id)
+    if (caption) map.set(id, caption.decorative ? "" : caption.caption)
   }
   return map
 }
@@ -187,8 +188,10 @@ function buildGlossaryEntries(storage: Storage): TextCatalogEntry[] {
     const item = data.items[i]
     if (item.pruned) continue
     const id = getGlossaryItemTextId(item, i)
-    entries.push({ id, text: item.word })
-    entries.push({ id: `${id}_def`, text: item.definition })
+    entries.push({ id, text: item.word, locations: [{ group: "glossary", role: "word" }] })
+    entries.push({ id: `${id}_def`, text: item.definition, locations: [{ group: "glossary", role: "definition" }] })
+    // Glossary images require captions in the inventory, but glossary output
+    // has no caption text/audio consumer. Storyboard references add those.
   }
   return entries
 }
@@ -208,12 +211,12 @@ function buildQuizEntries(storage: Storage): TextCatalogEntry[] {
   for (let i = 0; i < data.quizzes.length; i++) {
     const quiz = data.quizzes[i]
     const qid = resolveQuizId(quiz, i)
-    entries.push({ id: `${qid}_que`, text: quiz.question })
+    entries.push({ id: `${qid}_que`, text: quiz.question, locations: [{ group: "quizzes", role: "question" }] })
 
     for (let j = 0; j < quiz.options.length; j++) {
       const option = quiz.options[j]
-      entries.push({ id: `${qid}_o${j}`, text: option.text })
-      entries.push({ id: `${qid}_o${j}_exp`, text: option.explanation })
+      entries.push({ id: resolveQuizOptionId(option, qid, j), text: option.text, locations: [{ group: "quizzes", role: "option" }] })
+      entries.push({ id: `${resolveQuizOptionId(option, qid, j)}_exp`, text: option.explanation, locations: [{ group: "quizzes", role: "explanation" }] })
     }
   }
   return entries
@@ -228,6 +231,20 @@ export async function buildTextCatalog(
   storage: Storage,
   pages: PageData[]
 ): Promise<TextCatalogOutput> {
+  return buildTextCatalogSnapshot(storage, pages)
+}
+
+/** Cosmetic edits may retain a legacy conflict, but must not introduce a new
+ * divergent value under an existing identity. Shared by editor and assistant. */
+export function findIntroducedCatalogConflict(
+  before: TextCatalogOutput["conflicts"],
+  after: TextCatalogOutput["conflicts"],
+) {
+  return after?.find(conflict => !before?.some(previous => previous.id === conflict.id && conflict.texts.every(text => previous.texts.includes(text))))
+}
+
+/** Synchronous snapshot for atomic authored-save/catalog reconciliation. */
+export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): TextCatalogOutput {
   const entries: TextCatalogEntry[] = []
 
   // Page text + image captions
@@ -242,24 +259,15 @@ export async function buildTextCatalog(
     // so fixed-layout books read the positioned tree whose ids/section count
     // match the rendered HTML (1 section/page), not the semantic tree.
     const sectioning = getRenderSectioning(storage, page.pageId)
-    const prunedIndices = new Set<number>()
-    if (sectioning) {
-      sectioning.sections.forEach((s: { isPruned: boolean }, i: number) => {
-        if (s.isPruned) prunedIndices.add(i)
-      })
-    }
 
-    const captionMap = loadCaptionMap(storage, page.pageId)
+    const captionMap = loadCaptionMap(storage, page.pageId, extractImageIds(parsed.data.sections.map((section) => section.html)))
     entries.push(...extractPageEntries(
       page.pageId,
-      parsed.data,
+      withLegacyRenderingOwnership(storage, page.pageId, parsed.data),
       captionMap,
-      prunedIndices,
       sectioning
     ))
 
-    // Yield to event loop so the server stays responsive during large books
-    await new Promise(resolve => setTimeout(resolve, 0))
   }
 
   // Glossary
@@ -268,8 +276,26 @@ export async function buildTextCatalog(
   // Quizzes
   entries.push(...buildQuizEntries(storage))
 
+  const byId = new Map<string, TextCatalogEntry>()
+  for (const entry of entries) {
+    const previous = byId.get(entry.id)
+    if (previous) previous.locations = [...(previous.locations ?? []), ...(entry.locations ?? [])]
+    else byId.set(entry.id, entry)
+  }
+  const texts = new Map<string, Set<string>>()
+  for (const entry of entries) {
+    const values = texts.get(entry.id) ?? new Set<string>()
+    values.add(entry.text)
+    texts.set(entry.id, values)
+  }
+  const conflicts = [...texts].filter(([, values]) => values.size > 1).map(([id, values]) => ({
+    id, texts: [...values], locations: byId.get(id)!.locations,
+    pageIds: [...new Set(byId.get(id)!.locations?.flatMap((location) => location.pageId ? [location.pageId] : []) ?? [])],
+    sectionIds: [...new Set(byId.get(id)!.locations?.flatMap((location) => location.sectionId ? [location.sectionId] : []) ?? [])],
+  }))
   return {
-    entries,
+    entries: [...byId.values()],
     generatedAt: new Date().toISOString(),
+    ...(conflicts.length ? { conflicts } : {}),
   }
 }

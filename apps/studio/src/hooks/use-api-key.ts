@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 import { safeParseModelId } from "@adt/types"
 import { useProviderCredentials } from "./use-provider-credentials"
-import { useEffectiveDefaultModel } from "./use-effective-default-model"
+import { resolveEffectiveDefaultModel, useEffectiveDefaultModel } from "./use-effective-default-model"
 import { useActiveConfig } from "./use-debug"
 
 /**
@@ -14,6 +14,34 @@ export function useBookStructuredTextAvailability(bookLabel: string): boolean {
   const { isAvailable } = useProviderCredentials()
   const effectiveModel = useEffectiveDefaultModel(bookLabel)
   return isAvailable("structured-text", effectiveModel)
+}
+
+/**
+ * Same check, plus whether it can be trusted yet. `ready` is false while the
+ * provider list or the book's config is still loading, and when either failed
+ * to load (a failed config would fall back to the global default model and
+ * misjudge a book set to another provider); UI that announces a missing
+ * provider should wait for it so users with a key never see a false "no
+ * provider".
+ */
+export function useBookStructuredTextStatus(bookLabel: string): { available: boolean; ready: boolean } {
+  const { isAvailable, isLoading, error } = useProviderCredentials()
+  const config = useActiveConfig(bookLabel)
+  const effectiveModel = resolveEffectiveDefaultModel(config.data)
+  return {
+    available: isAvailable("structured-text", effectiveModel),
+    ready: !isLoading && !error && !config.isLoading && !config.error,
+  }
+}
+
+/**
+ * True once the provider list has loaded and no provider can run text steps
+ * on the global default model. False while loading or on a failed load, so
+ * prompts asking the user to connect a provider never flash.
+ */
+export function useNeedsTextProvider(): boolean {
+  const { isAvailable, isLoading, error } = useProviderCredentials()
+  return !isLoading && !error && !isAvailable("structured-text")
 }
 
 /**

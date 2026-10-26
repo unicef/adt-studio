@@ -2,6 +2,7 @@ import { BrowserWindow, shell } from "electron";
 import { join } from "path";
 import { is } from "@electron-toolkit/utils";
 import { STUDIO_APP_ORIGIN } from "../protocols/studio-app";
+import { getExternalUrlProtocol, isAllowedExternalUrl } from "./external-url";
 
 export const ONBOARDING_WINDOW_WIDTH = 900;
 export const ONBOARDING_WINDOW_HEIGHT = 620;
@@ -40,7 +41,13 @@ export function createOnboardingWindow(): BrowserWindow {
   });
 
   onboardingWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
+    if (isAllowedExternalUrl(details.url)) {
+      shell.openExternal(details.url);
+    } else {
+      console.warn(
+        `Blocked external URL with scheme: ${getExternalUrlProtocol(details.url) ?? "invalid"}`,
+      );
+    }
     return { action: "deny" };
   });
 

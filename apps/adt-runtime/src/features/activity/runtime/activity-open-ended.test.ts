@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { getDefaultStore } from "jotai"
 import { initializeOpenEndedActivity } from "./activity-open-ended"
 import {
@@ -9,6 +9,8 @@ import {
   validateHandlerAtom,
 } from "../state/activity.atoms"
 import { pagesAtom, currentSectionIdAtom } from "../../navigation/state/nav.atoms"
+
+import { TextValidator } from "../lib/text-validator"
 
 const store = getDefaultStore()
 
@@ -184,4 +186,49 @@ describe("initializeOpenEndedActivity", () => {
     const restored = document.querySelector<HTMLInputElement>("input")!
     expect(restored.value).toBe("Maria")
   })
+})
+
+it.each(["navigation", "edit"])("ignores an asynchronous open-ended result after %s", async (action) => {
+  const { shortInput, longInput } = setupSection()
+  shortInput.value = "Maria"
+  longInput.value = "I enjoyed the story."
+  const cleanup = initializeOpenEndedActivity()
+  let finish!: (value: boolean) => void
+  const validation = vi.spyOn(TextValidator.prototype, "isValidText").mockImplementation(() => new Promise<boolean>((resolve) => { finish = resolve }))
+  store.get(validateHandlerAtom)?.()
+  if (action === "navigation") {
+    cleanup?.()
+    document.body.innerHTML = "<main>New page</main>"
+    store.set(submitStateAtom, "submit")
+  } else {
+    shortInput.value = ""
+    shortInput.dispatchEvent(new Event("input", { bubbles: true }))
+  }
+  // Release the first input and allow any subsequent validation to finish.
+  validation.mockResolvedValue(true)
+  finish(true)
+  await flushMicrotasks()
+  expect(store.get(submitStateAtom)).toBe("submit")
+  cleanup?.()
+  validation.mockRestore()
+})
+
+it.each([null, "", "unknown", "text"])("accepts a legacy open-ended control with type %s and excludes non-text controls", async (type) => {
+  const { shortInput, longInput } = setupSection()
+  if (type === null) shortInput.removeAttribute("type")
+  else shortInput.setAttribute("type", type)
+  longInput.remove()
+  shortInput.insertAdjacentHTML("afterend", '<input type="hidden"><input type="checkbox"><input type="number">')
+  const cleanup = initializeOpenEndedActivity()
+  try {
+    shortInput.value = "Maria"
+    shortInput.dispatchEvent(new Event("input", { bubbles: true }))
+    expect(store.get(submitEnabledAtom)).toBe(true)
+    store.get(validateHandlerAtom)?.()
+    await flushMicrotasks()
+    expect(store.get(submitStateAtom)).toBe("next")
+    expect(shortInput.getAttribute("type")).toBe(type)
+  } finally {
+    cleanup?.()
+  }
 })
