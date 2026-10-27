@@ -68,8 +68,7 @@ import {
   buildMeaningfulnessImages,
   dedupAutoFigureCandidatesInStorage,
   filterPageImageMeaningfulness,
-  planHashDedup,
-  excludeDuplicates,
+  buildHashDedupPlan,
   applyHashDedupVerdicts,
   buildMeaningfulnessConfig,
 } from "./image-meaningfulness.js"
@@ -462,17 +461,14 @@ export async function runFullPipeline(
       const classificationOf = (pageId: string) =>
         storage.getLatestNodeData("image-filtering", pageId)?.data as ImageClassificationOutput | undefined
       // Identical bytes on several pages are judged once; see planHashDedup.
-      const dedupPlan = planHashDedup(
-        pages.flatMap((page) => {
-          const classification = classificationOf(page.pageId)
-          return classification ? [{ pageId: page.pageId, images: storage.getPageImages(page.pageId), classification }] : []
-        }),
-      )
+      const dedupPlan = buildHashDedupPlan(storage, pages, classificationOf)
+      const judgedPages = new Set<string>()
+      try {
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
         let imageResult = classRow.data as ImageClassificationOutput
-        const unprunedImages = excludeDuplicates(buildMeaningfulnessImages(storage, page.pageId, imageResult), dedupPlan)
+        const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, imageResult, dedupPlan)
         if (unprunedImages.length > 0) {
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
           imageResult = await filterPageImageMeaningfulness(
@@ -488,6 +484,7 @@ export async function runFullPipeline(
           )
           storage.putNodeData("image-filtering", page.pageId, imageResult)
         }
+        judgedPages.add(page.pageId)
         p.emit({
           type: "step-progress",
           step: "image-meaningfulness",
@@ -496,8 +493,11 @@ export async function runFullPipeline(
           totalPages,
         })
       })
-      for (const [pageId, updated] of applyHashDedupVerdicts(dedupPlan, classificationOf)) {
-        storage.putNodeData("image-filtering", pageId, updated)
+      } finally {
+        // Owners judged before a failure still settle their duplicates.
+        for (const [pageId, updated] of applyHashDedupVerdicts(dedupPlan, classificationOf, judgedPages)) {
+          storage.putNodeData("image-filtering", pageId, updated)
+        }
       }
     })
 

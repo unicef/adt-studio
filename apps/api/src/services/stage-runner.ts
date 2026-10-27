@@ -124,8 +124,7 @@ import {
   readTypeScale,
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
-  planHashDedup,
-  excludeDuplicates,
+  buildHashDedupPlan,
   applyHashDedupVerdicts,
   buildMeaningfulnessConfig,
   buildMeaningfulnessImages,
@@ -3845,12 +3844,8 @@ async function runMeaningfulnessPass(
   progress.emit({ type: "step-start", step: "image-meaningfulness" })
   // Identical bytes on several pages are judged once: only the first copy
   // goes to the model, and its verdict is copied onto the others afterwards.
-  const dedupPlan = planHashDedup(
-    pages.flatMap((page) => {
-      const classification = results.get(page.pageId)
-      return classification ? [{ pageId: page.pageId, images: storage.getPageImages(page.pageId), classification }] : []
-    }),
-  )
+  const dedupPlan = buildHashDedupPlan(storage, pages, (pageId) => results.get(pageId))
+  const judgedPages = new Set<string>()
   await processWithConcurrency(
     pages,
     concurrency,
@@ -3868,7 +3863,7 @@ async function runMeaningfulnessPass(
       return
     }
     try {
-      const unprunedImages = excludeDuplicates(buildMeaningfulnessImages(storage, page.pageId, existing), dedupPlan)
+      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing, dedupPlan)
 
       if (unprunedImages.length > 0) {
         const updated = await filterPageImageMeaningfulness(
@@ -3885,6 +3880,7 @@ async function runMeaningfulnessPass(
         results.set(page.pageId, updated)
         storage.putNodeData("image-filtering", page.pageId, updated)
       }
+      judgedPages.add(page.pageId)
     } catch (err) {
       console.error(`[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${toErrorMessage(err)}`)
       await reportPageFailure(deps, progress, "image-meaningfulness", page.pageId, err)
@@ -3901,9 +3897,11 @@ async function runMeaningfulnessPass(
     },
     { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate },
   )
-  for (const [pageId, updated] of applyHashDedupVerdicts(dedupPlan, (id) => results.get(id))) {
-    results.set(pageId, updated)
-    storage.putNodeData("image-filtering", pageId, updated)
+  if (!deps.stepController.signal.aborted) {
+    for (const [pageId, updated] of applyHashDedupVerdicts(dedupPlan, (id) => results.get(id), judgedPages)) {
+      results.set(pageId, updated)
+      storage.putNodeData("image-filtering", pageId, updated)
+    }
   }
   const failed = deps.failedPages.some((f) => f.step === "image-meaningfulness")
   if (!failed && !deps.stepController.signal.aborted) {

@@ -11,7 +11,7 @@ import {
 } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import type { ExtractionDebugOutput } from "@adt/pdf"
-import type { Storage } from "@adt/storage"
+import type { ImageData, Storage } from "@adt/storage"
 import { resolveFigureExtractionMode } from "./pdf-extraction.js"
 
 export interface FigureExtractionContext {
@@ -126,13 +126,16 @@ export function buildMeaningfulnessImages(
   storage: Storage,
   pageId: string,
   classification: ImageClassificationOutput,
+  dedupPlan?: HashDedupPlan,
 ): MeaningfulnessImageInput[] {
   const unprunedIds = new Set(
     classification.images.filter((img) => !img.isPruned).map((img) => img.imageId)
   )
+  // Duplicates leave before the figure cross-references are built, so the
+  // model is never pointed at an image it cannot see.
   const raw = storage
     .getPageImages(pageId)
-    .filter((img) => unprunedIds.has(img.imageId))
+    .filter((img) => unprunedIds.has(img.imageId) && !dedupPlan?.ownerByImageId.has(img.imageId))
     .map((img) => ({
       imageId: img.imageId,
       imageBase64: storage.getImageBase64(img.imageId),
@@ -366,6 +369,11 @@ export async function filterPageImageMeaningfulness(
  * the first unpruned image with the same hash in page order, so only owners
  * are sent; after the pass the owner's verdict is copied onto its duplicates
  * with a reason that names the owner, so the decision stays inspectable.
+ *
+ * Only images that take no part in figure arbitration on their page join the
+ * plan: a composite candidate or a raster covered by one is judged with its
+ * page-local evidence as before, because the auto guard and the artwork dedup
+ * reason about images that must all be in the same model call.
  */
 export interface HashDedupPlan {
   /** Duplicate image id → owner image id. */
@@ -376,31 +384,62 @@ export interface HashDedupPlan {
 
 export interface HashDedupPage {
   pageId: string
-  images: Array<{ imageId: string; hash?: string }>
+  images: ImageData[]
   classification: ImageClassificationOutput
+  /** Image ids the page's figure extraction groups or covers; never deduplicated. */
+  figureInvolvedIds?: Iterable<string>
 }
 
-/** Shared prefix so the report and future passes recognise propagated verdicts. */
+/** Shared prefix so the report and later passes recognise propagated verdicts. */
 export const DUPLICATE_OF_PREFIX = "duplicate of "
+const MODEL_PRUNE_PREFIX = "not meaningful: "
+
+/** Every image id a page's extraction debug ties to a figure candidate. */
+export function figureInvolvedImageIds(debug: ExtractionDebugOutput | undefined): Set<string> {
+  const ids = new Set<string>()
+  for (const group of debug?.groups ?? []) {
+    ids.add(group.imageId)
+    for (const coveredId of group.coveredRasterImageIds ?? []) ids.add(coveredId)
+  }
+  return ids
+}
 
 export function planHashDedup(pages: HashDedupPage[]): HashDedupPlan {
-  const ownerByHash = new Map<string, { imageId: string; pageId: string }>()
+  const ownerByHash = new Map<string, string>()
   const plan: HashDedupPlan = { ownerByImageId: new Map(), pageByImageId: new Map() }
   for (const page of pages) {
     const unpruned = new Set(page.classification.images.filter((img) => !img.isPruned).map((img) => img.imageId))
+    const figureInvolved = new Set(page.figureInvolvedIds ?? [])
     const images = [...page.images].sort((a, b) => a.imageId.localeCompare(b.imageId))
     for (const image of images) {
-      if (!image.hash || !unpruned.has(image.imageId)) continue
-      const owner = ownerByHash.get(image.hash)
-      if (!owner) {
-        ownerByHash.set(image.hash, { imageId: image.imageId, pageId: page.pageId })
-      } else {
-        plan.ownerByImageId.set(image.imageId, owner.imageId)
-      }
+      if (!image.hash || !unpruned.has(image.imageId) || figureInvolved.has(image.imageId)) continue
+      const ownerId = ownerByHash.get(image.hash)
+      if (ownerId === undefined) ownerByHash.set(image.hash, image.imageId)
+      else plan.ownerByImageId.set(image.imageId, ownerId)
       plan.pageByImageId.set(image.imageId, page.pageId)
     }
   }
   return plan
+}
+
+/** Build the plan for a book from storage: one read of images and debug per page. */
+export function buildHashDedupPlan(
+  storage: Storage,
+  pages: Array<{ pageId: string }>,
+  classificationOf: (pageId: string) => ImageClassificationOutput | undefined,
+): HashDedupPlan {
+  return planHashDedup(
+    pages.flatMap((page) => {
+      const classification = classificationOf(page.pageId)
+      if (!classification) return []
+      return [{
+        pageId: page.pageId,
+        images: storage.getPageImages(page.pageId),
+        classification,
+        figureInvolvedIds: figureInvolvedImageIds(getExtractionDebug(storage, page.pageId)),
+      }]
+    }),
+  )
 }
 
 /** The images a page should send to the model: its owners, never its duplicates. */
@@ -409,9 +448,13 @@ export function excludeDuplicates<T extends { imageId: string }>(images: T[], pl
 }
 
 /**
- * Copy owner verdicts onto a page's duplicates. A duplicate whose owner has no
- * verdict yet (its page failed or was skipped) is left as it was, so it is
- * never pruned on missing evidence. Returns the same object when nothing changed.
+ * Copy owner verdicts onto a page's duplicates. Only a model verdict travels:
+ * an owner the model rejected prunes its duplicates with the same reasoning,
+ * an owner the model accepted keeps them. An owner on a page that did not
+ * complete the pass, or one decided by page-local evidence, has no verdict to
+ * share; its duplicates stay unpruned and say why, so nothing is pruned on
+ * missing evidence and the gap is visible. Returns the same object when
+ * nothing changed.
  */
 export function propagateDuplicateVerdicts(
   classification: ImageClassificationOutput,
@@ -424,27 +467,37 @@ export function propagateDuplicateVerdicts(
     const ownerId = plan.ownerByImageId.get(img.imageId)
     if (!ownerId) return img
     const owner = verdictOf(ownerId)
-    if (!owner) return img
     changed = true
-    return owner.isPruned
-      ? { imageId: img.imageId, isPruned: true, reason: `${DUPLICATE_OF_PREFIX}${ownerId}: ${owner.reason ?? "pruned"}` }
-      : { imageId: img.imageId, isPruned: false, reason: `${DUPLICATE_OF_PREFIX}${ownerId}: kept with it` }
+    if (!owner) return { imageId: img.imageId, isPruned: false, reason: `${DUPLICATE_OF_PREFIX}${ownerId}: owner was not judged, kept` }
+    if (owner.isPruned && owner.reason?.startsWith(MODEL_PRUNE_PREFIX)) {
+      return { imageId: img.imageId, isPruned: true, reason: `${DUPLICATE_OF_PREFIX}${ownerId}: ${owner.reason}` }
+    }
+    if (owner.isPruned) return { imageId: img.imageId, isPruned: false, reason: `${DUPLICATE_OF_PREFIX}${ownerId}: owner pruned by page-local evidence, kept` }
+    return { imageId: img.imageId, isPruned: false, reason: `${DUPLICATE_OF_PREFIX}${ownerId}: kept with it` }
   })
   return changed ? { images } : classification
 }
 
 /**
- * Apply the plan to every page after the pass: returns the pages whose
- * classification changed, ready to be persisted by the caller.
+ * Apply the plan to every page with duplicates after the pass. `judgedPages`
+ * are the pages whose model call completed; an owner on any other page has no
+ * verdict. Returns the pages whose classification changed, for the caller to
+ * persist.
  */
 export function applyHashDedupVerdicts(
   plan: HashDedupPlan,
   getClassification: (pageId: string) => ImageClassificationOutput | undefined,
+  judgedPages: ReadonlySet<string>,
 ): Map<string, ImageClassificationOutput> {
+  const loaded = new Map<string, ImageClassificationOutput | undefined>()
+  const classificationOf = (pageId: string) => {
+    if (!loaded.has(pageId)) loaded.set(pageId, getClassification(pageId))
+    return loaded.get(pageId)
+  }
   const verdictOf = (ownerId: string): ImageClassificationResult | undefined => {
     const pageId = plan.pageByImageId.get(ownerId)
-    if (!pageId) return undefined
-    return getClassification(pageId)?.images.find((img) => img.imageId === ownerId)
+    if (!pageId || !judgedPages.has(pageId)) return undefined
+    return classificationOf(pageId)?.images.find((img) => img.imageId === ownerId)
   }
   const updated = new Map<string, ImageClassificationOutput>()
   const pagesWithDuplicates = new Set<string>()
@@ -453,7 +506,7 @@ export function applyHashDedupVerdicts(
     if (pageId) pagesWithDuplicates.add(pageId)
   }
   for (const pageId of pagesWithDuplicates) {
-    const current = getClassification(pageId)
+    const current = classificationOf(pageId)
     if (!current) continue
     const next = propagateDuplicateVerdicts(current, plan, verdictOf)
     if (next !== current) updated.set(pageId, next)
