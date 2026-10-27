@@ -226,9 +226,17 @@ export function parseSectionId(
  */
 export function sectionLocation(
   sectionId: string,
-): { pageNumber: number; sectionNumber: number } | null {
+): { pageNumber: number; lastPageNumber?: number; sectionNumber: number } | null {
   const parsed = parseSectionId(sectionId)
   if (parsed === null) return null
+  /** A spread's id joins its two padded page numbers — `pg014015` is pages 14–15 — so read as
+   *  one number it became page 14015. */
+  const spread = /^pg(\d{3})(\d{3})$/.exec(parsed.pageId)
+  if (spread !== null) {
+    const first = Number(spread[1])
+    const last = Number(spread[2])
+    if (first > 0 && last > first) return { pageNumber: first, lastPageNumber: last, sectionNumber: parsed.sectionIndex + 1 }
+  }
   const digits = /(\d+)\s*$/.exec(parsed.pageId)
   if (digits === null) return null
   const pageNumber = Number(digits[1])

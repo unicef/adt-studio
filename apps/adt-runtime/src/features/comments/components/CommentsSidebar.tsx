@@ -83,10 +83,14 @@ export function CommentsSidebar({
   const labels = {
     unknown: t("comments-presence-unknown-page-label"),
     page: (number: number) => t("comments-presence-page-label", { number: String(number) }),
+    pages: (first: number, last: number) =>
+      t("comments-presence-pages-label", { first: String(first), last: String(last) }),
     /** Comment rows say page *and* section: two comments on one page are otherwise given the
      *  same address, and the section is what the filename and the URL already carry. */
     pageSection: (page: number, section: number) =>
       t("comments-page-section-label", { page: String(page), section: String(section) }),
+    pagesSection: (first: number, last: number, section: number) =>
+      t("comments-pages-section-label", { first: String(first), last: String(last), section: String(section) }),
   }
 
   /**

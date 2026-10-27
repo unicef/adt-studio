@@ -8334,6 +8334,12 @@ msgstr "Pages {0}"
 msgid "Pages {0}–{1}"
 msgstr "Pages {0}–{1}"
 
+#. placeholder {0}: at.pageNumber
+#. placeholder {1}: at.lastPageNumber
+#. placeholder {2}: at.sectionNumber
+msgid "Pages {0}–{1} · Section {2}"
+msgstr "Pages {0}–{1} · Section {2}"
+
 #. placeholder {0}: preview.range.startPage
 #. placeholder {1}: preview.range.endPage
 #. placeholder {2}: preview.pageCount

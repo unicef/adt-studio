@@ -150,6 +150,9 @@ export function usePageLabel() {
       if (quiz) return quiz.number === null ? t`A quiz` : t`Quiz ${quiz.number}`
       const at = sectionLocation(sectionId)
       if (at === null) return t`Somewhere in the book`
+      if (at.lastPageNumber !== undefined) {
+        return t`Pages ${at.pageNumber}–${at.lastPageNumber} · Section ${at.sectionNumber}`
+      }
       return t`Page ${at.pageNumber} · Section ${at.sectionNumber}`
     },
     [t],

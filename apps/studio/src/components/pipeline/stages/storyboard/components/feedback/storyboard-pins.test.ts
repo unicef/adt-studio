@@ -197,4 +197,10 @@ describe("sectionLocation", () => {
       expect(sectionLocation(bad)).toBeNull()
     }
   })
+
+  /** Seen on a real spread book: the dashboard said "Page 14015 · Section 1". */
+  it("reads both pages of a two-page spread", () => {
+    expect(sectionLocation("pg014015_sec001")).toEqual({ pageNumber: 14, lastPageNumber: 15, sectionNumber: 1 })
+    expect(sectionLocation("pg016017_sec002")).toEqual({ pageNumber: 16, lastPageNumber: 17, sectionNumber: 2 })
+  })
 })
