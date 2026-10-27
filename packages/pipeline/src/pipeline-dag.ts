@@ -353,8 +353,8 @@ export async function runFullPipeline(
     })
 
     executors.set("image-segmentation", async (p) => {
-      const failures: ImagePassFailure[] = []
       if (!segmentationConfig) return
+      const failures: ImagePassFailure[] = []
       const model = getModel(segmentationConfig.modelId)
       const pages = storage.getPages()
       const totalPages = pages.length

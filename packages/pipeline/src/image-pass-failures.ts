@@ -14,7 +14,7 @@ const MAX_LISTED_PAGES = 5
 const MAX_ERROR_CHARS = 120
 
 /** Error text for a thrown value; thrown non-Errors are stringified. */
-export function errorText(err: unknown): string {
+function errorText(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 

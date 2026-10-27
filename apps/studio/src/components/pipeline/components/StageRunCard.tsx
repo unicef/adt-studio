@@ -15,6 +15,7 @@ import {
   getStepLabelI18n,
 } from "../pipeline-i18n"
 import { useBookRun } from "@/hooks/use-book-run"
+import { isAttentionNote } from "./step-notes"
 import { useLingui } from "@lingui/react/macro"
 
 export interface StageSubStep {
@@ -208,7 +209,7 @@ export function StageRunCard({
                   {isError && errorMsg && (
                     <p className="text-[10px] text-red-400 pl-6 truncate" title={errorMsg}>{errorMsg}</p>
                   )}
-                  {isDone && completionNote && (
+                  {isDone && completionNote && isAttentionNote(completionNote) && (
                     <p className="text-[10px] text-amber-600 pl-6 truncate" title={completionNote}>{completionNote}</p>
                   )}
                 </div>

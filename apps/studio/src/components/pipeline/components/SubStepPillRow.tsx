@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { isAttentionNote } from "./step-notes"
 
 export function SubStepPillRow({
   subSteps,
@@ -267,7 +268,9 @@ function SubStepPopoverCard({
             </div>
           )}
           {isDone && completionNote && (
-            <p className="text-[10.5px] leading-relaxed text-amber-700">{completionNote}</p>
+            <p className={cn("text-[10.5px] leading-relaxed break-words", isAttentionNote(completionNote) ? "text-amber-700" : "text-muted-foreground")}>
+              {completionNote}
+            </p>
           )}
           {isError && errorMessage && (
             <p className="break-words text-[10.5px] leading-snug text-red-700">

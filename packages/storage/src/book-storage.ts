@@ -441,18 +441,12 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     markStepCompleted(step: string, message?: string): void {
-      if (message !== undefined) {
-        db.run(
-          `INSERT INTO step_runs (step, status, completed_at, message) VALUES (?, 'done', ?, ?)
-           ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at, message=excluded.message`,
-          [step, new Date().toISOString(), message]
-        )
-        return
-      }
+      // Always write the message column: a completion without a note must not
+      // leave the last progress text ("12/12") behind as if it were the note.
       db.run(
-        `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'done', ?)
-         ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at`,
-        [step, new Date().toISOString()]
+        `INSERT INTO step_runs (step, status, completed_at, message) VALUES (?, 'done', ?, ?)
+         ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at, message=excluded.message`,
+        [step, new Date().toISOString(), message ?? null]
       )
     },
 

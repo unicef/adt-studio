@@ -1335,14 +1335,14 @@ async function runExtractStep(
     if (!stepController.signal.aborted) {
       await runSegmentationPass(
         label, pages, storage, segmentationConfig, segmentationModel,
-        effectiveConcurrency, pageResults, progress, options.signal
+        effectiveConcurrency, pageResults, pageFailureDeps, progress
       )
     }
 
     if (!stepController.signal.aborted) {
       await runCroppingPass(
         label, pages, storage, croppingConfig, croppingModel,
-        effectiveConcurrency, pageResults, progress, options.signal
+        effectiveConcurrency, pageResults, pageFailureDeps, progress
       )
     }
 
@@ -3911,8 +3911,8 @@ async function runSegmentationPass(
   model: ReturnType<typeof createLLMModel> | null,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
+  deps: PageFailureDeps,
   progress: StageRunProgress,
-  runSignal?: AbortSignal,
 ): Promise<void> {
   if (!config || !model) {
     progress.emit({ type: "step-skip", step: "image-segmentation" })
@@ -3954,12 +3954,13 @@ async function runSegmentationPass(
         }))
 
       if (unprunedImages.length > 0) {
+        const pageImageBase64 = storage.getPageImageBase64(page.pageId)
         const segmentationResult = await recordOptionalModelFailure(
           failures,
           page.pageId,
-          () => segmentPageImages({ pageId: page.pageId, pageImageBase64: storage.getPageImageBase64(page.pageId), images: unprunedImages }, config, model),
+          () => segmentPageImages({ pageId: page.pageId, pageImageBase64, images: unprunedImages }, config, model),
           (error) => console.error(`[stage-run] ${label}: image segmentation failed for ${page.pageId}: ${error}`),
-          (err) => isCancellation(err, [runSignal]),
+          (err) => isCancellation(err, [deps.runSignal, deps.stepController.signal]),
         )
         if (!segmentationResult) return
         const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
@@ -4002,6 +4003,11 @@ async function runSegmentationPass(
           storage.putNodeData("image-filtering", page.pageId, existing)
         }
       }
+    } catch (err) {
+      // The model answered but applying its result failed: the page may be
+      // partially updated, so this is a page failure with a skip/stop decision.
+      console.error(`[stage-run] ${label}: ${page.pageId} failed while applying image segmentation: ${toErrorMessage(err)}`)
+      await reportPageFailure(deps, progress, "image-segmentation", page.pageId, err)
     } finally {
       completed++
       progress.emit({
@@ -4012,9 +4018,12 @@ async function runSegmentationPass(
         totalPages: total,
       })
     }
-  }, { runSignal })
-  if (runSignal?.aborted) return
-  progress.emit({ type: "step-complete", step: "image-segmentation", message: imagePassCompletionMessage(failures) })
+  }, { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate })
+  const failed = deps.failedPages.some((f) => f.step === "image-segmentation")
+  if (!failed && !deps.stepController.signal.aborted) {
+    const notes = [skipMessage(deps.skippedByStep, "image-segmentation"), imagePassCompletionMessage(failures)].filter((note): note is string => !!note)
+    progress.emit({ type: "step-complete", step: "image-segmentation", message: notes.length ? notes.join("; ") : undefined })
+  }
 }
 
 async function runCroppingPass(
@@ -4025,8 +4034,8 @@ async function runCroppingPass(
   model: ReturnType<typeof createLLMModel> | null,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
+  deps: PageFailureDeps,
   progress: StageRunProgress,
-  runSignal?: AbortSignal,
 ): Promise<void> {
   if (!config || !model) {
     progress.emit({ type: "step-skip", step: "image-cropping" })
@@ -4066,12 +4075,13 @@ async function runCroppingPass(
         }))
 
       if (unprunedImages.length > 0) {
+        const pageImageBase64 = storage.getPageImageBase64(page.pageId)
         const croppingResult = await recordOptionalModelFailure(
           failures,
           page.pageId,
-          () => cropPageImages({ pageId: page.pageId, pageImageBase64: storage.getPageImageBase64(page.pageId), images: unprunedImages }, config, model),
+          () => cropPageImages({ pageId: page.pageId, pageImageBase64, images: unprunedImages }, config, model),
           (error) => console.error(`[stage-run] ${label}: image cropping failed for ${page.pageId}: ${error}`),
-          (err) => isCancellation(err, [runSignal]),
+          (err) => isCancellation(err, [deps.runSignal, deps.stepController.signal]),
         )
         if (!croppingResult) return
         const croppingVersion = storage.putNodeData("image-cropping", page.pageId, croppingResult)
@@ -4102,6 +4112,11 @@ async function runCroppingPass(
           storage.putNodeData("image-filtering", page.pageId, existing)
         }
       }
+    } catch (err) {
+      // The model answered but applying its result failed: the page may be
+      // partially updated, so this is a page failure with a skip/stop decision.
+      console.error(`[stage-run] ${label}: ${page.pageId} failed while applying image cropping: ${toErrorMessage(err)}`)
+      await reportPageFailure(deps, progress, "image-cropping", page.pageId, err)
     } finally {
       completed++
       progress.emit({
@@ -4112,7 +4127,10 @@ async function runCroppingPass(
         totalPages: total,
       })
     }
-  }, { runSignal })
-  if (runSignal?.aborted) return
-  progress.emit({ type: "step-complete", step: "image-cropping", message: imagePassCompletionMessage(failures) })
+  }, { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate })
+  const failed = deps.failedPages.some((f) => f.step === "image-cropping")
+  if (!failed && !deps.stepController.signal.aborted) {
+    const notes = [skipMessage(deps.skippedByStep, "image-cropping"), imagePassCompletionMessage(failures)].filter((note): note is string => !!note)
+    progress.emit({ type: "step-complete", step: "image-cropping", message: notes.length ? notes.join("; ") : undefined })
+  }
 }

@@ -880,3 +880,23 @@ it("releases failed read snapshots and joins an outer transaction without commit
     expect(storage.getAllNodeVersions("metadata", "book")).toHaveLength(1)
   } finally { storage.close() }
 })
+
+describe("step completion messages", () => {
+  it("clears the progress text when a step completes without a note, and keeps a note when given", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-step-msg-"))
+    const storage = createBookStorage("book", root)
+    try {
+      storage.markStepStarted("image-segmentation")
+      storage.updateStepMessage("image-segmentation", "3/12")
+      storage.markStepCompleted("image-segmentation")
+      expect(storage.getStepRuns().find((run) => run.step === "image-segmentation")?.message).toBeNull()
+      storage.markStepStarted("image-cropping")
+      storage.updateStepMessage("image-cropping", "5/12")
+      storage.markStepCompleted("image-cropping", "Completed — 1 page(s) kept their extracted images unchanged after a failure: pg002 (boom)")
+      expect(storage.getStepRuns().find((run) => run.step === "image-cropping")?.message).toContain("pg002 (boom)")
+    } finally {
+      storage.close()
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
