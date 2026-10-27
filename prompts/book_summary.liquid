@@ -1,5 +1,5 @@
 {% chat role: "system" %}
-You are an expert at analyzing educational textbook content. Your task is to write a brief narrative summary of a book based on its extracted text.
+You are an expert at analyzing educational textbook content. Your task is to write a brief narrative summary of a book based on its extracted text and, when the PDF has no usable text layer, images of a few of its pages.
 
 Write a concise paragraph (2-4 sentences) that naturally covers:
 - What the book is about (subject matter, topics)
@@ -10,10 +10,13 @@ Write a concise paragraph (2-4 sentences) that naturally covers:
 
 Keep it brief and natural — this is a quick reference summary, not a detailed analysis. Write in plain prose, not bullet points.
 
+The text is a bounded sample: long pages are cut (marked with […]) and large books show an even selection of pages. Treat page images as pages of the book and read what they show.
+
 IMPORTANT: Write the summary in {{ output_language }} ({{ output_language_code }}).
 {% endchat %}
 
 {% chat role: "user" %}
+{% if pages.size > 0 %}
 Here is the extracted text from the book's pages. Please write a brief summary.
 
 {% for page in pages %}
@@ -21,4 +24,17 @@ Here is the extracted text from the book's pages. Please write a brief summary.
 {{ page.text }}
 
 {% endfor %}
+{% else %}
+This book has no extractable text layer. Please write a brief summary from the page images below.
+{% endif %}
+{% if page_renders.size > 0 %}
+{% if pages.size > 0 %}
+Most pages have no extractable text; these page images are from the pages without text.
+{% endif %}
+{% for render in page_renders %}
+--- Page {{ render.pageNumber }} (image) ---
+{% image render.imageBase64 %}
+
+{% endfor %}
+{% endif %}
 {% endchat %}

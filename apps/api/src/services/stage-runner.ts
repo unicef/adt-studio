@@ -114,6 +114,10 @@ import {
   wavDurationSeconds,
   stripEmojis,
   generateBookSummary,
+  selectBookSummaryInput,
+  buildBookSummaryInput,
+  describeBookSummarySelection,
+  bookSummaryFailureNote,
   generateBookOutline,
   buildBookOutlineConfig,
   buildBookOutlineEvidence,
@@ -1215,39 +1219,45 @@ async function runExtractStep(
     progress.emit({ type: "step-complete", step: "metadata" })
     console.log(`[stage-run] ${label}: metadata complete (lang=${metadataResult.language_code})`)
 
-    // Step 3: Book summary from raw page text (no sectioning required). Written
-    // in the book's detected language (just extracted above), not English.
+    // Step 3: Book summary from a bounded sample of the page text, plus a few
+    // page renders when the book has no usable text layer. Written in the
+    // book's detected language (just extracted above), not English.
     progress.emit({ type: "step-start", step: "book-summary" })
+    const summaryLanguage = normalizeLocale(
+      config.editing_language ?? metadataResult.language_code ?? "en"
+    )
+    const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage)
+    const summaryModel = createLLMModel({
+      modelId: bookSummaryConfig.modelId,
+      cacheDir,
+      promptEngine,
+      rateLimiter,
+      onLog: onLlmLog,
+      providerCredentials: llmCredentials,
+      signal: options.signal,
+    })
+    const selection = selectBookSummaryInput(pages)
+    console.log(`[stage-run] ${label}: book summary from ${describeBookSummarySelection(selection)}`)
+    const summaryInput = buildBookSummaryInput(selection, pages, (pageId) => storage.getPageImageBase64(pageId))
+    // Only the model call is optional. The summary just seeds later prompts,
+    // so a failed call must not stop the stage: the step completes with a note
+    // naming the error and the user can regenerate the summary from Book
+    // parts. Loading renders and storing the result stay outside the catch:
+    // those failures mean the book is broken and must surface as step errors.
+    let summaryResult: BookSummaryOutput | undefined
     try {
-      const summaryLanguage = normalizeLocale(
-        config.editing_language ?? metadataResult.language_code ?? "en"
-      )
-      const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage)
-      const summaryModel = createLLMModel({
-        modelId: bookSummaryConfig.modelId,
-        cacheDir,
-        promptEngine,
-        rateLimiter,
-        onLog: onLlmLog,
-        providerCredentials: llmCredentials,
-        signal: options.signal,
-      })
-      const summaryPages = pages.map((page) => ({
-        pageNumber: page.pageNumber,
-        text: page.text,
-      }))
-      const summaryResult = await generateBookSummary(summaryPages, bookSummaryConfig, summaryModel)
-      storage.putNodeData("book-summary", "book", summaryResult)
-      progress.emit({ type: "step-complete", step: "book-summary" })
-      console.log(`[stage-run] ${label}: book summary complete`)
+      summaryResult = await generateBookSummary(summaryInput, bookSummaryConfig, summaryModel)
     } catch (err) {
       // A cancel aborts the summary LLM call — re-throw without emitting
       // step-error so the run tears down cleanly rather than showing a failure.
       if (isCancellation(err, [options.signal])) throw err
-      const msg = toErrorMessage(err)
-      console.error(`[stage-run] ${label}: book summary failed: ${msg}`)
-      progress.emit({ type: "step-error", step: "book-summary", error: msg })
-      throw err
+      console.error(`[stage-run] ${label}: book summary failed: ${toErrorMessage(err)}`)
+      progress.emit({ type: "step-complete", step: "book-summary", message: bookSummaryFailureNote(err) })
+    }
+    if (summaryResult) {
+      storage.putNodeData("book-summary", "book", summaryResult)
+      progress.emit({ type: "step-complete", step: "book-summary" })
+      console.log(`[stage-run] ${label}: book summary complete`)
     }
 
     // Step 4: Build one book-wide semantic outline before page sectioning.

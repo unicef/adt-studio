@@ -194,7 +194,7 @@ introduce new required variables without a matching pipeline code change.
 | `easy_read` | `language`, `language_code`, `section_text`, `section_type`, `texts`, `texts[].index`, `texts[].text` |
 | `glossary` | `language`, `language_code`, `pages`, `amount`, `user_instructions`, `seed_terms`, `excluded_words` |
 | `glossary_one` | `language`, `language_code`, `word`, `context`, `candidate_variations` |
-| `book_summary` | `pages`, `pages[].pageNumber`, `pages[].text`, `output_language`, `output_language_code` |
+| `book_summary` | `pages`, `pages[].pageNumber`, `pages[].text`, `page_renders`, `page_renders[].pageNumber`, `page_renders[].imageBase64`, `output_language`, `output_language_code` |
 | `toc_generation` | `language`, `language_code`, `headings`, `headings[].sectionId`, `headings[].title`, `headings[].textType`, `has_original_toc`, `original_toc_text`, `mode` |
 | `quiz_generation` | `language`, `language_code`, `page_texts`, `page_texts[].pageId`, `page_texts[].text` |
 | `font_assignment` | `fonts`, `page_images`, `book_summary`, `book_title` |
@@ -317,7 +317,7 @@ that step is not optimized for the model.
 
 | Prompt | Purpose |
 | --- | --- |
-| `book_summary` | Produces a concise book summary used as context by downstream steps. |
+| `book_summary` | Produces a concise book summary used as context by downstream steps. Receives a bounded text sample plus `page_renders` (page images) when most pages have no text layer; a book-level override must render `page_renders` to summarize scanned books. |
 | `toc_generation` | Generates or normalizes table-of-contents data. |
 | `quiz_generation` | Generates quizzes from book/page content. |
 | `styleguide_generation` | Derives a visual style guide for rendering pages. |
