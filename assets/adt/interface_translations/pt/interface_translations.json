@@ -243,6 +243,8 @@
     "comments-cursor-direction-right-label": "à direita",
     "comments-presence-page-label": "Página ${number}",
     "comments-page-section-label": "Página ${page} · Secção ${section}",
+    "comments-presence-pages-label": "Páginas ${first}–${last}",
+    "comments-pages-section-label": "Páginas ${first}–${last} · Secção ${section}",
     "comments-presence-unknown-page-label": "Algures no livro",
     "comments-presence-anonymous-hint-label": "Não é possível seguir leitores sem nome",
     "comments-follow-label": "Seguir",

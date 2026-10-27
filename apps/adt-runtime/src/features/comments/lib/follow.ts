@@ -80,6 +80,9 @@ export interface PageLabels {
   /** Only comments carry this: a roster answers "which page is Ana on", where a section is
    *  noise, but a comment has to say exactly where it is. */
   pageSection?: (page: number, section: number) => string
+  /** A two-page spread (`pg014015`) names both of its pages. */
+  pages?: (first: number, last: number) => string
+  pagesSection?: (first: number, last: number, section: number) => string
 }
 
 /**
@@ -93,7 +96,16 @@ export interface PageLabels {
  */
 export function sectionLocation(
   sectionId: string,
-): { pageNumber: number; sectionNumber: number } | null {
+): { pageNumber: number; lastPageNumber?: number; sectionNumber: number } | null {
+  /** A spread's id joins its two padded page numbers — `pg014015` is pages 14–15 — so read as
+   *  one number it became page 14015. */
+  const spread = /^pg(\d{3})(\d{3})_sec(\d{3,})$/.exec(sectionId)
+  if (spread !== null) {
+    const first = Number(spread[1])
+    const last = Number(spread[2])
+    const sectionNumber = Number(spread[3])
+    if (first > 0 && last > first && sectionNumber > 0) return { pageNumber: first, lastPageNumber: last, sectionNumber }
+  }
   const match = /^(.+?)(\d+)_sec(\d{3,})$/.exec(sectionId)
   if (match === null) return null
   const pageNumber = Number(match[2])
@@ -128,10 +140,15 @@ export function pageLabelForSection(
    *  heading follows it where there is one, and gets truncated first because it is the context
    *  rather than the answer. */
   if (number === null || at === null) return heading.length > 0 ? heading : labels.unknown
+  const last = at.lastPageNumber
   const where =
-    labels.pageSection === undefined
-      ? labels.page(number)
-      : labels.pageSection(number, at.sectionNumber)
+    last !== undefined && labels.pages !== undefined
+      ? labels.pageSection === undefined || labels.pagesSection === undefined
+        ? labels.pages(number, last)
+        : labels.pagesSection(number, last, at.sectionNumber)
+      : labels.pageSection === undefined
+        ? labels.page(number)
+        : labels.pageSection(number, at.sectionNumber)
   return heading.length > 0 ? `${where} · ${heading}` : where
 }
 

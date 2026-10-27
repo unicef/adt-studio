@@ -252,6 +252,8 @@
     "comments-cursor-direction-right-label": "à direita",
     "comments-presence-page-label": "Página ${number}",
     "comments-page-section-label": "Página ${page} · Seção ${section}",
+    "comments-presence-pages-label": "Páginas ${first}–${last}",
+    "comments-pages-section-label": "Páginas ${first}–${last} · Seção ${section}",
     "comments-presence-unknown-page-label": "Em algum lugar do livro",
     "comments-presence-anonymous-hint-label": "Não é possível seguir leitores sem nome",
     "comments-follow-label": "Seguir",

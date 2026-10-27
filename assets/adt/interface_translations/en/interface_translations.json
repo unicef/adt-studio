@@ -287,6 +287,8 @@
     "comments-cursor-direction-right-label": "right",
     "comments-presence-page-label": "Page ${number}",
     "comments-page-section-label": "Page ${page} · Section ${section}",
+    "comments-presence-pages-label": "Pages ${first}–${last}",
+    "comments-pages-section-label": "Pages ${first}–${last} · Section ${section}",
     "comments-presence-unknown-page-label": "Somewhere in the book",
     "comments-presence-anonymous-hint-label": "Unnamed readers can't be followed",
     "comments-follow-label": "Follow",
