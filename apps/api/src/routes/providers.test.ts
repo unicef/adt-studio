@@ -70,6 +70,23 @@ describe("GET /providers", () => {
     }
   })
 
+  it("reports Gemini Speech as configured when only the Google env key is set", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "")
+    vi.stubEnv("GOOGLE_GENERATIVE_AI_API_KEY", "")
+    vi.stubEnv("GOOGLE_API_KEY", "AIza-env-only")
+    try {
+      const body = await getProviders()
+      const gemini = body.providers.find((p) => p.manifest.id === "gemini")!
+      expect(gemini.configuredOnServer).toBe(true)
+      expect(gemini.manifest.credentialFields[0].sharedWith).toEqual({
+        providerId: "google",
+        fieldKey: "apiKey",
+      })
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it("never serializes a runtime factory", async () => {
     const app = createProviderRoutes(configPath)
     const text = await (await app.request("/providers")).text()

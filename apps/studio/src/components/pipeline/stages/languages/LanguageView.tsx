@@ -19,13 +19,18 @@ import { LoadingState } from "../../components/LoadingState"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
-import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import {
+  useApiKey,
+  useBookStructuredTextAvailability,
+  useWordHighlightingUnavailable,
+} from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
+import { UnavailableHint } from "../../components/UnavailableHint"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { normalizeLocale } from "@/lib/languages"
-import { languageUsesSpeechProvider, resolveSpeechProviderForLanguage, speechProvidersForLanguages } from "@/lib/speech-routing"
+import { bookSpeechProviders, languageUsesSpeechProvider, resolveSpeechProviderForLanguage } from "@/lib/speech-routing"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -375,6 +380,10 @@ export function LanguageView({
     isTranslationEvaluationEnabled(merged?.translation_evaluation);
   const wordHighlightingEnabled =
     speechConfigRecord?.word_highlighting === true;
+  // Without an OpenAI key (Whisper) the toggle is shown off and disabled.
+  const wordHighlightingUnavailable = useWordHighlightingUnavailable();
+  const effectiveWordHighlighting =
+    wordHighlightingEnabled && !wordHighlightingUnavailable;
   const configExcludedTextIds = useMemo(
     () =>
       Array.isArray(speechConfigRecord?.excluded_text_ids)
@@ -418,8 +427,7 @@ export function LanguageView({
   const configuredEditingLanguage = merged?.editing_language as
     string | undefined;
 
-  const speechLanguages = [configuredEditingLanguage ?? bookLanguage ?? "en", ...outputLanguages];
-  const hasBookSpeechProvider = !!activeConfigData && speechProvidersForLanguages(speechLanguages, speechConfig)
+  const hasBookSpeechProvider = !!activeConfigData && bookSpeechProviders(merged, bookLanguage)
     .some(provider => {
       const modelId = `${provider}:default`;
       return isAvailable("tts", modelId);
@@ -1936,14 +1944,38 @@ export function LanguageView({
                         {t`Highlights words in sync with the audio. Adds noticeable time to speech generation.`}
                       </p>
                     </div>
-                    <Switch
-                      id="word-highlight-landing"
-                      checked={wordHighlightingEnabled}
-                      onCheckedChange={toggleWordHighlighting}
-                      disabled={updateConfig.isPending || isRunning}
-                    />
+                    {(() => {
+                      const toggle = (
+                        <Switch
+                          id="word-highlight-landing"
+                          checked={effectiveWordHighlighting}
+                          onCheckedChange={toggleWordHighlighting}
+                          disabled={
+                            updateConfig.isPending ||
+                            isRunning ||
+                            wordHighlightingUnavailable
+                          }
+                          className={
+                            wordHighlightingUnavailable ? "pointer-events-none" : undefined
+                          }
+                        />
+                      );
+                      // A disabled switch gets no pointer events, so the
+                      // focusable wrapper carries the "why" tooltip instead.
+                      return wordHighlightingUnavailable ? (
+                        <UnavailableHint
+                          hint={t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`}
+                        >
+                          <span tabIndex={0} className="inline-flex rounded-full">
+                            {toggle}
+                          </span>
+                        </UnavailableHint>
+                      ) : (
+                        toggle
+                      );
+                    })()}
                   </div>
-                  <WordHighlightPreview enabled={wordHighlightingEnabled} />
+                  <WordHighlightPreview enabled={effectiveWordHighlighting} />
                 </div>
                 <Link
                   to="/books/$label/$step/settings"

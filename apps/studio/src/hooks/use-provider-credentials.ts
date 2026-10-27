@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import type { ProvidersResponse } from "@adt/types"
+import { applySharedCredentialFallbacks, type ProvidersResponse } from "@adt/types"
 import { getProviders } from "@/api/client"
 import {
   browserCredentialStorage,
   isAiOperationAvailable,
-  readProviderCredentialsFromStorage,
+  readOwnProviderCredentialsFromStorage,
   writeProviderCredentialToStorage,
 } from "@/api/provider-credentials"
 
@@ -63,9 +63,22 @@ export function useProviderCredentials() {
 
   const providers = providersQuery.data?.providers ?? EMPTY_PROVIDERS
   const defaults = providersQuery.data?.defaults ?? EMPTY_DEFAULTS
-  const credentials = useMemo(
-    () => readProviderCredentialsFromStorage(providers, browserCredentialStorage),
+  // What each provider has stored itself — the Settings editors show and
+  // write exactly this.
+  const ownCredentials = useMemo(
+    () => readOwnProviderCredentialsFromStorage(providers, browserCredentialStorage),
     [providers, storageRevision],
+  )
+  // Plus the manifest-declared fallbacks (Gemini Speech ← Google): what
+  // availability checks must see. Never send these as request credentials —
+  // the API applies the fallbacks itself, after any key the server holds.
+  const credentials = useMemo(
+    () =>
+      applySharedCredentialFallbacks(
+        providers.map(({ manifest }) => manifest),
+        ownCredentials,
+      ),
+    [providers, ownCredentials],
   )
 
   // Flush any keystrokes buffered while /providers was still loading.
@@ -97,6 +110,14 @@ export function useProviderCredentials() {
     [credentials],
   )
 
+  const ownCredentialValue = useCallback(
+    (providerId: string, fieldKey: string) =>
+      pendingWrites.get(pendingKey(providerId, fieldKey)) ??
+      ownCredentials[providerId]?.[fieldKey] ??
+      "",
+    [ownCredentials],
+  )
+
   const isAvailable = useCallback(
     (modality: Parameters<typeof isAiOperationAvailable>[3], modelId?: string) =>
       isAiOperationAvailable(
@@ -114,6 +135,8 @@ export function useProviderCredentials() {
     defaults,
     credentials,
     credentialValue,
+    ownCredentials,
+    ownCredentialValue,
     isAvailable,
     setCredential,
     isLoading: providersQuery.isLoading,
