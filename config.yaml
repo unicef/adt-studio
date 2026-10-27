@@ -22,6 +22,8 @@ default_speech_generation_model: "gpt-4o-mini-tts"
 core_tts:
   prompt: core_tts_preparation
   latex_to_speech: true
+  # Existing books inherit this. New books are created with it off
+  # (`createBook` in apps/api/src/services/book-service.ts, #946).
   language_normalization: true
 
 structure_types:

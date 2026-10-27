@@ -78,6 +78,7 @@ export {
   createElevenLabsTTSSynthesizer,
   resolveElevenLabsVoiceSettings,
   buildElevenLabsOutputFormat,
+  buildAzureOutputFormat,
   transcribeWithWhisper,
   type TTSSynthesizer,
   type ElevenLabsVoiceSettings,
@@ -135,9 +136,11 @@ export {
   isProviderConfiguredOnServer,
   mergeWithServerCredentials,
   providerFieldStatus,
+  resolveCredentialValues,
   resolveProviderCredentials,
   validateProviderCredentials,
   type HeaderReader,
+  type ProviderLookup,
   type ResolvedCredentials,
 } from "./credentials.js"
 

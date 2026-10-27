@@ -2,7 +2,7 @@ import path from "node:path"
 import fs from "node:fs"
 import { Hono } from "hono"
 import yaml from "js-yaml"
-import { AppConfig, DEFAULT_BASE_PROMPT_MODEL_ID, safeParseModelId } from "@adt/types"
+import { AppConfig, DEFAULT_BASE_PROMPT_MODEL_ID, parseBookLabel, safeParseModelId } from "@adt/types"
 import { resolvePromptModelId } from "@adt/llm"
 
 const VALID_NAME = /^[a-zA-Z0-9_]+$/
@@ -220,7 +220,12 @@ export function createPromptRoutes(
 
   // GET /books/:label/prompts/:name/versions - list versioned book prompt overrides
   app.get("/books/:label/prompts/:name/versions", (c) => {
-    const label = c.req.param("label")
+    let label: string
+    try {
+      label = parseBookLabel(c.req.param("label"))
+    } catch {
+      return c.json({ error: "Invalid book label" }, 400)
+    }
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
@@ -247,7 +252,12 @@ export function createPromptRoutes(
 
   // PUT /books/:label/prompts/:name/versions/:version/current - select active book prompt version
   app.put("/books/:label/prompts/:name/versions/:version/current", (c) => {
-    const label = c.req.param("label")
+    let label: string
+    try {
+      label = parseBookLabel(c.req.param("label"))
+    } catch {
+      return c.json({ error: "Invalid book label" }, 400)
+    }
     const name = c.req.param("name")
     const version = c.req.param("version")
     if (!VALID_NAME.test(name)) {
@@ -283,7 +293,12 @@ export function createPromptRoutes(
 
   // GET /books/:label/prompts/:name - read book override, fall back to global
   app.get("/books/:label/prompts/:name", (c) => {
-    const label = c.req.param("label")
+    let label: string
+    try {
+      label = parseBookLabel(c.req.param("label"))
+    } catch {
+      return c.json({ error: "Invalid book label" }, 400)
+    }
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
@@ -303,7 +318,12 @@ export function createPromptRoutes(
 
   // DELETE /books/:label/prompts/:name - reset book prompt override to global fallback
   app.delete("/books/:label/prompts/:name", (c) => {
-    const label = c.req.param("label")
+    let label: string
+    try {
+      label = parseBookLabel(c.req.param("label"))
+    } catch {
+      return c.json({ error: "Invalid book label" }, 400)
+    }
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
@@ -346,7 +366,12 @@ export function createPromptRoutes(
 
   // PUT /books/:label/prompts/:name - save book-level override
   app.put("/books/:label/prompts/:name", async (c) => {
-    const label = c.req.param("label")
+    let label: string
+    try {
+      label = parseBookLabel(c.req.param("label"))
+    } catch {
+      return c.json({ error: "Invalid book label" }, 400)
+    }
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
@@ -432,7 +457,12 @@ export function createPromptRoutes(
 
   // GET /books/:label/templates/:name - read book override, fall back to global
   app.get("/books/:label/templates/:name", (c) => {
-    const label = c.req.param("label")
+    let label: string
+    try {
+      label = parseBookLabel(c.req.param("label"))
+    } catch {
+      return c.json({ error: "Invalid book label" }, 400)
+    }
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid template name" }, 400)
@@ -455,7 +485,12 @@ export function createPromptRoutes(
 
   // PUT /books/:label/templates/:name - save book-level template override
   app.put("/books/:label/templates/:name", async (c) => {
-    const label = c.req.param("label")
+    let label: string
+    try {
+      label = parseBookLabel(c.req.param("label"))
+    } catch {
+      return c.json({ error: "Invalid book label" }, 400)
+    }
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid template name" }, 400)

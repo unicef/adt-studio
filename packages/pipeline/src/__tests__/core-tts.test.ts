@@ -3,11 +3,14 @@ import { fileURLToPath } from "node:url"
 import type { LLMModel } from "@adt/llm"
 import {
   buildCoreTtsPreparationConfig,
+  coreTtsInputBasis,
   getCoreTtsPreparationLocales,
   loadCoreTtsProfiles,
   prepareCoreTtsCatalog,
   resolveCoreTtsProfile,
+  resolveCoreTtsSpeechCatalog,
 } from "../core-tts.js"
+import { inputSignature } from "../output-freshness.js"
 
 const config = {
   modelId: "openai:gpt-5.4",
@@ -74,6 +77,17 @@ describe("Core TTS configuration", () => {
 })
 
 describe("prepareCoreTtsCatalog", () => {
+  it.each(["missing", "mismatched"])("preserves usable speech with %s input evidence during deterministic fallback", async (evidence) => {
+    const entries = [{ id: "t1", text: "Display text" }]
+    const profile = { key: "default", guidance: "Normalize." }
+    const previous = await prepareCoreTtsCatalog({ entries, language: "en", config, profile,
+      llmModel: modelWith([{ id: "t1", speech_text: "Retained speech", transformation_kinds: [], failure_reason: null }]) })
+    if (evidence === "missing") delete previous.entries[0].input
+    else previous.entries[0].speechText = "Untracked correction"
+    const result = resolveCoreTtsSpeechCatalog({ entries: [{ ...entries[0], text: "Changed display" }], language: "en", config, profile, previous })
+    expect(result.entries[0]).toEqual(previous.entries[0])
+  })
+
   it("uses one structured call for LaTeX and normalization", async () => {
     const llm = modelWith([{ id: "t1", speech_text: "one half", transformation_kinds: ["latex-to-speech", "language-normalization"], failure_reason: null }])
     const result = await prepareCoreTtsCatalog({
@@ -113,7 +127,7 @@ describe("prepareCoreTtsCatalog", () => {
     })
   })
 
-  it("withholds a detected raw-LaTeX conversion failure", async () => {
+  it("declares display fallback after a raw-LaTeX conversion failure", async () => {
     const result = await prepareCoreTtsCatalog({
       entries: [{ id: "t1", text: "$\\frac{1}{2}$" }],
       language: "en",
@@ -121,7 +135,7 @@ describe("prepareCoreTtsCatalog", () => {
       profile: { key: "default", guidance: "Normalize." },
       llmModel: modelWith([{ id: "t1", speech_text: "$\\frac{1}{2}$", transformation_kinds: [], failure_reason: null }]),
     })
-    expect(result.entries[0]).toMatchObject({ status: "failed", speechText: null })
+    expect(result.entries[0]).toMatchObject({ status: "failed", speechText: "$\\frac{1}{2}$", fallbackReason: "failed" })
   })
 
   it("passes prepared source and target display text as target context", async () => {
@@ -165,4 +179,137 @@ describe("prepareCoreTtsCatalog", () => {
     expect(result.entries[0]?.speechText).toBe("twenty-five")
     expect(llm.generateObject).not.toHaveBeenCalled()
   })
+})
+
+
+describe("speech fallback and retry admission", () => {
+  const entries = [{ id: "t1", text: "Bonjour" }, { id: "t2", text: "Monde" }]
+  const profile = { key: "fr", guidance: "Normalize for French speech." }
+  it("disabled normalization consumes only the display text, not a neighbor or unused model/prompt", () => {
+    const disabled = { ...config, languageNormalization: false, latexToSpeech: false }
+    const before = coreTtsInputBasis({ entries, index: 0, language: "fr", config: disabled, profile })
+    const after = coreTtsInputBasis({ entries: [entries[0], { ...entries[1], text: "Changed neighbor" }], index: 0, language: "fr", config: { ...disabled, modelId: "other", promptName: "other" }, profile })
+    expect(after.signature).toBe(before.signature)
+    expect(after.input.next_display_text).toBeNull()
+  })
+  it("declares missing fallback without a provider, preserves manual text after changes, and makes disabled normalization clean", () => {
+    const fallback = resolveCoreTtsSpeechCatalog({ entries, language: "fr", config, profile })
+    expect(fallback.entries.map((entry) => entry.speechText)).toEqual(["Bonjour", "Monde"])
+    expect(fallback.entries.every((entry) => entry.fallbackReason === "missing")).toBe(true)
+    fallback.entries[0].generation.mode = "manual"
+    fallback.entries[0].speechText = "My pronunciation"
+    const changed = resolveCoreTtsSpeechCatalog({ entries: [{ id: "t1", text: "Salut" }], language: "fr", config, profile, previous: fallback })
+    expect(changed.entries[0].speechText).toBe("My pronunciation")
+    const disabled = resolveCoreTtsSpeechCatalog({ entries, language: "fr", config: { ...config, languageNormalization: false, latexToSpeech: false }, profile })
+    expect(disabled.entries.every((entry) => entry.status === "ready" && !entry.fallbackReason)).toBe(true)
+  })
+  it("reuses an unchanged failed attempt and prepares again only on explicit retry or relevant input change", async () => {
+    const failing = modelWith([])
+    vi.mocked(failing.generateObject).mockRejectedValue(new Error("provider unavailable"))
+    const failed = await prepareCoreTtsCatalog({ entries, language: "fr", config, profile, llmModel: failing })
+    expect(failed.entries.every((entry) => entry.fallbackReason === "failed")).toBe(true)
+    const llm = modelWith([{ id: "t1", speech_text: "Bonjour", transformation_kinds: [], failure_reason: null }])
+    const unchanged = await prepareCoreTtsCatalog({ entries, language: "fr", config, profile, previous: failed, llmModel: llm })
+    expect(llm.generateObject).not.toHaveBeenCalled()
+    expect(unchanged.entries).toEqual(failed.entries)
+    const retry = await prepareCoreTtsCatalog({ entries, language: "fr", config, profile, previous: failed, llmModel: llm, retryIds: ["t1"] })
+    expect(llm.generateObject).toHaveBeenCalledTimes(1)
+    expect(retry.entries[0]).toMatchObject({ speechText: "Bonjour", status: "ready" })
+    expect(retry.entries[0].fallbackReason).toBeUndefined()
+    expect(retry.entries[1]).toEqual(failed.entries[1])
+  })
+  it("prepares a fallback recorded without an attempt on the next ordinary preparation run", async () => {
+    const fallback = resolveCoreTtsSpeechCatalog({ entries, language: "fr", config, profile })
+    expect(fallback.entries.every((entry) => entry.fallbackReason === "missing")).toBe(true)
+    const llm = modelWith(entries.map((entry) => ({ id: entry.id, speech_text: entry.text, transformation_kinds: [], failure_reason: null })))
+    const prepared = await prepareCoreTtsCatalog({ entries, language: "fr", config, profile, previous: fallback, llmModel: llm })
+    expect(llm.generateObject).toHaveBeenCalledTimes(1)
+    expect(prepared.entries.map((entry) => [entry.status, entry.fallbackReason])).toEqual([["ready", undefined], ["ready", undefined]])
+  })
+  it("keeps a checked never-attempted fallback on ordinary runs and prepares it only on explicit retry", async () => {
+    const fallback = resolveCoreTtsSpeechCatalog({ entries, language: "fr", config, profile })
+    const checked = fallback.entries[0]
+    checked.review = { signature: checked.input!.signature, contentHash: inputSignature(checked.speechText), action: "checked" }
+    const llm = modelWith([{ id: "t2", speech_text: "Monde", transformation_kinds: [], failure_reason: null }])
+    const ordinary = await prepareCoreTtsCatalog({ entries, language: "fr", config, profile, previous: fallback, llmModel: llm })
+    // Only the unchecked entry is prepared; the accepted fallback is kept as reviewed.
+    const batch = (vi.mocked(llm.generateObject).mock.calls[0][0] as { context: { entries: Array<{ id: string }> } }).context.entries
+    expect(batch.map((entry) => entry.id)).toEqual(["t2"])
+    expect(ordinary.entries[0]).toEqual(checked)
+    vi.mocked(llm.generateObject).mockResolvedValueOnce({ object: { entries: [{ id: "t1", speech_text: "Bonjour", transformation_kinds: [], failure_reason: null }] }, cached: false })
+    const retried = await prepareCoreTtsCatalog({ entries, language: "fr", config, profile, previous: ordinary, llmModel: llm, retryIds: ["t1"] })
+    expect(retried.entries[0]).toMatchObject({ status: "ready", speechText: "Bonjour" })
+  })
+  it("keeps a never-attempted fallback labelled missing when its neighboring context changes", () => {
+    const fallback = resolveCoreTtsSpeechCatalog({ entries, language: "fr", config, profile })
+    const neighborChanged = resolveCoreTtsSpeechCatalog({ entries: [entries[0], { id: "t2", text: "Le monde" }], language: "fr", config, profile, previous: fallback })
+    expect(neighborChanged.entries[0].input?.signature).not.toBe(fallback.entries[0].input?.signature)
+    expect(neighborChanged.entries[0].fallbackReason).toBe("missing")
+    expect(neighborChanged.entries[1].fallbackReason).toBe("outdated")
+  })
+  it.each(["checked", "manual"])("a changed source context invalidates only the %s fallback acceptance", async mode => {
+    const failing = modelWith([])
+    vi.mocked(failing.generateObject).mockRejectedValue(new Error("Controlled failure"))
+    const previous = await prepareCoreTtsCatalog({ entries, language: "fr", config, profile, llmModel: failing })
+    const retained = previous.entries[0]
+    if (mode === "checked") retained.review = { action: "checked", signature: retained.input!.signature, contentHash: inputSignature(retained.speechText) }
+    else retained.generation.mode = "manual"
+    expect(resolveCoreTtsSpeechCatalog({ entries, language: "fr", config, profile, previous }).entries[0]).toEqual(retained)
+    const sourceContext = new Map([["t1", { displayText: "Changed source", speechText: "Changed prepared source" }]])
+    const resolved = resolveCoreTtsSpeechCatalog({ entries, language: "fr", config, profile, previous, sourceContext })
+    if (mode === "manual") expect(resolved.entries[0]).toEqual(retained)
+    else {
+      expect(resolved.entries[0]).toMatchObject({ fallbackReason: "outdated", speechText: "Bonjour" })
+      expect(resolved.entries[0].review).toBeUndefined()
+    }
+    const llm = modelWith([{ id: "t1", speech_text: "Bonjour", transformation_kinds: [], failure_reason: null }])
+    const prepared = await prepareCoreTtsCatalog({ entries, language: "fr", config, profile, previous: resolved, sourceContext, llmModel: llm })
+    expect(llm.generateObject).toHaveBeenCalledTimes(mode === "checked" ? 1 : 0)
+    expect(prepared.entries[0]).toEqual(mode === "manual" ? retained : expect.objectContaining({ status: "ready" }))
+  })
+  it("keeps every phrase on exhausted batch failure without adding retries", async () => {
+    const llm = modelWith([])
+    vi.mocked(llm.generateObject).mockRejectedValue(new Error("provider unavailable"))
+    const result = await prepareCoreTtsCatalog({ entries, language: "fr", config: { ...config, batchSize: 1 }, profile, llmModel: llm })
+    expect(llm.generateObject).toHaveBeenCalledTimes(2)
+    expect(result.entries.map((entry) => entry.speechText)).toEqual(["Bonjour", "Monde"])
+    expect(result.entries.every((entry) => entry.fallbackReason === "failed")).toBe(true)
+  })
+  it("rejects a cancelled late result instead of declaring fallback", async () => {
+    const controller = new AbortController()
+    const llm = modelWith([])
+    vi.mocked(llm.generateObject).mockImplementation(async () => { controller.abort(); throw new Error("late error") })
+    await expect(prepareCoreTtsCatalog({ entries, language: "fr", config, profile, llmModel: llm, signal: controller.signal })).rejects.toThrow()
+  })
+})
+
+
+it.each([["ordinary", "generated"], ["retry", "generated"], ["ordinary", "unchanged"], ["retry", "unchanged"]] as const)("%s preparation recovers a legacy %s failure without usable speech", async (action, mode) => {
+  const entries = [{id: "t1", text: "Hello"}]
+  const profile = {key: "en", guidance: "Normalize English."}
+  const previous = resolveCoreTtsSpeechCatalog({entries, language: "en", config, profile})
+  // Pre-branch invalidation wrote mode "unchanged" with the display-text reason.
+  previous.entries[0] = {...previous.entries[0], speechText: null, status: "failed", source: undefined, input: undefined, fallbackReason: undefined,
+    failureReason: mode === "unchanged" ? "Display text changed; rerun Core TTS preparation." : previous.entries[0].failureReason,
+    generation: {...previous.entries[0].generation, mode}}
+  const llm = modelWith([{id: "t1", speech_text: "Hello aloud", transformation_kinds: ["language-normalization"], failure_reason: null}])
+  const result = await prepareCoreTtsCatalog({entries, language: "en", config, profile, previous, llmModel: llm, ...(action === "retry" ? {retryIds: ["t1"]} : {})})
+  expect(llm.generateObject).toHaveBeenCalledTimes(1)
+  expect(result.entries[0]).toMatchObject({speechText: "Hello aloud", status: "ready", source: "ai"})
+  expect(previous.entries[0].speechText).toBeNull()
+  const reused = await prepareCoreTtsCatalog({entries, language: "en", config, profile, previous: result, llmModel: llm})
+  expect(llm.generateObject).toHaveBeenCalledTimes(1)
+  expect(reused.entries).toEqual(result.entries)
+})
+
+it.each(["manual", "usable-unknown", "empty-unknown"])("Retry preserves %s preparation without explicit replacement", async kind => {
+  const entries = [{id: "t1", text: "Hello"}]
+  const profile = {key: "en", guidance: "Normalize English."}
+  const previous = resolveCoreTtsSpeechCatalog({entries, language: "en", config, profile})
+  previous.entries[0] = {...previous.entries[0], speechText: kind === "usable-unknown" ? "Legacy correction" : null, status: kind === "empty-unknown" ? "ready" : "failed", source: undefined, input: undefined,
+    generation: {...previous.entries[0].generation, mode: kind === "manual" ? "manual" : "generated"}}
+  const llm = modelWith([])
+  const result = await prepareCoreTtsCatalog({entries, language: "en", config, profile, previous, llmModel: llm, retryIds: ["t1"]})
+  expect(llm.generateObject).not.toHaveBeenCalled()
+  expect(result.entries).toEqual(previous.entries)
 })

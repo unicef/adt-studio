@@ -409,7 +409,7 @@ export async function renderPage(
     }
 
     throwIfAborted(options.signal)
-    sections.push(rendering)
+    sections.push({ ...rendering, sectionId: section.sectionId })
   }
 
   return { sections }

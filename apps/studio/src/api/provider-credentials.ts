@@ -1,4 +1,5 @@
 import {
+  applySharedCredentialFallbacks,
   findReasoningEffortSupport,
   type AiModality,
   type ProviderDescriptor,
@@ -136,8 +137,12 @@ export function isAiOperationAvailable(
   )
 }
 
-/** Read current and legacy storage keys declared by each provider. */
-export function readProviderCredentialsFromStorage(
+/**
+ * Read current and legacy storage keys declared by each provider — a
+ * provider's own stored values only, which is what the Settings editors show
+ * and write. Prefer {@link readProviderCredentialsFromStorage} everywhere else.
+ */
+export function readOwnProviderCredentialsFromStorage(
   providers: readonly ProviderDescriptor[],
   storage: CredentialStorage,
 ): ProviderCredentialValues {
@@ -158,6 +163,23 @@ export function readProviderCredentialsFromStorage(
   }
 
   return credentials
+}
+
+/**
+ * Effective credentials: each provider's own stored values plus the shared
+ * fallbacks the manifests declare (`sharedWith`), so Gemini Speech shows as
+ * available with only the Google key stored. For availability checks only —
+ * request headers carry own values (see `buildApiHeaders` in client.ts) and
+ * the API applies the fallback itself.
+ */
+export function readProviderCredentialsFromStorage(
+  providers: readonly ProviderDescriptor[],
+  storage: CredentialStorage,
+): ProviderCredentialValues {
+  return applySharedCredentialFallbacks(
+    providers.map(({ manifest }) => manifest),
+    readOwnProviderCredentialsFromStorage(providers, storage),
+  )
 }
 
 /** Write the canonical key and clear legacy copies so stale values cannot return. */

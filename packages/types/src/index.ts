@@ -1,3 +1,4 @@
+export { SectionSyncStatus, SectionSyncResult, SectioningSynchronization } from "./sectioning-sync.js"
 export { InferenceOptions, ProviderContinuation, ReasoningEffort, SolReasoningEffort, LunaReasoningEffort, OpenAiResponse } from "./llm-inference.js"
 
 export {
@@ -293,6 +294,7 @@ export {
 export {
   GlossaryItem,
   GlossaryOutput,
+  GlossaryEditRequest,
   glossaryLLMSchema,
 } from "./glossary.js"
 
@@ -305,6 +307,7 @@ export {
   parseQuizId,
   resolveQuizId,
   withResolvedQuizIds,
+  resolveQuizOptionId,
   ensureQuizIds,
   QuizIdExhaustedError,
   QuizId,
@@ -316,6 +319,7 @@ export {
 export {
   TextCatalogEntry,
   TextCatalogOutput,
+  CatalogConflict,
   TextCatalogCategory,
   getTextCatalogCategory,
   ANSWER_ID_SEPARATOR,
@@ -356,9 +360,16 @@ export {
   resolveEntryVoiceSlot,
   sortSpeechEntries,
   TTSOutput,
+  TTSReadEntry,
+  TTSReadLanguage,
+  TTSReadResponse,
   WordTimestamp,
   WordTimestampEntry,
   WordTimestampOutput,
+  WordTimestampEditGuard,
+  WordTimestampSaveRequest,
+  WordTimestampReadEntry,
+  WordTimestampSaveResponse,
   VOICE_SLOTS,
   VoiceSlot,
   DEFAULT_VOICE_SLOT,
@@ -515,6 +526,7 @@ export {
   FORBIDDEN_CREDENTIAL_HEADERS,
   PROVIDER_HEADER_NAMESPACE,
   CredentialFieldOption,
+  CredentialFieldShare,
   CredentialFieldManifest,
   StructuredTextCapabilities,
   AgentCapabilities,
@@ -524,6 +536,7 @@ export {
   PublicProviderCapabilities,
   ProviderDefaultModels,
   ProviderManifest,
+  applySharedCredentialFallbacks,
   ProviderFieldStatus,
   ProviderDescriptor,
   ProvidersResponse,
@@ -561,3 +574,22 @@ export {
   findReasoningEffortSupport,
   fitReasoningEffort,
 } from "./reasoning-effort.js"
+
+export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, OutputMetadata, OutputKind, OutputIdentity, OutputWarning, OutputLocation, OutputStatus, OutputSelection, OutputReviewRequest, OutputSummary, OutputScopeSummary, OutputSummaries, OutputStageSummaryResponse, BookWriterOwner } from "./output-freshness.js"
+
+export { CATALOG_OUTPUT_NODES } from "./pipeline-effects.js"
+
+export { OutputReplacement, OutputRunScope } from "./output-freshness.js"
+
+export { TranslatedImageAsset } from "./output-freshness.js"
+
+export { OUTPUT_KIND_TO_STAGE, OUTPUT_KIND_TO_STEP } from "./pipeline.js"
+
+export { OutputEditGuard } from "./output-freshness.js"
+
+export { OutputSkipRequest } from "./output-freshness.js"
+
+export { OutputDisclosureOptions } from "./output-freshness.js"
+
+export { SOURCE_GENERATION_RESET_STEPS } from "./pipeline.js"
+export { SourceGeneratorStep, SourceGenerationPolicy, SourceGenerationState, SourceGenerationReceipt } from "./source-generation-state.js"

@@ -1,3 +1,6 @@
+import { putSourceNodeData, putReflowableRendering, isFixedLayoutBook } from "@adt/pipeline"
+import { HTTPException } from "hono/http-exception"
+import { renderedSectionId, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
 import crypto from "node:crypto"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
@@ -70,6 +73,25 @@ export async function reRenderPage(
       throw new Error("Invalid page-sectioning data")
     }
     const sectioning = structuringParsed.data
+    const fixedRow = storage.getLatestNodeData("fixed-layout-sectioning", pageId)
+    const legacyPositioned = sectioning.sections.some(section => section.sectionType === "fixed-layout-page" && section.viewport && section.placement)
+    if (fixedRow || legacyPositioned) {
+      const config = loadBookConfig(label, booksDir, configPath)
+      if (sectionIndex !== undefined || legacyPositioned || isFixedLayoutBook(config)) {
+        throw new HTTPException(409, { message: "This page uses fixed layout. Run Sectioning and Storyboard after selecting a reflowable layout, or run Storyboard to rebuild fixed layout. Existing content has been preserved." })
+      }
+    }
+    const initialRenderingRow = storage.getLatestNodeData("web-rendering", pageId)
+    const initialRendering = WebRenderingOutput.safeParse(initialRenderingRow?.data)
+    if (initialRendering.success) initialRendering.data = withLegacyRenderingOwnership(storage, pageId, initialRendering.data)
+    const targetId = sectionIndex === undefined ? undefined : sectioning.sections[sectionIndex]?.sectionId
+    if (sectionIndex !== undefined && !targetId) throw new HTTPException(400, { message: "Section index out of range" })
+    if (sectionIndex !== undefined && initialRendering.success) {
+      const owners = initialRendering.data.sections.filter((entry) => renderedSectionId(entry) === targetId)
+      if (owners.length > 1 || (!owners.length && initialRendering.data.sections.some((entry) => entry.sectionIndex === sectionIndex && !renderedSectionId(entry)))) {
+        throw new HTTPException(409, { message: "Section ownership is ambiguous. The existing rendering has been preserved." })
+      }
+    }
 
     // Build image map: start with all page images, then add any additional images
     // referenced by image_group nodes (e.g. from cross-page merges).
@@ -181,58 +203,34 @@ export async function reRenderPage(
       visualRefinement,
     )
 
-    if (sectionIndex === undefined) {
-      const version = storage.putNodeData("web-rendering", pageId, renderResult)
-      return { version, rendering: renderResult }
-    }
-
-    // Merge the newly rendered section back into existing rendering, preserving
-    // other sections as-is.
-    const existingRenderingRow = storage.getLatestNodeData("web-rendering", pageId)
-    const existingRenderingParsed = existingRenderingRow
-      ? WebRenderingOutput.safeParse(existingRenderingRow.data)
-      : null
-    if (existingRenderingRow && !existingRenderingParsed?.success) {
-      throw new Error("Invalid web-rendering data")
-    }
-    const existingSections = existingRenderingParsed?.success
-      ? existingRenderingParsed.data.sections
-      : []
-    const withoutTarget = existingSections.filter((s) => s.sectionIndex !== sectionIndex)
-    const newTarget = renderResult.sections.find((s) => s.sectionIndex === sectionIndex)
-    const mergedSections = newTarget
-      ? [...withoutTarget, newTarget].sort((a, b) => a.sectionIndex - b.sectionIndex)
-      : withoutTarget.sort((a, b) => a.sectionIndex - b.sectionIndex)
-    const mergedRendering = { sections: mergedSections }
-
-    const version = storage.putNodeData("web-rendering", pageId, mergedRendering)
-    return { version, rendering: mergedRendering }
+    return storage.transaction(() => {
+      if (storage.getLatestNodeData("page-sectioning", pageId)?.version !== structuringRow.version ||
+          storage.getLatestNodeData("web-rendering", pageId)?.version !== initialRenderingRow?.version ||
+          storage.getLatestNodeData("fixed-layout-sectioning", pageId)?.version !== fixedRow?.version) {
+        throw new HTTPException(409, { message: "Page changed during re-rendering. The existing rendering has been preserved." })
+      }
+      let rendering = renderResult
+      if (sectionIndex !== undefined) {
+        const existing = initialRendering.success ? initialRendering.data.sections : []
+        const replacement = renderResult.sections.find((entry) => renderedSectionId(entry) === targetId)
+        if (!replacement) throw new HTTPException(409, { message: "The requested section was not rendered. Existing content has been preserved." })
+        const retained = existing.filter((entry) => renderedSectionId(entry) !== targetId)
+        const merged = [...retained, replacement]
+        rendering = { sections: merged.map((entry) => {
+          const owner = resolveRenderedSection(entry, sectioning.sections, merged)
+          return owner ? { ...entry, sectionIndex: sectioning.sections.indexOf(owner) } : entry
+        }).sort((a, b) => a.sectionIndex - b.sectionIndex) }
+      }
+      const version = sectionIndex === undefined
+        ? putReflowableRendering(storage, pageId, rendering)
+        : putSourceNodeData(storage, "web-rendering", pageId, rendering)
+      storage.clearNodesByType(["accessibility-assessment"])
+      return { version, rendering }
+    })
   } finally {
     if (visualRefinement) {
       await visualRefinement.screenshotRenderer.close()
     }
-    storage.clearNodesByType([
-      "image-captioning",
-      "text-catalog",
-      "easy-read",
-      "text-catalog-translation",
-      "core-tts-catalog",
-      "tts",
-      "tts-timestamps",
-      "accessibility-assessment",
-    ])
-    storage.clearStepRuns([
-      "image-captioning",
-      "text-catalog",
-      "easy-read",
-      "catalog-translation",
-      "core-tts-catalog",
-      "image-translation",
-      "tts",
-      "word-timestamps",
-      "package-web",
-      "accessibility-assessment",
-    ])
     storage.close()
   }
 }
@@ -264,7 +262,7 @@ export async function aiEditSection(
       if (!renderingParsed.success) {
         throw new Error("Invalid web-rendering data")
       }
-      const section = renderingParsed.data.sections.find((s) => s.sectionIndex === sectionIndex)
+      const section = withLegacyRenderingOwnership(storage, pageId, renderingParsed.data, true).sections.find((s) => s.sectionIndex === sectionIndex)
       if (!section) {
         throw new Error(`Section ${sectionIndex} not found in rendering`)
       }

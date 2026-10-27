@@ -193,7 +193,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
             </div>
             {!hasStructuredTextProvider ? (
               <p className="text-xs text-muted-foreground">
-                {t`Add an API key in Book settings to generate a quiz.`}
+                {t`Connect an AI provider to generate a quiz.`}
               </p>
             ) : quizzesStatus.isRunning ? (
               <p className="text-xs text-muted-foreground">

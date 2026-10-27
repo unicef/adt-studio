@@ -1,3 +1,14 @@
+import { collectQuizPages } from "./quiz-generation.js"
+import { putSourceNodeData, putReflowableRendering, captureSourceGeneration, publishSourceGeneration } from "./source-generation-state.js"
+import { reconcileSectioningIdentities } from "./sectioning-identity.js"
+import { buildOutputSources, translatedDisplayEntries } from "./output-sources.js"
+import { captureOutputReferences } from "./output-references.js"
+import { publishSpeechOutput } from "@adt/storage"
+import { readOutputCatalog } from "./output-catalog.js"
+import { outputEvidence, inputSignature } from "./output-freshness.js"
+import { reconcileTextCatalog, buildImageInventory } from "./catalog-reconciliation.js"
+import { withBookWriter, withNewBookWriter, ownsBookWriter, resolveBookPaths } from "@adt/storage"
+import { reconcileSpeechInputs } from "./speech-inputs.js"
 import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
@@ -68,11 +79,12 @@ import { createTemplateEngine } from "./render-template.js"
 import { captionPageImages, buildCaptionConfig, collectCaptionImageIds, groupGlossaryImageIdsByPage } from "./image-captioning.js"
 import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
-import { generateAllQuizzes, buildQuizGenerationConfig, batchPages, type QuizPageInput } from "./quiz-generation.js"
+import { generateAllQuizzes, buildQuizGenerationConfig, batchPages } from "./quiz-generation.js"
 import { saveQuizOutput, assertQuizGenerationCapacity } from "./quiz-ids.js"
 import { buildTextCatalog } from "./text-catalog.js"
 import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
-import { translateCatalogBatch, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
+import { retainedEasyRead } from "./retained-catalog.js"
+import { translateCatalog, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
 import {
   buildCoreTtsPreparationConfig,
   loadCoreTtsProfiles,
@@ -103,7 +115,7 @@ import {
 } from "./speech.js"
 import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
-import { getRenderSectioning, getSemanticSectioning } from "./render-sectioning.js"
+import { getRenderSectioning, assertReflowableSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
@@ -158,6 +170,19 @@ export async function runFullPipeline(
   options: FullPipelineOptions,
   progress: Progress = nullProgress,
 ): Promise<PipelineDAGResult> {
+  const admissionPath = resolveBookPaths(options.label, options.booksRoot).bookDir
+  if (!ownsBookWriter(admissionPath)) {
+    const admit = fs.existsSync(admissionPath) ? withBookWriter : withNewBookWriter
+    return admit(admissionPath, () => runFullPipeline(options, progress))
+  }
+  // The published SPEC-0010 safe-resume implementation refuses a destructive
+  // full rerun until extraction/source reconciliation is available.
+  const existingDb = path.join(admissionPath, `${options.label}.db`)
+  if (fs.existsSync(existingDb)) {
+    const existing = createBookStorage(options.label, options.booksRoot)
+    try { if (existing.getPages().length) throw new Error("UNSAFE_RESUME_UNAVAILABLE: full extraction rerun cannot preserve this existing book") }
+    finally { existing.close() }
+  }
   const {
     label,
     pdfPath,
@@ -567,7 +592,7 @@ export async function runFullPipeline(
           pageSectioningConfig,
           model,
         )
-        storage.putNodeData("page-sectioning", page.pageId, result)
+        putSourceNodeData(storage, "page-sectioning", page.pageId, reconcileSectioningIdentities(storage, page.pageId, result))
         p.emit({
           type: "step-progress",
           step: "page-sectioning",
@@ -596,7 +621,7 @@ export async function runFullPipeline(
           translationConfig,
           model,
         )
-        storage.putNodeData("page-sectioning", page.pageId, translated)
+        putSourceNodeData(storage, "page-sectioning", page.pageId, translated)
         p.emit({
           type: "step-progress",
           step: "translation",
@@ -638,6 +663,7 @@ export async function runFullPipeline(
         const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!structuringRow || !imageClassRow) return
         const sectioning = structuringRow.data as PageSectioningOutput
+        assertReflowableSectioning(sectioning)
         const imageClassification = imageClassRow.data as ImageClassificationOutput
         const unprunedImageIds = imageClassification.images
           .filter((img) => !img.isPruned)
@@ -683,7 +709,7 @@ export async function runFullPipeline(
           resolveRenderModel,
           templateEngine,
         )
-        storage.putNodeData("web-rendering", page.pageId, result)
+        putReflowableRendering(storage, page.pageId, result)
         p.emit({
           type: "step-progress",
           step: "web-rendering",
@@ -702,23 +728,8 @@ export async function runFullPipeline(
       const quizConfig = buildQuizGenerationConfig(config, language)
       if (!quizConfig) return
       const model = getModel(quizConfig.modelId, config.quiz_generation?.reasoning_effort ?? config.default_reasoning_effort)
-      const pages = storage.getPages()
-      const quizPages: QuizPageInput[] = []
-      for (const page of pages) {
-        const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        // Filter by the SEMANTIC sectioning (real section types like
-        // `text_and_single_image`), not the render sectioning — in fixed-layout
-        // the latter is the positioned tree whose only type is
-        // `fixed-layout-page`, which never matches `quiz_section_types`, so no
-        // quizzes would ever generate.
-        const sectioning = getSemanticSectioning(storage, page.pageId)
-        if (!renderingRow || !sectioning) continue
-        quizPages.push({
-          pageId: page.pageId,
-          rendering: renderingRow.data as WebRenderingOutput,
-          sectioning,
-        })
-      }
+      const quizPages = collectQuizPages(storage)
+      const sourceReceipt = captureSourceGeneration(storage, "quiz-generation", { quiz: quizConfig })
       if (quizPages.length > 0) {
         assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes).length)
         const result = await generateAllQuizzes(quizPages, quizConfig, model, {
@@ -733,12 +744,12 @@ export async function runFullPipeline(
             })
           },
         })
-        saveQuizOutput(storage, result, "replace")
+        publishSourceGeneration(storage, sourceReceipt, () => saveQuizOutput(storage, result, "replace"))
       } else {
-        saveQuizOutput(storage, {
+        publishSourceGeneration(storage, sourceReceipt, () => saveQuizOutput(storage, {
           generatedAt: new Date().toISOString(), language: quizConfig.language,
           pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
-        }, "replace")
+        }, "replace"))
       }
     })
 
@@ -749,27 +760,13 @@ export async function runFullPipeline(
       const model = getModel(captionConfig.modelId, config.image_captioning?.reasoning_effort ?? config.default_reasoning_effort)
       const summaryRow = storage.getLatestNodeData("book-summary", "book")
       const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
-      const glossaryRow = storage.getLatestNodeData("glossary", "book")
-      const glossary = glossaryRow?.data as GlossaryOutput | undefined
-      const glossaryImageIdsByPage = groupGlossaryImageIdsByPage(
-        glossary,
-        (imageId) => storage.getImageMeta(imageId)?.pageId,
-      )
+      const inventory = buildImageInventory(storage)
+      const statuses = readOutputCatalog({ storage, config, bookDir: path.join(path.resolve(booksRoot), label), promptsDir, configDir: options.configDir ?? path.resolve("config") })
       const pages = storage.getPages()
       const totalPages = pages.length
       let completed = 0
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
-        const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        if (!renderingRow) return
-        const rendering = renderingRow.data as WebRenderingOutput
-        const sectioning = getRenderSectioning(storage, page.pageId)
-        const htmlSections = rendering.sections
-          .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
-          .map((s) => s.html)
-        const imageIds = collectCaptionImageIds(
-          htmlSections,
-          glossaryImageIdsByPage.get(page.pageId),
-        )
+        const imageIds = inventory.filter((image) => image.pageId === page.pageId && image.available).map((image) => image.id)
         if (imageIds.length === 0) {
           storage.putNodeData("image-captioning", page.pageId, { captions: [] })
         } else {
@@ -783,7 +780,10 @@ export async function runFullPipeline(
             captionConfig,
             model,
           )
-          storage.putNodeData("image-captioning", page.pageId, result)
+          storage.putNodeData("image-captioning", page.pageId, { ...result, captions: result.captions.map((entry) => {
+            const status = statuses.find((item) => item.identity.kind === "caption" && item.identity.id === entry.imageId)!
+            return { ...entry, source: "ai", input: outputEvidence(status.signature, { caption: entry.caption, decorative: entry.decorative === true }) }
+          }) })
         }
         completed++
         p.emit({
@@ -804,6 +804,7 @@ export async function runFullPipeline(
       const model = getModel(glossaryConfig.modelId, config.glossary?.reasoning_effort ?? config.default_reasoning_effort)
       const pages = storage.getPages()
 
+      const sourceReceipt = captureSourceGeneration(storage, "glossary")
       const glossary = await regenerateGlossaryPreservingEdits({
         storage,
         pages,
@@ -820,7 +821,7 @@ export async function runFullPipeline(
           })
         },
       })
-      storage.putNodeData("glossary", "book", glossary)
+      publishSourceGeneration(storage, sourceReceipt, () => storage.putNodeData("glossary", "book", glossary))
     })
 
     // ── TOC stage ───────────────────────────────────────────────
@@ -833,13 +834,14 @@ export async function runFullPipeline(
 
       p.emit({ type: "step-progress", step: "toc-generation", message: "Analyzing book structure..." })
 
+      const sourceReceipt = captureSourceGeneration(storage, "toc-generation", { tocMode: tocConfig.mode })
       const toc = await generateToc({
         storage,
         pages,
         config: tocConfig,
         llmModel: model,
       })
-      storage.putNodeData("toc-generation", "book", toc)
+      publishSourceGeneration(storage, sourceReceipt, () => storage.putNodeData("toc-generation", "book", toc))
 
       p.emit({
         type: "step-progress",
@@ -852,7 +854,7 @@ export async function runFullPipeline(
 
     executors.set("text-catalog", async () => {
       const pages = storage.getPages()
-      const catalog = await buildTextCatalog(storage, pages)
+      const catalog = reconcileTextCatalog(storage)
       storage.putNodeData("text-catalog", "book", catalog)
     })
 
@@ -869,8 +871,11 @@ export async function runFullPipeline(
         return
       }
       const model = getModel(easyReadConfig.modelId, config.easy_read?.reasoning_effort ?? config.default_reasoning_effort)
+      easyReadConfig.promptSignature = promptEngine.fingerprint(easyReadConfig.promptName, { modelId: easyReadConfig.modelId })
       const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
       const output = await generateEasyRead(blocks, easyReadConfig, model, {
+        references: captureOutputReferences(storage, "easy-read", easyReadConfig.language),
+        previous: retainedEasyRead(storage, blocks),
         concurrency: effectiveConcurrency,
         onProgress: (completed, total) => {
           p.emit({
@@ -895,61 +900,26 @@ export async function runFullPipeline(
       const outputLanguages = getOutputLanguages(config, language)
       const targetLanguages = getTargetLanguages(outputLanguages, language)
       if (targetLanguages.length === 0) return
-      const catalogRow = storage.getLatestNodeData("text-catalog", "book")
-      if (!catalogRow) return
-      const catalog = catalogRow.data as TextCatalogOutput
-      const easyReadRow = storage.getLatestNodeData("easy-read", "book")
-      const easyReadEntries = flattenEasyReadEntries(easyReadRow?.data as EasyReadOutput | undefined)
-      const translationEntries = [...catalog.entries, ...easyReadEntries]
+      const translationEntries = buildOutputSources(storage, config).entries
       if (translationEntries.length === 0) return
       const translationConfig = buildCatalogTranslationConfig(config, language)
       const model = getModel(translationConfig.modelId, config.translation?.reasoning_effort ?? config.default_reasoning_effort)
-      const batchSize = translationConfig.batchSize
-      interface WorkItem { language: string; batchIndex: number; entries: TextCatalogEntry[] }
-      const workItems: WorkItem[] = []
-      for (const lang of targetLanguages) {
-        for (let i = 0; i < translationEntries.length; i += batchSize) {
-          workItems.push({ language: lang, batchIndex: Math.floor(i / batchSize), entries: translationEntries.slice(i, i + batchSize) })
-        }
-      }
-      const totalBatches = workItems.length
-      let completedBatches = 0
-      const resultsByLang = new Map<string, TextCatalogEntry[]>()
-      for (const lang of targetLanguages) resultsByLang.set(lang, [])
-      await processWithConcurrency(workItems, effectiveConcurrency, async (item) => {
-        const translated = await translateCatalogBatch(item.entries, item.language, translationConfig, model)
-        resultsByLang.get(item.language)!.push(...translated)
-        completedBatches++
-        p.emit({
-          type: "step-progress",
-          step: "catalog-translation",
-          message: `${completedBatches}/${totalBatches} batches`,
-          page: completedBatches,
-          totalPages: totalBatches,
-        })
+      translationConfig.promptSignature = promptEngine.fingerprint(translationConfig.promptName, { modelId: translationConfig.modelId })
+      await processWithConcurrency(targetLanguages, effectiveConcurrency, async (lang) => {
+        const previous = storage.getLatestNodeData("text-catalog-translation", lang)?.data as TextCatalogOutput | undefined
+        const output = await translateCatalog({ entries: translationEntries, language: lang, config: translationConfig, llmModel: model, previous, references: captureOutputReferences(storage, "translation", lang) })
+        if (output !== previous) storage.putNodeData("text-catalog-translation", lang, output)
       })
-      for (const lang of targetLanguages) {
-        const entries = resultsByLang.get(lang)!
-        const idOrder = new Map(translationEntries.map((e, i) => [e.id, i]))
-        entries.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
-        storage.putNodeData("text-catalog-translation", lang, { entries, generatedAt: new Date().toISOString() })
-      }
     })
 
     executors.set("core-tts-catalog", async (p) => {
       const language = getLanguage(storage, config)
       const outputLanguages = getOutputLanguages(config, language)
-      const catalogRow = storage.getLatestNodeData("text-catalog", "book")
-      if (!catalogRow) return
-      const catalog = catalogRow.data as TextCatalogOutput
-      const easyReadRow = storage.getLatestNodeData("easy-read", "book")
-      const easyReadEntries = flattenEasyReadEntries(
-        easyReadRow?.data as EasyReadOutput | undefined,
-      )
-      const sourceDisplayEntries = [...catalog.entries, ...easyReadEntries]
+      const sourceDisplayEntries = buildOutputSources(storage, config).entries
       if (sourceDisplayEntries.length === 0) return
 
       const preparationConfig = buildCoreTtsPreparationConfig(config)
+      preparationConfig.promptSignature = promptEngine.fingerprint(preparationConfig.promptName, { modelId: preparationConfig.modelId })
       const model = getModel(preparationConfig.modelId, config.core_tts?.reasoning_effort ?? config.default_reasoning_effort)
       const profiles = loadCoreTtsProfiles(
         options.configDir ?? path.resolve(process.cwd(), "config"),
@@ -958,11 +928,12 @@ export async function runFullPipeline(
         entries: sourceDisplayEntries,
         language,
         config: preparationConfig,
+        references: captureOutputReferences(storage, "preparation", language),
         profile: resolveCoreTtsProfile(language, profiles),
         llmModel: model,
         previous: getCoreTtsCatalog(storage, language),
       })
-      storage.putNodeData("core-tts-catalog", language, sourceCatalog)
+      if (inputSignature(getCoreTtsCatalog(storage, language)?.entries) !== inputSignature(sourceCatalog.entries)) storage.putNodeData("core-tts-catalog", language, sourceCatalog)
       const sourceContext = buildCoreTtsSourceContext(
         sourceDisplayEntries,
         sourceCatalog,
@@ -977,23 +948,19 @@ export async function runFullPipeline(
         const lang = locale.language
         let displayEntries = sourceDisplayEntries
         if (!locale.usesSourceDisplayText) {
-          const legacy = lang.replace("-", "_")
-          const row =
-            storage.getLatestNodeData("text-catalog-translation", lang) ??
-            storage.getLatestNodeData("text-catalog-translation", legacy)
-          if (!row) continue
-          displayEntries = (row.data as TextCatalogOutput).entries
+          displayEntries = translatedDisplayEntries(storage, lang, sourceDisplayEntries)
         }
         const targetCatalog = await prepareCoreTtsCatalog({
           entries: displayEntries,
           language: lang,
           config: preparationConfig,
+          references: captureOutputReferences(storage, "preparation", lang),
           profile: resolveCoreTtsProfile(lang, profiles),
           llmModel: model,
           previous: getCoreTtsCatalog(storage, lang),
           sourceContext,
         })
-        storage.putNodeData("core-tts-catalog", lang, targetCatalog)
+        if (inputSignature(getCoreTtsCatalog(storage, lang)?.entries) !== inputSignature(targetCatalog.entries)) storage.putNodeData("core-tts-catalog", lang, targetCatalog)
         completed++
         p.emit({
           type: "step-progress",
@@ -1008,6 +975,8 @@ export async function runFullPipeline(
     executors.set("tts", async (p) => {
       const language = getLanguage(storage, config)
       const outputLanguages = getOutputLanguages(config, language)
+      reconcileSpeechInputs({ storage, config, sourceLanguage: language, languages: outputLanguages,
+        profiles: loadCoreTtsProfiles(options.configDir ?? path.resolve("config")), promptsDir, bookDir: path.join(path.resolve(booksRoot), label) })
       if (!outputLanguages.some((lang) => getReadyCoreTtsEntries(storage, lang).length > 0)) return
 
       const configDir = options.configDir ?? path.resolve(process.cwd(), "config")
@@ -1207,6 +1176,7 @@ export async function runFullPipeline(
           attemptCount++
           const ttsSynthesizer = getSynthesizer(provider)
           return generateSpeechFile({
+          sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate,
             textId: item.textId,
             text: item.text,
             language: item.language,
@@ -1308,7 +1278,7 @@ export async function runFullPipeline(
       for (const lang of outputLanguages) {
         const entries = resultsByLang.get(lang)!
         const output: TTSOutput = { entries, generatedAt: new Date().toISOString() }
-        storage.putNodeData("tts", lang, output)
+        publishSpeechOutput(storage, lang, output)
       }
     })
 
@@ -1322,6 +1292,7 @@ export async function runFullPipeline(
       const bookMetadata = metadataRow?.data as { title?: string | null } | null
       const bookTitle = bookMetadata?.title ?? label
       await packageAdtWeb(storage, {
+        promptsDir, configDir: options.configDir ?? path.resolve("config"),
         bookDir: path.join(path.resolve(booksRoot), label),
         label,
         language,
@@ -1329,7 +1300,8 @@ export async function runFullPipeline(
         title: bookTitle,
         webAssetsDir: options.webAssetsDir,
         applyBodyBackground: config.apply_body_background,
-        speechConfig: config.speech,
+        config,
+      speechConfig: config.speech,
         fixedLayout: isFixedLayoutBook(config),
         reflowableFont: config.reflowable_font,
         quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
