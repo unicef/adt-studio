@@ -77,6 +77,7 @@ function createCliProgress(): Progress & { stop(): void } {
       if (event.type === "step-complete") {
         const bar = bars.get(event.step)
         if (bar) bar.update(bar.getTotal())
+        if (event.message) multibar.log(`${event.step}: ${event.message}\n`)
         return
       }
 

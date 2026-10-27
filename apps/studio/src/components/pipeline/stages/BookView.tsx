@@ -64,6 +64,7 @@ export function BookView({ bookLabel }: ViewProps) {
     stepState,
     stepProgress,
     stepError,
+    stepMessage,
     error: runError,
   } = useBookRun()
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
@@ -133,6 +134,7 @@ export function BookView({ bookLabel }: ViewProps) {
       stepState,
       stepProgress,
       stepError,
+      stepMessage,
       runError,
     }
   }
@@ -273,6 +275,7 @@ interface HomeStageCardProps {
   stepState: (key: string) => string
   stepProgress: (key: string) => { page?: number; totalPages?: number } | undefined
   stepError: (key: string) => string | undefined
+  stepMessage: (key: string) => string | undefined
   runError: string | null
 }
 
@@ -287,6 +290,7 @@ function HomeStageCard({
   stepState,
   stepProgress,
   stepError,
+  stepMessage,
   runError,
 }: HomeStageCardProps) {
   const navigate = useNavigate()
@@ -381,6 +385,7 @@ function HomeStageCard({
               stepState={stepState}
               stepProgress={stepProgress}
               stepError={stepError}
+              stepMessage={stepMessage}
             />
           )}
         </div>

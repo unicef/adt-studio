@@ -125,6 +125,7 @@ import {
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
   imagePassCompletionMessage,
+  recordOptionalModelFailure,
   type ImagePassFailure,
   buildMeaningfulnessConfig,
   buildMeaningfulnessImages,
@@ -3953,15 +3954,14 @@ async function runSegmentationPass(
         }))
 
       if (unprunedImages.length > 0) {
-        const segmentationResult = await segmentPageImages(
-          {
-            pageId: page.pageId,
-            pageImageBase64: storage.getPageImageBase64(page.pageId),
-            images: unprunedImages,
-          },
-          config,
-          model,
+        const segmentationResult = await recordOptionalModelFailure(
+          failures,
+          page.pageId,
+          () => segmentPageImages({ pageId: page.pageId, pageImageBase64: storage.getPageImageBase64(page.pageId), images: unprunedImages }, config, model),
+          (error) => console.error(`[stage-run] ${label}: image segmentation failed for ${page.pageId}: ${error}`),
+          (err) => isCancellation(err, [runSignal]),
         )
+        if (!segmentationResult) return
         const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
         const segDims = new Map(images.map((img) => [img.imageId, { width: img.width, height: img.height }]))
         const applied = applySegmentation(
@@ -4002,10 +4002,6 @@ async function runSegmentationPass(
           storage.putNodeData("image-filtering", page.pageId, existing)
         }
       }
-    } catch (err) {
-      if (isCancellation(err, [runSignal])) throw err
-      failures.push({ pageId: page.pageId, error: toErrorMessage(err) })
-      console.error(`[stage-run] ${label}: image segmentation failed for ${page.pageId}: ${toErrorMessage(err)}`)
     } finally {
       completed++
       progress.emit({
@@ -4070,15 +4066,14 @@ async function runCroppingPass(
         }))
 
       if (unprunedImages.length > 0) {
-        const croppingResult = await cropPageImages(
-          {
-            pageId: page.pageId,
-            pageImageBase64: storage.getPageImageBase64(page.pageId),
-            images: unprunedImages,
-          },
-          config,
-          model,
+        const croppingResult = await recordOptionalModelFailure(
+          failures,
+          page.pageId,
+          () => cropPageImages({ pageId: page.pageId, pageImageBase64: storage.getPageImageBase64(page.pageId), images: unprunedImages }, config, model),
+          (error) => console.error(`[stage-run] ${label}: image cropping failed for ${page.pageId}: ${error}`),
+          (err) => isCancellation(err, [runSignal]),
         )
+        if (!croppingResult) return
         const croppingVersion = storage.putNodeData("image-cropping", page.pageId, croppingResult)
         const applied = applyCrops(
           croppingResult,
@@ -4107,10 +4102,6 @@ async function runCroppingPass(
           storage.putNodeData("image-filtering", page.pageId, existing)
         }
       }
-    } catch (err) {
-      if (isCancellation(err, [runSignal])) throw err
-      failures.push({ pageId: page.pageId, error: toErrorMessage(err) })
-      console.error(`[stage-run] ${label}: image cropping failed for ${page.pageId}: ${toErrorMessage(err)}`)
     } finally {
       completed++
       progress.emit({

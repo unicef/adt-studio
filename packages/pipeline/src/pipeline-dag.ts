@@ -72,7 +72,7 @@ import {
 } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
-import { imagePassCompletionMessage, type ImagePassFailure } from "./image-pass-failures.js"
+import { imagePassCompletionMessage, recordOptionalModelFailure, type ImagePassFailure } from "./image-pass-failures.js"
 import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds, collectSourcePageImages } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
@@ -377,13 +377,14 @@ export async function runFullPipeline(
             height: img.height,
           }))
         if (unprunedImages.length > 0) {
-          try {
-            const pageImageBase64 = storage.getPageImageBase64(page.pageId)
-            const segmentationResult = await segmentPageImages(
-              { pageId: page.pageId, pageImageBase64, images: unprunedImages },
-              segmentationConfig,
-              model,
-            )
+          const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+          const segmentationResult = await recordOptionalModelFailure(
+            failures,
+            page.pageId,
+            () => segmentPageImages({ pageId: page.pageId, pageImageBase64, images: unprunedImages }, segmentationConfig, model),
+            (error) => console.warn(`[image-segmentation] Failed for ${page.pageId}:`, error),
+          )
+          if (segmentationResult) {
             const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
             const segDims = new Map(allImages.map((img) => [img.imageId, { width: img.width, height: img.height }]))
             const applied = applySegmentation(
@@ -425,10 +426,6 @@ export async function runFullPipeline(
               }
               storage.putNodeData("image-filtering", page.pageId, imageClassification)
             }
-          } catch (err) {
-            const message = err instanceof Error ? err.message : String(err)
-            failures.push({ pageId: page.pageId, error: message })
-            console.warn(`[image-segmentation] Failed for ${page.pageId}:`, message)
           }
         }
         p.emit({
@@ -497,7 +494,6 @@ export async function runFullPipeline(
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
-        try {
         const imageClassification = classRow.data as ImageClassificationOutput
         const prunedImageIds = new Set(
           imageClassification.images.filter((img) => img.isPruned).map((img) => img.imageId)
@@ -513,11 +509,13 @@ export async function runFullPipeline(
           }))
         if (unprunedImages.length > 0) {
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
-          const croppingResult = await cropPageImages(
-            { pageId: page.pageId, pageImageBase64, images: unprunedImages },
-            croppingConfig,
-            model,
+          const croppingResult = await recordOptionalModelFailure(
+            failures,
+            page.pageId,
+            () => cropPageImages({ pageId: page.pageId, pageImageBase64, images: unprunedImages }, croppingConfig, model),
+            (error) => console.warn(`[image-cropping] Failed for ${page.pageId}:`, error),
           )
+          if (croppingResult) {
           const croppingVersion = storage.putNodeData("image-cropping", page.pageId, croppingResult)
           const applied = applyCrops(
             croppingResult,
@@ -545,12 +543,7 @@ export async function runFullPipeline(
           if (applied.length > 0) {
             storage.putNodeData("image-filtering", page.pageId, imageClassification)
           }
-        }
-        } catch (err) {
-          // Cropping is optional: the page keeps its extracted images and the step says so.
-          const message = err instanceof Error ? err.message : String(err)
-          failures.push({ pageId: page.pageId, error: message })
-          console.warn(`[image-cropping] Failed for ${page.pageId}:`, message)
+          }
         }
         p.emit({
           type: "step-progress",

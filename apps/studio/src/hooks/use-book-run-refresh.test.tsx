@@ -164,3 +164,21 @@ it('first settled receipt recovers a run that completed during initial reads bef
   await waitFor(()=>expect(client.getQueryData(key)).toBe('after'));
  }finally{hook.unmount();stop();client.clear()}
 })
+
+it("exposes a finished step's completion note separately from running progress", async () => {
+  const { client, hook, close } = setup()
+  try {
+    const note = "Completed — 1 page(s) kept their extracted images unchanged after a failure: pg002 (boom)"
+    const state = client.getQueryData<{ steps: Record<string, string> }>(["books", "book", "step-status"])!
+    await act(async () => {
+      client.setQueryData(["books", "book", "step-status"], { ...state, steps: { ...state.steps, "image-cropping": "done", "image-segmentation": "running" }, stepMessages: { "image-cropping": note, "image-segmentation": "3/12" } })
+    })
+    await waitFor(() => expect(hook.result.current.stepMessage("image-cropping")).toBe(note))
+    // A done step has no live progress; a running step has progress but no completion note.
+    expect(hook.result.current.stepProgress("image-cropping")).toBeUndefined()
+    expect(hook.result.current.stepMessage("image-segmentation")).toBeUndefined()
+    expect(hook.result.current.stepProgress("image-segmentation")).toEqual({ message: "3/12" })
+  } finally {
+    close()
+  }
+})

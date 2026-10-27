@@ -18,6 +18,7 @@ export function SubStepPillRow({
   stepState,
   stepProgress,
   stepError,
+  stepMessage,
 }: {
   subSteps: StageSubStep[]
   stepState: (key: string) => string
@@ -25,6 +26,8 @@ export function SubStepPillRow({
     key: string,
   ) => { page?: number; totalPages?: number } | undefined
   stepError: (key: string) => string | undefined
+  /** Completion note of a finished step, shown in the popover. */
+  stepMessage?: (key: string) => string | undefined
 }) {
   return (
     <div className="mt-1 flex flex-wrap gap-1.5">
@@ -55,6 +58,7 @@ export function SubStepPillRow({
                 state={state}
                 progress={stepProgress(subStep.key)}
                 errorMessage={stepError(subStep.key)}
+                completionNote={stepMessage?.(subStep.key)}
               />
             </TooltipContent>
           </Tooltip>
@@ -123,11 +127,13 @@ function SubStepPopoverCard({
   state,
   progress,
   errorMessage,
+  completionNote,
 }: {
   stepKey: string
   state: string
   progress?: { page?: number; totalPages?: number }
   errorMessage?: string
+  completionNote?: string
 }) {
   const { t } = useLingui()
   const isDone = state === "done"
@@ -237,7 +243,7 @@ function SubStepPopoverCard({
           )}
         </div>
       </div>
-      {(hasPages || (isError && errorMessage) || isSkipped) && (
+      {(hasPages || (isError && errorMessage) || (isDone && completionNote) || isSkipped) && (
         <div className="flex flex-col gap-2 border-t border-border/70 bg-muted/30 px-3.5 py-2.5">
           {hasPages && (
             <div className="flex flex-col gap-1.5">
@@ -259,6 +265,9 @@ function SubStepPopoverCard({
                 />
               </div>
             </div>
+          )}
+          {isDone && completionNote && (
+            <p className="text-[10.5px] leading-relaxed text-amber-700">{completionNote}</p>
           )}
           {isError && errorMessage && (
             <p className="break-words text-[10.5px] leading-snug text-red-700">

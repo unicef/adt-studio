@@ -22,7 +22,8 @@ vi.mock("@/hooks/use-api-key", () => ({
 }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({
   stageState: () => state.stage, stepState: () => "idle", stepProgress: () => undefined,
-  stepError: () => undefined, queueRun: state.queueRun,
+  stepError: () => undefined,
+    stepMessage: () => undefined, queueRun: state.queueRun,
 }) }))
 vi.mock("../../components/StepViewRouter", () => ({ useStepHeader: () => ({ setExtra: state.setExtra, setOnLabelClick: state.setOnLabelClick }) }))
 vi.mock("../../pipeline-i18n", () => ({
