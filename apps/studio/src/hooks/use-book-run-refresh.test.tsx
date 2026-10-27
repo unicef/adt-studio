@@ -7,7 +7,7 @@ import { PIPELINE } from "@adt/types"
 
 vi.mock("@/api/client", () => ({ BASE_URL: "", api: { getStepStatus: vi.fn(), getStagesStatus: vi.fn() } }))
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }))
-vi.mock("./use-api-key", () => ({ useApiKey: () => ({ credentials: {} }) }))
+vi.mock("./use-api-key", () => ({ useApiKey: () => ({ ownCredentials: {} }) }))
 vi.mock("./use-page-mutations", () => ({ invalidateStoryboardDependents: vi.fn() }))
 vi.mock("@/components/a11y/LiveRegionAnnouncer", () => ({ useAnnouncer: () => ({ announce: vi.fn() }) }))
 vi.mock("@/lib/completion-sound", () => ({ playCompletionSound: vi.fn(), playErrorSound: vi.fn() }))
