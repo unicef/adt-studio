@@ -10,6 +10,10 @@ import {
   buildMeaningfulnessConfig,
   deduplicateAutoFigureCandidates,
   filterPageImageMeaningfulness,
+  planHashDedup,
+  excludeDuplicates,
+  propagateDuplicateVerdicts,
+  applyHashDedupVerdicts,
 } from "../image-meaningfulness.js"
 
 function makeFakeLLMModel(
@@ -878,5 +882,60 @@ describe("filterPageImageMeaningfulness", () => {
     )
     expect(validation?.valid).toBe(true)
     expect(validation?.errors).toEqual([])
+  })
+})
+
+describe("cross-page hash dedup", () => {
+  const kept = (imageId: string) => ({ imageId, isPruned: false })
+  const pruned = (imageId: string, reason: string) => ({ imageId, isPruned: true, reason })
+  const pages = [
+    { pageId: "pg001", images: [{ imageId: "pg001_im002", hash: "logo" }, { imageId: "pg001_im001", hash: "figure-a" }, { imageId: "pg001_im003", hash: "tiny" }],
+      classification: { images: [kept("pg001_im001"), kept("pg001_im002"), pruned("pg001_im003", "shortest side 20px < min_side 100px")] } },
+    { pageId: "pg002", images: [{ imageId: "pg002_im001", hash: "logo" }, { imageId: "pg002_im002", hash: "logo" }, { imageId: "pg002_im003", hash: "figure-b" }, { imageId: "pg002_im004" }],
+      classification: { images: [kept("pg002_im001"), kept("pg002_im002"), kept("pg002_im003"), kept("pg002_im004")] } },
+    { pageId: "pg003", images: [{ imageId: "pg003_im001", hash: "tiny" }],
+      classification: { images: [kept("pg003_im001")] } },
+  ]
+
+  it("maps every later unpruned copy to the first unpruned copy, in page then id order", () => {
+    const plan = planHashDedup(pages)
+    expect([...plan.ownerByImageId]).toEqual([["pg002_im001", "pg001_im002"], ["pg002_im002", "pg001_im002"]])
+    // A deterministically pruned copy neither owns nor is deduplicated, and an image without a hash is left alone.
+    expect(plan.ownerByImageId.has("pg003_im001")).toBe(false)
+    expect(plan.pageByImageId.get("pg001_im002")).toBe("pg001")
+    expect(plan.pageByImageId.get("pg002_im002")).toBe("pg002")
+  })
+
+  it("keeps owners in the model input and drops duplicates", () => {
+    const plan = planHashDedup(pages)
+    const input = [{ imageId: "pg002_im001" }, { imageId: "pg002_im002" }, { imageId: "pg002_im003" }, { imageId: "pg002_im004" }]
+    expect(excludeDuplicates(input, plan).map((image) => image.imageId)).toEqual(["pg002_im003", "pg002_im004"])
+    expect(excludeDuplicates([{ imageId: "pg001_im002" }], plan)).toHaveLength(1)
+  })
+
+  it("copies the owner's verdict onto duplicates with a reason naming the owner, and leaves unknown owners alone", () => {
+    const plan = planHashDedup(pages)
+    const verdicts: Record<string, { imageId: string; isPruned: boolean; reason?: string }> = { pg001_im002: pruned("pg001_im002", "not meaningful: a logo") }
+    const result = propagateDuplicateVerdicts(pages[1].classification, plan, (ownerId) => verdicts[ownerId])
+    expect(result.images).toEqual([
+      pruned("pg002_im001", "duplicate of pg001_im002: not meaningful: a logo"),
+      pruned("pg002_im002", "duplicate of pg001_im002: not meaningful: a logo"),
+      kept("pg002_im003"), kept("pg002_im004"),
+    ])
+    const keptOwner = propagateDuplicateVerdicts(pages[1].classification, plan, () => kept("pg001_im002"))
+    expect(keptOwner.images[0]).toEqual({ imageId: "pg002_im001", isPruned: false, reason: "duplicate of pg001_im002: kept with it" })
+    const unknown = propagateDuplicateVerdicts(pages[1].classification, plan, () => undefined)
+    expect(unknown).toBe(pages[1].classification)
+  })
+
+  it("applies the plan book-wide and returns only the pages that changed", () => {
+    const plan = planHashDedup(pages)
+    const store = new Map(pages.map((page) => [page.pageId, page.classification]))
+    store.set("pg001", { images: [kept("pg001_im001"), pruned("pg001_im002", "not meaningful: a logo"), pages[0].classification.images[2]] })
+    const updated = applyHashDedupVerdicts(plan, (pageId) => store.get(pageId))
+    expect([...updated.keys()]).toEqual(["pg002"])
+    expect(updated.get("pg002")?.images.filter((image) => image.isPruned).map((image) => image.imageId)).toEqual(["pg002_im001", "pg002_im002"])
+    // Without an owner verdict (its page failed), nothing is written.
+    expect(applyHashDedupVerdicts(plan, (pageId) => (pageId === "pg001" ? undefined : store.get(pageId))).size).toBe(0)
   })
 })

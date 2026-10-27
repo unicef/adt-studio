@@ -68,6 +68,9 @@ import {
   buildMeaningfulnessImages,
   dedupAutoFigureCandidatesInStorage,
   filterPageImageMeaningfulness,
+  planHashDedup,
+  excludeDuplicates,
+  applyHashDedupVerdicts,
   buildMeaningfulnessConfig,
 } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
@@ -456,11 +459,20 @@ export async function runFullPipeline(
         return
       }
       const model = getModel(meaningfulnessConfig.modelId)
+      const classificationOf = (pageId: string) =>
+        storage.getLatestNodeData("image-filtering", pageId)?.data as ImageClassificationOutput | undefined
+      // Identical bytes on several pages are judged once; see planHashDedup.
+      const dedupPlan = planHashDedup(
+        pages.flatMap((page) => {
+          const classification = classificationOf(page.pageId)
+          return classification ? [{ pageId: page.pageId, images: storage.getPageImages(page.pageId), classification }] : []
+        }),
+      )
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
         let imageResult = classRow.data as ImageClassificationOutput
-        const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, imageResult)
+        const unprunedImages = excludeDuplicates(buildMeaningfulnessImages(storage, page.pageId, imageResult), dedupPlan)
         if (unprunedImages.length > 0) {
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
           imageResult = await filterPageImageMeaningfulness(
@@ -484,6 +496,9 @@ export async function runFullPipeline(
           totalPages,
         })
       })
+      for (const [pageId, updated] of applyHashDedupVerdicts(dedupPlan, classificationOf)) {
+        storage.putNodeData("image-filtering", pageId, updated)
+      }
     })
 
     executors.set("image-cropping", async (p) => {

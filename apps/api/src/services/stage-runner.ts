@@ -124,6 +124,9 @@ import {
   readTypeScale,
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
+  planHashDedup,
+  excludeDuplicates,
+  applyHashDedupVerdicts,
   buildMeaningfulnessConfig,
   buildMeaningfulnessImages,
   dedupAutoFigureCandidatesInStorage,
@@ -3840,6 +3843,14 @@ async function runMeaningfulnessPass(
   const total = pages.length
   let completed = 0
   progress.emit({ type: "step-start", step: "image-meaningfulness" })
+  // Identical bytes on several pages are judged once: only the first copy
+  // goes to the model, and its verdict is copied onto the others afterwards.
+  const dedupPlan = planHashDedup(
+    pages.flatMap((page) => {
+      const classification = results.get(page.pageId)
+      return classification ? [{ pageId: page.pageId, images: storage.getPageImages(page.pageId), classification }] : []
+    }),
+  )
   await processWithConcurrency(
     pages,
     concurrency,
@@ -3857,7 +3868,7 @@ async function runMeaningfulnessPass(
       return
     }
     try {
-      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing)
+      const unprunedImages = excludeDuplicates(buildMeaningfulnessImages(storage, page.pageId, existing), dedupPlan)
 
       if (unprunedImages.length > 0) {
         const updated = await filterPageImageMeaningfulness(
@@ -3890,6 +3901,10 @@ async function runMeaningfulnessPass(
     },
     { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate },
   )
+  for (const [pageId, updated] of applyHashDedupVerdicts(dedupPlan, (id) => results.get(id))) {
+    results.set(pageId, updated)
+    storage.putNodeData("image-filtering", pageId, updated)
+  }
   const failed = deps.failedPages.some((f) => f.step === "image-meaningfulness")
   if (!failed && !deps.stepController.signal.aborted) {
     progress.emit({

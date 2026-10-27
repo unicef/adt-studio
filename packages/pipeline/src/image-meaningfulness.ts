@@ -1,4 +1,5 @@
 import type {
+  ImageClassificationResult,
   AppConfig,
   FigureExtractionMode,
   ImageClassificationOutput,
@@ -354,4 +355,108 @@ export async function filterPageImageMeaningfulness(
       return img
     }),
   }
+}
+
+/**
+ * Cross-page exact-duplicate dedup for the meaningfulness pass.
+ *
+ * Extraction stores the same bytes once per page they appear on (a logo, a
+ * running header, a repeated icon), and every copy would otherwise be sent to
+ * the model and judged again. The plan maps each unpruned copy to its owner,
+ * the first unpruned image with the same hash in page order, so only owners
+ * are sent; after the pass the owner's verdict is copied onto its duplicates
+ * with a reason that names the owner, so the decision stays inspectable.
+ */
+export interface HashDedupPlan {
+  /** Duplicate image id → owner image id. */
+  ownerByImageId: Map<string, string>
+  /** Page of every owner and duplicate in the plan. */
+  pageByImageId: Map<string, string>
+}
+
+export interface HashDedupPage {
+  pageId: string
+  images: Array<{ imageId: string; hash?: string }>
+  classification: ImageClassificationOutput
+}
+
+/** Shared prefix so the report and future passes recognise propagated verdicts. */
+export const DUPLICATE_OF_PREFIX = "duplicate of "
+
+export function planHashDedup(pages: HashDedupPage[]): HashDedupPlan {
+  const ownerByHash = new Map<string, { imageId: string; pageId: string }>()
+  const plan: HashDedupPlan = { ownerByImageId: new Map(), pageByImageId: new Map() }
+  for (const page of pages) {
+    const unpruned = new Set(page.classification.images.filter((img) => !img.isPruned).map((img) => img.imageId))
+    const images = [...page.images].sort((a, b) => a.imageId.localeCompare(b.imageId))
+    for (const image of images) {
+      if (!image.hash || !unpruned.has(image.imageId)) continue
+      const owner = ownerByHash.get(image.hash)
+      if (!owner) {
+        ownerByHash.set(image.hash, { imageId: image.imageId, pageId: page.pageId })
+      } else {
+        plan.ownerByImageId.set(image.imageId, owner.imageId)
+      }
+      plan.pageByImageId.set(image.imageId, page.pageId)
+    }
+  }
+  return plan
+}
+
+/** The images a page should send to the model: its owners, never its duplicates. */
+export function excludeDuplicates<T extends { imageId: string }>(images: T[], plan: HashDedupPlan): T[] {
+  return images.filter((image) => !plan.ownerByImageId.has(image.imageId))
+}
+
+/**
+ * Copy owner verdicts onto a page's duplicates. A duplicate whose owner has no
+ * verdict yet (its page failed or was skipped) is left as it was, so it is
+ * never pruned on missing evidence. Returns the same object when nothing changed.
+ */
+export function propagateDuplicateVerdicts(
+  classification: ImageClassificationOutput,
+  plan: HashDedupPlan,
+  verdictOf: (ownerId: string) => ImageClassificationResult | undefined,
+): ImageClassificationOutput {
+  let changed = false
+  const images = classification.images.map((img) => {
+    if (img.isPruned) return img
+    const ownerId = plan.ownerByImageId.get(img.imageId)
+    if (!ownerId) return img
+    const owner = verdictOf(ownerId)
+    if (!owner) return img
+    changed = true
+    return owner.isPruned
+      ? { imageId: img.imageId, isPruned: true, reason: `${DUPLICATE_OF_PREFIX}${ownerId}: ${owner.reason ?? "pruned"}` }
+      : { imageId: img.imageId, isPruned: false, reason: `${DUPLICATE_OF_PREFIX}${ownerId}: kept with it` }
+  })
+  return changed ? { images } : classification
+}
+
+/**
+ * Apply the plan to every page after the pass: returns the pages whose
+ * classification changed, ready to be persisted by the caller.
+ */
+export function applyHashDedupVerdicts(
+  plan: HashDedupPlan,
+  getClassification: (pageId: string) => ImageClassificationOutput | undefined,
+): Map<string, ImageClassificationOutput> {
+  const verdictOf = (ownerId: string): ImageClassificationResult | undefined => {
+    const pageId = plan.pageByImageId.get(ownerId)
+    if (!pageId) return undefined
+    return getClassification(pageId)?.images.find((img) => img.imageId === ownerId)
+  }
+  const updated = new Map<string, ImageClassificationOutput>()
+  const pagesWithDuplicates = new Set<string>()
+  for (const duplicateId of plan.ownerByImageId.keys()) {
+    const pageId = plan.pageByImageId.get(duplicateId)
+    if (pageId) pagesWithDuplicates.add(pageId)
+  }
+  for (const pageId of pagesWithDuplicates) {
+    const current = getClassification(pageId)
+    if (!current) continue
+    const next = propagateDuplicateVerdicts(current, plan, verdictOf)
+    if (next !== current) updated.set(pageId, next)
+  }
+  return updated
 }
