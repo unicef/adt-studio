@@ -77,7 +77,8 @@ function createCliProgress(): Progress & { stop(): void } {
       if (event.type === "step-complete") {
         const bar = bars.get(event.step)
         if (bar) bar.update(bar.getTotal())
-        if (event.message) multibar.log(`${event.step}: ${event.message}\n`)
+        // Written straight to stderr: the multibar's own log is a no-op without a TTY.
+        if (event.message) process.stderr.write(`${event.step}: ${event.message}\n`)
         return
       }
 

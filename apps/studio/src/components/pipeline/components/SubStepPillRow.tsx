@@ -1,5 +1,5 @@
 import { type ComponentProps, type Ref } from "react"
-import { Check, Circle, Loader2, Minus, XCircle } from "lucide-react"
+import { AlertTriangle, Check, Circle, Loader2, Minus, XCircle } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import {
   getStepDescriptionI18n,
@@ -34,10 +34,12 @@ export function SubStepPillRow({
     <div className="mt-1 flex flex-wrap gap-1.5">
       {subSteps.map((subStep) => {
         const state = stepState(subStep.key)
+        const note = stepMessage?.(subStep.key)
+        const hasWarning = state === "done" && !!note && isAttentionNote(note)
         return (
           <Tooltip key={subStep.key}>
             <TooltipTrigger asChild>
-              <SubStepPillButton stepKey={subStep.key} state={state} />
+              <SubStepPillButton stepKey={subStep.key} state={state} hasWarning={hasWarning} />
             </TooltipTrigger>
             <TooltipContent
               side="top"
@@ -72,13 +74,17 @@ export function SubStepPillRow({
 function SubStepPillButton({
   stepKey,
   state,
+  hasWarning = false,
   ref,
   ...rest
 }: {
   stepKey: string
   state: string
+  /** The step finished but left a "Completed —" warning (pages skipped or left unchanged). */
+  hasWarning?: boolean
   ref?: Ref<HTMLSpanElement>
 } & Omit<ComponentProps<"span">, "ref">) {
+  const { t } = useLingui()
   const isDone = state === "done"
   const isSkipped = state === "skipped"
   const isError = state === "error"
@@ -104,7 +110,9 @@ function SubStepPillButton({
           "absolute inset-0 inline-flex items-center justify-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
           "transition-all duration-200 ease-out",
           "hover:-translate-y-px hover:shadow-sm active:translate-y-0",
-          isDone
+          isDone && hasWarning
+            ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200/70 hover:bg-amber-100/80 hover:ring-amber-300"
+            : isDone
             ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/70 hover:bg-emerald-100/80 hover:ring-emerald-300"
             : isError
               ? "bg-red-50 text-red-800 ring-1 ring-red-200/70 hover:bg-red-100/80 hover:ring-red-300"
@@ -115,7 +123,8 @@ function SubStepPillButton({
                   : "bg-muted/60 text-muted-foreground ring-1 ring-border/60 hover:bg-muted hover:text-foreground hover:ring-border",
         )}
       >
-        {isDone && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+        {isDone && hasWarning && <AlertTriangle className="h-2.5 w-2.5" strokeWidth={3} aria-label={t`Completed with a warning`} />}
+        {isDone && !hasWarning && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
         {isRunning && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
         {label}
       </span>

@@ -2578,6 +2578,9 @@ msgstr "Përfunduar"
 msgid "Completed Part"
 msgstr "Pjesa e përfunduar"
 
+msgid "Completed with a warning"
+msgstr "Përfunduar me një paralajmërim"
+
 msgid "Completion"
 msgstr "Përfundim"
 

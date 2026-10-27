@@ -2578,6 +2578,9 @@ msgstr "Terminé"
 msgid "Completed Part"
 msgstr "Partie terminée"
 
+msgid "Completed with a warning"
+msgstr "Terminé avec un avertissement"
+
 msgid "Completion"
 msgstr "Achèvement"
 
