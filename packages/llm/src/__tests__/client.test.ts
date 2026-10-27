@@ -3,11 +3,12 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { z } from "zod"
-import type { LocalizedText, ProviderManifest, StructuredOutputStrategy } from "@adt/types"
+import type { LocalizedText, ProviderManifest, ReasoningEffortSupport, StructuredOutputStrategy } from "@adt/types"
 import { createLLMModel } from "../client.js"
 import { computeHash, computeCacheKeyV2, readCache, writeCache } from "../cache.js"
 import { createProviderRegistry, type ProviderRegistry } from "../registry.js"
 import { AiProviderError } from "../ports/errors.js"
+import { StructuredTextError } from "../ports/structured-text-backend.js"
 import type {
   AnyProviderModule,
   BackendContext,
@@ -33,6 +34,7 @@ interface FakeProviderOptions {
   requiredCredential?: boolean
   fingerprint?: CacheFingerprint
   minimumRequestTimeoutMs?: number
+  reasoningEfforts?: ReasoningEffortSupport[]
 }
 
 function makeManifest(options: FakeProviderOptions): ProviderManifest {
@@ -59,6 +61,7 @@ function makeManifest(options: FakeProviderOptions): ProviderManifest {
         recursiveSchemas: options.recursiveSchemas ?? true,
         imageInput: false,
         temperature: options.temperature ?? true,
+        reasoningEfforts: options.reasoningEfforts,
       },
     },
     defaultModels: { "structured-text": "fake-1" },
@@ -361,6 +364,90 @@ describe("createLLMModel cancellation", () => {
 
     expect(result.object).toEqual({ ok: true })
     expect(generate).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe("createLLMModel timeout budget", () => {
+  const reasoningEfforts: ReasoningEffortSupport[] = [
+    { models: "fake-1", efforts: ["low", "medium", "high", "xhigh", "max"], default: "low" },
+  ]
+  const timeoutError = () =>
+    new StructuredTextError(
+      "The operation was aborted due to timeout",
+      { inputTokens: 0, outputTokens: 0 },
+      undefined,
+      new DOMException("The operation was aborted due to timeout", "TimeoutError"),
+    )
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("extends the budget for a high reasoning effort", async () => {
+    const { registry, requests } = makeRegistry({ reasoningEfforts })
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+
+    await llm.generateObject({ schema, messages, timeoutMs: 180_000, reasoningEffort: "high" })
+
+    expect(requests[0]?.timeoutMs).toBe(270_000)
+  })
+
+  it("keeps the configured budget for a medium reasoning effort", async () => {
+    const { registry, requests } = makeRegistry({ reasoningEfforts })
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+
+    await llm.generateObject({ schema, messages, timeoutMs: 180_000, reasoningEffort: "medium" })
+
+    expect(requests[0]?.timeoutMs).toBe(180_000)
+  })
+
+  it("retries a timed-out request with a doubled budget", async () => {
+    const { registry, requests, generate } = makeRegistry()
+    generate
+      .mockRejectedValueOnce(timeoutError())
+      .mockResolvedValueOnce({ object: { ok: true }, usage: { inputTokens: 1, outputTokens: 1 } })
+    const logs: Array<{ params?: Record<string, unknown>; success: boolean }> = []
+    const llm = createLLMModel({
+      modelId: "fake:fake-1",
+      registry,
+      logLevel: "silent",
+      onLog: (entry) => logs.push(entry),
+    })
+
+    const result = await llm.generateObject<{ ok: boolean }>({
+      schema,
+      messages,
+      maxRetries: 5,
+      timeoutMs: 180_000,
+      log: { taskType: "activity-rendering" },
+    })
+
+    expect(result.object).toEqual({ ok: true })
+    expect(requests.map((r) => r.timeoutMs)).toEqual([180_000, 360_000])
+    expect(logs.map((l) => [l.success, l.params?.timeoutMs])).toEqual([
+      [false, 180_000],
+      [true, 360_000],
+    ])
+  })
+
+  it("gives up after a second timeout even with retries left", async () => {
+    const { registry, requests, generate } = makeRegistry()
+    generate.mockRejectedValue(timeoutError())
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+
+    await expect(
+      llm.generateObject({ schema, messages, maxRetries: 5, timeoutMs: 180_000 }),
+    ).rejects.toThrow(/timeout/)
+    expect(requests.map((r) => r.timeoutMs)).toEqual([180_000, 360_000])
+  })
+
+  it("does not retry a timeout when no budget was requested", async () => {
+    const { registry, generate } = makeRegistry()
+    generate.mockRejectedValue(timeoutError())
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+
+    await expect(llm.generateObject({ schema, messages, maxRetries: 5 })).rejects.toThrow()
+    expect(generate).toHaveBeenCalledTimes(1)
   })
 })
 

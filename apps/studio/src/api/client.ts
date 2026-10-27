@@ -28,6 +28,8 @@ import type {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
+  TaskModelsResponse,
+  ReasoningEffort,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -2097,6 +2099,21 @@ export const api = {
         body: JSON.stringify(defaults),
       },
     ),
+
+  getTaskModels: () =>
+    request<TaskModelsResponse>(`/config/task-models`),
+
+  updateTaskModel: (id: string, change: { model?: string | null; reasoningEffort?: ReasoningEffort | null }) =>
+    request<TaskModelsResponse>(`/config/task-models`, {
+      method: "PUT",
+      body: JSON.stringify({ id, ...change }),
+    }),
+
+  updateDefaultReasoningEffort: (reasoningEffort: ReasoningEffort | null) =>
+    request<TaskModelsResponse>(`/config/default-reasoning-effort`, {
+      method: "PUT",
+      body: JSON.stringify({ reasoningEffort }),
+    }),
 
   getSpeechInstructions: () =>
     request<Record<string, string>>("/speech-config/instructions"),

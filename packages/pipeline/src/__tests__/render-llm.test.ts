@@ -97,6 +97,28 @@ describe("collectOptionalTextIds", () => {
 })
 
 describe("minimumLearnerResponseCount", () => {
+  it("does not require controls for rhetorical prose, captions or framing questions", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "intro", role: "text", text: "But where does this information come from?" },
+      { node_id: "answer", role: "text", text: "Meteorologists collect data about weather." },
+      { node_id: "caption", role: "caption", text: "What makes turbines spin? The wind pushes their blades." },
+      { node_id: "sidebar", structure: "sidebar", children: [
+        { node_id: "heading", role: "subheading", text: "Big Question" },
+        { node_id: "question", role: "text", text: "What do meteorologists do?" },
+      ] },
+    ])).toBe(0)
+  })
+
+  it("counts the explicit exercise but not nearby rhetorical questions on a mixed page", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "rhetorical", role: "text", text: "Why does it rain? Water condenses in clouds." },
+      { node_id: "exercise", structure: "activity", children: [
+        { node_id: "instruction", role: "activity_instruction", text: "Explain your answer to a partner." },
+        { node_id: "question", role: "activity_question", text: "How does the diagram show condensation?" },
+      ] },
+    ])).toBe(1)
+  })
+
   it("does not double-count a question and its response blank", () => {
     expect(minimumLearnerResponseCount([
       {

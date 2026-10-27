@@ -9,6 +9,7 @@ import { PromptFileActions } from "./PromptFileActions"
 import { PromptFolderActions } from "./PromptFolderActions"
 import {
   DEFAULT_MODEL,
+  isDefaultPromptModelId,
   promptExistsForModel,
   promptFileNameForModel,
   promptTreeKey,
@@ -240,7 +241,7 @@ function isProjectDefaultPromptVariant(
   prompt: PromptSummary,
   modelId: string,
 ): boolean {
-  if (modelId === DEFAULT_MODEL) return true
+  if (isDefaultPromptModelId(modelId)) return true
   const variantName = promptNameForSelectedModel(prompt.name, modelId)
   if (!prompt.variants.includes(variantName)) return false
   const source = prompt.variantSources?.[variantName]

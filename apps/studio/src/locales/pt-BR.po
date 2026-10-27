@@ -122,16 +122,16 @@ msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr "{0, plural, one {# etapa} other {# etapas}}"
 
 #. placeholder {0}: llmSteps.length
-msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
-msgstr "{0, plural, one {# tarefa herda este modelo} other {# tarefas herdam este modelo}}"
+#~ msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
+#~ msgstr "{0, plural, one {# tarefa herda este modelo} other {# tarefas herdam este modelo}}"
 
 #. placeholder {0}: health.modelCount
 msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
 msgstr "{0, plural, one {Conectado com sucesso — # modelo disponível.} other {Conectado com sucesso — # modelos disponíveis.}}"
 
 #. placeholder {0}: steps.length
-msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
-msgstr "{0, plural, one {Usado por # tarefa} other {Usado por # tarefas}}"
+#~ msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
+#~ msgstr "{0, plural, one {Usado por # tarefa} other {Usado por # tarefas}}"
 
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
@@ -377,6 +377,9 @@ msgstr "Há {0}min"
 msgid "{0}s ago"
 msgstr "Há {0}s"
 
+msgid "{changeCount, plural, one {# model change} other {# model changes}}"
+msgstr "{changeCount, plural, one {# alteração de modelo} other {# alterações de modelo}}"
+
 msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
 msgstr "{commentCount, plural, one {# comentário para revisar} other {# comentários para revisar}}"
 
@@ -444,6 +447,9 @@ msgstr "{imageCount, plural, one {# imagem será traduzida} other {# imagens ser
 msgid "{imageCount} images"
 msgstr "{imageCount} imagens"
 
+msgid "{inheritCount, plural, one {# task inherits it} other {# tasks inherit it}}"
+msgstr "{inheritCount, plural, one {# tarefa herda} other {# tarefas herdam}}"
+
 msgid "{inProgress, plural, one {# in progress} other {# in progress}}"
 msgstr "{inProgress, plural, one {# em andamento} other {# em andamento}}"
 
@@ -487,6 +493,15 @@ msgstr "Faltam {missingForCurrentStage} resultados de idioma. Execute novamente 
 msgid "{missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items."
 msgstr "Faltam {missingForCurrentStage} resultados de fala. Execute novamente para gerar os itens ausentes."
 
+msgid "{model} does not support a reasoning effort setting. Use the default."
+msgstr "{model} não aceita configuração de esforço de raciocínio. Use o padrão."
+
+msgid "{model} does not support the {level} effort. Choose another level."
+msgstr "{model} não aceita o esforço {level}. Escolha outro nível."
+
+#~ msgid "{model} overrides the default LLM for this task"
+#~ msgstr "{model} substitui o LLM padrão nesta tarefa"
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} sinalizados"
 
@@ -518,6 +533,9 @@ msgstr "{reviewers, plural, one {de # revisor} other {de # revisores}}"
 
 msgid "{sections} sections"
 msgstr "{sections} seções"
+
+msgid "{shown} of {total}"
+msgstr "{shown} de {total}"
 
 msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 msgstr "{spreadCount} {spreadCount, plural, one {página dupla selecionada} other {páginas duplas selecionadas}}."
@@ -559,6 +577,9 @@ msgstr "{title} - página {0}"
 
 msgid "{toggleShortcut} to toggle"
 msgstr "{toggleShortcut} para alternar"
+
+msgid "{total, plural, one {# model setting} other {# model settings}}"
+msgstr "{total, plural, one {# configuração de modelo} other {# configurações de modelo}}"
 
 msgid "{totalPages} pages"
 msgstr "{totalPages} páginas"
@@ -2363,6 +2384,12 @@ msgstr "alternativa"
 msgid "Choose a beta release to install."
 msgstr "Escolha uma versão beta para instalar."
 
+msgid "Choose a different model for each text task."
+msgstr "Escolha um modelo diferente para cada tarefa de texto."
+
+msgid "Choose a model from a registered provider before saving."
+msgstr "Escolha um modelo de um provedor cadastrado antes de salvar."
+
 msgid "Choose a PDF"
 msgstr "Escolha um PDF"
 
@@ -3133,6 +3160,10 @@ msgstr "padrão"
 msgid "Default"
 msgstr "Padrão"
 
+#. placeholder {0}: effortLabel(inherited)
+msgid "Default · {0}"
+msgstr "Padrão · {0}"
+
 msgid "Default (from prompt)"
 msgstr "Padrão (do prompt)"
 
@@ -3171,6 +3202,9 @@ msgstr "As pastas de prompt padrão não podem ser excluídas."
 
 msgid "Default Provider"
 msgstr "Provedor padrão"
+
+msgid "Default reasoning effort"
+msgstr "Esforço de raciocínio padrão"
 
 msgid "Default Render Strategy"
 msgstr "Estratégia de renderização padrão"
@@ -4049,6 +4083,9 @@ msgstr "Exportando..."
 msgid "Expressive TTS voices for narration."
 msgstr "Vozes de TTS expressivas para narração."
 
+msgid "Extra high"
+msgstr "Muito alto"
+
 msgid "Extract"
 msgstr "Extração"
 
@@ -4315,8 +4352,11 @@ msgstr "Fonte"
 msgid "Font Analysis"
 msgstr "Análise de fontes"
 
-msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
-msgstr "A atribuição de fontes, a geração do guia de estilo e a revisão visual também usam esse padrão, a menos que ele seja substituído."
+msgid "Font Assignment"
+msgstr "Atribuição de fontes"
+
+#~ msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
+#~ msgstr "A atribuição de fontes, a geração do guia de estilo e a revisão visual também usam esse padrão, a menos que ele seja substituído."
 
 msgid "Fonts"
 msgstr "Fontes"
@@ -5159,6 +5199,9 @@ msgstr "Lados individuais"
 msgid "Infographic"
 msgstr "Infográfico"
 
+msgid "Inherited from {sourceLabel}"
+msgstr "Herdado de {sourceLabel}"
+
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Herdado de um elemento pai. Escolha um valor aqui para substituir neste elemento."
 
@@ -5868,6 +5911,9 @@ msgstr "Corresponde ao design original do livro com alguma flexibilidade."
 msgid "Math read aloud"
 msgstr "Leitura de matemática em voz alta"
 
+msgid "Max"
+msgstr "Máximo"
+
 msgid "Max height"
 msgstr "Altura máx."
 
@@ -6039,6 +6085,9 @@ msgstr "Tamanho mín. (px)"
 msgid "Min width"
 msgstr "Largura mín."
 
+msgid "Minimal"
+msgstr "Mínimo"
+
 msgid "Minimise onboarding and list-reorder animations."
 msgstr "Reduz as animações da apresentação inicial e da reordenação de listas."
 
@@ -6102,8 +6151,14 @@ msgstr "Celular"
 msgid "Model"
 msgstr "Modelo"
 
+msgid "Model default"
+msgstr "Padrão do modelo"
+
 msgid "Model overrides"
 msgstr "Substituições de modelos"
+
+msgid "Model per task"
+msgstr "Modelo por tarefa"
 
 msgid "Model reasoning"
 msgstr "Raciocínio do modelo"
@@ -6660,6 +6715,9 @@ msgstr "Nenhuma seção do Storyboard encontrada. Execute o Storyboard para gera
 msgid "No suggestions are pending save in this view."
 msgstr "Nenhuma sugestão está pendente de salvamento nesta visualização."
 
+msgid "No tasks, prompts or models match “{search}”."
+msgstr "Nenhuma tarefa, prompt ou modelo corresponde a “{search}”."
+
 msgid "No terms match your search"
 msgstr "Nenhum termo corresponde à sua busca"
 
@@ -6773,6 +6831,9 @@ msgstr "Não iniciado"
 
 msgid "Not started yet"
 msgstr "Ainda não iniciado"
+
+msgid "Not supported"
+msgstr "Não suportado"
 
 msgid "Not yet split:"
 msgstr "Ainda não dividido:"
@@ -7530,8 +7591,8 @@ msgstr "Pixel Art"
 msgid "Platform"
 msgstr "Plataforma"
 
-msgid "Platform default"
-msgstr "Padrão da plataforma"
+#~ msgid "Platform default"
+#~ msgstr "Padrão da plataforma"
 
 msgid "Platform default: {platformImageModel}"
 msgstr "Padrão da plataforma: {platformImageModel}"
@@ -8084,6 +8145,12 @@ msgstr "Realista / Foto"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Reorganizando os átomos de HTML..."
+
+msgid "Reasoning effort"
+msgstr "Esforço de raciocínio"
+
+msgid "Reasoning effort for {label}"
+msgstr "Esforço de raciocínio de {label}"
 
 msgid "Rebuild"
 msgstr "Reconstruir"
@@ -8938,6 +9005,12 @@ msgstr "Buscar configurações…"
 
 msgid "Search style guides..."
 msgstr "Buscar guias de estilo..."
+
+msgid "Search tasks, prompts or models"
+msgstr "Pesquisar tarefas, prompts ou modelos"
+
+msgid "Search tasks, prompts or models…"
+msgstr "Pesquisar tarefas, prompts ou modelos…"
 
 msgid "Search terms or definitions…"
 msgstr "Buscar termos ou definições…"
@@ -9877,6 +9950,9 @@ msgstr "Estilo:"
 msgid "Styleguide"
 msgstr "Guia de estilo"
 
+msgid "Styleguide Generation"
+msgstr "Geração do guia de estilo"
+
 msgid "Styleguide Preview"
 msgstr "Prévia do guia de estilo"
 
@@ -9997,6 +10073,9 @@ msgstr "Idioma de destino"
 msgid "Target model"
 msgstr "Modelo de destino"
 
+msgid "Task"
+msgstr "Tarefa"
+
 msgid "Task complete"
 msgstr "Tarefa concluída"
 
@@ -10006,6 +10085,9 @@ msgstr "A tarefa falhou"
 #. placeholder {0}: d.error
 msgid "Task failed: {0}"
 msgstr "A tarefa falhou: {0}"
+
+msgid "Task models updated."
+msgstr "Modelos por tarefa atualizados."
 
 msgid "Task Running"
 msgstr "Tarefa em execução"
@@ -10374,11 +10456,11 @@ msgstr "Essas páginas foram extraídas uma a uma. Se uma ilustração ocupar um
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Essas etapas são opcionais. Elas não dependem umas das outras — execute qualquer uma em qualquer ordem após a conclusão do pipeline principal."
 
-msgid "These tasks inherit the default LLM unless their own settings specify another model."
-msgstr "Essas tarefas herdam o LLM padrão, a menos que suas próprias configurações especifiquem outro modelo."
+#~ msgid "These tasks inherit the default LLM unless their own settings specify another model."
+#~ msgstr "Essas tarefas herdam o LLM padrão, a menos que suas próprias configurações especifiquem outro modelo."
 
-msgid "These tasks require specialized models and do not inherit the default LLM above."
-msgstr "Essas tarefas exigem modelos especializados e não herdam o LLM padrão acima."
+#~ msgid "These tasks require specialized models and do not inherit the default LLM above."
+#~ msgstr "Essas tarefas exigem modelos especializados e não herdam o LLM padrão acima."
 
 msgid "These values reflect either the saved book override or the latest packaged defaults."
 msgstr "Estes valores refletem a substituição salva do livro ou os padrões do último empacotamento."
@@ -10906,6 +10988,9 @@ msgstr "Não foi possível carregar as configurações de modelos."
 msgid "Unable to load the provider list. Check that the local API is running, then refresh."
 msgstr "Não foi possível carregar a lista de provedores. Verifique se a API local está em execução e atualize."
 
+msgid "Unable to load the task models."
+msgstr "Não foi possível carregar os modelos por tarefa."
+
 msgid "Unable to load the task-specific model defaults."
 msgstr "Não foi possível carregar os padrões de modelos específicos por tarefa."
 
@@ -10935,6 +11020,9 @@ msgstr "Não foi possível atualizar as substituições de modelos do livro."
 
 msgid "Unable to update the default LLM."
 msgstr "Não foi possível atualizar o LLM padrão."
+
+msgid "Unable to update the task models."
+msgstr "Não foi possível atualizar os modelos por tarefa."
 
 msgid "Unable to update the task-specific model defaults."
 msgstr "Não foi possível atualizar os padrões de modelos específicos por tarefa."
@@ -11158,6 +11246,12 @@ msgstr "Use “Dupla” para livros impressos com páginas lado a lado (as capas
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Use o + entre as páginas para posicionar o questionário"
+
+msgid "Use the default LLM"
+msgstr "Usar o LLM padrão"
+
+msgid "Use the default LLM for {label}"
+msgstr "Usar o LLM padrão em {label}"
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Use a barra lateral à esquerda para abrir qualquer etapa do pipeline. Cada etapa tem sua própria página, onde você pode revisar o conteúdo, ajustar as configurações e iniciar uma execução. Os cartões abaixo espelham essa navegação — clique em um cartão para ir direto para a página dessa etapa."
@@ -11426,6 +11520,9 @@ msgstr "Publicação web"
 
 msgid "Web Rendering"
 msgstr "Renderização web"
+
+msgid "Web Rendering (overlay)"
+msgstr "Renderização web (sobreposição)"
 
 msgid "WebPub"
 msgstr "WebPub"

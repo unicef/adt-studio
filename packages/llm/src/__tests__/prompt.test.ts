@@ -5,6 +5,241 @@ import path from "node:path"
 import { createPromptEngine } from "../prompt.js"
 
 const dirs: string[] = []
+
+describe("Luna prompt variants", () => {
+  it("ships the image-sizing web rendering variant with the base Liquid contract", async () => {
+    const root = path.resolve(import.meta.dirname, "../../../../prompts")
+    const folder = path.join(root, "openai_gpt_6_luna")
+    const engine = createPromptEngine(root)
+    expect(fs.readdirSync(folder).filter((file) => file.endsWith(".liquid"))).toEqual(["web_generation_html.liquid"])
+    expect(engine.resolvePrompt("web_generation_html", { modelId: "openai:gpt-6-luna" }).filePath)
+      .toBe(path.join(folder, "web_generation_html.liquid"))
+    expect(engine.resolvePrompt("visual_review", { modelId: "openai:gpt-6-luna" }).filePath)
+      .toBe(path.join(root, "visual_review.liquid"))
+    const base = fs.readFileSync(path.join(root, "web_generation_html.liquid"), "utf8")
+    const luna = fs.readFileSync(path.join(folder, "web_generation_html.liquid"), "utf8")
+    const liquidTokens = (text: string) => text.match(/\{%[\s\S]*?%\}|\{\{[\s\S]*?\}\}/g)
+    expect(liquidTokens(luna)).toEqual(liquidTokens(base))
+    await expect(engine.renderPrompt("web_generation_html", {}, { modelId: "openai:gpt-6-luna" })).resolves.toBeDefined()
+  })
+})
+
+describe("Sol prompt variants", () => {
+  it.each(["visual_review", "visual_review_flexible"])("keeps %s compatible with hidden source dots in generated TOC rows", async (name) => {
+    const engine = createPromptEngine(path.resolve(import.meta.dirname, "../../../../prompts"))
+    const context = {
+      section_type: "table_of_contents", user_instructions: "", viewports: [],
+      nodes: [{ node_id: "toc_1", role: "text", text: "Vocabulary........43" }],
+    }
+    const options = { modelId: "openai:gpt-6.1-sol" }
+    const generation = await engine.renderPrompt("web_generation_html", context, options)
+    expect(generation[0].content).toContain('<span class="sr-only">EXACT ORIGINAL DOT RUN, IF ANY</span>')
+
+    const review = await engine.renderPrompt(name, context, options)
+    const system = review[0].content as string
+    expect(system).toContain("Preserve original source dots in an `sr-only` child inside the leader")
+    expect(system).toContain("Keep the leader empty only when there are no source dots")
+    expect(system).toContain("do not remove or reveal them")
+    expect(system).not.toContain("EMPTY flexible dotted-border leader")
+    expect(system).not.toContain('`data-toc-leader="true"` (empty')
+
+    const ordinary = await engine.renderPrompt(name, { ...context, section_type: "text_and_images" }, options)
+    expect(ordinary[0].content).not.toContain("## TABLE OF CONTENTS")
+  })
+
+  it.each(["web_generation_html", "visual_review"])("allows %s to stack consecutive sidebars beside prose without reordering the tree", async (name) => {
+    const root = path.resolve(import.meta.dirname, "../../../../prompts")
+    const engine = createPromptEngine(root)
+    const messages = await engine.renderPrompt(name, {
+      section_type: "text_and_images", images: [], source_pages: [], user_instructions: "",
+      nodes: [
+        { node_id: "question_box", structure: "sidebar", children: [
+          { node_id: "question", role: "text", text: "What is the atmosphere?" },
+        ] },
+        { node_id: "vocabulary_box", structure: "sidebar", children: [
+          { node_id: "definition", role: "text", text: "Atmosphere: the air around Earth." },
+        ] },
+        { node_id: "body", role: "text", text: "The atmosphere surrounds Earth." },
+      ],
+      viewports: [
+        { label: "Desktop", width: 1280, tailwind_prefix: "" },
+        { label: "Tablet", width: 768, tailwind_prefix: "max-lg:" },
+        { label: "Mobile", width: 390, tailwind_prefix: "max-sm:" },
+      ],
+    }, { modelId: "openai:gpt-6.1-sol" })
+    const system = messages[0].content as string
+    expect(system).toContain("right-floating wrapper with a vertical stack")
+    expect(system).toContain("normal block flow")
+    const text = messages.map(message => typeof message.content === "string" ? message.content
+      : message.content.filter(part => part.type === "text").map(part => part.text).join("\n")).join("\n")
+    const tree = text.match(/<content_tree>([\s\S]*?)<\/content_tree>/)?.[1] ?? ""
+    expect(tree).toContain('text id=question "What is the atmosphere?"')
+    expect(tree.indexOf("id=question")).toBeLessThan(tree.indexOf("id=definition"))
+    expect(tree.indexOf("id=definition")).toBeLessThan(tree.indexOf("id=body"))
+  })
+
+  it.each(["web_generation_html", "visual_review", "visual_review_flexible"])("scopes %s learner controls to actual response tasks", async (name) => {
+    const root = path.resolve(import.meta.dirname, "../../../../prompts")
+    const engine = createPromptEngine(root)
+    const messages = await engine.renderPrompt(name, {
+      section_type: "text_and_images",
+      nodes: [{ node_id: "caption", role: "caption", text: "What makes turbines spin? The wind pushes their blades." }],
+      images: [], source_pages: [], viewports: [], user_instructions: "",
+    }, { modelId: "openai:gpt-6.1-sol" })
+    const system = messages[0].content as string
+    expect(system).toContain("What makes turbines spin? The wind pushes their blades.")
+    expect(system).toContain("explicit response task")
+    expect(system).toContain("oral/pair-work tasks retain their accessible response option")
+    if (name !== "web_generation_html") {
+      expect(system).toContain("Do not reject rhetorical prose for lacking a field")
+      expect(system).toContain("never remove a control belonging to an explicit activity")
+      expect(system).toContain("Do not reclassify saved activity nodes")
+      expect(system).toContain("retain that class on a non-interactive wrapper")
+    }
+  })
+
+  it.each(["visual_review", "visual_review_flexible"])("renders %s review scope and desktop-first viewport context", async (name) => {
+    const root = path.resolve(import.meta.dirname, "../../../../prompts")
+    const engine = createPromptEngine(root)
+    const context = {
+      nodes: [{ node_id: "toc_1", role: "text", text: "Introduction vi" }],
+      section_type: "table_of_contents",
+      has_merged_content: true,
+      user_instructions: "Use blue panels.",
+      viewports: [
+        { label: "Desktop", width: 1280, tailwind_prefix: "" },
+        { label: "Tablet", width: 768, tailwind_prefix: "max-lg:" },
+        { label: "Mobile", width: 390, tailwind_prefix: "max-sm:" },
+      ],
+    }
+    const messages = await engine.renderPrompt(name, context, { modelId: "openai:gpt-6.1-sol" })
+    expect(messages).toHaveLength(1)
+    expect(messages[0].role).toBe("system")
+    const system = messages[0].content as string
+    expect(system).toContain("## TABLE OF CONTENTS")
+    expect(system).toContain('data-toc-title="true"')
+    expect(system).toContain('data-toc-leader="true"')
+    expect(system).toContain('data-toc-page-number="true"')
+    expect(system).toContain("continuation")
+    expect(system).toContain("**Desktop**: 1280px → default (no prefix — desktop)")
+    expect(system).toContain("**Tablet**: 768px → `max-lg:` prefix")
+    expect(system).toContain("**Mobile**: 390px → `max-sm:` prefix")
+    if (name === "visual_review") {
+      expect(system).toMatch(/<content_tree>\s*text id=toc_1 "Introduction vi"\s*<\/content_tree>/)
+    } else {
+      expect(system).toMatch(/<user_instructions>\s*Use blue panels\.\s*<\/user_instructions>/)
+      expect(system).toContain("`{{ ... }}`") // Literal example must survive Liquid parsing.
+    }
+    const plain = await engine.renderPrompt(name, {
+      ...context, section_type: "text_and_images", has_merged_content: false, user_instructions: "",
+    }, { modelId: "openai:gpt-6.1-sol" })
+    expect(plain[0].content).not.toContain("## TABLE OF CONTENTS")
+    expect(plain[0].content).not.toContain("<user_instructions>")
+  })
+
+  it.each(["text_and_images", "table_of_contents"])("renders %s with continuation images and book settings", async (sectionType) => {
+    const root = path.resolve(import.meta.dirname, "../../../../prompts")
+    const engine = createPromptEngine(root)
+    const messages = await engine.renderPrompt("web_generation_html", {
+      page_image_base64: "main-image",
+      source_pages: [{ page_id: "pg002", image_base64: "continuation-image" }],
+      section_id: "pg001_sec001",
+      section_type: sectionType,
+      images: [{ image_id: "figure_1", image_base64: "figure-image" }],
+      nodes: [
+        { node_id: "title", role: "heading", heading_level: 2, text: "Éléments" },
+        { node_id: "figure_1", role: "image" },
+        { node_id: "continuation", role: "text", text: "Suite à la page suivante." },
+      ],
+      styleguide: "Use a cream background.",
+      book_fonts: [{ family: "Book Serif", role: "body", category: "serif", usage_notes: "For reading" }],
+      typography: [{ className: "adt-h2", label: "Section heading", mobilePx: 24, desktopPx: 36 }],
+      viewports: [
+        { label: "Desktop", width: 1280, tailwind_prefix: "" },
+        { label: "Tablet", width: 768, tailwind_prefix: "max-lg:" },
+        { label: "Mobile", width: 375, tailwind_prefix: "max-sm:" },
+      ],
+      user_instructions: "Use a blue background.",
+    }, { modelId: "openai:gpt-6.1-sol" })
+
+    expect(messages.map((message) => message.role)).toEqual(["system", "user"])
+    const textOf = (message: typeof messages[number]) => typeof message.content === "string"
+      ? message.content
+      : message.content.filter((part) => part.type === "text").map((part) => part.text).join("\n")
+    const system = textOf(messages[0])
+    const user = textOf(messages[1])
+    expect(system.includes("## TABLE OF CONTENTS LAYOUT")).toBe(sectionType === "table_of_contents")
+    expect(system).toContain("Use a cream background.")
+    expect(system).toContain('"Book Serif" — role: body (serif) — For reading')
+    expect(system).toContain("`adt-h2` — Section heading (24px mobile → 36px desktop)")
+    expect(system).toContain("**Mobile** (375px): `max-sm:`")
+    expect(system).toContain("On mixed reading pages, render native answer controls")
+    expect(system).toContain('data-word-bank-chip="EXACT CHOICE"')
+    expect(system).toContain('data-word-bank-target="true"')
+    expect(system).toContain('data-word-bank-status` element with `role="status" aria-live="polite"')
+    expect(system).toContain("only when those same words are legible in the displayed image")
+    const exampleClasses = [...system.matchAll(/class="([^"]*)"/g)].flatMap((match) => match[1].split(/\s+/))
+    expect(exampleClasses.filter((className) => /^(?:sm|md|lg|xl|2xl):/.test(className))).toEqual([])
+    expect(user).toContain("Section ID: pg001_sec001")
+    expect(user).toContain(`Section type: ${sectionType}`)
+    expect(user).toContain("pg002")
+    expect(user).toMatch(/<user_instructions>\s*Use a blue background\.\s*<\/user_instructions>/)
+    const tree = user.match(/<content_tree>([\s\S]*?)<\/content_tree>/)?.[1] ?? ""
+    expect(tree.trim().split(/\r?\n/)).toEqual([
+      'heading id=title heading_level=2 "Éléments"',
+      "image id=figure_1",
+      'text id=continuation "Suite à la page suivante."',
+    ])
+    const userContent = messages[1].content
+    expect(typeof userContent).not.toBe("string")
+    if (typeof userContent !== "string") {
+      expect(userContent.filter((part) => part.type === "image").map((part) => part.image))
+        .toEqual(["main-image", "continuation-image", "figure-image"])
+    }
+  })
+
+  it("AC-4: ships renderable variants with the original Liquid variables, tags, images and includes", async () => {
+    const root = path.resolve(import.meta.dirname, "../../../../prompts")
+    const folder = path.join(root, "openai_gpt_6_1_sol")
+    const engine = createPromptEngine(root)
+    const files = fs.readdirSync(folder).filter((file) => file.endsWith(".liquid")).sort()
+    // Only the explicitly adapted prompts ship a Sol variant; the rest
+    // fall back to the base templates.
+    expect(files).toEqual(["visual_review.liquid", "visual_review_flexible.liquid", "web_generation_html.liquid"])
+    expect(engine.resolvePrompt("page_sectioning", { modelId: "openai:gpt-6.1-sol" }).filePath)
+      .toBe(path.join(root, "page_sectioning.liquid"))
+    for (const file of files) {
+      const base = fs.readFileSync(path.join(root, file), "utf8")
+      const variant = fs.readFileSync(path.join(folder, file), "utf8")
+      const liquidTokens = (text: string) => text.match(/\{%[\s\S]*?%\}|\{\{[\s\S]*?\}\}/g)
+      expect(liquidTokens(variant)).toEqual(liquidTokens(base))
+      const name = file.slice(0, -7)
+      expect(engine.resolvePrompt(name, { modelId: "openai:gpt-6.1-sol" }).filePath).toBe(path.join(folder, file))
+      expect(engine.resolvePrompt(name, { modelId: "openai:gpt-5.4" }).resolvedName).toBe(name)
+      await expect(engine.renderPrompt(name, {}, { modelId: "openai:gpt-6.1-sol" })).resolves.toBeDefined()
+    }
+  })
+
+  it("AC-4: keeps global Sol ahead of book base edits and honors version selection and base rollback", async () => {
+    const book = tmpDir()
+    const global = tmpDir()
+    const folder = path.join(global, "openai_gpt_6_1_sol")
+    fs.mkdirSync(folder)
+    fs.writeFileSync(path.join(global, "section.liquid"), "Legacy GPT-5.4")
+    fs.writeFileSync(path.join(book, "section.liquid"), "Book base edit")
+    fs.writeFileSync(path.join(folder, "section.liquid"), "Global Sol")
+    const engine = createPromptEngine([book, global])
+    expect(engine.resolvePrompt("section", { modelId: "gpt-6.1-sol" }).filePath).toBe(path.join(folder, "section.liquid"))
+    expect(engine.resolvePrompt("section", { modelId: "gpt-5.4" }).filePath).toBe(path.join(book, "section.liquid"))
+    const versionDir = path.join(book, ".versions", "section__openai_gpt_6_1_sol")
+    fs.mkdirSync(versionDir, { recursive: true })
+    fs.writeFileSync(path.join(versionDir, "20261005T000000000Z-000.liquid"), "Old Sol edit")
+    fs.writeFileSync(path.join(versionDir, "20261005T000000001Z-000.liquid"), "New Sol edit")
+    fs.writeFileSync(path.join(versionDir, ".current"), "20261005T000000000Z-000.liquid")
+    expect(engine.resolvePrompt("section", { modelId: "gpt-6.1-sol" }).filePath).toBe(path.join(versionDir, "20261005T000000000Z-000.liquid"))
+  })
+})
+
 function tmpDir(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "llm-prompt-test-"))
   dirs.push(dir)

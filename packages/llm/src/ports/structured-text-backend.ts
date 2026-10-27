@@ -32,6 +32,15 @@ export interface StructuredTextResult<T> {
   usage: TokenUsage
   /** Present only when the adapter parsed the object client-side. */
   rawText?: string
+  params?: Record<string, unknown>
+}
+
+/** Carries billed usage even when output parsing/repair failed. */
+export class StructuredTextError extends Error {
+  constructor(message: string, readonly usage: TokenUsage, readonly params?: Record<string, unknown>, readonly cause?: unknown) {
+    super(message, { cause })
+    this.name = "StructuredTextError"
+  }
 }
 
 export interface StructuredTextBackend {

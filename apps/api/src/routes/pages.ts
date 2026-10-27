@@ -3248,7 +3248,7 @@ export function createPageRoutes(
       const modelId =
         config.image_segmentation?.model
         || config.default_model
-        || "openai:gpt-5.4"
+        || DEFAULT_LLM_MODEL_ID
       const promptName = config.image_segmentation?.prompt ?? "image_segmentation"
       const maxRetries =
         config.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES
@@ -3457,7 +3457,7 @@ export function createPageRoutes(
     const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
     const cacheDir = path.join(bookDir, ".cache")
     const config = buildStyleguideGenerationConfig(
-      undefined,
+      appConfig.styleguide_generation,
       appConfig.default_model,
     )
     const llmModel = createLLMModel({
@@ -3465,6 +3465,7 @@ export function createPageRoutes(
       cacheDir,
       promptEngine,
       providerCredentials: credentials,
+      reasoningEffort: appConfig.styleguide_generation?.reasoning_effort ?? appConfig.default_reasoning_effort,
     })
 
     const result = await generateStyleguide(

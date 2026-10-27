@@ -2,6 +2,7 @@ import type { AppConfig, ImageSegmentationOutput } from "@adt/types"
 import {
   imageSegmentationLLMSchema,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { applyCrop } from "./image-cropping.js"
@@ -19,12 +20,10 @@ export interface SegmentationConfig {
   minSide?: number
 }
 
-const DEFAULT_SEGMENTATION_MODEL = "openai:gpt-5.4"
-
 /**
  * Build segmentation config from AppConfig.
  * Returns null unless explicitly enabled via image_filters.segmentation === true.
- * Defaults to GPT-5.2 when no model is configured.
+ * Inherits the distributed text model when no model is configured.
  */
 export function buildSegmentationConfig(
   appConfig: AppConfig
@@ -36,7 +35,7 @@ export function buildSegmentationConfig(
     modelId:
       appConfig.image_segmentation?.model
       || appConfig.default_model
-      || DEFAULT_SEGMENTATION_MODEL,
+      || DEFAULT_LLM_MODEL_ID,
     maxRetries:
       appConfig.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     minSide: appConfig.image_segmentation?.min_side,

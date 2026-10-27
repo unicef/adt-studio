@@ -7,6 +7,7 @@ import type { ResolvedCredentials } from "./credentials.js"
 import { getDefaultProviderRegistry } from "./providers/index.js"
 import { toJsonSchema } from "./providers/shared/json-schema.js"
 import type { ProviderRegistry } from "./registry.js"
+import { StructuredTextError } from "./ports/structured-text-backend.js"
 import type {
   AgentMessage,
   AgentRunResult,
@@ -37,6 +38,7 @@ export interface RunAgentLoopOptions {
   /** Max inference turns. Default 20. */
   maxSteps?: number
   temperature?: number
+  providerOptions?: Record<string, unknown>
   maxTokens?: number
   /** Overall run timeout, covering every inference turn and tool execution. Default 5 minutes. */
   timeoutMs?: number
@@ -65,6 +67,14 @@ export async function runAgentLoop(
     credentials: options.credentials,
     logLevel: options.logLevel,
   })
+  const effective = registry.get(resolved.providerId).inferenceOptionsFor?.(
+    "agent", resolved.modelId, options.providerOptions,
+  ) ?? { providerOptions: options.providerOptions }
+  const supportsTemperature = !registry.supports(resolved.providerId, "structured-text") ||
+    registry.capabilities("structured-text", options.modelId, { credentials: options.credentials }).temperature
+  const temperature = supportsTemperature ? options.temperature : undefined
+  const requestParams = { requestedModel: options.modelId, ...effective,
+    adapterVersion: resolved.fingerprint.adapterVersion, temperature, maxTokens: options.maxTokens }
 
   const toolDefinitions: AgentToolDefinition[] = Object.entries(options.tools).map(
     ([name, tool]) => ({
@@ -116,7 +126,8 @@ export async function runAgentLoop(
       system: options.system,
       messages,
       tools: cacheToolDefinitions,
-      temperature: options.temperature,
+      temperature,
+      providerOptions: effective.providerOptions,
       maxTokens: options.maxTokens,
     })
 
@@ -133,7 +144,8 @@ export async function runAgentLoop(
           system: options.system,
           messages,
           tools: toolDefinitions,
-          temperature: options.temperature,
+          temperature,
+          providerOptions: effective.providerOptions,
           maxTokens: options.maxTokens,
           timeoutMs: Math.max(1, deadline - Date.now()),
           signal: runSignal,
@@ -152,6 +164,8 @@ export async function runAgentLoop(
         messages,
         response: undefined,
         toolResults: [],
+        params: { ...requestParams, ...(err instanceof StructuredTextError ? err.params : {}) },
+        failedUsage: err instanceof StructuredTextError ? err.usage : undefined,
       })
       throw err
     }
@@ -160,8 +174,10 @@ export async function runAgentLoop(
       writeCache(options.cacheDir, hash, response)
     }
 
-    usage.inputTokens += response.usage.inputTokens
-    usage.outputTokens += response.usage.outputTokens
+    if (!cached) {
+      usage.inputTokens += response.usage.inputTokens
+      usage.outputTokens += response.usage.outputTokens
+    }
     finishReason = response.finishReason
     if (response.text.trim()) text = response.text
 
@@ -171,6 +187,7 @@ export async function runAgentLoop(
         role: "assistant",
         text: response.text,
         toolCalls: response.toolCalls,
+        providerContinuation: response.providerContinuation,
       })
       try {
         for (const call of response.toolCalls) {
@@ -192,6 +209,7 @@ export async function runAgentLoop(
           messages,
           response,
           toolResults,
+          params: { ...requestParams, ...response.params },
         })
         throw err
       }
@@ -224,6 +242,7 @@ export async function runAgentLoop(
       messages,
       response,
       toolResults,
+      params: { ...requestParams, ...response.params },
     })
 
     try {
@@ -305,6 +324,8 @@ interface TurnLogInput {
   messages: AgentMessage[]
   response: AgentTurnResponse | undefined
   toolResults: AgentToolResult[]
+  params?: Record<string, unknown>
+  failedUsage?: AgentTurnResponse["usage"]
 }
 
 function emitLog(options: RunAgentLoopOptions, input: TurnLogInput): void {
@@ -322,7 +343,8 @@ function emitLog(options: RunAgentLoopOptions, input: TurnLogInput): void {
       errorCount: input.errors.length,
       attempt: input.index,
       durationMs: input.durationMs,
-      usage: input.response?.usage,
+      usage: input.cacheHit ? undefined : input.response?.usage ?? input.failedUsage,
+      params: input.params,
       validationErrors: input.errors.length > 0 ? input.errors : undefined,
       messages: buildTurnLog(options.system, input),
       correlationId: input.correlationId,

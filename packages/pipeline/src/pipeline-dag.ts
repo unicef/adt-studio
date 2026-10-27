@@ -37,6 +37,7 @@ import type {
   TTSOutput,
   VoiceSlot,
   WebRenderingOutput,
+  ReasoningEffort,
 } from "@adt/types"
 import { isTtsExcluded, voiceSlotEntryId } from "@adt/types"
 import { extractPDF, figureExtractionFlags, resolveFigureExtractionMode } from "./pdf-extraction.js"
@@ -238,11 +239,12 @@ export async function runFullPipeline(
 
     // Shared model cache — avoids duplicates for same modelId
     const modelCache = new Map<string, LLMModel>()
-    const getModel = (modelId: string): LLMModel => {
-      let model = modelCache.get(modelId)
+    const getModel = (modelId: string, reasoningEffort?: ReasoningEffort): LLMModel => {
+      const key = `${modelId}|${reasoningEffort ?? ""}`
+      let model = modelCache.get(key)
       if (!model) {
-        model = createLLMModel({ modelId, cacheDir, promptEngine, rateLimiter, logLevel, onLog: onLlmLog })
-        modelCache.set(modelId, model)
+        model = createLLMModel({ modelId, cacheDir, promptEngine, rateLimiter, logLevel, onLog: onLlmLog, reasoningEffort })
+        modelCache.set(key, model)
       }
       return model
     }
@@ -291,7 +293,7 @@ export async function runFullPipeline(
         text: page.text,
         imageBase64: storage.getPageImageBase64(page.pageId),
       }))
-      const model = getModel(metadataConfig.modelId)
+      const model = getModel(metadataConfig.modelId, config.metadata?.reasoning_effort ?? config.default_reasoning_effort)
       const result = await extractMetadata(pageInputs, metadataConfig, model)
       storage.putNodeData("metadata", "book", result)
     })
@@ -305,7 +307,7 @@ export async function runFullPipeline(
       // Resolve the language from the metadata step (book-summary depends on it)
       // so the summary is written in the book's actual language, not English.
       const bookSummaryConfig = buildBookSummaryConfig(config, getLanguage(storage, config))
-      const model = getModel(bookSummaryConfig.modelId)
+      const model = getModel(bookSummaryConfig.modelId, config.book_summary?.reasoning_effort ?? config.default_reasoning_effort)
       const result = await generateBookSummary(summaryPages, bookSummaryConfig, model)
       storage.putNodeData("book-summary", "book", result)
     })
@@ -324,7 +326,7 @@ export async function runFullPipeline(
         }
       })
       const evidence = buildBookOutlineEvidence(evidencePages, readTypeScale(storage))
-      const model = getModel(bookOutlineConfig.modelId)
+      const model = getModel(bookOutlineConfig.modelId, config.book_outline?.reasoning_effort ?? config.default_reasoning_effort)
       const result = await generateBookOutline(evidence, bookOutlineConfig, model)
       storage.putNodeData(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, result)
     })
@@ -353,7 +355,7 @@ export async function runFullPipeline(
 
     executors.set("image-segmentation", async (p) => {
       if (!segmentationConfig) return
-      const model = getModel(segmentationConfig.modelId)
+      const model = getModel(segmentationConfig.modelId, config.image_segmentation?.reasoning_effort ?? config.default_reasoning_effort)
       const pages = storage.getPages()
       const totalPages = pages.length
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
@@ -455,7 +457,7 @@ export async function runFullPipeline(
         }
         return
       }
-      const model = getModel(meaningfulnessConfig.modelId)
+      const model = getModel(meaningfulnessConfig.modelId, config.image_meaningfulness?.reasoning_effort ?? config.default_reasoning_effort)
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
@@ -488,7 +490,7 @@ export async function runFullPipeline(
 
     executors.set("image-cropping", async (p) => {
       if (!croppingConfig) return
-      const model = getModel(croppingConfig.modelId)
+      const model = getModel(croppingConfig.modelId, config.image_cropping?.reasoning_effort ?? config.default_reasoning_effort)
       const pages = storage.getPages()
       const totalPages = pages.length
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
@@ -562,7 +564,7 @@ export async function runFullPipeline(
       // Sectioning view never empties, and the render strategy can be toggled
       // without re-sectioning. Fixed-layout's positioned tree + rendering is
       // produced in the web-rendering step instead (see below).
-      const model = getModel(pageSectioningConfig.modelId)
+      const model = getModel(pageSectioningConfig.modelId, config.page_sectioning?.reasoning_effort ?? config.default_reasoning_effort)
       const pages = storage.getPages()
       const bookOutline = readBookOutline(storage)
       const totalPages = pages.length
@@ -606,7 +608,7 @@ export async function runFullPipeline(
       const metadata = metadataRow?.data as BookMetadata | null
       const translationConfig = buildTranslationConfig(config, metadata?.language_code ?? null)
       if (!translationConfig) return
-      const model = getModel(translationConfig.modelId)
+      const model = getModel(translationConfig.modelId, config.translation?.reasoning_effort ?? config.default_reasoning_effort)
       const pages = storage.getPages()
       const totalPages = pages.length
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
@@ -725,7 +727,7 @@ export async function runFullPipeline(
       const language = getLanguage(storage, config)
       const quizConfig = buildQuizGenerationConfig(config, language)
       if (!quizConfig) return
-      const model = getModel(quizConfig.modelId)
+      const model = getModel(quizConfig.modelId, config.quiz_generation?.reasoning_effort ?? config.default_reasoning_effort)
       const quizPages = collectQuizPages(storage)
       const sourceReceipt = captureSourceGeneration(storage, "quiz-generation", { quiz: quizConfig })
       if (quizPages.length > 0) {
@@ -755,7 +757,7 @@ export async function runFullPipeline(
 
     executors.set("image-captioning", async (p) => {
       const language = getLanguage(storage, config)
-      const model = getModel(captionConfig.modelId)
+      const model = getModel(captionConfig.modelId, config.image_captioning?.reasoning_effort ?? config.default_reasoning_effort)
       const summaryRow = storage.getLatestNodeData("book-summary", "book")
       const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
       const inventory = buildImageInventory(storage)
@@ -799,7 +801,7 @@ export async function runFullPipeline(
     executors.set("glossary", async (p) => {
       const language = getLanguage(storage, config)
       const glossaryConfig = buildGlossaryConfig(config, language)
-      const model = getModel(glossaryConfig.modelId)
+      const model = getModel(glossaryConfig.modelId, config.glossary?.reasoning_effort ?? config.default_reasoning_effort)
       const pages = storage.getPages()
 
       const sourceReceipt = captureSourceGeneration(storage, "glossary")
@@ -827,7 +829,7 @@ export async function runFullPipeline(
     executors.set("toc-generation", async (p) => {
       const language = getLanguage(storage, config)
       const tocConfig = buildTocGenerationConfig(config, language)
-      const model = getModel(tocConfig.modelId)
+      const model = getModel(tocConfig.modelId, config.toc_generation?.reasoning_effort ?? config.default_reasoning_effort)
       const pages = storage.getPages()
 
       p.emit({ type: "step-progress", step: "toc-generation", message: "Analyzing book structure..." })
@@ -868,7 +870,7 @@ export async function runFullPipeline(
         }
         return
       }
-      const model = getModel(easyReadConfig.modelId)
+      const model = getModel(easyReadConfig.modelId, config.easy_read?.reasoning_effort ?? config.default_reasoning_effort)
       easyReadConfig.promptSignature = promptEngine.fingerprint(easyReadConfig.promptName, { modelId: easyReadConfig.modelId })
       const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
       const output = await generateEasyRead(blocks, easyReadConfig, model, {
@@ -901,7 +903,7 @@ export async function runFullPipeline(
       const translationEntries = buildOutputSources(storage, config).entries
       if (translationEntries.length === 0) return
       const translationConfig = buildCatalogTranslationConfig(config, language)
-      const model = getModel(translationConfig.modelId)
+      const model = getModel(translationConfig.modelId, config.translation?.reasoning_effort ?? config.default_reasoning_effort)
       translationConfig.promptSignature = promptEngine.fingerprint(translationConfig.promptName, { modelId: translationConfig.modelId })
       await processWithConcurrency(targetLanguages, effectiveConcurrency, async (lang) => {
         const previous = storage.getLatestNodeData("text-catalog-translation", lang)?.data as TextCatalogOutput | undefined
@@ -918,7 +920,7 @@ export async function runFullPipeline(
 
       const preparationConfig = buildCoreTtsPreparationConfig(config)
       preparationConfig.promptSignature = promptEngine.fingerprint(preparationConfig.promptName, { modelId: preparationConfig.modelId })
-      const model = getModel(preparationConfig.modelId)
+      const model = getModel(preparationConfig.modelId, config.core_tts?.reasoning_effort ?? config.default_reasoning_effort)
       const profiles = loadCoreTtsProfiles(
         options.configDir ?? path.resolve(process.cwd(), "config"),
       )

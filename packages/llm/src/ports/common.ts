@@ -63,6 +63,8 @@ export interface CacheFingerprint {
    * cannot be proven to come from the same endpoint — dual-read must skip it.
    */
   configurableOrigin?: boolean
+  /** False when v1 omitted effective effort or the adapter's new semantics. */
+  legacyCacheReadable?: boolean
 }
 
 export interface TokenUsage {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { extractMetadata, buildMetadataConfig } from "../metadata-extraction.js"
 import type { MetadataConfig, MetadataPageInput } from "../metadata-extraction.js"
+import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import type { BookMetadata, AppConfig } from "@adt/types"
 import type { LLMModel, GenerateObjectOptions, GenerateObjectResult } from "@adt/llm"
 
@@ -123,7 +124,7 @@ describe("buildMetadataConfig", () => {
     expect(config.maxRetries).toBe(9)
   })
 
-  it("defaults metadata prompt and model", () => {
+  it("AC-1: defaults metadata prompt and model to the default model", () => {
     const appConfig: AppConfig = {
       role_types: { heading: "Heading" },
       structure_types: { paragraph: "Paragraph" },
@@ -131,7 +132,7 @@ describe("buildMetadataConfig", () => {
 
     const config = buildMetadataConfig(appConfig)
     expect(config.promptName).toBe("metadata_extraction")
-    expect(config.modelId).toBe("openai:gpt-5.4")
+    expect(config.modelId).toBe(DEFAULT_LLM_MODEL_ID)
     expect(config.maxRetries).toBe(5)
   })
 
