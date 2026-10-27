@@ -169,10 +169,9 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
               prefix: "AIza",
               placeholder: "AIza...",
               value: k.googleKey,
-              set: (v) => {
-                k.setGoogleKey(v)
-                k.setGeminiKey(v)
-              },
+              // Gemini Speech falls back to this key (manifest `sharedWith`),
+              // so it is stored once rather than copied.
+              set: k.setGoogleKey,
             },
           ],
         },

@@ -1464,6 +1464,9 @@ msgstr "Alfabetik"
 msgid "Already handed out"
 msgstr "Tashmë të shpërndara"
 
+msgid "Also used by {readerNames} unless that provider has its own key."
+msgstr "Përdoret edhe nga {readerNames}, përveç nëse ai ofrues ka çelësin e vet."
+
 msgid "Always on"
 msgstr "Gjithmonë aktiv"
 
@@ -4419,9 +4422,6 @@ msgstr "Mbledhja e dëshmive"
 msgid "Gemini"
 msgstr "Gemini"
 
-msgid "Gemini — LLM and TTS voices."
-msgstr "Gemini — Zërat LLM dhe TTS."
-
 msgid "Gemini API key is required to generate audio."
 msgstr "Çelësi API i Gemini është i nevojshëm për të gjeneruar audio."
 
@@ -4430,6 +4430,9 @@ msgstr "Gemini e gjeneron çdo fjali në kërkesën e vet, prandaj toni mund të
 
 msgid "Gemini models + TTS voices."
 msgstr "Modele Gemini + zëra TTS."
+
+msgid "Gemini models for text and image generation."
+msgstr "Modele Gemini për gjenerimin e tekstit dhe imazheve."
 
 msgid "Gemini settings"
 msgstr "Cilësimet e Gemini"
@@ -6220,6 +6223,9 @@ msgstr "Navigo brenda Paraparjes për të regjistruar shënimet e rishikimit spe
 
 msgid "Navigation"
 msgstr "Navigimi"
+
+msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio."
+msgstr "Kërkon një çelës API të OpenAI (OpenAI Whisper i përputh fjalët me audion). Shtoni një te Cilësime → Ofruesit e AI për ta aktivizuar. Ndërkohë, audioja e rigjeneruar theksohet sipas fjalisë; kohëzgjatjet e fjalëve të llogaritura tashmë ruhen për audion e pandryshuar."
 
 msgid "Needs attention"
 msgstr "Kërkon vëmendje"
@@ -11194,11 +11200,11 @@ msgstr "Përdoret për modelet Claude (claude-opus-4-6, claude-sonnet-4-6, etj.)
 msgid "Used for ElevenLabs text-to-speech."
 msgstr "Përdoret për tekst-në-të-folur të ElevenLabs."
 
-msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
-msgstr "Përdoret për modelet Gemini — si LLM (gemini-2.5-pro, etj.) ashtu edhe TTS (gemini-2.5-pro-preview-tts, etj.)"
+msgid "Used for Gemini text and image models (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). Gemini Speech uses this key too unless it has one of its own."
+msgstr "Përdoret për modelet e tekstit dhe imazheve të Gemini (gemini-3.1-pro-preview, gemini-3.1-flash-image, etj.). Gemini Speech e përdor gjithashtu këtë çelës, përveç nëse ka një të vetin."
 
-msgid "Used for Gemini text-to-speech."
-msgstr "Përdoret për tekst-në-të-folur të Gemini."
+msgid "Used for Gemini text-to-speech. Uses your Google AI key unless you enter a different one here."
+msgstr "Përdoret për sintezën e të folurit të Gemini. Përdor çelësin tuaj të Google AI, përveç nëse futni një tjetër këtu."
 
 #~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
 #~ msgstr "Përdoret për shndërrimin e tekstit në të folur nga OpenAI në këto detyra të rrjedhës së punës:"
@@ -11220,6 +11226,9 @@ msgstr "Përdoret për këtë kuiz"
 
 msgid "Using fallback"
 msgstr "Po përdoret fallback"
+
+msgid "Using the {sourceName} API key. Enter a key here only to use a different one."
+msgstr "Po përdoret çelësi API i {sourceName}. Futni një çelës këtu vetëm për të përdorur një tjetër."
 
 msgid "v{hovered} preview"
 msgstr "Pamja paraprake e v{hovered}"
