@@ -61,6 +61,7 @@ vi.mock("@/hooks/use-provider-credentials", () => ({
   useProviderCredentials: () => ({
     providers: fakeProviders,
     credentials: emptyCredentials,
+    ownCredentials: emptyCredentials,
     setCredential,
     isLoading: false,
     error: null,
