@@ -124,6 +124,8 @@ import {
   readTypeScale,
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
+  imagePassCompletionMessage,
+  type ImagePassFailure,
   buildMeaningfulnessConfig,
   buildMeaningfulnessImages,
   dedupAutoFigureCandidatesInStorage,
@@ -3919,6 +3921,8 @@ async function runSegmentationPass(
   const total = pages.length
   let completed = 0
   progress.emit({ type: "step-start", step: "image-segmentation" })
+  // Optional refinement: a failed page keeps its extracted images, and the completion message names it.
+  const failures: ImagePassFailure[] = []
   await processWithConcurrency(pages, concurrency, async (page) => {
     const existing = results.get(page.pageId)
     if (!existing) {
@@ -4000,6 +4004,7 @@ async function runSegmentationPass(
       }
     } catch (err) {
       if (isCancellation(err, [runSignal])) throw err
+      failures.push({ pageId: page.pageId, error: toErrorMessage(err) })
       console.error(`[stage-run] ${label}: image segmentation failed for ${page.pageId}: ${toErrorMessage(err)}`)
     } finally {
       completed++
@@ -4013,7 +4018,7 @@ async function runSegmentationPass(
     }
   }, { runSignal })
   if (runSignal?.aborted) return
-  progress.emit({ type: "step-complete", step: "image-segmentation" })
+  progress.emit({ type: "step-complete", step: "image-segmentation", message: imagePassCompletionMessage(failures) })
 }
 
 async function runCroppingPass(
@@ -4035,6 +4040,8 @@ async function runCroppingPass(
   const total = pages.length
   let completed = 0
   progress.emit({ type: "step-start", step: "image-cropping" })
+  // Optional refinement: a failed page keeps its extracted images, and the completion message names it.
+  const failures: ImagePassFailure[] = []
   await processWithConcurrency(pages, concurrency, async (page) => {
     const existing = results.get(page.pageId)
     if (!existing) {
@@ -4102,6 +4109,7 @@ async function runCroppingPass(
       }
     } catch (err) {
       if (isCancellation(err, [runSignal])) throw err
+      failures.push({ pageId: page.pageId, error: toErrorMessage(err) })
       console.error(`[stage-run] ${label}: image cropping failed for ${page.pageId}: ${toErrorMessage(err)}`)
     } finally {
       completed++
@@ -4115,5 +4123,5 @@ async function runCroppingPass(
     }
   }, { runSignal })
   if (runSignal?.aborted) return
-  progress.emit({ type: "step-complete", step: "image-cropping" })
+  progress.emit({ type: "step-complete", step: "image-cropping", message: imagePassCompletionMessage(failures) })
 }

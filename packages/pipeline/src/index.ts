@@ -508,6 +508,7 @@ export { cloneRenderedIdentities, stampRenderedOwner } from "./rendered-identity
 export { indexEasyReadEntries } from "./easy-read.js"
 
 export { diagnoseBook, diagnoseBooks, formatDiagnosis, hasFindings, type BookDiagnosis, type UnownedRendering, type OwnerCandidate } from "./book-doctor.js"
+export { imagePassCompletionMessage, type ImagePassFailure } from "./image-pass-failures.js"
 export { sourceGenerationBasis, putSourceNodeData, preserveRenderedOwnership, putReflowableRendering, withSourceGenerationTracking, captureSourceGeneration, publishSourceGeneration, getSourceGenerationUpdates, markSourceGenerationNeedsUpdate, keepSourceGeneration, currentSourceInputSignature } from "./source-generation-state.js"
 
 export { collectQuizPages } from "./quiz-generation.js"

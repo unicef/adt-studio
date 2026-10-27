@@ -77,7 +77,8 @@ export async function runDAG<T extends string>(
 
 // ── Pipeline-specific runner ────────────────────────────────────
 
-export type StepExecutor = (progress: Progress) => Promise<void>
+/** An executor may return a completion message (e.g. which pages were skipped); it is attached to the step-complete event. */
+export type StepExecutor = (progress: Progress) => Promise<void | string>
 
 export interface PipelineDAGResult {
   stages: DAGResult<StageName>
@@ -123,10 +124,8 @@ export async function runPipelineDAG(
           progress.emit({ type: "step-start", step: stepName })
           try {
             const executor = executors.get(stepName)
-            if (executor) {
-              await executor(progress)
-            }
-            progress.emit({ type: "step-complete", step: stepName })
+            const message = executor ? await executor(progress) : undefined
+            progress.emit({ type: "step-complete", step: stepName, ...(typeof message === "string" ? { message } : {}) })
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
             progress.emit({ type: "step-error", step: stepName, error: message })

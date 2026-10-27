@@ -424,6 +424,18 @@ describe("runPipelineDAG", () => {
     }
   })
 
+  it("attaches an executor's returned message to its step-complete event", async () => {
+    const { events, progress } = collectingProgress()
+    const executors = new Map<StepName, StepExecutor>([
+      ["image-cropping", async () => "Completed — 1 page(s) kept their extracted images unchanged after a failure: pg002 (boom)"],
+      ["image-segmentation", async () => undefined],
+    ])
+    await runPipelineDAG(executors, progress)
+    const complete = (step: StepName) => events.find((event) => event.type === "step-complete" && event.step === step) as { message?: string }
+    expect(complete("image-cropping").message).toBe("Completed — 1 page(s) kept their extracted images unchanged after a failure: pg002 (boom)")
+    expect(complete("image-segmentation").message).toBeUndefined()
+  })
+
   it("executor can emit step-progress events", async () => {
     const executors = new Map<StepName, StepExecutor>([
       ["extract", async (p) => {
