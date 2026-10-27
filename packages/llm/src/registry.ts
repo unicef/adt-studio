@@ -125,6 +125,8 @@ export function createProviderRegistry(): MutableProviderRegistry {
     if (!module) throw AiProviderError.unknownProvider(providerId, [...modules.keys()])
     return module
   }
+  /** For `sharedWith` resolution — the registry is the only place that knows every module. */
+  const lookup = (providerId: string): AnyProviderModule | undefined => modules.get(providerId)
 
   const supports = (providerId: string, modality: AiModality): boolean => {
     const module = modules.get(providerId)
@@ -161,7 +163,7 @@ export function createProviderRegistry(): MutableProviderRegistry {
       throw AiProviderError.unsupportedModality(providerId, modality)
     }
 
-    const credentials = resolveProviderCredentials(module, options.credentials)
+    const credentials = resolveProviderCredentials(module, options.credentials, lookup)
     const context: BackendContext<any> = {
       providerId,
       modelId,
@@ -223,8 +225,8 @@ export function createProviderRegistry(): MutableProviderRegistry {
     descriptors: () =>
       [...modules.values()].map((module) => ({
         manifest: module.manifest,
-        configuredOnServer: isProviderConfiguredOnServer(module),
-        fieldStatus: providerFieldStatus(module),
+        configuredOnServer: isProviderConfiguredOnServer(module, lookup),
+        fieldStatus: providerFieldStatus(module, lookup),
         supportsCliLogin: typeof module.cliLogin?.start === "function",
       })),
 
@@ -238,7 +240,7 @@ export function createProviderRegistry(): MutableProviderRegistry {
       const module = get(providerId)
       if (typeof module.listModels !== "function") return []
 
-      const credentials = resolveProviderCredentials(module, options.credentials)
+      const credentials = resolveProviderCredentials(module, options.credentials, lookup)
       const context: ModelListContext<any> = {
         providerId,
         credentials,
@@ -333,12 +335,44 @@ export function createProviderRegistry(): MutableProviderRegistry {
     },
 
     freeze() {
+      assertSharedCredentialTargets(modules)
       frozen = true
       return registry
     },
   }
 
   return registry
+}
+
+/**
+ * A `sharedWith` must point at a registered provider's real field, and never
+ * at another shared field. Checked at freeze so registration order is free;
+ * a dangling pointer would otherwise just silently never fall back.
+ */
+function assertSharedCredentialTargets(modules: Map<string, AnyProviderModule>): void {
+  for (const [id, module] of modules) {
+    for (const field of module.manifest.credentialFields) {
+      const share = field.sharedWith
+      if (!share) continue
+      const target = modules.get(share.providerId)
+      if (!target) {
+        throw new Error(
+          `Provider "${id}" shares credential "${field.key}" with unknown provider "${share.providerId}"`,
+        )
+      }
+      const targetField = target.manifest.credentialFields.find((f) => f.key === share.fieldKey)
+      if (!targetField) {
+        throw new Error(
+          `Provider "${id}" shares credential "${field.key}" with "${share.providerId}", which has no field "${share.fieldKey}"`,
+        )
+      }
+      if (targetField.sharedWith) {
+        throw new Error(
+          `Provider "${id}" shares credential "${field.key}" with "${share.providerId}.${share.fieldKey}", which is itself shared — chains are not supported`,
+        )
+      }
+    }
+  }
 }
 
 /** Ambiguous credential extraction must fail at bootstrap, not at request time. */
