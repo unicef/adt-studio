@@ -2240,6 +2240,204 @@ speech:
     }
   })
 
+  it("skips word timestamps without an OpenAI key and drops the ones for regenerated audio", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+`
+    )
+    const label = "speech-word-highlight-no-openai-key"
+    seedTextAndSpeechBook(booksDir, label)
+    fs.writeFileSync(
+      path.join(booksDir, label, "config.yaml"),
+      "speech:\n  word_highlighting: true\n",
+    )
+    const seededStorage = createBookStorage(label, booksDir)
+    try {
+      seededStorage.putNodeData("tts-timestamps", "en", {
+        entries: {
+          pg001_t001: {
+            textId: "pg001_t001",
+            language: "en",
+            duration: 0.9,
+            words: [{ word: "earlier", start: 0, end: 0.9 }],
+          },
+        },
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      seededStorage.close()
+    }
+    vi.stubEnv("OPENAI_API_KEY", "")
+
+    generateSpeechFileMock.mockImplementation(async (options: {
+      bookDir: string
+      textId: string
+      language: string
+      voice: string
+      model: string
+      provider?: string
+    }) => {
+      const audioDir = path.join(options.bookDir, "audio", options.language)
+      fs.mkdirSync(audioDir, { recursive: true })
+      const fileName = `${options.textId}.wav`
+      fs.writeFileSync(path.join(audioDir, fileName), Buffer.from("fake-audio"))
+      return {
+        textId: options.textId,
+        language: options.language,
+        fileName,
+        voice: options.voice,
+        model: options.model,
+        cached: false,
+        provider: options.provider ?? "gemini",
+      }
+    })
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        credentials: { gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    expect(generateSpeechFileMock).toHaveBeenCalled()
+    expect(transcribeWithWhisperMock).not.toHaveBeenCalled()
+    expect(
+      events.some((event) => event.type === "step-complete" && event.step === "tts")
+    ).toBe(true)
+    expect(
+      events.some((event) => event.type === "step-skip" && event.step === "word-timestamps")
+    ).toBe(true)
+    expect(
+      events.some((event) => event.type === "step-complete" && event.step === "word-timestamps")
+    ).toBe(false)
+
+    const storage = createBookStorage(label, booksDir)
+    try {
+      // The audio was regenerated (fresh Gemini synthesis, nothing reused) and
+      // could not be re-transcribed, so the seeded timestamps no longer match
+      // it. With word_highlighting still on, the preview would serve them, so
+      // the run drops them instead of leaving an empty "complete" version.
+      const row = storage.getLatestNodeData("tts-timestamps", "en")
+      expect(row).not.toBeNull()
+      const entries = (row?.data as { entries: Record<string, unknown> }).entries
+      expect(entries.pg001_t001).toBeUndefined()
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("keeps word timestamps without an OpenAI key when the audio is reused unchanged", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+`
+    )
+    const label = "speech-word-highlight-no-openai-key-reused"
+    seedTextAndSpeechBook(booksDir, label)
+    fs.writeFileSync(
+      path.join(booksDir, label, "config.yaml"),
+      "speech:\n  word_highlighting: true\n",
+    )
+    // A manual recording with its audio file on disk is reused as-is, so the
+    // audio the stored timestamps describe is exactly what the reader plays.
+    const audioDir = path.join(booksDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), Buffer.from("fake-audio"))
+    const seededStorage = createBookStorage(label, booksDir)
+    try {
+      seededStorage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.mp3",
+            voice: "manual",
+            model: "manual",
+            cached: true,
+            provider: "manual",
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      seededStorage.putNodeData("tts-timestamps", "en", {
+        entries: {
+          pg001_t001: {
+            textId: "pg001_t001",
+            language: "en",
+            duration: 0.9,
+            words: [{ word: "kept", start: 0, end: 0.9 }],
+          },
+        },
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      seededStorage.close()
+    }
+    vi.stubEnv("OPENAI_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        credentials: { gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    expect(transcribeWithWhisperMock).not.toHaveBeenCalled()
+    expect(
+      events.some((event) => event.type === "step-skip" && event.step === "word-timestamps")
+    ).toBe(true)
+
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const entries = (storage.getLatestNodeData("tts-timestamps", "en")?.data as {
+        entries: Record<string, { words: Array<{ word: string; start: number; end: number }> }>
+      }).entries
+      expect(entries.pg001_t001?.words).toEqual([{ word: "kept", start: 0, end: 0.9 }])
+    } finally {
+      storage.close()
+    }
+  })
+
   it("generates independent primary and secondary profiles with different providers", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")

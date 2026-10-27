@@ -122,7 +122,7 @@ const stepStatusKey = (label: string) => ["books", label, "step-status"] as cons
 export function useBookRunStatus(label: string): BookRunContextValue {
   const queryClient = useQueryClient()
   const {
-    credentials: storedProviderCredentials,
+    ownCredentials: storedProviderCredentials,
     anthropicKey,
     googleKey,
     customBaseUrl,
