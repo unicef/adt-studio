@@ -1743,6 +1743,9 @@ msgstr "já está lá"
 msgid "Also delete the sharing service and every shared book from my Cloudflare account"
 msgstr "Excluir também o serviço de compartilhamento e todos os livros compartilhados da minha conta Cloudflare"
 
+msgid "Also used by {readerNames} unless that provider has its own key."
+msgstr "Também usada por {readerNames}, a menos que esse provedor tenha a própria chave."
+
 msgid "Always on"
 msgstr "Sempre ligado"
 
@@ -5026,9 +5029,6 @@ msgstr "Reunindo as evidências"
 msgid "Gemini"
 msgstr "Gemini"
 
-msgid "Gemini — LLM and TTS voices."
-msgstr "Gemini — LLM e vozes TTS."
-
 msgid "Gemini API key is required to generate audio."
 msgstr "É necessária uma chave de API do Gemini para gerar áudio."
 
@@ -5037,6 +5037,9 @@ msgstr "O Gemini gera cada frase em sua própria requisição, então o tom pode
 
 msgid "Gemini models + TTS voices."
 msgstr "Modelos Gemini + vozes TTS."
+
+msgid "Gemini models for text and image generation."
+msgstr "Modelos Gemini para geração de texto e imagens."
 
 msgid "Gemini settings"
 msgstr "Configurações do Gemini"
@@ -7009,6 +7012,9 @@ msgstr "Navegue pela Prévia para registrar notas de revisão específicas de ca
 msgid "Navigation"
 msgstr "Navegação"
 
+msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio."
+msgstr "Requer uma chave de API da OpenAI (o OpenAI Whisper alinha as palavras com o áudio). Adicione uma em Configurações → Provedores de IA para ativar. Enquanto isso, o áudio regenerado é destacado por frase; os tempos por palavra já calculados são mantidos para o áudio inalterado."
+
 msgid "Needs attention"
 msgstr "Precisa de atenção"
 
@@ -8844,9 +8850,6 @@ msgstr "Removida: {reason}"
 
 msgid "PT"
 msgstr "PT"
-
-#~ msgid "Publish again"
-#~ msgstr "Publicar novamente"
 
 #~ msgid "Publish for review"
 #~ msgstr "Publicar para revisão"
@@ -12947,11 +12950,11 @@ msgstr "Utilizada para modelos Claude (claude-opus-4-6, claude-sonnet-4-6, etc.)
 msgid "Used for ElevenLabs text-to-speech."
 msgstr "Usado para a conversão de texto em fala do ElevenLabs."
 
-msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
-msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) quanto TTS (gemini-2.5-pro-preview-tts, etc.)"
+msgid "Used for Gemini text and image models (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). Gemini Speech uses this key too unless it has one of its own."
+msgstr "Usado para os modelos de texto e imagem do Gemini (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). O Gemini Speech também usa esta chave, a menos que tenha uma própria."
 
-msgid "Used for Gemini text-to-speech."
-msgstr "Usado para a conversão de texto em fala do Gemini."
+msgid "Used for Gemini text-to-speech. Uses your Google AI key unless you enter a different one here."
+msgstr "Usado para a síntese de voz do Gemini. Usa a sua chave do Google AI, a menos que você informe uma diferente aqui."
 
 #~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
 #~ msgstr "Usado para conversão de texto em fala da OpenAI nestas tarefas do pipeline:"
@@ -12973,6 +12976,9 @@ msgstr "Usada neste questionário"
 
 msgid "Using fallback"
 msgstr "Usando o prompt padrão"
+
+msgid "Using the {sourceName} API key. Enter a key here only to use a different one."
+msgstr "Usando a chave de API de {sourceName}. Informe uma chave aqui apenas para usar uma diferente."
 
 msgid "usually 1 to 5 minutes"
 msgstr "geralmente 1 a 5 minutos"
