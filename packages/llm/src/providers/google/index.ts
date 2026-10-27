@@ -22,7 +22,9 @@ const credentialSchema = z
 
 /**
  * Deliberately NOT an alias of the `gemini` TTS provider: merging them would
- * break the existing headers and storage keys of both.
+ * break the existing headers and storage keys of both. The TTS provider
+ * instead declares its key as `sharedWith` this one, so a single Google AI
+ * Studio key still covers text, image and speech.
  */
 export const googleManifest: ProviderManifest = {
   id: GOOGLE_PROVIDER_ID,

@@ -50,7 +50,7 @@ import type { ExportFormat } from "@/components/pipeline/stages/export/export-fo
 import {
   browserCredentialStorage,
   buildProviderCredentialHeaders,
-  readProviderCredentialsFromStorage,
+  readOwnProviderCredentialsFromStorage,
   type ProviderCredentialValues,
 } from "./provider-credentials"
 
@@ -375,7 +375,10 @@ async function buildApiHeaders(
   providerCredentials?: StageRunProviderCredentials,
 ): Promise<Record<string, string>> {
   const providers = await getProviderManifests()
-  const stored = readProviderCredentialsFromStorage(
+  // Own keys only: the API resolves shared credentials (manifest `sharedWith`)
+  // itself, so a key the server holds for a provider is never overridden by
+  // one the browser merely borrowed from another provider.
+  const stored = readOwnProviderCredentialsFromStorage(
     providers,
     browserCredentialStorage,
   )

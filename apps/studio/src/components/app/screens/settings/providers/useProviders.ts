@@ -26,6 +26,8 @@ export interface Providers {
   descriptors: ProviderDescriptor[]
   credentials: Record<string, Record<string, string>>
   credentialValue: (providerId: string, fieldKey: string) => string
+  /** A provider's own stored value, without shared fallbacks — what its editor shows and writes. */
+  ownCredentialValue: (providerId: string, fieldKey: string) => string
   setCredential: (providerId: string, fieldKey: string, value: string) => void
   descriptorById: (providerId: string) => ProviderDescriptor | undefined
   isRegistered: (providerId: string) => boolean
@@ -39,8 +41,15 @@ export interface Providers {
  * exist and which fields each one needs.
  */
 export function useProviders(): Providers {
-  const { providers, credentials, credentialValue, setCredential, isLoading, error } =
-    useProviderCredentials()
+  const {
+    providers,
+    credentials,
+    credentialValue,
+    ownCredentialValue,
+    setCredential,
+    isLoading,
+    error,
+  } = useProviderCredentials()
 
   const byId = useMemo(
     () => new Map(providers.map((provider) => [provider.manifest.id, provider])),
@@ -57,6 +66,7 @@ export function useProviders(): Providers {
     descriptors: providers as ProviderDescriptor[],
     credentials,
     credentialValue,
+    ownCredentialValue,
     setCredential,
     descriptorById,
     isRegistered,
