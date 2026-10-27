@@ -10,6 +10,7 @@ export interface ImagePassFailure {
   error: string
 }
 
+const COMPLETED_PREFIX = "Completed — "
 const MAX_LISTED_PAGES = 5
 const MAX_ERROR_CHARS = 120
 
@@ -32,7 +33,7 @@ export function imagePassCompletionMessage(failures: ImagePassFailure[]): string
   const sorted = [...failures].sort((a, b) => a.pageId.localeCompare(b.pageId))
   const listed = sorted.slice(0, MAX_LISTED_PAGES).map((failure) => `${failure.pageId} (${shortError(failure.error)})`)
   const more = failures.length > MAX_LISTED_PAGES ? `, … and ${failures.length - MAX_LISTED_PAGES} more` : ""
-  return `Completed — ${failures.length} page(s) kept their extracted images unchanged after a failure: ${listed.join(", ")}${more}`
+  return `${COMPLETED_PREFIX}${failures.length} page(s) kept their extracted images unchanged after a failure: ${listed.join(", ")}${more}`
 }
 
 /**
@@ -59,4 +60,24 @@ export async function recordOptionalModelFailure<T>(
     log(error)
     return undefined
   }
+}
+
+/** Strip the "Completed — " prefix so several notes can share one. */
+export function noteClause(note: string): string {
+  return note.startsWith(COMPLETED_PREFIX) ? note.slice(COMPLETED_PREFIX.length) : note
+}
+
+/** Join completion notes under a single "Completed — " prefix. */
+export function joinCompletionNotes(notes: Array<string | undefined>): string | undefined {
+  const clauses = notes.filter((note): note is string => !!note).map(noteClause)
+  return clauses.length ? `${COMPLETED_PREFIX}${clauses.join("; ")}` : undefined
+}
+
+/**
+ * An optional pass whose every attempted page failed did no work at all:
+ * that is a configuration or provider problem, not a page-level one, and the
+ * step must fail rather than complete with a warning nobody reads.
+ */
+export function everyPageFailed(failures: ImagePassFailure[], attemptedPages: number): boolean {
+  return attemptedPages > 0 && failures.length >= attemptedPages
 }

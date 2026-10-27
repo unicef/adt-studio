@@ -72,7 +72,7 @@ import {
 } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
-import { imagePassCompletionMessage, recordOptionalModelFailure, type ImagePassFailure } from "./image-pass-failures.js"
+import { imagePassCompletionMessage, everyPageFailed, recordOptionalModelFailure, type ImagePassFailure } from "./image-pass-failures.js"
 import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds, collectSourcePageImages } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
@@ -355,6 +355,7 @@ export async function runFullPipeline(
     executors.set("image-segmentation", async (p) => {
       if (!segmentationConfig) return
       const failures: ImagePassFailure[] = []
+      let attempted = 0
       const model = getModel(segmentationConfig.modelId)
       const pages = storage.getPages()
       const totalPages = pages.length
@@ -377,6 +378,7 @@ export async function runFullPipeline(
             height: img.height,
           }))
         if (unprunedImages.length > 0) {
+          attempted++
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
           const segmentationResult = await recordOptionalModelFailure(
             failures,
@@ -436,6 +438,7 @@ export async function runFullPipeline(
           totalPages,
         })
       })
+      if (everyPageFailed(failures, attempted)) throw new Error(`every page failed: ${failures[0].error}`)
       return imagePassCompletionMessage(failures)
     })
 
@@ -491,6 +494,7 @@ export async function runFullPipeline(
       const pages = storage.getPages()
       const totalPages = pages.length
       const failures: ImagePassFailure[] = []
+      let attempted = 0
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
@@ -508,6 +512,7 @@ export async function runFullPipeline(
             height: img.height,
           }))
         if (unprunedImages.length > 0) {
+          attempted++
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
           const croppingResult = await recordOptionalModelFailure(
             failures,
@@ -553,6 +558,7 @@ export async function runFullPipeline(
           totalPages,
         })
       })
+      if (everyPageFailed(failures, attempted)) throw new Error(`every page failed: ${failures[0].error}`)
       return imagePassCompletionMessage(failures)
     })
 

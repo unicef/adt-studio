@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { imagePassCompletionMessage, recordOptionalModelFailure, type ImagePassFailure } from "../image-pass-failures.js"
+import { imagePassCompletionMessage, recordOptionalModelFailure, joinCompletionNotes, everyPageFailed, type ImagePassFailure } from "../image-pass-failures.js"
 
 it("returns no message when every page succeeded", () => {
   expect(imagePassCompletionMessage([])).toBeUndefined()
@@ -41,4 +41,17 @@ it("rethrows what the caller classifies as not a model failure, such as a cancel
   const cancelled = new Error("Run cancelled")
   await expect(recordOptionalModelFailure(failures, "pg001", async () => { throw cancelled }, () => {}, (err) => err === cancelled)).rejects.toBe(cancelled)
   expect(failures).toEqual([])
+})
+
+it("joins several notes under one Completed prefix", () => {
+  expect(joinCompletionNotes([undefined, undefined])).toBeUndefined()
+  expect(joinCompletionNotes(["Completed — 1 page(s) skipped", imagePassCompletionMessage([{ pageId: "pg003", error: "boom" }])]))
+    .toBe("Completed — 1 page(s) skipped; 1 page(s) kept their extracted images unchanged after a failure: pg003 (boom)")
+})
+
+it("treats a pass where every attempted page failed as a step failure, not a warning", () => {
+  const failures = [{ pageId: "pg001", error: "401" }, { pageId: "pg002", error: "401" }]
+  expect(everyPageFailed(failures, 2)).toBe(true)
+  expect(everyPageFailed(failures, 3)).toBe(false)
+  expect(everyPageFailed([], 0)).toBe(false)
 })

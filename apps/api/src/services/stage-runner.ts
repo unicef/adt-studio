@@ -125,6 +125,8 @@ import {
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
   imagePassCompletionMessage,
+  joinCompletionNotes,
+  everyPageFailed,
   recordOptionalModelFailure,
   type ImagePassFailure,
   buildMeaningfulnessConfig,
@@ -3924,7 +3926,9 @@ async function runSegmentationPass(
   progress.emit({ type: "step-start", step: "image-segmentation" })
   // Optional refinement: a failed page keeps its extracted images, and the completion message names it.
   const failures: ImagePassFailure[] = []
+  let attempted = 0
   await processWithConcurrency(pages, concurrency, async (page) => {
+    if (deps.stepController.signal.aborted) return
     const existing = results.get(page.pageId)
     if (!existing) {
       completed++
@@ -3954,6 +3958,7 @@ async function runSegmentationPass(
         }))
 
       if (unprunedImages.length > 0) {
+        attempted++
         const pageImageBase64 = storage.getPageImageBase64(page.pageId)
         const segmentationResult = await recordOptionalModelFailure(
           failures,
@@ -4020,10 +4025,12 @@ async function runSegmentationPass(
     }
   }, { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate })
   const failed = deps.failedPages.some((f) => f.step === "image-segmentation")
-  if (!failed && !deps.stepController.signal.aborted) {
-    const notes = [skipMessage(deps.skippedByStep, "image-segmentation"), imagePassCompletionMessage(failures)].filter((note): note is string => !!note)
-    progress.emit({ type: "step-complete", step: "image-segmentation", message: notes.length ? notes.join("; ") : undefined })
+  if (failed || deps.stepController.signal.aborted) return
+  if (everyPageFailed(failures, attempted)) {
+    // Nothing was processed: a provider or configuration problem, not a page one.
+    throw new StepError("image-segmentation", `every page failed: ${failures[0].error}`)
   }
+  progress.emit({ type: "step-complete", step: "image-segmentation", message: joinCompletionNotes([skipMessage(deps.skippedByStep, "image-segmentation"), imagePassCompletionMessage(failures)]) })
 }
 
 async function runCroppingPass(
@@ -4047,7 +4054,9 @@ async function runCroppingPass(
   progress.emit({ type: "step-start", step: "image-cropping" })
   // Optional refinement: a failed page keeps its extracted images, and the completion message names it.
   const failures: ImagePassFailure[] = []
+  let attempted = 0
   await processWithConcurrency(pages, concurrency, async (page) => {
+    if (deps.stepController.signal.aborted) return
     const existing = results.get(page.pageId)
     if (!existing) {
       completed++
@@ -4075,6 +4084,7 @@ async function runCroppingPass(
         }))
 
       if (unprunedImages.length > 0) {
+        attempted++
         const pageImageBase64 = storage.getPageImageBase64(page.pageId)
         const croppingResult = await recordOptionalModelFailure(
           failures,
@@ -4129,8 +4139,10 @@ async function runCroppingPass(
     }
   }, { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate })
   const failed = deps.failedPages.some((f) => f.step === "image-cropping")
-  if (!failed && !deps.stepController.signal.aborted) {
-    const notes = [skipMessage(deps.skippedByStep, "image-cropping"), imagePassCompletionMessage(failures)].filter((note): note is string => !!note)
-    progress.emit({ type: "step-complete", step: "image-cropping", message: notes.length ? notes.join("; ") : undefined })
+  if (failed || deps.stepController.signal.aborted) return
+  if (everyPageFailed(failures, attempted)) {
+    // Nothing was processed: a provider or configuration problem, not a page one.
+    throw new StepError("image-cropping", `every page failed: ${failures[0].error}`)
   }
+  progress.emit({ type: "step-complete", step: "image-cropping", message: joinCompletionNotes([skipMessage(deps.skippedByStep, "image-cropping"), imagePassCompletionMessage(failures)]) })
 }

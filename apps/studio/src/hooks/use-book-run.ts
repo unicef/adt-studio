@@ -23,6 +23,7 @@ import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeli
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
 import { useApiKey } from "./use-api-key"
+import { displayableNote } from "@/components/pipeline/components/step-notes"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -846,8 +847,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   const stepMessageAccessor = useCallback(
     (step: string): string | undefined => {
       if (data?.steps?.[step] !== "done") return undefined
-      const message = data?.stepMessages?.[step]
-      return message && message.trim().length > 0 ? message : undefined
+      return displayableNote(data?.stepMessages?.[step])
     },
     [data?.stepMessages, data?.steps]
   )

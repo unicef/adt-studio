@@ -61,7 +61,7 @@ export function SubStepPillRow({
                 state={state}
                 progress={stepProgress(subStep.key)}
                 errorMessage={stepError(subStep.key)}
-                completionNote={stepMessage?.(subStep.key)}
+                completionNote={note}
               />
             </TooltipContent>
           </Tooltip>
