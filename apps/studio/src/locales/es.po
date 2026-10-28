@@ -1610,6 +1610,9 @@ msgstr "Interfaz de programación de aplicaciones (API): conjunto de reglas que 
 msgid "Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
 msgstr "Solo se aplica a la normalización del texto. La lectura de matemáticas en voz alta se ejecuta en cualquier caso. La preparación resuelve primero la configuración regional exacta, después el idioma base y, por último, este valor predeterminado. La orientación se incluye en la llamada al LLM almacenada en caché e inspeccionable."
 
+msgid "Applies to books whose speech provider matches this model's provider. Other providers run on their own default, or on the model set in Speech settings."
+msgstr "Se aplica a los libros cuyo proveedor de voz coincide con el de este modelo. Los demás proveedores usan su propio modelo predeterminado o el definido en los ajustes de Voz."
+
 msgid "Applies to every language routed to ElevenLabs."
 msgstr "Se aplica a todos los idiomas dirigidos a ElevenLabs."
 
