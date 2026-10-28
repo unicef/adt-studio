@@ -148,6 +148,10 @@ function retryAfterMs(response: Response): number | null {
   return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1_000 : null
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 function normalizeIssues(value: unknown): CloudflareApiIssue[] {
   if (!Array.isArray(value)) return []
   return value.flatMap((entry) => {
@@ -281,6 +285,55 @@ export function createCloudflareClient(
     },
 
     async deleteR2Bucket(name) {
+      let startAfter: string | undefined
+      for (;;) {
+        const query = new URLSearchParams({ per_page: "1000" })
+        if (startAfter) query.set("start_after", startAfter)
+        const objects = await request<Array<{ key?: string }>>(
+          `${account}/r2/buckets/${encodeURIComponent(name)}/objects?${query.toString()}`,
+        )
+        const keys = (objects ?? []).flatMap((object) =>
+          object.key ? [object.key] : [],
+        )
+        if (keys.length === 0) break
+
+        for (let index = 0; index < keys.length; index += 5) {
+          await Promise.all(
+            keys.slice(index, index + 5).map(async (key) => {
+              const encodedKey = key.split("/").map(encodeURIComponent).join("/")
+              for (let attempt = 0; ; attempt += 1) {
+                try {
+                  await request(
+                    `${account}/r2/buckets/${encodeURIComponent(name)}/objects/${encodedKey}`,
+                    { method: "DELETE" },
+                  )
+                  return
+                } catch (error) {
+                  if (
+                    !(error instanceof CloudflareApiError) ||
+                    error.status !== 429 ||
+                    attempt >= 6
+                  ) {
+                    throw error
+                  }
+                  await delay(error.retryAfterMs ?? 1_000 * 2 ** attempt)
+                }
+              }
+            }),
+          )
+        }
+
+        const nextStartAfter = keys[keys.length - 1]
+        if (nextStartAfter === startAfter) {
+          throw new CloudflareApiError(
+            200,
+            [],
+            `Cloudflare returned the same R2 object page while emptying bucket ${name}`,
+          )
+        }
+        startAfter = nextStartAfter
+      }
+
       await request(`${account}/r2/buckets/${encodeURIComponent(name)}`, {
         method: "DELETE",
       })
