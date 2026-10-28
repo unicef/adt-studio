@@ -22,15 +22,14 @@ export function DoneStep({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex items-start gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-300">
-        <PartyPopper className="mt-0.5 size-5 shrink-0 text-emerald-600" aria-hidden="true" />
+        <PartyPopper className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
         <div className="flex flex-col gap-1">
           <span className="text-sm font-semibold text-foreground">
-            <Trans>Publishing is set up</Trans>
+            <Trans>Sharing is set up</Trans>
           </span>
           <p className="text-sm leading-6 text-muted-foreground">
             <Trans>
-              You only had to do that once. To share a book, open it and go to its Export step —
-              you'll find Publish there.
+              You only had to do that once. To share a book, open it and go to its Sharing step.
             </Trans>
           </p>
         </div>

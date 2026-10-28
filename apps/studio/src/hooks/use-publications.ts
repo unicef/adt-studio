@@ -9,6 +9,7 @@ import {
 } from "@adt/types"
 import { api, type PublicationResponse } from "@/api/client"
 import { bookPublicationKey } from "./use-book-publication"
+import { COMMENTS_POLL_MS } from "./use-publication-feedback"
 
 export const publicationsKey = ["publications"] as const
 
@@ -71,7 +72,9 @@ export const publicationReadersKey = (token: string) => ["publications", token, 
 
 /**
  * Who has joined one publication. Only fetched while its panel is open — the shelf draws tens
- * of rows and none of them needs a roster until the author asks for one.
+ * of rows and none of them needs a roster until the author asks for one. While it is open it
+ * re-checks on the comments' clock: fetched once, a reader who joined after the page opened
+ * stayed missing beside the comments they had already left, until the page was reopened.
  */
 export function usePublicationReaders(token: string, enabled: boolean) {
   return useQuery<PublicationReaderList>({
@@ -79,7 +82,9 @@ export function usePublicationReaders(token: string, enabled: boolean) {
     queryFn: () => api.getPublicationReaders(token),
     enabled,
     retry: false,
-    staleTime: 30_000,
+    staleTime: 10_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: enabled ? COMMENTS_POLL_MS : false,
   })
 }
 

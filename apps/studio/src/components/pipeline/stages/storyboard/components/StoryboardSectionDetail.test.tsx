@@ -123,6 +123,18 @@ vi.mock("./EditableActivityPanel", () => ({
   EditableActivityPanel: () => null,
 }))
 vi.mock("./ClassicActivityPanel", () => ({ ClassicActivityPanel: () => null }))
+vi.mock("@tanstack/react-router", async () => ({
+  ...(await vi.importActual<object>("@tanstack/react-router")),
+  useSearch: () => ({}),
+}))
+vi.mock("./feedback/StoryboardFeedbackOverlay", () => ({
+  StoryboardFeedbackOverlay: () => null,
+  useSectionFeedbackCount: () => 0,
+}))
+vi.mock("./feedback/use-comments-mode", () => ({
+  REQUEST_TTL_MS: 1000,
+  useCommentsMode: () => ({ on: false, setOn: () => {}, request: null, open: () => {}, consume: () => {} }),
+}))
 vi.mock("./ImageCropDialog", () => ({
   ImageCropDialog: () => null,
   pageBoundsToCropRect: vi.fn(),

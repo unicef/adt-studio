@@ -1,15 +1,39 @@
 import { z } from "zod"
 import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.13.0"
+export const PUBLISH_WORKER_VERSION = "0.14.6"
 
-/** R2's free allowance. Used only to give the dashboard's storage total a sense of scale —
- *  never to claim a usage number we did not measure ourselves. */
-export const R2_FREE_TIER_BYTES = 10 * 1024 * 1024 * 1024
+/**
+ * The oldest control plane this Studio's book host works against.
+ *
+ * A book host is deployed fresh on every share, but it reads the control plane's database and
+ * joins its realtime room, and those only change when the author installs an update. Raise this
+ * whenever a book host starts to rely on a table, a column or a room message the control plane
+ * did not always have — publishing then asks for the update instead of deploying a host that
+ * would half-work against the old one.
+ */
+export const BOOK_HOST_MIN_CONTROL_PLANE_VERSION = "0.14.0"
+
+/** Numeric dotted-version comparison: `true` when `version` is `minimum` or newer. Anything
+ *  that does not parse is treated as unknown and allowed, so a missing version never blocks. */
+export function isVersionAtLeast(version: string | null | undefined, minimum: string): boolean {
+  if (!version) return true
+  const parse = (value: string) => value.split(".").map((part) => Number.parseInt(part, 10))
+  const have = parse(version)
+  const need = parse(minimum)
+  if (have.some(Number.isNaN) || need.some(Number.isNaN)) return true
+  for (let index = 0; index < Math.max(have.length, need.length); index += 1) {
+    const a = have[index] ?? 0
+    const b = need[index] ?? 0
+    if (a !== b) return a > b
+  }
+  return true
+}
 
 /** Limits apply to the expanded file tree declared when an upload starts. */
 export const PUBLICATION_SNAPSHOT_MAX_FILES = 20_000
-export const PUBLICATION_SNAPSHOT_MAX_FILE_BYTES = 32 * 1024 * 1024
+/** Workers Static Assets accepts files up to 25 MiB on every plan. */
+export const PUBLICATION_SNAPSHOT_MAX_FILE_BYTES = 25 * 1024 * 1024
 export const PUBLICATION_SNAPSHOT_MAX_BYTES = 512 * 1024 * 1024
 
 export const PUBLICATION_TOKEN_LENGTH = 32
@@ -395,6 +419,31 @@ export const PublishErrorEvent = z.object({
 })
 export type PublishErrorEvent = z.infer<typeof PublishErrorEvent>
 
+/**
+ * What a book's share run is doing, as the server last saw it.
+ *
+ * The run is driven over SSE, but the stream is the browser's, and the run outlives it — a page
+ * that reloads or moves to another stage mid-run keeps nothing. This is what it reads to pick
+ * the run back up, and how it learns a run ended while nobody was watching.
+ */
+export const PublishRunSnapshot = z.object({
+  kind: z.enum(["publish", "update"]),
+  /** `cancelled` is the author's Stop, honoured before the link was made. */
+  status: z.enum(["running", "done", "error", "cancelled"]),
+  step_states: z.array(PublishStepStatus),
+  active_step: z.number().int().min(1).nullable(),
+  progress: z
+    .object({ done: z.number().int().min(0), total: z.number().int().min(0), unit: z.enum(["files", "pages", "bytes"]) })
+    .nullable(),
+  failure: z
+    .object({ code: z.union([PublishErrorCodeStudio, z.literal("unknown")]), message: z.string(), step_id: PublishStepId.nullable() })
+    .nullable(),
+  result: z.object({ url: z.string().url(), publication: Publication }).nullable(),
+  started_at: z.string().datetime(),
+  finished_at: z.string().datetime().nullable(),
+})
+export type PublishRunSnapshot = z.infer<typeof PublishRunSnapshot>
+
 export const PublishProgressEvent = z.discriminatedUnion("type", [
   PublishStepEvent,
   PublishCompleteEvent,
@@ -476,8 +525,41 @@ export const BookPublicationRecord = z.object({
    *  for links made before this was recorded, and for the ordinary case of publishing
    *  everything. */
   features: PublishFeatureSelection.nullable().default(null),
+  /** The book host version deployed for this link on its last share or update. The host is
+   *  redeployed on every one, so this is how the Studio knows which books still run an older
+   *  reader and would pick up the new one with "Update site". `null` for links made before
+   *  this was recorded — which, by construction, are older than every host that records it. */
+  host_version: z.string().nullable().default(null),
 })
 export type BookPublicationRecord = z.infer<typeof BookPublicationRecord>
+
+/**
+ * A commit the Studio sent and may never have heard back from.
+ *
+ * Written just before the commit and settled once its outcome is known. A connection lost on
+ * the way back — or the Studio quitting — used to leave a version live on Cloudflare that this
+ * computer had no record of: a first share's link the author never got, or an update missing
+ * from the book's history. The next status read asks the control plane how the upload ended
+ * and, if it was committed, files the record this run would have filed. It never commits on
+ * the author's behalf.
+ */
+export const PendingPublicationCommit = z.object({
+  upload_id: z.string().min(1),
+  token: PublicationToken,
+  base_url: z.string().url(),
+  worker_url: z.string().min(1),
+  page_count: z.number().int().min(0),
+  content_revision: z.number().int().min(0).nullable(),
+  access_code: z.string().nullable(),
+  features: PublishFeatureSelection.nullable(),
+  host_version: z.string().nullable(),
+  /** The record before this run, for an update; `null` for a first share. */
+  previous: BookPublicationRecord.nullable(),
+  started_at: z.string().datetime(),
+  /** Set once the outcome is known. The note is versioned with the book, never deleted. */
+  settled_at: z.string().datetime().nullable().default(null),
+})
+export type PendingPublicationCommit = z.infer<typeof PendingPublicationCommit>
 
 export const BookPublicationStatus = z.object({
   connected: z.boolean(),
@@ -485,6 +567,10 @@ export const BookPublicationStatus = z.object({
   publication: Publication.nullable(),
   url: z.string().url().nullable(),
   worker_reachable: z.boolean(),
+  /** The worker answered but refused this computer's management secret — another Studio
+   *  connected to the same account has replaced it. A different problem from "not answering",
+   *  with a different fix: reconnect here. */
+  worker_rejected: z.boolean().default(false),
   /** The worker's answer when it is reachable, the local record's otherwise. */
   has_access_code: z.boolean().default(false),
   /** The book's content revision *now*, to compare against the live version's. `null` when the
@@ -521,6 +607,13 @@ export const PublicationSummary = z.object({
   /** `local` rows come from the book's own `node_data` record because the worker could not be
    *  reached: their counts are unknown (`0` / `null`), not measured. */
   source: z.enum(["worker", "local"]),
+  /** The book host version this link runs, as recorded on this computer at its last share or
+   *  update. `null` when nobody recorded one — the link predates recording, or it was shared
+   *  from another computer. */
+  host_version: z.string().nullable().default(null),
+  /** `true` when an "Update site" would move this link onto a newer book host: the book is on
+   *  this computer, the link is live, and it runs something older than this Studio ships. */
+  host_update_available: z.boolean().default(false),
 })
 export type PublicationSummary = z.infer<typeof PublicationSummary>
 
@@ -539,6 +632,8 @@ export type PublicationsTotals = z.infer<typeof PublicationsTotals>
 
 export const PublicationsOverview = z.object({
   worker_reachable: z.boolean(),
+  /** See `BookPublicationStatus.worker_rejected`. */
+  worker_rejected: z.boolean().default(false),
   publications: z.array(PublicationSummary),
   totals: PublicationsTotals,
 })

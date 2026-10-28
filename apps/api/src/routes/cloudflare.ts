@@ -37,7 +37,11 @@ import {
   type OAuthCallbackListenerFactory,
 } from "../services/cloudflare/oauth.js"
 import { provisionCloudflare } from "../services/cloudflare/provisioner.js"
-import { clearAllPublicationRecords } from "../services/publish-service.js"
+import { createProvisionRunView } from "../services/provision-progress.js"
+import {
+  clearAllPublicationRecords,
+  readAllPublicationTokens,
+} from "../services/publish-service.js"
 import {
   disconnectedStatus,
   readAuthMethod,
@@ -66,6 +70,9 @@ const OAuthAccountBody = CloudflareOAuthAccountRequest.extend({
 export interface CloudflareRoutesDeps {
   booksDir: string
   projectRoot: string
+  /** The app's one Cloudflare login service, shared with the sharing routes so their renewals
+   *  are deduplicated together. Built here when left out. */
+  oauth?: CloudflareOAuthService
   stateDir?: string
   artifactDir?: string
   migrationsDir?: string
@@ -95,7 +102,7 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
     deps.stateDir ?? resolvePublishStateDir(deps.booksDir),
   )
 
-  const oauth: CloudflareOAuthService = createCloudflareOAuthService({
+  const oauth: CloudflareOAuthService = deps.oauth ?? createCloudflareOAuthService({
     store,
     ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
     ...(deps.now === undefined ? {} : { now: deps.now }),
@@ -137,6 +144,7 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
    *  that write, and every call afterwards authenticates with the record's secret and gets a
    *  permanent `401`. A second request while one is running is refused instead of raced. */
   let provisionInFlight = false
+  const provisionRun = createProvisionRunView(deps.now)
 
   const loadArtifact = (): WorkerArtifact => {
     if (deps.loadArtifact) return deps.loadArtifact()
@@ -252,9 +260,13 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
     }
 
     const client = clientFor(credentials)
+    provisionRun.begin()
 
     return streamSSE(c, async (stream) => {
+      /** Every event also lands in the in-memory snapshot, so a client that reloads
+       *  mid-run can pick the progress back up instead of seeing an idle screen. */
       const emit = async (event: ProvisionProgressEvent) => {
+        provisionRun.record(event)
         await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
       }
 
@@ -301,6 +313,9 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
     })
   })
 
+  // GET /cloudflare/provision/run — live view of a run the browser may have stopped watching
+  app.get("/cloudflare/provision/run", (c) => c.json({ run: provisionRun.get() }))
+
   // GET /cloudflare/connection — local record plus the live worker version
   app.get("/cloudflare/connection", async (c) => {
     const status = await readConnectionStatus(store, {
@@ -332,10 +347,14 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
         forgotten: false,
         deleted_resources: false,
         oauth_cleared: oauthCleared,
+        inventory_incomplete: false,
+        leftover_book_workers: [],
       }
       return c.json({ ...response, connection: disconnectedStatus(readAuthMethod(store)) })
     }
 
+    let inventoryIncomplete = false
+    let leftoverBookWorkers: string[] | null = []
     if (deleteResources) {
       let credentials: ResolvedCloudflareCredentials
       try {
@@ -343,7 +362,14 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
       } catch (error) {
         return oauthFailure(c, error)
       }
-      const { failures } = await teardownCloudflareResources(clientFor(credentials), record)
+      const teardown = await teardownCloudflareResources(
+        clientFor(credentials),
+        record,
+        readAllPublicationTokens(deps.booksDir),
+      )
+      const { failures } = teardown
+      inventoryIncomplete = teardown.inventoryIncomplete
+      leftoverBookWorkers = teardown.leftoverBookWorkers
       if (failures.length > 0) {
         throw new HTTPException(502, {
           message: `Cloudflare teardown was incomplete, the connection was kept so you can retry: ${failures.join("; ")}`,
@@ -364,11 +390,16 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
     }
 
     store.clear()
+    /** The last setup run describes the connection just forgotten. Left in place, the wizard of
+     *  the next connection adopts its "done" and claims sharing is set up without setting it up. */
+    provisionRun.clear()
     const oauthCleared = await oauth.signOut()
     const response: CloudflareConnectionDeleteResponse = {
       forgotten: true,
       deleted_resources: deleteResources,
       oauth_cleared: oauthCleared,
+      inventory_incomplete: inventoryIncomplete,
+      leftover_book_workers: leftoverBookWorkers,
     }
     return c.json({ ...response, connection: disconnectedStatus(readAuthMethod(store)) })
   })

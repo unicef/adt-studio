@@ -426,6 +426,34 @@ describe("cloudflare oauth", () => {
       expect(await revoked.ensureFreshToken()).toBeNull()
     })
 
+    /** Two renewals racing on one store: the token endpoint rotates the refresh token, so the
+     *  loser's old token is refused — after the winner has already saved the new grant. */
+    it("keeps the login another renewal just rotated instead of signing out", async () => {
+      await connect()
+      const stored = store.readOAuth()
+      if (!stored) throw new Error("expected a stored grant")
+      store.writeOAuth({ ...stored, expires_at: new Date(clock).toISOString() })
+      const rotated = {
+        ...stored,
+        access_token: "cf-oauth-access-winner",
+        refresh_token: "cf-oauth-refresh-winner",
+        expires_at: new Date(clock + 3600_000).toISOString(),
+      }
+      const loser = createCloudflareOAuthService({
+        store,
+        now: () => new Date(clock),
+        fetchFn: async () => {
+          store.writeOAuth(rotated)
+          return Response.json({ error: "invalid_grant" }, { status: 400 })
+        },
+      })
+
+      const fresh = await loser.ensureFreshToken()
+
+      expect(fresh?.access_token).toBe("cf-oauth-access-winner")
+      expect(store.readOAuth()?.refresh_token).toBe("cf-oauth-refresh-winner")
+    })
+
     describe("when the renewal cannot reach a verdict", () => {
       type TokenFailure = (init?: RequestInit) => Promise<Response>
 

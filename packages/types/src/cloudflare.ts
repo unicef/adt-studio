@@ -75,6 +75,8 @@ export const ProvisionErrorCode = z.enum([
   "upload_failed",
   "stale_deployment",
   "partial_provision",
+  /** The network, not Cloudflare: the machine couldn't reach it, or it stopped answering. */
+  "cloudflare_unreachable",
 ])
 export type ProvisionErrorCode = z.infer<typeof ProvisionErrorCode>
 
@@ -96,6 +98,10 @@ export const CloudflareConnectionStatus = z.object({
   auth_method: CloudflareAuthMethod.nullable(),
   worker_url: z.string().nullable(),
   worker_version: z.string().nullable(),
+  /** `false` when `worker_version` is what this machine remembers rather than what the worker
+   *  just said — the health probe answered with something other than a version. A remembered
+   *  value is not a current one, and the screen must not present it as though it were. */
+  worker_version_live: z.boolean().default(false),
   latest_version: z.string().min(1),
   upgrade_available: z.boolean(),
   worker_reachable: z.boolean(),
@@ -109,6 +115,12 @@ export const CloudflareConnectionDeleteResponse = z.object({
   forgotten: z.boolean(),
   deleted_resources: z.boolean(),
   oauth_cleared: z.boolean(),
+  /** The control plane's database was already gone, so only the shares this machine's books
+   *  remember could be found and deleted. */
+  inventory_incomplete: z.boolean().default(false),
+  /** Book-shaped Workers still in the account after an incomplete teardown — reported, never
+   *  deleted. `null` when the account's Workers could not be listed. */
+  leftover_book_workers: z.array(z.string()).nullable().default([]),
 })
 export type CloudflareConnectionDeleteResponse = z.infer<
   typeof CloudflareConnectionDeleteResponse

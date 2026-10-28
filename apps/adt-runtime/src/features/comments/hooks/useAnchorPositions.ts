@@ -24,7 +24,11 @@ export interface AnchorPosition {
  * An anchor missing from the map is unresolvable — an unambiguous element could
  * not be found — and its comment degrades to page level.
  */
-export function useAnchorPositions(targets: AnchorTarget[]): Map<string, AnchorPosition> {
+export function useAnchorPositions(
+  targets: AnchorTarget[],
+  options: { precise?: boolean } = {},
+): Map<string, AnchorPosition> {
+  const precise = options.precise === true
   const [positions, setPositions] = useState<Map<string, AnchorPosition>>(new Map())
   const targetsRef = useRef(targets)
   targetsRef.current = targets
@@ -42,13 +46,13 @@ export function useAnchorPositions(targets: AnchorTarget[]): Map<string, AnchorP
     const next = new Map<string, AnchorPosition>()
     for (const target of targetsRef.current) {
       if (!target.anchor) continue
-      const resolved = resolveAnchor(target.anchor, { root })
+      const resolved = resolveAnchor(target.anchor, { root, precise })
       if (!resolved) continue
       next.set(target.id, resolved.position())
     }
 
     setPositions((previous) => (sameMap(previous, next) ? previous : next))
-  }, [])
+  }, [precise])
 
   const schedule = useCallback(() => {
     if (frameRef.current !== null) return

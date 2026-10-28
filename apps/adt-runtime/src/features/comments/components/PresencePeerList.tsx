@@ -38,6 +38,8 @@ export function PresencePeerList({ onFollow }: { onFollow?: () => void }) {
   const labels = {
     unknown: t("comments-presence-unknown-page-label"),
     page: (number: number) => t("comments-presence-page-label", { number: String(number) }),
+    pages: (first: number, last: number) =>
+      t("comments-presence-pages-label", { first: String(first), last: String(last) }),
   }
 
   return (

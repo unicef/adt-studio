@@ -60,6 +60,7 @@ import type {
   PublishCommentListResponse,
   PublishCommentResponse,
   PublishProgressEvent,
+  PublishRunSnapshot,
   PublishFeatureSelection,
   CommentAnchor,
   PublishComment,
@@ -171,12 +172,19 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => "")
     let message: string | undefined
+    let code: string | null = null
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      const parsed = JSON.parse(text) as { error?: string; code?: string }
+      message = parsed.error
+      code = typeof parsed.code === "string" ? parsed.code : null
     } catch {
       message = text || undefined
     }
-    throw new Error(message ?? `Request failed: ${res.status}`)
+    /* `ApiError`, not `Error`: callers branch on `code` to tell "not connected yet" from "the
+     * worker didn't answer", and a bare Error left them printing the transport text instead —
+     * which is how a raw "404 Not Found" reached the publishing dashboard. */
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- HTTP response fallback.
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
   }
 
   return res.json()
@@ -1092,6 +1100,21 @@ export type {
 }
 
 export interface CloudflareCredentials { token: string; accountId: string }
+/** Live view of a provisioning run the browser may have stopped watching. */
+export interface ProvisionRunSnapshot {
+  status: "running" | "done" | "error"
+  step_states: ProvisionStepStatus[]
+  active_step: number | null
+  failure: {
+    code: ProvisionErrorCode | "unknown"
+    message: string
+    resume_from_step: number | null
+    missing_scopes: CloudflareTokenScope[]
+  } | null
+  started_at: string
+  finished_at: string | null
+}
+
 export interface ProvisionOptions {
   onEvent: (event: ProvisionProgressEvent) => void
   resumeFromStep?: number
@@ -1144,16 +1167,6 @@ function commentQueryString(query: PublicationCommentQuery = {}): string {
   if (query.version !== undefined) params.set("version", String(query.version))
   const search = params.toString()
   return search.length === 0 ? "" : `?${search}`
-}
-
-/** Same-origin preview URL for a file in the publication snapshot. */
-export function getPublicationPreviewUrl(label: string, filePath = ""): string {
-  const encoded = filePath
-    .split("/")
-    .filter((segment) => segment.length > 0)
-    .map((segment) => encodeURIComponent(segment))
-    .join("/")
-  return `${BASE_URL}/books/${encodeURIComponent(label)}/publication/preview/${encoded}`
 }
 
 export interface PublishStreamOptions {
@@ -2468,6 +2481,8 @@ export const api = {
     `/cloudflare/connection${options?.deleteResources ? "?delete_resources=1" : ""}`, { method: "DELETE", headers: buildCloudflareHeaders(credentials) },
   ),
 
+  getCloudflareProvisionRun: () => request<{ run: ProvisionRunSnapshot | null }>("/cloudflare/provision/run"),
+
   provisionCloudflare: async (credentials: Partial<CloudflareCredentials>, options: ProvisionOptions): Promise<void> => {
     await postEventStream<ProvisionProgressEvent>("/cloudflare/provision", options.resumeFromStep ? { resume_from_step: options.resumeFromStep } : {}, {
       headers: buildCloudflareHeaders(credentials), onEvent: options.onEvent, signal: options.signal,
@@ -2507,6 +2522,22 @@ export const api = {
 
   publishBookVersion: (label: string, options: PublishStreamOptions): Promise<void> =>
     streamPublishEvents(`/books/${encodeURIComponent(label)}/publication/versions`, {}, options),
+
+  /** The book's share run as the server last saw it — for a page that lost the stream. */
+  getPublishRun: (label: string) =>
+    request<{ run: PublishRunSnapshot | null }>(
+      `/books/${encodeURIComponent(label)}/publication/run`,
+    ),
+
+  /** Every share run still going, across books. */
+  listPublishRuns: () =>
+    request<{ runs: { label: string; run: PublishRunSnapshot }[] }>("/publication-runs"),
+
+  /** Asks a running share to stop; `false` when it is past the point it safely can. */
+  cancelPublishRun: (label: string) =>
+    request<{ cancelled: boolean }>(`/books/${encodeURIComponent(label)}/publication/run/cancel`, {
+      method: "POST",
+    }),
 
   revokeBookPublication: (label: string) =>
     request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication/revoke`, {

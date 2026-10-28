@@ -762,6 +762,12 @@ export function createCloudflareOAuthService(
           return rotated
         } catch (error) {
           if (error instanceof TokenEndpointError && error.grantRejected) {
+            /** Cloudflare rotates the refresh token on every renewal and refuses the old one. A
+             *  renewal that lost a race to another — another service or process on the same
+             *  store — is refused for that reason, and the winner has already saved the new
+             *  grant: clearing it would sign the author out of a login that works. */
+            const latest = store.readOAuth()
+            if (latest?.refresh_token && latest.refresh_token !== current.refresh_token) return latest
             store.clearOAuth()
             throw new CloudflareOAuthError(
               "reconnect_required",

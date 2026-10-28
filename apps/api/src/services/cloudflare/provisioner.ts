@@ -14,6 +14,7 @@ import { probeCloudflareAccess } from "./access.js"
 import {
   CloudflareApiError,
   fetchWorkerHealth,
+  isRetryableCloudflareError,
   retryCloudflareOperation,
   type CloudflareClient,
   type FetchLike,
@@ -26,8 +27,36 @@ import { ProvisionError, describeError, isProvisionError } from "./errors.js"
 import { toConnectionStatus } from "./status.js"
 import type { WorkerArtifact, WorkerArtifactBinding } from "./worker-artifact.js"
 import { prepareStaticAssets } from "./static-assets.js"
+import { ensureWorkersDevSubdomain } from "./workers-subdomain.js"
 
 const MIGRATIONS_TABLE = "_migrations"
+
+/**
+ * A migration and the row that records it, as one request.
+ *
+ * Sent as two, a connection that dropped between them left the change applied and unrecorded,
+ * and every later setup re-ran an `ALTER TABLE … ADD COLUMN` that could never succeed again. In
+ * one request Cloudflare either never got it or ran both. The values are literals because a
+ * multi-statement query can't bind parameters; the name comes from the artifact and the time
+ * from the clock, and both are quoted as SQL strings regardless.
+ */
+export function withMigrationRecord(migration: { name: string; sql: string }, at: Date): string {
+  const body = migration.sql.trimEnd()
+  const record =
+    `INSERT OR IGNORE INTO ${MIGRATIONS_TABLE} (name, applied_at) ` +
+    `VALUES (${sqlString(migration.name)}, ${sqlString(at.toISOString())});`
+  return `${body}${body.endsWith(";") ? "" : ";"}\n${record}`
+}
+
+/** The network failing, not Cloudflare refusing: a timeout, a refused or reset connection, no
+ *  route. Reported as such so the author checks their connection instead of their token. */
+function isTransportFailure(error: unknown): boolean {
+  return !(error instanceof CloudflareApiError) && isRetryableCloudflareError(error)
+}
+
+function sqlString(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
+}
 const MGMT_SECRET_BYTES = 32
 
 export type ProvisionEmit = (event: ProvisionProgressEvent) => void | Promise<void>
@@ -55,6 +84,16 @@ function generateMgmtSecret(): string {
 
 function alreadyExists(error: unknown): boolean {
   return error instanceof CloudflareApiError && /already exists|duplicate/i.test(error.message)
+}
+
+const NO_SUBDOMAIN_MESSAGE =
+  "This Cloudflare account has no workers.dev subdomain, and Cloudflare would not let the Studio reserve one. Open Workers & Pages in the Cloudflare dashboard — opening it for the first time creates one — then try again."
+
+/** Cloudflare refuses a script upload on an account with no workers.dev subdomain, and says so
+ *  in the upload's own error. Recognised so it lands on the step that explains it instead of on
+ *  `upload_failed`, whose copy tells the reader this is a passing network problem. */
+function mentionsMissingSubdomain(error: unknown): boolean {
+  return /workers\.dev subdomain/i.test(describeError(error))
 }
 
 function mentionsMigration(error: unknown): boolean {
@@ -108,6 +147,7 @@ export async function provisionCloudflare(
     generateSecret = generateMgmtSecret,
     healthAttempts = 8,
   } = options
+  const retry = { sleep, attempts: 3 }
 
   const existing = store.read()
   let stepMessage: string | undefined
@@ -131,9 +171,11 @@ export async function provisionCloudflare(
       const provisionError = isProvisionError(error)
         ? error
         : new ProvisionError({
-            code: "partial_provision",
+            code: isTransportFailure(error) ? "cloudflare_unreachable" : "partial_provision",
             stepId: id,
-            message: describeError(error),
+            message: isTransportFailure(error)
+              ? `Couldn't reach Cloudflare: ${describeError(error)}`
+              : describeError(error),
             cause: error,
           })
       await emit({
@@ -177,29 +219,53 @@ export async function provisionCloudflare(
         missingScopes: probe.missingScopes,
       })
     }
+    /** Handled here rather than at `enable-workers-dev`, where it is finally used, because
+     *  Cloudflare refuses the *script upload* without one — three steps earlier — with a
+     *  message that reads like a transient upload failure.
+     *
+     *  Registered rather than asked for. Cloudflare creates one silently the first time anyone
+     *  opens the Workers dashboard, so sending someone there is sending them to fetch a name
+     *  Cloudflare would have chosen for them anyway. If it refuses, that is when the person
+     *  has to do it, and the message says so. */
+    if (probe.workersDevSubdomain === null) {
+      try {
+        const ensured = await ensureWorkersDevSubdomain(client)
+        stepMessage = `Reserved ${ensured.subdomain}.workers.dev`
+        return probe.accountName
+      } catch (error) {
+        throw new ProvisionError({
+          code: "no_workers_subdomain",
+          stepId: "verify-token",
+          message: NO_SUBDOMAIN_MESSAGE,
+          cause: error,
+        })
+      }
+    }
     stepMessage = probe.accountName ? `Account ${probe.accountName}` : undefined
     return probe.accountName
   })
 
   const database = await runStep("find-or-create-d1", async () => {
-    const databases = await client.listD1Databases(CLOUDFLARE_D1_DATABASE_NAME)
+    const databases = await retryCloudflareOperation(() => client.listD1Databases(CLOUDFLARE_D1_DATABASE_NAME), retry)
     const found = databases.find((entry) => entry.name === CLOUDFLARE_D1_DATABASE_NAME)
     if (found) {
       stepMessage = `Reusing database ${found.name}`
       return found
     }
     try {
-      const created = await client.createD1Database(CLOUDFLARE_D1_DATABASE_NAME)
+      /** A retry after a lost reply meets "already exists", which the branch below turns back
+       *  into the database the first attempt made. */
+      const created = await retryCloudflareOperation(() => client.createD1Database(CLOUDFLARE_D1_DATABASE_NAME), retry)
       stepMessage = `Created database ${created.name}`
       return created
     } catch (error) {
       if (!alreadyExists(error)) throw error
-      const retry = (await client.listD1Databases(CLOUDFLARE_D1_DATABASE_NAME)).find(
+      const existing = (await client.listD1Databases(CLOUDFLARE_D1_DATABASE_NAME)).find(
         (entry) => entry.name === CLOUDFLARE_D1_DATABASE_NAME,
       )
-      if (retry) {
-        stepMessage = `Reusing database ${retry.name}`
-        return retry
+      if (existing) {
+        stepMessage = `Reusing database ${existing.name}`
+        return existing
       }
       throw new ProvisionError({
         code: "name_collision",
@@ -211,21 +277,26 @@ export async function provisionCloudflare(
   })
 
   await runStep("apply-migrations", async () => {
-    const applied = new Set<string>()
-    try {
-      await client.queryD1(
-        database.uuid,
-        `CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL);`,
+    const recordedMigrations = async (): Promise<Set<string>> => {
+      const rows = await retryCloudflareOperation(
+        () => client.queryD1(database.uuid, `SELECT name FROM ${MIGRATIONS_TABLE};`),
+        retry,
       )
-      const rows = await client.queryD1(
-        database.uuid,
-        `SELECT name FROM ${MIGRATIONS_TABLE};`,
-      )
+      const names = new Set<string>()
       for (const result of rows) {
         for (const row of result.results) {
-          if (typeof row.name === "string") applied.add(row.name)
+          if (typeof row.name === "string") names.add(row.name)
         }
       }
+      return names
+    }
+    const applied = new Set<string>()
+    try {
+      await retryCloudflareOperation(() => client.queryD1(
+        database.uuid,
+        `CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL);`,
+      ), retry)
+      for (const name of await recordedMigrations()) applied.add(name)
     } catch (error) {
       throw new ProvisionError({
         code: "migration_failed",
@@ -238,12 +309,12 @@ export async function provisionCloudflare(
     const pending = artifact.migrations.filter((migration) => !applied.has(migration.name))
     for (const migration of pending) {
       try {
-        await client.queryD1(database.uuid, migration.sql)
-        await client.queryD1(
-          database.uuid,
-          `INSERT OR IGNORE INTO ${MIGRATIONS_TABLE} (name, applied_at) VALUES (?, ?);`,
-          [migration.name, now().toISOString()],
-        )
+        /** Safe to repeat because each attempt first asks whether the last one landed: a
+         *  migration and its record arrive together or not at all. */
+        await retryCloudflareOperation(async () => {
+          if ((await recordedMigrations()).has(migration.name)) return
+          await client.queryD1(database.uuid, withMigrationRecord(migration, now()))
+        }, retry)
       } catch (error) {
         throw new ProvisionError({
           code: "migration_failed",
@@ -267,7 +338,8 @@ export async function provisionCloudflare(
     const scriptExists = scripts.some((script) => script.id === CLOUDFLARE_WORKER_NAME)
     if (!scriptExists) {
       try {
-        await client.createWorker(CLOUDFLARE_WORKER_NAME)
+        /** A retry after a lost reply meets "already exists", which the catch accepts. */
+        await retryCloudflareOperation(() => client.createWorker(CLOUDFLARE_WORKER_NAME), retry)
       } catch (error) {
         if (!alreadyExists(error)) throw error
       }
@@ -324,12 +396,28 @@ export async function provisionCloudflare(
     try {
       await upload(needsMigrations)
     } catch (error) {
+      if (mentionsMissingSubdomain(error)) {
+        throw new ProvisionError({
+          code: "no_workers_subdomain",
+          stepId: "upload-worker",
+          message: NO_SUBDOMAIN_MESSAGE,
+          cause: error,
+        })
+      }
       if (needsMigrations && mentionsMigration(error)) {
         try {
           await upload(false)
           stepMessage = `Uploaded worker v${artifact.metadata.version}`
           return migrationTag
         } catch (retryError) {
+          if (mentionsMissingSubdomain(retryError)) {
+            throw new ProvisionError({
+              code: "no_workers_subdomain",
+              stepId: "upload-worker",
+              message: NO_SUBDOMAIN_MESSAGE,
+              cause: retryError,
+            })
+          }
           throw new ProvisionError({
             code: "upload_failed",
             stepId: "upload-worker",

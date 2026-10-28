@@ -1,7 +1,11 @@
+import { goToPage } from "@/features/comments/lib/go-to-page"
 import { readableTextColor } from "@adt/types/color"
+import { initialOf } from "@/features/comments/lib/initial"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { Check, X } from "lucide-react"
+import { currentLanguageAtom } from "@/features/language/state/language.atoms"
+import { Check, MessageSquarePlus, X } from "lucide-react"
 import { useEffect, useMemo, useRef } from "react"
+import { Button } from "@/shared/ui/button"
 import { Switch } from "@/shared/ui/switch"
 import { cn } from "@/shared/lib/utils"
 import { hrefForSection, pageLabelForSection } from "@/features/comments/lib/follow"
@@ -12,7 +16,9 @@ import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import { PresencePeerList } from "@/features/comments/components/PresencePeerList"
 import {
   bookCommentsAtom,
+  commentModeAtom,
   commentScopeAtom,
+  commentsWritableAtom,
   pageResolvedCountAtom,
   showResolvedAtom,
   type CommentScope,
@@ -53,8 +59,11 @@ export function CommentsSidebar({
   onClose,
 }: CommentsSidebarProps) {
   const { t } = useCommentsText()
+  const language = useAtomValue(currentLanguageAtom) as string
   const [showResolved, setShowResolved] = useAtom(showResolvedAtom)
   const [scope, setScope] = useAtom(commentScopeAtom)
+  const [commentMode, setCommentMode] = useAtom(commentModeAtom)
+  const writable = useAtomValue(commentsWritableAtom)
   const resolvedCount = useAtomValue(pageResolvedCountAtom)
   const bookComments = useAtomValue(bookCommentsAtom)
   const peers = useAtomValue(otherPeersAtom)
@@ -74,6 +83,14 @@ export function CommentsSidebar({
   const labels = {
     unknown: t("comments-presence-unknown-page-label"),
     page: (number: number) => t("comments-presence-page-label", { number: String(number) }),
+    pages: (first: number, last: number) =>
+      t("comments-presence-pages-label", { first: String(first), last: String(last) }),
+    /** Comment rows say page *and* section: two comments on one page are otherwise given the
+     *  same address, and the section is what the filename and the URL already carry. */
+    pageSection: (page: number, section: number) =>
+      t("comments-page-section-label", { page: String(page), section: String(section) }),
+    pagesSection: (first: number, last: number, section: number) =>
+      t("comments-pages-section-label", { first: String(first), last: String(last), section: String(section) }),
   }
 
   /**
@@ -120,7 +137,7 @@ export function CommentsSidebar({
     const href = hrefForSection(comment.page_section_id, pages)
     if (href === null) return
     setPendingThread(comment.id)
-    window.location.href = href
+    goToPage(href)
   }
 
   return (
@@ -143,6 +160,22 @@ export function CommentsSidebar({
       <header className="flex flex-col gap-2.5 border-b border-border px-3.5 py-3">
         <div className="flex items-center gap-2">
           <h2 className="flex-1 text-sm font-semibold">{t("comments-list-label")}</h2>
+          {writable && shown.length > 0 && !(commentMode as boolean) ? (
+            <button
+              type="button"
+              aria-label={t("comments-add-label")}
+              title={t("comments-add-label")}
+              onClick={() => setCommentMode(true)}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground",
+                "transition-colors hover:bg-muted hover:text-foreground focus:outline-none",
+                "focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
+                "duration-150 animate-in fade-in-0",
+              )}
+            >
+              <MessageSquarePlus aria-hidden className="h-4 w-4" />
+            </button>
+          ) : null}
           <button
             ref={closeRef}
             type="button"
@@ -219,12 +252,25 @@ export function CommentsSidebar({
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {shown.length === 0 ? (
-          <p className="px-1.5 py-6 text-center text-xs text-muted-foreground">
-            {whole ? t("comments-book-empty-label") : t("comments-empty-label")}
-          </p>
+          <div className="flex flex-col items-center gap-3 px-1.5 py-6 text-center">
+            <p className="text-xs text-muted-foreground">
+              {whole ? t("comments-book-empty-label") : t("comments-empty-label")}
+            </p>
+            {writable && !(commentMode as boolean) ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setCommentMode(true)}
+                className="gap-1.5 duration-200 animate-in fade-in-0 motion-reduce:animate-none"
+              >
+                <MessageSquarePlus aria-hidden className="size-3.5" />
+                {t("comments-add-label")}
+              </Button>
+            ) : null}
+          </div>
         ) : (
           <ul className="flex flex-col gap-1">
-            {shown.map((comment, index) => {
+            {shown.map((comment) => {
               const replies = repliesOf(threadSource, comment.id)
               const resolved = comment.resolved_at !== null
               const selected = openThreadId === comment.id
@@ -255,14 +301,14 @@ export function CommentsSidebar({
                         resolved && "opacity-60 saturate-50",
                       )}
                     >
-                      {resolved ? <Check className="h-3 w-3 stroke-[3]" /> : index + 1}
+                      {resolved ? <Check className="h-3 w-3 stroke-[3]" /> : initialOf(comment.author_name)}
                     </span>
 
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-baseline gap-1.5">
                         <span className="text-xs font-semibold">{comment.author_name}</span>
                         <span className="text-[0.65rem] text-muted-foreground">
-                          {relativeTime(comment.created_at, t)}
+                          {relativeTime(comment.created_at, t, Date.now(), language)}
                         </span>
                         {!elsewhere && !anchoredIds.has(comment.id) ? (
                           <span className="rounded bg-muted px-1 py-px text-[0.6rem] font-medium text-muted-foreground">

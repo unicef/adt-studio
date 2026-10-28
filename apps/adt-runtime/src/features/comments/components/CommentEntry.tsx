@@ -1,6 +1,8 @@
 import { readableTextColor } from "@adt/types/color"
 import { MoreHorizontal, Move, Pencil, Trash2 } from "lucide-react"
+import { useAtomValue } from "jotai"
 import { useRef, useState } from "react"
+import { currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { Button } from "@/shared/ui/button"
 import { Textarea } from "@/shared/ui/textarea"
 import {
@@ -11,6 +13,7 @@ import {
 } from "@/shared/ui/dropdown-menu"
 import { cn } from "@/shared/lib/utils"
 import { relativeTime } from "@/features/comments/lib/relative-time"
+import { isSubmitKey } from "@/features/comments/lib/submit-key"
 import { COMMENT_BODY_MAX_LENGTH, type PublishComment } from "@/features/comments/lib/contract"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import type { CommentActionResult } from "@/features/comments/hooks/useCommentActions"
@@ -51,6 +54,7 @@ export function CommentEntry({
   replyCount = 0,
 }: CommentEntryProps) {
   const { t } = useCommentsText()
+  const language = useAtomValue(currentLanguageAtom) as string
   const [mode, setMode] = useState<Mode>("read")
   const [draft, setDraft] = useState(comment.body)
   const [busy, setBusy] = useState(false)
@@ -119,7 +123,7 @@ export function CommentEntry({
               </span>
             ) : null}
             <span className="text-[0.65rem] text-muted-foreground">
-              {relativeTime(comment.created_at, t)}
+              {relativeTime(comment.created_at, t, Date.now(), language)}
             </span>
             {comment.edited_at ? (
               <span className="text-[0.65rem] italic text-muted-foreground">
@@ -177,7 +181,7 @@ export function CommentEntry({
               value={draft}
               onChange={(event) => setDraft(event.target.value.slice(0, COMMENT_BODY_MAX_LENGTH))}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                if (isSubmitKey(event)) {
                   event.preventDefault()
                   void save()
                 }

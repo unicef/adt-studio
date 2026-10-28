@@ -123,3 +123,57 @@ describe("CommentForm identity step", () => {
     expect(nameField()).toBeNull()
   })
 })
+
+describe("CommentForm keyboard", () => {
+  const body = (): HTMLElement => screen.getByPlaceholderText("Write a comment")
+
+  it("posts on Enter and keeps Shift+Enter for a new line", async () => {
+    const { api, type } = renderForm(SESSION)
+    type(body(), "the fox is lovely")
+
+    await act(async () => {
+      fireEvent.keyDown(body(), { key: "Enter", shiftKey: true })
+    })
+    expect(api.createComment).not.toHaveBeenCalled()
+
+    await act(async () => {
+      fireEvent.keyDown(body(), { key: "Enter" })
+    })
+    expect(api.createComment).toHaveBeenCalledTimes(1)
+  })
+
+  /** Japanese, Chinese and Korean are typed through an input method, whose Enter picks the
+   *  word; posting then would send half a sentence. Safari reports it as key code 229. */
+  it("does not post on the Enter that confirms an input-method composition", async () => {
+    const { api, type } = renderForm(SESSION)
+    type(body(), "きつね")
+
+    await act(async () => {
+      fireEvent.keyDown(body(), { key: "Enter", isComposing: true })
+      fireEvent.keyDown(body(), { key: "Enter", keyCode: 229 })
+    })
+
+    expect(api.createComment).not.toHaveBeenCalled()
+  })
+
+  it("posts a comment once however fast Enter is pressed again", async () => {
+    const { api, type } = renderForm(SESSION)
+    let finish: (comment: PublishComment) => void = () => {}
+    vi.mocked(api.createComment).mockImplementationOnce(
+      () => new Promise<PublishComment>((resolve) => {
+        finish = resolve
+      }),
+    )
+    type(body(), "the fox is lovely")
+
+    await act(async () => {
+      fireEvent.keyDown(body(), { key: "Enter" })
+      fireEvent.keyDown(body(), { key: "Enter" })
+    })
+    await act(async () => {
+      finish(POSTED)
+    })
+
+    expect(api.createComment).toHaveBeenCalledTimes(1)
+  })
+})

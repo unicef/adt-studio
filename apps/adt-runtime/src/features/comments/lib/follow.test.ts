@@ -5,6 +5,8 @@ import {
   followOutcome,
   isFollowable,
   pageLabelFor,
+  pageLabelForSection,
+  sectionLocation,
 } from "@/features/comments/lib/follow"
 import { ANONYMOUS_PEER_NAME, type RoomPeer } from "@/features/comments/lib/room-protocol"
 import type { PageEntry, TocEntry } from "@/features/navigation/state/nav.atoms"
@@ -153,5 +155,41 @@ describe("saying where somebody is", () => {
     expect(pageLabelFor(peer({ page_section_id: "pg404_sec001" }), PAGES, TOC, LABELS)).toBe(
       "Somewhere in the book",
     )
+  })
+})
+
+describe("sectionLocation", () => {
+  /** The manifest's folio skips front matter and is missing for the opening pages; a position
+   *  in the manifest is a third number again. The id is what the filename and the URL say. */
+  it("reads page and section off the id", () => {
+    expect(sectionLocation("pg012_sec002")).toEqual({ pageNumber: 12, sectionNumber: 2 })
+    expect(sectionLocation("pg001_sec001")).toEqual({ pageNumber: 1, sectionNumber: 1 })
+  })
+
+  it("refuses an id with no page number in it", () => {
+    expect(sectionLocation("cover_sec001")).toBeNull()
+    expect(sectionLocation("pg012")).toBeNull()
+  })
+
+  /** Seen on a real spread book: `pg014015` was labelled "Page 14015". */
+  it("reads both pages of a two-page spread", () => {
+    expect(sectionLocation("pg014015_sec001")).toEqual({ pageNumber: 14, lastPageNumber: 15, sectionNumber: 1 })
+    expect(sectionLocation("pg002003_sec002")).toEqual({ pageNumber: 2, lastPageNumber: 3, sectionNumber: 2 })
+  })
+})
+
+describe("saying where a spread is", () => {
+  const spreadPages: PageEntry[] = [{ section_id: "pg014015_sec001", href: "page-14.html", page_number: 14 }]
+  const labels = {
+    ...LABELS,
+    pageSection: (page: number, section: number) => `Page ${page} · Section ${section}`,
+    pages: (first: number, last: number) => `Pages ${first}–${last}`,
+    pagesSection: (first: number, last: number, section: number) => `Pages ${first}–${last} · Section ${section}`,
+  }
+
+  it("names both pages, on a comment and on the roster", () => {
+    expect(pageLabelForSection("pg014015_sec001", spreadPages, [], labels)).toBe("Pages 14–15 · Section 1")
+    const { pageSection: _comment, pagesSection: _spread, ...roster } = labels
+    expect(pageLabelForSection("pg014015_sec001", spreadPages, [], roster)).toBe("Pages 14–15")
   })
 })

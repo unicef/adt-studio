@@ -8,9 +8,11 @@ import {
   type CloudflareCredentials,
   type CloudflareTokenScope,
   type ProvisionProgressEvent,
+  type ProvisionRunSnapshot,
   type ProvisionStepStatus,
 } from "@/api/client"
 import { cloudflareConnectionKey } from "./use-cloudflare-connection"
+import { notifyProvisionRunStarted } from "./use-provision-run-notice"
 
 export type ProvisionStatus = "idle" | "running" | "done" | "error"
 
@@ -19,6 +21,26 @@ export interface ProvisionFailure {
   detail: string | null
   resumeStep: number | null
   missingScopes: CloudflareTokenScope[]
+}
+
+const ADOPTED_POLL_MS = 1200
+
+/** Maps the server's live view of a run onto the same shape the SSE stream produces. */
+function adopt(run: ProvisionRunSnapshot): ProvisionState {
+  return {
+    status: run.status,
+    stepStates: run.step_states,
+    activeStep: run.active_step,
+    failure: run.failure
+      ? {
+          code: run.failure.code,
+          detail: run.failure.message || null,
+          resumeStep: run.failure.resume_from_step,
+          missingScopes: run.failure.missing_scopes,
+        }
+      : null,
+    connection: null,
+  }
 }
 
 export interface CloudflareProvisionController {
@@ -65,6 +87,9 @@ export function useCloudflareProvision(
   const queryClient = useQueryClient()
   const [state, setState] = useState<ProvisionState>(IDLE_STATE)
   const abortRef = useRef<AbortController | null>(null)
+  /** True once this hook owns a live SSE stream. An adopted run must not poll over the top
+   *  of one, and the stream must win: it is the authoritative view. */
+  const streamingRef = useRef(false)
 
   useEffect(
     () => () => {
@@ -72,6 +97,36 @@ export function useCloudflareProvision(
     },
     [],
   )
+
+  /** A reload drops the SSE stream but not the run behind it, so on mount we ask whether one
+   *  is still going and follow it to its end. Without this a refresh mid-provision shows an
+   *  idle screen while resources are still being created in the user\'s account. */
+  useEffect(() => {
+    let cancelled = false
+    let timer: number | undefined
+
+    const poll = async () => {
+      if (cancelled || streamingRef.current) return
+      try {
+        const { run } = await api.getCloudflareProvisionRun()
+        if (cancelled || streamingRef.current || !run) return
+        if (run.status === "running" || run.finished_at) setState(adopt(run))
+        if (run.status === "done") {
+          queryClient.invalidateQueries({ queryKey: cloudflareConnectionKey })
+          return
+        }
+        if (run.status === "running") timer = window.setTimeout(() => void poll(), ADOPTED_POLL_MS)
+      } catch {
+        /* the run view is a convenience; a failed read just leaves the screen as it was */
+      }
+    }
+
+    void poll()
+    return () => {
+      cancelled = true
+      if (timer !== undefined) window.clearTimeout(timer)
+    }
+  }, [queryClient])
 
   const reset = useCallback(() => {
     abortRef.current?.abort()
@@ -84,6 +139,8 @@ export function useCloudflareProvision(
       abortRef.current?.abort()
       const controller = new AbortController()
       abortRef.current = controller
+      streamingRef.current = true
+      notifyProvisionRunStarted()
 
       setState({
         status: "running",

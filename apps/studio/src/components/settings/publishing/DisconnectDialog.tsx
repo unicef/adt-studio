@@ -43,8 +43,8 @@ export function DisconnectDialog({
           </AlertDialogTitle>
           <AlertDialogDescription>
             <Trans>
-              This computer will forget your token and Account ID, so you won't be able to publish
-              or update books until you connect again. Books you have already published stay online
+              This computer will forget your token and Account ID, so you won't be able to share
+              or update books until you connect again. Books you have already shared stay online
               and their links keep working.
             </Trans>
           </AlertDialogDescription>
@@ -66,7 +66,7 @@ export function DisconnectDialog({
             />
             <span>
               <Trans>
-                Also delete the publishing service and every published book from my Cloudflare
+                Also delete the sharing service and every shared book from my Cloudflare
                 account
               </Trans>
             </span>

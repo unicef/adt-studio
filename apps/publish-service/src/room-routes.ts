@@ -12,11 +12,21 @@ import {
   type RoomPeer,
 } from "@adt/types"
 import { accessGranted } from "./access.js"
+import { callerIp, clientHandle, throttleSecretFor } from "./access-throttle.js"
 import type { Env } from "./env.js"
 import { errorResponse } from "./errors.js"
 import { randomId } from "./identity.js"
+import { mgmtSecretPresented } from "./middleware/mgmt-auth.js"
 import type { PublicationVariables } from "./middleware/publication-lookup.js"
-import { ROOM_PEER_HEADER } from "./room.js"
+import {
+  ROOM_CLIENT_HEADER,
+  ROOM_CODE_HEADER,
+  ROOM_EXPIRES_HEADER,
+  ROOM_PEER_HEADER,
+  ROOM_PROTOCOL,
+  ROOM_PROTOCOL_HEADER,
+  ROOM_TOKEN_HEADER,
+} from "./room.js"
 import { signRoomTicket, verifyRoomTicket } from "./room-ticket.js"
 import { commenterFromCookie, type SessionDeps } from "./sessions.js"
 
@@ -103,12 +113,18 @@ async function peerFor(
   }
 }
 
-export function registerRoomRoutes(app: Hono<RoomAppEnv>, deps: RoomRoutesDeps): void {
-  /**
-   * The author's join credential. Behind `mgmtAuth` like every other `/api/*` route, and
-   * deliberately *not* behind the publication lookup: minting a ticket for a revoked link is
-   * correct, because draining feedback from a killed link is the whole author carve-out (§4.7).
-   */
+/**
+ * The author's join credential — registered by the control plane only, behind its `mgmtAuth`.
+ *
+ * Kept apart from `registerRoomRoutes` because book hosts share the reader routes and have no
+ * `mgmtAuth` in front of `/api/*`: registered there, it handed an author ticket to anyone who
+ * asked. The Studio gets its ticket from the control plane and joins through the control plane's
+ * own socket, so a book host never needs to mint one.
+ *
+ * Deliberately *not* behind the publication lookup: minting a ticket for a revoked link is
+ * correct, because draining feedback from a killed link is the whole author carve-out (§4.7).
+ */
+export function registerRoomTicketRoute(app: Hono<RoomAppEnv>, deps: RoomRoutesDeps): void {
   app.post("/api/publications/:token/room-ticket", async (c) => {
     const token = PublicationToken.safeParse(c.req.param("token"))
     if (!token.success) {
@@ -118,6 +134,11 @@ export function registerRoomRoutes(app: Hono<RoomAppEnv>, deps: RoomRoutesDeps):
     const secret = c.env?.MGMT_SECRET
     if (!secret) {
       return errorResponse(c, "internal_error", 500, MISSING_SECRET_MESSAGE)
+    }
+    /** Checked here as well as by `mgmtAuth`, so the route stays an author-only door wherever
+     *  it is registered — not only behind the middleware the control plane happens to put first. */
+    if (!mgmtSecretPresented(c)) {
+      return errorResponse(c, "unauthorized", 401)
     }
 
     const store = deps.resolveStore(c.env)
@@ -133,7 +154,9 @@ export function registerRoomRoutes(app: Hono<RoomAppEnv>, deps: RoomRoutesDeps):
     }
     return c.json(body)
   })
+}
 
+export function registerRoomRoutes(app: Hono<RoomAppEnv>, deps: RoomRoutesDeps): void {
   /**
    * The socket. Registered *before* `accessGate` and enforcing admission itself, for the same
    * reason `POST /p/:token/access` is: a ticket is an alternative credential, and a middleware
@@ -171,6 +194,10 @@ export function registerRoomRoutes(app: Hono<RoomAppEnv>, deps: RoomRoutesDeps):
     }
 
     const peer = await peerFor(c, deps, publication.token, ticketed || c.get("isAuthor"))
+    const client = await clientHandle(
+      callerIp(c.req.raw.headers),
+      (await throttleSecretFor(c.env ?? {}, publication.token)) ?? publication.token,
+    )
 
     /** A brand-new request, never the reader's own: this is what makes `ROOM_PEER_HEADER`
      *  unspoofable and `/notify` unreachable from outside the worker. */
@@ -178,10 +205,15 @@ export function registerRoomRoutes(app: Hono<RoomAppEnv>, deps: RoomRoutesDeps):
     return stub.fetch("https://publication-room.invalid/connect", {
       headers: {
         upgrade: "websocket",
+        [ROOM_PROTOCOL_HEADER]: ROOM_PROTOCOL,
         /** Percent-encoded, because a header value must be ASCII: a reviewer called "João" or
          *  "婷婷" would otherwise be a non-conformant header that workerd tolerates and a
          *  browser's `fetch` rejects outright. Found by the two-browser run, not by a test. */
         [ROOM_PEER_HEADER]: encodeURIComponent(JSON.stringify(peer)),
+        ...(publication.expires_at ? { [ROOM_EXPIRES_HEADER]: publication.expires_at } : {}),
+        [ROOM_TOKEN_HEADER]: publication.token,
+        [ROOM_CLIENT_HEADER]: client,
+        [ROOM_CODE_HEADER]: c.get("accessCodeHash") ?? "",
       },
     })
   })
