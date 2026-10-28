@@ -23,6 +23,7 @@ import { Route as BooksLabelIndexRouteImport } from "./routes/books.$label.index
 import { Route as AppSettingsIndexRouteImport } from "./routes/_app.settings.index"
 import { Route as BooksLabelDebugRouteImport } from "./routes/books.$label.debug"
 import { Route as BooksLabelStepRouteImport } from "./routes/books.$label.$step"
+import { Route as AppSettingsVersionsRouteImport } from "./routes/_app.settings.versions"
 import { Route as AppSettingsThemeRouteImport } from "./routes/_app.settings.theme"
 import { Route as AppSettingsProvidersRouteImport } from "./routes/_app.settings.providers"
 import { Route as AppSettingsPromptsRouteImport } from "./routes/_app.settings.prompts"
@@ -103,6 +104,11 @@ const BooksLabelStepRoute = BooksLabelStepRouteImport.update({
   path: "/$step",
   getParentRoute: () => BooksLabelRoute,
 } as any)
+const AppSettingsVersionsRoute = AppSettingsVersionsRouteImport.update({
+  id: "/versions",
+  path: "/versions",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 const AppSettingsThemeRoute = AppSettingsThemeRouteImport.update({
   id: "/theme",
   path: "/theme",
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   "/settings/prompts": typeof AppSettingsPromptsRoute
   "/settings/providers": typeof AppSettingsProvidersRoute
   "/settings/theme": typeof AppSettingsThemeRoute
+  "/settings/versions": typeof AppSettingsVersionsRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/settings/": typeof AppSettingsIndexRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   "/settings/prompts": typeof AppSettingsPromptsRoute
   "/settings/providers": typeof AppSettingsProvidersRoute
   "/settings/theme": typeof AppSettingsThemeRoute
+  "/settings/versions": typeof AppSettingsVersionsRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/settings": typeof AppSettingsIndexRoute
   "/books/$label": typeof BooksLabelIndexRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   "/_app/settings/prompts": typeof AppSettingsPromptsRoute
   "/_app/settings/providers": typeof AppSettingsProvidersRoute
   "/_app/settings/theme": typeof AppSettingsThemeRoute
+  "/_app/settings/versions": typeof AppSettingsVersionsRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/_app/settings/": typeof AppSettingsIndexRoute
@@ -248,6 +257,7 @@ export interface FileRouteTypes {
     | "/settings/prompts"
     | "/settings/providers"
     | "/settings/theme"
+    | "/settings/versions"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/settings/"
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | "/settings/prompts"
     | "/settings/providers"
     | "/settings/theme"
+    | "/settings/versions"
     | "/books/$label/debug"
     | "/settings"
     | "/books/$label"
@@ -296,6 +307,7 @@ export interface FileRouteTypes {
     | "/_app/settings/prompts"
     | "/_app/settings/providers"
     | "/_app/settings/theme"
+    | "/_app/settings/versions"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/_app/settings/"
@@ -414,6 +426,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof BooksLabelStepRouteImport
       parentRoute: typeof BooksLabelRoute
     }
+    "/_app/settings/versions": {
+      id: "/_app/settings/versions"
+      path: "/versions"
+      fullPath: "/settings/versions"
+      preLoaderRoute: typeof AppSettingsVersionsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     "/_app/settings/theme": {
       id: "/_app/settings/theme"
       path: "/theme"
@@ -495,6 +514,7 @@ interface AppSettingsRouteChildren {
   AppSettingsPromptsRoute: typeof AppSettingsPromptsRoute
   AppSettingsProvidersRoute: typeof AppSettingsProvidersRoute
   AppSettingsThemeRoute: typeof AppSettingsThemeRoute
+  AppSettingsVersionsRoute: typeof AppSettingsVersionsRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
@@ -506,6 +526,7 @@ const AppSettingsRouteChildren: AppSettingsRouteChildren = {
   AppSettingsPromptsRoute: AppSettingsPromptsRoute,
   AppSettingsProvidersRoute: AppSettingsProvidersRoute,
   AppSettingsThemeRoute: AppSettingsThemeRoute,
+  AppSettingsVersionsRoute: AppSettingsVersionsRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
 

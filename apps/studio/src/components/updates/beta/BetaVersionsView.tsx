@@ -21,15 +21,21 @@ import { BetaVersionLibrary } from "./BetaVersionLibrary";
 import { BetaVersionSearchEmptyState } from "./BetaVersionSearchEmptyState";
 import { ReleaseCover } from "./ReleaseCover";
 import { ReleaseDirectionBadge } from "./ReleaseDirectionBadge";
+import { ReleaseKindBadge } from "./ReleaseKindBadge";
 import { ReleaseNotesMarkdown } from "../ReleaseNotesMarkdown";
 import { ReleaseSourceCard } from "./ReleaseSourceCard";
-import { filterVersionsByQuery, formatReleaseDate } from "./beta-version-utils";
+import {
+  filterVersionsByQuery,
+  formatReleaseDate,
+  releaseContributors,
+  releaseDisplayTitle,
+} from "./beta-version-utils";
 import { formatVersion } from "../release-banner-utils";
 
 interface BetaVersionsViewProps {
   status: UpdateStatus;
   currentVersion?: string | null;
-  onClose: () => void;
+  initialVersion?: string;
 }
 
 const EMPTY_RELEASES: AvailableRelease[] = [];
@@ -37,11 +43,14 @@ const EMPTY_RELEASES: AvailableRelease[] = [];
 export function BetaVersionsView({
   status,
   currentVersion,
+  initialVersion,
 }: BetaVersionsViewProps) {
   const { i18n } = useLingui();
-  const [selectedVersion, setSelectedVersion] = useState<string>();
+  const [selectedVersion, setSelectedVersion] = useState(initialVersion);
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<"library" | "details">("library");
+  const [view, setView] = useState<"library" | "details">(
+    initialVersion ? "details" : "library",
+  );
   const cardRefs = useRef(new Map<string, HTMLButtonElement>());
   const searchInput = useRef<HTMLInputElement>(null);
   const versionsQuery = useBetaUpdateVersions(currentVersion);
@@ -54,13 +63,14 @@ export function BetaVersionsView({
 
   useEffect(() => {
     if (
+      versionsQuery.isSuccess &&
       selectedVersion &&
       !versions.some((release) => release.version === selectedVersion)
     ) {
       setSelectedVersion(undefined);
       setView("library");
     }
-  }, [selectedVersion, versions]);
+  }, [selectedVersion, versions, versionsQuery.isSuccess]);
 
   const selected = useMemo(
     () => versions.find((release) => release.version === selectedVersion),
@@ -111,7 +121,7 @@ export function BetaVersionsView({
 
   return (
     <div
-      className="flex h-[clamp(45rem,90dvh,54rem)] max-h-[calc(100dvh-2rem)] flex-col relative overflow-hidden"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
       onKeyDown={handleKeyDown}
     >
       {loading ? (
@@ -136,6 +146,7 @@ export function BetaVersionsView({
       ) : view === "details" && selected ? (
         <ReleaseDetails
           release={selected}
+          currentVersion={currentVersion}
           locale={i18n.locale}
           preparing={preparing}
           checking={status.phase === "checking"}
@@ -177,6 +188,7 @@ export function BetaVersionsView({
 
 function ReleaseDetails({
   release,
+  currentVersion,
   locale,
   preparing,
   checking,
@@ -185,6 +197,7 @@ function ReleaseDetails({
   onInstall,
 }: {
   release: AvailableRelease;
+  currentVersion?: string | null;
   locale?: string;
   preparing: boolean;
   checking: boolean;
@@ -204,14 +217,23 @@ function ReleaseDetails({
       <div className="mt-5 flex shrink-0 items-start gap-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 motion-safe:delay-100 motion-safe:fill-mode-backwards">
         <ReleaseCover release={release} className="w-100 shrink-0" />
         <div className="min-w-0 flex-1 pt-1">
-          <ReleaseDirectionBadge direction={release.direction} />
+          <div className="flex flex-wrap items-center gap-1.5">
+            <ReleaseDirectionBadge direction={release.direction} />
+            <ReleaseKindBadge version={release.version} />
+          </div>
           <h2 className="mt-3 max-w-3xl text-balance text-2xl font-semibold tracking-tight">
-            {release.title ?? formatVersion(release.version)}
+            {releaseDisplayTitle(release)}
           </h2>
+          {release.description && (
+            <p className="mt-2 max-w-2xl text-pretty text-sm leading-6 text-muted-foreground">
+              {release.description}
+            </p>
+          )}
           <ReleaseMetadata release={release} locale={locale} />
           <div className="mt-5">
             <BetaReleaseInstallButton
               release={release}
+              currentVersion={currentVersion}
               preparing={preparing}
               checking={checking}
               onInstall={onInstall}
@@ -250,9 +272,9 @@ function ReleaseMetadata({
   release: AvailableRelease;
   locale?: string;
 }) {
-  const author =
-    release.source?.prs.find((pullRequest) => pullRequest.author)?.author ??
-    release.author;
+  const authors = releaseContributors(release)
+    .map((login) => `@${login}`)
+    .join(", ");
 
   return (
     <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted-foreground tabular-nums">
@@ -271,11 +293,11 @@ function ReleaseMetadata({
           <span>{formatBytes(release.totalBytes)}</span>
         </>
       )}
-      {author && (
+      {authors && (
         <>
           <span aria-hidden>·</span>
           <span>
-            <Trans>By</Trans> @{author}
+            <Trans>By</Trans> {authors}
           </span>
         </>
       )}

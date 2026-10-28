@@ -7,13 +7,13 @@ import {
 } from "./release-version.mjs";
 import {
   formatReleaseSourceSection,
+  MAX_PULL_REQUESTS,
   wrapFactualReleaseNotes,
 } from "./release-source-notes.mjs";
 
 const RELEASE_CONTROL_PATTERN =
   /^RELEASE:\s*(major|minor|patch|beta|beta-minor|beta-major)\s*$/;
 const RELEASE_METADATA_PATTERN = /^chore\(release\):\s+v[^ ]+\s+\[skip ci\]$/;
-const MAX_PULL_REQUESTS = 10;
 
 export function resolvePreviousTag(tags, targetTag, sourceSha, isAncestor) {
   const candidates = tags.flatMap((tag) => {

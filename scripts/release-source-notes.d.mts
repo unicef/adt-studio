@@ -1,3 +1,5 @@
+export declare const MAX_PULL_REQUESTS: number;
+
 export interface ReleaseSourcePullRequest {
   number: number;
   url: string;

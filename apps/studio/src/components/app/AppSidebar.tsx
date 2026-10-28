@@ -28,7 +28,8 @@ import { cn } from "@/lib/utils"
 import { Kbd, MOD_KEY } from "./ui/Kbd"
 import { APP_PATHS, activeAppView } from "./nav"
 import type { AppView } from "./types"
-import { useUpdateDialog } from "@/components/updates"
+import { AttentionDot, useUpdateDialog } from "@/components/updates"
+import { usePreviewBuild } from "@/hooks/use-preview-build"
 import { SidebarLogo } from "./SidebarLogo"
 
 const DOCS_URL = "https://unicef.github.io/adt-studio/docs/get-started/";
@@ -86,6 +87,7 @@ export function AppSidebar({
   const activeView = activeAppView(pathname)
   const [helpOpen, setHelpOpen] = useState(false)
   const { showWhatsNew } = useUpdateDialog()
+  const { needsAttention: previewNews } = usePreviewBuild()
 
   const items: { view: AppView; label: string; icon: LucideIcon; count?: number }[] = [
     { view: "home", label: t`Home`, icon: House },
@@ -158,6 +160,7 @@ export function AppSidebar({
           <span className="flex-1 text-left">
             <Trans>Settings</Trans>
           </span>
+          {previewNews && <AttentionDot />}
         </Link>
 
         <Popover open={helpOpen} onOpenChange={setHelpOpen}>

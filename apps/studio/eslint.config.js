@@ -54,6 +54,7 @@ export default [
             // --- Radix UI / shadcn layout props ---
             "variant",
             "size",
+            "skin",
             "align",
             "side",
             // CSS position keys used as object keys mapping to class strings (e.g. sheetVariants)
