@@ -1,3 +1,4 @@
+import os from "node:os";
 import { app, ipcMain } from "electron";
 
 /**
@@ -18,5 +19,14 @@ export function registerAppInfoIpc(): void {
   ipcMain.on("app:system-locales", (event) => {
     const preferred = app.getPreferredSystemLanguages();
     event.returnValue = preferred.length > 0 ? preferred : [app.getLocale()];
+  });
+
+  ipcMain.on("app:hardware", (event) => {
+    const compositing = app.getGPUFeatureStatus().gpu_compositing ?? "";
+    event.returnValue = {
+      cores: os.cpus().length,
+      memoryGb: Math.round(os.totalmem() / 1024 ** 3),
+      softwareRendering: !compositing.startsWith("enabled"),
+    };
   });
 }
