@@ -312,6 +312,25 @@ describe("page-edit-service", () => {
         .toEqual([])
     })
 
+    it("ignores in-document SVG references such as gradients and patterns", () => {
+      expect(findInventedImages(original, `<section><svg><defs><linearGradient id="g" /></defs><rect fill="url(#g)" style="stroke: url('#g')" /></svg></section>`))
+        .toEqual([])
+    })
+
+    it("treats SVG data URIs in CSS as vector drawing unless they embed new images", () => {
+      const pattern = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg"><circle r="2" fill="url(#dot)" /></svg>`)
+      expect(findInventedImages(original, `<section><div style="background-image: url(&quot;data:image/svg+xml,${pattern}&quot;)"></div></section>`))
+        .toEqual([])
+      const base64Pattern = Buffer.from(`<svg><path d="M0 0h4" /></svg>`).toString("base64")
+      expect(findInventedImages(original, `<section><div style="background: url(data:image/svg+xml;base64,${base64Pattern})"></div></section>`))
+        .toEqual([])
+      const embedding = encodeURIComponent(`<svg><image href="https://example.com/photo.png" /></svg>`)
+      expect(findInventedImages(original, `<section><div style="background-image: url('data:image/svg+xml;charset=utf-8,${embedding}')"></div></section>`))
+        .toEqual(["https://example.com/photo.png"])
+      expect(findInventedImages(original, `<section><div style="background-image: url(data:image/png;base64,iVBORw0KGgo=)"></div></section>`))
+        .toEqual(["data:image/png;base64,iVBORw0KGgo="])
+    })
+
     it("reads unquoted attributes and quoted values containing >", () => {
       expect(findInventedImages(original, `<section><img alt="a > b" data-id=a src=/api/books/b/images/a></section>`))
         .toEqual([])

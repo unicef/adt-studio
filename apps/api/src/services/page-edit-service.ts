@@ -71,6 +71,7 @@ interface HtmlEditResponse {
 
 const IMAGE_TAG_REGEX = /<(img|source|image)\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi
 const CSS_URL_REGEX = /url\(\s*(["']?)(.*?)\1\s*\)/gi
+const SVG_DATA_URI_REGEX = /^data:image\/svg\+xml([^,]*),(.*)$/is
 const HTML_ENTITY_REGEX = /&(?:quot|apos|amp|#34|#39|#x27);/gi
 const HTML_ENTITIES: Record<string, string> = {
   "&quot;": '"',
@@ -111,7 +112,18 @@ function imageTagUrls(tagName: string, tag: string): string[] {
 function cssImageUrls(html: string): string[] {
   return [...decodeEntities(html).matchAll(CSS_URL_REGEX)]
     .map((match) => match[2].trim())
-    .filter(Boolean)
+    .filter((url) => url && !url.startsWith("#"))
+}
+
+function svgDataUriContent(url: string): string | undefined {
+  const match = SVG_DATA_URI_REGEX.exec(url)
+  if (!match) return undefined
+  const [, parameters, data] = match
+  try {
+    return /;base64$/i.test(parameters) ? Buffer.from(data, "base64").toString("utf8") : decodeURIComponent(data)
+  } catch {
+    return undefined
+  }
 }
 
 function collectImageReferences(html: string): ImageReferences {
@@ -148,7 +160,13 @@ export function findInventedImages(originalHtml: string, editedHtml: string): st
     }
   }
   for (const url of cssImageUrls(editedHtml)) {
-    if (!original.urls.has(url)) invented.add(url)
+    if (original.urls.has(url)) continue
+    const svg = svgDataUriContent(url)
+    if (svg === undefined) {
+      invented.add(url)
+      continue
+    }
+    for (const nested of findInventedImages(originalHtml, svg)) invented.add(nested)
   }
   return [...invented]
 }
@@ -443,6 +461,7 @@ export async function aiEditSection(
       }
     }
 
+    // Only invented images are rejected; removing or reordering existing images stays allowed.
     const validateEditedHtml = (rawHtml: string) => {
       const cleanedHtml = rawHtml
         .replace(/^```(?:html)?\s*\n?/i, "")
