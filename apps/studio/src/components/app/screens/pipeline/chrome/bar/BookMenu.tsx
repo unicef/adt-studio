@@ -2,8 +2,9 @@ import { useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
-import { ChevronDown, Layers, Library, Settings, SlidersHorizontal } from "lucide-react"
+import { ChevronDown, Layers, Library, Settings, SlidersHorizontal, Terminal } from "lucide-react"
 import { BookCover } from "@/components/app/BookCover"
+import { Kbd, MOD_KEY } from "@/components/app/ui/Kbd"
 import { deriveCover } from "@/components/app/data"
 import { APP_PATHS } from "@/components/app/nav"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -11,6 +12,7 @@ import { NO_DRAG_REGION } from "@/constants"
 import { useBooks } from "@/hooks/use-books"
 import { cn } from "@/lib/utils"
 import { usePipelineNavigation } from "@/components/app/screens/pipeline/shared/usePipelineNavigation"
+import { usePipelineDebug } from "@/components/app/screens/pipeline/debug/debugDock"
 import { useBarSettings } from "../PipelineChrome"
 
 const itemClassName =
@@ -25,6 +27,7 @@ export function BookMenu({ label }: { label: string }) {
   const book = books?.find((candidate) => candidate.label === label)
   const title = book?.title || label
   const screenSettings = useBarSettings()
+  const debug = usePipelineDebug()
   const inMenu = screenSettings && screenSettings.label !== t`Storyboard settings`
 
   const pick = (action: () => void) => () => {
@@ -50,7 +53,7 @@ export function BookMenu({ label }: { label: string }) {
               <BookCover title={title} author={book.authors.join(", ")} cover={deriveCover(book)} fit="cover" />
             </span>
           )}
-          <span className="max-w-[220px] truncate text-[13px] font-semibold">{title}</span>
+          <span className="min-w-0 max-w-[min(36vw,560px)] truncate text-[13px] font-semibold">{title}</span>
           <ChevronDown
             aria-hidden
             className={cn("size-3.5 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")}
@@ -96,6 +99,13 @@ export function BookMenu({ label }: { label: string }) {
             <Layers className="size-3.5 text-muted-foreground" />
             <Trans>Setup (Extract, Sectioning)</Trans>
           </button>
+          {debug && (
+            <button type="button" className={itemClassName} onClick={pick(debug.open)}>
+              <Terminal className="size-3.5 text-muted-foreground" />
+              <Trans>Debug panel</Trans>
+              <Kbd keys={[MOD_KEY, "⇧", "D"]} className="ml-auto" />
+            </button>
+          )}
           <div className="my-1 h-px bg-border" />
           <button type="button" className={itemClassName} onClick={pick(() => void navigate({ to: APP_PATHS.library }))}>
             <Library className="size-3.5 text-muted-foreground" />

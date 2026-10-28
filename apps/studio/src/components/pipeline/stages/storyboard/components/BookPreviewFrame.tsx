@@ -133,6 +133,7 @@ export interface BookPreviewFrameProps {
   selectedDataId?: string | null
   /** Inner viewport width the iframe renders at; the wrapper scales it to fit. */
   renderWidth?: number
+  maxScale?: number
   /** Optional visible-height cap. The complete page/device frame scales down
    *  to fit instead of introducing a scroll region. */
   maxVisibleHeight?: number
@@ -201,6 +202,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   applyBodyBackground,
   selectedDataId,
   renderWidth = DEFAULT_RENDER_WIDTH,
+  maxScale,
   maxVisibleHeight,
   deviceView,
   onVisibleWidthChange,
@@ -894,7 +896,7 @@ ${selectors}:hover {
     const fitScale = Math.max(0, availableWidth / baseWidth)
     const cap =
       deviceView === "desktop" || deviceView === undefined
-        ? 1
+        ? maxScale ?? 1
         : targetVisibleWidth / baseWidth
     const naturalHeight =
       (deviceView === "desktop" || deviceView === undefined) && !viewportSizedContent
@@ -914,6 +916,7 @@ ${selectors}:hover {
     contentHeight,
     frame.chromeHeight,
     maxVisibleHeight,
+    maxScale,
     viewportSizedContent,
   ])
 

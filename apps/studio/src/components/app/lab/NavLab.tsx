@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { ClipboardCheck, Link2, ListChecks, PanelBottom, RotateCcw, ShieldCheck } from "lucide-react"
+import { ClipboardCheck, LayoutGrid, Link2, ListChecks, PanelBottom, RotateCcw, ShieldCheck } from "lucide-react"
 import { useRouter, useRouterState } from "@tanstack/react-router"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { readThemeMode, setThemeMode } from "@/lib/theme"
@@ -13,13 +13,14 @@ import { clearActiveState } from "./testPlan/states"
 import { RECOMMENDED, TEST_BOOKS } from "./testPlan/tests"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { ChecklistPanel } from "./ChecklistPanel"
-import { VerifyPanel, verifyModeStore } from "./VerifyPanel"
+import { VerifyPanel } from "./verify/VerifyPanel"
+import { verifyModeStore } from "./verify/stores"
 import { applyStageState, clearStageState, pageKeyFor, useActiveStageState, useStageStates } from "./stageStates"
 import { getVariant, resetVariants, setVariantValue, useVariants, type VariantKey } from "./variants"
 
 export const NAV_LAB_PARAM = "navlab"
 
-const DOCK_KEYS = ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "topborder"] as const
+const DOCK_KEYS = ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "stalewarn"] as const
 
 interface NavLabState {
   on: boolean
@@ -76,11 +77,12 @@ export function NavLab() {
   const pageStates = (pageKey && stageStates?.byPage[pageKey]) || []
   const kindOrder = Object.keys(stageStates?.kinds ?? {})
   const stateControls: LabControl[] = [
-    { key: "stagestate", label: t`Live`, options: [{ value: "real-data", label: t`Real data` }] },
+    { key: "stagestate", id: "stagestate-live", label: t`Live`, options: [{ value: "real-data", label: t`Real data` }] },
     ...kindOrder
       .filter((kind) => pageStates.some((state) => state.kind === kind))
       .map((kind) => ({
         key: "stagestate",
+        id: `stagestate-${kind}`,
         label: stageStates?.kinds[kind] ?? kind,
         options: pageStates.filter((state) => state.kind === kind).map((state) => ({ value: state.id, label: state.label })),
       })),
@@ -114,7 +116,7 @@ export function NavLab() {
       note: !stageStates
         ? t`State previews need the local lab canvas files (lab/canvas).`
         : pageStates.length > 0
-          ? t`Every state the lab can show for ${pageKey}. Picking one reloads the page in that state; Real data turns the simulation off.`
+          ? t`Every state the lab can show for ${pageKey}. Picking one shows it right here on this book and page; Real data turns the simulation off.`
           : t`No simulated states for this screen yet.`,
     },
     {
@@ -122,7 +124,6 @@ export function NavLab() {
       label: t`Dock`,
       icon: <PanelBottom className="size-3.5" />,
       controls: [
-        { key: "topborder", label: t`Top bar border`, options: [{ value: "on", label: t`On` }, { value: "off", label: t`Off` }] },
         {
           key: "docklayout",
           label: t`Layout`,
@@ -166,6 +167,36 @@ export function NavLab() {
           : []),
       ],
       note: t`Decided: Storyboard first, Ink · theme, every step as a tile, sheet card, scale highlight, instant screen changes. Outputs join the book once they run.`,
+    },
+    {
+      key: "storyboard",
+      label: t`Storyboard`,
+      icon: <LayoutGrid className="size-3.5" />,
+      controls: [
+        {
+          key: "stalewarn",
+          label: t`Out-of-date warning`,
+          options: [
+            { value: "strip", label: t`Strip (today)` },
+            { value: "pill", label: t`Pill` },
+            { value: "rail", label: t`Pages list` },
+            { value: "page", label: t`On the page` },
+            { value: "topbar", label: t`Top bar` },
+          ],
+        },
+        {
+          key: "sbsim",
+          label: t`Simulate`,
+          options: [
+            { value: "real", label: t`Real` },
+            { value: "outdated", label: t`Out of date` },
+            { value: "building", label: t`Building` },
+            { value: "failed", label: t`Failed` },
+            { value: "setupfail", label: t`Setup problem` },
+          ],
+        },
+      ],
+      note: t`Pick Simulate "Out of date" to see the warning on a lab book.`,
     },
   ]
   const controls: LabControl[] = [
@@ -211,10 +242,10 @@ export function NavLab() {
     stagestate: activeStage && activeStage.page === pageKey ? activeStage.id : "real-data",
     docklayout: variants.docklayout,
     sbsim: variants.sbsim,
+    stalewarn: variants.stalewarn,
     setupsplit: variants.setupsplit,
     dockfocus: variants.dockfocus,
     dockpin: variants.dockpin,
-    topborder: variants.topborder,
     book: BOOKS[state.book] ? state.book : "all",
     theme: readThemeMode() === "dark" ? "dark" : "light",
   }
@@ -223,7 +254,6 @@ export function NavLab() {
     if (key === "stagestate") {
       if (value === "real-data") {
         clearStageState()
-        window.location.reload()
         return
       }
       const state = pageStates.find((candidate) => candidate.id === value)

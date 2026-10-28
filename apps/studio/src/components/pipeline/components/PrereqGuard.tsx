@@ -27,6 +27,7 @@ export function PrereqGuard({
   return (
     <>
       <LandingPageWarning
+        stageSlug={stageSlug}
         show={!upstreamReady}
         variant="prereq"
         title={<Trans>Run {upstreamLabel} first</Trans>}

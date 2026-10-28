@@ -1,19 +1,22 @@
 import { useMemo } from "react"
-import { ChevronLeft, ChevronRight, ImageOff, LayoutGrid, Loader2, TriangleAlert } from "lucide-react"
+import { ChevronLeft, ChevronRight, ImageOff, LayoutGrid, Loader2 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { PageDetail } from "@/api/client"
 import { usePage, usePageImage } from "@/hooks/use-pages"
 import { useActiveConfig } from "@/hooks/use-debug"
+import { useBookRun } from "@/hooks/use-book-run"
 import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { CascadeResetDialog } from "@/components/pipeline/components/CascadeResetDialog"
 import { DetailNavButton, SaveError, StepBody, StepEmptyHint } from "../shared/ui"
 import { usePrefetchAdjacentPages } from "../shared/usePrefetchAdjacentPages"
+import { PageLoadError, PageNoticeGroup } from "../shared/page-detail/PageNotices"
 import { SectioningSectionCard } from "./SectioningSectionCard"
 import { useSectioningEdits } from "./useSectioningEdits"
 
 export function SectioningPageDetail({
   label,
   pageId,
+  pageNumber,
   accent,
   prevPageId,
   nextPageId,
@@ -22,6 +25,7 @@ export function SectioningPageDetail({
 }: {
   label: string
   pageId: string
+  pageNumber: number
   accent: string
   prevPageId: string | null
   nextPageId: string | null
@@ -29,12 +33,14 @@ export function SectioningPageDetail({
   onClose: () => void
 }) {
   const { t } = useLingui()
-  const { data: page, isLoading } = usePage(label, pageId)
+  const { data: page, isLoading, isError, refetch } = usePage(label, pageId)
+  const { stageState } = useBookRun()
+  const storyboardDone = stageState("storyboard") === "done"
   usePrefetchAdjacentPages(label, prevPageId, nextPageId)
 
   return (
     <StepBody
-      title={page ? <Trans>Page {page.pageNumber}</Trans> : <Trans>Page</Trans>}
+      title={<Trans>Page {page?.pageNumber ?? pageNumber}</Trans>}
       meta={pageId}
       actions={
         <>
@@ -56,7 +62,9 @@ export function SectioningPageDetail({
         </>
       }
     >
-      {isLoading || !page ? (
+      {isError && !page ? (
+        <PageLoadError pageNumber={pageNumber} onRetry={() => void refetch()} />
+      ) : isLoading || !page ? (
         <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-[12px] text-muted-foreground">
           <Loader2 className="size-3.5 shrink-0 animate-spin motion-reduce:animate-none" />
           <Trans>Loading page…</Trans>
@@ -71,6 +79,7 @@ export function SectioningPageDetail({
           pageId={pageId}
           page={page}
           accent={accent}
+          storyboardDone={storyboardDone}
           hasPrevPage={!!prevPageId}
           hasNextPage={!!nextPageId}
         />
@@ -84,6 +93,7 @@ function SectioningEditor({
   pageId,
   page,
   accent,
+  storyboardDone,
   hasPrevPage,
   hasNextPage,
 }: {
@@ -91,6 +101,7 @@ function SectioningEditor({
   pageId: string
   page: PageDetail
   accent: string
+  storyboardDone: boolean
   hasPrevPage: boolean
   hasNextPage: boolean
 }) {
@@ -114,18 +125,7 @@ function SectioningEditor({
 
   return (
     <>
-      {page.extractionWarning && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-          <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
-          <p className="min-w-0 flex-1 leading-relaxed">
-            <Trans>
-              This page has no embedded text layer — the text below was recovered from the page
-              image (vision). For better summaries, metadata, and translations, prefer a text-based
-              version of this PDF.
-            </Trans>
-          </p>
-        </div>
-      )}
+      <PageNoticeGroup hex={accent} storyboardBuilt={storyboardDone} scanned={!!page.extractionWarning} />
 
       <SaveError error={edits.saveError} />
 

@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import { useBookRun } from "@/hooks/use-book-run"
+import { LAB_ENABLED, useVariant } from "@/components/app/lab/variants"
 import {
   isPageOutdated,
   isStoryboardInvalidated,
@@ -23,13 +24,17 @@ const NO_PAGES: ReadonlySet<string> = new Set()
 export function useStoryboardStaleness(pages: PipelinePage[]): StoryboardStaleness {
   const { stageState, isStatusLoading } = useBookRun()
   const storyboardState = stageState("storyboard")
+  const storyboardSim = useVariant("sbsim")
+  const simulateOutdated = LAB_ENABLED && storyboardSim === "outdated"
 
   return useMemo(() => {
     const inFlight = storyboardState === "running" || storyboardState === "queued"
     if (inFlight || isStatusLoading) {
       return { isStale: false, outdatedPageIds: NO_PAGES, outdatedCount: 0 }
     }
-    const outdated = pages.filter(isPageOutdated)
+    const outdated = simulateOutdated
+      ? pages.filter((page, index) => page.hasRendering && index % 3 === 1)
+      : pages.filter(isPageOutdated)
     const invalidated = isStoryboardInvalidated(
       pages.some((page) => page.hasRendering),
       storyboardState,
@@ -39,5 +44,5 @@ export function useStoryboardStaleness(pages: PipelinePage[]): StoryboardStalene
       outdatedPageIds: new Set(outdated.map((page) => page.pageId)),
       outdatedCount: outdated.length,
     }
-  }, [pages, storyboardState, isStatusLoading])
+  }, [pages, storyboardState, isStatusLoading, simulateOutdated])
 }

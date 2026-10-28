@@ -179,7 +179,7 @@ export function SpeechStep(props: StepProps) {
         actions={
           <Input
             wrapperClassName="w-[240px]"
-            className="h-8"
+            className="h-9 rounded-[10px]"
             prependIcon={<Search className="size-3.5" />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}

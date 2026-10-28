@@ -4,9 +4,10 @@ import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import { useQueryClient } from "@tanstack/react-query"
 import { STAGE_BY_NAME, type StageName } from "@adt/types"
-import { api, setRequestInterceptor, type AccessibilityAssessmentResponse, type TaskInfoResponse } from "@/api/client"
+import { api, setRequestInterceptor, type AccessibilityAssessmentResponse, type PageDetail, type TaskInfoResponse } from "@/api/client"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { LAB_ENABLED, getVariant } from "./variants"
+import { keptCount, mockPage, openFirstPage, openPageId, type PageMock } from "./pageMocks"
 
 export interface RunScenario {
   kind: "run"
@@ -79,6 +80,7 @@ export interface FaultScenario {
   pages?: "empty"
   warnedPages?: number
   spreadSuggestions?: number[]
+  pageMock?: PageMock
   startedAt: number
   pausedAt?: number
   pauseAtMs?: number
@@ -332,8 +334,27 @@ async function simulateStepStatus(scenario: RunScenario, passthrough: () => Prom
   return { ...real, stages, steps, stepMessages, runStatus: "running", stepErrors: null, error: null }
 }
 
+function mockIntercept(scenario: FaultScenario, mock: PageMock, path: string, method: string, passthrough: () => Promise<unknown>) {
+  const pageId = openPageId()
+  const pagesPath = `/books/${scenario.book}/pages`
+  const pagePath = pageId ? `${pagesPath}/${pageId}` : null
+  if (method !== "GET") return pagePath && path.startsWith(pagePath) ? Promise.resolve({ version: 0 }) : null
+  if (pagePath && path === pagePath) return (passthrough() as Promise<PageDetail>).then((page) => mockPage(scenario.book, page, mock.spec))
+  if (path === pagesPath) {
+    return (passthrough() as Promise<PageLike[]>).then((pages) => {
+      if (!pageId) setTimeout(() => openFirstPage(scenario.startedAt, pages), 0)
+      return pages.map((page) => (page.pageId === pageId ? { ...page, imageCount: keptCount(mock.spec) } : page))
+    })
+  }
+  return null
+}
+
 function faultIntercept(scenario: FaultScenario, path: string, method: string, passthrough: () => Promise<unknown>) {
   const book = scenario.book
+  if (scenario.pageMock && bookOf(path) === book) {
+    const mocked = mockIntercept(scenario, scenario.pageMock, path, method, passthrough)
+    if (mocked) return mocked
+  }
   if (method !== "GET" || bookOf(path) !== book) return null
   const { status } = scenario
   if (path === `/books/${book}/step-status`) {
@@ -358,6 +379,21 @@ function faultIntercept(scenario: FaultScenario, path: string, method: string, p
     )
   }
   return null
+}
+
+interface ProvidersLike {
+  providers: Array<{ configuredOnServer?: boolean; fieldStatus: Array<{ key: string; configuredOnServer: boolean }> }>
+}
+
+function simulateConfiguredProviders(passthrough: () => Promise<unknown>) {
+  return (passthrough() as Promise<ProvidersLike>).then((real) => ({
+    ...real,
+    providers: real.providers.map((provider) => ({
+      ...provider,
+      configuredOnServer: true,
+      fieldStatus: provider.fieldStatus.map((field) => ({ ...field, configuredOnServer: true })),
+    })),
+  }))
 }
 
 function simulate(path: string, options: RequestInit | undefined, passthrough: () => Promise<unknown>) {
@@ -389,6 +425,8 @@ function simulate(path: string, options: RequestInit | undefined, passthrough: (
   const scenario = scenarioStore.get()
   if (!scenario) return null
 
+  if (path === "/providers" && method === "GET" && scenario.kind !== "slow-load") return simulateConfiguredProviders(passthrough)
+
   if (scenario.kind === "fault") return faultIntercept(scenario, path, method, passthrough)
 
   if (scenario.kind === "slow-load") {
@@ -403,7 +441,11 @@ function simulate(path: string, options: RequestInit | undefined, passthrough: (
     if (method === "POST" && path === `/books/${scenario.book}/stages/run`) {
       const body = typeof options?.body === "string" ? (JSON.parse(options.body) as { fromStage?: string; toStage?: string }) : {}
       const toStage = body.toStage ?? body.fromStage
-      if (toStage) startScenario({ ...scenario, runs: { ...(scenario.runs ?? {}), [toStage]: simNow(scenario) } })
+      const idlePhase = scenario.idleAt !== undefined ? scenario.phases[scenario.idleAt] : undefined
+      if (idlePhase && idlePhase.stage === (body.fromStage ?? toStage)) {
+        const offset = scenario.phases.slice(0, scenario.idleAt).reduce((total, phase) => total + phase.durationMs, 0)
+        startScenario({ ...scenario, idleAt: undefined, startedAt: Date.now() - offset, pausedAt: undefined, pauseAtMs: undefined })
+      } else if (toStage) startScenario({ ...scenario, runs: { ...(scenario.runs ?? {}), [toStage]: simNow(scenario) } })
       return Promise.resolve({ status: "queued", label: scenario.book, fromStage: body.fromStage ?? toStage, toStage })
     }
     if (method === "POST" && path === `/books/${scenario.book}/package-adt`) {
@@ -455,6 +497,11 @@ if (LAB_ENABLED) setRequestInterceptor(intercept)
 export function LabSimulationDriver() {
   const queryClient = useQueryClient()
   const [scenario] = useScenario()
+  const simulating = !!scenario && scenario.kind !== "slow-load"
+
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ["providers"] })
+  }, [simulating, queryClient])
 
   useEffect(() => {
     if (scenario?.kind !== "fault") return

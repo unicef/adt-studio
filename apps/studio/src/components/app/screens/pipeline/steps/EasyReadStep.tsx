@@ -142,7 +142,7 @@ export function EasyReadStep(props: StepProps) {
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t`Search original or Easy Read text…`}
                 aria-label={t`Search original or Easy Read text…`}
-                className="h-8 w-full rounded-lg border bg-background pl-8 pr-8 text-[12px] placeholder:text-muted-foreground/60 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_var(--brand-50)]"
+                className="h-9 w-full rounded-[10px] border bg-background pl-8 pr-8 text-[12px] placeholder:text-muted-foreground/60 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_var(--brand-50)]"
               />
               {search && (
                 <button

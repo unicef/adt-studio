@@ -19,7 +19,7 @@ import {
 } from "@adt/llm"
 import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
-import { renderSourcePdfThumbnail } from "../services/source-pdf-thumbnails.js"
+import { renderSourcePdfThumbnail, sourcePdfThumbnailTag } from "../services/source-pdf-thumbnails.js"
 import { normalizeLocale, getBaseLanguage } from "@adt/pipeline"
 import {
   listBooks,
@@ -184,10 +184,14 @@ export function createBookRoutes(
       throw new HTTPException(404, { message: "Source PDF not found" })
     }
     try {
-      const { jpeg, etag } = renderSourcePdfThumbnail(pdfPath, parsed.data.page, parsed.data.width)
-      c.header("ETag", etag)
+      const tag = sourcePdfThumbnailTag(pdfPath, parsed.data.page, parsed.data.width)
+      c.header("ETag", tag.etag)
       c.header("Cache-Control", "private, max-age=3600")
-      if (c.req.header("If-None-Match") === etag) return c.body(null, 304)
+      const ifNoneMatch = c.req.header("If-None-Match")
+      if (ifNoneMatch && ifNoneMatch.split(",").some((value) => value.trim().replace(/^W\//, "") === tag.etag)) {
+        return c.body(null, 304)
+      }
+      const { jpeg } = renderSourcePdfThumbnail(pdfPath, parsed.data.page, parsed.data.width, tag)
       c.header("Content-Type", "image/jpeg")
       return c.body(new Uint8Array(jpeg))
     } catch (err) {

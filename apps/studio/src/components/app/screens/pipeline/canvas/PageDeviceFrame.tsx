@@ -1,6 +1,7 @@
 import { getDeviceFrame } from "@/components/pipeline/stages/storyboard/components/style-editor/device-chrome"
 import { IPadFrame } from "@/components/pipeline/stages/storyboard/components/style-editor/device-frames/ipad-frame"
 import { IPhoneFrame } from "@/components/pipeline/stages/storyboard/components/style-editor/device-frames/iphone-frame"
+import { deviceFitScale } from "./canvasLayout"
 
 export interface PageDeviceFrameProps {
   viewport: "tablet" | "mobile"
@@ -18,21 +19,21 @@ export function PageDeviceFrame({
   children,
 }: PageDeviceFrameProps) {
   const frame = getDeviceFrame(viewport, screenWidth)
-  const fit =
-    available.width && available.height
-      ? Math.min(1, available.width / frame.chromeWidth, available.height / frame.chromeHeight)
-      : 1
-  const scale = fit * zoom
+  const scale = deviceFitScale(frame, available) * zoom
   const screen = <div className="size-full overflow-y-auto">{children}</div>
 
   return (
     <div
+      className="shrink-0 transition-[width,height] duration-200 ease-out motion-reduce:transition-none"
       style={{
         width: Math.round(frame.chromeWidth * scale),
         height: Math.round(frame.chromeHeight * scale),
       }}
     >
-      <div style={{ transform: `scale(${scale})`, transformOrigin: "0 0" }}>
+      <div
+        className="transition-transform duration-200 ease-out motion-reduce:transition-none"
+        style={{ transform: `scale(${scale})`, transformOrigin: "0 0" }}
+      >
         {viewport === "mobile" ? (
           <IPhoneFrame width={frame.chromeWidth}>{screen}</IPhoneFrame>
         ) : (

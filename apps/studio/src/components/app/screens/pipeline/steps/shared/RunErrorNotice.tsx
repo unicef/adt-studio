@@ -1,4 +1,5 @@
 import { useBookRun } from "@/hooks/use-book-run"
+import { STAGES } from "@/components/pipeline/stage-config"
 import { useOptionalStageActivity, type RunStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { ProblemNotice } from "./problems/ProblemNotice"
 import { runErrorOwner } from "./problems/runErrorOwner"
@@ -20,7 +21,7 @@ export function useStageError(stage: ProblemStage): string | null {
 export function RunErrorNotice({
   label,
   stage,
-  hex = "#64748b",
+  hex,
   pages,
   items,
   onOpenPage,
@@ -49,7 +50,7 @@ export function RunErrorNotice({
   return (
     <ProblemNotice
       level={problem.level}
-      hex={hex}
+      hex={hex ?? STAGES.find((candidate) => candidate.slug === stage)?.hex ?? "#64748b"}
       icon={problemIcon(problem)}
       title={problem.title}
       body={problem.body}

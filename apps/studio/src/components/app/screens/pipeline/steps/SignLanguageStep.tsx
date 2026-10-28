@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Upload } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import {
   useSignLanguageVideos,
   useUploadSignLanguageVideo,
@@ -9,9 +8,11 @@ import {
   useAssignSignLanguageVideo,
 } from "@/hooks/use-sign-language-videos"
 import { isGlossaryVideoSectionId } from "@/lib/glossary-video"
+import { cn } from "@/lib/utils"
 import { buildSectionEntries } from "@/components/pipeline/stages/sign-language/components/sectionEntries"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
+import { HEADER_BUTTON, HEADER_BUTTON_LABELLED, HeaderButtonTile } from "./shared/headerButton"
 import { SignLanguageVideoCard } from "./sign-language/SignLanguageVideoCard"
 import type { StepProps } from "./shared/types"
 
@@ -104,10 +105,10 @@ export function SignLanguageStep(props: StepProps) {
         title={<Trans>Sign language</Trans>}
         meta={t`${videos.length} videos`}
         actions={
-          <Button size="sm" variant="outline" onClick={pickFile} disabled={upload.isPending}>
-            <Upload className="size-3.5" />
+          <button type="button" onClick={pickFile} disabled={upload.isPending} className={cn(HEADER_BUTTON, HEADER_BUTTON_LABELLED)}>
+            <HeaderButtonTile icon={Upload} />
             <Trans>Upload video</Trans>
-          </Button>
+          </button>
         }
       >
         <input

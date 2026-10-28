@@ -87,7 +87,7 @@ export function TocOverview({
               matches={{ shown: shown.length, total: entries.length }}
             />
           )}
-          <StepActionButton icon={Plus} accent={hex} onClick={onAddEnd} disabled={!!addDisabledReason} disabledReason={addDisabledReason}>
+          <StepActionButton look="header" icon={Plus} onClick={onAddEnd} disabled={!!addDisabledReason} disabledReason={addDisabledReason}>
             <Trans>Add entry</Trans>
           </StepActionButton>
         </>

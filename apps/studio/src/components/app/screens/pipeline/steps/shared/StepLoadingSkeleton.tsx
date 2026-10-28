@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react/macro"
-import { isLandscapeRatio, pageGridClass, type PageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
+import { isLandscapeRatio, pageGridClass } from "@/components/app/screens/pipeline/shared/usePageAspect"
 
 export type StepLoadingShape = "grid" | "list" | "report"
 
@@ -123,8 +123,4 @@ export function StageContentSkeleton({ shape = "grid", ratio, slug }: { shape?: 
   if (shape === "list") return <ListSkeleton slug={slug} />
   if (shape === "report") return <ReportSkeleton slug={slug} />
   return <GridSkeleton ratio={ratio} slug={slug} />
-}
-
-export function StepBodySkeleton({ shape, aspect, slug }: { shape: StepLoadingShape; aspect: PageAspect; slug?: string }) {
-  return <StageContentSkeleton shape={shape} ratio={aspect.ratio} slug={slug} />
 }

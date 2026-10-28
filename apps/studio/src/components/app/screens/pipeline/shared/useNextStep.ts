@@ -56,3 +56,13 @@ export function useNextStep(label: string, slug: string | undefined, options: { 
   if (slug === "validation") return target("export")
   return target(nextDependent(slug, [...foundations, ...plugins]) ?? "preview")
 }
+
+const QUIET_NEXT = new Set(["preview", "export"])
+
+export function isQuietNextStep(next: NextStep): boolean {
+  return QUIET_NEXT.has(next.slug)
+}
+
+export function nextStepFolds(next: NextStep | null, ready = true): boolean {
+  return !!next && ready && !isQuietNextStep(next)
+}

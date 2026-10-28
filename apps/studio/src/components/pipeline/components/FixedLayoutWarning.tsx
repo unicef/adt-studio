@@ -41,15 +41,18 @@ export function FixedLayoutExtraLanguagesDescription() {
  */
 export function FixedLayoutWarningBanner({
   show,
+  stageSlug,
   title = <FixedLayoutWarningTitle />,
   description = <FixedLayoutWarningDescription />,
 }: {
   show: boolean
+  stageSlug: string
   title?: ReactNode
   description?: ReactNode
 }) {
   return (
     <LandingPageWarning
+      stageSlug={stageSlug}
       show={show}
       variant="prereq"
       title={title}

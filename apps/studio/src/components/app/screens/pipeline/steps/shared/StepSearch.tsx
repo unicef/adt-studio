@@ -33,7 +33,7 @@ export function StepSearch({ value, onChange, placeholder, ariaLabel, matches, c
         placeholder={placeholder}
         aria-label={ariaLabel}
         wrapperClassName="min-w-0 flex-1"
-        className="h-8 rounded-lg pl-8 pr-7 text-[12px] [&::-webkit-search-cancel-button]:hidden"
+        className="h-9 rounded-[10px] pl-8 pr-7 text-[12px] [&::-webkit-search-cancel-button]:hidden"
         prependIcon={<Search className="size-3.5" />}
         appendIcon={
           active ? (

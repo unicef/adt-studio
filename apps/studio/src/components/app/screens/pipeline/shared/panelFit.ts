@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useSyncExternalStore, type RefObject } from "react"
+import { useCallback, useEffect, useRef, useSyncExternalStore, type RefObject } from "react"
 import { useAiPanelOpen } from "@/hooks/use-ai-panel"
 import { useSideRailOpen } from "@/hooks/use-side-rail"
+import { fitPanels, panelWidths } from "./panelLayout"
 
 type Panel = "rail" | "ai"
-
-const RIGHT_PANEL_MIN_ROW = 900
-const BOTH_PANELS_MIN_ROW = 640
 
 let fitted: Record<Panel, boolean> = { rail: false, ai: false }
 const listeners = new Set<() => void>()
@@ -29,26 +27,40 @@ function useFitted(panel: Panel): boolean {
 }
 
 export function usePanelFit(ref: RefObject<HTMLElement | null>) {
+  const [railStored] = useSideRailOpen()
+  const railStoredRef = useRef(railStored)
+  const evaluate = useRef<() => void>(() => {})
+
   useEffect(() => {
     const node = ref.current
     if (!node) return
     let narrowAi = false
     let narrowRail = false
-    const observer = new ResizeObserver(([entry]) => {
-      const width = entry?.contentRect.width ?? node.clientWidth
-      const ai = width < RIGHT_PANEL_MIN_ROW
-      const rail = width < BOTH_PANELS_MIN_ROW
+    let width = node.clientWidth
+    const run = () => {
+      const { ai, rail } = fitPanels(width, panelWidths(window.innerWidth), railStoredRef.current)
       if (ai !== narrowAi) setFitted({ ai })
       if (rail !== narrowRail) setFitted({ rail })
       narrowAi = ai
       narrowRail = rail
+    }
+    evaluate.current = run
+    const observer = new ResizeObserver(([entry]) => {
+      width = entry?.contentRect.width ?? node.clientWidth
+      run()
     })
     observer.observe(node)
     return () => {
+      evaluate.current = () => {}
       observer.disconnect()
       setFitted({ rail: false, ai: false })
     }
   }, [ref])
+
+  useEffect(() => {
+    railStoredRef.current = railStored
+    evaluate.current()
+  }, [railStored])
 }
 
 function usePanelOpen(panel: Panel, [stored, setStored]: readonly [boolean, (open: boolean) => void]): [boolean, (open: boolean) => void] {

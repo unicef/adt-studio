@@ -83,7 +83,6 @@ export function ChecklistPanel({ stageStates, active }: { stageStates: StageStat
           type="button"
           onClick={() => {
             clearStageState()
-            window.location.reload()
           }}
           className="flex shrink-0 items-center gap-1 rounded-lg bg-white px-2.5 py-1 font-semibold text-zinc-900 transition-[transform,background-color] duration-150 hover:bg-white/90 active:scale-[0.97]"
         >

@@ -10,6 +10,7 @@ export interface SectioningRun {
   canRun: boolean
   hasProvider: boolean
   isRunning: boolean
+  isInterrupted: boolean
 }
 
 export function useSectioningRun(label: string): SectioningRun {
@@ -25,6 +26,7 @@ export function useSectioningRun(label: string): SectioningRun {
   const extractCovered =
     extractState === "done" || extractState === "running" || extractState === "queued"
   const hasExtractedPages = (pages?.length ?? 0) > 0
+  const isInterrupted = sectioningState === "idle" && (pages?.some((page) => page.sectionCount > 0) ?? false)
   const hasAssembledPages = hasExtractedPages && splitStatus?.hasMergeActivity === true
   const resolvingStoredState =
     !extractCovered && (pagesLoading || (hasExtractedPages && splitStatusLoading))
@@ -39,5 +41,5 @@ export function useSectioningRun(label: string): SectioningRun {
     })
   }, [canRun, queueRun, extractCovered, hasAssembledPages, apiKey])
 
-  return { run, canRun, hasProvider, isRunning }
+  return { run, canRun, hasProvider, isRunning, isInterrupted }
 }

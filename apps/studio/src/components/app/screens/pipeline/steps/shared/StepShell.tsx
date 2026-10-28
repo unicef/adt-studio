@@ -10,7 +10,7 @@ import { PreRunChecklist } from "@/components/app/screens/pipeline/plugins/PreRu
 import { PluginRailEmpty } from "@/components/app/screens/pipeline/plugins/PluginRailEmpty"
 import { StepLanding, hasStepLanding } from "./StepLanding"
 import { hasFullHeightLanding } from "../landing/fullHeight"
-import { StepBodySkeleton, StepRailSkeleton, type StepLoadingShape } from "./StepLoadingSkeleton"
+import { StageContentSkeleton, StepRailSkeleton, type StepLoadingShape } from "./StepLoadingSkeleton"
 import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 import { PluginWorkspace } from "@/components/app/screens/pipeline/plugins/PluginWorkspace"
 import { LiveRunPanel, RunChecklist, progressCounts } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
@@ -267,7 +267,7 @@ export function useStepLoadingView(props: StepProps, { shape = "grid" }: StepLoa
     chips: [],
     railEmpty: !pageOpen,
     rail: <StepRailSkeleton thumbClassName={pages[0] ? aspect.railThumbClassOf(pages[0]) : "h-[52px] w-[38px]"} />,
-    children: <StepBodySkeleton shape={shape} aspect={aspect} slug={plugin.slug} />,
+    children: <StageContentSkeleton shape={shape} ratio={aspect.ratio} slug={plugin.slug} />,
   }
 }
 

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { PageDetailFrame, type PageDetailFrameProps } from "./PageDetailFrame"
 import { pageDetailState, refreshFailed, type PageQueryState } from "./pageDetailState"
-import { RefreshFailedNotice } from "./RefreshFailedNotice"
+import { PageRefreshFailed } from "./PageNotices"
 
 export function PageQueryDetail({
   query,
@@ -22,7 +22,7 @@ export function PageQueryDetail({
       onRetry={retry}
       notice={
         <>
-          {refreshFailed(query) && <RefreshFailedNotice pageNumber={frame.pageNumber} onRetry={retry} />}
+          {refreshFailed(query) && <PageRefreshFailed pageNumber={frame.pageNumber} onRetry={retry} />}
           {notice}
         </>
       }

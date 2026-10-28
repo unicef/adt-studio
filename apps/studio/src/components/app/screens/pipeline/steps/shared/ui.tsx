@@ -1,18 +1,21 @@
 import { useEffect, useRef, useState } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
-import { Check, Loader2, Pencil, X } from "lucide-react"
+import { useLingui } from "@lingui/react/macro"
+import { Check, Loader2, Pencil, TriangleAlert } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { StepRailHeader } from "@/components/app/screens/pipeline/rail/StepRailHeader"
 import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { StatusDot } from "./StatusDot"
+import { ProblemNotice } from "./problems/ProblemNotice"
+import { HEADER_BUTTON, HEADER_BUTTON_ICON, HEADER_BUTTON_LABELLED, HeaderButtonTile } from "./headerButton"
 
-export type StepBodyWidth = "full" | "reading" | "wide"
+export type StepBodyWidth = "full" | "reading" | "wide" | "fluid"
 
 const BODY_WIDTH: Record<StepBodyWidth, string> = {
   full: "container",
   reading: "w-full max-w-[920px]",
   wide: "w-full max-w-[1240px]",
+  fluid: "w-full max-w-[2000px] px-6",
 }
 
 export function StepBody({
@@ -21,6 +24,7 @@ export function StepBody({
   titleExtra,
   actions,
   width = "full",
+  fill = false,
   children,
 }: {
   title: React.ReactNode
@@ -28,18 +32,30 @@ export function StepBody({
   titleExtra?: React.ReactNode
   actions?: React.ReactNode
   width?: StepBodyWidth
+  fill?: boolean
   children: React.ReactNode
 }) {
+  const heading = (
+    <div className="flex min-h-9 shrink-0 items-center gap-3">
+      <div className="flex min-w-0 items-baseline gap-3">
+        <h1 data-step-heading="" tabIndex={-1} className="text-[19px] font-bold tracking-[-0.01em] outline-none">{title}</h1>
+        {meta && <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>}
+        {titleExtra}
+      </div>
+      <div className="ml-auto flex items-center gap-2">{actions}</div>
+    </div>
+  )
+  if (fill)
+    return (
+      <div className={cn("mx-auto flex h-full min-h-0 flex-col gap-4 px-4 pt-7 pb-24", BODY_WIDTH[width])}>
+        {heading}
+        {children}
+      </div>
+    )
   return (
     <ScrollArea className="h-full w-full" viewportClassName="[&>div]:block!">
-      <div className={cn("mx-auto flex flex-col gap-4 px-4 pt-7 pb-36", BODY_WIDTH[width])}>
-
-        <div className="flex items-baseline gap-3">
-          <h1 data-step-heading="" tabIndex={-1} className="text-[19px] font-bold tracking-[-0.01em] outline-none">{title}</h1>
-          {meta && <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>}
-          {titleExtra}
-          <div className="ml-auto flex items-center gap-2">{actions}</div>
-        </div>
+      <div className={cn("mx-auto flex flex-col gap-4 px-4 pt-7 pb-24", BODY_WIDTH[width])}>
+        {heading}
         {children}
       </div>
     </ScrollArea>
@@ -75,9 +91,11 @@ export function StepScrollBody({
 }) {
   return (
     <div className={cn("mx-auto flex h-full min-h-0 w-full flex-col gap-3 px-4 py-7", BODY_WIDTH[width])}>
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-[19px] font-bold tracking-[-0.01em]">{title}</h1>
-        {meta && <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>}
+      <div className="flex min-h-9 items-center gap-3">
+        <div className="flex min-w-0 items-baseline gap-3">
+          <h1 className="text-[19px] font-bold tracking-[-0.01em]">{title}</h1>
+          {meta && <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>}
+        </div>
         <div className="ml-auto flex items-center gap-2">{actions}</div>
       </div>
       {toolbar}
@@ -270,12 +288,9 @@ export function DetailNavButton({
       disabled={disabled}
       title={label}
       aria-label={label}
-      className={cn(
-        "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium text-foreground",
-        "transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50",
-      )}
+      className={cn(HEADER_BUTTON, children ? HEADER_BUTTON_LABELLED : HEADER_BUTTON_ICON)}
     >
-      <Icon className="size-3.5" />
+      {children ? <HeaderButtonTile icon={Icon} /> : <Icon className="size-4" />}
       {children}
     </button>
   )
@@ -326,6 +341,8 @@ export interface RailEntry {
   failed?: boolean
 }
 
+const RAIL_SELECTED = cn("bg-[color-mix(in_oklab,var(--rail)_80%,black)] text-white dark:bg-[color-mix(in_oklab,var(--rail)_85%,black)]")
+
 export function StepRail({
   heading,
   hex,
@@ -357,11 +374,12 @@ export function StepRail({
                 type="button"
                 onClick={() => onSelect?.(entry.key)}
                 aria-current={active ? "true" : undefined}
+                data-rail-select={active ? "solid" : undefined}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-[11px] transition-colors",
-                  active ? "font-semibold" : "text-muted-foreground hover:bg-muted",
+                  "group/railrow flex items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-[11px] transition-colors",
+                  active ? cn("font-semibold", RAIL_SELECTED) : "text-muted-foreground hover:bg-muted",
                 )}
-                style={active ? { background: tint(hex, 0.12), color: hex } : undefined}
+                style={{ ["--rail" as string]: hex }}
               >
                 {entry.thumb && <span className="shrink-0">{entry.thumb}</span>}
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -371,7 +389,7 @@ export function StepRail({
                     <span className="font-mono text-[10px] opacity-70">{entry.count}</span>
                   </span>
                   {entry.subtitle && (
-                    <span className="truncate text-[10px] font-normal text-muted-foreground">
+                    <span className="truncate text-[10px] font-normal text-muted-foreground group-data-[rail-select=solid]/railrow:text-white/75">
                       {entry.subtitle}
                     </span>
                   )}
@@ -398,12 +416,8 @@ export function StepEmptyHint({ children }: { children: React.ReactNode }) {
 }
 
 export function SaveError({ error }: { error: Error | string | null }) {
+  const { t } = useLingui()
   if (!error) return null
   const message = typeof error === "string" ? error : error.message
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
-      <X className="size-3.5 shrink-0" />
-      <Trans>Could not save your change: {message}</Trans>
-    </div>
-  )
+  return <ProblemNotice level="blocked" icon={TriangleAlert} title={t`Could not save your change`} body={message} />
 }

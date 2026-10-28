@@ -1,14 +1,16 @@
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { HelpCircle } from "lucide-react"
 import type { QuizItem } from "@/api/client"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import {
-  CANVAS_PADDING,
   CAPTURE_WIDTH,
-  DEVICE_PADDING,
   canvasContentWidth,
+  canvasDeviceFit,
+  desktopFitScale,
+  deviceAvailable,
+  publishCanvasFit,
   useCanvasPane,
   useCanvasWheelZoom,
 } from "./canvasLayout"
@@ -18,6 +20,7 @@ import { PageThumb } from "./PageThumb"
 import { quizPreviewUrl } from "./previewUrls"
 import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
+import { useDockMinimized } from "@/components/app/screens/pipeline/shared/workspacePrefs"
 
 const QUIZ_FRAME_HEIGHT = 520
 
@@ -86,7 +89,11 @@ export function QuizCanvas({
   const { t } = useLingui()
   const scrollRef = useRef<HTMLDivElement>(null)
   const { pane, resizing } = useCanvasPane(scrollRef, true)
+  const [dockMinimized] = useDockMinimized()
   useCanvasWheelZoom(scrollRef, zoom, onZoomChange)
+  const available = deviceAvailable(pane, dockMinimized)
+  const fit = viewport === "desktop" ? desktopFitScale(pane) : canvasDeviceFit(viewport, available)
+  useEffect(() => publishCanvasFit(fit), [fit])
 
   const contentWidth = canvasContentWidth(viewport, pane, zoom)
   const afterPage = pages.find((page) => page.pageId === quiz.afterPageId)
@@ -120,16 +127,18 @@ export function QuizCanvas({
   if (viewport !== "desktop") {
     return (
       <ScrollArea ref={scrollRef} horizontal className="min-h-0 w-full flex-1">
-        <div className="flex min-w-max flex-col items-center gap-4 px-6 pb-10 pt-6">
+        <div
+          className={cn(
+            "flex min-w-max flex-col items-center gap-4 px-6 pt-6 transition-[padding] duration-300 ease-out motion-reduce:transition-none",
+            dockMinimized ? "pb-10" : "pb-24",
+          )}
+        >
           {header}
           <PageDeviceFrame
             viewport={viewport}
             screenWidth={CAPTURE_WIDTH[viewport]}
             zoom={zoom}
-            available={{
-              width: pane.width - CANVAS_PADDING,
-              height: pane.height - DEVICE_PADDING,
-            }}
+            available={available}
           >
             {block}
           </PageDeviceFrame>

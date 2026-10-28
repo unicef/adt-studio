@@ -1,9 +1,9 @@
 export type PageGroup = number[]
 
-export function groupPages(start: number, end: number, spread: boolean, limit: number): PageGroup[] {
+export function groupPages(start: number, end: number, spread: boolean): PageGroup[] {
   const groups: PageGroup[] = []
   let page = start
-  while (page <= end && groups.length < limit) {
+  while (page <= end) {
     if (!spread || page === start || page === end) {
       groups.push([page])
       page += 1

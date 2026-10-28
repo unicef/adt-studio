@@ -108,7 +108,6 @@ const STATES: Record<string, LabState[]> = {
   "running-captions": runStates(`/pipeline/${FRESH}/captions`, 30000),
   "running-hub": runStates(`/pipeline/${FRESH}`, 30000),
   "running-validation": runStates(`/pipeline/${DONE}/validation`, 30000),
-  "return-banner": returnStates,
   "return-toast": returnStates,
   ai: [
     { id: "page", label: msg`Storyboard · page 8`, path: `/pipeline/${DONE}/pages/pg008009` },

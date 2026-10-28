@@ -19,12 +19,14 @@ export function EditableSectionSlice({
   pageNumber,
   section,
   viewport,
+  maxScale,
 }: {
   label: string
   pageId: string
   pageNumber: number
   section: PageSummarySection
   viewport: Viewport
+  maxScale?: number
 }) {
   const { t } = useLingui()
   const editing = useCanvasEditing()
@@ -68,6 +70,7 @@ export function EditableSectionSlice({
         bookLabel={label}
         editable
         renderWidth={CAPTURE_WIDTH[viewport]}
+        maxScale={maxScale}
         applyBodyBackground
         autoRefreshCss
         selectedDataId={selected}

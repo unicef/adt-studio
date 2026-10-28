@@ -30,6 +30,7 @@ interface CanvasEditingValue {
   sourceOverride: (sectionIndex: number) => string | undefined
   pendingSectioning: SectioningTree | null
   togglePruned: (sectionIndex: number) => void
+  updateSectioning: (updater: (tree: SectioningTree) => SectioningTree) => void
   dirty: boolean
   saving: boolean
   save: () => Promise<void>
@@ -51,6 +52,7 @@ const DISABLED: CanvasEditingValue = {
   sourceOverride: () => undefined,
   pendingSectioning: null,
   togglePruned: () => {},
+  updateSectioning: () => {},
   dirty: false,
   saving: false,
   save: async () => {},
@@ -222,6 +224,13 @@ export function CanvasEditingProvider({
       togglePruned: (sectionIndex) => {
         if (locked) return
         setPendingSectioning((pending) => nextPendingSectioning(savedSectioning, pending, sectionIndex))
+      },
+      updateSectioning: (updater) => {
+        if (locked) return
+        setPendingSectioning((pending) => {
+          const base = pending ?? savedSectioning
+          return base ? updater(base) : pending
+        })
       },
       dirty: Object.keys(drafts).length > 0 || pendingSectioning !== null,
       saving,

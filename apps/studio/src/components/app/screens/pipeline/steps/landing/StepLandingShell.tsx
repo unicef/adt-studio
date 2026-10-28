@@ -19,7 +19,8 @@ import { isStepSettingsSlug } from "@/components/app/screens/pipeline/settings/s
 import { useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useStageError } from "../shared/RunErrorNotice"
 import { useDescribeProblem, type ProblemStage } from "../shared/problems/useDescribeProblem"
-import { problemTone, TONE_BUTTON } from "../shared/problems/problemTone"
+import { TONE_BUTTON } from "@/components/ui/notice-tone"
+import { problemTone } from "../shared/problems/problemTone"
 
 export interface StepLandingShellProps {
   bookLabel: string
@@ -32,10 +33,10 @@ export interface StepLandingShellProps {
   disabledReason?: ReactNode
   runLabel: ReactNode
   rerunLabel: ReactNode
-  previewLabel: string
+  previewLabel?: string
   previewBodyClassName?: string
   onRun: () => void
-  preview: ReactNode
+  preview?: ReactNode
   runWarning?: { title: ReactNode; description: ReactNode; confirmLabel?: ReactNode } | null
   hideRunButton?: boolean
   beforeRun?: ReactNode
@@ -88,14 +89,15 @@ export function StepLandingShell({
       </button>
     ) : null
   const reasonId = useId()
+  const stage = STAGES.find((s) => s.slug === stageSlug)
+  const hex = stage?.hex ?? "#4b5563"
   const stageError = useStageError(stageSlug as ProblemStage)
   const describe = useDescribeProblem()
   const errorTone = problemTone(describe(stageSlug as ProblemStage, stageError).level)
-  const errorFill = errorTone === "critical" ? "bg-destructive" : "bg-amber-700"
+  const confirmFill = hasError && errorTone === "critical" ? "bg-destructive" : (stage?.color ?? "bg-gray-600")
 
-  const stage = STAGES.find((s) => s.slug === stageSlug)
-  const hex = stage?.hex ?? "#4b5563"
   const accentStyle = {
+    "--tint": hex,
     "--accent-color": hex,
     "--ring": hex,
     "--accent-color-soft": tint(hex, 0.12),
@@ -186,11 +188,12 @@ export function StepLandingShell({
       {notice}
     </>
   )
-  const previewCard = (
-    <LandingPreviewShell label={previewLabel} className="h-full w-full" bodyClassName={previewBodyClassName ?? ""}>
-      {preview}
-    </LandingPreviewShell>
-  )
+  const previewCard =
+    preview != null ? (
+      <LandingPreviewShell label={previewLabel ?? ""} className="h-full w-full" bodyClassName={previewBodyClassName ?? ""}>
+        {preview}
+      </LandingPreviewShell>
+    ) : null
   const advancedLink = (
     <Link
       to="/pipeline/$label/$step/settings"
@@ -235,7 +238,7 @@ export function StepLandingShell({
           </Trans>
         }
         confirmLabel={rerunLabel}
-        confirmColorClass={hasError ? errorFill : (stage?.color ?? "bg-gray-600")}
+        confirmColorClass={confirmFill}
         onConfirm={() => {
           setConfirmOpen(false)
           onRun()
@@ -249,7 +252,7 @@ export function StepLandingShell({
           title={runWarning.title}
           description={runWarning.description}
           confirmLabel={runWarning.confirmLabel}
-          confirmColorClass={hasError ? errorFill : (stage?.color ?? "bg-gray-600")}
+          confirmColorClass={confirmFill}
           onConfirm={() => {
             setWarnOpen(false)
             proceedRun()

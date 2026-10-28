@@ -1,28 +1,59 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { plural } from "@lingui/core/macro"
 import { useLingui } from "@lingui/react/macro"
+import { ImageOff } from "lucide-react"
 import { getSourcePdfThumbnailUrl } from "@/api/client"
 import { cn } from "@/lib/utils"
-import { countGroups, groupPages, type PageGroup } from "./groupPages"
+import { countGroups, groupPages, type PageGroup } from "@/components/app/screens/pipeline/shared/groupPages"
 import { CANVAS_GAP, CANVAS_ROWS, useCanvasFit } from "./useCanvasFit"
 
 const THUMB_WIDTH = 300
 const SHEET = "relative overflow-hidden rounded-lg bg-card shadow-[0_8px_24px_-14px_rgba(15,23,42,0.4)] ring-1 ring-black/5"
 
+const RETRY_DELAY_MS = 1200
+
+function thumbUrl(bookLabel: string, number: number, width: number, attempt: number): string {
+  const url = new URL(getSourcePdfThumbnailUrl(bookLabel, number, width), window.location.href)
+  if (attempt > 0) url.searchParams.set("retry", String(attempt))
+  return url.toString()
+}
+
 function PageImage({ bookLabel, number }: { bookLabel: string; number: number }) {
-  const [loaded, setLoaded] = useState(false)
+  const [state, setState] = useState<"loading" | "retrying" | "loaded" | "failed">("loading")
+  const [attempt, setAttempt] = useState(0)
+  const loaded = state === "loaded"
+
+  useEffect(() => {
+    if (state !== "retrying") return
+    const timer = setTimeout(() => {
+      setAttempt(1)
+      setState("loading")
+    }, RETRY_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [state])
+
+  if (state === "failed")
+    return (
+      <div className="absolute inset-0 grid place-items-center bg-muted/60 text-muted-foreground/60 animate-in fade-in duration-300 motion-reduce:animate-none">
+        <ImageOff className="size-5" strokeWidth={1.8} />
+      </div>
+    )
   return (
     <>
       {!loaded && <div className="absolute inset-0 bg-muted motion-safe:animate-pulse" />}
-      <img
-        src={getSourcePdfThumbnailUrl(bookLabel, number, THUMB_WIDTH)}
-        srcSet={`${getSourcePdfThumbnailUrl(bookLabel, number, THUMB_WIDTH)} 1x, ${getSourcePdfThumbnailUrl(bookLabel, number, THUMB_WIDTH * 2)} 2x`}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setLoaded(true)}
-        className={cn("size-full object-cover transition-opacity duration-300 motion-reduce:transition-none", loaded ? "opacity-100" : "opacity-0")}
-      />
+      {state !== "retrying" && (
+        <img
+          key={attempt}
+          src={thumbUrl(bookLabel, number, THUMB_WIDTH, attempt)}
+          srcSet={`${thumbUrl(bookLabel, number, THUMB_WIDTH, attempt)} 1x, ${thumbUrl(bookLabel, number, THUMB_WIDTH * 2, attempt)} 2x`}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setState("loaded")}
+          onError={() => setState(attempt === 0 ? "retrying" : "failed")}
+          className={cn("size-full object-cover transition-opacity duration-300 motion-reduce:transition-none", loaded ? "opacity-100" : "opacity-0")}
+        />
+      )}
     </>
   )
 }
@@ -74,17 +105,19 @@ export function LandingBookCanvas({
   range,
   spread,
   totalPages,
+  failed = false,
 }: {
   bookLabel: string
   range: [number, number]
   spread: boolean
   totalPages: number
+  failed?: boolean
 }) {
   const { t } = useLingui()
   const { ref, cols } = useCanvasFit<HTMLDivElement>()
   const [first, last] = totalPages > 0 ? range : [1, 0]
   const columns = spread ? Math.max(1, Math.round(cols / 2)) : cols
-  const groups = useMemo(() => groupPages(first, last, spread, Number.POSITIVE_INFINITY), [first, last, spread])
+  const groups = useMemo(() => groupPages(first, last, spread), [first, last, spread])
   const placeholders = totalPages > 0 ? 0 : cols * CANVAS_ROWS
   const total = countGroups(first, last, spread)
 
@@ -108,7 +141,7 @@ export function LandingBookCanvas({
               </div>
             ))}
             {Array.from({ length: placeholders }, (_, index) => (
-              <div key={`placeholder-${index}`} className={cn(SHEET, "aspect-[650/812] bg-muted motion-safe:animate-pulse")} />
+              <div key={`placeholder-${index}`} className={cn(SHEET, "aspect-[650/812] bg-muted transition-opacity duration-300 motion-reduce:transition-none", failed ? "opacity-60" : "motion-safe:animate-pulse")} />
             ))}
           </div>
         </div>

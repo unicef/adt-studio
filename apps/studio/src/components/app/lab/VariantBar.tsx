@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useRouterState } from "@tanstack/react-router"
 import { setFriendlyStageNames } from "@/components/pipeline/pipeline-i18n"
 import { LabSimulationDriver } from "./simulate"
+import { LabScenarioRefresh } from "./LabScenarioRefresh"
 import { DOCK_SHOW_PARAM, DockShowcase } from "./dockShowcase/DockShowcase"
 import { NavLab, setNavLabOn, useNavLab } from "./NavLab"
 import { PlanMenu } from "./plan/PlanMenu"
@@ -16,6 +17,7 @@ export function VariantBar() {
   return (
     <>
       <LabSimulationDriver />
+      <LabScenarioRefresh />
       <LabChrome />
     </>
   )

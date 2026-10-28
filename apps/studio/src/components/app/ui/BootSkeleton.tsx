@@ -42,11 +42,19 @@ export function AppBootSkeleton() {
   )
 }
 
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
+  }
+}
+
 function stageFromPath(): { slug: string; hex: string; label: string } | null {
   if (typeof window === "undefined") return null
   const [, , label = "", segment] = window.location.pathname.split("/")
   const stage = STAGES.find((candidate) => candidate.slug === segment)
-  return stage && stage.slug !== "storyboard" ? { slug: stage.slug, hex: stage.hex, label: decodeURIComponent(label) } : null
+  return stage && stage.slug !== "storyboard" ? { slug: stage.slug, hex: stage.hex, label: decodeSegment(label) } : null
 }
 
 const LIST_STAGES = new Set(["quizzes", "glossary", "toc", "translate", "speech", "easy-read", "validation", "sign-language"])
@@ -124,28 +132,6 @@ export function PipelineBootSkeleton() {
         <aside className="w-[326px] shrink-0 border-l p-4 motion-safe:animate-pulse">
           <Bar className="h-3 w-24" />
         </aside>
-      </div>
-    </div>
-  )
-}
-
-export function BootSplash() {
-  const onBook = typeof window !== "undefined" && window.location.pathname.startsWith("/pipeline/")
-  return (
-    <div role="status" aria-busy className="grid h-full w-full place-items-center bg-background animate-in fade-in duration-500">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative grid size-16 place-items-center rounded-2xl bg-brand-600 text-white shadow-[0_18px_40px_-18px_var(--brand-600)]">
-          <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 0 1.5-1.5z" />
-          </svg>
-          <span className="absolute inset-0 rounded-2xl ring-4 ring-brand-500/20 motion-safe:animate-ping [animation-duration:2s]" />
-        </div>
-        <span className="text-[13px] font-medium text-muted-foreground">
-          {onBook ? <Trans>Opening the book…</Trans> : <Trans>Starting ADT Studio…</Trans>}
-        </span>
-        <div className="relative h-1 w-40 overflow-hidden rounded-full bg-muted">
-          <div className="absolute inset-y-0 left-0 w-2/5 rounded-full bg-brand-500 motion-safe:animate-indeterminate" />
-        </div>
       </div>
     </div>
   )

@@ -52,6 +52,7 @@ export function ValidationLanding({
 
       {!storyboardReady && (
         <LandingPageWarning
+          stageSlug="validation"
           variant="prereq"
           title={<Trans>Storyboard hasn't run yet</Trans>}
           description={

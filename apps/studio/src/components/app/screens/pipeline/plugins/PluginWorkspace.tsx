@@ -61,7 +61,6 @@ export function PluginWorkspace({
   usePanelFit(rowRef)
   const [finished, dismissFinished] = useRunFinished(activity)
 
-
   useEffect(() => {
     if (!finished || returnVariant !== "toast") return
     toast.success(t`${name} finished`, {
@@ -92,7 +91,6 @@ export function PluginWorkspace({
   return (
     <div {...chrome} className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
       {topChrome}
-
 
       <div ref={rowRef} data-chrome="row" className="relative flex min-h-0 flex-1 ">
         <SideRail widthClass="w-64" empty={railEmpty}>

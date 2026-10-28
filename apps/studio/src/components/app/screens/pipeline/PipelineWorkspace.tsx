@@ -7,6 +7,7 @@ import { CanvasViewportControls } from "./canvas/CanvasViewportControls"
 import { StoryboardTools } from "./canvas/tools/StoryboardTools"
 import { RightPanel } from "./plugins/RightPanel"
 import { usePanelFit } from "./shared/panelFit"
+import { RAIL_WIDTH_CLASS } from "./shared/panelLayout"
 import { PageCanvas } from "./canvas/PageCanvas"
 import { QuizCanvas } from "./canvas/QuizCanvas"
 import { PagesRail } from "./rail/PagesRail"
@@ -21,6 +22,7 @@ import type { StoryboardRun } from "./runs/useStoryboardRun"
 import { useStoryboardRerun } from "./runs/useStoryboardRerun"
 import { useStoryboardStaleness } from "./runs/useStoryboardStaleness"
 import { StoryboardStaleBanner } from "./canvas/StoryboardStaleBanner"
+import { StalePageNotice, StalePill, StaleRailNotice, StaleTopChip } from "./canvas/stale/StaleNotices"
 import { StoryboardVersionPicker } from "./canvas/StoryboardVersionPicker"
 import type { PipelineState } from "./shared/usePipelineState"
 import {
@@ -78,6 +80,7 @@ export function PipelineWorkspace({
   const [railTab, setRailTab] = useState<RailTab>("pages")
   const storyboardRerun = useStoryboardRerun(label)
   const staleness = useStoryboardStaleness(state.pages)
+  const staleWarn = useVariant("stalewarn")
   const [chromeHidden, setChromeHidden] = useState(false)
   const rowRef = useRef<HTMLDivElement>(null)
   usePanelFit(rowRef)
@@ -159,6 +162,7 @@ export function PipelineWorkspace({
       version={quizVersion}
       versionPicker={versionPicker}
       onOpenSettings={() => onOpenSettings("storyboard")}
+      stale={staleness.isStale && staleWarn === "topbar" ? <StaleTopChip rerun={storyboardRerun} outdatedCount={staleness.outdatedCount} /> : undefined}
     />
   )
 
@@ -184,7 +188,7 @@ export function PipelineWorkspace({
 
 
       <div ref={rowRef} data-chrome="row" className="relative flex min-h-0 flex-1">
-        <SideRail widthClass="w-64" empty={showEmptyPanel}>
+        <SideRail widthClass={RAIL_WIDTH_CLASS} empty={showEmptyPanel}>
           {showEmptyPanel ? (
             <PagesRailEmpty
               pageCount={state.pages.length}
@@ -202,6 +206,7 @@ export function PipelineWorkspace({
               onSelectQuiz={setSelectedQuizIndex}
               storyboardRunning={storyboardActivity.isActive}
               outdatedPageIds={staleness.outdatedPageIds}
+              notice={staleness.isStale && staleWarn === "rail" ? <StaleRailNotice rerun={storyboardRerun} outdatedCount={staleness.outdatedCount} /> : undefined}
               tab={activeQuiz ? "pages" : railTab}
               onTabChange={setRailTab}
               layersDisabled={!!activeQuiz}
@@ -218,7 +223,7 @@ export function PipelineWorkspace({
             "bg-accent",
           )}
         >
-          {staleness.isStale && (
+          {staleness.isStale && staleWarn === "strip" && (
             <StoryboardStaleBanner
               rerun={storyboardRerun}
               outdatedCount={staleness.outdatedCount}
@@ -260,12 +265,22 @@ export function PipelineWorkspace({
                       sectioning={sectioningRun}
                       storyboardRunning={storyboardActivity.isActive}
                       onOpenSectioning={() => onOpenStep("sectioning")}
+                      notice={
+                        staleness.isStale && staleWarn === "page" ? (
+                          <StalePageNotice
+                            rerun={storyboardRerun}
+                            outdatedCount={staleness.outdatedCount}
+                            pageOutdated={staleness.outdatedPageIds.has(activePage.pageId)}
+                          />
+                        ) : undefined
+                      }
                     />
                   )
                 )}
                 {!activeQuiz && <HtmlSourcePanel />}
                 {!activeQuiz && <GenerateActivityStatus />}
                 <CanvasSaveBar />
+                {staleness.isStale && staleWarn === "pill" && <StalePill rerun={storyboardRerun} outdatedCount={staleness.outdatedCount} />}
                 <CanvasViewportControls
                   viewport={viewport}
                   onViewportChange={setViewport}

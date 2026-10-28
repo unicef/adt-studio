@@ -1,4 +1,3 @@
-import { useVariant } from "@/components/app/lab/variants"
 import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { useRouterState } from "@tanstack/react-router"
@@ -56,12 +55,11 @@ interface TopBarShellProps {
 }
 
 function TopBarShell({ tone, left, center, right }: TopBarShellProps) {
-  const borderless = useVariant("topborder") === "off"
   return (
     <header
       data-chrome="topbar"
       data-stage={tone.stage ? "" : undefined}
-      className={cn("drag-region relative flex h-13 shrink-0 items-center gap-3.5 border-b bg-card px-3.5", borderless && "border-b-transparent!")}
+      className="drag-region relative flex h-13 shrink-0 items-center gap-3.5 border-b border-b-transparent! bg-card px-3.5"
     >
       <div className={leftClassName}>
         {left}

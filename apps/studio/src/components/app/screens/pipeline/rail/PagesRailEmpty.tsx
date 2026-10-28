@@ -1,4 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro"
+import { RAIL_WIDTH_CLASS } from "@/components/app/screens/pipeline/shared/panelLayout"
+import { cn } from "@/lib/utils"
 import { RailCollapseButton } from "./SideRail"
 
 export interface PagesRailEmptyProps {
@@ -27,7 +29,7 @@ export function PagesRailEmpty({ pageCount, imageCount, extracting }: PagesRailE
   const { t } = useLingui()
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
+    <aside className={cn("flex h-full shrink-0 flex-col border-r bg-card", RAIL_WIDTH_CLASS, "transition-[width] duration-300 ease-[cubic-bezier(.22,.61,.36,1)] motion-reduce:transition-none")}>
       <div className="flex items-center gap-2 px-3.5 pb-2 pt-3.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           <Trans>Pages</Trans>

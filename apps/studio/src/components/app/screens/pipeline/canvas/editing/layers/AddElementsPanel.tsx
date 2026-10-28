@@ -28,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { RAIL_LEFT_CLASS } from "@/components/app/screens/pipeline/shared/panelLayout"
 import { SegmentedTabs, tabPanelProps } from "@/components/app/screens/pipeline/shared/SegmentedTabs"
 
 interface ElementKind {
@@ -123,7 +124,7 @@ export function AddElementsPanel({ open, onClose }: { open: boolean; onClose: ()
   if (!host || !shown) return null
 
   return createPortal(
-    <div className={cn("absolute top-0 bottom-0 left-64 z-30 w-[328px] overflow-hidden", !open && "pointer-events-none")}>
+    <div className={cn("absolute top-0 bottom-0 z-30 w-[328px] overflow-hidden", RAIL_LEFT_CLASS, !open && "pointer-events-none")}>
     <aside
       aria-label={t`Add to the page`}
       inert={!open}

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import type { CaptionEntry } from "@/components/pipeline/stages/captions/lib/types"
 import { FeedGroup } from "../../shared/pageview/FeedGroup"
 import type { DraftStore } from "../../shared/pageview/draftStore"
-import { RefreshFailedNotice } from "../../shared/page-detail/RefreshFailedNotice"
+import { PageLoadError, PageRefreshFailed } from "../../shared/page-detail/PageNotices"
 import type { FeedRenderContext } from "../../shared/pageview/PageFeed"
 import { StatusDot } from "../../shared/StatusDot"
 import { CaptionList, type ItemFilter } from "../CaptionList"
@@ -101,18 +101,11 @@ export function CaptionsFeedGroup({
     <FeedGroup pageId={page.pageId} header={header} near={context.near} pinned={context.pinned} heights={context.heights}>
       {detail ? (
         <div className="flex flex-col gap-3">
-          {query.isError && <RefreshFailedNotice pageNumber={page.pageNumber} onRetry={() => void query.refetch()} />}
+          {query.isError && <PageRefreshFailed pageNumber={page.pageNumber} hex={hex} onRetry={() => void query.refetch()} />}
           <CaptionList label={label} page={detail} hex={hex} edits={edits} locked={locked} filters={false} initialFilter={filter} query={search} />
         </div>
       ) : query.isError ? (
-        <div role="alert" className="flex items-center gap-3 rounded-xl border border-destructive/30 px-4 py-3 text-[12.5px]">
-          <span className="flex-1">
-            <Trans>Couldn't load page {page.pageNumber}</Trans>
-          </span>
-          <button type="button" onClick={() => void query.refetch()} className="h-7 rounded-md border px-2 text-[12px] font-medium transition-colors hover:bg-muted">
-            <Trans>Try again</Trans>
-          </button>
-        </div>
+        <PageLoadError pageNumber={page.pageNumber} onRetry={() => void query.refetch()} />
       ) : (
         <div aria-hidden className="h-52 rounded-xl border bg-muted/30 motion-safe:animate-pulse" />
       )}

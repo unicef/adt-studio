@@ -3,6 +3,7 @@ import { AlignLeft, Image, TriangleAlert } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
+import { PAGE_CARD_INTERACTIVE } from "../shared/pageCard"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
 
 export const ExtractPageCard = memo(function ExtractPageCard({
@@ -27,18 +28,19 @@ export const ExtractPageCard = memo(function ExtractPageCard({
       aria-label={t`Open page ${page.pageNumber}`}
       className={cn(
         "flex w-full flex-col overflow-hidden rounded-xl border bg-card text-left",
-        "transition-colors duration-200",
-        "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+        PAGE_CARD_INTERACTIVE,
       )}
     >
-      <PageThumb
-        label={label}
-        pageId={page.pageId}
-        sectionIndex={null}
-        className="w-full rounded-none border-0 border-b"
-        style={{ aspectRatio: aspect }}
-        fit={fit}
-      />
+      <div className="relative overflow-hidden border-b">
+        <PageThumb
+          label={label}
+          pageId={page.pageId}
+          sectionIndex={null}
+          className="w-full rounded-none border-0"
+          style={{ aspectRatio: aspect }}
+          fit={fit}
+        />
+      </div>
       <div className="flex flex-col gap-0.5 px-2.5 py-2">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[12px] font-medium">

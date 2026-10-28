@@ -83,7 +83,7 @@ export function SideRail({ widthClass, children, empty = false }: SideRailProps)
         aria-hidden={open || empty}
         title={t`Show the left panel`}
         aria-label={t`Show the left panel`}
-        style={{ viewTransitionName: "step-rail-show" }}
+        style={{ viewTransitionName: open || empty ? "none" : "step-rail-show" }}
         className={cn(
           "absolute top-6 left-6 z-20 grid size-8 place-items-center rounded-lg border bg-card/85 text-muted-foreground shadow-sm backdrop-blur-sm",
           "transition-[opacity,scale,background-color,color] ease-out hover:bg-muted hover:text-foreground motion-reduce:transition-none",

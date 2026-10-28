@@ -269,6 +269,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
           {warnPages.length > 0 && (
             <div className="mb-4">
               <LandingPageWarning
+                stageSlug="extract"
                 variant="prereq"
                 title={t`${warnPages.length} of ${pageList.length} pages had no extracted text`}
                 description={

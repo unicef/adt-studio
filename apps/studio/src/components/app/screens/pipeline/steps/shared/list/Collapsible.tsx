@@ -1,11 +1,24 @@
-import type { ReactNode } from "react"
+import type { ReactNode, TransitionEvent } from "react"
 import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function Collapsible({ open, children, id, className }: { open: boolean; children: ReactNode; id?: string; className?: string }) {
+export function Collapsible({
+  open,
+  children,
+  id,
+  className,
+  onTransitionEnd,
+}: {
+  open: boolean
+  children: ReactNode
+  id?: string
+  className?: string
+  onTransitionEnd?: (event: TransitionEvent<HTMLDivElement>) => void
+}) {
   return (
     <div
       id={id}
+      onTransitionEnd={onTransitionEnd}
       className={cn(
         "grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
         open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",

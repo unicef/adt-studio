@@ -1,6 +1,7 @@
 import { memo, useId, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
+import { PAGE_CARD_INTERACTIVE } from "./pageCard"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { StatusDot } from "./StatusDot"
 
@@ -55,8 +56,7 @@ export const StepPageCard = memo(function StepPageCard({
       className={cn(
         "flex w-full flex-col overflow-hidden rounded-xl border bg-card text-left",
         failed && "border-destructive/40",
-        "transition-colors duration-200 motion-reduce:transition-none",
-        "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+        PAGE_CARD_INTERACTIVE,
       )}
     >
       <PageThumb

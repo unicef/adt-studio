@@ -1,9 +1,10 @@
 import type { ReactNode } from "react"
-import { ChevronLeft, ChevronRight, LayoutGrid, Loader2, RotateCcw, TriangleAlert } from "lucide-react"
+import { ChevronLeft, ChevronRight, LayoutGrid, Loader2 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useVariant } from "@/components/app/lab/variants"
 import { DetailNavButton, StepBody, StepEmptyHint } from "../ui"
 import { PageDetailImage } from "./PageDetailImage"
+import { PageLoadError } from "./PageNotices"
 import { DetailPanePeek } from "./variants/DetailPanePeek"
 import { DetailPaneSide } from "./variants/DetailPaneSide"
 import { DetailPaneTop } from "./variants/DetailPaneTop"
@@ -79,25 +80,7 @@ export function PageDetailFrame({
           <Trans>Loading page {pageNumber}…</Trans>
         </div>
       ) : state === "error" ? (
-        <div
-          role="alert"
-          className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4 animate-in fade-in slide-in-from-top-1 duration-300 motion-reduce:animate-none"
-        >
-          <TriangleAlert className="size-4 shrink-0 text-destructive" />
-          <p className="min-w-0 flex-1 text-[13px] font-medium text-foreground">
-            <Trans>Couldn't load page {pageNumber}</Trans>
-          </p>
-          {onRetry && (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition-colors hover:bg-muted"
-            >
-              <RotateCcw className="size-3.5" />
-              <Trans>Try again</Trans>
-            </button>
-          )}
-        </div>
+        <PageLoadError pageNumber={pageNumber} onRetry={onRetry} />
       ) : (
         <Pane image={<PageDetailImage label={label} pageId={pageId} pageNumber={pageNumber} />}>
           {state === "empty" ? <StepEmptyHint>{emptyMessage ?? <Trans>Nothing on this page yet.</Trans>}</StepEmptyHint> : children}

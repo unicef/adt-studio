@@ -5,7 +5,7 @@ import type { MessageDescriptor } from "@lingui/core"
 import { ArrowRight } from "lucide-react"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useNextStep } from "@/components/app/screens/pipeline/shared/useNextStep"
+import { isQuietNextStep, useNextStep, type NextStep } from "@/components/app/screens/pipeline/shared/useNextStep"
 import { NextStepQuiet } from "./NextStepQuiet"
 
 export interface NextStepConfirm {
@@ -25,23 +25,26 @@ const WHY: Record<string, MessageDescriptor> = {
   export: msg`Download the finished book to share or publish.`,
 }
 
+interface NextStepCardViewProps {
+  next: NextStep | null
+  slug: string
+  ready?: boolean
+  confirm?: NextStepConfirm | null
+  aside?: ReactNode
+}
+
 export function NextStepCard({
   label,
   slug,
   partial = false,
-  ready = true,
-  confirm,
-  aside,
-}: {
-  label: string
-  slug: string
-  partial?: boolean
-  ready?: boolean
-  confirm?: NextStepConfirm | null
-  aside?: ReactNode
-}) {
-  const { i18n } = useLingui()
+  ...view
+}: Omit<NextStepCardViewProps, "next"> & { label: string; partial?: boolean }) {
   const next = useNextStep(label, slug, { partial })
+  return <NextStepCardView next={next} slug={slug} {...view} />
+}
+
+export function NextStepCardView({ next, slug, ready = true, confirm, aside }: NextStepCardViewProps) {
+  const { i18n } = useLingui()
   const [asking, setAsking] = useState(false)
   if (!next) return null
   if (!ready) {
@@ -54,7 +57,7 @@ export function NextStepCard({
   }
   const whyMessage = WHY[next.slug]
   const why = whyMessage ? i18n._(whyMessage) : null
-  if (next.slug === "preview" || next.slug === "export") return <NextStepQuiet slug={slug} next={next} why={why} />
+  if (isQuietNextStep(next)) return <NextStepQuiet slug={slug} next={next} why={why} />
 
   const goButton = (
     <button
@@ -118,7 +121,7 @@ export function NextStepCard({
           goButton
         )}
       </div>
-      {aside && <div className="flex flex-wrap items-center gap-2 border-t empty:hidden border-white/15 bg-black/10 px-5 py-2.5 text-[12.5px] text-white/90 animate-in fade-in duration-300 motion-reduce:animate-none">{aside}</div>}
+      {aside && <div className="border-t border-white/15 bg-black/10 px-5 py-2.5 text-[12.5px] text-white/90 empty:hidden animate-in fade-in duration-300 motion-reduce:animate-none">{aside}</div>}
     </section>
   )
 }

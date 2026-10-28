@@ -300,6 +300,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
         <CascadeWarning stageSlug="storyboard" />
       ) : !upstreamCovered ? (
         <LandingPageWarning
+          stageSlug="storyboard"
           variant="prereq"
           title={<Trans>Earlier stages haven't run yet</Trans>}
           description={

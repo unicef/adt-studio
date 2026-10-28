@@ -122,13 +122,6 @@ export function PendingPageCard({ index, hex, arrived = false, label, pageId, pa
         {!arrived && (
           <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 to-transparent motion-safe:animate-shimmer dark:via-white/10" />
         )}
-        {!pageId && (
-          <div className="absolute inset-x-4 top-5 flex flex-col gap-1.5">
-            <div className="h-2 w-3/5 rounded bg-muted-foreground/15" />
-            <div className="h-1.5 w-full rounded bg-muted-foreground/10" />
-            <div className="h-1.5 w-5/6 rounded bg-muted-foreground/10" />
-          </div>
-        )}
         {arrived && (
           <span
             className="absolute right-2 top-2 grid size-5 place-items-center rounded-full text-white animate-in zoom-in-50 fade-in duration-300"

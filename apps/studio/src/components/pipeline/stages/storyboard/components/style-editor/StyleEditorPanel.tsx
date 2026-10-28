@@ -54,6 +54,7 @@ interface StyleEditorPanelProps {
   /** Book label, forwarded to the font control so it can list attached fonts. */
   bookLabel?: string
   as?: "aside" | "div"
+  renderElementActions?: (dataId: string, elementProps: StyleEditorElementProps) => ReactNode
 }
 
 export function StyleEditorPanel({
@@ -70,6 +71,7 @@ export function StyleEditorPanel({
   isFixedLayout = false,
   bookLabel,
   as: Root = "aside",
+  renderElementActions,
 }: StyleEditorPanelProps) {
   const { t } = useLingui()
 
@@ -195,6 +197,7 @@ export function StyleEditorPanel({
             computedTypography={computedTypography ?? null}
             isFixedLayout={isFixedLayout}
             bookLabel={bookLabel}
+            renderElementActions={renderElementActions}
           />
         ) : null}
       </div>
@@ -265,6 +268,7 @@ interface StyleEditorBodyProps {
   computedTypography: ComputedTypographyStyles | null
   isFixedLayout: boolean
   bookLabel?: string
+  renderElementActions?: (dataId: string, elementProps: StyleEditorElementProps) => ReactNode
 }
 
 function StyleEditorBody({
@@ -278,6 +282,7 @@ function StyleEditorBody({
   computedTypography,
   isFixedLayout,
   bookLabel,
+  renderElementActions,
 }: StyleEditorBodyProps) {
   const visibleSections = useMemo(
     () => (elementType ? getVisibleSections(elementType) : []),
@@ -297,12 +302,18 @@ function StyleEditorBody({
       }}
     >
       <div className="flex flex-col min-h-full">
-        {elementProps?.isImage ? (
-          <ImageActionsSection dataId={dataId} elementProps={elementProps} />
-        ) : null}
-        {elementType === "text" ? (
-          <TextRoleSection dataId={dataId} elementProps={elementProps} />
-        ) : null}
+        {renderElementActions ? (
+          elementProps ? renderElementActions(dataId, elementProps) : null
+        ) : (
+          <>
+            {elementProps?.isImage ? (
+              <ImageActionsSection dataId={dataId} elementProps={elementProps} />
+            ) : null}
+            {elementType === "text" ? (
+              <TextRoleSection dataId={dataId} elementProps={elementProps} />
+            ) : null}
+          </>
+        )}
         {isFixedLayout ? (
           <div className="flex flex-1 items-center justify-center">
             <FixedLayoutNotice />

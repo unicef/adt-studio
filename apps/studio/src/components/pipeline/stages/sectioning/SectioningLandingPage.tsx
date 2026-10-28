@@ -148,6 +148,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
         <CascadeWarning stageSlug="sectioning" />
       ) : !extractCovered && hasAssembledPages ? (
         <LandingPageWarning
+          stageSlug="sectioning"
           variant="prereq"
           title={<Trans>Book hierarchy needs rebuilding</Trans>}
           description={
@@ -159,6 +160,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
         />
       ) : !extractCovered ? (
         <LandingPageWarning
+          stageSlug="sectioning"
           variant="prereq"
           title={<Trans>Extract hasn't run yet</Trans>}
           description={

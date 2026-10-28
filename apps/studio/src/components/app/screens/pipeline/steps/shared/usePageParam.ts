@@ -27,7 +27,8 @@ export function usePageParam(label: string, slug: string): PageParam {
     [navigate, label, slug],
   )
 
-  const openPage = useCallback((pageId: string) => go(pageId, false, true), [go])
+  const detailOpen = pageParam !== null
+  const openPage = useCallback((pageId: string) => go(pageId, false, !detailOpen), [go, detailOpen])
   const stepPage = useCallback((pageId: string) => go(pageId, true), [go])
   const closeDetail = useCallback(() => go(null, false, true), [go])
 

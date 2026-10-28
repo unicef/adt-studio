@@ -1,6 +1,7 @@
 import { useLingui } from "@lingui/react/macro"
 import { ZoomIn, ZoomOut } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useCanvasFit } from "./canvasLayout"
 import { ZOOM_MAX, ZOOM_MIN, ZOOM_STEP, zoomBy } from "./zoom"
 
 export interface ZoomControlProps {
@@ -15,7 +16,8 @@ const STEP_CLASS =
 
 export function ZoomControl({ value, onChange, disabled, className }: ZoomControlProps) {
   const { t } = useLingui()
-  const percent = Math.round(value * 100)
+  const fit = useCanvasFit()
+  const percent = Math.round(value * fit * 100)
   const outDisabled = disabled || value <= ZOOM_MIN
   const resetDisabled = disabled || value === 1
   const inDisabled = disabled || value >= ZOOM_MAX
@@ -46,8 +48,8 @@ export function ZoomControl({ value, onChange, disabled, className }: ZoomContro
         type="button"
         onClick={guard(resetDisabled, () => onChange(1))}
         aria-disabled={resetDisabled || undefined}
-        title={t`Reset zoom`}
-        aria-label={t`Reset zoom, ${percent}%`}
+        title={t`Fit to canvas`}
+        aria-label={t`Fit to canvas, ${percent}%`}
         className={cn(
           "h-full w-12 border-x text-center font-mono text-[11px] tabular-nums transition-colors hover:bg-muted aria-disabled:cursor-default aria-disabled:hover:bg-transparent",
           disabled && "text-muted-foreground/40",

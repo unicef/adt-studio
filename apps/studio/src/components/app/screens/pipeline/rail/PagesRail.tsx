@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, Puzzle, Search, X } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
@@ -10,8 +10,10 @@ import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { QuizRailRow } from "./QuizRailRow"
 import { groupQuizzesByPage } from "./railOrder"
 import { RailCollapseButton } from "./SideRail"
+import { PageHoverPreview } from "./PageHoverPreview"
 import { SegmentedTabs, tabPanelProps } from "@/components/app/screens/pipeline/shared/SegmentedTabs"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
+import { RAIL_WIDTH_CLASS } from "@/components/app/screens/pipeline/shared/panelLayout"
 
 export interface PagesRailProps {
   label: string
@@ -23,6 +25,7 @@ export interface PagesRailProps {
   onSelectQuiz: (quizIndex: number) => void
   storyboardRunning?: boolean
   outdatedPageIds?: ReadonlySet<string>
+  notice?: ReactNode
   tab?: RailTab
   onTabChange?: (tab: RailTab) => void
   layers?: React.ReactNode
@@ -48,6 +51,7 @@ export function PagesRail({
   onSelectQuiz,
   storyboardRunning,
   outdatedPageIds,
+  notice,
   tab,
   onTabChange,
   layers,
@@ -112,8 +116,8 @@ export function PagesRail({
   }
 
   return (
-    <aside aria-label={tabbed ? t`Pages and layers` : t`Pages`} className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
-      <div data-chrome="railhead" className="flex h-11 shrink-0 items-center gap-1.5 border-b px-2.5">
+    <aside aria-label={tabbed ? t`Pages and layers` : t`Pages`} className={cn("flex h-full shrink-0 flex-col border-r bg-card", RAIL_WIDTH_CLASS, "transition-[width] duration-300 ease-[cubic-bezier(.22,.61,.36,1)] motion-reduce:transition-none")}>
+      <div data-chrome="railhead" className="flex h-11 shrink-0 items-center gap-1.5 px-2.5">
         <RailCollapseButton className="size-7 rounded-md" />
         {tab && onTabChange ? (
           <SegmentedTabs
@@ -145,6 +149,7 @@ export function PagesRail({
         )}
       </div>
 
+      {notice && tab !== "layers" && notice}
       {fieldShown && (
         <label className="mx-2.5 mt-2 flex h-8 shrink-0 items-center gap-2 rounded-lg bg-muted/70 px-2.5 transition-[background-color,box-shadow] duration-150 focus-within:bg-card focus-within:ring-2 focus-within:ring-ring/60 focus-within:ring-inset">
           <Search aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
@@ -304,6 +309,7 @@ export function PagesRail({
                     </span>
                   </div>
                 </button>
+                <PageHoverPreview label={label} page={page} outdated={outdated} />
               </div>
             )
           })}

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { useCanvasEditing } from "@/components/app/screens/pipeline/canvas/editing/CanvasEditing"
 import { StyleSidePanel } from "@/components/app/screens/pipeline/canvas/editing/StyleSidePanel"
 import { SegmentedTabs, tabPanelProps } from "@/components/app/screens/pipeline/shared/SegmentedTabs"
+import { RIGHT_PANEL_WIDTH_CLASS } from "@/components/app/screens/pipeline/shared/panelLayout"
 import { setRightPanelTab, useRightPanelTab, type RightTab } from "@/components/app/screens/pipeline/shared/rightPanelTab"
 import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
 import { AiEditPanel, aiPanelAvailable, type AiEditPanelProps } from "./AiEditPanel"
@@ -58,11 +59,11 @@ export function RightPanel({ label, viewport, editingEnabled, ai }: RightPanelPr
         data-ai-panel={open && content.ai && aiVariant !== "mock" ? "open" : undefined}
         className={cn(
           "shrink-0 overflow-hidden transition-[width,opacity] duration-300 ease-out motion-reduce:transition-none",
-          open ? "w-[326px] opacity-100" : "w-0 opacity-0",
+          open ? cn(RIGHT_PANEL_WIDTH_CLASS, "opacity-100") : "w-0 opacity-0",
         )}
       >
-        <div className="flex h-full w-[326px] flex-col border-l bg-card">
-          <div data-chrome="aihead" className="flex h-11 shrink-0 items-center gap-1.5 border-b px-2.5">
+        <div className={cn("flex h-full flex-col border-l bg-card transition-[width] duration-300 ease-out motion-reduce:transition-none", RIGHT_PANEL_WIDTH_CLASS)}>
+          <div data-chrome="aihead" className="flex h-11 shrink-0 items-center gap-1.5 px-2.5">
             <button
               type="button"
               data-panel-toggle="ai-hide"

@@ -3,6 +3,7 @@ import { EyeOff, Layers, TriangleAlert } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
 import { cn } from "@/lib/utils"
+import { PAGE_CARD_INTERACTIVE } from "../shared/pageCard"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
 
@@ -29,8 +30,7 @@ export const SectioningPageCard = memo(function SectioningPageCard({
       aria-label={t`Open page ${page.pageNumber}`}
       className={cn(
         "flex w-full flex-col overflow-hidden rounded-xl border bg-card text-left",
-        "transition-colors duration-200",
-        "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+        PAGE_CARD_INTERACTIVE,
       )}
     >
       <PageThumb

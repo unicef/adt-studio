@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useState, type RefObject } from "react"
+import { useEffect, useLayoutEffect, useState, useSyncExternalStore, type RefObject } from "react"
+import { getDeviceFrame } from "@/components/pipeline/stages/storyboard/components/style-editor/device-chrome"
 import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
 import { zoomBy } from "./zoom"
 
@@ -10,6 +11,11 @@ export const CAPTURE_WIDTH: Record<Viewport, number> = {
 
 export const CANVAS_PADDING = 48
 export const DEVICE_PADDING = 64
+export const DOCK_CLEARANCE = 96
+export const DOCK_HANDLE_CLEARANCE = 40
+export const FIT_MAX_SCALE = 1.5
+export const DEVICE_FIT_MAX_SCALE = 2
+export const DEVICE_MIN_FIT_SCALE = 0.7
 const DESKTOP_FALLBACK_WIDTH = 760
 
 export interface CanvasPane {
@@ -77,8 +83,59 @@ export function useCanvasWheelZoom(
   }, [ref, zoom, onZoomChange])
 }
 
+export function desktopFitScale(pane: CanvasPane): number {
+  const width = pane.width ? pane.width - CANVAS_PADDING : DESKTOP_FALLBACK_WIDTH
+  return Math.max(0, Math.min(FIT_MAX_SCALE, width / CAPTURE_WIDTH.desktop))
+}
+
+export function canvasPageScale(viewport: Viewport, pane: CanvasPane, zoom: number): number {
+  if (viewport !== "desktop") return 1
+  return desktopFitScale(pane) * zoom
+}
+
 export function canvasContentWidth(viewport: Viewport, pane: CanvasPane, zoom: number): number {
-  if (viewport !== "desktop") return CAPTURE_WIDTH[viewport]
-  const desktopWidth = pane.width ? pane.width - CANVAS_PADDING : DESKTOP_FALLBACK_WIDTH
-  return Math.round(desktopWidth * zoom)
+  return Math.round(CAPTURE_WIDTH[viewport] * canvasPageScale(viewport, pane, zoom))
+}
+
+export interface DeviceChrome {
+  chromeWidth: number
+  chromeHeight: number
+}
+
+export function deviceFitScale(chrome: DeviceChrome, available: CanvasPane): number {
+  if (available.width <= 0 || available.height <= 0) return 1
+  const byWidth = available.width / chrome.chromeWidth
+  const byHeight = Math.max(DEVICE_MIN_FIT_SCALE, available.height / chrome.chromeHeight)
+  return Math.max(0, Math.min(DEVICE_FIT_MAX_SCALE, byWidth, byHeight))
+}
+
+export function canvasDeviceFit(viewport: Exclude<Viewport, "desktop">, available: CanvasPane): number {
+  return deviceFitScale(getDeviceFrame(viewport, CAPTURE_WIDTH[viewport]), available)
+}
+
+export function deviceAvailable(pane: CanvasPane, dockMinimized: boolean): CanvasPane {
+  return {
+    width: pane.width - CANVAS_PADDING,
+    height: pane.height - DEVICE_PADDING - (dockMinimized ? DOCK_HANDLE_CLEARANCE : DOCK_CLEARANCE),
+  }
+}
+
+let publishedFit = 1
+const fitListeners = new Set<() => void>()
+
+export function publishCanvasFit(scale: number) {
+  if (scale === publishedFit) return
+  publishedFit = scale
+  for (const listener of fitListeners) listener()
+}
+
+function subscribeFit(listener: () => void) {
+  fitListeners.add(listener)
+  return () => {
+    fitListeners.delete(listener)
+  }
+}
+
+export function useCanvasFit(): number {
+  return useSyncExternalStore(subscribeFit, () => publishedFit, () => 1)
 }

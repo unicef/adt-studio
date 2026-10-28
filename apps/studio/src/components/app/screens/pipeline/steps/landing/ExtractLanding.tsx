@@ -26,7 +26,6 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { PageGroupingVisual } from "@/components/pipeline/stages/extract/components/PageGroupingVisual"
-import { ExtractPreview } from "@/components/pipeline/stages/extract/components/ExtractPreview"
 import { readFigureExtractionMode } from "../extract/figureMode"
 import { LandingBookCanvas } from "./book-canvas/LandingBookCanvas"
 
@@ -41,7 +40,7 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
   const status = useStageStatus("extract")
   const gate = useLandingRunGate(bookLabel, "extract")
   const { data: book } = useBook(bookLabel)
-  const { data: sourcePdfInfo, isPending: sourcePdfPending } = useSourcePdfInfo(bookLabel)
+  const { data: sourcePdfInfo, isPending: sourcePdfPending, isError: sourcePdfFailed } = useSourcePdfInfo(bookLabel)
   const { data: partInfo } = usePartInfo(bookLabel)
   const isPart = !!partInfo
 
@@ -106,7 +105,6 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
     queueRun({ fromStage: "extract", toStage: "extract", apiKey })
   }
 
-
   return (
     <StepLandingShell
       notice={status.hasError ? <RunErrorNotice label={bookLabel} stage="extract" /> : undefined}
@@ -129,15 +127,8 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
       disabledReason={gate.disabledReason}
       runLabel={<Trans>Run Extract</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
-      previewLabel={t`Extract Preview`}
       onRun={handleRun}
-      canvas={<LandingBookCanvas bookLabel={bookLabel} range={pageRange} spread={spreadMode === "spread"} totalPages={totalPages} />}
-      preview={
-        <ExtractPreview
-          bookTitle={book?.title ?? bookLabel}
-          pageCount={totalPages || null}
-        />
-      }
+      canvas={<LandingBookCanvas bookLabel={bookLabel} range={pageRange} spread={spreadMode === "spread"} totalPages={totalPages} failed={sourcePdfFailed} />}
     >
       <CascadeWarning stageSlug="extract" />
 

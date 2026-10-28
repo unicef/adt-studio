@@ -9,6 +9,8 @@ import { tweenScroll } from "./scrollTween"
 const INDENT = 14
 const LEAD = 8
 const EDGE = 12
+const TRAIL = 12
+const MIN_LABEL = 96
 
 export const PickedLayer = createContext<{ picked: string | null; pick: (key: string) => void }>({ picked: null, pick: () => {} })
 
@@ -170,7 +172,10 @@ export function LayerRow({
             )}
           />
         </span>
-        <span className="relative flex min-w-0 max-w-(--tree-w) flex-1 items-center gap-2">
+        <span
+          className="relative flex min-w-0 flex-1 items-center gap-2"
+          style={{ maxWidth: `max(${MIN_LABEL}px, calc(var(--tree-w) - ${LEAD + depth * INDENT + TRAIL}px))` }}
+        >
           <span
             aria-hidden
             onClick={(event) => {
@@ -198,11 +203,11 @@ export function LayerRow({
             )}
             strokeWidth={1.75}
           />
-          <span ref={labelRef} className={cn("min-w-0 truncate", isSelected ? "font-medium" : "font-normal")}>{shownLabel}</span>
+          <span ref={labelRef} title={shownLabel} className={cn("min-w-0 truncate", isSelected ? "font-medium" : "font-normal")}>{shownLabel}</span>
           {heading && (
             <span className={cn("rounded-[5px] px-1 font-mono text-[9.5px]", isSelected ? "bg-white/20" : "bg-muted text-muted-foreground")}>{heading}</span>
           )}
-          {secondary && <span className={cn("min-w-0 shrink-[2] truncate text-[12px]", isSelected ? "text-white/75" : "text-muted-foreground")}>{secondary}</span>}
+          {secondary && <span title={secondary} className={cn("min-w-0 shrink-[2] truncate text-[12px]", isSelected ? "text-white/75" : "text-muted-foreground")}>{secondary}</span>}
         </span>
         <span className="pointer-events-none absolute inset-0 flex justify-end">
           <span

@@ -210,6 +210,7 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
       </div>
 
       <LandingPageWarning
+        stageSlug="sign-language"
         show={!storyboardReady}
         variant="prereq"
         title={<Trans>Run {getStageLabelI18n("storyboard")} first</Trans>}

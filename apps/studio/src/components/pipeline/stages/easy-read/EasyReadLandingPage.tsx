@@ -52,7 +52,7 @@ export function EasyReadLandingPage({ bookLabel }: { bookLabel: string }) {
           : null
       }
     >
-      <FixedLayoutWarningBanner show={isFixedLayout} />
+      <FixedLayoutWarningBanner show={isFixedLayout} stageSlug="easy-read" />
 
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">

@@ -7,8 +7,7 @@ import { ensurePages } from "@/components/app/screens/pipeline/shared/ensurePage
 import { PipelineDebugDock } from "@/components/app/screens/pipeline/debug/PipelineDebugDock"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { ScreenFallback } from "@/components/app/ui/ScreenFallback"
-import { BootSplash, PipelineBootSkeleton } from "@/components/app/ui/BootSkeleton"
-import { getVariant } from "@/components/app/lab/variants"
+import { PipelineBootSkeleton } from "@/components/app/ui/BootSkeleton"
 import { APP_PATHS } from "@/components/app/nav"
 import { PipelineChrome } from "@/components/app/screens/pipeline/chrome/PipelineChrome"
 
@@ -22,9 +21,8 @@ export const Route = createFileRoute("/_app/pipeline/$label")({
     await ensurePages(context.queryClient, params.label)
   },
   component: PipelineLayout,
-  pendingComponent: () =>
-    getVariant("boot") === "shell" ? <PipelineBootSkeleton /> : getVariant("boot") === "splash" ? <BootSplash /> : <ScreenFallback />,
-  pendingMs: getVariant("boot") !== "current" ? 120 : undefined,
+  pendingComponent: PipelineBootSkeleton,
+  pendingMs: 120,
   errorComponent: ({ error }) => <ScreenFallback error={error} />,
   notFoundComponent: BookNotFound,
 })

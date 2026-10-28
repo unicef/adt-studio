@@ -35,6 +35,7 @@ export function CascadeWarning({ stageSlug }: { stageSlug: string }) {
 
   return (
     <LandingPageWarning
+      stageSlug={stageSlug}
       show
       variant="cascade"
       title={<Trans>Re-running clears later stages</Trans>}

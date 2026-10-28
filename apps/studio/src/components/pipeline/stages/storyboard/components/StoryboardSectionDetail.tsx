@@ -29,7 +29,6 @@ import type { PageDetail } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { ReadyOnMount } from "@/components/pipeline/components/LazyThumb"
 import type {
-  ContentNodeData,
   PageSectioningOutput,
   PageSectioningSection,
 } from "@adt/types"
@@ -92,11 +91,10 @@ import {
   DEVICE_WIDTHS,
   useDeviceView,
 } from "./style-editor/device-breakpoint"
-import { ImageCropDialog, pageBoundsToCropRect } from "./ImageCropDialog"
-import { AiImageDialog } from "./AiImageDialog"
 import { AddImageDialog } from "./AddImageDialog"
-import { ReplaceFromBookDialog } from "./ReplaceFromBookDialog"
-import { SegmentPreviewDialog, type SegmentRegion } from "./SegmentPreviewDialog"
+import { SectionElementDialogs } from "./SectionElementDialogs"
+import { useSectionElementActions } from "./useSectionElementActions"
+import { escapeRegex, renderedImageSrc, TEXT_LIKE_TAGS, withSectionNodes } from "../lib/section-element-edits"
 import { AiEditHistoryDrawer } from "./AiEditHistoryDrawer"
 import { LayoutMirrorDialog } from "./LayoutMirrorDialog"
 import { GenerateActivityDialog } from "./GenerateActivityDialog"
@@ -113,22 +111,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-
-const TEXT_LIKE_TAGS = new Set([
-  "p", "h1", "h2", "h3", "h4", "h5", "h6",
-  "span", "em", "strong", "i", "b", "u", "s",
-  "code", "kbd", "samp", "sub", "sup",
-  "blockquote", "figcaption", "small", "mark", "cite",
-])
-
-// Image src format embedded in stored rendering HTML — must match the pipeline's
-// web-rendering.ts `imageUrlFor`. Always relative so the iframe's <base> resolves it.
-// Don't use BASE_URL here: in Electron BASE_URL is absolute (http://localhost:<port>/api),
-// which won't match the relative URLs the pipeline writes into the HTML and causes
-// crop / replace / segment / AI-image swaps to silently leave the old src in place.
-function renderedImageSrc(label: string, imageId: string): string {
-  return `/api/books/${label}/images/${imageId}`
-}
 
 // -- AI loading messages --
 
@@ -177,50 +159,6 @@ function replaceSection(
     ...sectioning,
     sections: sectioning.sections.map((s, i) => (i === sectionIndex ? next : s)),
   }
-}
-
-// Replace the tree of the section at `sectionIndex` with `nextNodes`.
-function withSectionNodes(
-  sectioning: SectioningData,
-  sectionIndex: number,
-  nextNodes: ContentNodeData[]
-): SectioningData {
-  return {
-    ...sectioning,
-    sections: sectioning.sections.map((s, i) =>
-      i === sectionIndex ? { ...s, nodes: nextNodes } : s
-    ),
-  }
-}
-
-// Replace a single node (matched by id, anywhere in the tree) with `siblings`
-// at the same slot. Used when segmentation produces multiple images from one.
-function replaceNodeWithSiblings(
-  nodes: ContentNodeData[],
-  targetNodeId: string,
-  siblings: ContentNodeData[]
-): ContentNodeData[] {
-  let replaced = false
-  const walk = (list: ContentNodeData[]): ContentNodeData[] => {
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].nodeId === targetNodeId) {
-        replaced = true
-        return [...list.slice(0, i), ...siblings, ...list.slice(i + 1)]
-      }
-      const children = list[i].children
-      if (children) {
-        const nextChildren = walk(children)
-        if (nextChildren !== children) {
-          return list.map((n, j) =>
-            j === i ? { ...n, children: nextChildren } : n
-          )
-        }
-      }
-    }
-    return list
-  }
-  const next = walk(nodes)
-  return replaced ? next : nodes
 }
 
 function getRenderedSectionByIndex(
@@ -366,10 +304,6 @@ function buildEditInstructions(savedHtml: string, pendingHtml: string): string {
 /* eslint-enable lingui/no-unlocalized-strings */
 
 // -- Helpers --
-
-function escapeRegex(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
 
 /**
  * Back-propagate text changes from edited HTML into sectioning data.
@@ -554,12 +488,7 @@ export function StoryboardSectionDetail({
     }
   }, [])
 
-  // Image crop state
-  const [cropTarget, setCropTarget] = useState<string | null>(null)
-  const [recropPageSrc, setRecropPageSrc] = useState<string | null>(null)
-
   // Image replace / AI image state — tracked via unified task system
-  const [aiImageDialogTarget, setAiImageDialogTarget] = useState<string | null>(null)
   const { tasks: bookTasks } = useBookTasks(bookLabel)
   // Track the task we submitted from this component (for done/error dismiss)
   const [aiImageTaskId, setAiImageTaskId] = useState<string | null>(null)
@@ -601,20 +530,6 @@ export function StoryboardSectionDetail({
     () => bookTasks.some((t) => t.kind === "re-render" && t.pageId === pageId && t.status === "running"),
     [bookTasks, pageId]
   )
-
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const replaceTargetRef = useRef<string | null>(null)
-  const [replaceFromBookTarget, setReplaceFromBookTarget] = useState<string | null>(null)
-
-  // Image segmentation state
-  const [segmenting, setSegmenting] = useState(false)
-  const [segmentPreview, setSegmentPreview] = useState<{
-    imageId: string
-    imageSrc: string
-    imageWidth: number
-    imageHeight: number
-    regions: SegmentRegion[]
-  } | null>(null)
 
   // Add image dialog state
   const [addImageDialogOpen, setAddImageDialogOpen] = useState(false)
@@ -795,8 +710,7 @@ export function StoryboardSectionDetail({
     setHasUnflushedEdits(false)
     setPendingCategories(new Set())
     setSelectedElement(null)
-    setCropTarget(null)
-    setAiImageDialogTarget(null)
+    elementActions.reset()
     setAddImageDialogOpen(false)
     // Don't cancel running tasks — they continue server-side.
     // Just detach tracking so the result won't be applied to the wrong page.
@@ -1777,258 +1691,6 @@ export function StoryboardSectionDetail({
     [setLeafRoleById]
   )
 
-  // Handle crop apply: upload cropped image, update sectioning + rendering HTML
-  const handleCropApply = useCallback(
-    async (blob: Blob) => {
-      if (!cropTarget) return
-      const result = await api.uploadCroppedImage(bookLabel, pageId, cropTarget, blob)
-
-      // 1. Update sectioning: swap the image leaf's nodeId (which IS the imageId)
-      const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
-      if (sBase && section) {
-        const nextNodes = replaceNodeId(section.nodes, cropTarget, result.imageId)
-        if (nextNodes !== section.nodes) {
-          setPendingSectioning(withSectionNodes(sBase, sectionIndex, nextNodes))
-        }
-      }
-
-      // 2. Update rendered HTML to swap image references so preview reflects the crop
-      const rBase = pendingRendering ?? page.rendering
-      if (rBase) {
-        const oldSrc = renderedImageSrc(bookLabel, cropTarget)
-        const newSrc = renderedImageSrc(bookLabel, result.imageId)
-        const updatedRendering: RenderingData = {
-          ...rBase,
-          sections: rBase.sections.map((s) => {
-            if (s.sectionIndex !== sectionIndex) return s
-            let html = s.html
-            html = html.replace(new RegExp(`data-id="${escapeRegex(cropTarget)}"`, "g"), `data-id="${result.imageId}"`)
-            html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
-            return { ...s, html }
-          }),
-        }
-        setPendingRendering(updatedRendering)
-        markPending("images")
-      }
-
-      setCropTarget(null)
-      setRecropPageSrc(null)
-      setSelectedElement(null)
-    },
-    [cropTarget, bookLabel, pageId, pendingSectioning, page.sectioningTree, pendingRendering, page.rendering, sectionIndex, section]
-  )
-
-  // Recrop from page: fetch the full page image and open crop dialog with it
-  const handleRecropFromPage = useCallback(async (dataId: string) => {
-    try {
-      const { imageBase64 } = await api.getPageImage(bookLabel, pageId)
-      setCropTarget(dataId)
-      setRecropPageSrc(`data:image/png;base64,${imageBase64}`)
-    } catch (err) {
-      setAiError(err instanceof Error ? err.message : t`Failed to load page image`)
-    }
-  }, [bookLabel, pageId, t])
-
-  // Image replace: open native file picker
-  const handleImageReplace = useCallback((dataId: string) => {
-    replaceTargetRef.current = dataId
-    fileInputRef.current?.click()
-  }, [])
-
-  // Process uploaded file: upload to API, swap image in sectioning + rendering
-  const handleImageUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      const targetId = replaceTargetRef.current
-      if (!file || !targetId) return
-      e.target.value = "" // reset so same file can be re-selected
-      replaceTargetRef.current = null
-
-      let result: { imageId: string; width: number; height: number }
-      try {
-        result = await api.uploadCroppedImage(bookLabel, pageId, targetId, file)
-      } catch (err) {
-        setAiError(err instanceof Error ? err.message : t`Image upload failed`)
-        return
-      }
-
-      const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
-      if (sBase && section) {
-        const nextNodes = replaceNodeId(section.nodes, targetId, result.imageId)
-        if (nextNodes !== section.nodes) {
-          setPendingSectioning(withSectionNodes(sBase, sectionIndex, nextNodes))
-        }
-      }
-
-      const rBase = pendingRendering ?? page.rendering
-      if (rBase) {
-        const oldSrc = renderedImageSrc(bookLabel, targetId)
-        const newSrc = renderedImageSrc(bookLabel, result.imageId)
-        const updatedRendering: RenderingData = {
-          ...rBase,
-          sections: rBase.sections.map((s) => {
-            if (s.sectionIndex !== sectionIndex) return s
-            let html = s.html
-            html = html.replace(new RegExp(`data-id="${escapeRegex(targetId)}"`, "g"), `data-id="${result.imageId}"`)
-            html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
-            return { ...s, html }
-          }),
-        }
-        setPendingRendering(updatedRendering)
-        markPending("images")
-      }
-    },
-    [bookLabel, pageId, pendingSectioning, page.sectioningTree, pendingRendering, page.rendering, sectionIndex, section, t]
-  )
-
-  // Replace from book: open picker dialog
-  const handleReplaceFromBook = useCallback((dataId: string) => {
-    setReplaceFromBookTarget(dataId)
-  }, [])
-
-  // Process replace-from-book selection: swap image in sectioning + rendering
-  const handleReplaceFromBookSelect = useCallback(
-    (newImageId: string) => {
-      const targetId = replaceFromBookTarget
-      if (!targetId) return
-      setReplaceFromBookTarget(null)
-
-      const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
-      if (sBase && section) {
-        const nextNodes = replaceNodeId(section.nodes, targetId, newImageId)
-        if (nextNodes !== section.nodes) {
-          setPendingSectioning(withSectionNodes(sBase, sectionIndex, nextNodes))
-        }
-      }
-
-      const rBase = pendingRendering ?? page.rendering
-      if (rBase) {
-        const oldSrc = renderedImageSrc(bookLabel, targetId)
-        const newSrc = renderedImageSrc(bookLabel, newImageId)
-        const updatedRendering: RenderingData = {
-          ...rBase,
-          sections: rBase.sections.map((s) => {
-            if (s.sectionIndex !== sectionIndex) return s
-            let html = s.html
-            html = html.replace(new RegExp(`data-id="${escapeRegex(targetId)}"`, "g"), `data-id="${newImageId}"`)
-            html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
-            return { ...s, html }
-          }),
-        }
-        setPendingRendering(updatedRendering)
-        markPending("images")
-      }
-    },
-    [bookLabel, replaceFromBookTarget, pendingSectioning, page.sectioningTree, pendingRendering, page.rendering, sectionIndex, section]
-  )
-
-  // Open AI image dialog for a specific image
-  const handleAiImage = useCallback((dataId: string) => {
-    setAiImageDialogTarget(dataId)
-  }, [])
-
-  // Run LLM segmentation analysis on a single image (phase 1: get bounding boxes)
-  const handleSegment = useCallback(
-    async (dataId: string) => {
-      if (!hasStructuredTextProvider) return
-      setSegmenting(true)
-
-      try {
-        const result = await api.segmentImage(bookLabel, dataId, pageId, apiKey)
-
-        if (!result.segmented || !result.regions || result.regions.length === 0) {
-          const noSegMsg = t`No segmentation needed for this image`
-          setAiError(noSegMsg)
-          setTimeout(() => setAiError((prev) => prev === noSegMsg ? null : prev), 3000)
-          return
-        }
-
-        // Show preview dialog with bounding boxes
-        setSegmentPreview({
-          imageId: dataId,
-          imageSrc: `${BASE_URL}/books/${bookLabel}/images/${dataId}`,
-          imageWidth: result.imageWidth!,
-          imageHeight: result.imageHeight!,
-          regions: result.regions,
-        })
-      } catch (err) {
-        setAiError(err instanceof Error ? err.message : t`Segmentation failed`)
-      } finally {
-        setSegmenting(false)
-      }
-    },
-    [bookLabel, pageId, apiKey, hasStructuredTextProvider]
-  )
-
-  // Apply confirmed segmentation (phase 2: crop and save)
-  const handleSegmentApply = useCallback(
-    async (confirmedRegions: SegmentRegion[]) => {
-      if (!segmentPreview) return
-      const { imageId } = segmentPreview
-
-      // Close the dialog FIRST, before any async work or state updates.
-      // This ensures the dialog unmounts cleanly in its own render cycle,
-      // avoiding React DOM reconciliation conflicts with the sectioning/rendering updates.
-      setSegmentPreview(null)
-
-      try {
-        const result = await api.applySegmentation(bookLabel, imageId, pageId, confirmedRegions)
-
-        if (!result.segments || result.segments.length === 0) {
-          setAiError(t`Segmentation produced no valid segments`)
-          return
-        }
-
-        // Replace the original image with segment images in sectioning
-        setPendingSectioning((prev) => {
-          const sBase = prev ?? (page.sectioningTree as SectioningData | null)
-          if (!sBase) return prev
-          const targetSection = sBase.sections[sectionIndex]
-          if (!targetSection) return prev
-          const segmentLeaves: ContentNodeData[] = result.segments.map((seg) => ({
-            nodeId: seg.imageId,
-            role: "image",
-            isPruned: false,
-          }))
-          const nextNodes = replaceNodeWithSiblings(
-            targetSection.nodes,
-            imageId,
-            segmentLeaves
-          )
-          if (nextNodes === targetSection.nodes) return prev
-          return withSectionNodes(sBase, sectionIndex, nextNodes)
-        })
-
-        // Replace the original <img> tag with segment <img> tags in rendering HTML
-        setPendingRendering((prev) => {
-          const rBase = prev ?? page.rendering
-          if (!rBase) return prev
-          return {
-            ...rBase,
-            sections: rBase.sections.map((s) => {
-              if (s.sectionIndex !== sectionIndex) return s
-              let html = s.html
-              const segImgs = result.segments
-                .map(
-                  (seg) =>
-                    `<img data-id="${seg.imageId}" src="${renderedImageSrc(bookLabel, seg.imageId)}" width="${seg.width}" height="${seg.height}" alt="${seg.label}" class="w-full" />`
-                )
-                .join("\n")
-              const imgPattern = new RegExp(
-                `<img[^>]*data-id="${escapeRegex(imageId)}"[^>]*/?>`,
-                "g"
-              )
-              html = html.replace(imgPattern, segImgs)
-              return { ...s, html }
-            }),
-          }
-        })
-      } catch (err) {
-        setAiError(err instanceof Error ? err.message : t`Segmentation apply failed`)
-      }
-    },
-    [segmentPreview, bookLabel, pageId, page.sectioningTree, page.rendering, sectionIndex, t]
-  )
 
   // Swap a generated/edited image into pending sectioning + rendering.
   // Uses functional setState to avoid stale closures from async callers (e.g. AI generation).
@@ -2189,29 +1851,6 @@ export function StoryboardSectionDetail({
     [bookLabel, pageId, apiKey, sectionIndex]
   )
 
-  // Submit from AI image dialog: close dialog, submit task for generation
-  const handleAiImageSubmit = useCallback(
-    async (prompt: string, referenceImageId?: string, options?: { style?: string; imageType?: string; styleImageId?: string }) => {
-      const targetId = aiImageDialogTarget
-      if (!targetId) return
-      setAiImageDialogTarget(null)
-
-      try {
-        const result = await api.aiGenerateImage(bookLabel, pageId, prompt, apiKey, targetId, referenceImageId, undefined, {
-          ...options,
-          sectionIndex,
-          mode: "swap",
-        })
-        if (result.taskId) {
-          setAiImageTaskId(result.taskId)
-          setAiImageTargetInfo({ targetImageId: targetId, mode: "swap" })
-        }
-      } catch (err) {
-        console.error("[ai-image] Task submission failed:", err)
-      }
-    },
-    [aiImageDialogTarget, bookLabel, pageId, apiKey, sectionIndex]
-  )
 
   // AI edit handler
   const handleAiEdit = async () => {
@@ -2276,6 +1915,43 @@ export function StoryboardSectionDetail({
         )
       })
   }
+
+  const elementActions = useSectionElementActions({
+    bookLabel,
+    pageId,
+    sectionIndex,
+    imagesMeta: page.imagesMeta,
+    apiKey,
+    storyboardRunning,
+    hasImageProvider,
+    hasStructuredTextProvider,
+    updateSectioning: (updater) =>
+      setPendingSectioning((prev) => {
+        const base = prev ?? pageDataRef.current.sectioningTree
+        if (!base) return prev
+        const next = updater(base)
+        return next === base ? prev : next
+      }),
+    updateSectionHtml: (updater) =>
+      setPendingRendering((prev) => {
+        const base = prev ?? pageDataRef.current.rendering
+        if (!base) return prev
+        return { ...base, sections: base.sections.map((s) => (s.sectionIndex === sectionIndex ? { ...s, html: updater(s.html) } : s)) }
+      }),
+    onImagesChanged: () => markPending("images"),
+    onError: (message, transient) => {
+      setAiError(message)
+      if (transient) setTimeout(() => setAiError((prev) => (prev === message ? null : prev)), 3000)
+    },
+    onCropped: () => setSelectedElement(null),
+    onAiImageSubmitted: (taskId, targetImageId) => {
+      setAiImageTaskId(taskId)
+      setAiImageTargetInfo({ targetImageId, mode: "swap" })
+    },
+    toggleLeafPruned: handleToolbarPrune,
+    setLeafRole: handleToolbarChangeTextType,
+    deleteElement: handleDeleteBlock,
+  })
 
   const getSelectedElementInfo = () => {
     if (!selectedElement || !sectioningData) return null
@@ -3222,55 +2898,9 @@ export function StoryboardSectionDetail({
       computedTypography={selectedComputedTypography}
       elementProps={
         selectedElement && selectedInfo
-          ? {
-                isImage: selectedInfo.isImage,
-                isContainer: selectedInfo.isContainer,
-                textType: selectedInfo.textType,
-                isPruned: selectedInfo.isPruned,
-                textTypes,
-                imageSrc: selectedInfo.imageSrc,
-                segmenting,
-                onChangeTextType:
-                  storyboardRunning || selectedInfo.isContainer
-                    ? undefined
-                    : handleToolbarChangeTextType,
-                // Containers with a sectioning-tree node prune like any leaf
-                // (inherited prune greys and strips their contents at save).
-                // Decoration containers the renderer invented have no tree
-                // node to hold prune state, so they get no prune toggle —
-                // Delete is their removal path.
-                onTogglePrune:
-                  storyboardRunning || (selectedInfo.isContainer && !selectedInfo.hasTreeNode)
-                    ? undefined
-                    : handleToolbarPrune,
-                onCrop:
-                  selectedInfo.isImage && !storyboardRunning
-                    ? (dataId) => setCropTarget(dataId)
-                    : undefined,
-                onRecropFromPage:
-                  selectedInfo.isImage && !storyboardRunning
-                    ? handleRecropFromPage
-                    : undefined,
-                onReplace:
-                  selectedInfo.isImage && !storyboardRunning
-                    ? handleImageReplace
-                    : undefined,
-                onReplaceFromBook:
-                  selectedInfo.isImage && !storyboardRunning
-                    ? handleReplaceFromBook
-                    : undefined,
-                onAiImage:
-                  selectedInfo.isImage && hasImageProvider && !storyboardRunning
-                    ? handleAiImage
-                    : undefined,
-                onSegment:
-                  selectedInfo.isImage && hasStructuredTextProvider && !storyboardRunning
-                    ? handleSegment
-                    : undefined,
-                onDelete: !storyboardRunning ? handleDeleteBlock : undefined,
-              }
-            : null
-        }
+          ? { ...elementActions.elementProps(selectedInfo), textTypes }
+          : null
+      }
         onClassesChange={handleClassesChange}
         onStyleChange={handleStyleChange}
         deviceView={deviceView}
@@ -3279,64 +2909,7 @@ export function StoryboardSectionDetail({
       />
     </div>
 
-    {/* Hidden file input for image replace */}
-    <input
-      ref={fileInputRef}
-      type="file"
-      accept="image/*"
-      className="hidden"
-      onChange={handleImageUpload}
-    />
-
-    {/* Image crop dialog */}
-    {cropTarget && (() => {
-      // Overlay the original placement only when recropping from the full page;
-      // an in-place crop uses the image itself, where the full frame is correct.
-      const bounds = recropPageSrc
-        ? page.imagesMeta.find((m) => m.imageId === cropTarget)?.bounds
-        : undefined
-      return (
-        <ImageCropDialog
-          imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
-          initialRect={bounds ? pageBoundsToCropRect(bounds) : undefined}
-          onApply={handleCropApply}
-          onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
-        />
-      )
-    })()}
-
-    {/* Replace from book dialog */}
-    {replaceFromBookTarget && (
-      <ReplaceFromBookDialog
-        bookLabel={bookLabel}
-        currentImageId={replaceFromBookTarget}
-        onSelect={handleReplaceFromBookSelect}
-        onClose={() => setReplaceFromBookTarget(null)}
-      />
-    )}
-
-    {/* AI image prompt dialog */}
-    {aiImageDialogTarget && (
-      <AiImageDialog
-        currentImageSrc={`${BASE_URL}/books/${bookLabel}/images/${aiImageDialogTarget}`}
-        imageId={aiImageDialogTarget}
-        bookLabel={bookLabel}
-        onSubmit={handleAiImageSubmit}
-        onClose={() => setAiImageDialogTarget(null)}
-      />
-    )}
-
-    {/* Segment preview dialog */}
-    {segmentPreview && (
-      <SegmentPreviewDialog
-        imageSrc={segmentPreview.imageSrc}
-        imageWidth={segmentPreview.imageWidth}
-        imageHeight={segmentPreview.imageHeight}
-        regions={segmentPreview.regions}
-        onApply={handleSegmentApply}
-        onClose={() => setSegmentPreview(null)}
-      />
-    )}
+    <SectionElementDialogs actions={elementActions} />
 
     {/* Add image dialog */}
     {addImageDialogOpen && (

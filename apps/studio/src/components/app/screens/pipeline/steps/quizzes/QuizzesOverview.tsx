@@ -17,7 +17,6 @@ import type { QuizRow } from "./quizRows"
 
 export function QuizzesOverview({
   label,
-  hex,
   meta,
   top,
   help,
@@ -40,7 +39,6 @@ export function QuizzesOverview({
   onShowRows,
 }: {
   label: string
-  hex: string
   meta: string
   top: ReactNode
   help: ReactNode
@@ -83,7 +81,7 @@ export function QuizzesOverview({
               matches={{ shown: shown.length, total: quizzes.length }}
             />
           )}
-          <StepActionButton icon={Plus} accent={hex} onClick={onAdd} disabled={!!addDisabledReason} disabledReason={addDisabledReason}>
+          <StepActionButton look="header" icon={Plus} onClick={onAdd} disabled={!!addDisabledReason} disabledReason={addDisabledReason}>
             <Trans>Add quiz</Trans>
           </StepActionButton>
         </>

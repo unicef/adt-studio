@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { BookOpen, Settings } from "lucide-react"
 import { BookCover } from "@/components/app/BookCover"
@@ -12,14 +12,13 @@ import { usePipelineNavigation } from "../shared/usePipelineNavigation"
 export interface BookInfoPopoverProps {
   label: string
   triggerClassName?: string
-  triggerStyle?: CSSProperties
   withLabel?: boolean
   icon?: ReactNode
   trailing?: ReactNode
   align?: "start" | "center" | "end"
 }
 
-export function BookInfoPopover({ label, triggerClassName, triggerStyle, withLabel = false, icon, trailing, align = "end" }: BookInfoPopoverProps) {
+export function BookInfoPopover({ label, triggerClassName, withLabel = false, icon, trailing, align = "end" }: BookInfoPopoverProps) {
   const { t, i18n } = useLingui()
   const { data: book } = useBook(label)
   const nav = usePipelineNavigation(label)
@@ -41,7 +40,6 @@ export function BookInfoPopover({ label, triggerClassName, triggerStyle, withLab
           title={t`Book info`}
           aria-label={withLabel ? undefined : t`Book info`}
           className={cn(withLabel ? "flex items-center gap-1.5" : "grid place-items-center", triggerClassName)}
-          style={triggerStyle}
         >
           {icon ?? <BookOpen className="size-3.5" />}
           {withLabel && <Trans>Book info</Trans>}

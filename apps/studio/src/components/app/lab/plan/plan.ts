@@ -17,7 +17,7 @@ export interface PlanSection {
   items: PlanItem[]
 }
 
-export const PLAN_UPDATED = "2026-10-23"
+export const PLAN_UPDATED = "2026-10-25"
 
 export const PLAN: PlanSection[] = [
   {
@@ -37,7 +37,7 @@ export const PLAN: PlanSection[] = [
     hint: msg`UI only: log fixes for after the develop merge, collect shared polish.`,
     items: [
       { id: "extract", status: "now", label: msg`Extract`, detail: msg`Verifying together in Verification mode (23 states). First pass notes in states-review/extract.md.` },
-      { id: "sectioning", status: "next", label: msg`Sectioning`, detail: msg`First pass done (11 states, states-review/sectioning.md); verify together next.` },
+      { id: "sectioning", status: "now", label: msg`Sectioning`, detail: msg`Verifying together in Verification mode (22 states, mirroring Extract's). Port decisions wait until then; brief in sectioning-port/BRIEF.md.` },
       { id: "storyboard", status: "next", label: msg`Storyboard` },
       { id: "captions", status: "next", label: msg`Image descriptions` },
       { id: "toc", status: "next", label: msg`Table of contents`, detail: msg`Needs its states defined first.` },

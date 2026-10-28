@@ -1,14 +1,16 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { AlertTriangle, ImageOff } from "lucide-react";
 import type { PageSummarySection } from "@/api/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
-  CANVAS_PADDING,
   CAPTURE_WIDTH,
-  DEVICE_PADDING,
   canvasContentWidth,
+  canvasDeviceFit,
+  desktopFitScale,
+  deviceAvailable,
+  publishCanvasFit,
   useCanvasPane,
   useCanvasWheelZoom,
 } from "./canvasLayout";
@@ -24,9 +26,9 @@ import { useStoryboardTools } from "./tools/StoryboardToolsContext";
 import type { Viewport } from "@/components/app/screens/pipeline/shared/types";
 import type { SectioningRun } from "@/components/app/screens/pipeline/runs/useSectioningRun";
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState";
+import { useDockMinimized } from "@/components/app/screens/pipeline/shared/workspacePrefs";
 
 const SECTION_FRAME_HEIGHT = 640;
-const TOOLBAR_CLEARANCE = 40;
 
 export interface PageCanvasProps {
   label: string;
@@ -37,6 +39,7 @@ export interface PageCanvasProps {
   sectioning: SectioningRun;
   storyboardRunning?: boolean;
   onOpenSectioning: () => void;
+  notice?: React.ReactNode;
 }
 
 function SectionSlice({
@@ -99,6 +102,7 @@ export function PageCanvas({
   sectioning,
   storyboardRunning,
   onOpenSectioning,
+  notice,
 }: PageCanvasProps) {
   const { t } = useLingui();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -109,7 +113,16 @@ export function PageCanvas({
     !!storyboardRunning && !page.hasRendering && !page.isDiscarded;
   const empty = sections.length === 0 || building;
   const { pane, resizing } = useCanvasPane(scrollRef, !empty);
+  const [dockMinimized] = useDockMinimized();
   useCanvasWheelZoom(scrollRef, zoom, onZoomChange);
+  const available = deviceAvailable(pane, dockMinimized);
+  const fit =
+    viewport === "desktop"
+      ? desktopFitScale(pane)
+      : canvasDeviceFit(viewport, available);
+  useEffect(() => {
+    if (!empty) publishCanvasFit(fit);
+  }, [empty, fit]);
 
   if (empty) {
     return (
@@ -126,6 +139,8 @@ export function PageCanvas({
   }
 
   const contentWidth = canvasContentWidth(viewport, pane, zoom);
+  const pageScale =
+    viewport === "desktop" ? contentWidth / CAPTURE_WIDTH.desktop : undefined;
 
   const slices = sections.map((section) => (
     <SectionFrame
@@ -141,6 +156,7 @@ export function PageCanvas({
           pageNumber={page.pageNumber}
           section={section}
           viewport={viewport}
+          maxScale={pageScale}
         />
       ) : (
         <SectionSlice
@@ -165,16 +181,19 @@ export function PageCanvas({
   if (viewport !== "desktop") {
     return (
       <ScrollArea ref={scrollRef} horizontal viewportLabel={t`Page ${page.pageNumber}`} className="min-h-0 w-full flex-1">
-        <div className="flex min-w-max flex-col items-center gap-4 px-6 pb-10 pt-16">
+        <div
+          className={cn(
+            "flex min-w-max flex-col items-center gap-4 px-6 pt-16 transition-[padding] duration-300 ease-out motion-reduce:transition-none",
+            dockMinimized ? "pb-10" : "pb-24",
+          )}
+        >
+          {notice}
           {captionsWarning}
           <PageDeviceFrame
             viewport={viewport}
             screenWidth={CAPTURE_WIDTH[viewport]}
             zoom={zoom}
-            available={{
-              width: pane.width - CANVAS_PADDING,
-              height: pane.height - DEVICE_PADDING - TOOLBAR_CLEARANCE,
-            }}
+            available={available}
           >
             {slices}
           </PageDeviceFrame>
@@ -193,6 +212,7 @@ export function PageCanvas({
           )}
           style={{ width: contentWidth }}
         >
+          {notice}
           {captionsWarning}
 
           <div className="overflow-hidden rounded-lg bg-card">{slices}</div>

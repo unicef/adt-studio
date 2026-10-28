@@ -53,7 +53,7 @@ export function EasyReadLanding({ bookLabel, beforeRun }: { bookLabel: string; b
           : null
       }
     >
-      <FixedLayoutWarningBanner show={isFixedLayout} />
+      <FixedLayoutWarningBanner show={isFixedLayout} stageSlug="easy-read" />
 
       <PrereqGuard
         upstreamSlug="storyboard"

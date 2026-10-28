@@ -20,6 +20,8 @@ import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SectioningModeVisual } from "@/components/pipeline/stages/sectioning/components/SectioningModeVisual"
 import { SectioningPreview } from "@/components/pipeline/stages/sectioning/components/SectioningPreview"
 import { resolveSectioningStartStage } from "@/components/pipeline/stages/sectioning/SectioningLandingPage.helpers"
+import { useVariant } from "@/components/app/lab/variants"
+import { SectioningLandingCanvas } from "../sectioning/SectioningLandingCanvas"
 
 type SectioningModeKey = "dynamic" | "page"
 
@@ -34,6 +36,7 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
   const { queueRun } = useBookRun()
   const status = useStageStatus("sectioning")
   const gate = useLandingRunGate(bookLabel, "sectioning")
+  const landingVariant = useVariant("sectlanding")
   const extractStatus = useStageStatus("extract")
   const extractReady = extractStatus.isCompleted
   const extractCovered = extractStatus.isCompleted || extractStatus.isRunning
@@ -117,6 +120,7 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
             <CascadeWarning stageSlug="sectioning" />
           ) : !extractCovered && hasAssembledPages ? (
             <LandingPageWarning
+              stageSlug="sectioning"
               variant="prereq"
               title={<Trans>Book hierarchy needs rebuilding</Trans>}
               description={
@@ -128,6 +132,7 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
             />
           ) : !extractCovered ? (
             <LandingPageWarning
+              stageSlug="sectioning"
               variant="prereq"
               title={<Trans>Extract hasn't run yet</Trans>}
               description={
@@ -154,6 +159,7 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
       previewLabel={t`Sectioning Preview`}
       onRun={handleRun}
       preview={<SectioningPreview />}
+      canvas={landingVariant === "current" ? undefined : <SectioningLandingCanvas bookLabel={bookLabel} variant={landingVariant} mode={sectioningMode} />}
     >
       <SettingsCard>
         <SettingsField

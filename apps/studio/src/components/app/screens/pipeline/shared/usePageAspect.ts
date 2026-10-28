@@ -31,17 +31,73 @@ export function pageGridClass(landscape: boolean): string {
   return landscape ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" : "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
 }
 
-export function rememberedPageRatio(label: string): number {
+export interface StoredPageRatio {
+  ratio: number
+  single: number
+}
+
+export function parseStoredRatio(raw: string | null): StoredPageRatio | null {
+  if (!raw) return null
   try {
-    const stored = Number(localStorage.getItem(RATIO_KEY + label))
-    return stored > 0 ? stored : PORTRAIT
+    const parsed: unknown = JSON.parse(raw)
+    if (typeof parsed === "number") return parsed > 0 ? { ratio: parsed, single: parsed } : null
+    if (typeof parsed !== "object" || parsed === null) return null
+    const { ratio, single } = parsed as Partial<StoredPageRatio>
+    if (typeof ratio !== "number" || ratio <= 0) return null
+    return { ratio, single: typeof single === "number" && single > 0 ? single : ratio }
   } catch {
-    return PORTRAIT
+    return null
   }
+}
+
+function storedPageRatio(label: string): StoredPageRatio | null {
+  try {
+    return parseStoredRatio(localStorage.getItem(RATIO_KEY + label))
+  } catch {
+    return null
+  }
+}
+
+export function rememberedPageRatio(label: string): number {
+  return storedPageRatio(label)?.ratio ?? PORTRAIT
 }
 
 export function isLandscapeRatio(ratio: number): boolean {
   return ratio > LANDSCAPE_FROM
+}
+
+export function runRatio(stored: StoredPageRatio | null, spread: boolean): number {
+  const single = stored?.single ?? PORTRAIT
+  return spread ? single * 2 : single
+}
+
+export function expectedRunRatio(label: string, spread: boolean): number {
+  return runRatio(storedPageRatio(label), spread)
+}
+
+export function isSpreadPageId(pageId: string): boolean {
+  return (pageId.slice(2).match(/\d{3}/g)?.length ?? 0) > 1
+}
+
+function majorityRatio(ratios: readonly number[]): number | null {
+  if (ratios.length === 0) return null
+  const landscapeCount = ratios.filter((ratio) => ratio > LANDSCAPE_FROM).length
+  return landscapeCount > ratios.length / 2
+    ? (ratios.find((value) => value > LANDSCAPE_FROM) ?? PORTRAIT)
+    : (ratios.find((value) => value <= LANDSCAPE_FROM) ?? PORTRAIT)
+}
+
+export interface MeasuredRatio {
+  ratio: number
+  single: number
+}
+
+export function measureRatios(sized: ReadonlyArray<{ ratio: number; spread: boolean }>): MeasuredRatio | null {
+  const ratio = majorityRatio(sized.map((entry) => entry.ratio))
+  if (ratio == null) return null
+  const singles = majorityRatio(sized.filter((entry) => !entry.spread).map((entry) => entry.ratio))
+  const spreads = majorityRatio(sized.filter((entry) => entry.spread).map((entry) => entry.ratio))
+  return { ratio, single: singles ?? (spreads != null ? spreads / 2 : ratio) }
 }
 
 function sizedRatio(page: SizedPage | undefined): number | null {
@@ -57,25 +113,38 @@ export interface PageAspect {
   railThumbClassOf: (page: SizedPage) => string
 }
 
-export function usePageAspect(label: string, pages: readonly SizedPage[] | undefined): PageAspect {
+export function usePageAspect(
+  label: string,
+  pages: readonly SizedPage[] | undefined,
+  { expected = null }: { expected?: number | null } = {},
+): PageAspect {
   const list = pages ?? []
   const knownKey = list
-    .map(sizedRatio)
-    .filter((ratio): ratio is number => ratio != null)
+    .flatMap((page) => {
+      const ratio = sizedRatio(page)
+      return ratio == null ? [] : [`${ratio}:${isSpreadPageId(page.pageId) ? 1 : 0}`]
+    })
     .join(",")
   const probe = knownKey === "" ? list[Math.floor(list.length / 2)]?.pageId : undefined
   const image = usePageImage(label, probe ?? "", { enabled: !!probe })
   const probed = pngAspect(image.data?.imageBase64)
 
+  const measuredRatios = useMemo(() => {
+    if (knownKey !== "") {
+      return measureRatios(
+        knownKey.split(",").map((entry) => {
+          const [ratio, spread] = entry.split(":")
+          return { ratio: Number(ratio), spread: spread === "1" }
+        }),
+      )
+    }
+    return probed != null && probe ? measureRatios([{ ratio: probed, spread: isSpreadPageId(probe) }]) : null
+  }, [knownKey, probed, probe])
+  const measured = measuredRatios?.ratio ?? null
+  const measuredSingle = measuredRatios?.single ?? null
+
   const aspect = useMemo(() => {
-    const known = knownKey === "" ? [] : knownKey.split(",").map(Number)
-    const landscapeCount = known.filter((ratio) => ratio > LANDSCAPE_FROM).length
-    const ratio =
-      known.length > 0
-        ? landscapeCount > known.length / 2
-          ? (known.find((value) => value > LANDSCAPE_FROM) ?? PORTRAIT)
-          : (known.find((value) => value <= LANDSCAPE_FROM) ?? PORTRAIT)
-        : (probed ?? PORTRAIT)
+    const ratio = expected ?? measured ?? rememberedPageRatio(label)
     const landscape = ratio > LANDSCAPE_FROM
     const ratioOf = (page: SizedPage) => sizedRatio(page) ?? ratio
     return {
@@ -86,17 +155,16 @@ export function usePageAspect(label: string, pages: readonly SizedPage[] | undef
       fitOf: (page: SizedPage) => (ratioOf(page) > LANDSCAPE_FROM === landscape ? "cover" : "contain"),
       railThumbClassOf: (page: SizedPage) => (ratioOf(page) > LANDSCAPE_FROM ? "h-[38px] w-[54px]" : "h-[52px] w-[38px]"),
     }
-  }, [knownKey, probed])
+  }, [expected, measured, label])
 
-  const settled = knownKey !== "" || probed != null
   useEffect(() => {
-    if (!settled || !label) return
+    if (measured == null || measuredSingle == null || !label) return
     try {
-      localStorage.setItem(RATIO_KEY + label, String(aspect.ratio))
+      localStorage.setItem(RATIO_KEY + label, JSON.stringify({ ratio: measured, single: measuredSingle }))
     } catch {
       return
     }
-  }, [settled, label, aspect.ratio])
+  }, [label, measured, measuredSingle])
 
   return aspect
 }

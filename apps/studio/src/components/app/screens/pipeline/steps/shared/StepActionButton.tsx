@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { cn } from "@/lib/utils"
+import { HEADER_BUTTON, HEADER_BUTTON_LABELLED, HeaderButtonTile } from "./headerButton"
 
 export interface StepActionButtonProps {
   icon?: LucideIcon
@@ -12,8 +13,14 @@ export interface StepActionButtonProps {
   disabledReason?: ReactNode
   tone?: "default" | "danger"
   accent?: string
+  look?: "default" | "header"
   className?: string
 }
+
+const HEADER_LOOK_DISABLED = cn(
+  "aria-disabled:cursor-default aria-disabled:opacity-45 aria-disabled:shadow-none",
+  "aria-disabled:hover:translate-y-0 aria-disabled:hover:border-border aria-disabled:hover:shadow-none aria-disabled:active:scale-100",
+)
 
 export function DisabledReason({ id, reason }: { id: string; reason: ReactNode }) {
   return (
@@ -31,13 +38,26 @@ export function StepActionButton({
   disabledReason,
   tone = "default",
   accent,
+  look = "default",
   className,
 }: StepActionButtonProps) {
   const reasonId = useId()
   const showReason = disabled && !!disabledReason
-  const style: CSSProperties | undefined = accent && tone === "default" ? { borderColor: tint(accent, 0.3) } : undefined
+  const style: CSSProperties | undefined = accent && tone === "default" && look === "default" ? { borderColor: tint(accent, 0.3) } : undefined
 
-  const button = (
+  const button =
+    look === "header" ? (
+      <button
+        type="button"
+        onClick={disabled ? undefined : onClick}
+        aria-disabled={disabled || undefined}
+        aria-describedby={showReason ? reasonId : undefined}
+        className={cn(HEADER_BUTTON, Icon ? HEADER_BUTTON_LABELLED : "px-3", "shrink-0", HEADER_LOOK_DISABLED, className)}
+      >
+        {Icon && <HeaderButtonTile icon={Icon} />}
+        {children}
+      </button>
+    ) : (
     <button
       type="button"
       onClick={disabled ? undefined : onClick}
@@ -58,7 +78,7 @@ export function StepActionButton({
       {Icon && <Icon className="size-3.5" />}
       {children}
     </button>
-  )
+    )
 
   if (!showReason) return button
 

@@ -6,31 +6,37 @@ import { BookOpen, ScanText, SkipForward, Sparkles } from "lucide-react"
 import { usePages } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
+import { useBookConfig } from "@/hooks/use-book-config"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
-import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
-import { NextStepCard } from "@/components/app/screens/pipeline/chrome/NextStepCard"
+import { expectedRunRatio, usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
+import { countGroups } from "@/components/app/screens/pipeline/shared/groupPages"
+import { nextStepFolds, useNextStep } from "@/components/app/screens/pipeline/shared/useNextStep"
+import { NextStepCardView } from "@/components/app/screens/pipeline/chrome/NextStepCard"
 import { useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { useExtractRun } from "@/components/app/screens/pipeline/runs/useExtractRun"
 import { useStageRerun } from "@/components/app/screens/pipeline/runs/useStageRerun"
 import { useRerunConfirm } from "@/components/app/screens/pipeline/runs/useRerunConfirm"
 import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView } from "./shared/StepShell"
-import { StepBody, StepRail } from "./shared/ui"
+import { StepBody, StepRail, STEP_FILL_VIEWPORT_CLASSNAME } from "./shared/ui"
 import { usePageNav } from "./shared/usePageNav"
-import { ExtractPageDetail } from "./extract/ExtractPageDetail"
+import { ExtractPageDetail } from "./extract/page-detail/ExtractPageDetail"
 import { ExtractPageGrid } from "./extract/ExtractPageGrid"
-import { LiveRunStrip, progressCounts } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
-import { ExtractProblemLine, ExtractRunBanner } from "./extract/ExtractRunBanner"
+import { progressCounts } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
+import { CollapsingRunStrip } from "@/components/app/screens/pipeline/runs/CollapsingRunStrip"
+import { ExtractRunBanner } from "./extract/ExtractRunBanner"
 import { ExtractHeaderActions } from "./extract/ExtractHeaderActions"
 import { useSpreadReview } from "./extract/useSpreadReview"
 import type { StepProps } from "./shared/types"
 import type { StepNote } from "./shared/notes/NoteRow"
 import { NotesStrip } from "./shared/notes/NotesStrip"
 import { useStageProblem } from "./shared/problems/useStageProblem"
+import { FoldedProblem, type ProblemRetry } from "./shared/problems/FoldedProblem"
 
 export function ExtractStep(props: StepProps) {
   const { label, plugin, pages } = props
   const { t } = useLingui()
   const pdf = useSourcePdfInfo(label)
+  const { data: bookConfigData } = useBookConfig(label)
   const extract = useStageActivity("extract")
   const bookRun = useBookRun()
   const extractRun = useExtractRun(label)
@@ -113,7 +119,7 @@ export function ExtractStep(props: StepProps) {
         }
       : null
   const notes = [spreadsNote, skippedNote, scannedNote].filter((note): note is StepNote => note !== null)
-  const { partial, partialConfirm } = useStageProblem({
+  const { problem, partial, partialConfirm } = useStageProblem({
     stage: "extract",
     pages,
     retry: retry.request,
@@ -132,7 +138,16 @@ export function ExtractStep(props: StepProps) {
           onReview: reviewSpreads,
         }
       : null
-  const pageAspect = usePageAspect(label, pages)
+  const retryAction: ProblemRetry = { run: retry.request, canRun: retry.canRun, reason: retry.disabledReason }
+  const next = useNextStep(label, plugin.slug, { partial })
+  const foldProblem = nextStepFolds(next) && partial
+  const config = bookConfigData?.config
+  const spread = config?.spread_mode === true
+  const pdfPageCount = pdf.data?.pageCount ?? 0
+  const rangeStart = config?.start_page != null ? Number(config.start_page) : 1
+  const rangeEnd = Math.min(pdfPageCount, config?.end_page != null ? Number(config.end_page) : pdfPageCount)
+  const expectedPages = pdfPageCount > 0 ? countGroups(rangeStart, rangeEnd, spread) : 0
+  const pageAspect = usePageAspect(label, pages, { expected: extract.isActive ? expectedRunRatio(label, spread) : null })
 
   const loading = useStepLoading(props, {
     isLoading: pagesQuery.isPending,
@@ -140,14 +155,13 @@ export function ExtractStep(props: StepProps) {
   })
 
   const loadingView = useStepLoadingView(props)
-  const pdfPages = pdf.data?.pageCount ?? 0
   const emptyView = useStepEmptyView({
     ...props,
     prerequisites: [
       {
         key: "pdf",
-        met: pdfPages > 0,
-        label: t`Source PDF uploaded — ${plural(pdfPages, { one: "# page", other: "# pages" })}`,
+        met: pdfPageCount > 0,
+        label: t`Source PDF uploaded — ${plural(pdfPageCount, { one: "# page", other: "# pages" })}`,
       },
     ],
   })
@@ -158,12 +172,17 @@ export function ExtractStep(props: StepProps) {
     <StepShell
       {...props}
       railEmpty={!selectedPage}
-      chips={[
-        t`${plural(pages.length, { one: "# page", other: "# pages" })}`,
-        warnCount > 0
-          ? t`${plural(warnCount, { one: "# page recovered from images", other: "# pages recovered from images" })}`
-          : t`Text layer on every page`,
-      ]}
+      bodyViewportClassName={selectedPage ? STEP_FILL_VIEWPORT_CLASSNAME : undefined}
+      chips={
+        extract.isActive && !hasPages
+          ? []
+          : [
+              t`${plural(pages.length, { one: "# page", other: "# pages" })}`,
+              warnCount > 0
+                ? t`${plural(warnCount, { one: "# page recovered from images", other: "# pages recovered from images" })}`
+                : t`Text layer on every page`,
+            ]
+      }
       rail={
         <StepRail
           heading={<Trans>Pages</Trans>}
@@ -196,6 +215,8 @@ export function ExtractStep(props: StepProps) {
           key={selectedPage.pageId}
           label={label}
           pageId={selectedPage.pageId}
+          pageNumber={selectedPage.pageNumber}
+          hex={plugin.hex}
           prevPageId={prevPageId}
           nextPageId={nextPageId}
           onStep={stepPage}
@@ -205,19 +226,18 @@ export function ExtractStep(props: StepProps) {
         <StepBody
           title={getStageLabelI18n("extract")}
           meta={t`${plural(pages.length, { one: "# page", other: "# pages" })}`}
-          actions={<ExtractHeaderActions label={label} hex={plugin.hex} />}
+          actions={<ExtractHeaderActions label={label} />}
         >
-          {extract.isActive && <LiveRunStrip stage={extract} />}
+          <CollapsingRunStrip stage={extract} />
 
-          <ExtractRunBanner label={label} run={extractRun} pages={pages} onOpenPage={openPage} retry={{ run: retry.request, canRun: retry.canRun, reason: retry.disabledReason }} hidePartial />
+          <ExtractRunBanner label={label} run={extractRun} pages={pages} onOpenPage={openPage} retry={retryAction} hidePartial={foldProblem} />
           {retry.dialogs}
 
-          <NextStepCard
-            label={label}
+          <NextStepCardView
+            next={next}
             slug={plugin.slug}
-            partial={partial}
             confirm={partialConfirm ?? bannerConfirm}
-            aside={<ExtractProblemLine label={label} run={extractRun} pages={pages} onOpenPage={openPage} retry={{ run: retry.request, canRun: retry.canRun, reason: retry.disabledReason }} />}
+            aside={foldProblem ? <FoldedProblem label={label} problem={problem} retry={retryAction} onOpenPage={openPage} /> : null}
           />
 
           <NotesStrip notes={notes} hex={plugin.hex} />
@@ -231,7 +251,7 @@ export function ExtractStep(props: StepProps) {
             hex={plugin.hex}
             pendingCount={
               extract.isActive
-                ? Math.max(0, (progressCounts(extract)?.total || pdf.data?.pageCount || pages.length) - pages.length)
+                ? Math.max(0, (progressCounts(extract)?.total || expectedPages || pages.length) - pages.length)
                 : 0
             }
           />

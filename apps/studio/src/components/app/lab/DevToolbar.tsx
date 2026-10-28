@@ -11,6 +11,7 @@ export interface LabOption {
 
 export interface LabControl {
   key: string
+  id?: string
   label: ReactNode
   options: LabOption[]
   cycle?: boolean
@@ -169,7 +170,7 @@ export function DevToolbar({
         <div
           ref={root}
           className={
-            "pointer-events-auto flex w-[min(400px,calc(100vw-32px))] flex-col items-stretch gap-1 rounded-2xl bg-zinc-900/90 p-1.5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md transition-[opacity,transform,box-shadow] duration-200 group-data-dragging/labbar:shadow-[0_18px_44px_rgba(0,0,0,0.4)] group-data-dragging/labbar:ring-white/20 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none " +
+            "pointer-events-auto flex max-h-[calc(100dvh-32px)] w-[min(400px,calc(100vw-32px))] flex-col items-stretch gap-1 rounded-2xl bg-zinc-900/90 p-1.5 text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md transition-[opacity,transform,box-shadow] duration-200 group-data-dragging/labbar:shadow-[0_18px_44px_rgba(0,0,0,0.4)] group-data-dragging/labbar:ring-white/20 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none " +
             (shown ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")
           }
         >
@@ -235,17 +236,17 @@ export function DevToolbar({
           )}
           <div
             className={
-              "grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none " +
+              "grid min-h-0 transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none " +
               (group && collapsed ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")
             }
             inert={!!group && collapsed}
           >
-          <div className="flex min-h-0 flex-col gap-1 overflow-hidden">
+          <div className="flex min-h-0 flex-col gap-1 overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-width:thin]!">
           {group && (
             <>
               <div key={group.key} role="tabpanel" className="flex flex-col gap-1 animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out motion-reduce:animate-none">
                 {group.controls.map((control) => (
-                  <Segment key={control.key} control={control} value={values[control.key]} onChange={(value) => onChange(control.key, value)} />
+                  <Segment key={control.id ?? control.key} control={control} value={values[control.key]} onChange={(value) => onChange(control.key, value)} />
                 ))}
                 {group.content}
                 {group.note !== undefined && <p className="px-2 pt-0.5 pb-1 text-[11.5px] leading-snug text-white/55">{group.note}</p>}
@@ -254,7 +255,7 @@ export function DevToolbar({
             </>
           )}
           {controls.map((control) => (
-            <Segment key={control.key} control={control} value={values[control.key]} onChange={(value) => onChange(control.key, value)} />
+            <Segment key={control.id ?? control.key} control={control} value={values[control.key]} onChange={(value) => onChange(control.key, value)} />
           ))}
           {note !== undefined && <span className="shrink-0 px-2 text-[12px] font-medium text-white/70">{note}</span>}
           <div className="flex items-center justify-end gap-0.5">

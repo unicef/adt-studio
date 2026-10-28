@@ -170,7 +170,6 @@ export function QuizzesStep(props: StepProps) {
       ) : (
         <QuizzesOverview
           label={label}
-          hex={plugin.hex}
           meta={questionsLabel}
           top={surface.top}
           help={surface.help}

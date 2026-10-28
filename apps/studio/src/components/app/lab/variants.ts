@@ -38,12 +38,12 @@ export interface VariantState {
   docklayout: "groups" | "flat" | "path"
   dockpin: "off" | "on"
   sbsim: "real" | "building" | "failed" | "outdated" | "setupfail"
+  stalewarn: "strip" | "pill" | "rail" | "page" | "topbar"
   setupsplit: "single" | "before" | "attached"
   dockfocus: "tiles" | "islands" | "base" | "tray"
   running: "current" | "live" | "strip"
-  return: "current" | "banner" | "toast"
+  return: "current" | "toast"
   ai: "mock" | "hidden" | "wired"
-  boot: "current" | "shell" | "splash"
   export: "current" | "preview-button" | "topbar"
   features: "current" | "add" | "suggested"
   loaders: "current" | "content"
@@ -54,7 +54,12 @@ export interface VariantState {
   langnav: "cards" | "pills" | "menu"
   hints: "note" | "help" | "none"
   pruned: "inline" | "tray"
-  topborder: "on" | "off"
+  sectlanding: "current" | "pages" | "book"
+  sectrunning: "current" | "grid"
+  sectnotes: "current" | "strip"
+  sectresume: "current" | "strip"
+  secthead: "current" | "extract"
+  sectrail: "current" | "pages"
 }
 
 export type VariantKey = keyof VariantState
@@ -127,15 +132,6 @@ export const VARIANT_GROUPS = [
     ],
   },
   {
-    key: "topborder",
-    icon: LayoutGrid,
-    label: msg`Top bar border`,
-    options: [
-      { value: "on", label: msg`On`, hint: msg`Today: a thin line under the top bar.` },
-      { value: "off", label: msg`Off`, hint: msg`No line under the top bar (testing).` },
-    ],
-  },
-  {
     key: "sbsim",
     icon: MousePointerClick,
     label: msg`Simulate storyboard`,
@@ -145,6 +141,18 @@ export const VARIANT_GROUPS = [
       { value: "failed", label: msg`Failed`, hint: msg`Lab books pretend building the storyboard failed.` },
       { value: "outdated", label: msg`Out of date`, hint: msg`Lab books pretend setup changed after the storyboard was built.` },
       { value: "setupfail", label: msg`Setup problem`, hint: msg`Lab books pretend Extract or Sectioning needs attention.` },
+    ],
+  },
+  {
+    key: "stalewarn",
+    icon: LayoutGrid,
+    label: msg`Out-of-date warning`,
+    options: [
+      { value: "strip", label: msg`Strip (today)`, hint: msg`Full-width amber strip at the top of the canvas.` },
+      { value: "pill", label: msg`Pill above dock`, hint: msg`A floating pill above the dock, like the Save bar.` },
+      { value: "rail", label: msg`In Pages list`, hint: msg`A notice at the top of the Pages list; out-of-date pages are marked below it.` },
+      { value: "page", label: msg`On the page`, hint: msg`A slim notice right above the page you're on.` },
+      { value: "topbar", label: msg`Top bar chip`, hint: msg`An amber "Out of date" chip next to the page name; click for details and Re-run.` },
     ],
   },
   {
@@ -163,7 +171,6 @@ export const VARIANT_GROUPS = [
     label: msg`Return`,
     options: [
       { value: "current", label: msg`Current`, hint: msg`Back goes to the storyboard's last page; nothing happens when a run ends.` },
-      { value: "banner", label: msg`Keep page + banner`, hint: msg`Back lands on the page you were on; a finished run offers a way back in the stage header.` },
       { value: "toast", label: msg`Keep page + toast`, hint: msg`Back lands on the page you were on; a finished run pops a toast with a way back.` },
     ],
   },
@@ -175,16 +182,6 @@ export const VARIANT_GROUPS = [
       { value: "mock", label: msg`Current`, hint: msg`Visible everywhere, but nothing in it does anything.` },
       { value: "hidden", label: msg`Hidden`, hint: msg`Removed until it works.` },
       { value: "wired", label: msg`Wired`, hint: msg`Suggestions fit the stage and a request edits the selected section.` },
-    ],
-  },
-  {
-    key: "boot",
-    icon: Hourglass,
-    label: msg`Cold load`,
-    options: [
-      { value: "current", label: msg`Current`, hint: msg`Opening a book by URL, reloading or starting the app shows a blank window until data arrives.` },
-      { value: "shell", label: msg`Skeleton`, hint: msg`The app's shape appears at once and fills in. Reload the page to see it.` },
-      { value: "splash", label: msg`Splash`, hint: msg`A centered logo with "Opening the book…" and a progress shimmer. Reload the page to see it.` },
     ],
   },
   {
@@ -284,6 +281,61 @@ export const VARIANT_GROUPS = [
       { value: "tray", label: msg`Tray`, hint: msg`Pruned items collapse into one "Pruned" group at the end of the list; open it to restore. (Glossary)` },
     ],
   },
+  {
+    key: "sectlanding",
+    icon: PanelTop,
+    label: msg`Sectioning · Not run`,
+    options: [
+      { value: "current", label: msg`Current`, hint: msg`Today: a 560px settings column with bordered cards and a static sample illustration.` },
+      { value: "pages", label: msg`Extracted pages`, hint: msg`Extract's docked panel next to a wall of the extracted pages. Each page shows what the chosen mode will do (1 section, or AI decides) and updates as you switch. Falls back to the PDF wall when Extract hasn't run.` },
+      { value: "book", label: msg`PDF wall`, hint: msg`Extract's docked panel next to the same source-PDF wall Extract shows.` },
+    ],
+  },
+  {
+    key: "sectrunning",
+    icon: Loader,
+    label: msg`Sectioning · Running`,
+    options: [
+      { value: "current", label: msg`Current`, hint: msg`Today: a checklist card, then a progress panel, until the first page is sectioned. While Extract runs, Extract's progress shows here.` },
+      { value: "grid", label: msg`Straight to grid`, hint: msg`Like Extract: the page grid with a slim progress strip on top. Pages without sections are grey and shimmer until they're sectioned. While Extract runs, a strip says Sectioning starts when it finishes.` },
+    ],
+  },
+  {
+    key: "sectnotes",
+    icon: Lightbulb,
+    label: msg`Sectioning · Notes`,
+    options: [
+      { value: "current", label: msg`None`, hint: msg`Today: dropped sections only show as a chip and on each card.` },
+      { value: "strip", label: msg`Notes strip`, hint: msg`Extract's collapsible notes: sections dropped, pages read from images, pages with no sections and pages skipped, each only when it applies.` },
+    ],
+  },
+  {
+    key: "sectresume",
+    icon: Undo2,
+    label: msg`Sectioning · Interrupted`,
+    options: [
+      { value: "current", label: msg`Current`, hint: msg`Today: an interrupted run looks like a finished one.` },
+      { value: "strip", label: msg`Resume strip`, hint: msg`The same Resume strip as Extract: Sectioning stopped before it finished, Resume keeps what's done.` },
+    ],
+  },
+  {
+    key: "secthead",
+    icon: MousePointerClick,
+    label: msg`Sectioning · Header`,
+    options: [
+      { value: "current", label: msg`None`, hint: msg`Today: no buttons next to the title.` },
+      { value: "extract", label: msg`Like Extract`, hint: msg`The Book info and Source PDF button cards from Extract.` },
+    ],
+  },
+  {
+    key: "sectrail",
+    icon: Rows3,
+    label: msg`Sectioning · List heading`,
+    options: [
+      { value: "current", label: msg`Sections by page`, hint: msg`Today's heading above the pages list.` },
+      { value: "pages", label: msg`Pages`, hint: msg`"Pages", like Extract. The counts still show sections.` },
+    ],
+  },
 ] satisfies VariantGroup[]
 
 export type VariantTier = "layout" | "flow" | "step"
@@ -295,16 +347,15 @@ export const TIERS: { key: VariantTier; label: MessageDescriptor; hint: MessageD
 ]
 
 export const GROUP_META: Record<VariantKey, { tier: VariantTier }> = {
-  topborder: { tier: "layout" },
   features: { tier: "layout" },
   ai: { tier: "layout" },
   export: { tier: "layout" },
-  boot: { tier: "layout" },
   entry: { tier: "flow" },
   return: { tier: "flow" },
   landing: { tier: "step" },
   docklayout: { tier: "layout" },
   sbsim: { tier: "layout" },
+  stalewarn: { tier: "step" },
   setupsplit: { tier: "layout" },
   dockfocus: { tier: "layout" },
   dockpin: { tier: "layout" },
@@ -317,17 +368,23 @@ export const GROUP_META: Record<VariantKey, { tier: VariantTier }> = {
   langnav: { tier: "step" },
   hints: { tier: "step" },
   pruned: { tier: "step" },
+  sectlanding: { tier: "step" },
+  sectrunning: { tier: "step" },
+  sectnotes: { tier: "step" },
+  sectresume: { tier: "step" },
+  secthead: { tier: "step" },
+  sectrail: { tier: "step" },
 }
 
 
 export type LabStep = "extract" | "sectioning" | "storyboard" | "output" | "validation" | "preview"
 
 export const STEP_GROUPS: Record<LabStep, VariantKey[]> = {
-  extract: ["topborder", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
-  sectioning: ["topborder", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
-  storyboard: ["topborder", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "features", "ai", "loaders", "boot"],
-  output: ["topborder", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "features", "stagefail", "pageview", "listview", "detailpane", "langnav", "hints", "pruned"],
-  validation: ["topborder", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "stagefail", "hints"],
+  extract: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
+  sectioning: ["sectlanding", "sectrunning", "sectnotes", "sectresume", "secthead", "sectrail", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
+  storyboard: ["stalewarn", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "features", "ai", "loaders"],
+  output: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "features", "stagefail", "pageview", "listview", "detailpane", "langnav", "hints", "pruned"],
+  validation: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "stagefail", "hints"],
   preview: ["export"],
 }
 
@@ -343,18 +400,17 @@ export function stepOf(pathname: string): { step: LabStep; slug: string } | null
 }
 
 export const DEFAULT_VARIANTS: VariantState = {
-  topborder: "off",
   entry: "current",
   landing: "current",
   docklayout: "groups",
   sbsim: "real",
+  stalewarn: "strip",
   setupsplit: "single",
   dockfocus: "tiles",
   dockpin: "off",
   running: "current",
   return: "current",
   ai: "mock",
-  boot: "current",
   export: "current",
   features: "current",
   loaders: "current",
@@ -365,6 +421,12 @@ export const DEFAULT_VARIANTS: VariantState = {
   langnav: "cards",
   hints: "note",
   pruned: "tray",
+  sectlanding: "current",
+  sectrunning: "current",
+  sectnotes: "current",
+  sectresume: "current",
+  secthead: "current",
+  sectrail: "current",
 }
 
 function isVariantRecord(value: unknown): value is Partial<Record<string, string>> {

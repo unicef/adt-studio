@@ -270,6 +270,7 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
             />
             <FixedLayoutWarningBanner
               show={isFixedLayout}
+              stageSlug="translate"
               description={<FixedLayoutExtraLanguagesDescription />}
             />
           </div>

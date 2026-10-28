@@ -87,7 +87,7 @@ export function GlossaryOverview(props: GlossaryOverviewProps) {
               matches={list.matches}
             />
           )}
-          <StepActionButton icon={Plus} accent={props.hex} onClick={props.onAdd} disabled={!!props.addDisabledReason} disabledReason={props.addDisabledReason}>
+          <StepActionButton look="header" icon={Plus} onClick={props.onAdd} disabled={!!props.addDisabledReason} disabledReason={props.addDisabledReason}>
             <Trans>Add term</Trans>
           </StepActionButton>
         </>

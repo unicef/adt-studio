@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils"
 import { Collapsible, CollapseChevron } from "../list/Collapsible"
 import type { ProblemAction } from "./ProblemNotice"
 import { ProblemActionButton } from "./ProblemActionButton"
-import { problemTone, TONE_BORDER, TONE_TEXT } from "./problemTone"
+import { TONE_BORDER, TONE_ICON, TONE_TEXT } from "@/components/ui/notice-tone"
+import { problemTone } from "./problemTone"
 import type { DescribedProblem } from "./useDescribeProblem"
 import { problemIcon } from "./useProblemAction"
 
@@ -17,12 +18,12 @@ export function ProblemStrip({ problem, action }: { problem: DescribedProblem; a
       role={problem.level === "blocked" ? "alert" : "status"}
       data-tone={tone}
       className={cn(
-        "overflow-hidden rounded-lg border bg-card text-[12.5px] animate-in fade-in slide-in-from-top-1 duration-300 motion-reduce:animate-none",
+        "overflow-hidden rounded-xl border bg-card text-[12.5px] animate-in fade-in slide-in-from-top-1 duration-300 motion-reduce:animate-none",
         TONE_BORDER[tone],
       )}
     >
       <div className="flex h-10 items-center gap-2.5 px-3">
-        <Icon className={cn("size-4 shrink-0", TONE_TEXT[tone])} />
+        <Icon className={cn("size-4 shrink-0", TONE_ICON[tone])} />
         <p className="min-w-0 flex-1 truncate font-medium text-foreground" title={problem.title}>
           {problem.title}
         </p>

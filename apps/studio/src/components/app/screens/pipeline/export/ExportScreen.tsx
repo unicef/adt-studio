@@ -26,7 +26,7 @@ export function ExportScreen({ label }: ExportScreenProps) {
       />
       <div data-chrome="row" className="flex min-h-0 flex-1">
       <ScrollArea data-chrome="center" className="min-h-0 flex-1">
-        <div className="mx-auto w-full max-w-[1080px] px-6 py-8">
+        <div className="mx-auto w-full max-w-[1080px] px-6 pt-8 pb-28">
           <ExportLandingPage bookLabel={label} />
         </div>
       </ScrollArea>

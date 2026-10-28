@@ -1,23 +1,15 @@
 import { useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { ArrowLeft, ArrowRight, Check, Copy, Hourglass, Pin, PenLine, RotateCcw, SlidersHorizontal, Wrench, X } from "lucide-react"
-import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { cn } from "@/lib/utils"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
-import { checkedStore } from "./ChecklistPanel"
-import { applyStageState, clearStageState, type StageStates } from "./stageStates"
-import { VERIFY_LOG, type LogStatus } from "./verifyLog"
-import { VARIANT_GROUPS, setVariantValue, useVariants, type VariantKey } from "./variants"
-
-type Verdict = "ok" | "issue"
-
-interface VerifyRecord {
-  verdicts: Record<string, Verdict>
-  notes: Record<string, string>
-  rechecked?: Record<string, boolean | number>
-}
-
-const filterStore = createPersistentStore<"all" | "recheck">("adt.lab.verify-filter", "all", (value): value is "all" | "recheck" => value === "all" || value === "recheck")
+import { checkedStore } from "../ChecklistPanel"
+import { applyStageState, clearStageState, type StageStates } from "../stageStates"
+import { useVariants } from "../variants"
+import { filterStore, recordStore, type Verdict } from "./stores"
+import { TestingCard, TestingPointer } from "./TestingCard"
+import { selectedVariantText, VariantChips } from "./VariantChips"
+import { TESTING_NOW, VERIFY_LOG, type LogStatus } from "./verifyLog"
 
 const LOG_STYLE: Record<LogStatus, { box: string; text: string }> = {
   fixed: { box: "bg-sky-400/15 ring-1 ring-sky-400/40", text: "text-sky-200" },
@@ -25,14 +17,6 @@ const LOG_STYLE: Record<LogStatus, { box: string; text: string }> = {
   pending: { box: "bg-white/5 ring-1 ring-white/10", text: "text-white/70" },
   pinned: { box: "bg-white/5 ring-1 ring-white/10", text: "text-white/50" },
 }
-
-export const verifyModeStore = createPersistentStore<boolean>("adt.lab.verify-mode", false, (value): value is boolean => typeof value === "boolean")
-
-const recordStore = createPersistentStore<VerifyRecord>(
-  "adt.lab.verify",
-  { verdicts: {}, notes: {} },
-  (value): value is VerifyRecord => typeof value === "object" && value !== null && "verdicts" in value && "notes" in value,
-)
 
 function copy(text: string) {
   const area = document.createElement("textarea")
@@ -50,15 +34,22 @@ export function VerifyPanel({ page, stageStates, active }: { page: string | null
   const [record, setRecord] = recordStore.use()
   const [, setChecked] = checkedStore.use()
   const [copied, setCopied] = useState(false)
-  const [filter, setFilter] = filterStore.use()
+  const [storedFilter, setFilter] = filterStore.use()
   const variants = useVariants()
   const { i18n } = useLingui()
 
   if (!stageStates) return <p className="px-2 py-1 text-[11.5px] text-white/55">{t`Verification needs the local lab canvas files (lab/canvas).`}</p>
   const states = page ? (stageStates.byPage[page] ?? []) : []
-  if (!page || states.length === 0) return <p className="px-2 py-2 text-[12px] leading-relaxed text-white/60">{t`This screen has no simulated states yet. Open a stage (Extract, Sectioning…) to verify its states.`}</p>
+  if (!page || states.length === 0)
+    return (
+      <div className="flex flex-col gap-1.5">
+        <TestingPointer page={page} />
+        <p className="px-2 py-2 text-[12px] leading-relaxed text-white/60">{t`This screen has no simulated states yet. Open a stage (Extract, Sectioning…) to verify its states.`}</p>
+      </div>
+    )
 
   const stage = getStageLabelI18n(page)
+  const testingNow = TESTING_NOW[page] ?? []
   const needsRecheck = (id: string) => {
     const stateKey = `${page}:${id}`
     const entry = VERIFY_LOG[stateKey]
@@ -68,6 +59,7 @@ export function VerifyPanel({ page, stageStates, active }: { page: string | null
     return seenRound < (entry.round ?? 1)
   }
   const recheckCount = states.filter((state) => needsRecheck(state.id)).length
+  const filter = recheckCount > 0 ? storedFilter : "all"
   const fixedCount = states.filter((state) => ["fixed", "review"].includes(VERIFY_LOG[`${page}:${state.id}`]?.status ?? "")).length
   const pendingCount = states.filter((state) => VERIFY_LOG[`${page}:${state.id}`]?.status === "pending").length
   const visible = filter === "recheck" ? states.map((state, position) => ({ state, position })).filter(({ state }) => needsRecheck(state.id)) : states.map((state, position) => ({ state, position }))
@@ -113,17 +105,13 @@ export function VerifyPanel({ page, stageStates, active }: { page: string | null
       const mark = record.verdicts[stateKey] === "ok" ? "✅" : record.verdicts[stateKey] === "issue" ? "⚠️" : "·"
       const text = record.notes[stateKey]?.trim()
       const entry = VERIFY_LOG[stateKey]
-      const picked = (entry?.variants ?? [])
-        .map((variantKey) => {
-          const group = VARIANT_GROUPS.find((candidate) => candidate.key === variantKey)
-          const option = group?.options.find((candidate) => candidate.value === variants[variantKey])
-          return group && option ? `${i18n._(group.label)}: **${i18n._(option.label)}**` : null
-        })
-        .filter(Boolean)
+      const picked = selectedVariantText(entry?.variants ?? [], variants, (descriptor) => i18n._(descriptor))
       const pickedText = picked.length ? ` · ${t`selected`} ${picked.join(", ")}` : ""
       const status = entry ? ` · _${entry.status === "fixed" ? t`fixed, re-check` : entry.status === "review" ? t`variants to pick` : entry.status === "pending" ? t`pending` : t`pinned`}_` : ""
       lines.push(`- ${mark} **${state.label}** (\`${state.id}\`)${status}${pickedText}${text ? ` — ${text}` : ""}`)
     }
+    const testing = selectedVariantText(testingNow.flatMap((item) => item.variants), variants, (descriptor) => i18n._(descriptor))
+    if (testing.length) lines.push("", `**${t`Testing now`}** · ${testing.join(", ")}`)
     copy(lines.join("\n"))
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1600)
@@ -160,7 +148,10 @@ export function VerifyPanel({ page, stageStates, active }: { page: string | null
         </button>
       </div>
 
-      <div className="flex items-center gap-0.5 rounded-xl bg-white/5 p-1">
+      <TestingCard page={page} items={testingNow} stageStates={stageStates} />
+      <TestingPointer page={page} />
+
+      {recheckCount > 0 && <div className="flex items-center gap-0.5 rounded-xl bg-white/5 p-1">
         {(
           [
             ["all", t`All states`],
@@ -180,7 +171,7 @@ export function VerifyPanel({ page, stageStates, active }: { page: string | null
             {label}
           </button>
         ))}
-      </div>
+      </div>}
 
       {log && (
         <div className={cn("flex gap-2 rounded-xl px-2.5 py-2 animate-in fade-in duration-200 motion-reduce:animate-none", LOG_STYLE[log.status].box)}>
@@ -190,35 +181,11 @@ export function VerifyPanel({ page, stageStates, active }: { page: string | null
               {log.status === "fixed" ? t`Fixed · check again` : log.status === "review" ? t`Changed · try the options` : log.status === "pending" ? t`Pending · ${log.group ? i18n._(log.group) : ""}` : t`Pinned`}
             </span>
             <span className="text-[12px] leading-snug text-white/80">{i18n._(log.text)}</span>
-            {log.variants?.map((variantKey: VariantKey) => {
-              const group = VARIANT_GROUPS.find((candidate) => candidate.key === variantKey)
-              if (!group) return null
-              return (
-                <span key={variantKey} className="mt-1.5 flex flex-col gap-1">
-                  <span className="text-[10px] font-semibold tracking-[0.08em] text-white/45 uppercase">{i18n._(group.label)}</span>
-                  <span className="flex flex-wrap gap-1">
-                    {group.options.map((option) => {
-                      const on = variants[variantKey] === option.value
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          title={i18n._(option.hint)}
-                          aria-pressed={on}
-                          onClick={() => setVariantValue(variantKey, option.value)}
-                          className={cn(
-                            "h-7 rounded-full px-2.5 text-[12px] font-semibold transition-[background-color,color] duration-150",
-                            on ? "bg-white text-zinc-900" : "bg-white/5 text-white/75 hover:bg-white/10 hover:text-white",
-                          )}
-                        >
-                          {i18n._(option.label)}
-                        </button>
-                      )
-                    })}
-                  </span>
-                </span>
-              )
-            })}
+            {log.variants?.map((variantKey) => (
+              <span key={variantKey} className="mt-1.5">
+                <VariantChips variantKey={variantKey} />
+              </span>
+            ))}
           </span>
         </div>
       )}
@@ -296,7 +263,6 @@ export function VerifyPanel({ page, stageStates, active }: { page: string | null
             type="button"
             onClick={() => {
               clearStageState()
-              window.location.reload()
             }}
             className="flex h-7 items-center gap-1 rounded-full px-2 text-[11.5px] font-medium text-white/65 transition-colors duration-150 hover:bg-white/10 hover:text-white"
           >

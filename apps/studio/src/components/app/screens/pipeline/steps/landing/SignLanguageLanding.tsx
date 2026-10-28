@@ -174,6 +174,7 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
       />
 
       <LandingPageWarning
+        stageSlug="sign-language"
         show={!storyboardReady}
         variant="prereq"
         title={<Trans>Run {getStageLabelI18n("storyboard")} first</Trans>}

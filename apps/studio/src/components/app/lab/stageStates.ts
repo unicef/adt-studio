@@ -77,9 +77,21 @@ function resolve(state: StageState): LabState {
   return { id: state.id, label: { id: state.id }, path: state.path, ...(state.scenario ?? { sim: null }) }
 }
 
+function currentBook(): string | null {
+  const [, root, book] = window.location.pathname.split("/")
+  return root === "pipeline" && book ? decodeURIComponent(book) : null
+}
+
+function rebind<T>(sim: T, book: string | null): T {
+  if (!book || !sim || typeof sim !== "object" || !("book" in sim)) return sim
+  return { ...sim, book }
+}
+
 export function applyStageState(page: string, state: StageState) {
   const lab = resolve(state)
-  const sim = lab.sim ?? null
+  const inPlace = pageKeyFor(window.location.pathname) === page && lab.sim?.kind !== "slow-load" && !lab.reload
+  const book = inPlace ? currentBook() : null
+  const sim = rebind(lab.sim ?? null, book)
   const now = Date.now()
   clearAddedOutputs()
   clearNeedsDismissed()
@@ -92,10 +104,10 @@ export function applyStageState(page: string, state: StageState) {
     const frozen = !lab.play && lab.pauseAtMs === undefined
     startScenario({ ...sim, startedAt: now - (lab.atMs ?? 0), pausedAt: frozen ? now : undefined, pauseAtMs: lab.pauseAtMs, ...(runs ? { runs } : {}) } as Scenario)
   }
-  if (lab.outputs) setOutputsFor(TEST_BOOKS.done, lab.outputs)
-  if (lab.needsDismissed !== undefined) setNeedsDismissedFor(TEST_BOOKS.done, lab.needsDismissed)
+  if (lab.outputs) setOutputsFor(book ?? TEST_BOOKS.done, lab.outputs)
+  if (lab.needsDismissed !== undefined) setNeedsDismissedFor(book ?? TEST_BOOKS.done, lab.needsDismissed)
   activeStore.set({ page, id: state.id })
-  window.location.assign(lab.path ?? state.path)
+  if (!inPlace) window.location.assign(lab.path ?? state.path)
 }
 
 export function clearStageState() {
