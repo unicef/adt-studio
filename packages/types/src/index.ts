@@ -386,6 +386,9 @@ export {
   type ParsedVoicesConfig,
   parseVoicesConfigEntries,
   normalizeVoiceMapEntry,
+  TTS_MODELS_BY_PROVIDER,
+  type TtsModelProvider,
+  speechModelProvider,
 } from "./speech.js"
 
 export {

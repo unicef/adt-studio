@@ -15,6 +15,7 @@ import {
   parseVoiceSlotEntryId,
   sortSpeechEntries,
 } from "../speech.js"
+import { TTS_MODELS_BY_PROVIDER, speechModelProvider } from "../speech.js"
 import {
   getTextCatalogCategory,
   answerTextId,
@@ -507,5 +508,27 @@ describe("sortSpeechEntries", () => {
     sortSpeechEntries(input, ["pg001_t001", "pg001_t002"])
 
     expect(input.map((e) => e.textId)).toEqual(["pg001_t002", "pg001_t001"])
+  })
+})
+
+describe("speechModelProvider", () => {
+  it("maps every listed model to its provider", () => {
+    for (const [provider, models] of Object.entries(TTS_MODELS_BY_PROVIDER)) {
+      for (const model of models) expect(speechModelProvider(model)).toBe(provider)
+    }
+  })
+
+  it("recognises newer or custom ids by their shape", () => {
+    expect(speechModelProvider("gemini-4-tts-preview")).toBe("gemini")
+    expect(speechModelProvider("GPT-5-mini-tts")).toBe("openai")
+    expect(speechModelProvider("tts-2")).toBe("openai")
+    expect(speechModelProvider("eleven_v3")).toBe("elevenlabs")
+    expect(speechModelProvider("azure-neural")).toBe("azure")
+  })
+
+  it("returns undefined for an id it cannot place", () => {
+    expect(speechModelProvider("")).toBeUndefined()
+    expect(speechModelProvider("  ")).toBeUndefined()
+    expect(speechModelProvider("my-custom-voice-model")).toBeUndefined()
   })
 })
