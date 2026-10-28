@@ -30,7 +30,7 @@ function throwAdtDirMissing(): never {
  * Read book title from metadata for use in export filenames.
  * Falls back to the safe label if metadata is not available.
  */
-function readBookTitle(label: string, resolvedDir: string): string {
+export function readBookTitle(label: string, resolvedDir: string): string {
   const storage = createBookStorage(label, resolvedDir)
   try {
     const metadataRow = storage.getLatestNodeData("metadata", "book")
@@ -78,6 +78,7 @@ export async function prepareExport(
   configPath?: string,
   features?: ExportFeatures,
   defaultSettingsOverride?: ExportDefaultSettings,
+  promptsDir = path.resolve("prompts"),
 ): Promise<PrepareExportResult> {
   const safeLabel = parseBookLabel(label)
   const resolvedDir = path.resolve(booksDir)
@@ -145,6 +146,7 @@ export async function prepareExport(
     })()
 
     const opts = {
+      promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
       bookDir,
       label: safeLabel,
       language,
@@ -152,6 +154,7 @@ export async function prepareExport(
       title,
       webAssetsDir,
       applyBodyBackground: config.apply_body_background,
+      config,
       speechConfig: config.speech,
       features,
       defaultSettings: mergedDefaultSettings,

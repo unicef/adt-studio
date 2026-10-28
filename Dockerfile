@@ -40,6 +40,7 @@ COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 COPY apps/studio/ ./apps/studio/
 COPY apps/adt-runtime/ ./apps/adt-runtime/
+COPY apps/publish-service/ ./apps/publish-service/
 
 # Read-only code assets required during build (prompts, templates, global config)
 COPY prompts/ ./prompts/
@@ -69,6 +70,7 @@ RUN --mount=type=cache,target=/root/.npm \
           esbuild: p.devDependencies.esbuild, \
           tailwindcss: p.dependencies.tailwindcss, \
           '@tailwindcss/postcss': p.dependencies['@tailwindcss/postcss'], \
+          'tw-animate-css': p.dependencies['tw-animate-css'], \
           postcss: p.dependencies.postcss, \
           playwright: p.dependencies.playwright, \
           jsdom: p.dependencies.jsdom \
@@ -105,6 +107,12 @@ WORKDIR /app
 # postcss, playwright) which are installed into dist/node_modules/ during the build stage.
 # WASM files are copied into dist/ by the build:server script.
 COPY --from=build /app/apps/api/dist ./apps/api/dist
+
+# The publish worker artifact the API deploys into the author's Cloudflare account, plus its D1
+# migrations (not packaged inside dist/). Resolved at runtime from PROJECT_ROOT — without these,
+# "Publish this book" cannot provision or update the worker from a Docker install.
+COPY --from=build /app/apps/publish-service/dist ./apps/publish-service/dist
+COPY --from=build /app/apps/publish-service/migrations ./apps/publish-service/migrations
 
 # Playwright Chromium browser binary + system dependencies for screenshot rendering.
 # The browser was downloaded in the build stage; copy it and install OS-level libs.
@@ -169,33 +177,37 @@ CMD ["nginx", "-g", "daemon off;"]
 # Users run: docker run -p 8080:80 -v ./books:/app/books ghcr.io/unicef/adt-studio
 # No repo clone or docker-compose needed.
 # =============================================================================
-FROM node:22-alpine AS app
+# Runtime dependencies and Playwright are installed on Debian in the build
+# stage. Keep the same libc here so their native binaries also work at runtime.
+FROM node:22-slim AS app
 
-RUN apk add --no-cache nginx
+RUN apt-get update && apt-get install -y --no-install-recommends nginx ca-certificates && \
+    rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled/default
 
 WORKDIR /app
 
 # API bundle (self-contained except for external packages in dist/node_modules/)
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 
+# The publish worker artifact the API deploys into the author's Cloudflare account, plus its D1
+# migrations (not packaged inside dist/). Resolved at runtime from PROJECT_ROOT — without these,
+# "Publish this book" cannot provision or update the worker from a Docker install.
+COPY --from=build /app/apps/publish-service/dist ./apps/publish-service/dist
+COPY --from=build /app/apps/publish-service/migrations ./apps/publish-service/migrations
+
 # Playwright Chromium browser binary + system dependencies for screenshot rendering.
 COPY --from=build /root/.cache/ms-playwright /home/node/.cache/ms-playwright
 RUN chown -R node:node /home/node/.cache/ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
-# Alpine system libraries required by Chromium
-RUN apk add --no-cache \
-    chromium-swiftshader \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
+# Install the matching system libraries for the bundled Playwright browser.
+RUN npx --prefix apps/api/dist playwright install-deps chromium && \
+    rm -rf /var/lib/apt/lists/*
 
 # Studio SPA
 COPY --from=build /app/apps/studio/dist /usr/share/nginx/html
 
 # nginx config — proxies /api/* to localhost:3001
-COPY docker/nginx-single.conf /etc/nginx/http.d/default.conf
+COPY docker/nginx-single.conf /etc/nginx/conf.d/default.conf
 
 # Entrypoint — starts Node.js then nginx
 COPY docker/entrypoint.sh /entrypoint.sh

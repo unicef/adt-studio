@@ -10,6 +10,10 @@ import { ErrorScreen } from "@/components/ErrorScreen"
 import type { SettingsSection } from "@/components/settings/settingsSections"
 import { UpdateDialogProvider } from "@/components/updates"
 import { useGlobalRunNotifications } from "@/hooks/use-global-run-notifications"
+import { useSharingCloseGuard } from "@/components/close-guard/CloseGuard"
+import { useProvisionRunNotice, useProvisionRunning } from "@/hooks/use-provision-run-notice"
+import { useAnyShareRunning, usePublishRunNotice } from "@/hooks/use-publish-run-notice"
+import { useSharingUpdateNotice } from "@/hooks/use-sharing-update"
 
 const SettingsContext = createContext<{
   openSettings: (section?: SettingsSection) => void
@@ -33,6 +37,12 @@ export const Route = createRootRoute({
 function RootLayout() {
   const navigate = useNavigate()
   useGlobalRunNotifications()
+  useProvisionRunNotice()
+  usePublishRunNotice()
+  const shareRunning = useAnyShareRunning()
+  const setupRunning = useProvisionRunning()
+  useSharingCloseGuard(shareRunning || setupRunning)
+  useSharingUpdateNotice()
   const openSettings = useCallback(
     (section: SettingsSection = "default-model") => {
       if (section === "api-keys") void navigate({ to: "/settings/providers" })

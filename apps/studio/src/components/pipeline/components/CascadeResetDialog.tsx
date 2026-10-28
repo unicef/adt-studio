@@ -22,7 +22,7 @@ import { getStageLabelI18n } from "../pipeline-i18n"
 import { STAGES } from "../stage-config"
 
 /**
- * Confirmation dialog shown before an action that resets completed downstream
+ * Confirmation dialog shown before an action that may affect completed downstream
  * stages. Lists the affected stages with their stage icons/colors. Reused by
  * the stage re-run flow (LandingPageShell) and by edits that invalidate
  * downstream work (e.g. changing the book language in the Extract metadata
@@ -110,11 +110,11 @@ export function CascadeResetDialog({
         </DialogHeader>
 
         {/* Nothing completed downstream — the dialog is then a plain
-            confirmation, with no misleading empty "Will be reset · 0" block. */}
+            confirmation, with no misleading empty "May need attention · 0" block. */}
         {stages.length > 0 && (
           <div className="flex flex-col gap-2">
             <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[#a3a3a3]">
-              <Trans>Will be reset</Trans>
+              <Trans>May need attention</Trans>
               <span className="mx-1.5 text-[#d4d4d4]">·</span>
               <span className="tabular-nums">{stages.length}</span>
             </p>
