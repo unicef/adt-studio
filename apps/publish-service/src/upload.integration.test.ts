@@ -15,7 +15,11 @@ function digest(body: string): string {
   return createHash("sha256").update(body).digest("hex")
 }
 
-async function start(kind: "create" | "version", files: Record<string, string>) {
+async function start(
+  kind: "create" | "version",
+  files: Record<string, string>,
+  accessCode?: string,
+) {
   const app = createApp()
   const manifest = Object.entries(files).map(([path, body]) => ({
     path,
@@ -31,6 +35,7 @@ async function start(kind: "create" | "version", files: Record<string, string>) 
       page_manifest: [{ section_id: "page-1", href: "index.html", page_number: 1 }],
       files: manifest,
       ...(kind === "create" ? { title: "Upload test", book_label: "upload" } : {}),
+      ...(accessCode === undefined ? {} : { access_code: accessCode }),
     }),
   }, env)
   expect(response.status).toBe(201)
@@ -71,6 +76,47 @@ describe("publication upload lifecycle", () => {
     await expect((await app.request(`${BASE}/p/${TOKEN}/`, {}, env)).text()).resolves.toBe("version one")
     expect((await put(app, upload.upload_id, "index.html", "version one")).status).toBe(409)
     expect((await app.request(`${BASE}/p/${TOKEN}/not-declared.html`, {}, env)).status).toBe(404)
+  })
+
+  /**
+   * The store calls it `hasAccessCode` and the response schema reads `has_access_code`, so
+   * spreading the record put the wrong key in the body and the field fell back to its `false`
+   * default. The Studio writes that answer into the book's record, so a publish behind a code
+   * was filed as an open link — visible nowhere until a reviewer hit a gate nobody knew about.
+   */
+  it("reports the access code it was given back to the publisher", async () => {
+    const files = { "index.html": "gated" }
+    const { app, upload } = await start("create", files, "S3cure")
+    for (const [path, body] of Object.entries(files)) {
+      expect((await put(app, upload.upload_id, path, body)).status).toBe(200)
+    }
+
+    const committed = await app.request(
+      `${BASE}/api/publication-uploads/${upload.upload_id}/commit`,
+      { method: "POST", headers: headers() },
+      env,
+    )
+    expect(committed.status).toBe(201)
+    await expect(committed.json()).resolves.toMatchObject({ has_access_code: true })
+
+    // The gate is the second opinion: the body has to describe the book that was published.
+    expect((await app.request(`${BASE}/p/${TOKEN}/`, {}, env)).status).toBe(401)
+  })
+
+  it("reports an ungated publication as ungated", async () => {
+    const files = { "index.html": "open" }
+    const { app, upload } = await start("create", files)
+    for (const [path, body] of Object.entries(files)) {
+      expect((await put(app, upload.upload_id, path, body)).status).toBe(200)
+    }
+
+    const committed = await app.request(
+      `${BASE}/api/publication-uploads/${upload.upload_id}/commit`,
+      { method: "POST", headers: headers() },
+      env,
+    )
+    await expect(committed.json()).resolves.toMatchObject({ has_access_code: false })
+    expect((await app.request(`${BASE}/p/${TOKEN}/`, {}, env)).status).toBe(200)
   })
 
   it("rejects incomplete, wrong, and undeclared files and only advances after a complete republish", async () => {
