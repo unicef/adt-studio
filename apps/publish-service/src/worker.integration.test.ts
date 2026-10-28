@@ -56,6 +56,26 @@ describe("publish worker", () => {
     expect(image.headers.get("cache-control")).toBe("public, max-age=3600")
   })
 
+  it("serves a gated snapshot through the Static Assets binding when it is available", async () => {
+    await publish({ "index.html": "R2 fallback" })
+    const seen: string[] = []
+    const assets = {
+      fetch: async (request: Request) => {
+        seen.push(new URL(request.url).pathname)
+        return new Response("Static Assets version", {
+          headers: { "content-type": "text/plain", "cache-control": "public, max-age=1" },
+        })
+      },
+    } as unknown as Fetcher
+
+    const response = await createApp().request(`${BASE}/p/${TOKEN}/`, {}, { ...env, ASSETS: assets })
+
+    expect(seen).toEqual([expect.stringMatching(/^\/uploads\/.+\/index\.html$/)])
+    expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8")
+    expect(response.headers.get("cache-control")).toBe("no-cache")
+    await expect(response.text()).resolves.toBe("Static Assets version")
+  })
+
   it("keeps the old snapshot immutable when a new version is committed", async () => {
     await publish({ "index.html": "version one" })
     await publish({ "index.html": "version two" }, true)

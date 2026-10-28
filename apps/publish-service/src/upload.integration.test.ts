@@ -119,6 +119,43 @@ describe("publication upload lifecycle", () => {
     expect((await app.request(`${BASE}/p/${TOKEN}/`, {}, env)).status).toBe(200)
   })
 
+  it("records the complete account-wide Static Assets manifest without writing an R2 object", async () => {
+    const app = createApp()
+    const body = "static bytes"
+    const objectsBefore = (await env.SNAPSHOTS.list()).objects.length
+    const startResponse = await app.request(`${BASE}/api/publication-uploads`, {
+      method: "POST",
+      headers: { ...headers(), "content-type": "application/json" },
+      body: JSON.stringify({
+        kind: "create",
+        token: TOKEN,
+        title: "Static upload",
+        book_label: "static",
+        page_manifest: [{ section_id: "page-1", href: "index.html", page_number: 1 }],
+        files: [{
+          path: "index.html",
+          bytes: Buffer.byteLength(body),
+          sha256: digest(body),
+          asset_hash: "a".repeat(32),
+        }],
+      }),
+    }, env)
+    const { upload_id: uploadId } = await startResponse.json() as { upload_id: string }
+
+    expect((await app.request(`${BASE}/api/publication-uploads/${uploadId}/complete-static-assets`, {
+      method: "POST", headers: headers(),
+    }, env)).status).toBe(200)
+    expect((await app.request(`${BASE}/api/publication-uploads/${uploadId}/commit`, {
+      method: "POST", headers: headers(),
+    }, env)).status).toBe(201)
+
+    const manifest = await app.request(`${BASE}/api/static-assets/manifest`, { headers: headers() }, env)
+    await expect(manifest.json()).resolves.toMatchObject({
+      assets: [{ path: expect.stringMatching(/^\/uploads\/.+\/index\.html$/), hash: "a".repeat(32), bytes: body.length }],
+    })
+    expect((await env.SNAPSHOTS.list()).objects).toHaveLength(objectsBefore)
+  })
+
   it("rejects incomplete, wrong, and undeclared files and only advances after a complete republish", async () => {
     const first = await start("create", { "index.html": "one" })
     expect((await first.app.request(`${BASE}/api/publication-uploads/${first.upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)).status).toBe(400)

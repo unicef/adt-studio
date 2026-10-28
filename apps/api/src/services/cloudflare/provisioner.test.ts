@@ -298,7 +298,12 @@ describe("provisionCloudflare — idempotent re-run", () => {
       .map((name) => ({ name, sql: fs.readFileSync(path.join(migrationsDir, name), "utf-8") }))
   }
 
-  const MIGRATION_NAMES = ["0001_init.sql", "0009_static_asset_hashes.sql"]
+  const MIGRATION_NAMES = [
+    "0001_init.sql",
+    "0002_feedback.sql",
+    "0008_sessions_pinned_name_index.sql",
+    "0009_static_asset_hashes.sql",
+  ]
 
   it("ships exactly the migrations the contract documents", () => {
     expect(shippedMigrations().map((migration) => migration.name)).toEqual(MIGRATION_NAMES)
