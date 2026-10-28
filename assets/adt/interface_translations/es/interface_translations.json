@@ -196,5 +196,12 @@
     "stepper-word-bank": "Palabras para elegir",
     "stepper-open-ended-saved": "¡Muy bien! Tu respuesta se ha guardado.",
     "stepper-open-ended-rephrase": "Seamos amables: intenta escribir tu respuesta de otra manera.",
-    "open-ended-answer-label": "Tu respuesta"
+    "open-ended-answer-label": "Tu respuesta",
+    "activity-page-checking": "Comprobando…",
+    "activity-page-complete": "Página completada",
+    "activity-page-next-section": "Siguiente sección",
+    "activity-page-check-section": "Comprobar sección",
+    "activity-page-check-page": "Comprobar página",
+    "activity-page-progress": "${done} de ${total} secciones completadas",
+    "activity-page-error": "No se pudo comprobar esta sección. Inténtalo de nuevo."
 }

@@ -14,6 +14,7 @@
  *   8. initAnalytics() — fire and forget
  *   9. installShowContentFallback() — safety net
  */
+import { initializeActivityPage } from "@/features/activity/runtime/activity-page"
 import { getDefaultStore, type WritableAtom } from "jotai"
 import { addFavicons } from "@/shared/runtime/favicon"
 import { loadAppConfig, pickLanguage, pickStorageMode } from "@/shared/runtime/config"
@@ -211,7 +212,8 @@ export function initializePageContent(): void {
   disposeActivityInitializers()
   // Stepper first — sections it owns carry data-activity-variant="stepper"
   // and are excluded from the classic initializers' selectors.
-  activityDisposers = [
+  const composedPage = initializeActivityPage()
+  activityDisposers = composedPage ? [composedPage, initializeWordBankActivity()].filter((dispose): dispose is () => void => dispose !== null) : [
     initializeStepperActivity(),
     initializeQuizActivity(),
     initializeMultiSelectActivity(),

@@ -3963,6 +3963,9 @@ msgstr "Développer"
 msgid "Expand all sections"
 msgstr "Développer toutes les sections"
 
+msgid "Experimental activity pages"
+msgstr "Pages d’activités expérimentales"
+
 msgid "Experimental configurations"
 msgstr "Configurations expérimentales"
 
@@ -4727,8 +4730,17 @@ msgstr "Grouper par à traiter"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Regroupez le texte et les images de chaque page en sections tapées avec un arbre de contenu structuré. Les sections déterminent comment les étapes en aval rendent, traduisent et lisent le livre à haute voix."
 
+msgid "Group sections — check one section at a time"
+msgstr "Regrouper les sections — vérifier une section à la fois"
+
+msgid "Group sections — check whole page"
+msgstr "Regrouper les sections — vérifier toute la page"
+
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Regroupe les régions d'image en illustrations distinctes sur chaque page."
+
+msgid "Groups supported activity sections from the same PDF page in Preview and exports. Works with either sectioning mode. Existing sections can be tried immediately; run Sectioning and Storyboard to detect activities on new pages. Custom scripts, step-by-step activities and fixed layouts stay separate."
+msgstr "Regroupe les sections d’activités compatibles d’une même page PDF dans l’aperçu et les exports. Fonctionne avec les deux modes de découpage en sections. Les sections existantes peuvent être testées immédiatement ; exécutez le découpage en sections et le storyboard pour détecter les activités sur de nouvelles pages. Les scripts personnalisés, les activités étape par étape et les mises en page fixes restent séparés."
 
 msgid "Guidance for this book"
 msgstr "Consignes pour ce livre"
@@ -5344,6 +5356,9 @@ msgstr "Gardez les pages entières par défaut, mais divisez-les lorsque des typ
 
 #~ msgid "Keep selected content"
 #~ msgstr "Conserver le contenu sélectionné"
+
+msgid "Keeps each source page together while detecting separate activities."
+msgstr "Garde chaque page source entière tout en détectant les activités distinctes."
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Garde les pages entières sauf si des types d'activités mixtes nécessitent un découpage."

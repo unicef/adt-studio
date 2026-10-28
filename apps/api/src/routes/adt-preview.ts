@@ -1,3 +1,4 @@
+import { groupExperimentalActivityPages, wrapExperimentalActivityBlock, experimentalActivityPageContent } from "@adt/pipeline"
 import { catalogOutputs } from "../services/catalog-output-service.js"
 import { reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks } from "@adt/pipeline"
 import fs from "node:fs"
@@ -18,6 +19,7 @@ import {
 } from "@adt/types"
 import {
   WebRenderingOutput,
+  type AppConfig,
   type SpeechConfig,
   type TextCatalogOutput,
   type EasyReadOutput,
@@ -315,8 +317,8 @@ function buildRuntimeTimecodeMap(
 }
 
 /** Build the pages.json manifest — one entry per output page, in reading order. */
-function buildPagesManifest(storage: Storage): PageEntry[] {
-  return resolveReadingOrder(storage).items.map(toPageEntry)
+function buildPagesManifest(storage: Storage, config?: AppConfig): PageEntry[] {
+  return groupExperimentalActivityPages(storage, resolveReadingOrder(storage).items, config && !isFixedLayoutBook(config) ? config : undefined).map(group => toPageEntry(group[0]))
 }
 
 /** DFS-find the first non-pruned heading leaf in a content-node tree. */
@@ -620,7 +622,9 @@ export function createAdtPreviewRoutes(
 
   // /content/pages.json — All rendered pages
   app.get("/books/:label/adt-preview/content/pages.json", (c) => {
-    const pages = withStorage(c.req.param("label"), (storage) => buildPagesManifest(storage))
+    const label = parseBookLabel(c.req.param("label"))
+    const config = loadBookConfig(label, booksDir, configPath)
+    const pages = withStorage(label, (storage) => buildPagesManifest(storage, config))
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
     return c.body(JSON.stringify(pages))
@@ -703,6 +707,9 @@ export function createAdtPreviewRoutes(
         // Include unsaved content (e.g., AI-edited section HTML) so new Tailwind classes
         // are picked up before the edit is persisted to the DB.
         if (extraHtml) allHtml += "\n" + extraHtml
+        // The composition shell is derived at read time, so it is absent from
+        // stored section HTML. Include its utilities in the preview CSS scan.
+        allHtml += experimentalActivityPageContent([], "page")
 
         const css = await buildPreviewTailwindCss(allHtml, webAssetsDir, resolveTypographyCss(storage))
         rememberTailwindCss(cacheKey, css)
@@ -1068,7 +1075,7 @@ export function createAdtPreviewRoutes(
         const quizStyle = quizPalette ? { palette: quizPalette } : null
         const quizHtmlContent = renderQuizHtml(quiz, pageId, catalog, quizStyle)
         // Determine page index from the manifest
-      const manifest = buildPagesManifest(storage)
+      const manifest = buildPagesManifest(storage, config)
       const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
       const previewBundleVersion = getPreviewContentVersion(storage, webAssetsDir)
 
@@ -1103,63 +1110,74 @@ export function createAdtPreviewRoutes(
       }
       const ownerPageId = parsedSectionId.pageId
 
-      const item = resolveReadingOrder(storage).items.find((entry) => entry.kind === "section" && entry.id === pageId && entry.pageId === ownerPageId)
-      if (!item || item.kind !== "section") {
-        throw new HTTPException(404, { message: `Section not found: ${pageId}` })
-      }
-      const renderedSection = scopeLegacyActivityIds(item.rendering, pageId)
+      const group = groupExperimentalActivityPages(storage, resolveReadingOrder(storage).items,
+        isFixedLayoutBook(config) ? undefined : config).find(items => items.some(entry => entry.kind === "section" && entry.id === pageId && entry.pageId === ownerPageId))
+      const sectionItems = group?.filter(entry => entry.kind === "section") ?? []
+      if (!sectionItems.length) throw new HTTPException(404, { message: `Section not found: ${pageId}` })
+      const leaderId = sectionItems[0].id
+      const grouped = sectionItems.length > 1
+      const fragments: string[] = []
+      let pageAnswers: Record<string, string | boolean | number> | undefined
+      let previewHasMath = false
 
       // Determine page index from manifest (includes quiz pages)
-      const manifest = buildPagesManifest(storage)
-      const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
+      const manifest = buildPagesManifest(storage, config)
+      const manifestIndex = manifest.findIndex((e) => e.section_id === leaderId)
       const previewBundleVersion = getPreviewContentVersion(storage, webAssetsDir)
 
-      const sectionMeta = item.section
+      for (const item of sectionItems) {
+        const renderedSection = scopeLegacyActivityIds(item.rendering, item.id)
+        const sectionMeta = item.section
 
-      // Step-by-step override: an enabled editable activity replaces the
-      // stored LLM HTML with the stepper shell, matching packaged output.
-      const stepperActivity = enabledEditableActivity(
-        readEditableActivities(storage, ownerPageId),
-        item.sectionIndex,
-        renderedSection.sectionType,
-      )
+        // Step-by-step override: an enabled editable activity replaces the
+        // stored LLM HTML with the stepper shell, matching packaged output.
+        const stepperActivity = enabledEditableActivity(
+          readEditableActivities(storage, ownerPageId),
+          item.sectionIndex,
+          renderedSection.sectionType,
+        )
 
-      const preferredImageAltMap = buildPreferredImageAltMap(storage, ownerPageId, sectionMeta)
-      const decorativeImageIds = buildDecorativeImageIdSet(storage, ownerPageId)
-      let previewSectionHtml: string
-      if (stepperActivity) {
-        const stepperPalette =
-          ((config.quiz_generation?.match_book_style ?? true)
-            ? resolveQuizPalette(storage)
-            : null) ?? DEFAULT_QUIZ_PALETTE
-        // Empty image map (preview serves stored srcs directly) but the same
-        // curated alt/decorative handling as packaged output.
-        const resolved = resolveEditableActivityImages(stepperActivity, new Map(), {
-          preferredAltMap: preferredImageAltMap,
-          decorativeImageIds,
-        })
-        previewSectionHtml = renderEditableActivityHtml(resolved.activity, {
-          palette: stepperPalette,
-        })
-      } else {
-        ;({ html: previewSectionHtml } = rewriteImageUrls(
-          renderedSection.html,
-          label,
-          new Map<string, string>(),
-          preferredImageAltMap,
-          decorativeImageIds,
-        ))
+        const preferredImageAltMap = buildPreferredImageAltMap(storage, ownerPageId, sectionMeta)
+        const decorativeImageIds = buildDecorativeImageIdSet(storage, ownerPageId)
+        let previewSectionHtml: string
+        if (stepperActivity) {
+          const stepperPalette =
+            ((config.quiz_generation?.match_book_style ?? true)
+              ? resolveQuizPalette(storage)
+              : null) ?? DEFAULT_QUIZ_PALETTE
+          // Empty image map (preview serves stored srcs directly) but the same
+          // curated alt/decorative handling as packaged output.
+          const resolved = resolveEditableActivityImages(stepperActivity, new Map(), {
+            preferredAltMap: preferredImageAltMap,
+            decorativeImageIds,
+          })
+          previewSectionHtml = renderEditableActivityHtml(resolved.activity, {
+            palette: stepperPalette,
+          })
+        } else {
+          ;({ html: previewSectionHtml } = rewriteImageUrls(
+            renderedSection.html,
+            label,
+            new Map<string, string>(),
+            preferredImageAltMap,
+            decorativeImageIds,
+          ))
+        }
+
+        previewHasMath ||= !stepperActivity && /(?:\\\(|\\\)|\\\[|\\\]|\$[^$]+\$|\\frac|\\sqrt|\\sum|\\int|\\text\{|\\hat\{|\\circ)/.test(previewSectionHtml)
+        const content = stepperActivity ? previewSectionHtml : convertLatexToMathml(previewSectionHtml)
+        fragments.push(grouped ? wrapExperimentalActivityBlock({ ...renderedSection, html: content }, item.id) : content)
+        pageAnswers = stepperActivity ? undefined : renderedSection.activityAnswers
       }
-
-      const previewHasMath = !stepperActivity && /(?:\\\(|\\\)|\\\[|\\\]|\$[^$]+\$|\\frac|\\sqrt|\\sum|\\int|\\text\{|\\hat\{|\\circ)/.test(previewSectionHtml)
+      const mode = config.page_sectioning?.experimental_activity_pages
 
       const html = renderPageHtml({
-        content: stepperActivity ? previewSectionHtml : convertLatexToMathml(previewSectionHtml),
+        content: grouped ? experimentalActivityPageContent(fragments, mode === "section" ? "section" : "page") : fragments[0],
         language,
-        sectionId: pageId,
+        sectionId: leaderId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
-        activityAnswers: stepperActivity ? undefined : renderedSection.activityAnswers,
+        activityAnswers: grouped ? undefined : pageAnswers,
         hasMath: previewHasMath,
         bundleVersion: previewBundleVersion,
         applyBodyBackground,

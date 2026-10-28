@@ -175,5 +175,12 @@
     "stepper-word-bank": "Mots au choix",
     "stepper-open-ended-saved": "Bravo — ta réponse est enregistrée.",
     "stepper-open-ended-rephrase": "Restons gentils — essaie de reformuler ta réponse.",
-    "open-ended-answer-label": "Ta réponse"
+    "open-ended-answer-label": "Ta réponse",
+    "activity-page-checking": "Vérification…",
+    "activity-page-complete": "Page terminée",
+    "activity-page-next-section": "Section suivante",
+    "activity-page-check-section": "Vérifier la section",
+    "activity-page-check-page": "Vérifier la page",
+    "activity-page-progress": "${done} sections terminées sur ${total}",
+    "activity-page-error": "Cette section n’a pas pu être vérifiée. Réessayez."
 }

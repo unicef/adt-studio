@@ -3963,6 +3963,9 @@ msgstr "Zgjer"
 msgid "Expand all sections"
 msgstr "Zgjer të gjitha seksionet"
 
+msgid "Experimental activity pages"
+msgstr "Faqe eksperimentale të aktiviteteve"
+
 msgid "Experimental configurations"
 msgstr "Konfigurime eksperimentale"
 
@@ -4727,8 +4730,17 @@ msgstr "Gruponi sipas kërkon vëmendje"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Grupo tekstin dhe imazhet e çdo faqeje në seksione të tipizuara me një pemë të strukturuar përmbajtjeje. Seksionet drejtojnë mënyrën se si fazat pasuese renderojnë, përkthejnë dhe lexojnë librin me zë."
 
+msgid "Group sections — check one section at a time"
+msgstr "Grupo seksionet — kontrollo një seksion në herë"
+
+msgid "Group sections — check whole page"
+msgstr "Grupo seksionet — kontrollo tërë faqen"
+
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Grupon rajonet e imazheve në ilustrime të veçanta në çdo faqe."
+
+msgid "Groups supported activity sections from the same PDF page in Preview and exports. Works with either sectioning mode. Existing sections can be tried immediately; run Sectioning and Storyboard to detect activities on new pages. Custom scripts, step-by-step activities and fixed layouts stay separate."
+msgstr "Grupon seksionet e aktiviteteve të mbështetura nga e njëjta faqe PDF në pamjen paraprake dhe në eksportime. Funksionon me të dyja mënyrat e ndarjes në seksione. Seksionet ekzistuese mund të provohen menjëherë; ekzekutoni ndarjen në seksione dhe storyboard-in për të zbuluar aktivitetet në faqet e reja. Skriptet e personalizuara, aktivitetet hap pas hapi dhe paraqitjet fikse mbeten të ndara."
 
 msgid "Guidance for this book"
 msgstr "Udhëzime për këtë libër"
@@ -5344,6 +5356,9 @@ msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të 
 
 #~ msgid "Keep selected content"
 #~ msgstr "Mbaj përmbajtjen e përzgjedhur"
+
+msgid "Keeps each source page together while detecting separate activities."
+msgstr "Mban të bashkuar çdo faqe burimore, duke zbuluar aktivitete të veçanta."
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërkojnë ndarje."

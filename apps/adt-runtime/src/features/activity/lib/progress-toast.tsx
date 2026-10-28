@@ -9,6 +9,7 @@
  */
 
 import { toast } from "sonner"
+import { isActivityBatch } from "../runtime/activity-scope"
 import { getDefaultStore } from "jotai"
 import { translationsAtom } from "../../language/state/language.atoms"
 
@@ -116,6 +117,7 @@ export function showActivityProgressToast(
   result: ProgressResult,
   options: ProgressToastOptions = {},
 ): void {
+  if (isActivityBatch()) return
   const { total, correct, unfilled } = result
   const wrong = Math.max(0, total - correct - unfilled)
 

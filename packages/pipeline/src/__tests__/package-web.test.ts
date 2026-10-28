@@ -1,10 +1,11 @@
+import { AppConfig } from "@adt/types"
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { runInNewContext } from "node:vm"
 import { JSDOM } from "jsdom"
-import type { Storage, PageData } from "@adt/storage"
+import { createBookStorage, type Storage, type PageData } from "@adt/storage"
 import {
   computePackagingInputHash,
   buildGlossaryJson,
@@ -566,6 +567,33 @@ describe("packageAdtWeb", () => {
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it("packages grouped activities with isolated answers, one manifest page and working section aliases", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    const sections = [1, 2].map(seq => ({ sectionId: `pg001_sec00${seq}`, sectionType: "activity_fill_in_the_blank", nodes: [], backgroundColor: "#fff", textColor: "#000", pageNumber: 1, isPruned: false }))
+    const storage = createBookStorage("book", tmpDir)
+    storage.putExtractedPage({ pageId: "pg001", pageNumber: 1, text: "Two activities", pageImage: { imageId: "pg001_page", buffer: Buffer.from("fixture"), format: "png", hash: "h1", width: 1, height: 1 }, images: [] })
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "", sections })
+    storage.putNodeData("web-rendering", "pg001", { sections: sections.map((section, index) => ({ sectionId: section.sectionId, sectionIndex: index, sectionType: section.sectionType, reasoning: "", html: `<section data-section-id="${section.sectionId}" data-section-type="${section.sectionType}"><input type="text" data-activity-item="item-1"></section>`, activityAnswers: { "item-1": index ? "moon" : "sun" } })) })
+    try {
+    await packageAdtWeb(storage, { bookDir, label: "book", language: "en", outputLanguages: ["en"], title: "Activities", webAssetsDir,
+      config: AppConfig.parse({ structure_types: {}, role_types: {}, page_sectioning: { experimental_activity_pages: "page" } }),
+    })
+    const manifest = JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/pages.json"), "utf8"))
+    expect(manifest).toHaveLength(1)
+    expect(manifest[0].section_id).toBe("pg001_sec001")
+    for (const section of sections) {
+      const doc = new JSDOM(fs.readFileSync(path.join(bookDir, "adt", `${section.sectionId}.html`), "utf8")).window.document
+      expect(doc.querySelector('[data-experimental-activity-page="page"]')).not.toBeNull()
+      expect(doc.querySelector('meta[name="title-id"]')?.getAttribute("content")).toBe("pg001_sec001")
+      expect(Array.from(doc.querySelectorAll("[data-block-answers]")).map(el => JSON.parse(el.getAttribute("data-block-answers")!))).toEqual([{ "item-1": "sun" }, { "item-1": "moon" }])
+      expect(doc.querySelectorAll("#content")).toHaveLength(1)
+    }
+    } finally { storage.close() }
   })
 
   it("uses a safe default locale, avoids page-number carryover, and escapes inline answer JSON", async () => {

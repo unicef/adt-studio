@@ -210,5 +210,12 @@
     "stepper-word-bank": "Words to choose from",
     "stepper-open-ended-saved": "Nice work — your answer is saved.",
     "stepper-open-ended-rephrase": "Let's keep it kind — try rephrasing your answer.",
-    "open-ended-answer-label": "Your answer"
+    "open-ended-answer-label": "Your answer",
+    "activity-page-checking": "Checking…",
+    "activity-page-complete": "Page complete",
+    "activity-page-next-section": "Next section",
+    "activity-page-check-section": "Check section",
+    "activity-page-check-page": "Check page",
+    "activity-page-progress": "${done} of ${total} sections complete",
+    "activity-page-error": "This section could not be checked. Try again."
 }

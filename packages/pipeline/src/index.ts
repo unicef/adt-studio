@@ -515,3 +515,5 @@ export { collectQuizPages } from "./quiz-generation.js"
 export { assertReflowableSectioning } from "./render-sectioning.js"
 
 export { renderedTextIds, sourceTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision } from "./content-ids.js"
+
+export { groupExperimentalActivityPages, wrapExperimentalActivityBlock, experimentalActivityPageContent } from "./experimental-activity-pages.js"
