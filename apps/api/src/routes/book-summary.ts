@@ -6,8 +6,10 @@ import type { BookMetadata } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import {
   buildBookSummaryConfig,
+  buildBookSummaryInput,
   generateBookSummary,
   loadBookConfig,
+  selectBookSummaryInput,
   normalizeLocale,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
@@ -38,12 +40,13 @@ export function createBookSummaryRoutes(
       )
       const summaryConfig = buildBookSummaryConfig(config, language)
 
-      const summaryPages = storage
-        .getPages()
-        .map((page) => ({ pageNumber: page.pageNumber, text: page.text }))
-      if (summaryPages.length === 0) {
+      const pages = storage.getPages()
+      if (pages.length === 0) {
         throw new HTTPException(400, { message: "No extracted pages to summarize." })
       }
+      // Same bounded text sample and no-text-layer renders as the Extract stage.
+      const selection = selectBookSummaryInput(pages)
+      const summaryInput = buildBookSummaryInput(selection, pages, (pageId) => storage.getPageImageBase64(pageId))
 
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
@@ -60,10 +63,12 @@ export function createBookSummaryRoutes(
         onLog: (entry) => storage.appendLlmLog(entry),
         providerCredentials: credentials,
       })
-      const result = await generateBookSummary(summaryPages, summaryConfig, model)
+      const result = await generateBookSummary(summaryInput, summaryConfig, model)
       const version = storage.putNodeData("book-summary", "book", result)
-      // Keep the Extract stage complete — this is a targeted refresh.
-      storage.markStepCompleted("book-summary")
+      // Keep the Extract stage complete — this is a targeted refresh. The empty
+      // message and the absent warnings clear what a failed Extract-run summary
+      // left ("no book summary after a failure").
+      storage.markStepCompleted("book-summary", "")
       return { version }
     } finally {
       storage.close()

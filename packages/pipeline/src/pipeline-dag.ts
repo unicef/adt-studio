@@ -47,7 +47,7 @@ import {
 } from "./fonts-bundle.js"
 import { readTypography } from "./typography.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
-import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
+import { buildBookSummaryConfig, selectBookSummaryInput, buildBookSummaryInput, summarizeBookOptionally } from "./book-summary.js"
 import {
   BOOK_OUTLINE_ITEM,
   BOOK_OUTLINE_NODE,
@@ -299,16 +299,20 @@ export async function runFullPipeline(
 
     executors.set("book-summary", async () => {
       const pages = storage.getPages()
-      const summaryPages = pages.map((page) => ({
-        pageNumber: page.pageNumber,
-        text: page.text,
-      }))
+      // Bounded text sample, plus page renders for books without a text layer.
+      const selection = selectBookSummaryInput(pages)
+      const input = buildBookSummaryInput(selection, pages, (pageId) => storage.getPageImageBase64(pageId))
       // Resolve the language from the metadata step (book-summary depends on it)
       // so the summary is written in the book's actual language, not English.
       const bookSummaryConfig = buildBookSummaryConfig(config, getLanguage(storage, config))
       const model = getModel(bookSummaryConfig.modelId)
-      const result = await generateBookSummary(summaryPages, bookSummaryConfig, model)
-      storage.putNodeData("book-summary", "book", result)
+      // Only the model call is optional: a failed call leaves no summary and
+      // completes the step with a warning. The CLI has no cancellation, so
+      // nothing is classified as one (an LLM timeout is a model failure here).
+      const outcome = await summarizeBookOptionally(input, bookSummaryConfig, model)
+      if ("warning" in outcome) return [outcome.warning]
+      storage.putNodeData("book-summary", "book", outcome.summary)
+      return undefined
     })
 
     executors.set("book-outline", async () => {
