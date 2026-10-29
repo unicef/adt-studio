@@ -8,7 +8,7 @@ issues: ["#1016", "#901", "#676", "#985", "#326", "#749", "#957"]
 prs: []
 adr: ""
 created: 2026-10-27
-updated: 2026-10-28
+updated: 2026-10-29
 ---
 
 **After the `extract` step, every book gets one persisted, deterministic, LLM-free
@@ -22,6 +22,12 @@ Decisions taken with the product owner on 2026-10-27 and encoded here: **assessm
 Amended 2026-10-28 after reading the extractor against these goals: recommendations are data
 (§Data contract), the pipeline rules ship before the `packages/pdf` signals (§Rollout), and the
 assessment reuses the extractor's in-memory data so it is expected to cost nothing net (§Cost).
+Amended 2026-10-29 against the encoding taxonomy *PDF Encoding Issues for ADT Extraction*
+(@Elias, 2026-10-28): six kinds that silently lose, duplicate or leak content and cost only a
+bounds test, a dropped callback or a catalog read join v1 (`raster-tiles`, `raster-occluded`,
+`mixed-page-types`, `hidden-text-layer`, `optional-content`, `pdf-container`), `page-geometry`
+gains the TrimBox; the rest of the taxonomy is parked as reserved kinds, experiments E10–E11
+and follow-ups R-h–R-i, and its remediation design (§12 of the document) is input to SPEC-0020.
 
 ## Problem (with evidence)
 
@@ -37,6 +43,7 @@ later as poor output, or as pruned images with an opaque free-text reason.
 | Whole-page screenshot as figure; crops cutting figures | #901, image-only PNLD book: 21/40 pages used a whole-page raster as the figure; crops cut through figures; an ISBN digit was misread. | Manual audit only. |
 | Duplicate images | qa784: 1,049 extracted images, 761 distinct hashes, 288 byte-identical copies (27 %). | Only the read-only `extract-report` CLI (#1008) counts them. |
 | Signals seen and thrown away | Unmapped glyphs (`packages/pdf/src/page-stream-recorder.ts:494-497` returns on `ucs <= 0`), undecodable paragraphs (`extract.ts:1630-1634`), image decode and render failures (`console.warn` at `extract.ts:1282, 2080, 2128, 3779, 3824`), `producer`/`format`/`encryption` from `extractPdfMetadata` (`extract.ts:852`, dropped by `toBookMetadata`), page boxes and `/Rotate` (#676), raster DPI at placed size (`stampRasterPlacementsFromOps`, `extract.ts:1236`, has native and placed sizes), colour-space class (`classifyImageColorSpace`, `extract.ts:612`), watermark signatures (only when removal is on, `extract.ts:324`), spread suggestions (stored by `detectSpreads`, never compared with the mode). | Never persisted or shown. |
+| Encodings that silently lose, duplicate or leak content | The taxonomy (@Elias, 2026-10-28) lists 81 print encodings with a structural detection signal each; its V1 triage ranks tiled images, stacked/MRC layers, scanned-or-mixed pages and covered figures as high or medium severity. Probed on mupdf 1.27.0 (2026-10-29): text drawn in render mode 3 (the hidden OCR layer of a scanned PDF) **is** returned by `toStructuredText()`, so it enters the page text, counts towards `text-layer-empty`'s 20 chars and is read aloud, while the device reports it through `ignoreText` (`page-stream-recorder.ts:289`), which discards it; `page.toPixmap()` draws annotations by default (`showExtras = true`), so review stamps are baked into page renders and page-crop figures; `doc.countLayers()` and `doc.wasRepaired()` are available. Nothing in `packages/pdf` reads `/OCProperties`, `/AcroForm`/`/XFA`, `/EmbeddedFiles`/`/Collection` or `TrimBox`. | Tiles (abutting, not nested) escape the overlay rule; occlusion is only checked raster-on-raster; the rest is never looked at. |
 | Qualified completion | The `extract` step ends with no message (`pdf-extraction.ts:163`), so a fully scanned book shows a plain green pill. | SPEC-0013 calls a plain green completion insufficient when work is qualified. |
 
 Cost context: Extract is 4–6 % of a conversion's LLM tokens, but it decides what every
@@ -86,6 +93,16 @@ Binding. Each has an owner elsewhere so adjacent work is not blocked.
   reserved for v1.1.
 - Proposing a *value* for `editing_language`: a script does not identify a language (Latin
   covers all five Studio locales), so `script-mismatch` names the setting only.
+- The taxonomy's remediation design (render-and-crop "Path B", text-suppressed renders,
+  two-background mattes, patch compositing, image-model transparency): input to SPEC-0020.
+  Its Path A soft-mask merge already exists (`readSoftMaskMatte` and the SMask composite,
+  `extract.ts:648-670, 1997-2040`), so `layered-artwork` reports masks but not as a defect.
+- Taxonomy rows with no cheap structural signal or another owner: tables ruled with lines,
+  equations, reading order and paint order (layout analysis), ICC-managed colour conversion,
+  running headers/footers and ornaments (repetition; O1), QR/ISBN codes, scan skew and
+  halftone, JPEG quality estimation, printer spreads (imposition).
+- Changing what the renderer draws (for example `showExtras = false` to drop annotations):
+  it changes extraction output, so it is a follow-up, not an assessment.
 
 ## Proposed design
 
@@ -93,7 +110,7 @@ Binding. Each has an owner elsewhere so adjacent work is not blocked.
 
 | Option | Where the assessment is computed | Cost | Why not |
 |---|---|---|---|
-| A — end of the `extract` step, a sub-product node like `positioned-text`, `spread-suggestions` and `font-profile` (`pdf-extraction.ts:116-163`) | During the page loop, from data already in memory; one pass | ~730 lines in `packages/pipeline` (two PRs) + ~380 in `packages/pdf` | **Chosen.** 14 of the 20 v1 kinds are pure functions of what `ExtractedPage` already carries in every figure mode (§Where it is computed); the node is wiped and re-created with the pages it describes (`clearExtractedData`). |
+| A — end of the `extract` step, a sub-product node like `positioned-text`, `spread-suggestions` and `font-profile` (`pdf-extraction.ts:116-163`) | During the page loop, from data already in memory; one pass | ~960 lines in `packages/pipeline` (three PRs) + ~560 in `packages/pdf` (two PRs) | **Chosen.** 15 of the 25 v1 kinds (plus the text profile) are pure functions of what `ExtractedPage` already carries in every figure mode (§Where it is computed); the node is wiped and re-created with the pages it describes (`clearExtractedData`). |
 | B — a new `source-assessment` PIPELINE step after `image-cropping` | After the image passes, so it could record "the overlay was then pruned" | Same plus a step in `PIPELINE`, `STEP_ORDER`, the runner, Studio pills | Depends on LLM verdicts (non-deterministic, skippable), arrives minutes later, adds a pill users must learn. |
 | C — computed on read, like `extractionWarning` today | Nothing stored | ~150 lines in the API | Loses history, repeats O(pages) work per request, no CLI parity, no step note. |
 
@@ -103,7 +120,8 @@ rules below; (3) the note on the `extract` step only when warnings or criticals 
 "Mark checked" in v1; (6) recommendations as structured data (setting + value, or action)
 rather than a flat hint enum; (7) pipeline rules ship before the `packages/pdf` signals, so
 the first value-bearing PR touches no extractor code; (8) `font-risk` deferred to v1.1; (9) a
-password-required PDF is a typed extraction error, not a finding.
+password-required PDF is a typed extraction error, not a finding; (10) the six encoding kinds
+taken from the 2026-10-28 taxonomy join v1, everything else from it stays reserved or parked.
 
 ### Data contract
 
@@ -119,8 +137,12 @@ export const SourceFindingKind = z.enum([
   "blank-page",              // ink < 0.1 %, 0 chars, no raster ops
   "text-unmapped-glyphs",    // glyphs dropped as ucs <= 0 in the recorder, plus U+FFFD in the text layer
   "script-mismatch",         // dominant Unicode script of the text ≠ editing_language's script
+  "hidden-text-layer",       // invisible glyphs (render mode 3, reported via the device's ignoreText) ≥ 50 % of the page's glyphs
+  "mixed-page-types",        // the book has both digital and scanned pages (SourcePageRollup.pageType)
   // figures
   "raster-overlay-split",    // raster B ≥ 80 % inside raster A, area(B) ≤ 50 % area(A), A < 85 % of page
+  "raster-tiles",            // ≥ 2 rasters whose bounds abut within 1 pt and whose union is a rectangle
+  "raster-occluded",         // a later-painted opaque fill or raster outside the raster's figure covers ≥ 10 % of its bounds
   "figure-render-holes",     // vector-rendered group whose crop box overlaps raster placements it does not contain
   "whole-page-figure",       // raster bounds ≥ 85 % of the page area
   "low-resolution-raster",   // nativeWidth / (bounds.width / 72) < 100 dpi, raster ≥ 1 in²
@@ -129,10 +151,12 @@ export const SourceFindingKind = z.enum([
   "image-decode-failed",     // every site that only console.warn'd before
   "duplicate-images",        // byte-identical hashes shared across pages ≥ 10 % of extracted images
   // document
-  "page-geometry",           // size or orientation deviates > 2 % from the modal page; CropBox ≠ MediaBox; /Rotate ≠ 0
+  "page-geometry",           // size or orientation deviates > 2 % from the modal page; CropBox ≠ MediaBox; TrimBox ≠ CropBox; /Rotate ≠ 0
   "spreads-unmarked",        // spread-suggestions non-empty while spread mode is off
   "watermark-detected",      // signatures found while remove_watermarks is off
   "pdf-encrypted",           // restricted permissions (copy / accessibility / print); a password requirement is a typed open error
+  "optional-content",        // /OCProperties in the catalog (InDesign / Illustrator layers: language versions, print-only, hidden)
+  "pdf-container",           // XFA form (/XFA in /AcroForm) or a portfolio (/Collection) / attachments (/EmbeddedFiles)
   "book-scale",              // > 300 pages or > 500 Mpx of raster data
   "shape-flood",             // > 1,500 vector shapes or > 60 rasters on one page
 ])
@@ -156,10 +180,14 @@ export const SourceRecommendation = z.discriminatedUnion("type", [
 export const SourcePageSignals = z.object({
   inkFraction: z.number(),            // share of sampled render pixels darker than 240/255, 4 decimals
   unmappedGlyphs: z.number().int(), totalGlyphs: z.number().int(),
+  invisibleGlyphs: z.number().int(),  // glyphs the device reports through ignoreText (render mode 3); mupdf still returns them as text
   replacementChars: z.number().int(), // U+FFFD in the text layer
   imageDecodeFailed: z.number().int(), figureRenderFailed: z.number().int(),
-  rotate: z.number().int(), cropBoxDiffers: z.boolean(),
+  rotate: z.number().int(), cropBoxDiffers: z.boolean(), trimBoxDiffers: z.boolean(),
+  occludedRasters: z.array(z.object({ imageId: z.string(), coveredRatio: z.number(), byKind: z.enum(["fill", "image", "text"]) })),
+  annotations: z.number().int(),      // /Annots count; drawn into the render (showExtras), recorded for the reserved annotations-present kind
 })
+export const SourcePageType = z.enum(["digital", "scanned", "mixed", "blank"])
 
 export const SourceEvidenceRef = z.object({ pageId: z.string(), imageId: z.string().optional(), groupIndex: z.number().int().optional() })
 export const SourceFinding = z.object({
@@ -174,14 +202,18 @@ export const SourceFinding = z.object({
 export const SourcePageRollup = z.object({
   pageId: z.string(), pageNumber: z.number().int(),
   textChars: z.number().int(), imageCount: z.number().int(),
+  pageType: SourcePageType,   // §Page type
   kinds: z.array(SourceFindingKind), severity: SourceSeverity.nullable(),
   signals: SourcePageSignals.nullable(),
 })
 export const SourceAssessment = z.object({
   schemaVersion: z.literal(1),
   generatedAt: z.string(),
-  source: z.object({ producer: z.string().nullable(), format: z.string().nullable(), encryption: z.string().nullable(), totalPagesInPdf: z.number().int(), bytes: z.number().int(),
-                     permissions: z.object({ copy: z.boolean(), accessibility: z.boolean(), print: z.boolean() }).nullable() }),
+  source: z.object({ producer: z.string().nullable(), creator: z.string().nullable(), format: z.string().nullable(), encryption: z.string().nullable(), totalPagesInPdf: z.number().int(), bytes: z.number().int(),
+                     producerFamily: z.enum(["indesign", "illustrator", "office", "web-design", "scanner", "inpage", "other"]),   // from producer/creator, the taxonomy's producer table
+                     permissions: z.object({ copy: z.boolean(), accessibility: z.boolean(), print: z.boolean() }).nullable(),
+                     structure: z.object({ layers: z.number().int(), layersOffByDefault: z.number().int(), xfa: z.boolean(), needsRendering: z.boolean(),
+                                           portfolio: z.boolean(), embeddedFiles: z.number().int(), tagged: z.boolean(), repaired: z.boolean() }).nullable() }),   // null until PR 3b
   settings: z.object({ figureExtractionMode: FigureExtractionMode, removeWatermarks: z.boolean(), spreadMode: z.boolean(), spreadPairs: z.array(z.number().int()),
                        startPage: z.number().int().nullable(), endPage: z.number().int().nullable(), editingLanguage: z.string().nullable(), segmentationEnabled: z.boolean() }),
   summary: z.object({
@@ -207,17 +239,29 @@ thresholds live in `packages/pipeline/src/source-assessment.ts` as one exported
 | `ink-without-text`, `blank-page` (page; need `signals`, skipped while null) | info; `ink-without-text` raises `text-layer-empty` evidence | `blank-page` runs at either end of the range: action `trim-page-range` with `params.start/end` (ink-blank pages only, never a cover); else `none` |
 | `text-unmapped-glyphs` (page) | warning > 2 % of glyphs, info otherwise | action `get-text-pdf` |
 | `script-mismatch` (book) | warning | setting `editing_language`, **no value** |
+| `hidden-text-layer` (page; needs `signals`) | warning when the page also has a whole-page raster (an OCR layer under a scan: the text is OCR output and is read aloud); info otherwise (invisible text on a digital page). `text-layer-empty` counts *visible* chars (`textChars − invisibleGlyphs`), so an OCR'd scan is graded as a scan | action `get-text-pdf` |
+| `mixed-page-types` (book, `pageIds` = scanned pages, `params.digital`, `params.scanned`) | warning when both counts are ≥ 1 and the minority is ≥ 5 % of pages; info otherwise | action `get-text-pdf` (for the listed pages) |
 | `raster-overlay-split` (page, evidence `[A, B]`) | warning in `off` mode, info in `auto`/`all`; critical when B is drawn *under* A by `streamSeqno` (hidden) | setting `figure_extraction_mode: auto` in `off`; action `figure-cleanup` in `auto`/`all` |
+| `raster-tiles` (page, evidence = the tiles, `params.tiles`) | warning in `off` mode (each tile is exported, captioned and pruned on its own), info in `auto`/`all` | same as `raster-overlay-split` |
+| `raster-occluded` (page, evidence = the raster, `params.coveredRatio`, `params.byKind`) | warning: the raw raster holds content the reader never sees (labels under answer boxes, white-out corrections, old language versions) and a page-crop is the only faithful extraction | action `figure-cleanup` |
 | `figure-render-holes` (page, evidence figure + uncovered rasters) | warning | same as `raster-overlay-split` |
-| `whole-page-figure` (book) | warning when ≥ 25 % of pages, info otherwise | setting `image_filters.segmentation: true` when segmentation is off; else action `figure-cleanup` |
-| `low-resolution-raster`, `needs-convert-colorspace`, `layered-artwork` | info (thresholds frozen after E5) | `none` |
+| `whole-page-figure` (book, `params.liveTextOverlap` = pages where ≥ 20 visible chars sit on the raster) | warning when ≥ 25 % of pages, info otherwise | background plates (no live text on top): setting `image_filters.segmentation: true` when segmentation is off; art with live text on top (picture books) or segmentation already on: action `figure-cleanup` |
+| `low-resolution-raster`, `needs-convert-colorspace`, `layered-artwork` | info (thresholds frozen after E5); `low-resolution-raster` sets `params.uniform` when every raster in the book shares one ppi (a file downsampled by an optimiser); `layered-artwork` adds `params.stencil` (`/ImageMask`) and `params.softMask` (`/SMask`) counts | `none` |
 | `image-decode-failed` (page) | warning | `none` |
 | `duplicate-images` (book) | info; warning ≥ 20 % | `none` (#1011 judges duplicates once) |
 | `page-geometry` (book, `pageIds` = deviating pages) | warning | action `normalise-pages` |
 | `spreads-unmarked` (book, `params.leads`) | info | action `mark-spreads` with the leads — the apply route (`pages.ts:1290`) re-extracts only those pairs; naming `spread_mode` would imply a full re-extract |
 | `watermark-detected` | warning | setting `remove_watermarks: true` (in `EXTRACTION_CONFIG_KEYS`: under SPEC-0010 a changed value is a new book, and the panel says so) |
 | `pdf-encrypted` | info (restricted permissions) | `none` |
+| `optional-content` (book, `params.layers`, `params.off`) | warning: only the default-visible configuration is rendered and extracted, so an alternate language layer is silently dropped and a print-only layer may be kept | `none` (the message names the layers; choosing a layer is a follow-up) |
+| `pdf-container` (book, `params.form`, `params.portfolio`, `params.attachments`) | critical for a portfolio or a dynamic XFA form (`/NeedsRendering true`: the pages are a "please wait" placeholder); warning for static XFA; info for attachments only | action `get-text-pdf` (re-export the book itself) |
 | `book-scale`, `shape-flood` | warning | `none` |
+
+**Page type.** Each rollup carries `pageType`, the classification the taxonomy asks for before
+any figure or text work: `blank` when `blank-page` holds; `scanned` when a raster covers ≥ 85 % of
+the page and visible chars < `MIN_TEXT_LAYER_CHARS`; `mixed` when a
+whole-page raster carries ≥ `MIN_TEXT_LAYER_CHARS` visible chars on top (a baked-in picture-book
+page); `digital` otherwise. Without `signals` the visible-char test uses `textChars`.
 
 Rejected mapping: `image_filters.min_side` for pages with many tiny rasters. The deterministic
 filter already prunes them before any model call (`image-filtering.ts:31-35`), so the saving
@@ -230,7 +274,13 @@ Heuristic kinds are reserved, not shipped, until their experiment freezes a thre
 text recovery" flag, E1), `outlined-text` (text drawn as paths, E2), `garbage-text` (PUA /
 replacement characters, vowel ratio, E3), `crop-cuts-ink` (ink continuing just outside a
 crop edge, E4), `font-risk` (Type3 / no `ToUnicode` / non-embedded, from a `/Resources/Font`
-walk; v1.1, see Non-goals). Adding one later is a one-line enum change plus its rule and message.
+walk; v1.1, see Non-goals). From the 2026-10-28 taxonomy: `legacy-font` (Zawgyi, Kruti Dev,
+Preeti and similar name patterns, beside `isFMFont` in `packages/pdf/src/fm-sinhala.ts`, v1.1
+with the font walk), `duplicated-text` (fake bold and shadows: identical runs at near-identical
+positions in `positioned-text`, double narration), `lossy-jbig2` (`/JBIG2Decode` with
+`/JBIG2Globals` in a scanned file: digits may be silently substituted), `annotations-present`
+(`signals.annotations > 0`: stamps and notes drawn into the render). Adding one later is a
+one-line enum change plus its rule and message.
 
 ### Where it is computed: reuse first, one input shape, two builders
 
@@ -243,8 +293,9 @@ receives an `ExtractedPage`, it already holds — in *every* figure-extraction m
 coveredRasterImageIds}` and the shape counters; `fontStats`. `pdfMetadata` carries
 `producer`, `format`, `encryption` (`extract.ts:852`; dropped today by `toBookMetadata`), and
 the spread suggestions are computed in the same function (`pdf-extraction.ts:146`). So these
-14 kinds are pure pipeline code with **no extractor change**: `text-layer-empty`,
-`script-mismatch`, `raster-overlay-split`, `figure-render-holes`, `whole-page-figure`,
+15 kinds are pure pipeline code with **no extractor change**: `text-layer-empty`,
+`script-mismatch`, `raster-overlay-split`, `raster-tiles`, `mixed-page-types` (its ink-blank
+half waits for `signals`), `figure-render-holes`, `whole-page-figure`,
 `low-resolution-raster`, `layered-artwork`, `duplicate-images`, `page-geometry` (size and
 orientation half), `spreads-unmarked`, `book-scale`, `shape-flood`, `pdf-encrypted`
 (permissions half, from the `encryption` string), and the text profile.
@@ -288,13 +339,25 @@ flags, spread pairs) are not visible to `extractPDF` today, so `ExtractOptions` 
   on success. `samplePageEdges` stays exported: the API still uses it as the fallback for
   books extracted before inline detection (`pages.ts:1275`).
 - **Counters at existing sites, zero cost**: `collectGlyphs` (`page-stream-recorder.ts:482-506`)
-  returns the `ucs <= 0` count it drops today; decode/render failures counted at the warn sites
-  (`extract.ts:1282, 2080, 2128, 3779, 3824`, `flip-utils.ts:212`); U+FFFD counted in the text.
-- **Dictionary reads, microseconds**: `/Rotate` and MediaBox vs CropBox from the page
-  (`getBounds("MediaBox"|"CropBox")`); colour-space class for every raster by calling
-  `classifyImageColorSpace` (`extract.ts:2008-2012`, today only for JPEGs);
-  `needsPassword()` / `hasPermission()` once per document (`openPdfFromBuffer`,
-  `extract.ts:816-823`).
+  returns the `ucs <= 0` count it drops today; the recorder's `ignoreText` callback
+  (`page-stream-recorder.ts:289`, a no-op today) counts the render-mode-3 glyphs mupdf still
+  returns in `toStructuredText()` (probed 2026-10-29 on mupdf 1.27.0); decode/render failures
+  counted at the warn sites (`extract.ts:1282, 2080, 2128, 3779, 3824`, `flip-utils.ts:212`);
+  U+FFFD counted in the text.
+- **Occlusion from the recorded ops, pure JS**: the recorder already gives every `fillPath`
+  its `seqno`, `bbox`, `color` and composed `alpha`, and `stampRasterPlacementsFromOps`
+  stamps each raster's `streamSeqno` (`extract.ts:1274`). For each raster, the opaque
+  (`alpha ≥ 0.95`) fills, images and text painted *after* it that are not members of its own
+  figure group are unioned over its bounds; ≥ 10 % coverage lands in
+  `signals.occludedRasters`. Bounded by the page's op count, which `shape-flood` already caps.
+- **Dictionary reads, microseconds**: `/Rotate` and MediaBox vs CropBox vs TrimBox from the page
+  (`getBounds("MediaBox"|"CropBox"|"TrimBox")`), the `/Annots` count; colour-space class and
+  `/ImageMask` / `/SMask` presence for every raster by calling `classifyImageColorSpace`
+  (`extract.ts:2008-2012`, today only for JPEGs); once per document: `needsPassword()` /
+  `hasPermission()` (`openPdfFromBuffer`, `extract.ts:816-823`), `countLayers()` plus the
+  `/OCProperties /D /OFF` array, `/AcroForm /XFA` and `/NeedsRendering`, `/Names
+  /EmbeddedFiles` and `/Collection` from the catalog, `/MarkInfo /Marked`, `wasRepaired()`,
+  and `/Creator` beside `/Producer` → `source.structure` and `source.producerFamily`.
 - **Watermark detection always on**: `detectTextWatermarks` (`watermarks.ts:180-233`) samples
   ≤ 16 pages with one extra `page.run` each — the only net cost in this spec (≈ 100–300 ms
   per book) — and its signatures are applied only when `remove_watermarks` is on.
@@ -389,9 +452,11 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   `pipeline-effects.ts` (`PipelineNodeName`, `EXTRA_STAGE_OUTPUT_NODES.extract`,
   `NODE_CACHE_RESOURCES["source-assessment"] = ["book", "pages"]`), `BookSummary` field.
 - `packages/pdf`: `ExtractedPage.sourceSignals`, the pixmap pass (`pixmap-signals.ts`) and
-  the render restructure, counters at the warn and drop sites, page-box and colour-space
-  reads, `needsPassword`/`hasPermission`, always-on watermark detection. No change to
-  grouping or to any extraction output.
+  the render restructure, counters at the warn and drop sites (including the recorder's
+  `ignoreText`), the occlusion pass over recorded ops, page-box (TrimBox included), annotation
+  and colour-space / mask reads, `needsPassword`/`hasPermission`, the catalog reads behind
+  `source.structure`, always-on watermark detection. No change to grouping or to any
+  extraction output.
 - `packages/pipeline`: `source-assessment.ts`, `pdf-extraction.ts` (collect, aggregate,
   write, note, use the pixmap edge samples instead of `samplePageEdges`), `extract-report.ts`.
 - `packages/storage`: none for the node (`node_data` is generic; `clearExtractedData` already
@@ -402,7 +467,7 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 - `apps/api`: route and test, `PageSummary`/`PageDetail`/`BookSummary`.
 - `apps/studio`: panel, messages map, page badges, page detail, sidebar count, shared
   validation components, five catalogs.
-- Docs: `docs/specs/INDEX.md`; `docs/ARCHITECTURE.md` Extract outputs list (with PR 3).
+- Docs: `docs/specs/INDEX.md`; `docs/ARCHITECTURE.md` Extract outputs list (with PR 2c).
 - Invariants: entity versioning (new version per run, never overwritten); the layer rule
   (Studio imports only constants from `@adt/types`). No new invariant, no migration, no new
   dependency.
@@ -433,7 +498,8 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   when ≥ 10 % of extracted images share a hash across pages (qa784: 288 / 1,049) and is absent
   below 10 %.
 - [ ] AC-7: `page-geometry` is reported when any page deviates > 2 % from the modal size,
-  mixes orientation, has `/Rotate ≠ 0` or `CropBox ≠ MediaBox` (two-size fixture).
+  mixes orientation, has `/Rotate ≠ 0`, `CropBox ≠ MediaBox` or `TrimBox ≠ CropBox`
+  (two-size fixture; a bleed fixture with a TrimBox 9 pt inside the CropBox).
 - [ ] AC-8: `spreads-unmarked` is reported iff `spread-suggestions` is non-empty and spread
   mode is off (cuaderno3 extracted in single-page mode).
 - [ ] AC-9: `image-decode-failed` counts every former `console.warn` site; a fixture with
@@ -468,6 +534,23 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   completed_at` once the `clearExtractedRows` fix has landed; until then from a non-committed
   timing script around `extractPdfStream`). Spread suggestions on cuaderno3 are deep-equal
   before and after the pixmap pass.
+- [ ] AC-19: `raster-tiles` is reported for a synthetic page whose figure is four abutting
+  tiles (2 × 2, gaps ≤ 1 pt) with all four in evidence, `warning` under `off` and `info` under
+  `auto`; two rasters side by side whose union is not a rectangle produce no finding.
+- [ ] AC-20: On a synthetic page with a full-page raster and render-mode-3 text (an OCR layer),
+  `signals.invisibleGlyphs` equals the hidden glyph count, `hidden-text-layer` is `warning`,
+  the page counts as empty for `text-layer-empty` and its `pageType` is `scanned`; the same
+  hidden text on a page with visible body text and no full-page raster yields `info`.
+- [ ] AC-21: A fixture with `/OCProperties` (two layers, one off by default) yields
+  `optional-content` warning with `params.layers = 2, params.off = 1`; a portfolio fixture
+  (`/Collection`) and a `/NeedsRendering true` XFA fixture each yield `pdf-container`
+  critical, and attachments alone yield info.
+- [ ] AC-22: `raster-occluded` is reported for a raster with an opaque rectangle painted after
+  it over ≥ 10 % of its bounds, with `params.coveredRatio` and `params.byKind = "fill"`; the same
+  rectangle painted *before* the raster, or at alpha 0.5, produces no finding.
+- [ ] AC-23: `mixed-page-types` is reported on a two-kind synthetic book (text pages plus
+  image-only pages) with the scanned pages in `pageIds`, and is absent on `prac_math_vol2` and
+  qa784 (all digital, all scanned).
 
 ## Test plan
 
@@ -479,7 +562,7 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 | AC-4 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` | `AC-4: reports figure-render-holes for a vector group over excluded rasters` |
 | AC-5 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-5: reports whole-page-figure at 85 % page coverage` |
 | AC-6 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-6: reports duplicate-images at 10 % shared hashes` |
-| AC-7 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts`, `packages/pdf/src/__tests__/source-signals.test.ts` | `AC-7: reports page-geometry beyond 2 % deviation or rotation` |
+| AC-7 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts`, `packages/pdf/src/__tests__/source-signals.test.ts` | `AC-7: reports page-geometry beyond 2 % deviation, rotation or differing page boxes` |
 | AC-8 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-8: reports spreads-unmarked only with suggestions and spread mode off` |
 | AC-9 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` | `AC-9: counts image decode failures without aborting extraction` |
 | AC-10 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` | `AC-10: fails clearly on a password-required PDF and reports pdf-encrypted on restricted permissions` |
@@ -491,38 +574,66 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 | AC-16 | integration + browser | `apps/api/src/routes/stages.test.ts`, `apps/studio/src/components/pipeline/stages/extract/ExtractView.source-assessment.test.tsx` | `AC-16: poor readiness never disables run or export` |
 | AC-17 | unit + integration | `packages/pipeline/src/__tests__/extract-report.test.ts` | `AC-17: extract-report prints persisted findings and sets the exit code` |
 | AC-18 | corpus + integration | `docs/verification/spec-0021.md` (recorded), `packages/pdf/src/__tests__/source-signals.test.ts` | `AC-18: false-positive bound on prac_math_vol2 and extract wall time within +5 %`; `AC-18: pixmap edge samples equal samplePageEdges of the PNG` |
+| AC-19 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-19: reports raster-tiles for abutting rasters that union to a rectangle` |
+| AC-20 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts`, `packages/pdf/src/__tests__/source-signals.test.ts` | `AC-20: counts invisible glyphs and grades an OCR layer as a scan` |
+| AC-21 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` | `AC-21: reports optional-content layers and pdf-container forms and portfolios` |
+| AC-22 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts`, `packages/pdf/src/__tests__/source-signals.test.ts` | `AC-22: reports raster-occluded for opaque content painted over a raster` |
+| AC-23 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-23: reports mixed-page-types only when digital and scanned pages coexist` |
 
 Fixtures: cuaderno4 pages 1, 6 and 12 and cuaderno3 page 9 extracted in the test (the
 PDFs are local corpus files, listed in `docs/verification/spec-0021.md`, not committed);
 synthetic PDFs from `packages/pdf/src/__tests__/create-test-pdf.ts` (which today builds
 fonts, images and clips only) extended with a `/Rotate 90` page, a CropBox ≠ MediaBox page, a
-truncated DCT XObject, and an owner-password file if mupdf's `save({ encrypt })` supports it
+TrimBox page, a truncated DCT XObject, a 2 × 2 tiled image, an opaque rectangle over a raster,
+a render-mode-3 text layer over a full-page image, an `/OCProperties` catalog with two
+layers, a `/Collection` portfolio and a `/NeedsRendering` XFA stub (all raw content streams
+and catalog objects, which `PDFDocument.addObject` builds; the Tr 3 page is already proven by
+the 2026-10-29 probe), and an owner-password file if mupdf's `save({ encrypt })` supports it
 in the pinned build — otherwise a tiny committed fixture with its provenance recorded;
 `tests/fixtures/raven.pdf` for AC-1 and the pixmap-vs-PNG equality.
+
+Corpus matrix: the taxonomy's five three-page samples (§11 of the document) become the
+verification matrix in `docs/verification/spec-0021.md`, each row listing the kinds it must
+trigger — print-ready InDesign export (`raster-tiles`, `page-geometry` TrimBox,
+`needs-convert-colorspace`, `optional-content`, pasteboard content); picture book
+(`whole-page-figure` with `liveTextOverlap`, `layered-artwork` soft masks, `raster-occluded`);
+science or maths textbook (`figure-render-holes`, composite figures); scanned or mixed book
+(`text-layer-empty`, `hidden-text-layer`, `mixed-page-types`); non-Latin script book
+(`text-unmapped-glyphs`, `script-mismatch`, `watermark-detected`, `spreads-unmarked`). The
+samples are requested from @Elias; they are committed only if small and rights-free,
+otherwise kept as local corpus files like cuaderno4.
 
 ## Rollout
 
 No feature flag: the assessment is additive, free and deterministic, and an absent node
 means no UI. Thresholds are exported constants so SPEC-0005 can tune them with corpus
-evidence. Each PR is revertable on its own; reverting PR 3 removes the node and the note,
+evidence. Each PR is revertable on its own; reverting PR 2c removes the node and the note,
 and every consumer tolerates its absence.
 
 Implementation PRs (≤ 400 changed lines each, in dependency order; the first
 value-bearing PR touches no extractor code):
 
 1. `packages/types`: schema, constants, registry rows, `BookSummary` field (≈ 190).
-2. `packages/pipeline` a) rules for the page and figure kinds computable from
-   `ExtractedPage` alone (`text-layer-empty`, `script-mismatch`, `raster-overlay-split`,
-   `figure-render-holes`, `whole-page-figure`, `low-resolution-raster`, `layered-artwork`,
-   `duplicate-images`, `shape-flood`, `book-scale`); AC-2 to AC-6, AC-13 (≈ 400);
-   b) document kinds, aggregation, rollups, note, the write in `pdf-extraction.ts`,
+2. `packages/pipeline`, rules computable from `ExtractedPage` alone, then the write:
+   a) text and page-type kinds (`text-layer-empty`, `script-mismatch`, `pageType`,
+   `mixed-page-types`, `whole-page-figure`, `duplicate-images`, `shape-flood`, `book-scale`);
+   AC-2, AC-5, AC-6, AC-13, AC-23 (≈ 300);
+   b) figure-geometry kinds (`raster-overlay-split`, `raster-tiles`, `figure-render-holes`,
+   `low-resolution-raster`, `layered-artwork`); AC-3, AC-4, AC-19 (≈ 280);
+   c) document kinds, the signal-fed rules (`hidden-text-layer`, `raster-occluded`,
+   `optional-content`, `pdf-container`, ink kinds — all skipped while `signals` or
+   `source.structure` is null), aggregation, rollups, note, the write in `pdf-extraction.ts`,
    `assessmentSettings` threaded from both callers, `pageInputFromStorage`; AC-1, AC-7,
-   AC-8, AC-11 (≈ 330). Ink-dependent kinds are skipped while `signals` is null.
-3. `packages/pdf`: the pixmap pass and render restructure, `sourceSignals`, counters,
-   page-box / colour-space / permission reads, always-on watermark detection, the
-   `PdfPasswordRequiredError`, `pdf-extraction.ts` switched to the pixmap edge samples;
-   fixtures; AC-9, AC-10, the AC-7 rotate/CropBox half, AC-18 (≈ 380). Reverting it degrades
-   (ink kinds vanish, the pngjs call returns) rather than removing the node.
+   AC-8, AC-11 (≈ 380).
+3. `packages/pdf`, in two PRs. Reverting either degrades (its kinds vanish, the pngjs call
+   returns) rather than removing the node.
+   a) page signals: the pixmap pass and render restructure, `sourceSignals`, counters
+   (including `ignoreText`), the occlusion pass, page-box (TrimBox) / annotation /
+   colour-space / mask reads, `pdf-extraction.ts` switched to the pixmap edge samples;
+   fixtures; AC-9, the AC-7 box half, AC-18, the AC-20 and AC-22 integration halves (≈ 360);
+   b) document reads: permissions, the `PdfPasswordRequiredError`, the catalog reads behind
+   `source.structure`, `producerFamily`, always-on watermark detection; fixtures; AC-10,
+   AC-21 (≈ 200).
 4. `apps/api`: route, payload fields, spreads re-apply recompute, AC-12, AC-16 (≈ 250).
 5. `apps/studio` a) shared validation components, messages map, hook, catalogs (≈ 320);
    b) panel, page badges, page detail, sidebar; AC-14, AC-15 (≈ 400). The amber pill itself
@@ -542,13 +653,15 @@ findings, counts, wall time) before the status moves to `implemented`.
 |---|---|---|---|
 | E1 | `text-like-structure` precision and recall | qa784 (30 hand-labelled pages), cuaderno4 empty pages; PNLD pages as negatives | band height range, minimum bands, coefficient of variation |
 | E2 | `outlined-text` thresholds | synthetic fixture via `create-test-pdf.ts`; any customer PDF with outlined text | fill count, row count |
-| E3 | `garbage-text` bounds | FM Sinhala fixture before remapping (`fm-sinhala.test.ts`); PNLD and cuaderno text as negatives | vowel-ratio bounds, PUA rate |
+| E3 | `garbage-text` bounds | FM Sinhala fixture before remapping (`fm-sinhala.test.ts`); PNLD and cuaderno text as negatives; the taxonomy's non-Latin sample | vowel-ratio bounds, PUA rate, Arabic presentation-form rate (U+FB50–U+FDFF, U+FE70–U+FEFF), space ratio (glyph-by-glyph text with no U+0020) |
 | E4 | `crop-cuts-ink` thresholds | #901 crops (21 pages), cuaderno4 overlay bounds | band width, continuation ratio |
-| E5 | effective-DPI, colour-space and layered-artwork distributions | every raster in the corpus | info/warning cut-offs |
+| E5 | effective-DPI, colour-space and layered-artwork distributions | every raster in the corpus | info/warning cut-offs; the taxonomy flags < 150 ppi, the draft rule < 100 dpi — E5 picks between them |
 | E6 | render-byte stability | 5 processes × 20 pages | whether `ExtractedImage.hash` and the LLM cache key should hash pixmap pixels instead of PNG bytes |
 | E7 | deterministic-skip rules for meaningfulness (O1 below) | qa784 baseline verdicts | agreement floor (≥ 95 %), token saving (target −30 % calls) |
 | E8 | stacked-raster composite audit (R-a below) | 30 random `raster-overlay-split` pairs across the corpus, manual review | default on or off |
 | E9 | RAM and page limits for `book-scale` (#957) | a synthetic 500-page PDF, RSS over time | warning thresholds |
+| E10 | render-vs-raw diff on directly decoded rasters (the taxonomy's "match what the page shows"): warp the decoded raster by its placement and clip, diff against the page render | the taxonomy's picture-book and InDesign samples, cuaderno4 | cost per raster, diff threshold, and whether it should replace the structural `raster-occluded` rule in v2 |
+| E11 | inverted CMYK JPEGs (Adobe APP14 transform, `/Decode [1 0 …]`): does mupdf decode them correctly in `classifyImageColorSpace`'s path | a synthetic APP14 CMYK JPEG and one with an inverting `/Decode` | promote to a warning kind if any comes out as a negative; otherwise nothing |
 
 ### Follow-ups this spec references but does not own
 
@@ -570,6 +683,13 @@ the triage says spec):
 - **R-d** Crop padding by an ink test and ink-adjacency group merge (after E4).
 - **R-g** Align the background-split comment with the code (`extract.ts:2143-2147` vs
   3927-3933).
+- **R-h Describe what the page shows**: alt text, captions and meaningfulness verdicts for a
+  raster flagged `raster-occluded` are generated from its page-crop, never from the raw
+  raster, so labels hidden under answer boxes cannot leak into them. Owner: SPEC-0020 (#993),
+  together with the taxonomy's remediation design.
+- **R-i Annotations in renders**: decide whether `toPixmap` should pass `showExtras = false`
+  (review stamps and notes are drawn into page renders and page-crop figures today), gated on
+  `annotations-present` counts from the corpus. Changes extraction output.
 
 Optimisations the assessment enables:
 
@@ -593,7 +713,7 @@ Optimisations the assessment enables:
    as a read-time join against `image-filtering` in the API — yes or no. Owner:
    @gbergengruen, by spec approval.
 2. Thresholds for `low-resolution-raster`, `text-unmapped-glyphs`, `whole-page-figure`
-   (85 % / 25 %) are frozen after E5 and the corpus run in PR 3. Who signs off: the product
+   (85 % / 25 %) are frozen after E5 and the corpus run in PR 3a. Who signs off: the product
    reviewer of this spec.
 3. Persisted acknowledgement ("Mark checked", a new node version with `acknowledgedAt`) —
    product call, not blocking.
@@ -608,5 +728,11 @@ Optimisations the assessment enables:
    `extractionDebug.groups[].groupBbox` (which lacks the spread `xOffset`), and keys on
    `renderMethod: "vector"` plus an uncovered raster overlap ≥ 50 %, not on `hasImages`
    (SVG `<image>` elements set it in `off` mode too, `extract.ts:3045-3085`). Confirm on
-   cuaderno4 `pg012` in PR 2a; if the join misses, PR 3 records `overlappedRasterImageIds`
+   cuaderno4 `pg012` in PR 2b; if the join misses, PR 3a records `overlappedRasterImageIds`
    at the render decision as originally drafted.
+9. `optional-content`: is naming the layers enough, or should a later setting choose the
+   language layer to extract (the taxonomy's "ask which language layer")? That setting would be
+   an `EXTRACTION_CONFIG_KEYS` entry and a new `SourceRecommendation` key. Product call; v1
+   names the layers only.
+10. `mixed-page-types` threshold (minority ≥ 5 % of pages for a warning) is a first guess,
+    frozen with the corpus matrix run in PR 3a.
