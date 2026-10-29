@@ -113,11 +113,10 @@ import {
   generateWordTimestamps,
   wavDurationSeconds,
   stripEmojis,
-  generateBookSummary,
   selectBookSummaryInput,
   buildBookSummaryInput,
   describeBookSummarySelection,
-  bookSummaryFailureNote,
+  summarizeBookOptionally,
   generateBookOutline,
   buildBookOutlineConfig,
   buildBookOutlineEvidence,
@@ -1240,23 +1239,20 @@ async function runExtractStep(
     console.log(`[stage-run] ${label}: book summary from ${describeBookSummarySelection(selection)}`)
     const summaryInput = buildBookSummaryInput(selection, pages, (pageId) => storage.getPageImageBase64(pageId))
     // Only the model call is optional. The summary just seeds later prompts,
-    // so a failed call must not stop the stage: the step completes with a note
-    // naming the error and the user can regenerate the summary from Book
-    // parts. Loading renders and storing the result stay outside the catch:
-    // those failures mean the book is broken and must surface as step errors.
-    let summaryResult: BookSummaryOutput | undefined
-    try {
-      summaryResult = await generateBookSummary(summaryInput, bookSummaryConfig, summaryModel)
-    } catch (err) {
-      // A cancel aborts the summary LLM call — re-throw without emitting
-      // step-error so the run tears down cleanly rather than showing a failure.
-      if (isCancellation(err, [options.signal])) throw err
-      console.error(`[stage-run] ${label}: book summary failed: ${toErrorMessage(err)}`)
-      progress.emit({ type: "step-complete", step: "book-summary", message: bookSummaryFailureNote(err) })
-    }
-    if (summaryResult) {
-      storage.putNodeData("book-summary", "book", summaryResult)
-      progress.emit({ type: "step-complete", step: "book-summary" })
+    // so a failed call must not stop the stage: the step completes with a
+    // `summary-missing` warning and later steps run without a summary. Loading
+    // renders, rendering the prompt and storing the result stay outside: those
+    // failures mean the book is broken and must surface as step errors. A
+    // cancel re-throws so the run tears down cleanly instead of warning.
+    const summaryOutcome = await summarizeBookOptionally(
+      summaryInput, bookSummaryConfig, summaryModel, (err) => isCancellation(err, [options.signal]),
+    )
+    if ("warning" in summaryOutcome) {
+      console.error(`[stage-run] ${label}: book summary failed: ${formatStepWarnings([summaryOutcome.warning])}`)
+      completeStep(progress, "book-summary", [summaryOutcome.warning])
+    } else {
+      storage.putNodeData("book-summary", "book", summaryOutcome.summary)
+      completeStep(progress, "book-summary")
       console.log(`[stage-run] ${label}: book summary complete`)
     }
 

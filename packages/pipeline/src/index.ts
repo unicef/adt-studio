@@ -77,7 +77,8 @@ export {
   selectBookSummaryInput,
   buildBookSummaryInput,
   describeBookSummarySelection,
-  bookSummaryFailureNote,
+  bookSummaryWarning,
+  summarizeBookOptionally,
   evenlySpacedIndices,
   BOOK_SUMMARY_MAX_PAGE_CHARS,
   BOOK_SUMMARY_MAX_TOTAL_CHARS,
@@ -85,6 +86,11 @@ export {
   BOOK_SUMMARY_MAX_RENDER_PAGES,
   type BookSummaryConfig,
   type BookSummaryPageInput,
+  type BookSummaryRenderInput,
+  type BookSummaryInput,
+  type BookSummarySourcePage,
+  type BookSummarySelection,
+  type BookSummarySelectionOptions,
 } from "./book-summary.js"
 export {
   generateBookOutline,

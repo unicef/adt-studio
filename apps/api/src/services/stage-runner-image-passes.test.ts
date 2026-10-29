@@ -28,7 +28,7 @@ vi.mock("@adt/llm", async () => {
   const actual = await vi.importActual<typeof import("@adt/llm")>("@adt/llm")
   return {
     ...actual,
-    createLLMModel: vi.fn(() => ({ generateObject: generateObjectMock })),
+    createLLMModel: vi.fn(() => ({ generateObject: generateObjectMock, renderPrompt: async () => [] })),
   }
 })
 

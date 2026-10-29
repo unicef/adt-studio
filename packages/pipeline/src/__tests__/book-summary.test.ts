@@ -1,11 +1,12 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import {
   generateBookSummary,
   buildBookSummaryConfig,
   selectBookSummaryInput,
   buildBookSummaryInput,
   describeBookSummarySelection,
-  bookSummaryFailureNote,
+  bookSummaryWarning,
+  summarizeBookOptionally,
   evenlySpacedIndices,
   BOOK_SUMMARY_MAX_PAGE_CHARS,
   BOOK_SUMMARY_MAX_TOTAL_CHARS,
@@ -138,6 +139,21 @@ describe("selectBookSummaryInput", () => {
     expect(selection.pages.length).toBeGreaterThanOrEqual(33)
   })
 
+  it("keeps the largest even sample that fits, even when a smaller one does not", () => {
+    // Four pages do not fit (the even pick lands on both long pages) but five do.
+    const sizes = [1, 10, 1, 1, 10, 1, 1]
+    const pages = sizes.map((size, index) => ({ pageId: `pg00${index + 1}`, pageNumber: index + 1, text: "a".repeat(size) }))
+    const selection = selectBookSummaryInput(pages, { maxTotalChars: 9 })
+    expect(selection.pages.map((page) => page.pageNumber)).toEqual([1, 3, 4, 6, 7])
+  })
+
+  it("never exceeds the budget, even when one page alone is longer", () => {
+    const selection = selectBookSummaryInput(sourcePages(3, () => "word ".repeat(400)), { maxPageChars: 2_000, maxTotalChars: 500 })
+    const total = selection.pages.reduce((sum, page) => sum + Array.from(page.text).length, 0)
+    expect(total).toBeLessThanOrEqual(500)
+    expect(selection.pages.length).toBeGreaterThan(0)
+  })
+
   it("cuts at any whitespace, not only a space", () => {
     const text = Array.from({ length: 300 }, (_, i) => `línea${i}`).join("\n")
     const [page] = selectBookSummaryInput([{ pageId: "pg001", pageNumber: 1, text }], { maxPageChars: 100 }).pages
@@ -225,15 +241,41 @@ describe("describeBookSummarySelection", () => {
   })
 })
 
-describe("bookSummaryFailureNote", () => {
-  it("is an attention note carrying a bounded error text", () => {
-    expect(bookSummaryFailureNote(new Error("model  does not\nexist"))).toBe(
-      "Completed — no book summary after a failure: model does not exist",
-    )
-    const note = bookSummaryFailureNote("x".repeat(400))
-    expect(note.startsWith("Completed — ")).toBe(true)
-    expect(note.length).toBeLessThan(200)
-    expect(note.endsWith("…")).toBe(true)
+describe("bookSummaryWarning", () => {
+  it("is a summary-missing step warning carrying a bounded, one-line error", () => {
+    expect(bookSummaryWarning(new Error("model  does not\nexist"))).toEqual({ kind: "summary-missing", error: "model does not exist" })
+    const warning = bookSummaryWarning("x".repeat(400))
+    expect(warning.kind === "summary-missing" && warning.error).toBe("x".repeat(119) + "…")
+  })
+})
+
+describe("summarizeBookOptionally", () => {
+  const config: BookSummaryConfig = { promptName: "book_summary", modelId: "openai:gpt-4o", maxRetries: 0, outputLanguage: "en" }
+  const input = { pages: [{ pageNumber: 1, text: "Some text" }] }
+  const model = (call: () => Promise<unknown>, render: () => Promise<unknown> = async () => []): LLMModel => ({
+    renderPrompt: render as LLMModel["renderPrompt"],
+    generateObject: (async () => ({ object: await call(), usage: { inputTokens: 1, outputTokens: 1 } })) as LLMModel["generateObject"],
+  })
+
+  it("returns the summary when the model call succeeds", async () => {
+    expect(await summarizeBookOptionally(input, config, model(async () => sampleSummary))).toEqual({ summary: sampleSummary })
+  })
+
+  it("returns a summary-missing warning when the model call fails", async () => {
+    const outcome = await summarizeBookOptionally(input, config, model(async () => { throw new Error("HTTP 404: no such model") }))
+    expect(outcome).toEqual({ warning: { kind: "summary-missing", error: "HTTP 404: no such model" } })
+  })
+
+  it("lets a broken prompt template fail the step instead of becoming a warning", async () => {
+    const generate = vi.fn(async () => sampleSummary)
+    const broken = model(generate, async () => { throw new Error("Liquid syntax error: unexpected token") })
+    await expect(summarizeBookOptionally(input, config, broken)).rejects.toThrow("Liquid syntax error")
+    expect(generate).not.toHaveBeenCalled()
+  })
+
+  it("rethrows what the caller classifies as a cancellation", async () => {
+    const cancelled = new Error("Run cancelled")
+    await expect(summarizeBookOptionally(input, config, model(async () => { throw cancelled }), (err) => err === cancelled)).rejects.toBe(cancelled)
   })
 })
 

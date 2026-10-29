@@ -65,8 +65,10 @@ export function createBookSummaryRoutes(
       })
       const result = await generateBookSummary(summaryInput, summaryConfig, model)
       const version = storage.putNodeData("book-summary", "book", result)
-      // Keep the Extract stage complete — this is a targeted refresh.
-      storage.markStepCompleted("book-summary")
+      // Keep the Extract stage complete — this is a targeted refresh. The empty
+      // message and the absent warnings clear what a failed Extract-run summary
+      // left ("no book summary after a failure").
+      storage.markStepCompleted("book-summary", "")
       return { version }
     } finally {
       storage.close()
