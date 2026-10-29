@@ -67,7 +67,6 @@ const NEUTRAL_BORDER = "rgb(148, 163, 184)"
 const INK = "#1F2937"
 const MUTED = "#4B5563"
 const STEP_PILL_BG = "#334155"
-const UPCOMING_DOT = "#D1D5DB"
 
 const IMAGE_MAX_HEIGHT: Record<string, number> = {
   small: 220,
@@ -801,27 +800,26 @@ function ProgressHeader({
             type="button"
             data-stepper-nav="true"
             onClick={() => onJump(i)}
-            aria-label={template
+            aria-label={`${template
               .replace("${n}", String(i + 1))
-              .replace("${m}", String(count))}
-            aria-current={i === current}
-            className="h-4 w-4 cursor-pointer rounded-full transition-all"
+              .replace("${m}", String(count))}: ${statuses[i] === "correct"
+                ? tr("stepper-status-complete", "Completed")
+                : statuses[i] === "incorrect"
+                  ? tr("stepper-status-retry", "Try again")
+                  : tr("stepper-status-unchecked", "Not checked")}`}
+            aria-current={i === current ? "step" : undefined}
+            className="flex h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded-full border-2 border-slate-600 bg-white px-2 font-bold"
             style={{
-              backgroundColor:
-                statuses[i] === "correct"
-                  ? GREEN
-                  : statuses[i] === "incorrect"
-                    ? RED
-                    : i === current
-                      ? accentDark
-                      : UPCOMING_DOT,
+              color: statuses[i] === "correct" ? GREEN_TEXT : statuses[i] === "incorrect" ? RED_TEXT : INK,
               // No `outline: none` for other dots — it would suppress the
               // keyboard focus ring (FOCUS_CSS).
               ...(i === current
                 ? { outline: `3px solid ${accentDark}`, outlineOffset: "3px" }
                 : {}),
             }}
-          />
+          >
+            <span aria-hidden="true">{i + 1}{statuses[i] === "correct" ? " ✓" : statuses[i] === "incorrect" ? " ↻" : ""}</span>
+          </button>
         ))}
       </div>
       <span

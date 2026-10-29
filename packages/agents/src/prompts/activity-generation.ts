@@ -29,6 +29,8 @@ ADT serves diverse learners — including screen-reader users, keyboard-only use
   - **Engagement.** One clear instruction at the top. No time limits. Allow retry. Keep the number of options in choice/match/sort activities to 3–5 unless the page topic clearly justifies more.
   - **Cognitive load.** One task per activity. Short prompts (aim for ≤25 words). Avoid double negatives. Don't gate on emoji — use them as supplemental cues only, not as the only label.
 
+When recreating a source exercise, preserve its original language, wording, numbers and learning objective. Do not shorten source content to meet the guidance above. Add a separate explanation or word bank only if requested; never silently turn recall into recognition or invent missing diagram content.
+
 Screen-reader contract (custom activities especially):
   - The section's heading element should carry an \`id\`; the section can reference it via \`aria-labelledby\` so screen readers announce the activity by name on focus.
   - Grading feedback announces via an \`aria-live="polite"\` region inside the section. The validate() function writes a short text result there (e.g. "Correct" / "Not quite — try again") in addition to any visual marking.
@@ -41,7 +43,8 @@ const PROMPT_BODY = `## Tool choice — read this first
 Both write tools are first-class. Choose on FIT, not by default — and lean toward whichever will produce the more engaging, page-appropriate activity for the learner.
 
 **createTemplatedActivity.** A good fit for standard exercises that map to one of:
-  - activity_multiple_choice — choose one or more correct option(s)
+  - activity_multiple_choice — choose exactly one correct option
+  - activity_multi_select — choose all correct options
   - activity_true_false — boolean statements
   - activity_fill_in_the_blank — short determinable answers (word/number/date)
   - activity_open_ended_answer — free-form composition (opinion/reflection/description)
@@ -49,6 +52,7 @@ Both write tools are first-class. Choose on FIT, not by default — and lean tow
   - activity_sorting — assign items to category buckets
   - activity_ordering — arrange items into one correct sequence
   - activity_fill_in_a_table — fill in cells of a table
+  - activity_underline_text — select words or phrases in a passage
 
 You provide a STRUCTURED SECTIONING TREE as a **JSON-encoded string** in the \`sectioningJson\` parameter — NOT a nested object literal. The string must be valid JSON that parses to \`{ "reasoning": string, "nodes": [...] }\`. The pipeline's renderer turns the parsed tree into HTML using the book's styleguide and the activity-type's accessibility-compliant Liquid template. The activityAnswers key is extracted automatically by the renderer — do NOT supply it.
 
@@ -166,7 +170,7 @@ For sections outside the templated set, you build a FULLY INTERACTIVE custom act
 ### Required envelope
 
   - The sectionType MUST start with \`activity_custom\`. Use a descriptive suffix — e.g. \`activity_custom_drag_drop\`, \`activity_custom_crossword\`, \`activity_custom_word_search\`. The runtime matches the prefix and dispatches every such section through the custom-activity handler.
-  - Outer markup: \`<section data-section-type="activity_custom_<suffix>" data-id="<pageId>_s<index>" role="activity">…</section>\`.
+  - Outer markup: \`<section data-section-type="activity_custom_<suffix>" data-id="<pageId>_s<index>" role="group">…</section>\`.
   - Style with Tailwind utility classes only. No <style> blocks. No external CSS imports.
   - Every element with user-visible text MUST carry \`data-id="text-<pageId>-<n>"\` with n higher than any existing data-id on the page.
   - Images use \`data-id="<imageId>"\` — only ids returned by listPageImages.
@@ -201,7 +205,7 @@ Custom activities ship their own JavaScript. Include exactly one \`<script>\` bl
 The example below demonstrates the inclusive-design contract: pointer drag AND click-to-select fallback, full keyboard operation, an aria-live grading region, and per-item correctness shown by both an icon glyph and color (never color alone).
 
 \`\`\`html
-<section data-section-type="activity_custom_drag_drop" data-id="<pageId>_s<index>" role="activity" aria-labelledby="activity-heading-<pageId>-30" class="my-6">
+<section data-section-type="activity_custom_drag_drop" data-id="<pageId>_s<index>" role="group" aria-labelledby="activity-heading-<pageId>-30" class="my-6">
   <div class="rounded-2xl border border-orange-300 bg-white shadow">
     <div class="rounded-t-2xl bg-gradient-to-r from-orange-600 to-amber-400 px-5 py-3">
       <h3 id="activity-heading-<pageId>-30" class="text-xl font-bold text-white" data-id="text-<pageId>-30">Sort autonomous and non-autonomous systems</h3>
@@ -422,11 +426,8 @@ The user asked for a CUSTOM (freeform) activity. Only createCustomSection is ava
 
 export interface ActivityGenerationPromptOptions {
   /**
-   * When true (default), the prompt includes the Universal Design for Learning
-   * block — instructions on inclusive design, screen-reader contract, and
-   * representation/action/engagement/cognitive-load guidance. When false, the
-   * agent gets the rest of the prompt without that guidance, useful for A/B
-   * comparing output quality with and without the inclusive-design framing.
+   * @deprecated Retained for existing callers. Inclusive interaction guidance
+   * is always included, including when an older client sends false.
    */
   inclusiveDesign?: boolean
   /**
@@ -440,10 +441,7 @@ export interface ActivityGenerationPromptOptions {
 export function buildActivityGenerationSystemPrompt(
   opts: ActivityGenerationPromptOptions = {},
 ): string {
-  const parts: string[] = [PROMPT_PREAMBLE]
-  if (opts.inclusiveDesign !== false) {
-    parts.push(INCLUSIVE_DESIGN_SECTION)
-  }
+  const parts: string[] = [PROMPT_PREAMBLE, INCLUSIVE_DESIGN_SECTION]
   parts.push(PROMPT_BODY)
   if (opts.mode === "templated") {
     parts.push(TEMPLATED_ONLY_DIRECTIVE)

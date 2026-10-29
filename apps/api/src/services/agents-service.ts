@@ -151,7 +151,7 @@ export interface GenerateActivityServiceOptions extends AgentCredentialOptions {
   configPath?: string
   anchorPageId: string
   description: string
-  /** Defaults to true. When false, the UDL block is omitted from the agent's system prompt. */
+  /** @deprecated Accepted for compatibility; inclusive guidance is always included. */
   inclusiveDesign?: boolean
   /** Which write path to allow. Defaults to "auto" (the agent chooses). */
   mode?: ActivityGenMode

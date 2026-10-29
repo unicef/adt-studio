@@ -210,5 +210,13 @@
     "stepper-word-bank": "Words to choose from",
     "stepper-open-ended-saved": "Nice work — your answer is saved.",
     "stepper-open-ended-rephrase": "Let's keep it kind — try rephrasing your answer.",
-    "open-ended-answer-label": "Your answer"
+    "open-ended-answer-label": "Your answer",
+  "study-card": "Study card",
+  "study-back-to-quiz": "Back to quiz",
+  "study-instructions": "Recall the answer, then reveal it. Studying does not submit a quiz answer.",
+  "study-show-answer": "Show answer",
+  "study-hide-answer": "Hide answer",
+  "stepper-status-complete": "Completed",
+  "stepper-status-retry": "Try again",
+  "stepper-status-unchecked": "Not checked"
 }

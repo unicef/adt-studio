@@ -16,6 +16,7 @@ import { showActivityProgressToast } from "@/features/activity/lib/progress-toas
 import { isAnyModalOpen } from "@/features/navigation/lib/modal-state"
 import { dockMenuValueAtom, sidebarOpenAtom } from "@/shared/state/ui.atoms"
 import { navigateToPage } from "@/features/navigation/lib/page-swap"
+import { mountQuizStudyCard } from "../components/QuizStudyCard"
 
 /**
  * Quiz (standalone `activity_quiz` page) and in-page `activity_multiple_choice`
@@ -431,6 +432,8 @@ export function initializeQuizActivity(): (() => void) | null {
   const immediateValidation = isStandaloneQuiz
 
   const groups = buildGroups(section)
+  let studying = false
+  let submitWasVisible = false
   const hasNextPage = findNextPageHref() !== null
   const hasPostCorrectTarget = findPostCorrectHref() !== null
 
@@ -488,6 +491,7 @@ export function initializeQuizActivity(): (() => void) | null {
   }
 
   const handleSelect = (option: HTMLElement) => {
+    if (studying) return
     const group = findGroupForOption(groups, option)
     if (!group) return
     // Land focus on the option label, never the native radio. A focused native
@@ -510,6 +514,7 @@ export function initializeQuizActivity(): (() => void) | null {
   }
 
   const handleValidate = () => {
+    if (studying) return
     const state = store.get(submitStateAtom)
     if (state === "next") {
       // Post-correct: advance to the next page in reading order.
@@ -587,7 +592,7 @@ export function initializeQuizActivity(): (() => void) | null {
   const applyLocalizedAria = () => {
     section.setAttribute(
       "aria-label",
-      tr("activity-options-label", "Answer options"),
+      studying ? tr("study-card", "Study card") : tr("activity-options-label", "Answer options"),
     )
   }
   applyLocalizedAria()
@@ -669,6 +674,7 @@ export function initializeQuizActivity(): (() => void) | null {
   // would be ambiguous across question groups.
   if (immediateValidation) {
     const onNumberKey = (e: KeyboardEvent) => {
+      if (studying) return
       if (e.defaultPrevented) return
       if (e.altKey || e.ctrlKey || e.metaKey) return
       // Defer to whatever surface owns the keyboard: an open sidebar, dock
@@ -707,6 +713,18 @@ export function initializeQuizActivity(): (() => void) | null {
   store.set(skipHandlerAtom, () => handleSkip)
   resetState()
 
+  const disposeStudyCard = isStandaloneQuiz ? mountQuizStudyCard(section, correctAnswers, (active) => {
+    studying = active
+    section.setAttribute("role", active ? "group" : "radiogroup")
+    applyLocalizedAria()
+    if (active) {
+      submitWasVisible = store.get(submitVisibleAtom)
+      store.set(submitVisibleAtom, false)
+    } else {
+      store.set(submitVisibleAtom, submitWasVisible)
+    }
+  }) : null
+
   // The feedback text and the section's aria-label are written into the DOM
   // imperatively (no `[data-id]`), so `applyTranslationsToDOM` won't touch
   // them on a language switch. Re-render them whenever the translation map
@@ -726,6 +744,7 @@ export function initializeQuizActivity(): (() => void) | null {
   })
 
   return () => {
+    disposeStudyCard?.()
     listeners.forEach((off) => off())
     unsubTranslations()
     store.set(validateHandlerAtom, () => null)

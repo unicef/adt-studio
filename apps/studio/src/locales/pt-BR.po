@@ -648,6 +648,9 @@ msgstr "4s"
 msgid "6s"
 msgstr "6s"
 
+msgid "A ___ grows into a plant. (Seed / Water)"
+msgstr "Uma ___ cresce e vira uma planta. (Semente / Água)"
+
 msgid "A → Z"
 msgstr "A → Z"
 
@@ -656,6 +659,9 @@ msgstr "Um glossário equilibrado para a maioria dos livros."
 
 msgid "A book with this name already exists."
 msgstr "Um livro com este nome já existe."
+
+msgid "A butterfly is an insect."
+msgstr "Uma borboleta é um inseto."
 
 msgid "A close, long-term relationship between two different species, often benefiting both."
 msgstr "Uma relação próxima e de longo prazo entre duas espécies diferentes, muitas vezes beneficiando ambas."
@@ -687,8 +693,8 @@ msgstr "Uma atividade de correspondência em que os alunos ligam itens relaciona
 msgid "A multiple choice activity."
 msgstr "Uma atividade de múltipla escolha."
 
-msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
-msgstr "Uma nova seção de atividade será adicionada à página {anchorPageNumber} ({anchorPageId}). O agente pode ler outras páginas do livro para espelhar o layout delas."
+#~ msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
+#~ msgstr "Uma nova seção de atividade será adicionada à página {anchorPageNumber} ({anchorPageId}). O agente pode ler outras páginas do livro para espelhar o layout delas."
 
 msgid "A page failed in {stageLabel}"
 msgstr "Uma página falhou na etapa {stageLabel}"
@@ -894,14 +900,24 @@ msgstr "seções ativas"
 msgid "Activities"
 msgstr "Atividades"
 
+msgid "Activities and quizzes"
+msgstr "Atividades e questionários"
+
 msgid "Activities disabled"
 msgstr "Atividades desativadas"
 
 msgid "Activities enabled"
 msgstr "Atividades ativadas"
 
+msgid "Activities on this page"
+msgstr "Atividades nesta página"
+
 msgid "Activity"
 msgstr "Atividade"
+
+#. placeholder {0}: index + 1
+msgid "Activity {0}"
+msgstr "Atividade {0}"
 
 msgid "Activity 5.1"
 msgstr "Atividade 5.1"
@@ -923,6 +939,12 @@ msgstr "Detecção de atividades"
 
 msgid "Activity generation failed"
 msgstr "Falha na geração da atividade"
+
+msgid "Activity preview"
+msgstr "Prévia da atividade"
+
+msgid "Activity recreation failed"
+msgstr "Falha ao recriar a atividade"
 
 msgid "Activity Rendering"
 msgstr "Renderização de atividades"
@@ -980,6 +1002,9 @@ msgstr "Atividade: Verdadeiro / Falso"
 
 msgid "Activity: Underline Text"
 msgstr "Atividade: Sublinhar texto"
+
+msgid "Adapt an existing exercise from this page."
+msgstr "Adapte um exercício existente desta página."
 
 msgid "Adaptive layouts generated per page (slower, uses API credits)"
 msgstr "Layouts adaptativos gerados por página (mais lento, usa créditos de API)"
@@ -1243,8 +1268,8 @@ msgstr "Terminologia adicional pode ser introduzida em seções posteriores. Tod
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Adiciona páginas de glossário ao livro. Os termos levam à sua entrada e cada entrada leva de volta ao texto. Funciona em qualquer leitor."
 
-msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
-msgstr "Adiciona orientações do Desenho Universal para a Aprendizagem (linguagem clara, alternativa por teclado e clique para arrastar, correção com aria-live, sem retorno apenas por cor). Desative para comparar a saída sem essa orientação."
+#~ msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
+#~ msgstr "Adiciona orientações do Desenho Universal para a Aprendizagem (linguagem clara, alternativa por teclado e clique para arrastar, correção com aria-live, sem retorno apenas por cor). Desative para comparar a saída sem essa orientação."
 
 msgid "ADT Book"
 msgstr "Livro ADT"
@@ -1365,6 +1390,9 @@ msgstr "Renderização com IA"
 msgid "AI sees the current image and modifies it"
 msgstr "A IA vê a imagem atual e a modifica"
 
+msgid "AI will choose the activity format and layout from your page and instructions."
+msgstr "A IA escolherá o formato e o layout da atividade com base na sua página e nas suas instruções."
+
 msgid "AI-powered"
 msgstr "Baseado em IA"
 
@@ -1401,6 +1429,9 @@ msgstr "As {0} páginas foram mescladas"
 
 msgid "All {count} books in Library"
 msgstr "Todos os {count} livros na Biblioteca"
+
+msgid "All activities request keyboard access, alternatives to dragging, and feedback that does not rely on color. Review the generated activity before publishing."
+msgstr "Todas as atividades solicitam acesso pelo teclado, alternativas ao arrastar e feedback que não dependa de cores. Revise a atividade gerada antes de publicar."
 
 msgid "All categories"
 msgstr "Todas as categorias"
@@ -1600,6 +1631,9 @@ msgstr "Aparência"
 #. placeholder {0}: pages.join(", ")
 msgid "Appears on pages {0}"
 msgstr "Aparece nas páginas {0}"
+
+msgid "Apple"
+msgstr "Maçã"
 
 msgid "Application"
 msgstr "Aplicativo"
@@ -1902,8 +1936,8 @@ msgstr "Antes"
 msgid "Beneath Earth's crust, molten rock builds pressure over millennia until it finds a path to the surface."
 msgstr "Sob a crosta terrestre, rocha derretida acumula pressão ao longo de milênios até encontrar um caminho para a superfície."
 
-msgid "Bespoke, freeform interactive activity"
-msgstr "Atividade interativa personalizada e livre"
+#~ msgid "Bespoke, freeform interactive activity"
+#~ msgstr "Atividade interativa personalizada e livre"
 
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Best for {0}"
@@ -1938,6 +1972,12 @@ msgstr "Biblioteca de versões beta"
 
 msgid "Beta versions"
 msgstr "Versões beta"
+
+msgid "Bird"
+msgstr "Pássaro"
+
+msgid "Birds"
+msgstr "Os pássaros"
 
 msgid "Bit Rate"
 msgstr "Taxa de bits"
@@ -2134,6 +2174,9 @@ msgstr "Empacota o livro renderizado em um pacote web pronto para publicação."
 msgid "But the team kept walking up the mountain."
 msgstr "Mas a equipe continuou subindo a montanha."
 
+msgid "Butterfly"
+msgstr "Borboleta"
+
 msgid "Button"
 msgstr "Botão"
 
@@ -2255,8 +2298,14 @@ msgstr "O texto alternativo foi gerado por IA. Clique em qualquer texto para edi
 msgid "carousel"
 msgstr "carrossel"
 
+msgid "Carrot"
+msgstr "Cenoura"
+
 msgid "Cartoon"
 msgstr "Cartum"
+
+msgid "Cat"
+msgstr "Gato"
 
 msgid "Catalog Translation"
 msgstr "Tradução do catálogo"
@@ -2330,6 +2379,9 @@ msgstr "Título do capítulo"
 msgid "Chart / Graph"
 msgstr "Gráfico"
 
+msgid "Check answer"
+msgstr "Verificar resposta"
+
 msgid "Check for updates"
 msgstr "Verificar atualizações"
 
@@ -2377,6 +2429,12 @@ msgstr "Escolha um vídeo enviado anteriormente ou envie um novo."
 
 #~ msgid "Choose a section after reviewing its content"
 #~ msgstr "Escolha uma seção após revisar seu conteúdo"
+
+msgid "Choose a template"
+msgstr "Escolha um modelo"
+
+msgid "Choose an activity style, then tell us what to create from your page."
+msgstr "Escolha um estilo de atividade e depois indique o que criar a partir da sua página."
 
 msgid "Choose an existing image from this project"
 msgstr "Escolha uma imagem existente deste projeto"
@@ -2555,6 +2613,9 @@ msgstr "Paleta de comandos"
 msgid "Comment"
 msgstr "Comentário"
 
+msgid "Comment feedback"
+msgstr "Comentários sobre as alterações"
+
 msgid "Comments"
 msgstr "Comentários"
 
@@ -2569,6 +2630,15 @@ msgstr "Comparar versões"
 
 msgid "Compared with fallback prompt."
 msgstr "Comparado com o prompt padrão."
+
+msgid "Complete a table"
+msgstr "Completar uma tabela"
+
+msgid "Complete the number pattern."
+msgstr "Complete o padrão numérico."
+
+msgid "Complete the sentence."
+msgstr "Complete a frase."
 
 msgid "Completed"
 msgstr "Concluído"
@@ -2662,6 +2732,9 @@ msgstr "Conecte um provedor de IA para adicionar um quiz."
 
 msgid "Connect an AI provider to generate a quiz."
 msgstr "Conecte um provedor de IA para gerar um quiz."
+
+msgid "Connect an AI provider to generate activities."
+msgstr "Conecte um provedor de IA para gerar atividades."
 
 msgid "Connect an AI provider to generate Easy Read content."
 msgstr "Conecte um provedor de IA para gerar conteúdo de leitura fácil."
@@ -2872,6 +2945,9 @@ msgstr "Resposta correta (alternativas separadas por |)"
 msgid "Correct the metadata extracted from the document."
 msgstr "Corrija os metadados extraídos do documento."
 
+msgid "Could not load the activity settings."
+msgstr "Não foi possível carregar as configurações da atividade."
+
 msgid "Could not load the AI provider catalogue."
 msgstr "Não foi possível carregar o catálogo de provedores de IA."
 
@@ -2880,6 +2956,9 @@ msgstr "Não foi possível carregar a estrutura do livro."
 
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "Não foi possível carregar o catálogo do Google Fonts. Verifique sua conexão e tente novamente."
+
+msgid "Could not load the pages."
+msgstr "Não foi possível carregar as páginas."
 
 msgid "Could not read image dimensions"
 msgstr "Não foi possível ler as dimensões da imagem"
@@ -2897,6 +2976,9 @@ msgstr "Não foi possível iniciar {0}: {detail}"
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}."
 msgstr "Não foi possível iniciar {0}."
+
+msgid "Could not start activity recreation. Please try again."
+msgstr "Não foi possível iniciar a recriação da atividade. Tente novamente."
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Não foi possível aplicar as páginas duplas — tente novamente."
@@ -2950,11 +3032,23 @@ msgstr "Cobertura"
 msgid "Covered"
 msgstr "Com vídeo"
 
+msgid "Create a custom layout"
+msgstr "Criar um layout personalizado"
+
 msgid "Create a manual glossary entry that stays in the book even if AI glossary generation is rerun."
 msgstr "Crie uma entrada manual de glossário que permaneça no livro mesmo se a geração de glossário por IA for executada novamente."
 
+msgid "Create a matching activity from this page. Learners must be able to select an item and its destination using a keyboard or taps, as well as drag it."
+msgstr "Crie uma atividade de associação a partir desta página. Os alunos devem poder selecionar um item e seu destino pelo teclado ou por toques, além de arrastá-lo."
+
+msgid "Create a multi-select activity based on this page. Clearly ask the learner to select all correct answers."
+msgstr "Crie uma atividade de seleção múltipla com base nesta página. Peça claramente ao aluno que selecione todas as respostas corretas."
+
 msgid "Create a new book from a PDF"
 msgstr "Criar um novo livro a partir de um PDF"
+
+msgid "Create a new exercise from this page's content."
+msgstr "Crie um novo exercício a partir do conteúdo desta página."
 
 msgid "Create a new image from a text description"
 msgstr "Crie uma nova imagem a partir de uma descrição de texto"
@@ -2962,8 +3056,26 @@ msgstr "Crie uma nova imagem a partir de uma descrição de texto"
 msgid "Create a reviewer session for this book."
 msgstr "Crie uma sessão de revisor para este livro."
 
+msgid "Create a sorting activity from this page with clearly named categories and keyboard and tap alternatives to dragging."
+msgstr "Crie uma atividade de classificação a partir desta página com categorias claramente nomeadas e alternativas ao arrastar pelo teclado e por toques."
+
+msgid "Create a table-completion activity from this page. Give every answer field its row and column context."
+msgstr "Crie uma atividade de preenchimento de tabela a partir desta página. Identifique a linha e a coluna de cada campo de resposta."
+
+msgid "Create activity"
+msgstr "Criar atividade"
+
 msgid "Create ADT"
 msgstr "Criar ADT"
+
+msgid "Create an activity based on this page. Choose a suitable activity type and layout for its content and learning objective."
+msgstr "Crie uma atividade com base nesta página. Escolha um tipo de atividade e um layout adequados ao conteúdo e ao objetivo de aprendizagem."
+
+msgid "Create an ordering activity from this page with one defensible sequence. Include visible controls for moving items without dragging."
+msgstr "Crie uma atividade de ordenação a partir desta página com uma única sequência justificável. Inclua controles visíveis para mover os itens sem arrastá-los."
+
+msgid "Create an underline-text activity using a passage from this page. Keep sentence context and make each selectable word operable by keyboard."
+msgstr "Crie uma atividade de sublinhar texto usando um trecho desta página. Preserve o contexto das frases e permita selecionar cada palavra pelo teclado."
 
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Cria texto alternativo descritivo para as imagens, melhorando a acessibilidade."
@@ -2976,6 +3088,9 @@ msgstr "Criar arquivos"
 
 msgid "Create from scratch using your description"
 msgstr "Criar do zero usando sua descrição"
+
+msgid "Create interactive exercises from a book page, then preview and edit them. Keyboard access and clear feedback are included in every generation request."
+msgstr "Crie exercícios interativos a partir de uma página do livro e depois visualize e edite os resultados. Cada solicitação de geração inclui acesso pelo teclado e feedback claro."
 
 msgid "Create model prompt files"
 msgstr "Criar arquivos de prompt do modelo"
@@ -3247,6 +3362,9 @@ msgstr "Definições a um toque."
 msgid "Delete"
 msgstr "Excluir"
 
+msgid "Delete activity"
+msgstr "Excluir atividade"
+
 msgid "Delete all speech"
 msgstr "Excluir todo o áudio"
 
@@ -3283,6 +3401,9 @@ msgstr "Excluir seção"
 msgid "Delete step"
 msgstr "Excluir passo"
 
+msgid "Delete this activity?"
+msgstr "Excluir esta atividade?"
+
 msgid "Delete this quiz"
 msgstr "Excluir este questionário"
 
@@ -3294,6 +3415,9 @@ msgstr "Excluir vídeo"
 
 msgid "Delete video from book"
 msgstr "Excluir vídeo do livro"
+
+msgid "Deleting activity…"
+msgstr "Excluindo atividade…"
 
 msgid "Deleting..."
 msgstr "Excluindo..."
@@ -3307,6 +3431,9 @@ msgstr "Texto denso, tabelas, glossários. Ideal para material técnico e docume
 msgid "Describe the activity"
 msgstr "Descreva a atividade"
 
+msgid "Describe the content, layout, and how learners should interact with the activity."
+msgstr "Descreva o conteúdo, o layout e como os alunos devem interagir com a atividade."
+
 msgid "Describe the image"
 msgstr "Descreva a imagem"
 
@@ -3315,6 +3442,9 @@ msgstr "Descreva o problema ou anote por que este critério precisa de atenção
 
 msgid "Describe this image…"
 msgstr "Descreva esta imagem…"
+
+msgid "Describe what should change in this activity. AI will update it in place, and previous versions remain available in the page editor."
+msgstr "Descreva o que deve mudar nesta atividade. A IA a atualizará, e as versões anteriores continuarão disponíveis no editor de páginas."
 
 msgid "Describe what the reviewer should check."
 msgstr "Descreva o que o revisor deve verificar."
@@ -3447,6 +3577,9 @@ msgstr "concluído"
 
 msgid "Done"
 msgstr "Concluído"
+
+msgid "Double"
+msgstr "Dobro"
 
 msgid "Download"
 msgstr "Baixar"
@@ -4064,6 +4197,9 @@ msgstr "Prévia da extração"
 msgid "Extract text and images from each page of the PDF using AI-powered analysis."
 msgstr "Extrai texto e imagens de cada página do PDF usando análise com IA."
 
+msgid "Extract the book to choose a source page."
+msgstr "Extraia o livro para escolher uma página de origem."
+
 msgid "Extracted"
 msgstr "Extraído"
 
@@ -4168,6 +4304,9 @@ msgstr "Falhou:"
 msgid "Falls back to"
 msgstr "Herda de"
 
+msgid "False"
+msgstr "Falso"
+
 msgid "Fast, consistent results with no AI cost"
 msgstr "Resultados rápidos e consistentes sem custo de IA"
 
@@ -4252,6 +4391,9 @@ msgstr "Primeiras imagens do telescópio de campo profundo."
 msgid "First language is the default"
 msgstr "O primeiro idioma é o padrão"
 
+msgid "Fish"
+msgstr "Peixe"
+
 msgid "Fit"
 msgstr "Ajustar"
 
@@ -4299,6 +4441,9 @@ msgstr "Flexível"
 
 msgid "Fluency"
 msgstr "Fluência"
+
+msgid "fly"
+msgstr "voam"
 
 msgid "FNDE-ready HTML5 package (.zip)"
 msgstr "Pacote HTML5 pronto para o FNDE (.zip)"
@@ -4390,8 +4535,14 @@ msgstr "Da página"
 msgid "From reference image..."
 msgstr "A partir de imagem de referência..."
 
+msgid "From the book"
+msgstr "Do livro"
+
 msgid "Front Cover"
 msgstr "Capa"
+
+msgid "Fruit"
+msgstr "Fruta"
 
 msgid "Full ADT bundle — HTML pages, images, audio, quizzes, and the compiled web app."
 msgstr "Pacote ADT completo: páginas HTML, imagens, áudio, questionários e app web."
@@ -4470,6 +4621,9 @@ msgstr "Gere um único questionário a partir de páginas específicas e posicio
 
 msgid "Generate activity"
 msgstr "Gerar atividade"
+
+msgid "Generate adds a new activity to page {anchorPageNumber}. You can review and edit it afterwards."
+msgstr "Gerar adiciona uma nova atividade à página {anchorPageNumber}. Você poderá revisá-la e editá-la depois."
 
 msgid "Generate an open-ended reflection question about this page."
 msgstr "Gere uma pergunta aberta de reflexão sobre esta página."
@@ -4571,6 +4725,9 @@ msgstr "Gerando {0}/{1}"
 
 msgid "Generating activity..."
 msgstr "Gerando atividade..."
+
+msgid "Generating activity… You can follow its progress in Tasks."
+msgstr "Gerando atividade… Você pode acompanhar o progresso em Tarefas."
 
 msgid "Generating Easy Read..."
 msgstr "Gerando Leitura Fácil..."
@@ -4802,6 +4959,9 @@ msgstr "Ocultar notificações automaticamente após um atraso."
 
 msgid "Hide toasts automatically, or keep them until dismissed."
 msgstr "Ocultar notificações automaticamente ou mantê-las até serem dispensadas."
+
+msgid "high"
+msgstr "alto"
 
 msgid "High"
 msgstr "Alto"
@@ -5141,8 +5301,8 @@ msgstr "Inclui itens de origem vinculados em: {sources}."
 msgid "Includes:"
 msgstr "Inclui:"
 
-msgid "Inclusive design"
-msgstr "Desenho inclusivo"
+#~ msgid "Inclusive design"
+#~ msgstr "Desenho inclusivo"
 
 msgid "Increase {label}"
 msgstr "Aumentar {label}"
@@ -5441,11 +5601,17 @@ msgstr "Inicie o aplicativo com"
 msgid "Layout"
 msgstr "Layout"
 
+msgid "Layout example only. Your activity will use your page and instructions; the final content and appearance may differ."
+msgstr "Apenas um exemplo de layout. Sua atividade usará sua página e suas instruções; o conteúdo e a aparência finais podem variar."
+
 msgid "Layout mirror failed"
 msgstr "Falha ao espelhar o layout"
 
 msgid "Layout mirrored onto this section"
 msgstr "Layout espelhado nesta seção"
+
+msgid "Layout preview"
+msgstr "Prévia do layout"
 
 msgid "Leading"
 msgstr "Entrelinha"
@@ -5489,8 +5655,11 @@ msgstr "Legenda"
 msgid "Lenient"
 msgstr "Flexível"
 
-msgid "Let the agent choose"
-msgstr "Deixe o agente escolher"
+msgid "Let AI choose the layout"
+msgstr "Deixar a IA escolher o layout"
+
+#~ msgid "Let the agent choose"
+#~ msgstr "Deixe o agente escolher"
 
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Deixe o modelo escrever títulos descritivos de capítulo com base no conteúdo de cada seção. Ideal para livros ilustrados ou quando faltam títulos."
@@ -5706,6 +5875,9 @@ msgstr "Carregando validação do revisor…"
 msgid "Loading sectioning data..."
 msgstr "Carregando dados de seccionamento..."
 
+msgid "Loading source page preview..."
+msgstr "Carregando a prévia da página de origem..."
+
 msgid "Loading speech instructions..."
 msgstr "Carregando instruções de áudio..."
 
@@ -5844,11 +6016,17 @@ msgstr "Marcar como revisado"
 msgid "Mark spreads"
 msgstr "Marcar páginas duplas"
 
+msgid "Mark words"
+msgstr "Marcar palavras"
+
 msgid "Match book style"
 msgstr "Combinar com o estilo do livro"
 
 msgid "Match Design"
 msgstr "Fidelidade ao design"
+
+msgid "Match each animal to its home."
+msgstr "Associe cada animal ao seu lar."
 
 msgid "Match each stage of the water cycle to its definition:"
 msgstr "Associe cada estágio do ciclo da água à sua definição:"
@@ -5861,6 +6039,9 @@ msgstr "Acompanhar o tema do sistema"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Corresponde ao design original do livro com alguma flexibilidade."
+
+msgid "Matching pairs"
+msgstr "Associar pares"
 
 #~ msgid "Matching source section"
 #~ msgstr "Seção de origem correspondente"
@@ -6243,6 +6424,9 @@ msgstr "Precisa de revisão"
 msgid "needs update"
 msgstr "precisa de atualização"
 
+msgid "Nest"
+msgstr "Ninho"
+
 msgid "Never"
 msgstr "Nunca"
 
@@ -6315,6 +6499,9 @@ msgstr "Nenhuma avaliação de acessibilidade foi gerada ainda. Empacote a saíd
 
 msgid "No accessibility findings were reported for this page."
 msgstr "Nenhum apontamento de acessibilidade foi relatado para esta página."
+
+msgid "No activities on this page yet. Generate an activity to get started."
+msgstr "Ainda não há atividades nesta página. Gere uma atividade para começar."
 
 msgid "No AI edits yet for this section."
 msgstr "Ainda não há edições com IA para esta seção."
@@ -6807,6 +6994,9 @@ msgstr "Agora clique na página final."
 msgid "now correct"
 msgstr "agora correta"
 
+msgid "Number"
+msgstr "Número"
+
 msgid "Number of pages of content to include per quiz question."
 msgstr "Número de páginas de conteúdo a incluir por pergunta do questionário."
 
@@ -6945,6 +7135,9 @@ msgstr "Abra em qualquer leitor EPUB 3, leitor eletrônico ou ferramenta de aces
 msgid "Open Liquid guide"
 msgstr "Abrir guia Liquid"
 
+msgid "Open page editor"
+msgstr "Abrir o editor de páginas"
+
 msgid "Open page preview for {pageId}"
 msgstr "Abrir prévia da página {pageId}"
 
@@ -7065,6 +7258,9 @@ msgstr "ou clique para procurar — TTF, OTF, WOFF, WOFF2 (máx. 15 MB)"
 
 msgid "or click to browse your files"
 msgstr "ou clique para procurar seus arquivos"
+
+msgid "Ordering"
+msgstr "Ordenação"
 
 msgid "Original"
 msgstr "Original"
@@ -7527,6 +7723,12 @@ msgstr "Etapas do pipeline"
 msgid "Pixel Art"
 msgstr "Pixel Art"
 
+msgid "Place each item in a group."
+msgstr "Coloque cada item em um grupo."
+
+msgid "Plant"
+msgstr "Planta"
+
 msgid "Platform"
 msgstr "Plataforma"
 
@@ -7654,6 +7856,10 @@ msgstr "Ver prévia da página vinculada"
 
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Prévia dos padrões HTML/CSS usados para páginas geradas por LLM."
+
+#. placeholder {0}: page?.pageNumber ?? ""
+msgid "Preview source page {0}"
+msgstr "Prévia da página de origem {0}"
 
 msgid "Preview: per-sentence"
 msgstr "Prévia: por frase"
@@ -7841,6 +8047,9 @@ msgstr "Extraia texto, imagens e estrutura de qualquer PDF."
 msgid "Pulls the book's metadata — title, author, language — from the PDF."
 msgstr "Extrai os metadados do livro — título, autor, idioma — do PDF."
 
+msgid "Put the stages of a plant in order."
+msgstr "Coloque os estágios de uma planta em ordem."
+
 msgid "px"
 msgstr "px"
 
@@ -7875,8 +8084,8 @@ msgstr "na fila"
 msgid "Queued"
 msgstr "Na fila"
 
-msgid "Quick fill"
-msgstr "Preenchimento rápido"
+#~ msgid "Quick fill"
+#~ msgstr "Preenchimento rápido"
 
 msgid "Quit anyway"
 msgstr "Sair mesmo assim"
@@ -8125,6 +8334,21 @@ msgstr "Recomendado para {0}"
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Registre os apontamentos do revisor para a página atual e salve-os na sessão de validação ativa."
 
+msgid "Recreate activity"
+msgstr "Recriar atividade"
+
+msgid "Recreate an exercise from this page as an interactive activity. Preserve its language, wording, numbers and learning objective. If essential content is missing, explain what is needed instead of inventing it."
+msgstr "Recrie um exercício desta página como atividade interativa. Preserve o idioma, a redação, os números e o objetivo de aprendizagem. Se faltar conteúdo essencial, explique o que é necessário em vez de inventá-lo."
+
+msgid "Recreate with feedback"
+msgstr "Recriar com comentários"
+
+msgid "Recreates an exercise from your selected page. Its layout depends on the original exercise."
+msgstr "Recria um exercício da página selecionada. O layout depende do exercício original."
+
+msgid "Recreating activity… You can follow its progress in Tasks."
+msgstr "Recriando atividade… Você pode acompanhar o progresso em Tarefas."
+
 msgid "Recrop from page"
 msgstr "Recortar da página"
 
@@ -8302,6 +8526,9 @@ msgstr "Raciocínio de renderização"
 
 msgid "Render Strategy"
 msgstr "Estratégia de renderização"
+
+msgid "Render this page in Storyboard using a reflowable layout before adding activities."
+msgstr "Renderize esta página no Storyboard com um layout adaptável antes de adicionar atividades."
 
 msgid "Rendering Prompt"
 msgstr "Prompt de renderização"
@@ -9144,6 +9371,9 @@ msgstr "Selecione um guia de estilo para pré-visualizar como ele estiliza as p�
 msgid "Select a target language first."
 msgstr "Selecione primeiro um idioma de destino."
 
+msgid "Select a template to preview its layout."
+msgstr "Selecione um modelo para visualizar o layout."
+
 msgid "Select activity mode..."
 msgstr "Selecionar modo de atividade..."
 
@@ -9152,6 +9382,9 @@ msgstr "Selecionar tipo de atividade..."
 
 msgid "Select all"
 msgstr "Selecionar tudo"
+
+msgid "Select all that apply"
+msgstr "Selecionar todas as opções corretas"
 
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Selecione um item para editar seu texto: [[blank:…]] marca onde aparece uma lacuna, então mantenha-o para preservar a lacuna."
@@ -9176,6 +9409,12 @@ msgstr "Selecionar guia de estilo..."
 
 msgid "Select template..."
 msgstr "Selecionar template..."
+
+msgid "Select the action word."
+msgstr "Selecione a palavra que indica uma ação."
+
+msgid "Select the animals that can fly."
+msgstr "Selecione os animais que podem voar."
 
 msgid "Select the pages the quiz is written from, then choose where it appears using the buttons between pages."
 msgstr "Selecione as páginas em que o questionário se baseia e escolha onde ele aparece usando os botões entre as páginas."
@@ -9533,6 +9772,9 @@ msgstr "Ordenar por"
 msgid "Sort library by {0}"
 msgstr "Ordenar a biblioteca por {0}"
 
+msgid "Sorting"
+msgstr "Classificação"
+
 msgid "Source"
 msgstr "Origem"
 
@@ -9550,6 +9792,19 @@ msgstr "Idioma de origem"
 
 msgid "Source needs review: {sources}"
 msgstr "A fonte precisa de revisão: {sources}"
+
+msgid "Source page"
+msgstr "Página de origem"
+
+#. placeholder {0}: page?.pageNumber ?? ""
+msgid "Source page {0} preview"
+msgstr "Prévia da página de origem {0}"
+
+msgid "Source page image is unavailable."
+msgstr "A imagem da página de origem não está disponível."
+
+msgid "Source page preview"
+msgstr "Prévia da página de origem"
 
 msgid "Source PDF"
 msgstr "PDF de origem"
@@ -9694,6 +9949,9 @@ msgstr "Apenas páginas duplas"
 msgid "Sprinkling some digital fairy dust..."
 msgstr "Salpicando um pouco de pó mágico digital..."
 
+msgid "Sprout"
+msgstr "Broto"
+
 msgid "SQ"
 msgstr "SQ"
 
@@ -9709,8 +9967,8 @@ msgstr "As etapas são reexecutáveis e cada resultado é versionado, então exp
 msgid "Standard"
 msgstr "Padrão"
 
-msgid "Standard built-in activity types"
-msgstr "Tipos de atividade padrão integrados"
+#~ msgid "Standard built-in activity types"
+#~ msgstr "Tipos de atividade padrão integrados"
 
 msgid "Standard e-book for readers & libraries"
 msgstr "E-book padrão para leitores e bibliotecas"
@@ -9892,6 +10150,9 @@ msgstr "Subtítulo"
 msgid "Submit"
 msgstr "Enviar"
 
+msgid "Submit response"
+msgstr "Enviar resposta"
+
 msgid "Submit to the FNDE PNLD Digital platform and validate with VALIDE."
 msgstr "Envie para a plataforma PNLD Digital do FNDE e valide com o VALIDE."
 
@@ -9900,6 +10161,9 @@ msgstr "Subseção"
 
 msgid "Success"
 msgstr "Sucesso"
+
+msgid "Suggest an activity"
+msgstr "Sugerir uma atividade"
 
 msgid "Suggest improved translations when an entry needs attention"
 msgstr "Sugerir traduções melhoradas quando uma entrada precisar de atenção"
@@ -10049,8 +10313,8 @@ msgstr "Renderização por template"
 msgid "Template-based"
 msgstr "Baseado em templates"
 
-msgid "Templated"
-msgstr "Com template"
+#~ msgid "Templated"
+#~ msgstr "Com template"
 
 msgid "term"
 msgstr "termo"
@@ -10583,6 +10847,9 @@ msgstr "Isso remove todas as versões globais de prompts específicas do modelo 
 msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
 msgstr "Isso remove a versão global deste arquivo de prompt. Os arquivos padrão incluídos no aplicativo continuam disponíveis."
 
+msgid "This removes the selected activity from the book. Previous versions remain available in the page editor."
+msgstr "Isso remove a atividade selecionada do livro. As versões anteriores continuam disponíveis no editor de páginas."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Isso restaura a fonte padrão em todas as páginas e limpa os ajustes de fonte por elemento e a seleção de fonte do livro todo. As fontes anexadas permanecem na lista. A reversão está disponível por página no histórico de versões."
 
@@ -10794,6 +11061,9 @@ msgstr "Trata cada página como uma única seção."
 
 msgid "Tries hard to match the original book design."
 msgstr "Esforça-se para corresponder ao design original do livro."
+
+msgid "True"
+msgstr "Verdadeiro"
 
 msgid "True / false"
 msgstr "Verdadeiro / falso"
@@ -11125,6 +11395,9 @@ msgstr "Enviando..."
 msgid "Use \"{trimmedQuery}\""
 msgstr "Usar \"{trimmedQuery}\""
 
+msgid "Use a standard layout"
+msgstr "Usar um layout padrão"
+
 msgid "Use adjacent text as context"
 msgstr "Usar texto adjacente como contexto"
 
@@ -11158,6 +11431,9 @@ msgstr "Use “Dupla” para livros impressos com páginas lado a lado (as capas
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Use o + entre as páginas para posicionar o questionário"
+
+msgid "Use the page editor to rebuild a step-by-step activity."
+msgstr "Use o editor de páginas para reconstruir uma atividade passo a passo."
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Use a barra lateral à esquerda para abrir qualquer etapa do pipeline. Cada etapa tem sua própria página, onde você pode revisar o conteúdo, ajustar as configurações e iniciar uma execução. Os cartões abaixo espelham essa navegação — clique em um cartão para ir direto para a página dessa etapa."
@@ -11252,6 +11528,9 @@ msgstr "Variáveis deste prompt"
 
 msgid "Variations"
 msgstr "Variações"
+
+msgid "Vegetable"
+msgstr "Legume"
 
 msgid "Verified applied"
 msgstr "Aplicação verificada"
@@ -11387,6 +11666,9 @@ msgstr "Avisos"
 msgid "was correct"
 msgstr "era correta"
 
+msgid "Water"
+msgstr "Água"
+
 msgid "Water is always moving. It travels from the oceans into the sky, falls as rain or snow, flows through rivers, and eventually returns to the sea. This continuous journey is called the water cycle."
 msgstr "A água está sempre em movimento. Ela viaja dos oceanos para o céu, cai como chuva ou neve, flui através dos rios e eventualmente retorna ao mar. Esta jornada contínua é chamada de ciclo da água."
 
@@ -11451,8 +11733,14 @@ msgstr "Boas-vindas à versão beta do ADT Studio"
 msgid "What ADT Studio does"
 msgstr "O que o ADT Studio faz"
 
+msgid "What helps a plant grow?"
+msgstr "O que ajuda uma planta a crescer?"
+
 msgid "What is the main role of a plant's roots?"
 msgstr "Qual é a principal função das raízes de uma planta?"
+
+msgid "What should AI create?"
+msgstr "O que a IA deve criar?"
 
 msgid "What should the AI change?"
 msgstr "O que a IA deve alterar?"
@@ -11501,6 +11789,9 @@ msgstr "Onde tudo começa"
 
 msgid "Where toasts appear on screen."
 msgstr "Onde as notificações aparecem na tela."
+
+msgid "Which animal lives in water?"
+msgstr "Qual animal vive na água?"
 
 msgid "Which engine runs the extraction and generation pipeline."
 msgstr "Qual motor executa o pipeline de extração e geração."

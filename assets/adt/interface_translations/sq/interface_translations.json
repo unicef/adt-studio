@@ -132,5 +132,13 @@
     "stepper-word-bank": "Fjalë për të zgjedhur",
     "stepper-open-ended-saved": "Të lumtë — përgjigjja jote u ruajt.",
     "stepper-open-ended-rephrase": "Të jemi të sjellshëm — provo ta riformulosh përgjigjen tënde.",
-    "open-ended-answer-label": "Përgjigjja jote"
+    "open-ended-answer-label": "Përgjigjja jote",
+  "study-card": "Kartelë mësimore",
+  "study-back-to-quiz": "Kthehu te kuizi",
+  "study-instructions": "Përpiquni ta kujtoni përgjigjen, pastaj shfaqeni. Studimi nuk dorëzon përgjigje në kuiz.",
+  "study-show-answer": "Shfaq përgjigjen",
+  "study-hide-answer": "Fshih përgjigjen",
+  "stepper-status-complete": "Përfunduar",
+  "stepper-status-retry": "Provo përsëri",
+  "stepper-status-unchecked": "E pakontrolluar"
 }

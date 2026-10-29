@@ -7,6 +7,7 @@ import { z } from "zod"
  */
 export const TEMPLATED_ACTIVITY_TYPES = [
   "activity_multiple_choice",
+  "activity_multi_select",
   "activity_fill_in_the_blank",
   "activity_true_false",
   "activity_matching",
@@ -14,6 +15,7 @@ export const TEMPLATED_ACTIVITY_TYPES = [
   "activity_ordering",
   "activity_open_ended_answer",
   "activity_fill_in_a_table",
+  "activity_underline_text",
 ] as const
 
 export type TemplatedActivityType = (typeof TEMPLATED_ACTIVITY_TYPES)[number]

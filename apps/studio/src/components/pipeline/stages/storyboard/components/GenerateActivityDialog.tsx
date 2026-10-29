@@ -1,211 +1,109 @@
 import { useState } from "react"
-import { Sparkles, X } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
-import { msg } from "@lingui/core/macro"
 import { i18n } from "@lingui/core"
+import { BookOpen, Check, LayoutTemplate, PencilLine, Sparkles } from "lucide-react"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { ACTIVITY_PRESETS, AI_ACTIVITY_PRESETS } from "./activity-presets"
+import { ActivityTemplatePicker } from "./ActivityTemplatePicker"
 
 export type ActivityGenMode = "auto" | "templated" | "custom"
 
 interface GenerateActivityDialogProps {
-  /** The anchor page the new activity section will be appended to. */
   anchorPageId: string
   anchorPageNumber: number
-  onSubmit: (
-    description: string,
-    options: { inclusiveDesign: boolean; mode: ActivityGenMode },
-  ) => void
+  onSubmit: (description: string, options: { inclusiveDesign: boolean; mode: ActivityGenMode }) => void
   onClose: () => void
 }
 
-const PRESETS: Array<{
-  key: string
-  label: ReturnType<typeof msg>
-  template: ReturnType<typeof msg>
-}> = [
-  {
-    key: "multiple-choice",
-    label: msg`Multiple choice`,
-    template: msg`Generate a 4-option multiple-choice question testing comprehension of this page.`,
-  },
-  {
-    key: "fill-in-the-blank",
-    label: msg`Fill in the blank`,
-    template: msg`Generate a fill-in-the-blank activity with 3 sentences based on this page.`,
-  },
-  {
-    key: "true-false",
-    label: msg`True / false`,
-    template: msg`Generate 3 true/false statements about the content of this page.`,
-  },
-  {
-    key: "open-ended",
-    label: msg`Open-ended question`,
-    template: msg`Generate an open-ended reflection question about this page.`,
-  },
-]
-
-/**
- * "Generate a new activity based on this page." A textarea + a few quick-fill
- * presets. On submit, the dialog closes and the parent kicks off the agent
- * call. Progress flows back through the existing task surface.
- */
-export function GenerateActivityDialog({
-  anchorPageId,
-  anchorPageNumber,
-  onSubmit,
-  onClose,
-}: GenerateActivityDialogProps) {
+export function GenerateActivityDialog({ anchorPageNumber, onSubmit, onClose }: GenerateActivityDialogProps) {
   const { t } = useLingui()
-  const [description, setDescription] = useState("")
-  const [inclusiveDesign, setInclusiveDesign] = useState(true)
+  const [descriptions, setDescriptions] = useState<Record<ActivityGenMode, string>>({ auto: "", templated: "", custom: "" })
   const [mode, setMode] = useState<ActivityGenMode>("auto")
-
-  const STYLE_OPTIONS: Array<{
-    value: ActivityGenMode
-    label: string
-    hint: string
-  }> = [
-    { value: "auto", label: t`Auto`, hint: t`Let the agent choose` },
-    {
-      value: "templated",
-      label: t`Templated`,
-      hint: t`Standard built-in activity types`,
-    },
-    {
-      value: "custom",
-      label: t`Custom`,
-      hint: t`Bespoke, freeform interactive activity`,
-    },
-  ]
-
-  const canSubmit = description.trim().length > 0
-
-  const handleSubmit = () => {
-    if (!canSubmit) return
-    onSubmit(description.trim(), { inclusiveDesign, mode })
-  }
+  const [selectedPreset, setSelectedPreset] = useState<typeof ACTIVITY_PRESETS[number] | null>(null)
+  const [selectedAiPreset, setSelectedAiPreset] = useState<string | null>(null)
+  const description = descriptions[mode]
+  const setDescription = (value: string) => setDescriptions((current) => ({ ...current, [mode]: value }))
+  const canGenerate = !!description.trim() && (mode !== "templated" || selectedPreset !== null)
+  const styles = [
+    { value: "auto", label: t`Let AI choose the layout`, Icon: Sparkles },
+    { value: "templated", label: t`Use a standard layout`, Icon: LayoutTemplate },
+    { value: "custom", label: t`Create a custom layout`, Icon: PencilLine },
+  ] as const
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-8">
-      <div className="bg-background rounded-xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[80vh]">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b shrink-0">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-violet-600" />
-            <h2 className="text-sm font-semibold">{t`Generate activity`}</h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded hover:bg-muted transition-colors"
-            aria-label={t`Close`}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-auto p-5 space-y-4">
-          <p className="text-xs text-muted-foreground">
-            {t`A new activity section will be appended to page ${anchorPageNumber} (${anchorPageId}). The agent may read other pages in the book to mirror their layout.`}
-          </p>
-
-          <div>
-            <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
-              {t`Describe the activity`}
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t`e.g. multiple-choice question about photosynthesis with 4 options`}
-              rows={5}
-              autoFocus
-              className="w-full text-xs border rounded-md px-2 py-1.5 resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
-            />
-          </div>
-
-          <div>
-            <div className="text-[11px] font-medium text-muted-foreground mb-1.5">
-              {t`Activity style`}
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {STYLE_OPTIONS.map((opt) => {
-                const active = mode === opt.value
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setMode(opt.value)}
-                    aria-pressed={active}
-                    title={opt.hint}
-                    className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-1.5 text-left transition-colors ${
-                      active
-                        ? "border-violet-500 bg-violet-50 dark:bg-violet-950/40"
-                        : "border-input hover:bg-muted/60"
-                    }`}
-                  >
-                    <span className="text-xs font-medium">{opt.label}</span>
-                    <span className="text-[10px] text-muted-foreground leading-tight">
-                      {opt.hint}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div>
-            <div className="text-[11px] font-medium text-muted-foreground mb-1.5">
-              {t`Quick fill`}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {PRESETS.map((p) => (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => setDescription(i18n._(p.template))}
-                  className="px-2 py-1 text-[11px] rounded-full bg-muted hover:bg-muted/70 transition-colors"
-                >
-                  {i18n._(p.label)}
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="flex max-h-[92dvh] w-[calc(100%-2rem)] max-w-6xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
+        <DialogTitle className="flex items-center gap-3 pr-10 text-xl"><LayoutTemplate aria-hidden="true" className="size-6 text-primary" />{t`Generate activity`}</DialogTitle>
+        <DialogDescription>
+          {t`Choose an activity style, then tell us what to create from your page.`}
+        </DialogDescription>
+        <div className="min-h-0 overflow-auto px-1 py-2">
+          <fieldset className="mb-6">
+            <legend className="mb-3 text-sm font-semibold">{t`Activity style`}</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {styles.map(({ value, label, Icon }) => (
+                <button key={value} type="button" aria-pressed={mode === value} aria-controls="activity-style-options"
+                  onClick={() => setMode(value)}
+                  className="flex min-h-16 items-center gap-3 rounded-xl border p-3 text-left text-sm font-medium hover:bg-muted/50 aria-pressed:border-primary aria-pressed:bg-primary/5 aria-pressed:ring-1 aria-pressed:ring-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
+                  <Icon aria-hidden="true" className="size-5 shrink-0 text-primary" />
+                  <span className="flex-1">{label}</span>
+                  {mode === value && <Check aria-hidden="true" className="size-4 shrink-0 text-primary" />}
                 </button>
               ))}
             </div>
+          </fieldset>
+          <div id="activity-style-options">
+            {mode === "auto" && (
+              <fieldset className="space-y-3">
+                <legend className="mb-2 text-sm font-semibold">{t`What should AI create?`}</legend>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {AI_ACTIVITY_PRESETS.map((preset) => {
+                    const Icon = preset.key === "replicate" ? BookOpen : Sparkles
+                    return (
+                      <button key={preset.key} type="button" aria-label={i18n._(preset.label)} aria-pressed={selectedAiPreset === preset.key}
+                        onClick={() => { setSelectedAiPreset(preset.key); setDescription(i18n._(preset.template)) }}
+                        className="flex items-start gap-3 rounded-xl border p-4 text-left hover:bg-muted/50 aria-pressed:border-primary aria-pressed:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
+                        <Icon aria-hidden="true" className="size-6 shrink-0 text-primary" />
+                        <span className="flex-1 space-y-1">
+                          <span className="block text-sm font-medium">{i18n._(preset.label)}</span>
+                          <span className="block text-sm text-muted-foreground">{preset.key === "replicate" ? t`Adapt an existing exercise from this page.` : t`Create a new exercise from this page's content.`}</span>
+                        </span>
+                        {selectedAiPreset === preset.key && <Check aria-hidden="true" className="size-4 shrink-0 text-primary" />}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-sm text-muted-foreground">{t`AI will choose the activity format and layout from your page and instructions.`}</p>
+              </fieldset>
+            )}
+            {mode === "templated" && <ActivityTemplatePicker selectedPreset={selectedPreset} onSelect={(preset) => {
+              setSelectedPreset(preset)
+              setDescription(i18n._(preset.template))
+            }} />}
+            <div className="mt-6 space-y-4">
+              <div>
+                <label htmlFor="activity-description" className="mb-2 block text-sm font-semibold">{t`Describe the activity`}</label>
+                <textarea id="activity-description" value={description} onChange={(event) => setDescription(event.target.value)}
+                  placeholder={mode === "custom" ? t`Describe the content, layout, and how learners should interact with the activity.` : t`e.g. multiple-choice question about photosynthesis with 4 options`}
+                  rows={mode === "custom" ? 6 : 3} className="w-full rounded-lg border bg-background p-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {t`All activities request keyboard access, alternatives to dragging, and feedback that does not rely on color. Review the generated activity before publishing.`}
+              </p>
+            </div>
           </div>
-
-          <label className="flex items-start gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={inclusiveDesign}
-              onChange={(e) => setInclusiveDesign(e.target.checked)}
-              className="mt-0.5 h-3.5 w-3.5 rounded border-input text-violet-600 focus-visible:ring-2 focus-visible:ring-violet-500/50"
-            />
-            <span className="flex-1">
-              <span className="block text-xs font-medium">
-                {t`Inclusive design`}
-              </span>
-              <span className="block text-[11px] text-muted-foreground mt-0.5">
-                {t`Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance.`}
-              </span>
-            </span>
-          </label>
         </div>
-
-        <div className="px-5 py-3 border-t flex items-center justify-end gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 text-xs rounded-md hover:bg-muted transition-colors"
-          >
-            {t`Cancel`}
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="px-3 py-1.5 text-xs rounded-md bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {t`Generate`}
-          </button>
+        <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center">
+          <p className="min-w-0 flex-1 text-sm text-muted-foreground">{t`Generate adds a new activity to page ${anchorPageNumber}. You can review and edit it afterwards.`}</p>
+          <div className="flex shrink-0 justify-end gap-2">
+            <Button variant="outline" className="min-h-11" onClick={onClose}>{t`Cancel`}</Button>
+            <Button className="min-h-11" disabled={!canGenerate} onClick={() => {
+              if (canGenerate) onSubmit(description.trim(), { inclusiveDesign: true, mode })
+            }}>{t`Generate`}</Button>
+          </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

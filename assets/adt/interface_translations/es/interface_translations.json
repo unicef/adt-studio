@@ -196,5 +196,13 @@
     "stepper-word-bank": "Palabras para elegir",
     "stepper-open-ended-saved": "¡Muy bien! Tu respuesta se ha guardado.",
     "stepper-open-ended-rephrase": "Seamos amables: intenta escribir tu respuesta de otra manera.",
-    "open-ended-answer-label": "Tu respuesta"
+    "open-ended-answer-label": "Tu respuesta",
+  "study-card": "Tarjeta de estudio",
+  "study-back-to-quiz": "Volver al cuestionario",
+  "study-instructions": "Recuerda la respuesta y luego muéstrala. Estudiar no envía una respuesta al cuestionario.",
+  "study-show-answer": "Mostrar respuesta",
+  "study-hide-answer": "Ocultar respuesta",
+  "stepper-status-complete": "Completado",
+  "stepper-status-retry": "Inténtalo de nuevo",
+  "stepper-status-unchecked": "Sin comprobar"
 }

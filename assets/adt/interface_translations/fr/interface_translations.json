@@ -175,5 +175,13 @@
     "stepper-word-bank": "Mots au choix",
     "stepper-open-ended-saved": "Bravo — ta réponse est enregistrée.",
     "stepper-open-ended-rephrase": "Restons gentils — essaie de reformuler ta réponse.",
-    "open-ended-answer-label": "Ta réponse"
+    "open-ended-answer-label": "Ta réponse",
+  "study-card": "Fiche de révision",
+  "study-back-to-quiz": "Revenir au quiz",
+  "study-instructions": "Essayez de vous rappeler la réponse, puis affichez-la. La révision ne soumet aucune réponse au quiz.",
+  "study-show-answer": "Afficher la réponse",
+  "study-hide-answer": "Masquer la réponse",
+  "stepper-status-complete": "Terminé",
+  "stepper-status-retry": "Réessayez",
+  "stepper-status-unchecked": "Non vérifié"
 }

@@ -19,9 +19,8 @@ export interface GenerateActivityOptions {
   /** Natural-language description of the activity the user wants. */
   description: string
   /**
-   * When true (default), the system prompt includes the Universal Design for
-   * Learning block. Set to false to disable inclusive-design guidance for
-   * comparison/testing purposes.
+   * @deprecated Kept for callers using the former comparison toggle.
+   * Inclusive guidance is now always included in the system prompt.
    */
   inclusiveDesign?: boolean
   /**

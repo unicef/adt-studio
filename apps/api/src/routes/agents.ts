@@ -199,9 +199,9 @@ export function createAgentRoutes(
     }
     const anchorPageId = body.anchorPageId
     const description = body.description
-    // Default-on. Only honor an explicit `false`; any other value (missing,
-    // null, non-boolean) leaves the inclusive-design block in the prompt.
-    const inclusiveDesign = body.inclusiveDesign !== false
+    // Older clients may still send the comparison toggle. All runs now retain
+    // the accessibility baseline without rejecting those clients.
+    const inclusiveDesign = true
     // Defaults to "auto"; an unknown value falls back to "auto" too.
     const mode = parseActivityMode(body.mode)
 
