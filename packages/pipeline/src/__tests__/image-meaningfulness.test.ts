@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type { AppConfig, ImageClassificationOutput } from "@adt/types"
 import type {
   GenerateObjectOptions,
@@ -12,9 +12,10 @@ import {
   filterPageImageMeaningfulness,
   planHashDedup,
   figureInvolvedImageIds,
-  excludeDuplicates,
+  sentInFirstRound,
   propagateDuplicateVerdicts,
   applyHashDedupVerdicts,
+  settleHashDedup,
 } from "../image-meaningfulness.js"
 
 function makeFakeLLMModel(
@@ -885,7 +886,6 @@ describe("filterPageImageMeaningfulness", () => {
     expect(validation?.errors).toEqual([])
   })
 })
-
 describe("cross-page hash dedup", () => {
   const kept = (imageId: string) => ({ imageId, isPruned: false })
   const pruned = (imageId: string, reason: string) => ({ imageId, isPruned: true, reason })
@@ -910,20 +910,29 @@ describe("cross-page hash dedup", () => {
     expect(plan.pageByImageId.get("pg002_im002")).toBe("pg002")
   })
 
+  it("judges an image with fewer than three copies on each page, since one page's context must not decide another's", () => {
+    const plan = planHashDedup([
+      { pageId: "pg001", images: [image("pg001_im001", "cover-art")], classification: { images: [kept("pg001_im001")] } },
+      { pageId: "pg002", images: [image("pg002_im001", "cover-art")], classification: { images: [kept("pg002_im001")] } },
+    ])
+    expect(plan.ownerByImageId.size).toBe(0)
+    expect(plan.pageByImageId.size).toBe(0)
+    // Only owners and duplicates are recorded, not every hashed image.
+    expect(planHashDedup(pages).pageByImageId.has("pg001_im001")).toBe(false)
+  })
+
   it("collects the ids a page's figure extraction groups or covers", () => {
     const ids = figureInvolvedImageIds({ groups: [{ imageId: "pg001_fig001", coveredRasterImageIds: ["pg001_im004"] }] } as never)
     expect([...ids].sort()).toEqual(["pg001_fig001", "pg001_im004"])
     expect(figureInvolvedImageIds(undefined).size).toBe(0)
   })
 
-  it("keeps owners in the model input and drops duplicates", () => {
-    const plan = planHashDedup(pages)
-    const input = [{ imageId: "pg002_im001" }, { imageId: "pg002_im002" }, { imageId: "pg002_im003" }, { imageId: "pg002_im004" }]
-    expect(excludeDuplicates(input, plan).map((entry) => entry.imageId)).toEqual(["pg002_im003", "pg002_im004"])
-    expect(excludeDuplicates([{ imageId: "pg001_im002" }], plan)).toHaveLength(1)
+  it("sends owners and unplanned images in the first round, never duplicates", () => {
+    const send = sentInFirstRound(planHashDedup(pages))
+    expect(["pg002_im001", "pg002_im002", "pg002_im003", "pg002_im004", "pg001_im002"].filter(send)).toEqual(["pg002_im003", "pg002_im004", "pg001_im002"])
   })
 
-  it("shares only model verdicts and says why when an owner has none", () => {
+  it("copies the owner's verdict and says why when the owner has none", () => {
     const plan = planHashDedup(pages)
     const rejected = propagateDuplicateVerdicts(pages[1].classification, plan, () => pruned("pg001_im002", "not meaningful: a logo"))
     expect(rejected.images.slice(0, 2)).toEqual([
@@ -933,9 +942,6 @@ describe("cross-page hash dedup", () => {
     expect(rejected.images.slice(2)).toEqual([kept("pg002_im003"), kept("pg002_im004")])
     const accepted = propagateDuplicateVerdicts(pages[1].classification, plan, () => kept("pg001_im002"))
     expect(accepted.images[0]).toEqual({ imageId: "pg002_im001", isPruned: false, reason: "duplicate of pg001_im002: kept with it" })
-    // Page-local evidence (the auto artwork dedup) must not prune a copy on another page.
-    const local = propagateDuplicateVerdicts(pages[1].classification, plan, () => pruned("pg001_im002", "duplicate artwork: kept composite pg001_fig001"))
-    expect(local.images[0]).toEqual({ imageId: "pg002_im001", isPruned: false, reason: "duplicate of pg001_im002: owner pruned by page-local evidence, kept" })
     const unjudged = propagateDuplicateVerdicts(pages[1].classification, plan, () => undefined)
     expect(unjudged.images[0]).toEqual({ imageId: "pg002_im001", isPruned: false, reason: "duplicate of pg001_im002: owner was not judged, kept" })
   })
@@ -950,5 +956,47 @@ describe("cross-page hash dedup", () => {
     // The owner's page did not complete: its pre-pass row still says "kept", but that is not a verdict.
     const failedOwner = applyHashDedupVerdicts(plan, (pageId) => pages.find((page) => page.pageId === pageId)?.classification, new Set(["pg002", "pg003"]))
     expect(failedOwner.get("pg002")?.images[0]).toEqual({ imageId: "pg002_im001", isPruned: false, reason: "duplicate of pg001_im002: owner was not judged, kept" })
+  })
+
+  describe("settleHashDedup", () => {
+    const ownerVerdict = { images: [kept("pg001_im001"), pruned("pg001_im002", "not meaningful: a logo"), pages[0].classification.images[2]] }
+
+    it("copies owner verdicts without a second round when every owner was judged", async () => {
+      const store = new Map(pages.map((page) => [page.pageId, page.classification]))
+      store.set("pg001", ownerVerdict)
+      const judgeOrphans = vi.fn(async () => true)
+      const updated = await settleHashDedup(planHashDedup(pages), new Set(["pg001", "pg002", "pg003"]), judgeOrphans, (pageId) => store.get(pageId))
+      expect(judgeOrphans).not.toHaveBeenCalled()
+      expect(updated.get("pg002")?.images[0]).toEqual(pruned("pg002_im001", "duplicate of pg001_im002: not meaningful: a logo"))
+    })
+
+    it("judges a failed owner's duplicates on their own page and keeps that verdict", async () => {
+      const store = new Map(pages.map((page) => [page.pageId, page.classification]))
+      const calls: Array<[string, string[]]> = []
+      const judgeOrphans = async (pageId: string, imageIds: ReadonlySet<string>) => {
+        calls.push([pageId, [...imageIds]])
+        store.set(pageId, { images: store.get(pageId)!.images.map((img) => imageIds.has(img.imageId) ? pruned(img.imageId, "not meaningful: own page") : img) })
+        return true
+      }
+      // pg001 (the owner's page) failed; pg002 completed.
+      const updated = await settleHashDedup(planHashDedup(pages), new Set(["pg002", "pg003"]), judgeOrphans, (pageId) => store.get(pageId))
+      expect(calls).toEqual([["pg002", ["pg002_im001", "pg002_im002"]]])
+      // Their own verdict stands: nothing is copied over it.
+      expect(updated.has("pg002")).toBe(false)
+      expect(store.get("pg002")?.images[0]).toEqual(pruned("pg002_im001", "not meaningful: own page"))
+    })
+
+    it("keeps orphans with a reason when their own judgement fails too", async () => {
+      const store = new Map(pages.map((page) => [page.pageId, page.classification]))
+      const updated = await settleHashDedup(planHashDedup(pages), new Set(["pg002", "pg003"]), async () => false, (pageId) => store.get(pageId))
+      expect(updated.get("pg002")?.images[0]).toEqual({ imageId: "pg002_im001", isPruned: false, reason: "duplicate of pg001_im002: owner was not judged, kept" })
+    })
+
+    it("does not judge orphans on a page that did not complete either", async () => {
+      const store = new Map(pages.map((page) => [page.pageId, page.classification]))
+      const judgeOrphans = vi.fn(async () => true)
+      await settleHashDedup(planHashDedup(pages), new Set(["pg003"]), judgeOrphans, (pageId) => store.get(pageId))
+      expect(judgeOrphans).not.toHaveBeenCalled()
+    })
   })
 })

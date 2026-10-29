@@ -125,7 +125,8 @@ import {
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
   buildHashDedupPlan,
-  applyHashDedupVerdicts,
+  sentInFirstRound,
+  settleHashDedup,
   buildMeaningfulnessConfig,
   buildMeaningfulnessImages,
   dedupAutoFigureCandidatesInStorage,
@@ -3846,24 +3847,11 @@ async function runMeaningfulnessPass(
   // goes to the model, and its verdict is copied onto the others afterwards.
   const dedupPlan = buildHashDedupPlan(storage, pages, (pageId) => results.get(pageId))
   const judgedPages = new Set<string>()
-  await processWithConcurrency(
-    pages,
-    concurrency,
-    async (page) => {
-    const existing = results.get(page.pageId)
-    if (!existing) {
-      completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-meaningfulness",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
-      return
-    }
+  /** Judge one page's images that `include` accepts; false when the page failed (reported for a skip/stop decision). */
+  const judgePage = async (page: PageData, include: (imageId: string) => boolean): Promise<boolean> => {
+    const existing = results.get(page.pageId)!
     try {
-      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing, dedupPlan)
+      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing, include)
 
       if (unprunedImages.length > 0) {
         const updated = await filterPageImageMeaningfulness(
@@ -3880,10 +3868,19 @@ async function runMeaningfulnessPass(
         results.set(page.pageId, updated)
         storage.putNodeData("image-filtering", page.pageId, updated)
       }
-      judgedPages.add(page.pageId)
+      return true
     } catch (err) {
       console.error(`[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${toErrorMessage(err)}`)
       await reportPageFailure(deps, progress, "image-meaningfulness", page.pageId, err)
+      return false
+    }
+  }
+  await processWithConcurrency(
+    pages,
+    concurrency,
+    async (page) => {
+    try {
+      if (results.has(page.pageId) && await judgePage(page, sentInFirstRound(dedupPlan))) judgedPages.add(page.pageId)
     } finally {
       completed++
       progress.emit({
@@ -3898,9 +3895,19 @@ async function runMeaningfulnessPass(
     { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate },
   )
   if (!deps.stepController.signal.aborted) {
-    for (const [pageId, updated] of applyHashDedupVerdicts(dedupPlan, (id) => results.get(id), judgedPages)) {
-      results.set(pageId, updated)
-      storage.putNodeData("image-filtering", pageId, updated)
+    const pageById = new Map(pages.map((page) => [page.pageId, page]))
+    const settled = await settleHashDedup(
+      dedupPlan,
+      judgedPages,
+      (pageId, imageIds) => deps.stepController.signal.aborted ? Promise.resolve(false) : judgePage(pageById.get(pageId)!, (id) => imageIds.has(id)),
+      (id) => results.get(id),
+    )
+    // A stop decided during the orphan round settles nothing, like a stop during the first round.
+    if (!deps.stepController.signal.aborted) {
+      for (const [pageId, updated] of settled) {
+        results.set(pageId, updated)
+        storage.putNodeData("image-filtering", pageId, updated)
+      }
     }
   }
   const failed = deps.failedPages.some((f) => f.step === "image-meaningfulness")
