@@ -14,8 +14,8 @@ import {
   type PageDetail,
   type PendingDecision,
 } from "@/api/client"
-import { STEP_TO_STAGE, PIPELINE, getStageClearOrder, PAGE_PROGRESS_STEPS } from "@adt/types"
-import type { StageName } from "@adt/types"
+import { STEP_TO_STAGE, PIPELINE, getStageClearOrder, PAGE_PROGRESS_STEPS, StepWarnings } from "@adt/types"
+import type { StageName, StepWarning } from "@adt/types"
 import { isStageComplete } from "./run-state"
 import { playCompletionSound, playErrorSound } from "@/lib/completion-sound"
 import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
@@ -23,7 +23,6 @@ import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeli
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
 import { useApiKey } from "./use-api-key"
-import { displayableNote } from "@/components/pipeline/components/step-notes"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,6 +60,8 @@ interface StepStatusResponse {
   error: string | null
   stepErrors?: Record<string, string> | null
   stepMessages?: Record<string, string> | null
+  /** Typed warnings of finished steps (SPEC-0021, §Step warnings). */
+  stepWarnings?: Record<string, StepWarning[]> | null
   runStatus?: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
   runRevision?: string
   publicationAgeMs?: number
@@ -82,8 +83,8 @@ export interface BookRunContextValue {
   stepProgress(step: string): StepProgress | undefined
   /** Per-step error message (if in error state) */
   stepError(step: string): string | undefined
-  /** Completion note a finished step left behind (which pages an optional pass could not process). */
-  stepMessage(step: string): string | undefined
+  /** Warnings a finished step left for the user to check; empty when it has none. */
+  stepWarnings(step: string): StepWarning[]
   /** Run error message */
   error: string | null
   /** Is any stage running or queued? */
@@ -244,6 +245,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             stages: { ...old.stages, [uiStage]: "running" },
             steps: { ...old.steps, [pipelineStep]: "running" },
             stepMessages: removeStepMessage(old.stepMessages, pipelineStep),
+            stepWarnings: removeStepWarnings(old.stepWarnings, pipelineStep),
             stepErrors: removeStepError(old.stepErrors, pipelineStep),
           }
         })
@@ -324,6 +326,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         let stageJustCompleted = false
         const completeMessage =
           typeof d.message === "string" && d.message.trim().length > 0 ? d.message : undefined
+        const parsedWarnings = d.type === "step-complete" ? StepWarnings.safeParse(d.warnings ?? []) : undefined
+        const completeWarnings = parsedWarnings?.success ? parsedWarnings.data : NO_WARNINGS
         queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
           if (!old) return old
           const wasComplete = old.stages[uiStage] === "done"
@@ -335,6 +339,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           const stepMessages = completeMessage
             ? { ...(old.stepMessages ?? {}), [pipelineStep]: completeMessage }
             : removeStepMessage(old.stepMessages, pipelineStep)
+          const stepWarnings = completeWarnings.length > 0
+            ? { ...(old.stepWarnings ?? {}), [pipelineStep]: completeWarnings }
+            : removeStepWarnings(old.stepWarnings, pipelineStep)
 
           // Recompute the parent stage from its steps without assuming "error":
           // done if all steps done/skipped, else error only if a step is still
@@ -361,6 +368,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             steps,
             stepErrors,
             stepMessages,
+            stepWarnings,
             error,
           }
         })
@@ -387,6 +395,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             steps: { ...old.steps, [pipelineStep]: "error" },
             stepErrors: { ...old.stepErrors, [pipelineStep]: d.error ?? i18n._(msg`Step failed`) },
             stepMessages: removeStepMessage(old.stepMessages, pipelineStep),
+            stepWarnings: removeStepWarnings(old.stepWarnings, pipelineStep),
             error: d.error ?? i18n._(msg`Step failed`),
           }
         })
@@ -841,15 +850,15 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     [data]
   )
 
-  /** The completion note a finished step left behind (e.g. which pages an
-   *  optional pass could not process). Only for steps that are done: while a
-   *  step runs the same text is surfaced as its progress. */
-  const stepMessageAccessor = useCallback(
-    (step: string): string | undefined => {
-      if (data?.steps?.[step] !== "done") return undefined
-      return displayableNote(data?.stepMessages?.[step])
+  /** The warnings a finished step left (e.g. pages an optional pass could
+   *  not process). Studio translates them; a finished step's free-text
+   *  message is never shown. Only for steps that are done. */
+  const stepWarningsAccessor = useCallback(
+    (step: string): StepWarning[] => {
+      if (data?.steps?.[step] !== "done") return NO_WARNINGS
+      return data?.stepWarnings?.[step] ?? NO_WARNINGS
     },
-    [data?.stepMessages, data?.steps]
+    [data?.stepWarnings, data?.steps]
   )
 
   const isRunning = data?.runStatus === "running" || data?.runStatus === "cancelling" || Object.values(data?.stages ?? {}).some(
@@ -920,7 +929,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     stepState: stepStateAccessor,
     stepProgress: stepProgressAccessor,
     stepError: stepErrorAccessor,
-    stepMessage: stepMessageAccessor,
+    stepWarnings: stepWarningsAccessor,
     error: data?.error ?? null,
     isRunning,
     isCancelling,
@@ -961,6 +970,19 @@ function removeStepMessage(
 ): Record<string, string> | null {
   if (!messages?.[step]) return messages ?? null
   const next = { ...messages }
+  delete next[step]
+  return Object.keys(next).length > 0 ? next : null
+}
+
+/** Stable empty list, so accessors do not hand out a new array per render. */
+const NO_WARNINGS: StepWarning[] = []
+
+function removeStepWarnings(
+  warnings: Record<string, StepWarning[]> | null | undefined,
+  step: string,
+): Record<string, StepWarning[]> | null {
+  if (!warnings?.[step]) return warnings ?? null
+  const next = { ...warnings }
   delete next[step]
   return Object.keys(next).length > 0 ? next : null
 }

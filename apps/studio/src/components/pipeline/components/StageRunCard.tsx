@@ -15,7 +15,7 @@ import {
   getStepLabelI18n,
 } from "../pipeline-i18n"
 import { useBookRun } from "@/hooks/use-book-run"
-import { isAttentionNote } from "./step-notes"
+import { describeStepWarning } from "@/lib/step-warnings"
 import { useLingui } from "@lingui/react/macro"
 
 export interface StageSubStep {
@@ -69,9 +69,9 @@ export function StageRunCard({
   disabledReason,
   children,
 }: StageRunCardProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const stage = STAGES.find((s) => s.slug === stageSlug) ?? STAGES[0]
-  const { stageState, stepState, stepProgress, stepError, stepMessage, error, isCancelling, cancelRun } = useBookRun()
+  const { stageState, stepState, stepProgress, stepError, stepWarnings, error, isCancelling, cancelRun } = useBookRun()
   const stageStatus = stageState(stageSlug)
   const subSteps = STAGE_SUB_STEPS[stageSlug as StageName] ?? []
   const Icon = stage.icon
@@ -143,7 +143,8 @@ export function StageRunCard({
               const state = stepState(key)
               const progress = stepProgress(key)
               const errorMsg = stepError(key)
-              const completionNote = stepMessage(key)
+              const [firstWarning] = stepWarnings(key)
+              const warningText = firstWarning ? describeStepWarning(firstWarning, i18n).summary : undefined
               const isDone = state === "done"
               const isSkipped = state === "skipped"
               const isError = state === "error"
@@ -209,8 +210,8 @@ export function StageRunCard({
                   {isError && errorMsg && (
                     <p className="text-[10px] text-red-400 pl-6 truncate" title={errorMsg}>{errorMsg}</p>
                   )}
-                  {isDone && completionNote && isAttentionNote(completionNote) && (
-                    <p className="text-[10px] text-amber-600 pl-6 truncate" title={completionNote}>{completionNote}</p>
+                  {isDone && warningText && (
+                    <p className="text-[10px] text-amber-600 pl-6 truncate" title={warningText}>{warningText}</p>
                   )}
                 </div>
               )

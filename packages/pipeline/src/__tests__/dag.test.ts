@@ -424,16 +424,20 @@ describe("runPipelineDAG", () => {
     }
   })
 
-  it("attaches an executor's returned message to its step-complete event", async () => {
+  it("attaches an executor's returned warnings, and their English rendering, to its step-complete event", async () => {
     const { events, progress } = collectingProgress()
     const executors = new Map<StepName, StepExecutor>([
-      ["image-cropping", async () => "Completed — 1 page(s) kept their extracted images unchanged after a failure: pg002 (boom)"],
+      ["image-cropping", async () => [{ kind: "pages-unchanged", pages: [{ pageId: "pg002", error: "boom" }] }]],
       ["image-segmentation", async () => undefined],
     ])
     await runPipelineDAG(executors, progress)
-    const complete = (step: StepName) => events.find((event) => event.type === "step-complete" && event.step === step) as { message?: string }
-    expect(complete("image-cropping").message).toBe("Completed — 1 page(s) kept their extracted images unchanged after a failure: pg002 (boom)")
+    const complete = (step: StepName) => events.find((event) => event.type === "step-complete" && event.step === step) as { message?: string; warnings?: unknown }
+    expect(complete("image-cropping")).toMatchObject({
+      warnings: [{ kind: "pages-unchanged", pages: [{ pageId: "pg002", error: "boom" }] }],
+      message: "Completed — 1 page(s) kept their extracted images unchanged after a failure: pg002 (boom)",
+    })
     expect(complete("image-segmentation").message).toBeUndefined()
+    expect(complete("image-segmentation").warnings).toBeUndefined()
   })
 
   it("executor can emit step-progress events", async () => {

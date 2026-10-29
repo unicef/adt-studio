@@ -1,6 +1,6 @@
 import type { ExtractedPage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import type { OutputInputEvidence, RenderMethodValue } from "@adt/types"
+import type { OutputInputEvidence, RenderMethodValue, StepWarning } from "@adt/types"
 
 export interface PageData {
   pageId: string
@@ -69,6 +69,15 @@ export interface SignLanguageVideoData {
   createdAt: string
 }
 
+export interface StepRunRow {
+  step: string
+  status: string
+  error: string | null
+  message: string | null
+  /** Typed warnings of a completed step; null when it has none. */
+  warnings: StepWarning[] | null
+}
+
 export interface Storage {
   /** Canonical book-owned asset root, available on real filesystem storage. */
   readonly bookDir?: string
@@ -134,7 +143,8 @@ export interface Storage {
   markStepStarted(step: string): void
   /** Mark a pipeline step as completed successfully. Optionally persist a
    *  completion message (e.g. "Completed — 2 page(s) skipped"). */
-  markStepCompleted(step: string, message?: string): void
+  /** `warnings` are persisted typed (SPEC-0021, §Step warnings); omitting them clears earlier ones. */
+  markStepCompleted(step: string, message?: string, warnings?: StepWarning[]): void
   /** Mark a pipeline step as skipped. */
   markStepSkipped(step: string): void
   /** Record a step error. Can be called multiple times (last error wins). */
@@ -142,7 +152,7 @@ export interface Storage {
   /** Update the progress message for a running step (e.g., "5/120"). */
   updateStepMessage(step: string, message: string): void
   /** Get all step run records. */
-  getStepRuns(): Array<{ step: string; status: string; error: string | null; message: string | null }>
+  getStepRuns(): StepRunRow[]
   /** Clear step run records for specific steps (used when clearing downstream data). */
   clearStepRuns(steps: string[]): void
   /** Delete step run records still marked 'running'. Used when a run is

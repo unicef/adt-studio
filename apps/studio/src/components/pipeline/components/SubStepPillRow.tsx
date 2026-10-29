@@ -12,14 +12,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { isAttentionNote } from "./step-notes"
+import { describeStepWarning } from "@/lib/step-warnings"
+import type { StepWarning } from "@adt/types"
 
 export function SubStepPillRow({
   subSteps,
   stepState,
   stepProgress,
   stepError,
-  stepMessage,
+  stepWarnings,
 }: {
   subSteps: StageSubStep[]
   stepState: (key: string) => string
@@ -27,15 +28,15 @@ export function SubStepPillRow({
     key: string,
   ) => { page?: number; totalPages?: number } | undefined
   stepError: (key: string) => string | undefined
-  /** Completion note of a finished step, shown in the popover. */
-  stepMessage?: (key: string) => string | undefined
+  /** Warnings a finished step left (SPEC-0021, §Step warnings), shown translated in the popover. */
+  stepWarnings?: (key: string) => StepWarning[]
 }) {
   return (
     <div className="mt-1 flex flex-wrap gap-1.5">
       {subSteps.map((subStep) => {
         const state = stepState(subStep.key)
-        const note = stepMessage?.(subStep.key)
-        const hasWarning = state === "done" && !!note && isAttentionNote(note)
+        const warnings = stepWarnings?.(subStep.key) ?? []
+        const hasWarning = state === "done" && warnings.length > 0
         return (
           <Tooltip key={subStep.key}>
             <TooltipTrigger asChild>
@@ -61,7 +62,7 @@ export function SubStepPillRow({
                 state={state}
                 progress={stepProgress(subStep.key)}
                 errorMessage={stepError(subStep.key)}
-                completionNote={note}
+                warnings={warnings}
               />
             </TooltipContent>
           </Tooltip>
@@ -80,7 +81,7 @@ function SubStepPillButton({
 }: {
   stepKey: string
   state: string
-  /** The step finished but left a "Completed —" warning (pages skipped or left unchanged). */
+  /** The step finished but left warnings (pages skipped or left unchanged, no summary). */
   hasWarning?: boolean
   ref?: Ref<HTMLSpanElement>
 } & Omit<ComponentProps<"span">, "ref">) {
@@ -137,16 +138,17 @@ function SubStepPopoverCard({
   state,
   progress,
   errorMessage,
-  completionNote,
+  warnings = [],
 }: {
   stepKey: string
   state: string
   progress?: { page?: number; totalPages?: number }
   errorMessage?: string
-  completionNote?: string
+  warnings?: StepWarning[]
 }) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const isDone = state === "done"
+  const hasWarning = isDone && warnings.length > 0
   const isSkipped = state === "skipped"
   const isError = state === "error"
   const isRunning = state === "running"
@@ -167,7 +169,9 @@ function SubStepPopoverCard({
       )
     : 0
 
-  const stateLabel = isDone
+  const stateLabel = hasWarning
+    ? t`Completed with a warning`
+    : isDone
     ? t`Completed`
     : isRunning
       ? t`Running`
@@ -177,7 +181,9 @@ function SubStepPopoverCard({
           ? t`Skipped`
           : t`Not started yet`
 
-  const stateDotClass = isDone
+  const stateDotClass = hasWarning
+    ? "bg-amber-500"
+    : isDone
     ? "bg-emerald-500"
     : isRunning
       ? "bg-blue-500 animate-pulse"
@@ -194,7 +200,9 @@ function SubStepPopoverCard({
           aria-hidden
           className={cn(
             "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors duration-200",
-            isDone
+            hasWarning
+              ? "bg-amber-100 text-amber-700"
+              : isDone
               ? "bg-emerald-100 text-emerald-700"
               : isRunning
                 ? "bg-blue-100 text-blue-700"
@@ -205,7 +213,9 @@ function SubStepPopoverCard({
                     : "bg-muted text-muted-foreground",
           )}
         >
-          {isDone ? (
+          {hasWarning ? (
+            <AlertTriangle className="h-4 w-4" strokeWidth={2.5} />
+          ) : isDone ? (
             <Check className="h-4 w-4" strokeWidth={2.5} />
           ) : isRunning ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -218,14 +228,16 @@ function SubStepPopoverCard({
           )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
             <span className="truncate text-[13px] font-semibold text-foreground">
               {label}
             </span>
             <span
               className={cn(
                 "inline-flex shrink-0 items-center gap-1.5 rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider transition-colors duration-200",
-                isDone
+                hasWarning
+                  ? "bg-amber-100 text-amber-700"
+                  : isDone
                   ? "bg-emerald-100 text-emerald-700"
                   : isRunning
                     ? "bg-blue-100 text-blue-700"
@@ -253,7 +265,7 @@ function SubStepPopoverCard({
           )}
         </div>
       </div>
-      {(hasPages || (isError && errorMessage) || (isDone && completionNote) || isSkipped) && (
+      {(hasPages || (isError && errorMessage) || hasWarning || isSkipped) && (
         <div className="flex flex-col gap-2 border-t border-border/70 bg-muted/30 px-3.5 py-2.5">
           {hasPages && (
             <div className="flex flex-col gap-1.5">
@@ -276,11 +288,21 @@ function SubStepPopoverCard({
               </div>
             </div>
           )}
-          {isDone && completionNote && (
-            <p className={cn("text-[10.5px] leading-relaxed break-words", isAttentionNote(completionNote) ? "text-amber-700" : "text-muted-foreground")}>
-              {completionNote}
-            </p>
-          )}
+          {hasWarning && warnings.map((warning, index) => {
+            const text = describeStepWarning(warning, i18n)
+            return (
+              <div key={index} className="flex flex-col gap-1">
+                <p className="text-[10.5px] leading-relaxed text-amber-700">{text.summary}</p>
+                {text.details.length > 0 && (
+                  <ul className="flex flex-col gap-0.5 text-[10px] leading-snug text-muted-foreground">
+                    {text.details.map((detail, detailIndex) => (
+                      <li key={detailIndex} className="break-words">{detail}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
           {isError && errorMessage && (
             <p className="break-words text-[10.5px] leading-snug text-red-700">
               {errorMessage}

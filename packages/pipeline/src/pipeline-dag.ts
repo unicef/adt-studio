@@ -72,7 +72,7 @@ import {
 } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
-import { imagePassCompletionMessage, everyPageFailed, recordOptionalModelFailure, type ImagePassFailure } from "./image-pass-failures.js"
+import { imagePassWarning, everyPageFailed, recordOptionalModelFailure, type ImagePassFailure } from "./image-pass-failures.js"
 import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds, collectSourcePageImages } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
@@ -439,7 +439,8 @@ export async function runFullPipeline(
         })
       })
       if (everyPageFailed(failures, attempted)) throw new Error(`every page failed: ${failures[0].error}`)
-      return imagePassCompletionMessage(failures)
+      const warning = imagePassWarning(failures)
+      return warning ? [warning] : undefined
     })
 
     executors.set("image-meaningfulness", async (p) => {
@@ -559,7 +560,8 @@ export async function runFullPipeline(
         })
       })
       if (everyPageFailed(failures, attempted)) throw new Error(`every page failed: ${failures[0].error}`)
-      return imagePassCompletionMessage(failures)
+      const warning = imagePassWarning(failures)
+      return warning ? [warning] : undefined
     })
 
     // ── Sectioning stage ─────────────────────────────────────────

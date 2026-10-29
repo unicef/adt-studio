@@ -1,28 +1,20 @@
 import { expect, it } from "vitest"
-import { imagePassCompletionMessage, recordOptionalModelFailure, joinCompletionNotes, everyPageFailed, type ImagePassFailure } from "../image-pass-failures.js"
+import { imagePassWarning, recordOptionalModelFailure, everyPageFailed, type ImagePassFailure } from "../image-pass-failures.js"
+import { formatStepWarnings } from "../step-warnings.js"
 
-it("returns no message when every page succeeded", () => {
-  expect(imagePassCompletionMessage([])).toBeUndefined()
+it("returns no warning when every page succeeded", () => {
+  expect(imagePassWarning([])).toBeUndefined()
 })
 
-it("names the pages that kept their images and the error that caused it", () => {
-  expect(imagePassCompletionMessage([{ pageId: "pg003", error: "Cannot connect to API:\n  other side closed" }]))
-    .toBe("Completed — 1 page(s) kept their extracted images unchanged after a failure: pg003 (Cannot connect to API: other side closed)")
+it("names the pages that kept their images and the error that caused it, on one line", () => {
+  expect(imagePassWarning([{ pageId: "pg003", error: "Cannot connect to API:\n  other side closed" }]))
+    .toEqual({ kind: "pages-unchanged", pages: [{ pageId: "pg003", error: "Cannot connect to API: other side closed" }] })
 })
 
-it("lists at most five pages and truncates long errors", () => {
-  const failures = Array.from({ length: 7 }, (_, index) => ({ pageId: `pg00${index + 1}`, error: "x".repeat(200) }))
-  const message = imagePassCompletionMessage(failures)!
-  expect(message).toContain("7 page(s)")
-  expect(message).toContain("pg005 (")
-  expect(message).not.toContain("pg006")
-  expect(message).toMatch(/… and 2 more$/)
-  expect(message).toContain("x".repeat(119) + "…")
-})
-
-it("lists pages in id order regardless of completion order", () => {
-  const message = imagePassCompletionMessage([{ pageId: "pg009", error: "b" }, { pageId: "pg002", error: "a" }])!
-  expect(message.indexOf("pg002")).toBeLessThan(message.indexOf("pg009"))
+it("keeps every page, in id order regardless of completion order, and truncates long errors", () => {
+  const warning = imagePassWarning([{ pageId: "pg009", error: "b" }, { pageId: "pg002", error: "x".repeat(200) }])
+  expect(warning?.kind === "pages-unchanged" && warning.pages.map((page) => page.pageId)).toEqual(["pg002", "pg009"])
+  expect(warning?.kind === "pages-unchanged" && warning.pages[0].error).toBe("x".repeat(119) + "…")
 })
 
 it("records a failed model call against the page and returns undefined", async () => {
@@ -43,15 +35,22 @@ it("rethrows what the caller classifies as not a model failure, such as a cancel
   expect(failures).toEqual([])
 })
 
-it("joins several notes under one Completed prefix", () => {
-  expect(joinCompletionNotes([undefined, undefined])).toBeUndefined()
-  expect(joinCompletionNotes(["Completed — 1 page(s) skipped", imagePassCompletionMessage([{ pageId: "pg003", error: "boom" }])]))
-    .toBe("Completed — 1 page(s) skipped; 1 page(s) kept their extracted images unchanged after a failure: pg003 (boom)")
+it("treats a pass where every one of at least three attempted pages failed as a step failure", () => {
+  const failed = (count: number) => Array.from({ length: count }, (_, index) => ({ pageId: `pg00${index + 1}`, error: "401" }))
+  expect(everyPageFailed(failed(3), 3)).toBe(true)
+  expect(everyPageFailed(failed(2), 3)).toBe(false)
+  // One or two pages are too few to tell a provider problem from a page problem: a warning, not a failure.
+  expect(everyPageFailed(failed(2), 2)).toBe(false)
+  expect(everyPageFailed(failed(1), 1)).toBe(false)
+  expect(everyPageFailed([], 0)).toBe(false)
 })
 
-it("treats a pass where every attempted page failed as a step failure, not a warning", () => {
-  const failures = [{ pageId: "pg001", error: "401" }, { pageId: "pg002", error: "401" }]
-  expect(everyPageFailed(failures, 2)).toBe(true)
-  expect(everyPageFailed(failures, 3)).toBe(false)
-  expect(everyPageFailed([], 0)).toBe(false)
+it("renders step warnings as one English line for the CLI and the log", () => {
+  expect(formatStepWarnings([])).toBeUndefined()
+  expect(formatStepWarnings(undefined)).toBeUndefined()
+  const pages = Array.from({ length: 7 }, (_, index) => ({ pageId: `pg00${index + 1}`, error: "boom" }))
+  expect(formatStepWarnings([{ kind: "pages-skipped", count: 1 }, { kind: "pages-unchanged", pages }]))
+    .toBe("Completed — 1 page(s) skipped; 7 page(s) kept their extracted images unchanged after a failure: pg001 (boom), pg002 (boom), pg003 (boom), pg004 (boom), pg005 (boom), … and 2 more")
+  expect(formatStepWarnings([{ kind: "summary-missing", error: "HTTP 404" }])).toBe("Completed — no book summary after a failure: HTTP 404")
+  expect(formatStepWarnings([{ kind: "source-assessment", warning: 2, critical: 1 }])).toBe("Completed — source assessment: 2 warning(s), 1 critical")
 })
