@@ -38,18 +38,20 @@ export function PageDetailLayout({ label, pageId, page, data }: { label: string;
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,26%)]">
-      <div className="relative flex min-h-[420px] min-w-0 items-start justify-center [container-type:size] lg:min-h-0">
-        <PagePreview
-          src={data.pageSrc}
-          pageNumber={page.pageNumber}
-          size={data.pageSize}
-          onSize={data.onPageImageSize}
-          entries={data.entries}
-          hoverId={selection.hoverId}
-          selectedId={selection.selectedId}
-          onHover={selection.hover}
-          onSelect={selection.select}
-        />
+      <div className="relative min-h-[420px] min-w-0 lg:min-h-0">
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl border bg-card p-5 shadow-sm [container-type:size]">
+          <PagePreview
+            src={data.pageSrc}
+            lowSrc={data.lowSrc}
+            pageNumber={page.pageNumber}
+            size={data.pageSize}
+            entries={data.entries}
+            hoverId={selection.hoverId}
+            selectedId={selection.selectedId}
+            onHover={selection.hover}
+            onSelect={selection.select}
+          />
+        </div>
         <PageDetailSheet
           open={openKind != null}
           contentKey={shownKind}

@@ -81,6 +81,8 @@ export interface FaultScenario {
   warnedPages?: number
   spreadSuggestions?: number[]
   pageMock?: PageMock
+  slowPagesMs?: number
+  failSpreads?: boolean
   startedAt: number
   pausedAt?: number
   pauseAtMs?: number
@@ -349,8 +351,21 @@ function mockIntercept(scenario: FaultScenario, mock: PageMock, path: string, me
   return null
 }
 
+const PAGE_DETAIL_PATH = /^\/books\/[^/]+\/pages\/[^/?]+(\/image)?(\?|$)/
+
+export function isPageDetailKey(key: readonly unknown[], book: string): boolean {
+  return key[0] === "books" && key[1] === book && key[2] === "pages" && typeof key[3] === "string" && key.length === 4
+}
+
 function faultIntercept(scenario: FaultScenario, path: string, method: string, passthrough: () => Promise<unknown>) {
   const book = scenario.book
+  if (scenario.slowPagesMs && method === "GET" && bookOf(path) === book && PAGE_DETAIL_PATH.test(path)) {
+    return sleep(scenario.slowPagesMs).then(passthrough)
+  }
+  if (scenario.failSpreads && method !== "GET" && bookOf(path) === book) {
+    if (path === `/books/${book}/spreads/apply`) return sleep(600).then(() => Promise.reject(new Error(i18n._(msg`Simulated: the spread merge failed`))))
+    return Promise.resolve({})
+  }
   if (scenario.pageMock && bookOf(path) === book) {
     const mocked = mockIntercept(scenario, scenario.pageMock, path, method, passthrough)
     if (mocked) return mocked
@@ -506,6 +521,11 @@ export function LabSimulationDriver() {
   useEffect(() => {
     if (scenario?.kind !== "fault") return
     void queryClient.invalidateQueries({ queryKey: ["books", scenario.book] })
+  }, [scenario, queryClient])
+
+  useEffect(() => {
+    if (scenario?.kind !== "fault" || !scenario.slowPagesMs) return
+    void queryClient.resetQueries({ predicate: (query) => isPageDetailKey(query.queryKey, scenario.book) })
   }, [scenario, queryClient])
 
   useEffect(() => {

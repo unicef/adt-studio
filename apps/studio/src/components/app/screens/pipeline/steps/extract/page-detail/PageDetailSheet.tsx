@@ -79,7 +79,7 @@ export function PageDetailSheet({
           if (!open && event.target === event.currentTarget && event.propertyName === "opacity") setMounted(false)
         }}
         className={cn(
-          "absolute inset-y-0 right-0 left-[min(10%,88px)] z-20 flex flex-col overflow-hidden rounded-xl border bg-card shadow-xl",
+          "absolute inset-0 z-20 flex flex-col overflow-hidden rounded-xl border bg-card shadow-xl",
           open
             ? "translate-x-0 opacity-100 transition-[opacity,translate] duration-[260ms] ease-[cubic-bezier(0.22,0.61,0.36,1)] starting:translate-x-6 starting:opacity-0"
             : "translate-x-6 opacity-0 transition-[opacity,translate] duration-[180ms] ease-in",

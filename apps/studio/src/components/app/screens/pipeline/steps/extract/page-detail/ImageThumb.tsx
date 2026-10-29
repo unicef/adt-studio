@@ -4,6 +4,7 @@ import { ImageOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { extractedImageUrl } from "../useExtractImages"
 import { reasonText } from "./imageLabel"
+import { imageDetailTooltip } from "./imageDetails"
 import type { PageImageEntry } from "./usePageDetailData"
 
 export const ImageThumb = memo(function ImageThumb({
@@ -33,7 +34,7 @@ export const ImageThumb = memo(function ImageThumb({
       type="button"
       aria-pressed={selected}
       aria-label={description}
-      title={description}
+      title={`${description}\n${imageDetailTooltip(i18n, entry)}`}
       onClick={() => onSelect(entry.imageId)}
       onMouseEnter={() => onHover(entry.imageId)}
       onMouseLeave={() => onHover(null)}

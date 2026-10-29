@@ -3,32 +3,16 @@ import { useNavigate } from "@tanstack/react-router"
 import { ArrowRight, ArrowUpRight, FlaskConical } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
-import { setThemeMode } from "@/lib/theme"
 import { TEST_BOOKS } from "../testPlan/tests"
-import { applyStageState, clearStageState, type StageStates } from "../stageStates"
+import { clearStageState, type StageStates } from "../stageStates"
 import { VariantChips } from "./VariantChips"
-import { TESTING_NOW, type TestingItem, type TestingTarget } from "./verifyLog"
+import { TESTING_NOW, type TestingItem } from "./verifyLog"
+import { useOpenTarget } from "./useOpenTarget"
 
 export function TestingCard({ page, items, stageStates }: { page: string; items: TestingItem[]; stageStates: StageStates }) {
   const { t, i18n } = useLingui()
-  const navigate = useNavigate()
+  const open = useOpenTarget(page, stageStates)
   if (items.length === 0) return null
-
-  const open = (target: TestingTarget) => {
-    if (target.kind === "page" || target.kind === "grid") {
-      clearStageState()
-      const book = target.kind === "page" ? (target.book ?? TEST_BOOKS.done) : TEST_BOOKS.done
-      void navigate({
-        to: "/pipeline/$label/$step",
-        params: { label: book, step: page },
-        search: (prev) => ({ ...prev, page: target.kind === "page" ? target.pageId : undefined }),
-      })
-      return
-    }
-    if (target.theme) setThemeMode(target.theme)
-    const state = stageStates.byPage[page]?.find((candidate) => candidate.id === target.stateId)
-    if (state) applyStageState(page, state)
-  }
 
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-violet-400/15 px-2.5 py-2 ring-1 ring-violet-300/40 animate-in fade-in duration-200 motion-reduce:animate-none">

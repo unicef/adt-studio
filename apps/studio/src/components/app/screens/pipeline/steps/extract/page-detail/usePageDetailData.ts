@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { resolveReflowableFont } from "@adt/types"
-import { usePage, usePageImage } from "@/hooks/use-pages"
+import { usePage, usePageImage, usePages } from "@/hooks/use-pages"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { usePrefetchAdjacentPages } from "../../shared/usePrefetchAdjacentPages"
 import { useExtractImages } from "../useExtractImages"
+import { lowResThumbnail, pageViewThumbnailUrl } from "@/components/app/screens/pipeline/shared/page-thumbnail/pageThumbnail"
 
 export interface ImageBounds {
   x: number
@@ -32,11 +33,10 @@ export interface PageSize {
 export function usePageDetailData(label: string, pageId: string, prevPageId: string | null, nextPageId: string | null) {
   const query = usePage(label, pageId)
   const page = query.data
-  const { data: imageData } = usePageImage(label, pageId)
+  const summary = usePages(label, { enabled: false }).data?.find((candidate) => candidate.pageId === pageId)
   const { data: activeConfigData } = useActiveConfig(label)
   const { hasApiKey } = useApiKey()
   const { stageState, stepState } = useBookRun()
-  const [loadedSize, setLoadedSize] = useState<PageSize | null>(null)
   usePrefetchAdjacentPages(label, prevPageId, nextPageId)
 
   const storyboardState = stageState("storyboard")
@@ -46,14 +46,21 @@ export function usePageDetailData(label: string, pageId: string, prevPageId: str
   const imageFilterRunning = stepState("image-filtering") === "running"
 
   const images = useExtractImages(label, pageId, page, storyboardRunning)
-  const pageSrc = imageData?.imageBase64 ? `data:image/png;base64,${imageData.imageBase64}` : null
+  const pageSrc = pageViewThumbnailUrl(label, pageId)
+  const lowSrc = lowResThumbnail(label, pageId)
+  const { data: fullImage } = usePageImage(label, pageId, { enabled: !!images.cropTargetId })
+  const fullPageSrc = fullImage?.imageBase64 ? `data:image/png;base64,${fullImage.imageBase64}` : null
   const pageImageId = `${pageId}_page`
 
   const metaById = useMemo(() => new Map((page?.imagesMeta ?? []).map((meta) => [meta.imageId, meta])), [page?.imagesMeta])
   const metaOrder = useMemo(() => new Map((page?.imagesMeta ?? []).map((meta, index) => [meta.imageId, index])), [page?.imagesMeta])
   const pageImageMeta = metaById.get(pageImageId)
   const pageSize: PageSize | null =
-    pageImageMeta?.width && pageImageMeta.height ? { w: pageImageMeta.width, h: pageImageMeta.height } : loadedSize
+    pageImageMeta?.width && pageImageMeta.height
+      ? { w: pageImageMeta.width, h: pageImageMeta.height }
+      : summary?.pageWidth && summary.pageHeight
+        ? { w: summary.pageWidth, h: summary.pageHeight }
+        : null
 
   const entries = useMemo<PageImageEntry[]>(() => {
     const list = (images.effective?.images ?? []).filter((image) => image.imageId !== pageImageId)
@@ -83,9 +90,10 @@ export function usePageDetailData(label: string, pageId: string, prevPageId: str
     images,
     entries,
     pageSrc,
+    lowSrc,
+    fullPageSrc,
     pageImageId,
     pageSize,
-    onPageImageSize: pageImageMeta?.width && pageImageMeta.height ? undefined : setLoadedSize,
     reflowableFont,
     hasApiKey,
     storyboardRunning,

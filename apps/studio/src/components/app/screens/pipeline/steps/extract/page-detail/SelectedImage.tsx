@@ -1,5 +1,6 @@
 import { Trans } from "@lingui/react/macro"
 import { MousePointerClick } from "lucide-react"
+import { useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { CrossFade } from "./CrossFade"
 import { PageImageItem } from "./PageImageItem"
 import type { BoxSelection } from "./useBoxSelection"
@@ -7,6 +8,7 @@ import type { PageDetailData } from "./usePageDetailData"
 
 export function SelectedImage({ label, data, selection, hint = false }: { label: string; data: PageDetailData; selection: BoxSelection; hint?: boolean }) {
   const entry = data.entries.find((candidate) => candidate.imageId === selection.selectedId)
+  const structuredText = useBookStructuredTextAvailability(label)
   if (!entry && !hint) return null
   const { images } = data
   return (
@@ -20,7 +22,7 @@ export function SelectedImage({ label, data, selection, hint = false }: { label:
             onHover={selection.hover}
             segmenting={images.segmentingId === entry.imageId}
             showRecrop={!!data.pageSrc && !data.storyboardRunning}
-            showSegment={data.hasApiKey && !data.storyboardRunning}
+            showSegment={structuredText && !data.storyboardRunning}
             onTogglePrune={images.togglePrune}
             onRecrop={images.openCrop}
             onSegment={images.segment.mutate}

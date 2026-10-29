@@ -1,4 +1,4 @@
-import { useRef, type MouseEvent } from "react"
+import { useRef, useState, type MouseEvent } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ImageOff } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -8,9 +8,9 @@ import type { PageImageEntry, PageSize } from "./usePageDetailData"
 
 export function PagePreview({
   src,
+  lowSrc,
   pageNumber,
   size,
-  onSize,
   entries,
   hoverId,
   selectedId,
@@ -19,9 +19,9 @@ export function PagePreview({
   className,
 }: {
   src: string | null
+  lowSrc?: string | null
   pageNumber: number
   size: PageSize | null
-  onSize?: (size: PageSize) => void
   entries: PageImageEntry[]
   hoverId: string | null
   selectedId: string | null
@@ -31,6 +31,8 @@ export function PagePreview({
 }) {
   const { t } = useLingui()
   const frame = useRef<HTMLDivElement>(null)
+  const [state, setState] = useState<{ src: string | null; status: "loading" | "loaded" | "failed" }>({ src, status: "loading" })
+  const status = state.src === src ? state.status : "loading"
 
   const pick = (event: MouseEvent<HTMLDivElement>) => {
     const box = frame.current?.getBoundingClientRect()
@@ -38,9 +40,9 @@ export function PagePreview({
     return entryAt(entries, size, ((event.clientX - box.left) / box.width) * 100, ((event.clientY - box.top) / box.height) * 100)
   }
 
-  if (!src)
+  if (!src || status === "failed")
     return (
-      <div className={cn("grid aspect-[3/4] w-full max-w-md place-items-center rounded-xl border bg-muted/50 text-[12.5px] text-muted-foreground", className)}>
+      <div className={cn("grid size-full place-items-center rounded-md bg-muted/50 text-[12.5px] text-muted-foreground", className)}>
         <span className="flex flex-col items-center gap-2">
           <ImageOff className="size-6" />
           <Trans>No image available</Trans>
@@ -54,7 +56,7 @@ export function PagePreview({
   return (
     <div
       ref={frame}
-      className={cn("relative max-h-full max-w-full overflow-hidden rounded-xl border bg-card shadow-sm", entries.length > 0 && "cursor-crosshair", className)}
+      className={cn("relative max-h-full max-w-full overflow-hidden rounded-md shadow-[0_1px_3px_rgba(15,23,42,0.12),0_0_0_1px_rgba(15,23,42,0.06)]", entries.length > 0 && "cursor-crosshair", className)}
       style={size ? { width: `min(100cqw, calc(100cqh * ${(size.w / size.h).toFixed(4)}))` } : undefined}
       onMouseMove={(event) => onHover(pick(event)?.imageId ?? null)}
       onMouseLeave={() => onHover(null)}
@@ -63,11 +65,21 @@ export function PagePreview({
         if (entry) onSelect(entry.imageId)
       }}
     >
+      {lowSrc && lowSrc !== src && status !== "loaded" && (
+        <img aria-hidden alt="" src={lowSrc} className="absolute inset-0 size-full object-contain" />
+      )}
       <img
         src={src}
         alt={t`Page ${pageNumber}`}
-        className={cn("block h-auto w-full", !size && "max-h-full object-contain")}
-        onLoad={onSize ? (event) => onSize({ w: event.currentTarget.naturalWidth, h: event.currentTarget.naturalHeight }) : undefined}
+        decoding="async"
+        style={size ? { aspectRatio: `${size.w} / ${size.h}` } : undefined}
+        className={cn(
+          "relative block h-auto w-full transition-opacity duration-300 ease-out motion-reduce:transition-none",
+          !size && "max-h-full object-contain",
+          status === "loaded" || (!lowSrc && !size) ? "opacity-100" : "opacity-0",
+        )}
+        onLoad={() => setState({ src, status: "loaded" })}
+        onError={() => setState({ src, status: "failed" })}
       />
       {size && (
         <>

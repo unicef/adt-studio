@@ -58,6 +58,7 @@ export interface SpreadReview {
   detected: boolean
   applying: boolean
   applyFailed: boolean
+  retryApply: () => void
   openPicker: (initial: "all" | "spreads", selection?: number[]) => void
   dismissAll: () => void
   picker: ReactNode
@@ -185,6 +186,9 @@ export function useSpreadReview(label: string, pages: PipelinePage[]): SpreadRev
     detected,
     applying: applyMutation.isPending,
     applyFailed: applyMutation.isError,
+    retryApply: () => {
+      if (applyMutation.variables) applyMutation.mutate(applyMutation.variables)
+    },
     openPicker,
     dismissAll,
     picker,

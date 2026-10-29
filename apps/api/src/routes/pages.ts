@@ -56,6 +56,7 @@ import {
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
+import { pageImageThumbnailTag, renderPageImageThumbnail } from "../services/page-image-thumbnails.js"
 import {
   getBookStyleguidesDir,
   getGeneratedStyleguideName,
@@ -227,6 +228,17 @@ export function countCaptions(data: unknown): CaptionCounts {
   }
   return { captionCount: captions.length, decorativeCount, uncaptionedCount }
 }
+
+const PageThumbnailQuery = z.object({
+  pageId: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
+  width: z.coerce
+    .number()
+    .int()
+    .min(64)
+    .max(1600)
+    .default(300)
+    .transform((width) => Math.ceil(width / 50) * 50),
+})
 
 function getDbPath(label: string, booksDir: string): string {
   const safeLabel = parseBookLabel(label)
@@ -1253,6 +1265,60 @@ export function createPageRoutes(
       return c.json(result)
     } finally {
       db.close()
+    }
+  })
+
+  // GET /books/:label/pages/:pageId/thumbnail?width= — The page image as a
+  // JPEG no wider than `width`, so lists and previews never ship the full PNG.
+  app.get("/books/:label/pages/:pageId/thumbnail", (c) => {
+    let safeLabel: string
+    try {
+      safeLabel = parseBookLabel(c.req.param("label"))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new HTTPException(400, { message })
+    }
+    const parsed = PageThumbnailQuery.safeParse({ pageId: c.req.param("pageId"), width: c.req.query("width") })
+    if (!parsed.success) {
+      throw new HTTPException(400, { message: "Invalid page or width" })
+    }
+    const { pageId, width } = parsed.data
+    const bookDir = path.join(path.resolve(booksDir), safeLabel)
+    const dbPath = path.join(bookDir, `${safeLabel}.db`)
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+    const db = openBookDb(dbPath)
+    let row: { path: string; hash: string } | undefined
+    try {
+      row = (db.all("SELECT path, hash FROM images WHERE image_id = ?", [`${pageId}_page`]) as Array<{ path: string; hash: string }>)[0]
+    } finally {
+      db.close()
+    }
+    if (!row) {
+      throw new HTTPException(404, { message: `Page image not found: ${pageId}` })
+    }
+    const imagePath = path.resolve(bookDir, row.path)
+    if (!imagePath.startsWith(bookDir + path.sep)) {
+      throw new HTTPException(400, { message: "Invalid image path" })
+    }
+    if (!fs.existsSync(imagePath)) {
+      throw new HTTPException(404, { message: `Page image not found: ${pageId}` })
+    }
+    const tag = pageImageThumbnailTag(imagePath, row.hash, width)
+    c.header("ETag", tag.etag)
+    c.header("Cache-Control", "private, max-age=3600")
+    const ifNoneMatch = c.req.header("If-None-Match")
+    if (ifNoneMatch && ifNoneMatch.split(",").some((value) => value.trim().replace(/^W\//, "") === tag.etag)) {
+      return c.body(null, 304)
+    }
+    try {
+      const { jpeg } = renderPageImageThumbnail(imagePath, width, tag)
+      c.header("Content-Type", "image/jpeg")
+      return c.body(new Uint8Array(jpeg))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new HTTPException(500, { message: `Failed to render page thumbnail: ${message}` })
     }
   })
 

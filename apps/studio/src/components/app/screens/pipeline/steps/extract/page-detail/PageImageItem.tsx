@@ -4,6 +4,7 @@ import { Crop, EyeOff, ImageOff, Loader2, RotateCcw, Scissors } from "lucide-rea
 import { cn } from "@/lib/utils"
 import { extractedImageUrl } from "../useExtractImages"
 import { humanReason } from "./humanReason"
+import { imageDetailLine, imageDetailTooltip, imagePositionText } from "./imageDetails"
 import type { PageImageEntry } from "./usePageDetailData"
 
 const ICON_BUTTON = cn(
@@ -52,12 +53,28 @@ export const PageImageItem = memo(function PageImageItem({
   const reason = humanReason(entry.reason)
   const reasonText = typeof reason.label === "string" ? reason.label : i18n._(reason.label)
   const size = entry.width && entry.height ? `${entry.width} × ${entry.height}` : null
+  const position = imagePositionText(i18n, entry)
+  const editActions = (
+    <>
+      {showRecrop && (
+        <IconAction label={t`Recrop from page`} onClick={() => onRecrop(entry.imageId)}>
+          <Crop className="size-3.5" />
+        </IconAction>
+      )}
+      {showSegment && (
+        <IconAction label={segmenting ? t`Segmenting…` : t`Segment image`} onClick={() => onSegment(entry.imageId)} disabled={segmenting}>
+          {segmenting ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" /> : <Scissors className="size-3.5" />}
+        </IconAction>
+      )}
+    </>
+  )
 
   return (
     <div
       onMouseEnter={() => onHover(entry.imageId)}
       onMouseLeave={() => onHover(null)}
-      className="flex items-center gap-2.5 rounded-lg bg-[color-mix(in_srgb,var(--chrome-hex)_10%,transparent)] px-2 py-1.5"
+      title={imageDetailTooltip(i18n, entry)}
+      className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-lg bg-[color-mix(in_srgb,var(--chrome-hex)_10%,transparent)] px-2 py-1.5"
     >
       <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-md bg-[var(--chrome-hex)] px-1 font-mono text-[10.5px] font-semibold tabular-nums text-white">
         {entry.number}
@@ -75,7 +92,7 @@ export const PageImageItem = memo(function PageImageItem({
           />
         )}
       </span>
-      <span className="flex min-w-0 flex-1 flex-col">
+      <span className="flex min-w-[150px] flex-1 flex-col">
         {entry.isPruned ? (
           <>
             <span className="line-clamp-2 text-[12px] leading-snug font-medium text-foreground" title={reason.raw ?? undefined}>
@@ -92,27 +109,26 @@ export const PageImageItem = memo(function PageImageItem({
             <span className="text-[12px] font-medium text-foreground">
               <Trans>Image {entry.number}</Trans>
             </span>
-            {size && <span className="text-[11px] tabular-nums text-muted-foreground">{size}</span>}
           </>
+        )}
+        <span className="truncate font-mono text-[10.5px] text-muted-foreground/90">{imageDetailLine(entry)}</span>
+        {position && (
+          <span className="truncate font-mono text-[10.5px] text-muted-foreground/80">
+            {position}
+          </span>
         )}
       </span>
       {entry.isPruned ? (
-        <button type="button" onClick={() => onTogglePrune(entry.imageId)} className={BRING_BACK}>
-          <RotateCcw className="size-3" />
-          <Trans>Bring back</Trans>
-        </button>
+        <span className="ml-auto flex items-center gap-0.5">
+          {editActions}
+          <button type="button" onClick={() => onTogglePrune(entry.imageId)} className={cn(BRING_BACK, "ml-1")}>
+            <RotateCcw className="size-3" />
+            <Trans>Bring back</Trans>
+          </button>
+        </span>
       ) : (
-        <span className="flex items-center gap-0.5">
-          {showRecrop && (
-            <IconAction label={t`Recrop from page`} onClick={() => onRecrop(entry.imageId)}>
-              <Crop className="size-3.5" />
-            </IconAction>
-          )}
-          {showSegment && (
-            <IconAction label={segmenting ? t`Segmenting…` : t`Segment image`} onClick={() => onSegment(entry.imageId)} disabled={segmenting}>
-              {segmenting ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" /> : <Scissors className="size-3.5" />}
-            </IconAction>
-          )}
+        <span className="ml-auto flex items-center gap-0.5">
+          {editActions}
           <IconAction label={t`Filter out`} onClick={() => onTogglePrune(entry.imageId)}>
             <EyeOff className="size-3.5" />
           </IconAction>

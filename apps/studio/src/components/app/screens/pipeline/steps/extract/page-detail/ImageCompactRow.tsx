@@ -4,6 +4,7 @@ import { EyeOff, ImageOff, RotateCcw } from "lucide-react"
 import { cn, prefersReducedMotion } from "@/lib/utils"
 import { extractedImageUrl } from "../useExtractImages"
 import { reasonText } from "./imageLabel"
+import { imageDetailTooltip } from "./imageDetails"
 import type { PageImageEntry } from "./usePageDetailData"
 
 const QUICK_ACTION = cn(
@@ -57,6 +58,7 @@ export const ImageCompactRow = memo(function ImageCompactRow({
         onClick={() => onSelect(entry.imageId)}
         onFocus={() => onHover(entry.imageId)}
         onBlur={() => onHover(null)}
+        title={imageDetailTooltip(i18n, entry)}
         className="flex h-full min-w-0 flex-1 items-center gap-2 rounded-md pl-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--chrome-hex)_45%,transparent)]"
       >
         <span

@@ -4,6 +4,7 @@ import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import type { PageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
 import type { RailEntry } from "./ui"
+import { largeRailThumbClass } from "./rail/railThumb"
 
 export interface PageRailOptions<P> {
   aspect: PageAspect
@@ -27,9 +28,9 @@ export function usePageRailEntries<P extends PipelinePage>(
       count: count(page),
       subtitle: subtitle?.(page)?.replace(/\n/g, " ") || undefined,
       failed: failed?.(page) ?? false,
-      thumb: (
-        <PageThumb label={label} pageId={page.pageId} sectionIndex={null} className={aspect.railThumbClassOf(page)} />
-      ),
+      pageNumber: page.pageNumber,
+      searchText: page.textPreview,
+      thumb: <PageThumb label={label} pageId={page.pageId} sectionIndex={null} className={largeRailThumbClass(aspect.ratioOf(page))} />,
     }))
     const sum = total ?? rows.reduce((acc, row) => acc + row.count, 0)
     return [{ key: "", title: allLabel ?? t`All pages`, count: sum }, ...rows]

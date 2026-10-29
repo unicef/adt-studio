@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { FileText, Loader2 } from "lucide-react"
-import { usePageImage, useSectionScreenshot } from "@/hooks/use-pages"
+import { Loader2 } from "lucide-react"
+import { useSectionScreenshot } from "@/hooks/use-pages"
 import { cn } from "@/lib/utils"
 import { ThumbSkeleton } from "./PageSkeleton"
 import { useVariant } from "@/components/app/lab/variants"
+import { PageThumbnailImage } from "@/components/app/screens/pipeline/shared/page-thumbnail/PageThumbnailImage"
+import { useRenderedWidth } from "@/components/app/screens/pipeline/shared/page-thumbnail/useRenderedWidth"
 
 export interface PageThumbProps {
   label: string
@@ -57,8 +59,8 @@ export function PageThumb({
   })
   const needsPdf = sectionIndex == null || pruned === true || pending === true || screenshot.isError
   const awaitingShot = contentLoaders && !needsPdf && !screenshot.data
-  const pdf = usePageImage(label, pageId, { enabled: inView && (needsPdf || awaitingShot) })
-  const pdfSrc = pdf.data?.imageBase64 ? `data:image/png;base64,${pdf.data.imageBase64}` : null
+  const renderedWidth = useRenderedWidth(ref, inView, fit)
+  const showPdf = inView && renderedWidth > 0 && (needsPdf || awaitingShot)
 
   return (
     <div
@@ -75,23 +77,21 @@ export function PageThumb({
           alt=""
           className="size-full object-cover object-top duration-200 animate-in fade-in-0"
         />
-      ) : needsPdf && pdfSrc ? (
-        <img
-          src={pdfSrc}
-          alt=""
-          className={cn(
-            "size-full object-center duration-200 animate-in fade-in-0",
-            fit === "contain" ? "bg-muted object-contain" : "object-cover",
-            contentLoaders && !pending && !pruned ? "opacity-100" : "opacity-60",
-            pruned && "grayscale",
-          )}
-        />
-      ) : awaitingShot && pdfSrc ? (
-        <img src={pdfSrc} alt="" className={cn("size-full object-center opacity-70 duration-300 animate-in fade-in-0", fit === "contain" ? "bg-muted object-contain" : "object-cover")} />
-      ) : needsPdf && pdf.isError ? (
-        <div className="grid size-full place-items-center bg-muted text-muted-foreground/50">
-          <FileText className="size-4" />
-        </div>
+      ) : showPdf ? (
+        <>
+          <ThumbSkeleton className="absolute inset-0" />
+          <PageThumbnailImage
+            label={label}
+            pageId={pageId}
+            cssWidth={renderedWidth}
+            dimmed={awaitingShot || !(contentLoaders && !pending && !pruned)}
+            className={cn(
+              "relative size-full object-center",
+              fit === "contain" ? "bg-muted object-contain" : "object-cover",
+              pruned && "grayscale",
+            )}
+          />
+        </>
       ) : (
         <ThumbSkeleton className="size-full" />
       )}

@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from "react"
-import { usePageImage } from "@/hooks/use-pages"
+import { useEffect, useMemo, useState } from "react"
+import { getPageThumbnailUrl } from "@/api/client"
 
 const PORTRAIT = 3 / 4
 const LANDSCAPE_FROM = 1.05
@@ -10,19 +10,24 @@ interface SizedPage {
   pageHeight?: number | null
 }
 
-function pngAspect(base64: string | undefined): number | null {
-  if (!base64) return null
-  try {
-    const head = atob(base64.slice(0, 44))
-    if (head.slice(1, 4) !== "PNG") return null
-    const read = (offset: number) =>
-      ((head.charCodeAt(offset) << 24) | (head.charCodeAt(offset + 1) << 16) | (head.charCodeAt(offset + 2) << 8) | head.charCodeAt(offset + 3)) >>> 0
-    const width = read(16)
-    const height = read(20)
-    return width > 0 && height > 0 ? width / height : null
-  } catch {
-    return null
-  }
+const PROBE_WIDTH = 100
+
+function useThumbnailAspect(label: string, pageId: string | undefined): number | null {
+  const url = pageId ? getPageThumbnailUrl(label, pageId, PROBE_WIDTH) : null
+  const [measured, setMeasured] = useState<{ url: string; ratio: number } | null>(null)
+  useEffect(() => {
+    if (!url) return
+    const image = new Image()
+    image.decoding = "async"
+    image.onload = () => {
+      if (image.naturalWidth > 0 && image.naturalHeight > 0) setMeasured({ url, ratio: image.naturalWidth / image.naturalHeight })
+    }
+    image.src = url
+    return () => {
+      image.onload = null
+    }
+  }, [url])
+  return measured && measured.url === url ? measured.ratio : null
 }
 
 const RATIO_KEY = "adt.page-ratio."
@@ -126,8 +131,7 @@ export function usePageAspect(
     })
     .join(",")
   const probe = knownKey === "" ? list[Math.floor(list.length / 2)]?.pageId : undefined
-  const image = usePageImage(label, probe ?? "", { enabled: !!probe })
-  const probed = pngAspect(image.data?.imageBase64)
+  const probed = useThumbnailAspect(label, probe)
 
   const measuredRatios = useMemo(() => {
     if (knownKey !== "") {

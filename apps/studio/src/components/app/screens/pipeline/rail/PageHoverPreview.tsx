@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { getSectionScreenshotUrl } from "@/api/client"
-import { usePageImage } from "@/hooks/use-pages"
+import { getPageThumbnailUrl, getSectionScreenshotUrl } from "@/api/client"
+import { thumbnailWidth } from "@/components/app/screens/pipeline/shared/page-thumbnail/pageThumbnail"
 import { useHoverPreview } from "@/components/pipeline/components/hover-preview/useHoverPreview"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
 import { compareSize, PageComparePopover } from "./PageComparePopover"
@@ -29,8 +29,7 @@ export function PageHoverPreview({ label, page, outdated }: { label: string; pag
     return () => clearTimeout(timer)
   }, [show, mounted])
 
-  const pdf = usePageImage(label, page.pageId, { enabled: mounted })
-  const pdfSrc = pdf.data?.imageBase64 ? `data:image/png;base64,${pdf.data.imageBase64}` : null
+  const pdfSrc = mounted ? getPageThumbnailUrl(label, page.pageId, thumbnailWidth(size.frameWidth * 2)) : null
   const sectionIndex = page.sections[0]?.sectionIndex
   const renderedSrc =
     page.hasRendering && !page.isDiscarded && sectionIndex != null

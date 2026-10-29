@@ -3,11 +3,10 @@ import { useLingui } from "@lingui/react/macro"
 import { Check, Loader2, Pencil, TriangleAlert } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { StepRailHeader } from "@/components/app/screens/pipeline/rail/StepRailHeader"
 import { tint } from "@/components/app/screens/pipeline/shared/tint"
-import { StatusDot } from "./StatusDot"
 import { ProblemNotice } from "./problems/ProblemNotice"
 import { HEADER_BUTTON, HEADER_BUTTON_ICON, HEADER_BUTTON_LABELLED, HeaderButtonTile } from "./headerButton"
+import { StepRailList } from "./rail/StepRailList"
 
 export type StepBodyWidth = "full" | "reading" | "wide" | "fluid"
 
@@ -339,9 +338,9 @@ export interface RailEntry {
   thumb?: React.ReactNode
   subtitle?: string
   failed?: boolean
+  pageNumber?: number
+  searchText?: string
 }
-
-const RAIL_SELECTED = cn("bg-[color-mix(in_oklab,var(--rail)_80%,black)] text-white dark:bg-[color-mix(in_oklab,var(--rail)_85%,black)]")
 
 export function StepRail({
   heading,
@@ -350,6 +349,7 @@ export function StepRail({
   activeKey,
   onSelect,
   footer,
+  hoverPreview = false,
 }: {
   heading: React.ReactNode
   hex: string
@@ -357,53 +357,18 @@ export function StepRail({
   activeKey?: string | null
   onSelect?: (key: string | null) => void
   footer?: React.ReactNode
+  hoverPreview?: boolean
 }) {
-  const { t } = useLingui()
-  const failedLabel = t`Has failures`
   return (
-    <>
-      <StepRailHeader>{heading}</StepRailHeader>
-
-      <ScrollArea className="-mx-1 min-h-0 flex-1" viewportClassName="[&>div]:block!">
-        <div className="flex flex-col gap-0.5 px-1">
-          {entries.map((entry) => {
-            const active = entry.key === activeKey
-            return (
-              <button
-                key={entry.key ?? "__unassigned"}
-                type="button"
-                onClick={() => onSelect?.(entry.key)}
-                aria-current={active ? "true" : undefined}
-                data-rail-select={active ? "solid" : undefined}
-                className={cn(
-                  "group/railrow flex items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-[11px] transition-colors",
-                  active ? cn("font-semibold", RAIL_SELECTED) : "text-muted-foreground hover:bg-muted",
-                )}
-                style={{ ["--rail" as string]: hex }}
-              >
-                {entry.thumb && <span className="shrink-0">{entry.thumb}</span>}
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="flex items-center gap-1.5">
-                    {entry.failed && <StatusDot tone="failed" label={failedLabel} />}
-                    <span className="min-w-0 flex-1 truncate">{entry.title}</span>
-                    <span className="font-mono text-[10px] opacity-70">{entry.count}</span>
-                  </span>
-                  {entry.subtitle && (
-                    <span className="truncate text-[10px] font-normal text-muted-foreground group-data-[rail-select=solid]/railrow:text-white/75">
-                      {entry.subtitle}
-                    </span>
-                  )}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </ScrollArea>
-
-      {footer && (
-        <div className="border-t pt-2.5 text-[10px] leading-relaxed text-muted-foreground">{footer}</div>
-      )}
-    </>
+    <StepRailList
+      heading={heading}
+      hex={hex}
+      entries={entries}
+      activeKey={activeKey}
+      onSelect={onSelect}
+      footer={footer}
+      hoverPreview={hoverPreview}
+    />
   )
 }
 

@@ -14,3 +14,5 @@ export type {
 export { renderSvgToPng } from "./svg-render.js";
 export { getPngMetadata, decodePng, cropPng, samplePageEdges } from "./png-utils.js";
 export type { PngMetadata } from "./png-utils.js";
+export { renderImageThumbnailJpeg } from "./image-thumbnail.js";
+export type { ImageThumbnail } from "./image-thumbnail.js";

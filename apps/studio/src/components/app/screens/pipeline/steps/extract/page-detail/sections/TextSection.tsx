@@ -11,16 +11,28 @@ export const TEXT_PREVIEW_LINES = 8
 
 export const READING_TEXT = "max-w-[70ch] whitespace-pre-wrap text-pretty text-foreground/90"
 
+function MetadataStatus() {
+  return (
+    <p role="status" className="flex items-center gap-2 text-[12px] text-muted-foreground animate-in fade-in duration-200 motion-reduce:animate-none">
+      <Loader2 className="size-3.5 shrink-0 animate-spin motion-reduce:animate-none" />
+      <Trans>Processing metadata…</Trans>
+    </p>
+  )
+}
+
 export function TextSection({ page, metadataRunning, more }: { page: PageDetail; metadataRunning: boolean; more: SectionMore }) {
-  if (!page.text) return <PageSection icon={FileText} title={<Trans>Text</Trans>} empty={noTextLine(page)} />
+  if (!page.text)
+    return metadataRunning ? (
+      <div className="flex flex-col gap-1">
+        <PageSection icon={FileText} title={<Trans>Text</Trans>} empty={noTextLine(page)} />
+        <MetadataStatus />
+      </div>
+    ) : (
+      <PageSection icon={FileText} title={<Trans>Text</Trans>} empty={noTextLine(page)} />
+    )
   return (
     <PageSection icon={FileText} title={<Trans>Text</Trans>}>
-      {metadataRunning && (
-        <p role="status" className="flex items-center gap-2 text-[12px] text-muted-foreground">
-          <Loader2 className="size-3.5 shrink-0 animate-spin motion-reduce:animate-none" />
-          <Trans>Processing metadata…</Trans>
-        </p>
-      )}
+      {metadataRunning && <MetadataStatus />}
       <div className="rounded-xl border bg-card px-4 py-3.5">
         <ClampedText
           text={page.text.trim()}

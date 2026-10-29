@@ -14,6 +14,7 @@ export interface StageState {
   path: string
   test?: string
   state?: string
+  groups?: string[]
   scenario?: Omit<LabState, "id" | "label" | "hint" | "path" | "reload"> & { sim: LabSim | null }
 }
 

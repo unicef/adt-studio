@@ -2,7 +2,7 @@ import { useMemo } from "react"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
-import { BookOpen, ScanText, SkipForward, Sparkles } from "lucide-react"
+import { BookOpen, FileSearch, RotateCcw, ScanText, SkipForward, Sparkles, TriangleAlert } from "lucide-react"
 import { usePages } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
@@ -31,6 +31,8 @@ import type { StepNote } from "./shared/notes/NoteRow"
 import { NotesStrip } from "./shared/notes/NotesStrip"
 import { useStageProblem } from "./shared/problems/useStageProblem"
 import { FoldedProblem, type ProblemRetry } from "./shared/problems/FoldedProblem"
+import { largeRailThumbClass } from "./shared/rail/railThumb"
+import { ProblemNotice } from "./shared/problems/ProblemNotice"
 
 export function ExtractStep(props: StepProps) {
   const { label, plugin, pages } = props
@@ -57,6 +59,18 @@ export function ExtractStep(props: StepProps) {
     [pages],
   )
   const spreads = useSpreadReview(label, pages)
+  const metadataRunning = bookRun.stepState("metadata") === "running"
+  const spreadsBusyReason = spreads.extractRunning ? t`Extract is still running. You can review spreads once it finishes.` : undefined
+  const metadataNote: StepNote | null =
+    metadataRunning
+      ? {
+          id: "metadata",
+          icon: FileSearch,
+          title: t`Processing metadata…`,
+          body: t`The title, authors and summary are being read from the book. They show in Book info when this finishes.`,
+          busy: true,
+        }
+      : null
   const spreadsPending = spreads.eligible && (spreads.confirmCount > 0 || spreads.applying)
   const pairs = spreads.toConfirm.map((suggestion) => `${suggestion.lead}–${suggestion.lead + 1}`).join(", ")
   const reviewSpreads = () => spreads.openPicker("spreads", spreads.pendingLeads)
@@ -84,7 +98,7 @@ export function ExtractStep(props: StepProps) {
           actions: spreads.applying
             ? []
             : [
-                { label: t`Review spreads`, onClick: reviewSpreads, primary: true, disabled: spreads.extractRunning },
+                { label: t`Review spreads`, onClick: reviewSpreads, primary: true, disabled: spreads.extractRunning, disabledReason: spreadsBusyReason },
                 { label: t`Not spreads`, onClick: spreads.dismissAll, quiet: true },
               ],
         }
@@ -101,6 +115,7 @@ export function ExtractStep(props: StepProps) {
               label: spreads.mergedCount > 0 ? t`Edit spreads` : t`Mark spreads`,
               onClick: () => spreads.openPicker("all"),
               disabled: spreads.extractRunning,
+              disabledReason: spreadsBusyReason,
             },
           ],
         }
@@ -118,7 +133,7 @@ export function ExtractStep(props: StepProps) {
           body: t`${skippedNames} couldn't process them, so the run went on without them. Re-run Extract to try them again.`,
         }
       : null
-  const notes = [spreadsNote, skippedNote, scannedNote].filter((note): note is StepNote => note !== null)
+  const notes = [metadataNote, spreadsNote, skippedNote, scannedNote].filter((note): note is StepNote => note !== null)
   const { problem, partial, partialConfirm } = useStageProblem({
     stage: "extract",
     pages,
@@ -138,6 +153,7 @@ export function ExtractStep(props: StepProps) {
           onReview: reviewSpreads,
         }
       : null
+  const failedPageIds = new Set(problem?.level === "partial" ? problem.pages.map((page) => page.pageId) : [])
   const retryAction: ProblemRetry = { run: retry.request, canRun: retry.canRun, reason: retry.disabledReason }
   const next = useNextStep(label, plugin.slug, { partial })
   const foldProblem = nextStepFolds(next) && partial
@@ -194,14 +210,9 @@ export function ExtractStep(props: StepProps) {
               title: t`Page ${page.pageNumber}`,
               count: page.imageCount,
               subtitle: page.textPreview?.replace(/\n/g, " ") || undefined,
-              thumb: (
-                <PageThumb
-                  label={label}
-                  pageId={page.pageId}
-                  sectionIndex={null}
-                  className={pageAspect.railThumbClassOf(page)}
-                />
-              ),
+              pageNumber: page.pageNumber,
+              failed: failedPageIds.has(page.pageId),
+              thumb: <PageThumb label={label} pageId={page.pageId} sectionIndex={null} className={largeRailThumbClass(pageAspect.ratioOf(page))} />,
             })),
           ]}
           activeKey={selectedPage?.pageId ?? ""}
@@ -211,17 +222,22 @@ export function ExtractStep(props: StepProps) {
       }
     >
       {selectedPage ? (
-        <ExtractPageDetail
-          key={selectedPage.pageId}
-          label={label}
-          pageId={selectedPage.pageId}
-          pageNumber={selectedPage.pageNumber}
-          hex={plugin.hex}
-          prevPageId={prevPageId}
-          nextPageId={nextPageId}
-          onStep={stepPage}
-          onClose={closeDetail}
-        />
+        <>
+          <ExtractPageDetail
+            key={selectedPage.pageId}
+            label={label}
+            pageId={selectedPage.pageId}
+            pageNumber={selectedPage.pageNumber}
+            hex={plugin.hex}
+            prevPageId={prevPageId}
+            nextPageId={nextPageId}
+            onStep={stepPage}
+            onClose={closeDetail}
+            problem={problem}
+            retry={retryAction}
+          />
+          {retry.dialogs}
+        </>
       ) : (
         <StepBody
           title={getStageLabelI18n("extract")}
@@ -240,6 +256,16 @@ export function ExtractStep(props: StepProps) {
             aside={foldProblem ? <FoldedProblem label={label} problem={problem} retry={retryAction} onOpenPage={openPage} /> : null}
           />
 
+          {spreads.applyFailed && !spreads.applying && (
+            <ProblemNotice
+              level="temporary"
+              hex={plugin.hex}
+              icon={TriangleAlert}
+              title={t`Couldn't apply the spreads`}
+              body={t`The pages weren't merged. Try again.`}
+              action={{ label: <Trans>Try again</Trans>, icon: RotateCcw, onClick: spreads.retryApply }}
+            />
+          )}
           <NotesStrip notes={notes} hex={plugin.hex} />
           {spreads.picker}
 

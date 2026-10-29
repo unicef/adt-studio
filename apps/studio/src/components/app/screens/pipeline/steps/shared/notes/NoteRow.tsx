@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { ArrowRight, Loader2, type LucideIcon } from "lucide-react"
+import { ArrowRight, Info, Loader2, type LucideIcon } from "lucide-react"
 import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { cn } from "@/lib/utils"
 
@@ -7,6 +7,7 @@ export interface NoteAction {
   label: ReactNode
   onClick: () => void
   disabled?: boolean
+  disabledReason?: ReactNode
   primary?: boolean
   quiet?: boolean
 }
@@ -24,6 +25,7 @@ export interface StepNote {
 
 export function NoteRow({ note, hex }: { note: StepNote; hex: string }) {
   const Icon = note.busy ? Loader2 : note.icon
+  const reason = note.actions?.find((action) => action.disabled && action.disabledReason)?.disabledReason
   return (
     <div className="flex gap-3 px-4 py-3">
       <span
@@ -68,6 +70,12 @@ export function NoteRow({ note, hex }: { note: StepNote; hex: string }) {
               ),
             )}
           </div>
+        )}
+        {reason && (
+          <p className="flex items-center gap-1.5 text-[11.5px] leading-snug text-muted-foreground animate-in fade-in duration-200 motion-reduce:animate-none">
+            <Info className="size-3 shrink-0" />
+            {reason}
+          </p>
         )}
       </div>
     </div>

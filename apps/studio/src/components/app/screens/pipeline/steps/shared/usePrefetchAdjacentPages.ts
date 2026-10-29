@@ -1,11 +1,13 @@
 import { useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
+import { preloadPageThumbnail } from "@/components/app/screens/pipeline/shared/page-thumbnail/pageThumbnail"
 
 /**
- * Warms the page-detail and page-image caches for the pages reachable from the
- * open detail (prev/next), so stepping through pages renders instantly instead
- * of blocking on two fetches per navigation.
+ * Warms the page-detail cache and the browser's image cache for the pages
+ * reachable from the open detail (prev/next), so stepping through pages renders
+ * instantly. Only the sized page-view thumbnail is preloaded, never the
+ * full-resolution page image.
  */
 export function usePrefetchAdjacentPages(
   label: string,
@@ -22,11 +24,7 @@ export function usePrefetchAdjacentPages(
         queryFn: () => api.getPage(label, pageId),
         staleTime: 30_000,
       })
-      void queryClient.prefetchQuery({
-        queryKey: ["books", label, "pages", pageId, "image"],
-        queryFn: () => api.getPageImage(label, pageId),
-        staleTime: Infinity,
-      })
+      preloadPageThumbnail(label, pageId)
     }
   }, [label, prevPageId, nextPageId, queryClient])
 }

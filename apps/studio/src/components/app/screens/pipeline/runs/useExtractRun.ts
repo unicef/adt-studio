@@ -1,5 +1,5 @@
 import { useCallback } from "react"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { usePages } from "@/hooks/use-pages"
 
@@ -14,6 +14,7 @@ export interface ExtractRun {
 
 export function useExtractRun(label: string): ExtractRun {
   const { apiKey, hasApiKey } = useApiKey()
+  const structuredText = useBookStructuredTextAvailability(label)
   const { queueRun, stageState } = useBookRun()
   const { data: pages } = usePages(label)
 
@@ -22,7 +23,7 @@ export function useExtractRun(label: string): ExtractRun {
   const hasPages = (pages?.length ?? 0) > 0
   const isInterrupted = hasPages && state === "idle"
   const hasError = state === "error"
-  const canRun = hasApiKey && !isRunning
+  const canRun = structuredText && !isRunning
 
   const run = useCallback(() => {
     if (!canRun) return
