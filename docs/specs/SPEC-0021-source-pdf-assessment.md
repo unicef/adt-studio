@@ -5,7 +5,7 @@ status: in-review
 owner: "@gbergengruen"
 approvers: [] # ≥1 maintainer + product sign-off (user-facing scope)
 issues: ["#1016", "#1008", "#1012", "#901", "#676", "#985", "#326", "#749", "#957"]
-prs: ["#1009"] # PR 0, adopted 2026-10-29
+prs: ["#1009", "#1013"] # PR 0 adopted 2026-10-29; #1013 implements §Step warnings
 adr: ""
 created: 2026-10-27
 updated: 2026-10-29
@@ -31,6 +31,11 @@ and follow-ups R-h–R-i, and its remediation design (§12 of the document) is i
 Revised the same day after an independent review of PR #1017: false-positive guards on the new
 rules, schema gaps closed, every kind given a PR and an AC, and the read-only `extract-report`
 CLI (#1009) adopted as PR 0 of this spec, with #1013 named as a hard prerequisite (§Rollout).
+Amended again on 2026-10-29 after the review of #1013. Step notes become **typed step
+warnings** (§Step warnings): data that Studio translates, instead of English server text
+matched on its `"Completed —"` prefix. #1013 implements them. It moves from an independent
+fast-lane PR to an implementation PR of this spec (§Rollout), because the change adds a column
+to `step_runs` and changes what `GET step-status` and the `step-complete` event carry.
 
 ## Problem (with evidence)
 
@@ -60,7 +65,8 @@ layered, can obtain a better source or change one setting before paying for the 
 - G2. Findings are data (`kind` + `params` + evidence refs) so Studio renders and translates
   them in all five locales; the API and the CLI print English.
 - G3. The Extract stage shows a Source quality panel, page badges, a sidebar count and the
-  amber "Completed with a warning" pill (the #1012 step-note channel, PR #1013) when warnings exist.
+  amber "Completed with a warning" pill (a typed `source-assessment` step warning, §Step
+  warnings) when warnings exist.
   A clean book stays plain green.
 - G4. Every finding carries an actionable recommendation **as data**: either a named
   extraction setting with the value to set (`figure_extraction_mode: auto`,
@@ -70,7 +76,7 @@ layered, can obtain a better source or change one setting before paying for the 
   recommender (SPEC-0016) or a one-click apply can consume it without parsing prose.
 - G5. Advisory only: nothing is disabled or gated (SPEC-0001 vocabulary).
 - G6. `extract-report` (PR 0, #1009) reads the persisted node; `pipeline run` prints the note
-  (the console sink prints step notes once #1013 lands).
+  (the console sink prints the English rendering of the step warnings, §Step warnings).
 - G7. Zero model calls; the assessment adds ≤ 5 % to extract wall time. Expected: a net
   *saving* on single-page books, because the one pixel pass it adds replaces the full PNG
   decode `samplePageEdges` performs on every page today (§Cost).
@@ -126,8 +132,10 @@ rather than a flat hint enum; (7) pipeline rules ship before the `packages/pdf` 
 the first value-bearing PR touches no extractor code; (8) `font-risk` deferred to v1.1; (9) a
 password-required PDF is a typed extraction error, not a finding; (10) the six encoding kinds
 taken from the 2026-10-28 taxonomy join v1, everything else from it stays reserved or parked;
-(11) the `extract-report` CLI (#1009) is adopted as PR 0 and owned by this spec; #1013 stays an
-independent fast-lane PR and is a hard prerequisite.
+(11) the `extract-report` CLI (#1009) is adopted as PR 0 and owned by this spec; (12) step
+notes are typed step warnings stored in an additive `step_runs.warnings` column, with no schema
+version bump, and #1013 implements them (§Step warnings); (13) Studio no longer shows a
+finished step's free-text message, only its translated warnings.
 
 ### Data contract
 
@@ -333,13 +341,13 @@ holds) travel in the node. A test proves both builders agree on a raven page.
 
 **`assessSource(input): SourceAssessment`** is pure (no provider import, no clock: `generatedAt`
 is part of the input; deep-equal on identical input): one rule function per kind, `SOURCE_THRESHOLDS`, aggregation, readiness.
-`sourceAssessmentNote(a)` returns `"Completed — source assessment: N warning(s), M critical"`
-only when `counts.warning + counts.critical > 0`. `pdf-extraction.ts` writes the node after
-`font-profile` with `putNodeData` (a new version per run; `clearExtractedData` wipes it with
-the pages), then emits `step-complete` for `extract` with the note; the runner already
-persists step messages (`stage-runner.ts:963-985`) and `GET step-status` returns them for done
-steps (`stages.ts:446-449`). The settings the rules need (`editing_language`, the image-filter
-flags, spread pairs) are not visible to `extractPDF` today, so `ExtractOptions` gains an
+`sourceAssessmentWarning(a)` returns the step warning `{ kind: "source-assessment", warning: N,
+critical: M }` only when `counts.warning + counts.critical > 0` (§Step warnings).
+`pdf-extraction.ts` writes the node after `font-profile` with `putNodeData` (a new version per
+run; `clearExtractedData` wipes it with the pages), then emits `step-complete` for `extract`
+with that warning. The runner persists it, and `GET step-status` returns it for the done step.
+The settings the rules need (`editing_language`, the image-filter flags, spread pairs) are not
+visible to `extractPDF` today, so `ExtractOptions` gains an
 `assessmentSettings` field filled by both callers — the stage runner
 (`apps/api/src/services/stage-runner.ts:1131`) and the CLI DAG (`pipeline-dag.ts:266-283`).
 
@@ -414,11 +422,70 @@ there today; `stitchPngsHorizontally` keeps its own decode, listed under O5).
   becomes a count fed by both.
 - `extraction-debug` stays the engineer-facing raw record; evidence refs (`imageId`,
   `groupIndex`) are the join key into its `groups[]` so `/debug/*` can explain any finding.
-- Step notes use the #1012 channel from PR #1013 verbatim (`"Completed — "` prefix recognised
-  by `apps/studio/src/components/pipeline/components/step-notes.ts`, which #1013 adds; it is
-  not on develop yet).
+- The `extract` step's note is a typed step warning (§Step warnings), not text that Studio
+  matches on a prefix.
 - `extract-report` (PR 0) defines the `textProfile` thresholds and `MIN_TEXT_LAYER_CHARS`; PR 1
   moves them to `@adt/types` and PR 6 makes the report read the node instead of recomputing.
+
+### Step warnings
+
+A step that completes but leaves something for the user to check carries **typed warnings**.
+On develop the only such channel is free text: `"Completed — N page(s) skipped"`, persisted in
+`step_runs.message` and never shown for a finished step. #1013 first surfaced that text in
+Studio. Two problems follow: it is server English, so every non-English locale sees it
+untranslated, and Studio detects a warning by matching the `"Completed —"` prefix, a literal
+copied in three places. The fix is the pattern `packaging-warning.ts` already uses:
+warnings are data, and Studio owns the wording.
+
+New `packages/types/src/step-warning.ts`, exported from the index:
+
+```ts
+export const StepWarning = z.discriminatedUnion("kind", [
+  // A page-processing step finished after the user chose to skip pages that failed.
+  z.object({ kind: z.literal("pages-skipped"), count: z.number().int().positive() }),
+  // Image Segmentation or Image Cropping: the model call failed for these pages, which kept
+  // their extracted images (#1012). `error` is one line, at most 120 code points.
+  z.object({
+    kind: z.literal("pages-unchanged"),
+    pages: z.array(z.object({ pageId: z.string(), error: z.string() })).min(1),
+  }),
+  // Book Summary: the model call failed and no summary was stored (#1014, PR #1015).
+  z.object({ kind: z.literal("summary-missing"), error: z.string() }),
+  // Extract: the source assessment found warnings or criticals (this spec, PR 2c).
+  z.object({ kind: z.literal("source-assessment"), warning: z.number().int(), critical: z.number().int() }),
+])
+export const StepWarnings = z.array(StepWarning)
+```
+
+Adding a kind is a change to this contract and goes through this spec.
+
+- **Event.** `step-complete` in `ProgressEvent` (`packages/types/src/progress.ts`) gains
+  `warnings?: StepWarning[]`. `message` stays, and for a step with warnings it is their English
+  rendering, `formatStepWarnings(warnings)` in `packages/pipeline`. The CLI, the server log and
+  an older Studio read only `message`.
+- **Storage.** `step_runs` gains `warnings TEXT` (a JSON array). `markStepCompleted(step,
+  message?, warnings?)` writes it; `markStepStarted`, `markStepSkipped` and `recordStepError`
+  clear it. New books get the column from `SCHEMA_SQL`. On opening a book for writing, an
+  existing book gains it through `ALTER TABLE step_runs ADD COLUMN warnings TEXT` when
+  `PRAGMA table_info` lacks it, **without bumping `SCHEMA_VERSION`**. A bump would make every
+  older app refuse the book ("Schema version mismatch", `db.ts`). An older app names its
+  columns explicitly, so it reads and writes the book unchanged and ignores the column.
+  `getStepRuns` parses the column with `StepWarnings.safeParse`; a value it cannot parse (a
+  kind from a newer app) reads as no warnings. A future read-only open (PR 0's
+  `openBookDbReadOnly`) must tolerate the column's absence.
+- **API.** `GET /books/:label/step-status` adds `stepWarnings: Record<string, StepWarning[]> |
+  null` for done steps, as storage parsed them. `stepMessages` is unchanged. The live stream forwards the event, so it carries the same
+  array.
+- **Studio.** `apps/studio/src/lib/step-warnings.ts` (beside `packaging-warnings.ts`) maps each
+  kind to Lingui `msg` descriptors with plurals. A unit test proves every kind has an entry, and
+  the strings go into all five catalogs. `useBookRun()` exposes `stepWarnings(step)`. A done
+  pill is amber with a warning triangle exactly when its step has warnings, and its popover
+  header says so. The popover lists each warning translated. For `pages-unchanged` it shows up
+  to five page ids with their error and "and N more"; provider error text is shown verbatim,
+  like `stepError` today. Stage cards show the first warning. Studio does not show a finished
+  step's free-text `message` (for example `"13 headings"`), as on develop before #1013;
+  `step-notes.ts` and its prefix test are not added.
+- **CLI.** The console sinks print `<step>: <message>` (#1013), unchanged.
 
 ### Studio
 
@@ -466,7 +533,8 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 ### CLI
 
 - `pipeline run` prints the note: on develop the console sink prints only `Completed ${step}`
-  (`packages/pipeline/src/progress.ts:27-28`); #1013 makes it print `event.message`.
+  (`packages/pipeline/src/progress.ts:27-28`); #1013 makes it print `event.message`, the English
+  rendering of the step warnings.
 - `extract-report` (PR 0) gains a "source" section printed from the node by an
   English formatter in `packages/pipeline`; `--json` embeds the node; `--compare` diffs
   `summary.counts` and `settings`; a pre-spec book falls back to the recomputed profile.
@@ -490,7 +558,7 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   and the rest of PR 0 (#1009: `book-inspection.ts`, `cli.ts`, `cli-args.ts`), plus
   `packages/llm/src/pricing.ts` and `openBookDbReadOnly` in `packages/storage` from PR 0.
 - `packages/storage`: none for the node (`node_data` is generic; `clearExtractedData` already
-  covers it). One independent fast-lane fix: `clearExtractedRows` (`book-storage.ts:644-652`)
+  covers it). The additive `step_runs.warnings` column for step warnings (§Step warnings, #1013). One independent fast-lane fix: `clearExtractedRows` (`book-storage.ts:644-652`)
   deletes every `step_runs` row, including the `extract` row whose `started_at` was just
   written, so extract wall time cannot be measured from the DB today; the fix keeps the
   `extract` row and lands before AC-18 is measured.
@@ -500,12 +568,14 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   validation components, five catalogs.
 - Docs: `docs/specs/INDEX.md`; `docs/ARCHITECTURE.md` Extract outputs list (with PR 2d).
 - Invariants: entity versioning (new version per run, never overwritten); the layer rule
-  (Studio imports only constants from `@adt/types`). No new invariant, no migration, no new
-  dependency.
+  (Studio imports only constants from `@adt/types`). No new invariant and no new dependency. No
+  schema version bump: `step_runs.warnings` is added in place, and older apps ignore it
+  (§Step warnings).
 - Concurrent work: SPEC-0010 (#886: list the node in the extraction inventory; it is wiped
   by `clearExtractedData` like every Extract output), SPEC-0020 (#993: recommendation target),
   SPEC-0016 (#932: may consume the node); §Prerequisites and related work for #1009 (adopted),
-  #1013 (prerequisite), #1011 and #1015 (independent).
+  #1013 (implements §Step warnings), #1015 (adds the `summary-missing` kind) and #1011
+  (independent).
 
 ## Acceptance criteria
 
@@ -543,10 +613,10 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   "PDF requires a password to open" (typed error, no node); a fixture with an owner password
   and restricted permissions extracts normally and yields `pdf-encrypted` info with
   `params.copy`, `params.accessibility`, `params.print`.
-- [ ] AC-11: The `extract` step's completion message is
-  `"Completed — source assessment: …"` iff `counts.warning + counts.critical > 0`:
-  `prac_math_vol2` produces no message and a plain green pill; cuaderno4 produces the amber
-  "Completed with a warning" pill whose popover carries the note.
+- [ ] AC-11: The `extract` step completes with a `source-assessment` step warning iff
+  `counts.warning + counts.critical > 0`: `prac_math_vol2` produces none and a plain green
+  pill; cuaderno4 produces the amber "Completed with a warning" pill whose popover carries the
+  translated counts.
 - [ ] AC-12: `GET /books/:label/source-assessment` returns the latest version, returns
   `{ version: null, assessment: null }` for a book without one, and
   `PageSummary.sourceFindings` equals the node's per-page rollup; after the spreads re-apply
@@ -603,6 +673,18 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   `layered-artwork` (blend, opacity, clip, stencil, soft mask), `watermark-detected` (only
   while `remove_watermarks` is off), `book-scale` (300 pages / 500 Mpx) and `shape-flood`
   (1,500 shapes / 60 rasters).
+- [ ] AC-25: A step that completes with warnings persists them typed. `GET step-status`
+  returns them under `stepWarnings` for the done step, the live `step-complete` event carries
+  the same array, `message` is their English rendering, and starting, skipping or failing the
+  step again clears them. A step without warnings has no `stepWarnings` entry.
+- [ ] AC-26: Studio renders every `StepWarning` kind through Lingui in all five locales. A done
+  pill is amber exactly when its step has warnings, and its popover header agrees. A finished
+  step's free-text `message` is not shown. With the Studio locale set to `es`, a
+  `pages-unchanged` warning reads in Spanish apart from the page ids and provider error text.
+- [ ] AC-27: Compatibility. A book whose `step_runs` lacks the column (last written by an
+  older app) opens, reads its existing rows with no warnings, and gains the column with
+  `SCHEMA_VERSION` unchanged; a write that names only the old columns (an older app) still
+  succeeds afterwards.
 
 ## Test plan
 
@@ -622,7 +704,7 @@ findings are asserted in `packages/pipeline` tests.
 | AC-8 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-8: reports spreads-unmarked only with suggestions and spread mode off` |
 | AC-9 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` (counters), `packages/pipeline/src/__tests__/source-assessment.test.ts` (finding) | `AC-9: counts image decode failures without aborting extraction` |
 | AC-10 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` (typed error, permissions read), `packages/pipeline/src/__tests__/source-assessment.test.ts` (`pdf-encrypted` finding) | `AC-10: fails clearly on a password-required PDF and reports pdf-encrypted on restricted permissions` |
-| AC-11 | unit + integration + browser | `packages/pipeline/src/__tests__/source-assessment.test.ts` (`sourceAssessmentNote`, PR 2c), `apps/api/src/services/stage-runner.test.ts` (PR 4), `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (PR 5b, after #1013) | `AC-11: extract note appears only with warning or critical findings` |
+| AC-11 | unit + integration + browser | `packages/pipeline/src/__tests__/source-assessment.test.ts` (`sourceAssessmentWarning`, PR 2c), `apps/api/src/services/stage-runner.test.ts` (PR 4), `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (PR 5b, after #1013) | `AC-11: extract step warning appears only with warning or critical findings` |
 | AC-12 | integration | `apps/api/src/routes/source-assessment.test.ts`, `apps/api/src/routes/pages.test.ts` | `AC-12: returns the latest assessment, nulls when absent, and page rollups` |
 | AC-13 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-13: assessment is deterministic and provider-free` |
 | AC-14 | unit + browser | `apps/studio/src/lib/source-assessment-messages.test.ts`, `apps/studio/src/components/pipeline/stages/extract/components/SourceQualityPanel.test.tsx` | `AC-14: every finding kind has a translated title, description and recommendation` |
@@ -636,6 +718,9 @@ findings are asserted in `packages/pipeline` tests.
 | AC-22 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts` (rule, PR 2c), `packages/pdf/src/__tests__/source-signals.test.ts` (`occludedRasters`, PR 3b) | `AC-22: reports raster-occluded for opaque content painted over a raster` |
 | AC-23 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-23: reports mixed-page-types only when digital and scanned pages coexist` |
 | AC-24 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-24: every remaining kind fires at its threshold and not below` |
+| AC-25 | unit + integration | `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/api/src/routes/stages.test.ts`, `apps/api/src/services/stage-runner.test.ts` (#1013) | `AC-25: step warnings are persisted typed, returned for done steps and cleared on restart` |
+| AC-26 | unit + component + browser | `apps/studio/src/lib/step-warnings.test.ts`, `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (#1013); the `es` rendering is checked in a browser, because Studio unit tests stub the Lingui macros, and the CI i18n job enforces complete catalogs | `AC-26: every step warning kind renders a translated summary`; `AC-26: a done pill is amber with a warning only when its step has warnings` |
+| AC-27 | integration | `packages/storage/src/__tests__/step-warnings.test.ts` (#1013) | `AC-27: a book without the warnings column opens, reads and gains it without a version bump` |
 
 Fixtures: cuaderno4 pages 1, 6 and 12 and cuaderno3 page 9 extracted in the test (the
 PDFs are local corpus files, listed in `docs/verification/spec-0021.md`, not committed);
@@ -689,7 +774,7 @@ rules PR; every PR is opened as a draft until this spec is `approved` on develop
    null: `ink-without-text`, `blank-page`, `text-unmapped-glyphs`, `hidden-text-layer`,
    `raster-occluded`, `image-decode-failed`, `needs-convert-colorspace`, `page-geometry`,
    `watermark-detected`, `pdf-encrypted`, `optional-content`, `pdf-container`; aggregation,
-   readiness, rollups, `sourceAssessmentNote`; the rule halves of AC-7, AC-9, AC-10, AC-11,
+   readiness, rollups, `sourceAssessmentWarning`; the rule halves of AC-7, AC-9, AC-10, AC-11,
    AC-20, AC-21, AC-22, and AC-24 (≈ 360);
    d) the write: `pdf-extraction.ts`, `assessmentSettings` from both callers (the CLI DAG and
    `apps/api/src/services/stage-runner.ts`), `pageInputFromStorage`; AC-1, the corpus halves
@@ -709,6 +794,11 @@ rules PR; every PR is opened as a draft until this spec is `approved` on develop
 5. `apps/studio` a) shared validation components, messages map, hook, catalogs (≈ 320);
    b) panel, page badges, page detail, sidebar; AC-14, AC-15, the pill half of AC-11
    (≈ 400; split the page-detail list out if it runs over). Needs #1013.
+
+**#1013 implements §Step warnings** next to its original fix (#1012, the image passes naming
+the pages left unchanged): `StepWarning`, the event field, the column, the API field, the
+Studio rendering and AC-25 to AC-27 (≈ 600 lines with tests and catalogs). It is a draft until
+this spec is `approved`. #1015, stacked on it, then emits `summary-missing`.
 6. CLI: `extract-report` source section on top of PR 0; AC-17 (≈ 150).
 
 Independent fast-lane fix, before AC-18 is measured: keep the `extract` row in `step_runs`
@@ -720,9 +810,9 @@ survives a re-extract.
 | PR | Relation | What this spec takes from it |
 |---|---|---|
 | #1009 `extract-report` CLI (#1008) | **Adopted as PR 0**, owned by this spec | The baseline report, `MIN_TEXT_LAYER_CHARS`, `TextProfile`, the exit-code convention, the `--compare` / `--json` surfaces PR 6 extends |
-| #1013 image-pass failures (#1012) | **Hard prerequisite**, stays an independent fast-lane PR | The step-note channel: `stage-runner.ts` persisting completion messages for the amber pill, `step-notes.ts` in Studio, and the console sink printing `event.message`. PR 2d's note is persisted without it but invisible; PR 5b and AC-11 need it merged |
+| #1013 image-pass failures (#1012) | **Implements §Step warnings**; hard prerequisite of PR 2c, PR 5b and AC-11 | The typed step-warning channel: `StepWarning`, the `step-complete` field, `step_runs.warnings`, `stepWarnings` in `GET step-status`, the translated amber pill, and the console sink printing `event.message` |
 | #1011 identical images judged once (#1010) | Related, independent | `duplicate-images` recommends `none` because #1011 already judges duplicates once |
-| #1015 book summary for scanned books | Related, independent | Nothing; it consumes page renders the same way `text-layer-empty` pages would be routed by SPEC-0022 |
+| #1015 book summary for scanned books | Related; stacked on #1013 | Emits the `summary-missing` step warning (§Step warnings) when the summary call fails; it consumes page renders the same way `text-layer-empty` pages would be routed by SPEC-0022 |
 
 Verification record: `docs/verification/spec-0021.md` with the corpus table (books,
 findings, counts, wall time) before the status moves to `implemented`.
