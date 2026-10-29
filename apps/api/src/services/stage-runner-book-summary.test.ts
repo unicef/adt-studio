@@ -7,11 +7,12 @@ import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import type { Progress } from "@adt/pipeline"
 
-const { extractPDFMock, extractMetadataMock, generateBookOutlineMock, generateObjectMock } = vi.hoisted(() => ({
+const { extractPDFMock, extractMetadataMock, generateBookOutlineMock, generateObjectMock, renderPromptMock } = vi.hoisted(() => ({
   extractPDFMock: vi.fn(),
   extractMetadataMock: vi.fn(),
   generateBookOutlineMock: vi.fn(),
   generateObjectMock: vi.fn(),
+  renderPromptMock: vi.fn(),
 }))
 
 vi.mock("@adt/pipeline", async () => {
@@ -28,7 +29,7 @@ vi.mock("@adt/llm", async () => {
   const actual = await vi.importActual<typeof import("@adt/llm")>("@adt/llm")
   return {
     ...actual,
-    createLLMModel: vi.fn(() => ({ generateObject: generateObjectMock })),
+    createLLMModel: vi.fn(() => ({ generateObject: generateObjectMock, renderPrompt: renderPromptMock })),
   }
 })
 
@@ -76,6 +77,8 @@ describe("createStageRunner book summary", () => {
     extractMetadataMock.mockReset()
     generateBookOutlineMock.mockReset()
     generateObjectMock.mockReset()
+    renderPromptMock.mockReset()
+    renderPromptMock.mockResolvedValue([])
     extractMetadataMock.mockResolvedValue({ title: "Libro", authors: [], publisher: null, language_code: "es", cover_page_number: null, reasoning: "" })
     generateBookOutlineMock.mockResolvedValue({ reasoning: "", entries: [], styleClusters: [] })
   })
@@ -98,7 +101,7 @@ describe("createStageRunner book summary", () => {
     return events
   }
 
-  it("completes the step with a note and still builds the outline when the summary call fails", async () => {
+  it("completes the step with a summary-missing warning and still builds the outline when the summary call fails", async () => {
     extractPDFMock.mockImplementation(seedPages(2, (n) => `Página ${n}`))
     generateObjectMock.mockRejectedValue(new Error("The model `gpt-nope` does not exist"))
 
@@ -109,6 +112,7 @@ describe("createStageRunner book summary", () => {
       expect.objectContaining({
         type: "step-complete",
         step: "book-summary",
+        warnings: [{ kind: "summary-missing", error: "The model `gpt-nope` does not exist" }],
         message: "Completed — no book summary after a failure: The model `gpt-nope` does not exist",
       }),
       expect.objectContaining({ type: "step-complete", step: "book-outline" }),
@@ -124,13 +128,33 @@ describe("createStageRunner book summary", () => {
         expect.objectContaining({
           step: "book-summary",
           status: "done",
-          message: "Completed — no book summary after a failure: The model `gpt-nope` does not exist",
+          warnings: [{ kind: "summary-missing", error: "The model `gpt-nope` does not exist" }],
         }),
         expect.objectContaining({ step: "book-outline", status: "done" }),
       ]))
     } finally {
       storage.close()
     }
+  })
+
+  it("fails the step on a broken prompt template instead of warning", async () => {
+    extractPDFMock.mockImplementation(seedPages(2, (n) => `Página ${n}`))
+    renderPromptMock.mockRejectedValue(new Error("Liquid syntax error: unexpected token"))
+
+    const events = await runExtract("broken-template").catch(() => [] as ProgressEvent[])
+
+    expect(generateObjectMock).not.toHaveBeenCalled()
+    const storage = createBookStorage("broken-template", booksDir)
+    try {
+      expect(storage.getStepRuns().find((row) => row.step === "book-summary")).toMatchObject({
+        status: "error",
+        error: expect.stringContaining("Liquid syntax error"),
+        warnings: null,
+      })
+    } finally {
+      storage.close()
+    }
+    expect(events.find((event) => event.type === "step-complete" && event.step === "book-summary")).toBeUndefined()
   })
 
   it("lets a cancel during the summary call unwind the run without a note", async () => {

@@ -1,6 +1,7 @@
 import {
   BookSummaryOutput,
   type AppConfig,
+  type StepWarning,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
@@ -71,24 +72,19 @@ export function evenlySpacedIndices(total: number, count: number): number[] {
   if (total <= 0 || count <= 0) return []
   if (count >= total) return Array.from({ length: total }, (_, index) => index)
   if (count === 1) return [0]
-  const indices = new Set<number>()
-  for (let step = 0; step < count; step++) {
-    indices.add(Math.round((step * (total - 1)) / (count - 1)))
-  }
-  return [...indices].sort((a, b) => a - b)
+  // The spacing is at least 1, so the rounded indices are already distinct and ascending.
+  return Array.from({ length: count }, (_, step) => Math.round((step * (total - 1)) / (count - 1)))
 }
 
-/** Code points, not UTF-16 units: the budget must not double on emoji or astral CJK text. */
-function charCount(text: string): number {
-  let count = 0
-  for (const _ of text) count++
-  return count
-}
-
-function truncatePageText(text: string, maxChars: number): string {
+/**
+ * The page text cut to `maxChars`, with its length in code points (not UTF-16
+ * units, so the budget does not double on emoji or astral CJK text). The cut
+ * mark counts towards the length.
+ */
+function truncatePageText(text: string, maxChars: number): { text: string; length: number } {
   const trimmed = text.trim()
   const chars = Array.from(trimmed)
-  if (chars.length <= maxChars) return trimmed
+  if (chars.length <= maxChars) return { text: trimmed, length: chars.length }
   const head = chars.slice(0, maxChars)
   // Cut at the last whitespace of the head, unless that loses over half of it.
   let lastBreak = -1
@@ -98,25 +94,22 @@ function truncatePageText(text: string, maxChars: number): string {
       break
     }
   }
-  const cut = (lastBreak > 0 ? head.slice(0, lastBreak) : head).join("")
-  return `${cut.trimEnd()}${TRUNCATION_MARK}`
+  const cut = Array.from((lastBreak > 0 ? head.slice(0, lastBreak) : head).join("").trimEnd())
+  return { text: `${cut.join("")}${TRUNCATION_MARK}`, length: cut.length + Array.from(TRUNCATION_MARK).length }
 }
 
 /**
  * The most pages whose even sample across the book fits the character
- * budget. Deterministic: the sizes are known, so this is plain arithmetic on
- * them. Starts from the mean page length and walks to the exact boundary.
+ * budget, or none when not even one page does. Whether a sample fits is not
+ * monotonic in its size (each size picks different pages), so every size is
+ * tried from the largest down. Deterministic: plain arithmetic on known sizes.
  */
 function evenSampleWithinBudget(sizes: number[], maxTotalChars: number): number[] {
-  const total = sizes.reduce((sum, size) => sum + size, 0)
-  if (total <= maxTotalChars) return evenlySpacedIndices(sizes.length, sizes.length)
-  const fits = (keep: number): boolean =>
-    evenlySpacedIndices(sizes.length, keep).reduce((sum, index) => sum + sizes[index], 0) <= maxTotalChars
-  const mean = total / sizes.length
-  let keep = Math.min(sizes.length, Math.max(1, Math.floor(maxTotalChars / mean)))
-  while (keep > 1 && !fits(keep)) keep--
-  while (keep < sizes.length && fits(keep + 1)) keep++
-  return evenlySpacedIndices(sizes.length, keep)
+  for (let keep = sizes.length; keep > 0; keep--) {
+    const picked = evenlySpacedIndices(sizes.length, keep)
+    if (picked.reduce((sum, index) => sum + sizes[index], 0) <= maxTotalChars) return picked
+  }
+  return []
 }
 
 /**
@@ -140,26 +133,24 @@ export function selectBookSummaryInput(
   const minTextPageRatio = options.minTextPageRatio ?? BOOK_SUMMARY_MIN_TEXT_PAGE_RATIO
   const maxRenderPages = options.maxRenderPages ?? BOOK_SUMMARY_MAX_RENDER_PAGES
 
+  // A cut page, mark included, never exceeds the whole budget, so one page always fits.
+  const pageChars = Math.max(1, Math.min(maxPageChars, maxTotalChars - Array.from(TRUNCATION_MARK).length))
   const ordered = [...pages].sort((a, b) => a.pageNumber - b.pageNumber)
   const withText = ordered
     .filter((page) => page.text.trim().length > 0)
-    .map((page) => ({ pageNumber: page.pageNumber, text: truncatePageText(page.text, maxPageChars) }))
+    .map((page) => ({ pageNumber: page.pageNumber, ...truncatePageText(page.text, pageChars) }))
 
-  // The cut mark counts against the budget too; sizes are code points throughout.
-  const selected = evenSampleWithinBudget(withText.map((page) => charCount(page.text)), maxTotalChars)
-    .map((index) => withText[index])
+  const selected = evenSampleWithinBudget(withText.map((page) => page.length), maxTotalChars)
+    .map((index) => ({ pageNumber: withText[index].pageNumber, text: withText[index].text }))
   const sampled = selected.length < withText.length
 
   const textPages = withText.length
   const totalPages = ordered.length
   const needsRenders = totalPages > 0 && textPages / totalPages < minTextPageRatio
   // The renders stand in for the pages the text cannot show, so they are drawn
-  // from the pages without a text layer whenever there are any.
-  const blankPages = ordered.filter((page) => page.text.trim().length === 0)
-  const renderPool = blankPages.length > 0 ? blankPages : ordered
-  const renderPageIds = needsRenders
-    ? evenlySpacedIndices(renderPool.length, maxRenderPages).map((index) => renderPool[index].pageId)
-    : []
+  // from the pages without a text layer (needing renders implies there are some).
+  const blankPages = needsRenders ? ordered.filter((page) => page.text.trim().length === 0) : []
+  const renderPageIds = evenlySpacedIndices(blankPages.length, maxRenderPages).map((index) => blankPages[index].pageId)
 
   return { pages: selected, renderPageIds, textPages, totalPages, sampled }
 }
@@ -191,14 +182,52 @@ export function buildBookSummaryInput(
 }
 
 /**
- * The summary only seeds later prompts (captions, fonts, packaging), each of
- * which already copes without one, so a failed summary call must not fail the
- * Extract stage: the step completes with this note and the user can regenerate
- * the summary from Book parts. The note keeps the step visibly warned, and it
- * is what the extract report sees next to the failed call.
+ * The step warning for a failed summary call (SPEC-0021, §Step warnings). The
+ * summary only seeds later prompts (captions, fonts, packaging), each of which
+ * already copes without one, so a failed call must not fail the Extract stage:
+ * the step completes with this warning and later steps run without a summary.
  */
-export function bookSummaryFailureNote(err: unknown): string {
-  return `Completed — no book summary after a failure: ${shortErrorText(err)}`
+export function bookSummaryWarning(err: unknown): StepWarning {
+  return { kind: "summary-missing", error: shortErrorText(err) }
+}
+
+/**
+ * Generate the summary as an optional step, the same way in both runners.
+ * The prompt is rendered first, outside the catch: a broken prompt template
+ * is a book problem the step must fail on, not a model failure. A failed
+ * model call yields the `summary-missing` warning instead of a summary.
+ * `isCancellation` says which errors are a cancelled run and must propagate;
+ * the CLI has no cancellation, so it passes none.
+ */
+export async function summarizeBookOptionally(
+  input: BookSummaryInput,
+  config: BookSummaryConfig,
+  llmModel: LLMModel,
+  isCancellation: (err: unknown) => boolean = () => false,
+): Promise<{ summary: BookSummaryOutput } | { warning: StepWarning }> {
+  await llmModel.renderPrompt(config.promptName, bookSummaryContext(input, config))
+  try {
+    return { summary: await generateBookSummary(input, config, llmModel) }
+  } catch (err) {
+    if (isCancellation(err)) throw err
+    return { warning: bookSummaryWarning(err) }
+  }
+}
+
+function bookSummaryContext(input: BookSummaryInput, config: BookSummaryConfig): Record<string, unknown> {
+  const outputLanguage = buildLanguageContext(config.outputLanguage)
+  return {
+    pages: input.pages.map((p) => ({
+      pageNumber: p.pageNumber,
+      text: p.text,
+    })),
+    page_renders: (input.renders ?? []).map((render) => ({
+      pageNumber: render.pageNumber,
+      imageBase64: render.imageBase64,
+    })),
+    output_language_code: outputLanguage.language_code,
+    output_language: outputLanguage.language,
+  }
 }
 
 /**
@@ -216,22 +245,10 @@ export async function generateBookSummary(
     throw new Error("No page text or page renders provided for book summary")
   }
 
-  const outputLanguage = buildLanguageContext(config.outputLanguage)
   const result = await llmModel.generateObject<BookSummaryOutput>({
     schema: BookSummaryOutput,
     prompt: config.promptName,
-    context: {
-      pages: input.pages.map((p) => ({
-        pageNumber: p.pageNumber,
-        text: p.text,
-      })),
-      page_renders: renders.map((render) => ({
-        pageNumber: render.pageNumber,
-        imageBase64: render.imageBase64,
-      })),
-      output_language_code: outputLanguage.language_code,
-      output_language: outputLanguage.language,
-    },
+    context: bookSummaryContext(input, config),
     maxRetries: config.maxRetries,
     maxTokens: 1024,
     log: {
