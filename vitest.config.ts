@@ -48,6 +48,12 @@ export default defineConfig({
       },
       {
         test: {
+          name: "dashboard",
+          include: ["apps/dashboard/src/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
           name: "api",
           include: ["apps/api/src/**/*.test.ts"],
           // These exercise real zip, SQLite and filesystem work; several sit near

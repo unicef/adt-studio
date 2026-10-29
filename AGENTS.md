@@ -61,6 +61,7 @@ apps/              # Application tier
   api/             # Hono HTTP server
   studio/          # React SPA (Vite)
   desktop/         # Electron desktop wrapper
+  dashboard/       # Local TanStack Start tool: compares conversions; server functions read book .db files read-only (node-sqlite3-wasm)
 
 templates/         # Layout templates
 config/            # Global configuration
