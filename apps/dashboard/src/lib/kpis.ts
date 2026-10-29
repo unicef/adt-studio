@@ -1,5 +1,4 @@
 import { fmtDuration, fmtInt, fmtTokens, fmtUsd } from "./format"
-import { APP_PRICE } from "./metrics"
 import type { RunMetrics } from "./types"
 
 export interface Kpi {
@@ -19,7 +18,7 @@ export const KPIS: Kpi[] = [
   {
     id: "cost",
     label: "Estimated cost",
-    note: `Studio Stats tab formula: ${fmtUsd(APP_PRICE.inputPerMillion)}/M input, ${fmtUsd(APP_PRICE.outputPerMillion)}/M output, the same for every model`,
+    note: "Each call at its model's price per token: input, cached input and output, in the context tier picked in the top bar",
     value: (m) => m.costUsd,
     format: fmtUsd,
   },

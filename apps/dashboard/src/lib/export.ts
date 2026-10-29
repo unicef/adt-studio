@@ -1,6 +1,7 @@
 import type { Note } from "./comparison"
 import { fmtDec1, fmtDuration, fmtInt, fmtPct, fmtUsd } from "./format"
-import { APP_PRICE, relativeChange, taskOrder } from "./metrics"
+import { relativeChange, taskOrder } from "./metrics"
+import { tierLabel } from "./pricing"
 import type { RunMetrics } from "./types"
 
 export function downloadText(fileName: string, text: string, type: string) {
@@ -18,10 +19,10 @@ const csvCell = (value: unknown) => {
 }
 
 export function callsCsv(runs: RunMetrics[]): string {
-  const header = ["conversion", "llm_log_id", "task", "model", "effort", "item", "attempt", "success", "error_count", "start_s", "duration_s", "input_tokens", "output_tokens"]
+  const header = ["conversion", "llm_log_id", "task", "model", "effort", "item", "attempt", "success", "error_count", "start_s", "duration_s", "input_tokens", "cached_input_tokens", "output_tokens", "cost_usd"]
   const lines = runs.flatMap((run) =>
     run.callSpans.map((c) =>
-      [run.name, c.id, c.task, c.model, c.effort, c.item, c.attempt, c.success ? 1 : 0, c.errorCount, c.startS, c.durationS, c.inputTokens, c.outputTokens].map(csvCell).join(","),
+      [run.name, c.id, c.task, c.model, c.effort, c.item, c.attempt, c.success ? 1 : 0, c.errorCount, c.startS, c.durationS, c.inputTokens, c.cachedInputTokens, c.outputTokens, c.costUsd].map(csvCell).join(","),
     ),
   )
   return [header.join(","), ...lines].join("\n")
@@ -66,7 +67,7 @@ export function reportMarkdown(runs: RunMetrics[], notes: Note[]): string {
   out.push(metricRow("Estimated cost", (r) => r.costUsd, fmtUsd))
   out.push(metricRow("Summed call time", (r) => r.llmTimeS, fmtDuration))
   out.push(metricRow("Peak concurrent calls", (r) => r.peakConcurrency, fmtInt))
-  out.push("", `Cost uses the Studio Stats tab formula: ${fmtUsd(APP_PRICE.inputPerMillion)}/M input and ${fmtUsd(APP_PRICE.outputPerMillion)}/M output, the same for every model.`, "")
+  out.push("", `Cost prices each call at its model's ${tierLabel(base.priceTier)} price per token, with cached input tokens at the cached-input price. Calls of models without a price are left out.`, "")
 
   out.push("## Steps (seconds)", "", row(["Step", ...names]), divider(names.length + 1))
   const steps = [...new Set(runs.flatMap((r) => r.steps.map((s) => s.step)))]

@@ -1,5 +1,6 @@
 import { useQueries } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
+import type { PriceTier } from "../lib/pricing"
 import { MAX_RUNS, SERIES_COLORS, type RunView } from "../lib/run-view"
 import type { ConversionEntry, ConversionListing } from "../lib/types"
 import { getConversion } from "../server/functions"
@@ -31,7 +32,7 @@ const NO_CONVERSIONS: ConversionEntry[] = []
 
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
-export function useWorkspace(listing: ConversionListing | undefined): Workspace {
+export function useWorkspace(listing: ConversionListing | undefined, tier: PriceTier): Workspace {
   const booksDir = listing?.booksDir ?? ""
   const conversions = listing?.conversions ?? NO_CONVERSIONS
   const [state, setState] = useState<{ booksDir: string; items: Selection[] }>({ booksDir, items: [] })
@@ -40,8 +41,8 @@ export function useWorkspace(listing: ConversionListing | undefined): Workspace 
 
   const queries = useQueries({
     queries: selected.map((s) => ({
-      queryKey: ["conversion", booksDir, s.name, entries.get(s.name)?.dbModified],
-      queryFn: () => getConversion({ data: { booksDir, name: s.name } }),
+      queryKey: ["conversion", booksDir, s.name, entries.get(s.name)?.dbModified, tier],
+      queryFn: () => getConversion({ data: { booksDir, name: s.name, tier } }),
     })),
   })
 

@@ -14,6 +14,8 @@ const span = (id: number, model: string, task: string, overrides: Partial<CallSp
   durationS: 10,
   inputTokens: 1000,
   outputTokens: 100,
+  cachedInputTokens: null,
+  costUsd: 0.5,
   effort: "low",
   ...overrides,
 })
@@ -42,6 +44,12 @@ describe("modelStats", () => {
       efforts: ["low"],
     })
     expect(stats[1]).toMatchObject({ calls: 1, share: 0.25, efforts: ["high"] })
+    expect(stats[0].costUsd).toBeCloseTo(1.5)
+  })
+
+  it("has no cost for a model without a price", () => {
+    const [stat] = modelStats(run([span(1, "unknown-model", "x", { costUsd: null })]))
+    expect(stat.costUsd).toBeNull()
   })
 })
 

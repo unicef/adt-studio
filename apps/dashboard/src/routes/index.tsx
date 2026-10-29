@@ -6,12 +6,13 @@ import { Dashboard } from "../components/dashboard/Dashboard"
 import type { FolderState } from "../components/FolderForm"
 import { TopBar } from "../components/shell/TopBar"
 import { useWorkspace } from "../hooks/useWorkspace"
+import { PRICE_TIERS } from "../lib/pricing"
 import { getConversions, getDefaultFolder } from "../server/functions"
 
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 export const Route = createFileRoute("/")({
-  validateSearch: z.object({ folder: z.string().optional() }),
+  validateSearch: z.object({ folder: z.string().optional(), tier: z.enum(PRICE_TIERS).optional() }),
   loader: () => getDefaultFolder(),
   component: Home,
 })
@@ -21,6 +22,7 @@ function Home() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const folder = search.folder ?? defaultFolder ?? ""
+  const tier = search.tier ?? "short"
   const [draft, setDraft] = useState(folder)
 
   useEffect(() => setDraft(folder), [folder])
@@ -31,7 +33,7 @@ function Home() {
     enabled: folder.length > 0,
   })
 
-  const workspace = useWorkspace(listing.data)
+  const workspace = useWorkspace(listing.data, tier)
 
   const folderState: FolderState = {
     draft,
@@ -52,7 +54,7 @@ function Home() {
 
   return (
     <div className="min-h-dvh">
-      <TopBar />
+      <TopBar tier={tier} onTier={(next) => void navigate({ search: (prev) => ({ ...prev, tier: next }) })} />
       <Dashboard folder={folderState} workspace={workspace} hasListing={hasListing} />
     </div>
   )

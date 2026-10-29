@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { errorType } from "./errors"
 import { parseCall } from "./parse-call"
-import { computeMetrics, estimateCost, finalFailures, peakConcurrency, quantile } from "./metrics"
+import { computeMetrics, finalFailures, peakConcurrency, quantile } from "./metrics"
 import type { ConversionData, LlmCall } from "./types"
 
 const T0 = Date.parse("2026-10-16T19:51:15.000Z")
@@ -86,10 +86,6 @@ describe("metric helpers", () => {
     expect(finalFailures(calls)).toBe(1)
   })
 
-  it("uses the Studio Stats tab pricing", () => {
-    expect(estimateCost(1_000_000, 1_000_000)).toBeCloseTo(12.5)
-  })
-
   it("takes the lower-index quantile", () => {
     expect(quantile([5, 1, 3, 2, 4], 0.5)).toBe(3)
     expect(quantile([], 0.9)).toBe(0)
@@ -121,7 +117,7 @@ describe("computeMetrics", () => {
   }
 
   it("measures the conversion from the PDF upload to the last step", () => {
-    const m = computeMetrics(data)
+    const m = computeMetrics(data, "short")
     expect(m.startedFromPdf).toBe(true)
     expect(m.totalS).toBe(100)
     expect(m.postExtractS).toBe(70)
@@ -130,7 +126,7 @@ describe("computeMetrics", () => {
   })
 
   it("totals calls, failures, tokens and errors", () => {
-    const m = computeMetrics(data)
+    const m = computeMetrics(data, "short")
     expect(m).toMatchObject({
       callCount: 3,
       failedCalls: 1,
@@ -150,8 +146,21 @@ describe("computeMetrics", () => {
   })
 
   it("falls back to the first step when the PDF is older than the run", () => {
-    const m = computeMetrics({ ...data, pdfModified: T0 - 24 * 3600 * 1000 })
+    const m = computeMetrics({ ...data, pdfModified: T0 - 24 * 3600 * 1000 }, "short")
     expect(m.startedFromPdf).toBe(false)
     expect(m.totalS).toBe(70)
+  })
+
+  it("prices each call at its model's rate in the chosen tier", () => {
+    expect(computeMetrics(data, "short")).toMatchObject({ priceTier: "short", unpricedCalls: 0, unpricedModels: [] })
+    expect(computeMetrics(data, "short").costUsd).toBeCloseTo((3 * (100 * 0.1 + 10 * 0.5)) / 1_000_000)
+    expect(computeMetrics(data, "long").costUsd).toBeCloseTo((3 * (100 * 0.2 + 10 * 0.75)) / 1_000_000)
+  })
+
+  it("leaves calls of models without a price out of the cost and lists them", () => {
+    const m = computeMetrics({ ...data, calls: [...data.calls, call({ id: 4, start: T0 + 90_000, end: T0 + 95_000, model: "unknown-model" })] }, "short")
+    expect(m).toMatchObject({ unpricedCalls: 1, unpricedModels: ["unknown-model"] })
+    expect(m.costUsd).toBeCloseTo((3 * (100 * 0.1 + 10 * 0.5)) / 1_000_000)
+    expect(m.callSpans.find((c) => c.id === 4)?.costUsd).toBeNull()
   })
 })

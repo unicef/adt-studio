@@ -95,7 +95,7 @@ describe("listConversions", () => {
 
 describe("readConversion", () => {
   it("reads the database read-only and returns its metrics", async () => {
-    const summary = await readConversion(books, "book-a")
+    const summary = await readConversion(books, "book-a", "short")
     expect(summary.config).toContain("end_page: 40")
     expect(summary.pdfHash).toMatch(/^[0-9a-f]{64}$/)
     expect(summary.metrics).toMatchObject({
@@ -104,7 +104,10 @@ describe("readConversion", () => {
       outputTokens: 220,
       models: ["gpt-6-luna"],
       efforts: ["low"],
+      priceTier: "short",
+      unpricedCalls: 0,
     })
+    expect(summary.metrics.costUsd).toBeCloseTo((9102 * 0.1 + 220 * 0.5) / 1_000_000)
     expect(summary.metrics.steps.map((s) => s.step)).toEqual(["metadata"])
   })
 

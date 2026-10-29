@@ -10,10 +10,7 @@ import type {
   StepSpan,
   TaskMetrics,
 } from "./types"
-
-export const APP_PRICE = { inputPerMillion: 2.5, outputPerMillion: 10 }
-export const estimateCost = (inputTokens: number, outputTokens: number) =>
-  (inputTokens * APP_PRICE.inputPerMillion + outputTokens * APP_PRICE.outputPerMillion) / 1_000_000
+import { callCost, type PriceTier } from "./pricing"
 
 const PDF_START_WINDOW_MS = 30 * 60 * 1000
 
@@ -86,7 +83,7 @@ function taskMetrics(task: string, calls: LlmCall[]): TaskMetrics {
   }
 }
 
-export function computeMetrics(data: ConversionData): RunMetrics {
+export function computeMetrics(data: ConversionData, tier: PriceTier): RunMetrics {
   const calls = data.calls
   const knownStarts = [...data.steps.map((s) => s.startedAt), ...calls.map((c) => c.start)].filter((t): t is number => t !== null)
   const firstKnown = knownStarts.length ? Math.min(...knownStarts) : 0
@@ -125,8 +122,11 @@ export function computeMetrics(data: ConversionData): RunMetrics {
     durationS: round1(c.durationMs / 1000),
     inputTokens: c.inputTokens,
     outputTokens: c.outputTokens,
+    cachedInputTokens: c.cachedInputTokens,
+    costUsd: callCost(c, tier),
     effort: c.effort,
   }))
+  const unpriced = callSpans.filter((c) => c.costUsd === null)
 
   const byTask = [...groupBy(calls, (c) => c.task)].map(([task, group]) => taskMetrics(task, group))
   const byModel: ModelMetrics[] = [...groupBy(calls, (c) => c.model)].map(([model, group]) => ({
@@ -176,7 +176,10 @@ export function computeMetrics(data: ConversionData): RunMetrics {
     reasoningTokens: optionalSum(calls, (c) => c.reasoningTokens),
     cachedInputTokens: optionalSum(calls, (c) => c.cachedInputTokens),
     llmTimeS: round1(sum(calls, (c) => c.durationMs) / 1000),
-    costUsd: estimateCost(inputTokens, outputTokens),
+    costUsd: sum(callSpans, (c) => c.costUsd ?? 0),
+    priceTier: tier,
+    unpricedModels: distinct(unpriced.map((c) => c.model)),
+    unpricedCalls: unpriced.length,
     models: distinct(calls.map((c) => c.model)),
     efforts: distinct(calls.map((c) => c.effort)),
     unfinishedSteps: data.steps.filter((s) => s.status === "running" || s.status === "error").map((s) => s.step),

@@ -5,6 +5,7 @@ import path from "node:path"
 import sqlite from "node-sqlite3-wasm"
 import { computeMetrics } from "../lib/metrics"
 import { asString, asTime, parseCall } from "../lib/parse-call"
+import type { PriceTier } from "../lib/pricing"
 import type { ConversionEntry, ConversionListing, ConversionSummary, LlmCall, StepRun } from "../lib/types"
 
 const { Database } = sqlite
@@ -200,7 +201,7 @@ export async function readBookImage(booksDir: string, name: string, imageId: str
   return files ? readImageFile(dir, imagePath(files.db, imageId)) : null
 }
 
-export async function readConversion(booksDir: string, name: string): Promise<ConversionSummary> {
+export async function readConversion(booksDir: string, name: string, tier: PriceTier): Promise<ConversionSummary> {
   const dir = resolveConversionDir(booksDir, name)
   const files = await conversionFiles(dir)
   if (!files) throw new Error(`No conversion database found in ${dir}`)
@@ -212,6 +213,6 @@ export async function readConversion(booksDir: string, name: string): Promise<Co
     name,
     pdfHash,
     config,
-    metrics: computeMetrics({ name, pdfModified, pdfHash, config, steps, calls }),
+    metrics: computeMetrics({ name, pdfModified, pdfHash, config, steps, calls }, tier),
   }
 }

@@ -1,3 +1,4 @@
+import { tierLabel } from "./pricing"
 import type { ConversionSummary } from "./types"
 
 export interface Note {
@@ -69,6 +70,12 @@ export function comparisonNotes(data: ConversionSummary[]): Note[] {
     if (!run.startedFromPdf) {
       notes.push({ tone: "info", text: `${run.name}: the PDF timestamp does not match the conversion, so total time starts at the first recorded step.` })
     }
+    if (run.unpricedCalls > 0) {
+      notes.push({ tone: "warn", text: `${run.name}: no ${tierLabel(run.priceTier)} price for ${run.unpricedModels.join(", ")}, so the cost leaves out ${run.unpricedCalls} calls.` })
+    }
+  }
+  if (runs.length) {
+    notes.push({ tone: "info", text: `Cost uses each model's ${tierLabel(runs[0].priceTier)} price per token. The log does not record which tier a call was billed in, nor cache writes, so cache writes are not priced.` })
   }
   return notes
 }

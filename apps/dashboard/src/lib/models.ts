@@ -1,4 +1,4 @@
-import { estimateCost, groupBy, quantile } from "./metrics"
+import { groupBy, quantile } from "./metrics"
 import type { RunMetrics } from "./types"
 
 export interface ModelStats {
@@ -13,7 +13,7 @@ export interface ModelStats {
   avgS: number
   p50S: number
   p90S: number
-  costUsd: number
+  costUsd: number | null
   tasks: string[]
   efforts: string[]
 }
@@ -40,7 +40,7 @@ export function modelStats(run: RunMetrics): ModelStats[] {
         avgS: round1(sumS / calls.length),
         p50S: round1(quantile(durations, 0.5)),
         p90S: round1(quantile(durations, 0.9)),
-        costUsd: estimateCost(inputTokens, outputTokens),
+        costUsd: calls.every((c) => c.costUsd === null) ? null : calls.reduce((s, c) => s + (c.costUsd ?? 0), 0),
         tasks: [...new Set(calls.map((c) => c.task))],
         efforts: [...new Set(calls.map((c) => c.effort).filter((e): e is string => e !== null))],
       }

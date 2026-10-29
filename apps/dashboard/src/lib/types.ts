@@ -1,3 +1,5 @@
+import type { PriceTier } from "./pricing"
+
 export interface ConversionEntry {
   name: string
   dbModified: number
@@ -82,6 +84,8 @@ export interface CallSpan {
   durationS: number
   inputTokens: number
   outputTokens: number
+  cachedInputTokens: number | null
+  costUsd: number | null
   effort: string | null
 }
 
@@ -142,6 +146,9 @@ export interface RunMetrics {
   cachedInputTokens: number | null
   llmTimeS: number
   costUsd: number
+  priceTier: PriceTier
+  unpricedModels: string[]
+  unpricedCalls: number
   models: string[]
   efforts: string[]
   unfinishedSteps: string[]
