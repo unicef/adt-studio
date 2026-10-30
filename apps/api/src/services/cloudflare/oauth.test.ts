@@ -294,6 +294,22 @@ describe("cloudflare oauth", () => {
       expect(store.readOAuth()).toBeNull()
     })
 
+    it("keeps waiting when another tab owns the same login", async () => {
+      const { service, listener } = build()
+      const flow = await service.start()
+
+      const result = await listener.handle?.(
+        callbackUrl({ error: "request_forbidden", state: flow.state }),
+      )
+
+      expect(result?.html).toContain("another Cloudflare tab")
+      expect(service.status(flow.state)).toMatchObject({ status: "pending" })
+      expect(listener.closes).toBe(0)
+
+      await listener.handle?.(callbackUrl({ code: "good-code", state: flow.state }))
+      expect(service.status(flow.state).status).toBe("complete")
+    })
+
     it("reports a rejected exchange without storing anything", async () => {
       const { service, listener } = build({ oauthTokenError: "invalid_grant" })
       const flow = await service.start()

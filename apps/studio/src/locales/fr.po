@@ -2718,8 +2718,8 @@ msgstr "Vérification de votre compte"
 msgid "Checking your sharing setup…"
 msgstr "Vérification de votre configuration de partage…"
 
-msgid "Checking your token"
-msgstr "Vérification de votre jeton"
+#~ msgid "Checking your token"
+#~ msgstr "Vérification de votre jeton"
 
 msgid "Checklist item"
 msgstr "Élément de liste de contrôle"
@@ -6569,8 +6569,11 @@ msgstr "Assurez-vous de télécharger un fichier .zip exporté depuis ADT Studio
 msgid "Making a copy of the book"
 msgstr "Faire une copie du livre"
 
-msgid "Making sure the token works and has every permission it needs."
-msgstr "Vérification que le jeton fonctionne et dispose de toutes les autorisations nécessaires."
+msgid "Making sure the Studio can reach your account with every permission it needs."
+msgstr "Vérification que le Studio peut accéder à votre compte avec toutes les autorisations nécessaires."
+
+#~ msgid "Making sure the token works and has every permission it needs."
+#~ msgstr "Vérification que le jeton fonctionne et dispose de toutes les autorisations nécessaires."
 
 msgid "Manage"
 msgstr "Gérer"
@@ -11804,8 +11807,11 @@ msgstr "Le lien cesse de fonctionner le {0}."
 msgid "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
 msgstr "Le lien cesse de fonctionner immédiatement, pour tous ceux qui l'ont. Quiconque l'ouvre verra un court message indiquant que le livre n'est plus partagé."
 
-msgid "The login could not be finished. Try again, or use an API token instead."
-msgstr "La connexion n'a pas pu être terminée. Réessayez, ou utilisez un jeton API à la place."
+msgid "The login could not be finished. Try again in a moment."
+msgstr "La connexion n'a pas pu aboutir. Réessayez dans un instant."
+
+#~ msgid "The login could not be finished. Try again, or use an API token instead."
+#~ msgstr "La connexion n'a pas pu être terminée. Réessayez, ou utilisez un jeton API à la place."
 
 msgid "The login couldn't come back to the Studio"
 msgstr "La connexion n'a pas pu revenir au Studio"
@@ -12094,11 +12100,14 @@ msgstr "Ce commentaire a été supprimé"
 msgid "This computer"
 msgstr "Cet ordinateur"
 
+msgid "This computer will forget its Cloudflare connection, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+msgstr "Cet ordinateur oubliera sa connexion à Cloudflare : vous ne pourrez plus partager ni mettre à jour de livres avant de vous reconnecter. Les livres déjà partagés restent en ligne et leurs liens continuent de fonctionner."
+
 #~ msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
 #~ msgstr "Cet ordinateur oubliera votre jeton et votre ID de compte, donc vous ne pourrez pas publier ou mettre à jour des livres jusqu'à ce que vous vous reconnectiez. Les livres que vous avez déjà publiés restent en ligne et leurs liens continuent de fonctionner."
 
-msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
-msgstr "Cet ordinateur oubliera votre jeton et votre identifiant de compte, vous ne pourrez donc plus partager ni mettre à jour de livres tant que vous ne vous reconnecterez pas. Les livres déjà partagés restent en ligne et leurs liens continuent de fonctionner."
+#~ msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+#~ msgstr "Cet ordinateur oubliera votre jeton et votre identifiant de compte, vous ne pourrez donc plus partager ni mettre à jour de livres tant que vous ne vous reconnecterez pas. Les livres déjà partagés restent en ligne et leurs liens continuent de fonctionner."
 
 msgid "This connection isn't available yet."
 msgstr "Cette connexion n'est pas encore disponible."
@@ -13049,6 +13058,11 @@ msgstr "Version {0} (dernière connue)"
 #. placeholder {1}: connection.latest_version
 msgid "Version {0} → {1}. Your shared books stay online while this runs."
 msgstr "Version {0} → {1}. Vos livres partagés restent en ligne pendant l'opération."
+
+#. placeholder {0}: publication.current_version
+#. placeholder {1}: publication.version_count
+msgid "Version {0} of {1}, not being served"
+msgstr "Version {0} sur {1}, hors ligne"
 
 msgid "Version {current}"
 msgstr "Version {current}"

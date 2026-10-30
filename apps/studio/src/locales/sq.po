@@ -2718,8 +2718,8 @@ msgstr "Kontrollimi i llogarisë tuaj"
 msgid "Checking your sharing setup…"
 msgstr "Po kontrollohet konfigurimi juaj i ndarjes…"
 
-msgid "Checking your token"
-msgstr "Kontrollimi i tokenit tuaj"
+#~ msgid "Checking your token"
+#~ msgstr "Kontrollimi i tokenit tuaj"
 
 msgid "Checklist item"
 msgstr "Artikull liste kontrolli"
@@ -6569,8 +6569,11 @@ msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studi
 msgid "Making a copy of the book"
 msgstr "Duke bërë një kopje të librit"
 
-msgid "Making sure the token works and has every permission it needs."
-msgstr "Po verifikojmë që tokeni funksionon dhe ka të gjitha lejet e nevojshme."
+msgid "Making sure the Studio can reach your account with every permission it needs."
+msgstr "Po kontrollohet që Studio mund të arrijë llogarinë tuaj me të gjitha lejet që i duhen."
+
+#~ msgid "Making sure the token works and has every permission it needs."
+#~ msgstr "Po verifikojmë që tokeni funksionon dhe ka të gjitha lejet e nevojshme."
 
 msgid "Manage"
 msgstr "Menaxho"
@@ -11804,8 +11807,11 @@ msgstr "Lidhja ndalon së funksionuari më {0}."
 msgid "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
 msgstr "Lidhja ndalon së funksionuari menjëherë, për të gjithë ata që e kanë atë. Kushdo që e hap do të shohë një mesazh të shkurtër që thotë se libri nuk është më i ndarë."
 
-msgid "The login could not be finished. Try again, or use an API token instead."
-msgstr "Hyrja nuk mund të përfundonte. Provoni përsëri, ose përdorni një token API në vend të kësaj."
+msgid "The login could not be finished. Try again in a moment."
+msgstr "Hyrja nuk u përfundua dot. Provoni sërish pas pak."
+
+#~ msgid "The login could not be finished. Try again, or use an API token instead."
+#~ msgstr "Hyrja nuk mund të përfundonte. Provoni përsëri, ose përdorni një token API në vend të kësaj."
 
 msgid "The login couldn't come back to the Studio"
 msgstr "Hyrja nuk mund të kthehej në Studio"
@@ -12094,11 +12100,14 @@ msgstr "Ky koment u fshi"
 msgid "This computer"
 msgstr "Ky kompjuter"
 
+msgid "This computer will forget its Cloudflare connection, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+msgstr "Ky kompjuter do ta harrojë lidhjen me Cloudflare, ndaj nuk do të mund të ndani ose përditësoni libra derisa të lidheni sërish. Librat që keni ndarë tashmë mbeten në internet dhe lidhjet e tyre vazhdojnë të funksionojnë."
+
 #~ msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
 #~ msgstr "Ky kompjuter do të harrojë tokenin dhe ID-në e llogarisë tuaj, kështu që nuk do të mund të publikoni ose përditësoni libra deri sa të lidheni përsëri. Librat që keni publikuar tashmë qëndrojnë online dhe lidhjet e tyre vazhdojnë të funksionojnë."
 
-msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
-msgstr "Ky kompjuter do të harrojë tokenin dhe ID-në e llogarisë suaj, prandaj nuk do të mund të ndani ose përditësoni libra derisa të lidheni përsëri. Librat që keni ndarë tashmë mbeten në internet dhe lidhjet e tyre vazhdojnë të funksionojnë."
+#~ msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+#~ msgstr "Ky kompjuter do të harrojë tokenin dhe ID-në e llogarisë suaj, prandaj nuk do të mund të ndani ose përditësoni libra derisa të lidheni përsëri. Librat që keni ndarë tashmë mbeten në internet dhe lidhjet e tyre vazhdojnë të funksionojnë."
 
 msgid "This connection isn't available yet."
 msgstr "Kjo lidhje nuk është ende e disponueshme."
@@ -13049,6 +13058,11 @@ msgstr "Versioni {0} (i fundit i njohur)"
 #. placeholder {1}: connection.latest_version
 msgid "Version {0} → {1}. Your shared books stay online while this runs."
 msgstr "Versioni {0} → {1}. Librat tuaj të ndarë mbeten në internet gjatë kësaj kohe."
+
+#. placeholder {0}: publication.current_version
+#. placeholder {1}: publication.version_count
+msgid "Version {0} of {1}, not being served"
+msgstr "Versioni {0} nga {1}, nuk po shërbehet"
 
 msgid "Version {current}"
 msgstr "Versioni {current}"

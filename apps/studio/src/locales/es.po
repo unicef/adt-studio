@@ -2716,8 +2716,8 @@ msgstr "Comprobando tu cuenta"
 msgid "Checking your sharing setup…"
 msgstr "Comprobando tu configuración para compartir…"
 
-msgid "Checking your token"
-msgstr "Comprobando tu token"
+#~ msgid "Checking your token"
+#~ msgstr "Comprobando tu token"
 
 msgid "Checklist item"
 msgstr "Ítem de la lista de verificación"
@@ -6567,8 +6567,11 @@ msgstr "Asegúrese de subir un archivo .zip exportado desde ADT Studio."
 msgid "Making a copy of the book"
 msgstr "Haciendo una copia del libro"
 
-msgid "Making sure the token works and has every permission it needs."
-msgstr "Comprobando que el token funciona y tiene todos los permisos necesarios."
+msgid "Making sure the Studio can reach your account with every permission it needs."
+msgstr "Comprobando que el Studio puede acceder a tu cuenta con todos los permisos que necesita."
+
+#~ msgid "Making sure the token works and has every permission it needs."
+#~ msgstr "Comprobando que el token funciona y tiene todos los permisos necesarios."
 
 msgid "Manage"
 msgstr "Gestionar"
@@ -11802,8 +11805,11 @@ msgstr "El enlace deja de funcionar el {0}."
 msgid "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
 msgstr "El enlace deja de funcionar de inmediato, para todos los que lo tienen. Cualquiera que lo abra verá un mensaje corto diciendo que el libro ya no está compartido."
 
-msgid "The login could not be finished. Try again, or use an API token instead."
-msgstr "El inicio de sesión no pudo completarse. Inténtalo de nuevo, o usa un token API en su lugar."
+msgid "The login could not be finished. Try again in a moment."
+msgstr "No se pudo completar el inicio de sesión. Vuelve a intentarlo en un momento."
+
+#~ msgid "The login could not be finished. Try again, or use an API token instead."
+#~ msgstr "El inicio de sesión no pudo completarse. Inténtalo de nuevo, o usa un token API en su lugar."
 
 msgid "The login couldn't come back to the Studio"
 msgstr "El inicio de sesión no pudo regresar al Studio"
@@ -12092,11 +12098,14 @@ msgstr "Este comentario fue eliminado"
 msgid "This computer"
 msgstr "Este ordenador"
 
+msgid "This computer will forget its Cloudflare connection, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+msgstr "Este equipo olvidará su conexión con Cloudflare, así que no podrás compartir ni actualizar libros hasta que vuelvas a conectarte. Los libros que ya compartiste siguen en línea y sus enlaces siguen funcionando."
+
 #~ msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
 #~ msgstr "Este ordenador olvidará tu token y ID de cuenta, por lo que no podrás publicar o actualizar libros hasta que te conectes de nuevo. Los libros que ya has publicado permanecen en línea y sus enlaces siguen funcionando."
 
-msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
-msgstr "Este ordenador olvidará tu token y tu ID de cuenta, así que no podrás compartir ni actualizar libros hasta que vuelvas a conectar. Los libros que ya compartiste siguen en línea y sus enlaces siguen funcionando."
+#~ msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+#~ msgstr "Este ordenador olvidará tu token y tu ID de cuenta, así que no podrás compartir ni actualizar libros hasta que vuelvas a conectar. Los libros que ya compartiste siguen en línea y sus enlaces siguen funcionando."
 
 msgid "This connection isn't available yet."
 msgstr "Esta conexión aún no está disponible."
@@ -13047,6 +13056,11 @@ msgstr "Versión {0} (última conocida)"
 #. placeholder {1}: connection.latest_version
 msgid "Version {0} → {1}. Your shared books stay online while this runs."
 msgstr "Versión {0} → {1}. Tus libros compartidos siguen en línea mientras esto se ejecuta."
+
+#. placeholder {0}: publication.current_version
+#. placeholder {1}: publication.version_count
+msgid "Version {0} of {1}, not being served"
+msgstr "Versión {0} de {1}, sin publicar"
 
 msgid "Version {current}"
 msgstr "Versión {current}"

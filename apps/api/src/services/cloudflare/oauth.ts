@@ -541,6 +541,17 @@ export function createCloudflareOAuthService(
     }
 
     const denial = url.searchParams.get("error")
+    /** Cloudflare answers `request_forbidden` when the same login is open in two tabs and the
+     *  other one now owns it. That says nothing about this login, so it keeps waiting for the
+     *  tab that can still finish it instead of failing the whole connection. */
+    if (denial === "request_forbidden") {
+      return {
+        status: 200,
+        html: oauthErrorPage(
+          "This login is also open in another Cloudflare tab, so this one can't finish it. Approve it in the other tab, or choose \u201cOpen the Cloudflare page again\u201d in ADT Studio.",
+        ),
+      }
+    }
     if (denial) {
       flow.status = "error"
       flow.errorCode = denial === "access_denied" ? "oauth_denied" : "oauth_exchange_failed"

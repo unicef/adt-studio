@@ -246,6 +246,7 @@ export function ConnectStep({
         <Trans>Your books will live in your own Cloudflare account.</Trans>
       }
       footer={
+        oauthPhase === "error" ? null : (
           <Button className="group ml-auto" onClick={onConnectWithCloudflare} disabled={isBusy}>
             {isBusy ? (
               <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
@@ -258,6 +259,7 @@ export function ConnectStep({
               />
             )}
           </Button>
+        )
       }
     >
       <div className="flex flex-1 flex-col gap-5 pt-1">
