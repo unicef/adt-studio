@@ -38,7 +38,6 @@ export interface VariantState {
   docklayout: "groups" | "flat" | "path"
   dockpin: "off" | "on"
   sbsim: "real" | "building" | "failed" | "outdated" | "setupfail"
-  stalewarn: "strip" | "pill" | "rail" | "page" | "topbar"
   setupsplit: "single" | "before" | "attached"
   dockfocus: "tiles" | "islands" | "base" | "tray"
   running: "current" | "live" | "strip"
@@ -141,18 +140,6 @@ export const VARIANT_GROUPS = [
       { value: "failed", label: msg`Failed`, hint: msg`Lab books pretend building the storyboard failed.` },
       { value: "outdated", label: msg`Out of date`, hint: msg`Lab books pretend setup changed after the storyboard was built.` },
       { value: "setupfail", label: msg`Setup problem`, hint: msg`Lab books pretend Extract or Sectioning needs attention.` },
-    ],
-  },
-  {
-    key: "stalewarn",
-    icon: LayoutGrid,
-    label: msg`Out-of-date warning`,
-    options: [
-      { value: "strip", label: msg`Strip (today)`, hint: msg`Full-width amber strip at the top of the canvas.` },
-      { value: "pill", label: msg`Pill above dock`, hint: msg`A floating pill above the dock, like the Save bar.` },
-      { value: "rail", label: msg`In Pages list`, hint: msg`A notice at the top of the Pages list; out-of-date pages are marked below it.` },
-      { value: "page", label: msg`On the page`, hint: msg`A slim notice right above the page you're on.` },
-      { value: "topbar", label: msg`Top bar chip`, hint: msg`An amber "Out of date" chip next to the page name; click for details and Re-run.` },
     ],
   },
   {
@@ -355,7 +342,6 @@ export const GROUP_META: Record<VariantKey, { tier: VariantTier }> = {
   landing: { tier: "step" },
   docklayout: { tier: "layout" },
   sbsim: { tier: "layout" },
-  stalewarn: { tier: "step" },
   setupsplit: { tier: "layout" },
   dockfocus: { tier: "layout" },
   dockpin: { tier: "layout" },
@@ -382,7 +368,7 @@ export type LabStep = "extract" | "sectioning" | "storyboard" | "output" | "vali
 export const STEP_GROUPS: Record<LabStep, VariantKey[]> = {
   extract: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
   sectioning: ["sectlanding", "sectrunning", "sectnotes", "sectresume", "secthead", "sectrail", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
-  storyboard: ["stalewarn", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "features", "ai", "loaders"],
+  storyboard: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "features", "ai", "loaders"],
   output: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "features", "stagefail", "pageview", "listview", "detailpane", "langnav", "hints", "pruned"],
   validation: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "stagefail", "hints"],
   preview: ["export"],
@@ -404,7 +390,6 @@ export const DEFAULT_VARIANTS: VariantState = {
   landing: "current",
   docklayout: "groups",
   sbsim: "real",
-  stalewarn: "strip",
   setupsplit: "single",
   dockfocus: "tiles",
   dockpin: "off",

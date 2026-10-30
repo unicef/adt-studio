@@ -15,6 +15,8 @@ import { usePipelineNavigation } from "@/components/app/screens/pipeline/shared/
 import { SkipToCanvas } from "./SkipToCanvas"
 import { BookMenu } from "./bar/BookMenu"
 import { StatusRing } from "./bar/StatusRing"
+import { usePipelineState } from "@/components/app/screens/pipeline/shared/usePipelineState"
+import { useStoryboardStaleness } from "@/components/app/screens/pipeline/runs/useStoryboardStaleness"
 
 type SlotRef = (node: HTMLElement | null) => void
 
@@ -38,6 +40,11 @@ export function WorkspaceTopBar({ label, section, stage, slotRefs }: WorkspaceTo
   const waitId = useId()
   const onPreview = section === "preview"
   const onExport = section === "export"
+  const { pages } = usePipelineState(label)
+  const stale = useStoryboardStaleness(label, pages).isStale
+  const waitText = stale
+    ? t`Some pages are out of date. Rebuild them from the storyboard first.`
+    : t`Available once all pages are built`
 
   return (
     <header
@@ -82,7 +89,7 @@ export function WorkspaceTopBar({ label, section, stage, slotRefs }: WorkspaceTo
           aria-label={t`Preview the book`}
           aria-disabled={(!previewReady && !onPreview) || undefined}
           aria-describedby={previewReady ? undefined : waitId}
-          title={previewReady ? t`Preview the book` : t`Available once all pages are built`}
+          title={previewReady ? t`Preview the book` : waitText}
           className={cn(
             "flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-(--bar-tint) pl-2 pr-3 text-[13px] font-semibold text-(--bar-ink) ring-1 ring-(--bar-line) ring-inset transition-[background-color,color,box-shadow,scale,opacity] duration-300 ease-out hover:bg-(--bar-tint-hover) active:scale-[0.97] aria-disabled:cursor-default aria-disabled:opacity-45 aria-disabled:hover:bg-(--bar-tint) aria-disabled:active:scale-100 max-lg:px-2 motion-reduce:transition-none motion-reduce:active:scale-100",
             "dark:bg-(--bar-tint-dark) dark:text-(--bar-ink-dark) dark:hover:bg-(--bar-tint-dark-hover) dark:aria-disabled:hover:bg-(--bar-tint-dark)",
@@ -112,7 +119,7 @@ export function WorkspaceTopBar({ label, section, stage, slotRefs }: WorkspaceTo
         </button>
         {!previewReady && (
           <span id={waitId} className="sr-only">
-            {t`Available once all pages are built`}
+            {waitText}
           </span>
         )}
         <TitleBarControls className="-my-px -mr-2.5 h-13" />

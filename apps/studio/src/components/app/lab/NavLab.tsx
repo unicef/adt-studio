@@ -19,7 +19,7 @@ import { getVariant, resetVariants, setVariantValue, useVariants, type VariantKe
 
 export const NAV_LAB_PARAM = "navlab"
 
-const DOCK_KEYS = ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "stalewarn"] as const
+const DOCK_KEYS = ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"] as const
 
 
 interface NavLabState {
@@ -181,7 +181,6 @@ export function NavLab() {
     stagestate: activeStage && activeStage.page === pageKey ? activeStage.id : "real-data",
     docklayout: variants.docklayout,
     sbsim: variants.sbsim,
-    stalewarn: variants.stalewarn,
     setupsplit: variants.setupsplit,
     dockfocus: variants.dockfocus,
     dockpin: variants.dockpin,

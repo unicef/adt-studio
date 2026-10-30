@@ -207,7 +207,7 @@ export function SetupLeads({
         ref={register("storyboard")}
         type="button"
         aria-current={storyboard.active ? "page" : undefined}
-        aria-label={storyboard.status === "building" ? t`Storyboard, building` : t`Storyboard, not built yet`}
+        aria-label={storyboard.status === "building" ? t`Storyboard, building` : storyboard.status === "outdated" ? t`Storyboard, out of date` : t`Storyboard, not built yet`}
         {...cardHandlers(storyboardItem)}
         onClick={() => {
           if (!storyboard.active) storyboard.onClick()

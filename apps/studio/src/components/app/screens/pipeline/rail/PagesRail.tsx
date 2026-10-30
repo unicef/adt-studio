@@ -1,6 +1,6 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, Puzzle, Search, X } from "lucide-react"
+import { AlertTriangle, Loader2, Puzzle, Search, X } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import type { QuizItem } from "@/api/client"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -25,7 +25,7 @@ export interface PagesRailProps {
   onSelectQuiz: (quizIndex: number) => void
   storyboardRunning?: boolean
   outdatedPageIds?: ReadonlySet<string>
-  notice?: ReactNode
+  rebuildingPageIds?: ReadonlySet<string>
   tab?: RailTab
   onTabChange?: (tab: RailTab) => void
   layers?: React.ReactNode
@@ -51,7 +51,7 @@ export function PagesRail({
   onSelectQuiz,
   storyboardRunning,
   outdatedPageIds,
-  notice,
+  rebuildingPageIds,
   tab,
   onTabChange,
   layers,
@@ -149,7 +149,6 @@ export function PagesRail({
         )}
       </div>
 
-      {notice && tab !== "layers" && notice}
       {fieldShown && (
         <label className="mx-2.5 mt-2 flex h-8 shrink-0 items-center gap-2 rounded-lg bg-muted/70 px-2.5 transition-[background-color,box-shadow] duration-150 focus-within:bg-card focus-within:ring-2 focus-within:ring-ring/60 focus-within:ring-inset">
           <Search aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
@@ -228,6 +227,7 @@ export function PagesRail({
             const pending = !!storyboardRunning && !page.hasRendering && !page.isDiscarded
             const hasActivity = page.sections.some((s) => s.isActivity && !s.isPruned)
             const outdated = outdatedPageIds?.has(page.pageId) ?? false
+            const rebuilding = outdated && (rebuildingPageIds?.has(page.pageId) ?? false)
             return (
               <div
                 key={page.pageId}
@@ -244,7 +244,7 @@ export function PagesRail({
                     t`Page ${page.pageNumber}`,
                     page.isDiscarded ? t`discarded` : null,
                     pending ? t`still being built` : null,
-                    outdated ? t`out of date` : null,
+                    rebuilding ? t`being rebuilt` : outdated ? t`out of date` : null,
                     hasActivity ? t`has an interactive activity` : null,
                   ]
                     .filter(Boolean)
@@ -279,10 +279,14 @@ export function PagesRail({
                     />
                     {outdated && (
                       <span
-                        title={t`Out of date`}
+                        title={rebuilding ? t`Rebuilding this page` : t`Out of date`}
                         className="absolute -bottom-1 -right-1 grid size-4 place-items-center rounded-full bg-amber-500 text-white ring-1 ring-background"
                       >
-                        <AlertTriangle className="size-2.5" />
+                        {rebuilding ? (
+                          <Loader2 className="size-2.5 animate-spin motion-reduce:animate-none" />
+                        ) : (
+                          <AlertTriangle className="size-2.5" />
+                        )}
                       </span>
                     )}
                     {hasActivity && (

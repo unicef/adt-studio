@@ -2,7 +2,8 @@ import { forwardRef, useEffect, useRef, useState, type ComponentPropsWithoutRef,
 import { useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
 import { StackedRuns, toStageRuns } from "./MultiRun"
-import { Check, type LucideIcon } from "lucide-react"
+import { Check, RefreshCw, type LucideIcon } from "lucide-react"
+import { StaleRing } from "./StaleRing"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { NO_DRAG_REGION } from "@/constants"
@@ -16,9 +17,9 @@ import { useStageError } from "@/components/app/screens/pipeline/steps/shared/Ru
 import { useDescribeProblem, type ProblemStage } from "@/components/app/screens/pipeline/steps/shared/problems/useDescribeProblem"
 import { problemTone, type ProblemTone } from "@/components/app/screens/pipeline/steps/shared/problems/problemTone"
 
-type Tone = "run" | ProblemTone | "done"
+type Tone = "run" | ProblemTone | "done" | "stale"
 
-interface RingModel {
+export interface RingModel {
   tone: Tone
   icon: LucideIcon
   hex: string
@@ -39,7 +40,7 @@ function StageDot({ icon: Icon, hex }: { icon: LucideIcon; hex: string }) {
   )
 }
 
-function Ring({ model }: { model: RingModel }) {
+export function Ring({ model }: { model: RingModel }) {
   const running = model.tone === "run"
   const failed = model.tone === "attention" || model.tone === "critical"
   const filled = running && model.fraction !== null ? model.fraction * LENGTH : LENGTH * 0.25
@@ -82,6 +83,11 @@ function Ring({ model }: { model: RingModel }) {
           !
         </span>
       )}
+      {model.tone === "stale" && (
+        <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-amber-400 text-zinc-950 ring-2 ring-card">
+          <RefreshCw className="size-2.5" strokeWidth={3} />
+        </span>
+      )}
       {running && model.waiting > 0 && (
         <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-violet-600 px-1 font-mono text-[9.5px] font-bold text-white ring-2 ring-card">
           {model.waiting + 1}
@@ -91,7 +97,7 @@ function Ring({ model }: { model: RingModel }) {
   )
 }
 
-const RingButton = forwardRef<HTMLButtonElement, ComponentPropsWithoutRef<"button"> & { label: string; children: ReactNode }>(
+export const RingButton = forwardRef<HTMLButtonElement, ComponentPropsWithoutRef<"button"> & { label: string; children: ReactNode }>(
   function RingButton({ label, children, className, ...rest }, ref) {
     return (
       <button
@@ -208,5 +214,5 @@ export function StatusRing({ label }: { label: string }) {
   }
 
   const failed = STAGES.find((stage) => stage.slug !== "book" && stageState(stage.slug) === "error")
-  return failed ? <FailedRing label={label} slug={failed.slug} /> : null
+  return failed ? <FailedRing label={label} slug={failed.slug} /> : <StaleRing label={label} />
 }

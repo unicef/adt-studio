@@ -8,10 +8,9 @@ export interface PipelineTopBarProps {
   version?: number | null
   versionPicker?: React.ReactNode
   onOpenSettings?: () => void
-  stale?: React.ReactNode
 }
 
-export function PipelineTopBar({ pageLabel, version, versionPicker, onOpenSettings, stale }: PipelineTopBarProps) {
+export function PipelineTopBar({ pageLabel, version, versionPicker, onOpenSettings }: PipelineTopBarProps) {
   const { t } = useLingui()
   const versionNode =
     versionPicker ??
@@ -28,7 +27,7 @@ export function PipelineTopBar({ pageLabel, version, versionPicker, onOpenSettin
         area: <Trans>Storyboard</Trans>,
         item: pageLabel,
         version: versionNode,
-        note: pageLabel ? stale : <Trans>no sections yet</Trans>,
+        note: pageLabel ? undefined : <Trans>no sections yet</Trans>,
       }}
       settings={onOpenSettings ? { label: t`Storyboard settings`, onOpen: onOpenSettings } : undefined}
     />

@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { DOCK_GROUP_ORDER } from "@/components/app/screens/pipeline/shared/plugins";
-import type { DockItem } from "@/components/app/screens/pipeline/shared/usePipelineState";
+import { usePipelineState, type DockItem } from "@/components/app/screens/pipeline/shared/usePipelineState";
+import { useStoryboardStaleness } from "@/components/app/screens/pipeline/runs/useStoryboardStaleness";
 import type { PluginDockProps } from "./PluginDock";
 import { useVariant } from "@/components/app/lab/variants";
 import { markJustAdded } from "@/components/app/lab/outputs";
@@ -33,18 +34,21 @@ export function PluginDockPills({
   const simulating = !!bookLabel?.startsWith("lab-") && sbSim !== "real";
   const boardState = stageState("storyboard");
   const pages = usePages(bookLabel ?? "");
+  const staleness = useStoryboardStaleness(bookLabel ?? "", usePipelineState(bookLabel ?? "").pages);
   const storyboard = {
     active: onStoryboard,
     locked: stageState("sectioning") !== "done",
     done: boardState === "done" && !(simulating && sbSim === "building"),
     state: boardState,
-    status: (simulating && sbSim !== "setupfail"
+    status: (simulating && sbSim !== "setupfail" && sbSim !== "outdated"
       ? sbSim
       : boardState === "running" || boardState === "queued"
         ? "building"
         : boardState === "error"
           ? "failed"
-          : "ready") as StoryboardStatus,
+          : staleness.isStale
+            ? "outdated"
+            : "ready") as StoryboardStatus,
     setupProblem: (simulating && sbSim === "setupfail") || foundations.some((item) => item.state === "error"),
     onClick: nav.openWorkspace,
     pageCount: pages.data?.length,
