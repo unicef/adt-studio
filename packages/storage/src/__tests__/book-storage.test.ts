@@ -74,6 +74,20 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
+  it("reports the highest node version while ignoring every excluded node", () => {
+    const { storage } = createTempStorage()
+
+    storage.putNodeData("metadata", "book", { title: "Test" })
+    storage.putNodeData("publication", "book", { version: 1 })
+    storage.putNodeData("publication-pending-commit", "book", { version: 1 })
+    storage.putNodeData("publication-pending-commit", "book", { version: 2 })
+
+    expect(storage.maxNodeVersionExcluding("publication")).toBe(2)
+    expect(storage.maxNodeVersionExcluding("publication", "publication-pending-commit")).toBe(1)
+
+    storage.close()
+  })
+
   it("stores metadata via putNodeData", () => {
     const { storage } = createTempStorage()
 

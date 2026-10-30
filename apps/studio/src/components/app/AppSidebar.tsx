@@ -27,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import { Kbd, MOD_KEY } from "./ui/Kbd"
 import { APP_PATHS, activeAppView } from "./nav"
+import { SETTINGS_PATHS } from "./screens/settings/nav"
 import type { AppView } from "./types"
 import { useUpdateDialog } from "@/components/updates"
 import { SidebarLogo } from "./SidebarLogo"
@@ -153,8 +154,7 @@ export function AppSidebar({
 
       <div className="flex items-center gap-1.5 pt-1.5">
         <Link
-          to={APP_PATHS.settings}
-          search={sharingUpdate ? { section: "publishing" } : undefined}
+          to={sharingUpdate ? SETTINGS_PATHS.publishing : APP_PATHS.settings}
           aria-label={sharingUpdate ? t`Settings — a sharing update is ready` : undefined}
           className="flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
         >

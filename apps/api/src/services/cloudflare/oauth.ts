@@ -619,11 +619,11 @@ export function createCloudflareOAuthService(
   return {
     async start() {
       pruneFlows()
-      if (pendingFlow()) {
-        throw new CloudflareOAuthError(
-          "oauth_flow_pending",
-          "A Cloudflare login is already waiting in the browser. Finish it, or wait a moment and start again.",
-        )
+      for (let waiting = pendingFlow(); waiting; waiting = pendingFlow()) {
+        waiting.status = "expired"
+        waiting.errorCode = "oauth_expired"
+        waiting.errorMessage = "A newer Cloudflare login replaced this one."
+        await releaseListener(waiting)
       }
 
       const codeVerifier = generateCodeVerifier()

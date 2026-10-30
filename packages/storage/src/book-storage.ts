@@ -496,12 +496,13 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       db.run("DELETE FROM step_runs WHERE status = 'running'")
     },
 
-    /** The highest version written to any node but `excluded` — a single number that moves
-     *  whenever a pipeline step or a manual edit stores something, and stays put otherwise. */
-    maxNodeVersionExcluding(excluded: string): number | null {
+    /** The highest version written to any node but the `excluded` ones — a single number that
+     *  moves whenever a pipeline step or a manual edit stores something, and stays put otherwise. */
+    maxNodeVersionExcluding(...excluded: string[]): number | null {
+      const filter = excluded.length > 0 ? ` WHERE node NOT IN (${excluded.map(() => "?").join(", ")})` : ""
       const rows = db.all(
-        "SELECT MAX(version) AS max_version FROM node_data WHERE node != ?",
-        [excluded],
+        `SELECT MAX(version) AS max_version FROM node_data${filter}`,
+        excluded,
       ) as Array<{ max_version: number | null }>
       return rows[0]?.max_version ?? null
     },

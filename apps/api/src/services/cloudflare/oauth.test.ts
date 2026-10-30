@@ -116,10 +116,12 @@ describe("cloudflare oauth", () => {
       )
     })
 
-    it("refuses a second flow while one is still waiting in the browser", async () => {
+    it("replaces a flow that is still waiting in the browser", async () => {
       const { service } = build()
-      await service.start()
-      await expect(service.start()).rejects.toMatchObject({ code: "oauth_flow_pending" })
+      const first = await service.start()
+      const second = await service.start()
+      expect(service.status(first.state)).toMatchObject({ status: "expired", errorCode: "oauth_expired" })
+      expect(service.status(second.state)).toMatchObject({ status: "pending" })
     })
   })
 
