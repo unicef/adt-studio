@@ -127,7 +127,7 @@ Decisions for the reviewer to ratify:
 
 ### Keeping, accepting and replacing protected work
 
-Three verbs. **Keep** needs no action anywhere: ordinary reruns skip protected content (decisions 2–5). **Accept as valid after an upstream change** uses SPEC-0001's guarded review actions. Translation has per-output lineage; Sectioning, quiz and TOC generation now have generator input notices and guarded Keep/Re-run actions under merged SPEC-0001 clarification C1 and Note 7. Accepting an input baseline does not change authorship or grant replacement consent. **Replace** is explicit and per entity:
+Three verbs. **Keep** needs no action anywhere: ordinary reruns skip protected content (decisions 2–5). **Accept as valid after an upstream change** uses SPEC-0001's guarded review actions. Translation has per-output lineage; Quiz, glossary and TOC generation now have generator input notices and guarded Keep/Re-run actions under merged SPEC-0001 clarification C1 and Note 7. Accepting an input baseline does not change authorship or grant replacement consent. **Replace** is explicit and per entity:
 
 | Entity | Explicit replacement | Owner and dependency |
 |---|---|---|
