@@ -2605,6 +2605,9 @@ msgstr "Centro"
 msgid "Change"
 msgstr "Alterar"
 
+msgid "Change and send"
+msgstr "Mudar e enviar"
+
 msgid "Change how you share"
 msgstr "Mudar como você compartilha"
 
@@ -2631,6 +2634,9 @@ msgstr "Alterar o idioma pode afetar o trabalho salvo."
 
 #~ msgid "Changing the language resets downstream work."
 #~ msgstr "Alterar o idioma redefine o trabalho das etapas seguintes."
+
+msgid "Changing this sends a fresh copy, so readers also get the edits you haven't shared yet."
+msgstr "Mudar isso envia uma cópia nova, então os leitores também recebem as edições que você ainda não compartilhou."
 
 msgid "Chapter"
 msgstr "Capítulo"
@@ -2977,6 +2983,9 @@ msgstr "Comentários ({0})"
 
 msgid "Comments couldn't be loaded right now. They're safe — try again in a moment."
 msgstr "Não foi possível carregar os comentários agora. Eles estão seguros — tente de novo em instantes."
+
+msgid "Comments off for readers"
+msgstr "Comentários desativados para os leitores"
 
 msgid "Comments to read"
 msgstr "Comentários para ler"
@@ -6211,6 +6220,9 @@ msgstr "Legenda"
 
 msgid "Lenient"
 msgstr "Flexível"
+
+msgid "Let readers comment and see each other"
+msgstr "Permitir que os leitores comentem e vejam uns aos outros"
 
 msgid "Let the agent choose"
 msgstr "Deixe o agente escolher"
@@ -10464,6 +10476,9 @@ msgstr "Envia o texto da frase vizinha junto com cada solicitação para que o E
 
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Envie este arquivo de projeto de volta ao coordenador para mesclá-lo no livro de origem."
+
+msgid "Send your latest edits too?"
+msgstr "Enviar também suas edições mais recentes?"
 
 msgid "Sending it to your Cloudflare account"
 msgstr "Enviando para sua conta Cloudflare"

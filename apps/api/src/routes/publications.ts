@@ -1002,6 +1002,10 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       revoked_at: response.publication.revoked_at,
       has_access_code: response.has_access_code,
       access_code: response.has_access_code ? (body.data.access_code ?? record.access_code) : null,
+      features:
+        body.data.comments === undefined
+          ? record.features
+          : { ...(record.features ?? {}), comments: body.data.comments },
     })
 
     return c.json(response)

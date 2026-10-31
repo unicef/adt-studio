@@ -2607,6 +2607,9 @@ msgstr "Qendër"
 msgid "Change"
 msgstr "Ndrysho"
 
+msgid "Change and send"
+msgstr "Ndrysho dhe dërgo"
+
 msgid "Change how you share"
 msgstr "Ndrysho mënyrën si ndan"
 
@@ -2633,6 +2636,9 @@ msgstr "Ndryshimi i gjuhës mund të ndikojë në punën e ruajtur."
 
 #~ msgid "Changing the language resets downstream work."
 #~ msgstr "Ndryshimi i gjuhës rivendos punën e mëvonshme."
+
+msgid "Changing this sends a fresh copy, so readers also get the edits you haven't shared yet."
+msgstr "Ky ndryshim dërgon një kopje të re, kështu që lexuesit marrin edhe ndryshimet që nuk i keni ndarë ende."
 
 msgid "Chapter"
 msgstr "Kapitull"
@@ -2979,6 +2985,9 @@ msgstr "Komente ({0})"
 
 msgid "Comments couldn't be loaded right now. They're safe — try again in a moment."
 msgstr "Komentet nuk u ngarkuan dot tani. Janë të sigurt — provoni përsëri pas pak."
+
+msgid "Comments off for readers"
+msgstr "Komentet janë çaktivizuar për lexuesit"
 
 msgid "Comments to read"
 msgstr "Komentet për të lexuar"
@@ -6213,6 +6222,9 @@ msgstr "Legjenda"
 
 msgid "Lenient"
 msgstr "I butë"
+
+msgid "Let readers comment and see each other"
+msgstr "Lejo lexuesit të komentojnë dhe të shohin njëri-tjetrin"
 
 msgid "Let the agent choose"
 msgstr "Lëre agjentin të zgjedhë"
@@ -10466,6 +10478,9 @@ msgstr "Dërgon tekstin e fjalisë fqinje së bashku me çdo kërkesë në mëny
 
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Dërgojeni këtë arkiv projekti te koordinatori për ta bashkuar në librin burim."
+
+msgid "Send your latest edits too?"
+msgstr "Të dërgohen edhe ndryshimet tuaja më të fundit?"
 
 msgid "Sending it to your Cloudflare account"
 msgstr "Duke e dërguar në llogarinë tuaj Cloudflare"

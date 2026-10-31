@@ -37,6 +37,7 @@ export function useShareForm(available: AvailableExportFeatures) {
   const [code, setCodeRaw] = useState(() => generateAccessCode())
   const [expiry, setExpiry] = useState<ExpiryChoiceValue>(DEFAULT_EXPIRY_CHOICE)
   const [include, setInclude] = useState<IncludeChoiceValue>(DEFAULT_INCLUDE_CHOICE)
+  const [comments, setComments] = useState(true)
 
   /** A book with no narration shows no narration row, rather than a switch that does nothing. */
   const includeRows = (
@@ -68,10 +69,13 @@ export function useShareForm(available: AvailableExportFeatures) {
       setInclude((current) => ({ ...current, [key]: !current[key] })),
     includeRows,
     includedCount: included.length,
+    comments,
+    toggleComments: () => setComments((current) => !current),
     /** What the publish route takes. Built at the moment of sharing, so an end date is counted
      *  from the click, not from when the page opened. */
     toPublishOptions: () => {
-      const features = includeChoiceToFeatures(include)
+      const included = includeChoiceToFeatures(include)
+      const features = comments ? included : { ...included, comments: false }
       return {
         expiresAt: expiryChoiceToIso(expiry),
         accessCode: access === "code" ? normalizeAccessCodeInput(code) : null,

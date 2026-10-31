@@ -16,6 +16,8 @@ import type { PublicationStore } from "./store.js"
 export interface GateStrings {
   badge: string
   intro: string
+  introReadOnly: string
+  introName: string
   nameLabel: string
   codeLabel: string
   hint: string
@@ -28,6 +30,8 @@ export const GATE_STRINGS = {
   en: {
     badge: "Access code needed",
     intro: "You've been invited to read this book and leave comments. Enter your name and the code you were given.",
+    introReadOnly: "You've been invited to read this book. Enter your name and the code you were given.",
+    introName: "You've been invited to read this book. Enter your name to start.",
     nameLabel: "Your name",
     codeLabel: "Access code",
     hint: "Capital or small letters both work.",
@@ -38,6 +42,8 @@ export const GATE_STRINGS = {
   "pt-BR": {
     badge: "Código de acesso necessário",
     intro: "Você recebeu um convite para ler este livro e deixar comentários. Digite seu nome e o código que você recebeu.",
+    introReadOnly: "Você recebeu um convite para ler este livro. Digite seu nome e o código que você recebeu.",
+    introName: "Você recebeu um convite para ler este livro. Digite seu nome para começar.",
     nameLabel: "Seu nome",
     codeLabel: "Código de acesso",
     hint: "Pode usar letras maiúsculas ou minúsculas.",
@@ -48,6 +54,8 @@ export const GATE_STRINGS = {
   es: {
     badge: "Se necesita un código de acceso",
     intro: "Te invitaron a leer este libro y dejar comentarios. Escribe tu nombre y el código que te dieron.",
+    introReadOnly: "Te invitaron a leer este libro. Escribe tu nombre y el código que te dieron.",
+    introName: "Te invitaron a leer este libro. Escribe tu nombre para empezar.",
     nameLabel: "Tu nombre",
     codeLabel: "Código de acceso",
     hint: "Puedes usar mayúsculas o minúsculas.",
@@ -58,6 +66,8 @@ export const GATE_STRINGS = {
   fr: {
     badge: "Code d'accès requis",
     intro: "On vous invite à lire ce livre et à laisser des commentaires. Saisissez votre nom et le code qui vous a été donné.",
+    introReadOnly: "On vous invite à lire ce livre. Saisissez votre nom et le code qui vous a été donné.",
+    introName: "On vous invite à lire ce livre. Saisissez votre nom pour commencer.",
     nameLabel: "Votre nom",
     codeLabel: "Code d'accès",
     hint: "Majuscules ou minuscules, les deux fonctionnent.",
@@ -68,6 +78,8 @@ export const GATE_STRINGS = {
   sq: {
     badge: "Nevojitet kodi i hyrjes",
     intro: "Jeni ftuar ta lexoni këtë libër dhe të lini komente. Shkruani emrin tuaj dhe kodin që ju është dhënë.",
+    introReadOnly: "Jeni ftuar ta lexoni këtë libër. Shkruani emrin tuaj dhe kodin që ju është dhënë.",
+    introName: "Jeni ftuar ta lexoni këtë libër. Shkruani emrin tuaj për të filluar.",
     nameLabel: "Emri juaj",
     codeLabel: "Kodi i hyrjes",
     hint: "Mund të përdorni shkronja të mëdha ose të vogla.",

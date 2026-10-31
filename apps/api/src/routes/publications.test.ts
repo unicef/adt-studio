@@ -930,6 +930,19 @@ describe("managing a live publication", () => {
     expect(worker.state.accessCodes.get(TOKEN)).toBe("RAVEN7")
   })
 
+  it("remembers turning comments off so the next update shares read-only", async () => {
+    const { app } = routes()
+    await publishOnce(app)
+
+    const response = await app.request(`/books/${LABEL}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ comments: false }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(readPublicationRecord(LABEL, tmpDir)?.features?.comments).toBe(false)
+  })
+
   it("forgets the local code when the worker says the lock is gone", async () => {
     const { app } = routes()
     await publishOnce(app)

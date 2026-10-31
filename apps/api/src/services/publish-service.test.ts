@@ -168,6 +168,22 @@ describe("publishing a book", () => {
     expect(events.at(-1)).toMatchObject({ type: "complete" })
   })
 
+  it("shares read-only: bakes comments off, records it, and an update keeps it", async () => {
+    const { worker, options, cloudflare } = harness()
+
+    const first = await publishBook({ ...options, features: { comments: false } })
+
+    const firstUpload = worker.state.uploads.keys().next().value as string
+    const firstConfig = uploadedAssetText(cloudflare, `/uploads/${firstUpload}/assets/config.json`)
+    expect(JSON.parse(firstConfig!).features.comments).toBe(false)
+    expect(readPublicationRecord(LABEL, tmpDir)?.features?.comments).toBe(false)
+
+    await republishBook({ ...options, record: first.record })
+    const uploads = [...worker.state.uploads.keys()]
+    const secondConfig = uploadedAssetText(cloudflare, `/uploads/${uploads.at(-1)}/assets/config.json`)
+    expect(JSON.parse(secondConfig!).features.comments).toBe(false)
+  })
+
   it("reports every step in order and finishes each one", async () => {
     const { events, options } = harness()
     await publishBook(options)

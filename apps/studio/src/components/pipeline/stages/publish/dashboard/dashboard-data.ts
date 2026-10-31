@@ -15,6 +15,7 @@ import {
   useBookPublication,
   useRevokePublication,
   useSetPublicationAccessCode,
+  useSetPublicationComments,
   useSetPublicationExpiry,
 } from "@/hooks/use-book-publication"
 import { useBook } from "@/hooks/use-books"
@@ -107,6 +108,9 @@ export interface DashLink {
    *  `onDone` runs once the service has taken it. */
   setAccessCode: (code: string | null, onDone?: () => void) => void
   accessBusy: boolean
+  comments: boolean
+  setComments: (on: boolean) => void
+  commentsBusy: boolean
   /** An ISO end date, or `null` for none. */
   setExpiry: (iso: string | null) => void
   expiryBusy: boolean
@@ -178,6 +182,7 @@ export function useSharingLink(bookLabel: string, run: BookPublishRunController)
   const accessCode = useSetPublicationAccessCode(bookLabel)
   const expiry = useSetPublicationExpiry(bookLabel)
   const revoke = useRevokePublication(bookLabel)
+  const comments = useSetPublicationComments(bookLabel)
   const record = status.data?.record ?? null
   const newest = [...(record?.versions ?? [])].sort((a, b) => b.version - a.version)[0] ?? null
   const published = newest?.content_revision ?? null
@@ -201,12 +206,15 @@ export function useSharingLink(bookLabel: string, run: BookPublishRunController)
       accessCode.mutate(code, { onSuccess: () => onDone?.() })
     },
     accessBusy: accessCode.isPending,
+    comments: (status.data?.publication?.comments ?? record?.features?.comments) !== false,
+    setComments: (on) => comments.mutate(on, { onSuccess: () => run.update() }),
+    commentsBusy: comments.isPending,
     setExpiry: (iso) => {
       accessCode.reset()
       expiry.mutate(iso)
     },
     expiryBusy: expiry.isPending,
-    changeFailed: accessCode.isError || expiry.isError,
+    changeFailed: accessCode.isError || expiry.isError || comments.isError,
     revoke: (onDone) => revoke.mutate(undefined, { onSuccess: () => onDone?.() }),
     revoking: revoke.isPending,
     revokeError: revoke.isError ? t`The link is still up. Check the connection and try again.` : null,
@@ -214,6 +222,7 @@ export function useSharingLink(bookLabel: string, run: BookPublishRunController)
       accessCode.reset()
       expiry.reset()
       revoke.reset()
+      comments.reset()
     },
   }
 }

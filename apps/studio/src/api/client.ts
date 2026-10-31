@@ -2561,6 +2561,12 @@ export const api = {
       body: JSON.stringify({ access_code: accessCode }),
     }),
 
+  setBookPublicationComments: (label: string, comments: boolean) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ comments }),
+    }),
+
   // --- Publication feedback ---
 
   getPublicationPages: (label: string) =>

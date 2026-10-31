@@ -56,6 +56,7 @@ export interface PublishSnapshotInput {
   files: Record<string, string>
   expiresAt?: string | null
   accessCode?: string
+  comments?: boolean
 }
 
 async function sha256(bytes: Uint8Array): Promise<string> {
@@ -90,6 +91,7 @@ export async function publishSnapshot(
             book_label: input.bookLabel ?? "book",
             expires_at: input.expiresAt,
             access_code: input.accessCode,
+            comments: input.comments,
           }),
       page_manifest: input.pageManifest,
       files: files.map(({ path, bytes, sha256 }) => ({ path, bytes, sha256 })),

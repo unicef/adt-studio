@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, ArrowUpCircle, BookOpen, CheckCircle2, KeyRound, Loader2, RefreshCw, Settings2 } from "lucide-react"
+import { AlertTriangle, ArrowUpCircle, BookOpen, CheckCircle2, KeyRound, Loader2, MessageSquareOff, RefreshCw, Settings2 } from "lucide-react"
 import { getBookCoverUrl } from "@/api/client"
 import { RelativeTime } from "@/components/publication-feedback/RelativeTime"
 import { Button } from "@/components/ui/button"
@@ -89,6 +89,17 @@ function HeroIdentity({ link, onOpenSettings, quiet }: { link: DashLink; onOpenS
               </span>
             </>
           ) : null}
+          {link.comments ? null : (
+            <>
+              <span aria-hidden="true" className="text-border">
+                •
+              </span>
+              <span className="flex items-center gap-1">
+                <MessageSquareOff className="size-3.5" aria-hidden="true" />
+                <Trans>Comments off for readers</Trans>
+              </span>
+            </>
+          )}
         </p>
 
         {!link.workerReachable && link.changesWaiting === true ? (
