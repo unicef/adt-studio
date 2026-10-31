@@ -13060,7 +13060,7 @@ msgstr "Versión {0} → {1}. Tus libros compartidos siguen en línea mientras e
 #. placeholder {0}: publication.current_version
 #. placeholder {1}: publication.version_count
 msgid "Version {0} of {1}, not being served"
-msgstr "Versión {0} de {1}, sin publicar"
+msgstr "Versión {0} de {1}, no disponible"
 
 msgid "Version {current}"
 msgstr "Versión {current}"

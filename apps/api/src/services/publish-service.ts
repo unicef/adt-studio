@@ -311,7 +311,7 @@ export function readAllPublicationTokens(booksDir: string): string[] {
 }
 
 /**
- * The highest `node_data` version across every node except the publication's own records.
+ * The newest `node_data` write across every node except the publication's own records.
  *
  * The exclusion is the point: the record and its pending commit live in the same table, so
  * counting either would make every publish look like a fresh edit and "you have unpublished
@@ -321,7 +321,7 @@ export function readContentRevision(label: string, booksDir: string): number | n
   const { safeLabel } = requireBook(label, booksDir)
   const storage = createBookStorage(safeLabel, path.resolve(booksDir))
   try {
-    return storage.maxNodeVersionExcluding(BOOK_PUBLICATION_NODE, PENDING_COMMIT_NODE)
+    return storage.latestNodeWriteExcluding(BOOK_PUBLICATION_NODE, PENDING_COMMIT_NODE)
   } catch {
     return null
   } finally {

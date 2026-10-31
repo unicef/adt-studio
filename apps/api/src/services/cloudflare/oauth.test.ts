@@ -294,6 +294,32 @@ describe("cloudflare oauth", () => {
       expect(store.readOAuth()).toBeNull()
     })
 
+    it("never saves a login that a newer one replaced mid-exchange", async () => {
+      const fake = createFakeCloudflare()
+      let release: () => void = () => {}
+      const held = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      const { service, listener } = build({}, {
+        fetchFn: async (input, init) => {
+          if (String(input).includes("/oauth2/token")) await held
+          return fake.fetchFn(input, init)
+        },
+      })
+      const first = await service.start()
+      const firstHandle = listener.handle!
+      const exchange = firstHandle(callbackUrl({ code: "auth-code", state: first.state }))
+
+      const second = await service.start()
+      release()
+      const result = await exchange
+
+      expect(result.html).toContain("newer Cloudflare login replaced")
+      expect(service.status(first.state).status).toBe("expired")
+      expect(service.status(second.state).status).toBe("pending")
+      expect(store.readOAuth()).toBeNull()
+    })
+
     it("keeps waiting when another tab owns the same login", async () => {
       const { service, listener } = build()
       const flow = await service.start()
