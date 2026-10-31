@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { type StageName } from "@adt/types"
+import { type StageName, type StepWarning } from "@adt/types"
 import {
   getBookOverviewStages,
   isPipelineStage,
@@ -64,6 +64,7 @@ export function BookView({ bookLabel }: ViewProps) {
     stepState,
     stepProgress,
     stepError,
+    stepWarnings,
     error: runError,
   } = useBookRun()
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
@@ -133,6 +134,7 @@ export function BookView({ bookLabel }: ViewProps) {
       stepState,
       stepProgress,
       stepError,
+      stepWarnings,
       runError,
     }
   }
@@ -273,6 +275,7 @@ interface HomeStageCardProps {
   stepState: (key: string) => string
   stepProgress: (key: string) => { page?: number; totalPages?: number } | undefined
   stepError: (key: string) => string | undefined
+  stepWarnings: (key: string) => StepWarning[]
   runError: string | null
 }
 
@@ -287,6 +290,7 @@ function HomeStageCard({
   stepState,
   stepProgress,
   stepError,
+  stepWarnings,
   runError,
 }: HomeStageCardProps) {
   const navigate = useNavigate()
@@ -381,6 +385,7 @@ function HomeStageCard({
               stepState={stepState}
               stepProgress={stepProgress}
               stepError={stepError}
+              stepWarnings={stepWarnings}
             />
           )}
         </div>

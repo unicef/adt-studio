@@ -43,6 +43,9 @@ msgstr ", y "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? Esto eliminará todos los datos extraídos y no se puede deshacer."
 
+msgid "… and {more} more"
+msgstr "… y {more} más"
+
 msgid ".zip → added as-is"
 msgstr ".zip → añadido tal cual"
 
@@ -128,10 +131,18 @@ msgstr "{0, plural, one {# salida} other {# salidas}}"
 msgid "{0, plural, one {# page added} other {# pages added}}"
 msgstr "{0, plural, one {# página añadida} other {# páginas añadidas}}"
 
+#. placeholder {0}: warning.pages.length
+msgid "{0, plural, one {# page kept its extracted images unchanged because the model call failed.} other {# pages kept their extracted images unchanged because the model call failed.}}"
+msgstr "{0, plural, one {# página conservó sus imágenes extraídas sin cambios porque falló la llamada al modelo.} other {# páginas conservaron sus imágenes extraídas sin cambios porque falló la llamada al modelo.}}"
+
 #. placeholder {0}: preview.replacedPageNumbers.length
 #. placeholder {0}: result.replacedPages
 msgid "{0, plural, one {# page replaced} other {# pages replaced}}"
 msgstr "{0, plural, one {# página reemplazada} other {# páginas reemplazadas}}"
+
+#. placeholder {0}: warning.count
+msgid "{0, plural, one {# page was skipped after it failed.} other {# pages were skipped after they failed.}}"
+msgstr "{0, plural, one {Se omitió # página porque falló.} other {Se omitieron # páginas porque fallaron.}}"
 
 #. placeholder {0}: Math.max(0, endPage - startPage + 1)
 #. placeholder {0}: book.pageCount
@@ -568,6 +579,9 @@ msgstr "{inProgress, plural, one {# en progreso} other {# en progreso}}"
 #. placeholder {0}: issueCount === 1 ? "issue" : "issues"
 #~ msgid "{issueCount} {0}"
 #~ msgstr "{issueCount} {0}"
+
+msgid "{issues, plural, one {The source PDF assessment found # issue to check.} other {The source PDF assessment found # issues to check.}}"
+msgstr "{issues, plural, one {La evaluación del PDF de origen encontró # problema por revisar.} other {La evaluación del PDF de origen encontró # problemas por revisar.}}"
 
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
@@ -3022,6 +3036,9 @@ msgstr "Completado"
 
 msgid "Completed Part"
 msgstr "Parte completada"
+
+msgid "Completed with a warning"
+msgstr "Completado con una advertencia"
 
 msgid "Completion"
 msgstr "Finalización"
@@ -7192,6 +7209,9 @@ msgstr "No se encontraron versiones beta"
 
 msgid "No book outline has been extracted yet."
 msgstr "Aún no se ha extraído ningún esquema del libro."
+
+msgid "No book summary was created because the model call failed. Later steps run without it."
+msgstr "No se creó el resumen del libro porque falló la llamada al modelo. Los pasos siguientes se ejecutan sin él."
 
 msgid "No books match your search"
 msgstr "Ningún libro coincide con tu búsqueda"
