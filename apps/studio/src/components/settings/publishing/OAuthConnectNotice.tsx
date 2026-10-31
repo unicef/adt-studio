@@ -75,6 +75,7 @@ function explain(code: CloudflareOAuthErrorCode | "unknown" | null): {
   title: ReactNode
   body: ReactNode
   showRemoteHint: boolean
+  showDetail: boolean
 } {
   switch (code) {
     case "oauth_denied":
@@ -88,6 +89,7 @@ function explain(code: CloudflareOAuthErrorCode | "unknown" | null): {
           </Trans>
         ),
         showRemoteHint: false,
+        showDetail: false,
       }
     case "oauth_port_busy":
       return {
@@ -100,6 +102,7 @@ function explain(code: CloudflareOAuthErrorCode | "unknown" | null): {
           </Trans>
         ),
         showRemoteHint: true,
+        showDetail: true,
       }
     case "oauth_flow_pending":
       return {
@@ -112,6 +115,7 @@ function explain(code: CloudflareOAuthErrorCode | "unknown" | null): {
           </Trans>
         ),
         showRemoteHint: false,
+        showDetail: false,
       }
     case "oauth_expired":
       return {
@@ -119,6 +123,7 @@ function explain(code: CloudflareOAuthErrorCode | "unknown" | null): {
         title: <Trans>The login took too long</Trans>,
         body: <Trans>It was cancelled for safety. Try again — it usually takes a few seconds.</Trans>,
         showRemoteHint: true,
+        showDetail: false,
       }
     case "oauth_no_accounts":
       return {
@@ -131,13 +136,15 @@ function explain(code: CloudflareOAuthErrorCode | "unknown" | null): {
           </Trans>
         ),
         showRemoteHint: false,
+        showDetail: false,
       }
     default:
       return {
         scene: <SceneInterrupted icon={<Unplug className="size-3.5" aria-hidden="true" />} />,
         title: <Trans>We couldn't connect to Cloudflare</Trans>,
-        body: <Trans>The login could not be finished. Try again, or use an API token instead.</Trans>,
+        body: <Trans>The login could not be finished. Try again in a moment.</Trans>,
         showRemoteHint: true,
+        showDetail: true,
       }
   }
 }
@@ -153,7 +160,7 @@ export function OAuthErrorNotice({
   detail,
   onRetry,
 }: OAuthErrorNoticeProps) {
-  const { scene, title, body, showRemoteHint } = explain(code)
+  const { scene, title, body, showRemoteHint, showDetail } = explain(code)
 
   return (
     <div
@@ -174,7 +181,7 @@ export function OAuthErrorNotice({
             </Trans>
           </p>
         )}
-        {detail && <p className="text-xs leading-5 text-muted-foreground/80">{detail}</p>}
+        {showDetail && detail && <p className="text-xs leading-5 text-muted-foreground/80">{detail}</p>}
       </div>
 
       <Button onClick={onRetry}>

@@ -223,13 +223,14 @@ describe("cloudflare routes", () => {
       expect(listener.handle).not.toBeNull()
     })
 
-    it("409s with a code when a flow is already pending", async () => {
-      const { app, listener } = buildApp()
-      await startOAuthFlow(app)
+    it("replaces a flow that is still pending", async () => {
+      const { app } = buildApp()
+      const first = await startOAuthFlow(app)
 
       const res = await app.request("/api/cloudflare/oauth/start", { method: "POST" })
-      expect(res.status).toBe(409)
-      expect(await res.json()).toMatchObject({ code: "oauth_flow_pending" })
+      expect(res.status).toBe(200)
+      const stale = await app.request(`/api/cloudflare/oauth/status?state=${first.state}`)
+      expect(await stale.json()).toMatchObject({ status: "expired", error: "oauth_expired" })
     })
 
     it("409s with a code when the callback port is taken", async () => {

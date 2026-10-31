@@ -28,6 +28,7 @@ import type { CloudflareConnectionRecord } from "./cloudflare/connection-store.j
 import { staticAssetHash, type RetainedStaticAsset, type StaticAsset } from "./cloudflare/static-assets.js"
 import type { BookHostArtifact } from "./cloudflare/worker-artifact.js"
 import { prepareExport, readBookTitle } from "./export-service.js"
+import { REVIEWER_PAGE_VALIDATION_NODE, REVIEWER_VALIDATION_SESSION_NODE } from "./reviewer-validation-service.js"
 import {
   createPublishWorkerClient,
   isPublishWorkerError,
@@ -311,16 +312,22 @@ export function readAllPublicationTokens(booksDir: string): string[] {
 }
 
 /**
- * The highest `node_data` version across every node except the publication record itself.
+ * The newest `node_data` write across every node except the publication's own records.
  *
- * The exclusion is the point: the record lives in the same table, so counting it would make
- * every publish look like a fresh edit and "you have unpublished changes" would never clear.
+ * The exclusion is the point: the record and its pending commit live in the same table, so
+ * counting either would make every publish look like a fresh edit and "you have unpublished
+ * changes" would never clear.
  */
 export function readContentRevision(label: string, booksDir: string): number | null {
   const { safeLabel } = requireBook(label, booksDir)
   const storage = createBookStorage(safeLabel, path.resolve(booksDir))
   try {
-    return storage.maxNodeVersionExcluding(BOOK_PUBLICATION_NODE)
+    return storage.latestNodeWriteExcluding(
+      BOOK_PUBLICATION_NODE,
+      PENDING_COMMIT_NODE,
+      REVIEWER_VALIDATION_SESSION_NODE,
+      REVIEWER_PAGE_VALIDATION_NODE,
+    )
   } catch {
     return null
   } finally {

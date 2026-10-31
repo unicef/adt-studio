@@ -60,7 +60,7 @@ export function CommentThread({
         </p>
       )}
 
-      <div className="flex max-h-64 flex-col gap-3 overflow-y-auto pr-0.5">
+      <div className="flex max-h-64 flex-col gap-3 overflow-y-auto pr-1">
         <CommentEntry
           comment={root}
           isSelf={session?.id === root.session_id}
