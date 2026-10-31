@@ -391,7 +391,7 @@ export class PublicationRoom {
     if (!token || !this.env.DB) return null
     try {
       const record = await createD1PublicationStore(this.env.DB).findRecord(token)
-      if (!record || publicationStateAt(record.publication) !== "active") {
+      if (!record || publicationStateAt(record.publication) !== "active" || record.publication.comments === false) {
         return { readers: considered, admitted: new Set() }
       }
       const current = new Set(this.state.getWebSockets(await codeTag(record.accessCode ?? "")))

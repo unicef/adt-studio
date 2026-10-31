@@ -2611,6 +2611,9 @@ msgstr "Centrar"
 msgid "Change"
 msgstr "Cambiar"
 
+msgid "Change and send"
+msgstr "Cambiar y enviar"
+
 msgid "Change how you share"
 msgstr "Cambia cómo compartes"
 
@@ -2637,6 +2640,9 @@ msgstr "Cambiar el idioma puede afectar al trabajo guardado."
 
 #~ msgid "Changing the language resets downstream work."
 #~ msgstr "Cambiar el idioma restablece el trabajo posterior."
+
+msgid "Changing this sends a fresh copy, so readers also get the edits you haven't shared yet."
+msgstr "Cambiar esto envía una copia nueva, así que los lectores también reciben los cambios que aún no compartiste."
 
 msgid "Chapter"
 msgstr "Capítulo"
@@ -2983,6 +2989,9 @@ msgstr "Comentarios ({0})"
 
 msgid "Comments couldn't be loaded right now. They're safe — try again in a moment."
 msgstr "No se pudieron cargar los comentarios ahora. Están a salvo; inténtalo de nuevo en un momento."
+
+msgid "Comments off for readers"
+msgstr "Comentarios desactivados para los lectores"
 
 msgid "Comments to read"
 msgstr "Comentarios para leer"
@@ -6217,6 +6226,9 @@ msgstr "Leyenda"
 
 msgid "Lenient"
 msgstr "Flexible"
+
+msgid "Let readers comment and see each other"
+msgstr "Permitir que los lectores comenten y se vean entre sí"
 
 msgid "Let the agent choose"
 msgstr "Deja que el agente elija"
@@ -10479,6 +10491,9 @@ msgstr "Envía el texto de la oración vecina junto con cada solicitud para que 
 
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Envía este archivo de proyecto al coordinador para combinarlo en el libro de origen."
+
+msgid "Send your latest edits too?"
+msgstr "¿Enviar también tus cambios más recientes?"
 
 msgid "Sending it to your Cloudflare account"
 msgstr "Enviándolo a tu cuenta de Cloudflare"

@@ -300,6 +300,13 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       }
     }
 
+    if (body.data.comments !== undefined) {
+      publication = await store.setComments(token.data, body.data.comments)
+      if (!publication) {
+        return errorResponse(c, "not_found", 404)
+      }
+    }
+
     if (!publication) {
       return errorResponse(c, "not_found", 404)
     }

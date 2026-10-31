@@ -2611,6 +2611,9 @@ msgstr "Center"
 msgid "Change"
 msgstr "Change"
 
+msgid "Change and send"
+msgstr "Change and send"
+
 msgid "Change how you share"
 msgstr "Change how you share"
 
@@ -2637,6 +2640,9 @@ msgstr "Changing the language may affect saved work."
 
 #~ msgid "Changing the language resets downstream work."
 #~ msgstr "Changing the language resets downstream work."
+
+msgid "Changing this sends a fresh copy, so readers also get the edits you haven't shared yet."
+msgstr "Changing this sends a fresh copy, so readers also get the edits you haven't shared yet."
 
 msgid "Chapter"
 msgstr "Chapter"
@@ -2983,6 +2989,9 @@ msgstr "Comments ({0})"
 
 msgid "Comments couldn't be loaded right now. They're safe — try again in a moment."
 msgstr "Comments couldn't be loaded right now. They're safe — try again in a moment."
+
+msgid "Comments off for readers"
+msgstr "Comments off for readers"
 
 msgid "Comments to read"
 msgstr "Comments to read"
@@ -6217,6 +6226,9 @@ msgstr "Legend"
 
 msgid "Lenient"
 msgstr "Lenient"
+
+msgid "Let readers comment and see each other"
+msgstr "Let readers comment and see each other"
 
 msgid "Let the agent choose"
 msgstr "Let the agent choose"
@@ -10479,6 +10491,9 @@ msgstr "Send the neighboring sentence's text alongside each request so ElevenLab
 
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Send this project archive back to the coordinator to merge into the source book."
+
+msgid "Send your latest edits too?"
+msgstr "Send your latest edits too?"
 
 msgid "Sending it to your Cloudflare account"
 msgstr "Sending it to your Cloudflare account"

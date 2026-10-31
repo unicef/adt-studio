@@ -94,6 +94,9 @@ function link(overrides: Partial<DashLink> = {}): DashLink {
     hasAccessCode: true,
     setAccessCode: vi.fn(),
     accessBusy: false,
+    comments: true,
+    setComments: vi.fn(),
+    commentsBusy: false,
     setExpiry: vi.fn(),
     expiryBusy: false,
     changeFailed: false,
@@ -321,6 +324,29 @@ describe("LinkSettingsPanel", () => {
   it("offers no fresh copy for a link readers can't open", () => {
     render(<LinkSettingsPanel link={link({ access: "ended" })} />)
     expect(screen.queryByRole("button", { name: /update link/i })).toBeNull()
+    expect(screen.queryByRole("switch", { name: /let readers comment and see each other/i })).toBeNull()
+  })
+
+  it("turns reader comments off from the link settings", () => {
+    const setComments = vi.fn()
+    render(<LinkSettingsPanel link={link({ setComments })} />)
+    fireEvent.click(screen.getByRole("switch", { name: /let readers comment and see each other/i }))
+    expect(setComments).toHaveBeenCalledWith(false)
+  })
+
+  it("asks before a comments change also sends unshared edits", () => {
+    const setComments = vi.fn()
+    render(<LinkSettingsPanel link={link({ setComments, changesWaiting: true })} />)
+    fireEvent.click(screen.getByRole("switch", { name: /let readers comment and see each other/i }))
+    expect(setComments).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain("edits you haven't shared yet")
+    fireEvent.click(screen.getByRole("button", { name: /change and send/i }))
+    expect(setComments).toHaveBeenCalledWith(false)
+  })
+
+  it("says in the hero when readers can't comment", () => {
+    render(<SharingHero link={link({ comments: false })} onOpenSettings={vi.fn()} />)
+    expect(document.body.textContent).toContain("Comments off for readers")
   })
 
   it("removes the code with a null update, after asking", () => {

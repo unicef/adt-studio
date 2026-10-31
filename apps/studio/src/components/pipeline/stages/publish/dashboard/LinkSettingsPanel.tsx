@@ -1,6 +1,7 @@
-import { useId, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, ArrowUpCircle, CalendarClock, Check, CloudOff, Copy, KeyRound, Loader2, LockOpen, RefreshCw, ShieldOff } from "lucide-react"
+import { AlertTriangle, ArrowUpCircle, CalendarClock, Check, CloudOff, Copy, KeyRound, Loader2, LockOpen, MessageSquare, MessageSquareOff, RefreshCw, ShieldOff } from "lucide-react"
+import { BrandedSwitch } from "@/components/ui/branded-switch"
 import { Button } from "@/components/ui/button"
 import { useCopyLink } from "@/hooks/use-copy-link"
 import { generateAccessCode } from "../access-code"
@@ -127,6 +128,7 @@ export function LinkSettingsPanel({ link, editEndDate = false }: { link: DashLin
 
       <EndDate link={link} locked={locked} initiallyEditing={editEndDate} />
       {link.access === "open" ? <UpdateLink link={link} /> : null}
+      {link.access === "open" ? <ReaderFeedback link={link} locked={locked} /> : null}
       <StopSharing link={link} locked={locked} />
 
       {!link.workerReachable ? (
@@ -233,6 +235,59 @@ function UpdateLink({ link }: { link: DashLink }) {
       >
         <Trans>Update link</Trans>
       </Button>
+    </div>
+  )
+}
+
+function ReaderFeedback({ link, locked }: { link: DashLink; locked: boolean }) {
+  const { t } = useLingui()
+  const [pending, setPending] = useState<boolean | null>(null)
+  const blocked = locked || link.commentsBusy
+  useEffect(() => {
+    if (blocked) setPending(null)
+  }, [blocked])
+  const apply = (on: boolean) => {
+    setPending(null)
+    link.setComments(on)
+  }
+  return (
+    <div className="flex flex-col gap-2 border-t pt-3">
+      <div className="flex items-center gap-2">
+        {link.comments ? (
+          <MessageSquare className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        ) : (
+          <MessageSquareOff className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        )}
+        <label htmlFor="link-comments" className="flex-1 cursor-pointer text-xs text-muted-foreground">
+          <Trans>Let readers comment and see each other</Trans>
+        </label>
+        {link.commentsBusy ? <Loader2 className="size-3.5 animate-spin text-muted-foreground motion-reduce:animate-none" aria-hidden="true" /> : null}
+        <BrandedSwitch
+          id="link-comments"
+          color="var(--accent-color, var(--primary))"
+          checked={pending ?? link.comments}
+          onCheckedChange={(on) => (link.changesWaiting === false ? apply(on) : setPending(on))}
+          disabled={blocked || pending !== null}
+          className="h-5 w-9 [&>span]:size-4 [&>span]:data-[state=checked]:translate-x-4"
+        />
+      </div>
+      {pending !== null ? (
+        <div
+          role="alertdialog"
+          aria-label={t`Send your latest edits too?`}
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 motion-safe:animate-in motion-safe:fade-in-0 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
+        >
+          <span className="min-w-0 flex-1">
+            <Trans>Changing this sends a fresh copy, so readers also get the edits you haven't shared yet.</Trans>
+          </span>
+          <Button size="sm" className="h-7 text-xs" autoFocus disabled={blocked} onClick={() => apply(pending)}>
+            <Trans>Change and send</Trans>
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setPending(null)}>
+            <Trans>Cancel</Trans>
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }

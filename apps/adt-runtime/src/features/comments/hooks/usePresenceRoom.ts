@@ -20,9 +20,11 @@ import {
   type RoomPeer,
 } from "@/features/comments/lib/room-protocol"
 import { createRoomSocket, type RoomSocket } from "@/features/comments/lib/room-socket"
+import { CommentsApiError } from "@/features/comments/lib/api"
 import type { CommentsRuntimeContext } from "@/features/comments/hooks/useCommentsContext"
 import {
   commentsAtom,
+  commentsStatusAtom,
   settlingPinIdAtom,
   showResolvedAtom,
 } from "@/features/comments/state/comments.atoms"
@@ -100,6 +102,8 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   const setViewports = useSetAtom(peerViewportsAtom)
   const setComments = useSetAtom(commentsAtom)
   const setSettling = useSetAtom(settlingPinIdAtom)
+  const gone = useAtomValue(commentsStatusAtom) === "gone"
+  const setCommentsStatus = useSetAtom(commentsStatusAtom)
 
   const socketRef = useRef<RoomSocket | null>(null)
   /** Who the room last said is connected. The sweep below needs it: a presence frame only
@@ -116,12 +120,27 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   deviceRef.current = device
 
   useEffect(() => {
-    if (!context) return
+    if (!context || gone) return
     const url = roomUrl(context.apiBase)
     if (url === null) return
 
+    let attempts = 0
     const socket = createRoomSocket({
-      resolveUrl: async () => url,
+      resolveUrl: async () => {
+        attempts += 1
+        const section = sectionRef.current
+        if (attempts > 1 && section) {
+          try {
+            await context.api.list(section)
+          } catch (error) {
+            if (error instanceof CommentsApiError && error.isGone) {
+              setCommentsStatus("gone")
+              return null
+            }
+          }
+        }
+        return url
+      },
       onStatus: (status) => {
         if (status !== "open") liveRef.current = []
         setStatus(status)
@@ -192,7 +211,7 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
       setSelfId(null)
       setCursors([])
     }
-  }, [context, setComments, setCursors, setPeers, setSelfId, setSettling, setStatus, store])
+  }, [context, gone, setComments, setCommentsStatus, setCursors, setPeers, setSelfId, setSettling, setStatus, store])
 
   /** A page turn is normally a reload, but the runtime also swaps sections in place in some
    *  layouts, so the room is told either way. */

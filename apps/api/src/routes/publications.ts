@@ -985,6 +985,14 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     if (!record) {
       return failure(c, 409, "not_published", "This book has never been published")
     }
+    if (body.data.comments !== undefined && publishesInFlight.has(label)) {
+      return failure(
+        c,
+        409,
+        "publish_in_progress",
+        "A publish or update for this book is already running — wait for it to finish and try again",
+      )
+    }
 
     let response: PublicationResponse
     try {
@@ -1002,6 +1010,10 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       revoked_at: response.publication.revoked_at,
       has_access_code: response.has_access_code,
       access_code: response.has_access_code ? (body.data.access_code ?? record.access_code) : null,
+      features:
+        body.data.comments === undefined
+          ? record.features
+          : { ...(record.features ?? {}), comments: body.data.comments },
     })
 
     return c.json(response)

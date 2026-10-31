@@ -70,6 +70,7 @@ export interface StoredPublicationUpload {
   expectedFiles: number
   expiresAt: string | null
   accessCode: string | null
+  commentsOff: boolean
   createdAt: string
   committedAt: string | null
   committedResult: CommittedPublicationUpload | null
@@ -261,6 +262,7 @@ export interface PublicationStore {
   /** Sets, rotates or (with `null`) removes the packed hash. Every previously issued access
    *  cookie stops verifying, because the cookie's tag is keyed over the value replaced here. */
   setAccessCode(token: string, accessCode: string | null): Promise<Publication | null>
+  setComments(token: string, on: boolean): Promise<Publication | null>
 
   createSession(input: CreateSessionInput): Promise<CommenterSession>
   /** Find-or-create for the single `is_author = 1` session of a publication. */

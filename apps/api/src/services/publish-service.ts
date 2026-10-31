@@ -416,7 +416,7 @@ export function restoreInterruptedPublishConfig(bookDir: string): void {
   fs.rmSync(restoreDir, { recursive: true, force: true })
 }
 
-async function withPublishConfig<T>(bookDir: string, run: () => Promise<T>): Promise<T> {
+async function withPublishConfig<T>(bookDir: string, comments: boolean, run: () => Promise<T>): Promise<T> {
   restoreInterruptedPublishConfig(bookDir)
   const configPath = path.join(bookDir, PUBLISH_CONFIG_RELATIVE_PATH)
   if (!fs.existsSync(configPath)) {
@@ -443,7 +443,7 @@ async function withPublishConfig<T>(bookDir: string, run: () => Promise<T>): Pro
     typeof parsed.features === "object" && parsed.features !== null
       ? (parsed.features as Record<string, unknown>)
       : {}
-  const patched = { ...parsed, features: { ...features, comments: true } }
+  const patched = { ...parsed, features: { ...features, comments } }
 
   const preloaderPath = path.join(bookDir, PUBLISH_PRELOADER_RELATIVE_PATH)
   const preloaderOriginal = fs.existsSync(preloaderPath) ? fs.readFileSync(preloaderPath) : null
@@ -884,8 +884,9 @@ async function stageAndCommit(
   sleep: (ms: number) => Promise<void>,
   beforeCommit: (staged: { uploadId: string; url: string }) => void,
   firstShare: boolean,
+  comments: boolean,
 ): Promise<StagedCommit> {
-  return withPublishConfig(bookDir, async () => {
+  return withPublishConfig(bookDir, comments, async () => {
     const declared = declareSnapshotFiles(bookDir, files)
     const retained = firstShare ? [] : await liveFiles(client, token, emit, sleep)
     const started = await uploadWithRetry(
@@ -1014,6 +1015,7 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
         files: declared,
         ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
         ...(options.accessCode ? { access_code: options.accessCode } : {}),
+        ...(options.features?.comments === false ? { comments: false } : {}),
       }),
     emit,
     options.sleep ?? delay,
@@ -1022,6 +1024,7 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
       savePendingCommit(options.label, options.booksDir, note)
     },
     true,
+    options.features?.comments !== false,
   )
 
   const record = recordFromCommit(note!, {
@@ -1103,6 +1106,7 @@ export async function republishBook(options: RepublishBookOptions): Promise<Publ
       savePendingCommit(options.label, options.booksDir, note)
     },
     false,
+    (options.features ?? options.record.features)?.comments !== false,
   )
 
   const record = recordFromCommit(note!, {

@@ -1047,3 +1047,128 @@ describe("the access-code door does not reset the PIN door's counter", () => {
     expect(refused.status).toBe(429)
   })
 })
+
+describe("read-only gate", () => {
+  it("keeps the name and the code but drops the comment wording", async () => {
+    const token = nextToken()
+    await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+      token,
+      title: "Raven",
+      bookLabel: "raven",
+      pageManifest: MANIFEST,
+      files: { "index.html": "<h1>page one</h1>" },
+      accessCode: CODE,
+      comments: false,
+    })
+    const gate = await get(token, "", navigation())
+    expect(gate.status).toBe(401)
+    const html = await gate.text()
+    expect(html).toContain("invited to read this book. Enter your name")
+    expect(html).not.toContain("leave comments")
+    expect(html).toContain('id="name"')
+    expect(html).toContain('id="code"')
+  })
+})
+
+describe("read-only book without a code", () => {
+  it("asks once for the reader's name, records it, then opens the book", async () => {
+    const token = nextToken()
+    await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+      token,
+      title: "Raven",
+      bookLabel: "raven",
+      pageManifest: MANIFEST,
+      files: { "index.html": "<h1>page one</h1>", "assets/app.css": "h1{color:red}" },
+      comments: false,
+    })
+
+    const door = await get(token, "", navigation())
+    expect(door.status).toBe(200)
+    const html = await door.text()
+    expect(html).toContain("Enter your name to start")
+    expect(html).toContain('id="name"')
+    expect(html).not.toContain('id="code"')
+    expect((await get(token, "assets/app.css", subresource())).status).toBe(200)
+
+    const entered = await app().request(
+      `${BASE}/p/${token}/access`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ name: "Maria" }).toString(),
+      },
+      env,
+    )
+    expect(entered.status).toBe(303)
+    const session = /adt_pub_session=([^;]+)/.exec(entered.headers.get("set-cookie") ?? "")?.[1]
+    expect(session).toBeDefined()
+    const names = await env.DB.prepare("SELECT name FROM sessions WHERE token = ?").bind(token).all<{ name: string }>()
+    expect(names.results.map((row) => row.name)).toEqual(["Maria"])
+
+    const book = await app().request(
+      `${BASE}/p/${token}/`,
+      { headers: { ...navigation().headers as Record<string, string>, Cookie: `adt_pub_session=${session}` } },
+      env,
+    )
+    expect(book.status).toBe(200)
+    expect(await book.text()).toContain("page one")
+  })
+
+  it("asks again, saying why, when the name is only spaces", async () => {
+    const token = nextToken()
+    await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+      token,
+      title: "Raven",
+      bookLabel: "raven",
+      pageManifest: MANIFEST,
+      files: { "index.html": "<h1>page one</h1>" },
+      comments: false,
+    })
+    const res = await app().request(
+      `${BASE}/p/${token}/access`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ name: "   " }).toString(),
+      },
+      env,
+    )
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain("Enter your name to continue.")
+  })
+
+  it("still lets a reader in when their name could not become a session", async () => {
+    const token = nextToken()
+    await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+      token,
+      title: "Raven",
+      bookLabel: "raven",
+      pageManifest: MANIFEST,
+      files: { "index.html": "<h1>page one</h1>" },
+      comments: false,
+    })
+    await seedWrites(token, SECRET, { ip: "unknown" }, "session-client", WRITE_LIMITS["session-client"])
+
+    const entered = await app().request(
+      `${BASE}/p/${token}/access`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ name: "Maria" }).toString(),
+      },
+      env,
+    )
+    const cookies = entered.headers.get("set-cookie") ?? ""
+    expect(cookies).not.toContain("adt_pub_session=")
+    const named = /adt_pub_named=([^;]+)/.exec(cookies)?.[1]
+    expect(named).toBeDefined()
+
+    const book = await app().request(
+      `${BASE}/p/${token}/`,
+      { headers: { ...navigation().headers as Record<string, string>, Cookie: `adt_pub_named=${named}` } },
+      env,
+    )
+    expect(book.status).toBe(200)
+    expect(await book.text()).toContain("page one")
+  })
+})

@@ -335,6 +335,7 @@ describe("Sharing setup — states", () => {
       "true",
       "true",
       "true",
+      "true",
     ])
     expect(screen.queryByRole("switch", { name: /sign language/i })).toBeNull()
     expect(screen.getByTestId("publish-start-button").textContent).toContain(
@@ -384,6 +385,21 @@ describe("Sharing setup — states", () => {
     expect(document.body.textContent).toContain("Feedback")
     expect(document.body.textContent).toContain("Readers")
     expect(getPublicationComments).toHaveBeenCalled()
+  })
+
+  it("keeps a read-only book read-only when it is shared again", async () => {
+    const stopped = revokedStatus()
+    getBookPublication.mockResolvedValue({ ...stopped, record: { ...stopped.record!, features: { comments: false } } })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("sharing-link-off")).toBeTruthy())
+    fireEvent.click(screen.getByRole("button", { name: /share again/i }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole("switch", { name: /let readers comment and see each other/i }).getAttribute("aria-checked"),
+      ).toBe("false"),
+    )
   })
 
   it("offers both ways back after the author stopped sharing, resuming first", async () => {
@@ -639,6 +655,18 @@ describe("Sharing setup — publishing", () => {
 
     fireEvent.click(screen.getByTestId("publish-start-button"))
     expect(publishBook.mock.calls[0][1].accessCode).toBeNull()
+  })
+
+  it("shares read-only when the author turns reader comments off", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    publishBook.mockImplementation(() => new Promise<void>(() => {}))
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+    fireEvent.click(screen.getByRole("switch", { name: /let readers comment and see each other/i }))
+    fireEvent.click(screen.getByTestId("publish-start-button"))
+    expect(publishBook.mock.calls[0][1].features).toMatchObject({ comments: false })
   })
 
   it("turns an unreachable service into human guidance and keeps a retry", async () => {
