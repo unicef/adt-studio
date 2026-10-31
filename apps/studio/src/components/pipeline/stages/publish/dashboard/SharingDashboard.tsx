@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, LayoutDashboard, MessageSquareText, UserPlus, Users } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -29,6 +29,10 @@ export function SharingDashboard({ data, onShareAgain }: { data: DashboardData; 
   const readersReady = data.readersStatus === "ready"
   /** `"end-date"` opens the dialog with the end date already open, for Extend. */
   const [settings, setSettings] = useState<"closed" | "open" | "end-date">("closed")
+  const stopped = data.link.access === "stopped"
+  useEffect(() => {
+    if (stopped) setSettings("closed")
+  }, [stopped])
   const openSettings = (focus: "open" | "end-date") => {
     data.link.clearFailures()
     setSettings(focus)
