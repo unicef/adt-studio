@@ -44,6 +44,7 @@ describe("stage-config", () => {
       "speech",
       "validation",
       "preview",
+      "publish",
       "export",
     ])
   })

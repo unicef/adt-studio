@@ -13,6 +13,7 @@ import {
   sectionIdOfAnswerTextId,
   type TextCatalogCategory,
   type TtsExclusionConfig,
+  type TextCatalogEntry,
 } from "@adt/types"
 
 const IMAGE_ID_RE = /_im\d{3}/
@@ -42,6 +43,10 @@ export function isEasyReadEntry(id: string): boolean {
 
 export function getEntryCategory(id: string): CatalogCategory {
   return getTextCatalogCategory(id)
+}
+
+export function entryBelongsToPage(entry: TextCatalogEntry, pageId: string): boolean {
+  return entry.locations ? entry.locations.some((location) => location.pageId === pageId) : entry.id.startsWith(`${pageId}_`)
 }
 
 /** Read-aloud exclusion state of an entry, split by cause so the UI can

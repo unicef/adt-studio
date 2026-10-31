@@ -41,7 +41,7 @@ describe("TOC hierarchy across saved data, preview and export", () => {
           }],
         })
         storage.putNodeData("web-rendering", pageId, {
-          sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: `<h1 data-id="${pageId}_h1">Chapter ${n}</h1>` }],
+          sections: [{ sectionId: `${pageId}_sec001`, sectionIndex: 0, sectionType: "content", reasoning: "", html: `<h1 data-id="${pageId}_h1">Chapter ${n}</h1>` }],
         })
       }
       const parentId = parentKind === "pruned" ? "pg002_sec001" : ""

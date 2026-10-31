@@ -1,0 +1,2 @@
+ALTER TABLE publications ADD COLUMN comments_off INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE publication_uploads ADD COLUMN comments_off INTEGER NOT NULL DEFAULT 0;

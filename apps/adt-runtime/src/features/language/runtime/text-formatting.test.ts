@@ -49,4 +49,18 @@ describe("Easy Read text formatting", () => {
     expect(element?.querySelector("strong")).toBeNull()
     expect(element?.innerHTML).toContain("&lt;strong&gt;x&lt;/strong&gt;")
   })
+
+  it.each([
+    '<math><mtext><img src=x onerror=alert(1)></mtext></math>',
+    '<math><annotation-xml encoding="text/html"><img src=x onerror=alert(2)></annotation-xml></math>',
+  ])("does not create HTML elements from MathML catalog payloads", (payload) => {
+    document.body.innerHTML = "<p></p>"
+    const element = document.querySelector("p") as HTMLElement
+
+    applyPlainTextWithLineBreaks(element, payload)
+
+    expect(element.querySelector("math")).not.toBeNull()
+    expect(element.querySelector("img")).toBeNull()
+    expect(element.querySelector("[onerror]")).toBeNull()
+  })
 })

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { flushSync } from "react-dom"
 import { AlertCircle, Images, Pencil, X } from "lucide-react"
 import { SettingExplainer } from "@/components/pipeline/components/SettingExplainer"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
@@ -68,6 +68,11 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   const baseLanguage = normalizeLocale(
     configuredEditingLanguage ?? bookLanguage ?? "en",
   )
+  // Studio has no switch for it, but `core_tts.latex_to_speech` can still be
+  // turned off in config.yaml, so show the merged value rather than assume it.
+  const mathReadAloudEnabled =
+    (activeConfigData?.merged?.core_tts as { latex_to_speech?: unknown } | undefined)
+      ?.latex_to_speech !== false
 
   useEffect(() => {
     if (!activeConfigData || !book) return
@@ -186,7 +191,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to run translation.</Trans>
+    <Trans>Connect an AI provider to run translation.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — translation needs the typed sections placed by Storyboard.</Trans>
   ) : !hasLanguages ? (
@@ -196,6 +201,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   return (
     <LandingPageShell
       bookLabel={bookLabel}
+      requiresProvider
       stageSlug="translate"
       settingsTab="general"
       colorClass="bg-pink-600 hover:bg-pink-700"
@@ -299,7 +305,30 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
         </SettingsField>
       </SettingsCard>
 
-      <SettingsCard>
+      <SettingsCard
+        title={<Trans>Speech preparation</Trans>}
+        description={
+          <Trans>
+            Rewrites text before it is read aloud. The text on the page does not
+            change.
+          </Trans>
+        }
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold leading-5 text-foreground">
+              <Trans>Math read aloud</Trans>
+            </span>
+            <p className="text-xs leading-relaxed text-[#737373]">
+              <Trans>
+                Prepares math and LaTeX as spoken words for audio.
+              </Trans>
+            </p>
+          </div>
+          <span className="inline-flex shrink-0 items-center rounded-full bg-[#f5f5f5] px-2.5 py-1 text-[11px] font-medium text-[#525252]">
+            {mathReadAloudEnabled ? <Trans>Always on</Trans> : <Trans>Off</Trans>}
+          </span>
+        </div>
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
             <label
@@ -311,7 +340,6 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
             <p className="text-xs leading-relaxed text-[#737373]">
               <Trans>
                 Prepare numbers, dates, and abbreviations for natural speech.
-                Math and LaTeX are handled separately.
               </Trans>
             </p>
           </div>
@@ -358,10 +386,11 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
                     <Images className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
                   </span>
                   <span className="flex-1 text-[13px] font-medium text-[#0a0a0a]">
-                    <Trans>
-                      {selectedImageIds.length} image
-                      {selectedImageIds.length === 1 ? "" : "s"} selected
-                    </Trans>
+                    <Plural
+                      value={selectedImageIds.length}
+                      one="# image selected"
+                      other="# images selected"
+                    />
                   </span>
                   <Pencil
                     className="h-3.5 w-3.5 text-[#a3a3a3] transition-colors group-hover:text-[#525252]"

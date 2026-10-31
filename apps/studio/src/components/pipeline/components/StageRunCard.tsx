@@ -39,6 +39,8 @@ interface StageRunCardProps {
   bookLabel?: string
   onRun: () => void
   disabled: boolean
+  /** Why the run button is disabled, shown beside it. */
+  disabledReason?: ReactNode
   children?: ReactNode
 }
 
@@ -63,6 +65,7 @@ export function StageRunCard({
   bookLabel,
   onRun,
   disabled,
+  disabledReason,
   children,
 }: StageRunCardProps) {
   const { t } = useLingui()
@@ -290,6 +293,9 @@ export function StageRunCard({
             <p className="text-muted-foreground">
               {getStageDescriptionI18n(stageSlug)}
             </p>
+            {disabled && disabledReason && (
+              <p className="mt-1 font-medium text-foreground">{disabledReason}</p>
+            )}
             {activeProgress && (
               <p className="mt-1 font-medium text-foreground tabular-nums truncate" title={activeProgress.progressLabel}>
                 {activeProgress.stepLabel}: {activeProgress.progressLabel}

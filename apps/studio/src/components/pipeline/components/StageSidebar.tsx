@@ -20,11 +20,17 @@ import { toast } from "@/components/ui/sonner"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { useBookTasks } from "@/hooks/use-book-tasks"
-import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
+import { useOutputSummary } from "@/hooks/use-outputs"
+import { StageOutputStatus } from "./StageOutputStatus"
 import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
 import { getSettingsTabs } from "../settings-tabs"
+import { OVERVIEW_STAGE_SLUGS } from "../settings-routing"
 import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
+import { publicationLifecycle, useBookPublication } from "@/hooks/use-book-publication"
+import { useFeedbackBadge } from "../../publication-feedback/use-feedback-badge"
+import { useNewCommentAlerts } from "../../publication-feedback/use-new-comment-alerts"
+import { useShareRunning } from "@/hooks/use-publish-run-notice"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
 import { useSectionNav } from "@/routes/books.$label"
@@ -78,20 +84,30 @@ export function StageSidebar({
   const { i18n } = useLingui()
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
-  const { stageState, cancelRun, isCancelling } = useBookRun()
+  const { stageState, cancelRun, isCancelling, sourceUpdateStages = [] } = useBookRun()
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
+  /** Sharing is not a pipeline stage, so nothing ticks its disc on its own: a live link is what
+   *  "done" means for it. The count beside the disc is reviewer comments still waiting on the
+   *  author — a count, never a completion state, so an open thread cannot un-tick the stage. */
+  const { data: publicationStatus } = useBookPublication(bookLabel)
+  const shared = publicationLifecycle(publicationStatus) === "active"
+  const feedback = useFeedbackBadge(bookLabel)
+  useNewCommentAlerts(bookLabel)
+  const shareRunning = useShareRunning(bookLabel)
   const { tasks } = useBookTasks(bookLabel)
-  const stageMissing = useStageMissingCounts(bookLabel)
-  const translateNeedsRerun = stageMissing.translate > 0
-  const speechNeedsRerun = stageMissing.speech > 0
+  const { data: catalog } = useOutputSummary(bookLabel)
   const activeDirtyTabs = useDirtyTabsForStage(activeStep)
   const { data: sidebarPages } = usePages(bookLabel, { enabled: false })
   const hasNoTextLayer = (sidebarPages ?? []).some((p) => p.extractionWarning)
   const noTextLayerLabel = i18n._(
     msg`Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF.`
   )
+  const waitingFeedbackLabel = (count: number) =>
+    count === 1
+      ? i18n._(msg`1 comment waiting for you`)
+      : i18n._(msg`${count} comments waiting for you`)
 
   const currentState = stageState(activeStep)
   // A stale Storyboard still has its renderings — staleness is a step_runs flag,
@@ -137,6 +153,7 @@ export function StageSidebar({
     validation: validationCompleted,
     preview: previewCompleted,
     export: exportCompleted,
+    publish: shared,
   }
 
   const stageItems: ReactNode[] = []
@@ -176,27 +193,38 @@ export function StageSidebar({
     const isActive = step.slug === activeStep
     const Icon = step.icon
     const state = completionOverrides[step.slug] ? "done" : stageState(step.slug)
-    const stageCompleted = state === "done"
-    // Overview is the stage's landing page, and its Run button. It is normally
-    // redundant while a stage is idle, because the stage's own view *is* the
-    // landing page — but a stale Storyboard shows the editor instead, so hiding
-    // Overview there leaves no way to re-run the stage at all. It is the first
-    // tab, so re-running stays one click from the gear.
+    const content = catalog?.stages[step.slug]
+    // Keep complete expected counts in the read model. Missing output is only
+    // attention after the stage's first attempt; Speech also hides it during one.
+    const hideMissing = !catalog?.missingStages.some((stage) => stage === step.slug) || (step.slug === "speech" && ["running", "queued"].includes(state))
+    const visibleContent = hideMissing ? catalog?.stagesWithoutMissing[step.slug] : content
+    const { updates = 0, reviews = 0, warnings = 0, missing = 0 } = visibleContent ?? {}
+    const sourceNeedsUpdate = sourceUpdateStages.includes(step.slug)
+    const attentionLabel = sourceNeedsUpdate ? i18n._(msg`Generated before your latest edits`) : updates || reviews || warnings || missing
+      ? i18n._(msg`Updates: ${updates}. Needs review: ${reviews}. Warnings: ${warnings}. Missing: ${missing}.`)
+      : undefined
+    const stageCompleted = !sourceNeedsUpdate && (visibleContent?.current || (!(updates || missing) && state === "done"))
+    // Overview is the stage's landing page, and its Run button. Always keep it:
+    // a reset can keep a stage's content (SPEC-0001), and its own view then
+    // shows that content instead of the landing page, so hiding Overview would
+    // leave no way to re-run the stage. It is the first tab, so re-running
+    // stays one click from the gear.
     const showOverviewTab =
+      (OVERVIEW_STAGE_SLUGS as readonly string[]).includes(step.slug) ||
       state === "done" ||
       state === "running" ||
-      state === "queued" ||
-      (step.slug === "storyboard" && hasRenderings)
+      state === "queued"
     const settingsTabs = getSettingsTabs(step.slug, i18n, showOverviewTab)
     const showSubTabs = isActive && isSettings && !!settingsTabs
 
-    // Translate/Speech revert to needs-rerun look when their downstream output
-    // has gaps (e.g. after a glossary addition). The in-view banner gives the
-    // user the actionable details and Re-run button.
-    const stageNeedsRerun =
-      (step.slug === "translate" && translateNeedsRerun) ||
-      (step.slug === "speech" && speechNeedsRerun)
-    const ringState = stageNeedsRerun || state === "error" ? "idle" : state
+    const stageNeedsRerun = sourceNeedsUpdate || updates > 0 || missing > 0
+    const activeAttempt = state === "running" || state === "queued"
+    /* Sharing isn't a pipeline stage, so its run shows on the ring alone — never as the stage's
+       running state, which would offer the pipeline's cancel button for it. */
+    const ringState =
+      step.slug === "publish" && shareRunning
+        ? "running"
+        : activeAttempt ? state : stageNeedsRerun || state === "error" ? "idle" : content?.current ? "done" : state
 
     // "book" is always filled; all other stages fill when their own completion signal is met.
     const iconFilled = step.slug === "book" ? true : stageCompleted
@@ -205,7 +233,7 @@ export function StageSidebar({
 
     // Expose stage status to screen readers — the visual ring/color carries it
     // for sighted users, but the link's accessible name must say it too.
-    const statusKey = step.slug === "book" ? undefined : stageNeedsRerun ? "needs-update" : state
+    const statusKey = step.slug === "book" ? undefined : activeAttempt || state === "error" ? state : stageNeedsRerun ? "needs-update" : content?.current ? "done" : state
     const stepAriaLabel = statusKey
       ? i18n._(msg`${stepLabel}: ${getStageStatusLabelI18n(statusKey)}`)
       : stepLabel
@@ -264,12 +292,36 @@ export function StageSidebar({
                 >
                   <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
                 </span>
+              ) : step.slug === "publish" && feedback.unresolvedCount > 0 ? (
+                <span
+                  role="img"
+                  aria-label={waitingFeedbackLabel(feedback.unresolvedCount)}
+                  title={waitingFeedbackLabel(feedback.unresolvedCount)}
+                  className={cn(
+                    "absolute -top-1.5 -right-1.5 z-20 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none tabular-nums text-white ring-2 ring-background duration-200 motion-safe:animate-in motion-safe:zoom-in-50",
+                    step.color,
+                  )}
+                >
+                  {feedback.unresolvedCount > 99 ? "99+" : feedback.unresolvedCount}
+                </span>
               ) : step.slug === "extract" && hasNoTextLayer ? (
                 <span
                   role="img"
                   aria-label={noTextLayerLabel}
                   title={noTextLayerLabel}
-                  className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-amber-500 ring-2 ring-background"
+                  className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-amber-600 ring-2 ring-background"
+                >
+                  <TriangleAlert className="w-2 h-2 text-white" aria-hidden="true" />
+                </span>
+              ) : (sourceNeedsUpdate || railCollapsed) && attentionLabel ? (
+                // The review button beside the label is clipped while the rail
+                // is collapsed; mirror its attention on the icon until hover
+                // expands the rail and reveals the button.
+                <span
+                  role="img"
+                  aria-label={attentionLabel}
+                  title={attentionLabel}
+                  className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-amber-600 ring-2 ring-background"
                 >
                   <TriangleAlert className="w-2 h-2 text-white" aria-hidden="true" />
                 </span>
@@ -279,6 +331,8 @@ export function StageSidebar({
               {stepLabel}
             </span>
           </Link>
+
+          {visibleContent && <StageOutputStatus bookLabel={bookLabel} stage={step.slug} summary={visibleContent} active={isActive} />}
 
           {state === "running" && (
             <button

@@ -133,12 +133,20 @@ function resetCustomActivityRegistrar(): void {
  * `history.pushState` is rejected for opaque origins, and the hard-navigation
  * path already works there via the inlined offline preloader.
  */
-export function canSoftNavigate(): boolean {
+function supportsSoftNavigation(): boolean {
   if (typeof window === "undefined" || typeof document === "undefined") return false
   if (!/^https?:$/.test(window.location.protocol)) return false
   if (typeof window.history?.pushState !== "function") return false
   if (new URLSearchParams(window.location.search).get("embed") === "1") return false
   return true
+}
+
+// Only the full reader owns the page lifecycle and Back/Forward handling.
+// Standalone activities in host readers must retain document navigation.
+let softNavigationEnabled = false
+
+export function canSoftNavigate(): boolean {
+  return softNavigationEnabled && supportsSoftNavigation()
 }
 
 const prefetchedPages = new Set<string>()
@@ -197,6 +205,13 @@ function swapMain(next: Document): void {
  * fixed-layout fit script — are imported and appended.
  */
 function runPageScripts(next: Document): void {
+  // These globals belong to one page, including legacy exports without an
+  // answer map. Clear the previous owner before custom scripts run so their
+  // authored grading state survives and answerless pages stay open-ended.
+  window.correctAnswers = undefined
+  window.activityAnswerTextIds = undefined
+  window.interchangeablePairs = undefined
+
   const main = document.querySelector("main")
   if (main) {
     for (const script of Array.from(
@@ -336,6 +351,7 @@ export async function swapToPage(
 
   try {
     const response = await fetch(href, { signal: controller.signal })
+    if (controller.signal.aborted) return "aborted"
     if (!response.ok) return "failed"
     const html = await response.text()
     if (controller.signal.aborted) return "aborted"
@@ -350,9 +366,10 @@ export async function swapToPage(
     const toSection =
       next.querySelector('meta[name="title-id"]')?.getAttribute("content") ?? ""
 
-    resetCustomActivityRegistrar()
-
     const commit = () => {
+      // View transitions can defer this callback past a newer navigation.
+      // Check again at publication, before changing history or page globals.
+      if (controller.signal.aborted) return
       if (opts.pushUrl) {
         window.history.replaceState(
           { ...readHistoryState(), adtScrollY: window.scrollY },
@@ -366,6 +383,7 @@ export async function swapToPage(
       // on mount — the stepper puts back the body background — would write the
       // departing page's value over the incoming page's.
       disposeActivityInitializers()
+      resetCustomActivityRegistrar()
       swapHead(next)
       swapBodyAttributes(next)
       swapMain(next)
@@ -403,7 +421,7 @@ export async function swapToPage(
       commit()
     }
 
-    return "ok"
+    return controller.signal.aborted ? "aborted" : "ok"
   } catch (err) {
     if (controller.signal.aborted) return "aborted"
     console.warn("ADT soft navigation failed, falling back to a full load", err)
@@ -442,7 +460,8 @@ export function navigateToPage(href: string): void {
  * state and re-applied once the destination page is in place.
  */
 export function subscribeSoftNavHistory(): () => void {
-  if (!canSoftNavigate()) return () => {}
+  if (!supportsSoftNavigation()) return () => {}
+  softNavigationEnabled = true
 
   const previousScrollRestoration = window.history.scrollRestoration
   window.history.scrollRestoration = "manual"
@@ -456,7 +475,9 @@ export function subscribeSoftNavHistory(): () => void {
 
   window.addEventListener("popstate", onPopState)
   return () => {
+    softNavigationEnabled = false
     window.removeEventListener("popstate", onPopState)
+    inFlight?.abort()
     window.history.scrollRestoration = previousScrollRestoration
   }
 }

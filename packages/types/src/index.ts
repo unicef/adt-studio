@@ -1,3 +1,4 @@
+export { SectionSyncStatus, SectionSyncResult, SectioningSynchronization } from "./sectioning-sync.js"
 export {
   SCHEMA_VERSION,
   ImageSource,
@@ -97,6 +98,10 @@ export {
 // `node:crypto`, which is unavailable in the browser, and this root barrel is
 // imported by the Studio SPA (for PIPELINE and friends). Node-only consumers
 // import it from the "@adt/types/fingerprint" subpath instead.
+
+/** Also reachable as `@adt/types/color`, which is how the published-book runtime takes it —
+ *  see the note in the module itself. Re-exported here for consumers that already carry zod. */
+export { readableTextColor } from "./commenter-color.js"
 
 export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
 
@@ -291,6 +296,7 @@ export {
 export {
   GlossaryItem,
   GlossaryOutput,
+  GlossaryEditRequest,
   glossaryLLMSchema,
 } from "./glossary.js"
 
@@ -303,6 +309,7 @@ export {
   parseQuizId,
   resolveQuizId,
   withResolvedQuizIds,
+  resolveQuizOptionId,
   ensureQuizIds,
   QuizIdExhaustedError,
   QuizId,
@@ -314,6 +321,7 @@ export {
 export {
   TextCatalogEntry,
   TextCatalogOutput,
+  CatalogConflict,
   TextCatalogCategory,
   getTextCatalogCategory,
   ANSWER_ID_SEPARATOR,
@@ -354,9 +362,16 @@ export {
   resolveEntryVoiceSlot,
   sortSpeechEntries,
   TTSOutput,
+  TTSReadEntry,
+  TTSReadLanguage,
+  TTSReadResponse,
   WordTimestamp,
   WordTimestampEntry,
   WordTimestampOutput,
+  WordTimestampEditGuard,
+  WordTimestampSaveRequest,
+  WordTimestampReadEntry,
+  WordTimestampSaveResponse,
   VOICE_SLOTS,
   VoiceSlot,
   DEFAULT_VOICE_SLOT,
@@ -371,6 +386,9 @@ export {
   type ParsedVoicesConfig,
   parseVoicesConfigEntries,
   normalizeVoiceMapEntry,
+  TTS_MODELS_BY_PROVIDER,
+  type TtsModelProvider,
+  speechModelProvider,
 } from "./speech.js"
 
 export {
@@ -461,6 +479,161 @@ export {
 } from "./translation-evaluation.js"
 
 export {
+  PUBLISH_WORKER_VERSION,
+  BOOK_HOST_MIN_CONTROL_PLANE_VERSION,
+  isVersionAtLeast,
+  PUBLICATION_SNAPSHOT_MAX_FILES,
+  PUBLICATION_SNAPSHOT_MAX_FILE_BYTES,
+  PUBLICATION_SNAPSHOT_MAX_BYTES,
+  PUBLICATION_TOKEN_LENGTH,
+  PUBLICATION_ACCESS_COOKIE,
+  PUBLICATION_ACCESS_MAX_AGE_SECONDS,
+  PUBLICATION_ACCESS_CODE_MIN_LENGTH,
+  PUBLICATION_ACCESS_CODE_MAX_LENGTH,
+  PUBLICATION_ACCESS_CODE_LENGTH,
+  PUBLICATION_ACCESS_CODE_ALPHABET,
+  PublicationAccessCode,
+  PublicationAccessRequest,
+  PublicationToken,
+  PublicationState,
+  PublicationPageEntry,
+  PublicationVersion,
+  Publication,
+  PublicationCreateResponse,
+  PublicationVersionCreateResponse,
+  PublicationUploadFile,
+  PublicationUploadStatus,
+  PublicationUploadStartRequest,
+  PublicationUploadStartResponse,
+  PublicationUploadFileResponse,
+  PublicationUploadCommitResponse,
+  PublicationUploadAbortResponse,
+  PublicationExpiryUpdateRequest,
+  PublicationUpdateRequest,
+  PublicationResponse,
+  PublicationDetail,
+  PublicationListEntry,
+  PublicationList,
+  PublicationReader,
+  PublicationReaderList,
+  PublicationDeleteResult,
+  PublicationSummary,
+  PublicationsTotals,
+  PublicationsOverview,
+  PublishWorkerHealth,
+  PublishErrorCode,
+  PublishErrorResponse,
+  PUBLISH_STEPS,
+  PUBLISH_STEP_COUNT,
+  PublishStepId,
+  PublishStepDescriptor,
+  PublishStepStatus,
+  PublishStepEventStatus,
+  PublishErrorCodeStudio,
+  PublishRunSnapshot,
+  PublishStepEvent,
+  PublishCompleteEvent,
+  PublishErrorEvent,
+  PublishProgressEvent,
+  BookPublicationVersionRecord,
+  BookPublicationRecord,
+  PendingPublicationCommit,
+  BookPublicationStatus,
+  BookPublishRequest,
+  PublishFeatureSelection,
+  publicationStateAt,
+} from "./publication.js"
+
+export { COMMENTER_NAME_MAX_LENGTH, CommenterDisplayName } from "./commenter-name.js"
+
+export {
+  COMMENTER_SESSION_COOKIE,
+  COMMENTER_SESSION_MAX_AGE_SECONDS,
+  COMMENTER_PIN_MIN_LENGTH,
+  COMMENTER_PIN_MAX_LENGTH,
+  COMMENTER_COLORS,
+  PUBLISH_COMMENT_BODY_MAX_LENGTH,
+  PUBLISH_COMMENT_LIST_PAGE_SIZE,
+  PUBLISH_COMMENT_SELECTOR_MAX_LENGTH,
+  PUBLISH_AUTHOR_NAME_HEADER,
+  PUBLISH_AUTHOR_DEFAULT_NAME,
+  PUBLISH_AUTHOR_COLOR,
+  CommentAnchor,
+  CommentAnchorInput,
+  CommenterSession,
+  PublishComment,
+  CommenterPin,
+  CommenterSessionCreateRequest,
+  CommenterSessionClaimRequest,
+  CommenterSessionResponse,
+  PublishCommentCreateRequest,
+  PublishCommentUpdateRequest,
+  PublishCommentResolveRequest,
+  PublishCommentListQuery,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+} from "./publish-comment.js"
+
+export {
+  PUBLICATION_ROOM_MAX_PEERS,
+  PUBLICATION_ROOM_MAX_FRAME_BYTES,
+  PUBLICATION_ROOM_TICKET_TTL_SECONDS,
+  PUBLICATION_ROOM_TAB_PARAM,
+  PUBLICATION_ROOM_TAB_PATTERN,
+  PUBLICATION_ROOM_TICKET_PARAM,
+  PUBLICATION_ROOM_CURSOR_THROTTLE_MS,
+  PUBLICATION_ROOM_CURSOR_STALE_MS,
+  PUBLISH_ANONYMOUS_NAME,
+  PUBLISH_ANONYMOUS_COLOR,
+  ROOM_COMMENT_EVENTS,
+  RoomPeer,
+  RoomHelloFrame,
+  RoomCursorMoveFrame,
+  RoomPageFrame,
+  RoomDevice,
+  RoomDeviceFrame,
+  RoomClientFrame,
+  RoomPresenceFrame,
+  RoomPeerCursorFrame,
+  RoomPeerViewportFrame,
+  RoomViewportFrame,
+  RoomCommentEvent,
+  RoomCommentFrame,
+  RoomServerFrame,
+  PublicationRoomTicketResponse,
+} from "./publication-room.js"
+
+export {
+  CLOUDFLARE_TOKEN_HEADER,
+  CLOUDFLARE_ACCOUNT_ID_HEADER,
+  CLOUDFLARE_WORKER_NAME,
+  CLOUDFLARE_D1_DATABASE_NAME,
+  CLOUDFLARE_REQUIRED_SCOPES,
+  PROVISION_STEPS,
+  PROVISION_STEP_COUNT,
+  CloudflareTokenScope,
+  CloudflareVerifyResponse,
+  CloudflareAuthMethod,
+  CloudflareOAuthErrorCode,
+  CloudflareOAuthFlowStatus,
+  CloudflareOAuthAccount,
+  CloudflareOAuthStartResponse,
+  CloudflareOAuthStatusResponse,
+  CloudflareOAuthAccountRequest,
+  CloudflareOAuthAccountResponse,
+  ProvisionStepId,
+  ProvisionStepStatus,
+  ProvisionStepDescriptor,
+  ProvisionErrorCode,
+  CloudflareConnectionResources,
+  CloudflareConnectionStatus,
+  CloudflareConnectionDeleteResponse,
+  ProvisionProgressEvent,
+  provisionStep,
+  workersDevUrl,
+} from "./cloudflare.js"
+
+export {
   DEFAULT_SCREENSHOT_TIMEOUT_MS,
   screenshotIpcViewportSchema,
   screenshotIpcRequestSchema,
@@ -513,6 +686,7 @@ export {
   FORBIDDEN_CREDENTIAL_HEADERS,
   PROVIDER_HEADER_NAMESPACE,
   CredentialFieldOption,
+  CredentialFieldShare,
   CredentialFieldManifest,
   StructuredTextCapabilities,
   AgentCapabilities,
@@ -522,6 +696,7 @@ export {
   PublicProviderCapabilities,
   ProviderDefaultModels,
   ProviderManifest,
+  applySharedCredentialFallbacks,
   ProviderFieldStatus,
   ProviderDescriptor,
   ProvidersResponse,
@@ -540,3 +715,22 @@ export {
 } from "./ai-provider.js"
 export { GOOGLE_IMAGE_MODELS, GoogleImageModelId, DEFAULT_GOOGLE_IMAGE_MODEL, GoogleImageResponse } from "./google-image.js"
 export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedGeneratedImage } from "./image.js"
+
+export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, OutputMetadata, OutputKind, OutputIdentity, OutputWarning, OutputLocation, OutputStatus, OutputSelection, OutputReviewRequest, OutputSummary, OutputScopeSummary, OutputSummaries, OutputStageSummaryResponse, BookWriterOwner } from "./output-freshness.js"
+
+export { CATALOG_OUTPUT_NODES } from "./pipeline-effects.js"
+
+export { OutputReplacement, OutputRunScope } from "./output-freshness.js"
+
+export { TranslatedImageAsset } from "./output-freshness.js"
+
+export { OUTPUT_KIND_TO_STAGE, OUTPUT_KIND_TO_STEP } from "./pipeline.js"
+
+export { OutputEditGuard } from "./output-freshness.js"
+
+export { OutputSkipRequest } from "./output-freshness.js"
+
+export { OutputDisclosureOptions } from "./output-freshness.js"
+
+export { SOURCE_GENERATION_RESET_STEPS } from "./pipeline.js"
+export { SourceGeneratorStep, SourceGenerationPolicy, SourceGenerationState, SourceGenerationReceipt } from "./source-generation-state.js"

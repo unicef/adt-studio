@@ -6,11 +6,11 @@ import { fileURLToPath } from "node:url"
 /**
  * Tailwind v4 resolves `@import "tailwindcss"` relative to the postcss `from`
  * path. webAssetsDir / book directories don't have their own node_modules,
- * so we route the postcss invocation through this package's own directory
- * where tailwindcss + @tailwindcss/postcss are installed.
+ * so we place the virtual input beside this module (or the bundled server).
+ * Module lookup then finds dependencies beside the bundle or in the source
+ * package's parent directory without depending on a development checkout.
  */
-const PIPELINE_PACKAGE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
-const TAILWIND_VIRTUAL_FROM = path.join(PIPELINE_PACKAGE_DIR, "_tailwind_input.css")
+const TAILWIND_VIRTUAL_FROM = fileURLToPath(new URL("./_tailwind_input.css", import.meta.url))
 
 export async function buildTailwindCss(
   adtDir: string,

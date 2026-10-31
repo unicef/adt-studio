@@ -34,6 +34,24 @@ const REWRITTEN =
   "</section>"
 
 describe("buildSectioningSectionFromHtml — replacing an existing section", () => {
+  it("retains native hierarchy, pruned content and heading metadata for a cosmetic rewrite", () => {
+    const base = baseSection()
+    Object.assign(base.nodes[0].children![0], { headingLevel: 2, outlineEntryId: "outline", headingStyleClusterId: "style" })
+    base.nodes[0].children!.push({ nodeId: "hidden", isPruned: true, role: "text", text: "Keep hidden" })
+    const previousHtml = '<h2 data-id="tx001">Chapter 3</h2><figcaption data-id="tx002">A river</figcaption><p data-id="tx003">Body</p>'
+    const result = buildSectioningSectionFromHtml({ base, sectionId: base.sectionId, sectionType: base.sectionType, previousHtml,
+      html: `<div style="margin:8px">${previousHtml}</div>` })
+    expect(result).toEqual(base)
+  })
+
+  it("rebuilds when text moves between stable IDs despite identical aggregate text", () => {
+    const base = baseSection()
+    const result = buildSectioningSectionFromHtml({ base, sectionId: base.sectionId, sectionType: base.sectionType,
+      previousHtml: '<p data-id="tx001">One</p><p data-id="tx002">Two</p>',
+      html: '<p data-id="tx001">OneT</p><p data-id="tx002">wo</p>' })
+    expect(result.nodes[0].children?.map((node) => node.text)).toEqual(["OneT", "wo"])
+  })
+
   it("preserves metadata the rewrite doesn't own", () => {
     const base = baseSection()
     const result = buildSectioningSectionFromHtml({

@@ -17,9 +17,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { ModelSelect, OPENAI_TTS_MODELS, AZURE_TTS_MODELS, GEMINI_TTS_MODELS, ELEVENLABS_TTS_MODELS, IMAGE_MODEL_GROUPS, LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect"
+import { UnavailableHint } from "@/components/pipeline/components/UnavailableHint"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useWordHighlightingUnavailable } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
@@ -671,7 +672,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
                     }`}
                   >
                     <span className="block text-sm font-semibold">
-                      {style === "light" ? t`Light` : style === "standard" ? t`Standard` : t`Detailed`}
+                      {style === "light" ? t({ message: "Light", context: "translation review depth" }) : style === "standard" ? t`Standard` : t`Detailed`}
                     </span>
                     <span className={`mt-1 block text-xs leading-relaxed ${reviewStyle === style ? "text-white/80" : "text-muted-foreground"}`}>
                       {style === "light"
@@ -1395,7 +1396,16 @@ function SpeechLanguageCards({
   // A provider with no key can be picked here but fails the whole Speech run
   // on the first item it reaches, so mirror the Speech landing page and offer
   // only the providers this browser actually holds a credential for.
-  const { hasApiKey, hasAzureKey, hasGeminiKey, hasElevenLabsKey } = useApiKey()
+  const {
+    hasApiKey,
+    hasAzureKey,
+    hasGeminiKey,
+    hasElevenLabsKey,
+  } = useApiKey()
+  // Without an OpenAI key (Whisper) the toggle is shown off and disabled. The
+  // saved preference is kept so it applies again once a key is added.
+  const wordHighlightingUnavailable = useWordHighlightingUnavailable()
+  const effectiveWordHighlighting = wordHighlighting && !wordHighlightingUnavailable
   const providerKeyAvailable: ProviderKeyAvailability = {
     openai: hasApiKey,
     azure: hasAzureKey,
@@ -1711,17 +1721,34 @@ function SpeechLanguageCards({
           </p>
         </div>
         <div className="flex items-start gap-3 pt-2">
-          <Switch
-            id="word-highlighting"
-            checked={wordHighlighting}
-            onCheckedChange={(v) => { setWordHighlighting(v); markDirty("speech") }}
-          />
+          {(() => {
+            const toggle = (
+              <Switch
+                id="word-highlighting"
+                checked={effectiveWordHighlighting}
+                disabled={wordHighlightingUnavailable}
+                onCheckedChange={(v) => { setWordHighlighting(v); markDirty("speech") }}
+                className={wordHighlightingUnavailable ? "pointer-events-none" : undefined}
+              />
+            )
+            // A disabled switch gets no pointer events, so the focusable
+            // wrapper carries the "why" tooltip instead.
+            return wordHighlightingUnavailable ? (
+              <UnavailableHint
+                hint={t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`}
+              >
+                <span tabIndex={0} className="inline-flex rounded-full">{toggle}</span>
+              </UnavailableHint>
+            ) : (
+              toggle
+            )
+          })()}
           <div className="space-y-2 flex-1">
             <Label htmlFor="word-highlighting" className="text-xs">{t`Word-level highlighting`}</Label>
             <p className="text-[11px] text-muted-foreground">
               {t`When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view.`}
             </p>
-            <WordHighlightPreview enabled={wordHighlighting} />
+            <WordHighlightPreview enabled={effectiveWordHighlighting} />
           </div>
         </div>
       </div>
