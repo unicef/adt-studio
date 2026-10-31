@@ -28,6 +28,7 @@ import type { CloudflareConnectionRecord } from "./cloudflare/connection-store.j
 import { staticAssetHash, type RetainedStaticAsset, type StaticAsset } from "./cloudflare/static-assets.js"
 import type { BookHostArtifact } from "./cloudflare/worker-artifact.js"
 import { prepareExport, readBookTitle } from "./export-service.js"
+import { REVIEWER_PAGE_VALIDATION_NODE, REVIEWER_VALIDATION_SESSION_NODE } from "./reviewer-validation-service.js"
 import {
   createPublishWorkerClient,
   isPublishWorkerError,
@@ -321,7 +322,12 @@ export function readContentRevision(label: string, booksDir: string): number | n
   const { safeLabel } = requireBook(label, booksDir)
   const storage = createBookStorage(safeLabel, path.resolve(booksDir))
   try {
-    return storage.latestNodeWriteExcluding(BOOK_PUBLICATION_NODE, PENDING_COMMIT_NODE)
+    return storage.latestNodeWriteExcluding(
+      BOOK_PUBLICATION_NODE,
+      PENDING_COMMIT_NODE,
+      REVIEWER_VALIDATION_SESSION_NODE,
+      REVIEWER_PAGE_VALIDATION_NODE,
+    )
   } catch {
     return null
   } finally {

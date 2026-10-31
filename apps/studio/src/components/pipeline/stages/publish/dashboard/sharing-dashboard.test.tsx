@@ -321,6 +321,12 @@ describe("SharingHero", () => {
 })
 
 describe("LinkSettingsPanel", () => {
+  it("offers no fresh copy for a link readers can't open", () => {
+    render(<LinkSettingsPanel link={link({ access: "ended" })} />)
+    expect(screen.queryByRole("button", { name: /update link/i })).toBeNull()
+    expect(screen.queryByRole("switch", { name: /let readers comment and see each other/i })).toBeNull()
+  })
+
   it("turns reader comments off from the link settings", () => {
     const setComments = vi.fn()
     render(<LinkSettingsPanel link={link({ setComments })} />)
