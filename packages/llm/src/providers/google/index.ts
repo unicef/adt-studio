@@ -5,6 +5,7 @@ import { DEFAULT_GOOGLE_IMAGE_MODEL } from "@adt/types"
 import type { CapabilitiesFor, ProviderModule } from "../../ports/index.js"
 import { AiProviderError } from "../../ports/errors.js"
 import { createAiSdkStructuredTextBackend } from "../shared/ai-sdk/structured-text.js"
+import { isGemini4Model, withGemini4Params } from "./gemini-4.js"
 import { createAiSdkAgentBackend } from "../shared/ai-sdk/agent.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
 import { createGoogleImageBackend, googleImageCapabilities, isGoogleImageModel } from "./image.js"
@@ -83,6 +84,12 @@ export const googleProvider: ProviderModule<GoogleCredentials> = {
       throw AiProviderError.unsupportedCapability("google", modality, "image-only model", modelId)
     }
     if (modality === "image") return googleImageCapabilities(modelId) as CapabilitiesFor<typeof modality>
+    if (modality === "structured-text" && isGemini4Model(modelId)) {
+      return {
+        ...googleManifest.capabilities["structured-text"]!,
+        temperature: false,
+      } as CapabilitiesFor<typeof modality>
+    }
     return undefined
   },
 
@@ -91,17 +98,23 @@ export const googleProvider: ProviderModule<GoogleCredentials> = {
   createStructuredTextBackend: (context) => {
     const client = createGoogleGenerativeAI({ apiKey: context.credentials.apiKey })
     return createAiSdkStructuredTextBackend((options) =>
-      client(
+      withGemini4Params(
         context.modelId,
-        options.structuredOutputs !== undefined
-          ? { structuredOutputs: options.structuredOutputs }
-          : undefined,
+        client(
+          context.modelId,
+          options.structuredOutputs !== undefined
+            ? { structuredOutputs: options.structuredOutputs }
+            : undefined,
+        ),
       ),
     )
   },
 
   createAgentBackend: (context) =>
     createAiSdkAgentBackend(
-      createGoogleGenerativeAI({ apiKey: context.credentials.apiKey })(context.modelId),
+      withGemini4Params(
+        context.modelId,
+        createGoogleGenerativeAI({ apiKey: context.credentials.apiKey })(context.modelId),
+      ),
     ),
 }
