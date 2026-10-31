@@ -7,6 +7,12 @@ import { createBookStorage, openBookDb } from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createPageRoutes } from "./pages.js"
 import type { TaskExecutor, TaskService } from "../services/task-service.js"
+import { aiEditSection } from "../services/page-edit-service.js"
+
+vi.mock("../services/page-edit-service.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/page-edit-service.js")>()
+  return { ...actual, aiEditSection: vi.fn(actual.aiEditSection) }
+})
 
 describe("Page routes", () => {
   let tmpDir: string
@@ -2121,6 +2127,85 @@ describe("Page routes", () => {
       } finally {
         verify.close()
       }
+    })
+  })
+
+  describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/ai-edit", () => {
+    async function submitAiEdit(instruction: string) {
+      let submittedExecutor: TaskExecutor | undefined
+      const taskService: TaskService = {
+        submitTask(_label, kind, _description, executor) {
+          expect(kind).toBe("ai-edit")
+          submittedExecutor = executor
+          return { taskId: "task-ai-edit" }
+        },
+        getActiveTasks: () => [],
+      }
+      const routes = createPageRoutes(tmpDir, tmpDir, tmpDir, globalConfigPath, taskService)
+      const taskApp = new Hono()
+      taskApp.onError(errorHandler)
+      taskApp.route("/api", routes)
+
+      const res = await taskApp.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/ai-edit`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-OpenAI-Key": "sk-test" },
+          body: JSON.stringify({ instruction }),
+        }
+      )
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ taskId: "task-ai-edit", status: "submitted" })
+      return submittedExecutor!(() => {})
+    }
+
+    function latestRendering() {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        return storage.getLatestNodeData("web-rendering", `${label}_p1`)
+      } finally {
+        storage.close()
+      }
+    }
+
+    it("does not save a new rendering version when the edit is not possible", async () => {
+      const before = latestRendering()
+      vi.mocked(aiEditSection).mockResolvedValueOnce({
+        status: "unsupported",
+        reason: "AI editing cannot change images. Use the image tools instead.",
+        reasoning: "The instruction asks to redraw every image.",
+      })
+
+      const result = await submitAiEdit("Modify all the images on this page")
+
+      expect(result).toEqual({
+        status: "unsupported",
+        reason: "AI editing cannot change images. Use the image tools instead.",
+        reasoning: "The instruction asks to redraw every image.",
+        sectionIndex: 0,
+      })
+      expect(latestRendering()?.version).toBe(before?.version)
+    })
+
+    it("saves the edited section and reports the verification outcome", async () => {
+      const before = latestRendering()
+      vi.mocked(aiEditSection).mockResolvedValueOnce({
+        status: "applied",
+        html: `<section data-id="edited">Edited</section>`,
+        reasoning: "Made the text blue.",
+        verification: { applied: false, reason: "The text color did not change." },
+      })
+
+      const result = await submitAiEdit("Make the text blue")
+
+      expect(result).toMatchObject({
+        status: "applied",
+        sectionIndex: 0,
+        verification: { applied: false, reason: "The text color did not change." },
+      })
+      const after = latestRendering()
+      expect(after?.version).toBe((before?.version ?? 0) + 1)
+      expect(JSON.stringify(after?.data)).toContain("Edited")
     })
   })
 

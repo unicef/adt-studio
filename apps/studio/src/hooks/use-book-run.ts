@@ -20,6 +20,7 @@ import { isStageComplete } from "./run-state"
 import { playCompletionSound, playErrorSound } from "@/lib/completion-sound"
 import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
 import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeline/pipeline-i18n"
+import { aiEditNoticeFor, type AiEditOutcomeNotice } from "@/components/pipeline/stages/storyboard/lib/ai-edit-outcome"
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
 import { useApiKey } from "./use-api-key"
@@ -631,13 +632,14 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       }
 
       if (d.type === "task-complete") {
-        playCompletionSound()
         const kind =
           d.kind ??
           queryClient
             .getQueryData<{ tasks: TaskInfoResponse[] }>(tasksKey)
             ?.tasks.find((t) => t.taskId === d.taskId)?.kind
-        announceRef.current(taskCompleteMessage(kind))
+        const aiEditNotice = kind === "ai-edit" ? aiEditNoticeFor(d.result) : undefined
+        if (!aiEditNotice) playCompletionSound()
+        announceRef.current(aiEditNotice ? aiEditNoticeMessage(aiEditNotice) : taskCompleteMessage(kind))
       } else if (d.type === "task-error") {
         announceRef.current(
           d.error ? i18n._(msg`Task failed: ${d.error}`) : i18n._(msg`Task failed`),
@@ -929,7 +931,7 @@ function taskCompleteMessage(kind: string | undefined): string {
     case "image-generate":
       return i18n._(msg`Image generated`)
     case "ai-edit":
-      return i18n._(msg`Image edit complete`)
+      return i18n._(msg`AI edit complete`)
     case "re-render":
       return i18n._(msg`Page re-rendered`)
     case "transcribe-timestamps":
@@ -937,6 +939,12 @@ function taskCompleteMessage(kind: string | undefined): string {
     default:
       return i18n._(msg`Task complete`)
   }
+}
+
+function aiEditNoticeMessage(notice: AiEditOutcomeNotice): string {
+  return notice.kind === "unsupported"
+    ? i18n._(msg`AI editing can't do this`)
+    : i18n._(msg`This AI edit may not have been fully applied`)
 }
 
 
