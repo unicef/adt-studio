@@ -179,6 +179,8 @@ export interface TreeNodeProps {
   firstInSection?: boolean
   defaultTextRole: string
   defaultStructure: string
+  /** True when an ancestor container is pruned, so this node is hidden too. */
+  ancestorPruned?: boolean
 }
 
 export function TreeNode(props: TreeNodeProps) {
@@ -229,6 +231,46 @@ function DragHandle({
     >
       <GripVertical className="h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
     </div>
+  )
+}
+
+// ── Prune (eye) toggle ──────────────────────────────────────────
+
+// A node under a pruned container is hidden whatever its own flag says, so its
+// toggle is disabled: flipping its own flag would change nothing visible now
+// and leave it hidden once the container is shown again (#596).
+function PruneToggle({
+  isPruned,
+  ancestorPruned,
+  disabled,
+  onToggle,
+}: {
+  isPruned: boolean
+  ancestorPruned?: boolean
+  disabled?: boolean
+  onToggle: () => void
+}) {
+  const { t } = useLingui()
+  const inherited = !!ancestorPruned
+  const title = inherited
+    ? t`Hidden because its group is hidden`
+    : isPruned
+      ? t`Include in render`
+      : t`Exclude from render`
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled || inherited}
+      className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+      title={title}
+    >
+      {isPruned || inherited ? (
+        <EyeOff className="h-3 w-3 text-muted-foreground" />
+      ) : (
+        <Eye className="h-3 w-3 text-muted-foreground" />
+      )}
+    </button>
   )
 }
 
@@ -446,19 +488,12 @@ function ContainerNode(props: TreeNodeProps) {
           )}
         </button>
         <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/head:opacity-100 transition-opacity">
-          <button
-            type="button"
-            onClick={() => onTogglePruned(node.nodeId)}
+          <PruneToggle
+            isPruned={node.isPruned}
+            ancestorPruned={props.ancestorPruned}
             disabled={disabled}
-            className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
-            title={node.isPruned ? t`Include in render` : t`Exclude from render`}
-          >
-            {node.isPruned ? (
-              <EyeOff className="h-3 w-3 text-muted-foreground" />
-            ) : (
-              <Eye className="h-3 w-3 text-muted-foreground" />
-            )}
-          </button>
+            onToggle={() => onTogglePruned(node.nodeId)}
+          />
           <RowMenu
             disabled={disabled}
             items={[
@@ -580,6 +615,7 @@ function ContainerNode(props: TreeNodeProps) {
                 firstInSection={firstInSection && i === 0}
                 defaultTextRole={defaultTextRole}
                 defaultStructure={defaultStructure}
+                ancestorPruned={props.ancestorPruned || node.isPruned}
               />
               <DropZone
                 parentNodeId={node.nodeId}
@@ -690,19 +726,12 @@ function TextLeaf(props: TreeNodeProps) {
         disabled={disabled}
       />
       <div className="shrink-0 flex items-center gap-0.5 self-center ml-auto opacity-0 group-hover/row:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={() => onTogglePruned(node.nodeId)}
+        <PruneToggle
+          isPruned={node.isPruned}
+          ancestorPruned={props.ancestorPruned}
           disabled={disabled}
-          className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
-          title={node.isPruned ? t`Include in render` : t`Exclude from render`}
-        >
-          {node.isPruned ? (
-            <EyeOff className="h-3 w-3 text-muted-foreground" />
-          ) : (
-            <Eye className="h-3 w-3 text-muted-foreground" />
-          )}
-        </button>
+          onToggle={() => onTogglePruned(node.nodeId)}
+        />
         <RowMenu
           disabled={disabled}
           items={[
@@ -812,19 +841,12 @@ function ImageLeaf(props: TreeNodeProps) {
         {node.nodeId}
       </span>
       <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={() => onTogglePruned(node.nodeId)}
+        <PruneToggle
+          isPruned={node.isPruned}
+          ancestorPruned={props.ancestorPruned}
           disabled={disabled}
-          className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
-          title={node.isPruned ? t`Include in render` : t`Exclude from render`}
-        >
-          {node.isPruned ? (
-            <EyeOff className="h-3 w-3 text-muted-foreground" />
-          ) : (
-            <Eye className="h-3 w-3 text-muted-foreground" />
-          )}
-        </button>
+          onToggle={() => onTogglePruned(node.nodeId)}
+        />
         <RowMenu
           disabled={disabled}
           items={[
