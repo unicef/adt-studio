@@ -355,6 +355,26 @@ describe("Sharing setup — states", () => {
     expect(screen.getByRole("button", { name: /try again/i })).toBeTruthy()
   })
 
+  it("closes Link settings once sharing is stopped from it", async () => {
+    getBookPublication.mockResolvedValue(publishedStatus())
+    revokeBookPublication.mockResolvedValue({ publication: revokedStatus().publication })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /link settings/i })).toBeTruthy())
+    fireEvent.click(screen.getByRole("button", { name: /link settings/i }))
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeTruthy())
+    fireEvent.click(screen.getByRole("button", { name: /^stop sharing$/i }))
+    getBookPublication.mockResolvedValue(revokedStatus())
+    const confirm = await waitFor(() => screen.getAllByRole("button", { name: /^stop sharing$/i }).at(-1)!)
+    await act(async () => {
+      fireEvent.click(confirm)
+    })
+
+    await waitFor(() => expect(screen.getByTestId("sharing-link-off")).toBeTruthy())
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+  })
+
   it("keeps the readers' comments in view after sharing stops", async () => {
     getBookPublication.mockResolvedValue(revokedStatus())
 
