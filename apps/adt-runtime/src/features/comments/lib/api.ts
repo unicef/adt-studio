@@ -20,7 +20,7 @@ export class CommentsApiError extends Error {
 
   /** The link was revoked or expired while the page was open. */
   get isGone(): boolean {
-    return this.status === 410
+    return this.status === 410 || this.code === "comments_off"
   }
 
   /** The session cookie is missing or no longer valid for a write. */

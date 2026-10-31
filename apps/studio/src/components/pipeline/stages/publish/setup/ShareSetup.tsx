@@ -60,7 +60,7 @@ export function ShareSetup({
   const connected = status.data?.connected === true
   const connection = useCloudflareConnection(credentials, { enabled: connected })
   const resume = useResumePublication(bookLabel)
-  const form = useShareForm(toggleable)
+  const form = useShareForm(toggleable, status.data?.record?.features?.comments)
   const scroller = useOverflowEdges<HTMLDivElement>()
 
   const lifecycle = publicationLifecycle(status.data)

@@ -23,6 +23,7 @@ import { createRoomSocket, type RoomSocket } from "@/features/comments/lib/room-
 import type { CommentsRuntimeContext } from "@/features/comments/hooks/useCommentsContext"
 import {
   commentsAtom,
+  commentsStatusAtom,
   settlingPinIdAtom,
   showResolvedAtom,
 } from "@/features/comments/state/comments.atoms"
@@ -100,6 +101,7 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   const setViewports = useSetAtom(peerViewportsAtom)
   const setComments = useSetAtom(commentsAtom)
   const setSettling = useSetAtom(settlingPinIdAtom)
+  const gone = useAtomValue(commentsStatusAtom) === "gone"
 
   const socketRef = useRef<RoomSocket | null>(null)
   /** Who the room last said is connected. The sweep below needs it: a presence frame only
@@ -116,7 +118,7 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   deviceRef.current = device
 
   useEffect(() => {
-    if (!context) return
+    if (!context || gone) return
     const url = roomUrl(context.apiBase)
     if (url === null) return
 
@@ -192,7 +194,7 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
       setSelfId(null)
       setCursors([])
     }
-  }, [context, setComments, setCursors, setPeers, setSelfId, setSettling, setStatus, store])
+  }, [context, gone, setComments, setCursors, setPeers, setSelfId, setSettling, setStatus, store])
 
   /** A page turn is normally a reload, but the runtime also swaps sections in place in some
    *  layouts, so the room is told either way. */

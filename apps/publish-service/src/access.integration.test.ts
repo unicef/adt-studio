@@ -1114,6 +1114,29 @@ describe("read-only book without a code", () => {
     expect(await book.text()).toContain("page one")
   })
 
+  it("asks again, saying why, when the name is only spaces", async () => {
+    const token = nextToken()
+    await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+      token,
+      title: "Raven",
+      bookLabel: "raven",
+      pageManifest: MANIFEST,
+      files: { "index.html": "<h1>page one</h1>" },
+      comments: false,
+    })
+    const res = await app().request(
+      `${BASE}/p/${token}/access`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ name: "   " }).toString(),
+      },
+      env,
+    )
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain("Enter your name to continue.")
+  })
+
   it("still lets a reader in when their name could not become a session", async () => {
     const token = nextToken()
     await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {

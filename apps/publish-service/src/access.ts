@@ -129,6 +129,7 @@ export interface GatePageOptions {
   /** Which language the door speaks — the one the reader will open in. English when absent. */
   locale?: GateLocale
   nameOnly?: boolean
+  nameMissing?: boolean
 }
 
 /** What the page needs from inside the book: its cover and its languages, read together. */
@@ -466,6 +467,7 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
             ? html`<p class="error" id="code-error" role="alert" data-i18n="wrongCode">${t.wrongCode}</p>`
             : ""
       }
+      ${options.nameMissing ? html`<p class="error" role="alert" data-i18n="nameMissing">${t.nameMissing}</p>` : ""}
       ${nameOnly ? "" : html`<p class="hint" id="code-hint" data-i18n="hint">${t.hint}</p>`}
       <button type="submit" data-i18n="button">${t.button}</button>
     </form>
@@ -671,6 +673,17 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
     const verified = await verifyAccessCode(code, packed)
 
     if (packed === null) {
+      if (name === null && isForm && publication.comments === false) {
+        return c.html(
+          gatePage(publication, {
+            next,
+            nameOnly: true,
+            nameMissing: true,
+            ...(await describeBook(c, deps.resolveStore(c.env), publication)),
+          }),
+          400,
+        )
+      }
       if (name !== null && secret !== undefined && publication.comments === false) {
         await establishIdentity(c, publication.token, name, secret)
         setCookie(c, READER_NAMED_COOKIE, "1", {

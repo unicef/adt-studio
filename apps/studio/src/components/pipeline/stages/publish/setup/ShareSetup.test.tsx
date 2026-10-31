@@ -367,6 +367,21 @@ describe("Sharing setup — states", () => {
     expect(getPublicationComments).toHaveBeenCalled()
   })
 
+  it("keeps a read-only book read-only when it is shared again", async () => {
+    const stopped = revokedStatus()
+    getBookPublication.mockResolvedValue({ ...stopped, record: { ...stopped.record!, features: { comments: false } } })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("sharing-link-off")).toBeTruthy())
+    fireEvent.click(screen.getByRole("button", { name: /share again/i }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole("switch", { name: /let readers comment and see each other/i }).getAttribute("aria-checked"),
+      ).toBe("false"),
+    )
+  })
+
   it("offers both ways back after the author stopped sharing, resuming first", async () => {
     getBookPublication.mockResolvedValue(revokedStatus())
 

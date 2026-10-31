@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { createCommentsApi } from "@/features/comments/lib/api"
+import { CommentsApiError, createCommentsApi } from "@/features/comments/lib/api"
 
 function row(id: string) {
   return {
@@ -71,5 +71,13 @@ describe("createCommentsApi list", () => {
 
     await createCommentsApi("/p/token/").listAll()
     expect(fetchFn).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe("CommentsApiError", () => {
+  it("treats comments turned off like a link that is gone", () => {
+    expect(new CommentsApiError(403, "comments_off", "Comments are off for this book.").isGone).toBe(true)
+    expect(new CommentsApiError(410, "revoked", "revoked").isGone).toBe(true)
+    expect(new CommentsApiError(401, "unauthorized", "unauthorized").isGone).toBe(false)
   })
 })

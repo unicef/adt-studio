@@ -128,7 +128,7 @@ export function LinkSettingsPanel({ link, editEndDate = false }: { link: DashLin
 
       <EndDate link={link} locked={locked} initiallyEditing={editEndDate} />
       <UpdateLink link={link} />
-      <ReaderFeedback link={link} locked={locked} />
+      {link.access === "open" ? <ReaderFeedback link={link} locked={locked} /> : null}
       <StopSharing link={link} locked={locked} />
 
       {!link.workerReachable ? (
