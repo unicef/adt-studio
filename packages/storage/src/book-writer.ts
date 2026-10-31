@@ -28,12 +28,73 @@ export function ownsBookWriter(bookDir: string): boolean {
   return !!lease && lease.references > 0
 }
 
+/** Kernel evidence only: no timestamp/age estimate and no new lock protocol.
+ * Unknown procfs/container layouts retain the conservative busy fallback. */
+function linuxProcess(pid: number): BookWriterOwner["linuxProcess"] {
+  if (process.platform !== "linux") return undefined
+  try {
+    // A custom proc mount may expose another namespace's numeric PIDs.
+    if (fs.readlinkSync("/proc/self") !== String(process.pid)) return undefined
+    const stat = fs.readFileSync(`/proc/${pid}/stat`, "utf8")
+    // comm (field 2) can contain spaces and parentheses. starttime is field 22.
+    const end = stat.lastIndexOf(") ")
+    if (end < 0 || !stat.startsWith(`${pid} (`)) return undefined
+    const startTicks = stat.slice(end + 2).trim().split(/\s+/)[19]
+    const bootId = fs.readFileSync("/proc/sys/kernel/random/boot_id", "utf8").trim()
+    const pidNamespace = fs.readlinkSync(`/proc/${pid}/ns/pid`)
+    const parsed = BookWriterOwner.shape.linuxProcess.unwrap().safeParse({ bootId, pidNamespace, startTicks })
+    if (!parsed.success) return undefined
+
+    // Docker's daemon-owned bind mounts name the container, independently of
+    // its configurable hostname. They survive a restart; a sibling container
+    // has a different ID even if it shares the book volume and hostname.
+    // Require all three corroborating records. Custom/unknown layouts cannot
+    // authorize recovery across PID namespaces. No container state is created.
+    let dockerContainerId: string | undefined
+    try {
+      const mounts = fs.readFileSync(`/proc/${pid}/mountinfo`, "utf8").split("\n")
+      const ids = ["hostname", "hosts", "resolv.conf"].map((name) => {
+        const entries = mounts.map((line) => line.split(" ")).filter((fields) => fields[4] === `/etc/${name}`)
+        if (entries.length !== 1) return undefined
+        const match = entries[0][3].match(/\/containers\/([a-f0-9]{64})\/(hostname|hosts|resolv\.conf)$/)
+        return match?.[2] === name ? match[1] : undefined
+      })
+      const status = fs.readFileSync(`/proc/${pid}/status`, "utf8")
+      const capabilities = status.match(/^CapBnd:\s+([a-f0-9]+)$/m)?.[1]
+      const seccomp = status.match(/^Seccomp:\s+(\d+)$/m)?.[1]
+      // Privileged/nested namespace setups cannot use the standard Docker
+      // lifecycle proof. CAP_SYS_ADMIN is bit 21; require seccomp filtering too.
+      const standardIsolation = capabilities && (BigInt(`0x${capabilities}`) & (1n << 21n)) === 0n && seccomp === "2"
+      if (standardIsolation && ids[0] && ids.every((id) => id === ids[0])) dockerContainerId = ids[0]
+    } catch { /* Same-namespace identity remains usable without Docker evidence. */ }
+    return { ...parsed.data, ...(dockerContainerId ? { dockerContainerId } : {}) }
+  } catch { return undefined }
+}
+
 function deadOwner(lock: string): boolean {
   const owner = BookWriterOwner.safeParse(JSON.parse(fs.readFileSync(lock, "utf8")))
   if (!owner.success || owner.data.host !== os.hostname()) return false
-  try { process.kill(owner.data.pid, 0); return false } catch (err) {
+  const recorded = owner.data.linuxProcess
+  if (recorded) {
+    const here = linuxProcess(process.pid)
+    if (!here) return false
+    if (recorded.bootId !== here.bootId || recorded.pidNamespace !== here.pidNamespace) {
+      // A standard Docker container cannot retain its old init/PID namespace
+      // across a restart. Do not extend that proof to sibling containers or
+      // arbitrary OCI/custom/nested-namespace layouts.
+      return !!recorded.dockerContainerId && recorded.dockerContainerId === here.dockerContainerId
+    }
+    if (recorded.dockerContainerId !== here.dockerContainerId) return false
+  }
+  try { process.kill(owner.data.pid, 0) } catch (err) {
     return (err as NodeJS.ErrnoException).code === "ESRCH"
   }
+  if (!recorded) return false // A live legacy PID supplies no incarnation proof.
+  const current = linuxProcess(owner.data.pid)
+  return !!current && current.bootId === recorded.bootId &&
+    current.pidNamespace === recorded.pidNamespace &&
+    current.dockerContainerId === recorded.dockerContainerId &&
+    current.startTicks !== recorded.startTicks
 }
 
 function acquire(dir: string): Lease {
@@ -43,7 +104,7 @@ function acquire(dir: string): Lease {
   const create = () => {
     const fd = fs.openSync(lock, "wx", 0o600)
     try {
-      fs.writeFileSync(fd, JSON.stringify({ token, pid: process.pid, host: os.hostname() }))
+      fs.writeFileSync(fd, JSON.stringify({ token, pid: process.pid, host: os.hostname(), linuxProcess: linuxProcess(process.pid) }))
       fs.fsyncSync(fd)
     } finally { fs.closeSync(fd) }
   }
@@ -59,7 +120,7 @@ function acquire(dir: string): Lease {
       // Keep SQLite journal/WAL files: SQLite recovers those itself. The
       // `<label>.db.lock` directory is different: node-sqlite3-wasm's own mutex,
       // created by a process's statements and removed on unlock, so a same-host
-      // owner proven dead (ESRCH) cannot still hold it. Left in place it makes
+      // owner proven dead (ESRCH or verified incarnation change) cannot hold it. Left in place it makes
       // every later statement fail with "database is locked" until someone
       // deletes it by hand (the common desktop force-quit case).
       const databaseLock = path.join(dir, `${path.basename(dir)}.db.lock`)

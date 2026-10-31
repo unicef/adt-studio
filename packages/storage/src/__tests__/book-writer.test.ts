@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from "vitest"
+import { afterEach, expect, it, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -11,6 +11,7 @@ import { cleanupInterruptedSteps, openBookDb } from "../db.js"
 const dirs: string[] = []
 const children: ChildProcess[] = []
 afterEach(async () => {
+  vi.restoreAllMocks()
   for (const child of children.splice(0)) {
     if (child.exitCode === null && child.signalCode === null) { child.kill("SIGKILL"); await once(child, "exit") }
   }
@@ -106,12 +107,18 @@ it("reserves new imports atomically and retains the shared writer until backgrou
 })
 
 
-it.each([false, true])("admits exactly one of six independent contenders (dead owner=%s)", async (recover) => {
+it.each(["fresh", "dead", ...(process.platform === "linux" ? ["recycled"] : [])])("admits exactly one of six independent contenders (%s owner)", async (mode) => {
   const f = fixture()
-  if (recover) {
+  if (mode !== "fresh") {
     const previous = await owner(f.bookDir)
+    const file = path.join(f.bookDir, ".book-writer.json")
+    const record = JSON.parse(fs.readFileSync(file, "utf8"))
     previous.kill("SIGKILL")
     await once(previous, "exit")
+    if (mode === "recycled") {
+      record.pid = process.pid // This PID is live, but its kernel starttime differs.
+      fs.writeFileSync(file, JSON.stringify(record))
+    }
   }
   const moduleUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../dist/book-writer.js")).href
   const contenders = await Promise.all(Array.from({ length: 6 }, async () => {
@@ -167,4 +174,79 @@ it("never creates a book directory just to check or take ownership", () => {
   expect(ownsBookWriter(missing)).toBe(false)
   expect(() => withBookWriter(missing, () => "must not run")).toThrow()
   expect(fs.existsSync(missing)).toBe(false)
+})
+
+// Model a recycled PID using a real kernel-stamped lease. Actual namespace/PID
+// reuse is additionally exercised by the combined Docker SIGKILL/restart probe.
+function localLease(bookDir: string) {
+  let record!: import("@adt/types").BookWriterOwner
+  withBookWriter(bookDir, () => {
+    record = JSON.parse(fs.readFileSync(path.join(bookDir, ".book-writer.json"), "utf8"))
+  })
+  return record
+}
+
+it.skipIf(process.platform !== "linux")("stamps the kernel incarnation and recovers a recycled live PID without discarding SQLite recovery data", () => {
+  const f = fixture()
+  const record = localLease(f.bookDir)
+  expect(record.linuxProcess).toBeDefined()
+  expect(record.linuxProcess!.pidNamespace).toBe(fs.readlinkSync("/proc/self/ns/pid"))
+  expect(record.linuxProcess!.bootId).toBe(fs.readFileSync("/proc/sys/kernel/random/boot_id", "utf8").trim())
+  record.linuxProcess!.startTicks = (BigInt(record.linuxProcess!.startTicks) + 1n).toString()
+  const lock = path.join(f.bookDir, ".book-writer.json")
+  fs.writeFileSync(lock, JSON.stringify(record))
+  fs.mkdirSync(path.join(f.bookDir, "book.db.lock"))
+  const retained = ["book.db", "book.db-journal", "book.db-wal", "manual.mp3"]
+  for (const name of retained) fs.writeFileSync(path.join(f.bookDir, name), `retained:${name}`)
+  expect(withBookWriter(f.bookDir, () => "recovered")).toBe("recovered")
+  expect(fs.existsSync(lock)).toBe(false)
+  expect(fs.existsSync(path.join(f.bookDir, "book.db.lock"))).toBe(false)
+  for (const name of retained) expect(fs.readFileSync(path.join(f.bookDir, name), "utf8")).toBe(`retained:${name}`)
+})
+
+it.each(["legacy", "remote", "malformed"])("retains a %s lease and its SQLite mutex without guessing ownership", (kind) => {
+  const f = fixture()
+  const record = localLease(f.bookDir)
+  if (kind === "legacy") delete record.linuxProcess
+  if (kind === "remote") record.host = "another-host"
+  if (kind === "malformed") Object.assign(record, { linuxProcess: { startTicks: "1" } })
+  const lock = path.join(f.bookDir, ".book-writer.json")
+  const bytes = JSON.stringify(record)
+  fs.writeFileSync(lock, bytes)
+  fs.mkdirSync(path.join(f.bookDir, "book.db.lock"))
+  expect(() => withBookWriter(f.bookDir, () => "unsafe")).toThrow("BOOK_BUSY")
+  expect(fs.readFileSync(lock, "utf8")).toBe(bytes)
+  expect(fs.existsSync(path.join(f.bookDir, "book.db.lock"))).toBe(true)
+})
+
+it.skipIf(process.platform !== "linux").each(["namespace", "boot", "container", "unreadable", "proc-mismatch", "permission"])("retains ambiguous %s ownership even when a PID appears recycled", (kind) => {
+  const f = fixture()
+  const record = localLease(f.bookDir)
+  const identity = record.linuxProcess!
+  identity.startTicks = (BigInt(identity.startTicks) + 1n).toString()
+  if (kind === "namespace") { identity.pidNamespace = "pid:[1]"; delete identity.dockerContainerId }
+  if (kind === "boot") { identity.bootId = "00000000-0000-4000-8000-000000000000"; delete identity.dockerContainerId }
+  if (kind === "container") identity.dockerContainerId = "a".repeat(64)
+  const lock = path.join(f.bookDir, ".book-writer.json")
+  const bytes = JSON.stringify(record)
+  fs.writeFileSync(lock, bytes)
+  fs.mkdirSync(path.join(f.bookDir, "book.db.lock"))
+  if (kind === "unreadable") {
+    const original = fs.readFileSync
+    vi.spyOn(fs, "readFileSync").mockImplementation(((file: fs.PathOrFileDescriptor, ...args: unknown[]) => {
+      if (String(file).startsWith("/proc/")) throw Object.assign(new Error("denied"), { code: "EACCES" })
+      return Reflect.apply(original, fs, [file, ...args])
+    }) as typeof fs.readFileSync)
+  }
+  if (kind === "proc-mismatch") {
+    const original = fs.readlinkSync
+    vi.spyOn(fs, "readlinkSync").mockImplementation(((file: fs.PathLike, ...args: unknown[]) => {
+      if (file === "/proc/self") return "999999"
+      return Reflect.apply(original, fs, [file, ...args])
+    }) as typeof fs.readlinkSync)
+  }
+  if (kind === "permission") vi.spyOn(process, "kill").mockImplementation(() => { throw Object.assign(new Error("denied"), { code: "EPERM" }) })
+  expect(() => withBookWriter(f.bookDir, () => "unsafe")).toThrow("BOOK_BUSY")
+  expect(fs.readFileSync(lock, "utf8")).toBe(bytes)
+  expect(fs.existsSync(path.join(f.bookDir, "book.db.lock"))).toBe(true)
 })
