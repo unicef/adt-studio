@@ -53,9 +53,13 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   /** A finished run whose link the status query has not caught up with yet. Without this the
    *  screen drops back to the "Publish this book" form for the moment between the last step and
    *  the refetch — a flash of the question, right after the answer. */
-  const settling = run.status === "done" && !live && !status.isError
+  const linkOff = connected && !!url && (lifecycle === "revoked" || lifecycle === "expired")
+  const [sharingAgain, setSharingAgain] = useState(false)
+  const offDashboard = linkOff && !sharingAgain
+  const settling = run.status === "done" && !live && !offDashboard && !status.isError
   const takingOver = run.status === "running" || run.status === "error" || settling
-  const expectsLive = useExpectsLiveLink(bookLabel, status.data ? live : null)
+  const showDashboard = live || offDashboard
+  const expectsLive = useExpectsLiveLink(bookLabel, status.data ? showDashboard : null)
   const elapsedMs = useElapsed(
     run.status === "running" ? "running" : run.status === "done" ? "done" : "idle",
     run.startedAt,
@@ -64,9 +68,6 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   /* While the status is on its way, a book that was live last time waits in the dashboard's own
      shape rather than the setup form's. */
   const waiting = status.isPending && expectsLive && !takingOver
-  const linkOff = connected && !!url && (lifecycle === "revoked" || lifecycle === "expired")
-  const [sharingAgain, setSharingAgain] = useState(false)
-  const showDashboard = live || (linkOff && !sharingAgain)
 
   useEffect(() => {
     if (live) setSharingAgain(false)

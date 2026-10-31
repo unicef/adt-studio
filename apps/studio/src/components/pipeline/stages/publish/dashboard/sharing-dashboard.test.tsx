@@ -318,6 +318,11 @@ describe("SharingHero", () => {
 })
 
 describe("LinkSettingsPanel", () => {
+  it("offers no fresh copy for a link readers can't open", () => {
+    render(<LinkSettingsPanel link={link({ access: "ended" })} />)
+    expect(screen.queryByRole("button", { name: /update link/i })).toBeNull()
+  })
+
   it("removes the code with a null update, after asking", () => {
     const setAccessCode = vi.fn()
     render(<LinkSettingsPanel link={link({ setAccessCode })} />)
