@@ -212,7 +212,7 @@ describe("PublicationsDashboard — not connected", () => {
     })
     expect(document.body.textContent).toContain("Connect a Cloudflare account to share books")
     expect(screen.getByRole("link", { name: /set up sharing/i }).getAttribute("data-to")).toBe(
-      "/settings",
+      "/settings/publishing",
     )
     expect(screen.queryByTestId("publications-empty")).toBeNull()
   })

@@ -315,7 +315,7 @@ describe("Sharing setup — states", () => {
       "connected once for the whole Studio",
     )
     expect(screen.getByRole("link", { name: /set up sharing/i }).getAttribute("href")).toBe(
-      "/settings",
+      "/settings/publishing",
     )
     expect(screen.queryByTestId("publish-start-button")).toBeNull()
   })

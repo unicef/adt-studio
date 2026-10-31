@@ -2722,8 +2722,8 @@ msgstr "Checking your account"
 msgid "Checking your sharing setup…"
 msgstr "Checking your sharing setup…"
 
-msgid "Checking your token"
-msgstr "Checking your token"
+#~ msgid "Checking your token"
+#~ msgstr "Checking your token"
 
 msgid "Checklist item"
 msgstr "Checklist item"
@@ -6573,8 +6573,11 @@ msgstr "Make sure you're uploading a .zip file exported from ADT Studio."
 msgid "Making a copy of the book"
 msgstr "Making a copy of the book"
 
-msgid "Making sure the token works and has every permission it needs."
-msgstr "Making sure the token works and has every permission it needs."
+msgid "Making sure the Studio can reach your account with every permission it needs."
+msgstr "Making sure the Studio can reach your account with every permission it needs."
+
+#~ msgid "Making sure the token works and has every permission it needs."
+#~ msgstr "Making sure the token works and has every permission it needs."
 
 msgid "Manage"
 msgstr "Manage"
@@ -11814,8 +11817,11 @@ msgstr "The link stops working on {0}."
 msgid "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
 msgstr "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
 
-msgid "The login could not be finished. Try again, or use an API token instead."
-msgstr "The login could not be finished. Try again, or use an API token instead."
+msgid "The login could not be finished. Try again in a moment."
+msgstr "The login could not be finished. Try again in a moment."
+
+#~ msgid "The login could not be finished. Try again, or use an API token instead."
+#~ msgstr "The login could not be finished. Try again, or use an API token instead."
 
 msgid "The login couldn't come back to the Studio"
 msgstr "The login couldn't come back to the Studio"
@@ -12104,11 +12110,14 @@ msgstr "This comment was deleted"
 msgid "This computer"
 msgstr "This computer"
 
+msgid "This computer will forget its Cloudflare connection, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+msgstr "This computer will forget its Cloudflare connection, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+
 #~ msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
 #~ msgstr "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
 
-msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
-msgstr "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+#~ msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+#~ msgstr "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
 
 msgid "This connection isn't available yet."
 msgstr "This connection isn't available yet."
@@ -13059,6 +13068,11 @@ msgstr "Version {0} (last known)"
 #. placeholder {1}: connection.latest_version
 msgid "Version {0} → {1}. Your shared books stay online while this runs."
 msgstr "Version {0} → {1}. Your shared books stay online while this runs."
+
+#. placeholder {0}: publication.current_version
+#. placeholder {1}: publication.version_count
+msgid "Version {0} of {1}, not being served"
+msgstr "Version {0} of {1}, not being served"
 
 msgid "Version {current}"
 msgstr "Version {current}"
