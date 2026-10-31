@@ -190,7 +190,7 @@ export function useSharingLink(bookLabel: string, run: BookPublishRunController)
     updatedAt: newest?.published_at ?? null,
     accessCode: status.data?.has_access_code === true ? (record?.access_code ?? null) : null,
     expiresAt: record?.expires_at ?? null,
-    changesWaiting: revision === null || published === null ? null : revision > published,
+    changesWaiting: revision === null || published === null ? null : revision !== published,
     workerReachable: status.data?.worker_reachable ?? true,
     workerRejected: status.data?.worker_rejected ?? false,
     isUpdating: run.status === "running",
