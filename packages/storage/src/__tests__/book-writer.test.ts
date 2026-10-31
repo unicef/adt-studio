@@ -291,3 +291,34 @@ it("recovers a legacy lease only after its real owner exits", async () => {
   await once(child, "exit")
   expect(withBookWriter(f.bookDir, () => "legacy recovered")).toBe("legacy recovered")
 })
+
+
+it.skipIf(process.platform !== "linux" || !fs.existsSync("/.dockerenv")).each(["shared-host", "unknown-container"])("does not treat a locally missing legacy PID as death in %s Docker", async (kind) => {
+  const f = fixture()
+  const child = await owner(f.bookDir)
+  const file = path.join(f.bookDir, ".book-writer.json")
+  const record = JSON.parse(fs.readFileSync(file, "utf8"))
+  delete record.linuxProcess
+  child.kill("SIGKILL")
+  await once(child, "exit")
+  // This numeric PID is demonstrably absent here, but an old record cannot
+  // establish that it belongs to this namespace when hostname is shared.
+  expect(() => process.kill(record.pid, 0)).toThrow()
+  if (kind === "shared-host") {
+    record.host = "shared-host"
+    vi.spyOn(os, "hostname").mockReturnValue(record.host)
+  } else {
+    const original = fs.readFileSync
+    vi.spyOn(fs, "readFileSync").mockImplementation(((input: fs.PathOrFileDescriptor, ...args: unknown[]) => {
+      if (String(input).endsWith("/mountinfo")) throw new Error("unavailable mount identity")
+      return Reflect.apply(original, fs, [input, ...args])
+    }) as typeof fs.readFileSync)
+  }
+  const bytes = JSON.stringify(record)
+  fs.writeFileSync(file, bytes)
+  fs.mkdirSync(path.join(f.bookDir, "book.db.lock"))
+  fs.writeFileSync(path.join(f.bookDir, "book.db.lock", "owner"), "do not reclaim")
+  expect(() => withBookWriter(f.bookDir, () => "unsafe")).toThrow("BOOK_BUSY")
+  expect(fs.readFileSync(file, "utf8")).toBe(bytes)
+  expect(fs.readFileSync(path.join(f.bookDir, "book.db.lock", "owner"), "utf8")).toBe("do not reclaim")
+})

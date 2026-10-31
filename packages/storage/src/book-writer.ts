@@ -80,6 +80,18 @@ function deadOwner(lock: string): boolean {
   const owner = BookWriterOwner.safeParse(JSON.parse(fs.readFileSync(lock, "utf8")))
   if (!owner.success || owner.data.host !== os.hostname()) return false
   const recorded = owner.data.linuxProcess
+  if (!recorded && process.platform === "linux") {
+    // Old leases have no PID namespace. In Docker, a missing numeric PID in
+    // this container says nothing about a sibling with the same custom host.
+    // Keep the usual default-hostname compatibility only when the daemon's
+    // container identity corroborates it. Recognized but unprovable Docker
+    // layouts must not fall through to native ESRCH recovery.
+    const here = linuxProcess(process.pid)
+    const mounts = fs.readFileSync("/proc/self/mountinfo", "utf8")
+    const docker = fs.existsSync("/.dockerenv") || /\/containers\/[a-f0-9]{64}\/(?:hostname|hosts|resolv\.conf) /.test(mounts)
+    if (docker && (!here?.dockerContainerId || !/^[a-f0-9]{12,64}$/.test(owner.data.host) ||
+      !here.dockerContainerId.startsWith(owner.data.host))) return false
+  }
   if (recorded) {
     const here = linuxProcess(process.pid)
     if (!here) return false
