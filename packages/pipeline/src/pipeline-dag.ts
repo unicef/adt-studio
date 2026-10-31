@@ -68,6 +68,9 @@ import {
   buildMeaningfulnessImages,
   dedupAutoFigureCandidatesInStorage,
   filterPageImageMeaningfulness,
+  buildHashDedupPlan,
+  sentInFirstRound,
+  settleHashDedup,
   buildMeaningfulnessConfig,
 } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
@@ -456,11 +459,14 @@ export async function runFullPipeline(
         return
       }
       const model = getModel(meaningfulnessConfig.modelId)
-      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
-        const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
-        if (!classRow) return
-        let imageResult = classRow.data as ImageClassificationOutput
-        const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, imageResult)
+      const classificationOf = (pageId: string) =>
+        storage.getLatestNodeData("image-filtering", pageId)?.data as ImageClassificationOutput | undefined
+      // Identical bytes on several pages are judged once; see planHashDedup.
+      const dedupPlan = buildHashDedupPlan(storage, pages, classificationOf)
+      const judgedPages = new Set<string>()
+      const judgePage = async (page: { pageId: string; text: string }, include: (imageId: string) => boolean) => {
+        let imageResult = classificationOf(page.pageId)!
+        const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, imageResult, include)
         if (unprunedImages.length > 0) {
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
           imageResult = await filterPageImageMeaningfulness(
@@ -476,6 +482,11 @@ export async function runFullPipeline(
           )
           storage.putNodeData("image-filtering", page.pageId, imageResult)
         }
+      }
+      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
+        if (!classificationOf(page.pageId)) return
+        await judgePage(page, sentInFirstRound(dedupPlan))
+        judgedPages.add(page.pageId)
         p.emit({
           type: "step-progress",
           step: "image-meaningfulness",
@@ -484,6 +495,19 @@ export async function runFullPipeline(
           totalPages,
         })
       })
+      // Settled only once every page finished: a page failure fails the step
+      // here, and settling while other pages are still in flight would race them.
+      const pageById = new Map(pages.map((page) => [page.pageId, page]))
+      const settled = await settleHashDedup(
+        dedupPlan,
+        judgedPages,
+        async (pageId, imageIds) => {
+          await judgePage(pageById.get(pageId)!, (id) => imageIds.has(id))
+          return true
+        },
+        classificationOf,
+      )
+      for (const [pageId, updated] of settled) storage.putNodeData("image-filtering", pageId, updated)
     })
 
     executors.set("image-cropping", async (p) => {

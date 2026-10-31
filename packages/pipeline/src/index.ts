@@ -35,6 +35,10 @@ export {
 } from "./image-filtering.js"
 export {
   filterPageImageMeaningfulness,
+  buildHashDedupPlan,
+  sentInFirstRound,
+  settleHashDedup,
+  type HashDedupPlan,
   buildMeaningfulnessConfig,
   addFigureExtractionContext,
   buildMeaningfulnessImages,

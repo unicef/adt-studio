@@ -192,10 +192,11 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     getPageImages(pageId: string): ImageData[] {
       const rows = db.all(
-        "SELECT image_id, width, height, render_method, bounds_x, bounds_y, bounds_w, bounds_h FROM images WHERE page_id = ? ORDER BY image_id",
+        "SELECT image_id, hash, width, height, render_method, bounds_x, bounds_y, bounds_w, bounds_h FROM images WHERE page_id = ? ORDER BY image_id",
         [pageId]
       ) as Array<{
         image_id: string
+        hash: string
         width: number
         height: number
         render_method: string | null
@@ -211,6 +212,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
           height: r.height,
           renderMethod: r.render_method as ImageData["renderMethod"],
         }
+        if (r.hash) image.hash = r.hash
         if (r.bounds_x !== null && r.bounds_y !== null && r.bounds_w !== null && r.bounds_h !== null) {
           image.bounds = { x: r.bounds_x, y: r.bounds_y, width: r.bounds_w, height: r.bounds_h }
         }
