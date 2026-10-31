@@ -4032,11 +4032,17 @@ msgstr "Brouillon"
 msgid "Drag & drop font files here"
 msgstr "Glissez-déposez des fichiers de police ici"
 
-msgid "Drag the handles to crop a rectangle. Drag inside to move."
-msgstr "Faites glisser les poignées pour rogner un rectangle. Faites glisser à l'intérieur pour déplacer."
+msgid "Drag an edge or corner to crop a rectangle. Drag inside to move."
+msgstr "Faites glisser un bord ou un coin pour rogner un rectangle. Faites glisser à l'intérieur pour déplacer."
 
-msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
-msgstr "Faites glisser les poignées pour redimensionner (rapport d'aspect verrouillé). Faites glisser à l'intérieur pour déplacer."
+msgid "Drag an edge or corner to resize (aspect ratio locked). Drag inside to move."
+msgstr "Faites glisser un bord ou un coin pour redimensionner (rapport d'aspect verrouillé). Faites glisser à l'intérieur pour déplacer."
+
+#~ msgid "Drag the handles to crop a rectangle. Drag inside to move."
+#~ msgstr "Faites glisser les poignées pour rogner un rectangle. Faites glisser à l'intérieur pour déplacer."
+
+#~ msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+#~ msgstr "Faites glisser les poignées pour redimensionner (rapport d'aspect verrouillé). Faites glisser à l'intérieur pour déplacer."
 
 msgid "Drag to move"
 msgstr "Glisser pour déplacer"
