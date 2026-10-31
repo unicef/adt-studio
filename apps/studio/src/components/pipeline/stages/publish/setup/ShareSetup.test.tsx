@@ -315,7 +315,7 @@ describe("Sharing setup — states", () => {
       "connected once for the whole Studio",
     )
     expect(screen.getByRole("link", { name: /set up sharing/i }).getAttribute("href")).toBe(
-      "/settings",
+      "/settings/publishing",
     )
     expect(screen.queryByTestId("publish-start-button")).toBeNull()
   })
@@ -355,11 +355,25 @@ describe("Sharing setup — states", () => {
     expect(screen.getByRole("button", { name: /try again/i })).toBeTruthy()
   })
 
+  it("keeps the readers' comments in view after sharing stops", async () => {
+    getBookPublication.mockResolvedValue(revokedStatus())
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("sharing-link-off")).toBeTruthy())
+    expect(screen.queryByTestId("publish-setup")).toBeNull()
+    expect(document.body.textContent).toContain("Feedback")
+    expect(document.body.textContent).toContain("Readers")
+    expect(getPublicationComments).toHaveBeenCalled()
+  })
+
   it("offers both ways back after the author stopped sharing, resuming first", async () => {
     getBookPublication.mockResolvedValue(revokedStatus())
 
     renderPage()
 
+    await waitFor(() => expect(screen.getByTestId("sharing-link-off")).toBeTruthy())
+    fireEvent.click(screen.getByRole("button", { name: /share again/i }))
     await waitFor(() => expect(screen.getByTestId("publication-revoked")).toBeTruthy())
     const notice = screen.getByTestId("publication-revoked")
     expect(notice.textContent).toContain("doesn't open right now")
@@ -374,6 +388,9 @@ describe("Sharing setup — states", () => {
     expect(preview.getAttribute("data-mode")).toBe("stopped")
     expect(preview.textContent).toContain("adt-publish.escola-azul.workers.dev")
     expect(resumeBookPublication).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByTestId("publish-back-to-dashboard"))
+    await waitFor(() => expect(screen.getByTestId("sharing-link-off")).toBeTruthy())
   })
 
   it("mentions a waiting publishing-service update above the setup", async () => {
@@ -717,16 +734,14 @@ describe("Sharing setup — link management", () => {
 
     renderPage()
 
-    await waitFor(() => expect(screen.getByTestId("publish-resume-button")).toBeTruthy())
+    await waitFor(() => expect(screen.getByTestId("sharing-resume-button")).toBeTruthy())
     getBookPublication.mockResolvedValue(publishedStatus())
     await act(async () => {
-      fireEvent.click(screen.getByTestId("publish-resume-button"))
+      fireEvent.click(screen.getByTestId("sharing-resume-button"))
     })
 
     expect(resumeBookPublication).toHaveBeenCalledWith("meu-livro")
-    /** Resuming makes the link live again, and a live link is the dashboard's to show — so what
-     *  the setup does is stop saying the sharing is stopped. */
-    await waitFor(() => expect(screen.queryByTestId("publication-revoked")).toBeNull())
+    await waitFor(() => expect(screen.queryByTestId("sharing-link-off")).toBeNull())
   })
 
   it("keeps the link off and says so when resuming fails", async () => {
@@ -737,16 +752,16 @@ describe("Sharing setup — link management", () => {
 
     renderPage()
 
-    await waitFor(() => expect(screen.getByTestId("publish-resume-button")).toBeTruthy())
+    await waitFor(() => expect(screen.getByTestId("sharing-resume-button")).toBeTruthy())
     await act(async () => {
-      fireEvent.click(screen.getByTestId("publish-resume-button"))
+      fireEvent.click(screen.getByTestId("sharing-resume-button"))
     })
 
-    await waitFor(() => expect(screen.getByTestId("publish-resume-error")).toBeTruthy())
-    const error = screen.getByTestId("publish-resume-error")
+    await waitFor(() => expect(screen.getByTestId("sharing-resume-error")).toBeTruthy())
+    const error = screen.getByTestId("sharing-resume-error")
     expect(error.textContent).toContain("still off")
     expect(error.textContent).toContain("The publish worker answered 502")
-    expect(screen.getByTestId("publication-revoked")).toBeTruthy()
+    expect(screen.getByTestId("sharing-link-off")).toBeTruthy()
   })
 
 })

@@ -1,5 +1,5 @@
 import { X } from "lucide-react"
-import { useEffect, useLayoutEffect, useState, type RefObject } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react"
 import { createPortal } from "react-dom"
 import { getChromePortalContainer } from "@/shared/lib/chrome-portal"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
@@ -57,6 +57,19 @@ export function CommentsHint({
     return () => window.clearTimeout(timer)
   }, [])
 
+  const hintRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!shown) return
+    const stepAside = (event: PointerEvent) => {
+      const target = event.target as Node | null
+      if (target && (hintRef.current?.contains(target) || anchor.current?.contains(target))) return
+      onDismiss()
+    }
+    document.addEventListener("pointerdown", stepAside, true)
+    return () => document.removeEventListener("pointerdown", stepAside, true)
+  }, [shown, anchor, onDismiss])
+
   useLayoutEffect(() => {
     if (!shown) return
     const measure = () => setBox(anchor.current?.getBoundingClientRect() ?? null)
@@ -77,6 +90,7 @@ export function CommentsHint({
 
   return createPortal(
     <div
+      ref={hintRef}
       role="status"
       data-comments-hint=""
       style={{ position: "fixed", ...place }}

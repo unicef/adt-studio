@@ -257,6 +257,8 @@ export function ReplyComposer({
               <span className="text-amber-700 dark:text-amber-300">
                 <Trans>That reply didn't send. Try again.</Trans>
               </span>
+            ) : data.link.access !== "open" ? (
+              <Trans>{SEND_KEY} Enter to send · readers see it once the link is back on</Trans>
             ) : (
               <Trans>{SEND_KEY} Enter to send · the reader sees it on their copy</Trans>
             )}

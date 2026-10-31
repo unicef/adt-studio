@@ -18,7 +18,7 @@ export function PublishingSettingsLink({
 }: PublishingSettingsLinkProps) {
   return (
     <Button asChild variant={variant} size={size} className={className}>
-      <Link to="/settings" search={{ section: "publishing" }}>
+      <Link to="/settings/publishing">
         {children}
       </Link>
     </Button>

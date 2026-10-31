@@ -646,6 +646,9 @@ msgstr "{sections} seções"
 msgid "{SEND_KEY} Enter to send"
 msgstr "{SEND_KEY} Enter para enviar"
 
+msgid "{SEND_KEY} Enter to send · readers see it once the link is back on"
+msgstr "{SEND_KEY} Enter para enviar · os leitores veem quando o link voltar a funcionar"
+
 msgid "{SEND_KEY} Enter to send · the reader sees it on their copy"
 msgstr "{SEND_KEY} Enter para enviar · o leitor vê na cópia dele"
 
@@ -2137,6 +2140,9 @@ msgstr "Voltar às versões beta"
 msgid "Back to classic activity"
 msgstr "Voltar à atividade clássica"
 
+msgid "Back to comments"
+msgstr "Voltar aos comentários"
+
 msgid "Back to home"
 msgstr "Voltar ao início"
 
@@ -2722,8 +2728,8 @@ msgstr "Verificando sua conta"
 msgid "Checking your sharing setup…"
 msgstr "Verificando sua configuração de compartilhamento…"
 
-msgid "Checking your token"
-msgstr "Verificando seu token"
+#~ msgid "Checking your token"
+#~ msgstr "Verificando seu token"
 
 msgid "Checklist item"
 msgstr "Item da lista de verificação"
@@ -6579,8 +6585,11 @@ msgstr "Certifique-se de enviar um arquivo .zip exportado do ADT Studio."
 msgid "Making a copy of the book"
 msgstr "Fazendo uma cópia do livro"
 
-msgid "Making sure the token works and has every permission it needs."
-msgstr "Verificando se o token funciona e tem todas as permissões necessárias."
+msgid "Making sure the Studio can reach your account with every permission it needs."
+msgstr "Verificando se o Studio consegue acessar sua conta com todas as permissões necessárias."
+
+#~ msgid "Making sure the token works and has every permission it needs."
+#~ msgstr "Verificando se o token funciona e tem todas as permissões necessárias."
 
 msgid "Manage"
 msgstr "Gerenciar"
@@ -9146,6 +9155,12 @@ msgstr "Os leitores já veem suas últimas edições."
 
 msgid "Readers appear here once they open the link and give a name."
 msgstr "Os leitores aparecem aqui quando abrem o link e dão um nome."
+
+msgid "Readers can't open the link right now. Everything they left is still here."
+msgstr "Os leitores não conseguem abrir o link agora. Tudo o que eles deixaram continua aqui."
+
+msgid "Readers can't open the link until you resume sharing."
+msgstr "Os leitores não conseguem abrir o link até você retomar o compartilhamento."
 
 msgid "Readers don't see your latest edits"
 msgstr "Os leitores não veem suas últimas edições"
@@ -11817,8 +11832,11 @@ msgstr "O link para de funcionar em {0}."
 msgid "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
 msgstr "O link para de funcionar imediatamente, para todos que o têm. Qualquer pessoa que o abrir verá uma mensagem curta dizendo que o livro não está mais compartilhado."
 
-msgid "The login could not be finished. Try again, or use an API token instead."
-msgstr "O login não pôde ser concluído. Tente novamente, ou use um token API."
+msgid "The login could not be finished. Try again in a moment."
+msgstr "O login não pôde ser concluído. Tente novamente em instantes."
+
+#~ msgid "The login could not be finished. Try again, or use an API token instead."
+#~ msgstr "O login não pôde ser concluído. Tente novamente, ou use um token API."
 
 msgid "The login couldn't come back to the Studio"
 msgstr "O login não pôde voltar para o Studio"
@@ -12107,11 +12125,14 @@ msgstr "Este comentário foi excluído"
 msgid "This computer"
 msgstr "Este computador"
 
+msgid "This computer will forget its Cloudflare connection, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+msgstr "Este computador vai esquecer a conexão com o Cloudflare, então você não poderá compartilhar nem atualizar livros até conectar de novo. Os livros que você já compartilhou continuam on-line e seus links continuam funcionando."
+
 #~ msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
 #~ msgstr "Este computador esquecerá seu token e ID de Conta, então você não poderá publicar ou atualizar livros até se conectar novamente. Livros que você já publicou permanecem online e seus links continuam funcionando."
 
-msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
-msgstr "Este computador vai esquecer seu token e o ID da conta, então você não poderá compartilhar nem atualizar livros até conectar de novo. Os livros que você já compartilhou continuam on-line e seus links continuam funcionando."
+#~ msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+#~ msgstr "Este computador vai esquecer seu token e o ID da conta, então você não poderá compartilhar nem atualizar livros até conectar de novo. Os livros que você já compartilhou continuam on-line e seus links continuam funcionando."
 
 msgid "This connection isn't available yet."
 msgstr "Esta conexão ainda não está disponível."
@@ -13062,6 +13083,11 @@ msgstr "Versão {0} (última conhecida)"
 #. placeholder {1}: connection.latest_version
 msgid "Version {0} → {1}. Your shared books stay online while this runs."
 msgstr "Versão {0} → {1}. Seus livros compartilhados continuam on-line enquanto isso roda."
+
+#. placeholder {0}: publication.current_version
+#. placeholder {1}: publication.version_count
+msgid "Version {0} of {1}, not being served"
+msgstr "Versão {0} de {1}, fora do ar"
 
 msgid "Version {current}"
 msgstr "Versão {current}"

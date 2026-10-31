@@ -79,7 +79,16 @@ export function LinkAccessWidget({ link, startedAt, onExtend }: { link: DashLink
   return (
     <DashboardPanel title={<Trans>Link access</Trans>}>
       <div className="flex min-h-full flex-col justify-center gap-3 px-5 py-4 [@media(max-height:820px)]:gap-2 [@media(max-height:820px)]:py-2.5">
-        {state.tone === "ended" ? (
+        {link.access === "stopped" ? (
+          <>
+            <span className="text-2xl font-semibold leading-none tracking-tight text-foreground">
+              <Trans>Stopped</Trans>
+            </span>
+            <p className="text-xs leading-5 text-muted-foreground">
+              <Trans>Readers can't open the link until you resume sharing.</Trans>
+            </p>
+          </>
+        ) : state.tone === "ended" ? (
           <>
             <div className="flex items-end justify-between gap-3">
               <span className="text-2xl font-semibold leading-none tracking-tight text-rose-700 dark:text-rose-300">

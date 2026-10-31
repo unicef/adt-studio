@@ -88,6 +88,7 @@ function link(overrides: Partial<DashLink> = {}): DashLink {
     changesWaiting: false,
     workerReachable: true,
     workerRejected: false,
+    access: "open",
     isUpdating: false,
     update: vi.fn(),
     hasAccessCode: true,
@@ -102,6 +103,9 @@ function link(overrides: Partial<DashLink> = {}): DashLink {
     revoke: vi.fn(),
     revoking: false,
     revokeError: null,
+    resume: vi.fn(),
+    resuming: false,
+    resumeError: null,
     clearFailures: vi.fn(),
     ...overrides,
   }
@@ -231,36 +235,88 @@ describe("SharingHandout", () => {
 
 describe("SharingHero", () => {
   it("says readers are current when nothing has changed since the share", () => {
-    render(<SharingHero link={link()} onOpenSettings={vi.fn()} />)
+    render(<SharingHero link={link()} onOpenSettings={vi.fn()} onExtend={vi.fn()} onShareAgain={vi.fn()} />)
     expect(document.body.textContent).toContain("Up to date")
   })
 
   it("raises edits waiting with an update right there", () => {
     const update = vi.fn()
-    render(<SharingHero link={link({ changesWaiting: true, update })} onOpenSettings={vi.fn()} />)
+    render(<SharingHero link={link({ changesWaiting: true, update })} onOpenSettings={vi.fn()} onExtend={vi.fn()} onShareAgain={vi.fn()} />)
     expect(document.body.textContent).toContain("Readers don't see your latest edits")
     fireEvent.click(screen.getByRole("button", { name: /update link/i }))
     expect(update).toHaveBeenCalled()
   })
 
   it("admits it cannot tell rather than claiming the link is current", () => {
-    render(<SharingHero link={link({ changesWaiting: null })} onOpenSettings={vi.fn()} />)
+    render(<SharingHero link={link({ changesWaiting: null })} onOpenSettings={vi.fn()} onExtend={vi.fn()} onShareAgain={vi.fn()} />)
     expect(document.body.textContent).not.toContain("Up to date")
     expect(document.body.textContent).not.toContain("don't see your latest edits")
   })
 
   /** Another Studio on the account replaced the secret: say so, and where to take it back. */
   it("says another Studio took over, not that the service is down", () => {
-    render(<SharingHero link={link({ workerReachable: false, workerRejected: true })} onOpenSettings={vi.fn()} />)
+    render(<SharingHero link={link({ workerReachable: false, workerRejected: true })} onOpenSettings={vi.fn()} onExtend={vi.fn()} onShareAgain={vi.fn()} />)
     expect(document.body.textContent).toContain("Another ADT Studio took over sharing")
     expect(document.body.textContent).not.toContain("isn't answering")
   })
 
   /** The outage band wins the bottom edge, but the edits it hides are still worth knowing about. */
   it("keeps unsent edits in view while the service is down", () => {
-    render(<SharingHero link={link({ workerReachable: false, changesWaiting: true })} onOpenSettings={vi.fn()} />)
+    render(<SharingHero link={link({ workerReachable: false, changesWaiting: true })} onOpenSettings={vi.fn()} onExtend={vi.fn()} onShareAgain={vi.fn()} />)
     expect(document.body.textContent).toContain("The sharing service isn't answering.")
     expect(document.body.textContent).toContain("You've edited since this version")
+  })
+
+  it("keeps a stopped link's dashboard and offers the same link back, or a new share", () => {
+    const resume = vi.fn()
+    const onShareAgain = vi.fn()
+    render(
+      <SharingHero
+        link={link({ access: "stopped", changesWaiting: true, resume })}
+        onOpenSettings={vi.fn()}
+        onExtend={vi.fn()}
+        onShareAgain={onShareAgain}
+      />,
+    )
+    expect(document.body.textContent).toContain("Stopped")
+    expect(document.body.textContent).toContain("Everything they left is still here")
+    expect(document.body.textContent).not.toContain("Readers don't see your latest edits")
+    expect(screen.queryByRole("button", { name: /link settings/i })).toBeNull()
+    expect(screen.queryByText("3MAKEX")).toBeNull()
+    fireEvent.click(screen.getByTestId("sharing-resume-button"))
+    expect(resume).toHaveBeenCalled()
+    fireEvent.click(screen.getByRole("button", { name: /share again/i }))
+    expect(onShareAgain).toHaveBeenCalled()
+  })
+
+  it("offers to extend a link that reached its end date", () => {
+    const onExtend = vi.fn()
+    render(
+      <SharingHero
+        link={link({ access: "ended", expiresAt: "2026-08-01T00:00:00.000Z" })}
+        onOpenSettings={vi.fn()}
+        onExtend={onExtend}
+        onShareAgain={vi.fn()}
+      />,
+    )
+    expect(document.body.textContent).toContain("Ended")
+    expect(document.body.textContent).toContain("The link reached its end date")
+    fireEvent.click(screen.getByRole("button", { name: /^extend$/i }))
+    expect(onExtend).toHaveBeenCalled()
+  })
+
+  it("shows why resuming failed, with the service's own words", () => {
+    render(
+      <SharingHero
+        link={link({ access: "stopped", resumeError: "The publish worker answered 502" })}
+        onOpenSettings={vi.fn()}
+        onExtend={vi.fn()}
+        onShareAgain={vi.fn()}
+      />,
+    )
+    const error = screen.getByTestId("sharing-resume-error")
+    expect(error.textContent).toContain("still off")
+    expect(error.textContent).toContain("The publish worker answered 502")
   })
 })
 
