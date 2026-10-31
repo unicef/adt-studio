@@ -19,6 +19,7 @@ already holds its number — check both before taking one
 | SPEC-0007 | Accessibility harness as a blocking CI gate                     | draft  | TBD         | 0.9.0     |
 | SPEC-0008 | Stable identifiers and reading order (retrospective)            | draft  | TBD         | Block 1   |
 | [SPEC-0015](SPEC-0015-nano-banana-image-models.md) | Nano Banana image models | in-review | @elasticsounds | #579 / #904 |
+| [SPEC-0017](SPEC-0017-connectivity-handling.md) | Consistent connectivity feedback for updates and pipeline | draft | @lucas7maciel | #934 |
 
 SPEC-0001 product clarifications were ratified in October 16 review Note 7; its
 status remains `in-review` pending integration approval and final historical-book
