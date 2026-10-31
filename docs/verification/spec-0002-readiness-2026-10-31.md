@@ -2,6 +2,8 @@
 
 ## Assessment
 
+> **Later acceptance update:** [additional platform, offline and crash findings](spec-0002-additional-acceptance-2026-10-31.md) supersedes this readiness recommendation. Actual forced Docker restart exposed a shared PID-reuse writer-admission blocker; default local Desktop launch and cross-origin SCORM qualifications are also recorded. No new product deferral is authorized.
+
 The local branch implements the non-deferred preservation contract on current develop. The audit found and fixed additional defects in TOC replacement entry points, Sharing ownership and historical translation recovery. Two independent reviewers rechecked the fixes. The final production checkpoint passes the full repository suite, browser regressions, combined Docker runtime/export/restart, packaged Desktop API/resources/export/restart, and the bounded built-old-API readability probe.
 
 This supports **independent review within the agreed scope**, not an unconditional claim that the original specification has no remaining failures. The six explicitly owner-deferred defects remain real; the inherited legacy-ownership policy, SPEC-0001 follow-ups and explicit non-goals remain bounded below. Private historical-book and representative Mathematics STD 5 acceptance, paid-provider quality, hosted exact-head CI and release certification are not established by these checks. SPEC-0002 and INDEX remain draft/unapproved.
@@ -154,6 +156,6 @@ Two separate read-only agents reviewed original requirements and refreshed feedb
 
 The local `independent/deferral-register.md` records exact human authority and boundaries; `independent/adversarial-review-brief.md` maps recurring SPEC-0001 review failures to SPEC-0002 probes. Both standalone review prompts point to these and require reviewers to derive their own map first.
 
-Remaining acceptance: private Frankenstein/De-codable books assigned to the owner, Mathematics STD 5/field-scale harness and Tanzania doctor acceptance where required by their owning release gate; live-provider quality and real cloud publishing; full Electron GUI, signed/notarized installers/all OSes; low-end/offline performance measurements; and hosted CI after separately authorized publication. None is marked passed or converted into a product deferral. No new unresolved implementation or dependency decision is currently identified within the agreed scope.
+Remaining acceptance: private Frankenstein/De-codable books assigned to the owner, Mathematics STD 5/field-scale harness and Tanzania doctor acceptance where required by their owning release gate; live-provider quality and real cloud publishing; full Electron GUI, signed/notarized installers/all OSes; low-end/offline performance measurements; and hosted CI after separately authorized publication. None is marked passed or converted into a product deferral. That earlier audit identified no additional unresolved decision; subsequent actual crash acceptance exposed R1 in the linked update.
 
 Recommendation: submit this local candidate to the requested Codex and Claude Code independent reviews. Address any valid non-deferred finding before publication. The evidence supports the **current contract with its explicit deferrals and ratified compatibility limits**, not unconditional completion of every sentence of the original unqualified spec or release approval.
