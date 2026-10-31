@@ -61,9 +61,6 @@ export function CommentsHint({
 
   useEffect(() => {
     if (!shown) return
-    /** Reaching for anything else — the read-aloud player opening right where the hint sits,
-     *  a page turn, the text itself — means the reader has moved on, so the hint steps aside
-     *  for this visit instead of covering what they opened. */
     const stepAside = (event: PointerEvent) => {
       const target = event.target as Node | null
       if (target && (hintRef.current?.contains(target) || anchor.current?.contains(target))) return

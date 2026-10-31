@@ -541,9 +541,6 @@ export function createCloudflareOAuthService(
     }
 
     const denial = url.searchParams.get("error")
-    /** Cloudflare answers `request_forbidden` when the same login is open in two tabs and the
-     *  other one now owns it. That says nothing about this login, so it keeps waiting for the
-     *  tab that can still finish it instead of failing the whole connection. */
     if (denial === "request_forbidden") {
       return {
         status: 200,

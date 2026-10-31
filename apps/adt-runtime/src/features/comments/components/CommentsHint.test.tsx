@@ -5,11 +5,6 @@ import { createRef } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { CommentsHint, hintSeen } from "./CommentsHint"
 
-/**
- * The first-visit hint sits right above the reader's dock, where the read-aloud player opens.
- * Reaching for anything else has to move it out of the way, without ruling it seen for good.
- */
-
 beforeEach(() => {
   vi.useFakeTimers()
   const container = document.createElement("div")

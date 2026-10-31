@@ -75,8 +75,6 @@ function explain(code: CloudflareOAuthErrorCode | "unknown" | null): {
   title: ReactNode
   body: ReactNode
   showRemoteHint: boolean
-  /** Whether the server's own sentence is shown too: only where it adds something (the busy
-   *  port's number, an unexpected failure). Elsewhere it repeated the body word for word. */
   showDetail: boolean
 } {
   switch (code) {
