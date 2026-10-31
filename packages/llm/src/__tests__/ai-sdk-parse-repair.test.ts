@@ -91,4 +91,27 @@ describe("ai-sdk parse-repair schema embedding", () => {
     )
     expect(repairPrompt?.content).toContain(serializedSchema)
   })
+
+  it("reports the instruction it appends, so the log can show the prompt as sent", () => {
+    const backend = ollamaProvider.createStructuredTextBackend!({
+      providerId: "ollama",
+      modelId: "tinyllama",
+      modality: "structured-text",
+      credentials: ollamaProvider.credentialSchema.parse({}),
+    })
+    const request = {
+      system: "You are a librarian.",
+      messages: [{ role: "user" as const, content: "hi" }],
+      schema,
+      strategy: "parse-repair" as const,
+    }
+
+    const additions = backend.systemAdditions?.(request)
+    expect(additions).toHaveLength(1)
+    expect(additions?.[0]).toContain(
+      "Reply with a single JSON object that validates against this JSON Schema.",
+    )
+    expect(additions?.[0]).toContain(serializedSchema)
+    expect(backend.systemAdditions?.({ ...request, strategy: "json-mode" })).toEqual([])
+  })
 })
