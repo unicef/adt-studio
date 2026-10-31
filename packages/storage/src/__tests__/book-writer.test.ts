@@ -250,3 +250,44 @@ it.skipIf(process.platform !== "linux").each(["namespace", "boot", "container", 
   expect(fs.readFileSync(lock, "utf8")).toBe(bytes)
   expect(fs.existsSync(path.join(f.bookDir, "book.db.lock"))).toBe(true)
 })
+
+
+it.skipIf(process.platform !== "linux").each(["CapBnd", "CapPrm", "CapEff", "Seccomp", "uid_map", "mountinfo", "stat"])("refuses cross-namespace recovery with uncertain Docker evidence (%s)", (field) => {
+  const f = fixture()
+  const record = localLease(f.bookDir)
+  record.linuxProcess!.pidNamespace = "pid:[1]"
+  // On Linux hosts without Docker, this is deliberately unprovable as well.
+  record.linuxProcess!.dockerContainerId ??= "b".repeat(64)
+  const lock = path.join(f.bookDir, ".book-writer.json")
+  const bytes = JSON.stringify(record)
+  fs.writeFileSync(lock, bytes)
+  fs.mkdirSync(path.join(f.bookDir, "book.db.lock"))
+  const original = fs.readFileSync
+  vi.spyOn(fs, "readFileSync").mockImplementation(((file: fs.PathOrFileDescriptor, ...args: unknown[]) => {
+    const value = Reflect.apply(original, fs, [file, ...args])
+    if (!String(file).startsWith("/proc/")) return value
+    if (String(file).endsWith("/status") && field.startsWith("Cap")) return String(value).replace(new RegExp(`^${field}:.*$`, "m"), `${field}:\t00200000`)
+    if (String(file).endsWith("/status") && field === "Seccomp") return String(value).replace(/^Seccomp:.*$/m, "Seccomp:\t0")
+    if (String(file).endsWith("/uid_map") && field === "uid_map") return "0 1000 1"
+    if (String(file).endsWith("/mountinfo") && field === "mountinfo") return String(value).split("\n").filter((line) => !line.includes("/etc/hosts ")).join("\n")
+    if (String(file).endsWith("/stat") && field === "stat") return "malformed kernel record"
+    return value
+  }) as typeof fs.readFileSync)
+  expect(() => withBookWriter(f.bookDir, () => "unsafe")).toThrow("BOOK_BUSY")
+  expect(fs.readFileSync(lock, "utf8")).toBe(bytes)
+  expect(fs.existsSync(path.join(f.bookDir, "book.db.lock"))).toBe(true)
+})
+
+
+it("recovers a legacy lease only after its real owner exits", async () => {
+  const f = fixture()
+  const child = await owner(f.bookDir)
+  const file = path.join(f.bookDir, ".book-writer.json")
+  const record = JSON.parse(fs.readFileSync(file, "utf8"))
+  delete record.linuxProcess
+  fs.writeFileSync(file, JSON.stringify(record))
+  expect(() => withBookWriter(f.bookDir, () => "unsafe")).toThrow("BOOK_BUSY")
+  child.kill("SIGKILL")
+  await once(child, "exit")
+  expect(withBookWriter(f.bookDir, () => "legacy recovered")).toBe("legacy recovered")
+})

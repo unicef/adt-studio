@@ -60,11 +60,16 @@ function linuxProcess(pid: number): BookWriterOwner["linuxProcess"] {
         return match?.[2] === name ? match[1] : undefined
       })
       const status = fs.readFileSync(`/proc/${pid}/status`, "utf8")
-      const capabilities = status.match(/^CapBnd:\s+([a-f0-9]+)$/m)?.[1]
+      const capabilities = ["CapBnd", "CapPrm", "CapEff"].map((field) =>
+        status.match(new RegExp(`^${field}:\\s+([a-f0-9]+)$`, "m"))?.[1])
+      const uidMap = fs.readFileSync(`/proc/${pid}/uid_map`, "utf8").trim().split(/\s+/)
       const seccomp = status.match(/^Seccomp:\s+(\d+)$/m)?.[1]
       // Privileged/nested namespace setups cannot use the standard Docker
-      // lifecycle proof. CAP_SYS_ADMIN is bit 21; require seccomp filtering too.
-      const standardIsolation = capabilities && (BigInt(`0x${capabilities}`) & (1n << 21n)) === 0n && seccomp === "2"
+      // lifecycle proof. CAP_SYS_ADMIN is bit 21. Restrict the proof to the
+      // shipped rootful/default-seccomp deployment; a custom seccomp filter
+      // cannot be identified from procfs and is not certified by this check.
+      const standardIsolation = capabilities.every((value) => value && (BigInt(`0x${value}`) & (1n << 21n)) === 0n) &&
+        uidMap.join(" ") === "0 0 4294967295" && seccomp === "2"
       if (standardIsolation && ids[0] && ids.every((id) => id === ids[0])) dockerContainerId = ids[0]
     } catch { /* Same-namespace identity remains usable without Docker evidence. */ }
     return { ...parsed.data, ...(dockerContainerId ? { dockerContainerId } : {}) }
