@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { DashLink } from "./dashboard-data"
 import { PublishingSettingsLink } from "../PublishingSettingsLink"
+import { FadeSwap } from "../setup/Reveal"
+import { LinkOffPanel } from "./LinkOffPanel"
 import { SharingHandout } from "./SharingHandout"
 import { heroNotice } from "./helpers"
 
@@ -15,17 +17,30 @@ import { heroNotice } from "./helpers"
  * answers "is it live, which version, is it current, when does it end"; the right half is the
  * hand-out. Anything that needs the author spans the bottom edge, so it can't be missed.
  */
-export function SharingHero({ link, onOpenSettings }: { link: DashLink; onOpenSettings: () => void }) {
+export function SharingHero({
+  link,
+  onOpenSettings,
+  onExtend,
+  onShareAgain,
+}: {
+  link: DashLink
+  onOpenSettings: () => void
+  onExtend: () => void
+  onShareAgain: () => void
+}) {
   const band = heroNotice(link)
+  const off = link.access !== "open"
   return (
     <section
       aria-label={link.title}
       className="shrink-0 overflow-hidden rounded-2xl border bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)]"
     >
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(340px,400px)]">
-        <HeroIdentity link={link} onOpenSettings={onOpenSettings} quiet={band !== null} />
+        <HeroIdentity link={link} onOpenSettings={onOpenSettings} quiet={band !== null || off} />
         <div className="border-l bg-muted/30 px-6 py-5 [@media(max-height:820px)]:py-4">
-          <SharingHandout link={link} />
+          <FadeSwap id={link.access}>
+            {off ? <LinkOffPanel link={link} onExtend={onExtend} onShareAgain={onShareAgain} /> : <SharingHandout link={link} />}
+          </FadeSwap>
         </div>
       </div>
       <HeroNoticeRow link={link} />
@@ -35,6 +50,7 @@ export function SharingHero({ link, onOpenSettings }: { link: DashLink; onOpenSe
 
 function HeroIdentity({ link, onOpenSettings, quiet }: { link: DashLink; onOpenSettings: () => void; quiet: boolean }) {
   const { t } = useLingui()
+  const off = link.access !== "open"
   const [coverFailed, setCoverFailed] = useState(false)
 
   return (
@@ -56,16 +72,18 @@ function HeroIdentity({ link, onOpenSettings, quiet }: { link: DashLink; onOpenS
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <LivePill reachable={link.workerReachable} rejected={link.workerRejected} />
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            title={t`Link settings`}
-            className="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-          >
-            <Settings2 className="size-3.5" aria-hidden="true" />
-            <Trans>Link settings</Trans>
-          </button>
+          <LivePill access={link.access} reachable={link.workerReachable} rejected={link.workerRejected} />
+          {link.access === "stopped" ? null : (
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              title={t`Link settings`}
+              className="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+            >
+              <Settings2 className="size-3.5" aria-hidden="true" />
+              <Trans>Link settings</Trans>
+            </button>
+          )}
         </div>
         <h2 className="truncate text-[1.75rem] font-semibold leading-tight tracking-tight text-foreground">
           {link.title}
@@ -91,7 +109,7 @@ function HeroIdentity({ link, onOpenSettings, quiet }: { link: DashLink; onOpenS
           ) : null}
         </p>
 
-        {!link.workerReachable && link.changesWaiting === true ? (
+        {off ? null : !link.workerReachable && link.changesWaiting === true ? (
           <p className="flex items-center gap-1.5 text-[13px] text-amber-700 motion-safe:animate-in motion-safe:fade-in-0 dark:text-amber-300">
             <ArrowUpCircle className="size-4 shrink-0" aria-hidden="true" />
             <Trans>You've edited since this version — update once the service is back.</Trans>
@@ -122,7 +140,15 @@ function HeroIdentity({ link, onOpenSettings, quiet }: { link: DashLink; onOpenS
   )
 }
 
-function LivePill({ reachable, rejected }: { reachable: boolean; rejected: boolean }) {
+function LivePill({ access, reachable, rejected }: { access: DashLink["access"]; reachable: boolean; rejected: boolean }) {
+  if (access !== "open") {
+    return (
+      <span className="flex w-fit items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground ring-1 ring-border">
+        <span className="size-1.5 rounded-full bg-muted-foreground/60" aria-hidden="true" />
+        {access === "stopped" ? <Trans>Stopped</Trans> : <Trans>Ended</Trans>}
+      </span>
+    )
+  }
   if (rejected) {
     return (
       <span className="flex w-fit items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">

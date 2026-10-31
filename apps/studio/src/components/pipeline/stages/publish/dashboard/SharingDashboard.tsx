@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, LayoutDashboard, MessageSquareText, UserPlus, Users } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -22,13 +22,17 @@ const panelClassName = "flex min-h-0 flex-1 flex-col outline-none data-[state=in
  * line for the history. The other tabs hold the full lists; the rarely-changed access settings
  * (end date, removing the code, stopping) sit in a Link settings dialog off the hero.
  */
-export function SharingDashboard({ data }: { data: DashboardData }) {
+export function SharingDashboard({ data, onShareAgain }: { data: DashboardData; onShareAgain: () => void }) {
   const { t } = useLingui()
   const [tab, setTab] = useState<DashboardTabId>("overview")
   const ready = data.status === "ready"
   const readersReady = data.readersStatus === "ready"
   /** `"end-date"` opens the dialog with the end date already open, for Extend. */
   const [settings, setSettings] = useState<"closed" | "open" | "end-date">("closed")
+  const stopped = data.link.access === "stopped"
+  useEffect(() => {
+    if (stopped) setSettings("closed")
+  }, [stopped])
   const openSettings = (focus: "open" | "end-date") => {
     data.link.clearFailures()
     setSettings(focus)
@@ -38,7 +42,12 @@ export function SharingDashboard({ data }: { data: DashboardData }) {
     <div className="flex min-h-0 flex-1 flex-col gap-4 [@media(max-height:820px)]:gap-3">
       {data.link.workerReachable ? <PublishingEngineNotice /> : null}
 
-      <SharingHero link={data.link} onOpenSettings={() => openSettings("open")} />
+      <SharingHero
+        link={data.link}
+        onOpenSettings={() => openSettings("open")}
+        onExtend={() => openSettings("end-date")}
+        onShareAgain={onShareAgain}
+      />
 
       <Dialog open={settings !== "closed"} onOpenChange={(open) => (open ? openSettings("open") : setSettings("closed"))}>
         <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-[480px]">

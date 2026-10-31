@@ -646,6 +646,9 @@ msgstr "{sections} sections"
 msgid "{SEND_KEY} Enter to send"
 msgstr "{SEND_KEY} Enter to send"
 
+msgid "{SEND_KEY} Enter to send · readers see it once the link is back on"
+msgstr "{SEND_KEY} Enter to send · readers see it once the link is back on"
+
 msgid "{SEND_KEY} Enter to send · the reader sees it on their copy"
 msgstr "{SEND_KEY} Enter to send · the reader sees it on their copy"
 
@@ -2136,6 +2139,9 @@ msgstr "Back to beta versions"
 
 msgid "Back to classic activity"
 msgstr "Back to classic activity"
+
+msgid "Back to comments"
+msgstr "Back to comments"
 
 msgid "Back to home"
 msgstr "Back to home"
@@ -9137,6 +9143,12 @@ msgstr "Readers already see your latest edits."
 
 msgid "Readers appear here once they open the link and give a name."
 msgstr "Readers appear here once they open the link and give a name."
+
+msgid "Readers can't open the link right now. Everything they left is still here."
+msgstr "Readers can't open the link right now. Everything they left is still here."
+
+msgid "Readers can't open the link until you resume sharing."
+msgstr "Readers can't open the link until you resume sharing."
 
 msgid "Readers don't see your latest edits"
 msgstr "Readers don't see your latest edits"

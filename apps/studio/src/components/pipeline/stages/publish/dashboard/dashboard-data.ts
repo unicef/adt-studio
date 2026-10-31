@@ -12,7 +12,9 @@ import {
 import { isQuizSectionId, type ThreadQuiz } from "./quiz-comments"
 import {
   type BookPublishRunController,
+  publicationLifecycle,
   useBookPublication,
+  useResumePublication,
   useRevokePublication,
   useSetPublicationAccessCode,
   useSetPublicationExpiry,
@@ -89,6 +91,7 @@ export interface DashLink {
   bookLabel: string
   title: string
   url: string
+  access: "open" | "stopped" | "ended"
   liveVersion: number | null
   updatedAt: string | null
   accessCode: string | null
@@ -117,6 +120,9 @@ export interface DashLink {
   revoking: boolean
   /** Why the last stop-sharing failed, or `null`. */
   revokeError: string | null
+  resume: () => void
+  resuming: boolean
+  resumeError: string | null
   /** Clear a failed change or stop, so an old failure doesn't hang over the next try. */
   clearFailures: () => void
 }
@@ -178,6 +184,8 @@ export function useSharingLink(bookLabel: string, run: BookPublishRunController)
   const accessCode = useSetPublicationAccessCode(bookLabel)
   const expiry = useSetPublicationExpiry(bookLabel)
   const revoke = useRevokePublication(bookLabel)
+  const resume = useResumePublication(bookLabel)
+  const lifecycle = publicationLifecycle(status.data)
   const record = status.data?.record ?? null
   const newest = [...(record?.versions ?? [])].sort((a, b) => b.version - a.version)[0] ?? null
   const published = newest?.content_revision ?? null
@@ -186,6 +194,7 @@ export function useSharingLink(bookLabel: string, run: BookPublishRunController)
     bookLabel,
     title: book.data?.title ?? bookLabel,
     url: status.data?.url ?? run.result?.url ?? "",
+    access: lifecycle === "revoked" ? "stopped" : lifecycle === "expired" ? "ended" : "open",
     liveVersion: status.data?.publication?.current_version ?? newest?.version ?? null,
     updatedAt: newest?.published_at ?? null,
     accessCode: status.data?.has_access_code === true ? (record?.access_code ?? null) : null,
@@ -210,10 +219,14 @@ export function useSharingLink(bookLabel: string, run: BookPublishRunController)
     revoke: (onDone) => revoke.mutate(undefined, { onSuccess: () => onDone?.() }),
     revoking: revoke.isPending,
     revokeError: revoke.isError ? t`The link is still up. Check the connection and try again.` : null,
+    resume: () => resume.mutate(),
+    resuming: resume.isPending,
+    resumeError: resume.error?.message ?? null,
     clearFailures: () => {
       accessCode.reset()
       expiry.reset()
       revoke.reset()
+      resume.reset()
     },
   }
 }
