@@ -1,5 +1,7 @@
 # SPEC-0002: current-develop readiness audit — 31 October 2026
 
+> **Final local follow-up:** [writer recovery and final acceptance](spec-0002-writer-recovery-2026-10-31.md) supersedes the earlier R1-pending/readiness statements below. The authorized fix passes final-source tests, independent live-writer checks and actual Docker crash/retry/output acceptance. Open platform findings, owner deferrals and private/release acceptance limits remain explicit. The earlier observations below retain their original checkpoints.
+
 ## Assessment
 
 > **Later acceptance update:** [additional platform, offline and crash findings](spec-0002-additional-acceptance-2026-10-31.md) supersedes this readiness recommendation. Actual forced Docker restart exposed a shared PID-reuse writer-admission blocker; default local Desktop launch and cross-origin SCORM qualifications are also recorded. No new product deferral is authorized.

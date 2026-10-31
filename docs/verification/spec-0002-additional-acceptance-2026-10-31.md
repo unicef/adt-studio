@@ -1,5 +1,7 @@
 # SPEC-0002 additional acceptance — 31 October 2026
 
+> **Final local follow-up:** [writer recovery and final acceptance](spec-0002-writer-recovery-2026-10-31.md) supersedes the earlier R1-pending/readiness statements below. The authorized fix passes final-source tests, independent live-writer checks and actual Docker crash/retry/output acceptance. Open platform findings, owner deferrals and private/release acceptance limits remain explicit. The earlier observations below retain their original checkpoints.
+
 ## Current assessment
 
 The additional checks **found a material restart/recovery gap**. A forced Docker restart can reuse the previous API PID, leaving the book permanently `BOOK_BUSY` even though the API reports idle. Current content, history and assets survive, but retry cannot proceed. The same failure reproduces against develop's shared writer implementation. It has no approved deferral. The proposed narrow shared-admission correction is awaiting the owner's scope decision; it has not been implemented or bypassed.
