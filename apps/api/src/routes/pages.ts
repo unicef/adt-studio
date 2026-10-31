@@ -977,9 +977,9 @@ export function createPageRoutes(
           }
 
           const sectionEntries: PageSummarySection[] = (rawSections ?? []).map((s, i) => {
-            // `sectionId` is required by the schema; this only covers raw legacy
-            // rows that never had one. Display-only — nothing names a file from it.
-            const sectionId = s.sectionId ?? formatSectionId(row.item_id, i + 1)
+            // A missing legacy identity has no feedback/edit destination. The
+            // sidebar displays sectionIndex; never fabricate identity from it.
+            const sectionId = s.sectionId ?? ""
             // Pruned sections keep their own text in the per-section preview so
             // they can be displayed in the storyboard sidebar even when grayed out.
             const sectionText = collectText(s.nodes, { skipPruned: false })

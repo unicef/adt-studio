@@ -549,6 +549,7 @@ export interface PageSummaryItem {
 }
 
 export interface SectionRendering {
+  sectionId?: string
   sectionIndex: number
   sectionType: string
   reasoning: string

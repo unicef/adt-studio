@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest"
 import type { PublishComment } from "@/api/client"
 import { buildThreads } from "@/components/publication-feedback/lib/threads"
-import { clusterPins, parseSectionId, placePins, sectionIdFor, sectionLocation, type PlacedPin } from "./storyboard-pins"
+import { clusterPins, placePins, type PlacedPin } from "./storyboard-pins"
 
 function comment(overrides: Partial<PublishComment> = {}): PublishComment {
   return {
@@ -149,58 +149,5 @@ describe("clusterPins", () => {
 
   it("keeps pins that stand apart on their own", () => {
     expect(clusterPins([pin("a", 0, 0), pin("b", 100, 0)])).toHaveLength(2)
-  })
-})
-
-describe("sectionIdFor", () => {
-  it("builds the id the packaging pipeline stamps and comments are keyed by", () => {
-    expect(sectionIdFor("pg001", 0)).toBe("pg001_sec001")
-    expect(sectionIdFor("pg012", 2)).toBe("pg012_sec003")
-  })
-})
-
-describe("parseSectionId", () => {
-  it("round-trips whatever sectionIdFor produced", () => {
-    for (const [pageId, index] of [
-      ["pg001", 0],
-      ["pg012", 1],
-      ["pg100", 41],
-    ] as const) {
-      expect(parseSectionId(sectionIdFor(pageId, index))).toEqual({ pageId, sectionIndex: index })
-    }
-  })
-
-  /** A page id can itself contain an underscore; the section ordinal is the last segment. */
-  it("splits on the trailing ordinal, not the first underscore", () => {
-    expect(parseSectionId("pg003_alt_sec002")).toEqual({ pageId: "pg003_alt", sectionIndex: 1 })
-  })
-
-  /** A wrong page is harder to spot than no link, so anything unparseable is refused. */
-  it("refuses anything that is not a section id", () => {
-    for (const bad of ["pg001", "pg001_sec", "_sec001", "pg001_sec000", "pg001_secabc"]) {
-      expect(parseSectionId(bad)).toBeNull()
-    }
-  })
-})
-
-describe("sectionLocation", () => {
-  /** The number the storyboard, the route and the section's filename all agree on — not the
-   *  printed folio, which skips front matter and disagrees with every one of them. */
-  it("reads the page and section straight off the id", () => {
-    expect(sectionLocation("pg012_sec002")).toEqual({ pageNumber: 12, sectionNumber: 2 })
-    expect(sectionLocation("pg001_sec001")).toEqual({ pageNumber: 1, sectionNumber: 1 })
-    expect(sectionLocation("pg100_sec042")).toEqual({ pageNumber: 100, sectionNumber: 42 })
-  })
-
-  it("refuses an id it cannot read a page number out of", () => {
-    for (const bad of ["pg001", "cover_sec001", "pg001_sec000", ""]) {
-      expect(sectionLocation(bad)).toBeNull()
-    }
-  })
-
-  /** Seen on a real spread book: the dashboard said "Page 14015 · Section 1". */
-  it("reads both pages of a two-page spread", () => {
-    expect(sectionLocation("pg014015_sec001")).toEqual({ pageNumber: 14, lastPageNumber: 15, sectionNumber: 1 })
-    expect(sectionLocation("pg016017_sec002")).toEqual({ pageNumber: 16, lastPageNumber: 17, sectionNumber: 2 })
   })
 })

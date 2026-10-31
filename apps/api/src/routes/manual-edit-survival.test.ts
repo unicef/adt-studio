@@ -918,3 +918,52 @@ it("incomplete publication still rejects a competing source mutation atomically"
   expect(db.getNodeVersionFingerprint()).toEqual(before)
   db.close()
 })
+
+it("replaces a nonempty protected TOC from its source notice only with named current consent", async () => {
+ const { captureSourceGeneration, publishSourceGeneration, getSourceGenerationUpdates } = await import("@adt/pipeline")
+ const initial = book()
+ publishSourceGeneration(initial, captureSourceGeneration(initial, "toc-generation"), () => undefined)
+ initial.close()
+ const toc = await json("toc")
+ expect((await send("toc", { ...toc, entries: [{ ...toc.entries[0], title: "My protected chapter" }], baseVersion: toc.version })).status).toBe(200)
+ const page = read("page-sectioning", "pg001")!
+ const changed = JSON.parse(JSON.stringify(page.data))
+ changed.sections[0].nodes[0].role = "heading"
+ changed.sections[0].nodes[0].text = "Changed source chapter"
+ expect((await send("pages/pg001/sectioning", { ...changed, baseVersion: page.version })).status).toBe(200)
+ const before = book()
+ expect(getSourceGenerationUpdates(before)).toContain("toc-generation")
+ const prior = before.getLatestNodeData("toc-generation", "book")
+ const priorHistory = before.getAllNodeVersions("toc-generation", "book")
+ before.close()
+ // Ordinary unconfirmed control: no named replacement consent.
+ const result = await run("toc")
+ expect(result.status).toBe("completed")
+ expect(generateToc).not.toHaveBeenCalled()
+ const after = book()
+ expect(getSourceGenerationUpdates(after)).toContain("toc-generation")
+ expect(after.getLatestNodeData("toc-generation", "book")).toEqual(prior)
+ expect(after.getAllNodeVersions("toc-generation", "book")).toEqual(priorHistory)
+ after.close()
+ const status = await json("step-status")
+ const protectedReplacements = status.protectedWork.filter((record: { node: string }) => record.node === "toc-generation").map(({ node, itemId, version }: import("@adt/types").AuthoredReplacement) => ({ node, itemId, version }))
+ expect(protectedReplacements).toEqual([{ node: "toc-generation", itemId: "book", version: prior!.version }])
+ expect((await run("toc", { replaceManual: true, protectedReplacements })).status).toBe("completed")
+ expect(generateToc).toHaveBeenCalledTimes(1)
+ const published = book()
+ expect(getSourceGenerationUpdates(published)).not.toContain("toc-generation")
+ expect(published.getLatestNodeData("toc-generation", "book")).toMatchObject({ version: prior!.version + 1, data: { source: "ai" } })
+ expect(published.getAllNodeVersions("toc-generation", "book").find(entry => entry.version === prior!.version)?.data).toEqual(prior!.data)
+ published.close()
+})
+
+it("does not fabricate feedback ownership for a legacy section with no ID", async () => {
+  const storage = book()
+  const data = JSON.parse(JSON.stringify(read("page-sectioning", "pg001")!.data))
+  delete data.sections[0].sectionId
+  storage.putNodeData("page-sectioning", "pg001", data)
+  storage.close()
+  const pages = await json("pages")
+  expect(pages.find((page: { pageId: string }) => page.pageId === "pg001").sections[0]).toMatchObject({ sectionId: "", sectionIndex: 0, textPreview: "Saved page text" })
+  expect(pages.find((page: { pageId: string }) => page.pageId === "pg002").sections[0].sectionId).toBe("pg002_sec001")
+})

@@ -77,13 +77,11 @@ import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
 import { sameAnchor, type ActivityAnchor } from "./activity-link"
-import { useSearch } from "@tanstack/react-router"
 import { cn, scrollBehavior } from "@/lib/utils"
 import {
   StoryboardFeedbackOverlay,
   useSectionFeedbackCount,
 } from "./feedback/StoryboardFeedbackOverlay"
-import { sectionIdFor } from "./feedback/storyboard-pins"
 import { REQUEST_TTL_MS, useCommentsMode } from "./feedback/use-comments-mode"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
@@ -531,35 +529,20 @@ export function StoryboardSectionDetail({
   /** One selection shared by the pins and the sidebar: two states could disagree about which
    *  comment is open, and the author would see a highlighted row with no highlighted pin. */
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
-  const feedbackCount = useSectionFeedbackCount(bookLabel, sectionIdFor(pageId, sectionIndex))
+  // Effective data
+  const sectioningData = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
+  const dirty = pendingSectioning != null
 
-  /**
-   * A comment named in the link: open the panel on it rather than landing the author on a page
-   * and leaving them to find the thread that sent them there.
-   *
-   * Keyed on the id so closing the panel afterwards stays closed — re-running on every render
-   * would make the toggle un-clickable for as long as the link sat in the URL.
-   */
-  const { comment: linkedThreadId, section: linkedSection } = useSearch({ strict: false }) as {
-    comment?: string
-    section?: number
-  }
-  const appliedThreadRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (linkedThreadId === undefined) {
-      appliedThreadRef.current = null
-      return
-    }
-    if (appliedThreadRef.current === linkedThreadId) return
-    appliedThreadRef.current = linkedThreadId
-    commentsMode.open(linkedThreadId, sectionIdFor(pageId, linkedSection ?? sectionIndex))
-  }, [linkedThreadId, commentsMode.open])
+  // Current section data
+  const section = sectioningData?.sections[sectionIndex]
+
+  const onScreenSectionId = section?.sectionId && sectioningData?.sections.filter((entry) => entry.sectionId === section.sectionId).length === 1 ? section.sectionId : ""
+  const feedbackCount = useSectionFeedbackCount(bookLabel, onScreenSectionId)
 
   /** A comment asked for from anywhere — a link, the page list, "Next with comments" — opens
    *  here, every time, once its own section is the one on screen. A request nothing took in time
    *  is dropped rather than left to reopen a comment on some later visit. */
   const { request: commentRequest, consume: consumeCommentRequest } = commentsMode
-  const onScreenSectionId = sectionIdFor(pageId, sectionIndex)
   useEffect(() => {
     if (commentRequest === null) return
     if (Date.now() - commentRequest.at > REQUEST_TTL_MS) {
@@ -877,17 +860,10 @@ export function StoryboardSectionDetail({
     scrollContainerRef.current?.scrollTo(0, 0)
   }, [pageId, sectionIndex])
 
-  // Effective data
-  const sectioningData = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
-  const dirty = pendingSectioning != null
-
-  // Current section data
-  const section = sectioningData?.sections[sectionIndex]
-
   /** Every section of this page, so the sidebar can group threads the way the author sees them.
    *  Sectioning is the reliable source — rendering skips pruned sections. */
   const pageSectionIds = useMemo(
-    () => (sectioningData?.sections ?? []).map((_section, index) => sectionIdFor(pageId, index)),
+    () => (sectioningData?.sections ?? []).map((entry) => entry.sectionId && sectioningData?.sections.filter((candidate) => candidate.sectionId === entry.sectionId).length === 1 ? entry.sectionId : ""),
     [sectioningData, pageId],
   )
 
@@ -3042,7 +3018,7 @@ export function StoryboardSectionDetail({
 
                 <StoryboardFeedbackOverlay
                   bookLabel={bookLabel}
-                  sectionId={sectionIdFor(pageId, sectionIndex)}
+                  sectionId={onScreenSectionId}
                   pageSectionIds={pageSectionIds}
                   frameRef={previewFrameRef}
                   containerRef={previewContainerRef}
