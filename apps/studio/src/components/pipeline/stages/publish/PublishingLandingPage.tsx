@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import {
   type BookPublishRunController,
@@ -64,17 +64,25 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   /* While the status is on its way, a book that was live last time waits in the dashboard's own
      shape rather than the setup form's. */
   const waiting = status.isPending && expectsLive && !takingOver
+  const linkOff = connected && !!url && (lifecycle === "revoked" || lifecycle === "expired")
+  const [sharingAgain, setSharingAgain] = useState(false)
+  const showDashboard = live || (linkOff && !sharingAgain)
+
+  useEffect(() => {
+    if (live) setSharingAgain(false)
+  }, [live])
 
   /* Everything before a working link — loading, no account, a first share, a stopped or expired
      link, and the run that makes one — is one screen with one shape. It owns its own run view so
      the form stays mounted under it and a failed run hands back the same answers. */
-  if (!live && !waiting) {
+  if (!showDashboard && !waiting) {
     return (
       <ShareSetup
         bookLabel={bookLabel}
         run={run}
         elapsedMs={elapsedMs}
         takingOver={connected && takingOver}
+        onBack={linkOff && sharingAgain ? () => setSharingAgain(false) : undefined}
       />
     )
   }
@@ -92,7 +100,7 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
           bookLabel={bookLabel}
         />
       ) : (
-        <LiveDashboard bookLabel={bookLabel} run={run} />
+        <LiveDashboard bookLabel={bookLabel} run={run} onShareAgain={() => setSharingAgain(true)} />
       )}
     </DashboardFrame>
   )
@@ -111,10 +119,18 @@ function DashboardFrame({ children }: { children: ReactNode }) {
 }
 
 /** The dashboard's queries live here, so they only run once there is a live link to ask about. */
-function LiveDashboard({ bookLabel, run }: { bookLabel: string; run: BookPublishRunController }) {
+function LiveDashboard({
+  bookLabel,
+  run,
+  onShareAgain,
+}: {
+  bookLabel: string
+  run: BookPublishRunController
+  onShareAgain: () => void
+}) {
   const link = useSharingLink(bookLabel, run)
   const data = useSharingDashboardData(bookLabel, link)
-  return <SharingDashboard data={data} />
+  return <SharingDashboard data={data} onShareAgain={onShareAgain} />
 }
 
 /** The page's own title. The live dashboard drops the intro line: every pixel here is one the

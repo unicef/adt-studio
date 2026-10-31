@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, CalendarOff, Globe, Link2, Link2Off, Loader2, Play, RefreshCw } from "lucide-react"
+import { AlertTriangle, ArrowLeft, CalendarOff, Globe, Link2, Link2Off, Loader2, Play, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { OVERFLOW_MASK, useOverflowEdges } from "@/components/ui/ScrollBox"
 import { useBook } from "@/hooks/use-books"
@@ -45,11 +45,13 @@ export function ShareSetup({
   run,
   elapsedMs,
   takingOver,
+  onBack,
 }: {
   bookLabel: string
   run: BookPublishRunController
   elapsedMs: number
   takingOver: boolean
+  onBack?: () => void
 }) {
   const status = useBookPublication(bookLabel)
   const book = useBook(bookLabel)
@@ -88,6 +90,17 @@ export function ShareSetup({
     <div data-testid="publish-setup" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-8 pb-6 pt-7 lg:overflow-hidden">
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col">
         <header className="mb-5 flex min-w-0 flex-col gap-1">
+          {onBack && !takingOver ? (
+            <button
+              type="button"
+              data-testid="publish-back-to-dashboard"
+              onClick={onBack}
+              className="-ml-1.5 mb-1 flex h-7 w-fit items-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+            >
+              <ArrowLeft className="size-3.5" aria-hidden="true" />
+              <Trans>Back to comments</Trans>
+            </button>
+          ) : null}
           <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
             <Trans>Sharing</Trans>
           </h1>

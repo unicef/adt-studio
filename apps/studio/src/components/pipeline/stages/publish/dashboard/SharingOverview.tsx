@@ -305,7 +305,7 @@ function VersionLine({ data }: { data: DashboardData }) {
       {live !== null ? (
         <>
           <span className="font-semibold text-foreground">
-            <Trans>v{live} is live</Trans>
+            {data.link.access === "open" ? <Trans>v{live} is live</Trans> : <Trans>Version {data.link.liveVersion}</Trans>}
           </span>
           <span aria-hidden="true" className="text-border">
             •

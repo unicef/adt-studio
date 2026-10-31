@@ -648,6 +648,9 @@ msgstr "{sections} seksione"
 msgid "{SEND_KEY} Enter to send"
 msgstr "{SEND_KEY} Enter për ta dërguar"
 
+msgid "{SEND_KEY} Enter to send · readers see it once the link is back on"
+msgstr "{SEND_KEY} Enter për ta dërguar · lexuesit e shohin kur lidhja të jetë sërish aktive"
+
 msgid "{SEND_KEY} Enter to send · the reader sees it on their copy"
 msgstr "{SEND_KEY} Enter për ta dërguar · lexuesi e sheh në kopjen e vet"
 
@@ -2138,6 +2141,9 @@ msgstr "Kthehu te versionet beta"
 
 msgid "Back to classic activity"
 msgstr "Kthehu te aktiviteti klasik"
+
+msgid "Back to comments"
+msgstr "Kthehu te komentet"
 
 msgid "Back to home"
 msgstr "Kthehu në shtëpi"
@@ -9136,6 +9142,12 @@ msgstr "Lexuesit i shohin tashmë ndryshimet tuaja më të fundit."
 
 msgid "Readers appear here once they open the link and give a name."
 msgstr "Lexuesit shfaqen këtu sapo të hapin lidhjen dhe të japin një emër."
+
+msgid "Readers can't open the link right now. Everything they left is still here."
+msgstr "Lexuesit nuk mund ta hapin lidhjen tani. Gjithçka që lanë është ende këtu."
+
+msgid "Readers can't open the link until you resume sharing."
+msgstr "Lexuesit nuk mund ta hapin lidhjen derisa ta rifilloni ndarjen."
 
 msgid "Readers don't see your latest edits"
 msgstr "Lexuesit nuk i shohin ndryshimet tuaja më të fundit"

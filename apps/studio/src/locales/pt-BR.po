@@ -646,6 +646,9 @@ msgstr "{sections} seções"
 msgid "{SEND_KEY} Enter to send"
 msgstr "{SEND_KEY} Enter para enviar"
 
+msgid "{SEND_KEY} Enter to send · readers see it once the link is back on"
+msgstr "{SEND_KEY} Enter para enviar · os leitores veem quando o link voltar a funcionar"
+
 msgid "{SEND_KEY} Enter to send · the reader sees it on their copy"
 msgstr "{SEND_KEY} Enter para enviar · o leitor vê na cópia dele"
 
@@ -2136,6 +2139,9 @@ msgstr "Voltar às versões beta"
 
 msgid "Back to classic activity"
 msgstr "Voltar à atividade clássica"
+
+msgid "Back to comments"
+msgstr "Voltar aos comentários"
 
 msgid "Back to home"
 msgstr "Voltar ao início"
@@ -9134,6 +9140,12 @@ msgstr "Os leitores já veem suas últimas edições."
 
 msgid "Readers appear here once they open the link and give a name."
 msgstr "Os leitores aparecem aqui quando abrem o link e dão um nome."
+
+msgid "Readers can't open the link right now. Everything they left is still here."
+msgstr "Os leitores não conseguem abrir o link agora. Tudo o que eles deixaram continua aqui."
+
+msgid "Readers can't open the link until you resume sharing."
+msgstr "Os leitores não conseguem abrir o link até você retomar o compartilhamento."
 
 msgid "Readers don't see your latest edits"
 msgstr "Os leitores não veem suas últimas edições"
