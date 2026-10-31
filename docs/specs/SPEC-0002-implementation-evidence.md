@@ -1,5 +1,7 @@
 # SPEC-0002 implementation evidence
 
+> **2026-10-31 local readiness audit:** [current assessment and AC/review matrix](../verification/spec-0002-readiness-2026-10-31.md) supersedes earlier readiness conclusions. It records current develop, final 5,857-test full suite, renewed independent review, actual Docker/Desktop export and restart checks, new preservation fixes, and the exact accepted deferrals and pending acceptance. All changes remain local; no specification approval, hosted CI or release certification is claimed.
+
 > **2026-10-26 local develop integration:** [current integration assessment](../verification/spec-0002-develop-integration-2026-10-26.md) supersedes the implementation/readiness conclusions below. It records merged SPEC-0001 compatibility, independent review, the retained owner deferrals, new checks and outstanding Docker/private-book acceptance. Changes are local only; no new hosted CI, approval or release certification is claimed.
 
 > **2026-10-12 qualified implementation:** [the refreshed integration audit](../verification/spec-0002-oct12-audit.md)
