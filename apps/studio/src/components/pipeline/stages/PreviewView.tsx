@@ -58,6 +58,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [version, setVersion] = useState("0")
+  const [resumeHref, setResumeHref] = useState<string | null>(null)
   const [currentPreviewPage, setCurrentPreviewPage] = useState<{
     sectionId: string | null
     href: string | null
@@ -193,6 +194,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     setError(null)
     setReady(false)
     setCurrentPreviewPage({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
+    setResumeHref(null)
     let taskId: string | undefined
     try {
       const result = await api.packageAdt(bookLabel)
@@ -282,6 +284,12 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     return () => ro.disconnect()
   }, [ready, deviceView])
 
+  const changeDeviceView = (next: typeof deviceView) => {
+    if (next === deviceView) return
+    setResumeHref(currentPreviewPage.href)
+    setDeviceView(next)
+  }
+
   if (isStatusLoading || prunedLoading) {
     return <LoadingState stageSlug="preview" label={<Trans>Loading preview...</Trans>} />
   }
@@ -309,7 +317,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }
 
   if (ready) {
-    const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/`
+    const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/${resumeHref ?? ""}`
     const isDesktop = deviceView === "desktop"
     const frame = getDeviceFrame(deviceView, DEVICE_WIDTHS[deviceView])
     const cap = getTargetVisibleWidth(deviceView) / frame.chromeWidth
@@ -366,7 +374,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
           createPortal(
             <ViewportToggle
               value={deviceView}
-              onChange={setDeviceView}
+              onChange={changeDeviceView}
               currentWidth={isDesktop ? undefined : Math.round(frame.screenWidth * scale)}
             />,
             headerSlotEl,

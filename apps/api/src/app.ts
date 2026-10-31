@@ -1,3 +1,4 @@
+import { createOutputRoutes } from "./routes/outputs.js"
 import path from "node:path"
 import fs from "node:fs"
 import os from "node:os"
@@ -6,6 +7,7 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { errorHandler } from "./middleware/error-handler.js"
+import { bookWriterMiddleware } from "./middleware/book-writer.js"
 import { healthRoutes } from "./routes/health.js"
 import { createBookRoutes } from "./routes/books.js"
 import { createBookEventsRoutes } from "./routes/book-events.js"
@@ -39,6 +41,10 @@ import { createEditableActivitiesRoutes } from "./routes/editable-activities.js"
 import { createAgentRoutes } from "./routes/agents.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
 import { createProviderRoutes } from "./routes/providers.js"
+import { createCloudflareRoutes } from "./routes/cloudflare.js"
+import { createConnectionStore, resolvePublishStateDir } from "./services/cloudflare/connection-store.js"
+import { createCloudflareOAuthService } from "./services/cloudflare/oauth.js"
+import { createPublishRoutes } from "./routes/publications.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -79,7 +85,7 @@ const eventBus = createBookEventBus()
 const pageErrorDecisions = createPageErrorDecisions(eventBus)
 const stageRunner = createStageRunner()
 const stageService = createStageService(stageRunner, eventBus, pageErrorDecisions)
-const taskService = createTaskService(eventBus)
+const taskService = createTaskService(eventBus, booksDir)
 
 const app = new Hono()
 
@@ -96,39 +102,66 @@ app.use(
   })
 )
 app.onError(errorHandler)
+app.use("/api/books/:label", bookWriterMiddleware(booksDir))
+app.use("/api/books/:label/*", bookWriterMiddleware(booksDir))
 
 app.route("/api", healthRoutes)
 app.route("/api", createProviderRoutes(configPath))
 // Mounted before /books/:label so GET /books/events is not captured as a label.
 app.route("/api", createBookEventsRoutes(eventBus))
-app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath, taskService))
+app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath, taskService, undefined, promptsDir))
 app.route("/api", createPageRoutes(booksDir, promptsDir, webAssetsDir, configPath, taskService))
 app.route("/api", createGlossaryRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createTocRoutes(booksDir))
 app.route("/api", createDebugRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createQuizRoutes(booksDir, promptsDir, configPath))
-app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath, taskService))
+app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath, taskService, promptsDir))
 app.route("/api", createPromptRoutes(promptsDir, booksDir, configPath))
-app.route("/api", createTextCatalogRoutes(booksDir))
+app.route("/api", createTextCatalogRoutes(booksDir, promptsDir, configPath))
+app.route("/api", createOutputRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createEasyReadRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createBookSummaryRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createBookOutlineRoutes(booksDir))
 app.route("/api", createFontRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTypographyRoutes(booksDir))
 app.route("/api", createEditableActivitiesRoutes(booksDir, promptsDir, configPath))
-app.route("/api", createTTSRoutes(booksDir, configPath, taskService))
+app.route("/api", createTTSRoutes(booksDir, configPath, taskService, promptsDir))
 app.route(
   "/api",
   createStageRoutes(stageService, eventBus, pageErrorDecisions, booksDir, promptsDir, webAssetsDir, configPath)
 )
 app.route("/api", createTaskRoutes(taskService))
 app.route("/api", createPresetRoutes(configPath, booksDir))
-app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath))
+app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath, promptsDir))
 app.route("/api", createSpeechConfigRoutes(configPath))
 app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, configPath))
 app.route("/api", createSignLanguageVideoRoutes(booksDir))
 app.route("/api", createAgentRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTranslationEvaluationRoutes(booksDir, configPath, taskService))
+/** One Cloudflare login service for both route groups below, so a renewal is never raced by a
+ *  second service on the same saved login. */
+const cloudflareOAuth = createCloudflareOAuthService({
+  store: createConnectionStore(resolvePublishStateDir(booksDir)),
+})
+app.route(
+  "/api",
+  createCloudflareRoutes({
+    booksDir,
+    projectRoot,
+    oauth: cloudflareOAuth,
+  }),
+)
+app.route(
+  "/api",
+  createPublishRoutes({
+    booksDir,
+    oauth: cloudflareOAuth,
+    webAssetsDir,
+    configPath,
+    projectRoot,
+    promptsDir,
+  }),
+)
 
 export default app
 export { booksDir }

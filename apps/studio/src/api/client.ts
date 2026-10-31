@@ -1,4 +1,14 @@
+import type { WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
+export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/types"
+import type { OutputSkipRequest } from "@adt/types"
+import type { OutputStatus, OutputSummary, OutputStageSummaryResponse, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement, StageName } from "@adt/types"
 import { isElectron } from "@/lib/utils"
+import { readEventStream } from "@/api/sse"
+import {
+  CLOUDFLARE_ACCOUNT_ID_HEADER,
+  CLOUDFLARE_TOKEN_HEADER,
+  PUBLISH_AUTHOR_NAME_HEADER,
+} from "@adt/types"
 import type {
   AccessibilityAssessmentOutput,
   BookDetail,
@@ -24,16 +34,62 @@ import type {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
+  CloudflareAuthMethod,
+  CloudflareConnectionDeleteResponse,
+  CloudflareConnectionResources,
+  CloudflareConnectionStatus,
+  CloudflareOAuthAccount,
+  CloudflareOAuthAccountResponse,
+  CloudflareOAuthErrorCode,
+  CloudflareOAuthStartResponse,
+  CloudflareOAuthStatusResponse,
+  CloudflareTokenScope,
+  CloudflareVerifyResponse,
+  ProvisionErrorCode,
+  ProvisionProgressEvent,
+  ProvisionStepId,
+  ProvisionStepStatus,
+  BookPublicationStatus,
+  BookPublicationRecord,
+  BookPublicationVersionRecord,
+  PublicationPageEntry,
+  PublicationResponse,
+  PublicationReaderList,
+  PublicationDeleteResult,
+  PublicationsOverview,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+  PublishProgressEvent,
+  PublishRunSnapshot,
+  PublishFeatureSelection,
+  CommentAnchor,
+  PublishComment,
+  PublishStepId,
+  PublishStepStatus,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
   browserCredentialStorage,
   buildProviderCredentialHeaders,
-  readProviderCredentialsFromStorage,
+  readOwnProviderCredentialsFromStorage,
   type ProviderCredentialValues,
 } from "./provider-credentials"
 
 export type { BookSummary, BookDetail }
+export type {
+  BookPublicationRecord,
+  BookPublicationStatus,
+  BookPublicationVersionRecord,
+  CommentAnchor,
+  PublicationPageEntry,
+  PublicationResponse,
+  PublishComment,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+  PublishProgressEvent,
+  PublishStepId,
+  PublishStepStatus,
+}
 
 const CLI_ACTION_HEADERS = { "X-ADT-CLI-Action": "1" } as const
 
@@ -90,6 +146,10 @@ export function getSourcePdfUrl(label: string): string {
   return `${BASE_URL}/books/${label}/source-pdf`
 }
 
+export function getPageImageUrl(label: string, pageId: string): string {
+  return `${BASE_URL}/books/${encodeURIComponent(label)}/pages/${encodeURIComponent(pageId)}/image?raw=1`
+}
+
 export function getBookCoverUrl(label: string, cacheKey?: string): string {
   const base = `${BASE_URL}/books/${label}/cover`
   if (!cacheKey) return base
@@ -112,15 +172,68 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => "")
     let message: string | undefined
+    let code: string | null = null
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      const parsed = JSON.parse(text) as { error?: string; code?: string }
+      message = parsed.error
+      code = typeof parsed.code === "string" ? parsed.code : null
     } catch {
       message = text || undefined
     }
-    throw new Error(message ?? `Request failed: ${res.status}`)
+    /* `ApiError`, not `Error`: callers branch on `code` to tell "not connected yet" from "the
+     * worker didn't answer", and a bare Error left them printing the transport text instead —
+     * which is how a raw "404 Not Found" reached the publishing dashboard. */
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- HTTP response fallback.
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
   }
 
   return res.json()
+}
+
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number, readonly code: string | null = null) {
+    super(message)
+    this.name = "ApiError"
+  }
+}
+
+export function apiErrorCode(error: unknown): string | null {
+  return error instanceof ApiError ? error.code : null
+}
+
+async function postEventStream<TEvent>(path: string, body: Record<string, unknown>, options: {
+  headers?: Record<string, string>
+  onEvent: (event: TEvent) => void
+  signal?: AbortSignal
+}): Promise<void> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { ...options.headers, "Content-Type": "application/json", Accept: "text/event-stream" },
+    body: JSON.stringify(body),
+    signal: options.signal,
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    let message: string | undefined
+    let code: string | null = null
+    try {
+      const parsed = JSON.parse(text) as { error?: string; code?: string }
+      message = parsed.error
+      code = typeof parsed.code === "string" ? parsed.code : null
+    } catch { message = text || undefined }
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- HTTP response fallback.
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
+  }
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- HTTP response fallback.
+  if (!res.body) throw new ApiError(`Request failed: ${res.status}`, res.status)
+  await readEventStream(res.body, ({ event, data }) => {
+    if (!data) return
+    try {
+      const payload = JSON.parse(data) as Record<string, unknown>
+      const type = typeof payload.type === "string" ? payload.type : event
+      options.onEvent({ ...payload, type } as TEvent)
+    } catch { /* Ignore malformed progress events. */ }
+  })
 }
 
 export interface ImportPreview {
@@ -245,6 +358,7 @@ export interface StageRunProviderCredentials {
 }
 
 export interface RunStagesOptions {
+  outputScope?: OutputRunScope
   fromStage: string
   toStage: string
   /** When true, skip page-sectioning and only re-render from existing section data. */
@@ -307,7 +421,10 @@ async function buildApiHeaders(
   providerCredentials?: StageRunProviderCredentials,
 ): Promise<Record<string, string>> {
   const providers = await getProviderManifests()
-  const stored = readProviderCredentialsFromStorage(
+  // Own keys only: the API resolves shared credentials (manifest `sharedWith`)
+  // itself, so a key the server holds for a provider is never overridden by
+  // one the browser merely borrowed from another provider.
+  const stored = readOwnProviderCredentialsFromStorage(
     providers,
     browserCredentialStorage,
   )
@@ -392,6 +509,7 @@ export interface PendingDecision {
 }
 
 export interface StageRunStatus {
+  id?: string
   label: string
   status: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
   fromStage?: string
@@ -457,6 +575,8 @@ export interface AiEditHistoryTurn {
 }
 
 export interface PageDetail {
+  sectioningSynchronization?: import("@adt/types").SectioningSynchronization | null
+  captionSourceSignature: string
   pageId: string
   pageNumber: number
   text: string
@@ -540,6 +660,7 @@ export interface GlossaryItem {
 }
 
 export interface GlossaryOutput {
+  identitySignature?: string
   items: GlossaryItem[]
   pageCount: number
   generatedAt: string
@@ -609,10 +730,7 @@ export interface QuizzesResponse {
 
 // --- Text Catalog types ---
 
-export interface TextCatalogEntry {
-  id: string
-  text: string
-}
+export type TextCatalogEntry = import("@adt/types").TextCatalogEntry
 
 export interface CoreTtsCatalogEntry {
   id: string
@@ -633,8 +751,9 @@ export interface TextCatalogResponse {
   entries: TextCatalogEntry[]
   generatedAt: string
   version: number
-  translations: Record<string, { entries: TextCatalogEntry[]; version: number }>
-  speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number }>
+  translations: Record<string, { entries: TextCatalogEntry[]; version: number; sourceSignature: string }>
+  translationSourceSignatures?: Record<string, string>
+  speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number; sourceSignature: string }>
 }
 
 export interface TranslationEvaluationStatusResponse {
@@ -678,6 +797,7 @@ export interface EasyReadSectionBlock {
 }
 
 export interface EasyReadResponse {
+  sourceSignature: string
   blocks: EasyReadSectionBlock[]
   generatedAt: string
   version: number
@@ -685,18 +805,8 @@ export interface EasyReadResponse {
 
 // --- TTS types ---
 
-export interface TTSEntry {
-  textId: string
-  language?: string
-  fileName: string
-  voice: string
-  model: string
-  cached: boolean
-  provider?: string
-  voiceSlot: "primary" | "secondary"
-  voiceLabel?: string
-  cacheKey?: string
-}
+export type { TTSReadEntry as TTSEntry, TTSReadLanguage as TTSLanguageData, TTSReadResponse as TTSResponse } from "@adt/types"
+import type { TTSReadEntry as TTSEntry, TTSReadResponse as TTSResponse } from "@adt/types"
 
 export interface TTSFailedEntry {
   textId: string
@@ -717,20 +827,6 @@ export interface VoiceSlotsConfig {
 export type VoiceMapEntry = string | VoiceSlotsConfig
 export type VoiceMappings = Record<string, Record<string, VoiceMapEntry>>
 
-export interface TTSLanguageData {
-  entries: TTSEntry[]
-  /** Items whose generation failed in the run that produced this data */
-  failed?: TTSFailedEntry[]
-  generatedAt: string
-  version: number
-}
-
-export interface TTSResponse {
-  languages: Record<string, TTSLanguageData>
-  /** True when served from an in-flight speech run's live snapshot */
-  live?: boolean
-}
-
 export interface GenerateSingleTTSResponse {
   entry: TTSEntry
   version: number
@@ -747,6 +843,9 @@ export interface WordTimestamp {
 }
 
 export interface WordTimestampEntry {
+  audioIdentity?: string
+  version: number
+  audioHash?: string
   textId: string
   language: string
   voiceSlot?: "primary" | "secondary"
@@ -992,6 +1091,43 @@ export function getBookFontFileUrl(label: string, fontId: string, file: string):
 
 // --- Task types ---
 
+export type {
+  CloudflareAuthMethod, CloudflareConnectionDeleteResponse, CloudflareConnectionResources,
+  CloudflareConnectionStatus, CloudflareOAuthAccount, CloudflareOAuthAccountResponse,
+  CloudflareOAuthErrorCode, CloudflareOAuthStartResponse, CloudflareOAuthStatusResponse,
+  CloudflareTokenScope, CloudflareVerifyResponse, ProvisionErrorCode, ProvisionProgressEvent,
+  ProvisionStepId, ProvisionStepStatus,
+}
+
+export interface CloudflareCredentials { token: string; accountId: string }
+/** Live view of a provisioning run the browser may have stopped watching. */
+export interface ProvisionRunSnapshot {
+  status: "running" | "done" | "error"
+  step_states: ProvisionStepStatus[]
+  active_step: number | null
+  failure: {
+    code: ProvisionErrorCode | "unknown"
+    message: string
+    resume_from_step: number | null
+    missing_scopes: CloudflareTokenScope[]
+  } | null
+  started_at: string
+  finished_at: string | null
+}
+
+export interface ProvisionOptions {
+  onEvent: (event: ProvisionProgressEvent) => void
+  resumeFromStep?: number
+  signal?: AbortSignal
+}
+
+function buildCloudflareHeaders(credentials?: Partial<CloudflareCredentials>): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (credentials?.token) headers[CLOUDFLARE_TOKEN_HEADER] = credentials.token
+  if (credentials?.accountId) headers[CLOUDFLARE_ACCOUNT_ID_HEADER] = credentials.accountId
+  return headers
+}
+
 export interface TaskInfoResponse {
   taskId: string
   kind: string
@@ -1006,6 +1142,47 @@ export interface TaskInfoResponse {
   progressMessage?: string
   progressPercent?: number
 }
+
+export interface PublicationPageManifest {
+  pages: PublicationPageEntry[]
+}
+
+export interface PublicationCommentQuery {
+  includeResolved?: boolean
+  pageSectionId?: string
+  version?: number
+}
+
+function authorNameHeader(authorName?: string | null): Record<string, string> {
+  const trimmed = authorName?.trim() ?? ""
+  return trimmed.length === 0 ? {} : { [PUBLISH_AUTHOR_NAME_HEADER]: trimmed }
+}
+
+function commentQueryString(query: PublicationCommentQuery = {}): string {
+  const params = new URLSearchParams()
+  if (query.includeResolved !== undefined) {
+    params.set("include_resolved", query.includeResolved ? "true" : "false")
+  }
+  if (query.pageSectionId !== undefined) params.set("page_section_id", query.pageSectionId)
+  if (query.version !== undefined) params.set("version", String(query.version))
+  const search = params.toString()
+  return search.length === 0 ? "" : `?${search}`
+}
+
+export interface PublishStreamOptions {
+  onEvent: (event: PublishProgressEvent) => void
+  signal?: AbortSignal
+}
+
+const streamPublishEvents = (
+  path: string,
+  body: Record<string, unknown>,
+  options: PublishStreamOptions,
+): Promise<void> =>
+  postEventStream<PublishProgressEvent>(path, body, {
+    onEvent: options.onEvent,
+    ...(options.signal ? { signal: options.signal } : {}),
+  })
 
 export const api = {
   getBooks: () => request<BookSummary[]>("/books"),
@@ -1238,7 +1415,7 @@ export const api = {
     options: RunStagesOptions,
     providerCredentials?: StageRunProviderCredentials
   ) =>
-    request<{ status: string; label: string; fromStage: string; toStage: string }>(
+    request<{ id: string; status: string; label: string; fromStage: string; toStage: string }>(
       `/books/${label}/stages/run`,
       {
         method: "POST",
@@ -1246,6 +1423,9 @@ export const api = {
         body: JSON.stringify(options),
       }
     ),
+
+  skipOutputs: (label: string, body: OutputSkipRequest) =>
+    request(`/books/${label}/stages/skip-outputs`, { method: "POST", body: JSON.stringify(body) }),
 
   getStagesStatus: (label: string) =>
     request<StageRunStatus>(`/books/${label}/stages/status`),
@@ -1797,7 +1977,7 @@ export const api = {
     request<GlossaryOutput | null>(`/books/${label}/glossary`),
 
   updateGlossary: (label: string, data: unknown) =>
-    request<{ version: number; imageRequirementsChanged: boolean }>(
+    request<{ version: number; identitySignature: string; imageRequirementsChanged: boolean }>(
       `/books/${label}/glossary`,
       {
         method: "PUT",
@@ -1832,13 +2012,18 @@ export const api = {
   getTocSections: (label: string) =>
     request<TocSection[]>(`/books/${label}/toc/sections`),
 
+  getOutputDisclosure: (label: string, features: OutputDisclosureOptions = {}) => request<{ outputs: OutputStatus[]; summary: OutputSummary; summaries?: import("@adt/types").OutputSummaries; conflicts?: import("@adt/types").CatalogConflict[]; ownershipWarnings?: import("@adt/types").PackagingWarning[] }>(`/books/${label}/outputs/disclosure?features=${encodeURIComponent(JSON.stringify(features))}`),
+  getOutputSummary: (label: string) => request<OutputStageSummaryResponse>(`/books/${label}/outputs/summary`),
+  getOutputs: (label: string) => request<{ missingStages: StageName[]; outputs: OutputStatus[]; summary: OutputSummary; summaries?: import("@adt/types").OutputSummaries; conflicts?: import("@adt/types").CatalogConflict[]; ownershipWarnings?: import("@adt/types").PackagingWarning[] }>(`/books/${label}/outputs`),
+  reviewOutput: (label: string, review: OutputReviewRequest) => request<{ version: number }>(`/books/${label}/outputs/review`, { method: "POST", body: JSON.stringify(review) }),
+
   getTextCatalog: (label: string) =>
     request<TextCatalogResponse | null>(`/books/${label}/text-catalog`),
 
   getEasyRead: (label: string) =>
     request<EasyReadResponse | null>(`/books/${label}/easy-read`),
 
-  updateEasyRead: (label: string, data: { blocks: EasyReadSectionBlock[]; generatedAt: string }) =>
+  updateEasyRead: (label: string, data: { blocks: EasyReadSectionBlock[]; generatedAt: string; baseVersion: number; sourceSignature: string }) =>
     request<{ version: number }>(`/books/${label}/easy-read`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -1861,12 +2046,14 @@ export const api = {
     language: string,
     entryId: string,
     speechText: string,
+    baseVersion: number,
+    sourceSignature: string,
   ) =>
     request<{ version: number; entry: CoreTtsCatalogEntry }>(
       `/books/${label}/core-tts-catalog/${language}/${entryId}`,
       {
         method: "PUT",
-        body: JSON.stringify({ speechText }),
+        body: JSON.stringify({ speechText, baseVersion, sourceSignature }),
       },
     ),
 
@@ -1900,13 +2087,23 @@ export const api = {
       { method: "POST" },
     ),
 
+  /** Accept retained Quiz, Glossary or TOC content as current for today's inputs. */
+  keepSourceGeneration: (label: string, stage: string) =>
+    request<{ stage: string; step: string; inputSignature: string }>(
+      `/books/${label}/source-generation/${stage}/keep`,
+      { method: "POST" },
+    ),
+
   getStepStatus: (label: string) =>
     request<{
+      sourceUpdateStages: string[]
       stages: Record<string, string>
       steps: Record<string, string>
       error: string | null
       stepErrors: Record<string, string> | null
       stepMessages: Record<string, string> | null
+      runRevision?: string
+      publicationAgeMs?: number
       runStatus: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
       pendingDecisions: PendingDecision[]
     }>(`/books/${label}/step-status`),
@@ -1944,8 +2141,10 @@ export const api = {
     language: string,
     voiceSlot: "primary" | "secondary",
     file: File,
+    baseline: OutputReplacement,
   ) => {
     const formData = new FormData()
+    formData.append("baseline", JSON.stringify(baseline))
     formData.append("audio", file)
     formData.append("textId", textId)
     formData.append("language", language)
@@ -1966,8 +2165,8 @@ export const api = {
       body: JSON.stringify({ textId, language, voiceSlot }),
     }),
 
-  saveWordTimestamps: (label: string, language: string, textId: string, data: { words: WordTimestamp[]; duration: number; voiceSlot?: "primary" | "secondary" }) =>
-    request<{ ok: boolean }>(`/books/${label}/tts/timestamps/${language}/${textId}`, {
+  saveWordTimestamps: (label: string, language: string, textId: string, data: WordTimestampSaveRequest) =>
+    request<WordTimestampSaveResponse>(`/books/${label}/tts/timestamps/${language}/${textId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -2267,6 +2466,164 @@ export const api = {
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
   },
+
+  startCloudflareOAuth: () => request<CloudflareOAuthStartResponse>("/cloudflare/oauth/start", { method: "POST" }),
+
+  getCloudflareOAuthStatus: (state: string) => request<CloudflareOAuthStatusResponse>(`/cloudflare/oauth/status?state=${encodeURIComponent(state)}`),
+
+  pickCloudflareOAuthAccount: (state: string, accountId: string) => request<CloudflareOAuthAccountResponse>("/cloudflare/oauth/account", {
+    method: "POST", body: JSON.stringify({ state, account_id: accountId }),
+  }),
+
+  getCloudflareConnection: (credentials?: Partial<CloudflareCredentials>) => request<CloudflareConnectionStatus>("/cloudflare/connection", { headers: buildCloudflareHeaders(credentials) }),
+
+  disconnectCloudflare: (credentials: Partial<CloudflareCredentials>, options?: { deleteResources?: boolean }) => request<CloudflareConnectionDeleteResponse>(
+    `/cloudflare/connection${options?.deleteResources ? "?delete_resources=1" : ""}`, { method: "DELETE", headers: buildCloudflareHeaders(credentials) },
+  ),
+
+  getCloudflareProvisionRun: () => request<{ run: ProvisionRunSnapshot | null }>("/cloudflare/provision/run"),
+
+  provisionCloudflare: async (credentials: Partial<CloudflareCredentials>, options: ProvisionOptions): Promise<void> => {
+    await postEventStream<ProvisionProgressEvent>("/cloudflare/provision", options.resumeFromStep ? { resume_from_step: options.resumeFromStep } : {}, {
+      headers: buildCloudflareHeaders(credentials), onEvent: options.onEvent, signal: options.signal,
+    })
+  },
+
+  // --- Book publication ---
+
+  getBookPublication: (label: string) =>
+    request<BookPublicationStatus>(`/books/${encodeURIComponent(label)}/publication`),
+
+  getPublications: () => request<PublicationsOverview>("/publications"),
+
+  getPublicationReaders: (token: string) =>
+    request<PublicationReaderList>(`/publications/${encodeURIComponent(token)}/readers`),
+
+  deletePublication: (token: string) =>
+    request<PublicationDeleteResult>(`/publications/${encodeURIComponent(token)}`, { method: "DELETE" }),
+
+  publishBook: (
+    label: string,
+    options: PublishStreamOptions & {
+      expiresAt?: string | null
+      accessCode?: string | null
+      features?: PublishFeatureSelection
+    },
+  ): Promise<void> =>
+    streamPublishEvents(
+      `/books/${encodeURIComponent(label)}/publication`,
+      {
+        ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
+        ...(options.accessCode === undefined ? {} : { access_code: options.accessCode }),
+        ...(options.features === undefined ? {} : { features: options.features }),
+      },
+      options,
+    ),
+
+  publishBookVersion: (label: string, options: PublishStreamOptions): Promise<void> =>
+    streamPublishEvents(`/books/${encodeURIComponent(label)}/publication/versions`, {}, options),
+
+  /** The book's share run as the server last saw it — for a page that lost the stream. */
+  getPublishRun: (label: string) =>
+    request<{ run: PublishRunSnapshot | null }>(
+      `/books/${encodeURIComponent(label)}/publication/run`,
+    ),
+
+  /** Every share run still going, across books. */
+  listPublishRuns: () =>
+    request<{ runs: { label: string; run: PublishRunSnapshot }[] }>("/publication-runs"),
+
+  /** Asks a running share to stop; `false` when it is past the point it safely can. */
+  cancelPublishRun: (label: string) =>
+    request<{ cancelled: boolean }>(`/books/${encodeURIComponent(label)}/publication/run/cancel`, {
+      method: "POST",
+    }),
+
+  revokeBookPublication: (label: string) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication/revoke`, {
+      method: "POST",
+    }),
+
+  resumeBookPublication: (label: string) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication/resume`, {
+      method: "POST",
+    }),
+
+  setBookPublicationExpiry: (label: string, expiresAt: string | null) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ expires_at: expiresAt }),
+    }),
+
+  setBookPublicationAccessCode: (label: string, accessCode: string | null) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ access_code: accessCode }),
+    }),
+
+  setBookPublicationComments: (label: string, comments: boolean) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ comments }),
+    }),
+
+  // --- Publication feedback ---
+
+  getPublicationPages: (label: string) =>
+    request<PublicationPageManifest>(`/books/${encodeURIComponent(label)}/publication/pages`),
+
+  getPublicationComments: (label: string, query: PublicationCommentQuery = {}) =>
+    request<PublishCommentListResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments${commentQueryString(query)}`,
+    ),
+
+  createPublicationComment: (
+    label: string,
+    body: { pageSectionId: string; body: string; parentId?: string | null; anchor?: CommentAnchor | null },
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(`/books/${encodeURIComponent(label)}/publication/comments`, {
+      method: "POST",
+      headers: authorNameHeader(authorName),
+      body: JSON.stringify({
+        page_section_id: body.pageSectionId,
+        body: body.body,
+        ...(body.parentId === undefined ? {} : { parent_id: body.parentId }),
+        ...(body.anchor === undefined ? {} : { anchor: body.anchor }),
+      }),
+    }),
+
+  resolvePublicationComment: (
+    label: string,
+    id: string,
+    resolved: boolean,
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments/${encodeURIComponent(id)}/resolve`,
+      {
+        method: "POST",
+        headers: authorNameHeader(authorName),
+        body: JSON.stringify({ resolved }),
+      },
+    ),
+
+  updatePublicationComment: (
+    label: string,
+    id: string,
+    body: string,
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments/${encodeURIComponent(id)}`,
+      { method: "PATCH", headers: authorNameHeader(authorName), body: JSON.stringify({ body }) },
+    ),
+
+  deletePublicationComment: (label: string, id: string, authorName?: string | null) =>
+    request<PublishCommentResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments/${encodeURIComponent(id)}`,
+      { method: "DELETE", headers: authorNameHeader(authorName) },
+    ),
 
   exportPnld: async (label: string): Promise<Blob | null> => {
     if (!isDesktop()) {

@@ -218,3 +218,58 @@ describe("initializeCustomActivity — accessibility backstop", () => {
     expect(card.hasAttribute("tabindex")).toBe(false)
   })
 })
+
+it.each([true, false])("does not publish a disposed custom grader's late %s result", async (result) => {
+  let finish!: (value: boolean) => void
+  const cleanup = bootWithRegistration(renderSection(), { validate: () => new Promise<boolean>((resolve) => { finish = resolve }) })
+  store.get(validateHandlerAtom)?.()
+  cleanup()
+  const nextCleanup = bootWithRegistration(renderSection(), { validate: () => false })
+  finish(result)
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  expect(store.get(submitStateAtom)).toBe("submit")
+  expect(store.get(confettiTriggerAtom)).toBe(0)
+  nextCleanup()
+})
+
+it("does not start duplicate custom validation while the previous Submit is pending", async () => {
+  let finish!: (value: boolean) => void
+  const validate = vi.fn(() => new Promise<boolean>((resolve) => { finish = resolve }))
+  const cleanup = bootWithRegistration(renderSection(), { validate })
+  store.get(validateHandlerAtom)?.()
+  store.get(validateHandlerAtom)?.()
+  expect(validate).toHaveBeenCalledTimes(1)
+  finish(false)
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  cleanup()
+})
+
+it("ignores a late registration for a detached section", async () => {
+  const oldSection = renderSection()
+  const cleanup = bootWithRegistration(oldSection, { validate: () => true })
+  cleanup()
+  const currentSection = renderSection()
+  const nextCleanup = bootWithRegistration(currentSection, { validate: () => true })
+  try {
+    await clickSubmit()
+    expect(store.get(submitStateAtom)).toBe("next")
+    window.adtRegisterCustomActivity?.(oldSection, { validate: () => false })
+    expect(store.get(submitStateAtom)).toBe("next")
+  } finally {
+    nextCleanup()
+  }
+})
+
+it("allows retry after a rejected asynchronous custom grader", async () => {
+  const validate = vi.fn().mockRejectedValueOnce(new Error("Controlled grading failure")).mockResolvedValue(true)
+  const cleanup = bootWithRegistration(renderSection(), { validate })
+  try {
+    await clickSubmit()
+    expect(store.get(submitStateAtom)).toBe("submit")
+    await clickSubmit()
+    expect(store.get(submitStateAtom)).toBe("next")
+    expect(validate).toHaveBeenCalledTimes(2)
+  } finally {
+    cleanup()
+  }
+})

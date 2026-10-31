@@ -9,20 +9,23 @@ import { toBookVM } from "../../data"
 import { APP_PATHS } from "../../nav"
 import { useAppBooks } from "../../use-app-books"
 import { useAppShell } from "../../AppShellContext"
+import { usePublicationsByBook } from "@/hooks/use-publications"
+import { withPublication } from "../library/publication-decoration"
 import { TopBar } from "@/components/title-bar/TopBar"
 
 export function HomeScreen() {
   const navigate = useNavigate()
   const { books, locale, isLoading, error } = useAppBooks()
   const { openAdd, requestDelete } = useAppShell()
+  const { byLabel: publications, countsKnown } = usePublicationsByBook()
   const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
 
   const [detailLabel, setDetailLabel] = useState<string | null>(null)
 
   const vms = useMemo(() => {
     const sorted = [...books].sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime())
-    return sorted.map((b) => toBookVM(b, locale))
-  }, [books, locale])
+    return sorted.map((b) => withPublication(toBookVM(b, locale), publications, countsKnown))
+  }, [books, locale, publications, countsKnown])
 
   const detail = detailLabel ? vms.find((b) => b.label === detailLabel) ?? null : null
 
@@ -31,8 +34,8 @@ export function HomeScreen() {
   const hasBooks = vms.length > 0
 
   return (
-    <div className="relative flex h-full flex-col bg-background pt-4">
-      <TopBar className="absolute top-0 drag-region z-10" />
+    <div className="relative flex h-full flex-col bg-background">
+      <TopBar className="shrink-0 drag-region" />
       <div className="pointer-events-none absolute -top-[120px] right-[-80px] size-[440px] animate-hero-drift rounded-full bg-[radial-gradient(circle,rgba(43,127,255,.12),transparent_70%)]" />
 
       {hasBooks ? (
@@ -43,10 +46,11 @@ export function HomeScreen() {
             onContinue={openBook}
             onAddBook={openAdd}
             onOpenLibrary={() => navigate({ to: APP_PATHS.library })}
+            onReview={(label) => navigate({ to: "/books/$label/$step", params: { label, step: "storyboard" } })}
           />
         </div>
       ) : (
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-auto px-11 py-12">
+        <div className="topbar-scroll-fade relative flex min-h-0 flex-1 flex-col overflow-auto px-11 pb-12 pt-4">
           <WelcomeHero onOpenAdd={openAdd} />
           <WelcomeFeatures />
         </div>

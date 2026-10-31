@@ -88,6 +88,7 @@ describe("Page routes", () => {
             sectionIndex: 0,
             sectionType: "content",
             reasoning: "rendered",
+            sectionId: `${label}_p1_sec001`,
             html: "<div>Hello world</div>",
           },
         ],
@@ -107,6 +108,63 @@ describe("Page routes", () => {
   })
 
   describe("GET /api/books/:label/pages", () => {
+    it("includes referenced glossary images before captions exist without double counting extraction images", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      const pageId = `${label}_p1`
+      storage.putExtractedPage({
+        pageId, pageNumber: 1, text: "Page one text content",
+        pageImage: { imageId: `${pageId}_page`, buffer: Buffer.from("page"), format: "png", hash: "page", width: 800, height: 600 },
+        images: ["kept", "glossary-only"].map(imageId => ({ imageId, buffer: Buffer.from(imageId), format: "png" as const, hash: imageId, width: 50, height: 50 })),
+      })
+      storage.putNodeData("image-filtering", pageId, { images: [{ imageId: "kept" }] })
+      storage.putNodeData("glossary", "book", { items: [
+        { id: "gl001", word: "Apple", definition: "Fruit", variations: [], emojis: [], imageId: "glossary-only" },
+        { id: "gl002", word: "Tree", definition: "Plant", variations: [], emojis: [], imageId: "kept" },
+      ] })
+      storage.close()
+
+      const pages = await (await app.request(`/api/books/${label}/pages`)).json()
+      expect(pages[0]).toMatchObject({ imageCount: 2, hasCaptioning: false })
+      expect(pages[1].imageCount).toBe(0)
+
+      const reopened = createBookStorage(label, tmpDir)
+      expect(reopened.getLatestNodeData("image-captioning", pageId)).toBeNull()
+      const glossary = reopened.getLatestNodeData("glossary", "book")!
+      reopened.putNodeData("glossary", "book", { items: (glossary.data as { items: Array<Record<string, unknown>> }).items.map(item => ({ ...item, pruned: true })) })
+      reopened.close()
+      const pruned = await (await app.request(`/api/books/${label}/pages`)).json()
+      expect(pruned[0].imageCount).toBe(1)
+    })
+
+    it("returns empty pages for a PDF-only new book without creating its database", async () => {
+      const dir = path.join(tmpDir, "new-book")
+      fs.mkdirSync(dir)
+      fs.writeFileSync(path.join(dir, "new-book.pdf"), "PDF fixture")
+      const response = await app.request("/api/books/new-book/pages")
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual([])
+      expect(fs.existsSync(path.join(dir, "new-book.db"))).toBe(false)
+      expect((await app.request("/api/books/missing-book/pages")).status).toBe(404)
+      expect(fs.existsSync(path.join(tmpDir, "missing-book"))).toBe(false)
+    })
+
+    it("does not resurrect invalidated rendering or its activity flags, and respects a restored pointer", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      const pageId = `${label}_p1`
+      const version = storage.putNodeData("web-rendering", pageId, { sections: [{ sectionIndex: 0, sectionType: "content", html: "<p>Old activity</p>", activityAnswers: { answer: "old" } }] })
+      storage.clearNodesByType(["web-rendering"])
+      storage.close()
+      const pages = await (await app.request(`/api/books/${label}/pages`)).json()
+      expect(pages[0].hasRendering).toBe(false)
+      expect(pages[0].sections[0].isActivity).toBe(false)
+      const restore = createBookStorage(label, tmpDir)
+      restore.setCurrentNodeVersion("web-rendering", pageId, version)
+      restore.close()
+      const restored = await (await app.request(`/api/books/${label}/pages`)).json()
+      expect(restored[0].hasRendering).toBe(true)
+      expect(restored[0].sections[0].isActivity).toBe(true)
+    })
+
     it("returns list of pages", async () => {
       const res = await app.request(`/api/books/${label}/pages`)
 
@@ -181,6 +239,16 @@ describe("Page routes", () => {
       const body = await res.json()
       expect(body.imageBase64).toBeTruthy()
       expect(typeof body.imageBase64).toBe("string")
+    })
+
+    it("serves the raw image when requested", async () => {
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/image?raw=1`
+      )
+
+      expect(res.status).toBe(200)
+      expect(res.headers.get("content-type")).toBe("image/png")
+      expect((await res.arrayBuffer()).byteLength).toBeGreaterThan(0)
     })
 
     it("returns 404 for nonexistent page image", async () => {
@@ -267,10 +335,9 @@ describe("Page routes", () => {
       expect(res.status).toBe(404)
     })
 
-    it("marks the storyboard chain as needing a re-run, keeping node data", async () => {
-      // A sectioning edit invalidates the rendered HTML that every later stage
-      // is derived from, so those stages must stop reporting "done" — but their
-      // data (and version history) must survive.
+    it("resets obsolete Storyboard and separate source generators while retaining catalog attempts and saved content", async () => {
+      // Sectioning still guards obsolete rendering. Downstream content freshness
+      // comes from the catalog; historical attempts and output survive.
       const seed = createBookStorage(label, tmpDir)
       try {
         seed.markStepCompleted("web-rendering")
@@ -296,12 +363,48 @@ describe("Page routes", () => {
         const steps = after.getStepRuns().map((r) => r.step)
         expect(steps).not.toContain("web-rendering")
         expect(steps).not.toContain("quiz-generation")
-        expect(steps).not.toContain("toc-generation")
+        // No TOC heading or rendered section existed, so its input is unchanged.
+        expect(steps).toContain("toc-generation")
         // Non-destructive: the rendering itself is untouched.
         expect(after.getLatestNodeData("web-rendering", `${label}_p1`)).toBeTruthy()
       } finally {
         after.close()
       }
+    })
+
+    it("keeps separate generation attempts on cosmetic saves, resets them on source restore, and preserves every saved version", async () => {
+      const seed = createBookStorage(label, tmpDir)
+      const original = seed.getLatestNodeData("page-sectioning", `${label}_p1`)!.data as { sections: Array<{ backgroundColor: string; nodes: Array<{ text?: string; role?: string }> }> }
+      const sourceSteps = ["quiz-generation", "glossary", "toc-generation"]
+      for (const step of [...sourceSteps, "tts", "catalog-translation", "web-rendering"]) seed.markStepCompleted(step)
+      for (const node of sourceSteps) { seed.putNodeData(node, "book", { manual: "first" }); seed.putNodeData(node, "book", { manual: "second" }) }
+      seed.close()
+      const cosmetic = structuredClone(original)
+      cosmetic.sections[0].backgroundColor = "#ff0000"
+      const save = (body: unknown) => app.request(`/api/books/${label}/pages/${label}_p1/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      expect((await save(cosmetic)).status).toBe(200)
+      const afterCosmetic = createBookStorage(label, tmpDir)
+      expect(afterCosmetic.getStepRuns().map((run) => run.step)).toEqual(expect.arrayContaining([...sourceSteps, "tts"]))
+      // This was a Sectioning-only save: the old HTML does not yet reflect the
+      // palette. Storyboard's separate rendering policy remains unchanged.
+      expect(afterCosmetic.getStepRuns().map((run) => run.step)).not.toContain("web-rendering")
+      const changed = structuredClone(original)
+      changed.sections[0].nodes[0].text = "Changed source"
+      changed.sections[0].nodes[0].role = "heading"
+      afterCosmetic.putNodeData("page-sectioning", `${label}_p1`, changed)
+      afterCosmetic.close()
+      const restored = await app.request(`/api/books/${label}/versions/page-sectioning/${label}_p1/restore`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }) })
+      expect(restored.status).toBe(200)
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const steps = after.getStepRuns().map((run) => run.step)
+        // Restoring the source heading affects TOC; rendered Quiz/Glossary text did not change.
+        expect(steps).not.toContain("toc-generation")
+        expect(steps).toEqual(expect.arrayContaining(["quiz-generation", "glossary", "tts", "catalog-translation"]))
+        for (const node of sourceSteps) expect(after.getAllNodeVersions(node, "book").map((row) => row.data)).toEqual([{ manual: "first" }, { manual: "second" }])
+        expect(after.getAllNodeVersions("page-sectioning", `${label}_p1`)).toHaveLength(3)
+        expect(after.getCurrentNodeVersion("page-sectioning", `${label}_p1`)).toBe(1)
+      } finally { after.close() }
     })
 
     it("rejects sectioning changes while a pipeline step is running", async () => {
@@ -401,7 +504,7 @@ describe("Page routes", () => {
       try {
         const steps = after.getStepRuns().map((r) => r.step)
         expect(steps).toContain("web-rendering")
-        // Everything derived from the HTML still has to be re-run.
+        // The separate source generators reset; catalog-managed attempts survive.
         expect(steps).not.toContain("quiz-generation")
         expect(steps).not.toContain("toc-generation")
       } finally {
@@ -608,7 +711,7 @@ describe("Page routes", () => {
 
       const steps = stepsAfter()
       expect(steps).toContain("web-rendering")
-      // Downstream still has to catch up with the removed content.
+      // Source membership resets TOC without clearing its saved content.
       expect(steps).not.toContain("toc-generation")
     })
 
@@ -631,7 +734,7 @@ describe("Page routes", () => {
   })
 
   describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/clone", () => {
-    it("assigns fresh ids to cloned containers but preserves leaf ids", async () => {
+    it("assigns fresh identities to cloned containers and text leaves", async () => {
       const sourceContainerId = `${label}_p1_n0001`
       const sourceLeafId = `${label}_p1_n0002`
 
@@ -708,7 +811,7 @@ describe("Page routes", () => {
         const cloned = sectioning.sections[1]
         expect(cloned.sectionId).toBe(`${label}_p1_sec002`)
         expect(cloned.nodes[0]?.nodeId).not.toBe(original.nodes[0]?.nodeId)
-        expect(cloned.nodes[0]?.children?.[0]?.nodeId).toBe(sourceLeafId)
+        expect(cloned.nodes[0]?.children?.[0]?.nodeId).not.toBe(sourceLeafId)
 
         const renderingRow = verify.getLatestNodeData("web-rendering", `${label}_p1`)
         const rendering = renderingRow?.data as {
@@ -717,7 +820,7 @@ describe("Page routes", () => {
         const clonedRendering = rendering.sections.find((section) => section.sectionIndex === 1)
         expect(clonedRendering?.html).toContain(`data-section-id="${label}_p1_sec002"`)
         expect(clonedRendering?.html).toContain(`data-id="${cloned.nodes[0]?.nodeId}"`)
-        expect(clonedRendering?.html).toContain(`data-id="${sourceLeafId}"`)
+        expect(clonedRendering?.html).toContain(`data-id="${cloned.nodes[0]?.children?.[0]?.nodeId}"`)
         expect(clonedRendering?.html).not.toContain(`data-id="${sourceContainerId}"`)
       } finally {
         verify.close()
@@ -760,6 +863,39 @@ describe("Page routes", () => {
           text: `Activity ${n}`,
         },
       ],
+    })
+
+    it("reordering sections through a sectioning save moves step-by-step activities with their sections", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          reasoning: "two same-type activities",
+          sections: [section(1), section(2)],
+        })
+        storage.putNodeData("editable-activity", `${label}_p1`, {
+          activities: { "0": mcActivity("first"), "1": mcActivity("second") },
+        })
+      } finally {
+        storage.close()
+      }
+      // The Sectioning view saves a reordered tree through the plain PUT; the
+      // storyboard route carries the same payload. Both must remap (K2).
+      const res = await app.request(`/api/books/${label}/pages/${label}_p1/sectioning`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reasoning: "reordered", sections: [section(2), section(1)] }),
+      })
+      expect(res.status).toBe(200)
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const activities = (verify.getLatestNodeData("editable-activity", `${label}_p1`)?.data as {
+          activities: Record<string, { title?: { text: string } }>
+        }).activities
+        expect(activities["0"]?.title?.text).toBe("second")
+        expect(activities["1"]?.title?.text).toBe("first")
+      } finally {
+        verify.close()
+      }
     })
 
     it("deleting a section drops its entry and shifts the rest down", async () => {
@@ -907,7 +1043,7 @@ describe("Page routes", () => {
       }
     }
 
-    it("marks the storyboard chain stale, since both halves lose their HTML", async () => {
+    it("marks Storyboard stale after a split while retaining downstream attempt history", async () => {
       seedThreeNodeSection({ rendering: true })
       const seed = createBookStorage(label, tmpDir)
       try {
@@ -933,7 +1069,7 @@ describe("Page routes", () => {
         // packaged book while the storyboard still reported "done".
         const steps = after.getStepRuns().map((r) => r.step)
         expect(steps).not.toContain("web-rendering")
-        expect(steps).not.toContain("package-web")
+        expect(steps).toContain("package-web")
       } finally {
         after.close()
       }
@@ -1379,7 +1515,7 @@ describe("Page routes", () => {
     function seedSectionSeqs(seqs: number[], pageId = `${label}_p1`): number {
       const storage = createBookStorage(label, tmpDir)
       try {
-        return storage.putNodeData("page-sectioning", pageId, {
+        const version = storage.putNodeData("page-sectioning", pageId, {
           reasoning: "sectioned",
           sections: seqs.map((seq) => ({
             sectionId: `${pageId}_sec${String(seq).padStart(3, "0")}`,
@@ -1398,6 +1534,11 @@ describe("Page routes", () => {
             ],
           })),
         })
+        storage.putNodeData("web-rendering", pageId, { sections: seqs.map((seq, sectionIndex) => ({
+          sectionId: `${pageId}_sec${String(seq).padStart(3, "0")}`, sectionIndex, sectionType: "content", reasoning: "fixture",
+          html: `<section data-section-id="${pageId}_sec${String(seq).padStart(3, "0")}"><p>Section ${seq}</p></section>`,
+        })) })
+        return version
       } finally {
         storage.close()
       }
@@ -1553,6 +1694,13 @@ describe("Page routes", () => {
         }
       )
       expect(restore.status).toBe(200)
+      // Source-only restore deliberately leaves newer HTML active. Restore the
+      // matching rendering too before a positional structural operation.
+      const restored = createBookStorage(label, tmpDir)
+      const matching = restored.getAllNodeVersions("web-rendering", `${label}_p1`).find((row) => (row.data as { sections?: unknown[] })?.sections?.length === 3)
+      expect(matching).toBeDefined()
+      restored.setCurrentNodeVersion("web-rendering", `${label}_p1`, matching!.version)
+      restored.close()
 
       const second = await app.request(
         `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
@@ -1560,11 +1708,7 @@ describe("Page routes", () => {
       )
       expect(second.status).toBe(200)
 
-      // Structural ops currently read the latest version rather than the
-      // restored pointer, so today this holds for that reason too. The
-      // assertion is on the id space regardless: whoever makes a restore
-      // authoritative for these ops must keep the factory's history-wide
-      // high-water mark, or this fails.
+      // Allocation still reserves the ID spent after the restored version.
       expect(readSectionIds()).toContain(`${label}_p1_sec005`)
     })
 
@@ -1658,7 +1802,10 @@ describe("Page routes", () => {
       fs.writeFileSync(path.join(audioDir, fileName), "uploaded-audio")
 
       const storage = createBookStorage(label, tmpDir)
+      const sourceSteps = ["quiz-generation", "glossary", "toc-generation"]
       try {
+        for (const step of [...sourceSteps, "tts"]) storage.markStepCompleted(step)
+        for (const node of sourceSteps) storage.putNodeData(node, "book", { manual: "retained" })
         storage.putExtractedPage({
           pageId: "pg001",
           pageNumber: 1,
@@ -1708,6 +1855,7 @@ describe("Page routes", () => {
         }
         const failed = createBookStorage(label, tmpDir)
         try {
+          expect(failed.getStepRuns().map((run) => run.step)).toEqual(expect.arrayContaining(sourceSteps))
           expect(failed.getPages().some((page) => page.pageId === `${label}_p1`)).toBe(true)
           expect(failed.getLatestNodeData("tts", "en")?.data).toMatchObject({
             entries: [{ textId: `${label}_p1_sec001_ans_a`, provider: "manual" }],
@@ -1726,9 +1874,17 @@ describe("Page routes", () => {
           entries: Array<{ textId: string }>
         }
         expect(tts.entries).toEqual([])
+        const steps = verify.getStepRuns().map((run) => run.step)
+        for (const step of sourceSteps) expect(steps).not.toContain(step)
+        expect(steps).toContain("tts")
+        for (const node of sourceSteps) { expect(verify.getAllNodeVersions(node, "book").some((row) => (row.data as { manual?: string }).manual === "retained")).toBe(true); verify.markStepCompleted(node) }
       } finally {
         verify.close()
       }
+      expect((await request()).status).toBe(200)
+      const noOp = createBookStorage(label, tmpDir)
+      try { expect(noOp.getStepRuns().map((run) => run.step)).toEqual(expect.arrayContaining(sourceSteps)) }
+      finally { noOp.close() }
       // Keep the original as well as the backup, so transaction rollback never
       // leaves the old manifest pointing to a missing upload.
       expect(fs.existsSync(path.join(audioDir, fileName))).toBe(true)
@@ -1738,14 +1894,7 @@ describe("Page routes", () => {
       ).toEqual([fileName])
     })
 
-    it("clears the speech manifests wholesale, so no entry outlives a retired id", async () => {
-      // This is why `retireSectionIds`' speech prune is moot on the section-level
-      // ops but load-bearing on `spreads/apply` and the stage rerun: those two
-      // drop a page's sectioning history without clearing the manifests, while
-      // every op that goes through `saveStoryboardNode` wipes them entirely
-      // (`clearCaptionData`). If that ever stops being true, the prune is the
-      // only thing standing between a re-minted id and the old recording — so
-      // pin the behaviour rather than leaving it implied.
+    it("retains unrelated speech and retired speech history", async () => {
       seedSections(3)
 
       const audioDir = path.join(tmpDir, label, "audio", "en")
@@ -1780,12 +1929,14 @@ describe("Page routes", () => {
 
       const verify = createBookStorage(label, tmpDir)
       try {
-        expect(verify.getNodeItemIds("tts")).toEqual([])
+        expect(verify.getNodeItemIds("tts")).toEqual(["en"])
+        expect((verify.getLatestNodeData("tts", "en")!.data as { entries: Array<{ textId: string }> }).entries.map((entry) => entry.textId)).toEqual([`${label}_p1_sec003_ans_a`])
+        expect(verify.getAllNodeVersions("tts", "en")[0].data).toMatchObject({ entries: [{ textId: `${label}_p1_sec002_ans_a` }, { textId: `${label}_p1_sec003_ans_a` }] })
         expect(verify.getNodeItemIds("tts-timestamps")).toEqual([])
       } finally {
         verify.close()
       }
-      // The manifests go; the uploads never do.
+      // Physical recordings remain restorable.
       for (const textId of [`${label}_p1_sec002_ans_a`, `${label}_p1_sec003_ans_a`]) {
         expect(fs.existsSync(path.join(audioDir, `${textId}.mp3`))).toBe(true)
       }
@@ -1873,6 +2024,26 @@ describe("Page routes", () => {
         storage.close()
       }
     }
+
+    it("preserves an unchanged legacy source/derived ID pair in an explicit cross-page move", async () => {
+      seedBothPages()
+      const db = createBookStorage(label, tmpDir)
+      const original = db.getLatestNodeData("page-sectioning", `${label}_p1`)!
+      const historyBefore = structuredClone(original)
+      const data = original.data as { sections: Array<{ nodes: Array<{ nodeId: string; role: string; text: string; isPruned: boolean }> }> }
+      const source = data.sections[0].nodes[0]
+      data.sections[0].nodes.push({ ...source, nodeId: `${source.nodeId}_easy_read`, text: "Legacy second source" })
+      db.putNodeData("page-sectioning", `${label}_p1`, data)
+      db.close()
+      const response = await app.request(`/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`, { method: "POST" })
+      expect(response.status).toBe(200)
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const moved = after.getLatestNodeData("page-sectioning", `${label}_p2`)!.data as typeof data
+        expect(moved.sections[0].nodes.slice(0, 2).map(node => node.nodeId)).toEqual([source.nodeId, `${source.nodeId}_easy_read`])
+        expect(after.getAllNodeVersions("page-sectioning", `${label}_p1`)).toContainEqual(historyBefore)
+      } finally { after.close() }
+    })
 
     it("records the source page in the target section's sourcePageIds", async () => {
       seedBothPages()
@@ -2070,6 +2241,26 @@ describe("Page routes", () => {
       expect(request.input.length).toBe(withStyle ? 2 : 1)
     })
 
+    it("rejects image publication after the selected owner changes during provider work", async () => {
+      const transport = mockGoogleImage()
+      const original = transport.getMockImplementation()!
+      const storage = createBookStorage(label, tmpDir)
+      const before = storage.getLatestNodeData("web-rendering", pageId)!
+      transport.mockImplementation(async (...args) => {
+        const source = storage.getLatestNodeData("page-sectioning", pageId)!.data
+        storage.putNodeData("page-sectioning", pageId, source)
+        return original(...args)
+      })
+      try {
+        const response = await app.request(endpoint, { method: "POST", headers: googleHeaders,
+          body: JSON.stringify({ prompt: "a diagram", sectionIndex: 0, mode: "add" }) })
+        expect(response.status).toBe(409)
+        expect(transport).toHaveBeenCalledTimes(1)
+        expect(storage.getLatestNodeData("web-rendering", pageId)).toEqual(before)
+        expect(storage.getPageImages(pageId).some(image => image.imageId.includes("_ai"))).toBe(false)
+      } finally { storage.close() }
+    })
+
     it("does not force source edits into a size or ratio bucket", async () => {
       const fetchMock = mockGoogleImage()
       const response = await app.request(endpoint, {
@@ -2086,7 +2277,7 @@ describe("Page routes", () => {
         const storage = createBookStorage(label, tmpDir)
         try {
           storage.putNodeData("web-rendering", pageId, { sections: [{
-            sectionIndex: 0, sectionType: "content", reasoning: "test",
+            sectionIndex: 0, sectionId: `${pageId}_sec001`, sectionType: "content", reasoning: "test",
             html: `<section><img data-id="${pageId}_page" src="/api/books/${label}/images/${pageId}_page" width="800" height="600" ${style}></section>`,
           }] })
           const response = await app.request(endpoint, {
@@ -2463,22 +2654,22 @@ describe("Page routes", () => {
     }
   }
 
-  /** Assert that all storyboard-dependent node data and step_runs were cleared. */
-  function expectAllDownstreamCleared(dir: string, bookLabel: string) {
+  /** Assert retained catalog versions and attempt history. */
+  function expectCatalogOutputsPreserved(dir: string, bookLabel: string) {
     const s = createBookStorage(bookLabel, dir)
     try {
-      // Node data should be gone
-      expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("core-tts-catalog", "en")).toBeNull()
-      expect(s.getLatestNodeData("easy-read", "book")).toBeNull()
-      expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+      // Catalog content and history remain unchanged; assessment is invalidated.
+      expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("core-tts-catalog", "en")).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("easy-read", "book")).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("tts-timestamps", "en")).toMatchObject({ version: 1 })
       expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
-      // Step runs should be gone
+      // Completion rows describe attempts; content freshness is derived separately.
       const runs = s.getStepRuns()
-      const clearedSteps = [
+      const retainedSteps = [
         "image-captioning",
         "text-catalog",
         "easy-read",
@@ -2490,29 +2681,29 @@ describe("Page routes", () => {
         "package-web",
         "accessibility-assessment",
       ]
-      for (const step of clearedSteps) {
-        expect(runs.find((r) => r.step === step)).toBeUndefined()
+      for (const step of retainedSteps) {
+        expect(runs.find((r) => r.step === step)).toMatchObject({ status: "done" })
       }
     } finally {
       s.close()
     }
   }
 
-  /** Assert that translate/speech (but NOT image-captioning) node data and step_runs were cleared. */
-  function expectTextAndSpeechCleared(dir: string, bookLabel: string) {
+  /** Assert that caption changes preserve downstream output and attempt history. */
+  function expectTextAndSpeechPreserved(dir: string, bookLabel: string) {
     const s = createBookStorage(bookLabel, dir)
     try {
       // image-captioning should still exist
       expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).not.toBeNull()
       expect(s.getLatestNodeData("easy-read", "book")).not.toBeNull()
-      // text-catalog, translations, tts should be gone
-      expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("core-tts-catalog", "en")).toBeNull()
-      expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+      // Content remains available while its freshness is derived.
+      expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("core-tts-catalog", "en")).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("tts-timestamps", "en")).toMatchObject({ version: 1 })
       expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
-      // Step runs: image-captioning should remain, text steps should be gone
+      // All attempt records remain available.
       const runs = s.getStepRuns()
       expect(runs.find((r) => r.step === "image-captioning")).toBeDefined()
       expect(runs.find((r) => r.step === "easy-read")).toBeDefined()
@@ -2526,15 +2717,15 @@ describe("Page routes", () => {
         "package-web",
         "accessibility-assessment",
       ]) {
-        expect(runs.find((r) => r.step === step)).toBeUndefined()
+        expect(runs.find((r) => r.step === step)).toMatchObject({ status: "done" })
       }
     } finally {
       s.close()
     }
   }
 
-  describe("PUT /api/books/:label/pages/:pageId/sectioning clears downstream", () => {
-    it("clears caption + translate/speech data on sectioning save", async () => {
+  describe("PUT /api/books/:label/pages/:pageId/sectioning preserves downstream", () => {
+    it("preserves caption, translation and speech output/history on sectioning save", async () => {
       seedDownstreamData(tmpDir, label)
 
       const data = {
@@ -2574,12 +2765,12 @@ describe("Page routes", () => {
       )
 
       expect(res.status).toBe(200)
-      expectAllDownstreamCleared(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label)
     })
   })
 
-  describe("PUT /api/books/:label/pages/:pageId/rendering clears downstream", () => {
-    it("clears caption + translate/speech data on rendering save", async () => {
+  describe("PUT /api/books/:label/pages/:pageId/rendering preserves downstream", () => {
+    it("preserves caption, translation and speech output/history on rendering save", async () => {
       seedDownstreamData(tmpDir, label)
 
       const data = {
@@ -2601,12 +2792,12 @@ describe("Page routes", () => {
       )
 
       expect(res.status).toBe(200)
-      expectAllDownstreamCleared(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label)
     })
   })
 
-  describe("POST crop (images) clears downstream", () => {
-    it("clears caption + translate/speech data on image crop", async () => {
+  describe("POST crop (images) preserves downstream", () => {
+    it("preserves caption, translation and speech output/history on image crop", async () => {
       seedDownstreamData(tmpDir, label)
 
       // Minimal valid PNG (1x1 pixel)
@@ -2630,16 +2821,17 @@ describe("Page routes", () => {
       })
 
       expect(res.status).toBe(200)
-      expectAllDownstreamCleared(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label)
     })
   })
 
-  describe("PUT image-captioning clears translate/speech downstream", () => {
-    it("clears text-catalog/translations/TTS but keeps image-captioning", async () => {
+  describe("PUT image-captioning preserves translation/speech downstream", () => {
+    it("keeps downstream catalog output and history after saving a caption", async () => {
       seedDownstreamData(tmpDir, label)
 
       const data = {
         captions: [{ imageId: "img1", reasoning: "updated", caption: "A dog" }],
+        baseVersion: 1, sourceSignature: (await (await app.request(`/api/books/${label}/pages/${label}_p1`)).json()).captionSourceSignature,
       }
 
       const res = await app.request(
@@ -2653,8 +2845,8 @@ describe("Page routes", () => {
 
       expect(res.status).toBe(200)
       // image-captioning was just saved (new version), so it should exist
-      // but text-catalog, translations, tts should be cleared
-      expectTextAndSpeechCleared(tmpDir, label)
+      // and downstream output plus attempt records remain available
+      expectTextAndSpeechPreserved(tmpDir, label)
     })
   })
 
@@ -2682,7 +2874,7 @@ describe("Page routes", () => {
       expect(check.getCurrentNodeVersion("web-rendering", `${label}_p1`)).toBe(1)
       expect(check.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
       check.close()
-      expectAllDownstreamCleared(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label)
     })
 
     it("restores Core TTS text while preserving uploaded recordings", async () => {
@@ -2751,7 +2943,7 @@ describe("Page routes", () => {
       expect(check.getCurrentNodeVersion("core-tts-catalog", "en")).toBe(1)
       expect(
         (check.getLatestNodeData("tts", "en")?.data as { entries: Array<{ textId: string }> }).entries,
-      ).toEqual([expect.objectContaining({ textId: "pg001_t002" })])
+      ).toEqual([expect.objectContaining({ textId: "pg001_t001" }), expect.objectContaining({ textId: "pg001_t002" })])
       check.close()
     })
 

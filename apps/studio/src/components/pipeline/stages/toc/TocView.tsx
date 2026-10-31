@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
 import { ChevronDown, ChevronRight, ChevronLeft, ExternalLink, List, Plus, Search, Trash2, X } from "lucide-react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
@@ -134,12 +135,13 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   const tocState = stageState("toc")
   const tocDone = tocState === "done"
   const tocRunning = tocState === "running" || tocState === "queued"
-  const showRunCard = !tocDone || tocRunning
+  const hasRetainedToc = !!data?.entries.length
+  const showRunCard = (!tocDone && !hasRetainedToc) || tocRunning
 
   const { data: sections } = useQuery({
     queryKey: ["books", bookLabel, "toc-sections"],
     queryFn: () => api.getTocSections(bookLabel),
-    enabled: !!bookLabel && tocDone,
+    enabled: !!bookLabel && (tocDone || hasRetainedToc),
   })
 
   const handleRunToc = useCallback(() => {
@@ -147,14 +149,21 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
     queueRun({ fromStage: "toc", toStage: "toc", apiKey })
   }, [hasStructuredTextProvider, tocRunning, apiKey, queueRun])
 
-  const [pending, setPending] = useState<TocData | null>(null)
+  const { restoring, restoringRef, onRestoringChange, isCurrent } = useVersionRestoreBusy(bookLabel)
+  const [pending, setPendingState] = useState<TocData | null>(null)
+  const setPending = useCallback((next: TocData | null) => { if (!restoringRef.current) setPendingState(next) }, [])
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Reset pending when data changes
+  // Scope changes reset the draft; refreshes during restore must preserve it.
   useEffect(() => {
     setPending(null)
-  }, [data?.version])
+    savingRef.current = false
+    setSaving(false)
+    setSaveError(null)
+  }, [bookLabel])
 
   const effective = pending ?? data
   const entries = effective?.entries ?? []
@@ -182,18 +191,24 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   }, [entries, searchQuery])
 
   const saveToc = useCallback(async () => {
+    if (savingRef.current || restoringRef.current) throw new Error(t`Please wait for the current operation to finish`)
     if (!pending) return
+    savingRef.current = true
     setSaving(true)
+    setSaveError(null)
     const minDelay = new Promise((r) => setTimeout(r, 400))
     try {
       await api.updateToc(bookLabel, pending)
-      setPending(null)
+      if (isCurrent()) setPending(null)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "toc"] })
+    } catch (error) {
+      if (isCurrent()) setSaveError(error instanceof Error ? error.message : t`Save failed`)
+      throw error
     } finally {
       await minDelay
-      setSaving(false)
+      if (isCurrent()) { savingRef.current = false; setSaving(false) }
     }
-  }, [pending, bookLabel, queryClient])
+  }, [pending, bookLabel, queryClient, isCurrent, t])
 
   const saveRef = useRef(saveToc)
   saveRef.current = saveToc
@@ -209,13 +224,15 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
           step="toc-generation"
           itemId="book"
           currentVersion={data.version}
-          saving={saving}
+          saving={saving || restoring}
           dirty={dirty}
           bookLabel={bookLabel}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
+          onRestoringChange={onRestoringChange}
           onRestored={() => setPending(null)}
-          onSave={() => saveRef.current()}
+          onSave={() => saveRef.current().catch(() => {})}
+          onSaveStay={() => saveRef.current()}
           onDiscard={() => setPending(null)}
           diff={{
             items: (d) => (d as TocData | null)?.entries ?? [],
@@ -260,9 +277,10 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
       </div>,
     )
     return () => setExtra(null)
-  }, [data, entries.length, saving, dirty, bookLabel, t, setExtra, pendingLabel, pendingLabelKey])
+  }, [data, entries.length, saving, restoring, onRestoringChange, dirty, bookLabel, t, setExtra, pendingLabel, pendingLabelKey])
 
   const updateEntry = (id: string, updates: Partial<TocEntry>) => {
+    if (savingRef.current || restoringRef.current) return
     const base = pending ?? data
     if (!base) return
     setPending({
@@ -274,6 +292,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   }
 
   const removeEntry = (id: string) => {
+    if (savingRef.current || restoringRef.current) return
     const base = pending ?? data
     if (!base) return
     setPending({
@@ -283,6 +302,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   }
 
   const insertEntry = (afterId: string | null, level: number) => {
+    if (savingRef.current || restoringRef.current) return
     const base = pending ?? data
     if (!base) return
     // Clear any active search so the new entry isn't immediately filtered out.
@@ -307,6 +327,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   }
 
   const changeLevel = (id: string, delta: number) => {
+    if (savingRef.current || restoringRef.current) return
     const base = pending ?? data
     if (!base) return
     const entry = base.entries.find((e) => e.id === id)
@@ -317,6 +338,8 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   }
 
   return (
+    <EditorBusyBoundary busy={restoring || saving}>
+    {saveError && <p role="alert" className="p-3 text-xs text-destructive">{saveError}</p>}
     <StageContentGuard
       stageSlug="toc"
       isLoading={!showRunCard && isLoading}
@@ -454,5 +477,6 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
         </div>
       </div>
     </StageContentGuard>
+    </EditorBusyBoundary>
   )
 }

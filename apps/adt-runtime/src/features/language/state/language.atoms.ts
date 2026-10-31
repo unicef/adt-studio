@@ -19,6 +19,8 @@ export const translationsAtom = ephemeralAtom<Record<string, string>>({})
 /** Prepared provider wording; kept separate so display text never changes. */
 export const speechTextsAtom = ephemeralAtom<Record<string, string>>({})
 export const audioFilesAtom = ephemeralAtom<Record<string, string>>({})
+/** Language whose catalogs, timings and visible DOM have finished publishing. */
+export const audioLanguageAtom = ephemeralAtom<string | null>(null)
 export type NarratorVoiceSlot = "primary" | "secondary"
 export interface NarratorVoice {
   label: string

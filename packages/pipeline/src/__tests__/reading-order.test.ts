@@ -34,9 +34,10 @@ describe("reading-order resolver", () => {
     }
   }
 
-  function rendering(count: number) {
+  function rendering(count: number, pageId = "pg001") {
     return {
       sections: Array.from({ length: count }, (_, i) => ({
+        sectionId: `${pageId}_sec${String(i + 1).padStart(3, "0")}`,
         sectionIndex: i,
         sectionType: "content",
         reasoning: "",
@@ -84,7 +85,7 @@ describe("reading-order resolver", () => {
       sections: [section("pg002", 1), section("pg002", 2)],
     })
     storage.putNodeData("web-rendering", "pg001", rendering(2))
-    storage.putNodeData("web-rendering", "pg002", rendering(2))
+    storage.putNodeData("web-rendering", "pg002", rendering(2, "pg002"))
   }
 
   function quizGeneration(quizzes: Array<{ quizId?: string; afterPageId: string }>) {
@@ -276,7 +277,7 @@ describe("reading-order resolver", () => {
         reasoning: "",
         sections: [{ ...section("pg001", 7), sectionType: "fixed-layout-page" }],
       })
-      storage.putNodeData("web-rendering", "pg001", rendering(1))
+      storage.putNodeData("web-rendering", "pg001", { sections: [{ ...rendering(1).sections[0], sectionId: "pg001_sec007" }] })
 
       const { items } = resolveReadingOrder(storage)
       expect(items.map((i) => i.id)).toEqual([

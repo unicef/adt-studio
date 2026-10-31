@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import type { EditableActivity } from "@adt/types"
 import {
   remapEditableActivities,
+  resolveEditableActivityImages,
   renderEditableActivityStaticHtml,
   maskStepperPayloads,
 } from "../render-editable-activity.js"
@@ -95,4 +96,20 @@ describe("maskStepperPayloads", () => {
     expect(masked).toBe(plain)
     expect(restore(plain)).toBe(plain)
   })
+})
+
+
+describe("editable activity caption authority", () => {
+  it.each([undefined, new Map<string, string>(), new Map([["cat", "  "]])])(
+    "does not export an authored image description when its caption is missing or blank (%s)",
+    (preferredAltMap) => {
+      const activity = mcActivity()
+      if (activity.kind !== "multiple-choice") throw new Error("Expected multiple choice")
+      activity.steps[0].options[0].image!.imageId = "cat"
+      const { activity: resolved } = resolveEditableActivityImages(activity, new Map([["cat", "cat.png"]]), { preferredAltMap })
+      expect(renderEditableActivityStaticHtml(resolved)).toContain('alt=""')
+      expect(renderEditableActivityStaticHtml(resolved)).not.toContain('alt="A cat"')
+      expect(activity.steps[0].options[0].image!.alt).toBe("A cat")
+    },
+  )
 })

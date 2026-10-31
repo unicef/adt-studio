@@ -1,20 +1,17 @@
 import { z } from "zod"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
-import type { AiModality, ProviderManifest } from "@adt/types"
+import type { ProviderManifest } from "@adt/types"
 import { DEFAULT_GOOGLE_IMAGE_MODEL } from "@adt/types"
-import type { CapabilitiesFor, DiscoveredModel, ProviderModule } from "../../ports/index.js"
+import type { CapabilitiesFor, ProviderModule } from "../../ports/index.js"
 import { AiProviderError } from "../../ports/errors.js"
 import { createAiSdkStructuredTextBackend } from "../shared/ai-sdk/structured-text.js"
 import { createAiSdkAgentBackend } from "../shared/ai-sdk/agent.js"
-import { ModelDiscoveryError } from "../../model-discovery.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
 import { createGoogleImageBackend, googleImageCapabilities, isGoogleImageModel } from "./image.js"
+import { listGoogleModels } from "./discovery.js"
 
 export const GOOGLE_PROVIDER_ID = "google"
 const ADAPTER_VERSION = "google-1"
-const GOOGLE_MODELS_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000"
-const DISCOVERY_TIMEOUT_MS = 15_000
 
 const credentialSchema = z
   .object({ apiKey: z.string().min(1).max(400) })
@@ -22,7 +19,9 @@ const credentialSchema = z
 
 /**
  * Deliberately NOT an alias of the `gemini` TTS provider: merging them would
- * break the existing headers and storage keys of both.
+ * break the existing headers and storage keys of both. The TTS provider
+ * instead declares its key as `sharedWith` this one, so a single Google AI
+ * Studio key still covers text, image and speech.
  */
 export const googleManifest: ProviderManifest = {
   id: GOOGLE_PROVIDER_ID,
@@ -62,85 +61,6 @@ export const googleManifest: ProviderManifest = {
 }
 
 type GoogleCredentials = z.infer<typeof credentialSchema>
-
-const GoogleModelsResponse = z.object({
-  models: z
-    .array(
-      z
-        .object({
-          name: z.string().min(1),
-          displayName: z.string().min(1).optional(),
-          supportedGenerationMethods: z.array(z.string()).optional(),
-        })
-        .passthrough(),
-    )
-    .default([]),
-})
-
-function modalitiesForMethods(methods: string[] | undefined): AiModality[] | undefined {
-  if (!methods) return undefined
-  const modalities: AiModality[] = []
-  if (methods.includes("generateContent")) {
-    modalities.push("structured-text", "agent")
-  }
-  return modalities.length > 0 ? modalities : undefined
-}
-
-async function listGoogleModels(
-  apiKey: string,
-  signal?: AbortSignal,
-): Promise<DiscoveredModel[]> {
-  const timeout = AbortSignal.timeout(DISCOVERY_TIMEOUT_MS)
-  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
-
-  let response: Response
-  try {
-    response = await fetch(GOOGLE_MODELS_URL, {
-      method: "GET",
-      headers: { Accept: "application/json", "x-goog-api-key": apiKey },
-      signal: combined,
-    })
-  } catch {
-    throw new ModelDiscoveryError("unreachable", "Could not reach the Google model listing")
-  }
-
-  if (!response.ok) {
-    const code =
-      response.status === 401 || response.status === 403
-        ? "missing-credential"
-        : "unreachable"
-    throw new ModelDiscoveryError(code, `Model listing failed with HTTP ${response.status}`)
-  }
-
-  let payload: unknown
-  try {
-    payload = await response.json()
-  } catch {
-    throw new ModelDiscoveryError("invalid-response", "Model listing returned invalid JSON")
-  }
-
-  const parsed = GoogleModelsResponse.safeParse(payload)
-  if (!parsed.success) {
-    throw new ModelDiscoveryError("invalid-response", "Unexpected model listing shape")
-  }
-
-  const seen = new Set<string>()
-  const models: DiscoveredModel[] = []
-  for (const entry of parsed.data.models) {
-    const id = entry.name.replace(/^models\//, "")
-    if (!id || seen.has(id)) continue
-    seen.add(id)
-    const modalities = isGoogleImageModel(id)
-      ? ["image" as const]
-      : modalitiesForMethods(entry.supportedGenerationMethods)
-    models.push({
-      id,
-      ...(entry.displayName ? { displayName: entry.displayName } : {}),
-      ...(modalities ? { modalities } : {}),
-    })
-  }
-  return models
-}
 
 export const googleProvider: ProviderModule<GoogleCredentials> = {
   manifest: googleManifest,

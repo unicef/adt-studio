@@ -15,7 +15,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useWordHighlightingUnavailable } from "@/hooks/use-api-key"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "./components/SpeechPreview"
@@ -53,6 +53,9 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const [wordHighlighting, setWordHighlighting] = useState(false)
   const [provider, setProvider] = useState<ProviderKey>("openai")
+  // Without an OpenAI key (Whisper) per-word highlighting is shown as unavailable.
+  const wordHighlightingUnavailable = useWordHighlightingUnavailable()
+  const effectiveWordHighlighting = wordHighlighting && !wordHighlightingUnavailable
 
   const providerAvailable = (providerId: ProviderKey) =>
     // eslint-disable-next-line lingui/no-unlocalized-strings -- qualified model identifier, never rendered
@@ -107,7 +110,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const providerOptions = useMemo(
     () => {
-      const disabledHint = t`Add this provider's API key in Book settings.`
+      const disabledHint = t`Add this provider's API key in Settings → AI providers.`
       return [
         {
           value: "openai" as const,
@@ -166,13 +169,18 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const highlightingOptions = useMemo(
     () => [
       { value: "sentence" as const, label: t`Per-Sentence` },
-      { value: "word" as const, label: t`Per-Word` },
+      {
+        value: "word" as const,
+        label: t`Per-Word`,
+        disabled: wordHighlightingUnavailable,
+        disabledHint: t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`,
+      },
     ],
-    [t],
+    [t, wordHighlightingUnavailable],
   )
 
   const disabledReason = selectedProviderKeyMissing ? (
-    <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
+    <Trans>Add the selected provider's API key in Settings → AI providers to run speech.</Trans>
   ) : !translateReady ? (
     <Trans>Run Language first — speech narrates the translated text.</Trans>
   ) : undefined
@@ -195,7 +203,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
       rerunLabel={<Trans>Re-run</Trans>}
       previewLabel={t`Speech Preview`}
       onRun={handleRun}
-      preview={<SpeechPreview wordHighlighting={wordHighlighting} />}
+      preview={<SpeechPreview wordHighlighting={effectiveWordHighlighting} />}
     >
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
@@ -228,7 +236,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
             selectedProviderKeyMissing ? (
               <Trans>
                 No API key for {linguiI18n._(PROVIDER_LABELS[provider])} yet.
-                Add one in Book settings to enable this provider.
+                Add one in Settings → AI providers to enable this provider.
               </Trans>
             ) : (
               linguiI18n._(PROVIDER_HINTS[provider])
@@ -252,12 +260,12 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
                   {disabledProviderLabels.length === 1 ? (
                     <Trans>
                       {disabledProvidersText} is disabled — add its API key in
-                      Book settings to enable it.
+                      Settings → AI providers to enable it.
                     </Trans>
                   ) : (
                     <Trans>
                       {disabledProvidersText} are disabled — add their API keys
-                      in Book settings to enable them.
+                      in Settings → AI providers to enable them.
                     </Trans>
                   )}
                 </span>
@@ -271,7 +279,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         <SettingsField
           label={<Trans>Reader Highlighting</Trans>}
           hint={
-            wordHighlighting ? (
+            effectiveWordHighlighting ? (
               <Trans>
                 Highlights each word as it's narrated. Adds a transcription
                 step so audio aligns with text on the page.
@@ -286,7 +294,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         >
           <SegmentedControl
             options={highlightingOptions}
-            value={wordHighlighting ? "word" : "sentence"}
+            value={effectiveWordHighlighting ? "word" : "sentence"}
             onValueChange={(value) =>
               handleHighlightingToggle(value === "word")
             }
