@@ -967,3 +967,45 @@ it("does not fabricate feedback ownership for a legacy section with no ID", asyn
   expect(pages.find((page: { pageId: string }) => page.pageId === "pg001").sections[0]).toMatchObject({ sectionId: "", sectionIndex: 0, textPreview: "Saved page text" })
   expect(pages.find((page: { pageId: string }) => page.pageId === "pg002").sections[0].sectionId).toBe("pg002_sec001")
 })
+
+it("restores a different manual translation when another current ID has legacy duplicates", async () => {
+  const catalog = await json("text-catalog")
+  const edits = catalog.entries.map((entry: { id: string }) => ({ id: entry.id, text: `Protected ${entry.id}` }))
+  expect((await send("text-catalog-translation/fr", {
+    entries: edits, baseVersion: 0, sourceVersion: catalog.version,
+    sourceSignature: catalog.translationSourceSignatures.fr,
+  })).status).toBe(200)
+  const stored = read("text-catalog-translation", "fr")!.data as { entries: Array<{ id: string; text: string; source: string }> }
+  const duplicate = { ...stored.entries.find((entry) => entry.id === "pg001_t001")!, text: "Other legacy protected correction" }
+  const db = book()
+  db.putNodeData("text-catalog-translation", "fr", { ...stored, entries: [...stored.entries, duplicate] })
+  db.close()
+
+  const sourceBefore = read("page-sectioning", "pg002")!
+  const source = JSON.parse(JSON.stringify(sourceBefore.data))
+  source.sections[0].isPruned = true
+  expect((await send("pages/pg002/sectioning", { ...source, baseVersion: sourceBefore.version })).status).toBe(200)
+  expect((await run("translate")).status).toBe("completed")
+  const retired = read("text-catalog-translation", "fr")!.data as typeof stored
+  expect(retired.entries.filter((entry) => entry.id === "pg001_t001")).toHaveLength(2)
+  expect(retired.entries.some((entry) => entry.id === "pg002_t001")).toBe(false)
+
+  expect((await send("versions/page-sectioning/pg002/restore", {
+    version: sourceBefore.version, baseVersion: sourceBefore.version + 1,
+  }, "POST")).status).toBe(200)
+  generateObject.mockClear()
+  expect((await run("translate")).status).toBe("completed")
+  const restored = read("text-catalog-translation", "fr")!.data as typeof stored
+  expect(restored.entries.filter((entry) => entry.id === "pg001_t001"))
+    .toEqual(retired.entries.filter((entry) => entry.id === "pg001_t001"))
+  expect(restored.entries.find((entry) => entry.id === "pg002_t001"))
+    .toMatchObject({ id: "pg002_t001", text: "Protected pg002_t001", source: "manual" })
+  expect(generateObject).not.toHaveBeenCalled()
+  const preview = await app.request(`/books/${label}/adt-preview/content/i18n/fr/texts.json`)
+  expect(preview.status).toBe(200)
+  expect(await preview.text()).toContain("Protected pg002_t001")
+  const history = await json("debug/versions/text-catalog-translation/fr?includeData=true")
+  expect(history.versions.some((version: { data: typeof stored }) =>
+    version.data.entries.some((entry) => entry.id === "pg002_t001" && entry.text === "Protected pg002_t001"),
+  )).toBe(true)
+})
