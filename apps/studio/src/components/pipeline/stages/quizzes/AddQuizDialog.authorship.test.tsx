@@ -292,3 +292,17 @@ it("does not capture reverted cache after a cancelled initial read and waits for
   await waitFor(() => expect(api.generateQuiz).toHaveBeenCalledTimes(1))
   expect(vi.mocked(api.generateQuiz).mock.calls[0][2].baseVersion).toBe(3)
 })
+
+
+it.each(["manual", undefined] as const)("identifies %s authorship next to the exact protected quiz in replacement consent", async source => {
+  const data = response("book")
+  const q = { ...data.quizzes.quizzes[0], source }
+  vi.mocked(api.getQuizzes).mockResolvedValue({ ...data, quizzes: { ...data.quizzes, quizzes: [q] } })
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } }); clients.push(client)
+  render(<QueryClientProvider client={client}><AddQuizDialog open bookLabel="book" onOpenChange={() => {}} /></QueryClientProvider>)
+  fireEvent.click(await screen.findByRole("button", { name: "Use page 1 for the quiz" }))
+  fireEvent.click(await screen.findByRole("radio", { name: "Replace", exact: true }))
+  const label = screen.getByText(source === "manual" ? "Edited manually" : "Legacy · protected")
+  expect(label.parentElement?.textContent).toContain(`${q.quizId}: ${q.question}`)
+  expect(api.generateQuiz).not.toHaveBeenCalled()
+})

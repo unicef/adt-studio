@@ -29,6 +29,7 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useStageStatus } from "@/hooks/use-stage-status"
+import { AuthorshipBadge } from "../../components/AuthorshipBadge"
 
 const MAX_SOURCE_PAGES = 5
 
@@ -590,7 +591,12 @@ function AddQuizDialogSession({
               color="#ea580c"
               className="h-9 max-w-xs"
             />
-            {placement === "replace" && protectedQuizzes.length > 0 && <p className="text-sm text-amber-700"><Trans>Protected quizzes to replace:</Trans> {protectedQuizzes.map((q) => `${q.quizId}: ${q.question}`).join("; ")}</p>}
+            {placement === "replace" && protectedQuizzes.length > 0 && <div className="space-y-1 text-sm text-amber-700">
+              <p><Trans>Protected quizzes to replace:</Trans></p>
+              <ul className="space-y-1">{protectedQuizzes.map((q) => <li key={q.quizId} className="flex flex-wrap items-center gap-2">
+                <span>{q.quizId}: {q.question}</span><AuthorshipBadge source={q.source} />
+              </li>)}</ul>
+            </div>}
           </div>
         )}
 
