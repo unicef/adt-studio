@@ -3,9 +3,11 @@ import { DraftConflict } from "../../components/DraftConflict"
 import { AuthorshipBadge } from "../../components/AuthorshipBadge"
 import {
   useCallback,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  type ComponentProps,
   type ComponentType,
   type ReactNode,
 } from "react"
@@ -37,7 +39,12 @@ import { CascadeResetDialog } from "../../components/CascadeResetDialog"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
 import { RevertSectioningEdits } from "./RevertSectioningEdits"
 
-export function SectioningPageDetail({
+/** Book-local page IDs and versions do not identify an editing session. */
+export function SectioningPageDetail(props: ComponentProps<typeof SectioningPageSession>) {
+  return <SectioningPageSession key={JSON.stringify([props.bookLabel, props.pageId])} {...props} />
+}
+
+function SectioningPageSession({
   bookLabel,
   pageId,
   page,
@@ -56,6 +63,11 @@ export function SectioningPageDetail({
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const active = useRef(true)
+  useLayoutEffect(() => {
+    active.current = true
+    return () => { active.current = false }
+  }, [])
   const { headerSlotEl } = useStepHeader()
   const { data: imageData } = usePageImage(bookLabel, pageId)
 
@@ -89,7 +101,8 @@ export function SectioningPageDetail({
   // it, and the saved version replaces the original on `onChange`.
   const draft = useGuardedDraft<PageSectioningOutput>(page.sectioningTree as PageSectioningOutput | null, page.versions.sectioning, async () => {
     const latest = await api.getPage(bookLabel, pageId)
-    queryClient.setQueryData(["books", bookLabel, "pages", pageId], latest)
+    // A delayed recovery read must not replace the cache of a reopened session.
+    if (active.current) queryClient.setQueryData(["books", bookLabel, "pages", pageId], latest)
     if (!latest.sectioningTree) throw new Error(t`Saved content is unavailable; your draft is retained`)
     return { value: latest.sectioningTree as PageSectioningOutput, version: latest.versions.sectioning ?? 0 }
   })
@@ -125,19 +138,6 @@ export function SectioningPageDetail({
   const downstreamRef = useRef(downstreamAffected)
   downstreamRef.current = downstreamAffected
 
-  // Reset pending edits when navigating to a different page. Done during render
-  // (React's "adjust state when a prop changes" pattern) rather than in an
-  // effect so `dirty` is already false on the very first render of the new page
-  // — otherwise the floating-save entry re-registers the previous page's edits
-  // under the new pageId for one commit after "Discard & leave".
-  const [pendingPageId, setPendingPageId] = useState(pageId)
-  if (pendingPageId !== pageId) {
-    setPendingPageId(pageId)
-    draft.setPending(null)
-    setSaveError(null)
-    setPendingOp(null)
-  }
-
   const sectionsFromServer = (page.sectioningTree?.sections ??
     []) as PageSectioningSection[]
   const mergedSections: PageSectioningSection[] = useMemo(
@@ -159,6 +159,7 @@ export function SectioningPageDetail({
   }, [draft])
 
   const performSave = useCallback((): Promise<void> => {
+    if (!active.current) return Promise.resolve()
     if (draft.conflict) return Promise.reject(new Error(t`Resolve conflicting edits before saving`))
     if (!dirty) return Promise.resolve()
     if (savePromiseRef.current) return savePromiseRef.current
@@ -172,7 +173,7 @@ export function SectioningPageDetail({
           sections: mergedSections,
         }
         await api.updateSectioning(bookLabel, pageId, { ...payload, baseVersion: draft.baseVersion })
-        draft.setPending(null)
+        if (active.current) draft.setPending(null)
         // Refresh in the background. The unsaved-changes guard awaits this
         // function before resuming a blocked navigation, and `invalidateQueries`
         // only settles once the refetches finish — awaiting it would hold the
@@ -185,13 +186,15 @@ export function SectioningPageDetail({
         })
         invalidateStoryboardDependents(queryClient, bookLabel)
       } catch (err) {
-        setSaveError(err instanceof Error ? err.message : t`Save failed`)
-        await draft.handleError(err)
+        if (active.current) {
+          setSaveError(err instanceof Error ? err.message : t`Save failed`)
+          await draft.handleError(err)
+        }
         // Rethrow so UnsavedChangesGuard's "Save & leave" does NOT navigate away
         // (dropping the edits) when the save failed.
         throw err
       } finally {
-        setSaving(false)
+        if (active.current) setSaving(false)
       }
     })()
 
@@ -226,7 +229,7 @@ export function SectioningPageDetail({
    * exempting them would silently discard completed audio and packaged output.
    */
   const requestSave = useCallback(() => {
-    if (!dirty || saving) return
+    if (!active.current || !dirty || saving) return
     if (downstreamRef.current.length > 0) {
       setPendingOp({
         title: t`Save section changes?`,
@@ -248,7 +251,7 @@ export function SectioningPageDetail({
    */
   const requestStructuralOp = useCallback(
     (op: PendingOp) => {
-      if (saving || structuralBusy) return
+      if (!active.current || saving || structuralBusy) return
       if (dirty) {
         setSaveError(t`Save or discard your edits first`)
         return
@@ -305,12 +308,12 @@ export function SectioningPageDetail({
 
   const runStructural = useCallback(
     async (op: () => Promise<string | null>) => {
-      if (saving || structuralBusy) return
+      if (!active.current || saving || structuralBusy) return
       setStructuralBusy(true)
       setSaveError(null)
       try {
         const otherPageId = await op()
-        draft.setPending(null)
+        if (active.current) draft.setPending(null)
         await queryClient.invalidateQueries({
           queryKey: ["books", bookLabel, "pages", pageId],
         })
@@ -331,9 +334,9 @@ export function SectioningPageDetail({
         })
         invalidateStoryboardDependents(queryClient, bookLabel)
       } catch (err) {
-        setSaveError(err instanceof Error ? err.message : t`Operation failed`)
+        if (active.current) setSaveError(err instanceof Error ? err.message : t`Operation failed`)
       } finally {
-        setStructuralBusy(false)
+        if (active.current) setStructuralBusy(false)
       }
     },
     [saving, structuralBusy, queryClient, bookLabel, pageId, t, draft]
