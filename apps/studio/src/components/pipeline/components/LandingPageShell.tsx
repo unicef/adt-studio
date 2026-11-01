@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { api, type RunStagesOptions } from "@/api/client"
-import { useState, type CSSProperties, type ReactNode } from "react"
+import { useState, type ComponentProps, type CSSProperties, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { Play, Loader2, Settings, X } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
@@ -22,7 +22,13 @@ import { CascadeResetDialog } from "./CascadeResetDialog"
 import { RunWarningDialog } from "./RunWarningDialog"
 import { MissingKeyNotice } from "./MissingKeyNotice"
 
-export function LandingPageShell({
+export function LandingPageShell(props: ComponentProps<typeof LandingPageContent>) {
+  // Consent belongs to one book and stage. Remount its entire lifecycle on a
+  // scope change, including history jumps and returning to a previous scope.
+  return <LandingPageContent key={JSON.stringify([props.bookLabel, props.stageSlug])} {...props} />
+}
+
+function LandingPageContent({
   bookLabel,
   stageSlug,
   settingsTab = "general",
@@ -106,6 +112,7 @@ export function LandingPageShell({
   // Run gates, applied outermost-first: fixed-layout (or other) warning, then
   // the cascade-reset confirmation, then the run itself.
   const proceedRun = () => {
+    if (isDisabled) return
     if (needsConfirmation) {
       // A background refresh must not authorize replacing a newer version than
       // the one named when the confirmation opened. The API rejects stale scope.
@@ -118,6 +125,7 @@ export function LandingPageShell({
   }
 
   const handleRunClick = () => {
+    if (isDisabled) return
     if (runWarning) {
       setWarnOpen(true)
     } else {
@@ -126,12 +134,14 @@ export function LandingPageShell({
   }
 
   const handleWarnConfirm = () => {
+    if (!warnOpen) return
     setWarnOpen(false)
     proceedRun()
   }
 
   const handleConfirm = () => {
     setConfirmOpen(false)
+    if (!confirmOpen || isDisabled) return
     const replace = protectedSnapshot.length > 0 && (stageSlug === "toc" || replaceManual)
     onRun({ replaceManual: replace, protectedReplacements: replace ? protectedSnapshot.map(({ node, itemId, version }) => ({ node, itemId, version })) : [] })
   }

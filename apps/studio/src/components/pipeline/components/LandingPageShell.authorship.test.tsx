@@ -62,3 +62,60 @@ it.each(["sectioning", "toc"])("keeps the %s replacement confirmation bound to t
   fireEvent.click(screen.getAllByRole("button", { name: "Rerun" }).at(-1)!)
   expect(onRun).toHaveBeenCalledWith({ replaceManual: true, protectedReplacements: [record] })
 })
+
+function scopeView(book = "a", stage = "toc") {
+  const records = [{ node: "toc-generation", itemId: "book", version: 12 }, { node: "page-sectioning", itemId: "pg003", pageNumber: 3, version: 12 }]
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  for (const label of ["a", "b"]) client.setQueryData(["books", label, "step-status"], { protectedWork: records })
+  const onRun = vi.fn()
+  const component = (label: string, slug: string, flags: Partial<React.ComponentProps<typeof LandingPageShell>> = {}) => <QueryClientProvider client={client}><LandingPageShell bookLabel={label} stageSlug={slug} colorClass="bg-blue-500" isRunning={false} isCompleted hasError={false} canRun runLabel="Run" rerunLabel="Rerun" previewLabel="Preview" onRun={options => onRun(label, slug, options)} preview={null} {...flags}>{null}</LandingPageShell></QueryClientProvider>
+  const view = render(component(book, stage))
+  return { onRun, show: (label: string, slug: string, flags = {}) => view.rerender(component(label, slug, flags)) }
+}
+
+it.each(["toc", "sectioning"])("invalidates %s consent on book change, including returning to the old book", stage => {
+  const { onRun, show } = scopeView("a", stage)
+  fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
+  if (stage === "sectioning") fireEvent.click(screen.getByRole("checkbox"))
+  show("b", stage)
+  expect(screen.queryByRole("dialog")).toBeNull()
+  show("a", stage)
+  expect(screen.queryByRole("dialog")).toBeNull()
+  expect(onRun).not.toHaveBeenCalled()
+  show("b", stage)
+  fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
+  if (stage === "sectioning") expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false)
+  fireEvent.click(screen.getAllByRole("button", { name: "Rerun" }).at(-1)!)
+  expect(onRun).toHaveBeenCalledExactlyOnceWith("b", stage, { replaceManual: stage === "toc", protectedReplacements: stage === "toc" ? [{ node: "toc-generation", itemId: "book", version: 12 }] : [] })
+})
+
+it.each(["toc", "sectioning"])("invalidates %s consent when switching stages", stage => {
+  const { onRun, show } = scopeView("a", stage)
+  fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
+  show("a", stage === "toc" ? "sectioning" : "toc")
+  expect(screen.queryByRole("dialog")).toBeNull()
+  show("a", stage)
+  expect(screen.queryByRole("dialog")).toBeNull()
+  expect(onRun).not.toHaveBeenCalled()
+})
+
+it("invalidates a pre-run warning when its book or stage changes", () => {
+  const { onRun, show } = scopeView()
+  const warning = { runWarning: { title: "Layout warning", description: "Review layout" } }
+  show("a", "toc", warning)
+  fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
+  show("b", "toc", warning)
+  expect(screen.queryByRole("dialog")).toBeNull()
+  fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
+  show("b", "sectioning", warning)
+  expect(screen.queryByRole("dialog")).toBeNull()
+  expect(onRun).not.toHaveBeenCalled()
+})
+
+it.each([{ canRun: false }, { isRunning: true }, { extraDisabled: true }])("does not run a previously opened confirmation after availability changes: %j", flags => {
+  const { onRun, show } = scopeView()
+  fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
+  show("a", "toc", flags)
+  fireEvent.click(screen.getAllByRole("button", { name: "Rerun" }).at(-1)!)
+  expect(onRun).not.toHaveBeenCalled()
+})
