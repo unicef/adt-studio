@@ -17,6 +17,7 @@ import {
   type CoreTtsCatalogEntry,
   type OutputStatus,
   type TTSOutput,
+  type TranslationSaveResponse,
   type WordTimestampOutput,
 } from "@adt/types"
 import { openBookDb, createBookStorage, readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
@@ -264,7 +265,9 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
       )
 
       storage.clearNodesByType(["accessibility-assessment"])
-      return c.json({ version })
+      // Acknowledgement must describe this transaction, not a later GET that
+      // could already include another writer's version or locale namespace.
+      return c.json({ version, entries: data.entries } satisfies TranslationSaveResponse)
       })
     } finally {
       storage.close()

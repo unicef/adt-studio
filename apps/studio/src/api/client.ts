@@ -1,4 +1,4 @@
-import type { WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
+import type { TranslationSaveResponse, WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
 export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/types"
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
@@ -2061,7 +2061,7 @@ export const api = {
     }),
 
   updateTranslation: (label: string, language: string, data: unknown) =>
-    request<{ version: number }>(`/books/${label}/text-catalog-translation/${language}`, {
+    request<TranslationSaveResponse>(`/books/${label}/text-catalog-translation/${language}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),

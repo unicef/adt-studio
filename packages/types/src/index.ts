@@ -323,6 +323,7 @@ export {
 export {
   TextCatalogEntry,
   TextCatalogOutput,
+  TranslationSaveResponse,
   CatalogConflict,
   TextCatalogCategory,
   getTextCatalogCategory,

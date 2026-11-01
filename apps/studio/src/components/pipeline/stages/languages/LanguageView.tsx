@@ -837,6 +837,7 @@ export function LanguageView({
     if (!submitted || !translationItemId) return;
     const submittedVersions = pendingVersions.current;
     const submittedScope = translationScope;
+    let clearableSubmission = submitted;
     savingRef.current = true;
     setSaving(true);
     setSaveError(null);
@@ -849,7 +850,16 @@ export function LanguageView({
     });
     if (translationScopeRef.current === submittedScope && pendingVersions.current === submittedVersions) {
       pendingVersions.current = { ...submittedVersions, baseVersion: result.version };
-      draft.acknowledge(submitted, result.version);
+      const pending = pendingEntriesRef.current;
+      if (pending) {
+        // Only our successful transaction may advance this draft's base. The
+        // server can collapse an intentionally edited legacy duplicate group;
+        // reapply successor edits to that exact saved shape, before refetch.
+        const reconciled = rebaseTranslationDraft(submitted, pending, result.entries).value;
+        setPendingEntries(reconciled);
+        if (pending === submitted) clearableSubmission = reconciled;
+      }
+      draft.acknowledge(result.entries, result.version);
     }
     await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] });
     await queryClient.invalidateQueries({
@@ -867,7 +877,7 @@ export function LanguageView({
     });
     await minDelay;
     if (translationScopeRef.current === submittedScope) {
-      if (pendingEntriesRef.current === submitted) setPendingEntries(null);
+      if (pendingEntriesRef.current === clearableSubmission) setPendingEntries(null);
       setSaveError(null);
       setAppliedSuggestionEntryIds(new Set());
     }

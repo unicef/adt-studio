@@ -34,6 +34,8 @@ vi.mock("@/api/client", async (importOriginal) => ({ ApiError: (await importOrig
 const { api, getAudioUrl, ApiError } = await import("@/api/client")
 const { TooltipProvider } = await import("@/components/ui/tooltip")
 const { LanguageView } = await import("./LanguageView")
+const translationReply = (version: number, data: unknown) => ({ version, entries: (data as { entries: import("@/api/client").TextCatalogEntry[] }).entries })
+const savedTranslation = (version: number) => async (_label: string, _language: string, data: unknown) => translationReply(version, data)
 let client: QueryClient
 beforeEach(() => { vi.clearAllMocks(); speechRouting.languages = ["fr", "es"]; speechRouting.config = {}; speechRouting.tts = { languages: {} }; speechRouting.available = []; speechRouting.globalAvailable = false; saveActions.stay = async () => { throw new Error("Save controls have not rendered") } })
 afterEach(() => { cleanup(); client?.clear() })
@@ -44,7 +46,7 @@ it.each(["conflict", "successor"])("Save & leave retains a translation %s draft 
   client.setQueryData(["books", "book", "text-catalog"], catalog)
   vi.mocked(api.getTextCatalog).mockResolvedValue(catalog as never)
   let finish!: () => void
-  vi.mocked(api.updateTranslation).mockImplementationOnce(() => new Promise((resolve, reject) => { finish = () => mode === "conflict" ? reject(new Error("Translation changed")) : resolve({ version: 2 }) })).mockResolvedValue({ version: 3 })
+  vi.mocked(api.updateTranslation).mockImplementationOnce((_label, _language, data) => new Promise((resolve, reject) => { finish = () => mode === "conflict" ? reject(new Error("Translation changed")) : resolve(translationReply(2, data)) })).mockImplementation(savedTranslation(3))
   render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
   fireEvent.change(await screen.findByPlaceholderText("Pending..."), { target: { value: "First submitted translation" } })
   let saved!: Promise<void>
@@ -99,8 +101,8 @@ it("keeps a saving language selected after discard and uses the next language's 
   renderLanguages()
   let finish!: () => void
   vi.mocked(api.updateTranslation)
-    .mockImplementationOnce(() => new Promise(resolve => { finish = () => resolve({ version: 2 }) }))
-    .mockResolvedValue({ version: 8 })
+    .mockImplementationOnce((_label, _language, data) => new Promise(resolve => { finish = () => resolve(translationReply(2, data)) }))
+    .mockImplementation(savedTranslation(8))
   fireEvent.change(await screen.findByPlaceholderText("Pending..."), { target: { value: "Submitted French" } })
   let saved!: Promise<void>
   await act(async () => { saved = saveActions.stay() })
@@ -158,9 +160,9 @@ it.each(["success", "failure"])("ignores an old book's late translation %s while
   let finishFirst!: () => void
   let finishOther!: () => void
   vi.mocked(api.updateTranslation)
-    .mockImplementationOnce(() => new Promise((resolve, reject) => { finishFirst = () => outcome === "failure" ? reject(new Error("First book changed")) : resolve({ version: 2 }) }))
-    .mockImplementationOnce(() => new Promise(resolve => { finishOther = () => resolve({ version: 8 }) }))
-    .mockResolvedValue({ version: 9 })
+    .mockImplementationOnce((_label, _language, data) => new Promise((resolve, reject) => { finishFirst = () => outcome === "failure" ? reject(new Error("First book changed")) : resolve(translationReply(2, data)) }))
+    .mockImplementationOnce((_label, _language, data) => new Promise(resolve => { finishOther = () => resolve(translationReply(8, data)) }))
+    .mockImplementation(savedTranslation(9))
   fireEvent.change(await screen.findByPlaceholderText("Pending..."), { target: { value: "First book submitted" } })
   fireEvent.click(screen.getByRole("button", { name: "Save translation" }))
   view.rerender(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="other" /></TooltipProvider></QueryClientProvider>)
@@ -198,7 +200,7 @@ it("uses the server receipt for a first translation save without a stored row", 
   client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
   client.setQueryData(["books", "book", "text-catalog"], catalog)
   vi.mocked(api.getTextCatalog).mockResolvedValue(catalog as never)
-  vi.mocked(api.updateTranslation).mockResolvedValue({version: 1})
+  vi.mocked(api.updateTranslation).mockImplementation(savedTranslation(1))
   render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
   fireEvent.change(await screen.findByPlaceholderText("Pending..."), {target: {value: "Ma première traduction"}})
   fireEvent.click(await screen.findByRole("button", {name: "Save translation"}))
@@ -231,7 +233,7 @@ it("protects timing drafts across pending saves, language/voice selection and ex
   const timing = { textId: "pg001_text", language: "fr", version: 1, audioIdentity: "legacy", words: [{ word: "Bonjour", start: 0, end: 1 }], duration: 1 }
   vi.mocked(api.getWordTimestamps).mockResolvedValue({ entries: { pg001_text: timing }, generatedAt: "old" })
   let finish!: (value: unknown) => void
-  vi.mocked(api.saveWordTimestamps).mockImplementationOnce(() => new Promise(resolve => { finish = resolve })).mockRejectedValue(new Error("Audio changed"))
+  vi.mocked(api.saveWordTimestamps).mockImplementationOnce((_label, _language, data) => new Promise(resolve => { finish = resolve })).mockRejectedValue(new Error("Audio changed"))
   renderLanguages("speech")
   fireEvent.click(await screen.findByRole("button", { name: /words/ }))
   act(() => {
@@ -292,7 +294,7 @@ it("recovers an unrelated stale Save without collapsing interleaved active or re
   client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
   client.setQueryData(["books", "book", "text-catalog"], catalog)
   vi.mocked(api.getTextCatalog).mockResolvedValue(latest as never)
-  vi.mocked(api.updateTranslation).mockRejectedValueOnce(new ApiError("Translation changed", 409)).mockResolvedValue({ version: 3 })
+  vi.mocked(api.updateTranslation).mockRejectedValueOnce(new ApiError("Translation changed", 409)).mockImplementation(savedTranslation(3))
   render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
   fireEvent.change((await screen.findAllByPlaceholderText("Pending..."))[0], { target: { value: "Local A" } })
   await act(async () => { await expect(saveActions.stay()).rejects.toThrow("Translation changed") })
@@ -310,7 +312,7 @@ it("recovers a first-language draft after source settings change while the entit
   client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
   client.setQueryData(["books", "book", "text-catalog"], catalog)
   vi.mocked(api.getTextCatalog).mockResolvedValue(latest as never)
-  vi.mocked(api.updateTranslation).mockRejectedValueOnce(new ApiError("Source changed", 409)).mockResolvedValue({ version: 1 })
+  vi.mocked(api.updateTranslation).mockRejectedValueOnce(new ApiError("Source changed", 409)).mockImplementation(savedTranslation(1))
   render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
   fireEvent.change(await screen.findByPlaceholderText("Pending..."), { target: { value: "First correction" } })
   await act(async () => { await expect(saveActions.stay()).rejects.toThrow("Source changed") })
@@ -325,7 +327,7 @@ it("treats editing the visible duplicate to the hidden copy's text as an unsaved
   client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
   client.setQueryData(["books", "book", "text-catalog"], catalog)
   vi.mocked(api.getTextCatalog).mockResolvedValue(catalog as never)
-  vi.mocked(api.updateTranslation).mockResolvedValue({ version: 2 })
+  vi.mocked(api.updateTranslation).mockImplementation(savedTranslation(2))
   render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
   fireEvent.change(await screen.findByPlaceholderText("Pending..."), { target: { value: "Hidden second" } })
   expect((screen.getByRole("button", { name: "Save translation" }) as HTMLButtonElement).disabled).toBe(false)
@@ -339,7 +341,7 @@ function renderRecovery(catalog: unknown, latest: unknown) {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
   client.setQueryData(["books", "book", "text-catalog"], catalog)
   vi.mocked(api.getTextCatalog).mockResolvedValue(latest as never)
-  vi.mocked(api.updateTranslation).mockRejectedValueOnce(new ApiError("Translation changed", 409)).mockResolvedValue({ version: 3 })
+  vi.mocked(api.updateTranslation).mockRejectedValueOnce(new ApiError("Translation changed", 409)).mockImplementation(savedTranslation(3))
   return render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
 }
 
@@ -396,7 +398,7 @@ it("does not apply a late recovery receipt or draft to another book", async () =
   const catalog = { version: 4, entries: [{ id: "pg001_text", text: "Source" }], translations: {}, translationSourceSignatures: { fr: "book-original" } }
   const view = renderRecovery(catalog, catalog)
   let finish!: (value: never) => void
-  vi.mocked(api.getTextCatalog).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  vi.mocked(api.getTextCatalog).mockImplementationOnce((_label, _language, data) => new Promise(resolve => { finish = resolve }))
   fireEvent.change(await screen.findByPlaceholderText("Pending..."), { target: { value: "Old book draft" } })
   let saving!: Promise<void>
   await act(async () => { saving = saveActions.stay(); void saving.catch(() => {}) })
@@ -429,8 +431,8 @@ it("binds each recovery receipt to its book when two delayed reloads finish toge
   let finishOld!: (value: never) => void
   let finishNew!: (value: never) => void
   vi.mocked(api.getTextCatalog)
-    .mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve }))
-    .mockImplementationOnce(() => new Promise(resolve => { finishNew = resolve }))
+    .mockImplementationOnce((_label, _language, data) => new Promise(resolve => { finishOld = resolve }))
+    .mockImplementationOnce((_label, _language, data) => new Promise(resolve => { finishNew = resolve }))
   vi.mocked(api.updateTranslation).mockRejectedValueOnce(new ApiError("Other source changed", 409))
   fireEvent.change(await screen.findByPlaceholderText("Pending..."), { target: { value: "Old draft" } })
   let oldSave!: Promise<void>, newSave!: Promise<void>
@@ -462,4 +464,79 @@ it("does not treat a reverted visible duplicate edit as consent to change its cu
   expect(screen.queryByText("Conflicting changes detected")).toBeNull()
   await act(async () => { await saveActions.stay() })
   expect(api.updateTranslation).toHaveBeenLastCalledWith("book", "fr", expect.objectContaining({ entries: [{ ...current[0], text: "Local A" }, current[1]] }))
+})
+
+it.each(["same", "unrelated"].flatMap(target => ["before", "after"].flatMap(timing => [false, true].map(navigation => ({ target, timing, navigation })))))
+("keeps a normalized successor savable: $target edit $timing acknowledgement, navigation=$navigation", async ({ target, timing, navigation }) => {
+  const original = [{ id: "pg001_a", text: "A" }, { id: "pg001_b", text: "Visible B" }, { id: "retired", text: "Retired first" }, { id: "pg001_b", text: "Hidden B" }, { id: "retired", text: "Retired second" }]
+  const savedEntries = [original[0], { ...original[1], text: "Submitted B", source: "manual" }, original[2], original[4]]
+  const catalog = { version: 4, entries: [original[0], original[1]], translations: { fr: { version: 1, sourceSignature: "source", entries: original } } }
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  client.setQueryData(["books", "book", "text-catalog"], catalog)
+  vi.mocked(api.getTextCatalog).mockResolvedValue({ ...catalog, translations: { fr: { ...catalog.translations.fr, version: 2, entries: savedEntries } } } as never)
+  let acknowledge!: () => void
+  vi.mocked(api.updateTranslation).mockImplementationOnce(() => new Promise(resolve => { acknowledge = () => resolve({ version: 2, entries: savedEntries } as never) }))
+    .mockImplementation(async (_label, _language, data) => ({ version: 3, entries: (data as { entries: unknown[] }).entries }) as never)
+  let releaseRefresh!: () => void
+  vi.spyOn(client, "invalidateQueries").mockImplementationOnce(() => new Promise(resolve => { releaseRefresh = resolve }))
+  render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
+  fireEvent.change((await screen.findAllByPlaceholderText("Pending..."))[1], { target: { value: "Submitted B" } })
+  let first!: Promise<void>
+  if (navigation) await act(async () => { first = saveActions.stay(); void first.catch(() => {}) })
+  else fireEvent.click(screen.getByRole("button", { name: "Save translation" }))
+  const typeSuccessor = () => fireEvent.change(screen.getAllByPlaceholderText("Pending...")[target === "same" ? 1 : 0], { target: { value: "Successor" } })
+  if (timing === "before") typeSuccessor()
+  await act(async () => { acknowledge() })
+  if (timing === "after") typeSuccessor()
+  await act(async () => { releaseRefresh(); if (navigation) await expect(first).rejects.toThrow("Newer edits are still unsaved"); else await new Promise(resolve => setTimeout(resolve, 450)) })
+  await act(async () => { await saveActions.stay() })
+  expect(api.updateTranslation).toHaveBeenLastCalledWith("book", "fr", { baseVersion: 2, sourceVersion: 4, sourceSignature: "source", entries: savedEntries.map(entry => entry.id === (target === "same" ? "pg001_b" : "pg001_a") ? { ...entry, text: "Successor" } : entry) })
+  expect((screen.getByRole("button", { name: "Save translation" }) as HTMLButtonElement).disabled).toBe(true)
+})
+
+it.each(["fr", "pt_BR"].flatMap(namespace => ["same", "unrelated"].map(target => ({ namespace, target }))))
+("uses its own saved snapshot before a third writer: $namespace/$target", async ({ namespace, target }) => {
+  const canonical = namespace.replace("_", "-")
+  speechRouting.languages = [canonical]
+  const original = [{ id: "pg001_a", text: "A" }, { id: "pg001_b", text: "Visible B" }, { id: "pg001_c", text: "C" }, { id: "pg001_b", text: "Hidden B" }]
+  const savedEntries = [original[0], { ...original[1], text: "Submitted B", source: "manual" }, original[2]]
+  const external = savedEntries.map(entry => entry.id === "pg001_c" ? { ...entry, text: "External C", source: "manual" } : entry)
+  const catalog = { version: 4, entries: original.slice(0, 3), translations: { [namespace]: { version: 1, sourceSignature: "original-receipt", entries: original } } }
+  const latest = { ...catalog, translations: { [canonical]: { version: namespace === canonical ? 3 : 2, sourceSignature: "latest-receipt", entries: external } } }
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  client.setQueryData(["books", "book", "text-catalog"], catalog)
+  vi.mocked(api.getTextCatalog).mockResolvedValue(latest as never)
+  let acknowledge!: () => void
+  vi.mocked(api.updateTranslation).mockImplementationOnce(() => new Promise(resolve => { acknowledge = () => resolve({ version: 2, entries: savedEntries } as never) }))
+    .mockRejectedValueOnce(new ApiError("Another writer changed the translation", 409))
+    .mockImplementation(savedTranslation(4))
+  render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
+  fireEvent.change((await screen.findAllByPlaceholderText("Pending..."))[1], { target: { value: "Submitted B" } })
+  let first!: Promise<void>
+  await act(async () => { first = saveActions.stay(); void first.catch(() => {}) })
+  fireEvent.change(screen.getAllByPlaceholderText("Pending...")[target === "same" ? 1 : 0], { target: { value: "Successor" } })
+  // Writer3 is visible in the cache before our response. It is not our receipt.
+  await act(async () => { client.setQueryData(["books", "book", "text-catalog"], latest); acknowledge(); await expect(first).rejects.toThrow("Newer edits") })
+  await act(async () => { await expect(saveActions.stay()).rejects.toThrow("Another writer") })
+  expect(api.updateTranslation).toHaveBeenLastCalledWith("book", namespace, expect.objectContaining({ baseVersion: 2, sourceSignature: "original-receipt", entries: savedEntries.map(entry => entry.id === (target === "same" ? "pg001_b" : "pg001_a") ? { ...entry, text: "Successor" } : entry) }))
+  expect(screen.queryByText("Conflicting changes detected")).toBeNull()
+  await act(async () => { await saveActions.stay() })
+  expect(api.updateTranslation).toHaveBeenLastCalledWith("book", canonical, expect.objectContaining({ baseVersion: latest.translations[canonical].version, sourceSignature: "latest-receipt", entries: external.map(entry => entry.id === (target === "same" ? "pg001_b" : "pg001_a") ? { ...entry, text: "Successor" } : entry) }))
+})
+
+it("clears a normalized acknowledged draft with no successor and starts the next edit from saved entries", async () => {
+  const original = [{ id: "pg001_text", text: "Visible" }, { id: "pg001_text", text: "Hidden" }]
+  const savedEntries = [{ id: "pg001_text", text: "Submitted", source: "manual" }]
+  const catalog = { version: 4, entries: [original[0]], translations: { fr: { version: 1, sourceSignature: "source", entries: original } } }
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  client.setQueryData(["books", "book", "text-catalog"], catalog)
+  vi.mocked(api.getTextCatalog).mockResolvedValue({ ...catalog, translations: { fr: { ...catalog.translations.fr, version: 2, entries: savedEntries } } } as never)
+  vi.mocked(api.updateTranslation).mockResolvedValueOnce({ version: 2, entries: savedEntries } as never).mockImplementation(savedTranslation(3))
+  render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
+  fireEvent.change(await screen.findByPlaceholderText("Pending..."), { target: { value: "Submitted" } })
+  await act(async () => { await saveActions.stay() })
+  expect((screen.getByRole("button", { name: "Save translation" }) as HTMLButtonElement).disabled).toBe(true)
+  fireEvent.change(screen.getByPlaceholderText("Pending..."), { target: { value: "Next" } })
+  await act(async () => { await saveActions.stay() })
+  expect(api.updateTranslation).toHaveBeenLastCalledWith("book", "fr", expect.objectContaining({ baseVersion: 2, entries: [{ ...savedEntries[0], text: "Next" }] }))
 })
