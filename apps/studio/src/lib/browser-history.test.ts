@@ -57,7 +57,7 @@ describe("blocked browser history navigation", () => {
     expect(win.location.pathname).toBe(history.location.href)
   })
 
-  it.each([undefined, 0, Number.NaN, Number.POSITIVE_INFINITY, 0.5])("keeps the existing non-reload fallback for an unindexed/invalid POP (%s)", async (index) => {
+  it.each([undefined, 0, Number.NaN, Number.POSITIVE_INFINITY, 0.5, 2 ** 31, -(2 ** 31), 2 ** 32, -(2 ** 32)])("keeps the existing non-reload fallback for an unindexed/invalid POP (%s)", async (index) => {
     const dom = new JSDOM("", { url: "http://localhost/books/book-a/page/0" })
     const sourcePath = "/books/book-a/page/0"
     let location = { href: sourcePath, pathname: sourcePath, search: "", hash: "", state: { key: "source", __TSR_key: "source", __TSR_index: 0 } }
