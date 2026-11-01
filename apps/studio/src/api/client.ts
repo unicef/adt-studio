@@ -1901,6 +1901,12 @@ export const api = {
       body: JSON.stringify({ config }),
     }),
 
+  updateBookConfigWithReceipt: (label: string, config: Record<string, unknown>) =>
+    request<import("@adt/types").BookConfigSaveReceipt>(`/books/${label}/config`, {
+      method: "PUT",
+      body: JSON.stringify({ config, includeEffectiveConfig: true }),
+    }),
+
   listPrompts: () => request<PromptListResponse>("/prompts"),
 
   listPromptModels: () => request<PromptModelsResponse>("/prompt-models"),

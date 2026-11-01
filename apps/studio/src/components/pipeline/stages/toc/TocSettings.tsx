@@ -15,7 +15,7 @@ function TocSettingsSession({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
-  const updateConfig = useUpdateBookConfig()
+  const updateConfig = useUpdateBookConfig({ withReceipt: true })
   const queryClient = useQueryClient()
   const [generationPromptDraft, setGenerationPromptDraft] = useState<PromptDraft | null>(null)
 

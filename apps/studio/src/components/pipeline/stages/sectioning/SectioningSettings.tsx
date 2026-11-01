@@ -96,7 +96,7 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
-  const updateConfig = useUpdateBookConfig()
+  const updateConfig = useUpdateBookConfig({ withReceipt: true })
   const queryClient = useQueryClient()
 
   // Section Types state
@@ -303,7 +303,9 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
     }
 
     if (shouldWrite("section_types")) {
-      const baseSectionTypes = (m?.section_types ?? {}) as Record<string, string>
+      // Effective config omits deleted keys. Include stored overrides so a
+      // later unrelated Save cannot drop the nulls that keep them deleted.
+      const baseSectionTypes = { ...bookConfigData?.config?.section_types as object, ...m?.section_types as object }
       const withDeletions: Record<string, string | null> = { ...sectionTypes }
       for (const key of Object.keys(baseSectionTypes)) {
         if (!(key in sectionTypes)) withDeletions[key] = null
@@ -320,7 +322,7 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
       overrides.generate_activities = generateActivities
     }
     if (shouldWrite("section_render_strategies")) {
-      const baseStrategies = (m?.section_render_strategies ?? {}) as Record<string, string>
+      const baseStrategies = { ...bookConfigData?.config?.section_render_strategies as object, ...m?.section_render_strategies as object }
       const stratWithDeletions: Record<string, string | null> = { ...sectionRenderStrategies }
       for (const key of Object.keys(baseStrategies)) {
         if (!(key in sectionRenderStrategies)) stratWithDeletions[key] = null
@@ -330,7 +332,7 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
         : undefined
     }
     if (shouldWrite("structure_types")) {
-      const baseStructureTypes = (m?.structure_types ?? {}) as Record<string, string>
+      const baseStructureTypes = { ...bookConfigData?.config?.structure_types as object, ...m?.structure_types as object }
       const withDeletions: Record<string, string | null> = { ...structureTypes }
       for (const key of Object.keys(baseStructureTypes)) {
         if (!(key in structureTypes)) withDeletions[key] = null
@@ -338,7 +340,7 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
       overrides.structure_types = withDeletions
     }
     if (shouldWrite("role_types")) {
-      const baseRoleTypes = (m?.role_types ?? {}) as Record<string, string>
+      const baseRoleTypes = { ...bookConfigData?.config?.role_types as object, ...m?.role_types as object }
       const withDeletions: Record<string, string | null> = { ...roleTypes }
       for (const key of Object.keys(baseRoleTypes)) {
         if (!(key in roleTypes)) withDeletions[key] = null
@@ -370,7 +372,7 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
       if (refinementPromptDraft != null) {
         await savePromptDraft(queryClient, "page_sectioning_refinement", bookLabel, refinementPromptDraft)
       }
-  
+
       await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
       setDirty({})
       setSectioningPromptDraft(null)
