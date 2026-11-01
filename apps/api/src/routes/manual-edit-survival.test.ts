@@ -13,6 +13,8 @@ import { createQuizRoutes } from "./quizzes.js"
 import { createGlossaryRoutes } from "./glossary.js"
 import { createStageRoutes } from "./stages.js"
 import { createDebugRoutes } from "./debug.js"
+import { createOutputRoutes } from "./outputs.js"
+import type { OutputStatus, TextCatalogOutput } from "@adt/types"
 import { createAdtPreviewRoutes } from "./adt-preview.js"
 import { createTaskService } from "../services/task-service.js"
 import { createStageRunner } from "../services/stage-runner.js"
@@ -37,18 +39,19 @@ const quiz = (question = "AI question") => ({ quizIndex: 0, afterPageId: "pg001"
 const send = (url: string, body: unknown, method = "PUT") => app.request(`/books/${label}/${url}`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
 async function json(url: string) { const response = await app.request(`/books/${label}/${url}`); expect(response.status, await response.clone().text()).toBe(200); return response.json() }
 function read(node: string, itemId = "book") { const db = book(); try { return db.getLatestNodeData(node, itemId) } finally { db.close() } }
-async function run(stage: string, extra = {}) {
+async function run(stage: string, extra = {}, timeout = 5000) {
   let done: { status: string; error?: string } | undefined
   const dispose = bus.addListener(label, (event) => {
     if (event.type === "stage-run-complete") done = { status: "completed" }
     if (event.type === "stage-run-error") done = { status: "failed", error: event.error }
     if (event.type === "stage-run-cancelled") done = { status: "cancelled" }
   })
-  const response = await send("stages/run", { fromStage: stage, toStage: stage, ...extra }, "POST")
-  expect(response.status, await response.clone().text()).toBe(200)
-  await vi.waitFor(() => expect(done).toBeDefined(), { timeout: 5000 })
-  dispose()
-  return done!
+  try {
+    const response = await send("stages/run", { fromStage: stage, toStage: stage, ...extra }, "POST")
+    expect(response.status, await response.clone().text()).toBe(200)
+    await vi.waitFor(() => expect(done).toBeDefined(), { timeout })
+    return done!
+  } finally { dispose() }
 }
 
 beforeEach(() => {
@@ -82,6 +85,7 @@ beforeEach(() => {
     .route("/", createQuizRoutes(root, prompts, configPath))
     .route("/", createGlossaryRoutes(root, prompts, configPath))
     .route("/", createDebugRoutes(root, prompts, configPath))
+    .route("/", createOutputRoutes(root, prompts, configPath))
     .route("/", createAdtPreviewRoutes(root, assets, configPath, prompts))
     .route("/", createStageRoutes(service, bus, decisions, root, prompts, assets, configPath))
   app.onError(errorHandler)
@@ -540,7 +544,8 @@ it("rolls retirement and reference writes back if publishing a replacement page 
   expect((await json("debug/versions/page-sectioning/pg001?includeData=true")).versions).toHaveLength(2)
 })
 
-it("cancels section replacement before publication and rejects a queued stale confirmation", async () => {
+it.each([1, 3])("cancels section replacement before publication at concurrency %s", async concurrency => {
+  fs.appendFileSync(configPath, `concurrency: ${concurrency}\n`)
   await saveProtected()
   const db = book()
   for (const stage of PIPELINE.filter((s) => s.name === "extract")) for (const step of stage.steps) db.markStepCompleted(step.name)
@@ -549,14 +554,27 @@ it("cancels section replacement before publication and rejects a queued stale co
   const releases: Array<() => void> = []
   sectionPage.mockImplementation(async () => { await new Promise<void>((resolve) => releases.push(resolve)); return { reasoning: "new", sections: [] } })
   const protectedReplacements = ["pg001", "pg002", "pg003"].map((itemId) => ({ node: "page-sectioning", itemId, version: 2 }))
-  const cancelled = run("sectioning", { replaceManual: true, protectedReplacements })
-  await vi.waitFor(() => expect(releases).toHaveLength(3))
-  expect((await send("stages/cancel", {}, "POST")).status).toBe(202)
-  releases.forEach((release) => release())
-  expect((await cancelled).status).toBe("cancelled")
-  for (const id of ["pg001", "pg002", "pg003"]) expect(read("page-sectioning", id)!.version).toBe(2)
-  expect((await json("toc")).entries[0].sectionId).toBe("pg001_sec001")
+  const cancelled = run("sectioning", { replaceManual: true, protectedReplacements }, 15000)
+  try {
+    // Wait for observable provider admission, not a scheduler-dependent number
+    // of concurrent starts. At concurrency 1, waiting for three cannot complete.
+    await vi.waitFor(() => expect(releases.length).toBeGreaterThan(0), { timeout: 5000 })
+    expect((await send("stages/cancel", {}, "POST")).status).toBe(202)
+    releases.forEach(release => release())
+    expect((await cancelled).status).toBe("cancelled")
+    for (const id of ["pg001", "pg002", "pg003"]) expect(read("page-sectioning", id)!.version).toBe(2)
+    expect((await json("toc")).entries[0].sectionId).toBe("pg001_sec001")
+  } finally {
+    // Never delete the real fixture database while a failed assertion leaves
+    // the worker awaiting its stubbed response.
+    await send("stages/cancel", {}, "POST")
+    releases.forEach(release => release())
+    await cancelled
+  }
+}, 20000)
 
+it("rejects a queued stale TOC confirmation before a second generation call", async () => {
+  await saveProtected()
   // Queue a TOC replacement behind another run of the same document. Admission
   // must check again after the first run publishes, before preparation/model work.
   let finish!: () => void
@@ -1009,3 +1027,49 @@ it("restores a different manual translation when another current ID has legacy d
     version.data.entries.some((entry) => entry.id === "pg002_t001" && entry.text === "Protected pg002_t001"),
   )).toBe(true)
 })
+
+
+it.each(["manual", "unknown"] as const)("reports restored %s translations missing until protected history is republished by the actual scoped run", async (authorship) => {
+  await saveProtected()
+  if (authorship === "unknown") {
+    const db = book()
+    const current = read("text-catalog-translation", "fr")!.data as TextCatalogOutput
+    db.putNodeData("text-catalog-translation", "fr", { ...current, entries: current.entries.map(({ source: _source, ...entry }) => entry) })
+    db.close()
+  }
+  const identity = { kind: "translation", id: "pg001_t001", language: "fr" }
+  const getOutput = async () => (await json("outputs")).outputs.find((output: OutputStatus) => output.identity.kind === identity.kind && output.identity.id === identity.id && output.identity.language === identity.language) as OutputStatus
+  const beforeReview = await getOutput()
+  expect((await send("outputs/review", { identity, signature: beforeReview.signature, contentHash: beforeReview.contentHash, action: "keep" }, "POST")).status).toBe(200)
+  expect(await getOutput()).toMatchObject({ current: true, missing: false })
+  const prior = read("text-catalog-translation", "fr")!
+  const protectedEntry = (prior.data as TextCatalogOutput).entries.find(entry => entry.id === identity.id)!
+  const rendering = read("web-rendering", "pg001")!
+  const neighbors = [read("page-sectioning", "pg002"), read("web-rendering", "pg002")]
+  expect((await send("pages/pg001/rendering", { sections: [] })).status).toBe(200)
+  expect((await run("translate")).status).toBe("completed")
+  const retired = read("text-catalog-translation", "fr")!
+  expect((retired.data as TextCatalogOutput).entries.some(entry => entry.id === identity.id)).toBe(false)
+  expect((await send("versions/web-rendering/pg001/restore", { version: rendering.version, baseVersion: 2 }, "POST")).status).toBe(200)
+  const status = await getOutput()
+  expect(status).toMatchObject({ current: false, missing: true, usable: false })
+  expect(status.text).toBeUndefined()
+  expect((await json("outputs")).missingStages).toContain("translate")
+  expect(JSON.stringify(await json("adt-preview/content/i18n/fr/texts.json"))).not.toContain(protectedEntry.text)
+  expect(read("text-catalog-translation", "fr")).toEqual(retired)
+  generateObject.mockClear()
+  expect((await run("translate", { outputScope: { selection: { identities: [identity] } } })).status).toBe("completed")
+  expect(generateObject).not.toHaveBeenCalled()
+  const recovered = read("text-catalog-translation", "fr")!
+  expect((recovered.data as TextCatalogOutput).entries.find(entry => entry.id === identity.id)).toEqual(protectedEntry)
+  expect((recovered.data as TextCatalogOutput).entries.filter(entry => !entry.id.startsWith("pg001_"))).toEqual((retired.data as TextCatalogOutput).entries.filter(entry => !entry.id.startsWith("pg001_")))
+  expect(await getOutput()).toMatchObject({ current: true, missing: false, text: protectedEntry.text })
+  expect(JSON.stringify(await json("adt-preview/content/i18n/fr/texts.json"))).toContain(protectedEntry.text)
+  expect([read("page-sectioning", "pg002"), read("web-rendering", "pg002")]).toEqual(neighbors)
+  expect((await json("debug/versions/text-catalog-translation/fr?includeData=true")).versions).toEqual(expect.arrayContaining([expect.objectContaining({ version: prior.version, data: prior.data }), expect.objectContaining({ version: retired.version, data: retired.data })]))
+  const db = book()
+  try {
+    await packageAdtWeb(db, { bookDir: db.bookDir!, label, language: "en", outputLanguages: ["en", "fr"], title: "Fixture", webAssetsDir: assets, promptsDir: prompts, configDir: path.resolve("config"), config: loadBookConfig(label, root, configPath) })
+    expect(fs.readFileSync(path.join(db.bookDir!, "adt", "content", "i18n", "fr", "texts.json"), "utf8")).toContain(protectedEntry.text)
+  } finally { db.close() }
+}, 30_000)

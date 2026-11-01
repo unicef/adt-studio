@@ -1,5 +1,5 @@
-import { buildOutputSources, firstCatalogEntries, conflictingCatalogHashes, translatedDisplayEntries } from "./output-sources.js"
-import { retainedCoreTts, retainedEasyRead, retainedTranslation } from "./retained-catalog.js"
+import { buildOutputSources, firstCatalogEntries, conflictingCatalogHashes, translatedDisplayEntries, currentTranslationEntries } from "./output-sources.js"
+import { retainedCoreTts, retainedEasyRead } from "./retained-catalog.js"
 import { supportsPageBatchedSpeech } from "./speech-batch.js"
 import { buildImageTranslationConfig } from "./image-translation.js"
 import path from "node:path"
@@ -141,7 +141,7 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
   const displays = new Map<string, TextCatalogEntry[]>([[sourceLanguage, sources]])
   const sourceStatus = (entry: TextCatalogEntry) => find("caption", entry.id) ?? find("easy-read", entry.id, sourceLanguage)
   for (const language of getTargetLanguages(languages, sourceLanguage)) {
-    const prior = retainedTranslation(storage, language, sources.map((entry) => entry.id))?.entries ?? []
+    const prior = currentTranslationEntries(storage, language)
     const byId = firstCatalogEntries(prior)
     const conflicts = conflictingCatalogHashes(prior)
     const display = translatedDisplayEntries(storage, language, sources)
