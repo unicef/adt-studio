@@ -226,13 +226,20 @@ function AddQuizDialogSession({
   }, [])
   const { t } = useLingui()
   const { data: pages } = usePages(bookLabel)
-  const { data: existingQuizzes } = useQuizzes(bookLabel)
-  const [quizSnapshot, setQuizSnapshot] = useState(existingQuizzes)
+  const { data: existingQuizzes, refetch, isFetchedAfterMount, isFetching, isError, error: readError } = useQuizzes(bookLabel)
+  const [quizSnapshot, setQuizSnapshot] = useState<typeof existingQuizzes>()
   useEffect(() => {
-    // Keep the displayed questions and expected version together while open.
-    // Reopening after a conflict captures the newly saved quizzes.
-    setQuizSnapshot((previous) => open ? previous ?? existingQuizzes : undefined)
-  }, [open, existingQuizzes])
+    // Direct edits in another tab may not invalidate our still-fresh cache.
+    // Each opening needs a completed read before it can name protected work.
+    void refetch()
+  }, [refetch])
+  useEffect(() => {
+    // Failed/cancelled reads can retain cached data. Do not turn that fallback
+    // into consent; once captured, keep the questions and version frozen.
+    if (isFetchedAfterMount && !isFetching && !isError) {
+      setQuizSnapshot((previous) => previous ?? existingQuizzes)
+    }
+  }, [existingQuizzes, isFetchedAfterMount, isFetching, isError])
   const {
     apiKey,
     anthropicKey,
@@ -256,6 +263,7 @@ function AddQuizDialogSession({
   const [generating, setGenerating] = useState(false)
   const [placement, setPlacement] = useState<QuizPlacement>("after")
   const [error, setError] = useState<string | null>(null)
+  const visibleError = error ?? (!quizSnapshot ? readError?.message : null)
 
   const renderedPages = useMemo(
     () => (pages ?? []).filter((p) => p.hasRendering),
@@ -586,8 +594,8 @@ function AddQuizDialogSession({
           </div>
         )}
 
-        {error && (
-          <p className="px-6 text-sm text-destructive">{error}</p>
+        {visibleError && (
+          <p className="px-6 text-sm text-destructive">{visibleError}</p>
         )}
 
         <DialogFooter className="border-t px-6 py-4">
