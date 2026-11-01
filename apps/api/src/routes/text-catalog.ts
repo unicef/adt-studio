@@ -205,7 +205,10 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
         if (previous && !retained.success) {
           throw new HTTPException(409, { message: "Saved translation is unavailable. Restore a readable version before saving." })
         }
-        const retainedEntries = retained.success ? retained.data : []
+        // Validate the complete stored list, but retain its original entries.
+        // Zod's normalized result strips opaque legacy metadata from untouched
+        // protected copies. Only the server's stored values may pass through.
+        const retainedEntries = retained.success ? (previous!.data as TextCatalogOutput).entries : []
         const previousEntries = firstCatalogEntries(retainedEntries)
         const previousData = previous?.data && typeof previous.data === "object"
           ? previous.data as { generatedAt?: unknown }
@@ -252,12 +255,13 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
           return [replacement]
         })
         for (const [id, entry] of replacements) if (!consumed.has(id)) entries.push(entry)
-        const data = TextCatalogOutput.parse({
+        const data = {
           entries,
           generatedAt: parsed.data.generatedAt
             ?? (typeof previousData?.generatedAt === "string" ? previousData.generatedAt : undefined)
             ?? new Date().toISOString(),
-        })
+        }
+        TextCatalogOutput.parse(data)
       const version = storage.putNodeData(
         "text-catalog-translation",
         itemId,

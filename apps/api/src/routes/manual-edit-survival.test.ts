@@ -92,6 +92,51 @@ beforeEach(() => {
 })
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
+// Regression adapted from the final independent Codex review's HTTP probe.
+it.each([false, true])("retains raw protected translation groups through Save, next run and output (unrelated edit=%s)", async edit => {
+  const catalog = await json("text-catalog")
+  const entries = catalog.entries.map((entry: { id: string }) => ({
+    id: entry.id, text: `Saved ${entry.id}`, source: "manual" as const,
+    legacyNote: { annotation: `note-${entry.id}`, order: [2, 1] },
+  }))
+  const first = entries.find((entry: { id: string }) => entry.id === "pg001_t001")!
+  const protectedEntries = [...entries, { id: first.id, text: "Unknown duplicate correction", legacyNote: { annotation: "hidden-copy", order: [7, 3] } }]
+  const storage = book()
+  storage.putNodeData("text-catalog-translation", "fr", { entries: protectedEntries })
+  storage.close()
+  const prior = read("text-catalog-translation", "fr")!
+  const neighbors = [read("page-sectioning", "pg002"), read("web-rendering", "pg002")]
+  const loaded = await json("text-catalog")
+  const response = await send("text-catalog-translation/fr", {
+    entries: protectedEntries.map(({ id, text }) => ({ id, text: edit && id === "pg002_t001" ? "Unrelated correction" : text,
+      // Neither authorship nor opaque metadata is trusted from the caller.
+      source: "ai", legacyNote: { annotation: "forged" },
+    })),
+    baseVersion: loaded.translations.fr.version, sourceVersion: loaded.version,
+    sourceSignature: loaded.translations.fr.sourceSignature,
+  })
+  expect(response.status, await response.clone().text()).toBe(200)
+  const receipt = await response.json()
+  const saved = read("text-catalog-translation", "fr")!
+  const expected = protectedEntries.map(entry => edit && entry.id === "pg002_t001"
+    ? expect.objectContaining({ ...entry, text: "Unrelated correction", source: "manual" }) : entry)
+  expect(receipt).toEqual({ version: prior.version + 1, entries: expected })
+  expect((saved.data as TextCatalogOutput).entries).toEqual(expected)
+  expect((await json("text-catalog")).translations.fr.entries).toEqual(receipt.entries)
+  expect((await run("translate")).status).toBe("completed")
+  expect(generateObject).not.toHaveBeenCalled()
+  expect(read("text-catalog-translation", "fr")).toEqual(saved)
+  expect([read("page-sectioning", "pg002"), read("web-rendering", "pg002")]).toEqual(neighbors)
+  expect((await json("debug/versions/text-catalog-translation/fr?includeData=true")).versions)
+    .toEqual(expect.arrayContaining([expect.objectContaining({ version: prior.version, data: prior.data })]))
+  expect(JSON.stringify(await json("adt-preview/content/i18n/fr/texts.json"))).toContain(first.text)
+  const db = book()
+  try {
+    await packageAdtWeb(db, { bookDir: db.bookDir!, label, language: "en", outputLanguages: ["en", "fr"], title: "Fixture", webAssetsDir: assets, promptsDir: prompts, configDir: path.resolve("config"), config: loadBookConfig(label, root, configPath) })
+    expect(fs.readFileSync(path.join(db.bookDir!, "adt/content/i18n/fr/texts.json"), "utf8")).toContain(first.text)
+  } finally { db.close() }
+}, 30_000)
+
 async function saveProtected() {
   for (const id of ["pg001", "pg002", "pg003"]) {
     expect((await send(`pages/${id}/sectioning`, { ...read("page-sectioning", id)!.data as object, sections: [{ ...section(id, "Saved page text"), textColor: "#111111" }], baseVersion: 1 })).status).toBe(200)
