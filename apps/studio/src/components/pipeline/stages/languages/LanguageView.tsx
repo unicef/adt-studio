@@ -809,6 +809,16 @@ export function LanguageView({
     noun: { one: t`translation`, other: t`translations` },
   });
 
+  // Recovery or a refetch can converge with the saved text without a keystroke.
+  // Release only a settled, conflict-free projection; an in-flight Save/restore
+  // still owns its acknowledgement and any successor edits.
+  useEffect(() => {
+    if (pendingEntries && pendingEntriesRef.current === pendingEntries && !dirty
+      && !saving && !restoring && !savingRef.current && !restoringRef.current && !draft.conflict) {
+      setPendingEntries(null);
+    }
+  }, [pendingEntries, dirty, saving, restoring, draft.conflict, setPendingEntries]);
+
   const languageSwitchBlocked = dirty || speechDrafts.size > 0 || saving || restoring;
   const languageSwitchReason = dirty || speechDrafts.size > 0
     ? t`Save or discard your edits first`

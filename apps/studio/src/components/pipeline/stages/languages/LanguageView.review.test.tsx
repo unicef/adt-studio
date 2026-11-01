@@ -31,6 +31,7 @@ vi.mock("@/components/pipeline/components/VersionPicker", () => ({ VersionPicker
 vi.mock("@/api/client", async (importOriginal) => ({ ApiError: (await importOriginal<typeof import("@/api/client")>()).ApiError, BASE_URL: "", getAudioUrl: vi.fn(() => ""), api: { getTextCatalog: vi.fn(), getEasyRead: vi.fn().mockResolvedValue(null), listTranslatedImages: vi.fn().mockResolvedValue({ images: [] }), updateTranslation: vi.fn(), getVoiceMappings: vi.fn().mockResolvedValue({}), getOutputSummary: vi.fn(), getOutputs: vi.fn(), reviewOutput: vi.fn(), runStages: vi.fn(), getWordTimestamps: vi.fn(), saveWordTimestamps: vi.fn() } }))
 
 const { api } = await import("@/api/client")
+const { ApiError } = await import("@/api/client")
 const { TooltipProvider } = await import("@/components/ui/tooltip")
 const { LanguageView } = await import("./LanguageView")
 const translationReply = (version: number, data: unknown) => ({ version, entries: (data as { entries: import("@/api/client").TextCatalogEntry[] }).entries })
@@ -38,6 +39,42 @@ const savedTranslation = (version: number) => async (_label: string, _language: 
 let client: QueryClient
 beforeEach(() => { vi.clearAllMocks(); speechRouting.languages = ["fr", "es"]; speechRouting.config = {}; speechRouting.tts = { languages: {} }; speechRouting.available = []; speechRouting.globalAvailable = false; saveActions.stay = async () => { throw new Error("Save controls have not rendered") } })
 afterEach(() => { cleanup(); client?.clear() })
+
+it.each(["load-latest", "converged-409", "refetch"] as const)("releases a resolved net-clean translation after %s and permits the next review and Save", async recovery => {
+  const initial = { id: "pg001_text", text: "Initial translation", source: "manual" as const }
+  let catalog = { version: 4, entries: [{ id: initial.id, text: "Source" }], translations: { fr: { version: 1, sourceSignature: "source-1", entries: [initial] } } }
+  const output = { identity: { kind: "translation", id: initial.id, language: "fr" }, signature: "source-1", contentHash: "hash", text: initial.text, sourceText: "Source", usable: true, manual: true, protected: true, current: false, missing: false, excluded: false, updateNeeded: false, warnings: [{ reason: "legacy" }], pageIds: [], sectionIds: [] }
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  client.setQueryData(["books", "book", "text-catalog"], catalog)
+  vi.mocked(api.getTextCatalog).mockImplementation(async () => catalog as never)
+  vi.mocked(api.getOutputSummary).mockResolvedValue({ legacyBaselineRevision: 1, stages: {} } as never)
+  vi.mocked(api.getOutputs).mockResolvedValue({ outputs: [output], missingStages: [] } as never)
+  vi.mocked(api.reviewOutput).mockResolvedValue({} as never)
+  vi.mocked(api.updateTranslation).mockRejectedValueOnce(new ApiError("Changed by another writer", 409))
+  render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
+  fireEvent.click(await screen.findByRole("button", { name: "Translation: Edited manually" }))
+  fireEvent.change(await screen.findByPlaceholderText("Pending..."), { target: { value: "My correction" } })
+  expect(screen.queryByRole("button", { name: "Keep my edit" })).toBeNull()
+  catalog = { ...catalog, translations: { fr: { version: 2, sourceSignature: "source-2", entries: [{ ...initial, text: recovery === "load-latest" ? "Their correction" : "My correction" }] } } }
+  if (recovery === "refetch") {
+    await act(async () => { await client.invalidateQueries({ queryKey: ["books", "book", "text-catalog"] }) })
+  } else {
+    fireEvent.click(screen.getByRole("button", { name: "Save translation" }))
+    if (recovery === "load-latest") {
+      const latest = await screen.findByRole("button", { name: "Load latest saved values" })
+      expect(screen.queryByRole("button", { name: "Keep my edit" })).toBeNull()
+      fireEvent.click(latest)
+    }
+  }
+  fireEvent.click(await screen.findByRole("button", { name: "Keep my edit" }))
+  await waitFor(() => expect(api.reviewOutput).toHaveBeenCalledTimes(1))
+  expect((screen.getByRole("button", { name: "Save translation" }) as HTMLButtonElement).disabled).toBe(true)
+  expect(api.runStages).not.toHaveBeenCalled()
+  vi.mocked(api.updateTranslation).mockReset().mockImplementation(savedTranslation(3))
+  fireEvent.change(screen.getByPlaceholderText("Pending..."), { target: { value: "Next correction" } })
+  fireEvent.click(screen.getByRole("button", { name: "Save translation" }))
+  await waitFor(() => expect(api.updateTranslation).toHaveBeenCalledWith("book", "fr", expect.objectContaining({ baseVersion: 2, sourceSignature: "source-2", entries: [{ ...initial, text: "Next correction" }] })))
+})
 
 
 
