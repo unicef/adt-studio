@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import {
@@ -193,7 +193,24 @@ function InsertGap({
   )
 }
 
-export function AddQuizDialog({
+export function AddQuizDialog(props: ComponentProps<typeof AddQuizDialogSession>) {
+  const previousBook = useRef(props.bookLabel)
+  const sameBook = previousBook.current === props.bookLabel
+  useLayoutEffect(() => {
+    if (previousBook.current !== props.bookLabel) {
+      previousBook.current = props.bookLabel
+      // Clear the caller's open intent as well, so returning to this book
+      // cannot resurrect a dialog opened before the navigation.
+      props.onOpenChange(false)
+    }
+  }, [props.bookLabel, props.onOpenChange])
+
+  // Each opening owns its selection, frozen consent and async completion.
+  // Suppress a changed book immediately, before the caller handles closure.
+  return props.open && sameBook ? <AddQuizDialogSession key={props.bookLabel} {...props} /> : null
+}
+
+function AddQuizDialogSession({
   open,
   onOpenChange,
   bookLabel,
@@ -202,6 +219,11 @@ export function AddQuizDialog({
   onOpenChange: (open: boolean) => void
   bookLabel: string
 }) {
+  const active = useRef(false)
+  useLayoutEffect(() => {
+    active.current = true
+    return () => { active.current = false }
+  }, [])
   const { t } = useLingui()
   const { data: pages } = usePages(bookLabel)
   const { data: existingQuizzes } = useQuizzes(bookLabel)
@@ -327,6 +349,7 @@ export function AddQuizDialog({
 
   const handleGenerate = async () => {
     if (
+      !active.current ||
       !hasStructuredTextProvider ||
       !quizSnapshot ||
       selected.length === 0 ||
@@ -369,15 +392,16 @@ export function AddQuizDialog({
           queryKey: ["books", bookLabel, "step-status"],
         }),
       ])
+      if (!active.current) return
       onOpenChange(false)
       navigate({
         to: "/books/$label/$step",
         params: { label: bookLabel, step: "quizzes" },
       })
     } catch (e) {
-      setError(e instanceof Error ? e.message : t`Failed to generate the quiz.`)
+      if (active.current) setError(e instanceof Error ? e.message : t`Failed to generate the quiz.`)
     } finally {
-      setGenerating(false)
+      if (active.current) setGenerating(false)
     }
   }
 
