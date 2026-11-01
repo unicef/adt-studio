@@ -48,14 +48,18 @@ it.each(["load-latest", "converged-409", "refetch"] as const)("releases a resolv
   client.setQueryData(["books", "book", "text-catalog"], catalog)
   vi.mocked(api.getTextCatalog).mockImplementation(async () => catalog as never)
   vi.mocked(api.getOutputSummary).mockResolvedValue({ legacyBaselineRevision: 1, stages: {} } as never)
-  vi.mocked(api.getOutputs).mockResolvedValue({ outputs: [output], missingStages: [] } as never)
-  vi.mocked(api.reviewOutput).mockResolvedValue({} as never)
+  vi.mocked(api.getOutputs).mockImplementation(async () => ({ outputs: [{ ...output }], missingStages: [] }) as never)
+  vi.mocked(api.reviewOutput).mockImplementation(async (_book, body) => {
+    if (body.contentHash !== output.contentHash) throw new ApiError("Output changed", 409)
+    return {} as never
+  })
   vi.mocked(api.updateTranslation).mockRejectedValueOnce(new ApiError("Changed by another writer", 409))
   render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
   fireEvent.click(await screen.findByRole("button", { name: "Translation: Edited manually" }))
   fireEvent.change(await screen.findByPlaceholderText("Pending..."), { target: { value: "My correction" } })
   expect(screen.queryByRole("button", { name: "Keep my edit" })).toBeNull()
   catalog = { ...catalog, translations: { fr: { version: 2, sourceSignature: "source-2", entries: [{ ...initial, text: recovery === "load-latest" ? "Their correction" : "My correction" }] } } }
+  if (recovery !== "refetch") output.contentHash = "latest-hash"
   if (recovery === "refetch") {
     await act(async () => { await client.invalidateQueries({ queryKey: ["books", "book", "text-catalog"] }) })
   } else {
@@ -69,6 +73,7 @@ it.each(["load-latest", "converged-409", "refetch"] as const)("releases a resolv
   fireEvent.click(await screen.findByRole("button", { name: "Keep my edit" }))
   await waitFor(() => expect(api.reviewOutput).toHaveBeenCalledTimes(1))
   expect((screen.getByRole("button", { name: "Save translation" }) as HTMLButtonElement).disabled).toBe(true)
+  expect(api.reviewOutput).toHaveBeenCalledWith("book", expect.objectContaining({ contentHash: output.contentHash }))
   expect(api.runStages).not.toHaveBeenCalled()
   vi.mocked(api.updateTranslation).mockReset().mockImplementation(savedTranslation(3))
   fireEvent.change(screen.getByPlaceholderText("Pending..."), { target: { value: "Next correction" } })
@@ -77,6 +82,67 @@ it.each(["load-latest", "converged-409", "refetch"] as const)("releases a resolv
 })
 
 
+
+it.each(["delayed", "failed", "cancelled", "cold", "external-writer"] as const)("refreshes review guards before conflict recovery with %s reads", async mode => {
+  const initial = { id: "pg001_text", text: "Initial translation", source: "manual" as const }
+  let catalog = { version: 4, entries: [{ id: initial.id, text: "Source" }], translations: { fr: { version: 1, sourceSignature: "source-1", entries: [initial] } } }
+  let output = { identity: { kind: "translation", id: initial.id, language: "fr" }, signature: "source-1", contentHash: "old-hash", text: initial.text, sourceText: "Source", usable: true, manual: true, protected: true, current: false, missing: false, excluded: false, updateNeeded: false, warnings: [{ reason: "legacy" }], pageIds: [], sectionIds: [] }
+  const payload = () => ({ outputs: [structuredClone(output)], missingStages: [] })
+  function gate() { let resolve!: (value: never) => void; let reject!: (error: Error) => void; const promise = new Promise<never>((done, fail) => { resolve = done; reject = fail }); return { promise, resolve, reject } }
+  const oldRead = gate(), recoveryRead = gate(), oldPayload = payload()
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  client.setQueryData(["books", "book", "text-catalog"], catalog)
+  vi.mocked(api.getTextCatalog).mockImplementation(async () => catalog as never)
+  vi.mocked(api.getOutputSummary).mockResolvedValue({ legacyBaselineRevision: 1, stages: {} } as never)
+  vi.mocked(api.getOutputs).mockImplementation(async () => payload() as never)
+  if (mode === "cold") vi.mocked(api.getOutputs).mockReturnValueOnce(oldRead.promise)
+  vi.mocked(api.updateTranslation).mockRejectedValue(new ApiError("Changed by another writer", 409))
+  vi.mocked(api.reviewOutput).mockImplementation(async (_book, body) => {
+    if (body.contentHash !== output.contentHash) throw new ApiError("Output changed", 409)
+    return {} as never
+  })
+  render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
+  const input = await screen.findByPlaceholderText("Pending...")
+  if (mode === "cold") await waitFor(() => expect(api.getOutputs).toHaveBeenCalledTimes(1))
+  else await screen.findByRole("button", { name: "Translation: Edited manually" })
+  fireEvent.change(input, { target: { value: "My draft" } })
+  catalog = { ...catalog, translations: { fr: { version: 2, sourceSignature: "source-2", entries: [{ ...initial, text: "Their correction" }] } } }
+  output = { ...output, contentHash: "latest-hash", text: "Their correction" }
+  vi.mocked(api.getOutputs).mockReturnValueOnce(recoveryRead.promise)
+  fireEvent.click(screen.getByRole("button", { name: "Save translation" }))
+  await waitFor(() => expect(api.getOutputs).toHaveBeenCalledTimes(2))
+  expect(screen.queryByRole("button", { name: "Load latest saved values" })).toBeNull()
+  expect((input as HTMLTextAreaElement).value).toBe("My draft")
+  if (mode === "cold") await act(async () => { oldRead.resolve(oldPayload as never) })
+  if (mode === "failed" || mode === "cancelled") {
+    await act(async () => {
+      if (mode === "failed") recoveryRead.reject(new Error("Read failed"))
+      else await client.cancelQueries({ queryKey: ["books", "book", "outputs"] })
+    })
+    await waitFor(() => expect((screen.getByRole("button", { name: "Save translation" }) as HTMLButtonElement).disabled).toBe(false))
+    expect((input as HTMLTextAreaElement).value).toBe("My draft")
+    expect(screen.queryByRole("button", { name: "Load latest saved values" })).toBeNull()
+    expect(api.reviewOutput).not.toHaveBeenCalled()
+    // A real next Save retries recovery; no stale token is silently accepted.
+    fireEvent.click(screen.getByRole("button", { name: "Save translation" }))
+    if (mode === "cancelled") await act(async () => { recoveryRead.resolve(oldPayload as never) })
+  } else await act(async () => { recoveryRead.resolve(payload() as never) })
+  fireEvent.click(await screen.findByRole("button", { name: "Load latest saved values" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Translation: Edited manually" }))
+  if (mode === "external-writer") output = { ...output, contentHash: "third-writer-hash" }
+  fireEvent.click(await screen.findByRole("button", { name: "Keep my edit" }))
+  await waitFor(() => expect(api.reviewOutput).toHaveBeenCalledTimes(1))
+  expect(api.reviewOutput).toHaveBeenLastCalledWith("book", expect.objectContaining({ contentHash: "latest-hash" }))
+  if (mode === "external-writer") {
+    await screen.findByText("Output changed")
+    await waitFor(() => expect((screen.getByRole("button", { name: "Keep my edit" }) as HTMLButtonElement).disabled).toBe(false))
+    expect(api.reviewOutput).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole("button", { name: "Keep my edit" }))
+    await waitFor(() => expect(api.reviewOutput).toHaveBeenCalledTimes(2))
+    expect(api.reviewOutput).toHaveBeenLastCalledWith("book", expect.objectContaining({ contentHash: "third-writer-hash" }))
+  }
+  expect(api.runStages).not.toHaveBeenCalled()
+})
 
 it.each([false, true])("a never-saved net-clean translation unlocks real review and adopts its next refetch (duplicates=%s)", duplicate => {
   return exerciseNetClean(duplicate)

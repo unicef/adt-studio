@@ -714,6 +714,17 @@ export function LanguageView({
     const latest = await api.getTextCatalog(bookLabel);
     const recovered = translationEditState(latest, selectedLang);
     if (!recovered) throw new Error(t`Saved content is unavailable; your draft is retained`);
+    // Review guards come from the shared output catalog, not translation text.
+    // Cancel even a cold pre-conflict read before exposing recovered content.
+    const outputsKey = ["books", bookLabel, "outputs"];
+    await queryClient.cancelQueries({ queryKey: outputsKey });
+    await queryClient.invalidateQueries({ queryKey: outputsKey }, { throwOnError: true });
+    // A cancelled/paused refetch can resolve with reverted cached data. Its
+    // invalidated state must not release the draft or enable stale review.
+    if (queryClient.getQueryCache().findAll({ queryKey: outputsKey, type: "active" }).some(query =>
+      query.state.isInvalidated || query.state.status !== "success" || query.state.fetchStatus !== "idle")) {
+      throw new Error(t`Saved content is unavailable; your draft is retained`);
+    }
     queryClient.setQueryData(["books", bookLabel, "text-catalog"], latest);
     const { entries: value, ...guards } = recovered;
     if (translationScopeRef.current === translationScope) recoveredVersions.current = guards;
