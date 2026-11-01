@@ -92,3 +92,15 @@ it.each(["current", "historical"])("recovers an independent correction despite %
   expect(retained.entries.filter(entry => entry.id === "ambiguous")).toEqual(duplicates)
   expect(storage.getAllNodeVersions("text-catalog-translation", "fr")).toEqual(history)
 })
+
+it("retains complete legacy duplicate groups and opaque metadata without generatedAt", async () => {
+  const { retainedTranslation } = await import("../retained-catalog.js")
+  const entries = [{ id: "stable", text: "First correction", source: "manual", legacyNote: { author: "kept" } }, { id: "stable", text: "Other correction", legacyNote: { author: "unknown" } }]
+  storage.putNodeData("text-catalog-translation", "fr", { entries })
+  expect(retainedTranslation(storage, "fr", ["stable"])?.entries).toEqual(entries)
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [] })
+  storage.close(); storage = createBookStorage("retained", root)
+  expect(retainedTranslation(storage, "fr", ["stable"])?.entries).toEqual(entries)
+  expect(retainedTranslation(storage, "fr", ["new"])?.entries).toEqual([])
+  expect(storage.getAllNodeVersions("text-catalog-translation", "fr")).toHaveLength(2)
+})

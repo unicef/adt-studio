@@ -36,7 +36,7 @@ it.each([{ entries: [] }, { entries: [neighbor] }])("keeps retired history out o
   if (entries.length) expect(status("neighbor")).toMatchObject({ text: neighbor.text, manual: true, usable: true })
 })
 
-it.each([null, {}, { entries: [], generatedAt: "empty" }])("does not revive legacy namespace or historical content through canonical %j", canonical => {
+it.each([null, {}, { entries: "invalid" }, { entries: [null] }, { entries: [{ id: "stable", text: null }] }, { entries: [], generatedAt: "empty" }])("does not revive legacy namespace or historical content through canonical %j", canonical => {
   storage.putNodeData("text-catalog-translation", "pt_BR", { entries: [retained], generatedAt: "legacy" })
   expect(status("stable")).toMatchObject({ text: retained.text, manual: true, missing: false })
   storage.putNodeData("text-catalog-translation", "pt-BR", { entries: [retained], generatedAt: "canonical-before" })
@@ -53,4 +53,14 @@ it("honors an older selected current version and keeps every current duplicate i
   expect(status("stable")).toMatchObject({ text: retained.text, protected: true, current: false, warnings: expect.arrayContaining([expect.objectContaining({ reason: "output-conflict" })]) })
   expect(translatedDisplayEntries(storage, "pt-BR", sources)[0].text).toBe(retained.text)
   expect(storage.getLatestNodeData("text-catalog-translation", "pt-BR")?.version).toBe(1)
+})
+
+// GET text-catalog accepts an otherwise valid legacy list without generatedAt.
+it("keeps a readable legacy current list visible without inventing authorship", () => {
+  const entries = [retained, { ...neighbor, source: undefined }]
+  storage.putNodeData("text-catalog-translation", "pt-BR", { entries })
+  expect(status("stable")).toMatchObject({ text: retained.text, manual: true, usable: true })
+  expect(status("neighbor")).toMatchObject({ text: neighbor.text, protected: true, usable: true })
+  expect(translatedDisplayEntries(storage, "pt-BR", sources).map(entry => entry.text)).toEqual([retained.text, neighbor.text, ""])
+  expect(storage.getLatestNodeData("text-catalog-translation", "pt-BR")?.data).toEqual({ entries })
 })

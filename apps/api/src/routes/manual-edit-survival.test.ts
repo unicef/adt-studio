@@ -1073,3 +1073,36 @@ it.each(["manual", "unknown"] as const)("reports restored %s translations missin
     expect(fs.readFileSync(path.join(db.bookDir!, "adt", "content", "i18n", "fr", "texts.json"), "utf8")).toContain(protectedEntry.text)
   } finally { db.close() }
 }, 30_000)
+
+it.each(["manual", "unknown"] as const)("protects a readable legacy %s translation document without generatedAt during an ordinary HTTP run and history recovery", async authorship => {
+  const catalog = await json("text-catalog")
+  const entries = catalog.entries.map((entry: { id: string }) => ({
+    id: entry.id, text: `Legacy correction ${entry.id}`,
+    ...(authorship === "manual" ? { source: "manual" } : {}),
+    legacyNote: "Keep the complete entry",
+  }))
+  const db = book()
+  db.putNodeData("text-catalog-translation", "fr", { entries })
+  db.close()
+  const prior = read("text-catalog-translation", "fr")!
+  expect((await json("text-catalog")).translations.fr.entries).toEqual(entries)
+  const neighbors = [read("page-sectioning", "pg002"), read("web-rendering", "pg002")]
+  generateObject.mockClear()
+  expect((await run("translate")).status).toBe("completed")
+  expect(generateObject).not.toHaveBeenCalled()
+  expect(read("text-catalog-translation", "fr")).toEqual(prior)
+  const rendering = read("web-rendering", "pg001")!
+  expect((await send("pages/pg001/rendering", { sections: [] })).status).toBe(200)
+  expect((await run("translate")).status).toBe("completed")
+  expect((await send("versions/web-rendering/pg001/restore", { version: rendering.version, baseVersion: 2 }, "POST")).status).toBe(200)
+  expect((await run("translate")).status).toBe("completed")
+  expect(generateObject).not.toHaveBeenCalled()
+  const recovered = (read("text-catalog-translation", "fr")!.data as TextCatalogOutput).entries
+  // Recovery appends retired identities; display order still comes from sources.
+  expect(recovered).toHaveLength(entries.length)
+  for (const entry of entries) expect(recovered.find(candidate => candidate.id === entry.id)).toEqual(entry)
+  expect(recovered.filter(entry => entry.id !== "pg001_t001")).toEqual(entries.filter((entry: { id: string }) => entry.id !== "pg001_t001"))
+  expect((await json("debug/versions/text-catalog-translation/fr?includeData=true")).versions).toEqual(expect.arrayContaining([expect.objectContaining({ version: prior.version, data: prior.data })]))
+  expect([read("page-sectioning", "pg002"), read("web-rendering", "pg002")]).toEqual(neighbors)
+  expect(JSON.stringify(await json("adt-preview/content/i18n/fr/texts.json"))).toContain("Legacy correction pg001_t001")
+}, 30_000)
