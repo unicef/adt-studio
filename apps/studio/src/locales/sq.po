@@ -10160,6 +10160,9 @@ msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime.
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Përmbajtja e ruajtur dhe seksionet e faqeve ruhen. Rishikoni fazat e prekura pas ndryshimit të gjuhës. Asnjë gjenerim nuk fillon automatikisht."
 
+msgid "Saved content could not be verified. Try again."
+msgstr "Përmbajtja e ruajtur nuk mund të verifikohej. Provoni përsëri."
+
 msgid "Saved content is kept. Review language-dependent outputs after saving. No generation starts automatically."
 msgstr "Përmbajtja e ruajtur ruhet. Rishikoni rezultatet që varen nga gjuha pas ruajtjes. Asnjë gjenerim nuk fillon automatikisht."
 

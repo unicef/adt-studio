@@ -10158,6 +10158,9 @@ msgstr "Salve seu trabalho primeiro se quiser manter estas alterações."
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "O conteúdo salvo e as seções das páginas são mantidos. Revise as etapas afetadas após alterar o idioma. Nenhuma geração é iniciada automaticamente."
 
+msgid "Saved content could not be verified. Try again."
+msgstr "O conteúdo salvo não pôde ser verificado. Tente novamente."
+
 msgid "Saved content is kept. Review language-dependent outputs after saving. No generation starts automatically."
 msgstr "O conteúdo salvo é mantido. Revise os resultados que dependem do idioma após salvar. Nenhuma geração é iniciada automaticamente."
 

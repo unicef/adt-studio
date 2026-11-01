@@ -10160,6 +10160,9 @@ msgstr "Enregistrez d'abord votre travail si vous souhaitez conserver ces modifi
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Le contenu enregistré et les sections des pages sont conservés. Vérifiez les étapes concernées après le changement de langue. Aucune génération ne démarre automatiquement."
 
+msgid "Saved content could not be verified. Try again."
+msgstr "Le contenu enregistré n’a pas pu être vérifié. Réessayez."
+
 msgid "Saved content is kept. Review language-dependent outputs after saving. No generation starts automatically."
 msgstr "Le contenu enregistré est conservé. Vérifiez les résultats qui dépendent de la langue après l’enregistrement. Aucune génération ne démarre automatiquement."
 

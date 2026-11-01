@@ -72,6 +72,10 @@ function getSectionTypeDisplayLabel(value: string): string {
 }
 
 export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
+  return <SectioningSettingsSession key={bookLabel} bookLabel={bookLabel} tab={tab} />
+}
+
+function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
@@ -333,19 +337,23 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
     return overrides
   }
 
+  const [saving, setSaving] = useState(false)
   const save = async () => {
-    if (sectioningPromptDraft != null) {
-      await savePromptDraft(queryClient, "page_sectioning", bookLabel, sectioningPromptDraft)
-    }
-    if (refinementPromptDraft != null) {
-      await savePromptDraft(queryClient, "page_sectioning_refinement", bookLabel, refinementPromptDraft)
-    }
-
-    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
-    setDirty({})
-    setSectioningPromptDraft(null)
-    setRefinementPromptDraft(null)
-    resetMarkedTabs()
+    setSaving(true)
+    try {
+      if (sectioningPromptDraft != null) {
+        await savePromptDraft(queryClient, "page_sectioning", bookLabel, sectioningPromptDraft)
+      }
+      if (refinementPromptDraft != null) {
+        await savePromptDraft(queryClient, "page_sectioning_refinement", bookLabel, refinementPromptDraft)
+      }
+  
+      await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+      setDirty({})
+      setSectioningPromptDraft(null)
+      setRefinementPromptDraft(null)
+      resetMarkedTabs()
+    } finally { setSaving(false) }
   }
 
   const dirtyTabs = [
@@ -354,12 +362,12 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
     ...(refinementPromptDraft != null ? ["refinement-prompt"] : []),
   ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
 
-  useStageSettingsBar({
+  const runConfirmation = useStageSettingsBar({
     stage: "sectioning",
     bookLabel,
     dirty: dirtyTabs.length > 0,
     dirtyTabs,
-    saving: updateConfig.isPending,
+    saving: saving || updateConfig.isPending,
     save,
     showSaveOnly: PROMPT_TABS.includes(tab),
   })
@@ -395,6 +403,8 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
 
   return (
     <div className={tab === "sectioning-prompt" || tab === "refinement-prompt" ? "h-full" : "p-4 space-y-6"}>
+      {runConfirmation.content}
+      <fieldset disabled={runConfirmation.busy} inert={runConfirmation.busy || undefined} className="contents">
       {tab === "section-types" && (
         <div className="space-y-6">
           <div>
@@ -582,6 +592,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
         <div className="flex flex-col h-full">
           <div className="flex-1 min-h-0">
             <PromptViewer
+              readOnly={runConfirmation.busy}
               promptName="page_sectioning"
               bookLabel={bookLabel}
               title={t`Page Sectioning Prompt`}
@@ -629,6 +640,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
           </div>
           <div className="flex-1 min-h-0">
             <PromptViewer
+              readOnly={runConfirmation.busy}
               promptName="page_sectioning_refinement"
               bookLabel={bookLabel}
               title={t`Page Sectioning Refinement Prompt`}
@@ -771,6 +783,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
           </div>
         </div>
       )}
+      </fieldset>
     </div>
   )
 }

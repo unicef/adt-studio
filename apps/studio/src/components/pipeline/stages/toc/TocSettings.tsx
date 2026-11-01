@@ -8,6 +8,10 @@ import { useStepConfig } from "@/hooks/use-step-config"
 import { useLingui } from "@lingui/react/macro"
 
 export function TocSettings({ bookLabel }: { bookLabel: string; headerTarget?: HTMLDivElement | null }) {
+  return <TocSettingsSession key={bookLabel} bookLabel={bookLabel} />
+}
+
+function TocSettingsSession({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
@@ -35,29 +39,36 @@ export function TocSettings({ bookLabel }: { bookLabel: string; headerTarget?: H
     return overrides
   }
 
+  const [saving, setSaving] = useState(false)
   const save = async () => {
-    if (generationPromptDraft != null) {
-      await savePromptDraft(queryClient, "toc_generation", bookLabel, generationPromptDraft)
-    }
-    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
-    setDirty({})
-    setGenerationPromptDraft(null)
+    setSaving(true)
+    try {
+      if (generationPromptDraft != null) {
+        await savePromptDraft(queryClient, "toc_generation", bookLabel, generationPromptDraft)
+      }
+      await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+      setDirty({})
+      setGenerationPromptDraft(null)
+    } finally { setSaving(false) }
   }
 
   const isDirty = Object.keys(dirty).length > 0 || generationPromptDraft != null
-  useStageSettingsBar({
+  const runConfirmation = useStageSettingsBar({
     stage: "toc",
     bookLabel,
     dirty: isDirty,
     dirtyTabs: isDirty ? ["general"] : [],
-    saving: updateConfig.isPending,
+    saving: saving || updateConfig.isPending,
     save,
     showSaveOnly: true,
   })
 
   return (
     <div className="h-full w-full">
+      {runConfirmation.content}
+      <fieldset disabled={runConfirmation.busy} inert={runConfirmation.busy || undefined} className="contents">
       <PromptViewer
+        readOnly={runConfirmation.busy}
         promptName="toc_generation"
         bookLabel={bookLabel}
         title={t`TOC Generation Prompt`}
@@ -69,6 +80,7 @@ export function TocSettings({ bookLabel }: { bookLabel: string; headerTarget?: H
         onMaxRetriesChange={tocGen.onMaxRetriesChange}
         onContentChange={(content, modelId) => setGenerationPromptDraft(toPromptDraft(content, modelId))}
       />
+      </fieldset>
     </div>
   )
 }

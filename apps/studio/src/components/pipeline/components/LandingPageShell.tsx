@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
-import { api, type RunStagesOptions } from "@/api/client"
+import { type RunStagesOptions } from "@/api/client"
 import { useState, type ComponentProps, type CSSProperties, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { Play, Loader2, Settings, X } from "lucide-react"
@@ -17,8 +16,7 @@ import { PreviewShell } from "@/components/wizard/shared/PreviewShell"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
 import { BOOK_LEVEL_STAGES, type StageName } from "@adt/types"
 import { PartialMergeNotice } from "@/components/parts/PartialMergeNotice"
-import { getStageLabelI18n } from "../pipeline-i18n"
-import { CascadeResetDialog } from "./CascadeResetDialog"
+import { useStageRunConfirmation } from "./use-stage-run-confirmation"
 import { RunWarningDialog } from "./RunWarningDialog"
 import { MissingKeyNotice } from "./MissingKeyNotice"
 
@@ -87,15 +85,17 @@ function LandingPageContent({
   hideFooter?: boolean
   children: ReactNode
 }) {
-  const [confirmOpen, setConfirmOpen] = useState(false)
   const [warnOpen, setWarnOpen] = useState(false)
   const downstreamAffected = useDownstreamWithOutput(stageSlug)
-  const { data: runStatus } = useQuery({ queryKey: ["books", bookLabel, "step-status"], queryFn: () => api.getStepStatus(bookLabel) })
-  const protectedWork = (runStatus?.protectedWork ?? []).filter((r) => r.node === (stageSlug === "sectioning" ? "page-sectioning" : stageSlug === "toc" ? "toc-generation" : ""))
-  const [protectedSnapshot, setProtectedSnapshot] = useState<typeof protectedWork>([])
-  const [replaceManual, setReplaceManual] = useState(false)
-  const needsConfirmation = (isCompleted && downstreamAffected.length > 0) || protectedWork.length > 0
   const { isCancelling, cancelRun } = useBookRun()
+  const available = !isRunning && canRun && !extraDisabled
+  const confirmation = useStageRunConfirmation({
+    bookLabel, stage: stageSlug, available,
+    affectedStages: downstreamAffected,
+    confirmDownstream: isCompleted && downstreamAffected.length > 0,
+    confirmLabel: rerunLabel,
+    colorClass: hasError ? errorColorClass : colorClass,
+  })
 
   const accentStyle: CSSProperties = {}
   if (accentColor) {
@@ -106,22 +106,14 @@ function LandingPageContent({
     ;(accentStyle as Record<string, string>)["--accent-color-soft"] =
       accentColorSoft
   }
-  const isDisabled = isRunning || !canRun || extraDisabled
+  const isDisabled = !available || !!confirmation.disabledReason
   const showTooltip = isDisabled && !isRunning && !!disabledReason
 
   // Run gates, applied outermost-first: fixed-layout (or other) warning, then
   // the cascade-reset confirmation, then the run itself.
   const proceedRun = () => {
     if (isDisabled) return
-    if (needsConfirmation) {
-      // A background refresh must not authorize replacing a newer version than
-      // the one named when the confirmation opened. The API rejects stale scope.
-      setProtectedSnapshot(protectedWork.map((record) => ({ ...record })))
-      setReplaceManual(false)
-      setConfirmOpen(true)
-    } else {
-      onRun()
-    }
+    void confirmation.requestRun(options => onRun(options))
   }
 
   const handleRunClick = () => {
@@ -138,15 +130,6 @@ function LandingPageContent({
     setWarnOpen(false)
     proceedRun()
   }
-
-  const handleConfirm = () => {
-    setConfirmOpen(false)
-    if (!confirmOpen || isDisabled) return
-    const replace = protectedSnapshot.length > 0 && (stageSlug === "toc" || replaceManual)
-    onRun({ replaceManual: replace, protectedReplacements: replace ? protectedSnapshot.map(({ node, itemId, version }) => ({ node, itemId, version })) : [] })
-  }
-
-  const stageLabel = getStageLabelI18n(stageSlug)
 
   const runButton = isRunning ? (
     <Button
@@ -197,6 +180,7 @@ function LandingPageContent({
           )}
           {requiresProvider && <MissingKeyNotice bookLabel={bookLabel} />}
           {children}
+          {confirmation.notice}
         </div>
 
         {!hideFooter && (
@@ -253,32 +237,7 @@ function LandingPageContent({
         </div>
       </main>
 
-      <CascadeResetDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        affectedStages={downstreamAffected}
-        headerStageSlug={stageSlug}
-        title={<Trans>Re-run {stageLabel}?</Trans>}
-        description={stageSlug === "sectioning" && protectedSnapshot.length > 0 ? (
-          <Trans>Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated.</Trans>
-        ) : (
-          <Trans>
-            Review the affected stages after this change.
-          </Trans>
-        )}
-        confirmLabel={rerunLabel}
-        confirmColorClass={hasError ? errorColorClass : colorClass}
-        onConfirm={handleConfirm}
-      >
-        {protectedSnapshot.length > 0 && (stageSlug === "toc" ? (
-          <p className="text-sm"><Trans>This replaces the manually edited or legacy table of contents. Its saved version remains in history.</Trans></p>
-        ) : (
-          <div className="space-y-2 text-sm">
-            <p><Trans>Pages with manual edits or unknown authorship:</Trans> {protectedSnapshot.map((r) => r.pageNumber ?? r.itemId).join(", ")}</p>
-            <label className="flex gap-2"><input type="checkbox" checked={replaceManual} onChange={(e) => setReplaceManual(e.target.checked)} /><Trans>Also regenerate these pages and replace their saved content</Trans></label>
-          </div>
-        ))}
-      </CascadeResetDialog>
+      {confirmation.dialog}
 
       {runWarning && (
         <RunWarningDialog
