@@ -837,7 +837,7 @@ export function LanguageView({
     if (!submitted || !translationItemId) return;
     const submittedVersions = pendingVersions.current;
     const submittedScope = translationScope;
-    let clearableSubmission = submitted;
+    let acknowledgedVersions: typeof submittedVersions | null = null;
     savingRef.current = true;
     setSaving(true);
     setSaveError(null);
@@ -850,6 +850,7 @@ export function LanguageView({
     });
     if (translationScopeRef.current === submittedScope && pendingVersions.current === submittedVersions) {
       pendingVersions.current = { ...submittedVersions, baseVersion: result.version };
+      acknowledgedVersions = pendingVersions.current;
       const pending = pendingEntriesRef.current;
       if (pending) {
         // Only our successful transaction may advance this draft's base. The
@@ -857,7 +858,6 @@ export function LanguageView({
         // reapply successor edits to that exact saved shape, before refetch.
         const reconciled = rebaseTranslationDraft(submitted, pending, result.entries).value;
         setPendingEntries(reconciled);
-        if (pending === submitted) clearableSubmission = reconciled;
       }
       draft.acknowledge(result.entries, result.version);
     }
@@ -877,7 +877,13 @@ export function LanguageView({
     });
     await minDelay;
     if (translationScopeRef.current === submittedScope) {
-      if (pendingEntriesRef.current === clearableSubmission) setPendingEntries(null);
+      const pending = pendingEntriesRef.current;
+      if (pending && pendingVersions.current === acknowledgedVersions) {
+        // Typing and then reverting a successor is also clean. Compare to our
+        // receipt, never to a refetch or a discarded/recreated draft's guards.
+        const remaining = diffById(visibleTranslations(result.entries), visibleTranslations(pending), entry => entry.id, (a, b) => a.text === b.text);
+        if (!remaining.added.length && !remaining.removed.length && !remaining.changed.length) setPendingEntries(null);
+      }
       setSaveError(null);
       setAppliedSuggestionEntryIds(new Set());
     }

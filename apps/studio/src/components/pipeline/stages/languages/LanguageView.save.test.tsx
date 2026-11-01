@@ -540,3 +540,34 @@ it("clears a normalized acknowledged draft with no successor and starts the next
   await act(async () => { await saveActions.stay() })
   expect(api.updateTranslation).toHaveBeenLastCalledWith("book", "fr", expect.objectContaining({ baseVersion: 2, entries: [{ ...savedEntries[0], text: "Next" }] }))
 })
+
+it.each(["before", "after"].flatMap(timing => ["same", "unrelated"].map(target => ({ timing, target }))))
+("clears a net-clean successor $timing acknowledgement ($target)", async ({ timing, target }) => {
+  const original = [{ id: "pg001_a", text: "A" }, { id: "pg001_b", text: "Visible B" }, { id: "pg001_b", text: "Hidden B" }]
+  const savedEntries = [original[0], { ...original[1], text: "Submitted B", source: "manual" }]
+  const catalog = { version: 4, entries: original.slice(0, 2), translations: { fr: { version: 1, sourceSignature: "source", entries: original } } }
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  client.setQueryData(["books", "book", "text-catalog"], catalog)
+  vi.mocked(api.getTextCatalog).mockResolvedValue({ ...catalog, translations: { fr: { ...catalog.translations.fr, version: 2, entries: savedEntries } } } as never)
+  let acknowledge!: () => void, releaseRefresh!: () => void
+  vi.mocked(api.updateTranslation).mockImplementationOnce(() => new Promise(resolve => { acknowledge = () => resolve({ version: 2, entries: savedEntries } as never) }))
+  vi.spyOn(client, "invalidateQueries").mockImplementationOnce(() => new Promise(resolve => { releaseRefresh = resolve }))
+  render(<QueryClientProvider client={client}><TooltipProvider><LanguageView bookLabel="book" /></TooltipProvider></QueryClientProvider>)
+  fireEvent.change((await screen.findAllByPlaceholderText("Pending..."))[1], { target: { value: "Submitted B" } })
+  let first!: Promise<void>
+  await act(async () => { first = saveActions.stay(); void first.catch(() => {}) })
+  const revert = () => {
+    const input = screen.getAllByPlaceholderText("Pending...")[target === "same" ? 1 : 0]
+    fireEvent.change(input, { target: { value: "Temporary successor" } })
+    fireEvent.change(input, { target: { value: target === "same" ? "Submitted B" : "A" } })
+  }
+  if (timing === "before") revert()
+  await act(async () => { acknowledge() })
+  if (timing === "after") revert()
+  await act(async () => { releaseRefresh(); await first })
+  expect(api.updateTranslation).toHaveBeenCalledTimes(1)
+  expect(screen.queryByText(/Newer edits are still unsaved/)).toBeNull()
+  expect((screen.getByRole("button", { name: "Save translation" }) as HTMLButtonElement).disabled).toBe(true)
+  const spanish = screen.getByRole("button", { name: /Spanish.*es/ }) as HTMLButtonElement
+  expect(spanish.disabled).toBe(false)
+})
