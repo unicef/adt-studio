@@ -110,7 +110,18 @@ function proposalToOutline(
   const entries: BookOutlineEntry[] = []
   let adjustedTocLevels = 0
 
-  proposal.entries.forEach((entry, index) => {
+  // Page order is fully determined by the referenced candidates, so restore it
+  // locally instead of paying for another multimodal call when a model groups
+  // entries by level. The sort is stable: the model's order within each page,
+  // its own reading-order judgment, is preserved.
+  const pageOf = (entry: BookOutlineProposalOutput["entries"][number]) =>
+    candidates.get(entry.sourceCandidateIds[0])?.pageNumber ?? Number.MAX_SAFE_INTEGER
+  const ordered = proposal.entries
+    .map((entry, index) => ({ entry, index }))
+    .sort((a, b) => pageOf(a.entry) - pageOf(b.entry))
+  const reordered = ordered.some(({ index }, position) => index !== position)
+
+  ordered.forEach(({ entry, index }, position) => {
     const sourceCandidates = entry.sourceCandidateIds.flatMap((candidateId) => {
       const candidate = candidates.get(candidateId)
       if (!candidate) {
@@ -151,7 +162,7 @@ function proposalToOutline(
     }
 
     entries.push({
-      outlineId: outlineIdForIndex(index),
+      outlineId: outlineIdForIndex(position),
       title,
       level,
       kind: entry.kind,
@@ -167,11 +178,14 @@ function proposalToOutline(
   if (errors.length > 0 || entries.length !== proposal.entries.length) {
     return { outline: null, errors }
   }
-  const tocNote = adjustedTocLevels > 0
-    ? ` Applied ${adjustedTocLevels} deterministic TOC hierarchy correction${adjustedTocLevels === 1 ? "" : "s"}.`
-    : ""
-  const reasoning = tocNote
-    ? `${proposal.reasoning.slice(0, Math.max(0, 600 - tocNote.length))}${tocNote}`
+  const notes = [
+    reordered ? " Restored page order of the proposed entries." : "",
+    adjustedTocLevels > 0
+      ? ` Applied ${adjustedTocLevels} deterministic TOC hierarchy correction${adjustedTocLevels === 1 ? "" : "s"}.`
+      : "",
+  ].join("")
+  const reasoning = notes
+    ? `${proposal.reasoning.slice(0, Math.max(0, 600 - notes.length))}${notes}`
     : proposal.reasoning.slice(0, 600)
   return {
     outline: {
