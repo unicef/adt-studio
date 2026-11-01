@@ -762,7 +762,7 @@ export function LanguageView({
     return id.startsWith("timings:") ? [id.slice(id.indexOf(":", 8) + 1)] : [];
   }));
   const hasTimestampDraft = timestampDraftIds.size > 0;
-  const hasOutputDraft = !!pendingEntries || speechDrafts.size > 0;
+  const hasOutputDraft = !!pendingEntries || speechDrafts.size > 0 || saving || restoring;
 
   const speechCatalogFor = useCallback(
     (language: string | null | undefined) => {
@@ -924,13 +924,16 @@ export function LanguageView({
     const base = pendingEntries ?? translatedEntries;
     // If no existing entry for this id, add one
     const exists = base.some((e) => e.id === entryId);
-    if (exists) {
-      setPendingEntries(
-        base.map((e) => (e.id === entryId ? { ...e, text: newText } : e)),
-      );
-    } else {
-      setPendingEntries([...base, { id: entryId, text: newText }]);
-    }
+    const next = exists
+      ? base.map((e) => (e.id === entryId ? { ...e, text: newText } : e))
+      : [...base, { id: entryId, text: newText }];
+    const remaining = diffById(visibleTranslations(translatedEntries), visibleTranslations(next), entry => entry.id, (a, b) => a.text === b.text);
+    // A never-submitted edit reverted to the saved text must release its draft
+    // projection too, so review/refetch can display newer persisted content.
+    // In-flight saves own their successor acknowledgement; conflicts still need
+    // an explicit recovery decision even when the visible text happens to match.
+    const clean = !remaining.added.length && !remaining.removed.length && !remaining.changed.length;
+    setPendingEntries(clean && !savingRef.current && !restoringRef.current && !draft.conflict ? null : next);
   };
 
   const applyReviewSuggestion = (entryId: string, suggestedText: string) => {
