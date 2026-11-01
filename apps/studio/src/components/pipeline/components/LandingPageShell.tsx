@@ -23,12 +23,13 @@ import { MissingKeyNotice } from "./MissingKeyNotice"
 export function LandingPageShell(props: ComponentProps<typeof LandingPageContent>) {
   // Consent belongs to one book and stage. Remount its entire lifecycle on a
   // scope change, including history jumps and returning to a previous scope.
-  return <LandingPageContent key={JSON.stringify([props.bookLabel, props.stageSlug])} {...props} />
+  return <LandingPageContent key={JSON.stringify([props.bookLabel, props.stageSlug, props.confirmationStageSlug])} {...props} />
 }
 
 function LandingPageContent({
   bookLabel,
   stageSlug,
+  confirmationStageSlug = stageSlug,
   settingsTab = "general",
   colorClass,
   accentColor,
@@ -55,6 +56,8 @@ function LandingPageContent({
 }: {
   bookLabel: string
   stageSlug: string
+  /** A combined run may include protected Sectioning before the visible stage. */
+  confirmationStageSlug?: string
   settingsTab?: string
   colorClass: string
   accentColor?: string
@@ -90,7 +93,7 @@ function LandingPageContent({
   const { isCancelling, cancelRun } = useBookRun()
   const available = !isRunning && canRun && !extraDisabled
   const confirmation = useStageRunConfirmation({
-    bookLabel, stage: stageSlug, available,
+    bookLabel, stage: confirmationStageSlug, available,
     affectedStages: downstreamAffected,
     confirmDownstream: isCompleted && downstreamAffected.length > 0,
     confirmLabel: rerunLabel,

@@ -152,6 +152,26 @@ async function saveProtected() {
   expect((await send("text-catalog-translation/fr", { entries: catalog.entries.map((e: { id: string }) => ({ id: e.id, text: `Manual French ${e.id}` })), baseVersion: 0, sourceVersion: catalog.version, sourceSignature: catalog.translationSourceSignatures.fr })).status).toBe(200)
 }
 
+it.each([false, true])("combined Sectioning to Storyboard honors the named default-off consent (replace=%s)", async replace => {
+  await saveProtected()
+  const prepared = book()
+  for (const stage of PIPELINE.filter(stage => stage.name === "extract")) for (const step of stage.steps) prepared.markStepCompleted(step.name)
+  prepared.putNodeData("book-outline", "book", { entries: [], styleClusters: [], reasoning: "fixture" })
+  prepared.close()
+  const prior = ["pg001", "pg002", "pg003"].map(id => ({ id, row: read("page-sectioning", id)! }))
+  const consent = prior.map(({ id, row }) => ({ node: "page-sectioning", itemId: id, version: row.version }))
+  expect((await run("sectioning", { toStage: "storyboard", replaceManual: replace, protectedReplacements: replace ? consent : [] })).status).toBe("completed")
+  expect(sectionPage).toHaveBeenCalledTimes(replace ? 3 : 0)
+  for (const { id, row } of prior) {
+    if (replace) {
+      expect(read("page-sectioning", id)!.data).toMatchObject({ source: "ai" })
+      expect(read("page-sectioning", id)!.version).toBeGreaterThan(row.version)
+    } else expect(read("page-sectioning", id)).toEqual(row)
+    expect((await json(`debug/versions/page-sectioning/${id}?includeData=true`)).versions)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ version: row.version, data: row.data })]))
+  }
+})
+
 it("saves, runs real admission/preparation/workers, reads history, previews and exports protected content", async () => {
   await saveProtected()
   const manualQuizId = (await json("quizzes")).quizzes.quizzes[0].quizId
