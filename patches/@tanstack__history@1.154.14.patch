@@ -1,0 +1,39 @@
+diff --git a/dist/cjs/index.cjs b/dist/cjs/index.cjs
+index 095cec92157ea88d9eb595446f5b8347446c3b62..8ed634d2db849d03d5dc0a546e041de4d481c34f 100644
+--- a/dist/cjs/index.cjs
++++ b/dist/cjs/index.cjs
+@@ -242,7 +242,7 @@ function createBrowserHistory(opts) {
+           });
+           if (isBlocked) {
+             ignoreNextPop = true;
+-            win.history.go(1);
++            win.history.go(Number.isSafeInteger(delta) && delta !== 0 ? -delta : 1);
+             history.notify(notify);
+             return;
+           }
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+index 5df56d37705653f152f7fb2afeae277628c2ea6b..7aedf6b35e3183da7b8721f929dc5f913332e4db 100644
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -240,7 +240,7 @@ function createBrowserHistory(opts) {
+           });
+           if (isBlocked) {
+             ignoreNextPop = true;
+-            win.history.go(1);
++            win.history.go(Number.isSafeInteger(delta) && delta !== 0 ? -delta : 1);
+             history.notify(notify);
+             return;
+           }
+diff --git a/src/index.ts b/src/index.ts
+index 8d70c60da55ca7b38272791e15ce0f3971c18665..959143b6c88ca290e34fdaef7e7774a0a88aade2 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -438,7 +438,7 @@ export function createBrowserHistory(opts?: {
+           })
+           if (isBlocked) {
+             ignoreNextPop = true
+-            win.history.go(1)
++            win.history.go(Number.isSafeInteger(delta) && delta !== 0 ? -delta : 1)
+             history.notify(notify)
+             return
+           }
