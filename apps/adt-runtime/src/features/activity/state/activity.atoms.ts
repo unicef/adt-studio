@@ -1,6 +1,6 @@
 import { ephemeralAtom } from "@/shared/state/persist"
 
-export type ValidateHandler = () => void
+export type ValidateHandler = () => void | Promise<void>
 export type SkipHandler = () => void
 export type SubmitState = "submit" | "next"
 

@@ -1,3 +1,4 @@
+import { groupExperimentalActivityPages, wrapExperimentalActivityBlock, experimentalActivityPageContent } from "../experimental-activity-pages.js"
 import { buildImageInventory } from "../catalog-reconciliation.js"
 import { answerTextId, resolveQuizOptionId } from "@adt/types"
 import { scopeLegacyActivityIds } from "../catalog-reconciliation.js"
@@ -14,6 +15,7 @@ import temml from "temml"
 import type { Storage } from "@adt/storage"
 import { bookAssetExists } from "@adt/storage"
 import type {
+  SectionRendering,
   ContentNodeData,
   PageSectioningSection,
   TextCatalogOutput,
@@ -191,7 +193,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 16
+const PACKAGING_FORMAT_VERSION = 17
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -440,6 +442,7 @@ export async function packageAdtWeb(
     return editableActivitiesByPage.get(pageId)!
   }
 
+  const pageFragments = new Map<string, { options: RenderPageOptions; rendering: SectionRendering }>()
   for (const item of readingOrder.items) {
     // Every page is named by its stable id. Nothing is named for its position,
     // so a page keeps its URL no matter where it sits in the reading order —
@@ -547,7 +550,7 @@ export async function packageAdtWeb(
       }
     }
 
-    const pageHtml = renderPageHtml({
+    const pageOptions: RenderPageOptions = {
       content: rewrittenHtml,
       language,
       sectionId,
@@ -561,7 +564,9 @@ export async function packageAdtWeb(
       applyBodyBackground,
       fixedViewport,
       bodyFontFamily,
-    })
+    }
+    pageFragments.set(sectionId, { options: pageOptions, rendering: rs })
+    const pageHtml = renderPageHtml(pageOptions)
     fs.writeFileSync(path.join(adtDir, filename), pageHtml)
 
     pageList.push(toPageEntry(item))
@@ -576,6 +581,31 @@ export async function packageAdtWeb(
       })
     }
   }
+
+  // Read-only composition: keep source IDs/files addressable while publishing
+  // one navigation entry per composed page. Every alias has the same page owner.
+  const groups = groupExperimentalActivityPages(storage, readingOrder.items, fixedLayout ? undefined : options.config)
+  const groupedHrefs = new Map<string, string>()
+  const mode = options.config?.page_sectioning?.experimental_activity_pages
+  pageList.splice(0, pageList.length, ...groups.map(group => toPageEntry(group[0])))
+  for (const [index, group] of groups.entries()) {
+    const leader = group[0]
+    for (const member of group) groupedHrefs.set(member.id, `${leader.id}.html${group.length > 1 ? `#${member.id}` : ""}`)
+    if (group.length > 1 && (mode === "page" || mode === "section")) {
+      const first = pageFragments.get(leader.id)!
+      const blocks = group.map(member => {
+        const fragment = pageFragments.get(member.id)!
+        return wrapExperimentalActivityBlock({ ...fragment.rendering, html: fragment.options.content }, member.id)
+      })
+      const html = renderPageHtml({ ...first.options, pageIndex: index + 1,
+        content: experimentalActivityPageContent(blocks, mode), activityAnswers: undefined })
+      for (const member of group) fs.writeFileSync(path.join(adtDir, `${member.id}.html`), html)
+    } else {
+      const file = path.join(adtDir, `${leader.id}.html`)
+      fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace(/(<meta name="page-section-id" content=")[^"]*/, `$1${index + 1}`))
+    }
+  }
+  for (const entry of tocEntries) entry.href = groupedHrefs.get(entry.section_id) ?? entry.href
 
   if (orphanedRenderings.length > 0) {
     // Also emitted as progress so a CLI/log trace records it. The returned
@@ -614,7 +644,7 @@ export async function packageAdtWeb(
   if (llmToc && llmToc.entries.length > 0) {
     // Preserve stored parent-child groups in the runtime TOC, resolving
     // hrefs from the page list (the first page is always index.html)
-    const hrefMap = new Map(pageList.map((p) => [p.section_id, p.href]))
+    const hrefMap = groupedHrefs
     const tocJson = orderTocEntries(llmToc.entries, readingOrder.positionById)
       .map((e) => ({
         section_id: e.sectionId,

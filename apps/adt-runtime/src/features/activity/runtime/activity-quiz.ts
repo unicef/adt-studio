@@ -1,3 +1,4 @@
+import { activityStore, activityAnswers } from "./activity-scope"
 import { getDefaultStore } from "jotai"
 import { translationsAtom } from "@/features/language/state/language.atoms"
 import { pagesAtom, currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
@@ -23,7 +24,7 @@ import { navigateToPage } from "@/features/navigation/lib/page-swap"
  * each carrying a unique `data-activity-item`, with a correctness map keyed by
  * those item IDs. The two diverge in:
  *   - where the correct-answers map lives (`data-correct-answers` attribute /
- *     embedded <script> for quiz; `window.correctAnswers` for MC),
+ *     embedded <script> for quiz; `activityAnswers(section)` for MC),
  *   - cardinality: a section may host MULTIPLE multiple-choice question
  *     groups, each identified by its inner radio's `name` attribute. Each
  *     group tracks its own selection + validation state independently.
@@ -41,7 +42,7 @@ function tr(key: string, fallback: string): string {
   return dict[key] || fallback
 }
 
-// `window.correctAnswers` is declared once in ./activity-globals.d.ts.
+// Legacy window.correctAnswers is declared in activity-globals.d.ts; composed pages use block-local answers.
 // Multiple-choice ships boolean values; other text-input activities ship
 // strings.
 
@@ -63,9 +64,9 @@ function readCorrectAnswers(section: HTMLElement): Record<string, boolean> {
     }
   }
   // Multiple-choice sections rely on the global written by renderPageHtml.
-  if (typeof window !== "undefined" && window.correctAnswers) {
+  if (typeof window !== "undefined" && activityAnswers(section)) {
     const out: Record<string, boolean> = {}
-    for (const [k, v] of Object.entries(window.correctAnswers)) out[k] = Boolean(v)
+    for (const [k, v] of Object.entries(activityAnswers(section))) out[k] = Boolean(v)
     return out
   }
   return {}
@@ -408,12 +409,12 @@ function findNextPageHref(): string | null {
   return pages[idx + 1].href
 }
 
-export function initializeQuizActivity(): (() => void) | null {
+export function initializeQuizActivity(root?: ParentNode): (() => void) | null {
   if (typeof document === "undefined") return null
-  const section = document.querySelector<HTMLElement>(QUIZ_SELECTOR)
+  const section = (root ?? document).querySelector<HTMLElement>(QUIZ_SELECTOR)
   if (!section) return null
 
-  const store = getDefaultStore()
+  const store = activityStore(section)
   const correctAnswers = readCorrectAnswers(section)
 
   // On success the dock advances to the next page — for both standalone quiz

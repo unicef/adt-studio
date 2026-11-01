@@ -142,6 +142,32 @@ describe("ADT preview routes", () => {
     fs.rmSync(webAssetsDir, { recursive: true, force: true })
   })
 
+  it("previews grouped activity pages and keeps section aliases on the same page owner", async () => {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      const sections = [1, 2].map(seq => ({ sectionId: `${label}_p1_sec00${seq}`, sectionType: "activity_fill_in_the_blank", nodes: [], backgroundColor: "#fff", textColor: "#000", pageNumber: 1, isPruned: false }))
+      storage.putNodeData("page-sectioning", `${label}_p1`, { reasoning: "experiment", sections })
+      storage.putNodeData("web-rendering", `${label}_p1`, { sections: sections.map((section, index) => ({ sectionId: section.sectionId, sectionIndex: index, sectionType: section.sectionType, reasoning: "", html: `<section data-section-id="${section.sectionId}" data-section-type="${section.sectionType}"><input type="text" data-activity-item="item-1"></section>`, activityAnswers: { "item-1": index ? "moon" : "sun" } })) })
+    } finally { storage.close() }
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "page_sectioning:\n  mode: page\n  experimental_activity_pages: section\n")
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir)
+    const manifest = await (await app.request(`/books/${label}/adt-preview/content/pages.json`)).json()
+    expect(manifest).toHaveLength(1)
+    expect(manifest[0].section_id).toBe(`${label}_p1_sec001`)
+    for (const seq of [1, 2]) {
+      const response = await app.request(`/books/${label}/adt-preview/${label}_p1_sec00${seq}.html`)
+      expect(response.status).toBe(200)
+      const html = await response.text()
+      expect(html).toContain('data-experimental-activity-page="section"')
+      expect(html.match(/data-activity-block=/g)).toHaveLength(2)
+      expect(html).toContain(`<meta name="title-id" content="${label}_p1_sec001"`)
+      expect(html).toContain("moon")
+      expect(html).toContain("sun")
+    }
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "page_sectioning:\n  experimental_activity_pages: off\n")
+    expect(await (await app.request(`/books/${label}/adt-preview/content/pages.json`)).json()).toHaveLength(2)
+  })
+
   it("auto-builds base.bundle.min.js by invoking apps/adt-runtime/build.config.mjs when stale", async () => {
     // The preview route resolves `apps/adt-runtime/build.config.mjs` relative
     // to `<webAssetsDir>/../../`. To exercise the auto-build path we lay out

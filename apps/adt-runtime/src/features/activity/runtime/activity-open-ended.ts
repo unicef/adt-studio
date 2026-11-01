@@ -12,6 +12,7 @@
  * Unlike fill-in-the-blank, there are no `correctAnswers` — any non-empty,
  * non-gibberish, non-profane text counts as accepted.
  */
+import { activityStore, activityPersistenceId } from "./activity-scope"
 import { getDefaultStore } from "jotai"
 import { getTextInputs as getActivityInputs, type TextInput } from "../lib/text-inputs"
 import { translationsAtom } from "../../language/state/language.atoms"
@@ -64,9 +65,7 @@ function findNextPageHref(): string | null {
 function persistenceKey(input: TextInput): string | null {
   const ariaId = input.getAttribute("data-aria-id")
   if (!ariaId) return null
-  const activityId = location.pathname
-    .substring(location.pathname.lastIndexOf("/") + 1)
-    .split(".")[0]
+  const activityId = activityPersistenceId(input)
   return `${activityId}_${ariaId}`
 }
 
@@ -100,7 +99,7 @@ function updateSubmitEnabled(section: HTMLElement): void {
   inputs.forEach((i) => {
     if (i.value.trim() !== "") anyFilled = true
   })
-  getDefaultStore().set(submitEnabledAtom, anyFilled)
+  activityStore(section).set(submitEnabledAtom, anyFilled)
 }
 
 interface FullValidationResult {
@@ -156,13 +155,13 @@ async function validateAll(
   }
 }
 
-export function initializeOpenEndedActivity(): (() => void) | null {
+export function initializeOpenEndedActivity(root?: ParentNode): (() => void) | null {
   if (typeof document === "undefined") return null
-  const found = document.querySelector<HTMLElement>(OPEN_ENDED_SELECTOR)
+  const found = (root ?? document).querySelector<HTMLElement>(OPEN_ENDED_SELECTOR)
   if (!found) return null
   const section: HTMLElement = found
 
-  const store = getDefaultStore()
+  const store = activityStore(section)
 
   // Promote ARIA — the prompt forbids the section from carrying role="activity",
   // but we still want it announced as a form for assistive tech.
@@ -283,7 +282,7 @@ export function initializeOpenEndedActivity(): (() => void) | null {
     ;(firstEmpty ?? firstFlagged)?.focus()
   }
 
-  function handleValidate(): void {
+  function handleValidate(): void | Promise<void> {
     if (disposed) return
     const state = store.get(submitStateAtom)
     if (state === "next") {
@@ -293,7 +292,7 @@ export function initializeOpenEndedActivity(): (() => void) | null {
     }
     if (validationInFlight) return
     validationInFlight = true
-    runValidation().finally(() => {
+    return runValidation().finally(() => {
       validationInFlight = false
     })
   }

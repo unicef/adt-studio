@@ -310,5 +310,12 @@
     "comments-reading-now-label": "Reading now",
     "comments-hint-title": "You can comment on this book",
     "comments-hint-body": "Press this button, then click anywhere on a page to leave a note.",
-    "comments-hint-dismiss-label": "Dismiss"
+    "comments-hint-dismiss-label": "Dismiss",
+    "activity-page-checking": "Checking…",
+    "activity-page-complete": "Page complete",
+    "activity-page-next-section": "Next section",
+    "activity-page-check-section": "Check section",
+    "activity-page-check-page": "Check page",
+    "activity-page-progress": "${done} of ${total} sections complete",
+    "activity-page-error": "This section could not be checked. Try again."
 }

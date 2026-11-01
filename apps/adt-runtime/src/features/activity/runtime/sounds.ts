@@ -4,6 +4,8 @@
  * (browsers reject playback until the user interacts).
  */
 
+import { isActivityBatch } from "./activity-scope"
+
 export type ActivitySoundKey =
   | "drop"
   | "success"
@@ -51,6 +53,7 @@ function get(key: ActivitySoundKey): HTMLAudioElement | null {
 }
 
 export function playActivitySound(key: ActivitySoundKey): void {
+  if (isActivityBatch()) return
   const audio = get(key)
   if (!audio) return
   try {

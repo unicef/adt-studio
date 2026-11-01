@@ -1,3 +1,4 @@
+import { activityStore, activityAnswers } from "./activity-scope"
 import { getDefaultStore } from "jotai"
 import { translationsAtom } from "@/features/language/state/language.atoms"
 import { pagesAtom, currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
@@ -111,7 +112,7 @@ function tr(key: string, fallback: string): string {
   return dict[key] || fallback
 }
 
-// `window.correctAnswers` is declared once in ./activity-globals.d.ts.
+// Legacy window.correctAnswers is declared in activity-globals.d.ts; composed pages use block-local answers.
 // For underline-text, `true` means the word should be underlined.
 
 interface UnderlineGroup {
@@ -137,9 +138,9 @@ function readCorrectAnswers(section: HTMLElement): Record<string, boolean> {
       // fall through
     }
   }
-  if (typeof window !== "undefined" && window.correctAnswers) {
+  if (typeof window !== "undefined" && activityAnswers(section)) {
     const out: Record<string, boolean> = {}
-    for (const [k, v] of Object.entries(window.correctAnswers)) out[k] = Boolean(v)
+    for (const [k, v] of Object.entries(activityAnswers(section))) out[k] = Boolean(v)
     return out
   }
   return {}
@@ -276,12 +277,12 @@ function findNextPageHref(): string | null {
   return pages[idx + 1].href
 }
 
-export function initializeUnderlineTextActivity(): (() => void) | null {
+export function initializeUnderlineTextActivity(root?: ParentNode): (() => void) | null {
   if (typeof document === "undefined") return null
-  const section = document.querySelector<HTMLElement>(UNDERLINE_SELECTOR)
+  const section = (root ?? document).querySelector<HTMLElement>(UNDERLINE_SELECTOR)
   if (!section) return null
 
-  const store = getDefaultStore()
+  const store = activityStore(section)
   const styleElement = injectStylesheet(document)
   const correctAnswers = readCorrectAnswers(section)
   const groups = buildGroups(section)

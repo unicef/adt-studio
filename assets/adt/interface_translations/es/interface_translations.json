@@ -296,5 +296,12 @@
     "comments-reading-now-label": "Leyendo ahora",
     "comments-hint-title": "Puedes comentar este libro",
     "comments-hint-body": "Pulsa este botón y luego haz clic en cualquier parte de una página para dejar una nota.",
-    "comments-hint-dismiss-label": "Cerrar"
+    "comments-hint-dismiss-label": "Cerrar",
+    "activity-page-checking": "Comprobando…",
+    "activity-page-complete": "Página completada",
+    "activity-page-next-section": "Siguiente sección",
+    "activity-page-check-section": "Comprobar sección",
+    "activity-page-check-page": "Comprobar página",
+    "activity-page-progress": "${done} de ${total} secciones completadas",
+    "activity-page-error": "No se pudo comprobar esta sección. Inténtalo de nuevo."
 }

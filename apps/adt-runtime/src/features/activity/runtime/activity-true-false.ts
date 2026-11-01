@@ -13,6 +13,7 @@
  *   - <span class="validation-mark hidden"> inside each radio's label —
  *     receives a check/cross icon on submit
  */
+import { activityStore, activityAnswers } from "./activity-scope"
 import { getDefaultStore } from "jotai"
 import { translationsAtom } from "../../language/state/language.atoms"
 import {
@@ -82,8 +83,8 @@ function getCheckedRadio(
   return getRadiosForItem(section, itemId).find((r) => r.checked) ?? null
 }
 
-function getCorrectAnswer(itemId: string): string | undefined {
-  const raw = window.correctAnswers?.[itemId]
+function getCorrectAnswer(itemId: string, section: HTMLElement): string | undefined {
+  const raw = activityAnswers(section)[itemId]
   if (typeof raw !== "string") return undefined
   return raw.toLowerCase()
 }
@@ -143,7 +144,7 @@ function clearAllValidationMarks(section: HTMLElement): void {
 function updateSubmitEnabled(section: HTMLElement): void {
   const itemIds = getQuestionItemIds(section)
   const anyAnswered = itemIds.some((id) => getCheckedRadio(section, id) !== null)
-  getDefaultStore().set(submitEnabledAtom, anyAnswered)
+  activityStore(section).set(submitEnabledAtom, anyAnswered)
 }
 
 interface FullValidationResult {
@@ -173,7 +174,7 @@ function validateAll(section: HTMLElement): FullValidationResult {
       clearValidationMarksForItem(section, itemId)
       continue
     }
-    const correct = getCorrectAnswer(itemId)
+    const correct = getCorrectAnswer(itemId, section)
     // An empty / missing correct answer is treated as "any non-empty value is
     // fine" — the same convention as fill-in-the-blank handles open-ended.
     const isCorrect =
@@ -197,13 +198,13 @@ function validateAll(section: HTMLElement): FullValidationResult {
   }
 }
 
-export function initializeTrueFalseActivity(): (() => void) | null {
+export function initializeTrueFalseActivity(root?: ParentNode): (() => void) | null {
   if (typeof document === "undefined") return null
-  const found = document.querySelector<HTMLElement>(TF_SELECTOR)
+  const found = (root ?? document).querySelector<HTMLElement>(TF_SELECTOR)
   if (!found) return null
   const section: HTMLElement = found
 
-  const store = getDefaultStore()
+  const store = activityStore(section)
 
   if (!section.getAttribute("role")) section.setAttribute("role", "form")
   const applyLocalizedAria = () => {

@@ -850,6 +850,9 @@ export function buildPageSectioningConfig(
     maxRetries:
       appConfig.page_sectioning?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     maxRefinements: appConfig.page_sectioning?.max_refinements ?? 0,
-    mode: appConfig.page_sectioning?.mode ?? "dynamic",
+    // The experiment separates semantic activity detection from displayed pages.
+    mode: !activitiesOff && appConfig.page_sectioning?.experimental_activity_pages &&
+      appConfig.page_sectioning.experimental_activity_pages !== "off"
+      ? "dynamic" : appConfig.page_sectioning?.mode ?? "dynamic",
   }
 }

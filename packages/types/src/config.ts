@@ -164,6 +164,8 @@ export const EasyReadConfig = StepConfig.extend({
 export type EasyReadConfig = z.infer<typeof EasyReadConfig>
 
 export const PageSectioningConfig = StepConfig.extend({
+  /** Opt-in experiment: compose adjacent sections from one PDF page in the reader. */
+  experimental_activity_pages: z.enum(["off", "page", "section"]).optional(),
   max_refinements: z.number().int().min(0).optional(),
   mode: z.enum(["page", "dynamic"]).catch("dynamic").optional(),
 })

@@ -14,6 +14,7 @@
  */
 // First, before any module can append a <style> to <head> — see page-head.ts.
 import "@/features/navigation/lib/page-head"
+import { initializeActivityPage } from "@/features/activity/runtime/activity-page"
 import { createRoot } from "react-dom/client"
 import {
   Provider as JotaiProvider,
@@ -120,6 +121,7 @@ async function bootActivities(): Promise<void> {
   // Stepper first — sections it owns carry data-activity-variant="stepper"
   // and are excluded from the classic initializers' selectors (it renders its
   // own in-card controls and stands the shared dock down).
+  if (initializeActivityPage()) { initializeWordBankActivity(); return }
   initializeStepperActivity()
   initializeQuizActivity()
   initializeMultiSelectActivity()

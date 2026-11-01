@@ -20,6 +20,7 @@
  * run through the same initializer. The only structural difference is the
  * absence of `[[blank:]]` markers in tables.
  */
+import { activityStore, activityAnswers, activityAnswerTextId, activityPersistenceId, activityDomId } from "./activity-scope"
 import { getDefaultStore } from "jotai"
 import { getTextInputs as getActivityInputs, type TextInput } from "../lib/text-inputs"
 import { translationsAtom } from "../../language/state/language.atoms"
@@ -70,19 +71,19 @@ function findNextPageHref(): string | null {
   return pages[idx + 1].href
 }
 
-function getCorrectAnswer(itemId: string): string | undefined {
+function getCorrectAnswer(itemId: string, element: HTMLElement): string | undefined {
   // The injected map is typed `unknown` per entry (activities disagree on what
   // a value means — see activity-globals.d.ts). Blanks compare text, so coerce
   // non-null primitives: a numeric answer arrives as `100`, not `"100"`. An
   // empty string is meaningful here (open-ended blank: accept any input), so it
   // must survive rather than collapse to undefined.
-  const raw = window.correctAnswers?.[itemId]
+  const raw = activityAnswers(element)[itemId]
   if (raw === undefined || raw === null) return undefined
   // Only authored text answers use the display-language catalog. Packaging
   // supplies the exact owner/key; the reader never infers ownership from DOM
   // position. Missing/blank translations keep the original grading contract,
   // and an explicitly open-ended source stays open-ended.
-  const catalogId = window.activityAnswerTextIds?.[itemId]
+  const catalogId = activityAnswerTextId(element, itemId)
   if (typeof raw === "string" && raw.length > 0 && catalogId) {
     const translated = getDefaultStore().get(translationsAtom)[catalogId]
     if (typeof translated === "string" && translated.trim().length > 0) return translated
@@ -102,9 +103,7 @@ function getInterchangeable(itemId: string): string[] | undefined {
 function persistenceKey(input: TextInput): string | null {
   const ariaId = input.getAttribute("data-aria-id")
   if (!ariaId) return null
-  const activityId = location.pathname
-    .substring(location.pathname.lastIndexOf("/") + 1)
-    .split(".")[0]
+  const activityId = activityPersistenceId(input)
   return `${activityId}_${ariaId}`
 }
 
@@ -179,7 +178,7 @@ function hydrateFitbSentences(section: HTMLElement): void {
             !hint && (/\p{L}/u.test(prev) || /\p{L}/u.test(next))
 
           // Width priority: explicit hint > known answer > word-internal > default.
-          const answer = getCorrectAnswer(`item-${itemNum}`)
+          const answer = getCorrectAnswer(`item-${itemNum}`, section)
           const answerLength =
             typeof answer === "string" && answer.length > 0
               ? answer
@@ -206,7 +205,7 @@ function hydrateFitbSentences(section: HTMLElement): void {
           const spacing = isWordInternal ? "mx-px" : "mx-1"
           return (
             `<input type="text" ` +
-            `id="fitb-input-${itemNum}" ` +
+            `id="${escapeAttr(activityDomId(section, `fitb-input-${itemNum}`))}" ` +
             `class="fitb-inline-input inline-block ${spacing} px-1 py-0.5 border-b-2 border-gray-400 bg-transparent text-center focus:border-blue-500 focus:outline-none" ` +
             `style="width: ${charWidth}ch; min-width: ${minWidth}; max-width: 100%;" ` +
             `aria-label="${escapeAttr(label)}" ` +
@@ -247,7 +246,7 @@ function validateValue(
   const isFilled = value !== ""
   if (!isFilled) return { isCorrect: false, isFilled: false }
 
-  const correct = getCorrectAnswer(itemId)
+  const correct = getCorrectAnswer(itemId, input)
   // Open-ended fields: the LLM emits an empty answer string for items that
   // accept any input. Treat any non-empty value as acceptable.
   if (correct === "" || correct === undefined) {
@@ -264,7 +263,7 @@ function validateValue(
   // item slots, and we reject duplicate values across the pair.
   const pair = getInterchangeable(itemId)
   if (pair && pair.length > 0) {
-    const alternates = pair.map((id) => getCorrectAnswer(id))
+    const alternates = pair.map((id) => getCorrectAnswer(id, input))
     const matchesAny =
       value === normalize(correct) ||
       alternates.some((a) => a != null && value === normalize(a))
@@ -272,7 +271,7 @@ function validateValue(
 
     // Reject duplicates across the pair.
     for (const altId of pair) {
-      const altInput = document.querySelector<TextInput>(
+      const altInput = (input.closest("section") ?? document).querySelector<TextInput>(
         `[data-activity-item="${altId}"]`,
       )
       if (altInput && normalize(altInput.value) === value) {
@@ -315,7 +314,7 @@ function updateSubmitEnabled(section: HTMLElement): void {
   inputs.forEach((i) => {
     if (i.value.trim() !== "") anyFilled = true
   })
-  getDefaultStore().set(submitEnabledAtom, anyFilled)
+  activityStore(section).set(submitEnabledAtom, anyFilled)
 }
 
 interface FullValidationResult {
@@ -361,15 +360,15 @@ function validateAll(section: HTMLElement): FullValidationResult {
   }
 }
 
-export function initializeFillInTheBlankActivity(): (() => void) | null {
+export function initializeFillInTheBlankActivity(root?: ParentNode): (() => void) | null {
   if (typeof document === "undefined") return null
-  const found = document.querySelector<HTMLElement>(FITB_SELECTOR)
+  const found = (root ?? document).querySelector<HTMLElement>(FITB_SELECTOR)
   if (!found) return null
   // Bind to a non-nullable local so inner closures (declared with `function`,
   // not arrow) carry the narrowing.
   const section: HTMLElement = found
 
-  const store = getDefaultStore()
+  const store = activityStore(section)
 
   // Promote ARIA — the prompt forbids the section from carrying role="activity",
   // but we still want it announced as a form for assistive tech.
@@ -406,7 +405,7 @@ export function initializeFillInTheBlankActivity(): (() => void) | null {
         const itemId = input.getAttribute("data-activity-item")
         if (itemId) {
           getInterchangeable(itemId)?.forEach((altId) => {
-            const alt = document.querySelector<TextInput>(
+            const alt = section.querySelector<TextInput>(
               `[data-activity-item="${altId}"]`,
             )
             if (alt) liveValidate(alt)

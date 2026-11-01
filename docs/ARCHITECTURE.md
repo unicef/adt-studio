@@ -10,6 +10,16 @@ ADT Studio is a book production pipeline. It takes a PDF as input and produces s
 
 The system is designed for a single operator (or a single shared team) running against a local or hosted instance. All book data is stored on disk in self-contained directories — no external database, no cloud storage.
 
+### Experimental composed activity pages
+
+The opt-in `page_sectioning.experimental_activity_pages` experiment groups adjacent
+sections from one source PDF page in Preview and web packaging. Saved section
+renderings and owners remain separate; the reader coordinates page-wide or
+section-scoped submission across their activity instances. With the flag enabled,
+By Page uses semantic activity detection before composing the output page. See the
+[experiment finding and try-it instructions](experiments/multi-activity-pages.md)
+for limits and verification. This is not an approved production contract.
+
 ### Image models
 
 Image generation and editing use the provider registry's `ImageBackend` through

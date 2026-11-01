@@ -97,6 +97,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
 
   // Sectioning state
   const [sectioningMode, setSectioningMode] = useState("dynamic")
+  const [activityPages, setActivityPages] = useState("off")
   const [maxRefinements, setMaxRefinements] = useState("")
   const [sectioningPromptDraft, setSectioningPromptDraft] = useState<PromptDraft | null>(null)
   const [refinementPromptDraft, setRefinementPromptDraft] = useState<PromptDraft | null>(null)
@@ -145,6 +146,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
     if (m.page_sectioning && typeof m.page_sectioning === "object") {
       const ps = m.page_sectioning as Record<string, unknown>
       if (ps.mode) setSectioningMode(String(ps.mode))
+      setActivityPages(String(ps.experimental_activity_pages ?? "off"))
       setMaxRefinements(ps.max_refinements != null ? String(ps.max_refinements) : "")
     }
     setGenerateActivities(m.generate_activities !== false)
@@ -321,9 +323,9 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
     if (shouldWrite("pruned_role_types")) {
       overrides.pruned_role_types = Array.from(prunedRoleTypes)
     }
-    if (shouldWrite("page_sectioning") || shouldWrite("max_refinements")) {
+    if (shouldWrite("page_sectioning") || shouldWrite("max_refinements") || dirty.experimental_activity_pages) {
       const existing = (bookConfigData?.config?.page_sectioning ?? {}) as Record<string, unknown>
-      const ps: Record<string, unknown> = { ...existing, ...sectioning.configOverrides, mode: sectioningMode }
+      const ps: Record<string, unknown> = { ...existing, ...sectioning.configOverrides, mode: sectioningMode, experimental_activity_pages: activityPages }
       if (shouldWrite("max_refinements")) {
         ps.max_refinements = maxRefinements.trim() ? Number(maxRefinements) : undefined
       }
@@ -361,7 +363,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
     dirtyTabs,
     saving: updateConfig.isPending,
     save,
-    showSaveOnly: PROMPT_TABS.includes(tab),
+    showSaveOnly: PROMPT_TABS.includes(tab) || (!!dirty.experimental_activity_pages && Object.keys(dirty).length === 1),
   })
 
   const activityNames = useMemo(() => {
@@ -419,7 +421,9 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
                   value: "page",
                   Icon: PageModeIcon,
                   title: <Trans>By Page</Trans>,
-                  description: <Trans>Treats each page as a single section.</Trans>,
+                  description: activityPages === "off"
+                    ? <Trans>Treats each page as a single section.</Trans>
+                    : <Trans>Keeps each source page together while detecting separate activities.</Trans>,
                 },
               ].map(({ value, Icon, title, description }) => {
                 const selected = sectioningMode === value
@@ -459,6 +463,18 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
             <p className="text-xs text-muted-foreground mt-2">
               {<Trans>Controls how page content is grouped during the sectioning step.</Trans>}
             </p>
+            <div className="mt-4 space-y-2 max-w-xl">
+              <Label htmlFor="activity-pages"><Trans>Experimental activity pages</Trans></Label>
+              <Select value={activityPages} onValueChange={(value) => { setActivityPages(value); markDirty("experimental_activity_pages") }}>
+                <SelectTrigger id="activity-pages"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="off"><Trans>Off</Trans></SelectItem>
+                  <SelectItem value="page"><Trans>Group sections — check whole page</Trans></SelectItem>
+                  <SelectItem value="section"><Trans>Group sections — check one section at a time</Trans></SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground"><Trans>Groups supported activity sections from the same PDF page in Preview and exports. Works with either sectioning mode. Existing sections can be tried immediately; run Sectioning and Storyboard to detect activities on new pages. Custom scripts, step-by-step activities and fixed layouts stay separate.</Trans></p>
+            </div>
           </div>
 
           <div>

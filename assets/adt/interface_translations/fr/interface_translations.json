@@ -275,5 +275,12 @@
     "comments-reading-now-label": "En train de lire",
     "comments-hint-title": "Vous pouvez commenter ce livre",
     "comments-hint-body": "Appuyez sur ce bouton, puis cliquez n’importe où sur une page pour laisser une note.",
-    "comments-hint-dismiss-label": "Fermer"
+    "comments-hint-dismiss-label": "Fermer",
+    "activity-page-checking": "Vérification…",
+    "activity-page-complete": "Page terminée",
+    "activity-page-next-section": "Section suivante",
+    "activity-page-check-section": "Vérifier la section",
+    "activity-page-check-page": "Vérifier la page",
+    "activity-page-progress": "${done} sections terminées sur ${total}",
+    "activity-page-error": "Cette section n’a pas pu être vérifiée. Réessayez."
 }
