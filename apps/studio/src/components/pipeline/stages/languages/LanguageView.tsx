@@ -1,6 +1,7 @@
 import { WordTimestampViewer } from "./components/WordTimestampViewer"
 import { useTTSData } from "@/hooks/use-tts";
 import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
+import { rebaseTranslationDraft, translationEditState, visibleTranslations } from "./lib/translation-draft"
 import { useGuardedDraft } from "@/hooks/use-guarded-draft"
 import { DraftConflict } from "../../components/DraftConflict"
 import { OutputReview, useOutputs } from "../../components/OutputReview"
@@ -690,7 +691,7 @@ export function LanguageView({
   const pendingEntriesRef = useRef<TextCatalogEntry[] | null>(null);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
-  const pendingVersions = useRef({ baseVersion: 0, sourceVersion: 0, sourceSignature: "" });
+  const pendingVersions = useRef({ itemId: "", baseVersion: 0, sourceVersion: 0, sourceSignature: "" });
   const [generateErrorById, setGenerateErrorById] = useState<
     Record<string, string>
   >({});
@@ -698,35 +699,26 @@ export function LanguageView({
     Record<string, string>
   >({});
 
-  // Get translated entries for selected language
-  const legacyTranslationItemId = selectedLang?.replace("-", "_");
-  const translationItemId = selectedLang && !catalog?.translations?.[selectedLang] &&
-    legacyTranslationItemId && catalog?.translations?.[legacyTranslationItemId]
-    ? legacyTranslationItemId : selectedLang;
-  const translationScope = useMemo(() => ({ bookLabel, translationItemId }), [bookLabel, translationItemId]);
+  // Keep the logical editor scope stable when a canonical locale supersedes
+  // its legacy alias. The draft's physical target and guards travel together.
+  const editState = translationEditState(catalog, selectedLang);
+  const translationItemId = editState?.itemId ?? selectedLang;
+  const translationScope = useMemo(() => ({ bookLabel, selectedLang }), [bookLabel, selectedLang]);
   const translationScopeRef = useRef(translationScope);
   translationScopeRef.current = translationScope;
-  const translationData = translationItemId
-    ? catalog?.translations?.[translationItemId]
-    : undefined;
-  const translationSourceSignature = translationData?.sourceSignature ??
-    (selectedLang ? catalog?.translationSourceSignatures?.[normalizeLocale(selectedLang)] : undefined);
-  const translatedEntries = isSourceLang
-    ? entries
-    : (translationData?.entries ?? []);
-  const translationVersion = isSourceLang
-    ? (catalog?.version ?? null)
-    : (translationData?.version ?? (translationSourceSignature ? 0 : null));
+  const translatedEntries = isSourceLang ? entries : (editState?.entries ?? []);
+  const translationVersion = isSourceLang ? (catalog?.version ?? null) : (editState?.baseVersion ?? null);
 
   const recoveredVersions = useRef(pendingVersions.current);
   const draft = useGuardedDraft<TextCatalogEntry[]>(translatedEntries, translationVersion, async () => {
     const latest = await api.getTextCatalog(bookLabel);
-    const translation = translationItemId ? latest?.translations?.[translationItemId] : undefined;
-    if (!latest || !translation) throw new Error(t`Saved content is unavailable; your draft is retained`);
+    const recovered = translationEditState(latest, selectedLang);
+    if (!recovered) throw new Error(t`Saved content is unavailable; your draft is retained`);
     queryClient.setQueryData(["books", bookLabel, "text-catalog"], latest);
-    recoveredVersions.current = { baseVersion: translation.version ?? 0, sourceVersion: latest.version ?? 0, sourceSignature: translation.sourceSignature ?? "" };
-    return { value: translation.entries, version: translation.version ?? 0 };
-  });
+    const { entries: value, ...guards } = recovered;
+    if (translationScopeRef.current === translationScope) recoveredVersions.current = guards;
+    return { value, version: guards.baseVersion };
+  }, rebaseTranslationDraft);
   const { pending: pendingEntries } = draft;
   const setPendingEntries = useCallback((next: TextCatalogEntry[] | null) => {
     if (restoringRef.current) return;
@@ -810,8 +802,8 @@ export function LanguageView({
     labelKey: pendingLabelKey,
     hasChanges: dirty,
   } = usePendingChanges({
-    prev: translatedEntries,
-    next: pendingEntries,
+    prev: visibleTranslations(translatedEntries),
+    next: pendingEntries && visibleTranslations(pendingEntries),
     keyOf: (e) => e.id,
     isEqual: (a, b) => a.text === b.text,
     noun: { one: t`translation`, other: t`translations` },
@@ -825,7 +817,7 @@ export function LanguageView({
     // Read the synchronous draft as well as disabling the pills. Reverting all
     // text to the saved value must allow switching without an unavailable Save.
     const pending = pendingEntriesRef.current;
-    const diff = pending && diffById(translatedEntries, pending, entry => entry.id, (a, b) => a.text === b.text);
+    const diff = pending && diffById(visibleTranslations(translatedEntries), visibleTranslations(pending), entry => entry.id, (a, b) => a.text === b.text);
     if (diff && (diff.added.length || diff.removed.length || diff.changed.length) || savingRef.current || restoringRef.current || speechDraftsRef.current.size > 0) return;
     setSelectedLang(language);
   };
@@ -850,9 +842,10 @@ export function LanguageView({
     setSaveError(null);
     try {
     const minDelay = new Promise((r) => setTimeout(r, 400));
-    const result = await api.updateTranslation(bookLabel, translationItemId, {
+    const { itemId, ...guards } = submittedVersions;
+    const result = await api.updateTranslation(bookLabel, itemId, {
       entries: submitted,
-      ...submittedVersions,
+      ...guards,
     });
     if (translationScopeRef.current === submittedScope && pendingVersions.current === submittedVersions) {
       pendingVersions.current = { ...submittedVersions, baseVersion: result.version };
@@ -904,7 +897,14 @@ export function LanguageView({
   saveRef.current = saveTranslation;
 
   const updateEntry = (entryId: string, newText: string) => {
-    if (!pendingEntries) pendingVersions.current = { baseVersion: translationData?.version ?? 0, sourceVersion: catalog?.version ?? 0, sourceSignature: translationSourceSignature ?? "" };
+    if (!pendingEntries) {
+      if (!editState) {
+        setSaveError(t`Saved content is unavailable; your draft is retained`);
+        return;
+      }
+      const { entries: _entries, ...guards } = editState;
+      pendingVersions.current = guards;
+    }
     const base = pendingEntries ?? translatedEntries;
     // If no existing entry for this id, add one
     const exists = base.some((e) => e.id === entryId);

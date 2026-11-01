@@ -756,6 +756,8 @@ export interface TextCatalogResponse {
   generatedAt: string
   version: number
   translations: Record<string, { entries: TextCatalogEntry[]; version: number; sourceSignature: string }>
+  /** Existing current records that cannot be safely edited; never alias-fallback. */
+  unavailableTranslations?: string[]
   translationSourceSignatures?: Record<string, string>
   speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number; sourceSignature: string }>
 }

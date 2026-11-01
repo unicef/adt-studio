@@ -49,6 +49,10 @@ function speechEditSourceSignature(outputs: OutputStatus[], itemId: string): str
   return hash({ itemId, source: editSourceSignature(outputs, "preparation", itemId) })
 }
 
+function translationEditSourceSignature(outputs: OutputStatus[], itemId: string): string {
+  return hash({ itemId, source: editSourceSignature(outputs, "translation", itemId) })
+}
+
 export function createTextCatalogRoutes(booksDir: string, promptsDir = path.resolve("prompts"), configPath?: string): Hono {
   const app = new Hono()
 
@@ -99,15 +103,22 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
       ) as Array<{ item_id: string; data: string; version: number }>
 
       const translations: Record<string, { entries: Array<{ id: string; text: string }>; version: number; sourceSignature: string }> = {}
+      const unavailableTranslations: string[] = []
       const seen = new Set<string>()
       for (const row of translationRows) {
         if (seen.has(row.item_id)) continue
         seen.add(row.item_id)
         try {
           const parsed = JSON.parse(row.data)
-          translations[row.item_id] = { entries: parsed.entries, version: row.version, sourceSignature: editSourceSignature(outputs, "translation", row.item_id) }
+          if (!TextCatalogOutput.shape.entries.safeParse(parsed?.entries).success) {
+            unavailableTranslations.push(row.item_id)
+            continue
+          }
+          translations[row.item_id] = { entries: parsed.entries, version: row.version, sourceSignature: translationEditSourceSignature(outputs, row.item_id) }
         } catch {
-          // skip corrupted current version
+          // Presence still matters: unreadable canonical data must not expose an
+          // older alias or authorize a first Save over this current version.
+          unavailableTranslations.push(row.item_id)
         }
       }
 
@@ -143,12 +154,13 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
         generatedAt: catalog.generatedAt,
         version: catalogRow?.version ?? 0,
         translations,
+        unavailableTranslations,
         // A first manual save has no translation entity yet, but must still
         // bind to the current source/settings instead of sending an empty guard.
         translationSourceSignatures: Object.fromEntries(
           [...new Set(outputs.filter(output => output.identity.kind === "translation")
             .flatMap(output => output.identity.language ? [output.identity.language] : []))]
-            .map(language => [language, editSourceSignature(outputs, "translation", language)]),
+            .map(language => [language, translationEditSourceSignature(outputs, language)]),
         ),
         speechTexts,
       })
@@ -187,8 +199,12 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
           throw new HTTPException(409, { message: "Translation or source changed. Refresh before saving." })
         }
         const outputs = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { kinds: ["translation", "preparation"] })
-        assertEditSource(editSourceSignature(outputs, "translation", language), parsed.data.sourceSignature)
-        const retainedEntries = TextCatalogOutput.safeParse(previous?.data).data?.entries ?? []
+        assertEditSource(translationEditSourceSignature(outputs, itemId), parsed.data.sourceSignature)
+        const retained = TextCatalogOutput.shape.entries.safeParse((previous?.data as TextCatalogOutput | null)?.entries)
+        if (previous && !retained.success) {
+          throw new HTTPException(409, { message: "Saved translation is unavailable. Restore a readable version before saving." })
+        }
+        const retainedEntries = retained.success ? retained.data : []
         const previousEntries = firstCatalogEntries(retainedEntries)
         const previousData = previous?.data && typeof previous.data === "object"
           ? previous.data as { generatedAt?: unknown }
