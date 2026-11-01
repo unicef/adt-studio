@@ -74,6 +74,23 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
+  it("moves the latest write for any saved item, ignoring the excluded nodes", () => {
+    const { storage } = createTempStorage()
+
+    storage.putNodeData("web-rendering", "pg005", { html: "a" })
+    for (let i = 0; i < 5; i++) storage.putNodeData("web-rendering", "pg003", { html: String(i) })
+    const before = storage.latestNodeWriteExcluding("publication", "publication-pending-commit")
+
+    storage.putNodeData("publication", "book", { version: 1 })
+    storage.putNodeData("publication-pending-commit", "book", { version: 1 })
+    expect(storage.latestNodeWriteExcluding("publication", "publication-pending-commit")).toBe(before)
+
+    storage.putNodeData("web-rendering", "pg005", { html: "b" })
+    expect(storage.latestNodeWriteExcluding("publication", "publication-pending-commit")).toBeGreaterThan(before!)
+
+    storage.close()
+  })
+
   it("stores metadata via putNodeData", () => {
     const { storage } = createTempStorage()
 

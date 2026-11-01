@@ -52,6 +52,7 @@ import {
   renderPageWithoutWatermarks,
   type WatermarkSignature,
 } from "./watermarks.js";
+import { loadPdfImage } from "./mupdf-image-refs.js";
 
 // ============================================================================
 // Types
@@ -2017,10 +2018,11 @@ function extractRasterImagesFromPdf(
         } else if (hasSMask) {
           // Composite color + soft-mask into an RGBA PNG, un-matting if the
           // SMask carries a /Matte entry (avoids colored halos at edges).
-          const image = doc.loadImage(streamObj);
+          const image = loadPdfImage(doc, streamObj);
           const srcType = image.getColorSpace()?.getType();
           const colorPixmap = image.toPixmap();
-          const maskImage = doc.loadImage(
+          const maskImage = loadPdfImage(
+            doc,
             smaskObj.isIndirect() ? smaskObj : resolved.get("SMask")
           );
           const maskPixmap = maskImage.toPixmap();
@@ -2034,7 +2036,7 @@ function extractRasterImagesFromPdf(
         } else if (filterName === "DCTDecode" && isSingleFilter) {
           // Single-filter JPEG with non-displayable colorspace (CMYK, Lab,
           // ICCBased non-RGB, etc.) — decode, convert to RGB, re-encode.
-          const image = doc.loadImage(streamObj);
+          const image = loadPdfImage(doc, streamObj);
           const px = image.toPixmap();
           const rgb = normalizeToDisplayableRgb(px);
           buf = Buffer.from(rgb.asJPEG(90, false));
@@ -2046,7 +2048,7 @@ function extractRasterImagesFromPdf(
           // Multi-filter chains or non-JPEG without SMask: decode through
           // mupdf → PNG. Normalize to RGB first since PNG can't encode
           // CMYK/Lab/etc.
-          const image = doc.loadImage(streamObj);
+          const image = loadPdfImage(doc, streamObj);
           const px = image.toPixmap();
           const rgb = normalizeToDisplayableRgb(px);
           buf = Buffer.from(rgb.asPNG());
@@ -2119,7 +2121,7 @@ function stampPixelDigestsOnCollisions(
   for (let i = 0; i < images.length; i++) {
     if ((dimCounts.get(`${images[i].width}x${images[i].height}`) ?? 0) < 2) continue;
     try {
-      const image = doc.loadImage(sources[i]);
+      const image = loadPdfImage(doc, sources[i]);
       images[i].pixelDigest = hashImagePixels(image);
       image.destroy();
     } catch (err) {

@@ -12,7 +12,7 @@ import { useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { useSettingsRemount } from "@/hooks/use-settings-remount"
 import { useRegisterDirtyTabs } from "@/hooks/use-settings-dirty-tabs"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookSpeechAvailability } from "@/hooks/use-api-key"
 import { useLingui } from "@lingui/react/macro"
 import { ProviderVoicePicker } from "./ProviderVoicePicker"
 
@@ -51,7 +51,8 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
   const queryClient = useQueryClient()
   const remount = useSettingsRemount()
   const { queueRun } = useBookRun()
-  const { apiKey, hasSpeechProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasSpeechProvider = useBookSpeechAvailability(bookLabel)
   const navigate = useNavigate()
   const { data: bookConfigData, isLoading: isBookConfigLoading } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)

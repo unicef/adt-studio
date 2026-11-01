@@ -1047,8 +1047,12 @@ function resolveCredentialField(
   providerId: string,
   fieldKey: string,
 ): string {
-  const provider = getDefaultProviderRegistry().get(providerId)
-  const values = resolveProviderCredentials(provider, options.credentials)
+  const registry = getDefaultProviderRegistry()
+  const values = resolveProviderCredentials(
+    registry.get(providerId),
+    options.credentials,
+    registry.tryGet,
+  )
   return values[fieldKey] ?? ""
 }
 
@@ -3699,7 +3703,15 @@ async function runSpeechStep(
 
     progress.emit({ type: "step-complete", step: "tts" })
 
-    const wordHighlightingEnabled = config.speech?.word_highlighting === true
+    // Word timestamps come from OpenAI Whisper. Without an OpenAI key the step
+    // is skipped (Studio shows it as unavailable) instead of saving an empty
+    // version that reports the step as complete. Unlike the disabled case,
+    // `speech.word_highlighting` stays on, so the preview keeps serving stored
+    // timestamps — publishing without timings keeps only those whose audio
+    // hash still matches, so the reader never highlights against the wrong audio.
+    const wordHighlightingRequested = config.speech?.word_highlighting === true
+    const hasWhisperKey = Boolean(openaiApiKey?.trim())
+    const wordHighlightingEnabled = wordHighlightingRequested && hasWhisperKey
     let wordTimestampsByLang = new Map<string, Record<string, WordTimestampEntry>>()
     let timestampFailedByLang = new Map<string, SpeechFailedEntry[]>()
     if (wordHighlightingEnabled) {
@@ -3734,7 +3746,11 @@ async function runSpeechStep(
 
     if (!wordHighlightingEnabled) {
       progress.emit({ type: "step-skip", step: "word-timestamps" })
-      console.log(`[stage-run] ${label}: word-level highlighting disabled; skipping timestamp generation`)
+      if (wordHighlightingRequested) {
+        console.warn(`[stage-run] ${label}: word-level highlighting needs an OpenAI key (Whisper); skipping timestamp generation`)
+      } else {
+        console.log(`[stage-run] ${label}: word-level highlighting disabled; skipping timestamp generation`)
+      }
     } else if (totalTimestampFailed > 0) {
       // Complete the step with gaps rather than erroring, mirroring the Gemini
       // TTS gap path above. The failures are persisted per-language in

@@ -29,7 +29,7 @@ export async function checkProviderConnection(
 
   let credentials: Record<string, string>
   try {
-    credentials = resolveProviderCredentials(module, options.credentials)
+    credentials = resolveProviderCredentials(module, options.credentials, registry.tryGet)
   } catch (error) {
     return failure(providerId, error, false)
   }

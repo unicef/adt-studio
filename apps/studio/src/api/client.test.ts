@@ -8,6 +8,7 @@ vi.mock("@/lib/utils", () => ({
 import { isElectron } from "@/lib/utils"
 import {
   cancelProviderCliLogin,
+  getProviderHealth,
   logoutProviderCli,
   resolveBaseUrl,
   startProviderCliLogin,
@@ -80,5 +81,87 @@ describe("CLI sign-in requests", () => {
     for (const [, init] of fetchSpy.mock.calls) {
       expect(new Headers(init?.headers).get("X-ADT-CLI-Action")).toBe("1")
     }
+  })
+})
+
+describe("provider credential headers", () => {
+  afterEach(() => {
+    window.localStorage.clear()
+    vi.restoreAllMocks()
+  })
+
+  it("sends only the keys the browser stores — never a borrowed shared one", async () => {
+    const field = (id: string, header: string) => ({
+      key: "apiKey",
+      kind: "secret" as const,
+      label: { en: "API key", "pt-BR": "k", es: "k", fr: "k", sq: "k" },
+      required: true,
+      header,
+      legacyHeaders: [],
+      storageKey: `adt-studio-${id}-key`,
+      legacyStorageKeys: [],
+    })
+    const providers = [
+      {
+        manifest: {
+          id: "google",
+          displayName: "Google",
+          modalities: ["structured-text"],
+          credentialFields: [field("google", "X-Google-API-Key")],
+          capabilities: {
+            "structured-text": {
+              strategies: ["json-mode"],
+              recursiveSchemas: false,
+              imageInput: false,
+              temperature: true,
+            },
+          },
+          defaultModels: {},
+        },
+        configuredOnServer: false,
+        fieldStatus: [{ key: "apiKey", configuredOnServer: false }],
+      },
+      {
+        manifest: {
+          id: "gemini",
+          displayName: "Gemini Speech",
+          modalities: ["tts"],
+          credentialFields: [
+            {
+              ...field("gemini", "X-Gemini-API-Key"),
+              sharedWith: { providerId: "google", fieldKey: "apiKey" },
+            },
+          ],
+          capabilities: {
+            tts: { formats: ["wav"], voices: [], languages: [], instructions: true, rateLimitMode: "fixed" },
+          },
+          defaultModels: {},
+        },
+        configuredOnServer: false,
+        fieldStatus: [{ key: "apiKey", configuredOnServer: false }],
+      },
+    ]
+    window.localStorage.setItem("adt-studio-google-key", "AIza-google")
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input)
+      const body = url.endsWith("/providers")
+        ? { providers, defaults: {} }
+        : { providerId: "gemini", ok: true, code: "ok" }
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    })
+
+    await getProviderHealth("gemini")
+
+    const healthCall = fetchSpy.mock.calls.find(([input]) => String(input).includes("/health"))
+    expect(healthCall).toBeDefined()
+    const headers = new Headers(healthCall?.[1]?.headers)
+    expect(headers.get("X-Google-API-Key")).toBe("AIza-google")
+    // The API resolves `sharedWith` itself; a borrowed key must not arrive
+    // disguised as Gemini's own, or it would outrank a server-side Gemini key.
+    expect(headers.get("X-Gemini-API-Key")).toBeNull()
   })
 })

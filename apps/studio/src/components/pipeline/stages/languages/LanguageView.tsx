@@ -7,7 +7,7 @@ import { createPortal } from "react-dom"
 import { Link } from "@tanstack/react-router"
 import { AudioLines, Check, ChevronDown, ChevronRight, CircleStop, Languages, Loader2, Play, Pause, Plus, RotateCcw, Save, Settings, Trash2, TriangleAlert, Type, Upload, Volume2, VolumeX, WandSparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { DEFAULT_OPENAI_TTS_MODEL_ID, DEFAULT_ELEVENLABS_TTS_MODEL_ID, DEFAULT_ELEVENLABS_VOICE_ID } from "@adt/types"
+import { DEFAULT_ELEVENLABS_VOICE_ID } from "@adt/types"
 import { api, getAudioUrl, BASE_URL } from "@/api/client"
 import type { CoreTtsCatalogEntry, TextCatalogEntry, TranslationEvaluationStatusResponse, WordTimestamp, WordTimestampEntry, WordTimestampEditGuard, WordTimestampSaveResponse } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
@@ -19,13 +19,18 @@ import { LoadingState } from "../../components/LoadingState"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
-import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import {
+  useApiKey,
+  useBookStructuredTextAvailability,
+  useWordHighlightingUnavailable,
+} from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
+import { UnavailableHint } from "../../components/UnavailableHint"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { normalizeLocale } from "@/lib/languages"
-import { languageUsesSpeechProvider, resolveSpeechProviderForLanguage, speechProvidersForLanguages } from "@/lib/speech-routing"
+import { bookSpeechProviders, languageUsesSpeechProvider, resolveSpeechProviderForLanguage } from "@/lib/speech-routing"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -44,6 +49,7 @@ import {
 } from "./lib/catalog-entries";
 import { displayLang } from "./lib/display-lang";
 import { PROVIDER_LABELS } from "./lib/provider-labels"
+import { summarySpeechModel } from "./lib/speech-summary-model"
 import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices"
 import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
@@ -265,7 +271,6 @@ function TranslationReviewInline({
 // Values are voice/model identifiers, not user-facing copy — display only.
 // eslint-disable-next-line lingui/no-unlocalized-strings -- voice identifiers
 const DEFAULT_TTS_VOICE: Record<string, string> = { openai: "alloy", azure: "en-US-JennyNeural", gemini: "Kore", elevenlabs: DEFAULT_ELEVENLABS_VOICE_ID }
-const DEFAULT_TTS_MODEL: Record<string, string> = { openai: DEFAULT_OPENAI_TTS_MODEL_ID, azure: "azure-tts", gemini: "gemini-2.5-pro-preview-tts", elevenlabs: DEFAULT_ELEVENLABS_TTS_MODEL_ID }
 
 export function LanguageView({
   bookLabel,
@@ -375,6 +380,10 @@ export function LanguageView({
     isTranslationEvaluationEnabled(merged?.translation_evaluation);
   const wordHighlightingEnabled =
     speechConfigRecord?.word_highlighting === true;
+  // Without an OpenAI key (Whisper) the toggle is shown off and disabled.
+  const wordHighlightingUnavailable = useWordHighlightingUnavailable();
+  const effectiveWordHighlighting =
+    wordHighlightingEnabled && !wordHighlightingUnavailable;
   const configExcludedTextIds = useMemo(
     () =>
       Array.isArray(speechConfigRecord?.excluded_text_ids)
@@ -418,8 +427,7 @@ export function LanguageView({
   const configuredEditingLanguage = merged?.editing_language as
     string | undefined;
 
-  const speechLanguages = [configuredEditingLanguage ?? bookLanguage ?? "en", ...outputLanguages];
-  const hasBookSpeechProvider = !!activeConfigData && speechProvidersForLanguages(speechLanguages, speechConfig)
+  const hasBookSpeechProvider = !!activeConfigData && bookSpeechProviders(merged, bookLanguage)
     .some(provider => {
       const modelId = `${provider}:default`;
       return isAvailable("tts", modelId);
@@ -1548,23 +1556,17 @@ export function LanguageView({
         ? ((speechConfig as Record<string, unknown>).default_provider as string)
         : undefined) ?? "openai"
     const defaultVoice = DEFAULT_TTS_VOICE[provider] ?? DEFAULT_TTS_VOICE.openai
-    const configuredOpenAIDefault =
+    const globalDefault =
       typeof merged?.default_speech_generation_model === "string"
         ? merged.default_speech_generation_model
-        : DEFAULT_TTS_MODEL.openai
-    const defaultModel =
-      provider === "openai"
-        ? configuredOpenAIDefault
-        : DEFAULT_TTS_MODEL[provider] ?? configuredOpenAIDefault
+        : undefined
     if (!speechConfig || typeof speechConfig !== "object") {
-      return { provider, voice: defaultVoice, model: defaultModel };
+      return { provider, voice: defaultVoice, model: summarySpeechModel(provider, {}, globalDefault) };
     }
     const sc = speechConfig as Record<string, unknown>
     const voice = (sc.voice as string) ?? defaultVoice
-    const model = (sc.model as string) ?? undefined
-    const providers = sc.providers as Record<string, Record<string, unknown>> | undefined
-    const providerModel = providers?.[provider]?.model as string | undefined
-    return { provider, voice, model: providerModel ?? model ?? defaultModel }
+    const model = summarySpeechModel(provider, sc as Parameters<typeof summarySpeechModel>[1], globalDefault)
+    return { provider, voice, model }
   }, [merged?.default_speech_generation_model, speechConfig])
 
   const headerControls = catalog ? (
@@ -1936,14 +1938,38 @@ export function LanguageView({
                         {t`Highlights words in sync with the audio. Adds noticeable time to speech generation.`}
                       </p>
                     </div>
-                    <Switch
-                      id="word-highlight-landing"
-                      checked={wordHighlightingEnabled}
-                      onCheckedChange={toggleWordHighlighting}
-                      disabled={updateConfig.isPending || isRunning}
-                    />
+                    {(() => {
+                      const toggle = (
+                        <Switch
+                          id="word-highlight-landing"
+                          checked={effectiveWordHighlighting}
+                          onCheckedChange={toggleWordHighlighting}
+                          disabled={
+                            updateConfig.isPending ||
+                            isRunning ||
+                            wordHighlightingUnavailable
+                          }
+                          className={
+                            wordHighlightingUnavailable ? "pointer-events-none" : undefined
+                          }
+                        />
+                      );
+                      // A disabled switch gets no pointer events, so the
+                      // focusable wrapper carries the "why" tooltip instead.
+                      return wordHighlightingUnavailable ? (
+                        <UnavailableHint
+                          hint={t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`}
+                        >
+                          <span tabIndex={0} className="inline-flex rounded-full">
+                            {toggle}
+                          </span>
+                        </UnavailableHint>
+                      ) : (
+                        toggle
+                      );
+                    })()}
                   </div>
-                  <WordHighlightPreview enabled={wordHighlightingEnabled} />
+                  <WordHighlightPreview enabled={effectiveWordHighlighting} />
                 </div>
                 <Link
                   to="/books/$label/$step/settings"

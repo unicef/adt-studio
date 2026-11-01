@@ -3,6 +3,7 @@ import type { ProviderDescriptor } from "@adt/types"
 import {
   buildProviderCredentialHeaders,
   isAiOperationAvailable,
+  readOwnProviderCredentialsFromStorage,
   readProviderCredentialsFromStorage,
   writeProviderCredentialToStorage,
 } from "./provider-credentials"
@@ -50,6 +51,18 @@ function memoryStorage(initial: Record<string, string> = {}) {
   }
 }
 
+/** Two providers where the second's token falls back to the first's (Gemini Speech ← Google). */
+function sharedPair(): [ProviderDescriptor, ProviderDescriptor] {
+  const google = descriptor()
+  google.manifest.id = "google"
+  const gemini = descriptor()
+  gemini.manifest.id = "gemini"
+  gemini.manifest.credentialFields[0].storageKey = "adt-studio-gemini-token"
+  gemini.manifest.credentialFields[0].legacyStorageKeys = []
+  gemini.manifest.credentialFields[0].sharedWith = { providerId: "google", fieldKey: "token" }
+  return [google, gemini]
+}
+
 describe("provider credentials", () => {
   it("builds headers from a provider manifest without provider-specific branches", () => {
     expect(
@@ -72,6 +85,32 @@ describe("provider credentials", () => {
     writeProviderCredentialToStorage(descriptor(), "token", " new-secret ", storage)
     expect(Object.fromEntries(storage.values)).toEqual({
       "adt-studio-fake-token": "new-secret",
+    })
+  })
+
+  it("fills a shared credential from the other provider's stored key", () => {
+    const [google, gemini] = sharedPair()
+    const storage = memoryStorage({ "adt-studio-fake-token": "AIza-google" })
+
+    expect(readOwnProviderCredentialsFromStorage([google, gemini], storage)).toEqual({
+      google: { token: "AIza-google" },
+    })
+    expect(readProviderCredentialsFromStorage([google, gemini], storage)).toEqual({
+      google: { token: "AIza-google" },
+      gemini: { token: "AIza-google" },
+    })
+  })
+
+  it("keeps a provider's own stored key over the shared one", () => {
+    const [google, gemini] = sharedPair()
+    const storage = memoryStorage({
+      "adt-studio-fake-token": "AIza-google",
+      "adt-studio-gemini-token": "AIza-gemini",
+    })
+
+    expect(readProviderCredentialsFromStorage([google, gemini], storage)).toEqual({
+      google: { token: "AIza-google" },
+      gemini: { token: "AIza-gemini" },
     })
   })
 
