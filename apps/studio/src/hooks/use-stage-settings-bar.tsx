@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router"
+import { useRef } from "react"
 import type { StageName } from "@adt/types"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { useSettingsRemount } from "./use-settings-remount"
@@ -32,6 +33,8 @@ export function useStageSettingsBar({
   const { queueRun, isRunning } = useBookRun()
   const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
+  const saveRef = useRef(save)
+  saveRef.current = save
   const navigate = useNavigate()
   const protectedStage = stage === "toc" || stage === "sectioning"
   const confirmation = useStageRunConfirmation({
@@ -41,7 +44,9 @@ export function useStageSettingsBar({
   })
   const saveAndRun = async (leave: boolean) => {
     const apply = async (options = {}, stillCurrent = () => true) => {
-      await save()
+      // The protected versions stay frozen, but untouched settings may have
+      // refreshed while confirmation was open. Apply the current form draft.
+      await saveRef.current()
       // Settings may finish saving after navigation. Never queue the old
       // consent through a new book's run context or navigate back to it.
       if (!stillCurrent()) return false

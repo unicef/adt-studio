@@ -19,8 +19,11 @@ vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ queueRun: state.qu
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "test-only" }), useBookStructuredTextAvailability: () => state.provider }))
 vi.mock("@/components/pipeline/pipeline-i18n", () => ({ getStageLabelI18n: (slug: string) => slug }))
 vi.mock("@/components/pipeline/settings-tabs", () => ({ getSettingsTabLabel: (_stage: string, tab: string) => tab }))
-vi.mock("@/components/pipeline/components/PromptViewer", () => ({ PromptViewer: ({ onModelChange }: { onModelChange: (value: string) => void }) => <button onClick={() => { state.edits(); onModelChange("fixture:new-model") }}>Change model</button>, savePromptDraft: vi.fn(), toPromptDraft: vi.fn() }))
+vi.mock("@/components/pipeline/components/PromptViewer", () => ({ PromptViewer: ({ onModelChange, maxRetries, onMaxRetriesChange }: { onModelChange: (value: string) => void; maxRetries: string; onMaxRetriesChange: (value: string) => void }) => <><button onClick={() => { state.edits(); onModelChange("fixture:new-model") }}>Change model</button><input aria-label="Retries" value={maxRetries} onChange={event => onMaxRetriesChange(event.target.value)} /></>, savePromptDraft: vi.fn(), toPromptDraft: vi.fn() }))
 vi.mock("@/api/client", () => ({ api: { getStepStatus: vi.fn() } }))
+const { i18n } = await import("@lingui/core")
+i18n.load("en", {})
+i18n.activate("en")
 const { api } = await import("@/api/client")
 const { TocSettings } = await import("@/components/pipeline/stages/toc/TocSettings")
 const { SectioningSettings } = await import("@/components/pipeline/stages/sectioning/SectioningSettings")
@@ -31,18 +34,20 @@ const { TooltipProvider } = await import("@/components/ui/tooltip")
 let client: QueryClient
 const record = (stage: string, version = 7) => ({ node: stage === "toc" ? "toc-generation" : "page-sectioning", itemId: stage === "toc" ? "book" : "pg003", version, pageNumber: 3 })
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done }); return { promise, resolve } }
-beforeEach(() => { vi.clearAllMocks(); state.blocked = false; state.running = false; state.provider = true; state.save.mockResolvedValue({}); client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } }) })
+beforeEach(() => { vi.clearAllMocks(); state.config = { config: {} }; state.active = { merged: {} }; state.blocked = false; state.running = false; state.provider = true; state.save.mockResolvedValue({}); client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } }) })
 afterEach(() => { cleanup(); client.clear() })
-async function mount(stage: "toc" | "sectioning") {
+async function mount(stage: "toc" | "sectioning", editModel = true) {
   vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [record(stage)] } as never)
-  const tree = (book: string) => <QueryClientProvider client={client}><TooltipProvider><SettingsDirtyTabsProvider><FloatingSaveProvider>
-    {stage === "toc" ? <TocSettings bookLabel={book} /> : <SectioningSettings bookLabel={book} tab="sectioning-prompt" />}
+  const tree = (book: string, tab = "sectioning-prompt") => <QueryClientProvider client={client}><TooltipProvider><SettingsDirtyTabsProvider><FloatingSaveProvider>
+    {stage === "toc" ? <TocSettings bookLabel={book} /> : <SectioningSettings bookLabel={book} tab={tab} />}
     <UnsavedChangesGuard />
   </FloatingSaveProvider></SettingsDirtyTabsProvider></TooltipProvider></QueryClientProvider>
   const view = render(tree("a"))
-  fireEvent.click(screen.getAllByRole("button", { name: "Change model" })[0])
-  await waitFor(() => expect((screen.getByRole("button", { name: "Save & Re-run" }) as HTMLButtonElement).disabled).toBe(false))
-  return { show: (book = "a") => view.rerender(tree(book)) }
+  if (editModel) {
+    fireEvent.click(screen.getAllByRole("button", { name: "Change model" })[0])
+    await waitFor(() => expect((screen.getByRole("button", { name: "Save & Re-run" }) as HTMLButtonElement).disabled).toBe(false))
+  }
+  return { show: (book = "a", tab = "sectioning-prompt") => view.rerender(tree(book, tab)) }
 }
 async function open() {
   await waitFor(() => expect((screen.getByRole("button", { name: "Save & Re-run" }) as HTMLButtonElement).disabled).toBe(false))
@@ -161,4 +166,91 @@ it.each(["toc", "sectioning"] as const)("%s pauses settings input during delayed
   await act(async () => saving.resolve({}))
   await waitFor(() => expect(state.queue).toHaveBeenCalledTimes(1))
   expect(input.matches(":disabled")).toBe(false)
+})
+
+
+it.each(["toc", "sectioning"] as const)("%s retains a settings draft across a config refetch and saves its exact new values", async stage => {
+  const key = stage === "toc" ? "toc_generation" : "page_sectioning"
+  const { show } = await mount(stage)
+  fireEvent.change(screen.getAllByRole("textbox", { name: "Retries" })[0], { target: { value: "4" } })
+  state.active = { merged: { [key]: { model: "fixture:previous-model", max_retries: 3, mode: "page" } } }
+  state.config = { config: { untouched: "latest independent setting" } }
+  show()
+  expect((screen.getAllByRole("textbox", { name: "Retries" })[0] as HTMLInputElement).value).toBe("4")
+  await open()
+  // A later read while consent is open must not change the captured draft.
+  state.active = { merged: { [key]: { model: "fixture:third-model", max_retries: 2, mode: "page" } } }
+  show()
+  await confirm()
+  await waitFor(() => expect(state.save).toHaveBeenCalledExactlyOnceWith({ label: "a", config: expect.objectContaining({
+    untouched: "latest independent setting",
+    [key]: expect.objectContaining({ model: "fixture:new-model", max_retries: 4, ...(stage === "sectioning" ? { mode: "page" } : {}) }),
+  }) }))
+  expect(state.queue).toHaveBeenCalledTimes(1)
+})
+
+
+it("Sectioning retains edited mode and type descriptions while accepting unrelated refreshed settings", async () => {
+  state.active = { merged: { section_types: { text_only: "Original description" }, page_sectioning: { mode: "dynamic" } } }
+  const { show } = await mount("sectioning")
+  show("a", "section-types")
+  fireEvent.click(screen.getByRole("radio", { name: /By Page/ }))
+  fireEvent.change(screen.getByDisplayValue("Original description"), { target: { value: "My description" } })
+  state.active = { merged: { section_types: { text_only: "External description", independent: "Added independently" }, page_sectioning: { mode: "dynamic", max_refinements: 2 } } }
+  show("a", "section-types")
+  expect(screen.getByRole("radio", { name: /By Page/ }).getAttribute("aria-checked")).toBe("true")
+  expect(screen.getByDisplayValue("My description")).toBeTruthy()
+  await open(); await confirm()
+  await waitFor(() => expect(state.save).toHaveBeenCalledExactlyOnceWith({ label: "a", config: expect.objectContaining({
+    section_types: { text_only: "My description", independent: "Added independently" },
+    page_sectioning: expect.objectContaining({ mode: "page" }),
+  }) }))
+})
+
+
+it.each(["toc", "sectioning"] as const)("%s retains early retry typing but adopts the untouched model and mode from a late initial read", async stage => {
+  const key = stage === "toc" ? "toc_generation" : "page_sectioning"
+  const { show } = await mount(stage, false)
+  fireEvent.change(screen.getAllByRole("textbox", { name: "Retries" })[0], { target: { value: "4" } })
+  state.active = { merged: { [key]: { model: "fixture:loaded-model", max_retries: 3, mode: "page" } } }
+  show()
+  await open()
+  state.active = { merged: { [key]: { model: "fixture:refreshed-model", max_retries: 2, mode: "dynamic" } } }
+  state.config = { config: { untouched: "arrived during confirmation" } }
+  show()
+  await confirm()
+  await waitFor(() => expect(state.save).toHaveBeenCalledExactlyOnceWith({ label: "a", config: expect.objectContaining({
+    untouched: "arrived during confirmation",
+    [key]: expect.objectContaining({ model: "fixture:refreshed-model", max_retries: 4, ...(stage === "sectioning" ? { mode: "dynamic" } : {}) }),
+  }) }))
+})
+
+it("Sectioning preserves an explicit type removal without deleting additions from repeated refetches", async () => {
+  state.active = { merged: { structure_types: { old: "Remove this type" } } }
+  const { show } = await mount("sectioning")
+  show("a", "container-types")
+  fireEvent.click(screen.getByTitle("Remove type"))
+  for (const description of ["Independent addition", "Independent update"]) {
+    state.active = { merged: { structure_types: { old: "Externally changed", independent: description } } }
+    show("a", "container-types")
+    expect(screen.queryByDisplayValue("Externally changed")).toBeNull()
+    expect(screen.getByDisplayValue(description)).toBeTruthy()
+  }
+  await open(); await confirm()
+  await waitFor(() => expect(state.save).toHaveBeenCalledExactlyOnceWith({ label: "a", config: expect.objectContaining({
+    structure_types: { old: null, independent: "Independent update" },
+  }) }))
+})
+
+it("Sectioning retains local selection changes and independently refreshed disabled types", async () => {
+  state.active = { merged: { section_types: { custom: "Custom description" }, disabled_section_types: [] } }
+  const { show } = await mount("sectioning")
+  show("a", "section-types")
+  fireEvent.click(screen.getByTitle("Disable type"))
+  state.active = { merged: { section_types: { custom: "Custom description" }, disabled_section_types: ["independent"] } }
+  show("a", "section-types")
+  expect(screen.getByTitle("Re-enable type")).toBeTruthy()
+  await open(); await confirm()
+  await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1))
+  expect(state.save.mock.calls[0][0].config.disabled_section_types.sort()).toEqual(["custom", "independent"])
 })

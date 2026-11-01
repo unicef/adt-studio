@@ -23,7 +23,7 @@ function TocSettingsSession({ bookLabel }: { bookLabel: string }) {
   const markDirty = (field: string) => setDirty((prev) => ({ ...prev, [field]: true }))
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
-  const tocGen = useStepConfig(merged, "toc_generation", markDirty)
+  const tocGen = useStepConfig(merged, "toc_generation", markDirty, !!dirty.toc_generation)
 
   const shouldWrite = (field: string) =>
     dirty[field] || (bookConfigData?.config && field in bookConfigData.config)

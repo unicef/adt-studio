@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,23 @@ import { getSectionTypeLabel } from "@/lib/section-constants"
 import { cn } from "@/lib/utils"
 
 const PROMPT_TABS = ["sectioning-prompt", "refinement-prompt"]
+
+/** Carry only local key edits over refreshed settings, including explicit
+ * removals. Keeping the whole stale map would delete independent additions. */
+function retainMapEdits<T>(previous: Record<string, T>, draft: Record<string, T>, current: Record<string, T>): Record<string, T> {
+  const result = { ...current }
+  for (const key of new Set([...Object.keys(previous), ...Object.keys(draft)])) {
+    if (Object.hasOwn(previous, key) === Object.hasOwn(draft, key) && previous[key] === draft[key]) continue
+    if (Object.hasOwn(draft, key)) result[key] = draft[key]
+    else delete result[key]
+  }
+  return result
+}
+
+function retainSetEdits(previous: unknown, draft: Set<string>, current: string[]): Set<string> {
+  const asMap = (values: Iterable<string>) => Object.fromEntries(Array.from(values, value => [value, true]))
+  return new Set(Object.keys(retainMapEdits(asMap(Array.isArray(previous) ? previous : []), asMap(draft), asMap(current))))
+}
 
 function PageModeIcon({ className }: { className?: string }) {
   return (
@@ -114,32 +131,37 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
   }
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
-  const sectioning = useStepConfig(merged, "page_sectioning", markDirty)
+  const previousConfig = useRef<Record<string, unknown>>({})
+  const sectioning = useStepConfig(merged, "page_sectioning", markDirty, !!dirty.page_sectioning)
 
   // Load from merged config
   useEffect(() => {
     if (!activeConfigData) return
     const m = activeConfigData.merged as Record<string, unknown>
+    const previous = previousConfig.current
+    const mergeMap = (key: string, draft: Record<string, string>) => dirty[key]
+      ? retainMapEdits((previous[key] ?? {}) as Record<string, string>, draft, m[key] as Record<string, string>)
+      : m[key] as Record<string, string>
     if (m.section_types && typeof m.section_types === "object") {
-      setSectionTypes(m.section_types as Record<string, string>)
+      setSectionTypes(draft => mergeMap("section_types", draft))
     }
     if (Array.isArray(m.pruned_section_types)) {
-      setPrunedSectionTypes(new Set(m.pruned_section_types as string[]))
+      setPrunedSectionTypes(draft => dirty.pruned_section_types ? retainSetEdits(previous.pruned_section_types, draft, m.pruned_section_types as string[]) : new Set(m.pruned_section_types as string[]))
     }
     if (Array.isArray(m.disabled_section_types)) {
-      setDisabledSectionTypes(new Set(m.disabled_section_types as string[]))
+      setDisabledSectionTypes(draft => dirty.disabled_section_types ? retainSetEdits(previous.disabled_section_types, draft, m.disabled_section_types as string[]) : new Set(m.disabled_section_types as string[]))
     }
     if (m.section_render_strategies && typeof m.section_render_strategies === "object") {
-      setSectionRenderStrategies(m.section_render_strategies as Record<string, string>)
+      setSectionRenderStrategies(draft => mergeMap("section_render_strategies", draft))
     }
     if (m.structure_types && typeof m.structure_types === "object") {
-      setStructureTypes(m.structure_types as Record<string, string>)
+      setStructureTypes(draft => mergeMap("structure_types", draft))
     }
     if (m.role_types && typeof m.role_types === "object") {
-      setRoleTypes(m.role_types as Record<string, string>)
+      setRoleTypes(draft => mergeMap("role_types", draft))
     }
     if (Array.isArray(m.pruned_role_types)) {
-      setPrunedRoleTypes(new Set(m.pruned_role_types as string[]))
+      setPrunedRoleTypes(draft => dirty.pruned_role_types ? retainSetEdits(previous.pruned_role_types, draft, m.pruned_role_types as string[]) : new Set(m.pruned_role_types as string[]))
     }
     const strategies = (
       m.render_strategies && typeof m.render_strategies === "object" ? m.render_strategies : {}
@@ -148,11 +170,12 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
 
     if (m.page_sectioning && typeof m.page_sectioning === "object") {
       const ps = m.page_sectioning as Record<string, unknown>
-      if (ps.mode) setSectioningMode(String(ps.mode))
-      setMaxRefinements(ps.max_refinements != null ? String(ps.max_refinements) : "")
+      if (!dirty.sectioning_mode && ps.mode) setSectioningMode(String(ps.mode))
+      if (!dirty.max_refinements) setMaxRefinements(ps.max_refinements != null ? String(ps.max_refinements) : "")
     }
-    setGenerateActivities(m.generate_activities !== false)
-  }, [activeConfigData])
+    if (!dirty.generate_activities) setGenerateActivities(m.generate_activities !== false)
+    previousConfig.current = m
+  }, [activeConfigData, dirty])
 
   // Section Types handlers
   const [newTypeKey, setNewTypeKey] = useState("")
@@ -325,7 +348,7 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
     if (shouldWrite("pruned_role_types")) {
       overrides.pruned_role_types = Array.from(prunedRoleTypes)
     }
-    if (shouldWrite("page_sectioning") || shouldWrite("max_refinements")) {
+    if (shouldWrite("page_sectioning") || shouldWrite("sectioning_mode") || shouldWrite("max_refinements")) {
       const existing = (bookConfigData?.config?.page_sectioning ?? {}) as Record<string, unknown>
       const ps: Record<string, unknown> = { ...existing, ...sectioning.configOverrides, mode: sectioningMode }
       if (shouldWrite("max_refinements")) {
@@ -441,7 +464,7 @@ function SectioningSettingsSession({ bookLabel, tab }: { bookLabel: string; tab:
                     aria-checked={selected}
                     onClick={() => {
                       setSectioningMode(value)
-                      markDirty("page_sectioning")
+                      markDirty("sectioning_mode")
                     }}
                     className={cn(
                       "flex items-start gap-3 rounded-md border p-3 text-left transition",
