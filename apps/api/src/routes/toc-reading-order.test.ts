@@ -143,6 +143,26 @@ describe("TOC hierarchy across saved data, preview and export", () => {
       await packageAdtWeb(storage, options)
       expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/toc.json"), "utf8"))).toEqual([])
       expect(storage.getLatestNodeData("toc-generation", "book")?.data).toMatchObject({ entries: [], source: "manual" })
+      // Owner decision 2026-11-01: an AI stamp cannot distinguish generated
+      // emptiness from a deliberately accepted no-op Save. Unknown stays empty too.
+      for (const source of ["ai", undefined] as const) {
+        storage.putNodeData("toc-generation", "book", {
+          entries: [], pageCount: 3, generatedAt: "fixture", ...(source ? { source } : {}),
+        })
+        const before = storage.getLatestNodeData("toc-generation", "book")!
+        const unchanged = await toc.request(`/books/${label}/toc`, {
+          method: "PUT", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ...before.data, baseVersion: before.version }),
+        })
+        expect(unchanged.status).toBe(200)
+        const saved = storage.getLatestNodeData("toc-generation", "book")!
+        expect(saved.data.source).toBe(source)
+        expect(await (await preview.request(`/books/${label}/adt-preview/content/toc.json`)).json()).toEqual([])
+        await packageAdtWeb(storage, options)
+        expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/toc.json"), "utf8"))).toEqual([])
+        expect(storage.getLatestNodeData("toc-generation", "book")).toEqual(saved)
+        expect(storage.getAllNodeVersions("toc-generation", "book").find(row => row.version === before.version)).toEqual(before)
+      }
     } finally {
       storage.close()
     }

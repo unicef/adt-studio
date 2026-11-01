@@ -8,7 +8,7 @@ issues: ["#736", "#144"]
 prs: ["#880"]
 adr: ""
 created: 2026-09-21
-updated: 2026-10-26
+updated: 2026-11-01
 ---
 
 <!-- Drafted by an agent from #736, #144, SPEC-0001 and the codebase on 2026-09-21
@@ -297,6 +297,20 @@ its clarification-to-acceptance map, and the [SPEC-0002 deferrals](https://githu
   visible in the integration evidence; passing regressions do not close them.
 
 ## Acceptance criteria
+
+### Stored empty TOC clarification — owner decision, 2026-11-01
+
+The owner explicitly selected **“Keep every stored empty TOC empty”**, including
+AI-authored documents, in the implementation conversation. An unchanged Save
+retains AI authorship, so that tag cannot distinguish a deliberately accepted
+empty document from generated emptiness. Accordingly the TOC output projection clarification for AC-17's “explicitly
+empty saved TOC” means **every stored empty TOC**, regardless of `ai`, `manual` or absent
+authorship. Preview/export must not infer headings merely because its source is
+`ai`. This confirms the current stored-document behavior and supersedes the
+prior review's F5 policy proposal. Missing-document fallback, unavailable
+destinations, Webpub's documented projection and the separately deferred D3
+saved-empty TOC Run behavior are unchanged. This decision is not specification
+approval or release verification.
 
 - [ ] AC-1 Saving a translation document through `PUT …/text-catalog-translation/:language` stamps `source: "manual"` on exactly the entries whose `text` differs from the current version; every other entry keeps its prior `source`; the response version increments.
 - [ ] AC-2 **Reconciled with SPEC-0001 under the owner's delegated implementation decisions on 2026-10-11; specification review remains pending.** An ordinary translate rerun keeps every protected entry byte-for-byte while its source remains active, skips current AI output, regenerates selected changed AI output and fills missing output under SPEC-0001, and removes entries whose source ID is no longer active while retaining history. Build fixed windows over the complete ordered source list before filtering each request body; never compact the full list around protected or ineligible entries. Send only non-empty eligible windows. At the adapter boundary, assert protected entries are absent. Measure adapter requests, cache hits, actual provider calls (including retries) and provider cost separately; a skipped current window is not a cache hit. With all other output current, saving one correction causes zero translation requests/calls on both subsequent ordinary runs. Separately, in a controlled full-eligibility adapter/cache test with valid warmed caches and no retries, excluding one corrected entry changes only its window: the first pass incurs one provider call and other windows hit cache; the identical second pass incurs none. Empty/protected-only windows submit no request. These controlled adapter passes do not authorize publishing current or protected entries or add a force-fresh action.
