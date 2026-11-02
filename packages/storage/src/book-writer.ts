@@ -13,8 +13,12 @@ export class BookBusyError extends Error {
   }
 }
 
-type Lease = { token: string; references: number; release: () => void }
-const context = new AsyncLocalStorage<ReadonlyMap<string, Lease>>()
+type Lease = { token: string; references: number; writers: number; databases: Set<string>; release: () => void }
+type WriterScope = { lease: Lease; active: boolean }
+const context = new AsyncLocalStorage<ReadonlyMap<string, WriterScope>>()
+// Database handles in this JS isolate may borrow the same process lease while
+// an admitted writer awaits I/O. Borrowing does not install writer authority.
+const localLeases = new Map<string, Lease>()
 // Resolving a path must not create a book: admission for a deleted or
 // mistyped label is refused upstream, and new books reserve their directory
 // explicitly through withNewBookWriter.
@@ -24,8 +28,8 @@ const lockName = ".book-writer.json"
 export function ownsBookWriter(bookDir: string): boolean {
   let dir: string
   try { dir = canonical(bookDir) } catch { return false } // A missing book owns nothing.
-  const lease = context.getStore()?.get(dir)
-  return !!lease && lease.references > 0
+  const scope = context.getStore()?.get(dir)
+  return !!scope?.active && scope.lease.writers > 0
 }
 
 /** Kernel evidence only: no timestamp/age estimate and no new lock protocol.
@@ -76,10 +80,16 @@ function linuxProcess(pid: number): BookWriterOwner["linuxProcess"] {
   } catch { return undefined }
 }
 
+function readOwner(lock: string): BookWriterOwner {
+  const stat = fs.lstatSync(lock)
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) throw new BookBusyError("Book ownership evidence is not a regular private file.")
+  return BookWriterOwner.parse(JSON.parse(fs.readFileSync(lock, "utf8")))
+}
+
 function deadOwner(lock: string): boolean {
-  const owner = BookWriterOwner.safeParse(JSON.parse(fs.readFileSync(lock, "utf8")))
-  if (!owner.success || owner.data.host !== os.hostname()) return false
-  const recorded = owner.data.linuxProcess
+  const owner = readOwner(lock)
+  if (owner.host !== os.hostname()) return false
+  const recorded = owner.linuxProcess
   if (!recorded && process.platform === "linux") {
     // Old leases have no PID namespace. In Docker, a missing numeric PID in
     // this container says nothing about a sibling with the same custom host.
@@ -89,8 +99,8 @@ function deadOwner(lock: string): boolean {
     const here = linuxProcess(process.pid)
     const mounts = fs.readFileSync("/proc/self/mountinfo", "utf8")
     const docker = fs.existsSync("/.dockerenv") || /\/containers\/[a-f0-9]{64}\/(?:hostname|hosts|resolv\.conf) /.test(mounts)
-    if (docker && (!here?.dockerContainerId || !/^[a-f0-9]{12,64}$/.test(owner.data.host) ||
-      !here.dockerContainerId.startsWith(owner.data.host))) return false
+    if (docker && (!here?.dockerContainerId || !/^[a-f0-9]{12,64}$/.test(owner.host) ||
+      !here.dockerContainerId.startsWith(owner.host))) return false
   }
   if (recorded) {
     const here = linuxProcess(process.pid)
@@ -103,91 +113,202 @@ function deadOwner(lock: string): boolean {
     }
     if (recorded.dockerContainerId !== here.dockerContainerId) return false
   }
-  try { process.kill(owner.data.pid, 0) } catch (err) {
+  try { process.kill(owner.pid, 0) } catch (err) {
     return (err as NodeJS.ErrnoException).code === "ESRCH"
   }
   if (!recorded) return false // A live legacy PID supplies no incarnation proof.
-  const current = linuxProcess(owner.data.pid)
+  const current = linuxProcess(owner.pid)
   return !!current && current.bootId === recorded.bootId &&
     current.pidNamespace === recorded.pidNamespace &&
     current.dockerContainerId === recorded.dockerContainerId &&
     current.startTicks !== recorded.startTicks
 }
 
-function acquire(dir: string): Lease {
-  const lock = path.join(dir, lockName)
-  const token = randomUUID()
-  // A reaper can die between removing the old owner and creating its lease.
-  // Adapted from SPEC-0010 (#886): absence of an owner is not proof that an
-  // unfinished recovery is safe to bypass. Preserve the reservation/evidence.
-  if (fs.existsSync(`${lock}.recovery`)) throw new BookBusyError()
-  const create = () => {
-    const fd = fs.openSync(lock, "wx", 0o600)
-    try {
-      fs.writeFileSync(fd, JSON.stringify({ token, pid: process.pid, host: os.hostname(), linuxProcess: linuxProcess(process.pid) }))
-      fs.fsyncSync(fd)
-    } finally { fs.closeSync(fd) }
+function syncLeaseDirectory(dir: string): void {
+  if (process.platform === "win32") return
+  const fd = fs.openSync(dir, "r")
+  try { fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
+}
+
+function entryExists(file: string): boolean {
+  try { fs.lstatSync(file); return true }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return false; throw error }
+}
+
+function databaseMutexes(dir: string, databases: readonly string[] = []): string[] {
+  return [...new Set([
+    `${path.basename(dir)}.db.lock`,
+    ...databases.map(file => `${file}.lock`),
+    ...fs.readdirSync(dir).filter(file => file.endsWith(".db.lock")),
+  ])].filter(file => entryExists(path.join(dir, file)))
+}
+
+function verifyLocalLease(dir: string, lease: Lease): void {
+  try {
+    const lock = path.join(dir, lockName)
+    // This lease was already published under the reservation. A later reaper
+    // must recheck this live owner under its own reservation and cannot revoke
+    // it; only token/capability changes invalidate an existing local pin.
+    const owner = readOwner(lock)
+    if (owner.token !== lease.token || owner.pid !== process.pid ||
+      [...lease.databases].some(file => !owner.coordinatedDatabases?.includes(file))) throw new BookBusyError()
+  } catch {
+    throw new BookBusyError("Book ownership changed while database connections were still open. Recovery evidence has been preserved.")
   }
-  try { create() } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err
-    // Reapers serialize too: never unlink a replacement lease another process
-    // acquired after recovering the dead owner. Unknown/remote owners fail closed.
-    const recovery = `${lock}.recovery`
-    let fd: number | undefined
-    try {
-      fd = fs.openSync(recovery, "wx", 0o600)
+}
+
+function acquire(dir: string, databaseFile?: string): Lease {
+  const lock = path.join(dir, lockName)
+  const recovery = `${lock}.recovery`
+  const token = randomUUID()
+  if (entryExists(recovery)) throw new BookBusyError()
+  let observed: BookWriterOwner | undefined
+  try {
+    if (entryExists(lock)) {
+      observed = readOwner(lock)
       if (!deadOwner(lock)) throw new BookBusyError()
-      // Keep SQLite journal/WAL files: SQLite recovers those itself. The
-      // `<label>.db.lock` directory is different: node-sqlite3-wasm's own mutex,
-      // created by a process's statements and removed on unlock, so a same-host
-      // owner proven dead (ESRCH or verified incarnation change) cannot hold it. Left in place it makes
-      // every later statement fail with "database is locked" until someone
-      // deletes it by hand (the common desktop force-quit case).
-      const databaseLock = path.join(dir, `${path.basename(dir)}.db.lock`)
-      if (fs.existsSync(databaseLock)) {
-        fs.rmSync(databaseLock, { recursive: true, force: true })
-        console.warn(`[book-writer] ${path.basename(dir)}: removed stale ${path.basename(databaseLock)} left by dead pid`)
+    }
+  } catch {
+    throw new BookBusyError("Book ownership could not be verified. Recovery evidence has been preserved.")
+  }
+  const removeOwn = () => {
+    if (readOwner(lock).token !== token) throw new BookBusyError("Book ownership changed during admission.")
+    fs.unlinkSync(lock)
+  }
+  let fd: number | undefined
+  let changed = false
+  let published = false
+  try {
+    // The existing reservation covers BOTH fresh owner publication and dead
+    // owner recovery. There is no unreserved gap in which another process can
+    // publish an owner while a reaper is removing its predecessor.
+    fd = fs.openSync(recovery, "wx", 0o600)
+    fs.fsyncSync(fd)
+    syncLeaseDirectory(dir)
+    let previous: BookWriterOwner | undefined
+    if (entryExists(lock)) {
+      previous = readOwner(lock)
+      if (!observed || previous.token !== observed.token || !deadOwner(lock)) throw new BookBusyError()
+    } else if (observed) {
+      // Another owner/reservation changed after the initial observation.
+      throw new BookBusyError()
+    }
+    const registered = new Set(previous?.coordinatedDatabases ?? [])
+    const mutexes = databaseMutexes(dir, [...registered, ...(databaseFile ? [databaseFile] : [])])
+    // Preflight every candidate before removing any evidence. Only exact paths
+    // opened by the proven-dead coordinated owner have recoverable provenance.
+    for (const name of mutexes) {
+      const stat = fs.lstatSync(path.join(dir, name))
+      if (!registered.has(name.slice(0, -5)) || !stat.isDirectory() || stat.isSymbolicLink() || fs.readdirSync(path.join(dir, name)).length) {
+        throw new BookBusyError("An interrupted book write left a database lock with unverified ownership. Recovery evidence has been preserved.")
       }
-      fs.unlinkSync(lock)
-      create()
-    } catch (recoveryError) {
-      if (recoveryError instanceof BookBusyError) throw recoveryError
-      throw new BookBusyError("Book writer ownership could not be recovered. Check for another running ADT process before retrying.")
-    } finally {
-      if (fd !== undefined) { fs.closeSync(fd); fs.unlinkSync(recovery) }
+    }
+    for (const name of mutexes) { changed = true; fs.rmdirSync(path.join(dir, name)) }
+    // SQLite itself recovers WAL/journal files. Never delete those files.
+    if (previous) { changed = true; fs.unlinkSync(lock) }
+    const ownerFd = fs.openSync(lock, "wx", 0o600)
+    changed = true
+    try {
+      // No filename capability yet. Register clean exact paths durably before
+      // constructing SQLite; an anonymous legacy mutex can never be laundered.
+      fs.writeFileSync(ownerFd, JSON.stringify({ token, pid: process.pid, host: os.hostname(), linuxProcess: linuxProcess(process.pid), coordinatedDatabases: [] }))
+      fs.fsyncSync(ownerFd)
+    } finally { fs.closeSync(ownerFd) }
+    syncLeaseDirectory(dir)
+    published = true
+  } catch (error) {
+    if (error instanceof BookBusyError) throw error
+    throw new BookBusyError("Book ownership could not be recovered. Recovery evidence has been preserved.")
+  } finally {
+    if (fd !== undefined) {
+      fs.closeSync(fd)
+      // A failed/partial publication keeps its reservation, including caught
+      // filesystem failures. Only unchanged refusal or completed publication
+      // can release the recovery boundary.
+      if (published || !changed) { fs.unlinkSync(recovery); syncLeaseDirectory(dir) }
     }
   }
   const lease: Lease = {
-    token, references: 0,
+    token, references: 0, writers: 0, databases: new Set(),
     release() {
       lease.references--
       if (lease.references !== 0) return
+      localLeases.delete(dir)
       // Explicit book deletion removes its lease along with the directory.
       if (!fs.existsSync(dir)) return
-      const owner = BookWriterOwner.parse(JSON.parse(fs.readFileSync(lock, "utf8")))
-      if (owner.token !== token) throw new BookBusyError("Book writer ownership changed during the operation.")
-      fs.unlinkSync(lock)
+      removeOwn()
     },
   }
+  localLeases.set(dir, lease)
   return lease
 }
 
-/** One admission boundary for API, tasks, stage runners and CLI. Nested work
- * retains ownership until its promise settles, even after the HTTP response.
- * There is no age-based stealing of a live writer's lease. */
+/** Retain the existing admission protocol for the complete SQLite connection
+ * lifetime. All production constructors must call this before opening SQLite.
+ * A borrower never becomes an admitted writer through AsyncLocalStorage. */
+export function retainBookDatabase(dbPath: string): () => void {
+  const dir = canonical(path.dirname(dbPath))
+  const filename = path.basename(dbPath)
+  const file = path.join(dir, filename)
+  if (entryExists(file)) {
+    const stat = fs.lstatSync(file)
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || fs.realpathSync(file) !== file) {
+      throw new BookBusyError("A database path alias cannot establish mutex ownership.")
+    }
+  }
+  const lease = localLeases.get(dir) ?? acquire(dir, filename)
+  lease.references++
+  try {
+    verifyLocalLease(dir, lease)
+    if (!lease.databases.has(filename)) {
+      if (entryExists(`${file}.lock`)) throw new BookBusyError("Database mutex ownership could not be verified. Recovery evidence has been preserved.")
+      const lock = path.join(dir, lockName)
+      const fd = fs.openSync(lock, "r+")
+      try {
+        const owner = BookWriterOwner.parse(JSON.parse(fs.readFileSync(fd, "utf8")))
+        if (owner.token !== lease.token) throw new BookBusyError("Book ownership changed before opening the database.")
+        const bytes = Buffer.from(JSON.stringify({ ...owner, coordinatedDatabases: [...lease.databases, filename] }))
+        let offset = 0
+        while (offset < bytes.length) {
+          const written = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset)
+          if (written <= 0) throw new BookBusyError("Database ownership evidence could not be saved.")
+          offset += written
+        }
+        fs.ftruncateSync(fd, bytes.length)
+        fs.fsyncSync(fd)
+      } finally { fs.closeSync(fd) }
+      lease.databases.add(filename)
+    }
+  } catch (error) { lease.release(); throw error }
+  let released = false
+  return () => { if (!released) { released = true; lease.release() } }
+}
+
+/** One writer admission boundary for API, tasks, runners and CLI. Database pins
+ * can outlive an operation; only that operation's active context grants writes.
+ * Nested background work has its own scope and remains admitted until settled. */
 export function withBookWriter<T>(bookDir: string, operation: () => T): T {
   const dir = canonical(bookDir)
   const inherited = context.getStore()
   const existing = inherited?.get(dir)
-  const lease = existing && existing.references > 0 ? existing : acquire(dir)
+  const local = localLeases.get(dir)
+  const lease = existing?.active ? existing.lease : local && local.writers === 0 ? local : acquire(dir)
+  try { verifyLocalLease(dir, lease) }
+  catch (error) {
+    if (lease.references === 0) { lease.references++; try { lease.release() } catch { /* Retain uncertain owner evidence. */ } }
+    throw error
+  }
   lease.references++
+  lease.writers++
+  const operationScope: WriterScope = { lease, active: true }
   const scope = new Map(inherited)
-  scope.set(dir, lease)
+  scope.set(dir, operationScope)
+  const release = () => { operationScope.active = false; lease.writers--; lease.release() }
   return context.run(scope, () => {
     let result: T
-    try { result = operation() } catch (err) { lease.release(); throw err }
-    if (result instanceof Promise) return result.finally(() => lease.release()) as T
-    lease.release()
+    try { result = operation() } catch (err) { release(); throw err }
+    if (result instanceof Promise) return result.finally(release) as T
+    release()
     return result
   })
 }

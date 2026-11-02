@@ -155,17 +155,18 @@ it.each(["fresh", "dead", ...(process.platform === "linux" ? ["recycled"] : [])]
   expect(withBookWriter(f.bookDir, () => "next")).toBe("next")
 })
 
-it("removes the WASM lock directory together with a proven dead local owner's lease", async () => {
+it("preserves a mutex never registered by a proven dead local owner", async () => {
   const f = fixture()
   const child = await owner(f.bookDir)
-  // A force-quit mid-statement leaves node-sqlite3-wasm's mkdir mutex behind.
+  // An unrelated anonymous mutex is not evidence of this writer's database use.
   const databaseLock = path.join(f.bookDir, "book.db.lock")
   fs.mkdirSync(databaseLock)
   child.kill("SIGKILL")
   await once(child, "exit")
-  expect(withBookWriter(f.bookDir, () => "recovered")).toBe("recovered")
-  expect(fs.existsSync(databaseLock)).toBe(false)
-  expect(fs.existsSync(path.join(f.bookDir, ".book-writer.json"))).toBe(false)
+  const evidence = fs.readFileSync(path.join(f.bookDir, ".book-writer.json"), "utf8")
+  expect(() => withBookWriter(f.bookDir, () => "unsafe")).toThrow("BOOK_BUSY")
+  expect(fs.existsSync(databaseLock)).toBe(true)
+  expect(fs.readFileSync(path.join(f.bookDir, ".book-writer.json"), "utf8")).toBe(evidence)
 })
 
 it("never creates a book directory just to check or take ownership", () => {
@@ -321,4 +322,69 @@ it.skipIf(process.platform !== "linux" || !fs.existsSync("/.dockerenv")).each(["
   expect(() => withBookWriter(f.bookDir, () => "unsafe")).toThrow("BOOK_BUSY")
   expect(fs.readFileSync(file, "utf8")).toBe(bytes)
   expect(fs.readFileSync(path.join(f.bookDir, "book.db.lock", "owner"), "utf8")).toBe("do not reclaim")
+})
+
+it("a delayed reaper cannot displace a newly published live owner", async () => {
+  const f = fixture()
+  const dead = await owner(f.bookDir)
+  const died = once(dead, "exit"); dead.kill("SIGKILL"); await died
+  const paused = path.join(f.root, "paused"), resume = path.join(f.root, "resume")
+  const contender = spawn(process.execPath, ["--input-type=module", "-e", `
+    import fs from 'node:fs';
+    import {withBookWriter} from ${JSON.stringify(path.resolve(import.meta.dirname, "../../dist/book-writer.js"))};
+    const open=fs.openSync; let stopped=false;
+    fs.openSync=function(file,...args) {
+      if (!stopped && String(file)===${JSON.stringify(path.join(f.bookDir, ".book-writer.json.recovery"))} && args[0]==='wx') {
+        stopped=true; fs.writeFileSync(${JSON.stringify(paused)}, 'paused before reservation');
+        const deadline=Date.now()+10000;
+        while (!fs.existsSync(${JSON.stringify(resume)})) {
+          if(Date.now()>deadline) throw new Error('test barrier timeout');
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,5);
+        }
+      }
+      return open.call(fs,file,...args);
+    };
+    try { withBookWriter(${JSON.stringify(f.bookDir)},()=>process.send('incorrectly acquired')); }
+    catch(error) { process.send(error.code); }
+    process.disconnect();
+  `], { stdio: ["ignore", "pipe", "pipe", "ipc"] })
+  children.push(contender)
+  const outcome = once(contender, "message")
+  await vi.waitFor(() => expect(fs.existsSync(paused)).toBe(true))
+  const winner = await owner(f.bookDir)
+  const record = fs.readFileSync(path.join(f.bookDir, ".book-writer.json"), "utf8")
+  fs.writeFileSync(resume, "continue")
+  expect((await outcome)[0]).toBe("BOOK_BUSY")
+  expect(fs.readFileSync(path.join(f.bookDir, ".book-writer.json"), "utf8")).toBe(record)
+  const exited = once(winner, "exit"); winner.send("finish"); await exited
+  expect(withBookWriter(f.bookDir, () => "next operation")).toBe("next operation")
+})
+
+it("preserves a reaper killed in the owner-file gap and excludes fresh contenders", async () => {
+  const f = fixture()
+  const dead = await owner(f.bookDir)
+  const died = once(dead, "exit"); dead.kill("SIGKILL"); await died
+  const paused = path.join(f.root, "owner-removed")
+  const reaper = spawn(process.execPath, ["--input-type=module", "-e", `
+    import fs from 'node:fs';
+    import {withBookWriter} from ${JSON.stringify(path.resolve(import.meta.dirname, "../../dist/book-writer.js"))};
+    const unlink=fs.unlinkSync;
+    fs.unlinkSync=function(file) {
+      const result=unlink.call(fs,file);
+      if(String(file)===${JSON.stringify(path.join(f.bookDir, ".book-writer.json"))}) {
+        fs.writeFileSync(${JSON.stringify(paused)},'old owner removed');
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,10000);
+        throw new Error('test barrier timeout');
+      }
+      return result;
+    };
+    withBookWriter(${JSON.stringify(f.bookDir)},()=>{throw new Error('must not enter')});
+  `], { stdio: ["ignore", "pipe", "pipe"] })
+  children.push(reaper)
+  await vi.waitFor(() => expect(fs.existsSync(paused)).toBe(true))
+  expect(fs.existsSync(path.join(f.bookDir, ".book-writer.json"))).toBe(false)
+  expect(() => withBookWriter(f.bookDir, () => "bypass")).toThrow("BOOK_BUSY")
+  const exited = once(reaper, "exit"); reaper.kill("SIGKILL"); await exited
+  expect(() => withBookWriter(f.bookDir, () => "bypass orphan")).toThrow("BOOK_BUSY")
+  expect(fs.existsSync(path.join(f.bookDir, ".book-writer.json.recovery"))).toBe(true)
 })

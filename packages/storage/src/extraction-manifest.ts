@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
-import sqlite from "node-sqlite3-wasm"
+import type sqlite from "node-sqlite3-wasm"
+import { openCoordinatedDatabase } from "./database-admission.js"
 import { BookFontRegistry, FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID, ExtractionManifest, type ExtractionInputs } from "@adt/types"
-import { assertBookWriter } from "./book-writer.js"
+import { assertBookWriter, BookBusyError } from "./book-writer.js"
 import { ExtractionAdmissionError } from "./extraction-error.js"
 
 export const EXTRACTION_MANIFEST_FILE = "extraction.json"
@@ -59,7 +60,7 @@ export function flushExtractionAsset(bookDir: string, relative: string): void {
 
 function readDatabase<T>(bookDir: string, read: (db: sqlite.Database) => T): T {
   const file = path.join(bookDir, `${path.basename(bookDir)}.db`)
-  const db = new sqlite.Database(file, { readOnly: true, fileMustExist: true })
+  const db = openCoordinatedDatabase(file, { readOnly: true, fileMustExist: true })
   try { return read(db) } finally { db.close() }
 }
 
@@ -108,7 +109,7 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
         if (db.get(query)) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
       }
     })
-  } catch { throw new ExtractionAdmissionError("EXTRACTION_LEGACY") }
+  } catch (error) { if (error instanceof BookBusyError) throw error; throw new ExtractionAdmissionError("EXTRACTION_LEGACY") }
 }
 
 export function verifyExtractionInventory(bookDir: string, manifest: ExtractionManifest): void {
@@ -152,7 +153,7 @@ export function verifyExtractionInventory(bookDir: string, manifest: ExtractionM
         if (!row || row.page_id !== image.pageId || row.path !== image.path || row.width !== image.width || row.height !== image.height) throw new Error("Image record mismatch")
       }
     })
-  } catch { throw new ExtractionAdmissionError("EXTRACTION_ASSETS_INVALID") }
+  } catch (error) { if (error instanceof BookBusyError) throw error; throw new ExtractionAdmissionError("EXTRACTION_ASSETS_INVALID") }
 }
 
 /** Read-only admission after taking the writer gate, before mutable storage. */

@@ -11,7 +11,8 @@ const lock = () => path.join(dir, ".book-writer.json")
 const recovery = () => `${lock()}.recovery`
 const childWriter = (operation = "console.log('admitted')") => spawnSync(process.execPath, [
   "--input-type=module", "-e",
-  `import { withBookWriter } from ${JSON.stringify(path.resolve("packages/storage/dist/book-writer.js"))};
+  `import fs from "node:fs";
+   import { withBookWriter } from ${JSON.stringify(path.resolve("packages/storage/dist/book-writer.js"))};
    import { createBookStorage } from ${JSON.stringify(path.resolve("packages/storage/dist/book-storage.js"))};
    try { withBookWriter(${JSON.stringify(dir)}, () => { ${operation} }) }
    catch (error) { console.log(error.code); process.exit(23) }`,
@@ -92,7 +93,7 @@ describe("book writer admission", () => {
     expect(fs.existsSync(recovery())).toBe(false)
   })
 
-  it("retains recovery evidence when a writer dies inside a non-transition SQLite transaction", () => {
+  it.each(["coordinated", "legacy"])("recovers only proven %s database ownership after an ordinary transaction crash", (kind) => {
     const label = path.basename(dir)
     const root = path.dirname(dir)
     const storage = createBookStorage(label, root)
@@ -102,6 +103,7 @@ describe("book writer admission", () => {
       const storage = createBookStorage(${JSON.stringify(label)}, ${JSON.stringify(root)});
       storage.transaction(() => {
         storage.putNodeData('web-rendering', 'pg001', {uncommitted: true});
+        ${kind === "legacy" ? `const owner = JSON.parse(fs.readFileSync(${JSON.stringify(lock())}, 'utf8')); delete owner.coordinatedDatabases; fs.writeFileSync(${JSON.stringify(lock())}, JSON.stringify(owner));` : ""}
         process.kill(process.pid, 'SIGKILL');
       });
     `)
@@ -109,10 +111,22 @@ describe("book writer admission", () => {
     const owner = fs.readFileSync(lock(), "utf8")
     const files = fs.readdirSync(dir).filter((file) => file.startsWith(`${label}.db`) && fs.statSync(path.join(dir, file)).isFile())
     const before = files.map((file) => fs.readFileSync(path.join(dir, file)))
-    expect(() => withBookWriter(dir, () => undefined)).toThrow(/interrupted book write left a database lock/)
-    expect(fs.readFileSync(lock(), "utf8")).toBe(owner)
-    expect(files.map((file) => fs.readFileSync(path.join(dir, file)))).toEqual(before)
-    expect(fs.existsSync(path.join(dir, `${label}.db.lock`))).toBe(true)
+    if (kind === "legacy") {
+      expect(() => withBookWriter(dir, () => undefined)).toThrow(/interrupted book write left a database lock/)
+      expect(fs.readFileSync(lock(), "utf8")).toBe(owner)
+      expect(files.map((file) => fs.readFileSync(path.join(dir, file)))).toEqual(before)
+      expect(fs.existsSync(path.join(dir, `${label}.db.lock`))).toBe(true)
+    } else {
+      withBookWriter(dir, () => {
+        const recovered = createBookStorage(label, root)
+        try {
+          expect(recovered.getAllNodeVersions("web-rendering", "pg001")).toEqual([{ version: 1, data: { retained: true } }])
+          expect(recovered.putNodeData("web-rendering", "pg001", { next: "successful edit" })).toBe(2)
+        } finally { recovered.close() }
+      })
+      expect(fs.existsSync(lock())).toBe(false)
+      expect(fs.existsSync(path.join(dir, `${label}.db.lock`))).toBe(false)
+    }
   })
 
   it.each(["incomplete", "foreign", "reaper"])("fails closed for %s ownership without altering the owner", (kind) => {

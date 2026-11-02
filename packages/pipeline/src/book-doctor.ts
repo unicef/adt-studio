@@ -151,7 +151,7 @@ export function diagnoseBook(booksDir: string, label: string): BookDiagnosis {
   }
   if (diagnosis.staleLockDir) {
     // Opening would fail with "database is locked"; nothing else is provable.
-    diagnosis.error = `stale lock directory ${label}.db.lock; remove it before opening this book`
+    diagnosis.error = `database mutex ${label}.db.lock has unverified ownership; retain it and check for active processes before recovery`
     return diagnosis
   }
   try {

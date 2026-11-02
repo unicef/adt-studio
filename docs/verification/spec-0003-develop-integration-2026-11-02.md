@@ -87,3 +87,11 @@ rather than a fail-closed-only fallback. That correction and its new crash/reade
 acceptance are pending at this integration checkpoint; the amended spec records
 its guarantee and mixed-version concurrency limit. No new lock subsystem is
 approved. The original failure evidence is preserved outside Git.
+
+## Shared-reader checkpoint
+
+The authorized extension now centralizes all SQLite constructors, retains the
+existing process lease through connection/statement closure, and serializes owner
+publication using its existing reservation. Fifty focused tests pass; sixteen
+Linux-only cases were skipped on macOS. See [the proof boundary and test evidence](spec-0003-reader-admission-2026-11-02.md). Independent frozen-head recheck, actual
+HTTP/Studio visibility, full suites and packaged Linux verification remain pending.
