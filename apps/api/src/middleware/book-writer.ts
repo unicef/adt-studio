@@ -15,6 +15,10 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     const suffix = c.req.path.split(`/books/${encodeURIComponent(label)}`)[1] ?? ""
     if (suffix === "" && c.req.method === "POST" && ["import", "preview-import"].includes(label)) return next()
     const bookDir = requireExistingBook(label, booksDir)
+    // This preview endpoint transforms supplied HTML only: it neither opens
+    // storage nor writes book files. Keep committed-page math readable while
+    // another page is still rendering; all adjacent mutations remain guarded.
+    if (c.req.method === "POST" && suffix === "/adt-preview/convert-math") return next()
     // Match #886: admission must not recreate a book after its deletion.
     if (suffix.startsWith("/stages") || suffix.startsWith("/tasks")) return next()
     // Shared-link feedback only reaches the publish Worker, and Stop only flags the run that
