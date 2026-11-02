@@ -112,6 +112,7 @@ export function FeedbackActions({
   onReopen: () => void
   onNext: (() => void) | null
 }) {
+  const destination = threadDestination(bookLabel, thread)
   return (
     <div className="flex flex-wrap items-center gap-2 px-2 py-1.5">
       {onNext ? (
@@ -127,7 +128,7 @@ export function FeedbackActions({
             <Trans>That didn't resolve. Try again.</Trans>
           </span>
         ) : null}
-        <Button
+        {destination && <Button
           size="sm"
           variant="outline"
           className={cn(
@@ -138,11 +139,11 @@ export function FeedbackActions({
           )}
           asChild
         >
-          <Link {...threadDestination(bookLabel, thread)}>
+          <Link {...destination}>
             <MessageSquareReply aria-hidden="true" />
             {thread.quiz ? <Trans>Fix in Quizzes</Trans> : <Trans>Fix in Storyboard</Trans>}
           </Link>
-        </Button>
+        </Button>}
 
         {held ? (
           <span className="flex h-8 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 pl-2.5 text-sm font-medium text-emerald-700 motion-safe:animate-in motion-safe:fade-in-0 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">

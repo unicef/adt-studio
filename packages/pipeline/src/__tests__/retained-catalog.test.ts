@@ -62,3 +62,45 @@ it("reactivates retained physical audio and matching timings only when its stabl
   expect(storage.getLatestNodeData("tts-timestamps", "en")?.data).toMatchObject({ entries: { [id]: { audioHash: asset.contentHash } } })
   expect(fs.readFileSync(path.join(storage.bookDir!, "audio", "en", asset.fileName), "utf8")).toBe("manual recording")
 })
+
+it("recovers translation authorship by exact source ID after restart, honoring the selected current version", async () => {
+  const { retainedTranslation } = await import("../retained-catalog.js")
+  const manual = { id: "stable", text: "Ma correction", source: "manual" as const }
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [manual], generatedAt: "before" })
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [], generatedAt: "retired" })
+  storage.close(); storage = createBookStorage("retained", root)
+  expect(retainedTranslation(storage, "fr", ["new-id"])?.entries).toEqual([])
+  expect(retainedTranslation(storage, "fr", ["stable"])?.entries).toEqual([manual])
+  expect(storage.getLatestNodeData("text-catalog-translation", "fr")?.version).toBe(2)
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [{ ...manual, text: "Selected correction" }], generatedAt: "later" })
+  expect(retainedTranslation(storage, "fr", ["stable"])?.entries[0].text).toBe("Selected correction")
+  storage.setCurrentNodeVersion("text-catalog-translation", "fr", 1)
+  expect(retainedTranslation(storage, "fr", ["stable"])?.entries).toEqual([manual])
+})
+
+it.each(["current", "historical"])("recovers an independent correction despite %s duplicate legacy entries", async duplicateLocation => {
+  const { retainedTranslation } = await import("../retained-catalog.js")
+  const manual = { id: "restored", text: "Correction conservée", source: "manual" as const }
+  const duplicates = [{ id: "ambiguous", text: "First legacy copy" }, { id: "ambiguous", text: "Second legacy copy" }]
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [manual], generatedAt: "old correction" })
+  storage.putNodeData("text-catalog-translation", "fr", { entries: duplicates, generatedAt: "legacy ambiguity" })
+  if (duplicateLocation === "historical") storage.putNodeData("text-catalog-translation", "fr", { entries: [], generatedAt: "retired" })
+  const history = storage.getAllNodeVersions("text-catalog-translation", "fr")
+  storage.close(); storage = createBookStorage("retained", root)
+  const retained = retainedTranslation(storage, "fr", ["ambiguous", "restored"])!
+  expect(retained.entries.filter(entry => entry.id === "restored")).toEqual([manual])
+  expect(retained.entries.filter(entry => entry.id === "ambiguous")).toEqual(duplicates)
+  expect(storage.getAllNodeVersions("text-catalog-translation", "fr")).toEqual(history)
+})
+
+it("retains complete legacy duplicate groups and opaque metadata without generatedAt", async () => {
+  const { retainedTranslation } = await import("../retained-catalog.js")
+  const entries = [{ id: "stable", text: "First correction", source: "manual", legacyNote: { author: "kept" } }, { id: "stable", text: "Other correction", legacyNote: { author: "unknown" } }]
+  storage.putNodeData("text-catalog-translation", "fr", { entries })
+  expect(retainedTranslation(storage, "fr", ["stable"])?.entries).toEqual(entries)
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [] })
+  storage.close(); storage = createBookStorage("retained", root)
+  expect(retainedTranslation(storage, "fr", ["stable"])?.entries).toEqual(entries)
+  expect(retainedTranslation(storage, "fr", ["new"])?.entries).toEqual([])
+  expect(storage.getAllNodeVersions("text-catalog-translation", "fr")).toHaveLength(2)
+})

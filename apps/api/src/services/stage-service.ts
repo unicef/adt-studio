@@ -53,6 +53,8 @@ export interface BookRunStatus {
 }
 
 export interface StageRunOptions {
+  replaceManual?: boolean
+  protectedReplacements?: import("@adt/types").AuthoredReplacement[]
   outputScope?: OutputRunScope
   /** Internal publication boundary for one guarded catalog review operation. */
   publishReviewSource?: (identities: OutputIdentity[], publish: () => void) => void

@@ -1,4 +1,6 @@
 export { SectionSyncStatus, SectionSyncResult, SectioningSynchronization } from "./sectioning-sync.js"
+export { AuthoredContent, AuthoredSaveGuard, AuthoredReplacement, AuthoredRunOptions } from "./content-authorship.js"
+
 export {
   SCHEMA_VERSION,
   ImageSource,
@@ -321,6 +323,7 @@ export {
 export {
   TextCatalogEntry,
   TextCatalogOutput,
+  TranslationSaveResponse,
   CatalogConflict,
   TextCatalogCategory,
   getTextCatalogCategory,
@@ -734,3 +737,4 @@ export { OutputDisclosureOptions } from "./output-freshness.js"
 
 export { SOURCE_GENERATION_RESET_STEPS } from "./pipeline.js"
 export { SourceGeneratorStep, SourceGenerationPolicy, SourceGenerationState, SourceGenerationReceipt } from "./source-generation-state.js"
+export { BookConfigSaveReceipt } from "./book-config-save.js"

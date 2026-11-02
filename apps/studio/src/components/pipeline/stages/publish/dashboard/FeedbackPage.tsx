@@ -73,8 +73,9 @@ export function FeedbackPage({
   const [pins, setPins] = useState<Pin[]>([])
   const [flash, setFlash] = useState(0)
   const page = usePage(bookLabel, thread.pageId ?? "")
-  const sectionIndex = Math.max(0, (thread.sectionNumber ?? 1) - 1)
-  const rendered = page.data?.rendering?.sections.find((section) => section.sectionIndex === sectionIndex) ?? null
+  const matches = page.data?.rendering?.sections.filter((section) => section.sectionId === thread.pageSectionId) ?? []
+  const rendered = matches.length === 1 ? matches[0] : null
+  const sectionIndex = rendered?.sectionIndex ?? 0
   const unavailable = thread.pageId === null || page.isError || (!page.isPending && !rendered?.html)
   const sectionKey = threads
     .filter((other) => other.pageSectionId === thread.pageSectionId)

@@ -14,7 +14,7 @@ import { useDebugPanelState } from "@/components/debug/debug-panel-state"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useReviewerValidationCatalog } from "@/hooks/use-reviewer-validation"
-import { useBookRun } from "@/hooks/use-book-run"
+import { usePages } from "@/hooks/use-pages"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import {
   findAccessibilityPage,
@@ -41,9 +41,9 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { previewHref?: string }
-  const { stageState, isStatusLoading } = useBookRun()
+  const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
   const { isTaskRunning, getTask } = useBookTasks(bookLabel)
-  const storyboardDone = stageState("storyboard") === "done"
+  const hasRendering = (pages ?? []).some((page) => page.hasRendering)
   const { allPruned, isLoading: prunedLoading } = useAllPagesPruned(bookLabel)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -225,17 +225,17 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
 
   // Only trigger packaging when storyboard is done
   useEffect(() => {
-    if (!storyboardDone || ranRef.current) return
+    if (!hasRendering || ranRef.current) return
     ranRef.current = true
     runPackage()
-  }, [runPackage, storyboardDone])
+  }, [runPackage, hasRendering])
 
   useEffect(() => {
-    if (!storyboardDone) return
+    if (!hasRendering) return
     const handler = () => { runPackage() }
     window.addEventListener("adt:repackage", handler)
     return () => window.removeEventListener("adt:repackage", handler)
-  }, [runPackage, storyboardDone])
+  }, [runPackage, hasRendering])
 
   const navigatePreviewToHref = useCallback((href: string) => {
     const iframe = iframeRef.current
@@ -290,11 +290,11 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     setDeviceView(next)
   }
 
-  if (isStatusLoading || prunedLoading) {
+  if (pagesLoading || prunedLoading) {
     return <LoadingState stageSlug="preview" label={<Trans>Loading preview...</Trans>} />
   }
 
-  if (!storyboardDone) {
+  if (!hasRendering) {
     return <StageBlockedState bookLabel={bookLabel} reason="storyboard-missing" stageLabel={<Trans>Preview</Trans>} />
   }
 

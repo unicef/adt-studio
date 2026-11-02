@@ -1746,6 +1746,9 @@ msgstr "already there"
 msgid "Also delete the sharing service and every shared book from my Cloudflare account"
 msgstr "Also delete the sharing service and every shared book from my Cloudflare account"
 
+msgid "Also regenerate these pages and replace their saved content"
+msgstr "Also regenerate these pages and replace their saved content"
+
 msgid "Also used by {readerNames} unless that provider has its own key."
 msgstr "Also used by {readerNames} unless that provider has its own key."
 
@@ -2632,6 +2635,9 @@ msgstr "Change the picture for this term"
 msgid "Changes detected"
 msgstr "Changes detected"
 
+msgid "Changes not saved"
+msgstr "Changes not saved"
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 
@@ -3095,6 +3101,9 @@ msgstr "Configured on server"
 msgid "Confirm merge"
 msgstr "Confirm merge"
 
+msgid "Conflicting changes detected"
+msgstr "Conflicting changes detected"
+
 msgid "Conflicting source text uses this ID. Resolve the source conflict before accepting dependent output."
 msgstr "Conflicting source text uses this ID. Resolve the source conflict before accepting dependent output."
 
@@ -3366,6 +3375,12 @@ msgstr "Correct answer (alternatives separated by |)"
 msgid "Correct the metadata extracted from the document."
 msgstr "Correct the metadata extracted from the document."
 
+msgid "Could not load saved content."
+msgstr "Could not load saved content."
+
+msgid "Could not load saved content. Retry"
+msgstr "Could not load saved content. Retry"
+
 msgid "Could not load the AI provider catalogue."
 msgstr "Could not load the AI provider catalogue."
 
@@ -3383,6 +3398,9 @@ msgstr "Could not read this PDF. The file may be corrupted or password-protected
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Could not remove {failed} of {total} videos. Please try again."
+
+msgid "Could not revert this page. Your edits were kept. Try again."
+msgstr "Could not revert this page. Your edits were kept. Try again."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -3969,6 +3987,9 @@ msgstr "Discard"
 
 msgid "Discard & leave"
 msgstr "Discard & leave"
+
+msgid "Discard this draft and load the entire latest saved table of contents."
+msgstr "Discard this draft and load the entire latest saved table of contents."
 
 msgid "Discard unsaved prompt changes?"
 msgstr "Discard unsaved prompt changes?"
@@ -6038,6 +6059,9 @@ msgstr "Keep filtered content"
 msgid "Keep going"
 msgstr "Keep going"
 
+msgid "Keep my changes"
+msgstr "Keep my changes"
+
 msgid "Keep my connection"
 msgstr "Keep my connection"
 
@@ -6059,11 +6083,17 @@ msgstr "Keep pages whole by default, but split when distinct activity types are 
 msgid "Keep sharing"
 msgstr "Keep sharing"
 
+msgid "Keep the values you entered where changes overlap."
+msgstr "Keep the values you entered where changes overlap."
+
 msgid "Keep this one"
 msgstr "Keep this one"
 
 msgid "Keep working"
 msgstr "Keep working"
+
+msgid "Keep your entire table of contents, including its chapter targets and order."
+msgstr "Keep your entire table of contents, including its chapter targets and order."
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Keeps pages whole unless mixed activity types require splitting."
@@ -6220,6 +6250,9 @@ msgstr "Left on version {0}"
 
 msgid "Left out of the shared copy only"
 msgstr "Left out of the shared copy only"
+
+msgid "Legacy · protected"
+msgstr "Legacy · protected"
 
 msgid "Legal and compliance manuals"
 msgstr "Legal and compliance manuals"
@@ -6387,6 +6420,9 @@ msgstr "LLM-based segmentation to detect and split composited images into indivi
 msgid "LMS-ready with completion tracking"
 msgstr "LMS-ready with completion tracking"
 
+msgid "Load latest saved values"
+msgstr "Load latest saved values"
+
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
 
@@ -6476,6 +6512,9 @@ msgstr "Loading reviewer validation summary..."
 
 msgid "Loading reviewer validation…"
 msgstr "Loading reviewer validation…"
+
+msgid "Loading saved content…"
+msgstr "Loading saved content…"
 
 msgid "Loading sectioning data..."
 msgstr "Loading sectioning data..."
@@ -6614,6 +6653,9 @@ msgstr "Managed elsewhere"
 
 msgid "Manual edit"
 msgstr "Manual edit"
+
+msgid "Manual edits reverted for page {pageNumber}"
+msgstr "Manual edits reverted for page {pageNumber}"
 
 msgid "Manual only"
 msgstr "Manual only"
@@ -7261,6 +7303,9 @@ msgstr "No differences from the fallback prompt."
 
 msgid "No disabled rules"
 msgstr "No disabled rules"
+
+msgid "No earlier AI-generated version is available for this page."
+msgstr "No earlier AI-generated version is available for this page."
 
 msgid "No Easy Read for this page"
 msgstr "No Easy Read for this page"
@@ -8253,8 +8298,8 @@ msgstr "Page {0} — Section {1}"
 
 #. placeholder {0}: at.pageNumber
 #. placeholder {1}: at.sectionNumber
-msgid "Page {0} · Section {1}"
-msgstr "Page {0} · Section {1}"
+#~ msgid "Page {0} · Section {1}"
+#~ msgstr "Page {0} · Section {1}"
 
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
@@ -8278,6 +8323,9 @@ msgstr "Page {pageId}"
 
 msgid "Page {pageNum}"
 msgstr "Page {pageNum}"
+
+msgid "Page {pageNumber} · Section {sectionNumber}"
+msgstr "Page {pageNumber} · Section {sectionNumber}"
 
 msgid "page {shownStr}"
 msgstr "page {shownStr}"
@@ -8367,8 +8415,8 @@ msgstr "Pages {0}–{1}"
 #. placeholder {0}: at.pageNumber
 #. placeholder {1}: at.lastPageNumber
 #. placeholder {2}: at.sectionNumber
-msgid "Pages {0}–{1} · Section {2}"
-msgstr "Pages {0}–{1} · Section {2}"
+#~ msgid "Pages {0}–{1} · Section {2}"
+#~ msgstr "Pages {0}–{1} · Section {2}"
 
 #. placeholder {0}: preview.range.startPage
 #. placeholder {1}: preview.range.endPage
@@ -8376,11 +8424,17 @@ msgstr "Pages {0}–{1} · Section {2}"
 msgid "Pages {0}–{1} of {2}"
 msgstr "Pages {0}–{1} of {2}"
 
+msgid "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
+msgstr "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
+
 msgid "pages {shownStr}"
 msgstr "pages {shownStr}"
 
 msgid "Pages in the selected range"
 msgstr "Pages in the selected range"
+
+msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+msgstr "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
 
 msgid "pages per quiz"
 msgstr "pages per quiz"
@@ -8390,6 +8444,9 @@ msgstr "Pages per Quiz"
 
 msgid "Pages reviewed"
 msgstr "Pages reviewed"
+
+msgid "Pages with manual edits or unknown authorship:"
+msgstr "Pages with manual edits or unknown authorship:"
 
 msgid "Paper Collage"
 msgstr "Paper Collage"
@@ -8817,6 +8874,9 @@ msgstr "prompts templates instructions"
 
 #~ msgid "Protected content"
 #~ msgstr "Protected content"
+
+msgid "Protected quizzes to replace:"
+msgstr "Protected quizzes to replace:"
 
 msgid "Provider"
 msgstr "Provider"
@@ -9535,6 +9595,9 @@ msgstr "Replace image"
 msgid "Replace PDF"
 msgstr "Replace PDF"
 
+msgid "Replace protected quizzes"
+msgstr "Replace protected quizzes"
+
 msgid "Replace quiz"
 msgstr "Replace quiz"
 
@@ -9543,6 +9606,9 @@ msgstr "Replace quizzes"
 
 msgid "Replace this audio file"
 msgstr "Replace this audio file"
+
+msgid "Replace your overlapping changes with the latest saved values."
+msgstr "Replace your overlapping changes with the latest saved values."
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Replay the guided introduction to ADT Studio."
@@ -9575,6 +9641,10 @@ msgstr "Reply…"
 
 msgid "Report an issue"
 msgstr "Report an issue"
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "Request failed: {0}"
 
 msgid "Request settings"
 msgstr "Request settings"
@@ -9630,6 +9700,9 @@ msgstr "Resolve"
 #. placeholder {0}: thread.authorName
 msgid "Resolve {0}'s comment"
 msgstr "Resolve {0}'s comment"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Resolve conflicting edits before saving"
 
 msgid "Resolved"
 msgstr "Resolved"
@@ -9721,6 +9794,12 @@ msgstr "Return to publishing"
 msgid "Revert language change"
 msgstr "Revert language change"
 
+msgid "Revert manual edits"
+msgstr "Revert manual edits"
+
+msgid "Revert manual edits on page {pageNumber}?"
+msgstr "Revert manual edits on page {pageNumber}?"
+
 msgid "Revert to {originalLanguageName}"
 msgstr "Revert to {originalLanguageName}"
 
@@ -9791,6 +9870,9 @@ msgstr "Review style"
 
 msgid "Review the affected stages after this change."
 msgstr "Review the affected stages after this change."
+
+msgid "Review the chosen document, then save again."
+msgstr "Review the chosen document, then save again."
 
 msgid "Review the comments waiting on you in the storyboard"
 msgstr "Review the comments waiting on you in the storyboard"
@@ -10082,8 +10164,14 @@ msgstr "Save your work first if you want to keep these changes."
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 
+msgid "Saved content could not be verified. Try again."
+msgstr "Saved content could not be verified. Try again."
+
 msgid "Saved content is kept. Review language-dependent outputs after saving. No generation starts automatically."
 msgstr "Saved content is kept. Review language-dependent outputs after saving. No generation starts automatically."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "Saved content is unavailable; your draft is retained"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -11979,6 +12067,9 @@ msgstr "The Studio will create the storage and small web service it needs inside
 msgid "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 msgstr "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 
+msgid "The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again."
+msgstr "The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again."
+
 msgid "The table of contents."
 msgstr "The table of contents."
 
@@ -12128,6 +12219,9 @@ msgstr "This comment isn't tied to a page Studio can find."
 msgid "This comment was deleted"
 msgstr "This comment was deleted"
 
+msgid "This comment’s section is unavailable in the current book. Its feedback remains in Sharing."
+msgstr "This comment’s section is unavailable in the current book. Its feedback remains in Sharing."
+
 msgid "This computer"
 msgstr "This computer"
 
@@ -12224,6 +12318,9 @@ msgstr "This only changes ADT Studio's interface. It does not affect the languag
 msgid "This option has no answer key entry"
 msgstr "This option has no answer key entry"
 
+msgid "This page changed or a run started. Your edits were kept. Try again."
+msgstr "This page changed or a run started. Your edits were kept. Try again."
+
 msgid "This page has no captioned images"
 msgstr "This page has no captioned images"
 
@@ -12247,6 +12344,9 @@ msgstr "This page has no translatable text entries"
 
 msgid "This page has not been reviewed yet"
 msgstr "This page has not been reviewed yet"
+
+msgid "This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved."
+msgstr "This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved."
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
@@ -12299,8 +12399,14 @@ msgstr "This removes the global version for this prompt file. Shipped fallback f
 msgid "This removes the site and every shared version from your Cloudflare account. The book on this computer is untouched, and the link stops working for everyone."
 msgstr "This removes the site and every shared version from your Cloudflare account. The book on this computer is untouched, and the link stops working for everyone."
 
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
+
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+msgstr "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
 
 msgid "This screen couldn’t load"
 msgstr "This screen couldn’t load"
@@ -12332,6 +12438,9 @@ msgstr "This Studio shares books with a newer reader than the sharing service in
 
 msgid "This system cannot show desktop notifications."
 msgstr "This system cannot show desktop notifications."
+
+msgid "This table of contents has conflicting chapter identities. Restore an earlier version before editing."
+msgstr "This table of contents has conflicting chapter identities. Restore an earlier version before editing."
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "This text is only perceptible to assistive technologies."
@@ -13583,6 +13692,9 @@ msgstr "Your books will live in your own Cloudflare account."
 msgid "Your browser opens Cloudflare's own sign-in page."
 msgstr "Your browser opens Cloudflare's own sign-in page."
 
+msgid "Your changes are still here. Review them before saving again."
+msgstr "Your changes are still here. Review them before saving again."
+
 msgid "Your choices are kept while you wait."
 msgstr "Your choices are kept while you wait."
 
@@ -13627,6 +13739,9 @@ msgstr "Your fonts"
 
 msgid "Your link appears here once the book is shared"
 msgstr "Your link appears here once the book is shared"
+
+msgid "Your other edits will be kept. Review the result, then save again."
+msgstr "Your other edits will be kept. Review the result, then save again."
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Your pages {displayStart}–{displayEnd}"

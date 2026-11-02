@@ -22,7 +22,7 @@ vi.mock("../../components/floating-save", () => ({
 }))
 vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock("./components/TocHintBanner", () => ({ TocHintBanner: () => null }))
-vi.mock("@/api/client", () => ({ api: { getTocSections: vi.fn().mockResolvedValue([]), updateToc: vi.fn().mockResolvedValue({ version: 3 }), getVersionHistory: vi.fn(), restoreVersion: vi.fn() } }))
+vi.mock("@/api/client", async (original) => ({ ...await original<typeof import("@/api/client")>(), api: { getTocSections: vi.fn().mockResolvedValue([]), updateToc: vi.fn().mockResolvedValue({ version: 3 }), getVersionHistory: vi.fn(), restoreVersion: vi.fn() } }))
 const { api } = await import("@/api/client")
 const { TocIndex } = await import("./TocIndex")
 function Harness() {

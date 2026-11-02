@@ -11,6 +11,9 @@ overrides:
   tar: 7.5.19
 
 patchedDependencies:
+  '@tanstack/history@1.154.14':
+    hash: 58470bd2728feb1786488ac5a90d65b7cbddffb14a541c4b3872e53291d897f5
+    path: patches/@tanstack__history@1.154.14.patch
   app-builder-lib@26.8.1:
     hash: b01e9cad7d5cb7de17c9fa0e732aacaa0ca8e18d7d69796ec296ef2c152522fb
     path: patches/app-builder-lib@26.8.1.patch
@@ -9010,7 +9013,7 @@ snapshots:
       '@tanstack/pacer-lite': 0.1.1
       '@tanstack/store': 0.9.3
 
-  '@tanstack/history@1.154.14': {}
+  '@tanstack/history@1.154.14(patch_hash=58470bd2728feb1786488ac5a90d65b7cbddffb14a541c4b3872e53291d897f5)': {}
 
   '@tanstack/hotkeys@0.8.0':
     dependencies:
@@ -9042,7 +9045,7 @@ snapshots:
 
   '@tanstack/react-router@1.159.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@tanstack/history': 1.154.14
+      '@tanstack/history': 1.154.14(patch_hash=58470bd2728feb1786488ac5a90d65b7cbddffb14a541c4b3872e53291d897f5)
       '@tanstack/react-store': 0.8.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@tanstack/router-core': 1.159.4
       isbot: 5.1.34
@@ -9080,7 +9083,7 @@ snapshots:
 
   '@tanstack/router-core@1.159.4':
     dependencies:
-      '@tanstack/history': 1.154.14
+      '@tanstack/history': 1.154.14(patch_hash=58470bd2728feb1786488ac5a90d65b7cbddffb14a541c4b3872e53291d897f5)
       '@tanstack/store': 0.8.0
       cookie-es: 2.0.0
       seroval: 1.5.0

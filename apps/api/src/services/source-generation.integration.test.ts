@@ -106,7 +106,7 @@ it("does not warn on no-op output restore, but warns after selecting an older ge
   db.putNodeData("toc-generation", "book", { entries: [], generatedAt: "new", pageCount: 1 })
   db.close()
   const app = createPageRoutes(root, promptsDir, "", configPath)
-  const restore = (version: number) => app.request(`/books/${label}/versions/toc-generation/book/restore`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version }) })
+  const restore = (version: number) => app.request(`/books/${label}/versions/toc-generation/book/restore`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version, baseVersion: 2 }) })
   expect((await restore(2)).status).toBe(200)
   const same = storage(); expect(getSourceGenerationUpdates(same)).toEqual([]); same.close()
   expect((await restore(1)).status).toBe(200)
