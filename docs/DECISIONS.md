@@ -4,7 +4,7 @@ This document records all significant technology and architecture decisions made
 
 ---
 
-ADR 024 is reserved by [SPEC-0001 / PR #879](https://github.com/unicef/adt-studio/pull/879), which is reviewed on a separate branch. The proposals below start at 025 to avoid renumbering that decision.
+ADR 024 belongs to merged [SPEC-0001 / PR #879](https://github.com/unicef/adt-studio/pull/879). The later proposals retain their numbering from 025 onward.
 
 ## Table of Contents
 
@@ -1013,8 +1013,9 @@ pre-edit owner snapshots, current writer recovery and validated configuration
 receipts. Unknown rendered-owner omission stays qualified. SPEC-0002 approval
 does not approve this ADR or SPEC-0003.
 
-See [the amended contract](specs/SPEC-0003-sectioning-modes.md) and
-[original AC mapping and evidence](verification/spec-0003-oct12-audit.md).
+See [the amended contract](specs/SPEC-0003-sectioning-modes.md),
+[original AC mapping and evidence](verification/spec-0003-oct12-audit.md), and
+[the current local integration audit](verification/spec-0003-final-audit-2026-11-02.md).
 This decision remains proposed, with human review pending.
 
 ### Alternatives Considered

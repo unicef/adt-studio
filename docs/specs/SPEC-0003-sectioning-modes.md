@@ -42,7 +42,7 @@ SPEC-0002 boundary `09f0d1c7`; only its final increment is reconciled onto devel
 SPEC-0002's actual approval is retained. Its merge is not SPEC-0003 approval or
 proof of this integration. Reuse the merged admission, ownership, guarded drafts,
 source tracking, versioned transactions and recovery; reverify combined behavior.
-See the [current local integration audit](../verification/spec-0003-develop-integration-2026-11-02.md).
+See the [final local integration and acceptance audit](../verification/spec-0003-final-audit-2026-11-02.md), including the uncompleted standard Docker verification gate.
 Historical reports and the remote PR description retain their dated attribution.
 
 This deliberately refines SPEC-0002 AC-8/15: **all existing Sectioning is kept by

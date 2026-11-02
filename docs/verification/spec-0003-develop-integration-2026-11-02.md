@@ -1,7 +1,9 @@
 # SPEC-0003 develop integration — 2 November 2026
 
-Work in progress, local only. This document does not replace the historical
-October evidence or claim current acceptance. No push, remote metadata/comment,
+Historical integration checkpoints, local only. See the
+[final audit](spec-0003-final-audit-2026-11-02.md) for the frozen-head results,
+all acceptance matrices and remaining platform gates. Pending statements below
+record their original checkpoint and do not replace that final assessment. No push, remote metadata/comment,
 review request, merge or issue change is authorized in this round.
 
 ## Exact boundaries and strategy

@@ -1,7 +1,10 @@
 # SPEC-0003 shared SQLite reader admission — 2 November 2026
 
-Local implementation checkpoint; independent runtime recheck and full integration
-acceptance are pending. This is not specification approval or release certification.
+Local implementation and proof-boundary record. The independent live/dead-reader
+recheck, exact-head full suite, actual Studio visibility and Linux admission checks
+now pass; see the [final audit](spec-0003-final-audit-2026-11-02.md).
+Standard combined Docker packaging/runtime remains unverified because its VM disk
+is full. This is not specification approval or release certification.
 
 ## Reproduction and authorized correction
 
@@ -74,4 +77,10 @@ ordinary writer crash with coordinated versus legacy evidence and six contenders
 
 These totals do not substitute for the original paused-HTTP independent recheck,
 slow-page actual Studio visibility, Linux/Docker restart tests, full tests,
-packaged runtime checks or the final acceptance matrices. Those remain pending.
+packaged runtime checks or the final acceptance matrices. The frozen `f66613ea` full suite passes 6,255 tests; the Linux dependency-overlay
+run passes all 67 admission/doctor cases, including the 16 skipped on Darwin.
+Independent real paused-reader and killed-reader rechecks pass on Darwin; bundled
+Desktop API generation/export/restart passes. The standard combined Docker app
+build failed from full VM disk, so its current-image runtime/restart is not run.
+These later results supersede the pending checkpoint without broadening its proof
+boundary; exact commands, provenance and limits are in the final audit.
