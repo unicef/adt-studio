@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
 import type { ExtractedPage } from "@adt/pdf"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import { AccessibilityAssessmentOutput, type TaskInfo } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
 import type { TaskService } from "../services/task-service.js"
@@ -97,7 +97,6 @@ describe("Package routes", () => {
           pageId: "pg001",
           pageNumber: 1,
           sectionId: "pg001_sec001",
-          sectionId: "pg001_sec001",
           sectionIndex: 0,
           sectionType: "content",
           entries: [
@@ -130,6 +129,18 @@ describe("Package routes", () => {
   }
 
   describe("POST /api/books/:label/package-adt", () => {
+    it("retains usable cached output after a preference change", async () => {
+      createRenderedBook("stale-mode")
+      createWebAssets()
+      const first = await app.request("/api/books/stale-mode/package-adt", { method: "POST" })
+      expect(first.status).toBe(200)
+      const dir = path.join(tmpDir, "stale-mode")
+      const hash = fs.readFileSync(path.join(dir, "adt", ".build-hash"), "utf8")
+      writeSectioningLifecycle(dir, "dynamic", false)
+      const response = await app.request("/api/books/stale-mode/package-adt", { method: "POST" })
+      expect(response.status).toBe(200)
+      expect(fs.readFileSync(path.join(dir, "adt", ".build-hash"), "utf8")).toBe(hash)
+    })
     it("returns 404 for missing book", async () => {
       const res = await app.request("/api/books/missing/package-adt", {
         method: "POST",
@@ -368,12 +379,39 @@ describe("Package routes", () => {
   })
 
   describe("GET /api/books/:label/package-adt/status", () => {
+    it.each([
+      { mode: "dynamic" as const, ready: false, pending: true },
+      { mode: "dynamic" as const, ready: true, pending: true },
+      { mode: "page" as const, ready: true, pending: false },
+    ])("keeps usable packages accessible independently of lifecycle metadata: %j", async ({ mode, ready, pending }) => {
+      createRenderedBook("retained")
+      const dir = path.join(tmpDir, "retained")
+      const pagesPath = path.join(dir, "adt", "content", "pages.json")
+      fs.mkdirSync(path.dirname(pagesPath), { recursive: true })
+      const pages = JSON.stringify([{ section_id: "pg001_sec001", href: "pg001_sec001.html" }])
+      fs.writeFileSync(pagesPath, pages)
+      fs.writeFileSync(path.join(dir, "adt", "pg001_sec001.html"), "<p>Retained content</p>")
+      writeSectioningLifecycle(dir, mode, ready, pending)
+      const response = await app.request("/api/books/retained/package-adt/status")
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({ hasAdt: true, complete: true })
+      expect(fs.readFileSync(pagesPath, "utf8")).toBe(pages)
+
+      // Compatible warning-bearing output remains available under SPEC-0001.
+      writeSectioningLifecycle(dir, "dynamic", true, false)
+      fs.writeFileSync(path.join(dir, "adt", ".build-warnings"), JSON.stringify([{ kind: "orphaned-rendering", pageId: "pg001", sectionIndex: 2 }]))
+      const usable = await app.request("/api/books/retained/package-adt/status")
+      const usableStatus = await usable.json()
+      expect(usableStatus).toMatchObject({ hasAdt: true })
+      expect(usableStatus.complete).toBe(true)
+    })
+
     it("returns hasAdt=false when pages.json is missing", async () => {
       createTestBook("book2")
 
       const res = await app.request("/api/books/book2/package-adt/status")
       expect(res.status).toBe(200)
-      expect(await res.json()).toEqual({ label: "book2", hasAdt: false })
+      expect(await res.json()).toMatchObject({ label: "book2", hasAdt: false, complete: false })
     })
 
     it("returns hasAdt=false when pages.json is invalid JSON", async () => {
@@ -384,7 +422,7 @@ describe("Package routes", () => {
 
       const res = await app.request("/api/books/book3/package-adt/status")
       expect(res.status).toBe(200)
-      expect(await res.json()).toEqual({ label: "book3", hasAdt: false })
+      expect(await res.json()).toMatchObject({ label: "book3", hasAdt: false, complete: false })
     })
 
     it("returns hasAdt=false when pages.json has no href entries", async () => {
@@ -395,21 +433,22 @@ describe("Package routes", () => {
 
       const res = await app.request("/api/books/book4/package-adt/status")
       expect(res.status).toBe(200)
-      expect(await res.json()).toEqual({ label: "book4", hasAdt: false })
+      expect(await res.json()).toMatchObject({ label: "book4", hasAdt: false, complete: false })
     })
 
-    it("returns hasAdt=true when pages.json has at least one href entry", async () => {
-      createTestBook("book5")
+    it("returns hasAdt=true with current usable rendering and a packaged href", async () => {
+      createRenderedBook("book5")
       const pagesPath = path.join(tmpDir, "book5", "adt", "content", "pages.json")
       fs.mkdirSync(path.dirname(pagesPath), { recursive: true })
       fs.writeFileSync(
         pagesPath,
-        JSON.stringify([{ section_id: "pg001", href: "pg001.html" }]),
+        JSON.stringify([{ section_id: "pg001_sec001", href: "pg001_sec001.html" }]),
       )
 
+      fs.writeFileSync(path.join(tmpDir, "book5", "adt", "pg001_sec001.html"), "<p>Packaged content</p>")
       const res = await app.request("/api/books/book5/package-adt/status")
       expect(res.status).toBe(200)
-      expect(await res.json()).toEqual({ label: "book5", hasAdt: true })
+      expect(await res.json()).toMatchObject({ label: "book5", hasAdt: true, complete: true })
     })
   })
 })

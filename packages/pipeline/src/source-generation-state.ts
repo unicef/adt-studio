@@ -114,11 +114,19 @@ export function publishSourceGeneration<T>(storage: Storage, receipt: SourceGene
 export function currentSourceInputSignature(storage: Storage, step: SourceGeneratorStep, policy: SourceGenerationPolicy): string {
   try { return captureSourceGeneration(storage, step, policy).inputSignature }
   catch (error) {
-    if (error instanceof Error && error.message.startsWith("Invalid web-rendering output")) {
+    if (error instanceof SyntaxError || (error instanceof Error && error.message.startsWith("Invalid web-rendering output"))) {
       return inputSignature({ unprovable: true, pages: storage.getPages().map(page => ({
         pageId: page.pageId, pageNumber: page.pageNumber,
-        source: ["page-sectioning", "fixed-layout-sectioning", "web-rendering"].map(node =>
-          sourceGenerationBasis(node, storage.getLatestNodeData(node, page.pageId)?.data)),
+        source: ["page-sectioning", "fixed-layout-sectioning", "web-rendering"].map(node => {
+          try { return sourceGenerationBasis(node, storage.getLatestNodeData(node, page.pageId)?.data) }
+          catch (cause) {
+            if (!(cause instanceof SyntaxError)) throw cause
+            // A corrupt neighboring record cannot supply source inputs, but
+            // must not block a valid page commit. Keep its selected identity
+            // in the same conservative signature; do not read media or repair it.
+            return { unreadableVersion: storage.getSelectedNodeVersion(node, page.pageId) }
+          }
+        }),
       })) })
     }
     throw error

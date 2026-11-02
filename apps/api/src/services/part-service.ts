@@ -21,7 +21,7 @@ import {
   hashPdfBytes,
 } from "@adt/types/fingerprint"
 import { renderPdfCover, countPdfPages } from "@adt/pdf"
-import { CURRENT_VERSION_ORDER, openBookDb, resolveBookPaths } from "@adt/storage"
+import { CURRENT_VERSION_ORDER, openBookDb, resolveBookPaths, withBookWriter, invalidateSectioningLifecycle } from "@adt/storage"
 import { loadBookConfig } from "@adt/pipeline"
 import { createZipStreamFromEntries } from "./zip-util.js"
 import { getBookConfig, readPartInfo, type BookSummary } from "./book-service.js"
@@ -699,6 +699,17 @@ export function mergePart(
   options: MergeOptions = {},
   configPath?: string,
 ): MergeResult {
+  const { bookDir } = resolveBookPaths(targetLabel, booksDir)
+  return withBookWriter(bookDir, () => mergeAdmittedPart(targetLabel, booksDir, zipBuffer, options, configPath))
+}
+
+function mergeAdmittedPart(
+  targetLabel: string,
+  booksDir: string,
+  zipBuffer: Buffer,
+  options: MergeOptions = {},
+  configPath?: string,
+): MergeResult {
   const safeTarget = parseBookLabel(targetLabel)
   const resolvedDir = path.resolve(booksDir)
   const targetPaths = resolveBookPaths(safeTarget, resolvedDir)
@@ -782,6 +793,7 @@ export function mergePart(
 
     const targetDb = openBookDb(targetPaths.dbPath)
     try {
+      invalidateSectioningLifecycle(targetPaths.bookDir, DOWNSTREAM_STEPS)
       targetDb.exec("BEGIN IMMEDIATE")
 
       for (const p of pages) {

@@ -1,0 +1,280 @@
+{
+  "api-acceptance": [
+    {
+      "label": "reflowable",
+      "pages": 3,
+      "packageStatus": {
+        "label": "reflowable",
+        "hasAdt": true,
+        "version": "17a9afec8663c6e9",
+        "complete": true
+      },
+      "sourceAssets": 13,
+      "workflow": "preference \u2192 retained \u2192 explicit reset \u2192 split \u2192 publication \u2192 preview/package"
+    },
+    {
+      "label": "fixed",
+      "pages": 2,
+      "packageStatus": {
+        "label": "fixed",
+        "hasAdt": true,
+        "version": "52e9ac924646d630",
+        "complete": true
+      },
+      "sourceAssets": 13,
+      "workflow": "preference \u2192 retained \u2192 explicit reset \u2192 split \u2192 publication \u2192 preview/package"
+    }
+  ],
+  "docker-runtime-published": [
+    {
+      "label": "reflowable",
+      "pages": 3,
+      "packageStatus": {
+        "label": "reflowable",
+        "hasAdt": true,
+        "version": "615607c8ff89991c",
+        "complete": true
+      },
+      "sourceAssets": 13,
+      "workflow": "preference \u2192 retained \u2192 explicit reset \u2192 split \u2192 publication \u2192 preview/package"
+    },
+    {
+      "label": "fixed",
+      "pages": 2,
+      "packageStatus": {
+        "label": "fixed",
+        "hasAdt": true,
+        "version": "40c1cf5693b8848b",
+        "complete": true
+      },
+      "sourceAssets": 13,
+      "workflow": "preference \u2192 retained \u2192 explicit reset \u2192 split \u2192 publication \u2192 preview/package"
+    }
+  ],
+  "docker-export-published-before": [
+    {
+      "label": "fixed",
+      "phase": "before",
+      "exportBytes": 7015436,
+      "manifestPages": 2,
+      "sourceAssets": 13,
+      "historyAndRestart": "pass"
+    },
+    {
+      "label": "reflowable",
+      "phase": "before",
+      "exportBytes": 6761247,
+      "manifestPages": 3,
+      "sourceAssets": 13,
+      "historyAndRestart": "pass"
+    }
+  ],
+  "docker-export-published-after": [
+    {
+      "label": "fixed",
+      "phase": "after",
+      "exportBytes": 7015436,
+      "manifestPages": 2,
+      "sourceAssets": 13,
+      "historyAndRestart": "pass"
+    },
+    {
+      "label": "reflowable",
+      "phase": "after",
+      "exportBytes": 6761247,
+      "manifestPages": 3,
+      "sourceAssets": 13,
+      "historyAndRestart": "pass"
+    }
+  ],
+  "desktop": [
+    {
+      "label": "reflowable",
+      "pages": 3,
+      "packageStatus": {
+        "label": "reflowable",
+        "hasAdt": true,
+        "version": "d04e6a3dd088d8c1",
+        "complete": true
+      },
+      "sourceAssets": 13,
+      "workflow": "preference \u2192 retained \u2192 explicit reset \u2192 split \u2192 publication \u2192 preview/package"
+    },
+    {
+      "label": "fixed",
+      "pages": 2,
+      "packageStatus": {
+        "label": "fixed",
+        "hasAdt": true,
+        "version": "01f22845c531693c",
+        "complete": true
+      },
+      "sourceAssets": 13,
+      "workflow": "preference \u2192 retained \u2192 explicit reset \u2192 split \u2192 publication \u2192 preview/package"
+    },
+    {
+      "label": "fixed",
+      "phase": "before",
+      "exportBytes": 7016613,
+      "manifestPages": 2,
+      "sourceAssets": 13,
+      "historyAndRestart": "pass"
+    },
+    {
+      "label": "reflowable",
+      "phase": "before",
+      "exportBytes": 6762425,
+      "manifestPages": 3,
+      "sourceAssets": 13,
+      "historyAndRestart": "pass"
+    },
+    {
+      "label": "fixed",
+      "phase": "after",
+      "exportBytes": 7016613,
+      "manifestPages": 2,
+      "sourceAssets": 13,
+      "historyAndRestart": "pass"
+    },
+    {
+      "label": "reflowable",
+      "phase": "after",
+      "exportBytes": 6762424,
+      "manifestPages": 3,
+      "sourceAssets": 13,
+      "historyAndRestart": "pass"
+    }
+  ],
+  "browser_cancelled_pages": [
+    {
+      "pageId": "pg001",
+      "pageNumber": 1,
+      "hasRendering": true,
+      "hasCaptioning": false,
+      "textPreview": "Saved page 1 section 1\nSaved page 1 section 2",
+      "imageCount": 0,
+      "wordCount": 9,
+      "sectionCount": 2,
+      "prunedSections": [],
+      "renderingVersion": 2,
+      "sectioningVersion": 1,
+      "sections": [
+        {
+          "sectionId": "pg001_sec001",
+          "sectionIndex": 0,
+          "sectionType": "text_only",
+          "isActivity": false,
+          "isPruned": false,
+          "textPreview": "Saved page 1 section 1"
+        },
+        {
+          "sectionId": "pg001_sec002",
+          "sectionIndex": 1,
+          "sectionType": "text_only",
+          "isActivity": false,
+          "isPruned": false,
+          "textPreview": "Saved page 1 section 2"
+        }
+      ],
+      "extractionWarning": null
+    },
+    {
+      "pageId": "pg002",
+      "pageNumber": 2,
+      "hasRendering": true,
+      "hasCaptioning": false,
+      "textPreview": "Saved page 2 section 1\nSaved page 2 section 2",
+      "imageCount": 0,
+      "wordCount": 14,
+      "sectionCount": 2,
+      "prunedSections": [],
+      "renderingVersion": 1,
+      "sectioningVersion": 1,
+      "sections": [
+        {
+          "sectionId": "pg002_sec001",
+          "sectionIndex": 0,
+          "sectionType": "text_only",
+          "isActivity": false,
+          "isPruned": false,
+          "textPreview": "Saved page 2 section 1"
+        },
+        {
+          "sectionId": "pg002_sec002",
+          "sectionIndex": 1,
+          "sectionType": "text_only",
+          "isActivity": false,
+          "isPruned": false,
+          "textPreview": "Saved page 2 section 2"
+        }
+      ],
+      "extractionWarning": null
+    }
+  ],
+  "browser_first_run_slow_pages": [
+    {
+      "pageId": "pg001",
+      "pageNumber": 1,
+      "hasRendering": true,
+      "hasCaptioning": false,
+      "textPreview": "Saved page 1 section 1\nSaved page 1 section 2",
+      "imageCount": 0,
+      "wordCount": 9,
+      "sectionCount": 2,
+      "prunedSections": [],
+      "renderingVersion": 1,
+      "sectioningVersion": 1,
+      "sections": [
+        {
+          "sectionId": "pg001_sec001",
+          "sectionIndex": 0,
+          "sectionType": "text_only",
+          "isActivity": false,
+          "isPruned": false,
+          "textPreview": "Saved page 1 section 1"
+        },
+        {
+          "sectionId": "pg001_sec002",
+          "sectionIndex": 1,
+          "sectionType": "text_only",
+          "isActivity": false,
+          "isPruned": false,
+          "textPreview": "Saved page 1 section 2"
+        }
+      ],
+      "extractionWarning": null
+    },
+    {
+      "pageId": "pg002",
+      "pageNumber": 2,
+      "hasRendering": false,
+      "hasCaptioning": false,
+      "textPreview": "Saved page 2 section 1\nSaved page 2 section 2",
+      "imageCount": 0,
+      "wordCount": 14,
+      "sectionCount": 2,
+      "prunedSections": [],
+      "renderingVersion": null,
+      "sectioningVersion": 1,
+      "sections": [
+        {
+          "sectionId": "pg002_sec001",
+          "sectionIndex": 0,
+          "sectionType": "text_only",
+          "isActivity": false,
+          "isPruned": false,
+          "textPreview": "Saved page 2 section 1"
+        },
+        {
+          "sectionId": "pg002_sec002",
+          "sectionIndex": 1,
+          "sectionType": "text_only",
+          "isActivity": false,
+          "isPruned": false,
+          "textPreview": "Saved page 2 section 2"
+        }
+      ],
+      "extractionWarning": null
+    }
+  ]
+}

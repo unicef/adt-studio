@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, writeSectioningLifecycle } from "@adt/storage"
 import { buildTextCatalog, packageAdtWeb, packageWebpub, packageEpub, saveQuizOutput, assertQuizGenerationCapacity } from "@adt/pipeline"
 import { formatQuizId, QuizIdExhaustedError, type Quiz, type QuizGenerationOutput } from "@adt/types"
 import { createQuizRoutes } from "./quizzes.js"
@@ -411,13 +411,12 @@ describe("full-stage quiz regeneration", () => {
 
   it("reserves identities through retained reruns and refuses an unsafe extraction reset", async () => {
     seed([quiz("One"), quiz("Two")])
-    makeBeforeRun(label, "storyboard", "storyboard", root)()
+    makeBeforeRun(label, "storyboard", "storyboard", root, undefined, configPath)()
     expect(stored().quizzes.map(quiz => quiz.question)).toEqual(["One", "Two"])
     useStorage((s) => saveQuizOutput(s, output([quiz("Three")]), "replace"))
     expect(stored().quizzes[0].quizId).toBe("qz003")
-    const before = history()
-    expect(() => makeBeforeRun(label, "extract", "quizzes", root)()).toThrow("UNSAFE_RESUME_UNAVAILABLE")
-    expect(history()).toEqual(before)
+    expect(makeBeforeRun(label, "extract", "quizzes", root, configPath)).toThrow(/preservation-safe|unknown-origin/)
+    expect(stored().quizzes[0].quizId).toBe("qz003")
     useStorage((s) => saveQuizOutput(s, output([quiz("Four")]), "replace"))
     expect(stored().quizzes[0].quizId).toBe("qz004")
     expect(history()).toHaveLength(3)

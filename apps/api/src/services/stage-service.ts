@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { requireExistingBook } from "../utils/book-exists.js"
 import { STAGE_ORDER, type OutputRunScope, type OutputIdentity, type ProgressEvent } from "@adt/types"
+import { prepareSectioningRun } from "@adt/pipeline"
 import type { StageName, StepName, PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { createBookStorage, resolveBookPaths, withBookWriter } from "@adt/storage"
 import type { ResolvedCredentials } from "@adt/llm"
@@ -158,6 +159,7 @@ export function createStageService(
       await withBookWriter(requireExistingBook(label, options.booksDir), async () => {
         try {
           job.controller.signal.throwIfAborted()
+          prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath)
           options.beforeRun?.()
           await runner.run(label, effectiveOptions, progress)
         } catch (err) {
@@ -196,7 +198,7 @@ export function createStageService(
         job.error = message
         job.completedAt = Date.now()
         Object.assign(getOrCreateState(label), { runRevision: job.id, publicationTime: performance.now() })
-        eventBus.emit(label, { type: "stage-run-error", label, error: message })
+        eventBus.emit(label, { type: "stage-run-error", label, error: message, ...((err instanceof Error && "code" in err && typeof err.code === "string") ? { code: err.code } : {}) })
       }
     } finally {
       // Clear any per-run page-error policy / pending decisions so they never
@@ -315,14 +317,14 @@ export function createStageService(
         controller: new AbortController(),
         outputScope: structuredClone(options.outputScope ?? {}),
       }
-      // Admission and preparation precede the success response. Retain that
+      // Admission precedes the success response. Retain that
       // same lease across deferred execution; no competing writer can enter
       // between preparation and the runner's first instruction.
       const work = withBookWriter(requireExistingBook(label, options.booksDir), () => {
         options.beforeRun?.()
         state.active = job
         return new Promise<void>((resolve) => setImmediate(() => {
-          executeJob(label, job, { ...options, beforeRun: undefined }).finally(resolve)
+          executeJob(label, job, options).finally(resolve)
         }))
       })
       void work.catch(() => {}) // executeJob records the task result.

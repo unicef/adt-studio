@@ -517,3 +517,10 @@ export { collectQuizPages } from "./quiz-generation.js"
 export { assertReflowableSectioning } from "./render-sectioning.js"
 
 export { renderedTextIds, sourceTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision } from "./content-ids.js"
+export { SectioningSafetyError, effectiveSectioningMode, sectioningInvalidationSteps, activeSectioningPages, sectioningReplacementSignature, assertSectioningReplacementSafe, prepareSectioningRun, completeSectioning, createStoryboardPublication } from "./sectioning-lifecycle.js"
+
+export { extractionOptionsFromConfig, prepareExtractionAdmission, assertSafeExtractionRun } from "./extraction-admission.js"
+
+export { protectedAuthoredRecords, assertAuthoredReplacement, replacementConfirmed, selectSectioningPages, resetSectioningStoryboard, AuthoredReplacementError } from "./authored-output.js"
+
+export { storyboardCoverage, missingStoryboardInputMessage } from "./storyboard-coverage.js"

@@ -30,8 +30,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useBookConfig } from "@/hooks/use-book-config"
 import { usePages } from "@/hooks/use-pages"
+import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
@@ -146,18 +146,18 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   const status = useStageStatus("storyboard")
   const sectioningStatus = useStageStatus("sectioning")
   const extractStatus = useStageStatus("extract")
-  const sectioningReady = sectioningStatus.isCompleted
+  const { data: pages, isLoading: pagesLoading, isPending: pagesPending, isFetching: pagesFetching, isError: pagesError } = usePages(bookLabel)
+  const sectioningReady = pages?.length
+    ? pages.every((page) => page.sectioningVersion != null)
+    : sectioningStatus.isCompleted
   // "Covered" = already done, running, or queued — it will produce its output
   // without us starting it, so we can queue Storyboard behind it instead of
   // pulling it into the run.
-  const extractCovered = extractStatus.isCompleted || extractStatus.isRunning
-  // A book that already has pages cannot be re-extracted in this version
-  // (SPEC-0010 owns safe re-extraction), so never pull Extract into the run.
-  const { data: storyboardPages, isPending: pagesPending, isFetching: pagesFetching, isError: pagesError } = usePages(bookLabel)
-  const hasExtractedPages = (storyboardPages?.length ?? 0) > 0
-  const resolvingStoredState = !extractCovered && !hasExtractedPages && (pagesPending || pagesFetching || pagesError)
+  const extractCovered = extractStatus.isCompleted || extractStatus.isRunning || (pages?.length ?? 0) > 0
+  const hasExtractedPages = (pages?.length ?? 0) > 0
+  const resolvingStoredState = pagesLoading || (!hasExtractedPages && (pagesPending || pagesFetching || pagesError))
   const sectioningCovered =
-    sectioningStatus.isCompleted || sectioningStatus.isRunning
+    sectioningReady || sectioningStatus.isRunning
   const upstreamCovered = extractCovered && sectioningCovered
 
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")

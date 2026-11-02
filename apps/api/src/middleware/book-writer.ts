@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from "hono"
-import { withBookWriter } from "@adt/storage"
+import { withBookWriter, recoverSectioningTransition } from "@adt/storage"
 import { requireExistingBook } from "../utils/book-exists.js"
 
 const PUBLISH_WITHOUT_WRITES = ["/publication/comments", "/publication/room-ticket", "/publication/run/cancel"]
@@ -22,6 +22,9 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     if (PUBLISH_WITHOUT_WRITES.some((prefix) => suffix.startsWith(prefix))) return next()
     // A share takes the lease itself, after telling a second share about the running one.
     if (c.req.method === "POST" && PUBLISH_RUNS.includes(suffix)) return next()
-    return withBookWriter(bookDir, next)
+    return withBookWriter(bookDir, () => {
+      recoverSectioningTransition(bookDir)
+      return next()
+    })
   }
 }

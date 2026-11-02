@@ -12,14 +12,13 @@
  * packaging, TTS, easy-read, glossary, toc, captions, quizzes) must read the
  * tree that matches the rendered HTML, so it goes through this resolver.
  *
- * Selection is by node presence rather than config: `fixed-layout-sectioning`
- * and its rendering are retained during rerun preparation. Successful reflowable
- * publication invalidates the positioned tree for that page atomically with
- * replacement HTML. A failed strategy switch therefore leaves the prior pair
- * readable; successful fixed-layout publication writes both in one transaction.
+ * Selection follows published output rather than config. Fixed rendering
+ * publishes its positioned tree alongside HTML. Reflowable publication appends
+ * a null positioned-tree version in that same transaction, retaining the old
+ * tree in history. A config change alone never switches the active tree.
  */
 import type { NodeDataRow, Storage } from "@adt/storage"
-import type { PageSectioningOutput, PageSectioningSection, SectionRendering, PackagingWarning, ContentNodeData, SectioningSynchronization } from "@adt/types"
+import type { PageSectioningOutput, PageSectioningSection, SectionRendering, ContentNodeData, SectioningSynchronization } from "@adt/types"
 import { PageSectioningOutput as PageSectioningOutputSchema, WebRenderingOutput } from "@adt/types"
 import { parseDocument, DomUtils } from "htmlparser2"
 
@@ -174,7 +173,7 @@ export function resolveRenderedSection(
 }
 
 /** Shared omission disclosure for preview, API and packaged output. */
-export function renderingOwnershipWarnings(storage: Storage): PackagingWarning[] {
+export function renderingOwnershipWarnings(storage: Storage) {
   return storage.getPages().flatMap((page) => {
     const rendering = WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", page.pageId)?.data)
     if (!rendering.success) return []

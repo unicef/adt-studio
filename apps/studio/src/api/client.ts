@@ -4,6 +4,8 @@ import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import type { OutputSkipRequest } from "@adt/types"
 import type { OutputStatus, OutputSummary, OutputStageSummaryResponse, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement, StageName } from "@adt/types"
+import type { PackagingStatus, SectioningModeState } from "@adt/types"
+import { sectioningErrorMessage } from "@/lib/sectioning-error"
 import { isElectron } from "@/lib/utils"
 import { readEventStream } from "@/api/sse"
 import {
@@ -177,7 +179,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     let code: string | null = null
     try {
       const parsed = JSON.parse(text) as { error?: string; code?: string }
-      message = parsed.error
+      message = sectioningErrorMessage(parsed.error, parsed.code)
       code = typeof parsed.code === "string" ? parsed.code : null
     } catch {
       message = text || undefined
@@ -1892,6 +1894,9 @@ export const api = {
       { method: "POST", body: JSON.stringify({ version, baseVersion }) }
     ),
 
+  getSectioningModeState: (label: string) =>
+    request<SectioningModeState>(`/books/${label}/sectioning-state`),
+
   getBookConfig: (label: string) =>
     request<BookConfigResponse>(`/books/${label}/config`),
 
@@ -2137,6 +2142,7 @@ export const api = {
       publicationAgeMs?: number
       runStatus: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
       pendingDecisions: PendingDecision[]
+      coverage?: import("@adt/types").StoryboardCoverage
       protectedWork?: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }>
     }>(`/books/${label}/step-status`),
 
@@ -2227,7 +2233,7 @@ export const api = {
     request<{ tasks: TaskInfoResponse[] }>(`/books/${label}/tasks`),
 
   getPackageAdtStatus: (label: string) =>
-    request<{ label: string; hasAdt: boolean; version?: string }>(
+    request<PackagingStatus>(
       `/books/${label}/package-adt/status`
     ),
 

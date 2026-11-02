@@ -18,8 +18,8 @@ import { z } from "zod"
  *   the rendering. Re-running the storyboard render for the page fixes it.
  */
 export const PackagingWarning = z.object({
-  kind: z.literal("orphaned-rendering"),
+  kind: z.enum(["orphaned-rendering", "missing-storyboard"]),
   pageId: z.string(),
-  sectionIndex: z.number().int(),
+  sectionIndex: z.number().int().optional(),
 })
 export type PackagingWarning = z.infer<typeof PackagingWarning>

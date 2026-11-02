@@ -46,7 +46,7 @@ export function useStageSettingsBar({
     const apply = async (options = {}, stillCurrent = () => true) => {
       // The protected versions stay frozen, but untouched settings may have
       // refreshed while confirmation was open. Apply the current form draft.
-      await saveRef.current()
+      if (!protectedStage) await saveRef.current()
       // Settings may finish saving after navigation. Never queue the old
       // consent through a new book's run context or navigate back to it.
       if (!stillCurrent()) return false
@@ -56,7 +56,7 @@ export function useStageSettingsBar({
     }
     if (!protectedStage) { await apply(); return true }
     if (saving) return false
-    return confirmation.requestRun(apply)
+    return confirmation.requestRun(apply, () => saveRef.current())
   }
 
   useRegisterDirtyTabs(`settings:${stage}`, stage, dirtyTabs)

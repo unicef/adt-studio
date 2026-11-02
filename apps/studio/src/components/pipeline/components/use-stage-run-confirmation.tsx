@@ -38,7 +38,7 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
   const pending = useRef<{ scope: typeof scope; resolve: (value: RunConsent | null) => void } | null>(null)
   const executing = useRef(false)
   const [busy, setBusy] = useState(false)
-  const [snapshot, setSnapshot] = useState<{ scope: typeof scope; work: ProtectedWork } | null>(null)
+  const [snapshot, setSnapshot] = useState<{ scope: typeof scope; work: ProtectedWork; settingsSaved?: boolean } | null>(null)
   const [replaceManual, setReplaceManual] = useState(false)
   const [error, setError] = useState<string | null>(null)
   useLayoutEffect(() => {
@@ -62,38 +62,57 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
     pending.current = null
     setSnapshot(null)
   }
-  const requestRun = async (run: (options: RunConsent, stillCurrent: () => boolean) => void | boolean | Promise<void | boolean>): Promise<boolean> => {
+  const readWork = async (): Promise<ProtectedWork> => {
+    if (!protectedStage) return []
+    // Only this request's completed, non-aborted read can define consent;
+    // cancelled/deduplicated queries cannot authorize warm cached records.
+    let completed: { data: Awaited<ReturnType<typeof api.getStepStatus>>; signal: AbortSignal } | undefined
+    await queryClient.fetchQuery({
+      queryKey: ["books", bookLabel, "step-status"], staleTime: 0,
+      queryFn: async ({ signal }) => {
+        const data = await api.getStepStatus(bookLabel)
+        completed = { data, signal }
+        return data
+      },
+    })
+    if (!completed || completed.signal.aborted) throw new Error(t`Saved content could not be verified. Try again.`)
+    return (completed.data.protectedWork ?? [])
+      .filter(record => record.node === (stage === "toc" ? "toc-generation" : "page-sectioning"))
+      .map(record => ({ ...record }))
+  }
+  const confirm = (work: ProtectedWork, settingsSaved = false): Promise<RunConsent | null> => new Promise(resolve => {
+    pending.current = { scope, resolve }
+    setReplaceManual(false)
+    setSnapshot({ scope, work, settingsSaved })
+  })
+  const requestRun = async (
+    run: (options: RunConsent, stillCurrent: () => boolean) => void | boolean | Promise<void | boolean>,
+    beforeRun?: () => Promise<void>,
+  ): Promise<boolean> => {
     if (!isCurrent() || executing.current) return false
     executing.current = true
     setBusy(true)
     setError(null)
     try {
-      let work: ProtectedWork = []
-      if (protectedStage) {
-        // Read again at the action boundary: a warm cache or a cancelled query
-        // cannot silently turn unknown protection into an empty consent scope.
-        let completed: { data: Awaited<ReturnType<typeof api.getStepStatus>>; signal: AbortSignal } | undefined
-        await queryClient.fetchQuery({
-          queryKey: ["books", bookLabel, "step-status"], staleTime: 0,
-          queryFn: async ({ signal }) => {
-            const data = await api.getStepStatus(bookLabel)
-            completed = { data, signal }
-            return data
-          },
-        })
+      const work = await readWork()
+      if (!isCurrent()) return false
+      let consent: RunConsent | null = work.length || confirmDownstream ? await confirm(work) : {}
+      if (!consent || !isCurrent()) return false
+      // Settings still confirm before saving, so first-dialog Cancel is inert.
+      // An acknowledged Save can change the generation inputs. Replacement
+      // needs a new, explicitly chosen receipt; never silently refresh consent.
+      if (beforeRun) {
+        await beforeRun()
         if (!isCurrent()) return false
-        // Query cancellation may resolve with reverted cached data. Only this
-        // request's completed, non-aborted read can define replacement consent.
-        if (!completed || completed.signal.aborted) throw new Error(t`Saved content could not be verified. Try again.`)
-        work = (completed.data.protectedWork ?? []).filter(record => record.node === (stage === "toc" ? "toc-generation" : "page-sectioning")).map(record => ({ ...record }))
-      }
-      let consent: RunConsent | null = {}
-      if (work.length || confirmDownstream) {
-        consent = await new Promise(resolve => {
-          pending.current = { scope, resolve }
-          setReplaceManual(false)
-          setSnapshot({ scope, work })
-        })
+        if (stage === "sectioning" && consent.replaceManual) {
+          const refreshed = await readWork()
+          if (!isCurrent()) return false
+          const changedInputs = work.some(record => !record.sectioningInputSignature ||
+            refreshed.find(next => next.itemId === record.itemId)?.sectioningInputSignature !== record.sectioningInputSignature)
+          if (changedInputs) consent = await confirm(refreshed, true)
+          // Unchanged settings retain the first frozen entity versions. An
+          // unrelated content save must conflict at the server, not gain consent.
+        }
       }
       if (!consent || !isCurrent()) return false
       const result = await run(consent, isCurrent)
@@ -122,11 +141,11 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
   const dialog = <CascadeResetDialog
     open={snapshot?.scope === scope}
     onOpenChange={open => { if (!open) finish(null) }}
-    affectedStages={affectedStages}
+    affectedStages={stage === "sectioning" && !replaceManual ? [] : affectedStages}
     headerStageSlug={stage}
     title={<Trans>Re-run {stageLabel}?</Trans>}
     description={stage === "sectioning" && work.length > 0
-      ? <Trans>Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated.</Trans>
+      ? <Trans>Existing pages stay unchanged. This run fills missing Sectioning only unless you explicitly choose replacement.</Trans>
       : <Trans>Review the affected stages after this change.</Trans>}
     confirmLabel={confirmLabel ?? <Trans>Re-run</Trans>}
     confirmColorClass={colorClass}
@@ -134,14 +153,17 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
     onConfirm={() => {
       if (!isCurrent() || snapshot?.scope !== scope) return
       const replace = work.length > 0 && (stage === "toc" || replaceManual)
-      finish({ replaceManual: replace, protectedReplacements: replace ? work.map(({ node, itemId, version }) => ({ node, itemId, version })) : [] })
+      finish({ replaceManual: replace, protectedReplacements: replace ? work.map(({ pageNumber: _pageNumber, ...record }) => record) : [] })
     }}
   >
+    {snapshot?.settingsSaved && <p className="text-sm"><Trans>Settings were saved. Review replacement again using the updated configuration and page window.</Trans></p>}
     {work.length > 0 && (stage === "toc"
       ? <p className="text-sm"><Trans>This replaces the manually edited or legacy table of contents. Its saved version remains in history.</Trans></p>
       : <div className="space-y-2 text-sm">
-        <p><Trans>Pages with manual edits or unknown authorship:</Trans> {work.map(record => record.pageNumber ?? record.itemId).join(", ")}</p>
-        <label className="flex gap-2"><input type="checkbox" checked={replaceManual} onChange={event => setReplaceManual(event.target.checked)} /><Trans>Also regenerate these pages and replace their saved content</Trans></label>
+        <p><Trans>Saved pages:</Trans></p>
+        <ul className="max-h-48 overflow-y-auto">{work.map(r => <li key={r.itemId}><Trans>Page {r.pageNumber ?? r.itemId} ({r.itemId}): Sectioning v{r.version}, Storyboard v{r.renderingVersion ?? 0}, render tree v{r.renderTreeVersion ?? 0}</Trans></li>)}</ul>
+        <p><Trans>Replacing these pages resets their current Storyboard, including manual edits. Saved versions and media stay in history; Storyboard must be rebuilt even if generation is cancelled or fails.</Trans></p>
+        <label className="flex gap-2"><input type="checkbox" checked={replaceManual} onChange={event => setReplaceManual(event.target.checked)} /><Trans>Replace these pages and reset their Storyboard</Trans></label>
       </div>)}
   </CascadeResetDialog>
   return { requestRun, disabledReason, notice, dialog, busy }

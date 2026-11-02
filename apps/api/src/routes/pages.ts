@@ -5,13 +5,14 @@ import { stampManualEdits } from "@adt/pipeline"
 import { AuthoredSaveGuard } from "@adt/types"
 import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
-import { scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
+import { storyboardCoverage, scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
 import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
 import { OutputEditGuard } from "@adt/types"
 import { outputEvidence } from "@adt/pipeline"
 import { restoreSpeechOutput } from "@adt/storage"
 import { reconcileTextCatalog, assignActivityIds, buildTextCatalogSnapshot, findIntroducedCatalogConflict, buildImageInventory, inputSignature } from "@adt/pipeline"
 import { randomUUID } from "node:crypto"
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
@@ -69,7 +70,7 @@ import {
   SectionIdExhaustedError,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
-import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
+import { reRenderPage, reRenderPages, aiEditSection } from "../services/page-edit-service.js"
 import {
   getBookStyleguidesDir,
   getGeneratedStyleguideName,
@@ -784,7 +785,7 @@ function cloneNodesWithFreshContainerIds(
  * Indices address the current source order; they never establish ownership. */
 function loadEditableRendering(storage: Storage, pageId: string, sectioning: PageSectioningOutput): WebRenderingOutput | null {
   const row = storage.getLatestNodeData("web-rendering", pageId)
-  if (!row) return null
+  if (row?.data == null) return null
   const parsed = WebRenderingOutput.safeParse(row.data)
   if (!parsed.success) throw new HTTPException(409, { message: "Rendering is invalid. Restore matching versions before editing sections." })
   const seen = new Set<string>()
@@ -808,6 +809,8 @@ export function createPageRoutes(
   taskService?: TaskService
 ): Hono {
   const app = new Hono()
+  app.use("/books/:label/*", bookWriterMiddleware(booksDir))
+  app.use("/books/:label", bookWriterMiddleware(booksDir))
 
   // GET /books/:label/pages — List pages with pipeline status
   app.get("/books/:label/pages", (c) => {
@@ -1010,6 +1013,12 @@ export function createPageRoutes(
         }
       }
 
+      const coverageStorage = createBookStorage(safeLabel, booksDir)
+      try {
+        for (const page of pages) {
+          if (storyboardCoverage(coverageStorage, [page.page_id]).rendered === 0) rendered.delete(page.page_id)
+        }
+      } finally { coverageStorage.close() }
       const result: PageSummary[] = pages.map((p) => ({
         pageId: p.page_id,
         pageNumber: p.page_number,
@@ -1831,12 +1840,10 @@ export function createPageRoutes(
     const credentials = readProviderCredentials(c)
     // Fail before the batch starts: a partially re-rendered book is worse than
     // a rejected request, and the model decides which credential is required.
-    assertModelCredentials(
-      "structured-text",
-      loadBookConfig(safeLabel, booksDir, configPath).default_model
-        ?? DEFAULT_LLM_MODEL_ID,
-      credentials,
-    )
+    const config = loadBookConfig(safeLabel, booksDir, configPath)
+    if (!isFixedLayoutBook(config)) {
+      assertModelCredentials("structured-text", config.default_model ?? DEFAULT_LLM_MODEL_ID, credentials)
+    }
 
     const parsed = z
       .object({ pageIds: z.array(z.string().min(1)).min(1).max(100) })
@@ -1885,20 +1892,9 @@ export function createPageRoutes(
 
     const runReRenders = async () => {
       try {
-        const results = []
-        for (const pageId of pageIds) {
-          results.push(
-            await reRenderPage({
-              label: safeLabel,
-              pageId,
-              booksDir,
-              promptsDir,
-              webAssetsDir,
-              configPath,
-              credentials,
-            })
-          )
-        }
+        const results = await reRenderPages(pageIds.map((pageId) => ({
+          label: safeLabel, pageId, booksDir, promptsDir, webAssetsDir, configPath, credentials,
+        })))
 
         const completedStorage = createBookStorage(safeLabel, booksDir)
         try {
