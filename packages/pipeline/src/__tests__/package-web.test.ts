@@ -942,7 +942,7 @@ describe("packageAdtWeb", () => {
     expect(preloader).toContain("timecode/timecode_output.json")
   })
 
-  it("ships configured language defaults while preserving per-entry TTS fallbacks", async () => {
+  it("ships TTS regeneration assets only when enabled", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")
     const audioDir = path.join(bookDir, "audio", "en")
@@ -1003,6 +1003,7 @@ describe("packageAdtWeb", () => {
       outputLanguages: ["en"],
       title: "Book Title",
       webAssetsDir,
+      features: { ttsRegeneration: true },
       speechConfig: {
         default_provider: "gemini",
         providers: {
@@ -1044,7 +1045,6 @@ describe("packageAdtWeb", () => {
       outputLanguages: ["en"],
       title: "Book Title",
       webAssetsDir,
-      features: { ttsRegeneration: false },
     })
 
     expect(fs.existsSync(path.join(bookDir, "adt", "tools"))).toBe(false)

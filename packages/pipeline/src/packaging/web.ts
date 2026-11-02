@@ -84,7 +84,7 @@ export interface PackageAdtWebOptions {
   features?: {
     glossary?: boolean
     readAloud?: boolean
-    /** Include the standalone TTS regeneration tool and manifest. Defaults to true. */
+    /** Include the standalone TTS regeneration tool and manifest. Defaults to false. */
     ttsRegeneration?: boolean
     quizzes?: boolean
     signLanguage?: boolean
@@ -859,7 +859,7 @@ export async function packageAdtWeb(
   // nothing is regeneratable (no TTS, or all audio manually uploaded).
   if (
     features?.readAloud !== false &&
-    features?.ttsRegeneration !== false
+    features?.ttsRegeneration === true
   ) {
     emitRegenAssets({
       adtDir,

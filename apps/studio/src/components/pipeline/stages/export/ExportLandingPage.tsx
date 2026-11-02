@@ -70,7 +70,7 @@ function ExportLandingBody({
   const [featureToggles, setFeatureToggles] = useState<ExportFeatureToggles>({
     glossary: true,
     readAloud: true,
-    ttsRegeneration: true,
+    ttsRegeneration: false,
     quizzes: true,
     signLanguage: true,
   })
@@ -87,9 +87,7 @@ function ExportLandingBody({
             glossary: featureToggles.glossary && available.glossary,
             readAloud: featureToggles.readAloud && available.readAloud,
             ttsRegeneration:
-              selectedFormat === "adt"
-                ? featureToggles.ttsRegeneration
-                : true,
+              selectedFormat === "adt" && featureToggles.ttsRegeneration,
             quizzes: featureToggles.quizzes && available.quizzes,
             signLanguage:
               featureToggles.signLanguage && available.signLanguage,
