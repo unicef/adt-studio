@@ -5,8 +5,8 @@ import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES } from "@adt/types"
-import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
+import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES, StepWarnings, type StepWarning } from "@adt/types"
+import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput, StepRunRow } from "./storage.js"
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
 
@@ -435,31 +435,34 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     markStepStarted(step: string): void {
       db.run(
         `INSERT INTO step_runs (step, status, started_at) VALUES (?, 'running', ?)
-         ON CONFLICT (step) DO UPDATE SET status='running', started_at=excluded.started_at, completed_at=NULL, error=NULL, message=NULL`,
+         ON CONFLICT (step) DO UPDATE SET status='running', started_at=excluded.started_at, completed_at=NULL, error=NULL, message=NULL, warnings=NULL`,
         [step, new Date().toISOString()]
       )
     },
 
-    markStepCompleted(step: string, message?: string): void {
+    markStepCompleted(step: string, message?: string, warnings?: StepWarning[]): void {
+      const storedWarnings = warnings && warnings.length > 0 ? JSON.stringify(warnings) : null
+      // Without a message the last progress text stays: several steps (glossary,
+      // TOC, text catalog, speech) rely on that to keep their completion summary.
       if (message !== undefined) {
         db.run(
-          `INSERT INTO step_runs (step, status, completed_at, message) VALUES (?, 'done', ?, ?)
-           ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at, message=excluded.message`,
-          [step, new Date().toISOString(), message]
+          `INSERT INTO step_runs (step, status, completed_at, message, warnings) VALUES (?, 'done', ?, ?, ?)
+           ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at, message=excluded.message, warnings=excluded.warnings`,
+          [step, new Date().toISOString(), message, storedWarnings]
         )
         return
       }
       db.run(
-        `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'done', ?)
-         ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at`,
-        [step, new Date().toISOString()]
+        `INSERT INTO step_runs (step, status, completed_at, warnings) VALUES (?, 'done', ?, ?)
+         ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at, warnings=excluded.warnings`,
+        [step, new Date().toISOString(), storedWarnings]
       )
     },
 
     markStepSkipped(step: string): void {
       db.run(
         `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'skipped', ?)
-         ON CONFLICT (step) DO UPDATE SET status='skipped', completed_at=excluded.completed_at`,
+         ON CONFLICT (step) DO UPDATE SET status='skipped', completed_at=excluded.completed_at, warnings=NULL`,
         [step, new Date().toISOString()]
       )
     },
@@ -467,7 +470,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     recordStepError(step: string, error: string): void {
       db.run(
         `INSERT INTO step_runs (step, status, error) VALUES (?, 'error', ?)
-         ON CONFLICT (step) DO UPDATE SET status='error', error=excluded.error`,
+         ON CONFLICT (step) DO UPDATE SET status='error', error=excluded.error, warnings=NULL`,
         [step, error]
       )
     },
@@ -480,10 +483,11 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       )
     },
 
-    getStepRuns(): Array<{ step: string; status: string; error: string | null; message: string | null }> {
-      return db.all("SELECT step, status, error, message FROM step_runs") as Array<{
-        step: string; status: string; error: string | null; message: string | null
-      }>
+    getStepRuns(): StepRunRow[] {
+      const rows = db.all("SELECT step, status, error, message, warnings FROM step_runs") as Array<
+        Omit<StepRunRow, "warnings"> & { warnings: string | null }
+      >
+      return rows.map((row) => ({ ...row, warnings: parseStepWarnings(row.warnings) }))
     },
 
     clearStepRuns(steps: string[]): void {
@@ -741,5 +745,16 @@ function hashBuffer(buffer: Buffer): string {
 function ensureWithinRoot(target: string, root: string): void {
   if (target !== root && !target.startsWith(root + path.sep)) {
     throw new Error("Resolved path escapes books root")
+  }
+}
+
+/** Stored step warnings, or null when absent or not a valid list (e.g. a kind from a newer app). */
+function parseStepWarnings(stored: string | null): StepWarning[] | null {
+  if (!stored) return null
+  try {
+    const parsed = StepWarnings.safeParse(JSON.parse(stored))
+    return parsed.success && parsed.data.length > 0 ? parsed.data : null
+  } catch {
+    return null
   }
 }

@@ -72,6 +72,7 @@ import {
 } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
+import { imagePassWarning, everyPageFailed, recordOptionalModelFailure, type ImagePassFailure } from "./image-pass-failures.js"
 import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds, collectSourcePageImages } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
@@ -353,6 +354,8 @@ export async function runFullPipeline(
 
     executors.set("image-segmentation", async (p) => {
       if (!segmentationConfig) return
+      const failures: ImagePassFailure[] = []
+      let attempted = 0
       const model = getModel(segmentationConfig.modelId)
       const pages = storage.getPages()
       const totalPages = pages.length
@@ -375,13 +378,15 @@ export async function runFullPipeline(
             height: img.height,
           }))
         if (unprunedImages.length > 0) {
-          try {
-            const pageImageBase64 = storage.getPageImageBase64(page.pageId)
-            const segmentationResult = await segmentPageImages(
-              { pageId: page.pageId, pageImageBase64, images: unprunedImages },
-              segmentationConfig,
-              model,
-            )
+          attempted++
+          const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+          const segmentationResult = await recordOptionalModelFailure(
+            failures,
+            page.pageId,
+            () => segmentPageImages({ pageId: page.pageId, pageImageBase64, images: unprunedImages }, segmentationConfig, model),
+            (error) => console.warn(`[image-segmentation] Failed for ${page.pageId}:`, error),
+          )
+          if (segmentationResult) {
             const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
             const segDims = new Map(allImages.map((img) => [img.imageId, { width: img.width, height: img.height }]))
             const applied = applySegmentation(
@@ -423,11 +428,6 @@ export async function runFullPipeline(
               }
               storage.putNodeData("image-filtering", page.pageId, imageClassification)
             }
-          } catch (err) {
-            console.warn(
-              `[image-segmentation] Failed for ${page.pageId}:`,
-              err instanceof Error ? err.message : err
-            )
           }
         }
         p.emit({
@@ -438,6 +438,9 @@ export async function runFullPipeline(
           totalPages,
         })
       })
+      if (everyPageFailed(failures, attempted)) throw new Error(`every page failed: ${failures[0].error}`)
+      const warning = imagePassWarning(failures)
+      return warning ? [warning] : undefined
     })
 
     executors.set("image-meaningfulness", async (p) => {
@@ -491,6 +494,8 @@ export async function runFullPipeline(
       const model = getModel(croppingConfig.modelId)
       const pages = storage.getPages()
       const totalPages = pages.length
+      const failures: ImagePassFailure[] = []
+      let attempted = 0
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
@@ -508,12 +513,15 @@ export async function runFullPipeline(
             height: img.height,
           }))
         if (unprunedImages.length > 0) {
+          attempted++
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
-          const croppingResult = await cropPageImages(
-            { pageId: page.pageId, pageImageBase64, images: unprunedImages },
-            croppingConfig,
-            model,
+          const croppingResult = await recordOptionalModelFailure(
+            failures,
+            page.pageId,
+            () => cropPageImages({ pageId: page.pageId, pageImageBase64, images: unprunedImages }, croppingConfig, model),
+            (error) => console.warn(`[image-cropping] Failed for ${page.pageId}:`, error),
           )
+          if (croppingResult) {
           const croppingVersion = storage.putNodeData("image-cropping", page.pageId, croppingResult)
           const applied = applyCrops(
             croppingResult,
@@ -541,6 +549,7 @@ export async function runFullPipeline(
           if (applied.length > 0) {
             storage.putNodeData("image-filtering", page.pageId, imageClassification)
           }
+          }
         }
         p.emit({
           type: "step-progress",
@@ -550,6 +559,9 @@ export async function runFullPipeline(
           totalPages,
         })
       })
+      if (everyPageFailed(failures, attempted)) throw new Error(`every page failed: ${failures[0].error}`)
+      const warning = imagePassWarning(failures)
+      return warning ? [warning] : undefined
     })
 
     // ── Sectioning stage ─────────────────────────────────────────

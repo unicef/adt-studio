@@ -1105,6 +1105,7 @@ describe("GET /books/:label/step-status", () => {
     expect(body.error).toBeNull()
     expect(body.stepErrors).toBeNull()
     expect(body.stepMessages).toBeNull()
+    expect(body.stepWarnings).toBeNull()
   })
 
   it("returns queued stages from in-memory queue", async () => {
@@ -1287,6 +1288,23 @@ describe("GET /books/:label/step-status", () => {
     expect(body.stages.speech).toBe("running")
     expect(body.steps.tts).toBe("running")
     expect(body.stepMessages.tts).toBe("4/12 audio entries")
+  })
+
+  it("AC-25: returns a done step's typed warnings, and none for a running or clean step", async () => {
+    createTestBook("step-warning-test")
+    const warning = { kind: "pages-unchanged", pages: [{ pageId: "pg002", error: "HTTP 500" }] } as const
+    const storage = createBookStorage("step-warning-test", tmpDir)
+    try {
+      storage.markStepCompleted("image-segmentation", "Completed — 1 page(s) kept…", [warning])
+      storage.markStepCompleted("image-filtering")
+      storage.markStepStarted("image-cropping")
+    } finally {
+      storage.close()
+    }
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
+
+    const body = await (await app.request("/books/step-warning-test/step-status")).json()
+    expect(body.stepWarnings).toEqual({ "image-segmentation": [warning] })
   })
 
   it("shows active run range: running extract, queued storyboard", async () => {

@@ -25,7 +25,7 @@ export function createConsoleProgress(): Progress {
           }
           break
         case "step-complete":
-          process.stderr.write(`Completed ${event.step}\n`)
+          process.stderr.write(event.message ? `${event.step}: ${event.message}\n` : `Completed ${event.step}\n`)
           break
         case "step-error":
           process.stderr.write(`Error in ${event.step}: ${event.error}\n`)

@@ -70,7 +70,8 @@ CREATE TABLE IF NOT EXISTS step_runs (
   started_at TEXT,
   completed_at TEXT,
   error TEXT,
-  message TEXT
+  message TEXT,
+  warnings TEXT
 );
 
 CREATE TABLE IF NOT EXISTS sign_language_videos (
@@ -133,6 +134,7 @@ function initSchema(db: sqlite.Database): void {
 
   if (existing === SCHEMA_VERSION) {
     cleanupDeprecatedSchema(db)
+    addMissingColumns(db)
     return
   }
 
@@ -194,6 +196,7 @@ function initSchema(db: sqlite.Database): void {
 
   if (version === SCHEMA_VERSION) {
     cleanupDeprecatedSchema(db)
+    addMissingColumns(db)
     upsertSchemaVersion(db, SCHEMA_VERSION)
     return
   }
@@ -473,6 +476,21 @@ function migrateV13toV14(db: sqlite.Database): void {
   } catch (err) {
     db.exec("ROLLBACK")
     throw err
+  }
+}
+
+/**
+ * Add nullable columns a book written by an older app lacks, in place and
+ * without a schema version bump: a bump makes every older app refuse the book
+ * ("Schema version mismatch" above), while an older app names its columns
+ * explicitly and keeps reading and writing a book that has extra ones.
+ * Only for additive, nullable columns that older apps can ignore.
+ */
+function addMissingColumns(db: sqlite.Database): void {
+  const stepRunColumns = db.all("PRAGMA table_info(step_runs)") as Array<{ name: string }>
+  // Typed step warnings (SPEC-0021, §Step warnings).
+  if (!stepRunColumns.some((column) => column.name === "warnings")) {
+    db.exec("ALTER TABLE step_runs ADD COLUMN warnings TEXT")
   }
 }
 

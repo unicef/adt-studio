@@ -1,6 +1,7 @@
 import { PIPELINE, STAGE_BY_NAME } from "@adt/types"
-import type { StepName, StageName } from "@adt/types"
+import type { StepName, StageName, StepWarning } from "@adt/types"
 import type { Progress } from "./progress.js"
+import { formatStepWarnings } from "./step-warnings.js"
 
 // ── Generic DAG runner ──────────────────────────────────────────
 
@@ -77,7 +78,8 @@ export async function runDAG<T extends string>(
 
 // ── Pipeline-specific runner ────────────────────────────────────
 
-export type StepExecutor = (progress: Progress) => Promise<void>
+/** An executor may return step warnings (SPEC-0021, §Step warnings); they and their English rendering are attached to the step-complete event. */
+export type StepExecutor = (progress: Progress) => Promise<void | StepWarning[]>
 
 export interface PipelineDAGResult {
   stages: DAGResult<StageName>
@@ -123,10 +125,12 @@ export async function runPipelineDAG(
           progress.emit({ type: "step-start", step: stepName })
           try {
             const executor = executors.get(stepName)
-            if (executor) {
-              await executor(progress)
-            }
-            progress.emit({ type: "step-complete", step: stepName })
+            const warnings = executor ? await executor(progress) : undefined
+            progress.emit({
+              type: "step-complete",
+              step: stepName,
+              ...(warnings && warnings.length > 0 ? { warnings, message: formatStepWarnings(warnings) } : {}),
+            })
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
             progress.emit({ type: "step-error", step: stepName, error: message })
