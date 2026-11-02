@@ -249,6 +249,10 @@ export const LLM_MODEL_GROUPS: ModelGroup[] = [
   {
     provider: "anthropic",
     models: [
+      "claude-fable-5-1",
+      "claude-opus-5-5",
+      "claude-sonnet-5-5",
+      "claude-haiku-5-5",
       "claude-opus-4-6",
       "claude-sonnet-4-6",
       "claude-haiku-4-5",
@@ -257,6 +261,10 @@ export const LLM_MODEL_GROUPS: ModelGroup[] = [
   {
     provider: "claude-agent",
     models: [
+      "claude-fable-5-1",
+      "claude-opus-5-5",
+      "claude-sonnet-5-5",
+      "claude-haiku-5-5",
       "claude-opus-4-6",
       "claude-sonnet-4-6",
       "claude-sonnet-4-5",

@@ -1,8 +1,9 @@
 import { generateObject, generateText, type LanguageModel } from "ai"
-import type {
-  StructuredTextBackend,
-  StructuredTextRequest,
-  StructuredTextResult,
+import {
+  appendSystemAdditions,
+  type StructuredTextBackend,
+  type StructuredTextRequest,
+  type StructuredTextResult,
 } from "../../../ports/index.js"
 import { asZodLike, toJsonSchema } from "../json-schema.js"
 import { toCoreMessages } from "./messages.js"
@@ -15,11 +16,16 @@ export interface AiSdkModelOptions {
 export type AiSdkModelFactory = (options: AiSdkModelOptions) => LanguageModel
 
 const DEFAULT_TIMEOUT_MS = 90_000
+/** generateObject's tool name when no `schemaName` is given; this backend never passes one. */
+export const STRUCTURED_OUTPUT_TOOL_NAME = "json"
 
 export function createAiSdkStructuredTextBackend(
   createModel: AiSdkModelFactory,
 ): StructuredTextBackend {
   return {
+    systemAdditions: (request) =>
+      request.strategy === "parse-repair" ? [parseRepairInstruction(request.schema)] : [],
+
     async generateStructured<T>(
       request: StructuredTextRequest,
     ): Promise<StructuredTextResult<T>> {
@@ -99,10 +105,7 @@ async function generateWithParseRepair<T>(
 ): Promise<StructuredTextResult<T>> {
   const zod = asZodLike(request.schema)
   const schemaJson = serializeSchema(request.schema)
-  const instruction = schemaJson
-    ? `Reply with a single JSON object that validates against this JSON Schema. Emit no prose, no explanation and no code fences.\n\n${schemaJson}`
-    : "Respond with a single JSON object and nothing else. No markdown fences, no prose."
-  const system = request.system ? `${request.system}\n\n${instruction}` : instruction
+  const system = appendSystemAdditions(request.system, [parseRepairInstruction(request.schema)])
 
   let usage = { inputTokens: 0, outputTokens: 0 }
   let conversation = [...messages]
@@ -163,6 +166,14 @@ async function generateWithParseRepair<T>(
   }
 
   throw new Error("Model did not return schema-valid JSON")
+}
+
+/** Appended to the system prompt, and reported through `systemAdditions`. */
+function parseRepairInstruction(schema: unknown): string {
+  const schemaJson = serializeSchema(schema)
+  return schemaJson
+    ? `Reply with a single JSON object that validates against this JSON Schema. Emit no prose, no explanation and no code fences.\n\n${schemaJson}`
+    : "Respond with a single JSON object and nothing else. No markdown fences, no prose."
 }
 
 function serializeSchema(schema: unknown): string | undefined {
