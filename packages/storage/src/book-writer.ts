@@ -168,7 +168,8 @@ function acquire(dir: string, databaseFile?: string): Lease {
       observed = readOwner(lock)
       if (!deadOwner(lock)) throw new BookBusyError()
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof BookBusyError) throw error
     throw new BookBusyError("Book ownership could not be verified. Recovery evidence has been preserved.")
   }
   const removeOwn = () => {

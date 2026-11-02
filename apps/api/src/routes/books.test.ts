@@ -15,6 +15,7 @@ import type {
 import { createBookEventBus } from "../services/book-event-bus.js"
 import { createPageErrorDecisions } from "../services/page-error-decisions.js"
 import { createBookRoutes } from "./books.js"
+import { createDebugRoutes } from "./debug.js"
 import { createStageRoutes } from "./stages.js"
 import { errorHandler } from "../middleware/error-handler.js"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
@@ -291,7 +292,7 @@ describe("PUT /books/:label/config", () => {
   it("acknowledges effective settings before the next save, including inherited clears and map deletions", async () => {
     createTestBook("receipt")
     fs.writeFileSync(globalConfigPath, "toc_generation:\n  model: openai:gpt-4o-mini\n  max_retries: 3\nsection_types:\n  keep: Keep\n  remove: Remove\nstructure_types: {}\nrole_types: {}\n")
-    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath).route("/", createDebugRoutes(tmpDir, tmpDir, globalConfigPath))
     const save = (config: Record<string, unknown>) => app.request("/books/receipt/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config, includeEffectiveConfig: true }) })
     const first = await save({ toc_generation: { max_retries: 4 }, section_types: { remove: null, added: "New" } })
     expect(first.status).toBe(200)
@@ -310,6 +311,8 @@ describe("PUT /books/:label/config", () => {
     const cleared = await save({})
     expect(cleared.status).toBe(200)
     expect((await cleared.json()).activeConfig).toMatchObject({ hasBookOverride: false, merged: { toc_generation: { max_retries: 3 } } })
+    expect((await (await app.request("/books/receipt/debug/config")).json()).hasBookOverride).toBe(false)
+    expect((await (await app.request("/books/receipt/config")).json()).config).toEqual({})
   })
 
   it("writes config overrides and returns them", async () => {

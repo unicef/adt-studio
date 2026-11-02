@@ -2,7 +2,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
-import { createBookStorage, publishSpeechOutput, restoreSpeechOutput } from "@adt/storage"
+import { createBookStorage, publishSpeechOutput, restoreSpeechOutput, withBookWriter } from "@adt/storage"
 import { inputSignature } from "@adt/pipeline"
 import type { TTSOutput, TextCatalogOutput, WebRenderingOutput, WordTimestampOutput } from "@adt/types"
 import { createOutputRoutes } from "../routes/outputs.js"
@@ -73,12 +73,13 @@ it("keeps protection and warns after a later source change; restoring a legacy v
 
 it("does not take over an active writer and retries successfully on the next summary read", async () => {
   const before = storage.getNodeVersionFingerprint()
-  const lease = path.join(storage.bookDir!, ".book-writer.json")
-  fs.writeFileSync(lease, JSON.stringify({ token: "another-operation", pid: process.pid, host: os.hostname() }))
+  let release!: () => void
+  const held = withBookWriter(storage.bookDir!, () => new Promise<void>(resolve => { release = resolve }))
   const app = createOutputRoutes(root, prompts)
-  expect((await app.request(`/books/${label}/outputs/summary`)).status).toBe(200)
-  expect(storage.getNodeVersionFingerprint()).toEqual(before)
-  fs.unlinkSync(lease)
+  try {
+    expect((await app.request(`/books/${label}/outputs/summary`)).status).toBe(200)
+    expect(storage.getNodeVersionFingerprint()).toEqual(before)
+  } finally { release(); await held }
   expect((await app.request(`/books/${label}/outputs/summary`)).status).toBe(200)
   expect(storage.getLatestNodeData("legacy-output-baseline", "book")).toBeTruthy()
 })

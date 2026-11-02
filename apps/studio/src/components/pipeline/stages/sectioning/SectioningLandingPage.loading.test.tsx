@@ -15,7 +15,8 @@ vi.mock("@lingui/react/macro", () => ({
       typeof strings === "string" ? strings : strings.reduce((text, part, i) => text + part + (args[i] ?? ""), ""),
   }),
 }))
-vi.mock("@/hooks/use-book-config", () => ({ useBookConfig: () => ({}) }))
+vi.mock("@/hooks/use-book-config", () => ({ useBookConfig: () => ({}), useUpdateBookConfig: () => ({ mutate: vi.fn() }) }))
+vi.mock("@/hooks/use-sectioning-mode-confirmation", () => ({ useSectioningModeConfirmation: () => ({ busy: false, request: vi.fn(), dialog: null }) }))
 vi.mock("@/hooks/use-parts", () => ({ useSplitStatus: () => ({ data: { hasMergeActivity: false }, isLoading: false }) }))
 vi.mock("@/hooks/use-debug", () => ({ useActiveConfig: () => ({}) }))
 vi.mock("@/hooks/use-stage-status", () => ({ useStageStatus: () => ({ isRunning: false, isCompleted: false, hasError: false }) }))

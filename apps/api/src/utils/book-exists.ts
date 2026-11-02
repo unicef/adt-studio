@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import { HTTPException } from "hono/http-exception"
 import { resolveBookPaths } from "@adt/storage"
+import { BookLabel } from "@adt/types"
 import { resolvePathWithin } from "./path-security.js"
 
 /** Check before admission and again when queued work starts. Opening storage or
@@ -9,6 +10,8 @@ import { resolvePathWithin } from "./path-security.js"
  * book has its database, or, before its first extraction, its source PDF. A
  * stale write never recreates either file. */
 export function requireExistingBook(label: string, booksDir: string): string {
+  const parsed = BookLabel.safeParse(label)
+  if (!parsed.success) throw new HTTPException(400, { message: parsed.error.message })
   const { bookDir } = resolveBookPaths(label, booksDir)
   const isFile = (name: string) => {
     const file = resolvePathWithin(booksDir, label, name)

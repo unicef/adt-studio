@@ -411,6 +411,10 @@ export function getBookConfig(
 
   const content = fs.readFileSync(configPath, "utf-8")
   const parsed = yaml.load(content)
+  // A journal-safe empty mapping is equivalent to removing all overrides.
+  // Readers and save receipts must not report an override merely because the
+  // transition protocol retained an empty file instead of unlinking it.
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && Object.keys(parsed).length === 0) return null
   return (parsed as Record<string, unknown>) ?? null
 }
 

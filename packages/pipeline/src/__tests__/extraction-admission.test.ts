@@ -187,12 +187,17 @@ describe("SPEC-0010 extraction admission", { timeout: 30_000 }, () => {
 
   it("blocks the actual full DAG and CLI with no transport calls or content mutation after reuse", async () => {
     const f = fixture()
+    let storageClosed = false
     try {
       await extractPDF(f.options, f.storage, quiet)
       const before = bytes(f.bookDir)
       const transport = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Provider transport must not run"))
       await expect(runFullPipeline({ label: "book", booksRoot: f.booksRoot, ...f.options, configPath: path.join(root, "config.yaml"), promptsDir: path.join(root, "prompts"), templatesDir: path.join(root, "templates") })).rejects.toMatchObject({ code: "UNSAFE_RESUME_UNAVAILABLE" })
       expect(transport).not.toHaveBeenCalled()
+      // The independent CLI owns its own database admission. Close this test's
+      // reader before handing the book to another process, just as an app must.
+      f.storage.close()
+      storageClosed = true
       const hook = path.join(f.booksRoot, "reject-provider.mjs")
       fs.writeFileSync(hook, `globalThis.fetch = async () => {
         process.stderr.write("UNEXPECTED_PROVIDER_CALL\\n"); process.exit(79);
@@ -215,7 +220,7 @@ describe("SPEC-0010 extraction admission", { timeout: 30_000 }, () => {
       expect(invalid.status).toBe(1)
       expect(invalid.stderr).toContain("EXTRACTION_ASSETS_INVALID")
       expect(invalid.stderr).not.toContain("Extraction: verified reusable")
-    } finally { f.storage.close() }
+    } finally { if (!storageClosed) f.storage.close() }
   })
 
   it("a process killed during extraction leaves an incomplete attempt, never an assumed completion", () => {

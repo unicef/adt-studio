@@ -376,7 +376,7 @@ describe("SPEC-0003 persisted data and publication", () => {
     publication.publish()
     expect(s.getAllNodeVersions("web-rendering", "pg002")).toHaveLength(2)
     expect(s.getLatestNodeData("image-captioning", "book")?.data).toEqual({ manual: "retained" })
-    expect(s.getStepRuns().some((run) => run.step === "image-captioning")).toBe(false)
+    expect(s.getStepRuns().some((run) => run.step === "image-captioning")).toBe(true)
     expect(getBook(label, root).completedStages).not.toContain("preview")
     expect(fs.existsSync(path.join(dir, "adt"))).toBe(true)
     s.close()

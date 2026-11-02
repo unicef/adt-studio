@@ -321,7 +321,8 @@ export function createStageService(
       // same lease across deferred execution; no competing writer can enter
       // between preparation and the runner's first instruction.
       const work = withBookWriter(requireExistingBook(label, options.booksDir), () => {
-        options.beforeRun?.()
+        // Request validation is read-only. Mutating preparation belongs to
+        // executeJob, after its cancellation check and execution-time guards.
         state.active = job
         return new Promise<void>((resolve) => setImmediate(() => {
           executeJob(label, job, options).finally(resolve)

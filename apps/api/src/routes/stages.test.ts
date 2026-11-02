@@ -374,7 +374,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     const textId = `${formatSectionId(pageId, 3)}_ans_a`
     seedTts("en", [{ textId, manual: true }])
     const before = withStorage((storage) => storage.getNodeVersionFingerprint())
-    expect(makeBeforeRun(label, "extract", "speech", tmpDir)).toThrow("UNSAFE_RESUME_UNAVAILABLE")
+    expect(makeBeforeRun(label, "extract", "speech", tmpDir)).toThrow("SECTIONING_REGENERATION_BLOCKED")
     expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(before)
     expect(audioExists("en", `${textId}.mp3`)).toBe(true)
   })

@@ -78,7 +78,7 @@ it("requires explicit confirmation of the protected TOC version and retains that
   state.status.mockResolvedValue({ protectedWork: [{ node: "toc-generation", itemId: "book", version: 3, source: "manual" }] })
   await act(async () => client.refetchQueries({ queryKey: ["books", "book", "step-status"] }))
   fireEvent.click(within(dialog).getByRole("button", { name: "Re-run" }))
-  await waitFor(() => expect(state.queue).toHaveBeenCalledExactlyOnceWith({ fromStage: "toc", toStage: "toc", apiKey: "test-key", viewAfter: true, replaceManual: true, protectedReplacements: [{ node: "toc-generation", itemId: "book", version: 2 }] }))
+  await waitFor(() => expect(state.queue).toHaveBeenCalledExactlyOnceWith({ fromStage: "toc", toStage: "toc", apiKey: "test-key", viewAfter: true, replaceManual: true, protectedReplacements: [{ node: "toc-generation", itemId: "book", version: 2, source: "manual" }] }))
 })
 
 it.each(["running", "cancelling", "dirty", "provider"] as const)("does not confirm replacement after %s availability changes", async condition => {

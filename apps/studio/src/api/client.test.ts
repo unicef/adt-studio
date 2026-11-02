@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
+vi.mock("@lingui/core/macro", () => ({ msg: (parts: TemplateStringsArray, ...values: unknown[]) => ({ id: parts.reduce((text, part, i) => text + part + (values[i] ?? ""), "") }) }))
+vi.mock("@lingui/core", () => ({ i18n: { _: (descriptor: { id: string }) => descriptor.id } }))
+
 vi.mock("@/lib/utils", () => ({
   isElectron: vi.fn(() => false),
 }))
@@ -173,6 +176,6 @@ it("retains upstream structured codes and SPEC-0002 conflict status in the same 
   try {
     const error = await api.getPages("conflict-fixture").catch(error => error)
     expect(error).toBeInstanceOf(ApiError)
-    expect(error).toMatchObject({ status: 409, code: "VERSION_CONFLICT", message: "Changed elsewhere" })
+    expect(error).toMatchObject({ status: 409, code: "VERSION_CONFLICT", message: "The saved content changed. Your draft is retained. Refresh and review the current versions before retrying." })
   } finally { vi.unstubAllGlobals() }
 })
