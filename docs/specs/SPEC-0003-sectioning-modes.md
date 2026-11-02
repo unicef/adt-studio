@@ -35,14 +35,16 @@ these newer product decisions and the owner's sequencing override.
 
 ## Prerequisites and policy refinement
 
-The November 2 integration targets develop `f2e59a0d`, which contains merged
+The November 2 integration first reconciled onto develop `f2e59a0d`, which contains merged
 SPEC-0001 #879 (squash `c153ba7d`, reviewed head `811d1475`) and approved
-SPEC-0002 #880 (final head `89a65f06`). SPEC-0003 previously inherited the obsolete
+SPEC-0002 #880 (final head `89a65f06`). The final refresh also includes develop
+`4b9e40cc`'s documentation-only SDD threshold update; runtime behavior is unchanged.
+SPEC-0003 previously inherited the obsolete
 SPEC-0002 boundary `09f0d1c7`; only its final increment is reconciled onto develop.
 SPEC-0002's actual approval is retained. Its merge is not SPEC-0003 approval or
 proof of this integration. Reuse the merged admission, ownership, guarded drafts,
 source tracking, versioned transactions and recovery; reverify combined behavior.
-See the [final local integration and acceptance audit](../verification/spec-0003-final-audit-2026-11-02.md), including the uncompleted standard Docker verification gate.
+See the [final local integration and acceptance audit](../verification/spec-0003-final-audit-2026-11-02.md), including standard Docker runtime/export/restart evidence and remaining verification limits.
 Historical reports and the remote PR description retain their dated attribution.
 
 This deliberately refines SPEC-0002 AC-8/15: **all existing Sectioning is kept by

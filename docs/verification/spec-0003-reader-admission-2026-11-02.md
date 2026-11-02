@@ -3,8 +3,9 @@
 Local implementation and proof-boundary record. The independent live/dead-reader
 recheck, exact-head full suite, actual Studio visibility and Linux admission checks
 now pass; see the [final audit](spec-0003-final-audit-2026-11-02.md).
-Standard combined Docker packaging/runtime remains unverified because its VM disk
-is full. This is not specification approval or release certification.
+After authorized dangling-only image cleanup, the standard combined Docker build
+and both-layout runtime/export/restart also pass. This is not specification
+approval or release certification.
 
 ## Reproduction and authorized correction
 
@@ -80,7 +81,8 @@ slow-page actual Studio visibility, Linux/Docker restart tests, full tests,
 packaged runtime checks or the final acceptance matrices. The frozen `f66613ea` full suite passes 6,255 tests; the Linux dependency-overlay
 run passes all 67 admission/doctor cases, including the 16 skipped on Darwin.
 Independent real paused-reader and killed-reader rechecks pass on Darwin; bundled
-Desktop API generation/export/restart passes. The standard combined Docker app
-build failed from full VM disk, so its current-image runtime/restart is not run.
+Desktop API generation/export/restart passes. The original Docker disk failures remain recorded; after authorized dangling-only
+cleanup, the standard combined app at `9cec1454` passes both-layout generation,
+nine-book export/restart and byte-level package/media comparisons.
 These later results supersede the pending checkpoint without broadening its proof
 boundary; exact commands, provenance and limits are in the final audit.
