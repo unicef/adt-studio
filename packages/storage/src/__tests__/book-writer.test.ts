@@ -182,6 +182,8 @@ it("never creates a book directory just to check or take ownership", () => {
 function localLease(bookDir: string) {
   let record!: import("@adt/types").BookWriterOwner
   withBookWriter(bookDir, () => {
+    const db = openBookDb(path.join(bookDir, "book.db"))
+    db.close()
     record = JSON.parse(fs.readFileSync(path.join(bookDir, ".book-writer.json"), "utf8"))
   })
   return record

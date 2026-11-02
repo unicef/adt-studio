@@ -1834,12 +1834,12 @@ export function createPageRoutes(
 
   // POST /books/:label/pages/re-render — Re-render a set of pages as one task.
   // This is used by cross-page edits: the Storyboard step stays running until
-  // every affected page succeeds, and any failure makes the whole stage stale.
+  // requested pages settle; successful ordinary pages remain published on failure.
   app.post("/books/:label/pages/re-render", async (c) => {
     const safeLabel = parseBookLabel(c.req.param("label"))
     const credentials = readProviderCredentials(c)
-    // Fail before the batch starts: a partially re-rendered book is worse than
-    // a rejected request, and the model decides which credential is required.
+    // Validate credentials once, before submitting work. Per-page missing input
+    // is isolated by the admitted renderer so runnable neighbors can publish.
     const config = loadBookConfig(safeLabel, booksDir, configPath)
     if (!isFixedLayoutBook(config)) {
       assertModelCredentials("structured-text", config.default_model ?? DEFAULT_LLM_MODEL_ID, credentials)
@@ -1862,17 +1862,7 @@ export function createPageRoutes(
         if (!existingPageIds.has(pageId)) {
           throw new HTTPException(404, { message: `Page not found: ${pageId}` })
         }
-        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
-        if (!sectioningRow) {
-          throw new HTTPException(400, {
-            message: `Page must have page-sectioning data before re-rendering: ${pageId}`,
-          })
-        }
-        if (!PageSectioningOutput.safeParse(sectioningRow.data).success) {
-          throw new HTTPException(400, {
-            message: `Invalid page-sectioning data: ${pageId}`,
-          })
-        }
+
       }
 
       assertNoActivePipelineRun(storage)

@@ -4,7 +4,7 @@ import { msg } from "@lingui/core/macro"
 /** HTTP codes and persisted/SSE code-prefixed errors use the same translations.
  * Provider diagnostics keep their existing presentation when no code matches. */
 export function sectioningErrorMessage(error?: string, code?: string): string | undefined {
-  const selected = code ?? error?.match(/\b(BOOK_BUSY|STORYBOARD_INPUT_CHANGED|STORYBOARD_PUBLICATION_INCOMPLETE|STORYBOARD_PAGE_INPUT_MISSING|SECTIONING_INPUT_UNREADABLE|SECTIONING_REGENERATION_BLOCKED|UNSAFE_RESUME_UNAVAILABLE|VERSION_CONFLICT|REPLACEMENT_CONFIRMATION_INVALID)\b/)?.[1]
+  const selected = code ?? error?.match(/\b(BOOK_BUSY|STORYBOARD_INPUT_CHANGED|STORYBOARD_PUBLICATION_INCOMPLETE|STORYBOARD_PAGE_INPUT_MISSING|SECTIONING_INPUT_UNREADABLE|SECTIONING_REGENERATION_BLOCKED|UNSAFE_RESUME_UNAVAILABLE|VERSION_CONFLICT|REPLACEMENT_CONFIRMATION_INVALID|EXTRACTION_LEGACY|EXTRACTION_INCOMPLETE|EXTRACTION_SOURCE_CHANGED|EXTRACTION_INPUTS_CHANGED|EXTRACTION_ASSETS_INVALID|EXTRACTION_INPUT_INVALID)\b/)?.[1]
   switch (selected) {
     case "BOOK_BUSY": return i18n._(msg`This book is being changed by another operation. Wait for it to finish, then retry.`)
     case "STORYBOARD_INPUT_CHANGED": return i18n._(msg`Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again.`)
@@ -16,6 +16,12 @@ export function sectioningErrorMessage(error?: string, code?: string): string | 
       return i18n._(msg`Some pages have missing or unreadable input: ${pages}. Other runnable pages remain available.`)
     }
     case "SECTIONING_INPUT_UNREADABLE": return i18n._(msg`This page's saved Sectioning is unreadable. Restore a valid historical version before replacing it. History and media are retained.`)
+    case "EXTRACTION_LEGACY": return i18n._(msg`This book has no verified extraction record. Saved content is retained. Start extraction in a new book.`)
+    case "EXTRACTION_INCOMPLETE": return i18n._(msg`Extraction did not finish. Partial data is retained. Start extraction in a new book.`)
+    case "EXTRACTION_SOURCE_CHANGED": return i18n._(msg`The source PDF has changed. Existing content is retained. Import the changed PDF as a new book.`)
+    case "EXTRACTION_INPUTS_CHANGED": return i18n._(msg`Extraction settings have changed. Existing content is retained. Start extraction in a new book.`)
+    case "EXTRACTION_ASSETS_INVALID": return i18n._(msg`Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book.`)
+    case "EXTRACTION_INPUT_INVALID": return i18n._(msg`The PDF or extraction settings are invalid. Check the file and settings before trying again.`)
     case "SECTIONING_REGENERATION_BLOCKED":
     case "UNSAFE_RESUME_UNAVAILABLE": return i18n._(msg`Existing-book extraction and CLI resume are unavailable here. Use Sectioning in Studio to review and confirm any replacement.`)
     case "VERSION_CONFLICT": return i18n._(msg`The saved content changed. Your draft is retained. Refresh and review the current versions before retrying.`)

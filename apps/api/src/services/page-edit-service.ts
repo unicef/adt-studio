@@ -78,7 +78,7 @@ export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRende
         }
         const pageIds = options.map((item) => item.pageId)
         const unavailable: string[] = []
-        processFixedLayoutPages(publication.storage, `/api/books/${label}/images`, pageIds, {
+        await processFixedLayoutPages(publication.storage, `/api/books/${label}/images`, pageIds, {
           onPage: (id) => publication.publishPage(id),
           onUnavailable: (id) => unavailable.push(id),
         })

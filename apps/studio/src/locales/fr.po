@@ -4742,6 +4742,9 @@ msgstr "Extraction..."
 msgid "Extraction and the other AI steps run on your own AI provider."
 msgstr "L'extraction et les autres étapes d'IA s'exécutent avec votre propre fournisseur d'IA."
 
+msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+msgstr "L’extraction ne s’est pas terminée. Les données partielles sont conservées. Lancez l’extraction dans un nouveau livre."
+
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "L'extraction est en cours — vous pouvez revoir les fusions une fois terminée."
 
@@ -4753,6 +4756,9 @@ msgstr "Notes d'extraction"
 
 msgid "Extraction Prompt"
 msgstr "Extraction Invite"
+
+msgid "Extraction settings have changed. Existing content is retained. Start extraction in a new book."
+msgstr "Les paramètres d’extraction ont changé. Le contenu existant est conservé. Lancez l’extraction dans un nouveau livre."
 
 msgid "Extracts text and image data from each page of the PDF."
 msgstr "Extrait le texte et les données d'image de chaque page du PDF."
@@ -8189,6 +8195,9 @@ msgstr "Ou partagez sur un nouveau lien avec les choix ci-dessus"
 
 msgid "Original"
 msgstr "Original"
+
+msgid "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
+msgstr "Les données d’extraction d’origine sont manquantes ou illisibles. Les données existantes sont conservées. Restaurez une copie vérifiée du livre ou importez le PDF en tant que nouveau livre."
 
 msgid "Original language"
 msgstr "Langue originale"
@@ -12062,6 +12071,9 @@ msgstr "Le modèle détecte les zones de délimitation afin que chaque élément
 msgid "The page"
 msgstr "La page"
 
+msgid "The PDF or extraction settings are invalid. Check the file and settings before trying again."
+msgstr "Le PDF ou les paramètres d’extraction ne sont pas valides. Vérifiez le fichier et les paramètres avant de réessayer."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Le processus que les plantes utilisent pour transformer la lumière du soleil, l'eau et le dioxyde de carbone en nourriture."
 
@@ -12160,6 +12172,9 @@ msgstr "Le service de partage ne répond pas. Tous les commentaires sont en séc
 
 msgid "The small program that shows your books."
 msgstr "Le petit programme qui affiche vos livres."
+
+msgid "The source PDF has changed. Existing content is retained. Import the changed PDF as a new book."
+msgstr "Le PDF source a changé. Le contenu existant est conservé. Importez le PDF modifié en tant que nouveau livre."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Le storyboard doit être complété avant de générer {stageName}. Exécutez d'abord l'étape du storyboard."
@@ -12277,6 +12292,9 @@ msgstr "Ce livre ne contient aucune image à légender"
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Ce livre n'a pas de pages. Assurez-vous que les étapes d'extraction et de storyboard ont produit du contenu avant de générer {stageName}."
+
+msgid "This book has no verified extraction record. Saved content is retained. Start extraction in a new book."
+msgstr "Ce livre ne possède aucun enregistrement d’extraction vérifié. Le contenu enregistré est conservé. Lancez l’extraction dans un nouveau livre."
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Ce livre est une partie : sa plage de pages est fixe, correspond au sous-ensemble assigné et ne peut pas être modifiée."

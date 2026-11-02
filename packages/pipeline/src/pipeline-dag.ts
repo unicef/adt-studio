@@ -634,7 +634,8 @@ async function runAdmittedFullPipeline(
         // LLM call. `page-sectioning` (semantic) is left intact.
         const imageUrlPrefix = `/api/books/${label}/images`
         const unavailable: string[] = []
-        processFixedLayoutPages(renderingStorage, imageUrlPrefix, undefined, {
+        await processFixedLayoutPages(renderingStorage, imageUrlPrefix, undefined, {
+          signal: options.signal,
           onPage: (id) => { options.signal?.throwIfAborted(); publication.publishPage(id) },
           onUnavailable: (id) => { unavailable.push(id); p.emit({ type: "step-progress", step: "web-rendering", message: missingStoryboardInputMessage([id]) }) },
         })

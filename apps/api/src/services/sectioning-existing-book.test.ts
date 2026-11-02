@@ -2,6 +2,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
+import { serve } from "@hono/node-server"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { PIPELINE } from "@adt/types"
 import { createBookStorage, openBookDb, readSectioningLifecycle, writeSectioningLifecycle } from "@adt/storage"
@@ -14,12 +15,23 @@ import { createAdtPreviewRoutes } from "../routes/adt-preview.js"
 import { prepareExport } from "./export-service.js"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createStageRunner } from "./stage-runner.js"
+import { createTaskService } from "./task-service.js"
 import { createStageService } from "./stage-service.js"
 import { createBookEventBus } from "./book-event-bus.js"
 import { createPageErrorDecisions } from "./page-error-decisions.js"
 
 const { sectionPage, renderPage } = vi.hoisted(() => ({ sectionPage: vi.fn(), renderPage: vi.fn() }))
 vi.mock("@adt/pipeline", async (original) => ({ ...await original<typeof import("@adt/pipeline")>(), sectionPage, renderPage }))
+// Pause at an actual cooperative scheduling boundary, never inside a
+// publication callback: real HTTP reads/cancellation must run during the pause.
+const scheduling = vi.hoisted(() => ({ afterFirstPage: false, release: undefined as (() => void) | undefined }))
+vi.mock("node:timers/promises", async (original) => {
+  const timers = await original<typeof import("node:timers/promises")>()
+  return { ...timers, setImmediate: async (...args: Parameters<typeof timers.setImmediate>) => {
+    await timers.setImmediate(...args)
+    if (scheduling.afterFirstPage && !scheduling.release) await new Promise<void>(resolve => { scheduling.release = resolve })
+  } }
+})
 let root: string, dir: string, configPath: string, app: Hono
 let service: ReturnType<typeof createStageService>
 let bus: ReturnType<typeof createBookEventBus>
@@ -290,3 +302,127 @@ it("direct runner refuses a replacement receipt from another book namespace", as
   try { expect(other.getAllNodeVersions("web-rendering", "p2")).toEqual(history("web-rendering", "p2")) }
   finally { other.close() }
 })
+
+it("rejects changed extracted text at publication even when page IDs and versions are unchanged", async () => {
+  const consent = await replacement()
+  const before = ["p2", "p7"].map(id => history("page-sectioning", id))
+  sectionPage.mockImplementationOnce(async ({ pageId }) => {
+    // Model a noncooperating external edit at the actual SQLite boundary.
+    const external = openBookDb(path.join(dir, `${label}.db`))
+    try { external.run("UPDATE pages SET text = ? WHERE page_id = ?", ["External source text", "p2"]) }
+    finally { external.close() }
+    return tree(pageId)
+  })
+  const result = await run({ ...consent, toStage: "sectioning", pageErrorPolicy: "stop" })
+  expect(result.status).toBe("failed")
+  expect(result.error).toContain("STORYBOARD_INPUT_CHANGED")
+  expect(["p2", "p7"].map(id => history("page-sectioning", id))).toEqual(before)
+  // The explicit reset remains committed; obsolete HTML never returns as current.
+  expect(history("web-rendering", "p2")).toHaveLength(2)
+  expect(history("web-rendering", "p2")[1].data).toBeNull()
+})
+
+
+it.each(["sync", "task"].flatMap(entry => ["missing", "json-null", "unreadable"].map(input => ({ entry, input }))))("batch HTTP $entry rendering preserves $input input and publishes its runnable neighbor", async ({ entry, input }) => {
+  const raw = openBookDb(path.join(dir, `${label}.db`))
+  if (input === "missing") { raw.run("DELETE FROM node_current WHERE node = ? AND item_id = ?", ["page-sectioning", "p2"]); raw.run("DELETE FROM node_data WHERE node = ? AND item_id = ?", ["page-sectioning", "p2"]) }
+  else raw.run("UPDATE node_data SET data = ? WHERE node = ? AND item_id = ?", [input === "json-null" ? "null" : "{unreadable", "page-sectioning", "p2"])
+  const before = raw.all("SELECT * FROM node_data WHERE node = ? AND item_id = ?", ["page-sectioning", "p2"])
+  raw.close()
+  const retained = history("web-rendering", "p2")
+  const tasks = createTaskService(bus, root)
+  const target = new Hono().onError(errorHandler).route("/", createPageRoutes(root, root, undefined, configPath, entry === "task" ? tasks : undefined))
+  const response = await target.request(`/books/${label}/pages/re-render`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pageIds: ["p2", "p7"] }) })
+  if (entry === "task") {
+    expect(response.status).toBe(200)
+    await vi.waitFor(() => expect(tasks.getActiveTasks(label)[0]?.status).toBe("failed"))
+    expect(tasks.getActiveTasks(label)[0].error).toContain("STORYBOARD_PAGE_INPUT_MISSING")
+  } else {
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ code: "STORYBOARD_PAGE_INPUT_MISSING" })
+  }
+  expect(renderPage.mock.calls.map(([input]) => input.pageId)).toEqual(["p7"])
+  expect(history("web-rendering", "p2")).toEqual(retained)
+  expect(history("web-rendering", "p7")).toHaveLength(2)
+  const check = openBookDb(path.join(dir, `${label}.db`))
+  try { expect(check.all("SELECT * FROM node_data WHERE node = ? AND item_id = ?", ["page-sectioning", "p2"])).toEqual(before) }
+  finally { check.close() }
+})
+
+it("fixed batch HTTP rendering uses valid positioned input without requiring semantic Sectioning", async () => {
+  fs.appendFileSync(configPath, "default_render_strategy: fixed\nrender_strategies:\n  fixed:\n    render_type: fixed_layout\n")
+  const s = store(); s.putNodeData("page-sectioning", "p2", null); s.close()
+  const response = await send("pages/re-render", { pageIds: ["p2", "p7"] })
+  expect(response.status, await response.clone().text()).toBe(200)
+  expect(renderPage).not.toHaveBeenCalled()
+  expect(history("fixed-layout-sectioning", "p2")).toHaveLength(1)
+  expect(history("web-rendering", "p7")).toHaveLength(2)
+  expect(history("page-sectioning", "p2")[1].data).toBeNull()
+})
+
+
+it.each(["first generation", "same-layout rerun"].flatMap(runKind => [false, true].map(cancel => ({ runKind, cancel }))))(
+  "fixed $runKind exposes the first committed page through real HTTP before the slow next page (cancel=$cancel)",
+  async ({ runKind, cancel }) => {
+    fs.appendFileSync(configPath, "default_render_strategy: fixed\nrender_strategies:\n  fixed:\n    render_type: fixed_layout\n")
+    if (runKind === "same-layout rerun") {
+      expect((await run({ fromStage: "storyboard" })).status).toBe("completed")
+    } else {
+      const s = store()
+      for (const id of ["p2", "p7"]) s.putNodeData("web-rendering", id, null)
+      s.close()
+    }
+    const beforeFirst = history("web-rendering", "p2")
+    const beforeSecond = [history("web-rendering", "p7"), history("fixed-layout-sectioning", "p7")]
+    const published: string[] = []
+    let settled = false
+    const dispose = bus.addListener(label, event => {
+      if (event.type === "progress" && event.data.type === "step-progress" && event.data.publishedPageId) {
+        published.push(event.data.publishedPageId)
+        if (event.data.publishedPageId === "p2") scheduling.afterFirstPage = true
+      }
+      if (["stage-run-complete", "stage-run-error", "stage-run-cancelled"].includes(event.type)) settled = true
+    })
+    const server = serve({ fetch: app.fetch, hostname: "127.0.0.1", port: 0 })
+    if (!server.listening) await new Promise<void>((resolve, reject) => { server.once("listening", resolve); server.once("error", reject) })
+    const address = server.address()
+    if (!address || typeof address === "string") throw new Error("Missing test server port")
+    const base = `http://127.0.0.1:${address.port}/books/${label}`
+    try {
+      const started = await fetch(`${base}/stages/run`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromStage: "storyboard", toStage: "storyboard" }) })
+      expect(started.status).toBe(200)
+      await vi.waitFor(() => expect(scheduling.release).toBeTypeOf("function"))
+      expect(settled).toBe(false)
+      expect(published).toEqual(["p2"])
+      const response = await fetch(`${base}/pages/p2`)
+      expect(response.status).toBe(200)
+      const page = await response.json()
+      expect(page.versions.rendering).toBe(beforeFirst.at(-1)!.version + 1)
+      expect(page.rendering.sections[0]).toMatchObject({ sectionType: "fixed-layout-page", sectionId: "p2_sec001" })
+      expect(page.rendering.sections[0].html).toContain("data-section-id")
+      expect(settled).toBe(false)
+      expect([history("web-rendering", "p7"), history("fixed-layout-sectioning", "p7")]).toEqual(beforeSecond)
+      if (cancel) expect((await fetch(`${base}/stages/cancel`, { method: "POST" })).status).toBe(202)
+      scheduling.afterFirstPage = false
+      scheduling.release!()
+      await vi.waitFor(() => expect(settled).toBe(true))
+      expect(history("web-rendering", "p2").at(-1)!.version).toBe(page.versions.rendering)
+      if (cancel) {
+        expect(published).toEqual(["p2"])
+        expect([history("web-rendering", "p7"), history("fixed-layout-sectioning", "p7")]).toEqual(beforeSecond)
+        // Cancellation releases admission: the next real HTTP action succeeds.
+        expect((await fetch(`${base}/pages/p7/re-render`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status).toBe(200)
+      } else expect(published).toEqual(["p2", "p7"])
+      expect(renderPage).not.toHaveBeenCalled()
+    } finally {
+      scheduling.afterFirstPage = false
+      scheduling.release?.()
+      scheduling.release = undefined
+      service.cancelStageRun(label)
+      await vi.waitFor(() => expect(service.getStatus(label).active).toBeNull())
+      dispose()
+      await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
+    }
+  },
+)

@@ -95,3 +95,27 @@ existing process lease through connection/statement closure, and serializes owne
 publication using its existing reservation. Fifty focused tests pass; sixteen
 Linux-only cases were skipped on macOS. See [the proof boundary and test evidence](spec-0003-reader-admission-2026-11-02.md). Independent frozen-head recheck, actual
 HTTP/Studio visibility, full suites and packaged Linux verification remain pending.
+
+## Independent review corrections after f6fbef65
+
+The independent reviewer derived a separate requirement/public-entry map and traced
+all production changes against the original/amended specifications and reviews.
+It did not clear `f6fbef65`. Its full report is preserved in the private evidence
+at `reviews/independent/f6fbef65/review.md`.
+
+| Finding | Correction and fresh regression evidence |
+| --- | --- |
+| N1, per-page isolation at batch HTTP entry | Removed the batch route's all-pages semantic preflight. The shared service validates each runnable page, including positioned fixed input. Seven real-storage HTTP synchronous/task cases failed before the fix (missing, JSON-null or malformed neighbor; fixed input without semantic Sectioning), then passed. Page existence, active-run and credential admission remain. |
+| N2, fixed per-page HTTP availability | Fixed orchestration yields between preparation/publication pages and propagates cancellation; pure per-page rendering and common spread width remain. Four real localhost HTTP cases pass: first generation/same-layout rerun, normal completion/cancel. Page1 GET returns its committed pair while page2 is held at the next scheduling boundary; cancel retains page1 and page2's prior pair, then targeted work succeeds. This proves cooperative page-boundary availability, not interruption inside one CPU-bound page. |
+| N3, extraction errors missing localization | All six inherited extraction safety codes now use the shared Studio mapper for explicit HTTP codes and persisted/SSE prefixes. Six regressions failed before the fix; seven mapper cases now pass including unknown provider diagnostics. New text translated in all five catalogs; extraction and strict compilation pass. |
+| W1, writer-discovered stale source-text publication | Replacement/publication receipt now hashes full active PageData metadata, retaining the previous extracted-text guard as well as book/config/window identity. A real SQLite edit during generation failed the regression before the fix; seven related receipt tests pass afterward. Ordinary freshness still does not hash PDF/image/audio bytes. |
+
+The localhost test's first sandboxed attempt failed with `listen EPERM`; the
+same bounded suite passed with localhost access enabled. That environment failure
+is neither a product failure nor a passing run. Provider credentials were removed
+and external requests blocked in both attempts. Linux writer fixtures now obtain
+their coordinated-database capability through the actual opener before testing
+incarnation recovery; an invented capability is not evidence of ownership.
+
+Final focused sweep, full checks, browser/platform acceptance and bounded
+independent recheck remain required before a final readiness claim.

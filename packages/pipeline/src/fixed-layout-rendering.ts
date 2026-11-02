@@ -14,6 +14,7 @@
  * and ignore placement.
  */
 
+import { setImmediate as yieldEventLoop } from "node:timers/promises"
 import type { Storage } from "@adt/storage"
 import type {
   AppConfig,
@@ -479,12 +480,12 @@ ${elements.join("\n")}${fitScript}
  * Run fixed-layout sectioning + rendering for all pages.
  * Stores results using the same node names as the reflowable pipeline.
  */
-export function processFixedLayoutPages(
+export async function processFixedLayoutPages(
   storage: Storage,
   imageUrlPrefix: string,
   targetPageIds?: readonly string[],
-  events?: { onPage?: (pageId: string) => void; onUnavailable?: (pageId: string) => void },
-): void {
+  events?: { onPage?: (pageId: string) => void | Promise<void>; onUnavailable?: (pageId: string) => void; signal?: AbortSignal },
+): Promise<void> {
   const pages = storage.getPages()
   const targets = targetPageIds ? new Set(targetPageIds) : undefined
   let totalDrawItems = 0
@@ -500,6 +501,8 @@ export function processFixedLayoutPages(
   }> = []
 
   for (const page of pages) {
+    await yieldEventLoop()
+    events?.signal?.throwIfAborted()
     // Render whatever image-filtering left unpruned. The wizard writes
     // `image_filters` values for fixed-layout books that disable size /
     // complexity / LLM-meaningfulness pruning, so in practice every
@@ -552,6 +555,7 @@ export function processFixedLayoutPages(
     // Targeted rerenders still measure the complete active window above, so a
     // single page keeps the same spread scale as its untouched neighbours.
     if (targets && !targets.has(page.pageId)) continue
+    events?.signal?.throwIfAborted()
     const sectioning = sectionFixedLayoutPage({
       pageId: page.pageId,
       pageNumber: page.pageNumber,
@@ -571,7 +575,10 @@ export function processFixedLayoutPages(
       storage.putNodeData("fixed-layout-sectioning", page.pageId, sectioning)
       storage.putNodeData("web-rendering", page.pageId, rendering)
     })
-    events?.onPage?.(page.pageId)
+    await events?.onPage?.(page.pageId)
+    // Flush publication events and serve page reads/cancellation before the
+    // next synchronous page computation. First generation is incremental too.
+    await yieldEventLoop()
   }
 
   // Positioned text is produced by the Extract stage only when the book is

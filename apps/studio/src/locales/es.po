@@ -4740,6 +4740,9 @@ msgstr "Extrayendo..."
 msgid "Extraction and the other AI steps run on your own AI provider."
 msgstr "La extracción y los demás pasos de IA se ejecutan con tu propio proveedor de IA."
 
+msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+msgstr "La extracción no terminó. Se conservan los datos parciales. Inicia la extracción en un libro nuevo."
+
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "La extracción está en curso — puedes revisar las dobles páginas una vez que termine."
 
@@ -4751,6 +4754,9 @@ msgstr "Notas de extracción"
 
 msgid "Extraction Prompt"
 msgstr "Indicación de extracción"
+
+msgid "Extraction settings have changed. Existing content is retained. Start extraction in a new book."
+msgstr "La configuración de extracción ha cambiado. Se conserva el contenido existente. Inicia la extracción en un libro nuevo."
 
 msgid "Extracts text and image data from each page of the PDF."
 msgstr "Extrae texto y datos de imagen de cada página del PDF."
@@ -8187,6 +8193,9 @@ msgstr "O comparte en un enlace nuevo con las opciones de arriba"
 
 msgid "Original"
 msgstr "Original"
+
+msgid "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
+msgstr "Los datos originales de extracción faltan o no se pueden leer. Se conservan los datos existentes. Restaura una copia verificada del libro o importa el PDF como un libro nuevo."
 
 msgid "Original language"
 msgstr "Idioma original"
@@ -12060,6 +12069,9 @@ msgstr "El modelo detecta cajas delimitadoras para que cada elemento visual pued
 msgid "The page"
 msgstr "La página"
 
+msgid "The PDF or extraction settings are invalid. Check the file and settings before trying again."
+msgstr "El PDF o la configuración de extracción no son válidos. Comprueba el archivo y la configuración antes de volver a intentarlo."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "El proceso que las plantas usan para convertir la luz solar, agua y dióxido de carbono en alimento."
 
@@ -12158,6 +12170,9 @@ msgstr "El servicio para compartir no responde. Todos los comentarios están a s
 
 msgid "The small program that shows your books."
 msgstr "El pequeño programa que muestra tus libros."
+
+msgid "The source PDF has changed. Existing content is retained. Import the changed PDF as a new book."
+msgstr "El PDF de origen ha cambiado. Se conserva el contenido existente. Importa el PDF modificado como un libro nuevo."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "El storyboard debe completarse antes de generar {stageName}. Ejecuta la etapa de Storyboard primero."
@@ -12275,6 +12290,9 @@ msgstr "Este libro no tiene imágenes para subtitular"
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Este libro no tiene páginas. Asegúrate de que las etapas de extracción y storyboard produjeron contenido antes de generar {stageName}."
+
+msgid "This book has no verified extraction record. Saved content is retained. Start extraction in a new book."
+msgstr "Este libro no tiene un registro de extracción verificado. Se conserva el contenido guardado. Inicia la extracción en un libro nuevo."
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Este libro es una parte: su rango de páginas es fijo, corresponde al subconjunto asignado y no se puede cambiar."

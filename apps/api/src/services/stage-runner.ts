@@ -1696,7 +1696,8 @@ async function runStoryboardStep(
       if (options.signal?.aborted) throw new RunCancelledError()
       const imageUrlPrefix = `/api/books/${label}/images`
       const unavailable: string[] = []
-      processFixedLayoutPages(storage, imageUrlPrefix, undefined, {
+      await processFixedLayoutPages(storage, imageUrlPrefix, undefined, {
+        signal: options.signal,
         onPage: (id) => {
           if (options.signal?.aborted) throw new RunCancelledError()
           publication.publishPage(id)

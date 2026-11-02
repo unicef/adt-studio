@@ -49,7 +49,9 @@ export function sectioningReplacementSignature(storage: Storage, label: string, 
   const range = fs.existsSync(partFile) ? PartManifest.parse(JSON.parse(fs.readFileSync(partFile, "utf8"))).range : null
   return configHash(JSON.stringify({
     bookDir, config, range,
-    pages: activeSectioningPages(storage, config, bookDir).map(({ pageId, pageNumber }) => ({ pageId, pageNumber })),
+    // Preserve the complete extracted metadata snapshot, including page text.
+    // No PDF/image/audio bytes are read for this admission receipt.
+    pages: activeSectioningPages(storage, config, bookDir),
   }))
 }
 

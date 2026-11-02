@@ -4740,6 +4740,9 @@ msgstr "Extracting..."
 msgid "Extraction and the other AI steps run on your own AI provider."
 msgstr "Extraction and the other AI steps run on your own AI provider."
 
+msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+msgstr "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Extraction is running — you can review spreads once it finishes."
 
@@ -4751,6 +4754,9 @@ msgstr "Extraction notes"
 
 msgid "Extraction Prompt"
 msgstr "Extraction Prompt"
+
+msgid "Extraction settings have changed. Existing content is retained. Start extraction in a new book."
+msgstr "Extraction settings have changed. Existing content is retained. Start extraction in a new book."
 
 msgid "Extracts text and image data from each page of the PDF."
 msgstr "Extracts text and image data from each page of the PDF."
@@ -8187,6 +8193,9 @@ msgstr "Or share on a new link with the choices above"
 
 msgid "Original"
 msgstr "Original"
+
+msgid "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
+msgstr "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
 
 msgid "Original language"
 msgstr "Original language"
@@ -12060,6 +12069,9 @@ msgstr "The model detects bounding boxes so each visual element can be stored an
 msgid "The page"
 msgstr "The page"
 
+msgid "The PDF or extraction settings are invalid. Check the file and settings before trying again."
+msgstr "The PDF or extraction settings are invalid. Check the file and settings before trying again."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "The process plants use to turn sunlight, water, and carbon dioxide into food."
 
@@ -12158,6 +12170,9 @@ msgstr "The sharing service isn't answering. Every comment is safe and comes bac
 
 msgid "The small program that shows your books."
 msgstr "The small program that shows your books."
+
+msgid "The source PDF has changed. Existing content is retained. Import the changed PDF as a new book."
+msgstr "The source PDF has changed. Existing content is retained. Import the changed PDF as a new book."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
@@ -12275,6 +12290,9 @@ msgstr "This book has no images to caption"
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
+
+msgid "This book has no verified extraction record. Saved content is retained. Start extraction in a new book."
+msgstr "This book has no verified extraction record. Saved content is retained. Start extraction in a new book."
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "This book is a part — its page range is fixed to the assigned subset and cannot be changed."

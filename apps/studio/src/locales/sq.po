@@ -4742,6 +4742,9 @@ msgstr "Duke nxjerrë..."
 msgid "Extraction and the other AI steps run on your own AI provider."
 msgstr "Nxjerrja dhe hapat e tjerë të IA ekzekutohen te ofruesi juaj i IA."
 
+msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+msgstr "Nxjerrja nuk përfundoi. Të dhënat e pjesshme mbahen. Nisni nxjerrjen në një libër të ri."
+
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Ekstraktimi është në proces — mund të rishikoni faqet e përbashkëta pasi të përfundojë."
 
@@ -4753,6 +4756,9 @@ msgstr "Shënime nxjerrjeje"
 
 msgid "Extraction Prompt"
 msgstr "Prompt-i i nxjerrjes"
+
+msgid "Extraction settings have changed. Existing content is retained. Start extraction in a new book."
+msgstr "Cilësimet e nxjerrjes kanë ndryshuar. Përmbajtja ekzistuese mbahet. Nisni nxjerrjen në një libër të ri."
 
 msgid "Extracts text and image data from each page of the PDF."
 msgstr "Nxjerr të dhëna teksti dhe imazhi nga çdo faqe e PDF-it."
@@ -8189,6 +8195,9 @@ msgstr "Ose ndajeni në një lidhje të re me zgjedhjet më sipër"
 
 msgid "Original"
 msgstr "Origjinal"
+
+msgid "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
+msgstr "Të dhënat origjinale të nxjerrjes mungojnë ose janë të palexueshme. Të dhënat ekzistuese mbahen. Rivendosni një kopje të verifikuar të librit ose importojeni PDF-në si një libër të ri."
 
 msgid "Original language"
 msgstr "Gjuha origjinale"
@@ -12062,6 +12071,9 @@ msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të
 msgid "The page"
 msgstr "Faqja"
 
+msgid "The PDF or extraction settings are invalid. Check the file and settings before trying again."
+msgstr "PDF-ja ose cilësimet e nxjerrjes janë të pavlefshme. Kontrolloni skedarin dhe cilësimet përpara se të provoni përsëri."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Procesi që bimët përdorin për të kthyer dritën e diellit, ujin dhe dioksidin e karbonit në ushqim."
 
@@ -12160,6 +12172,9 @@ msgstr "Shërbimi i ndarjes nuk po përgjigjet. Çdo koment është i sigurt dhe
 
 msgid "The small program that shows your books."
 msgstr "Programi i vogël që shfaq librat tuaj."
+
+msgid "The source PDF has changed. Existing content is retained. Import the changed PDF as a new book."
+msgstr "PDF-ja burimore ka ndryshuar. Përmbajtja ekzistuese mbahet. Importojeni PDF-në e ndryshuar si një libër të ri."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Storyboard duhet të plotësohet para gjenerimit të {stageName}. Ekzekuto fazën Storyboard fillimisht."
@@ -12277,6 +12292,9 @@ msgstr "Ky libër nuk ka imazhe për t'i titulluar"
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Ky libër nuk ka faqe. Sigurohu që fazat e nxjerrjes dhe storyboard kanë prodhuar përmbajtje para gjenerimit të {stageName}."
+
+msgid "This book has no verified extraction record. Saved content is retained. Start extraction in a new book."
+msgstr "Ky libër nuk ka një regjistër të verifikuar të nxjerrjes. Përmbajtja e ruajtur mbahet. Nisni nxjerrjen në një libër të ri."
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Ky libër është një pjesë: intervali i faqeve është fiks, i përket nëngrupit të caktuar dhe nuk mund të ndryshohet."
