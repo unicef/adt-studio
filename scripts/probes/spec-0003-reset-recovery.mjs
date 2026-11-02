@@ -18,9 +18,11 @@ const root = path.resolve(evidencePath)
 const boundary = process.argv[4]
 const label = boundary ?? "rollback"
 const bookDir = path.join(root, label)
+// Storage-boundary fixture: API/worker receipt computation is tested separately.
+const sectioningInputSignature = "reset-recovery-fixture-signature"
 const options = {
   fromStage: "sectioning", toStage: "sectioning", replaceManual: true,
-  protectedReplacements: ["p1", "p2"].map((itemId) => ({ node: "page-sectioning", itemId, version: 1, renderingVersion: 1, renderTreeVersion: 1 })),
+  protectedReplacements: ["p1", "p2"].map((itemId) => ({ node: "page-sectioning", itemId, version: 1, renderingVersion: 1, renderTreeVersion: 1, sectioningInputSignature })),
 }
 if (childMode) {
   await withBookWriter(bookDir, async () => {
@@ -33,7 +35,7 @@ if (childMode) {
         return result
       }
     }
-    resetSectioningStoryboard(storage, options)
+    resetSectioningStoryboard(storage, options, sectioningInputSignature)
     storage.close()
     process.kill(process.pid, "SIGKILL")
   })
@@ -66,7 +68,7 @@ if (childMode) {
   db.close()
   withBookWriter(path.join(root, "rollback"), () => {
     const storage = createBookStorage("rollback", root)
-    try { assert.throws(() => resetSectioningStoryboard(storage, options), /injected reset failure/) }
+    try { assert.throws(() => resetSectioningStoryboard(storage, options, sectioningInputSignature), /injected reset failure/) }
     finally { storage.close() }
   })
   assert.deepEqual(snapshot("rollback"), before)
@@ -76,9 +78,25 @@ if (childMode) {
     const old = snapshot(point)
     const killed = spawnSync(process.execPath, [script, "--child", root, point], { encoding: "utf8", timeout: 15000 })
     assert.equal(killed.signal, "SIGKILL", killed.stderr)
+    // Preserve the killed process's exact database, lease and mutex evidence
+    // before exercising recovery. These copies are evidence, never reopened.
+    fs.cpSync(path.join(root, point), path.join(root, `raw-${point}`), { recursive: true })
     if (point === "inside") {
-      assert.throws(() => withBookWriter(path.join(root, point), () => snapshot(point)), (error) => error?.code === "BOOK_BUSY" && /database lock/.test(error.message))
-      console.log("Crash inside reset transaction: fails closed; anonymous mutex and raw evidence retained")
+      const owner = JSON.parse(fs.readFileSync(path.join(root, point, ".book-writer.json"), "utf8"))
+      assert.ok(owner.coordinatedDatabases.includes(`${point}.db`))
+      const mutex = path.join(root, `raw-${point}`, `${point}.db.lock`)
+      assert.ok(fs.lstatSync(mutex).isDirectory())
+      assert.deepEqual(fs.readdirSync(mutex), [])
+      withBookWriter(path.join(root, point), () => {
+        assert.deepEqual(snapshot(point), old)
+        const storage = createBookStorage(point, root)
+        try {
+          storage.putNodeData("page-sectioning", "p1", { source: "manual", reasoning: "editable after rollback", sections: [] })
+          assert.equal(storage.getSelectedNodeVersion("page-sectioning", "p1"), 2)
+          assert.equal(storage.getSelectedNodeVersion("web-rendering", "p1"), 1)
+        } finally { storage.close() }
+      })
+      console.log("Crash inside coordinated reset: SQLite rolls back every page; next edit succeeds; raw evidence retained")
     } else {
       withBookWriter(path.join(root, point), () => {
         const storage = createBookStorage(point, root)
@@ -100,5 +118,13 @@ if (childMode) {
     assert.equal(fs.readFileSync(path.join(dir, "source.pdf"), "utf8"), "Original PDF bytes")
     assert.equal(fs.readFileSync(path.join(dir, "images", "retained.png"), "utf8"), "Referenced asset bytes")
   }
+  seed("unowned")
+  const anonymousMutex = path.join(root, "unowned", "unowned.db.lock")
+  fs.mkdirSync(anonymousMutex)
+  const raw = fs.readFileSync(path.join(root, "unowned", "unowned.db"))
+  assert.throws(() => withBookWriter(path.join(root, "unowned"), () => snapshot("unowned")), (error) => error?.code === "BOOK_BUSY")
+  assert.ok(fs.existsSync(anonymousMutex))
+  assert.ok(fs.readFileSync(path.join(root, "unowned", "unowned.db")).equals(raw))
+  console.log("Unowned mutex remains fail-closed with unchanged database and lock evidence")
   console.log(`Recovery evidence preserved at ${root}`)
 }
