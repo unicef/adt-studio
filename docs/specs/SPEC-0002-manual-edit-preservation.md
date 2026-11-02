@@ -1,9 +1,9 @@
 ---
 id: SPEC-0002
 title: Manual-edit preservation for translation, quizzes, sectioning and TOC
-status: draft
+status: approved
 owner: "@ksokolovic"
-approvers: ["@<integration>", "@elasticsounds"]
+approvers: ["@elasticsounds"]
 issues: ["#736", "#144"]
 prs: ["#880"]
 adr: ""
@@ -12,12 +12,50 @@ updated: 2026-11-01
 ---
 
 <!-- Drafted by an agent from #736, #144, SPEC-0001 and the codebase on 2026-09-21
-     (develop at 7a8896528). Not yet edited by the owner. Every path:line anchor was
-     opened and checked; the design is a proposal for the owner to cut down.
+     (develop at 7a8896528). Initially a proposal for owner review. Every original
+     path:line anchor was opened and checked against that baseline.
      Revised 2026-09-28 for review areas 1–4: aligned with the revised SPEC-0001, Terms added,
      protection unit defined per entity, structural cases and source removal specified,
      keep / accept / replace actions defined per entity, save conflict policy, translation
      batching corrected, CLI path bounded, tests made end-to-end. -->
+
+## Approval and follow-up — 2026-11-01
+
+@elasticsounds explicitly approved this specification and the implementation in
+PR #880 for merging within the agreed scope after the re-review of
+`410fa436325807dab4384fe2604cd4a99192c2f4`. This records owner/product approval;
+the same account authored the PR, so it does not supply the independent
+non-author human approval required by the repository. Green CI on the merge
+candidate and the existing **#884-before-#880** merge order remain required.
+
+The reviewed implementation has no new blocking finding from that focused
+re-review. F1–F4 are corrected in the exercised paths. The six previously accepted
+deferrals and ratified legacy limits remain; approval does not mark them fixed or
+certify a release. The [final evidence matrix](../verification/spec-0002-final-review-2026-11-02.md)
+retains the private-book, platform and release boundaries, including the open
+Mac launch and SCORM findings. Original acceptance checkboxes remain unchanged;
+`approved` is not `implemented` or `verified`.
+
+The owner authorized the following work for later, without making it an
+additional condition for this approval:
+
+| Follow-up | Issue |
+|---|---|
+| D1: same-page net-clean draft after Sectioning Revert | [#1039](https://github.com/unicef/adt-studio/issues/1039) |
+| D2: quiz deletion bypasses an unresolved Save conflict | [#1040](https://github.com/unicef/adt-studio/issues/1040) |
+| D3: saved-empty protected TOC Run silently skips | [#1041](https://github.com/unicef/adt-studio/issues/1041) |
+| D4: identical AI-edit page-sectioning versions | [#1042](https://github.com/unicef/adt-studio/issues/1042) |
+| D5: stale Save-error banner after Discard | [#1043](https://github.com/unicef/adt-studio/issues/1043) |
+| D6: untranslated adjacent-page error | [#1044](https://github.com/unicef/adt-studio/issues/1044) |
+| Optional preservation-scope and run-outcome explanations | [#1045](https://github.com/unicef/adt-studio/issues/1045) |
+| Optional comparison of competing conflict values | [#1046](https://github.com/unicef/adt-studio/issues/1046) |
+| Optional consolidation of guarded-editor session handling | [#1047](https://github.com/unicef/adt-studio/issues/1047) |
+| Optional committed browser preservation regression suite | [#1048](https://github.com/unicef/adt-studio/issues/1048) |
+| Selected-page/section regeneration, already tracked separately | [#619](https://github.com/unicef/adt-studio/issues/619) |
+
+Earlier dated statements that approval or publication was pending describe their
+historical checkpoints; this section supersedes their approval status without
+changing their test results or limitations.
 
 ## Terms
 
@@ -99,7 +137,7 @@ Binding.
 - No per-user identity, timestamps or model keys on entries. Provenance is one value, `ai` or `manual`; that is all the preservation rule reads. Which model wrote an entry is already in the LLM log and in SPEC-0001's input signature; "when" belongs on the stored version, not the entry. Because the field is optional, a later spec can add `author` and `at` beside it without migration, exactly as `source` is added now.
 - No general preservation/resume guarantee on the CLI/DAG runner. `packages/pipeline/src/pipeline-dag.ts` persists through its own code. The original #810 report described destructive restart; the current SPEC-0001 prerequisite instead refuses an existing-book extraction rerun with `UNSAFE_RESUME_UNAVAILABLE`. The guarantee of this spec covers the API path: Studio and any HTTP caller. The DAG writers stamp `ai` on the four nodes (AC-19) so a book produced by the CLI is not perpetually legacy when opened in Studio. Its quiz executor also passes protected page groups to the shared batching helper, consistent with the owner-selected AC-4 correction; this does not establish existing-book CLI resume safety, which remains owned by #810.
 
-## Proposed design
+## Approved design
 
 **Option A — a `source` tag plus merge on rerun (the glossary/captions pattern), stamped server-side.** Optional `source: "ai" | "manual"` on four schemas (≈20 lines, 4 files in `packages/types`); each PUT route stamps what the user changed (≈80 lines, 4 files in `apps/api/src/routes`); the translation and quiz steps read the prior node, keep manual entries wholesale and send only the rest to the model, the sectioning step skips manual pages, the TOC step replaces protected output only after named confirmation (≈120 lines across `stage-runner.ts`, `quiz-ids.ts`); one shared helper module (≈80 lines, `packages/pipeline`); a badge in four views and one line in the existing rerun confirmation, plus five catalogs (≈90 lines); tests ≈350 lines. The original estimates were about 750 lines over ≈20 files. Under the owner-authorized workflow these are coherent commits in PR #880, not five new PRs; estimates do not bound the required safety work.
 
@@ -109,7 +147,7 @@ Binding.
 
 **Chosen: Option A under one rule — protect the unit the model regenerates in one call.** Translation entries and quizzes are regenerated per entry and have stable identities (the data ID shared with the source; the never-reused `quizId`), so they get a per-entry tag and an entry-level merge. A page's sectioning and the TOC are regenerated whole — sections partition a page and are re-divided on every run, TOC ids are positional — so they get one tag on the whole record: the page's sectioning node, the single TOC document. No per-section tags, no TOC entry merge, no id matching or allocation, no `pruned` flag. The rule is mode-independent: a future chapter-level or transformed sectioning mode protects whatever record one generation call replaces.
 
-Decisions for the reviewer to ratify:
+Approved design decisions, with the qualifications and follow-ups above:
 
 1. **Stamping is done by the API, against the version the editor loaded.** Each PUT carries `baseVersion`; the API compares the incoming document with that version (decision 10 guarantees it is the current one) and sets `source: "manual"` on entries whose content changed or that are new; untouched entries keep their prior `source`. Existing glossary/caption save mechanisms are reused; the SPEC-0001 prerequisite already owns guarded caption stamping. Rationale: the API is the one path every caller shares (layer rule in AGENTS.md), so any future caller is honest by construction.
 2. **Manual entries are kept wholesale and excluded from the model request.** They are never regenerated implicitly (SPEC-0001 section 4); the only way to replace one is SPEC-0001's explicit *Regenerate and replace my edit* action (section 6).
@@ -172,7 +210,7 @@ One ordering requirement follows for sectioning: when a manual page is explicitl
 
 The owner authorized implementation in this same PR before human approval,
 initially without pushing, then authorized publication after an independent review
-on 2026-10-11. The spec stays `draft`, and every acceptance checkbox stays open.
+on 2026-10-11. At that checkpoint the spec stayed `draft`, and every acceptance checkbox stayed open.
 [Implementation evidence and AC map](SPEC-0002-implementation-evidence.md) records
 the refreshed baseline, dependencies, implemented behavior and verification limits.
 
@@ -221,8 +259,8 @@ the refreshed baseline, dependencies, implemented behavior and verification limi
 ### Integration clarifications — 2026-10-12
 
 The owner authorized implementation against refreshed SPEC-0001 before either PR
-is approved or merged. PR #880 remains a separate PR stacked on #879. Approval
-metadata and the original AC checklist below remain pending.
+was approved or merged. At that checkpoint PR #880 was separately stacked on #879;
+approval metadata and the original AC checklist were pending.
 
 - **No-op saves (AC-5/7):** the older wording “Saving … stamps manual” is read with
   the owner's explicit requirement to stamp only genuinely changed/new content.
@@ -285,7 +323,7 @@ its clarification-to-acceptance map, and the [SPEC-0002 deferrals](https://githu
 - AC-11's historical phrase “nothing is migrated” means no authorship is inferred
   or rewritten. SPEC-0001 C3 permits one-time review-baseline metadata under writer
   admission; this does not add downgrade-editing or pre-schema-14 certification.
-- SPEC-0001 is merged; SPEC-0002 remains unapproved. The proposed PR base is
+- At this integration checkpoint SPEC-0001 was merged and SPEC-0002 was unapproved. The proposed PR base was
   develop. The owner authorized the narrow shared resolver correction for a
   JSON-null retired fixed-layout record; this does not import SPEC-0003's broader
   lifecycle. Preserved positioned tree/HTML pairs still follow the shared owner
@@ -313,7 +351,7 @@ saved-empty TOC Run behavior are unchanged. This decision is not specification
 approval or release verification.
 
 - [ ] AC-1 Saving a translation document through `PUT …/text-catalog-translation/:language` stamps `source: "manual"` on exactly the entries whose `text` differs from the current version; every other entry keeps its prior `source`; the response version increments.
-- [ ] AC-2 **Reconciled with SPEC-0001 under the owner's delegated implementation decisions on 2026-10-11; specification review remains pending.** An ordinary translate rerun keeps every protected entry byte-for-byte while its source remains active, skips current AI output, regenerates selected changed AI output and fills missing output under SPEC-0001, and removes entries whose source ID is no longer active while retaining history. Build fixed windows over the complete ordered source list before filtering each request body; never compact the full list around protected or ineligible entries. Send only non-empty eligible windows. At the adapter boundary, assert protected entries are absent. Measure adapter requests, cache hits, actual provider calls (including retries) and provider cost separately; a skipped current window is not a cache hit. With all other output current, saving one correction causes zero translation requests/calls on both subsequent ordinary runs. Separately, in a controlled full-eligibility adapter/cache test with valid warmed caches and no retries, excluding one corrected entry changes only its window: the first pass incurs one provider call and other windows hit cache; the identical second pass incurs none. Empty/protected-only windows submit no request. These controlled adapter passes do not authorize publishing current or protected entries or add a force-fresh action.
+- [ ] AC-2 **Reconciled with SPEC-0001 under the owner's delegated implementation decisions on 2026-10-11; ratified by the approval above.** An ordinary translate rerun keeps every protected entry byte-for-byte while its source remains active, skips current AI output, regenerates selected changed AI output and fills missing output under SPEC-0001, and removes entries whose source ID is no longer active while retaining history. Build fixed windows over the complete ordered source list before filtering each request body; never compact the full list around protected or ineligible entries. Send only non-empty eligible windows. At the adapter boundary, assert protected entries are absent. Measure adapter requests, cache hits, actual provider calls (including retries) and provider cost separately; a skipped current window is not a cache hit. With all other output current, saving one correction causes zero translation requests/calls on both subsequent ordinary runs. Separately, in a controlled full-eligibility adapter/cache test with valid warmed caches and no retries, excluding one corrected entry changes only its window: the first pass incurs one provider call and other windows hit cache; the identical second pass incurs none. Empty/protected-only windows submit no request. These controlled adapter passes do not authorize publishing current or protected entries or add a force-fresh action.
 - [ ] AC-3 Saving quizzes through `PUT …/quizzes` stamps `source: "manual"` on quizzes whose content changed or that are new; ids are preserved exactly as `saveQuizOutput(…, "edit")` does today.
 - [ ] AC-4 A full quiz rerun keeps every manual and unknown-authorship quiz with its `quizId` and option identities (so catalog entries, translations and audio still resolve), skips model calls and publication for already-protected source-page groups, and generates fresh-id AI quizzes only for remaining batches without regrouping their pages. Repeated reruns do not append an alternative for a protected group. Prior AI quizzes leave the active set but remain in history, including duplicates created by the earlier behavior. Order by `afterPageId` and leave explicit reading order untouched. Runs with no eligible pages or only protected batches retain protected quizzes; fully protected batches make zero model calls. Explicit Replace still generates a fresh AI identity only after success.
 - [ ] AC-5 Saving a TOC through `PUT …/toc` stamps the document `source: "manual"`; the TOC step stamps `ai`.
