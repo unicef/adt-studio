@@ -517,8 +517,10 @@ describe("updateBookConfig", () => {
     const configPath = path.join(tmpDir, "remove-config", "config.yaml")
     expect(fs.existsSync(configPath)).toBe(true)
 
+    // The public no-overrides value remains null; the journal uses an atomic
+    // empty mapping on disk instead of deleting the file.
     updateBookConfig("remove-config", tmpDir, {})
-    expect(getBookConfig("remove-config", tmpDir)).toEqual({})
+    expect(getBookConfig("remove-config", tmpDir)).toBeNull()
     expect(fs.readFileSync(configPath, "utf8").trim()).toBe("{}")
   })
 
@@ -526,7 +528,8 @@ describe("updateBookConfig", () => {
     const bookDir = path.join(tmpDir, "empty-update")
     fs.mkdirSync(bookDir)
     updateBookConfig("empty-update", tmpDir, {})
-    expect(getBookConfig("empty-update", tmpDir)).toEqual({})
+    expect(getBookConfig("empty-update", tmpDir)).toBeNull()
+    expect(fs.readFileSync(path.join(bookDir, "config.yaml"), "utf8").trim()).toBe("{}")
   })
 
   it("throws for non-existent book", () => {
