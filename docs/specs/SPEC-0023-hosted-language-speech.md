@@ -52,9 +52,12 @@ on scoped regeneration. Open proposals are not approved dependencies.
   synthesis. These are separate model settings even when they share a credential.
 - Preserve stable text IDs, uploaded content, manual work, and rollback history.
 
-Proposed pilot defaults, awaiting product review: **reader ZIPs and invited users
-with sign-in**, with private books per user. Full Studio project ZIPs, PDF ingestion,
-image translation, image generation, storyboard/layout editing, new glossary/quiz
+Confirmed by @elasticsounds on 2026-11-02: **exported ADT reader ZIPs** are the
+first-release input, and **anyone with sign-in** can use the hosted application.
+Sign-up is self-service, with private books per user and no invitation or
+organization-membership requirement. The remaining proposed scope is unchanged:
+full Studio project ZIPs, PDF ingestion, image translation, image generation,
+storyboard/layout editing, new glossary/quiz
 generation, real-time collaboration, billing subscriptions, voice cloning, and
 EPUB/WebPub export are outside this first release. Existing captions, glossary,
 quiz and easy-read text IDs remain editable and narratable. Existing reader
@@ -76,7 +79,8 @@ proposal as requested by the workspace owner.
 
 ### Interface
 
-The flow is **My ADTs → Upload → Languages / Speech → Download updated ADT**.
+The flow is **Sign in / Sign up → My ADTs → Upload → Languages / Speech → Download updated ADT**.
+Any newly authenticated user can create a private workspace without an invitation.
 Use Studio's typography, controls, language selector, page/category filters,
 search, selected rows, editable cells, status badges, audio player, settings
 drawer and version history. Adapt the current UI into focused reusable frontend
@@ -216,14 +220,21 @@ responses from publishing. On restart, unfinished jobs become interrupted and
 can explicitly resume unfinished items; already published results remain intact.
 No promise of exactly-once provider billing after an interrupted request.
 
-Invited-user identity comes from a validated identity gateway token (trusted
-issuer/audience/signature/expiry); reject missing/forged identity and direct
-unauthenticated ingress. Authorize ownership on every list, read, edit, audio,
-SSE, job, history, delete and export endpoint. Do not trust a forwarded email
+Use an identity provider supporting public self-service sign-in/sign-up, with a
+validated session/token (trusted issuer/audience/signature/expiry). Bind ownership
+to the stable issuer/subject identity, not mutable email addresses. No invitation,
+organization membership or administrator approval is required to use a workspace.
+Landing, sign-in/callback and health routes may be public; workspace APIs reject
+missing/forged identity and direct unauthenticated ingress. Authorize ownership on
+every list, read, edit, audio, SSE, job, history, delete and export endpoint. Do not trust a forwarded email
 header or a client-supplied owner. Apply same-origin/CSRF controls to mutations.
-Service-key generation stays disabled until the operator sets per-owner usage
-and global limits; reserve admission before starting parallel calls and count
-retry attempts too. BYOK still follows compute/storage/concurrency limits.
+Service-key generation stays disabled until the operator sets a default allowance
+for signed-in users and global limits. Show each user's remaining allowance before
+generation; open registration does not imply unlimited service-funded usage.
+Reserve admission before starting parallel calls and count retry attempts too.
+Apply request/upload admission limits as well as job limits; global storage and
+service-usage ceilings also apply across accounts. BYOK still follows
+compute/storage/concurrency limits.
 Uploaded active content is never served as executable same-origin application
 content. Audio endpoints validate MIME; raw files use attachment/text responses.
 
@@ -273,7 +284,7 @@ browser fixtures exercise the real downloaded reader without paid provider calls
 - [ ] AC-5: Selected/missing/outdated/all generation honors scope, exclusions and narrator slot; unchanged input reuses cache; failed rows keep previous audio.
 - [ ] AC-6: Gemini settings are validated; no silent provider/model/voice fallback; Gemini-only generation works without an OpenAI key and reports alignment limits.
 - [ ] AC-7: Own-key jobs do not leak keys, cross users or fall back to service billing; usage reservations/limits include retry attempts.
-- [ ] AC-8: Cross-owner access is denied for every route including audio, SSE, history and exports; active uploaded content cannot execute on the app origin.
+- [ ] AC-8: A new user can sign up/sign in and upload a private reader ZIP without an invitation; anonymous and cross-owner access is denied for every workspace route including audio, SSE, history and exports; active uploaded content cannot execute on the app origin.
 - [ ] AC-9: Jobs reconnect, cancel and recover after process restart; partial results survive and late responses cannot publish.
 - [ ] AC-10: Export changes only the allowed files/JSON fields, refreshes offline data and preserves reader pages/activities; changed audio never uses stale timings.
 - [ ] AC-11: UI strings cover all five locales; keyboard editing/playback and draft-conflict behavior match Studio.
@@ -288,7 +299,7 @@ browser fixtures exercise the real downloaded reader without paid provider calls
 | AC-5 | `apps/api/src/services/language-workspace/generation.test.ts` — `AC-5: regenerates only the admitted scope and preserves failures` |
 | AC-6 | Same file — `AC-6: enforces Gemini capabilities and separates audio from alignment` |
 | AC-7 | `apps/api/src/routes/language-workspaces.test.ts` — `AC-7: isolates credentials and enforces service allowance admission` |
-| AC-8 | Same file — `AC-8: enforces ownership and inert uploaded content across the route matrix` |
+| AC-8 | Same file; `apps/language-studio/e2e/workspace.spec.ts` — `AC-8: admits a new signed-in user without an invitation`; `AC-8: enforces ownership and inert uploaded content across the route matrix` |
 | AC-9 | `apps/api/src/services/language-workspace/jobs.test.ts` — `AC-9: recovers interrupted jobs without late publication` |
 | AC-10 | `apps/api/src/services/language-workspace/export.test.ts`; `apps/language-studio/e2e/reader-export.spec.ts` — `AC-10: round-trips the reader online and offline with only the reviewed overlay` |
 | AC-11 | `apps/language-studio/e2e/workspace.spec.ts`, existing Studio language tests, Lingui extraction/lint — `AC-11: preserves accessible localized text and audio workflows` |
@@ -309,7 +320,7 @@ browser fixtures exercise the real downloaded reader without paid provider calls
    any hosted pilot is exposed. Exercise current/legacy, multilingual, math,
    manual-audio, secondary-voice, missing-audio and customized-reader fixtures.
 5. Operator selects a host and credentials and validates a small authorized live
-   Gemini sample before inviting users. Real voice quality, production quotas
+   Gemini sample before opening public sign-up. Real voice quality, production quotas
    and hosting costs require that live check; mocks do not establish them.
 
 Revert by disabling the dedicated service and restoring the previous image.
@@ -317,16 +328,21 @@ Retain the persistent volume and immutable originals; existing Studio and its
 books are unaffected. Rollback must never discard user revisions. Release
 verification is recorded separately from passing development tests.
 
-## Decisions for product review
+## Product decisions and remaining review
+
+The owner confirmed reader ZIP input and access for anyone with sign-in on
+2026-11-02. This resolves those two product questions; it is not approval of the
+whole specification or implementation.
 
 Owner for these decisions: @elasticsounds; proposed review date 2026-11-05.
 The proposal remains in review until blocking decisions are explicitly resolved;
 elapsed time is not approval.
 
-| Decision | Proposed default | Blocking for |
+| Decision | Confirmed choice or proposed default | Blocking for |
 |---|---|---|
-| Upload format and parity boundary | Reader ZIP first; text/audio parity as listed; project ZIP and image translation later. | Spec approval |
-| Audience and identity | Invited users, private books, validated organizational identity gateway. | Spec approval |
+| Upload format | **Confirmed:** exported ADT reader ZIP. | Resolved |
+| Audience | **Confirmed:** anyone with sign-in; self-service access and private books. | Resolved |
+| Parity boundary | Proposed: text/audio parity as listed; project ZIP, image translation and interactive reader preview later. | Spec approval |
 | Service-key policy and storage limits | Explicit service/BYOK choice; configured usage allowance; proposed ceilings above. | Spec approval |
 | Gemini model family | Expose only integration-tested models; #926 precedes any 3.8 model availability; sentence-level highlighting until alignment credentials are available. | Generation pilot |
-| Hosting account, region, domain and identity issuer | One persistent-volume container deployment; operator supplies these values before rollout. | Hosted rollout |
+| Hosting account, region, domain and identity provider | One persistent-volume container deployment; public self-service identity provider; operator supplies deployment values before rollout. | Hosted rollout |
