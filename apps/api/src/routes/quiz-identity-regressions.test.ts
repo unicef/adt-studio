@@ -100,6 +100,8 @@ beforeEach(() => {
     fs.writeFileSync(path.join(assets, f), "window.__review = true;")
   }
   fs.writeFileSync(path.join(assets, "fonts.css"), "body { font-family: serif; }")
+  fs.mkdirSync(path.join(assets, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(assets, "libs/fontawesome/css/all.min.css"), "/* test icons */")
   fs.writeFileSync(path.join(assets, "tailwind_css.css"), "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n")
   useStorage((s) => {
     for (let n = 1; n <= 2; n++) {

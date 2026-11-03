@@ -34,8 +34,12 @@ function createMockStorage(
 
 function createWebAssets(webAssetsDir: string): void {
   fs.mkdirSync(webAssetsDir, { recursive: true })
-  fs.writeFileSync(path.join(webAssetsDir, "base.js"), 'window.__ADT_BUNDLE_TEST__ = "ok";\n')
+  for (const file of ["base.bundle.min.js", "base.bundle.local.js", "activities.bundle.local.js"]) {
+    fs.writeFileSync(path.join(webAssetsDir, file), 'window.__ADT_BUNDLE_TEST__ = "ok";\n')
+  }
   fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), "/* test icons */")
   fs.writeFileSync(
     path.join(webAssetsDir, "tailwind_css.css"),
     "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",

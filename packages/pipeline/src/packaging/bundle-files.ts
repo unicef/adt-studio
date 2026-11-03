@@ -7,19 +7,37 @@ import { PublicationPageEntry } from "@adt/types"
 export const isBundleLocale = (value: unknown): value is string =>
   typeof value === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(value)
 
+const proofs = new Map<string, Map<string, string>>()
+function stamp(file: string): string {
+  const stat = fs.lstatSync(file, { bigint: true })
+  if (stat.isSymbolicLink()) throw new Error("Bundle symlink is absent from ZIP")
+  return [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(":")
+}
+
 /** Validate the files required to open the generated reader. This is separate
  * from source freshness and source coverage: a valid partial bundle can still
  * be cached with its omission warnings. Never follow a bundle path outside it. */
 export function packageFilesAvailable(adtDir: string, options: { format?: "web" | "scorm"; expectedLanguages?: readonly string[] } = {}): boolean {
   try {
     const root = fs.realpathSync(adtDir)
+    const key = JSON.stringify([root, options.format, options.expectedLanguages])
+    const hit = proofs.get(key)
+    if (hit && [...hit].every(([file, identity]) => stamp(file) === identity)) return true
+    proofs.delete(key)
+    const dependencies = new Map<string, string>([[root, stamp(root)]])
     const readFiles = new Map<string, string>()
-    const read = (relative: string): string => {
+    const member = (relative: string): string => {
       const requested = path.resolve(root, relative)
       const resolved = fs.realpathSync(requested)
       // The ZIP enumerator does not materialize symbolic links, even when
       // their targets are inside the bundle (including directory aliases).
       if (requested !== resolved) throw new Error("Bundle path absent from ZIP")
+      if (!resolved.startsWith(root + path.sep) || !fs.statSync(resolved).isFile() || !fs.statSync(resolved).size) throw new Error("Invalid bundle file")
+      for (let file = resolved; file !== root; file = path.dirname(file)) dependencies.set(file, stamp(file))
+      return resolved
+    }
+    const read = (relative: string): string => {
+      const resolved = member(relative)
       const cached = readFiles.get(resolved)
       if (cached !== undefined) return cached
       if (!resolved.startsWith(root + path.sep) || !fs.statSync(resolved).isFile()) throw new Error("Invalid bundle file")
@@ -28,9 +46,43 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
       readFiles.set(resolved, content)
       return content
     }
+    const external = (url: string) => /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url.trim())
+    const relativeMember = (url: string, from: string) => {
+      if (!url || external(url)) return undefined
+      return path.relative(root, member(path.join(path.dirname(from), decodeURIComponent(url.split(/[?#]/)[0]))))
+    }
+    const styles = new Set<string>()
+    const checkCss = (css: string, from: string) => {
+      for (const match of css.matchAll(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*?))\s*\)/gi)) relativeMember(match[1] ?? match[2] ?? match[3], from)
+      for (const match of css.matchAll(/@import\s+(?:url\(\s*(?:"([^"]+)"|'([^']+)'|([^\s)]+))\s*\)|"([^"]+)"|'([^']+)')/gi)) {
+        checkStylesheet(match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5], from)
+      }
+    }
+    const checkStylesheet = (url: string, from: string) => {
+      const file = relativeMember(url, from)
+      if (!file || styles.has(file)) return
+      styles.add(file)
+      checkCss(read(file), file)
+    }
+    const checkHtml = (html: string, from: string) => {
+      let style = false
+      new Parser({ onopentag(name, attrs) {
+        if (name === "style") style = true
+        if (["script", "img", "audio", "video", "source", "track", "embed", "iframe"].includes(name) && attrs.src) relativeMember(attrs.src, from)
+        if (name === "video" && attrs.poster) relativeMember(attrs.poster, from)
+        if (name === "object" && attrs.data) relativeMember(attrs.data, from)
+        if (name === "image" && (attrs.href || attrs["xlink:href"])) relativeMember(attrs.href ?? attrs["xlink:href"], from)
+        if (name === "link" && attrs.rel?.split(/\s+/).includes("stylesheet") && attrs.href) checkStylesheet(attrs.href, from)
+        if (attrs.style) checkCss(attrs.style, from)
+        // Generated srcsets use URL/descriptor pairs. Data URLs are self-contained.
+        if (attrs.srcset) for (const match of attrs.srcset.matchAll(/(?:^|,\s+)(\S+)(?:\s+[\d.]+[wx])?/g)) {
+          relativeMember(match[1].replace(/,$/, ""), from)
+        }
+      }, ontext(text) { if (style) checkCss(text, from) }, onclosetag(name) { if (name === "style") style = false } }).end(html)
+    }
     const pages = PublicationPageEntry.array().nonempty().parse(JSON.parse(read("content/pages.json")))
-    read("index.html")
-    read("content/navigation/nav.html")
+    checkHtml(read("index.html"), "index.html")
+    checkHtml(read("content/navigation/nav.html"), "content/navigation/nav.html")
     JSON.parse(read("content/toc.json"))
     const config = JSON.parse(read("assets/config.json"))
     const languages: unknown = config?.languages?.available
@@ -43,6 +95,36 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
       for (const name of ["texts", "speech_texts", "audios", "videos", "images"]) {
         const data = JSON.parse(read(`content/i18n/${language}/${name}.json`))
         if (data === null || typeof data !== "object" || Array.isArray(data)) return false
+        if (["audios", "videos", "images"].includes(name)) {
+          const folder = name === "images" ? "images" : `content/i18n/${language}/${name === "audios" ? "audio" : "video"}`
+          for (const file of Object.values(data)) {
+            if (typeof file !== "string") return false
+            relativeMember(file, folder + "/manifest.json")
+          }
+        }
+      }
+      const voices = `content/i18n/${language}/audio_voices.json`
+      if (fs.existsSync(path.join(root, voices))) {
+        const data = JSON.parse(read(voices))
+        for (const slot of [data.primary, data.secondary]) for (const file of Object.values(slot?.audios ?? {})) {
+          if (typeof file !== "string") return false
+          relativeMember(file, `content/i18n/${language}/audio/manifest.json`)
+        }
+      }
+      const glossary = `content/i18n/${language}/glossary.json`
+      if (fs.existsSync(path.join(root, glossary))) {
+        const entries: unknown = JSON.parse(read(glossary))
+        if (!entries || typeof entries !== "object" || Array.isArray(entries)) return false
+        for (const entry of Object.values(entries)) {
+          if (!entry || typeof entry !== "object") return false
+          for (const name of ["image", "video"] as const) {
+            const file = (entry as Record<string, unknown>)[name]
+            if (file !== undefined) {
+              if (typeof file !== "string") return false
+              relativeMember(file, "index.html")
+            }
+          }
+        }
       }
     }
     if (options.format === "scorm") {
@@ -50,7 +132,7 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
       let launch = false
       new Parser({ onopentag(name, attrs) {
         if (name === "resource" && attrs.href === "index.html" && attrs["adlcp:scormtype"] === "sco") launch = true
-        if (name === "file" && attrs.href) { read(attrs.href); members.add(attrs.href) }
+        if (name === "file" && attrs.href) { member(attrs.href); members.add(attrs.href) }
       } }, { xmlMode: true }).end(read("imsmanifest.xml"))
       if (!launch || !members.has("index.html") || pages.some(page => !members.has(page.href))) return false
     }
@@ -60,14 +142,12 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
         path.basename(page.href) !== page.href || page.href !== page.section_id + ".html" || seen.has(page.href)) return false
       seen.add(page.href)
       const html = read(page.href)
-      const parser = new Parser({ onopentag(name, attributes) {
-        const reference = name === "script" ? attributes.src
-          : name === "link" && attributes.rel?.split(/\s+/).includes("stylesheet") ? attributes.href : undefined
-        if (!reference || /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(reference)) return
-        read(decodeURIComponent(reference.split(/[?#]/)[0]))
-      } })
-      parser.end(html)
+      checkHtml(html, page.href)
     }
-    return fs.readdirSync(root).every(name => !name.endsWith(".html") || name === "index.html" || seen.has(name))
+    if (!fs.readdirSync(root).every(name => !name.toLowerCase().endsWith(".html") || name === "index.html" || seen.has(name))) return false
+    if (![...dependencies].every(([file, identity]) => stamp(file) === identity)) return false
+    if (proofs.size >= 8) proofs.delete(proofs.keys().next().value!)
+    proofs.set(key, dependencies)
+    return true
   } catch { return false }
 }

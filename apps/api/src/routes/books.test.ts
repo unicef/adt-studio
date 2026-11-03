@@ -767,8 +767,12 @@ function addPagesAndRenderings(label: string, count: number): void {
         },
         images: [],
       })
+      storage.putNodeData("page-sectioning", pageId, { reasoning: "fixture", sections: [{
+        sectionId: `${pageId}_sec001`, sectionType: "text", pageNumber: i,
+        backgroundColor: "white", textColor: "black", isPruned: false, nodes: [],
+      }] })
       storage.putNodeData("web-rendering", pageId, {
-        sections: [{ html: `<p>Rendered page ${i}</p>` }],
+        sections: [{ sectionId: `${pageId}_sec001`, sectionIndex: 0, sectionType: "text", reasoning: "fixture", html: `<section data-section-id="${pageId}_sec001"><p>Rendered page ${i}</p></section>` }],
       })
     }
   } finally {

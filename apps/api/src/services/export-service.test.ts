@@ -87,8 +87,12 @@ function addConfigYaml(label: string): void {
 
 function createWebAssets(dir: string): void {
   fs.mkdirSync(dir, { recursive: true })
-  fs.writeFileSync(path.join(dir, "base.js"), 'window.__ADT_BUNDLE_TEST__ = "ok";\n')
+  for (const file of ["base.bundle.min.js", "base.bundle.local.js", "activities.bundle.local.js"]) {
+    fs.writeFileSync(path.join(dir, file), 'window.__ADT_BUNDLE_TEST__ = "ok";\n')
+  }
   fs.writeFileSync(path.join(dir, "fonts.css"), "body { font-family: serif; }")
+  fs.mkdirSync(path.join(dir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(dir, "libs/fontawesome/css/all.min.css"), "/* test icons */")
   fs.writeFileSync(
     path.join(dir, "tailwind_css.css"),
     "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n"
@@ -374,7 +378,7 @@ describe("exportWebpub", () => {
 
   it("falls back to label when metadata has no title", async () => {
     createTestDb("no-title")
-    addPages("no-title", 1)
+    addPagesAndRenderings("no-title", 1)
 
     await prepareExport("no-title", "webpub", tmpDir, webAssetsDir)
     const result = await exportWebpub("no-title", tmpDir)
@@ -495,7 +499,7 @@ describe("exportEpub", () => {
 
   it("falls back to label when metadata has no title", async () => {
     createTestDb("epub-no-title")
-    addPages("epub-no-title", 1)
+    addPagesAndRenderings("epub-no-title", 1)
 
     await prepareExport("epub-no-title", "epub", tmpDir, webAssetsDir)
     const result = await exportEpub("epub-no-title", tmpDir)

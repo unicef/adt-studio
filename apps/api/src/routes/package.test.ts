@@ -80,7 +80,7 @@ describe("Package routes", () => {
           sectionIndex: 0,
           sectionType: "content",
           reasoning: "ok",
-          html: '<main><p data-id="pg001_n0001">Original text</p><img src="cover.png"></main>',
+          html: '<main><p data-id="pg001_n0001">Original text</p><img data-id="pg001_page" src="cover.png"></main>',
         },
       ],
     })
@@ -100,7 +100,7 @@ describe("Package routes", () => {
   }
 
   // Independent Codex C3: unchanged source hashes cannot prove a usable bundle.
-  it.each(["runtime", "entry", "stylesheet", "manifest", "directory"])(
+  it.each(["runtime", "entry", "stylesheet", "manifest", "directory", "image"])(
     "rebuilds a cached package with an unavailable required %s file",
     { timeout: 30_000 }, async (kind) => {
       createRenderedBook("damaged-package")
@@ -111,25 +111,78 @@ describe("Package routes", () => {
       const html = fs.readFileSync(path.join(adt, "pg001_sec001.html"), "utf8")
       const runtime = html.match(/assets\/(base\.bundle\.(?:min|local)\.js)/)![1]
       const relative = kind === "runtime" || kind === "directory" ? `assets/${runtime}`
+        : kind === "image" ? html.match(/src="(images\/[^"]+)"/)![1]
         : kind === "entry" ? "index.html" : kind === "stylesheet" ? "content/tailwind_output.css" : "content/pages.json"
       const file = path.join(adt, relative)
+      const originalBytes = fs.readFileSync(file)
       expect(fs.statSync(file).isFile()).toBe(true)
       fs.unlinkSync(file)
       if (kind === "directory") fs.mkdirSync(file)
       const status = await routes.request(`${url}/status`)
       expect(await status.json()).toMatchObject({ complete: false })
+      await expect(exportAdt("damaged-package", tmpDir)).rejects.toThrow("PACKAGE_FILES_INCOMPLETE")
       // A directory in a required file's place may be refused safely. Missing
       // regular files must be rebuilt, and a later cache hit retains the repair.
       const repaired = await routes.request(url, { method: "POST" })
       if (kind === "directory" && repaired.status !== 200) return
       expect(repaired.status, await repaired.clone().text()).toBe(200)
       expect(fs.statSync(file).isFile()).toBe(true)
+      expect(fs.readFileSync(file)).toEqual(originalBytes)
       expect(await (await routes.request(`${url}/status`)).json()).toMatchObject({ complete: true })
       const before = fs.statSync(file).mtimeMs
       expect((await routes.request(url, { method: "POST" })).status).toBe(200)
       expect(fs.statSync(file).mtimeMs).toBe(before)
     },
   )
+
+  it("validates staged dependencies before replacing a downloadable publication", async () => {
+    const label = "staged-validation"
+    createRenderedBook(label)
+    createWebAssets()
+    const run = () => app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+    expect((await run()).status).toBe(200)
+    const readZip = async () => unzipSync(new Uint8Array(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer()))
+    const original = await readZip()
+    const s = createBookStorage(label, tmpDir)
+    const saved = s.getLatestNodeData("web-rendering", "pg001")!.data as { sections: Array<{ html: string }> }
+    const broken = structuredClone(saved)
+    broken.sections[0].html += '<link rel="stylesheet" href="missing-custom.css">'
+    s.putNodeData("web-rendering", "pg001", broken)
+    s.close()
+    const result = await run()
+    expect(result.status).toBe(409)
+    expect(await result.json()).toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(await readZip()).toEqual(original)
+    const repair = createBookStorage(label, tmpDir)
+    repair.putNodeData("web-rendering", "pg001", saved)
+    repair.close()
+    expect((await run()).status).toBe(200)
+  })
+
+  it("never writes an unsafe imported section into another book or the prior publication", async () => {
+    const label = "contained-package"
+    createRenderedBook(label)
+    createWebAssets()
+    const run = () => app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+    expect((await run()).status).toBe(200)
+    const previous = fs.readFileSync(path.join(tmpDir, label, "adt/pg001_sec001.html"))
+    const neighbor = path.join(tmpDir, "neighbor")
+    fs.mkdirSync(neighbor)
+    const canary = path.join(neighbor, "private.html")
+    fs.writeFileSync(canary, "PRIVATE NEIGHBOR")
+    const s = createBookStorage(label, tmpDir)
+    const source = s.getLatestNodeData("page-sectioning", "pg001")!.data as { sections: Array<{ sectionId: string }> }
+    const rendering = s.getLatestNodeData("web-rendering", "pg001")!.data as { sections: Array<{ sectionId: string; html: string }> }
+    source.sections[0].sectionId = "../../../../neighbor/private"
+    rendering.sections[0].sectionId = source.sections[0].sectionId
+    rendering.sections[0].html = "<main>Foreign content</main>"
+    s.putNodeData("page-sectioning", "pg001", source)
+    s.putNodeData("web-rendering", "pg001", rendering)
+    s.close()
+    expect((await run()).status).toBe(409)
+    expect(fs.readFileSync(canary, "utf8")).toBe("PRIVATE NEIGHBOR")
+    expect(fs.readFileSync(path.join(tmpDir, label, "adt/pg001_sec001.html"))).toEqual(previous)
+  })
 
   it("rejects a missing configured catalog on download, repairs it on rebuild, and checks the SCORM manifest only for SCORM", { timeout: 30_000 }, async () => {
     const label = "languages"

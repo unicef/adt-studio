@@ -14,7 +14,7 @@ function stamp(file: string): string {
  * writes outside supported versioned saves. HTML bytes are checked on serve.
  * No timers, cached content, or durable freshness state. */
 export function createRetainedPackageReader() {
-  const proofs = new Map<string, { key: string; value: ReturnType<typeof retainedPackageOwnership> }>()
+  const proofs = new Map<string, { key: string; members: Map<string, string>; value: ReturnType<typeof retainedPackageOwnership> }>()
   return (db: Storage, bookDb: string, root: string) => {
     const key = JSON.stringify([
       db.getNodeVersionFingerprint(), ...[bookDb, bookDb + "-wal", root,
@@ -22,12 +22,16 @@ export function createRetainedPackageReader() {
         path.join(root, "index.html"), path.join(root, "assets/offline-preloader.js")].map(stamp),
     ])
     const hit = proofs.get(root)
-    if (hit?.key === key) return hit.value
+    if (hit?.key === key && [...hit.members].every(([file, identity]) => stamp(file) === identity)) return hit.value
     const value = retainedPackageOwnership(db, root)
     // Bound retained metadata; the book's source HTML and media are never cached.
     proofs.delete(root)
     if (proofs.size >= 8) proofs.delete(proofs.keys().next().value!)
-    proofs.set(root, { key, value })
+    const members = new Map([...value.memberDigests.keys()].map(member => {
+      const file = path.join(root, member)
+      return [file, stamp(file)]
+    }))
+    proofs.set(root, { key, members, value })
     return value
   }
 }

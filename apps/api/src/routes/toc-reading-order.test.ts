@@ -24,6 +24,8 @@ describe("TOC hierarchy across saved data, preview and export", () => {
       fs.writeFileSync(path.join(assets, filename), "window.__ADT_TEST__ = true;")
     }
     fs.writeFileSync(path.join(assets, "fonts.css"), "body { font-family: serif; }")
+    fs.mkdirSync(path.join(assets, "libs/fontawesome/css"), { recursive: true })
+    fs.writeFileSync(path.join(assets, "libs/fontawesome/css/all.min.css"), "/* test icons */")
     fs.writeFileSync(path.join(assets, "tailwind_css.css"), "@tailwind base;\n@tailwind components;\n@tailwind utilities;")
     const storage = createBookStorage(label, root)
     try {
