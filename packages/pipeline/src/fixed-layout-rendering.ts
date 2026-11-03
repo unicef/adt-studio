@@ -533,7 +533,19 @@ export async function processFixedLayoutPages(
     const positionedImages = new Set(drawItems.filter(item => item.kind === "image").map(item => item.imageId))
     // Included images without positions are incomplete extraction, even if a
     // pruned image or a paragraph makes drawItems nonempty. Preserve old output.
-    if ([...availableImageIds].some(id => !positionedImages.has(id))) { unavailable(); continue }
+    const classified = new Set(classParsed.data.images.map(image => image.imageId))
+    // Derived translations/uploads and the page raster are not illustrations
+    // from extraction. An original illustration still needs a decision even
+    // when a damaged positioned input also dropped its draw item.
+    const extracted = storage.getPageImages(page.pageId, true).filter(image =>
+      image.storedAsset?.source === "extract" && image.imageId !== `${page.pageId}_page`)
+    if (extracted.some(image => !classified.has(image.imageId)) ||
+        classified.size !== classParsed.data.images.length ||
+        [...availableImageIds].some(id => !positionedImages.has(id)) ||
+        [...positionedImages].some(id => !classified.has(id))) {
+      unavailable()
+      continue
+    }
     prepared.push({ page, viewport, drawItems, availableImageIds })
   }
 

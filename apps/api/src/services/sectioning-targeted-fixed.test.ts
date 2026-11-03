@@ -82,13 +82,35 @@ it("runs fixed Storyboard through HTTP without requiring the unused LLM or visua
   const bus = createBookEventBus()
   const decisions = createPageErrorDecisions(bus)
   const service = createStageService(createStageRunner(), bus, decisions)
-  let completed = false
-  bus.addListener(label, (event) => { if (event.type === "stage-run-complete") completed = true })
+  let terminal: string | undefined
+  bus.addListener(label, event => {
+    if (event.type === "stage-run-complete" || event.type === "stage-run-cancelled") terminal = event.type
+    if (event.type === "stage-run-error") terminal = event.error
+  })
   const app = new Hono().onError(errorHandler).route("/", createStageRoutes(service, bus, decisions, root, path.join(repository, "prompts"), path.join(repository, "assets/adt"), configPath))
   const send = (fromStage: string) => app.request(`/books/${label}/stages/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fromStage, toStage: "storyboard" }) })
   expect((await send("sectioning")).status).toBe(400)
   expect((await send("storyboard")).status).toBe(200)
-  await vi.waitFor(() => expect(completed).toBe(true))
+  await vi.waitFor(() => expect(terminal, JSON.stringify(service.getStatus(label))).toBeDefined(), { timeout: 10_000 })
+  expect(terminal).toBe("stage-run-complete")
+  expect(history()[0]["web-rendering"]).toHaveLength(2)
+  expect(transport).not.toHaveBeenCalled()
+})
+
+it("retains the image-bearing page on an omitted decision, then permits explicit all-pruned output", async () => {
+  const s = store()
+  const decision = (s.getLatestNodeData("image-filtering", "pg001")!.data as { images: { imageId: string; isPruned: boolean }[] }).images
+  expect(decision.filter(image => !image.isPruned).length).toBeGreaterThan(0)
+  s.putNodeData("image-filtering", "pg001", { images: [] })
+  s.close()
+  const before = history()
+  const app = routes()
+  expect((await request(app, "pg001/re-render")).status).toBe(409)
+  expect(history()).toEqual(before)
+  const restored = store()
+  try { restored.putNodeData("image-filtering", "pg001", { images: decision.map(image => ({ ...image, isPruned: true })) }) } finally { restored.close() }
+  expect((await request(app, "pg001/re-render")).status).toBe(200)
+  expect(history()[1]).toEqual(before[1])
   expect(history()[0]["web-rendering"]).toHaveLength(2)
   expect(transport).not.toHaveBeenCalled()
 })

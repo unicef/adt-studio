@@ -38,6 +38,7 @@ import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import {
+  isFixedLayoutConfig,
   listDefaultRenderStrategies,
   normalizeDefaultRenderStrategy,
 } from "@/lib/render-strategy"
@@ -245,8 +246,10 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
       : !sectioningCovered
         ? "sectioning"
         : "storyboard"
+  const needsProvider = fromStage !== "storyboard" || !isFixedLayoutConfig(activeConfigData?.merged)
+  const missingProvider = needsProvider && !hasStructuredTextProvider
   const handleRun = (options?: Pick<RunStagesOptions, "replaceManual" | "protectedReplacements">) => {
-    if (!hasStructuredTextProvider || status.isRunning || resolvingStoredState) return
+    if (missingProvider || status.isRunning || resolvingStoredState) return
     queueRun({ fromStage, toStage: "storyboard", apiKey, viewAfter: true, ...options })
   }
 
@@ -265,7 +268,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
     (option) => option.id === activityMode,
   )
 
-  const disabledReason = !hasStructuredTextProvider ? (
+  const disabledReason = missingProvider ? (
     <Trans>Connect an AI provider to run storyboard.</Trans>
   ) : !hasExtractedPages && pagesError ? (
     <Trans>Unable to load pages. Refresh and try again.</Trans>
@@ -275,7 +278,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
     <LandingPageShell
       key={fromStage}
       bookLabel={bookLabel}
-      requiresProvider
+      requiresProvider={needsProvider}
       stageSlug="storyboard"
       confirmationStageSlug={fromStage === "storyboard" ? "storyboard" : "sectioning"}
       settingsTab="general"
@@ -286,7 +289,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasStructuredTextProvider || resolvingStoredState}
+      extraDisabled={missingProvider || resolvingStoredState}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Storyboard</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
