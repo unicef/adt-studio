@@ -1,13 +1,15 @@
 import fs from "node:fs"
+import { createHash } from "node:crypto"
+import { assertHistoryEvidence } from "./history-schema.js"
 import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import { HistoryCheckpointRequest, HistoryRepairRequest, HistoryRecoveryReceipt, type HistoryRecoveryStatus, type HistoryIssue, type HistoryTuple } from "@adt/types"
 import { openBookDb } from "./db.js"
 import { withBookWriter } from "./book-writer.js"
-import { captureHistoryWitness, decodeHistoryBytes, historyBookId, historyHash, historySlot, identityTuples, insertNodeVersion, readHistoryBytes, readWitness, tupleKey, verifyWitness } from "./history-evidence.js"
+import { captureHistoryWitness, decodeWitness, historyRows, decodeHistoryBytes, historyBookId, historyHash, historySlot, identityTuples, insertNodeVersion, readHistoryBytes, readWitness, tupleKey, verifyWitness } from "./history-evidence.js"
 
 export class HistoryRecoveryError extends Error {
-  constructor(readonly code: "HISTORY_RECOVERY_STALE" | "HISTORY_RECOVERY_UNVERIFIED" | "HISTORY_RECOVERY_REQUEST_CONFLICT" | "HISTORY_RECOVERY_NOT_NEEDED") {
+  constructor(readonly code: "HISTORY_RECOVERY_STALE" | "HISTORY_RECOVERY_UNVERIFIED" | "HISTORY_RECOVERY_REQUEST_CONFLICT" | "HISTORY_RECOVERY_NOT_NEEDED" | "HISTORY_RECOVERY_REQUEST_INVALID" | "HISTORY_RECOVERY_BOOK_MISSING" | "HISTORY_RECOVERY_AUDIT_MISSING", readonly status: 400 | 404 | 409 = 409) {
     super(code)
     this.name = "HistoryRecoveryError"
   }
@@ -20,6 +22,7 @@ function revision(db: sqlite.Database): number {
 /** Only synchronous, consistent reads. No witnesses, book identity or legacy
  * continuity are backfilled by inspection. Paths bind consent across copies. */
 function inspect(db: sqlite.Database, dbPath: string): HistoryRecoveryStatus {
+  assertHistoryEvidence(db)
   const bookId = historyBookId(db)
   const issues = new Map<string, HistoryIssue>()
   const checkpointRecords: HistoryTuple[] = []
@@ -45,11 +48,11 @@ function inspect(db: sqlite.Database, dbPath: string): HistoryRecoveryStatus {
   // Detect damaged witnesses and missing tracked records even when the current
   // source is readable. Neither case can be repaired by inventing a new row.
   const witnessed = new Set<string>()
-  for (const row of db.all("SELECT node,item_id AS itemId,version,incarnation,evidence FROM history_witnesses ORDER BY node,item_id,version,incarnation") as Array<HistoryTuple & { incarnation: string; evidence: string }>) {
+  for (const row of historyRows<HistoryTuple & { incarnation: string; evidence: string }>(db, "SELECT node,item_id AS itemId,version,incarnation,evidence FROM history_witnesses ORDER BY node,item_id,version,incarnation")) {
     const tuple = { node: row.node, itemId: row.itemId, version: row.version }
     try {
       if (!historySlot(db, row)) throw new Error("Missing insertion continuity")
-      const proof = verifyWitness(JSON.parse(row.evidence), bookId)
+      const proof = verifyWitness(decodeWitness(row.evidence), bookId)
       if (tupleKey(proof) !== tupleKey(row) || proof.incarnation !== row.incarnation) throw new Error("Mismatched proof")
       witnessed.add(`${tupleKey(row)}:${row.incarnation}`)
     } catch { issues.set(tupleKey(row), { ...tuple, reason: "invalid-witness", beforeHash: historyHash(readHistoryBytes(db, row) ?? null) }) }
@@ -61,15 +64,20 @@ function inspect(db: sqlite.Database, dbPath: string): HistoryRecoveryStatus {
     }
   }
   if (db.all("SELECT 1 FROM history_repair_permits").length) throw new HistoryRecoveryError("HISTORY_RECOVERY_UNVERIFIED")
-  const snapshot = historyHash({
-    path: path.join(fs.realpathSync(path.dirname(dbPath)), path.basename(dbPath)), bookId,
-    rows: db.all("SELECT node,item_id,version,typeof(data) AS storage_type,hex(CAST(data AS BLOB)) AS bytes FROM node_data ORDER BY node,item_id,version"),
-    current: db.all("SELECT * FROM node_current ORDER BY node,item_id"),
-    slots: db.all("SELECT * FROM history_slots ORDER BY node,item_id,version"),
-    witnesses: db.all("SELECT * FROM history_witnesses ORDER BY node,item_id,version,incarnation"),
-    requests: db.all("SELECT * FROM history_recovery_requests ORDER BY request_id"),
-    audit: db.all("SELECT * FROM history_recovery_audit ORDER BY request_id,node,item_id,version"),
-  })
+  const digest = createHash("sha256")
+  digest.update(JSON.stringify([path.join(fs.realpathSync(path.dirname(dbPath)), path.basename(dbPath)), bookId]))
+  for (const [table, query] of Object.entries({
+    rows: "SELECT node,item_id,version,typeof(data) AS storage_type,hex(CAST(data AS BLOB)) AS bytes FROM node_data ORDER BY node,item_id,version",
+    current: "SELECT * FROM node_current ORDER BY node,item_id",
+    slots: "SELECT * FROM history_slots ORDER BY node,item_id,version",
+    witnesses: "SELECT * FROM history_witnesses ORDER BY node,item_id,version,incarnation",
+    requests: "SELECT * FROM history_recovery_requests ORDER BY request_id",
+    audit: "SELECT * FROM history_recovery_audit ORDER BY request_id,node,item_id,version",
+  })) {
+    digest.update(table + "\0")
+    for (const row of historyRows(db, query)) digest.update(JSON.stringify(row) + "\0")
+  }
+  const snapshot = digest.digest("hex")
   return { snapshot, bookId, checkpointable: checkpointRecords.length, checkpointRecords, issueCount: issues.size, issues: [...issues.values()].sort((a, b) => Number(b.reason === "recoverable") - Number(a.reason === "recoverable")).slice(0, 20), revision: revision(db) }
 }
 
@@ -160,5 +168,8 @@ export function repairHistory(dbPath: string, input: HistoryRepairRequest): Hist
 }
 
 export function readHistoryRecoveryAudit(dbPath: string, requestId: string): unknown[] {
-  return withDatabase(dbPath, false, db => (db.all("SELECT evidence FROM history_recovery_audit WHERE request_id=? ORDER BY node,item_id,version", [requestId]) as Array<{ evidence: string }>).map(row => JSON.parse(row.evidence)))
+  return withDatabase(dbPath, false, db => {
+    if (!db.get("SELECT 1 FROM history_recovery_requests WHERE request_id=?", [requestId])) throw new HistoryRecoveryError("HISTORY_RECOVERY_AUDIT_MISSING", 404)
+    return (db.all("SELECT evidence FROM history_recovery_audit WHERE request_id=? ORDER BY node,item_id,version", [requestId]) as Array<{ evidence: string }>).map(row => JSON.parse(row.evidence))
+  })
 }

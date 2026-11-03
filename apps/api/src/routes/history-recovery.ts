@@ -1,9 +1,8 @@
 import fs from "node:fs"
 import { Hono } from "hono"
-import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { HistoryCheckpointRequest, HistoryRepairRequest, parseBookLabel } from "@adt/types"
-import { checkpointHistory, inspectHistoryRecovery, repairHistory, readHistoryRecoveryAudit } from "@adt/storage"
+import { checkpointHistory, inspectHistoryRecovery, repairHistory, readHistoryRecoveryAudit, HistoryRecoveryError } from "@adt/storage"
 import { resolvePathWithin } from "../utils/path-security.js"
 
 /** Mounted behind the existing book writer middleware. The storage entry
@@ -12,9 +11,9 @@ export function createHistoryRecoveryRoutes(booksDir: string): Hono {
   const app = new Hono()
   const database = (label: string) => {
     let safe: string
-    try { safe = parseBookLabel(label) } catch { throw new HTTPException(400, { message: "Invalid book label" }) }
+    try { safe = parseBookLabel(label) } catch { throw new HistoryRecoveryError("HISTORY_RECOVERY_REQUEST_INVALID", 400) }
     const file = resolvePathWithin(booksDir, safe, `${safe}.db`)
-    if (!file || !fs.existsSync(file)) throw new HTTPException(404, { message: "Book not found" })
+    if (!file || !fs.existsSync(file)) throw new HistoryRecoveryError("HISTORY_RECOVERY_BOOK_MISSING", 404)
     return file
   }
   app.get("/books/:label/history-recovery", c => c.json(inspectHistoryRecovery(database(c.req.param("label")))))

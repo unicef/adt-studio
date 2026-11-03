@@ -23,7 +23,8 @@ export const errorHandler: ErrorHandler = (err, c) => {
     code: err.code, currentVersion: err.currentVersion,
   }, err.status)
   if (err instanceof EditConflictError) return c.json({ error: err.message, code: err.code, currentVersion: err.currentVersion }, 409)
-  if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof ExtractionAdmissionError || err instanceof HistoryIntegrityError || err instanceof HistoryRecoveryError) return c.json({ error: err.message, code: err.code }, 409)
+  if (err instanceof HistoryRecoveryError) return c.json({ error: err.message, code: err.code }, err.status)
+  if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof ExtractionAdmissionError || err instanceof HistoryIntegrityError) return c.json({ error: err.message, code: err.code }, 409)
   if (err instanceof BookConfigError) return c.json({ code: "BOOK_CONFIG_INVALID", error: err.message }, 409)
   if (err instanceof HTTPException) {
     return c.json({ error: err.message }, err.status)

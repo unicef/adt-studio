@@ -3,7 +3,7 @@ vi.mock("@lingui/core/macro", () => ({ msg: (parts: TemplateStringsArray, ...val
 vi.mock("@lingui/core", () => ({ i18n: { _: (descriptor: { id: string }) => descriptor.id } }))
 const { sectioningErrorMessage } = await import("./sectioning-error")
 
-it.each(["HISTORY_RECOVERY_STALE", "HISTORY_RECOVERY_UNVERIFIED", "HISTORY_RECOVERY_REQUEST_CONFLICT", "HISTORY_RECOVERY_NOT_NEEDED", "HISTORY_RECOVERY_REQUEST_INVALID", "HISTORY_REPAIR_REQUIRED", "PACKAGE_RECOVERY_UNSAFE", "BOOK_CONFIG_INVALID", "STORYBOARD_REQUEST_INVALID", "SECTIONING_WINDOW_INVALID", "EXTRACTION_LEGACY", "EXTRACTION_INCOMPLETE", "EXTRACTION_SOURCE_CHANGED", "EXTRACTION_INPUTS_CHANGED", "EXTRACTION_ASSETS_INVALID", "EXTRACTION_INPUT_INVALID"])("maps %s consistently for HTTP codes and persisted/SSE diagnostics", code => {
+it.each(["HISTORY_RECOVERY_BOOK_MISSING", "HISTORY_RECOVERY_AUDIT_MISSING", "HISTORY_RECOVERY_STALE", "HISTORY_RECOVERY_UNVERIFIED", "HISTORY_RECOVERY_REQUEST_CONFLICT", "HISTORY_RECOVERY_NOT_NEEDED", "HISTORY_RECOVERY_REQUEST_INVALID", "HISTORY_REPAIR_REQUIRED", "PACKAGE_RECOVERY_UNSAFE", "BOOK_CONFIG_INVALID", "STORYBOARD_REQUEST_INVALID", "SECTIONING_WINDOW_INVALID", "EXTRACTION_LEGACY", "EXTRACTION_INCOMPLETE", "EXTRACTION_SOURCE_CHANGED", "EXTRACTION_INPUTS_CHANGED", "EXTRACTION_ASSETS_INVALID", "EXTRACTION_INPUT_INVALID"])("maps %s consistently for HTTP codes and persisted/SSE diagnostics", code => {
   const diagnostic = `${code}: internal diagnostic; pnpm pipeline private-label private.pdf`
   const http = sectioningErrorMessage(diagnostic, code)
   expect(http).toBe(sectioningErrorMessage(diagnostic))

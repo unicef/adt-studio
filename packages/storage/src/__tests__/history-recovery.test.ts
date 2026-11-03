@@ -170,7 +170,7 @@ describe("verified historical recovery", () => {
 
   it("refuses corrupt, wrong-book or missing continuity evidence, and cannot checkpoint over it", () => {
     const b = book(); b.write({ id: "A" }); damage(b)
-    b.sql(db => { db.exec("DROP TRIGGER history_witnesses_update"); db.exec("UPDATE history_witnesses SET evidence='{}'") })
+    b.sql(db => { db.exec("DROP TRIGGER history_witnesses_update"); db.exec("UPDATE history_witnesses SET evidence='{}'"); db.exec(HISTORY_EVIDENCE_SQL) })
     const state = inspectHistoryRecovery(b.dbPath)
     expect(state.issues[0].reason).toBe("invalid-witness")
     expect(() => checkpointHistory(b.dbPath, { snapshot: state.snapshot, requestId: randomUUID(), confirmed: true })).toThrow("HISTORY_RECOVERY_UNVERIFIED")

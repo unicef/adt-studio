@@ -182,6 +182,16 @@ Healthy unrelated Storyboard work and genuine no-op Sectioning retain access.
 Checkpointing readable legacy history is explicit and cannot prove an already
 corrupt record. No new freshness system, lock or schema-version bump is introduced.
 
+Integrity-object loss must remain detectable across reopen: installing missing
+tables/triggers is not evidence of uninterrupted tracking. Refuse recovery,
+checkpoint and identity allocation after such loss; keep ordinary usable reads
+available. After a healthy explicit checkpoint, retirement keeps its verified
+reservations. The older-build unwitnessed deletion case remains a product decision
+in the local review ledger; no new compatibility exclusion is assumed.
+Part import validates source continuity before target mutation and preserves
+retired source identities in the existing reservation history. Inspection uses
+bounded, incremental reads; scoped allocation must not load unrelated payloads.
+
 Structural operations use stable ownership when retaining rendering. Historical
 HTML is not current input after reset and cannot be reassigned by index. Keep
 index bounds validation, entity/answer/catalog identities and physical assets.

@@ -17,6 +17,7 @@ export const HistoryWitness = HistoryTuple.extend({
   bookId: z.string().uuid(), incarnation: z.string().regex(/^[0-9a-f]{32}$/),
   bytes: HistoryBytes, digest: z.string().length(64),
   origin: z.enum(["write", "checkpoint", "part-import"]),
+  importedFrom: HistoryTuple.extend({ bookId: z.string().uuid().nullable() }).optional(),
 })
 export type HistoryWitness = z.infer<typeof HistoryWitness>
 export const HistoryIssue = HistoryTuple.extend({

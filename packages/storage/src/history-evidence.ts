@@ -3,69 +3,24 @@ import type sqlite from "node-sqlite3-wasm"
 import { IDENTITY_HISTORY_NODES, HistoryWitness, type HistoryBytes, type HistoryTuple, type IdentityHistoryRecord } from "@adt/types"
 import { HistoryIntegrityError } from "./history-integrity.js"
 
-const nodesSql = IDENTITY_HISTORY_NODES.map(node => `'${node}'`).join(",")
-const immutableKeys = {
-  history_identity: ["id"],
-  history_witnesses: ["node", "item_id", "version", "incarnation"],
-  history_recovery_audit: ["request_id", "node", "item_id", "version"],
-  history_recovery_requests: ["request_id"],
+export { HISTORY_EVIDENCE_SQL } from "./history-schema.js"
+import { assertHistoryEvidence, nodesSql } from "./history-schema.js"
+import { deflateSync, inflateSync } from "node:zlib"
+
+/** Compressed exact proof bytes; legacy plain JSON remains readable. */
+function encodeWitness(witness: HistoryWitness): string {
+  return "z1:" + deflateSync(JSON.stringify(witness)).toString("base64")
+}
+export function decodeWitness(evidence: string): unknown {
+  return JSON.parse(evidence.startsWith("z1:") ? inflateSync(Buffer.from(evidence.slice(3), "base64")).toString("utf8") : evidence)
 }
 
-/** Additive schema-14 evidence. Built-in SQL only: older applications must also
- * record tuple reuse. Empty tables do not make an unprocessed book processed. */
-export const HISTORY_EVIDENCE_SQL = `
-CREATE TABLE IF NOT EXISTS history_identity (id INTEGER PRIMARY KEY CHECK(id=1), book_id TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS history_slots (
-  node TEXT NOT NULL, item_id TEXT NOT NULL, version INTEGER NOT NULL,
-  incarnation TEXT NOT NULL, present INTEGER NOT NULL,
-  PRIMARY KEY(node,item_id,version)
-);
-CREATE TABLE IF NOT EXISTS history_witnesses (
-  node TEXT NOT NULL, item_id TEXT NOT NULL, version INTEGER NOT NULL,
-  incarnation TEXT NOT NULL, evidence TEXT NOT NULL,
-  PRIMARY KEY(node,item_id,version,incarnation)
-);
-CREATE TABLE IF NOT EXISTS history_repair_permits (
-  node TEXT NOT NULL, item_id TEXT NOT NULL, version INTEGER NOT NULL,
-  incarnation TEXT NOT NULL, old_type TEXT NOT NULL, old_hex TEXT NOT NULL,
-  new_type TEXT NOT NULL, new_hex TEXT NOT NULL,
-  PRIMARY KEY(node,item_id,version)
-);
-CREATE TABLE IF NOT EXISTS history_recovery_audit (
-  request_id TEXT NOT NULL, node TEXT NOT NULL, item_id TEXT NOT NULL, version INTEGER NOT NULL,
-  evidence TEXT NOT NULL, PRIMARY KEY(request_id,node,item_id,version)
-);
-CREATE TABLE IF NOT EXISTS history_recovery_requests (request_id TEXT PRIMARY KEY, request_hash TEXT NOT NULL, receipt TEXT NOT NULL);
-CREATE TRIGGER IF NOT EXISTS history_track_insert AFTER INSERT ON node_data WHEN NEW.node IN (${nodesSql}) BEGIN
-  INSERT INTO history_slots SELECT NEW.node,NEW.item_id,NEW.version,lower(hex(randomblob(16))),1 WHERE NEW.node IN (${nodesSql})
-  ON CONFLICT(node,item_id,version) DO UPDATE SET incarnation=excluded.incarnation,present=1;
-END;
-CREATE TRIGGER IF NOT EXISTS history_track_delete AFTER DELETE ON node_data WHEN OLD.node IN (${nodesSql}) BEGIN
-  INSERT INTO history_slots SELECT OLD.node,OLD.item_id,OLD.version,lower(hex(randomblob(16))),0 WHERE OLD.node IN (${nodesSql})
-  ON CONFLICT(node,item_id,version) DO UPDATE SET present=0;
-END;
-CREATE TRIGGER IF NOT EXISTS history_track_update AFTER UPDATE ON node_data
-WHEN (OLD.node IN (${nodesSql}) OR NEW.node IN (${nodesSql})) AND NOT EXISTS (
-  SELECT 1 FROM history_repair_permits p JOIN history_slots s USING(node,item_id,version)
-  WHERE p.node=OLD.node AND p.item_id=OLD.item_id AND p.version=OLD.version
-    AND OLD.node=NEW.node AND OLD.item_id=NEW.item_id AND OLD.version=NEW.version
-    AND p.incarnation=s.incarnation AND s.present=1
-    AND p.old_type=typeof(OLD.data) AND p.old_hex=hex(CAST(OLD.data AS BLOB))
-    AND p.new_type=typeof(NEW.data) AND p.new_hex=hex(CAST(NEW.data AS BLOB))
-) BEGIN
-  INSERT INTO history_slots SELECT OLD.node,OLD.item_id,OLD.version,lower(hex(randomblob(16))),0 WHERE OLD.node IN (${nodesSql})
-  ON CONFLICT(node,item_id,version) DO UPDATE SET present=0;
-  INSERT INTO history_slots SELECT NEW.node,NEW.item_id,NEW.version,lower(hex(randomblob(16))),1 WHERE NEW.node IN (${nodesSql})
-  ON CONFLICT(node,item_id,version) DO UPDATE SET incarnation=excluded.incarnation,present=1;
-END;
-${Object.keys(immutableKeys).map(table => ["UPDATE", "DELETE"].map(operation => `
-CREATE TRIGGER IF NOT EXISTS ${table}_${operation.toLowerCase()} BEFORE ${operation} ON ${table}
-BEGIN SELECT RAISE(ABORT,'Historical recovery evidence is append-only'); END;`).join("\n")).join("\n")}
-${Object.entries(immutableKeys).map(([table, keys]) => `
-CREATE TRIGGER IF NOT EXISTS ${table}_replace BEFORE INSERT ON ${table}
-WHEN EXISTS (SELECT 1 FROM ${table} WHERE ${keys.map(key => `${key}=NEW.${key}`).join(" AND ")})
-BEGIN SELECT RAISE(ABORT,'Historical recovery evidence is append-only'); END;`).join("\n")}
-`
+/** Keep one row payload live at a time under the caller's database admission. */
+export function* historyRows<T>(db: sqlite.Database, sql: string, values: (string | number)[] = []): Generator<T> {
+  const statement = db.prepare(sql)
+  try { for (const row of statement.iterate(values)) yield row as T }
+  finally { statement.finalize() }
+}
 
 export function historyHash(value: unknown): string {
   const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical)
@@ -100,7 +55,7 @@ export function verifyWitness(raw: unknown, bookId: string | null): HistoryWitne
 export function readWitness(db: sqlite.Database, row: HistoryTuple, incarnation: string): HistoryWitness | undefined {
   const result = db.get("SELECT evidence FROM history_witnesses WHERE node=? AND item_id=? AND version=? AND incarnation=?", [row.node, row.itemId, row.version, incarnation]) as { evidence: string } | undefined
   if (!result) return undefined
-  const witness = verifyWitness(JSON.parse(result.evidence), historyBookId(db))
+  const witness = verifyWitness(decodeWitness(result.evidence), historyBookId(db))
   if (tupleKey(witness) !== tupleKey(row) || witness.incarnation !== incarnation) throw new Error("Mismatched historical witness")
   return witness
 }
@@ -108,6 +63,7 @@ export function readWitness(db: sqlite.Database, row: HistoryTuple, incarnation:
 /** Caller owns the transaction. Capture never overwrites an existing witness
  * or manufactures evidence from malformed bytes. GET never calls this. */
 export function captureHistoryWitness(db: sqlite.Database, row: HistoryTuple, origin: HistoryWitness["origin"]): void {
+  assertHistoryEvidence(db)
   const bytes = readHistoryBytes(db, row)
   if (!bytes) throw new HistoryIntegrityError(row.node, row.itemId, row.version)
   try { decodeHistoryBytes(bytes) } catch { throw new HistoryIntegrityError(row.node, row.itemId, row.version) }
@@ -126,7 +82,7 @@ export function captureHistoryWitness(db: sqlite.Database, row: HistoryTuple, or
   let bookId = historyBookId(db)
   if (!bookId) { bookId = randomUUID(); db.run("INSERT INTO history_identity VALUES (1,?)", [bookId]) }
   const proof = { ...row, bookId, incarnation: slot.incarnation, bytes, origin }
-  db.run("INSERT INTO history_witnesses VALUES (?,?,?,?,?)", [row.node, row.itemId, row.version, slot.incarnation, JSON.stringify({ ...proof, digest: historyHash(proof) })])
+  db.run("INSERT INTO history_witnesses VALUES (?,?,?,?,?)", [row.node, row.itemId, row.version, slot.incarnation, encodeWitness({ ...proof, digest: historyHash(proof) })])
 }
 
 /** Every supported INSERT records its witness in the same transaction. */
@@ -142,38 +98,63 @@ export function checkpointBeforeRetirement(db: sqlite.Database, itemId?: string)
   for (const row of identityTuples(db)) if (itemId === undefined || row.itemId === itemId) captureHistoryWitness(db, row, "checkpoint")
 }
 
+/** Caller has validated the source with readIdentityHistory and owns the target
+ * transaction. Import reservations as retired target witnesses, never as active
+ * content or as source-book recovery authority. Keep the original tuple for audit.
+ * Future reuse of a target tuple gets a new incarnation through the normal trigger. */
+export function importHistoryReservations(db: sqlite.Database, records: IdentityHistoryRecord[], sourceBookId: string | null): void {
+  assertHistoryEvidence(db)
+  if (!records.length) return
+  let bookId = historyBookId(db)
+  if (!bookId) { bookId = randomUUID(); db.run("INSERT INTO history_identity VALUES (1,?)", [bookId]) }
+  const versions = new Map<string, number>()
+  for (const row of db.all("SELECT node,item_id,MAX(version) AS version FROM (SELECT node,item_id,version FROM node_data UNION ALL SELECT node,item_id,version FROM history_slots) GROUP BY node,item_id") as { node: string; item_id: string; version: number }[]) versions.set(JSON.stringify([row.node, row.item_id]), row.version)
+  for (const record of records) {
+    const key = JSON.stringify([record.node, record.itemId])
+    const version = (versions.get(key) ?? 0) + 1
+    versions.set(key, version)
+    const incarnation = randomUUID().replaceAll("-", "")
+    const bytes = { storageType: "text", hex: Buffer.from(JSON.stringify(record.data)).toString("hex").toUpperCase() }
+    const { data: _data, ...sourceTuple } = record
+    const proof = { node: record.node, itemId: record.itemId, version, incarnation, bookId, bytes, origin: "part-import" as const, importedFrom: { ...sourceTuple, bookId: sourceBookId } }
+    db.run("INSERT INTO history_slots VALUES (?,?,?,?,0)", [record.node, record.itemId, version, incarnation])
+    db.run("INSERT INTO history_witnesses VALUES (?,?,?,?,?)", [record.node, record.itemId, version, incarnation, encodeWitness({ ...proof, digest: historyHash(proof) })])
+  }
+}
+
 /** Proof input to the existing allocation factories only. A retired witness
  * reserves IDs; it never supplies current content, ownership or freshness. */
 export function readIdentityHistory(db: sqlite.Database, nodes: readonly string[], itemId?: string): IdentityHistoryRecord[] {
-  const selected = (row: HistoryTuple) => nodes.includes(row.node) && (itemId === undefined || row.itemId === itemId)
+  assertHistoryEvidence(db)
+  if (!nodes.length) return []
+  const where = `node IN (${nodes.map(() => "?").join(",")})${itemId === undefined ? "" : " AND item_id=?"}`
+  const values = [...nodes, ...(itemId === undefined ? [] : [itemId])]
   const result: IdentityHistoryRecord[] = []
-  const witnessed = new Set<string>()
+  const witnessed = new Map<string, string>()
   const bookId = historyBookId(db)
-  for (const entry of db.all("SELECT node,item_id AS itemId,version,incarnation,evidence FROM history_witnesses ORDER BY node,item_id,version,incarnation") as Array<HistoryTuple & { incarnation: string; evidence: string }>) {
-    if (!selected(entry)) continue
+  for (const entry of historyRows<HistoryTuple & { incarnation: string; evidence: string }>(db, `SELECT node,item_id AS itemId,version,incarnation,evidence FROM history_witnesses WHERE ${where} ORDER BY node,item_id,version,incarnation`, values)) {
     try {
       if (!historySlot(db, entry)) throw new Error("Missing insertion continuity")
-      const witness = verifyWitness(JSON.parse(entry.evidence), bookId)
+      const witness = verifyWitness(decodeWitness(entry.evidence), bookId)
       if (tupleKey(witness) !== tupleKey(entry) || witness.incarnation !== entry.incarnation) throw new Error("Witness tuple changed")
-      witnessed.add(`${tupleKey(entry)}:${entry.incarnation}`)
+      witnessed.set(`${tupleKey(entry)}:${entry.incarnation}`, historyHash(witness.bytes))
       result.push({ node: entry.node, itemId: entry.itemId, version: entry.version, data: decodeHistoryBytes(witness.bytes) })
     } catch { throw new HistoryIntegrityError(entry.node, entry.itemId, entry.version) }
   }
   const extant = new Set<string>()
-  for (const row of identityTuples(db)) {
-    if (!selected(row)) continue
+  for (const row of historyRows<HistoryTuple>(db, `SELECT node,item_id AS itemId,version FROM node_data WHERE ${where} ORDER BY node,item_id,version`, values)) {
     extant.add(tupleKey(row))
     try {
       const bytes = readHistoryBytes(db, row)!
       const slot = historySlot(db, row)
       if (slot?.present === 0) throw new Error("Lost insertion continuity")
-      const witness = slot && readWitness(db, row, slot.incarnation)
-      if (witness && historyHash(witness.bytes) !== historyHash(bytes)) throw new Error("Changed payload")
-      result.push({ ...row, data: decodeHistoryBytes(bytes) })
+      const proof = slot && witnessed.get(`${tupleKey(row)}:${slot.incarnation}`)
+      if (proof && proof !== historyHash(bytes)) throw new Error("Changed payload")
+      if (!proof) result.push({ ...row, data: decodeHistoryBytes(bytes) })
     } catch { throw new HistoryIntegrityError(row.node, row.itemId, row.version) }
   }
-  for (const row of db.all("SELECT node,item_id AS itemId,version,incarnation,present FROM history_slots") as Array<HistoryTuple & { incarnation: string; present: number }>) {
-    if (!selected(row) || extant.has(tupleKey(row))) continue
+  for (const row of historyRows<HistoryTuple & { incarnation: string; present: number }>(db, `SELECT node,item_id AS itemId,version,incarnation,present FROM history_slots WHERE ${where}`, values)) {
+    if (extant.has(tupleKey(row))) continue
     if (row.present !== 0 || !witnessed.has(`${tupleKey(row)}:${row.incarnation}`)) throw new HistoryIntegrityError(row.node, row.itemId, row.version)
   }
   return result

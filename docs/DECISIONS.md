@@ -1022,7 +1022,14 @@ See [the amended contract](specs/SPEC-0003-sectioning-modes.md),
 [the current local audit](verification/spec-0003-round4-remediation.md).
 The owner authorized verified exact-byte restoration with an immutable damage
 audit as a narrow physical-recovery exception; arbitrary historical editing is
-still forbidden. Recovery is not generation approval.
+still forbidden. Recovery is not generation approval. Missing integrity objects are not
+recreated as proof of uninterrupted history; a durable schema-14 marker records
+detectable continuity loss. Part merge validates source proof before mutation
+and carries retired identities as non-current reservations with source provenance.
+Exact witness payloads are compressed with the existing Node runtime; scoped SQL
+and incremental snapshot hashing bound inspection overhead. The sequential
+older-build deletion case remains an explicit pending contract decision in the
+local review ledger, not an assumed compatibility deferral.
 The [verified recovery work record](verification/spec-0003-history-recovery.md)
 now maps the early admission check and recovery requirements. It details byte witnesses, tuple continuity, transactional audit, stale editor
 protection and the explicitly authorized exception; schema-14 readers remain

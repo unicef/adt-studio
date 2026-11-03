@@ -11984,6 +11984,9 @@ msgstr "O livro mudou após a inspeção. Inspecione o histórico novamente e re
 msgid "The book changed while preparing the package. Prepare the export again using the current book."
 msgstr "O livro mudou durante a preparação do pacote. Prepare a exportação novamente usando a versão atual do livro."
 
+msgid "The book could not be found. Return to the Library and open it again."
+msgstr "Não foi possível encontrar o livro. Volte à Biblioteca e abra-o novamente."
+
 msgid "The book couldn't be exported"
 msgstr "O livro não pôde ser exportado"
 
@@ -12656,6 +12659,9 @@ msgstr "Este questionário será removido do livro. Você ainda pode restaurá-l
 
 msgid "This record was changed or recreated; older evidence cannot restore it"
 msgstr "Este registro foi alterado ou recriado; evidências anteriores não podem restaurá-lo"
+
+msgid "This recovery record could not be found. Inspect the book history again."
+msgstr "Não foi possível encontrar este registro de recuperação. Inspecione o histórico do livro novamente."
 
 msgid "This recovery request was already used with different details. Inspect the book again before making a new request."
 msgstr "Esta solicitação de recuperação já foi usada com detalhes diferentes. Inspecione o livro novamente antes de fazer uma nova solicitação."

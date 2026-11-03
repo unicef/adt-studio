@@ -11984,6 +11984,9 @@ msgstr "The book changed after inspection. Inspect its history again and review 
 msgid "The book changed while preparing the package. Prepare the export again using the current book."
 msgstr "The book changed while preparing the package. Prepare the export again using the current book."
 
+msgid "The book could not be found. Return to the Library and open it again."
+msgstr "The book could not be found. Return to the Library and open it again."
+
 msgid "The book couldn't be exported"
 msgstr "The book couldn't be exported"
 
@@ -12656,6 +12659,9 @@ msgstr "This quiz will be removed from the book. You can still restore it from t
 
 msgid "This record was changed or recreated; older evidence cannot restore it"
 msgstr "This record was changed or recreated; older evidence cannot restore it"
+
+msgid "This recovery record could not be found. Inspect the book history again."
+msgstr "This recovery record could not be found. Inspect the book history again."
 
 msgid "This recovery request was already used with different details. Inspect the book again before making a new request."
 msgstr "This recovery request was already used with different details. Inspect the book again before making a new request."

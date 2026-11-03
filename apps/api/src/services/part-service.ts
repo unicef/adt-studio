@@ -1,4 +1,4 @@
-import { insertNodeVersion } from "@adt/storage"
+import { insertNodeVersion, readIdentityHistory, importHistoryReservations, historyBookId } from "@adt/storage"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -12,6 +12,7 @@ import {
   PartManifest,
   PartsLedger,
   PIPELINE,
+  IDENTITY_HISTORY_NODES,
   type AppConfig,
   type PartRange,
 } from "@adt/types"
@@ -614,6 +615,11 @@ export function previewMerge(
   try {
     const manifest = parseManifest(entries)
 
+    // A project archive is not a new source of truth for contradictory bytes.
+    // Validate all incoming reservations before touching target config or files.
+    // Imported retired versions reserve IDs without selecting historical content.
+    readIdentityHistory(part.db, IDENTITY_HISTORY_NODES)
+
     const target = resolvedFingerprint(safeTarget, booksDir, configPath)
     const incoming = resolvedFingerprint(part.rawLabel, part.booksRoot, configPath)
     const identityMatch = target.identityHash === incoming.identityHash
@@ -718,6 +724,8 @@ function mergeAdmittedPart(
   const { part, entries, cleanup } = openPartProject(zipBuffer)
   try {
     const manifest = parseManifest(entries)
+    const incomingHistory = readIdentityHistory(part.db, IDENTITY_HISTORY_NODES)
+    const incomingHistoryBookId = historyBookId(part.db)
 
     const target = resolvedFingerprint(safeTarget, booksDir, configPath)
     const incoming = resolvedFingerprint(part.rawLabel, part.booksRoot, configPath)
@@ -824,6 +832,7 @@ function mergeAdmittedPart(
           [row.node, row.item_id, nextVersion],
         )
       }
+      importHistoryReservations(targetDb, incomingHistory, incomingHistoryBookId)
 
       // Book-level metadata (title/authors/publisher/language/cover) is the one
       // book-level node a part can carry authoritatively: it's extracted from the

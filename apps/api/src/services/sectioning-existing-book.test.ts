@@ -1,3 +1,4 @@
+import { damageNodePayload } from "../../../../packages/storage/src/__tests__/helpers/physical-damage.js"
 import { randomUUID } from "node:crypto"
 import fs from "node:fs"
 import os from "node:os"
@@ -239,11 +240,8 @@ it.each(["reflowable", "fixed", "reflowable-part", "fixed-part"])("verified reco
   const before = [history("page-sectioning", neighbor), history("web-rendering", neighbor)]
   const source = fs.readFileSync(path.join(dir, `images/${target}_page.png`))
   const oldConsent = await replacement([target])
-  const db = openBookDb(path.join(dir, `${label}.db`))
-  try {
-    db.exec("DROP TRIGGER history_track_update")
-    db.run("UPDATE node_data SET data='{damaged' WHERE node='page-sectioning' AND item_id=? AND version=1", [target])
-  } finally { db.close() }
+  // Genuine physical damage leaves insertion tracking and proof intact.
+  const damagedHex = damageNodePayload(path.join(dir, `${label}.db`), "page-sectioning", target, 1)
   const status = await (await app.request(`/books/${label}/history-recovery`)).json()
   expect(status.issues).toMatchObject([{ node: "page-sectioning", itemId: target, version: 1, reason: "recoverable" }])
   const request = { snapshot: status.snapshot, requestId: randomUUID(), confirmed: true,
@@ -256,7 +254,7 @@ it.each(["reflowable", "fixed", "reflowable-part", "fixed-part"])("verified reco
   expect(history("web-rendering", target)).toHaveLength(1)
   const audit = await app.request(`/books/${label}/history-recovery/audit/${request.requestId}`)
   expect(audit.status).toBe(200)
-  expect(await audit.json()).toMatchObject([{ damaged: { hex: Buffer.from("{damaged").toString("hex").toUpperCase() } }])
+  expect(await audit.json()).toMatchObject([{ damaged: { hex: damagedHex } }])
   expect((await send(`pages/${target}/sections/0/split`, { baseVersion: 1, beforeNodeIndex: 1 })).status).toBe(409)
   expect((await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", ...oldConsent })).status).toBe(409)
   expect(sectionPage).not.toHaveBeenCalled()
@@ -277,6 +275,27 @@ it("recovery HTTP validates explicit confirmation and stale snapshots without mu
   const before = rawHistoryState()
   expect((await send("history-recovery/repair", { snapshot: state.snapshot, requestId: randomUUID(), records: [] })).status).toBe(400)
   expect((await send("history-recovery/checkpoint", { snapshot: "0".repeat(64), requestId: randomUUID(), confirmed: true })).status).toBe(409)
+  const absentBook = await app.request("/books/absent-book/history-recovery")
+  expect(absentBook.status).toBe(404)
+  expect(await absentBook.json()).toMatchObject({ code: "HISTORY_RECOVERY_BOOK_MISSING" })
+  const absentAudit = await app.request(`/books/${label}/history-recovery/audit/${randomUUID()}`)
+  expect(absentAudit.status).toBe(404)
+  expect(await absentAudit.json()).toMatchObject({ code: "HISTORY_RECOVERY_AUDIT_MISSING" })
+  expect(rawHistoryState()).toEqual(before)
+})
+
+it("lost recovery tracking retains usable HTTP reads but refuses reset before provider work", async () => {
+  const consent = await replacement(["p2"])
+  const before = rawHistoryState()
+  const db = openBookDb(path.join(dir, `${label}.db`))
+  try { db.exec("DROP TRIGGER history_track_update") } finally { db.close() }
+  expect((await app.request("/books")).status).toBe(200)
+  expect((await app.request(`/books/${label}/pages/p2`)).status).toBe(200)
+  expect((await app.request(`/books/${label}/history-recovery`)).status).toBe(409)
+  const result = await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", ...consent })
+  expect(result.status).toBe(409)
+  expect(await result.json()).toMatchObject({ code: "HISTORY_REPAIR_REQUIRED" })
+  expect(sectionPage).not.toHaveBeenCalled()
   expect(rawHistoryState()).toEqual(before)
 })
 

@@ -4,7 +4,7 @@ import type sqlite from "node-sqlite3-wasm"
 import { SCHEMA_VERSION } from "@adt/types"
 import { BookBusyError, ownsBookWriter, withBookWriter } from "./book-writer.js"
 
-import { HISTORY_EVIDENCE_SQL } from "./history-evidence.js"
+import { initHistoryEvidence } from "./history-schema.js"
 import { openCoordinatedDatabase } from "./database-admission.js"
 
 const SCHEMA_SQL = `
@@ -128,7 +128,7 @@ function initSchema(db: sqlite.Database): void {
 
   if (tables.length === 0) {
     upsertSchemaVersion(db, SCHEMA_VERSION)
-    db.exec(HISTORY_EVIDENCE_SQL)
+    initHistoryEvidence(db)
     return
   }
 
@@ -138,7 +138,7 @@ function initSchema(db: sqlite.Database): void {
   const existing = rows[0]?.version ?? 0
 
   if (existing === SCHEMA_VERSION) {
-    db.exec(HISTORY_EVIDENCE_SQL)
+    initHistoryEvidence(db)
     cleanupDeprecatedSchema(db)
     return
   }
@@ -202,7 +202,7 @@ function initSchema(db: sqlite.Database): void {
   if (version === SCHEMA_VERSION) {
     cleanupDeprecatedSchema(db)
     upsertSchemaVersion(db, SCHEMA_VERSION)
-    db.exec(HISTORY_EVIDENCE_SQL)
+    initHistoryEvidence(db)
     return
   }
 

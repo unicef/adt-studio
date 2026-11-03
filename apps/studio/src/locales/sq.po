@@ -11986,6 +11986,9 @@ msgstr "Libri ndryshoi pas inspektimit. Inspektoni përsëri historikun dhe shqy
 msgid "The book changed while preparing the package. Prepare the export again using the current book."
 msgstr "Libri ndryshoi gjatë përgatitjes së paketës. Përgatiteni sërish eksportin duke përdorur versionin aktual të librit."
 
+msgid "The book could not be found. Return to the Library and open it again."
+msgstr "Libri nuk u gjet. Kthehuni te Biblioteka dhe hapeni përsëri."
+
 msgid "The book couldn't be exported"
 msgstr "Libri nuk mund të eksportohej"
 
@@ -12658,6 +12661,9 @@ msgstr "Ky test do të hiqet nga libri. Mund ta rikthesh nga historia e versione
 
 msgid "This record was changed or recreated; older evidence cannot restore it"
 msgstr "Ky regjistrim është ndryshuar ose rikrijuar; provat më të vjetra nuk mund ta rikthejnë"
+
+msgid "This recovery record could not be found. Inspect the book history again."
+msgstr "Ky regjistrim i rikuperimit nuk u gjet. Kontrolloni përsëri historikun e librit."
 
 msgid "This recovery request was already used with different details. Inspect the book again before making a new request."
 msgstr "Kjo kërkesë për rikuperim është përdorur tashmë me hollësi të tjera. Inspektoni përsëri librin para se të bëni një kërkesë të re."
