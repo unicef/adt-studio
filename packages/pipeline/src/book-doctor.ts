@@ -10,11 +10,12 @@
 import fs from "node:fs"
 import path from "node:path"
 import { DomUtils, parseDocument } from "htmlparser2"
-import { createBookStorage, readBookSchemaVersion, type Storage } from "@adt/storage"
+import { createBookStorage, type Storage } from "@adt/storage"
 import { SCHEMA_VERSION, WebRenderingOutput, collectLeafNodes } from "@adt/types"
 import type { PageSectioningSection } from "@adt/types"
 import { renderingOwnershipWarnings, withLegacyRenderingOwnership, getRenderSectioning, resolveRenderedSection } from "./render-sectioning.js"
 import { buildTextCatalogSnapshot } from "./text-catalog.js"
+import { inspectBookFile, listBookLabels } from "./book-inspection.js"
 
 export interface OwnerCandidate {
   sectionId: string
@@ -138,33 +139,13 @@ function diagnoseOpenBook(storage: Storage, diagnosis: BookDiagnosis): void {
 
 /** Diagnose one book. Never throws for a book problem; see `error`. */
 export function diagnoseBook(booksDir: string, label: string): BookDiagnosis {
-  const bookDir = path.join(path.resolve(booksDir), label)
-  const dbPath = path.join(bookDir, `${label}.db`)
+  const { bookDir, schemaVersion, schemaStatus, staleLockDir, error } = inspectBookFile(booksDir, label)
   const diagnosis: BookDiagnosis = {
-    label, schemaVersion: null, schemaStatus: "unreadable",
-    staleLockDir: fs.existsSync(`${dbPath}.lock`), writerLease: readLease(bookDir),
+    label, schemaVersion, schemaStatus, staleLockDir, writerLease: readLease(bookDir),
     pages: 0, unownedRenderings: [], duplicateTextIds: [], rekeyedCatalogIds: emptyRekey(),
   }
-  if (!fs.existsSync(dbPath)) {
-    diagnosis.error = "no database file"
-    return diagnosis
-  }
-  if (diagnosis.staleLockDir) {
-    // Opening would fail with "database is locked"; nothing else is provable.
-    diagnosis.error = `stale lock directory ${label}.db.lock; remove it before opening this book`
-    return diagnosis
-  }
-  try {
-    diagnosis.schemaVersion = readBookSchemaVersion(dbPath)
-  } catch (error) {
-    diagnosis.error = `cannot read schema: ${error instanceof Error ? error.message : String(error)}`
-    return diagnosis
-  }
-  if (diagnosis.schemaVersion === null) return diagnosis
-  diagnosis.schemaStatus = diagnosis.schemaVersion === SCHEMA_VERSION ? "current" : diagnosis.schemaVersion < SCHEMA_VERSION ? "older" : "newer"
-  // Opening an older book would migrate it and a newer one would be refused;
-  // this check must stay read-only, so deeper checks need the current schema.
-  if (diagnosis.schemaStatus !== "current") return diagnosis
+  if (error) diagnosis.error = error
+  if (error || schemaStatus !== "current") return diagnosis
   let storage: Storage | undefined
   try {
     storage = createBookStorage(label, booksDir)
@@ -179,12 +160,7 @@ export function diagnoseBook(booksDir: string, label: string): BookDiagnosis {
 
 /** Diagnose every `<label>/<label>.db` under a books directory, in name order. */
 export function diagnoseBooks(booksDir: string): BookDiagnosis[] {
-  const root = path.resolve(booksDir)
-  if (!fs.existsSync(root)) return []
-  return fs.readdirSync(root)
-    .filter((entry) => fs.existsSync(path.join(root, entry, `${entry}.db`)))
-    .sort()
-    .map((label) => diagnoseBook(root, label))
+  return listBookLabels(booksDir).map((label) => diagnoseBook(booksDir, label))
 }
 
 export function hasFindings(diagnosis: BookDiagnosis): boolean {
