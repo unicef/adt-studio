@@ -11,6 +11,12 @@ Reports are in the main repository's `.local-docs/`:
 `spec0003-recovery-review-claude-code-20261103/{REPORT,MATRIX,COMMANDS}.md`.
 Remediation evidence is `spec0003-recovery-remediation-20261103/` (`E`).
 
+The [November 4 acceptance refresh](spec-0003-recovery-acceptance-2026-11-04.md)
+records verification at runtime head `00b4a5c2`, the completed bounded rechecks,
+all original 26 / revised 18 mappings, and the still-unresolved F-2 decision.
+It supersedes the progress statements below, without changing their historical
+test results or granting specification approval.
+
 ## Feedback disposition
 
 | Finding | Correction / disposition | Verification |
