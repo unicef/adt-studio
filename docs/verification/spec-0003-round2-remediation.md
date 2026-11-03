@@ -1,0 +1,28 @@
+# SPEC-0003 B1: second independent review and remediation
+
+The November 3 Codex review of production/test source `1c36d36d` (local documentation head `b8bdbb84`) requests changes. Its own original AC map, evidence and before-fix counterexamples are preserved in `.local-docs/spec0003-b1-independent-20261103-codex/{scope.md,report.md,results/}`. The Claude Code report and independent requirement matrix are in `.local-docs/spec0003-round2-independent-20261103-085714-claude-code/`. Its frozen-clone run used production/test head `1c36d36d`; its first shared-worktree run overlapped writer edits and does not count. The earlier positive recommendation is historical. None of the following failures has an authorized product deferral.
+
+| Finding and affected revised contract | Reproduced behavior at the reviewed head | Required public control for recheck |
+|---|---|---|
+| C1, P1 — exact replacement consent (RAC-6/7/15) | Changing the selected image decisions after consent still resets manual work. | HTTP preflight, queue, reset, in-flight generation: changed decision or outline must refuse stale consent/results; verify selection/history, neighbor and next valid run. |
+| C2, P1 — fixed legacy owner (RAC-3/8/12/13/18) | Uppercase HTML attribute for another owner is replaced by the active fixed ID in Preview and the downloadable ZIP. Reproduces on develop. | Lowercase, uppercase, mixed case, empty, contradictory and genuine undeclared fixed owner; compare projected identity, Preview, package omissions and untouched raw history. |
+| C3, P2 — mandatory package window (RAC-4/12/13/15) | Invalid part.json passes cached POST; failed rebuild alters old files. | Hit/miss/worker before publication, compare previous bundle bytes; repair and retry. Existing window does not silently authorize a new policy about filtering saved sections out of exports. |
+| C4, P2 — complete package (RAC-12/13/18) | Missing French text catalog is cached and distributed; format assets can also be missing. | Status, Library, POST, downloadable ZIP, fresh rebuild and reuse with referenced languages and requested format members. |
+| C5, P2 — selected activity version (RAC-7/15/18) | GET exposes guard 0 for SQL NULL v2; next save conflicts indefinitely. | Selected pointer and fallback, SQL and JSON null, stale Save, reload, valid Save and next Save with history intact. |
+| C6, P2 — Library isolation (RAC-3/13/15) | Invalid imported mode in one book returns 500 for the collection; develop retains its healthy neighbor. | Bad local config unavailable without rebuild; healthy card/direct reads unchanged; repair affected config, then reopen. Preserve global failures. |
+| C7, P2 — fixed input completeness (RAC-4/10/12) | Omitted decisions hide five positioned illustrations without warning. | Incomplete, explicit all-pruned and genuinely empty fixed pages; prior HTML and assets retained, neighboring publication and next valid targeted run. |
+| C8, P2 — fixed-only Studio run (RAC-2/4) | Credentials gate a fixed-only action that the API completes deterministically. | Actual credential-free fixed click, provider-required combined range and non-fixed guards. |
+| Full suite | 6,314 passed / 1 failed / 16 skipped. The fixed HTTP admission succeeded; its asynchronous event assertion expired. The isolated repeat passed. | Observe terminal event with bounded diagnostics; rerun the whole branch after corrections. |
+
+**Packaging checkpoint, before fixes.** The owner-authorized build-cache cleanup reclaimed 38.84 GB without changing the image/container/volume inventory. The standard combined app build passed at b8bdbb84. Five disposable books were exported before and after actual container restart: 392 ZIP member contents matched, selected data/history/Preview agreed, 130 original media hashes matched, zero new provider calls. Independent Docker check: two books, 153 members, 52 media files and zero new calls. Both layouts were generated. Writer receipts are under `.local-docs/spec0003-dual-review-remediation-20261103/results/` (docker-cache-approved-build.json, docker-runtime.json, exports-docker-before-docker-after.json, media-docker-after.json). These results do not establish correctness of later fixes or signed releases.
+
+## Claude Code findings and verification controls
+
+| Finding | Action and required evidence |
+|---|---|
+| Three canonical-path test failures on macOS | Compare the actual resolved file paths in the file-read count and both independent-process recovery barriers. Keep the positive count, the barriers, exclusion assertions and next-operation checks. Run with a deliberately aliased temp path as well as the normal suite. The frozen-clone result was 6,312 passed, 3 failed and 16 skipped. |
+| Doctor exclusion | Document that read-only inspection preserves book content but returns BOOK_BUSY if another process holds an admitted connection. The shared reader/writer protocol stays unchanged. |
+| Activity migration comment | Document migration of surviving structural entries and the legacy/import type fallback; reset still deactivates the active activity. |
+| Reproducible source | Discard the first mixed-snapshot Claude run. Compare the complete frozen tracked-file manifest before and after each final run. The bounded reviewer gets an immutable commit snapshot, not the writer's mutable worktree. |
+
+Claude did not report an additional product defect. Its source conclusions about package integrity, invalid windows and current-version guards do not override Codex's concrete HTTP/SQLite/ZIP counterexamples. Both reviewers' qualifications remain in their original reports.

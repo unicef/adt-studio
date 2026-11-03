@@ -1,5 +1,7 @@
 # SPEC-0003 dual-review remediation — 3 November 2026
 
+**Historical checkpoint:** see the [second independent review](spec-0003-round2-remediation.md) for the subsequent Docker pass and open functional counterexamples.
+
 Starting candidate `910edc27a7041374f84ec1b48de3044f9cd5c2b8`, develop `4b9e40cc`. This round remains local only with root as sole implementation writer. No spec approval, publication or new deferral is authorized. The prior November2 readiness assessment is superseded by these external counterexamples until fixes and rechecks close them. Full original/revised contract and prior evidence remain in the [November2 audit](spec-0003-final-audit-2026-11-02.md).
 
 Both complete independent reports are preserved under `.local-docs/spec0003-independent-20261102-234521-0a817ec2/report.md` (Codex; own full suite/browser/real storage) and `.local-docs/spec0003-b1-independent-review-20261102-234604-claude-code/REPORT.md` (Claude; source findings plus later static checks and a mixed-candidate test run). Their primary conclusions and 22 enumerated additional source leads are being adjudicated, not accepted or dismissed by test totals. New receipts live in `.local-docs/spec0003-dual-review-remediation-20261103/`.

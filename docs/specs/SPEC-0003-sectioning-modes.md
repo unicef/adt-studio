@@ -93,7 +93,7 @@ Replacement is a distinct opt-in, off on every dialog open. Show affected page
 IDs/numbers and exact Sectioning, rendering, render-tree and editable-activity versions. Explain that
 current Storyboard for those pages, including manual edits, must be rebuilt.
 The request carries the frozen named snapshot plus a receipt for the book,
-effective configuration and persisted page window. Settings Save & Re-run first
+effective configuration and persisted page window. The receipt binds the selected generation inputs, including image decisions and extracted image identities, and the outline or the inputs from which this run must rebuild it. A newly selected input needs fresh consent. A run may use its own successful outline rebuild only after checking that the reviewed inputs are still selected. Settings Save & Re-run first
 asks before saving; cancellation there changes nothing. If its acknowledged Save
 changes the receipt, show a second fresh default-off replacement confirmation.
 Cancelling that second dialog retains saved preferences but resets no content and
@@ -174,7 +174,7 @@ A targeted patch must not complete a book with other included output missing.
 Library/sidebar/stages/preview/export distinguish usable partial output from
 complete coverage. Genuinely missing output and inherited ownership safety remain
 visible; removing mode/provenance gates must not certify incomplete packages.
-Compatible downstream freshness warnings remain usable under SPEC-0001.
+Compatible downstream freshness warnings remain usable under SPEC-0001. Package cache hits and new builds must validate the mandatory part window. A failed build must leave the previous published directory intact. A complete download contains the files required by its format and declared output languages; source coverage alone does not prove this.
 
 Use the existing shared writer gate and per-page input/version revalidation.
 Remove redundant SPEC-0003 locking/lifecycle enforcement; do not introduce a second
@@ -260,4 +260,4 @@ merge or close source issues. ADR 025 and spec approval remain pending.
 
 ### Fixed-layout input qualification (review F7)
 
-A fixed-layout rerender requires valid current `positioned-text` and `image-filtering` results for each page, with positive finite viewport dimensions. Missing, SQL/JSON-null or unreadable extraction input is not an explicitly empty page. Report it per page and retain that page's previous output; other ordinary-run pages may publish. An actual layout switch still requires every active page. A validated empty positioned result and empty image classification can represent a truly blank source page. Legacy books with missing fixed inputs remain readable through their safely owned retained output; rebuilding those pages requires restoration of valid input or the extraction repair owned by SPEC-0010. Do not synthesize a blank success or recommend the deliberately unavailable existing-book Extract rerun.
+A fixed-layout rerender requires valid current `positioned-text` and `image-filtering` results for each page, with positive finite viewport dimensions. Missing, SQL/JSON-null or unreadable extraction input is not an explicitly empty page. Report it per page and retain that page's previous output; other ordinary-run pages may publish. An actual layout switch still requires every active page. An omitted classification is not a prune decision: an extracted or positioned illustration needs an explicit keep/prune decision, and every kept illustration needs a position. A validated empty positioned result and empty image classification can represent a truly blank source page. Legacy books with missing fixed inputs remain readable through their safely owned retained output; rebuilding those pages requires restoration of valid input or the extraction repair owned by SPEC-0010. Do not synthesize a blank success or recommend the deliberately unavailable existing-book Extract rerun.
