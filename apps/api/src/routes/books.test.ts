@@ -1705,19 +1705,15 @@ describe("POST /books/import", () => {
 })
 
 describe("GET /books/:label/export-adt", () => {
-  it("returns ZIP of the adt/ directory", async () => {
+  it("rejects an index-only bundle instead of downloading an incomplete ZIP", async () => {
     createTestBook("adt-export")
     addPagesAndRenderings("adt-export", 1)
     const adtDir = path.join(tmpDir, "adt-export", "adt")
     fs.mkdirSync(adtDir, { recursive: true })
     fs.writeFileSync(path.join(adtDir, "index.html"), "<html></html>")
-    const app = createBookRoutes(tmpDir)
+    const app = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
     const res = await app.request("/books/adt-export/export-adt")
-    expect(res.status).toBe(200)
-    expect(res.headers.get("Content-Type")).toBe("application/zip")
-    const disposition = res.headers.get("Content-Disposition") ?? ""
-    expect(disposition).toContain('filename="adt-export-adt.zip"')
-    expect(disposition).toContain("filename*=UTF-8''")
+    expect(res.status).toBe(409)
   })
 
   it("returns 404 for missing book", async () => {

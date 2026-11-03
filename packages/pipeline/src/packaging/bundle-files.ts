@@ -3,10 +3,14 @@ import path from "node:path"
 import { Parser } from "htmlparser2"
 import { PublicationPageEntry } from "@adt/types"
 
+/** A normalized locale becomes one directory name in a generated bundle. */
+export const isBundleLocale = (value: unknown): value is string =>
+  typeof value === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(value)
+
 /** Validate the files required to open the generated reader. This is separate
  * from source freshness and source coverage: a valid partial bundle can still
  * be cached with its omission warnings. Never follow a bundle path outside it. */
-export function packageFilesAvailable(adtDir: string): boolean {
+export function packageFilesAvailable(adtDir: string, options: { format?: "web" | "scorm"; allowedIds?: ReadonlyMap<string, number>; expectedLanguages?: readonly string[] } = {}): boolean {
   try {
     const root = fs.realpathSync(adtDir)
     const readFiles = new Map<string, string>()
@@ -24,11 +28,33 @@ export function packageFilesAvailable(adtDir: string): boolean {
     read("index.html")
     read("content/navigation/nav.html")
     JSON.parse(read("content/toc.json"))
-    JSON.parse(read("assets/config.json"))
+    const config = JSON.parse(read("assets/config.json"))
+    const languages: unknown = config?.languages?.available
+    if (!Array.isArray(languages) || !languages.length || !languages.includes(config.languages.default) ||
+        options.expectedLanguages?.some(language => !languages.includes(language))) return false
+    for (const language of languages) {
+      if (!isBundleLocale(language)) return false
+      // These dictionaries are written even when empty and are loaded on
+      // demand by the reader. Voice, glossary and timing files are conditional.
+      for (const name of ["texts", "speech_texts", "audios", "videos", "images"]) {
+        const data = JSON.parse(read(`content/i18n/${language}/${name}.json`))
+        if (data === null || typeof data !== "object" || Array.isArray(data)) return false
+      }
+    }
+    if (options.format === "scorm") {
+      const members = new Set<string>()
+      let launch = false
+      new Parser({ onopentag(name, attrs) {
+        if (name === "resource" && attrs.href === "index.html" && attrs["adlcp:scormtype"] === "sco") launch = true
+        if (name === "file" && attrs.href) { read(attrs.href); members.add(attrs.href) }
+      } }, { xmlMode: true }).end(read("imsmanifest.xml"))
+      if (!launch || !members.has("index.html") || pages.some(page => !members.has(page.href))) return false
+    }
     const seen = new Set<string>()
     for (const page of pages) {
       if (!page || typeof page.href !== "string" || typeof page.section_id !== "string" ||
-        path.basename(page.href) !== page.href || !page.href.endsWith(".html") || seen.has(page.href)) return false
+        path.basename(page.href) !== page.href || page.href !== page.section_id + ".html" || seen.has(page.href) ||
+        (options.allowedIds && !options.allowedIds.has(page.section_id))) return false
       seen.add(page.href)
       const html = read(page.href)
       const parser = new Parser({ onopentag(name, attributes) {
@@ -39,6 +65,6 @@ export function packageFilesAvailable(adtDir: string): boolean {
       } })
       parser.end(html)
     }
-    return true
+    return fs.readdirSync(root).every(name => !name.endsWith(".html") || name === "index.html" || seen.has(name))
   } catch { return false }
 }

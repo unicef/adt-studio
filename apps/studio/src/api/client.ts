@@ -2480,7 +2480,7 @@ export const api = {
     })
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
-      throw new Error(body.error ?? `SCORM export failed: ${res.status}`)
+      throw new ApiError(sectioningErrorMessage(body.error, body.code) ?? i18n._(msg`Request failed: ${res.status}`), res.status, body.code)
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
@@ -2500,7 +2500,7 @@ export const api = {
     })
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
-      throw new Error(body.error ?? `ADT export failed: ${res.status}`)
+      throw new ApiError(sectioningErrorMessage(body.error, body.code) ?? i18n._(msg`Request failed: ${res.status}`), res.status, body.code)
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })

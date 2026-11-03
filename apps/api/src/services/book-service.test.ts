@@ -66,6 +66,22 @@ function addTestMetadata(
   db.close()
 }
 
+it.each(["page_sectioning:\n  mode: imported-invalid\n", "page_sectioning: ["])("isolates invalid book settings without marking its database for rebuild", malformed => {
+  for (const label of ["bad", "good"]) { createTestDb(label); addTestPages(label, 1) }
+  const config = path.join(tmpDir, "bad/config.yaml")
+  const healthy = listBooks(tmpDir).find(b => b.label === "good")!
+  fs.writeFileSync(config, malformed)
+  const listed = listBooks(tmpDir)
+  expect(listed.find(b => b.label === "bad")).toMatchObject({ readUnavailable: true, needsRebuild: false })
+  expect(listed.find(b => b.label === "good")).toMatchObject({ pageCount: healthy.pageCount, completedStages: healthy.completedStages })
+  expect(fs.readFileSync(config, "utf8")).toBe(malformed)
+  fs.writeFileSync(config, "page_sectioning:\n  mode: page\n")
+  expect(listBooks(tmpDir).find(b => b.label === "bad")?.readUnavailable).toBeUndefined()
+  const global = path.join(tmpDir, "global.yaml")
+  fs.writeFileSync(global, malformed)
+  expect(() => listBooks(tmpDir, global)).toThrow()
+})
+
 function createTestPdf(label: string): void {
   fs.writeFileSync(
     path.join(tmpDir, label, `${label}.pdf`),

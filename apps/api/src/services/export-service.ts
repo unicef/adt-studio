@@ -4,8 +4,8 @@ import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
 import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
-import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
-import { createZipStream } from "./zip-util.js"
+import { resolveReadingOrder, requiredPartRange, SectioningSafetyError, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import { createZipStream, type ZipStreamOptions } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 
 export interface ExportResult {
@@ -205,16 +205,20 @@ async function prepareAdmittedExport(
 /** Keep YAML, lifecycle and SQLite from different transitions out of one ZIP.
  * The existing ZIP producer yields while reading larger books, so admission
  * must last until it has finished reading, not merely until it returns a stream. */
-function createProjectZipStream(bookDir: string): ReadableStream<Uint8Array> {
+function createProjectZipStream(bookDir: string) {
+  return createAdmittedZipStream(bookDir, bookDir, {
+    excludeDirs: new Set(["adt", "webpub", ".adt-package-work"]),
+    excludeFiles: new Set([".book-writer.json", ".book-writer.json.recovery"]),
+  })
+}
+
+function createAdmittedZipStream(bookDir: string, directory: string, options?: ZipStreamOptions): ReadableStream<Uint8Array> {
   let cancelled = false
   return new ReadableStream({
     start(controller) {
       return withBookWriter(bookDir, async () => {
         recoverSectioningTransition(bookDir)
-        const reader = createZipStream(bookDir, {
-          excludeDirs: new Set(["adt", "webpub"]),
-          excludeFiles: new Set([".book-writer.json", ".book-writer.json.recovery"]),
-        }).getReader()
+        const reader = createZipStream(directory, options).getReader()
         try {
           for (;;) {
             const { done, value } = await reader.read()
@@ -292,6 +296,22 @@ export async function exportWebpub(
   }
 }
 
+function readablePackageZip(bookDir: string, directory: string, format: "scorm" | "web") {
+  return withBookWriter(bookDir, () => {
+    requiredPartRange(bookDir)
+    const storage = createBookStorage(path.basename(bookDir), path.dirname(bookDir))
+    try {
+      // Older bundles can still name an owner rejected by today's resolver.
+      // Downloads may be partial but cannot distribute retired or unowned pages.
+      if (!packageFilesAvailable(directory, { format, allowedIds: resolveReadingOrder(storage).positionById })) {
+        throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from the current saved content.")
+      }
+    } finally { storage.close() }
+    // The ZIP producer may yield between files; keep shared admission until it finishes.
+    return createAdmittedZipStream(bookDir, directory)
+  })
+}
+
 export async function exportScorm(
   label: string,
   booksDir: string,
@@ -311,7 +331,7 @@ export async function exportScorm(
   }
 
   return {
-    stream: createZipStream(adtDir),
+    stream: readablePackageZip(bookDir, adtDir, "scorm"),
     filename: `${title}-scorm.zip`,
     safeFilename: `${safeLabel}-scorm.zip`,
   }
@@ -336,7 +356,7 @@ export async function exportAdt(
   }
 
   return {
-    stream: createZipStream(adtDir),
+    stream: readablePackageZip(bookDir, adtDir, "web"),
     filename: `${title}-adt.zip`,
     safeFilename: `${safeLabel}-adt.zip`,
   }

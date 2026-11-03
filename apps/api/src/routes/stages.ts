@@ -448,8 +448,10 @@ export function createStageRoutes(
     if (fs.existsSync(dbPath)) {
       const storage = createBookStorage(safeLabel, booksDir)
       try {
-        coverage = storyboardCoverage(storage, activeSectioningPages(storage, loadBookConfig(safeLabel, booksDir, configPath), path.dirname(dbPath)).map((page) => page.pageId))
-        packagedComplete = storyboardPackageComplete(storage, path.dirname(dbPath), activeSectioningPages(storage, loadBookConfig(safeLabel, booksDir, configPath), path.dirname(dbPath)).map((page) => page.pageId))
+        const config = loadBookConfig(safeLabel, booksDir, configPath)
+        const pageIds = activeSectioningPages(storage, config, path.dirname(dbPath)).map(page => page.pageId)
+        coverage = storyboardCoverage(storage, pageIds)
+        packagedComplete = storyboardPackageComplete(storage, path.dirname(dbPath), pageIds, config)
         if (!coverage.complete && ["done", "skipped"].includes(steps["web-rendering"])) steps["web-rendering"] = "idle"
       } finally { storage.close() }
     }

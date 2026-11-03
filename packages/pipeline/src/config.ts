@@ -46,6 +46,14 @@ export function loadConfig(configPath?: string): AppConfig {
   return AppConfig.parse(raw)
 }
 
+/** A malformed book override must not make other books' Library cards unavailable. */
+export class BookConfigError extends Error {
+  constructor(readonly label: string, cause: unknown) {
+    super(`Cannot read configuration for ${label}: ${cause instanceof Error ? cause.message : String(cause)}`, { cause })
+    this.name = "BookConfigError"
+  }
+}
+
 export function loadBookConfig(
   label: string,
   booksRoot: string,
@@ -60,9 +68,20 @@ export function loadBookConfig(
     safeLabel,
     "config.yaml"
   )
-  if (!fs.existsSync(bookConfigPath)) return base
-  const overrides = yaml.load(fs.readFileSync(bookConfigPath, "utf-8"))
-  return AppConfig.parse(
-    deepMerge(base, overrides as Record<string, unknown>)
-  )
+  let text: string
+  try { text = fs.readFileSync(bookConfigPath, "utf-8") }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return base
+    throw new BookConfigError(label, error)
+  }
+  let overrides: unknown
+  try { overrides = yaml.load(text) }
+  catch (error) { throw new BookConfigError(label, error) }
+  if (overrides == null) return base // An empty override inherits the global config.
+  if (typeof overrides !== "object" || Array.isArray(overrides)) {
+    throw new BookConfigError(label, "Expected a configuration mapping.")
+  }
+  const parsed = AppConfig.safeParse(deepMerge(base, overrides as Record<string, unknown>))
+  if (!parsed.success) throw new BookConfigError(label, parsed.error)
+  return parsed.data
 }

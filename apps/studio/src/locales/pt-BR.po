@@ -11918,6 +11918,9 @@ msgstr "O arquivo deve conter um banco de dados de projeto e seu PDF. Exporte-o 
 msgid "The back cover of the book."
 msgstr "A contracapa do livro."
 
+msgid "The book changed while preparing the package. Prepare the export again using the current book."
+msgstr "O livro mudou durante a preparação do pacote. Prepare a exportação novamente usando a versão atual do livro."
+
 msgid "The book couldn't be exported"
 msgstr "O livro não pôde ser exportado"
 
@@ -12096,6 +12099,9 @@ msgstr "A mensagem leva o título, o link e o código."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "O modelo detecta caixas delimitadoras para que cada elemento visual possa ser armazenado e disposto separadamente."
+
+msgid "The package is missing required files. Prepare the export again before downloading it."
+msgstr "Faltam arquivos obrigatórios no pacote. Prepare a exportação novamente antes de baixá-la."
 
 msgid "The page"
 msgstr "A página"
@@ -12362,6 +12368,9 @@ msgstr "Este livro é renderizado em layout fixo, então mantém as fontes origi
 
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "Este livro já estava compartilhado — outra janela pode ter feito isso. Use \"Atualizar site\" para enviar suas últimas alterações ao link que você já tem."
+
+msgid "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
+msgstr "A configuração deste livro é inválida ou não pode ser lida. Verifique o arquivo config.yaml e abra o livro novamente."
 
 msgid "This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained."
 msgstr "O intervalo salvo da parte deste livro é inválido ou ilegível. Restaure um manifesto de parte válido antes de executá-lo. O conteúdo salvo foi preservado."

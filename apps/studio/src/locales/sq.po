@@ -11920,6 +11920,9 @@ msgstr "Arkivi duhet të përmbajë një bazë të dhënash projekti dhe PDF-në
 msgid "The back cover of the book."
 msgstr "Kapaku i pasëm i librit."
 
+msgid "The book changed while preparing the package. Prepare the export again using the current book."
+msgstr "Libri ndryshoi gjatë përgatitjes së paketës. Përgatiteni sërish eksportin duke përdorur versionin aktual të librit."
+
 msgid "The book couldn't be exported"
 msgstr "Libri nuk mund të eksportohej"
 
@@ -12098,6 +12101,9 @@ msgstr "Mesazhi përmban titullin, lidhjen dhe kodin."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
+
+msgid "The package is missing required files. Prepare the export again before downloading it."
+msgstr "Paketës i mungojnë skedarë të nevojshëm. Përgatiteni sërish eksportin para se ta shkarkoni."
 
 msgid "The page"
 msgstr "Faqja"
@@ -12364,6 +12370,9 @@ msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinal
 
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "Ky libër ishte tashmë i ndarë — mund ta ketë bërë një dritare tjetër. Përdorni \"Përditëso faqen\" për të dërguar ndryshimet tuaja të fundit te lidhja që keni tashmë."
+
+msgid "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
+msgstr "Konfigurimi i këtij libri është i pavlefshëm ose nuk mund të lexohet. Kontrolloni skedarin config.yaml dhe hapeni librin përsëri."
 
 msgid "This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained."
 msgstr "Intervali i ruajtur i pjesës së këtij libri është i pavlefshëm ose i palexueshëm. Riktheni një manifest të vlefshëm të pjesës para se të nisni përpunimin. Përmbajtja e ruajtur mbetet e paprekur."

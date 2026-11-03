@@ -1,14 +1,17 @@
 import fs from "node:fs"
 import path from "node:path"
+import type { AppConfig } from "@adt/types"
 import type { Storage } from "@adt/storage"
-import { storyboardCoverage, packageFilesAvailable } from "@adt/pipeline"
+import { storyboardCoverage, packageFilesAvailable, resolveReadingOrder, normalizeLocale } from "@adt/pipeline"
 
 /** A retained partial bundle remains usable, but newly rendered source HTML
  * cannot establish that the bundle already contains all its required sections.
  * This checks membership only; ordinary freshness warnings remain independent. */
-export function storyboardPackageComplete(storage: Storage, bookDir: string, pageIds: string[]): boolean {
+export function storyboardPackageComplete(storage: Storage, bookDir: string, pageIds: string[], config: AppConfig): boolean {
   const adtDir = path.join(bookDir, "adt")
-  if (!packageFilesAvailable(adtDir)) return false
+  if (!fs.existsSync(adtDir)) return false
+  const expectedLanguages = [...(config.output_languages ?? []), ...(config.editing_language ? [config.editing_language] : [])].map(normalizeLocale)
+  if (!packageFilesAvailable(adtDir, { allowedIds: resolveReadingOrder(storage).positionById, expectedLanguages })) return false
   let manifest: unknown
   try { manifest = JSON.parse(fs.readFileSync(path.join(adtDir, "content", "pages.json"), "utf8")) }
   catch { return false }

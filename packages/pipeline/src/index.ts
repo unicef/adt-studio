@@ -330,7 +330,7 @@ export {
   type FontAssignmentInput,
 } from "./font-assignment.js"
 export { applyFontToHtml, type FontScope } from "./font-apply.js"
-export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
+export { loadConfig, loadBookConfig, BookConfigError, deepMerge } from "./config.js"
 export { runFullPipeline, type FullPipelineOptions } from "./pipeline-dag.js"
 export {
   runDAG,
@@ -517,7 +517,7 @@ export { collectQuizPages } from "./quiz-generation.js"
 export { assertReflowableSectioning } from "./render-sectioning.js"
 
 export { renderedTextIds, sourceTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision } from "./content-ids.js"
-export { SectioningSafetyError, effectiveSectioningMode, sectioningInvalidationSteps, activeSectioningPages, sectioningReplacementSignature, assertSectioningReplacementSafe, prepareSectioningRun, completeSectioning, createStoryboardPublication } from "./sectioning-lifecycle.js"
+export { SectioningSafetyError, effectiveSectioningMode, sectioningInvalidationSteps, requiredPartRange, activeSectioningPages, sectioningReplacementSignature, assertSectioningReplacementSafe, prepareSectioningRun, completeSectioning, createStoryboardPublication } from "./sectioning-lifecycle.js"
 
 export { extractionOptionsFromConfig, prepareExtractionAdmission, assertSafeExtractionRun } from "./extraction-admission.js"
 

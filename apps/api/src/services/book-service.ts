@@ -15,7 +15,7 @@ import {
   type PartRange,
 } from "@adt/types"
 import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
-import { SectioningSafetyError, storyboardCoverage, activeSectioningPages, loadBookConfig, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
+import { BookConfigError, SectioningSafetyError, storyboardCoverage, activeSectioningPages, loadBookConfig, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
 import { AppConfig } from "@adt/types"
 
 type BookDb = ReturnType<typeof openBookDb>
@@ -100,9 +100,11 @@ function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string
   const booksDir = path.dirname(bookDir)
   const storage = createBookStorage(label, booksDir)
   try {
-    const coverage = storyboardCoverage(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), bookDir).map((page) => page.pageId))
+    const config = loadBookConfig(label, booksDir, configPath)
+    const pageIds = activeSectioningPages(storage, config, bookDir).map(page => page.pageId)
+    const coverage = storyboardCoverage(storage, pageIds)
     if (!coverage.complete) return completed.filter((stage) => stage !== "storyboard" && stage !== "package")
-    if (storyboardPackageComplete(storage, bookDir, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), bookDir).map((page) => page.pageId))) completed.push("preview")
+    if (storyboardPackageComplete(storage, bookDir, pageIds, config)) completed.push("preview")
     return completed
   } finally { storage.close() }
 }
@@ -197,7 +199,7 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
           db.close()
         }
       } catch (err) {
-        if (err instanceof BookBusyError || err instanceof SectioningSafetyError) {
+        if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof BookConfigError) {
           // Keep the card and unrelated books accessible without inventing a
           // database snapshot or offering a rebuild for temporary exclusion.
           readUnavailable = true

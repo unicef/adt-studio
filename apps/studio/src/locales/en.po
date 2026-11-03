@@ -11918,6 +11918,9 @@ msgstr "The archive must contain a project database and its PDF. Re-export it fr
 msgid "The back cover of the book."
 msgstr "The back cover of the book."
 
+msgid "The book changed while preparing the package. Prepare the export again using the current book."
+msgstr "The book changed while preparing the package. Prepare the export again using the current book."
+
 msgid "The book couldn't be exported"
 msgstr "The book couldn't be exported"
 
@@ -12096,6 +12099,9 @@ msgstr "The message carries the title, the link and the code."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
+
+msgid "The package is missing required files. Prepare the export again before downloading it."
+msgstr "The package is missing required files. Prepare the export again before downloading it."
 
 msgid "The page"
 msgstr "The page"
@@ -12362,6 +12368,9 @@ msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Atta
 
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
+
+msgid "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
+msgstr "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
 
 msgid "This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained."
 msgstr "This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained."

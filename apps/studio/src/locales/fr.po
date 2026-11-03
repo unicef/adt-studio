@@ -11920,6 +11920,9 @@ msgstr "L'archive doit contenir une base de données de projet et son PDF. Réex
 msgid "The back cover of the book."
 msgstr "La quatrième de couverture du livre."
 
+msgid "The book changed while preparing the package. Prepare the export again using the current book."
+msgstr "Le livre a changé pendant la préparation du paquet. Préparez à nouveau l’export à partir du livre actuel."
+
 msgid "The book couldn't be exported"
 msgstr "Le livre n'a pas pu être exporté"
 
@@ -12098,6 +12101,9 @@ msgstr "Le message contient le titre, le lien et le code."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Le modèle détecte les zones de délimitation afin que chaque élément visuel puisse être stocké et disposé séparément."
+
+msgid "The package is missing required files. Prepare the export again before downloading it."
+msgstr "Des fichiers requis manquent dans le paquet. Préparez à nouveau l’export avant de le télécharger."
 
 msgid "The page"
 msgstr "La page"
@@ -12364,6 +12370,9 @@ msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'
 
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "Ce livre était déjà partagé — une autre fenêtre l'a peut-être fait. Utilisez \"Mettre à jour le site\" pour envoyer vos dernières modifications au lien que vous avez déjà."
+
+msgid "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
+msgstr "La configuration de ce livre est invalide ou illisible. Vérifiez son fichier config.yaml, puis rouvrez le livre."
 
 msgid "This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained."
 msgstr "La plage de pages enregistrée pour cette partie du livre est invalide ou illisible. Restaurez un manifeste de partie valide avant de lancer le traitement. Le contenu enregistré est conservé."

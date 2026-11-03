@@ -7,6 +7,10 @@ import type { ExtractedPage } from "@adt/pdf"
 import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import { AccessibilityAssessmentOutput, type TaskInfo } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
+import { exportAdt, exportScorm } from "../services/export-service.js"
+import { unzipSync } from "fflate"
+import { packageAdtWeb, loadBookConfig } from "@adt/pipeline"
+import { createBookRoutes } from "./books.js"
 import type { TaskService } from "../services/task-service.js"
 import { createPackageRoutes } from "./package.js"
 
@@ -124,6 +128,79 @@ describe("Package routes", () => {
       expect(fs.statSync(file).mtimeMs).toBe(before)
     },
   )
+
+  it("rejects a missing configured catalog on download, repairs it on rebuild, and checks the SCORM manifest only for SCORM", { timeout: 30_000 }, async () => {
+    const label = "languages"
+    createRenderedBook(label)
+    createWebAssets()
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, fr]\n")
+    const url = `/api/books/${label}/package-adt`
+    const run = () => app.request(url, { method: "POST" })
+    expect((await run()).status).toBe(200)
+    const adt = path.join(tmpDir, label, "adt"), file = "content/i18n/fr/texts.json"
+    const original = fs.readFileSync(path.join(adt, file))
+    fs.unlinkSync(path.join(adt, file))
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: false })
+    await expect(exportAdt(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect((await run()).status).toBe(200)
+    const downloads = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
+    const download = await downloads.request(`/books/${label}/export-adt`)
+    expect(download.status).toBe(200)
+    expect(download.headers.get("Content-Disposition")).toContain("-adt.zip")
+    const zip = unzipSync(new Uint8Array(await download.arrayBuffer()))
+    expect(Buffer.from(zip[file])).toEqual(original)
+    fs.unlinkSync(path.join(adt, "imsmanifest.xml"))
+    await expect(exportScorm(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
+  })
+
+  it("invalid part windows reject both cache paths without changing the previous package", { timeout: 30_000 }, async () => {
+    const label = "invalid-part"; createRenderedBook(label); createWebAssets()
+    const dir = path.join(tmpDir, label), url = `/api/books/${label}/package-adt`
+    const run = () => app.request(url, { method: "POST" })
+    expect((await run()).status).toBe(200)
+    const adt = path.join(dir, "adt")
+    const snapshot = () => Object.fromEntries(fs.readdirSync(adt, { recursive: true, encoding: "utf8" }).filter(f => fs.statSync(path.join(adt, f)).isFile()).map(f => [f, fs.readFileSync(path.join(adt, f))]))
+    fs.writeFileSync(path.join(dir, "part.json"), "{")
+    for (const cache of ["hit", "miss"]) {
+      if (cache === "miss") fs.unlinkSync(path.join(adt, ".build-hash"))
+      const before = snapshot()
+      for (const res of [await app.request(url + "/status"), await run()]) {
+        expect(res.status).toBe(409)
+        expect(await res.json()).toMatchObject({ code: "SECTIONING_WINDOW_INVALID" })
+      }
+      expect(snapshot()).toEqual(before)
+    }
+    fs.unlinkSync(path.join(dir, "part.json"))
+    expect((await run()).status).toBe(200)
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
+  })
+
+  it("keeps the exact published bundle visible throughout a build and rejects a late window change", { timeout: 30_000 }, async () => {
+    const label = "window-race"; createRenderedBook(label); createWebAssets()
+    const dir = path.join(tmpDir, label), url = `/api/books/${label}/package-adt`
+    expect((await app.request(url, { method: "POST" })).status).toBe(200)
+    const adt = path.join(dir, "adt"), sentinel = path.join(adt, "last-complete.marker")
+    fs.writeFileSync(sentinel, "last good artifact")
+    const bytes = () => Object.fromEntries(fs.readdirSync(adt, { recursive: true, encoding: "utf8" }).filter(f => fs.statSync(path.join(adt, f)).isFile()).map(f => [f, fs.readFileSync(path.join(adt, f))]))
+    const before = bytes(); let changed = false
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      await expect(packageAdtWeb(storage, { label, bookDir: dir, language: "en", outputLanguages: ["en"], title: label, webAssetsDir, config: loadBookConfig(label, tmpDir) }, {
+        emit(event) {
+          if (!changed && event.type === "step-progress" && event.message === "Writing manifests...") {
+            expect(bytes()).toEqual(before)
+            fs.writeFileSync(path.join(dir, "part.json"), "invalid")
+            changed = true
+          }
+        },
+      })).rejects.toMatchObject({ code: "SECTIONING_WINDOW_INVALID" })
+    } finally { storage.close() }
+    expect(changed).toBe(true)
+    expect(bytes()).toEqual(before)
+    fs.unlinkSync(path.join(dir, "part.json"))
+    expect((await app.request(url, { method: "POST" })).status).toBe(200)
+  })
 
   function easyReadOutput(text: string) {
     return {
