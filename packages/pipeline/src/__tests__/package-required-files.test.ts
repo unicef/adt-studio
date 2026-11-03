@@ -52,12 +52,29 @@ it("validates shared runtime files once per read and notices their deletion on t
     fs.unlinkSync(path.join(root, "assets/second.png"))
     expect(packageFilesAvailable(root), srcset).toBe(false)
   }
+  for (const css of [
+    'background-image: image-set("assets/second.png" 1x)',
+    'background-image: -webkit-image-set(url("assets/second.png") 2x)',
+    String.raw`background-image: image-set("assets/second\2e png" 1x type("image/png"))`,
+    String.raw`background-image: image-\73 et("assets/second.png" 1x)`,
+    String.raw`background-image: u\72 l(assets/second\2e png)`,
+  ]) {
+    fs.writeFileSync(page, `<style>.hero { ${css} }</style>`)
+    expect(packageFilesAvailable(root), css).toBe(false)
+    fs.writeFileSync(path.join(root, "assets/second.png"), "second image")
+    expect(packageFilesAvailable(root), css).toBe(true)
+    expect(packageFilesAvailable(root), css).toBe(true)
+    fs.unlinkSync(path.join(root, "assets/second.png"))
+    expect(packageFilesAvailable(root), css).toBe(false)
+  }
+  fs.writeFileSync(page, `<style>/* url(missing.png) */ .text { content: 'url(missing.png)'; background: image-set("data:image/png;base64,AA" 1x type("image/png")); }</style>`)
+  expect(packageFilesAvailable(root)).toBe(true)
   fs.writeFileSync(page, '<img src="/assets/picture.png">')
   expect(packageFilesAvailable(root)).toBe(false)
   fs.writeFileSync(page, '<img src="assets/picture.png">')
   expect(packageFilesAvailable(root)).toBe(true)
   fs.appendFileSync(page, '<link rel="stylesheet" href="assets/styles.css">')
-  fs.writeFileSync(path.join(root, "assets/styles.css"), '@import url(nested.css);')
+  fs.writeFileSync(path.join(root, "assets/styles.css"), String.raw`@\69 mport "nested.css";`)
   fs.writeFileSync(path.join(root, "assets/nested.css"), '@font-face { src: url(font.woff2); }')
   expect(packageFilesAvailable(root)).toBe(false)
   fs.writeFileSync(path.join(root, "assets/font.woff2"), "local font bytes")

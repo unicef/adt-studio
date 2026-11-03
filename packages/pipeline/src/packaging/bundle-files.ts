@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { Parser } from "htmlparser2"
+import { cssReferences } from "./css-references.js"
 import { PublicationPageEntry } from "@adt/types"
 
 /** A normalized locale becomes one directory name in a generated bundle. */
@@ -84,9 +85,9 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
     }
     const styles = new Set<string>()
     const checkCss = (css: string, from: string) => {
-      for (const match of css.matchAll(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*?))\s*\)/gi)) relativeMember(match[1] ?? match[2] ?? match[3], from)
-      for (const match of css.matchAll(/@import\s+(?:url\(\s*(?:"([^"]+)"|'([^']+)'|([^\s)]+))\s*\)|"([^"]+)"|'([^']+)')/gi)) {
-        checkStylesheet(match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5], from)
+      for (const reference of cssReferences(css)) {
+        if (reference.stylesheet) checkStylesheet(reference.url, from)
+        else relativeMember(reference.url, from)
       }
     }
     const checkStylesheet = (url: string, from: string) => {
