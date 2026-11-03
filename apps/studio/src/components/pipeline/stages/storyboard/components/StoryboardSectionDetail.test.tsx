@@ -536,6 +536,29 @@ function activityPage(): PageDetail {
   page.rendering!.sections[0].sectionType = savedStepper.sectionType
   return page
 }
+
+it.each([true, false])("waits for saved activity presentation before opening the editor (stepper=%s)", async enabled => {
+  state.realActivityPanel = true
+  state.editableQuery = {}
+  const page = activityPage()
+  const mounted = render(parentView(page))
+  const edit = screen.getByRole("button", { name: "Edit activity" }) as HTMLButtonElement
+  expect(edit.disabled).toBe(true)
+  fireEvent.click(edit)
+  expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("false")
+  state.editableQuery = { data: { activities: { "0": { ...savedStepper, enabled } }, version: 1, paletteAccent: "#2563EB" } }
+  mounted.rerender(parentView(page))
+  const ready = screen.getByRole("button", { name: "Edit activity" }) as HTMLButtonElement
+  expect(ready.disabled).toBe(false)
+  fireEvent.click(ready)
+  expect(screen.getByTestId(enabled ? "stepper-panel-host" : "classic-panel-host").getAttribute("data-open")).toBe("true")
+  if (enabled) {
+    fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "Typed after the saved presentation loaded" } })
+    expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe("Typed after the saved presentation loaded")
+    await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("true"))
+  }
+  expect(state.activitySave).not.toHaveBeenCalled()
+})
 function UnsavedProbe() {
   return <output data-testid="unsaved-activity">{String(useHasUnsavedChanges())}</output>
 }

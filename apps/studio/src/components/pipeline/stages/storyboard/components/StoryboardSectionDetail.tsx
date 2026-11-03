@@ -2489,7 +2489,7 @@ export function StoryboardSectionDetail({
     section?.sectionType === "activity_open_ended_answer" ||
     section?.sectionType === "activity_underline_text"
   const editableBusy =
-    convertEditableActivity.isPending || setEditablePresentation.isPending
+    !editableActivitiesQuery.data || convertEditableActivity.isPending || setEditablePresentation.isPending
 
   const activityLinkMode = isActivitySection && activityEditorKind === "classic"
 
@@ -2918,7 +2918,10 @@ export function StoryboardSectionDetail({
                         <button
                           type="button"
                           onClick={() => setActivityEditorKind(kind => kind === "classic" ? null : "classic")}
-                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
+                          // Missing query data does not mean classic presentation.
+                          // Wait before choosing which guarded editor owns the session.
+                          disabled={!editableActivitiesQuery.data}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <ListChecks className="h-3.5 w-3.5" />
                           {t`Edit activity`}
