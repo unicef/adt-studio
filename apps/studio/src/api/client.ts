@@ -1640,6 +1640,7 @@ export const api = {
     apiKey: string,
     currentHtml: string | undefined,
     baseVersion: number,
+    renderingBaseVersion: number,
   ) =>
     request<{
       taskId?: string
@@ -1652,7 +1653,7 @@ export const api = {
       {
         method: "POST",
         headers: await buildApiHeaders(apiKey),
-        body: JSON.stringify({ instruction, currentHtml, baseVersion }),
+        body: JSON.stringify({ instruction, currentHtml, baseVersion, renderingBaseVersion }),
         signal: AbortSignal.timeout(30_000),
       }
     ),

@@ -8,6 +8,32 @@ export const isBundleLocale = (value: unknown): value is string =>
   typeof value === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(value)
 
 const proofs = new Map<string, Map<string, string>>()
+
+/** Follow HTML's srcset token boundaries: commas inside a URL (notably data
+ * URLs) belong to it; commas between descriptors start the next candidate. */
+function srcsetUrls(value: string): string[] {
+  const urls: string[] = []
+  const space = (char: string) => /[\t\n\f\r ]/.test(char)
+  let position = 0
+  while (position < value.length) {
+    while (position < value.length && (space(value[position]) || value[position] === ",")) position++
+    const start = position
+    while (position < value.length && !space(value[position])) position++
+    const url = value.slice(start, position)
+    if (!url) break
+    urls.push(url.replace(/,+$/, ""))
+    if (url.endsWith(",")) continue
+    let parentheses = 0
+    while (position < value.length) {
+      const char = value[position++]
+      if (char === "(") parentheses++
+      else if (char === ")" && parentheses) parentheses--
+      else if (char === "," && !parentheses) break
+    }
+  }
+  return urls
+}
+
 function stamp(file: string): string {
   const stat = fs.lstatSync(file, { bigint: true })
   if (stat.isSymbolicLink()) throw new Error("Bundle symlink is absent from ZIP")
@@ -48,8 +74,13 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
     }
     const external = (url: string) => /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url.trim())
     const relativeMember = (url: string, from: string) => {
+      url = url.trim()
       if (!url || external(url)) return undefined
-      return path.relative(root, member(path.join(path.dirname(from), decodeURIComponent(url.split(/[?#]/)[0]))))
+      // A host-root URL cannot resolve inside a portable/offline package.
+      // Do not let path.join reinterpret it as a bundle-relative member.
+      const local = decodeURIComponent(url.split(/[?#]/)[0])
+      if (local.startsWith("/") || local.includes("\\")) throw new Error("Root-absolute or nonportable bundle reference")
+      return path.relative(root, member(path.join(path.dirname(from), local)))
     }
     const styles = new Set<string>()
     const checkCss = (css: string, from: string) => {
@@ -74,10 +105,7 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
         if (name === "image" && (attrs.href || attrs["xlink:href"])) relativeMember(attrs.href ?? attrs["xlink:href"], from)
         if (name === "link" && attrs.rel?.split(/\s+/).includes("stylesheet") && attrs.href) checkStylesheet(attrs.href, from)
         if (attrs.style) checkCss(attrs.style, from)
-        // Generated srcsets use URL/descriptor pairs. Data URLs are self-contained.
-        if (attrs.srcset) for (const match of attrs.srcset.matchAll(/(?:^|,\s+)(\S+)(?:\s+[\d.]+[wx])?/g)) {
-          relativeMember(match[1].replace(/,$/, ""), from)
-        }
+        if (attrs.srcset) for (const url of srcsetUrls(attrs.srcset)) relativeMember(url, from)
       }, ontext(text) { if (style) checkCss(text, from) }, onclosetag(name) { if (name === "style") style = false } }).end(html)
     }
     const pages = PublicationPageEntry.array().nonempty().parse(JSON.parse(read("content/pages.json")))

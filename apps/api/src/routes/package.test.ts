@@ -135,7 +135,11 @@ describe("Package routes", () => {
     },
   )
 
-  it("validates staged dependencies before replacing a downloadable publication", async () => {
+  it.each([
+    '<link rel="stylesheet" href="missing-custom.css">',
+    '<img srcset="images/pg001_page.png 1x,images/missing.png 2x">',
+    '<img src="/images/pg001_page.png">',
+  ])("validates staged dependencies before replacing a downloadable publication: %s", async missing => {
     const label = "staged-validation"
     createRenderedBook(label)
     createWebAssets()
@@ -146,7 +150,7 @@ describe("Package routes", () => {
     const s = createBookStorage(label, tmpDir)
     const saved = s.getLatestNodeData("web-rendering", "pg001")!.data as { sections: Array<{ html: string }> }
     const broken = structuredClone(saved)
-    broken.sections[0].html += '<link rel="stylesheet" href="missing-custom.css">'
+    broken.sections[0].html += missing
     s.putNodeData("web-rendering", "pg001", broken)
     s.close()
     const result = await run()

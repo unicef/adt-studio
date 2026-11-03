@@ -37,8 +37,13 @@ export function publicOutputOwners(storage: Storage): Map<string, Set<string>> {
       }
     }
   }
-  const quizzes = QuizGenerationOutput.safeParse(storage.getLatestNodeData("quiz-generation", "book")?.data)
-  if (quizzes.success) quizzes.data.quizzes.forEach((quiz, index) => reserve(resolveQuizId(quiz, index), "\0quiz:" + index))
+  try {
+    // Legacy readers accept quiz arrays without document-level timestamps or
+    // language metadata. Their public IDs are still reserved. Corrupt quiz
+    // JSON must not prevent reading the independent saved section tree.
+    const quizzes = QuizGenerationOutput.pick({ quizzes: true }).safeParse(storage.getLatestNodeData("quiz-generation", "book")?.data)
+    if (quizzes.success) quizzes.data.quizzes.forEach((quiz, index) => reserve(resolveQuizId(quiz, index), "\0quiz:" + index))
+  } catch (error) { if (!(error instanceof SyntaxError)) throw error }
   return owners
 }
 

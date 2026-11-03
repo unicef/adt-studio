@@ -26,6 +26,7 @@ const state = vi.hoisted(() => ({
   style: null as unknown as ComponentProps<typeof StyleEditorPanel>,
   save: vi.fn().mockResolvedValue({}),
   generate: vi.fn(),
+  aiEdit: vi.fn(),
   invalidate: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock("@lingui/react/macro", () => ({
@@ -40,7 +41,7 @@ vi.mock("@lingui/core/macro", () => ({
 }))
 vi.mock("@/api/client", () => ({
   BASE_URL: "/api",
-  api: { saveStoryboard: state.save, reRenderPage: state.generate },
+  api: { saveStoryboard: state.save, reRenderPage: state.generate, aiEditSection: state.aiEdit },
 }))
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => ({}),
@@ -223,6 +224,7 @@ beforeEach(() => {
   state.headerSlot = null
   state.pickers = {}
   state.save.mockResolvedValue({})
+  state.aiEdit.mockReset().mockResolvedValue({ taskId: "ai-edit" })
 })
 afterEach(cleanup)
 
@@ -612,4 +614,32 @@ it("a dirty stepper session stays the sole open editor after current output is r
   expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe("Retained dirty stepper")
   expect(screen.getByTestId("unsaved-activity").textContent).toBe("true")
   expect(state.activitySave).not.toHaveBeenCalled()
+})
+
+it("AI edit submits the captured rendering version and retains its instruction and cosmetic draft on conflict", async () => {
+  const header = document.createElement("div")
+  document.body.appendChild(header)
+  state.headerSlot = header
+  state.aiEdit.mockRejectedValueOnce(new Error("Content changed"))
+  const page = fixture()
+  const view = render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page} /></FloatingSaveProvider>)
+  try {
+    act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
+    const newer = structuredClone(page)
+    newer.versions.rendering = 2
+    newer.rendering!.sections[0].html = newer.rendering!.sections[0].html.replace("Keep me", "Newer saved text")
+    view.rerender(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={newer} /></FloatingSaveProvider>)
+    const instruction = screen.getByPlaceholderText("Ask AI to edit...") as HTMLInputElement
+    fireEvent.change(instruction, { target: { value: "Make this clearer" } })
+    fireEvent.keyDown(instruction, { key: "Enter" })
+    await waitFor(() => expect(state.aiEdit).toHaveBeenCalledOnce())
+    const sent = state.aiEdit.mock.calls[0]
+    expect(sent[5]).toContain("text-blue-600")
+    expect(sent[5]).toContain("Keep me")
+    expect(sent[6]).toBe(1)
+    expect(sent[7]).toBe(1)
+    await waitFor(() => expect(instruction.value).toBe("Make this clearer"))
+    expect(screen.getByRole("button", { name: "Save", exact: true })).toBeTruthy()
+    expect(state.save).not.toHaveBeenCalled()
+  } finally { header.remove() }
 })

@@ -258,6 +258,7 @@ export {
   SectionRendering,
   WebRenderingOutput,
   RenderingSave,
+  AiSectionEdit,
   StoryboardSave,
   webRenderingLLMSchema,
   activityAnswersLLMSchema,

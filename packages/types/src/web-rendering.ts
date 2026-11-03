@@ -39,6 +39,13 @@ export type WebRenderingOutput = z.infer<typeof WebRenderingOutput>
 
 export const RenderingSave = WebRenderingOutput.extend(AuthoredSaveGuard.shape)
 export type RenderingSave = z.infer<typeof RenderingSave>
+export const AiSectionEdit = z.object({
+  ...AuthoredSaveGuard.shape,
+  renderingBaseVersion: AuthoredSaveGuard.shape.baseVersion,
+  instruction: z.string().trim().min(1),
+  currentHtml: z.string().optional(),
+})
+export type AiSectionEdit = z.infer<typeof AiSectionEdit>
 export const StoryboardSave = z.object({
   sectioning: PageSectioningOutput.omit({ source: true }).optional(),
   baseVersion: AuthoredSaveGuard.shape.baseVersion.optional(),

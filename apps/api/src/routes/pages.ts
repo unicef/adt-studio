@@ -3,7 +3,7 @@ import { putSourceNodeData, preserveRenderedOwnership, withSourceGenerationTrack
 import { cloneRenderedIdentities, stampRenderedOwner } from "@adt/pipeline"
 import { stampManualEdits } from "@adt/pipeline"
 import { AuthoredSaveGuard } from "@adt/types"
-import { RenderingSave, StoryboardSave } from "@adt/types"
+import { RenderingSave, StoryboardSave, AiSectionEdit } from "@adt/types"
 import { invalidPublicOutputIdentity } from "@adt/pipeline"
 import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
@@ -2055,20 +2055,18 @@ export function createPageRoutes(
     const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
-    const guard = AuthoredSaveGuard.safeParse(body)
-    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for AI edits" })
+    const guard = AiSectionEdit.safeParse(body)
+    if (!guard.success) throw new HTTPException(400, { message: "Source and rendering versions are required for AI edits" })
     const checkBase = () => {
       const storage = createBookStorage(safeLabel, booksDir)
       try {
         assertAuthoredIdle(storage)
         assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+        assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, guard.data.renderingBaseVersion)
       } finally { storage.close() }
     }
     checkBase()
-    const instruction = body?.instruction
-    if (!instruction || typeof instruction !== "string") {
-      throw new HTTPException(400, { message: "Missing instruction in request body" })
-    }
+    const { instruction, currentHtml } = guard.data
 
     // Submit as task if TaskService is available
     if (taskService) {
@@ -2097,7 +2095,7 @@ export function createPageRoutes(
             pageId,
             sectionIndex: idx,
             instruction,
-            currentHtml: typeof body.currentHtml === "string" ? body.currentHtml : undefined,
+            currentHtml,
             booksDir,
             promptsDir,
             webAssetsDir,
@@ -2143,7 +2141,7 @@ export function createPageRoutes(
       pageId,
       sectionIndex: idx,
       instruction,
-      currentHtml: typeof body.currentHtml === "string" ? body.currentHtml : undefined,
+      currentHtml,
       booksDir,
       promptsDir,
       webAssetsDir,
@@ -2151,6 +2149,7 @@ export function createPageRoutes(
       credentials,
     })
 
+    checkBase()
     return c.json(result)
   })
 

@@ -705,7 +705,7 @@ it("guards the queued AI edit at admission and publication and stamps its owning
   const taskApp = new Hono().use("/books/:label/*", bookWriterMiddleware(root))
     .route("/", createPageRoutes(root, prompts, "", configPath, tasks))
     .onError(errorHandler)
-  const request = (baseVersion: number) => taskApp.request(`/books/${label}/pages/pg001/sections/0/ai-edit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ baseVersion, instruction: "Change text" }) })
+  const request = (baseVersion: number) => taskApp.request(`/books/${label}/pages/pg001/sections/0/ai-edit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ baseVersion, renderingBaseVersion: 1, instruction: "Change text" }) })
   let complete = false
   const errors: string[] = []
   const dispose = bus.addListener(label, (event) => {

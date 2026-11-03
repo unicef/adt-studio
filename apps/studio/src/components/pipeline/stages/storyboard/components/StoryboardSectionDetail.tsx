@@ -2321,7 +2321,8 @@ export function StoryboardSectionDetail({
     if (!aiInstruction.trim() || !hasStructuredTextProvider || hasActiveTask || storyboardRunning) return
     setAiError(null)
 
-    const currentHtml = renderedSection?.html
+    const draft = flushPendingHtml() ?? pendingRendering ?? page.rendering
+    const currentHtml = getRenderedSectionByIndex(draft, sectionIndex)?.html
     const instruction = aiInstruction.trim()
     setAiInstruction("")
 
@@ -2332,8 +2333,11 @@ export function StoryboardSectionDetail({
       instruction,
       apiKey,
       currentHtml,
-      page.versions.sectioning ?? 0,
+      sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
+      renderingBaseVersion.current ?? page.versions.rendering ?? 0,
     ).catch((err) => {
+      if (latestDraftRef.current.scope !== draftScope) return
+      setAiInstruction(value => value || instruction)
       setAiError(err instanceof Error ? err.message : t`AI edit failed`)
     })
   }

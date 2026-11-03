@@ -40,6 +40,22 @@ it("validates shared runtime files once per read and notices their deletion on t
   expect(packageFilesAvailable(root)).toBe(false)
   fs.writeFileSync(picture, "original image bytes")
   expect(packageFilesAvailable(root)).toBe(true)
+  for (const srcset of [
+    "assets/picture.png 1x,assets/second.png 2x",
+    "assets/picture.png 1x, assets/second.png 2x",
+    "data:image/svg+xml,%3Csvg%3E,%3C/svg%3E 1x,assets/second.png 2x",
+  ]) {
+    fs.writeFileSync(page, `<img srcset="${srcset}">`)
+    expect(packageFilesAvailable(root), srcset).toBe(false)
+    fs.writeFileSync(path.join(root, "assets/second.png"), "second image")
+    expect(packageFilesAvailable(root), srcset).toBe(true)
+    fs.unlinkSync(path.join(root, "assets/second.png"))
+    expect(packageFilesAvailable(root), srcset).toBe(false)
+  }
+  fs.writeFileSync(page, '<img src="/assets/picture.png">')
+  expect(packageFilesAvailable(root)).toBe(false)
+  fs.writeFileSync(page, '<img src="assets/picture.png">')
+  expect(packageFilesAvailable(root)).toBe(true)
   fs.appendFileSync(page, '<link rel="stylesheet" href="assets/styles.css">')
   fs.writeFileSync(path.join(root, "assets/styles.css"), '@import url(nested.css);')
   fs.writeFileSync(path.join(root, "assets/nested.css"), '@font-face { src: url(font.woff2); }')

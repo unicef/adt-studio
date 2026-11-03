@@ -25,7 +25,7 @@ it.each(["success", "rendering-conflict", "source-conflict"])("publishes a queue
   let execute: TaskExecutor | undefined
   const tasks: TaskService = { submitTask: (_label, _kind, _description, fn) => { execute = fn; return { taskId: "test" } }, getActiveTasks: () => [] }
   const app = createPageRoutes(root, path.resolve("prompts"), path.resolve("assets"), undefined, tasks)
-  const response = await app.request("/books/book/pages/pg001/sections/0/ai-edit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ baseVersion: 1, instruction: "Edit B", currentHtml: old.sections[1].html }) })
+  const response = await app.request("/books/book/pages/pg001/sections/0/ai-edit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ baseVersion: 1, renderingBaseVersion: 1, instruction: "Edit B", currentHtml: old.sections[1].html }) })
   expect(response.status).toBe(200)
   aiEditSection.mockImplementation(async () => {
     if (mode !== "success") {
@@ -37,7 +37,7 @@ it.each(["success", "rendering-conflict", "source-conflict"])("publishes a queue
     return { html: '<section><p data-id="text-B">Edited B</p></section>', reasoning: "updated" }
   })
   if (mode === "success") await execute!(() => {})
-  else await expect(execute!(() => {})).rejects.toThrow(mode === "source-conflict" ? "Content changed" : "Page changed during AI editing")
+  else await expect(execute!(() => {})).rejects.toThrow("Content changed")
   const db = storage()
   try {
     const saved = db.getLatestNodeData("web-rendering", "pg001")!.data as WebRenderingOutput
@@ -102,4 +102,40 @@ it("rejects conflicting owner selections and negative image targets before provi
   expect(db.getNodeVersionFingerprint()).toEqual(before)
   expect(db.getLatestNodeData("web-rendering", "pg001")?.data).toEqual(retained)
   db.close()
+})
+
+it.each(["stale-immediate", "queued-change", "fresh"])("AI edits bind supplied HTML to the originally viewed rendering (%s)", async mode => {
+  let execute: TaskExecutor | undefined
+  const tasks: TaskService = { submitTask: (_label, _kind, _description, fn) => { execute = fn; return { taskId: "guarded-edit" } }, getActiveTasks: () => [] }
+  const app = createPageRoutes(root, path.resolve("prompts"), path.resolve("assets"), undefined, tasks)
+  const newer = structuredClone(old)
+  newer.sections[1].html = '<section><p data-id="text-B">Newer saved B</p></section>'
+  const publish = () => { const db = storage(); db.putNodeData("web-rendering", "pg001", newer); db.close() }
+  if (mode !== "queued-change") publish()
+  aiEditSection.mockResolvedValue({ html: '<section><p data-id="text-B">Deliberately edited B</p></section>', reasoning: "edit" })
+  const response = await app.request("/books/book/pages/pg001/sections/0/ai-edit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+    baseVersion: 1, renderingBaseVersion: mode === "fresh" ? 2 : 1,
+    instruction: "Edit B", currentHtml: mode === "fresh" ? newer.sections[1].html : old.sections[1].html,
+  }) })
+  if (mode === "stale-immediate") expect(response.status).toBe(409)
+  else {
+    expect(response.status).toBe(200)
+    if (mode === "queued-change") { publish(); await expect(execute!(() => {})).rejects.toThrow(/Content changed/) }
+    else await execute!(() => {})
+  }
+  const db = storage()
+  try {
+    const history = db.getAllNodeVersions("web-rendering", "pg001")
+    expect(history.find(row => row.version === 1)?.data).toEqual(old)
+    expect(history.find(row => row.version === 2)?.data).toEqual(newer)
+    if (mode === "fresh") {
+      expect(aiEditSection).toHaveBeenCalledOnce()
+      expect(history).toHaveLength(4) // Legacy ownership snapshot and the deliberate new edit.
+      expect(JSON.stringify(db.getLatestNodeData("web-rendering", "pg001")?.data)).toContain("Deliberately edited B")
+    } else {
+      expect(aiEditSection).not.toHaveBeenCalled()
+      expect(history).toHaveLength(2)
+      expect(db.getLatestNodeData("web-rendering", "pg001")?.data).toEqual(newer)
+    }
+  } finally { db.close() }
 })

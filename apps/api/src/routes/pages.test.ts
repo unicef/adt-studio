@@ -48,6 +48,33 @@ describe("Page routes", () => {
     after.close()
   })
 
+  it("reserves readable legacy quiz IDs even when document metadata is missing", async () => {
+    const storage = createBookStorage(label, tmpDir)
+    storage.putNodeData("quiz-generation", "book", { quizzes: [{ quizIndex: 0, afterPageId: `${label}_p1`, pageIds: [`${label}_p1`], question: "Saved quiz", answerIndex: 0, reasoning: "", options: ["A", "B", "C"].map(text => ({ text, explanation: text })) }] })
+    const row = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!
+    const prior = structuredClone(row)
+    const tree = row.data as import("@adt/types").PageSectioningOutput
+    tree.sections[0].sectionId = "qz001"
+    storage.close()
+    const response = await app.request(`/api/books/${label}/pages/${label}_p1/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...tree, baseVersion: row.version }) })
+    expect(response.status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getLatestNodeData("page-sectioning", `${label}_p1`)).toEqual(prior)
+    after.close()
+  })
+
+  it("keeps healthy saved page reads available when an unrelated quiz record is unreadable", async () => {
+    const sql = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    sql.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", ["quiz-generation", "book", 1, "{broken"])
+    sql.close()
+    const response = await app.request(`/api/books/${label}/pages`)
+    expect(response.status).toBe(200)
+    expect((await response.json()).find((page: { pageId: string }) => page.pageId === `${label}_p1`)).toMatchObject({ hasRendering: true })
+    const verify = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    expect(verify.get("SELECT data FROM node_data WHERE node=? AND item_id=?", ["quiz-generation", "book"])).toMatchObject({ data: "{broken" })
+    verify.close()
+  })
+
   it.each(["storyboard", "rendering"])("rejects a stale %s draft after reset, preserves history, then accepts a fresh save", async endpoint => {
     const pageId = `${label}_p1`
     const storage = createBookStorage(label, tmpDir)
@@ -102,7 +129,7 @@ describe("Page routes", () => {
     try {
       const node = restore?.[1] ?? (page?.[2] === "rendering" ? "web-rendering" : "page-sectioning"), id = restore?.[2] ?? page![1]
       body.baseVersion ??= storage?.getSelectedNodeVersion(node, id) ?? 0
-      if (page?.[2] === "storyboard" && body.rendering) body.renderingBaseVersion ??= storage?.getSelectedNodeVersion("web-rendering", id) ?? 0
+      if ((page?.[2] === "storyboard" && body.rendering) || url.includes("/ai-edit")) body.renderingBaseVersion ??= storage?.getSelectedNodeVersion("web-rendering", id) ?? 0
       if (url.includes("merge-cross-page") && storage) {
         const pages = storage.getPages()
         const index = pages.findIndex((p) => p.pageId === id)
