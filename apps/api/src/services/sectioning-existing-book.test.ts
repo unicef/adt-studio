@@ -170,8 +170,18 @@ it("queues Storyboard behind explicit reset and then permits a targeted rerender
   expect(history("web-rendering", "p7")).toHaveLength(3)
 })
 
-it("configuration edits during generation retain authored Sectioning and the committed reset", async () => {
-  sectionPage.mockImplementationOnce(async ({ pageId }) => { fs.appendFileSync(configPath, "editing_language: fr\n"); return tree(pageId) })
+it.each(["configuration", "book-outline", "image-filtering"])("%s edits during generation retain authored Sectioning and the committed reset", async source => {
+  sectionPage.mockImplementationOnce(async ({ pageId }) => {
+    if (source === "configuration") fs.appendFileSync(configPath, "editing_language: fr\n")
+    else {
+      const s = store()
+      try {
+        if (source === "book-outline") s.putNodeData(source, "book", { entries: [], styleClusters: [], reasoning: "Revised" })
+        else s.putNodeData(source, pageId, { images: [{ imageId: pageId + "_page", isPruned: true }] })
+      } finally { s.close() }
+    }
+    return tree(pageId)
+  })
   const before = history("page-sectioning", "p2")
   expect((await run(await replacement())).status).toBe("failed")
   expect(history("page-sectioning", "p2")).toEqual(before)
@@ -179,7 +189,7 @@ it("configuration edits during generation retain authored Sectioning and the com
   expect(history("web-rendering", "p2")[1].data).toBeNull()
 })
 
-it.each(["global config", "book config", "persisted window", "missing receipt"])("rejects replacement consent after changed %s without altering content", async (change) => {
+it.each(["global config", "book config", "persisted window", "image decision", "outline", "missing receipt"])("rejects replacement consent after changed %s without altering content", async (change) => {
   const consent = await replacement()
   const before = ["p2", "p7"].map(id => [history("page-sectioning", id), history("web-rendering", id)])
   const pixels = fs.readFileSync(path.join(dir, "images/p7_page.png"))
@@ -188,6 +198,13 @@ it.each(["global config", "book config", "persisted window", "missing receipt"])
   // Same extracted page membership: a range change itself invalidates consent.
   if (change === "persisted window") fs.writeFileSync(path.join(dir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: label, title: null,
     range: { startPage: 1, endPage: 10 }, pageCount: 100, fingerprint: {}, identityHash: "i", semanticsHash: "s", createdAt: "now", partLabelSuggestion: "part" }))
+  if (change === "image decision" || change === "outline") {
+    const s = store()
+    try {
+      if (change === "image decision") s.putNodeData("image-filtering", "p2", { images: [{ imageId: "p2_page", isPruned: true }] })
+      else s.putNodeData("book-outline", "book", { entries: [], styleClusters: [], reasoning: "Revised by reviewer" })
+    } finally { s.close() }
+  }
   if (change === "missing receipt") for (const record of consent.protectedReplacements) delete record.sectioningInputSignature
   const response = await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", pageErrorPolicy: "stop", ...consent })
   // Let a wrongly admitted baseline run settle before disposing its real DB.
@@ -266,22 +283,31 @@ it("newly completed source output cannot complete an older partial package", asy
 })
 
 
-it("queued Sectioning revalidates the reviewed configuration before resetting any page", async () => {
+it.each(["configuration", "outline", "image-filtering"])("queued Sectioning revalidates %s before resetting any page", async change => {
   const consent = await replacement()
   const before = ["p2", "p7"].map(id => [history("page-sectioning", id), history("web-rendering", id)])
   const errors: string[] = []
   bus.addListener(label, event => { if (event.type === "stage-run-error") errors.push(event.error) })
   let release!: () => void
-  renderPage.mockImplementationOnce(async ({ sectioning }) => {
+  // Hold the queue without publishing a new HTML version. A successful
+  // predecessor would also invalidate the output guards, masking the intended
+  // source-only change (an outline change does not invalidate Storyboard).
+  renderPage.mockImplementationOnce(async () => {
     await new Promise<void>(resolve => { release = resolve })
-    return { sections: sectioning.sections.map((section: { sectionId: string; sectionType: string }, sectionIndex: number) => ({
-      sectionIndex, sectionType: section.sectionType, reasoning: "fixture", html: `<section data-section-id="${section.sectionId}">New</section>` })) }
+    throw new Error("Controlled predecessor failure")
   })
   expect((await send("stages/run", { fromStage: "storyboard", toStage: "storyboard", pageErrorPolicy: "stop" })).status).toBe(200)
   await vi.waitFor(() => expect(release).toBeDefined())
   const queued = await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", pageErrorPolicy: "stop", ...consent })
   expect(await queued.json()).toMatchObject({ status: "queued" })
-  fs.appendFileSync(configPath, "editing_language: fr\n")
+  if (change === "configuration") fs.appendFileSync(configPath, "editing_language: fr\n")
+  else {
+    const s = store()
+    try {
+      if (change === "outline") s.putNodeData("book-outline", "book", { entries: [], styleClusters: [], reasoning: "Changed while queued" })
+      else s.putNodeData("image-filtering", "p2", { images: [{ imageId: "p2_page", isPruned: true }] })
+    } finally { s.close() }
+  }
   release()
   await vi.waitFor(() => { expect(service.getStatus(label).active?.status).toBe("failed"); expect(service.getStatus(label).queue).toHaveLength(0) }, { timeout: 10_000 })
   expect(errors.some(error => error.includes("REPLACEMENT_CONFIRMATION_INVALID"))).toBe(true)

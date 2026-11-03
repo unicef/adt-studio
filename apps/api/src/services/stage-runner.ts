@@ -1110,8 +1110,9 @@ async function generateAndStoreBookOutline(
   outlineModel: LLMModel,
   progress: StageRunProgress,
   signal?: AbortSignal,
+  commitOutlineChange: (write: () => void) => void = write => write(),
 ): Promise<ReturnType<typeof readBookOutline>> {
-  progress.emit({ type: "step-start", step: "book-outline" })
+  commitOutlineChange(() => progress.emit({ type: "step-start", step: "book-outline" }))
   try {
     if (pages.length === 0) {
       throw new Error("No extracted pages are available for book-outline generation.")
@@ -1129,11 +1130,10 @@ async function generateAndStoreBookOutline(
     })
     const evidence = buildBookOutlineEvidence(evidencePages, readTypeScale(storage))
     const outline = await generateBookOutline(evidence, outlineConfig, outlineModel)
-    storage.putNodeData(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, outline)
-    progress.emit({
-      type: "step-complete",
-      step: "book-outline",
-      message: `${outline.entries.length} headings`,
+    signal?.throwIfAborted()
+    commitOutlineChange(() => {
+      storage.putNodeData(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, outline)
+      progress.emit({ type: "step-complete", step: "book-outline", message: `${outline.entries.length} headings` })
     })
     console.log(`[stage-run] ${label}: book outline complete (${outline.entries.length} headings)`)
     return outline
@@ -1416,7 +1416,13 @@ async function runSectioningStep(
   try {
     const config = loadBookConfig(label, booksDir, configPath)
     const allPages = activeSectioningPages(storage, config, path.join(path.resolve(booksDir), label))
-    const runInputSignature = sectioningReplacementSignature(storage, label, booksDir, configPath)
+    const inputSignature = () => sectioningReplacementSignature(storage, label, booksDir, configPath)
+    let runInputSignature = inputSignature()
+    const assertRunInputs = () => {
+      if (inputSignature() !== runInputSignature) {
+        throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Sectioning inputs changed. The generated result was not saved; retry against current inputs.")
+      }
+    }
     const pages = selectSectioningPages(storage, allPages, options, runInputSignature)
     const unreadable = new Set<string>()
     const previous = new Map(allPages.map((page) => {
@@ -1540,6 +1546,14 @@ async function runSectioningStep(
         outlineModel,
         progress,
         options.signal,
+        write => {
+          // Progress persists through its own connection under the shared writer.
+          // Only our own synchronous outline write may advance the snapshot.
+          // Never adopt another writer's inputs across a provider await.
+          assertRunInputs()
+          write()
+          runInputSignature = inputSignature()
+        },
       )
     }
     const totalPages = pages.length
@@ -1619,9 +1633,7 @@ async function runSectioningStep(
           }
           options.signal?.throwIfAborted()
           const tocRetirement = withSourceGenerationTracking(storage, () => {
-            if (sectioningReplacementSignature(storage, label, booksDir, configPath) !== runInputSignature) {
-              throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Configuration or source pages changed during Sectioning. Previous page output is kept; retry against current inputs.")
-            }
+            assertRunInputs()
             const resetVersions = outputVersions.get(page.pageId)!
             if (storage.getSelectedNodeVersion("web-rendering", page.pageId) !== resetVersions[0]
               || storage.getSelectedNodeVersion("fixed-layout-sectioning", page.pageId) !== resetVersions[1]) {

@@ -196,12 +196,15 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       return { pageId: rows[0].page_id, relativePath: rows[0].path, hash: rows[0].hash, width: rows[0].width, height: rows[0].height }
     },
 
-    getPageImages(pageId: string): ImageData[] {
+    getPageImages(pageId: string, includeStoredAsset = false): ImageData[] {
       const rows = db.all(
-        "SELECT image_id, width, height, render_method, bounds_x, bounds_y, bounds_w, bounds_h FROM images WHERE page_id = ? ORDER BY image_id",
+        "SELECT image_id, width, height, path, hash, source, render_method, bounds_x, bounds_y, bounds_w, bounds_h FROM images WHERE page_id = ? ORDER BY image_id",
         [pageId]
       ) as Array<{
         image_id: string
+        path: string
+        hash: string
+        source: string
         width: number
         height: number
         render_method: string | null
@@ -213,6 +216,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       return rows.map((r) => {
         const image: ImageData = {
           imageId: r.image_id,
+          ...(includeStoredAsset && { storedAsset: { relativePath: r.path, hash: r.hash, source: r.source } }),
           width: r.width,
           height: r.height,
           renderMethod: r.render_method as ImageData["renderMethod"],

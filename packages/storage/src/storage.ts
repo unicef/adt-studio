@@ -9,6 +9,8 @@ export interface PageData {
 }
 
 export interface ImageData {
+  /** Storage identity is requested by admission checks, not exposed in ordinary page reads. */
+  storedAsset?: { relativePath: string; hash: string; source: string }
   imageId: string
   width: number
   height: number
@@ -89,7 +91,7 @@ export interface Storage {
   getImageDimensions(imageId: string): { width: number; height: number } | null
   /** Look up basic metadata for an image: its page id and book-relative path on disk. */
   getImageMeta(imageId: string): { pageId: string; relativePath: string; hash?: string; width?: number; height?: number } | null
-  getPageImages(pageId: string): ImageData[]
+  getPageImages(pageId: string, includeStoredAsset?: boolean): ImageData[]
 
   /** Write a cropped image to disk as {imageId}_crop_v{version}.png and register it in the DB with source="crop". */
   putCroppedImage(input: CroppedImageInput): void

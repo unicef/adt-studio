@@ -11,6 +11,8 @@ import {
   type Storage,
 } from "@adt/storage"
 import { withSourceGenerationTracking } from "./source-generation-state.js"
+import { BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM } from "./book-outline.js"
+import { TYPE_SCALE_NODE, TYPE_SCALE_ITEM } from "./type-scale.js"
 import { loadBookConfig } from "./config.js"
 import { isFixedLayoutBook } from "./fixed-layout-rendering.js"
 import { FIXED_LAYOUT_SECTIONING_NODE } from "./render-sectioning.js"
@@ -18,7 +20,7 @@ import { FIXED_LAYOUT_SECTIONING_NODE } from "./render-sectioning.js"
 export class SectioningSafetyError extends Error {
   readonly status = 409
 
-  constructor(readonly code: "SECTIONING_WINDOW_INVALID" | "SECTIONING_REGENERATION_BLOCKED" | "STORYBOARD_INPUT_CHANGED" | "STORYBOARD_PUBLICATION_INCOMPLETE" | "STORYBOARD_PAGE_INPUT_MISSING", message: string) {
+  constructor(readonly code: "PACKAGE_INPUTS_CHANGED" | "PACKAGE_FILES_INCOMPLETE" | "SECTIONING_WINDOW_INVALID" | "SECTIONING_REGENERATION_BLOCKED" | "STORYBOARD_INPUT_CHANGED" | "STORYBOARD_PUBLICATION_INCOMPLETE" | "STORYBOARD_PAGE_INPUT_MISSING", message: string) {
     super(message.startsWith(`${code}:`) ? message : `${code}: ${message}`)
     this.name = "SectioningSafetyError"
   }
@@ -30,7 +32,7 @@ export const sectioningInvalidationSteps = () => {
   return PIPELINE.filter((stage) => affected.includes(stage.name)).flatMap((stage) => stage.steps.map((step) => step.name))
 }
 
-function requiredPartRange(bookDir: string) {
+export function requiredPartRange(bookDir: string) {
   const partFile = path.join(bookDir, "part.json")
   try { return PartManifest.parse(JSON.parse(fs.readFileSync(partFile, "utf8"))).range }
   catch (error) {
@@ -52,11 +54,21 @@ export function sectioningReplacementSignature(storage: Storage, label: string, 
   const { bookDir } = resolveBookPaths(label, booksRoot)
   const config = loadBookConfig(label, booksRoot, configPath)
   const range = requiredPartRange(bookDir)
+  const outlineStatus = storage.getStepRuns().find(step => step.step === BOOK_OUTLINE_NODE)?.status
   return configHash(JSON.stringify({
     bookDir, config, range,
-    // Preserve the complete extracted metadata snapshot, including page text.
-    // No PDF/image/audio bytes are read for this admission receipt.
-    pages: activeSectioningPages(storage, config, bookDir),
+    outline: storage.getSelectedNodeVersion(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM),
+    outlineReady: outlineStatus === "done" || outlineStatus === "skipped",
+    typeScale: storage.getSelectedNodeVersion(TYPE_SCALE_NODE, TYPE_SCALE_ITEM),
+    metadata: storage.getSelectedNodeVersion("metadata", "book"),
+    // Selected versions distinguish a restore or invalidation from the previous
+    // input. Extraction records bind image identities without opening asset files.
+    pages: activeSectioningPages(storage, config, bookDir).map(page => ({
+      page,
+      imageFiltering: storage.getSelectedNodeVersion("image-filtering", page.pageId),
+      positioned: storage.getSelectedNodeVersion("positioned-text", page.pageId),
+      images: storage.getPageImages(page.pageId, true),
+    })),
   }))
 }
 
