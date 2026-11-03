@@ -83,7 +83,7 @@ export function PluginDockPills({
       data-pipeline-dock={minimized ? "hidden" : "shown"}
       style={{ viewTransitionName: "step-dock" }}
       className={cn(
-        "fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 transition-[translate,opacity] duration-300 ease-out motion-reduce:transition-none",
+        "fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 transition-[translate,opacity] duration-300 ease-out motion-reduce:transition-none [html[data-previewing]_&]:pointer-events-none [html[data-previewing]_&]:translate-y-[calc(100%+1.5rem)] [html[data-previewing]_&]:opacity-0",
         minimized ? "pointer-events-none translate-y-[calc(100%+1.5rem)] opacity-0" : "translate-y-0 opacity-100",
       )}
     >

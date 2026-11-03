@@ -13,6 +13,7 @@ import {
 } from "@/components/app/screens/pipeline/settings/slugs"
 import { isDockSlug } from "./plugins"
 import { skipEntryGateOnce } from "./entryGate"
+import { openPreviewSurface } from "@/components/app/screens/pipeline/preview/surfaces/previewSurface"
 
 export interface PipelineNavigation {
   openWorkspace: () => void
@@ -102,14 +103,10 @@ export function usePipelineNavigation(label: string): PipelineNavigation {
       },
 
       openPreview: (sectionId: string | null) => {
-        void navigate({
-          to: "/pipeline/$label/preview",
-          params: { label },
-          search: sectionId ? { section: sectionId } : {},
-        })
+        openPreviewSurface(router, { sectionId, href: null })
       },
       openPreviewHref: (href: string) => {
-        void navigate({ to: "/pipeline/$label/preview", params: { label }, search: { href } })
+        openPreviewSurface(router, { sectionId: null, href })
       },
 
       openBookInfo: () => {

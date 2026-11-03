@@ -370,3 +370,21 @@ export function subscribePreviewSettings(): () => void {
     for (const unsub of unsubs) unsub()
   }
 }
+
+export function subscribePreviewLocation(): () => void {
+  if (typeof window === "undefined") return () => {}
+  if (window.parent === window) return () => {}
+
+  const post = (): void => {
+    window.parent.postMessage({ type: "adt-runtime/location", href: window.location.href }, "*")
+  }
+
+  post()
+  window.addEventListener("popstate", post)
+  window.addEventListener("hashchange", post)
+
+  return () => {
+    window.removeEventListener("popstate", post)
+    window.removeEventListener("hashchange", post)
+  }
+}

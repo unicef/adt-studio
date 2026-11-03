@@ -14,6 +14,8 @@ import { useDockMinimized } from "@/components/app/screens/pipeline/shared/works
 import { DockHandle } from "./DockHandle"
 import { WorkspaceTopBar } from "./WorkspaceTopBar"
 import { BarLocation, type BarLocationData } from "./bar/BarLocation"
+import { ExportWatcherProvider, useExportWatcherSetup } from "@/hooks/use-export-watcher"
+import { PreviewHost } from "@/components/app/screens/pipeline/preview/surfaces/PreviewHost"
 
 export interface TopBarTone {
   hex: string
@@ -107,14 +109,16 @@ export function TopBar({ tone, left, center, right, location, settings }: TopBar
   }, [setSettings, settingsLabel])
 
 
-  if (!host) return <TopBarShell tone={tone} left={location ? <BarLocation data={location} /> : left} center={center} right={right} />
+  const locationNode = location ? <BarLocation data={location} /> : left
+
+  if (!host) return <TopBarShell tone={tone} left={locationNode} center={center} right={right} />
 
   const fill = (node: ReactNode, target: HTMLElement | null, className: string) =>
     target && node ? createPortal(<div className={cn(className, enterClassName)}>{node}</div>, target) : null
 
   return (
     <>
-      {fill(location ? <BarLocation data={location} /> : left, host.slots.left, leftClassName)}
+      {fill(locationNode, host.slots.left, leftClassName)}
       {fill(center, host.slots.center, centerClassName)}
       {fill(right, host.slots.right, rightClassName)}
     </>
@@ -162,6 +166,7 @@ export function PipelineChrome({ label, children }: { label: string; children: R
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const section = bookSection(pathname)
   const chrome = useChromeRoot(tone.hex)
+  const exportWatcher = useExportWatcherSetup(label)
   const host = useMemo<ChromeHost>(
     () => ({ slots: { left, center, right }, setTone, settings, setSettings }),
     [left, center, right, settings],
@@ -170,11 +175,12 @@ export function PipelineChrome({ label, children }: { label: string; children: R
 
   return (
     <ChromeContext.Provider value={host}>
+    <ExportWatcherProvider value={exportWatcher}>
       <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
         <div {...chrome} className="shrink-0">
           <WorkspaceTopBar label={label} section={section} stage={tone.stage} slotRefs={slotRefs} />
         </div>
-        {section === "preview" || section === "export" || section === "settings" || section === "info" ? (
+        {section === "settings" || section === "info" ? (
           <main id="pipeline-canvas" tabIndex={-1} className="relative min-h-0 flex-1 outline-none">
             {children}
           </main>
@@ -182,7 +188,9 @@ export function PipelineChrome({ label, children }: { label: string; children: R
           <div className="relative min-h-0 flex-1">{children}</div>
         )}
         {section !== "settings" && <PersistentDock label={label} section={section} />}
+        <PreviewHost label={label} />
       </div>
+    </ExportWatcherProvider>
     </ChromeContext.Provider>
   )
 }

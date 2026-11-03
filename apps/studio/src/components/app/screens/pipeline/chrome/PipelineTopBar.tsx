@@ -6,17 +6,15 @@ import { TopBar } from "./PipelineChrome"
 export interface PipelineTopBarProps {
   pageLabel?: string
   version?: number | null
-  versionPicker?: React.ReactNode
   onOpenSettings?: () => void
 }
 
-export function PipelineTopBar({ pageLabel, version, versionPicker, onOpenSettings }: PipelineTopBarProps) {
+export function PipelineTopBar({ pageLabel, version, onOpenSettings }: PipelineTopBarProps) {
   const { t } = useLingui()
   const versionNode =
-    versionPicker ??
-    (version != null ? (
+    version != null ? (
       <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">v{version}</span>
-    ) : undefined)
+    ) : undefined
 
   return (
     <TopBar

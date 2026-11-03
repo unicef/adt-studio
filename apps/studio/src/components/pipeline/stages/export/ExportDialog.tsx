@@ -551,26 +551,21 @@ interface ExportDialogProps {
   error: { format: string; message: string } | null;
 }
 
-export function ExportDialog({
-  open,
-  onOpenChange,
-  selectedFormat,
-  bookLabel,
-  featureToggles,
-  onFeatureToggleChange,
-  languageOrder,
-  onLanguageOrderChange,
-  onConfirmExport,
-  isPreparing,
-  preparingFormat,
-  error,
-}: ExportDialogProps) {
-  const { t } = useLingui();
-  const availableFeatures = useAvailableExportFeatures(bookLabel);
-  const allFeatures = useAllProjectFeatures(bookLabel);
-  const { data: partInfo } = usePartInfo(bookLabel);
-  const formatConfigByType = buildExportFormatConfig(t, { isPart: !!partInfo });
+export interface ExportOptionsBodyProps {
+  selectedFormat: ExportFormat | null;
+  bookLabel: string;
+  featureToggles: ExportFeatureToggles;
+  onFeatureToggleChange: (
+    feature: keyof ExportFeatureToggles,
+    value: boolean,
+  ) => void;
+  languageOrder: string[] | null;
+  onLanguageOrderChange: (langs: string[] | null) => void;
+  isPreparing: boolean;
+  error: { format: string; message: string } | null;
+}
 
+export function useExportLanguages(bookLabel: string): string[] {
   const { data: configData } = useBookConfig(bookLabel);
   const { data: book } = useBook(bookLabel);
   const config = configData?.config as Record<string, unknown> | undefined;
@@ -580,7 +575,7 @@ export function ExportDialog({
       book?.metadata?.language_code ??
       "en",
   );
-  const configLanguages = Array.from(
+  return Array.from(
     new Set(
       [
         baseLanguage,
@@ -590,6 +585,22 @@ export function ExportDialog({
       ],
     ),
   );
+}
+
+export function ExportOptionsBody({
+  selectedFormat,
+  bookLabel,
+  featureToggles,
+  onFeatureToggleChange,
+  languageOrder,
+  onLanguageOrderChange,
+  isPreparing,
+  error,
+}: ExportOptionsBodyProps) {
+  const availableFeatures = useAvailableExportFeatures(bookLabel);
+  const allFeatures = useAllProjectFeatures(bookLabel);
+
+  const configLanguages = useExportLanguages(bookLabel);
 
   const orderedLanguages = languageOrder ?? configLanguages;
   const includedSet = new Set(orderedLanguages);
@@ -614,10 +625,6 @@ export function ExportDialog({
 
   const formatError =
     selectedFormat && error?.format === selectedFormat ? error.message : null;
-  const formatConfig = selectedFormat
-    ? formatConfigByType[selectedFormat]
-    : null;
-  const FormatIcon = formatConfig?.icon;
 
   const accessibilityItems: AccessibilityItem[] = [
     {
@@ -697,50 +704,7 @@ export function ExportDialog({
   ].filter(Boolean).length;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 gap-0 max-w-6xl overflow-hidden sm:rounded-xl">
-        <DialogTitle className="sr-only">
-          <Trans>Export Options</Trans>
-        </DialogTitle>
-        <DialogDescription className="sr-only">
-          <Trans>Configure features to include in the export</Trans>
-        </DialogDescription>
-
-        <div className="grid grid-cols-[1fr_2fr] max-h-[85vh] overflow-hidden">
-          {selectedFormat && (
-            <BookCover
-              bookLabel={bookLabel}
-            />
-          )}
-
-          <div className="flex flex-col min-h-0 bg-white">
-            <div className="px-6 pt-5 pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                {FormatIcon && formatConfig && (
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${formatConfig.bgLight} border ${formatConfig.borderColor}`}
-                  >
-                    <FormatIcon
-                      className={`w-4 h-4 ${formatConfig.textColor}`}
-                    />
-                  </div>
-                )}
-                <div>
-                  <h2 className="text-base font-semibold text-slate-900">
-                    {formatConfig?.label ?? <Trans>Export Options</Trans>}
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    {selectedFormat === "project" ? (
-                      <Trans>Download a full backup of this project</Trans>
-                    ) : (
-                      <Trans>Choose features to include in this export</Trans>
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+    <div className="space-y-5">
               {selectedFormat === "project" && (
                 <div className="space-y-4">
                   <div className="rounded-lg border border-slate-200 overflow-hidden">
@@ -953,6 +917,89 @@ export function ExportDialog({
                   <p className="text-xs leading-tight">{formatError}</p>
                 </div>
               )}
+    </div>
+  );
+}
+
+export function ExportDialog({
+  open,
+  onOpenChange,
+  selectedFormat,
+  bookLabel,
+  featureToggles,
+  onFeatureToggleChange,
+  languageOrder,
+  onLanguageOrderChange,
+  onConfirmExport,
+  isPreparing,
+  preparingFormat,
+  error,
+}: ExportDialogProps) {
+  const { t } = useLingui();
+  const { data: partInfo } = usePartInfo(bookLabel);
+  const formatConfigByType = buildExportFormatConfig(t, { isPart: !!partInfo });
+  const formatError =
+    selectedFormat && error?.format === selectedFormat ? error.message : null;
+  const formatConfig = selectedFormat
+    ? formatConfigByType[selectedFormat]
+    : null;
+  const FormatIcon = formatConfig?.icon;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="p-0 gap-0 max-w-6xl overflow-hidden sm:rounded-xl">
+        <DialogTitle className="sr-only">
+          <Trans>Export Options</Trans>
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          <Trans>Configure features to include in the export</Trans>
+        </DialogDescription>
+
+        <div className="grid grid-cols-[1fr_2fr] max-h-[85vh] overflow-hidden">
+          {selectedFormat && (
+            <BookCover
+              bookLabel={bookLabel}
+            />
+          )}
+
+          <div className="flex flex-col min-h-0 bg-white">
+            <div className="px-6 pt-5 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                {FormatIcon && formatConfig && (
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${formatConfig.bgLight} border ${formatConfig.borderColor}`}
+                  >
+                    <FormatIcon
+                      className={`w-4 h-4 ${formatConfig.textColor}`}
+                    />
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900">
+                    {formatConfig?.label ?? <Trans>Export Options</Trans>}
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    {selectedFormat === "project" ? (
+                      <Trans>Download a full backup of this project</Trans>
+                    ) : (
+                      <Trans>Choose features to include in this export</Trans>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <ExportOptionsBody
+                selectedFormat={selectedFormat}
+                bookLabel={bookLabel}
+                featureToggles={featureToggles}
+                onFeatureToggleChange={onFeatureToggleChange}
+                languageOrder={languageOrder}
+                onLanguageOrderChange={onLanguageOrderChange}
+                isPreparing={isPreparing}
+                error={error}
+              />
             </div>
 
             <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2">

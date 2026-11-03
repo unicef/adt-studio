@@ -1,10 +1,10 @@
-import { useNavigate } from "@tanstack/react-router"
 import type { LucideIcon } from "lucide-react"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { useBookRun } from "@/hooks/use-book-run"
 import { FOUNDATION_SLUGS } from "./dockSlugs"
 import { usePipelineNavigation } from "./usePipelineNavigation"
+import { openExportPopover } from "@/components/app/screens/pipeline/export/surfaces/exportPopover"
 import { STARTED, nextDependent } from "./nextDependent"
 import { usePipelineState } from "./usePipelineState"
 
@@ -25,7 +25,6 @@ function stageVisual(slug: string) {
 export function useNextStep(label: string, slug: string | undefined, options: { partial?: boolean } = {}): NextStep | null {
   const { stageState } = useBookRun()
   const nav = usePipelineNavigation(label)
-  const navigate = useNavigate()
   const { foundations, plugins } = usePipelineState(label)
   if (!label || !slug) return null
 
@@ -38,7 +37,7 @@ export function useNextStep(label: string, slug: string | undefined, options: { 
         : next === "preview"
           ? () => nav.openPreview(null)
           : next === "export"
-            ? () => void navigate({ to: "/pipeline/$label/export", params: { label } })
+            ? () => openExportPopover(label)
             : () => nav.openStep(next)
     return { slug: next, name: getStageLabelI18n(next), hex: visual.hex, icon: visual.icon, open }
   }

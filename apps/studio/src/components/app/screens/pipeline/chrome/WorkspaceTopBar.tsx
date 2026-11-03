@@ -1,5 +1,5 @@
 import { useId } from "react"
-import { Link, useNavigate } from "@tanstack/react-router"
+import { Link, useRouter, useRouterState } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { CirclePlay } from "lucide-react"
 import { useVariant } from "@/components/app/lab/variants"
@@ -15,6 +15,11 @@ import { usePipelineNavigation } from "@/components/app/screens/pipeline/shared/
 import { SkipToCanvas } from "./SkipToCanvas"
 import { BookMenu } from "./bar/BookMenu"
 import { StatusRing } from "./bar/StatusRing"
+import { closePreviewSurface, useOpenPreviewTarget } from "@/components/app/screens/pipeline/preview/surfaces/previewSurface"
+import { useAllPagesPruned } from "@/hooks/use-all-pages-pruned"
+import { ExportLauncher } from "@/components/app/screens/pipeline/export/surfaces/ExportLauncher"
+import { ExportProgressRing } from "@/components/app/screens/pipeline/export/surfaces/ExportProgressRing"
+import { previewSectionId } from "@/components/app/screens/pipeline/shared/previewTarget"
 import { usePipelineState } from "@/components/app/screens/pipeline/shared/usePipelineState"
 import { useStoryboardStaleness } from "@/components/app/screens/pipeline/runs/useStoryboardStaleness"
 
@@ -27,24 +32,41 @@ export interface WorkspaceTopBarProps {
   slotRefs: { left: SlotRef; center: SlotRef; right: SlotRef }
 }
 
+const EXPORT_BUTTON = cn(
+  "flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-(--bar-solid) px-3.5 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.18),0_6px_16px_-6px_var(--bar-glow)] ring-1 ring-white/15 ring-inset transition-[background-color,color,box-shadow,scale,opacity] duration-300 ease-out hover:bg-(--bar-solid-hover) hover:shadow-[0_1px_2px_rgba(0,0,0,0.18),0_8px_20px_-6px_var(--bar-glow)] active:scale-[0.97] aria-disabled:cursor-default aria-disabled:opacity-45 aria-disabled:shadow-none aria-disabled:hover:bg-(--bar-solid) aria-disabled:active:scale-100 aria-[current=page]:ring-2 aria-[current=page]:ring-(--bar-glow) aria-[current=page]:ring-offset-2 aria-[current=page]:ring-offset-card motion-reduce:transition-none motion-reduce:active:scale-100",
+  "dark:bg-(--bar-solid-dark) dark:text-neutral-950 dark:ring-black/10 dark:hover:bg-(--bar-solid-dark-hover) dark:aria-disabled:hover:bg-(--bar-solid-dark)",
+)
+
 export function WorkspaceTopBar({ label, section, stage, slotRefs }: WorkspaceTopBarProps) {
   const { t } = useLingui()
   const logoSrc = useAppLogo()
   const entryVariant = useVariant("entry")
   const nav = usePipelineNavigation(label)
-  const navigate = useNavigate()
-  const { stageState } = useBookRun()
+  const { stageState, isStatusLoading } = useBookRun()
+  const { allPruned } = useAllPagesPruned(label)
   const { data: books } = useBooks()
   const title = books?.find((candidate) => candidate.label === label)?.title || label
-  const previewReady = stageState("storyboard") === "done"
+  const previewReady = stageState("storyboard") === "done" && !allPruned
   const waitId = useId()
-  const onPreview = section === "preview"
-  const onExport = section === "export"
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
   const { pages } = usePipelineState(label)
   const stale = useStoryboardStaleness(label, pages).isStale
-  const waitText = stale
-    ? t`Some pages are out of date. Rebuild them from the storyboard first.`
-    : t`Available once all pages are built`
+  const waitText = allPruned
+    ? t`Every page is pruned, so there is nothing to show yet.`
+    : stale
+      ? t`Some pages are out of date. Rebuild them from the storyboard first.`
+      : t`Available once all pages are built`
+  const currentPageId = pathname.match(/\/pages\/([^/]+)/)?.[1] ?? null
+  const router = useRouter()
+  const previewOpen = !!useOpenPreviewTarget()
+  const openPreview = () => {
+    if (previewOpen) {
+      closePreviewSurface(router)
+      return
+    }
+    const page = pages.find((candidate) => candidate.pageId === currentPageId)
+    nav.openPreview(previewSectionId(page?.sections, null))
+  }
 
   return (
     <header
@@ -79,21 +101,22 @@ export function WorkspaceTopBar({ label, section, stage, slotRefs }: WorkspaceTo
           ref={slotRefs.right}
           className="flex items-center gap-1.5 whitespace-nowrap has-[*]:after:ml-1.5 has-[*]:after:h-5 has-[*]:after:w-px has-[*]:after:bg-border has-[*]:after:content-['']"
         />
+        <ExportProgressRing label={label} />
         <StatusRing label={label} />
         <button
           type="button"
           onClick={() => {
-            if (previewReady && !onPreview) nav.openPreview(null)
+            if (previewReady) openPreview()
           }}
-          aria-current={onPreview ? "page" : undefined}
+          aria-pressed={previewOpen}
           aria-label={t`Preview the book`}
-          aria-disabled={(!previewReady && !onPreview) || undefined}
+          aria-disabled={!previewReady || undefined}
           aria-describedby={previewReady ? undefined : waitId}
           title={previewReady ? t`Preview the book` : waitText}
           className={cn(
             "flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-(--bar-tint) pl-2 pr-3 text-[13px] font-semibold text-(--bar-ink) ring-1 ring-(--bar-line) ring-inset transition-[background-color,color,box-shadow,scale,opacity] duration-300 ease-out hover:bg-(--bar-tint-hover) active:scale-[0.97] aria-disabled:cursor-default aria-disabled:opacity-45 aria-disabled:hover:bg-(--bar-tint) aria-disabled:active:scale-100 max-lg:px-2 motion-reduce:transition-none motion-reduce:active:scale-100",
             "dark:bg-(--bar-tint-dark) dark:text-(--bar-ink-dark) dark:hover:bg-(--bar-tint-dark-hover) dark:aria-disabled:hover:bg-(--bar-tint-dark)",
-            onPreview && "ring-2 ring-(--bar-glow)",
+            previewOpen && "bg-(--bar-solid)! text-white! hover:bg-(--bar-solid-hover)! dark:bg-(--bar-solid-dark)! dark:text-neutral-950!",
           )}
         >
           <CirclePlay className="size-[18px]" strokeWidth={2} />
@@ -101,22 +124,14 @@ export function WorkspaceTopBar({ label, section, stage, slotRefs }: WorkspaceTo
             <Trans>Preview</Trans>
           </span>
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (previewReady && !onExport) void navigate({ to: "/pipeline/$label/export", params: { label } })
-          }}
-          aria-disabled={!previewReady || undefined}
-          aria-current={onExport ? "page" : undefined}
-          aria-describedby={previewReady ? undefined : waitId}
-          aria-label={t`Export the book`}
-          className={cn(
-            "flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-(--bar-solid) px-3.5 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.18),0_6px_16px_-6px_var(--bar-glow)] ring-1 ring-white/15 ring-inset transition-[background-color,color,box-shadow,scale,opacity] duration-300 ease-out hover:bg-(--bar-solid-hover) hover:shadow-[0_1px_2px_rgba(0,0,0,0.18),0_8px_20px_-6px_var(--bar-glow)] active:scale-[0.97] aria-disabled:cursor-default aria-disabled:opacity-45 aria-disabled:shadow-none aria-disabled:hover:bg-(--bar-solid) aria-disabled:active:scale-100 aria-[current=page]:ring-2 aria-[current=page]:ring-(--bar-glow) aria-[current=page]:ring-offset-2 aria-[current=page]:ring-offset-card motion-reduce:transition-none motion-reduce:active:scale-100",
-            "dark:bg-(--bar-solid-dark) dark:text-neutral-950 dark:ring-black/10 dark:hover:bg-(--bar-solid-dark-hover) dark:aria-disabled:hover:bg-(--bar-solid-dark)",
-          )}
-        >
-          <Trans>Export</Trans>
-        </button>
+        <ExportLauncher
+          key={label}
+          label={label}
+          ready={previewReady}
+          settled={!isStatusLoading}
+          describedBy={previewReady ? undefined : waitId}
+          className={EXPORT_BUTTON}
+        />
         {!previewReady && (
           <span id={waitId} className="sr-only">
             {waitText}

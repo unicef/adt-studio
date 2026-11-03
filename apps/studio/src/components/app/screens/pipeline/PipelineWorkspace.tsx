@@ -58,6 +58,10 @@ export interface PipelineWorkspaceProps {
   onOpenSettings: (slug: string) => void
 }
 
+const CANVAS_VERSION_TRIGGER = cn(
+  "h-8! gap-1! rounded-lg! border bg-card/85 px-2.5! text-[12px]! font-medium! text-foreground/75 shadow-sm backdrop-blur-sm hover:bg-muted hover:text-foreground",
+)
+
 export function PipelineWorkspace({
   label,
   state,
@@ -155,6 +159,7 @@ export function PipelineWorkspace({
         label={label}
         page={activePage}
         viewport={viewport}
+        triggerClassName={CANVAS_VERSION_TRIGGER}
       />
     ) : undefined
   const quizVersion = empty || !activeQuiz ? null : quizzesQuery.data?.version ?? null
@@ -170,7 +175,6 @@ export function PipelineWorkspace({
               : undefined
       }
       version={quizVersion}
-      versionPicker={versionPicker}
       onOpenSettings={() => onOpenSettings("storyboard")}
     />
   )
@@ -282,7 +286,14 @@ export function PipelineWorkspace({
                   onZoomChange={setZoom}
                   chromeHidden={chromeHidden}
                   onToggleChrome={() => setChromeHidden((hidden) => !hidden)}
-                  tools={activeQuiz ? undefined : <StoryboardTools />}
+                  tools={
+                    activeQuiz ? undefined : (
+                      <>
+                        <StoryboardTools />
+                        {versionPicker}
+                      </>
+                    )
+                  }
                 />
               </>
             )

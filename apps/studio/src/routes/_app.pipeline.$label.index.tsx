@@ -37,6 +37,8 @@ export const Route = createFileRoute("/_app/pipeline/$label/")({
     throw redirect({
       to: "/pipeline/$label/pages/$pageId",
       params: { label: params.label, pageId },
+      search: ((previous: Record<string, unknown>) =>
+        typeof previous.preview === "string" ? { preview: previous.preview } : {}) as never,
       replace: true,
     })
   },

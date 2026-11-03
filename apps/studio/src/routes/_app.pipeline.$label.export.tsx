@@ -1,19 +1,9 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router"
-import { ExportScreen } from "@/components/app/screens/pipeline/export/ExportScreen"
-import { usePipelineNavigation } from "@/components/app/screens/pipeline/shared/usePipelineNavigation"
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { openExportPopover } from "@/components/app/screens/pipeline/export/surfaces/exportPopover"
 
 export const Route = createFileRoute("/_app/pipeline/$label/export")({
-  component: ExportRoute,
+  beforeLoad: ({ params }) => {
+    openExportPopover(params.label)
+    throw redirect({ to: "/pipeline/$label", params: { label: params.label }, replace: true })
+  },
 })
-
-function ExportRoute() {
-  const { label } = Route.useParams()
-  const router = useRouter()
-  const nav = usePipelineNavigation(label)
-  return (
-    <ExportScreen
-      label={label}
-      onBack={() => (router.history.canGoBack() ? router.history.back() : nav.openWorkspace())}
-    />
-  )
-}

@@ -9,6 +9,7 @@ import {
   bootRuntime,
   subscribeLanguageChanges,
   subscribePreviewSettings,
+  subscribePreviewLocation,
 } from "@/app/lifecycle"
 import { describeInitError, showErrorToast, showMainContent } from "@/shared/lib/errors"
 
@@ -70,9 +71,11 @@ function mount(): void {
     .then(() => {
       const unsubLanguage = subscribeLanguageChanges()
       const unsubPreview = subscribePreviewSettings()
+      const unsubLocation = subscribePreviewLocation()
       window.__adtRuntime!.unsubscribe = () => {
         unsubLanguage()
         unsubPreview()
+        unsubLocation()
       }
     })
     .catch((err) => {

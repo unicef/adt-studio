@@ -1,8 +1,7 @@
 import type { ReactNode } from "react"
 import { useLingui } from "@lingui/react/macro"
-import type { LucideIcon } from "lucide-react"
+import { ChevronRight, type LucideIcon } from "lucide-react"
 import { NO_DRAG_REGION } from "@/constants"
-import { cn } from "@/lib/utils"
 
 export interface BarLocationData {
   icon: LucideIcon
@@ -32,36 +31,32 @@ function AreaName({ data }: { data: BarLocationData }) {
 export function BarLocation({ data }: { data: BarLocationData }) {
   const { t } = useLingui()
   const Icon = data.icon
-  const hasSecond = data.item || data.version || data.note
 
   return (
     <nav
       aria-label={t`Location`}
-      className="flex min-w-0 flex-col items-center gap-0.5 leading-tight animate-in fade-in duration-200 motion-reduce:animate-none"
+      className="flex min-w-0 items-center gap-2.5 leading-5 animate-in fade-in duration-200 motion-reduce:animate-none"
     >
-      <span className="flex items-center gap-1.5">
+      <span className="flex min-w-0 items-center gap-1.5">
         <span className="grid size-5 shrink-0 place-items-center rounded-full text-white" style={{ background: data.hex }}>
           <Icon className="size-3" strokeWidth={2.4} />
         </span>
         <AreaName data={data} />
+        {data.item && (
+          <>
+            <ChevronRight aria-hidden className="size-3.5 shrink-0 text-muted-foreground/60" />
+            <span className="truncate text-[13px] font-medium text-foreground/75">{data.item}</span>
+          </>
+        )}
       </span>
-      {hasSecond && (
-        <span
-          className={cn(
-            "flex min-w-0 items-center justify-center gap-1 text-[11.5px] text-muted-foreground",
-            data.item
-              ? "[&_button]:h-5! [&_button]:text-[11px]!"
-              : "[&_button]:h-6! [&_button]:gap-1! [&_button]:rounded-md! [&_button]:px-2! [&_button]:text-[12px]! [&_button]:font-medium!",
-          )}
-        >
-          {data.item && <span className="truncate">{data.item}</span>}
-          {data.item && data.version && <span aria-hidden className="text-muted-foreground/50">·</span>}
+      {(data.version || data.note) && (
+        <span className="flex shrink-0 items-center gap-1.5 text-[12px] text-muted-foreground [&_button]:h-6! [&_button]:gap-1! [&_button]:rounded-md! [&_button]:px-1.5! [&_button]:text-[11.5px]!">
           {data.version && (
             <span style={NO_DRAG_REGION} className="flex shrink-0 items-center">
               {data.version}
             </span>
           )}
-          {data.note && <span className="whitespace-nowrap">{data.note}</span>}
+          {data.note && <span className="flex items-center gap-1 whitespace-nowrap">{data.note}</span>}
         </span>
       )}
     </nav>

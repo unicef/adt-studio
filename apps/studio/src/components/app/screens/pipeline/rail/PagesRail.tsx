@@ -99,6 +99,8 @@ export function PagesRail({
     estimateSize: (index) =>
       items[index]?.type === "quiz" ? QUIZ_ROW_ESTIMATE : PAGE_ROW_ESTIMATE,
     overscan: 8,
+    scrollPaddingStart: 24,
+    scrollPaddingEnd: 24,
   })
 
   useEffect(() => {

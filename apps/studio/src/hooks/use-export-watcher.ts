@@ -31,6 +31,7 @@ export interface ExportWatcherValue {
   isPreparing: boolean
   preparingFormat: ExportFormat | null
   error: ExportError | null
+  retry: () => void
 }
 
 const ExportWatcherCtx = createContext<ExportWatcherValue | null>(null)
@@ -47,7 +48,19 @@ export function useExportWatcherSetup(label: string): ExportWatcherValue {
   const [pendingExport, setPendingExport] = useState<PendingExport | null>(null)
   const [downloadingFormat, setDownloadingFormat] = useState<ExportFormat | null>(null)
   const [error, setError] = useState<ExportError | null>(null)
+  const [lastRequest, setLastRequest] = useState<{
+    format: ExportFormat
+    features?: ExportFeatureToggles
+    defaultSettings?: CapturedSettings
+  } | null>(null)
   const { getTask } = useBookTasks(label)
+
+  useEffect(() => {
+    setPendingExport(null)
+    setDownloadingFormat(null)
+    setError(null)
+    setLastRequest(null)
+  }, [label])
 
   const runDownload = (format: ExportFormat) => {
     setDownloadingFormat(format)
@@ -116,7 +129,13 @@ export function useExportWatcherSetup(label: string): ExportWatcherValue {
       format: ExportFormat,
       features?: ExportFeatureToggles,
       defaultSettings?: CapturedSettings,
-    ) => prepareMutation.mutate({ format, features, defaultSettings }),
+    ) => {
+      setLastRequest({ format, features, defaultSettings })
+      prepareMutation.mutate({ format, features, defaultSettings })
+    },
+    retry: () => {
+      if (lastRequest) prepareMutation.mutate(lastRequest)
+    },
     isPreparing:
       prepareMutation.isPending || pendingExport !== null || downloadingFormat !== null,
     preparingFormat,
