@@ -86,7 +86,14 @@ function withDatabase<T>(dbPath: string, write: boolean, operation: (db: sqlite.
     const db = openBookDb(dbPath)
     try {
       db.exec(write ? "BEGIN IMMEDIATE" : "BEGIN DEFERRED")
-      try { const result = operation(db); db.exec("COMMIT"); return result }
+      try {
+        // Requests and audit reads touch evidence tables before inspection.
+        // Diagnose lost schema first, including idempotent receipt lookups.
+        assertHistoryEvidence(db)
+        const result = operation(db)
+        db.exec("COMMIT")
+        return result
+      }
       catch (error) { db.exec("ROLLBACK"); throw error }
     } finally { db.close() }
   }

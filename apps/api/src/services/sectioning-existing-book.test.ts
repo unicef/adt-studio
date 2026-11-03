@@ -299,6 +299,25 @@ it("lost recovery tracking retains usable HTTP reads but refuses reset before pr
   expect(rawHistoryState()).toEqual(before)
 })
 
+it.each(["history_recovery_requests", "history_recovery_audit", "history_repair_permits"])("recovery endpoints diagnose missing %s before querying damaged evidence", async table => {
+  const state = await (await app.request(`/books/${label}/history-recovery`)).json()
+  const before = rawHistoryState()
+  const db = openBookDb(path.join(dir, `${label}.db`))
+  try { db.exec(`DROP TABLE ${table}`) } finally { db.close() }
+  const body = { snapshot: state.snapshot, requestId: randomUUID(), confirmed: true }
+  const results = [
+    await app.request(`/books/${label}/history-recovery`),
+    await send("history-recovery/checkpoint", body),
+    await send("history-recovery/repair", { ...body, records: [{ node: "page-sectioning", itemId: "p2", version: 1, beforeHash: "0".repeat(64), witnessHash: "0".repeat(64) }] }),
+    await app.request(`/books/${label}/history-recovery/audit/${body.requestId}`),
+  ]
+  for (const response of results) {
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ code: "HISTORY_REPAIR_REQUIRED" })
+  }
+  expect(rawHistoryState()).toEqual(before)
+})
+
 // Original AC-18/19 mode gates and retained-current HTML were superseded by
 // the authorized October review. These cases exercise their revised outcomes.
 it.each(["reflowable", "fixed", "reflowable-part", "fixed-part"].flatMap((layout) => ["page", "dynamic"].map((mode) => ({ layout, mode }))))("mode preference, missing-only run, explicit reset and publication through HTTP: $layout → $mode", async ({ layout, mode }) => {
