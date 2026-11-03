@@ -1,4 +1,5 @@
 import { storyboardPackageComplete } from "./storyboard-package-coverage.js"
+import { isCorruptBookDatabase } from "@adt/storage"
 import fs from "node:fs"
 import path from "node:path"
 import yaml from "js-yaml"
@@ -199,10 +200,11 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
           db.close()
         }
       } catch (err) {
-        if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof BookConfigError) {
+        if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof BookConfigError || isCorruptBookDatabase(err)) {
           // Keep the card and unrelated books accessible without inventing a
           // database snapshot or offering a rebuild for temporary exclusion.
           readUnavailable = true
+          completedStages = []
         } else if (isRecoverableDbError(err)) {
           needsRebuild = true
           rebuildReason = err.message.includes("locked")

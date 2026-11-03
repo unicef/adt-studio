@@ -3,6 +3,14 @@ import path from "node:path"
 import sqlite from "node-sqlite3-wasm"
 import { retainBookDatabase } from "./book-writer.js"
 
+/** The WASM driver exposes the SQLite error class but no numeric result code.
+ * Limit corruption isolation to its two corruption diagnostics. Programming,
+ * admission and global filesystem errors must still propagate. */
+export function isCorruptBookDatabase(error: unknown): boolean {
+  return error instanceof sqlite.SQLite3Error &&
+    /^(?:file is not a database|database disk image is malformed)$/.test(error.message)
+}
+
 /** The single SQLite constructor boundary. Keep the shared process lease until
  * the connection and all statements are actually closed; close_v2 alone may
  * defer destruction while an unfinalized statement still uses the database. */

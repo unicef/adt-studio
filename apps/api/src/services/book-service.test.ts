@@ -89,6 +89,21 @@ function createTestPdf(label: string): void {
   )
 }
 
+it("isolates a corrupt database, preserves its bytes and healthy books, and recovers after repair", () => {
+  for (const label of ["bad", "good"]) { createTestDb(label); addTestPages(label, 2) }
+  const db = path.join(tmpDir, "bad/bad.db")
+  const original = fs.readFileSync(db)
+  const healthy = listBooks(tmpDir).find(book => book.label === "good")!
+  const truncated = original.subarray(0, 15)
+  fs.writeFileSync(db, truncated)
+  expect(listBooks(tmpDir).find(book => book.label === "bad")).toMatchObject({ readUnavailable: true, needsRebuild: false, completedStages: [] })
+  expect(listBooks(tmpDir).find(book => book.label === "good")).toEqual(healthy)
+  expect(fs.readFileSync(db)).toEqual(truncated)
+  fs.writeFileSync(db, original)
+  expect(listBooks(tmpDir).find(book => book.label === "bad")).toMatchObject({ pageCount: 2, needsRebuild: false })
+  expect(listBooks(tmpDir).find(book => book.label === "bad")?.readUnavailable).toBeUndefined()
+})
+
 function addTestRenderings(label: string, count: number): void {
   const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
   for (let i = 1; i <= count; i++) {
