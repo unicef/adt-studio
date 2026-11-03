@@ -20,7 +20,9 @@ export async function refreshRunStatus(client: QueryClient, label: string, publi
   // An accepted/terminal run can precede the first status response. An empty
   // receipt list distinguishes that case from merely opening an idle book.
   if (publicationExpected && client.getQueryData(receipts) === undefined) client.setQueryData(receipts, [])
-  const filter = { queryKey: ["books", label, "step-status"] }
+  // Refresh the shared status view without cancelling request-owned protection
+  // reads beneath this prefix. Deliberate prefix/book cancellation still works.
+  const filter = { queryKey: ["books", label, "step-status"], exact: true }
   await client.cancelQueries(filter)
   await client.invalidateQueries(filter)
 }

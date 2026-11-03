@@ -91,3 +91,42 @@ and passes with unchanged raw/history records. Its before/after receipts are
 `recheck-counterexamples-null-id-before.json` and
 `recheck-counterexamples-after-null-id.json`. The intermediate `8d0e52bf`
 full-suite attempt was stopped and is not final acceptance evidence.
+
+## Final audit additions after the independent runtime checkpoint
+
+At `24fdaa82`, the complete branch passed 501 files / 6,375 tests (16 Linux-only
+skips); the independent bounded runtime recheck separately verified 382 selected
+cases and 24 additional real filesystem/SQLite/Hono checks. These are exact
+checkpoint results, not a claim that later changes were tested at that head.
+
+The final diff audit identified a remaining R4/RAC-16 gap in the new HTML save
+validation branches: malformed requests returned raw English, and AI validation
+incorrectly blamed versions even when the instruction was empty. The reviewer
+confirmed this narrow finding. All three schemas now return HTTP 400 with the
+stable `STORYBOARD_REQUEST_INVALID` code, translated through the existing shared
+mapper in all five locales. Stale writes remain HTTP 409. Four actual route
+regressions failed before the correction and pass afterward with unchanged
+history and no task submission; mapper regression and strict compilation pass.
+
+The first public acceptance replay also exposed a fail-closed liveness defect:
+a background canonical status fetch could be deduplicated into an explicit
+protection read, bypassing that read's completion callback. The second Sectioning
+confirmation then falsely reported inability to verify content after HTTP 200.
+The independent reviewer confirmed the mechanism. Explicit protection reads now
+use unique transient query keys under the same book/status prefix; ordinary
+status refreshes target the canonical key exactly. Aborted reads and changed
+book/stage scopes still cannot authorize work, deliberate prefix cancellation
+still works, and each temporary query is removed. The new real-QueryClient
+regression failed before correction; 62 focused UI cases pass, including cancelled
+fresh reads, warm-cache controls, frozen consent and cross-book/ABA protection.
+
+Earlier replay evidence is preserved, including harness limitations: completed
+stage service runs return `idle` (tasks return `completed`); invalid-first live
+By Page generation yields actual transport counts 2/1/0 because the feedback retry
+has different inputs from the next ordinary request. Text-only fixed fixtures
+must explicitly classify extracted images as pruned; an empty classification
+array is not a prune decision. A Node-hosted test API must not claim Electron's
+utility-process screenshot environment. None of these corrections weakens a
+product assertion or certifies missing input. The final run uses fresh private
+fixtures under `.local-docs/spec0003-round3-final-20261103`; kept real illustrations
+remain separately exercised by the representative PDF probe.

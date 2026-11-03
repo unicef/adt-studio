@@ -3,6 +3,7 @@ import React from "react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { refreshRunStatus } from "./run-query-invalidation"
 
 const state = vi.hoisted(() => ({
   config: { config: {} }, active: { merged: {} }, save: vi.fn(), queue: vi.fn(), navigate: vi.fn(), proceed: vi.fn(), reset: vi.fn(),
@@ -125,6 +126,30 @@ it("a cancelled fresh protection read cannot use cached empty protection to run"
   expect(state.queue).not.toHaveBeenCalled()
   await open(); await confirm()
   await waitFor(() => expect(state.queue).toHaveBeenCalledTimes(1))
+})
+it("a background status fetch cannot replace or cancel the fresh protection read", async () => {
+  await mount("sectioning")
+  const background = deferred<never>(), fresh = deferred<never>()
+  vi.mocked(api.getStepStatus).mockReturnValueOnce(fresh.promise)
+  let backgroundRead!: Promise<unknown>
+  act(() => {
+    // Start between the last enabled render and its click handler: a real
+    // QueryClient deduplicates calls under the same canonical status key.
+    backgroundRead = client.fetchQuery({ queryKey: ["books", "a", "step-status"], staleTime: 0, queryFn: () => background.promise })
+    fireEvent.click(screen.getByRole("button", { name: "Save & Re-run" }))
+  })
+  await waitFor(() => expect(api.getStepStatus).toHaveBeenCalledTimes(2))
+  await act(async () => { background.resolve({ protectedWork: [record("sectioning", 4)] } as never); await backgroundRead })
+  expect(screen.queryByRole("dialog")).toBeNull()
+  expect(state.save).not.toHaveBeenCalled(); expect(state.queue).not.toHaveBeenCalled()
+  await act(async () => refreshRunStatus(client, "a", false))
+  await act(async () => fresh.resolve({ protectedWork: [record("sectioning", 11)] } as never))
+  const dialog = await screen.findByRole("dialog")
+  expect(dialog.textContent).toContain("Sectioning v11")
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false)
+  expect(client.getQueryCache().findAll({ queryKey: ["books", "a", "step-status"] })).toHaveLength(1)
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
+  expect(state.save).not.toHaveBeenCalled(); expect(state.queue).not.toHaveBeenCalled()
 })
 it.each(["toc", "sectioning"] as const)("%s Save alone does not request consent or call generation", async stage => {
   await mount(stage)

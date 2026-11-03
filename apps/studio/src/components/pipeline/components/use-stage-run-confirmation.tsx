@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { StageName } from "@adt/types"
@@ -23,6 +23,8 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const instanceId = useId()
+  const protectionRead = useRef(0)
   const protectedStage = stage === "sectioning" || stage === "toc"
   const status = useQuery({
     queryKey: ["books", bookLabel, "step-status"],
@@ -67,18 +69,25 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
     // Only this request's completed, non-aborted read can define consent;
     // cancelled/deduplicated queries cannot authorize warm cached records.
     let completed: { data: Awaited<ReturnType<typeof api.getStepStatus>>; signal: AbortSignal } | undefined
-    await queryClient.fetchQuery({
-      queryKey: ["books", bookLabel, "step-status"], staleTime: 0,
-      queryFn: async ({ signal }) => {
-        const data = await api.getStepStatus(bookLabel)
-        completed = { data, signal }
-        return data
-      },
-    })
-    if (!completed || completed.signal.aborted) throw new Error(t`Saved content could not be verified. Try again.`)
-    return (completed.data.protectedWork ?? [])
-      .filter(record => record.node === (stage === "toc" ? "toc-generation" : "page-sectioning"))
-      .map(record => ({ ...record }))
+    const queryKey = ["books", bookLabel, "step-status", "confirmation", stage, instanceId, ++protectionRead.current]
+    try {
+      // Background status reads may already be running. A request-owned key
+      // guarantees this explicit action gets its own fresh, cancellable read.
+      await queryClient.fetchQuery({
+        queryKey, staleTime: 0, gcTime: 0,
+        queryFn: async ({ signal }) => {
+          const data = await api.getStepStatus(bookLabel)
+          completed = { data, signal }
+          return data
+        },
+      })
+      if (!completed || completed.signal.aborted) throw new Error(t`Saved content could not be verified. Try again.`)
+      return (completed.data.protectedWork ?? [])
+        .filter(record => record.node === (stage === "toc" ? "toc-generation" : "page-sectioning"))
+        .map(record => ({ ...record }))
+    } finally {
+      queryClient.removeQueries({ queryKey, exact: true })
+    }
   }
   const confirm = (work: ProtectedWork, settingsSaved = false): Promise<RunConsent | null> => new Promise(resolve => {
     pending.current = { scope, resolve }
