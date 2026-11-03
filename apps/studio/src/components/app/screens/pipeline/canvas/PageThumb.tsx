@@ -17,6 +17,9 @@ export interface PageThumbProps {
   className?: string
   style?: CSSProperties
   fit?: "cover" | "contain"
+  source?: "rendering" | "page" | "layered"
+  viewport?: "mobile" | "desktop"
+  shotWidth?: number
 }
 
 function useInView<T extends Element>(rootMargin = "200px") {
@@ -49,18 +52,57 @@ export function PageThumb({
   className,
   style,
   fit = "cover",
+  source = "rendering",
+  viewport = "mobile",
+  shotWidth,
 }: PageThumbProps) {
   const contentLoaders = useVariant("loaders") === "content"
   const [ref, inView] = useInView<HTMLDivElement>(contentLoaders ? "800px" : "200px")
+  const pageImage = source === "page"
+  const layered = source === "layered"
+  const [baseSettled, setBaseSettled] = useState(false)
   const screenshot = useSectionScreenshot(label, pageId, sectionIndex, {
-    viewport: "mobile",
+    viewport,
     cacheKey,
-    enabled: inView && !pruned,
+    width: shotWidth,
+    enabled: inView && !pruned && !pageImage && (!layered || (baseSettled && !pending)),
   })
-  const needsPdf = sectionIndex == null || pruned === true || pending === true || screenshot.isError
+  const needsPdf = pageImage || sectionIndex == null || pruned === true || pending === true || screenshot.isError
   const awaitingShot = contentLoaders && !needsPdf && !screenshot.data
   const renderedWidth = useRenderedWidth(ref, inView, fit)
   const showPdf = inView && renderedWidth > 0 && (needsPdf || awaitingShot)
+
+  if (layered) {
+    const shot = !pruned && !pending && sectionIndex != null ? screenshot.data : undefined
+    return (
+      <div ref={ref} className={cn("relative shrink-0 overflow-hidden rounded-[5px] border bg-muted", className)} style={style}>
+        {inView && renderedWidth > 0 ? (
+          <PageThumbnailImage
+            label={label}
+            pageId={pageId}
+            cssWidth={renderedWidth}
+            dimmed={!!pending}
+            onSettled={() => setBaseSettled(true)}
+            className={cn("absolute inset-0 size-full object-contain object-center", pruned && "grayscale")}
+          />
+        ) : (
+          <ThumbSkeleton className="absolute inset-0" />
+        )}
+        {shot && (
+          <img
+            src={shot.src}
+            alt=""
+            className="absolute inset-0 size-full bg-white object-cover object-top animate-in fade-in-0 duration-300 motion-reduce:animate-none"
+          />
+        )}
+        {pending && (
+          <div className="absolute inset-0 grid place-items-center bg-black/30">
+            <Loader2 className="size-4 animate-spin text-white" />
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -84,7 +126,7 @@ export function PageThumb({
             label={label}
             pageId={pageId}
             cssWidth={renderedWidth}
-            dimmed={awaitingShot || !(contentLoaders && !pending && !pruned)}
+            dimmed={pageImage ? !!pending : awaitingShot || !(contentLoaders && !pending && !pruned)}
             className={cn(
               "relative size-full object-center",
               fit === "contain" ? "bg-muted object-contain" : "object-cover",

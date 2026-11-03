@@ -76,11 +76,12 @@ export function getSectionScreenshotUrl(
   label: string,
   pageId: string,
   sectionIndex: number,
-  options?: { viewport?: "desktop" | "tablet" | "mobile"; cacheKey?: string | number | null },
+  options?: { viewport?: "desktop" | "tablet" | "mobile"; cacheKey?: string | number | null; width?: number },
 ): string {
   const base = `${BASE_URL}/books/${label}/pages/${pageId}/sections/${sectionIndex}/screenshot`
   const params = new URLSearchParams()
   if (options?.viewport) params.set("viewport", options.viewport)
+  if (options?.width) params.set("width", String(options.width))
   if (options?.cacheKey != null) params.set("v", String(options.cacheKey))
   const qs = params.toString()
   return qs ? `${base}?${qs}` : base

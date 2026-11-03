@@ -11,6 +11,7 @@ export function PageThumbnailImage({
   dimmed = false,
   className,
   style,
+  onSettled,
 }: {
   label: string
   pageId: string
@@ -19,6 +20,7 @@ export function PageThumbnailImage({
   dimmed?: boolean
   className?: string
   style?: CSSProperties
+  onSettled?: () => void
 }) {
   const { src, srcSet } = pageThumbnailSources(label, pageId, cssWidth)
   const [state, setState] = useState<{ src: string; status: "loading" | "loaded" | "failed" }>({ src, status: "loading" })
@@ -41,8 +43,12 @@ export function PageThumbnailImage({
       onLoad={(event) => {
         rememberLoadedThumbnail(label, pageId, event.currentTarget.currentSrc || src)
         setState({ src, status: "loaded" })
+        onSettled?.()
       }}
-      onError={() => setState({ src, status: "failed" })}
+      onError={() => {
+        setState({ src, status: "failed" })
+        onSettled?.()
+      }}
       style={style}
       className={cn(
         "transition-opacity duration-200 ease-out motion-reduce:transition-none",

@@ -9,13 +9,15 @@ export interface QuizRailRowProps {
   active: boolean
   onSelect: () => void
   tabIndex?: number
+  thumbClassName?: string
 }
 
-function QuizThumb({ quiz, active }: { quiz: QuizItem; active: boolean }) {
+function QuizThumb({ quiz, active, className }: { quiz: QuizItem; active: boolean; className?: string }) {
   return (
     <span
       className={cn(
-        "relative grid h-[70px] w-[52px] shrink-0 content-center gap-1 overflow-hidden rounded-[5px] bg-white px-1.5",
+        "relative grid h-[70px] w-[52px] shrink-0 content-center gap-1 overflow-hidden rounded-[5px] bg-white px-1.5 transition-[width,height] duration-300 ease-out motion-reduce:transition-none",
+        className,
         active ? "ring-1 ring-orange-400" : "ring-1 ring-orange-200",
       )}
     >
@@ -26,19 +28,19 @@ function QuizThumb({ quiz, active }: { quiz: QuizItem; active: boolean }) {
             key={index}
             className={cn(
               "flex h-2 items-center gap-1 rounded-sm px-1",
-              correct ? "bg-emerald-100" : "bg-muted",
+              correct ? "bg-emerald-100" : "bg-neutral-100",
             )}
           >
             <span
               className={cn(
                 "size-1 shrink-0 rounded-full",
-                correct ? "bg-emerald-500" : "bg-muted-foreground/30",
+                correct ? "bg-emerald-500" : "bg-neutral-300",
               )}
             />
             <span
               className={cn(
                 "h-0.5 flex-1 rounded-full",
-                correct ? "bg-emerald-400/70" : "bg-muted-foreground/20",
+                correct ? "bg-emerald-400/70" : "bg-neutral-200",
               )}
             />
           </span>
@@ -51,7 +53,7 @@ function QuizThumb({ quiz, active }: { quiz: QuizItem; active: boolean }) {
   )
 }
 
-export function QuizRailRow({ quiz, pageNumber, active, onSelect, tabIndex }: QuizRailRowProps) {
+export function QuizRailRow({ quiz, pageNumber, active, onSelect, tabIndex, thumbClassName }: QuizRailRowProps) {
   const { t } = useLingui()
 
   return (
@@ -72,7 +74,7 @@ export function QuizRailRow({ quiz, pageNumber, active, onSelect, tabIndex }: Qu
           : "hover:bg-muted",
       )}
     >
-      <QuizThumb quiz={quiz} active={active} />
+      <QuizThumb quiz={quiz} active={active} className={thumbClassName} />
       <div className="flex min-w-0 flex-col gap-1.5">
         <span
           className={cn("text-xs font-semibold", active && "text-orange-700 dark:text-orange-300")}

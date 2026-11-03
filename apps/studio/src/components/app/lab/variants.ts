@@ -33,6 +33,7 @@ export interface VariantOption {
 }
 
 export interface VariantState {
+  railthumb: "today" | "page" | "layout"
   entry: "current" | "gated"
   landing: "current" | "action-first" | "compact"
   docklayout: "groups" | "flat" | "path"
@@ -71,6 +72,16 @@ export interface VariantGroup {
 }
 
 export const VARIANT_GROUPS = [
+  {
+    key: "railthumb",
+    icon: LayoutGrid,
+    label: msg`Pages list · Thumbnails`,
+    options: [
+      { value: "today", label: msg`Today`, hint: msg`A portrait box with the page's mobile screenshot, cropped from the top.` },
+      { value: "page", label: msg`Page image`, hint: msg`One frame for every row, shaped like the book's pages; each shows its source page image whole.` },
+      { value: "layout", label: msg`Rendered layout`, hint: msg`Same frame; the page image shows first, then a small rendered thumbnail fades in once it's ready.` },
+    ],
+  },
   {
     key: "entry",
     icon: DoorOpen,
@@ -334,6 +345,7 @@ export const TIERS: { key: VariantTier; label: MessageDescriptor; hint: MessageD
 ]
 
 export const GROUP_META: Record<VariantKey, { tier: VariantTier }> = {
+  railthumb: { tier: "layout" },
   features: { tier: "layout" },
   ai: { tier: "layout" },
   export: { tier: "layout" },
@@ -368,7 +380,7 @@ export type LabStep = "extract" | "sectioning" | "storyboard" | "output" | "vali
 export const STEP_GROUPS: Record<LabStep, VariantKey[]> = {
   extract: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
   sectioning: ["sectlanding", "sectrunning", "sectnotes", "sectresume", "secthead", "sectrail", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
-  storyboard: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "features", "ai", "loaders"],
+  storyboard: ["railthumb", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "features", "ai", "loaders"],
   output: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "features", "stagefail", "pageview", "listview", "detailpane", "langnav", "hints", "pruned"],
   validation: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "stagefail", "hints"],
   preview: ["export"],
@@ -386,6 +398,7 @@ export function stepOf(pathname: string): { step: LabStep; slug: string } | null
 }
 
 export const DEFAULT_VARIANTS: VariantState = {
+  railthumb: "layout",
   entry: "current",
   landing: "current",
   docklayout: "groups",

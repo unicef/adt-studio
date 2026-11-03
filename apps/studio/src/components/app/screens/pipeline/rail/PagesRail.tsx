@@ -14,6 +14,8 @@ import { PageHoverPreview } from "./PageHoverPreview"
 import { SegmentedTabs, tabPanelProps } from "@/components/app/screens/pipeline/shared/SegmentedTabs"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
 import { RAIL_WIDTH_CLASS } from "@/components/app/screens/pipeline/shared/panelLayout"
+import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
+import { useVariant } from "@/components/app/lab/variants"
 
 export interface PagesRailProps {
   label: string
@@ -58,6 +60,12 @@ export function PagesRail({
   layersDisabled = false,
 }: PagesRailProps) {
   const { t } = useLingui()
+  const thumbStyle = useVariant("railthumb")
+  const aspect = usePageAspect(label, pages)
+  const frameClass = cn(
+    "transition-[width,height] duration-300 ease-out motion-reduce:transition-none",
+    thumbStyle !== "today" && aspect.landscape ? "h-[60px] w-[88px]" : "h-[70px] w-[52px]",
+  )
 
   const [query, setQuery] = useState("")
   const fieldShown = tab !== "layers"
@@ -219,6 +227,7 @@ export function PagesRail({
                     pageNumber={item.pageNumber}
                     active={item.quiz.quizIndex === activeQuizIndex}
                     onSelect={() => onSelectQuiz(item.quiz.quizIndex)}
+                    thumbClassName={frameClass}
                   />
                 </div>
               )
@@ -277,7 +286,11 @@ export function PagesRail({
                       cacheKey={page.renderingVersion}
                       pruned={page.isDiscarded}
                       pending={pending}
-                      className="h-[70px] w-[52px]"
+                      source={thumbStyle === "today" ? "rendering" : thumbStyle === "page" ? "page" : "layered"}
+                      viewport={thumbStyle === "layout" && aspect.landscape ? "desktop" : "mobile"}
+                      shotWidth={thumbStyle === "layout" ? 192 : undefined}
+                      fit={thumbStyle === "today" ? "cover" : "contain"}
+                      className={frameClass}
                     />
                     {outdated && (
                       <span

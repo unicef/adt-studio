@@ -54,7 +54,7 @@ import {
   retireSectionIds,
   SectionIdExhaustedError,
 } from "@adt/pipeline"
-import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
+import { samplePageEdges, extractPages, computeGroups, countPdfPages, renderImageThumbnailJpeg } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
 import { pageImageThumbnailTag, renderPageImageThumbnail } from "../services/page-image-thumbnails.js"
 import {
@@ -227,6 +227,17 @@ export function countCaptions(data: unknown): CaptionCounts {
     else if (typeof entry?.caption !== "string" || entry.caption.trim() === "") uncaptionedCount += 1
   }
   return { captionCount: captions.length, decorativeCount, uncaptionedCount }
+}
+
+const SCREENSHOT_THUMB_WIDTHS = [96, 192, 384] as const
+
+export function parseScreenshotThumbWidth(raw: string | undefined): number | null {
+  if (raw === undefined || raw === "") return null
+  const requested = Number(raw)
+  if (!Number.isFinite(requested) || requested < 1) {
+    throw new HTTPException(400, { message: "Invalid screenshot width" })
+  }
+  return SCREENSHOT_THUMB_WIDTHS.find((width) => width >= requested) ?? SCREENSHOT_THUMB_WIDTHS[SCREENSHOT_THUMB_WIDTHS.length - 1]
 }
 
 const PageThumbnailQuery = z.object({
@@ -1623,6 +1634,18 @@ export function createPageRoutes(
           height: viewport.height,
         })
         fs.writeFileSync(cachePath, Buffer.from(base64, "base64"))
+      }
+
+      const thumbWidth = parseScreenshotThumbWidth(c.req.query("width"))
+      if (thumbWidth !== null) {
+        const thumbPath = path.join(cacheDir, `${hash}-w${thumbWidth}.jpg`)
+        if (!fs.existsSync(thumbPath)) {
+          const { jpeg } = renderImageThumbnailJpeg(fs.readFileSync(cachePath), thumbWidth)
+          fs.writeFileSync(thumbPath, jpeg)
+        }
+        c.header("Cache-Control", "private, max-age=300")
+        c.header("Content-Type", "image/jpeg")
+        return c.body(new Uint8Array(fs.readFileSync(thumbPath)))
       }
 
       const buffer = fs.readFileSync(cachePath)

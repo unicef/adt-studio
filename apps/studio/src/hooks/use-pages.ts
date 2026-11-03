@@ -72,10 +72,12 @@ export function useSectionScreenshot(
     viewport?: "desktop" | "tablet" | "mobile"
     cacheKey?: string | number | null
     enabled?: boolean
+    width?: number
   }
 ) {
   const viewport = options?.viewport ?? "desktop"
   const cacheKey = options?.cacheKey ?? null
+  const width = options?.width
   return useQuery({
     queryKey: [
       "books",
@@ -87,10 +89,11 @@ export function useSectionScreenshot(
       "screenshot",
       viewport,
       cacheKey,
+      width ?? null,
     ],
     queryFn: () =>
       preloadImage(
-        getSectionScreenshotUrl(label, pageId, sectionIndex as number, { viewport, cacheKey })
+        getSectionScreenshotUrl(label, pageId, sectionIndex as number, { viewport, cacheKey, width })
       ),
     enabled: !!label && !!pageId && sectionIndex != null && (options?.enabled ?? true),
     staleTime: Infinity,

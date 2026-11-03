@@ -5,7 +5,7 @@ import os from "node:os"
 import { Hono } from "hono"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
-import { createPageRoutes } from "./pages.js"
+import { createPageRoutes, parseScreenshotThumbWidth } from "./pages.js"
 import type { TaskExecutor, TaskService } from "../services/task-service.js"
 
 describe("Page routes", () => {
@@ -2710,5 +2710,24 @@ describe("Page routes", () => {
       expect(res.status).toBe(404)
       expect(fs.existsSync(path.join(tmpDir, "ghost-book"))).toBe(false)
     })
+  })
+})
+
+describe("parseScreenshotThumbWidth", () => {
+  it("returns null when no width is asked for", () => {
+    expect(parseScreenshotThumbWidth(undefined)).toBeNull()
+    expect(parseScreenshotThumbWidth("")).toBeNull()
+  })
+
+  it("snaps to the next cached size and caps at the largest", () => {
+    expect(parseScreenshotThumbWidth("40")).toBe(96)
+    expect(parseScreenshotThumbWidth("176")).toBe(192)
+    expect(parseScreenshotThumbWidth("200")).toBe(384)
+    expect(parseScreenshotThumbWidth("5000")).toBe(384)
+  })
+
+  it("rejects widths that are not positive numbers", () => {
+    expect(() => parseScreenshotThumbWidth("abc")).toThrow()
+    expect(() => parseScreenshotThumbWidth("0")).toThrow()
   })
 })
