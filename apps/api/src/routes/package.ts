@@ -1,5 +1,5 @@
 import { storyboardPackageComplete } from "../services/storyboard-package-coverage.js"
-import { storyboardCoverage, activeSectioningPages, SectioningSafetyError } from "@adt/pipeline"
+import { retainedPackageOwnership, publishedAdtDirectory, storyboardCoverage, activeSectioningPages, SectioningSafetyError } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -83,11 +83,12 @@ function readBuildWarnings(bookDir: string): PackagingWarning[] {
  * clean run while the bundle on disk is still missing pages. Treating those as
  * stale costs one rebuild per book on upgrade, once.
  */
-function isBuildCacheValid(bookDir: string, hash: string, expectedLanguages: string[]): boolean {
+function isBuildCacheValid(storage: Storage, bookDir: string, hash: string, expectedLanguages: string[]): boolean {
   try {
     if (fs.readFileSync(getBuildHashPath(bookDir), "utf8").trim() !== hash) return false
     PackagingWarning.array().parse(JSON.parse(fs.readFileSync(getBuildWarningsPath(bookDir), "utf8")))
-    return packageFilesAvailable(path.join(bookDir, "adt"), { expectedLanguages })
+    const root = publishedAdtDirectory(bookDir)
+    return packageFilesAvailable(root, { expectedLanguages }) && retainedPackageOwnership(storage, root).allOwned
   } catch { return false }
 }
 
@@ -125,7 +126,7 @@ function getPackagingCacheState(
     config: config as unknown as Record<string, unknown>,
     promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
   })
-  const cached = isBuildCacheValid(bookDir, hash, outputLanguages)
+  const cached = isBuildCacheValid(storage, bookDir, hash, outputLanguages)
   return {
     cached,
     version: cached ? readBuildVersion(bookDir, hash) : packageVersionFromHash(hash),
@@ -276,7 +277,7 @@ export function createPackageRoutes(
     }
 
     const bookDir = path.join(path.resolve(booksDir), safeLabel)
-    const pagesPath = path.join(bookDir, "adt", "content", "pages.json")
+    const pagesPath = path.join(publishedAdtDirectory(bookDir), "content", "pages.json")
     const hasAdt = hasPackagedAdtPages(pagesPath)
     const version = hasAdt ? readStoredBuildVersion(bookDir) : null
 
@@ -331,7 +332,7 @@ async function runPackaging(
     const preHash = computePackagingInputHash(hashOptions)
     const bundleVersion = packageVersionFromHash(preHash)
     if (expectedVersion && bundleVersion !== expectedVersion) throw new SectioningSafetyError("PACKAGE_INPUTS_CHANGED", "Package inputs changed after admission. Retry with the current book.")
-    if (isBuildCacheValid(bookDir, preHash, outputLanguages)) {
+    if (isBuildCacheValid(storage, bookDir, preHash, outputLanguages)) {
       return {
         version: readBuildVersion(bookDir, preHash),
         warnings: readBuildWarnings(bookDir),

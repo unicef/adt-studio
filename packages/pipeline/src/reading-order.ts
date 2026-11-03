@@ -96,12 +96,20 @@ interface PageContext {
 
 function readPageContexts(storage: Storage): PageContext[] {
   return storage.getPages().map((page) => {
-    const sectioning = getRenderSectioning(storage, page.pageId)
-    const row = storage.getLatestNodeData("web-rendering", page.pageId)
-    const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
-    const rendering = parsed?.success ? [...withLegacyRenderingOwnership(storage, page.pageId, parsed.data).sections] : []
-    rendering.sort((a, b) => a.sectionIndex - b.sectionIndex)
-    return { pageId: page.pageId, sections: sectioning?.sections ?? [], rendering }
+    try {
+      const sectioning = getRenderSectioning(storage, page.pageId)
+      const row = storage.getLatestNodeData("web-rendering", page.pageId)
+      const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
+      const rendering = parsed?.success ? [...withLegacyRenderingOwnership(storage, page.pageId, parsed.data).sections] : []
+      rendering.sort((a, b) => a.sectionIndex - b.sectionIndex)
+      return { pageId: page.pageId, sections: sectioning?.sections ?? [], rendering }
+    } catch (error) {
+      // JSON corruption is page-local. Its sections have no provable owner;
+      // the coverage read model reports this page as missing. Keep its slot
+      // for separately owned quizzes and never suppress storage/admission errors.
+      if (!(error instanceof SyntaxError)) throw error
+      return { pageId: page.pageId, sections: [], rendering: [] }
+    }
   })
 }
 

@@ -12,6 +12,7 @@ import { createStageRoutes } from "../routes/stages.js"
 import { createPageRoutes } from "../routes/pages.js"
 import { createPackageRoutes } from "../routes/package.js"
 import { createAdtPreviewRoutes } from "../routes/adt-preview.js"
+import { unzipSync } from "fflate"
 import { prepareExport } from "./export-service.js"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createStageRunner } from "./stage-runner.js"
@@ -261,6 +262,59 @@ it("partial section rendering stays usable but incomplete across page, library, 
   expect(exported.warnings).toContainEqual({ kind: "missing-storyboard", pageId: "p2" })
 })
 
+it("keeps an already packaged healthy page readable when a neighbor becomes unreadable", async () => {
+  const db = store(); db.putNodeData("web-rendering", "p2", null); db.close()
+  const url = `/books/${label}`
+  expect((await app.request(url + "/package-adt", { method: "POST" })).status).toBe(200)
+  const raw = openBookDb(path.join(dir, label + ".db"))
+  raw.run("UPDATE node_data SET data = ? WHERE node = 'page-sectioning' AND item_id = 'p2'", ["{"])
+  raw.close()
+  const status = await app.request(url + "/step-status")
+  expect(status.status, await status.clone().text()).toBe(200)
+  expect((await status.json()).coverage).toMatchObject({ complete: false, missingPages: ["p2"] })
+  expect(await (await app.request(url + "/package-adt/status")).json()).toMatchObject({ hasAdt: true, complete: false })
+  const download = await app.request(url + "/export-adt")
+  expect(download.status, await download.clone().text()).toBe(200)
+  const zip = unzipSync(new Uint8Array(await download.arrayBuffer()))
+  expect(Buffer.from(zip["p7_sec001.html"]).toString()).toContain("Retained HTML")
+  expect(zip["p2_sec001.html"]).toBeUndefined()
+  expect((await app.request(url + "/adt/p7_sec001.html")).status).toBe(200)
+})
+
+it("does not serve a pre-fix restamped fixed package even after the same ID becomes live again", async () => {
+  const url = `/books/${label}`, id = "p2_sec001", other = "p7_sec001"
+  expect((await app.request(url + "/package-adt", { method: "POST" })).status).toBe(200)
+  const adt = path.join(dir, "adt")
+  fs.unlinkSync(path.join(adt, ".build-owners"))  // Older producer: no independent owner receipt.
+  const stale = '<div id="content" data-section-id="p2_sec001">Wrong-owner text</div>'
+  fs.writeFileSync(path.join(adt, id + ".html"), stale)
+  fs.writeFileSync(path.join(adt, "assets/offline-preloader.js"), JSON.stringify(stale))
+  const s = store()
+  const retained = s.getLatestNodeData("web-rendering", "p2")!
+  s.putNodeData("fixed-layout-sectioning", "p2", tree("p2", 1))
+  s.putNodeData("web-rendering", "p2", { sections: [{ sectionIndex: 0, sectionType: "fixed-layout-page", reasoning: "", html: '<div id="content" DATA-SECTION-ID="retired">Wrong-owner text</div>' }] })
+  s.close()
+  for (const version of ["", "v-old/"]) {
+    expect((await app.request(url + "/adt/" + version + id + ".html")).status).toBe(404)
+    const neighbor = await app.request(url + "/adt/" + version + other + ".html")
+    expect(neighbor.headers.get("Location")).toBe(`/api${url}/adt-preview/${other}.html`)
+    const first = await app.request(url + "/adt/" + version)
+    expect(first.headers.get("Location")).toBe(neighbor.headers.get("Location"))
+    const script = await app.request(url + "/adt/" + version + "assets/offline-preloader.js")
+    expect(await script.text()).not.toContain("Wrong-owner text")
+  }
+  const again = store(); again.putNodeData("web-rendering", "p2", retained.data); again.close()
+  const old = await app.request(url + "/adt/v-old/" + id + ".html")
+  expect(old.status).toBe(307)
+  expect(old.headers.get("Location")).toBe(`/api${url}/adt-preview/${id}.html`)
+  expect((await app.request(url + "/export-adt")).status).toBe(409)
+  expect(fs.readFileSync(path.join(adt, id + ".html"), "utf8")).toBe(stale)
+  expect((await app.request(url + "/package-adt", { method: "POST" })).status).toBe(200)
+  const fresh = await app.request(url + "/adt/" + id + ".html")
+  expect(fresh.status).toBe(200)
+  expect(await fresh.text()).toContain("Retained HTML")
+})
+
 it("newly completed source output cannot complete an older partial package", async () => {
   expect((await run({ fromStage: "storyboard" })).status).toBe("completed")
   const adt = path.join(dir, "adt")
@@ -292,8 +346,8 @@ it.each(["configuration", "outline", "image-filtering"])("queued Sectioning reva
   // Hold the queue without publishing a new HTML version. A successful
   // predecessor would also invalidate the output guards, masking the intended
   // source-only change (an outline change does not invalidate Storyboard).
-  renderPage.mockImplementationOnce(async () => {
-    await new Promise<void>(resolve => { release = resolve })
+  renderPage.mockImplementation(async ({ pageId }: { pageId: string }) => {
+    if (pageId === "p2") await new Promise<void>(resolve => { release = resolve })
     throw new Error("Controlled predecessor failure")
   })
   expect((await send("stages/run", { fromStage: "storyboard", toStage: "storyboard", pageErrorPolicy: "stop" })).status).toBe(200)

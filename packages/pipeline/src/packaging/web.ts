@@ -1,3 +1,5 @@
+import { recordPackagedOwners } from "./bundle-ownership.js"
+import { openPackageWork, publishedAdtDirectory } from "./publication-directory.js"
 import { isBundleLocale } from "./bundle-files.js"
 import { BookConfigError } from "../config.js"
 import { buildImageInventory } from "../catalog-reconciliation.js"
@@ -200,7 +202,7 @@ function buildRuntimeTimecodeMap(
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
 // Existing bundles may contain fixed HTML whose explicit owner was misread.
-const PACKAGING_FORMAT_VERSION = 17
+const PACKAGING_FORMAT_VERSION = 18
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -329,20 +331,9 @@ export async function packageAdtWeb(
   }
   return withBookWriter(options.bookDir, async () => {
     const window = JSON.stringify(requiredPartRange(options.bookDir))
-    const output = path.join(options.bookDir, "adt")
-    const work = path.join(options.bookDir, ".adt-package-work")
-    const marker = path.join(work, "format")
-    if (!fs.existsSync(work)) {
-      fs.mkdirSync(work)
-      fs.writeFileSync(marker, "adt-web-stage-v1\n", { flag: "wx" })
-    }
-    if (!fs.lstatSync(work).isDirectory() || fs.readFileSync(marker, "utf8") !== "adt-web-stage-v1\n") {
-      throw new Error("Unrecognized package work directory. Existing files have been retained.")
-    }
+    const work = openPackageWork(options.bookDir)
+    const output = publishedAdtDirectory(options.bookDir)
     const previous = path.join(work, "previous")
-    // A process may have stopped between the two synchronous renames. Restore
-    // the prior published tree before building; never serve a partial stage.
-    if (!fs.existsSync(output) && fs.existsSync(previous)) fs.renameSync(previous, output)
     const stagingRoot = fs.mkdtempSync(path.join(work, "build-"))
     const staged = path.join(stagingRoot, "adt")
     try {
@@ -1110,6 +1101,7 @@ async function buildWebPackage(
   generateOfflinePreloader(adtDir, outputLanguages)
 
   generateImsManifest(adtDir, title, label, pageList)
+  recordPackagedOwners(adtDir, readingOrder.items)
 
   // Render AGENTS.md from Liquid template with book-specific data
   const agentsMdTemplate = path.join(path.dirname(webAssetsDir), "AGENTS.md.liquid")

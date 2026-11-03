@@ -10,12 +10,16 @@ export const isBundleLocale = (value: unknown): value is string =>
 /** Validate the files required to open the generated reader. This is separate
  * from source freshness and source coverage: a valid partial bundle can still
  * be cached with its omission warnings. Never follow a bundle path outside it. */
-export function packageFilesAvailable(adtDir: string, options: { format?: "web" | "scorm"; allowedIds?: ReadonlyMap<string, number>; expectedLanguages?: readonly string[] } = {}): boolean {
+export function packageFilesAvailable(adtDir: string, options: { format?: "web" | "scorm"; expectedLanguages?: readonly string[] } = {}): boolean {
   try {
     const root = fs.realpathSync(adtDir)
     const readFiles = new Map<string, string>()
     const read = (relative: string): string => {
-      const resolved = fs.realpathSync(path.resolve(root, relative))
+      const requested = path.resolve(root, relative)
+      const resolved = fs.realpathSync(requested)
+      // The ZIP enumerator does not materialize symbolic links, even when
+      // their targets are inside the bundle (including directory aliases).
+      if (requested !== resolved) throw new Error("Bundle path absent from ZIP")
       const cached = readFiles.get(resolved)
       if (cached !== undefined) return cached
       if (!resolved.startsWith(root + path.sep) || !fs.statSync(resolved).isFile()) throw new Error("Invalid bundle file")
@@ -53,8 +57,7 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
     const seen = new Set<string>()
     for (const page of pages) {
       if (!page || typeof page.href !== "string" || typeof page.section_id !== "string" ||
-        path.basename(page.href) !== page.href || page.href !== page.section_id + ".html" || seen.has(page.href) ||
-        (options.allowedIds && !options.allowedIds.has(page.section_id))) return false
+        path.basename(page.href) !== page.href || page.href !== page.section_id + ".html" || seen.has(page.href)) return false
       seen.add(page.href)
       const html = read(page.href)
       const parser = new Parser({ onopentag(name, attributes) {

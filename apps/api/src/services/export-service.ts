@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
 import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
-import { resolveReadingOrder, requiredPartRange, SectioningSafetyError, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import { publishedAdtDirectory, retainedPackageOwnership, requiredPartRange, SectioningSafetyError, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream, type ZipStreamOptions } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 
@@ -303,7 +303,7 @@ function readablePackageZip(bookDir: string, directory: string, format: "scorm" 
     try {
       // Older bundles can still name an owner rejected by today's resolver.
       // Downloads may be partial but cannot distribute retired or unowned pages.
-      if (!packageFilesAvailable(directory, { format, allowedIds: resolveReadingOrder(storage).positionById })) {
+      if (!retainedPackageOwnership(storage, directory).allOwned || !packageFilesAvailable(directory, { format })) {
         throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from the current saved content.")
       }
     } finally { storage.close() }
@@ -325,7 +325,7 @@ export async function exportScorm(
   }
 
   const title = readBookTitle(safeLabel, resolvedDir)
-  const adtDir = path.join(bookDir, "adt")
+  const adtDir = publishedAdtDirectory(bookDir)
   if (!fs.existsSync(adtDir)) {
     throwAdtDirMissing()
   }
@@ -350,7 +350,7 @@ export async function exportAdt(
   }
 
   const title = readBookTitle(safeLabel, resolvedDir)
-  const adtDir = path.join(bookDir, "adt")
+  const adtDir = publishedAdtDirectory(bookDir)
   if (!fs.existsSync(adtDir)) {
     throwAdtDirMissing()
   }

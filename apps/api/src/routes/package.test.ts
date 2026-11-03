@@ -8,6 +8,8 @@ import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/st
 import { AccessibilityAssessmentOutput, type TaskInfo } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
 import { exportAdt, exportScorm } from "../services/export-service.js"
+import { spawnSync } from "node:child_process"
+import { pathToFileURL } from "node:url"
 import { unzipSync } from "fflate"
 import { packageAdtWeb, loadBookConfig } from "@adt/pipeline"
 import { createBookRoutes } from "./books.js"
@@ -152,6 +154,51 @@ describe("Package routes", () => {
     fs.unlinkSync(path.join(adt, "imsmanifest.xml"))
     await expect(exportScorm(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
     expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
+  })
+
+  it.each(["file", "directory"])("refuses a required %s symlink skipped by ZIP, then repairs the actual member", { timeout: 30_000 }, async kind => {
+    const label = "symbolic"; createRenderedBook(label); createWebAssets()
+    const url = `/api/books/${label}/package-adt`
+    const run = () => app.request(url, { method: "POST" })
+    expect((await run()).status).toBe(200)
+    const adt = path.join(tmpDir, label, "adt"), member = "content/i18n/en/texts.json"
+    const from = path.join(adt, kind === "file" ? member : "content/i18n/en"), to = from + ".saved"
+    fs.renameSync(from, to)
+    try { fs.symlinkSync(to, from, kind === "file" ? "file" : "junction") }
+    catch (error) { if (process.platform === "win32" && (error as NodeJS.ErrnoException).code === "EPERM") return; throw error }
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: false })
+    await expect(exportAdt(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect((await run()).status).toBe(200)
+    const result = await exportAdt(label, tmpDir)
+    expect(unzipSync(new Uint8Array(await new Response(result.stream).arrayBuffer()))[member]).toBeDefined()
+  })
+
+  it.each(["previous", "published"])("reopens a complete package on first read after writer death at %s rename", { timeout: 30_000 }, async boundary => {
+    const label = "swap-crash"; createRenderedBook(label); createWebAssets()
+    const url = `/api/books/${label}/package-adt`, dir = path.join(tmpDir, label)
+    expect((await app.request(url, { method: "POST" })).status).toBe(200)
+    const old = fs.readFileSync(path.join(dir, "adt/pg001_sec001.html"))
+    const child = spawnSync(process.execPath, ["--input-type=module", "-e", `
+      import fs from "node:fs"; import path from "node:path";
+      import {createBookStorage} from ${JSON.stringify(pathToFileURL(path.resolve("packages/storage/dist/index.js")).href)};
+      import {packageAdtWeb} from ${JSON.stringify(pathToFileURL(path.resolve("packages/pipeline/dist/index.js")).href)};
+      const [bookDir, assets, edge] = process.argv.slice(1), label = path.basename(bookDir);
+      const db = createBookStorage(label, path.dirname(bookDir));
+      const rename = fs.renameSync; fs.renameSync = (a,b) => {
+        rename(a,b);
+        if (b === path.join(bookDir, edge === "previous" ? ".adt-package-work/previous" : "adt")) process.exit(86);
+      };
+      await packageAdtWeb(db, { bookDir, label, webAssetsDir: assets, language:"en", outputLanguages:["en"], title:"Replacement" });
+    `, dir, webAssetsDir, boundary], { encoding: "utf8", timeout: 20000 })
+    expect(child.status, child.stderr).toBe(86)
+    expect(fs.existsSync(path.join(dir, "adt"))).toBe(boundary === "published")
+    const status = await app.request(url + "/status")
+    expect(status.status, await status.clone().text()).toBe(200)
+    expect(await status.json()).toMatchObject({ hasAdt: true, complete: true })
+    const result = await exportAdt(label, tmpDir)
+    const html = Buffer.from(unzipSync(new Uint8Array(await new Response(result.stream).arrayBuffer()))["pg001_sec001.html"])
+    if (boundary === "previous") expect(html).toEqual(old)
+    else expect(html.toString()).toContain("Replacement")
   })
 
   it("invalid part windows reject both cache paths without changing the previous package", { timeout: 30_000 }, async () => {

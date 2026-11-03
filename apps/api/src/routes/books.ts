@@ -1,5 +1,5 @@
 import { readSectioningLifecycle, recoverSectioningTransition } from "@adt/storage"
-import { effectiveSectioningMode } from "@adt/pipeline"
+import { effectiveSectioningMode, retainedPackageOwnership, publishedAdtDirectory } from "@adt/pipeline"
 import { getStageClearNodes, getStageClearOrder } from "@adt/types"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import fs from "node:fs"
@@ -958,6 +958,7 @@ export function createBookRoutes(
     }
     const adtDir = resolvePathWithin(booksDir, safeLabel, "adt")
     if (!adtDir) throw new HTTPException(400, { message: "Invalid path" })
+    publishedAdtDirectory(path.dirname(adtDir))
     if (!fs.existsSync(adtDir)) {
       throw new HTTPException(404, {
         message: `ADT not packaged for book: ${safeLabel}`,
@@ -973,29 +974,37 @@ export function createBookRoutes(
     // Strip optional cache-bust version segment (e.g. "v-1708300000000/" or "v-1708300000000")
     filePath = filePath.replace(/^v-[^/]+\/?/, "")
 
-    if (!filePath) {
-      // Root request — redirect to first page
-      const pagesPath = resolvePathWithin(adtDir, "content", "pages.json")
-      if (!pagesPath) throw new HTTPException(400, { message: "Invalid path" })
-      if (!fs.existsSync(pagesPath)) {
-        throw new HTTPException(404, {
-          message: `ADT not packaged for book: ${safeLabel}`,
-        })
-      }
-      const pages = JSON.parse(fs.readFileSync(pagesPath, "utf-8")) as Array<{ href: string }>
-      if (pages.length === 0) {
-        throw new HTTPException(404, { message: "ADT has no pages" })
-      }
-      // Preserve the version segment in the redirect
-      const versionMatch = reqPath.match(/\/adt\/(v-[^/]+)/)
-      const versionPrefix = versionMatch ? `${versionMatch[1]}/` : ""
-      return c.redirect(`/api/books/${safeLabel}/adt/${versionPrefix}${pages[0].href}`)
-    }
-
     const resolvedPath = resolvePathWithin(adtDir, filePath)
-    if (!resolvedPath) {
-      throw new HTTPException(400, { message: "Invalid path" })
+    const pagesPath = resolvePathWithin(adtDir, "content", "pages.json")
+    if (!resolvedPath || !pagesPath) throw new HTTPException(400, { message: "Invalid path" })
+    if (!fs.existsSync(pagesPath) || !fs.existsSync(resolvedPath)) throw new HTTPException(404, { message: "Not found" })
+    const dbPath = resolvePathWithin(booksDir, safeLabel, safeLabel + ".db")
+    if (!dbPath) throw new HTTPException(400, { message: "Invalid path" })
+    if (!fs.existsSync(dbPath)) throw new HTTPException(404, { message: "Book not found" })
+    const storage = createBookStorage(safeLabel, booksDir)
+    let ownership
+    try { ownership = retainedPackageOwnership(storage, adtDir) }
+    finally { storage.close() }
+    // A version segment busts caches; it does not establish current ownership.
+    // In particular the offline preloader contains copies of *all* page HTML.
+    // If any member lost its owner, serve healthy pages via the live reader and
+    // never provide that old package's shared content, script or entry redirect.
+    c.header("Cache-Control", "no-store")
+    if (!ownership.allOwned) {
+      const target = !filePath || filePath === "index.html"
+        ? ownership.entries[0]?.href ?? (ownership.current.size ? ownership.current.keys().next().value + ".html" : undefined)
+        : filePath
+      if (!target || (target.endsWith(".html") && !ownership.current.has(target.slice(0, -5)))) {
+        throw new HTTPException(404, { message: "Not found" })
+      }
+      return c.redirect(`/api/books/${safeLabel}/adt-preview/${target}${new URL(c.req.url).search}`, 307)
     }
+    if (!filePath) {
+      const version = reqPath.match(/\/adt\/(v-[^/]+)/)?.[1]
+      return c.redirect(`/api/books/${safeLabel}/adt/${version ? version + "/" : ""}${ownership.entries[0].href}`)
+    }
+    if (filePath.toLowerCase().endsWith(".html") && filePath !== "index.html" && filePath !== "content/navigation/nav.html" &&
+        !ownership.entries.some(entry => entry.href === filePath)) throw new HTTPException(404, { message: "Not found" })
 
     let stat: fs.Stats
     try {
@@ -1010,9 +1019,6 @@ export function createBookRoutes(
     const fileBuffer = fs.readFileSync(resolvedPath)
     const ext = path.extname(resolvedPath).toLowerCase()
     c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
-    // Cache indefinitely — the iframe URL includes a cache-busting version
-    // segment (v-{timestamp}) that changes on every repackage.
-    c.header("Cache-Control", "public, max-age=31536000, immutable")
     return c.body(fileBuffer)
   })
 
