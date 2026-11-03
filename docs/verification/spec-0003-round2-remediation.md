@@ -1,5 +1,8 @@
 # SPEC-0003 B1: second independent review and remediation
 
+**Final disposition:** [The frozen implementation passed local acceptance and its bounded independent rechecks](spec-0003-round2-final-acceptance.md). The checkpoints and requests for changes below retain their original scope and date.
+
+
 The November 3 Codex review of production/test source `1c36d36d` (local documentation head `b8bdbb84`) requests changes. Its own original AC map, evidence and before-fix counterexamples are preserved in `.local-docs/spec0003-b1-independent-20261103-codex/{scope.md,report.md,results/}`. The Claude Code report and independent requirement matrix are in `.local-docs/spec0003-round2-independent-20261103-085714-claude-code/`. Its frozen-clone run used production/test head `1c36d36d`; its first shared-worktree run overlapped writer edits and does not count. The earlier positive recommendation is historical. None of the following failures has an authorized product deferral.
 
 | Finding and affected revised contract | Reproduced behavior at the reviewed head | Required public control for recheck |
