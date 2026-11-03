@@ -16,6 +16,7 @@ import {
 import { EffortProblemNotice, EffortSelect, useEffortLabel } from "../taskModels/EffortSelect"
 import { Highlight, matchesQuery, normalizeQuery } from "./search"
 import {
+  InfoTooltip,
   PromptWarning,
   UnsupportedModelNotice,
   useModelsFloatingSave,
@@ -355,17 +356,20 @@ export function ModelsTable(props: ModelsTableProps) {
                   )}
                 >
                   <td className={CELL}>
-                    <label htmlFor={item.inputId} className="flex items-center gap-2.5">
-                      <span className={cn("grid size-7 shrink-0 place-items-center rounded-lg", item.tile)}>
-                        <item.icon className="size-3.5" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-[13px] font-medium">
-                          <Highlight text={item.title} query={query} />
+                    <div className="flex items-center gap-2.5">
+                      <label htmlFor={item.inputId} className="flex min-w-0 items-center gap-2.5">
+                        <span className={cn("grid size-7 shrink-0 place-items-center rounded-lg", item.tile)}>
+                          <item.icon className="size-3.5" />
                         </span>
-                        <span className="block truncate text-[11.5px] text-muted-foreground">{item.description}</span>
-                      </span>
-                    </label>
+                        <span className="min-w-0">
+                          <span className="block text-[13px] font-medium">
+                            <Highlight text={item.title} query={query} />
+                          </span>
+                          <span className="block truncate text-[11.5px] text-muted-foreground">{item.description}</span>
+                        </span>
+                      </label>
+                      {item.info && <InfoTooltip content={item.info} />}
+                    </div>
                   </td>
                   <td className={cn(CELL, "text-[12px] text-muted-foreground")}>
                     <Highlight text={item.usedBy.join(" · ")} query={query} />

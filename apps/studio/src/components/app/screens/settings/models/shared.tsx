@@ -1,6 +1,7 @@
+import { useRef, useState, type ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Link } from "@tanstack/react-router"
-import { AudioLines, ImageIcon, TriangleAlert } from "lucide-react"
+import { AudioLines, ImageIcon, Info, TriangleAlert } from "lucide-react"
 import {
   DEFAULT_IMAGE_GENERATION_MODEL_ID,
   DEFAULT_OPENAI_TTS_MODEL_ID,
@@ -14,6 +15,7 @@ import {
 } from "@/components/pipeline/components/ModelSelect"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { getStepLabelI18n } from "@/components/pipeline/pipeline-i18n"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { SETTINGS_ANCHORS } from "../nav"
 import { DEFAULT_MODEL, type DefaultLlmSetting, type SpecializedDefaults } from "../modelDefaults"
@@ -80,6 +82,37 @@ export function PromptWarning({ savedModel, className }: { savedModel: string; c
   )
 }
 
+export function InfoTooltip({ content }: { content: ReactNode }) {
+  const { t } = useLingui()
+  const [open, setOpen] = useState(false)
+  const openAtPointerDown = useRef<boolean | null>(null)
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={t`More info`}
+            onPointerDown={() => {
+              openAtPointerDown.current = open
+            }}
+            onClick={(event) => {
+              event.preventDefault()
+              const wasOpen = openAtPointerDown.current
+              openAtPointerDown.current = null
+              setOpen((current) => !(wasOpen ?? current))
+            }}
+            className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Info className="size-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-[280px]">{content}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
 export interface SpecializedItem {
   key: "image" | "speech"
   anchorId: string
@@ -87,6 +120,7 @@ export interface SpecializedItem {
   tile: string
   title: string
   description: string
+  info?: string
   usedBy: string[]
   inputId: string
   value: string
@@ -122,6 +156,7 @@ export function useSpecializedItems(specialized: SpecializedDefaults): Specializ
       tile: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400",
       title: t`Speech generation`,
       description: t`OpenAI, Azure, and Gemini text-to-speech.`,
+      info: t`Applies to books whose speech provider matches this model's provider. Other providers run on their own default, or on the model set in Speech settings.`,
       usedBy: STEPS_BY_DEFAULT_MODEL_KIND["speech-generation"].map((step) => getStepLabelI18n(step.name)),
       inputId: "app-speech-generation-model",
       value: specialized.speechDraft,

@@ -9,6 +9,8 @@ globalThis.ResizeObserver = class {
   unobserve() {}
 }
 
+const stageStateMock = vi.fn(() => "done")
+const pagesMock = vi.fn(() => ({ data: [{ hasRendering: true }], isLoading: false }))
 const headerSlot = document.createElement("div")
 document.body.appendChild(headerSlot)
 
@@ -32,8 +34,9 @@ vi.mock("@/api/client", () => ({
 
 vi.mock("@/lib/packaging-warnings", () => ({ toastPackagingWarnings: () => {} }))
 vi.mock("@/hooks/use-book-run", () => ({
-  useBookRun: () => ({ stageState: () => "done", isStatusLoading: false }),
+  useBookRun: () => ({ stageState: stageStateMock, isStatusLoading: false }),
 }))
+vi.mock("@/hooks/use-pages", () => ({ usePages: () => pagesMock() }))
 vi.mock("@/hooks/use-book-tasks", () => ({
   useBookTasks: () => ({ isTaskRunning: () => false, getTask: () => undefined }),
 }))
@@ -91,4 +94,11 @@ describe("PreviewView", () => {
     fireEvent.click(screen.getByRole("button", { name: "mobile" }))
     expect(previewFrame().getAttribute("src")).toBe("/api/books/demo/adt/v-1/pg006_sec001.html")
   })
+})
+
+it("opens retained rendered output after an upstream rerun clears Storyboard completion", async () => {
+  stageStateMock.mockReturnValue("idle")
+  const { PreviewView } = await import("./PreviewView")
+  render(<PreviewView bookLabel="retained" />)
+  expect((await screen.findByTitle("ADT Preview")).getAttribute("src")).toBe("/api/books/retained/adt/v-1/")
 })

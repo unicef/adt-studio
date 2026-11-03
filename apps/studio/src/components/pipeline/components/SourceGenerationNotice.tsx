@@ -1,18 +1,19 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trans } from "@lingui/react/macro"
 import { AlertCircle, RefreshCw } from "lucide-react"
-import { api } from "@/api/client"
+import { api, type RunStagesOptions } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useHasUnsavedChanges } from "./floating-save"
+import { useStageRunConfirmation } from "./use-stage-run-confirmation"
 
 /** Retained Quiz, Glossary or TOC content generated before a source edit.
  * Presented like the catalog stages' attention panel: Re-run regenerates the
  * whole stage; Keep accepts the content as current for today's inputs. */
 export function SourceGenerationNotice({ bookLabel, stage }: { bookLabel: string; stage: string }) {
   const { sourceUpdateStages = [] } = useBookRun()
-  return sourceUpdateStages.includes(stage) ? <UpdateNotice bookLabel={bookLabel} stage={stage} /> : null
+  return sourceUpdateStages.includes(stage) ? <UpdateNotice key={`${bookLabel}:${stage}`} bookLabel={bookLabel} stage={stage} /> : null
 }
 
 function UpdateNotice({ bookLabel, stage }: { bookLabel: string; stage: string }) {
@@ -27,7 +28,14 @@ function UpdateNotice({ bookLabel, stage }: { bookLabel: string; stage: string }
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["books", bookLabel] }),
   })
   const busy = isRunning || isCancelling || hasUnsavedChanges || keep.isPending
-  const rerunDisabled = busy || !hasProvider
+  const confirmation = useStageRunConfirmation({ bookLabel, stage, available: !busy && hasProvider, colorClass: "bg-amber-600 hover:bg-amber-700" })
+  const rerunDisabled = busy || !hasProvider || !!confirmation.disabledReason
+  const queue = (options: Pick<RunStagesOptions, "replaceManual" | "protectedReplacements"> = {}) =>
+    queueRun({ fromStage: stage, toStage: stage, apiKey, viewAfter: true, ...options })
+  const rerun = () => {
+    if (rerunDisabled) return
+    void confirmation.requestRun(options => queue(options))
+  }
   return (
     <div className="px-4">
       <section role="status" className="my-2 min-w-0 rounded-lg border bg-background">
@@ -40,11 +48,11 @@ function UpdateNotice({ bookLabel, stage }: { bookLabel: string; stage: string }
             <Button size="sm"
               className="h-8 border border-amber-600 bg-amber-500 text-xs text-amber-950 shadow-sm hover:bg-amber-400"
               disabled={rerunDisabled}
-              onClick={() => { if (!rerunDisabled) queueRun({ fromStage: stage, toStage: stage, apiKey, viewAfter: true }) }}>
+              onClick={rerun}>
               <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
               <Trans>Re-run</Trans>
             </Button>
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => { if (!busy) keep.mutate() }}>
+            <Button size="sm" variant="outline" disabled={busy || confirmation.busy} onClick={() => { if (!busy && !confirmation.busy) keep.mutate() }}>
               <Trans>Keep existing content</Trans>
             </Button>
           </div>
@@ -54,10 +62,12 @@ function UpdateNotice({ bookLabel, stage }: { bookLabel: string; stage: string }
           </p>
           {hasUnsavedChanges && <p><Trans>Save or discard your changes before re-running.</Trans></p>}
           {!hasProvider && <p><Trans>Configure an AI provider in Settings to re-run this stage.</Trans></p>}
+          {confirmation.notice}
           {keep.isPending && <p><Trans>Applying changes…</Trans></p>}
           {keep.error && <p className="text-red-700">{keep.error.message}</p>}
         </div>
       </section>
+      {confirmation.dialog}
     </div>
   )
 }

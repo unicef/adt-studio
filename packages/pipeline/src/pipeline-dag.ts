@@ -27,6 +27,7 @@ import type {
   StepName,
   ImageClassificationOutput,
   PageSectioningOutput,
+  QuizGenerationOutput,
   BookMetadata,
   BookSummaryOutput,
   GlossaryOutput,
@@ -81,6 +82,7 @@ import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossa
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, batchPages } from "./quiz-generation.js"
 import { saveQuizOutput, assertQuizGenerationCapacity } from "./quiz-ids.js"
+import { isProtectedContent } from "./manual-edits.js"
 import { buildTextCatalog } from "./text-catalog.js"
 import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
 import { retainedEasyRead } from "./retained-catalog.js"
@@ -592,7 +594,7 @@ export async function runFullPipeline(
           pageSectioningConfig,
           model,
         )
-        putSourceNodeData(storage, "page-sectioning", page.pageId, reconcileSectioningIdentities(storage, page.pageId, result))
+        putSourceNodeData(storage, "page-sectioning", page.pageId, reconcileSectioningIdentities(storage, page.pageId, { ...result, source: "ai" }))
         p.emit({
           type: "step-progress",
           step: "page-sectioning",
@@ -621,7 +623,7 @@ export async function runFullPipeline(
           translationConfig,
           model,
         )
-        putSourceNodeData(storage, "page-sectioning", page.pageId, translated)
+        putSourceNodeData(storage, "page-sectioning", page.pageId, { ...translated, source: "ai" })
         p.emit({
           type: "step-progress",
           step: "translation",
@@ -730,10 +732,13 @@ export async function runFullPipeline(
       const model = getModel(quizConfig.modelId, config.quiz_generation?.reasoning_effort ?? config.default_reasoning_effort)
       const quizPages = collectQuizPages(storage)
       const sourceReceipt = captureSourceGeneration(storage, "quiz-generation", { quiz: quizConfig })
+      const previous = storage.getLatestNodeData("quiz-generation", "book")?.data as QuizGenerationOutput | undefined
+      const protectedPageGroups = (previous?.quizzes ?? []).filter(isProtectedContent).map((quiz) => quiz.pageIds)
       if (quizPages.length > 0) {
-        assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes).length)
+        assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes, protectedPageGroups).length)
         const result = await generateAllQuizzes(quizPages, quizConfig, model, {
           concurrency: effectiveConcurrency,
+          protectedPageGroups,
           onQuizComplete: (completed, total) => {
             p.emit({
               type: "step-progress",
@@ -744,12 +749,12 @@ export async function runFullPipeline(
             })
           },
         })
-        publishSourceGeneration(storage, sourceReceipt, () => saveQuizOutput(storage, result, "replace"))
+        publishSourceGeneration(storage, sourceReceipt, () => saveQuizOutput(storage, result, "replace"), protectedPageGroups.length === 0)
       } else {
         publishSourceGeneration(storage, sourceReceipt, () => saveQuizOutput(storage, {
           generatedAt: new Date().toISOString(), language: quizConfig.language,
           pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
-        }, "replace"))
+        }, "replace"), protectedPageGroups.length === 0)
       }
     })
 
@@ -841,7 +846,7 @@ export async function runFullPipeline(
         config: tocConfig,
         llmModel: model,
       })
-      publishSourceGeneration(storage, sourceReceipt, () => storage.putNodeData("toc-generation", "book", toc))
+      publishSourceGeneration(storage, sourceReceipt, () => storage.putNodeData("toc-generation", "book", { ...toc, source: "ai" }))
 
       p.emit({
         type: "step-progress",

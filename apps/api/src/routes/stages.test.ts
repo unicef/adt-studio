@@ -1,3 +1,4 @@
+import { collectSpentSectionIds, retireSectionIds } from "@adt/pipeline"
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
@@ -392,6 +393,29 @@ describe("retireSectionIdsForClearedSectioning", () => {
     expect(withStorage(storage => storage.getStepRuns().map(run => run.step))).toEqual(expect.arrayContaining(["glossary", "toc-generation", "catalog-translation"]))
     expect(withStorage(storage => storage.getStepRuns().map(run => run.step))).not.toContain("image-captioning")
     expect(withStorage(storage => storage.getStepRuns().map(run => run.step))).not.toContain("tts")
+  })
+
+  it("keeps current sections, recordings and assignments during preparation, without moving files", () => {
+    const section = formatSectionId(pageId, 3)
+    const textId = `${section}_ans_a`
+    seedTts("en", [{ textId, manual: true }, { textId: "pg001_t001" }])
+    seedTimestamps("en", [textId])
+    withStorage((storage) => {
+      storage.putSignLanguageVideo("vid", Buffer.from("video"), "video.mp4", "video/mp4")
+      storage.assignSignLanguageVideo("vid", section)
+    })
+    const before = withStorage((storage) => storage.getLatestNodeData("page-sectioning", pageId))
+    const copy = vi.spyOn(fs, "copyFileSync").mockImplementation(() => { throw new Error("No backup should be attempted") })
+    const prepare = makeBeforeRun(label, "sectioning", "speech", tmpDir)
+    try { expect(prepare).not.toThrow(); expect(copy).not.toHaveBeenCalled() } finally { copy.mockRestore() }
+    expect(withStorage((storage) => storage.getLatestNodeData("page-sectioning", pageId))).toEqual(before)
+    expect(ttsTextIds("en")).toEqual([textId, "pg001_t001"])
+    expect(timestampKeys("en")).toEqual([textId])
+    expect(sectionIdsByVideo().get("vid")).toBe(section)
+    expect(audioExists("en", `${textId}.mp3`)).toBe(true)
+    const completed = withStorage((storage) => storage.getNodeVersionFingerprint())
+    prepare()
+    expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(completed)
   })
 
   it("reconciles both the canonical and legacy language row spellings", () => {

@@ -58,7 +58,7 @@ const quiz = (question: string, quizId?: string, afterPageId = "pg001"): Quiz =>
   ...(quizId === undefined ? {} : { quizId }), quizIndex: 0,
   afterPageId, pageIds: [afterPageId], question,
   options: ["a", "b", "c"].map((text) => ({ text, explanation: text + "-why" })),
-  answerIndex: 0, reasoning: "review fixture",
+  answerIndex: 0, reasoning: "review fixture", source: "ai",
 })
 const output = (quizzes: Quiz[]): QuizGenerationOutput => ({
   generatedAt: "2026-01-01T00:00:00.000Z", language: "en", pagesPerQuiz: 3, quizzes,
@@ -75,7 +75,7 @@ function stored(): QuizGenerationOutput {
 }
 async function put(quizzes: Quiz[]) {
   return app.request(`/books/${label}/quizzes`, {
-    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(output(quizzes)),
+    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...output(quizzes), baseVersion: useStorage((s) => s.getLatestNodeData("quiz-generation", "book")?.version ?? 0) }),
   })
 }
 async function exportBook() {
@@ -141,7 +141,7 @@ describe("quiz identity across API edits and exports", () => {
     })
     const res = await app.request(`/books/${label}/quizzes/generate-one`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pageIds: ["pg001"], afterPageId: "pg001", placement: "replace" }),
+      body: JSON.stringify({ pageIds: ["pg001"], afterPageId: "pg001", placement: "replace", baseVersion: useStorage((s) => s.getLatestNodeData("quiz-generation", "book")?.version ?? 0) }),
     })
     expect(res.status).toBe(200)
     expect((await res.json()).quiz.quizId).toBe("qz003")
@@ -308,7 +308,7 @@ describe("quiz identity validation and legacy compatibility", () => {
     })
     const response = await app.request(`/books/${label}/quizzes/generate-one`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pageIds: ["pg001"], afterPageId: "pg001", placement: "replace" }),
+      body: JSON.stringify({ pageIds: ["pg001"], afterPageId: "pg001", placement: "replace", baseVersion: useStorage((s) => s.getLatestNodeData("quiz-generation", "book")?.version ?? 0) }),
     })
     expect(response.status).toBe(409)
     expect(history()).toHaveLength(1)
@@ -392,7 +392,7 @@ describe("full-stage quiz regeneration", () => {
     useStorage((s) => s.setCurrentNodeVersion("quiz-generation", "book", 1))
     const response = await app.request(`/books/${label}/quizzes/generate-one`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pageIds: ["pg001"], afterPageId: "pg001", placement: "replace" }),
+      body: JSON.stringify({ pageIds: ["pg001"], afterPageId: "pg001", placement: "replace", baseVersion: useStorage((s) => s.getLatestNodeData("quiz-generation", "book")?.version ?? 0) }),
     })
     expect(response.status).toBe(200)
     expect((await response.json()).quiz.quizId).toBe("qz003")
@@ -469,7 +469,7 @@ describe("recoverable inactive quiz history", () => {
       quizzes: null, version: null, historyVersion: 2,
     })
     const restore = await app.request(`/books/${label}/versions/quiz-generation/book/restore`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1, baseVersion: 2 }),
     })
     expect(restore.status).toBe(200)
     expect(await (await app.request(`/books/${label}/quizzes`)).json()).toMatchObject({
@@ -501,21 +501,21 @@ describe("quiz allocation preflight", () => {
     vi.mocked(assertQuizGenerationCapacity).mockImplementationOnce(() => { throw new QuizIdExhaustedError(1, 0) })
     const response = await app.request(`/books/${label}/quizzes/generate-one`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pageIds: ["pg001"], afterPageId: "pg001", placement: "replace" }),
+      body: JSON.stringify({ pageIds: ["pg001"], afterPageId: "pg001", placement: "replace", baseVersion: useStorage((s) => s.getLatestNodeData("quiz-generation", "book")?.version ?? 0) }),
     })
     expect(response.status).toBe(400)
     expect(generateObjectMock).not.toHaveBeenCalled()
     expect(history()).toHaveLength(1)
   })
 
-  it("re-reads reservations at persistence if another write occurs during generation", async () => {
+  it("rejects stale generation if another write publishes while the model is running", async () => {
     generateObjectMock.mockImplementationOnce(async () => {
       useStorage((s) => saveQuizOutput(s, output([quiz("Concurrent")]), "replace"))
       return generatedResponse
     })
-    await runStage("quizzes")
-    expect(stored().quizzes[0].quizId).toBe("qz002")
-    expect(history()).toHaveLength(2)
+    await expect(runStage("quizzes")).rejects.toThrow("Content changed")
+    expect(stored().quizzes[0]).toMatchObject({ quizId: "qz001", question: "Concurrent" })
+    expect(history()).toHaveLength(1)
   })
 })
 

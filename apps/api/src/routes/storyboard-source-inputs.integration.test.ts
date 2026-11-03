@@ -33,7 +33,7 @@ it.each([false, true])("passes the real editor projection through atomic Save wi
   const app = createPageRoutes(root, path.resolve("prompts"), path.resolve("assets"), path.resolve("config.yaml"))
   const editedHtml = rendering.sections[0].html.replace('<p ', '<p style="color:red" ').replace("The sky is", genuine ? "The evening sky is" : "The sky is")
   const edited = backPropagateTextChanges(sections, 0, editedHtml, rendering.sections[0].html)
-  const response = await app.request(`/books/${label}/pages/pg001/storyboard`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rendering: { sections: [{ ...rendering.sections[0], html: editedHtml }] }, ...(edited === sections ? {} : { sectioning: edited, renderingInSync: true }) }) })
+  const response = await app.request(`/books/${label}/pages/pg001/storyboard`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ baseVersion: 1, rendering: { sections: [{ ...rendering.sections[0], html: editedHtml }] }, ...(edited === sections ? {} : { sectioning: edited, renderingInSync: true }) }) })
   expect(response.status).toBe(200)
   const db = storage()
   try {
@@ -57,11 +57,11 @@ it.each([false, true])("saves pending tree work with an HTML draft (text edit=%s
   const provider = vi.fn(() => { throw new Error("No generation on Save") }); vi.stubGlobal("fetch", provider)
   const app = createPageRoutes(root, path.resolve("prompts"), path.resolve("assets"), path.resolve("config.yaml"))
   const db = storage(); db.markStepCompleted("web-rendering"); db.close()
-  const response = await app.request(`/books/${label}/pages/pg001/storyboard`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, rendering: { sections: [{ ...rendering.sections[0], html }] } }) })
+  const response = await app.request(`/books/${label}/pages/pg001/storyboard`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ baseVersion: 1, ...payload, rendering: { sections: [{ ...rendering.sections[0], html }] } }) })
   expect(response.status).toBe(200)
   const saved = storage()
   try {
-    expect(saved.getLatestNodeData("page-sectioning", "pg001")?.data).toEqual({ ...draft, sections: [{ ...draft.sections[0], nodes: draft.sections[0].nodes.map(node => node.nodeId === "question" && genuine ? { ...node, text: "The evening sky is [placeholder:blue]." } : node) }] })
+    expect(saved.getLatestNodeData("page-sectioning", "pg001")?.data).toEqual({ ...draft, source: "manual", sections: [{ ...draft.sections[0], nodes: draft.sections[0].nodes.map(node => node.nodeId === "question" && genuine ? { ...node, text: "The evening sky is [placeholder:blue]." } : node) }] })
     expect((saved.getLatestNodeData("web-rendering", "pg001")!.data as WebRenderingOutput).sections[0].html).toContain('style="color:red"')
     expect(saved.getStepRuns().map(run => run.step)).not.toContain("web-rendering")
     expect(saved.getAllNodeVersions("page-sectioning", "pg001")[0].data).toEqual(sections)

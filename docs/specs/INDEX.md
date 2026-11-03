@@ -11,7 +11,7 @@ already holds its number — check both before taking one
 | Spec      | Title                                                           | Status | Owner       | Needed by |
 |-----------|-----------------------------------------------------------------|--------|-------------|-----------|
 | SPEC-0001 | Catalog-based freshness and scoped regeneration | in-review | @ksokolovic | Block 1 |
-| SPEC-0002 | Manual-edit preservation for translation, quiz, sectioning, TOC | draft  | @ksokolovic | Block 1   |
+| [SPEC-0002](SPEC-0002-manual-edit-preservation.md) | Manual-edit preservation for translation, quiz, sectioning, TOC | approved | @ksokolovic | Block 1   |
 | SPEC-0003 | Three sectioning modes and auto cross-page merge                | draft  | TBD         | Block 2   |
 | SPEC-0004 | Style guide, Styles panel, token-enforced rendering             | draft  | TBD         | Block 2   |
 | SPEC-0005 | Acceptance harness over the acceptance set                      | draft  | TBD         | Block 1   |
@@ -19,6 +19,11 @@ already holds its number — check both before taking one
 | SPEC-0007 | Accessibility harness as a blocking CI gate                     | draft  | TBD         | 0.9.0     |
 | SPEC-0008 | Stable identifiers and reading order (retrospective)            | draft  | TBD         | Block 1   |
 | [SPEC-0015](SPEC-0015-nano-banana-image-models.md) | Nano Banana image models | in-review | @elasticsounds | #579 / #904 |
+
+SPEC-0002 was approved by @elasticsounds on 2026-11-01 within its agreed scope and
+explicit deferrals; see its [approval and follow-up record](SPEC-0002-manual-edit-preservation.md#approval-and-follow-up--2026-11-01).
+PR #880 still requires independent non-author human approval, green CI and the
+existing #884-before-#880 merge order. This is not release verification.
 
 SPEC-0001 product clarifications were ratified in October 16 review Note 7; its
 status remains `in-review` pending integration approval and final historical-book

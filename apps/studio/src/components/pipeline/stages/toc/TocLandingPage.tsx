@@ -1,3 +1,4 @@
+import type { RunStagesOptions } from "@/api/client"
 import { useState, useEffect, useMemo } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -55,9 +56,9 @@ export function TocLandingPage({ bookLabel }: { bookLabel: string }) {
     })
   }
 
-  const handleRun = () => {
+  const handleRun = (options?: Pick<RunStagesOptions, "replaceManual" | "protectedReplacements">) => {
     if (!hasStructuredTextProvider || !storyboardReady || status.isRunning) return
-    queueRun({ fromStage: "toc", toStage: "toc", apiKey, viewAfter: true })
+    queueRun({ fromStage: "toc", toStage: "toc", apiKey, viewAfter: true, ...options })
   }
 
   const modeOptions = useMemo(

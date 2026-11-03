@@ -77,7 +77,12 @@ import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
 import { sameAnchor, type ActivityAnchor } from "./activity-link"
-import { scrollBehavior } from "@/lib/utils"
+import { cn, scrollBehavior } from "@/lib/utils"
+import {
+  StoryboardFeedbackOverlay,
+  useSectionFeedbackCount,
+} from "./feedback/StoryboardFeedbackOverlay"
+import { REQUEST_TTL_MS, useCommentsMode } from "./feedback/use-comments-mode"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
   useActivityStructure,
@@ -86,7 +91,7 @@ import {
   useSetEditableActivityPresentation,
 } from "@/hooks/use-editable-activities"
 import { toast } from "sonner"
-import { Puzzle, ListChecks } from "lucide-react"
+import { Puzzle, ListChecks, MessagesSquare } from "lucide-react"
 import { StyleEditorPanel } from "./style-editor"
 import { FitScaleIndicator } from "./FitScaleIndicator"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
@@ -430,6 +435,7 @@ export function StoryboardSectionDetail({
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
   const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string; consequence?: string } | null>(null)
+  const sectioningBaseVersion = useRef<number | null>(null)
   const [pendingSectioning, setPendingSectioningState] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRenderingState] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
@@ -452,13 +458,14 @@ export function StoryboardSectionDetail({
   )
   const markPending = useCallback((category: PendingCategory) => {
     if (restoringRef.current) return
+    sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
     setPendingCategories((prev) => {
       if (prev.has(category)) return prev
       const next = new Set(prev)
       next.add(category)
       return next
     })
-  }, [])
+  }, [page.versions.sectioning])
   // Tracks whether saved sectioning will still require an explicit LLM re-render.
   // Pure prune/delete can be resolved locally; unprune/type change/reorder need LLM.
   const needsRerenderRef = useRef(false)
@@ -471,8 +478,10 @@ export function StoryboardSectionDetail({
     if (restoringRef.current) return
     const value = typeof next === "function" ? next(latestDraftRef.current.sectioning) : next
     latestDraftRef.current.sectioning = value
+    if (value === null) sectioningBaseVersion.current = null
+    else sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
     setPendingSectioningState(value)
-  }, [])
+  }, [page.versions.sectioning])
   const setPendingRendering = useCallback((next: SetStateAction<RenderingData | null>) => {
     if (restoringRef.current) return
     const value = typeof next === "function" ? next(latestDraftRef.current.rendering) : next
@@ -510,6 +519,40 @@ export function StoryboardSectionDetail({
   const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
   const [previewVisibleWidth, setPreviewVisibleWidth] = useState(0)
   const [previewScale, setPreviewScale] = useState(1)
+  /** The pin overlay is drawn in this box's coordinates; the iframe's offset inside it is added
+   *  back per pin, exactly as the Feedback view does. */
+  const previewContainerRef = useRef<HTMLDivElement>(null)
+  /** Shared with the page list's Comments filter: one switch for reviewing feedback. */
+  const commentsMode = useCommentsMode(bookLabel)
+  const feedbackShown = commentsMode.on
+  const setFeedbackShown = commentsMode.setOn
+  /** One selection shared by the pins and the sidebar: two states could disagree about which
+   *  comment is open, and the author would see a highlighted row with no highlighted pin. */
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
+  // Effective data
+  const sectioningData = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
+  const dirty = pendingSectioning != null
+
+  // Current section data
+  const section = sectioningData?.sections[sectionIndex]
+
+  const onScreenSectionId = section?.sectionId && sectioningData?.sections.filter((entry) => entry.sectionId === section.sectionId).length === 1 ? section.sectionId : ""
+  const feedbackCount = useSectionFeedbackCount(bookLabel, onScreenSectionId)
+
+  /** A comment asked for from anywhere — a link, the page list, "Next with comments" — opens
+   *  here, every time, once its own section is the one on screen. A request nothing took in time
+   *  is dropped rather than left to reopen a comment on some later visit. */
+  const { request: commentRequest, consume: consumeCommentRequest } = commentsMode
+  useEffect(() => {
+    if (commentRequest === null) return
+    if (Date.now() - commentRequest.at > REQUEST_TTL_MS) {
+      consumeCommentRequest()
+      return
+    }
+    if (commentRequest.sectionId !== onScreenSectionId) return
+    setSelectedThreadId(commentRequest.threadId)
+    consumeCommentRequest()
+  }, [commentRequest, consumeCommentRequest, onScreenSectionId])
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -817,12 +860,12 @@ export function StoryboardSectionDetail({
     scrollContainerRef.current?.scrollTo(0, 0)
   }, [pageId, sectionIndex])
 
-  // Effective data
-  const sectioningData = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
-  const dirty = pendingSectioning != null
-
-  // Current section data
-  const section = sectioningData?.sections[sectionIndex]
+  /** Every section of this page, so the sidebar can group threads the way the author sees them.
+   *  Sectioning is the reliable source — rendering skips pruned sections. */
+  const pageSectionIds = useMemo(
+    () => (sectioningData?.sections ?? []).map((entry) => entry.sectionId && sectioningData?.sections.filter((candidate) => candidate.sectionId === entry.sectionId).length === 1 ? entry.sectionId : ""),
+    [sectioningData, pageId],
+  )
 
   // Keep the viewed section in range — e.g. after rolling back to a version
   // with fewer sections, clamp to the last one instead of showing a blank pane.
@@ -904,12 +947,16 @@ export function StoryboardSectionDetail({
       ) : { sectioning: pendingSectioning, renderingInSync }
 
       // Both nodes in one request so a failure can't split them apart.
-      await api.saveStoryboard(bookLabel, pageId, {
+      const saved = await api.saveStoryboard(bookLabel, pageId, {
         ...sourceSave,
+        baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
         rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
       })
 
       const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
+      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.sectioningVersion != null) {
+        sectioningBaseVersion.current = saved.sectioningVersion
+      }
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
@@ -972,11 +1019,15 @@ export function StoryboardSectionDetail({
         getRenderedSectionByIndex(page.rendering, sectionIndex)?.html ?? "",
         needsRerenderRef.current,
       )
-      await api.saveStoryboard(bookLabel, pageId, {
+      const saved = await api.saveStoryboard(bookLabel, pageId, {
         rendering: stripTransientIds(renderingToSave),
         ...sourceSave,
+        baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
       })
       const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
+      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.sectioningVersion != null) {
+        sectioningBaseVersion.current = saved.sectioningVersion
+      }
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
@@ -1046,7 +1097,7 @@ export function StoryboardSectionDetail({
     if (cloning || dirty || renderingDirty || saving || storyboardRunning) return
     setCloning(true)
     try {
-      const result = await api.cloneSection(bookLabel, pageId, sectionIndex)
+      const result = await api.cloneSection(bookLabel, pageId, sectionIndex, page.versions.sectioning ?? 0)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
@@ -1072,6 +1123,7 @@ export function StoryboardSectionDetail({
         sectionIndex,
         direction,
         hasStructuredTextProvider,
+        page.versions.sectioning ?? 0,
       )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
@@ -1103,6 +1155,7 @@ export function StoryboardSectionDetail({
         pageId,
         sectionIndex,
         direction,
+        page.versions.sectioning ?? 0,
       )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.sourcePageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.targetPageId] })
@@ -1200,7 +1253,7 @@ export function StoryboardSectionDetail({
     setConfirmDeleteSection(false)
     setDeleting(true)
     try {
-      const result = await api.deleteSection(bookLabel, pageId, sectionIndex)
+      const result = await api.deleteSection(bookLabel, pageId, sectionIndex, page.versions.sectioning ?? 0)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
@@ -2257,6 +2310,7 @@ export function StoryboardSectionDetail({
       instruction,
       apiKey,
       currentHtml,
+      page.versions.sectioning ?? 0,
     ).catch((err) => {
       setAiError(err instanceof Error ? err.message : t`AI edit failed`)
     })
@@ -2593,6 +2647,36 @@ export function StoryboardSectionDetail({
         onChange={setDeviceView}
         currentWidth={previewVisibleWidth}
       />
+      {/* Comments mode, in the toolbar's own idiom — white-on-violet like the viewport switch
+          beside it. The same switch as the page list's Comments filter: on, the page shows its
+          pins and the list only the commented pages. Off until asked for: an author styling a
+          page should not have somebody else's dots in the way. */}
+      <button
+        type="button"
+        data-testid="storyboard-feedback-toggle"
+        aria-pressed={feedbackShown}
+        onClick={() => setFeedbackShown((shown) => !shown)}
+        title={feedbackShown ? t`Hide reviewer comments` : t`Show reviewer comments, and only the pages that have them`}
+        className={cn(
+          "inline-flex h-6 shrink-0 cursor-pointer items-center gap-1 rounded px-1.5 text-[10px] transition-colors",
+          feedbackShown
+            ? "bg-white text-neutral-900"
+            : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white",
+        )}
+      >
+        <MessagesSquare className="h-3.5 w-3.5" />
+        <span>{t`Comments`}</span>
+        {feedbackCount > 0 ? (
+          <span
+            className={cn(
+              "ml-0.5 rounded-full px-1 text-[9px] font-bold leading-4 tabular-nums",
+              feedbackShown ? "bg-neutral-900 text-white" : "bg-white text-neutral-900",
+            )}
+          >
+            {feedbackCount > 99 ? "99+" : feedbackCount}
+          </span>
+        ) : null}
+      </button>
       {renderedSection?.html && hasStructuredTextProvider ? (
         <div className="relative flex-1 min-w-[100px]">
           <Sparkles className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
@@ -2907,7 +2991,8 @@ export function StoryboardSectionDetail({
                 />
               </>
             ) : (
-              <BookPreviewFrame
+              <div ref={previewContainerRef} className="relative w-full">
+                <BookPreviewFrame
                   ref={previewFrameRef}
                   html={renderedSection.html}
                   bookLabel={bookLabel}
@@ -2930,6 +3015,19 @@ export function StoryboardSectionDetail({
                   onScaleChange={setPreviewScale}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
+
+                <StoryboardFeedbackOverlay
+                  bookLabel={bookLabel}
+                  sectionId={onScreenSectionId}
+                  pageSectionIds={pageSectionIds}
+                  frameRef={previewFrameRef}
+                  containerRef={previewContainerRef}
+                  enabled={feedbackShown}
+                  selectedThreadId={selectedThreadId}
+                  onSelectThread={setSelectedThreadId}
+                  onNavigateSection={onNavigateSection}
+                />
+              </div>
             )}
           </>
         ) : storyboardRunning && !section?.isPruned ? (

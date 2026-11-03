@@ -1,5 +1,5 @@
 import type { Storage } from "@adt/storage"
-import { CoreTtsCatalogOutput, EasyReadOutput } from "@adt/types"
+import { CoreTtsCatalogOutput, EasyReadOutput, TextCatalogOutput } from "@adt/types"
 import { indexEasyReadEntries } from "./easy-read.js"
 
 /** Source retirement changes membership, not ownership. When a stable source ID
@@ -59,4 +59,37 @@ export function activeEasyRead(storage: Storage, sourceBlocks: EasyReadOutput["b
       return entry ? [{ ...entry, originalText: source.originalText, pageId: source.pageId, sectionId: source.sectionId, sectionIndex: source.sectionIndex }] : []
     }),
   })) }
+}
+
+/** Reactivated source IDs recover their own historical corrections. Never infer
+ * authorship or copy a neighboring/positional entry onto a new identity. */
+export function retainedTranslation(storage: Storage, language: string, activeIds: Iterable<string>): TextCatalogOutput | undefined {
+  const itemId = storage.getLatestNodeData("text-catalog-translation", language) ? language : language.replace("-", "_")
+  const currentData = storage.getLatestNodeData("text-catalog-translation", itemId)?.data as Partial<TextCatalogOutput> | undefined
+  const current = readTranslationEntries(currentData)
+  // Keep every candidate for an ambiguous ID inspectable. Ambiguity protects
+  // that ID; it must not prevent an unrelated ID recovering its correction.
+  const entries = current ? [...current] : []
+  const present = new Set(entries.map((entry) => entry.id))
+  const missing = new Set([...activeIds].filter((id) => !present.has(id)))
+  if (missing.size) for (const row of storage.getAllNodeVersions("text-catalog-translation", itemId).sort((a, b) => b.version - a.version)) {
+    const retained = readTranslationEntries(row.data)
+    if (!retained) continue
+    // Take the complete group from its newest retained version before marking
+    // the ID found. Never collapse duplicates or mix candidates across versions.
+    const recovered = retained.filter((entry) => missing.has(entry.id))
+    entries.push(...recovered)
+    for (const entry of recovered) missing.delete(entry.id)
+    if (!missing.size) break
+  }
+  if (!current && !entries.length) return undefined
+  return { entries, generatedAt: typeof currentData?.generatedAt === "string" ? currentData.generatedAt : "retained" }
+}
+
+/** Match the editor's legacy readability boundary: validate the complete list,
+ * without requiring a top-level timestamp or stripping retained entry metadata.
+ * Invalid lists are unavailable; they are never partially normalized on read. */
+export function readTranslationEntries(data: unknown): TextCatalogOutput["entries"] | undefined {
+  const entries = (data as Partial<TextCatalogOutput> | null)?.entries
+  return TextCatalogOutput.shape.entries.safeParse(entries).success ? entries : undefined
 }

@@ -20,7 +20,16 @@ const label = "review"
 const db = () => createBookStorage(label, root)
 const tree = (texts: string[]): PageSectioningOutput => ({ reasoning: "", sections: [{ sectionId: "pg001_sec001", sectionType: "text", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: texts.map((text, i) => ({ nodeId: `pg001_n${String(i + 1).padStart(4, "0")}`, role: "body_text", text, isPruned: false })) }] })
 const rendered = (sectioning: PageSectioningOutput): WebRenderingOutput => ({ sections: sectioning.sections.map((section, sectionIndex) => ({ sectionIndex, sectionId: section.sectionId, sectionType: "text", reasoning: "", html: `<section data-section-id='${section.sectionId}'>${section.nodes.map((node) => `<p data-id='${node.nodeId}'>${node.text}</p>`).join("")}</section>` })) })
-const send = (route: string, body: unknown, method = "PUT") => app.request(`/books/${label}/${route}`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+const send = (route: string, body: unknown, method = "PUT") => {
+  // Structural saves now carry the version displayed by the editor. Keep the
+  // ownership/publication assertions below behind that real admission guard.
+  if (route.endsWith("/clone")) {
+    const storage = db()
+    try { body = { ...(body as object), baseVersion: storage.getLatestNodeData("page-sectioning", "pg001")?.version ?? 0 } }
+    finally { storage.close() }
+  }
+  return app.request(`/books/${label}/${route}`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+}
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "spec1-review-"))
   const storage = db()
