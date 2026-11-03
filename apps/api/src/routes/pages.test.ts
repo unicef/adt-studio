@@ -48,9 +48,11 @@ describe("Page routes", () => {
     after.close()
   })
 
-  it("reserves readable legacy quiz IDs even when document metadata is missing", async () => {
+  it.each([false, true])("reserves readable legacy quiz IDs without document metadata (missing item metadata=%s)", async sparse => {
     const storage = createBookStorage(label, tmpDir)
-    storage.putNodeData("quiz-generation", "book", { quizzes: [{ quizIndex: 0, afterPageId: `${label}_p1`, pageIds: [`${label}_p1`], question: "Saved quiz", answerIndex: 0, reasoning: "", options: ["A", "B", "C"].map(text => ({ text, explanation: text })) }] })
+    storage.putNodeData("quiz-generation", "book", { quizzes: [{ ...(sparse ? {} : { quizIndex: 0, reasoning: "" }), afterPageId: `${label}_p1`, pageIds: [`${label}_p1`], question: "Saved quiz", answerIndex: 0, options: ["A", "B", "C"].map(text => ({ text, explanation: text })) }] })
+    const priorQuiz = storage.getAllNodeVersions("quiz-generation", "book")
+    expect(resolveReadingOrder(storage).items.map(item => item.id)).toContain("qz001")
     const row = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!
     const prior = structuredClone(row)
     const tree = row.data as import("@adt/types").PageSectioningOutput
@@ -60,6 +62,7 @@ describe("Page routes", () => {
     expect(response.status).toBe(409)
     const after = createBookStorage(label, tmpDir)
     expect(after.getLatestNodeData("page-sectioning", `${label}_p1`)).toEqual(prior)
+    expect(after.getAllNodeVersions("quiz-generation", "book")).toEqual(priorQuiz)
     after.close()
   })
 

@@ -1,5 +1,5 @@
 import type { Storage } from "@adt/storage"
-import { PageSectioningOutput, QuizGenerationOutput, resolveQuizId } from "@adt/types"
+import { PageSectioningOutput, Quiz, QuizGenerationOutput, resolveQuizId } from "@adt/types"
 
 /** A public identity is one URL/file member, never a path or the reader root.
  * Keep readable legacy names; do not reinterpret URL escapes as ownership. */
@@ -38,11 +38,15 @@ export function publicOutputOwners(storage: Storage): Map<string, Set<string>> {
     }
   }
   try {
-    // Legacy readers accept quiz arrays without document-level timestamps or
-    // language metadata. Their public IDs are still reserved. Corrupt quiz
+    // Identity readers do not require document timestamps, reasoning or the
+    // deprecated quizIndex. Reserve their public IDs independently of those
+    // unused fields, including a valid entry beside an unreadable one. Corrupt quiz
     // JSON must not prevent reading the independent saved section tree.
-    const quizzes = QuizGenerationOutput.pick({ quizzes: true }).safeParse(storage.getLatestNodeData("quiz-generation", "book")?.data)
-    if (quizzes.success) quizzes.data.quizzes.forEach((quiz, index) => reserve(resolveQuizId(quiz, index), "\0quiz:" + index))
+    const data = storage.getLatestNodeData("quiz-generation", "book")?.data as Partial<QuizGenerationOutput> | undefined
+    if (Array.isArray(data?.quizzes)) data.quizzes.forEach((quiz, index) => {
+      const identity = Quiz.pick({ quizId: true }).safeParse(quiz)
+      if (identity.success) reserve(resolveQuizId(identity.data, index), "\0quiz:" + index)
+    })
   } catch (error) { if (!(error instanceof SyntaxError)) throw error }
   return owners
 }

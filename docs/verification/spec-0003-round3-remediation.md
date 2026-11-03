@@ -68,3 +68,16 @@ This is an implemented concurrency contract, not an unapproved scope deferral.
 Final public/browser, package/restart, complete-branch and independent runtime
 recheck results remain pending below. The 16 skipped macOS cases require their
 separate Linux execution; they are not counted as passes here.
+
+The follow-up at `b105e094` found IR3-4 (P1), the same public-identity boundary:
+a readable legacy quiz missing unused `reasoning` / deprecated `quizIndex`
+still escaped reservation. A real-SQLite counterexample retained `qz001` in the
+reading order while accepting its section claim. Identity-only reservation now
+rejects that claim without normalizing or rewriting the legacy quiz. The receipt
+`results/recheck-counterexamples-after-sparse.json` and the parameterized HTTP
+regression compare unchanged quiz history and source versions. Focused regression:
+3 files / 210 tests passed (including queued AI-edit admission/publication).
+The positive AI-edit fixture now sends its current rendering guard so its later
+stale-source case reaches the intended publication check; separate regressions
+retain the stale-render rejection checks. The b105 full-suite run was interrupted
+for this correction and is not counted as a completed pass.
