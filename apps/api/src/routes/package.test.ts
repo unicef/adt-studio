@@ -200,6 +200,9 @@ describe("Package routes", () => {
   )
 
   it.each([
+    '<input type="image" src="images/missing-input.png" alt="Submit">',
+    '<svg><use href="images/missing-sprite.svg#icon"/></svg>',
+    '<svg><use xlink:href="images/missing-sprite.svg#icon"/></svg>',
     '<link rel="stylesheet" href="missing-custom.css">',
     '<img srcset="images/pg001_page.png 1x,images/missing.png 2x">',
     '<img src="/images/pg001_page.png">',

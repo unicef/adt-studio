@@ -40,6 +40,23 @@ it("validates shared runtime files once per read and notices their deletion on t
   expect(packageFilesAvailable(root)).toBe(false)
   fs.writeFileSync(picture, "original image bytes")
   expect(packageFilesAvailable(root)).toBe(true)
+  for (const reference of [
+    '<input type="image" src="assets/intrinsic.png">',
+    '<input type="IMAGE" src="assets/intrinsic.png">',
+    '<svg><use href="assets/intrinsic.png#icon"/></svg>',
+    '<svg><use xlink:href="assets/intrinsic.png#icon"/></svg>',
+  ]) {
+    const asset = path.join(root, "assets/intrinsic.png")
+    fs.writeFileSync(page, reference)
+    expect(packageFilesAvailable(root), reference).toBe(false)
+    fs.writeFileSync(asset, "required intrinsic resource")
+    expect(packageFilesAvailable(root), reference).toBe(true)
+    expect(packageFilesAvailable(root), reference).toBe(true)
+    fs.unlinkSync(asset)
+    expect(packageFilesAvailable(root), reference).toBe(false)
+  }
+  fs.writeFileSync(page, '<svg><symbol id="icon"/><use href="#icon"/></svg><input type="text" src="unused.png">')
+  expect(packageFilesAvailable(root)).toBe(true)
   for (const srcset of [
     "assets/picture.png 1x,assets/second.png 2x",
     "assets/picture.png 1x, assets/second.png 2x",

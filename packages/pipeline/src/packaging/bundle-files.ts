@@ -103,9 +103,10 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
       new Parser({ onopentag(name, attrs) {
         if (name === "style") style = ""
         if (["script", "img", "audio", "video", "source", "track", "embed", "iframe"].includes(name) && attrs.src) relativeMember(attrs.src, from)
+        if (name === "input" && attrs.type?.toLowerCase() === "image" && attrs.src) relativeMember(attrs.src, from)
         if (name === "video" && attrs.poster) relativeMember(attrs.poster, from)
         if (name === "object" && attrs.data) relativeMember(attrs.data, from)
-        if (name === "image" && (attrs.href || attrs["xlink:href"])) relativeMember(attrs.href ?? attrs["xlink:href"], from)
+        if (["image", "use"].includes(name) && (attrs.href || attrs["xlink:href"])) relativeMember(attrs.href ?? attrs["xlink:href"], from)
         if (name === "link" && attrs.rel?.split(/\s+/).includes("stylesheet") && attrs.href) includeStylesheet(attrs.href, from)
         if (attrs.style) includeCss(parseCssSource(attrs.style), from, attrs.style)
         if (attrs.srcset) for (const url of srcsetUrls(attrs.srcset)) relativeMember(url, from)
