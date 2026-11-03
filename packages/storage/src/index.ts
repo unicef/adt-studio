@@ -7,6 +7,7 @@ export {
 export { openBookDb, cleanupInterruptedSteps, readBookSchemaVersion } from "./db.js"
 export { isCorruptBookDatabase } from "./database-admission.js"
 export { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "./node-current.js"
+export { HistoryIntegrityError } from "./history-integrity.js"
 
 export { storeImmutableAsset, readBookAsset, UnsafeAssetPathError } from "./immutable-assets.js"
 export { withBookWriter, withNewBookWriter, ownsBookWriter, assertBookWriter, BookBusyError } from "./book-writer.js"

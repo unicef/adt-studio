@@ -10256,6 +10256,9 @@ msgstr "Guarda el nuevo tipo y luego elige Regenerar para actualizar la activida
 msgid "Save your work first if you want to keep these changes."
 msgstr "Guarda tu trabajo primero si quieres conservar estos cambios."
 
+msgid "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
+msgstr "El historial guardado del libro no se puede leer. Se ha conservado el contenido existente. Es necesario recuperar el historial a partir de datos verificados antes de generar contenido nuevo."
+
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Se conservan el contenido guardado y las secciones de las páginas. Revise las etapas afectadas después de cambiar el idioma. No se inicia ninguna generación automáticamente."
 

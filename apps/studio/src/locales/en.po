@@ -10256,6 +10256,9 @@ msgstr "Save the new type, then choose Regenerate to update the activity."
 msgid "Save your work first if you want to keep these changes."
 msgstr "Save your work first if you want to keep these changes."
 
+msgid "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
+msgstr "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
+
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 

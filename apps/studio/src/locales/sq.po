@@ -10258,6 +10258,9 @@ msgstr "Ruani llojin e ri, pastaj zgjidhni Rigenero për të përditësuar aktiv
 msgid "Save your work first if you want to keep these changes."
 msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
 
+msgid "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
+msgstr "Historiku i ruajtur i librit është i palexueshëm. Përmbajtja ekzistuese është ruajtur. Historiku duhet të rikuperohet nga të dhëna të verifikuara para se të gjenerohet përmbajtje e re."
+
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Përmbajtja e ruajtur dhe seksionet e faqeve ruhen. Rishikoni fazat e prekura pas ndryshimit të gjuhës. Asnjë gjenerim nuk fillon automatikisht."
 

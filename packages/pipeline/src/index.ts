@@ -521,7 +521,7 @@ export { SectioningSafetyError, effectiveSectioningMode, sectioningInvalidationS
 
 export { extractionOptionsFromConfig, prepareExtractionAdmission, assertSafeExtractionRun } from "./extraction-admission.js"
 
-export { protectedAuthoredRecords, assertAuthoredReplacement, replacementConfirmed, selectSectioningPages, resetSectioningStoryboard, AuthoredReplacementError } from "./authored-output.js"
+export { protectedAuthoredRecords, assertAuthoredReplacement, replacementConfirmed, selectSectioningPages, assertSectioningIdentityHistory, resetSectioningStoryboard, AuthoredReplacementError } from "./authored-output.js"
 
 export { storyboardCoverage, storyboardCoverageByPage, missingStoryboardInputMessage } from "./storyboard-coverage.js"
 export { retainedPackageOwnership } from "./packaging/bundle-ownership.js"

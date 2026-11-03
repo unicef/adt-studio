@@ -1,7 +1,7 @@
 import { BookConfigError, OutputPublicationConflict } from "@adt/pipeline"
 import { EditConflictError } from "../services/edit-conflict.js"
 import type { ErrorHandler } from "hono"
-import { BookBusyError, ExtractionAdmissionError } from "@adt/storage"
+import { BookBusyError, ExtractionAdmissionError, HistoryIntegrityError } from "@adt/storage"
 import { SectioningSafetyError, AuthoredReplacementError } from "@adt/pipeline"
 import { HTTPException } from "hono/http-exception"
 import { AiProviderError } from "@adt/llm"
@@ -23,7 +23,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
     code: err.code, currentVersion: err.currentVersion,
   }, err.status)
   if (err instanceof EditConflictError) return c.json({ error: err.message, code: err.code, currentVersion: err.currentVersion }, 409)
-  if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof ExtractionAdmissionError) return c.json({ error: err.message, code: err.code }, 409)
+  if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof ExtractionAdmissionError || err instanceof HistoryIntegrityError) return c.json({ error: err.message, code: err.code }, 409)
   if (err instanceof BookConfigError) return c.json({ code: "BOOK_CONFIG_INVALID", error: err.message }, 409)
   if (err instanceof HTTPException) {
     return c.json({ error: err.message }, err.status)

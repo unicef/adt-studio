@@ -1,7 +1,8 @@
 import type { Storage } from "@adt/storage"
-import { STAGE_ORDER, PIPELINE, getStageDependents, EDITABLE_ACTIVITY_NODE, type AuthoredReplacement, type StageName } from "@adt/types"
+import { STAGE_ORDER, PIPELINE, getStageDependents, EDITABLE_ACTIVITY_NODE, type AuthoredReplacement, type StageName, type OutputRunScope } from "@adt/types"
 import { isProtectedContent } from "./manual-edits.js"
 import { withSourceGenerationTracking } from "./source-generation-state.js"
+import { collectSpentContentIds } from "./content-ids.js"
 export class AuthoredReplacementError extends Error {
   readonly code: "VERSION_CONFLICT" | "REPLACEMENT_CONFIRMATION_INVALID"
   constructor(readonly status: 400 | 409, message: string, readonly currentVersion?: number) {
@@ -90,6 +91,17 @@ function assertSectioningInputConsent(options: { protectedReplacements?: Authore
   }
 }
 
+/** Share the allocator's actual historical reservation scan. An unrelated
+ * unreadable row can conceal a custom ID belonging to this page. No-op runs and
+ * downstream-only work do not allocate identities and retain their access. */
+export function assertSectioningIdentityHistory(storage: Storage, options: {
+  fromStage: string; toStage: string; outputScope?: OutputRunScope
+}, selectedPages: readonly { pageId: string }[]): void {
+  const stages = STAGE_ORDER.slice(STAGE_ORDER.indexOf(options.fromStage as StageName), STAGE_ORDER.indexOf(options.toStage as StageName) + 1)
+  if (!stages.includes("sectioning") || options.outputScope?.selection?.identities || !selectedPages.length) return
+  collectSpentContentIds(storage)
+}
+
 /** Reset is a separately confirmed, database-only transaction. It intentionally
  * survives a subsequent generation failure; the authored Sectioning does not
  * change until that page successfully publishes. No rows or assets are deleted. */
@@ -101,6 +113,7 @@ export function resetSectioningStoryboard(storage: Storage, options: {
   withSourceGenerationTracking(storage, () => {
     assertSectioningInputConsent(options, sectioningInputSignature)
     assertAuthoredReplacement(storage, options)
+    collectSpentContentIds(storage)
     for (const record of records) {
       for (const node of ["web-rendering", "fixed-layout-sectioning", EDITABLE_ACTIVITY_NODE]) {
         if (storage.getSelectedNodeVersion(node, record.itemId) !== null) storage.putNodeData(node, record.itemId, null)

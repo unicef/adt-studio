@@ -52,6 +52,14 @@ Sectioning regeneration after reset. The required refusal/repair product decisio
 is pending; this is not an approved exception to the continuation requirement.
 Historical reports and the remote PR description retain their dated attribution.
 
+The [verified history recovery work record](../verification/spec-0003-history-recovery.md)
+maps the owner's subsequent recovery direction to this contract. The shared
+early safety check must run before reset/provider work. Recovery requires proof
+of the original identity-bearing record and preservation of damaged evidence;
+an older valid selected version alone is insufficient. The exact persistence and
+old-app compatibility amendment remains pending, and no completed recovery path
+or specification approval is claimed by this work record.
+
 This deliberately refines SPEC-0002 AC-8/15: **all existing Sectioning is kept by
 ordinary runs**, including AI pages. Revert manual edits still restores the
 chosen saved AI version, but does not authorize subsequent automatic replacement.

@@ -1,5 +1,10 @@
 # SPEC-0003 B1 — round-four local remediation and acceptance
 
+Follow-up: [verified history recovery work](spec-0003-history-recovery.md) now
+records the implemented early Sectioning admission guard. The late reset/call
+failure below describes the frozen `94332270` checkpoint; verified recovery and
+its persistence/compatibility decision remain incomplete.
+
 **The local fixes are independently rechecked and all final verification commands passed. The revised B1 contract is not fully complete.** A confirmed corrupt-history regeneration case remains unresolved pending an explicit product/data-safety decision. This record supersedes the earlier unqualified round-three readiness recommendation, while preserving its historical evidence.
 
 Runtime/source candidate: `943322703621e866c797878a6b12e15be376c335`. Reviewed input: `86fafe9372efec4042f17293c9be0b4bc93278a1`. Local prerequisite boundary remains develop `4b9e40cc185cdbceb3ef248248e440c08f25fa82`, containing SPEC-0001 squash `c153ba7d26c2323b67236c61297999424b169ac1` and SPEC-0002 merge `f2e59a0d29b13f65641f26c4f898738770d1181a` (approved prerequisite head `89a65f0677288be266ea448b231c1ca21dc30235`). The local graph was checked. These are local identities, not a refreshed remote-tip claim. Nothing was pushed, no PR/issue was changed, and no approval or release certification is granted.

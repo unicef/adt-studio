@@ -10258,6 +10258,9 @@ msgstr "Enregistrez le nouveau type, puis choisissez Régénérer pour mettre à
 msgid "Save your work first if you want to keep these changes."
 msgstr "Enregistrez d'abord votre travail si vous souhaitez conserver ces modifications."
 
+msgid "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
+msgstr "L’historique enregistré du livre est illisible. Le contenu existant a été conservé. Une récupération de l’historique à partir de données vérifiées est nécessaire avant de générer du nouveau contenu."
+
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Le contenu enregistré et les sections des pages sont conservés. Vérifiez les étapes concernées après le changement de langue. Aucune génération ne démarre automatiquement."
 

@@ -10,7 +10,7 @@ import { outputEvidence, inputSignature } from "./output-freshness.js"
 import { reconcileTextCatalog, buildImageInventory } from "./catalog-reconciliation.js"
 import { withBookWriter, withNewBookWriter, resolveBookPaths, recoverSectioningTransition, ExtractionAdmissionError } from "@adt/storage"
 import { prepareExtractionAdmission, extractionOptionsFromConfig } from "./extraction-admission.js"
-import { selectSectioningPages } from "./authored-output.js"
+import { selectSectioningPages, assertSectioningIdentityHistory } from "./authored-output.js"
 import { createSectionIdFactory, retireSectionIds } from "./section-ids.js"
 import { reconcileSpeechInputs } from "./speech-inputs.js"
 import { completeSectioning, createStoryboardPublication, activeSectioningPages, SectioningSafetyError } from "./sectioning-lifecycle.js"
@@ -569,9 +569,10 @@ async function runAdmittedFullPipeline(
     const publishedSectioningPages: string[] = []
     executors.set("page-sectioning", async (p) => {
       const sectioningPages = activeSectioningPages(storage, config, bookDir)
-      const previousSectioning = new Map(sectioningPages.map((page) => [page.pageId, storage.getLatestNodeData("page-sectioning", page.pageId)]))
       const selected = selectSectioningPages(storage, sectioningPages, {})
       if (!selected.length) return
+      assertSectioningIdentityHistory(storage, { fromStage: "sectioning", toStage: "sectioning" }, selected)
+      const previousSectioning = new Map(selected.map((page) => [page.pageId, storage.getLatestNodeData("page-sectioning", page.pageId)]))
       const model = getModel(pageSectioningConfig.modelId)
       const bookOutline = readBookOutline(storage)
       const metadata = storage.getLatestNodeData("metadata", "book")?.data as BookMetadata | null

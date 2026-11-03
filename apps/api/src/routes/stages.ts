@@ -15,7 +15,7 @@ import {
   getSourceGenerationUpdates, storyboardSourceWarnings,
   keepSourceGeneration,
   withSourceGenerationTracking,
-  activeSectioningPages, sectioningReplacementSignature, selectSectioningPages, storyboardCoverage,
+  activeSectioningPages, sectioningReplacementSignature, selectSectioningPages, assertSectioningIdentityHistory, storyboardCoverage,
   isFixedLayoutBook,
   prepareSectioningRun,
   collectSpentSectionIds,
@@ -257,7 +257,8 @@ export function createStageRoutes(
         const storage = createBookStorage(label, booksDir)
         try {
           assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
-          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements }, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
+          const pages = selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements }, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
+          assertSectioningIdentityHistory(storage, { fromStage, toStage, outputScope }, pages)
         }
         finally { storage.close() }
       })
@@ -267,7 +268,8 @@ export function createStageRoutes(
       const storage = createBookStorage(label, booksDir)
       try {
           assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
-          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements }, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
+          const pages = selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements }, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
+          assertSectioningIdentityHistory(storage, { fromStage, toStage, outputScope }, pages)
         }
       finally { storage.close() }
       prepare()

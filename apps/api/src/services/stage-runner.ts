@@ -17,7 +17,7 @@ import { outputIdentityKey } from "@adt/pipeline"
 import { createHash } from "node:crypto"
 import { speechPageId, reconcileSpeechInputs, translateCatalog, inputSignature, reconcileTextCatalog, readOutputCatalog, buildImageInventory, selectedForGeneration, outputEvidence, assertOutputPublication, timestampInputSignature, deriveOutputStatus } from "@adt/pipeline"
 import { prepareSectioningRun, completeSectioning, storyboardCoverage, missingStoryboardInputMessage, createStoryboardPublication, activeSectioningPages, sectioningReplacementSignature } from "@adt/pipeline"
-import { selectSectioningPages, resetSectioningStoryboard, SectioningSafetyError } from "@adt/pipeline"
+import { selectSectioningPages, assertSectioningIdentityHistory, resetSectioningStoryboard, SectioningSafetyError } from "@adt/pipeline"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
@@ -952,7 +952,8 @@ export function createStageRunner(): StageRunner {
         const storage = createBookStorage(label, options.booksDir)
         try {
           assertAuthoredReplacement(storage, options)
-          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, options.booksDir, options.configPath), bookDir), options, sectioningReplacementSignature(storage, label, options.booksDir, options.configPath, options.promptsDir))
+          const pages = selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, options.booksDir, options.configPath), bookDir), options, sectioningReplacementSignature(storage, label, options.booksDir, options.configPath, options.promptsDir))
+          assertSectioningIdentityHistory(storage, options, pages)
         } finally { storage.close() }
         return runner.run(label, options, progress)
       })
@@ -1424,6 +1425,7 @@ async function runSectioningStep(
       }
     }
     const pages = selectSectioningPages(storage, allPages, options, runInputSignature)
+    assertSectioningIdentityHistory(storage, options, pages)
     const unreadable = new Set<string>()
     const previous = new Map(allPages.map((page) => {
       try {

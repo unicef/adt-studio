@@ -9,6 +9,7 @@ import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPU
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
+import { parseHistoricalPayload } from "./history-integrity.js"
 import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
 
 const storageDirectories = new WeakMap<Storage, string>()
@@ -538,7 +539,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         "SELECT version, data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version",
         [node, itemId]
       ) as Array<{ version: number; data: string | null }>
-      return rows.map((row) => ({ version: row.version, data: row.data === null ? null : JSON.parse(row.data) }))
+      return rows.map((row) => ({ version: row.version, data: parseHistoricalPayload(node, itemId, row.version, row.data) }))
     },
 
     getNodeItemIds(node: string): string[] {

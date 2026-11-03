@@ -132,6 +132,101 @@ beforeEach(() => {
 })
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
+function rawHistoryState() {
+  const db = openBookDb(path.join(dir, `${label}.db`))
+  try {
+    return {
+      rows: db.all("SELECT node, item_id, version, data FROM node_data ORDER BY node, item_id, version"),
+      selected: db.all("SELECT node, item_id, version FROM node_current ORDER BY node, item_id"),
+    }
+  } finally { db.close() }
+}
+
+function damageNeighborHistory() {
+  const db = openBookDb(path.join(dir, `${label}.db`))
+  try { db.run("UPDATE node_data SET data = ? WHERE node = ? AND item_id = ? AND version = ?", ["{unreadable historical identity", "page-sectioning", "p7", 1]) }
+  finally { db.close() }
+}
+
+it("history admission refuses healthy-page replacement before reset or generation", async () => {
+  const consent = await replacement(["p2"])
+  damageNeighborHistory()
+  const before = rawHistoryState()
+  const response = await send("stages/run", { fromStage: "sectioning", toStage: "storyboard", ...consent })
+  // Settle the old broken implementation too, so the negative baseline never
+  // removes its fixture while its worker is still running.
+  if (response.status === 200) await vi.waitFor(() => expect(service.getStatus(label).active?.status).toBe("failed"), { timeout: 10_000 })
+  expect.soft(response.status).toBe(409)
+  expect.soft(await response.json()).toMatchObject({ code: "HISTORY_REPAIR_REQUIRED" })
+  expect.soft(sectionPage).not.toHaveBeenCalled()
+  expect.soft(renderPage).not.toHaveBeenCalled()
+  expect(rawHistoryState()).toEqual(before)
+})
+
+it("history admission also protects a direct runner before reset", async () => {
+  const consent = await replacement(["p2"])
+  damageNeighborHistory()
+  const before = rawHistoryState()
+  await expect(createStageRunner().run(label, {
+    booksDir: root, promptsDir: root, configPath,
+    fromStage: "sectioning", toStage: "sectioning", ...consent,
+  }, { emit: () => undefined })).rejects.toThrow("HISTORY_REPAIR_REQUIRED")
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(rawHistoryState()).toEqual(before)
+})
+
+it("history admission refuses ordinary missing-page generation without changing retained pages", async () => {
+  const s = store()
+  try {
+    s.putExtractedPage({ pageId: "p9", pageNumber: 9, text: "New page", images: [], pageImage: { imageId: "p9_page", buffer: Buffer.from("untouched pixels"), format: "png", hash: "pixels", width: 4, height: 6 } })
+  } finally { s.close() }
+  damageNeighborHistory()
+  const before = rawHistoryState()
+  const response = await send("stages/run", { fromStage: "sectioning", toStage: "sectioning" })
+  expect(response.status).toBe(409)
+  expect(await response.json()).toMatchObject({ code: "HISTORY_REPAIR_REQUIRED" })
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(rawHistoryState()).toEqual(before)
+})
+
+it("history admission revalidates a queued replacement before reset", async () => {
+  const consent = await replacement(["p2"])
+  const errors: string[] = []
+  bus.addListener(label, event => { if (event.type === "stage-run-error") errors.push(event.error) })
+  let release!: () => void
+  renderPage.mockImplementation(async () => {
+    await new Promise<void>(resolve => { release = resolve })
+    throw new Error("Controlled predecessor failure")
+  })
+  expect((await send("stages/run", { fromStage: "storyboard", toStage: "storyboard", pageErrorPolicy: "stop" })).status).toBe(200)
+  await vi.waitFor(() => expect(release).toBeDefined())
+  expect(await (await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", ...consent })).json()).toMatchObject({ status: "queued" })
+  // Inject physical corruption after enqueue, without using a supported writer
+  // to acquire the predecessor's lease. This is a fault, not allowed concurrency.
+  damageNeighborHistory()
+  const before = rawHistoryState()
+  release()
+  await vi.waitFor(() => {
+    expect(service.getStatus(label).queue).toHaveLength(0)
+    expect(errors.some(error => error.includes("HISTORY_REPAIR_REQUIRED"))).toBe(true)
+  }, { timeout: 10_000 })
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(rawHistoryState()).toEqual(before)
+})
+
+it("history admission leaves no-op Sectioning and usable Storyboard reads available", async () => {
+  damageNeighborHistory()
+  const before = rawHistoryState()
+  expect((await run({ toStage: "sectioning" })).status).toBe("completed")
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(rawHistoryState()).toEqual(before)
+  expect((await app.request(`/books/${label}/pages`)).status).toBe(200)
+  expect((await app.request(`/books/${label}/pages/p2`)).status).toBe(200)
+  expect((await run({ fromStage: "storyboard", toStage: "storyboard" })).status).toBe("completed")
+  expect(renderPage).toHaveBeenCalledTimes(1)
+  expect(history("web-rendering", "p2")).toHaveLength(2)
+})
+
 // Original AC-18/19 mode gates and retained-current HTML were superseded by
 // the authorized October review. These cases exercise their revised outcomes.
 it.each(["reflowable", "fixed", "reflowable-part", "fixed-part"].flatMap((layout) => ["page", "dynamic"].map((mode) => ({ layout, mode }))))("mode preference, missing-only run, explicit reset and publication through HTTP: $layout → $mode", async ({ layout, mode }) => {

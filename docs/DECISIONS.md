@@ -1023,6 +1023,11 @@ See [the amended contract](specs/SPEC-0003-sectioning-modes.md),
 The corrupt-history identity-allocation gap and its proposed refusal/repair
 choices remain unresolved; neither changes this decision without the owner's
 explicit choice.
+The [verified recovery work record](verification/spec-0003-history-recovery.md)
+now maps the early admission check and recovery requirements. Exact-byte repair
+with an immutable damage audit versus an append-only read projection/new format
+remains a concrete owner decision; the no-overwrite and compatibility contracts
+are not silently exempted.
 This decision remains proposed, with human review pending.
 
 ### Alternatives Considered
