@@ -463,6 +463,8 @@ export async function regenerateGlossaryPreservingEdits(
   // Run may be the first operation on an old book. Resolve positional/explicit
   // collisions in its original order before generated ordering can choose a
   // different owner for retained translations, recordings or manual edits.
+  // Prove identity history before materializing legacy IDs or making a paid call.
+  collectSpentContentIds(options.storage)
   const existingRow = materializeGlossaryIds(options.storage)
   const existingItems = ((existingRow?.data as GlossaryOutput | undefined)?.items ?? [])
     .map((item, index) => ({ ...item, id: getGlossaryItemTextId(item, index) }))

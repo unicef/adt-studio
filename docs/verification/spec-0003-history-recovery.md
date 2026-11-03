@@ -3,8 +3,8 @@
 Starting head: `0cda806424f9ee603f9edb215b9009d1f354f342`; tested predecessor
 runtime: `943322703621e866c797878a6b12e15be376c335`. Local work only. Specification
 approval remains pending. The owner endorsed pursuing verified recovery after
-the round-four findings; the precise persistence/compatibility choice below is
-still awaiting an explicit answer.
+the round-four findings; the owner subsequently authorized the narrow exact-byte restoration exception.
+It does not authorize arbitrary historical edits or specification approval.
 
 ## Contract and requirement map before editing runtime
 
@@ -25,29 +25,41 @@ turns earlier failing continuation cases into passes or approved deferrals.
 | H8: successful recovery completes the promised journey | Exact private fixture restoration succeeds, not a product workflow | Repair through public workflow then fresh explicit Sectioning consent → regeneration → structural edits → Storyboard | Both layouts, active part window, immediate/queued/targeted paths, duplicate/restart, no collateral changes |
 | H9: independently verified delivery | Round-four checks cover only the predecessor | Focused then full applicable checks, five locales, packaged runtimes and bounded independent recheck | Record exact heads/commands/results and distinguish known platform issues, unavailable checks and functional defects |
 
-## Pending persistence decision
+## Authorized persistence decision (implementation in progress)
 
-The bounded independent design review confirms a Storage-only read overlay is
-insufficient: several API readers and part import read raw SQLite rows. There are
-two reviewable alternatives:
+The owner accepted the verified exact-byte restoration exception in this chat.
+A recovery transaction may restore only a pre-existing, verified original payload
+to its exact damaged node/item/version. It must retain the SQLite storage type and
+raw damaged bytes, the witness, and the recovery receipt in append-only audit
+records in the same transaction. No guessed reconstruction, arbitrary historical
+editing, deleted-history repair, or automatic regeneration is authorized.
 
-1. Restore only proven original bytes to the exact damaged tuple, retaining the
-   damaged bytes and witness in an immutable audit in the same transaction. This
-   retains old-reader compatibility but needs an explicit narrow exception to
-   AGENTS.md's literal no-overwrite rule. It grants no arbitrary historical editing.
-2. Keep the original row unchanged and introduce one effective read projection
-   for every semantic reader, with a book-format gate that older apps refuse.
-   This preserves raw rows literally but changes the prior compatibility contract.
+Witnesses bind book identity, tuple, insertion incarnation, storage type and byte
+hash. SQLite triggers retain insertion/deletion/update continuity for direct and
+older writers too. A reused tuple cannot inherit an earlier witness. New supported
+writes capture evidence in their transaction; explicit checkpoints capture only
+currently readable, noncontradictory legacy records. GET creates no evidence.
+Known retired records remain available to the existing ID reservation factories
+through verified original witnesses; these are not current content or a new ID
+allocator. Unexpected missing records or unverifiable retired evidence fail safe.
 
-Neither alternative is assumed authorized by this record. The shared early
-admission guard, diagnosis and regression work are independent of that choice.
-Recovery cannot reconstruct destroyed information without a verified prior
-witness. An older current version or plausible LLM reconstruction is not proof.
+Repair preserves original versions and authorship. If the damaged version was
+selected, append a byte-equivalent new current version after restoring the
+historical original: this rejects editors with pre-recovery numeric baseVersion.
+A repaired unselected version never becomes current. A versioned recovery receipt
+also changes existing admission/package proofs; repair does not mark generation
+complete or accept downstream freshness. Fresh replacement consent is required.
+
+The same schema-14 raw readers continue seeing the restored original bytes; no
+new read projection or schema-version change is needed. Older writes that have no
+witness remain readable but are not automatically recoverable. No witness may be
+manufactured retroactively from an already damaged record. This applies only to
+the identity-bearing history nodes used by the shared allocation factories.
 
 ## Results
 
-The independent H1 Sectioning guard is implemented; H2–H9 recovery integration is
-not implemented. Evidence is under
+The following H1 results describe the earlier checkpoint, before the recovery
+implementation below. Evidence is under
 `.local-docs/spec0003-history-recovery-20261103/` in the main repository (`E`).
 
 - The initial HTTP/direct-runner regressions reproduce admission followed by
@@ -86,7 +98,70 @@ not implemented. Evidence is under
   extraction/metadata/outline calls. Existing-book CLI refusal remains earlier.
 
 No new whole-branch suite, packaging build, full browser recovery journey or
-release verification is claimed for this partial checkpoint. Recovery requires
-the pending persistence decision, its implementation, then full affected checks
-and a bounded independent recheck. The 26+18 full-contract matrix remains
-incomplete; the early guard does not make option 2 complete.
+release verification is claimed for this partial checkpoint. At that checkpoint recovery still required a persistence decision and implementation.
+The owner has since authorized the narrow exception above. These historical H1
+checks alone do not establish acceptance of the subsequent recovery implementation.
+
+
+## Recovery candidate: current local work
+
+The authorized recovery path is now implemented in storage, shared schemas, API
+and Studio, with no new dependency, schema-version increment, writer protocol,
+ID allocator, or freshness authority. New identity-bearing writes and part
+imports capture witnesses in their transaction; the explicit checkpoint records
+only readable, noncontradictory legacy versions. The existing allocation factories
+reserve identities from extant history plus verified retired witnesses. Recovery
+uses the existing shared writer admission and one SQLite transaction. It records
+the damaged storage type/bytes, proof and receipt, restores only the verified exact
+original, advances an affected selected version, and writes a versioned recovery
+receipt consumed by existing consent/package fingerprints. It starts no pipeline.
+
+The implementation also handles normal older/direct SQL writers: insertion,
+deletion or update changes record continuity, so an earlier incarnation cannot
+restore a reused tuple. Evidence rejects UPDATE, DELETE and INSERT OR REPLACE.
+Unverifiable, missing or already-damaged unwitnessed legacy history still cannot be
+reconstructed. This is the owner-authorized safe refusal, not a claim of universal
+repair or an allocation bypass.
+
+Current evidence is in `.local-docs/spec0003-verified-recovery-20261103/` (`R`).
+These are incremental results, not a final frozen-head acceptance report:
+
+- `storage-focused`: 54 passed, one regression found in the new extraction cleanup
+  ordering. The change was corrected so image cleanup failure still retains DB
+  rows; history is preflighted before either operation.
+- `storage-ui`: 61 passed in three files after that correction (see exact totals
+  in its log). Public recovery API cases subsequently passed for fixed/reflowable,
+  whole-book/part-window flows: recovery → old draft/consent refusal → fresh
+  Sectioning → split → Storyboard, with original image and neighbor preservation.
+- `affected`: 223 passed, 16 platform skips, one harness assertion failed because
+  the child had opened a connection without holding a SQLite read transaction.
+  The test now starts and reads an actual deferred transaction. No lock deletion
+  or production admission change was made to satisfy it.
+- `recovery-final`: **47 passed** in three files, including three independent
+  process-death boundaries (after restoration, before commit, after commit),
+  atomic rollback/receipt replay and a live independent reader transaction.
+  UI tests cover default-off/Cancel, exact snapshot consent, cross-book navigation,
+  delayed responses and duplicate/retried requests.
+- Root typecheck and Studio lint pass. Changed strings have translations in all
+  five locales. Strict compilation initially caught one obsolete untranslated
+  draft message; that unused entry was removed, and compilation passed. The final checkpoint-label addition also passed extraction and strict
+  compilation. Runtime and Desktop typechecks pass.
+
+- `browser3`: all four actual-browser journeys pass (fixed/reflowable, whole book/
+  part window). Each exercises explicit checkpoint, physical-damage simulation,
+  zero-call pre-reset refusal, default-off recovery/Cancel, verified repair,
+  stale prior consent refusal, informational preference change, fresh explicit
+  Sectioning, split/clone/merge/delete plus saved-tree add, Storyboard and Preview.
+  Each makes one real stubbed Sectioning transport call after consent; templates
+  render Storyboard without an LLM. All original history rows and all 26 media
+  files per fixture remain unchanged. The first two attempts are retained as
+  harness failures: a probe raced a live reader, then used a button selector for
+  the existing radio control. No product change was made for either failure.
+- Final extraction reports **4,573 entries per locale, zero missing**. Strict
+  compilation, root/runtime/Desktop typechecks and Studio lint pass.
+
+The full branch suite, compatibility,
+Docker/Desktop checks and the two requested independent whole-contract reviews
+are in progress or pending. No completion, final review readiness or publication
+is claimed by this candidate record. The final 26-original/18-revised matrix must
+be refreshed from their results.

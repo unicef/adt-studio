@@ -269,6 +269,11 @@ msgstr "{0} gjetje të shënuara në këtë rishikim"
 msgid "{0} fonts"
 msgstr "{0} fonte"
 
+#. placeholder {0}: state.data.issueCount
+#. placeholder {1}: state.data.checkpointable
+msgid "{0} history issue(s); {1} readable record(s) without a checkpoint. Showing up to 20 affected versions."
+msgstr "{0} problem(e) në historik; {1} regjistrim(e) të lexueshme pa pikë rikuperimi. Shfaqen deri në 20 versione të prekura."
+
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
 #~ msgid "{0} image{1} selected"
@@ -884,6 +889,9 @@ msgstr "Një aktivitet me plotësim boshllëqesh."
 
 msgid "A glossary term with this word already exists."
 msgstr "Një term glosari me këtë fjalë ekziston tashmë."
+
+msgid "A historical record is missing; it cannot be reconstructed safely"
+msgstr "Mungon një regjistrim historik; ai nuk mund të rindërtohet në mënyrë të sigurt"
 
 msgid "A language is required so downstream stages can localize the book."
 msgstr "Kërkohet një gjuhë që fazat e mëvonshme të mund ta lokalizojnë librin."
@@ -5552,6 +5560,9 @@ msgstr "Këshillë kur gabon (mos e zbulo përgjigjen)"
 msgid "História e Sociedade - Vol. 1"
 msgstr "História e Sociedade - Vol. 1"
 
+msgid "History recovery"
+msgstr "Rikuperimi i historikut"
+
 msgid "Hit"
 msgstr "Goditje"
 
@@ -5629,6 +5640,9 @@ msgstr "HTML"
 
 msgid "HTML5 + EPUB"
 msgstr "HTML5 + EPUB"
+
+msgid "I reviewed this book and the affected versions, and explicitly confirm this operation."
+msgstr "E shqyrtova këtë libër dhe versionet e prekura dhe e konfirmoj shprehimisht këtë veprim."
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "E kuptoj se pjesa u përpunua me prompte/modele të ndryshme dhe dua ta bashkoj gjithsesi."
@@ -5902,8 +5916,17 @@ msgstr "Kapaku i brendshëm"
 msgid "Inside the school, no internet needed"
 msgstr "Brenda shkollës, pa nevojë për internet"
 
+msgid "Inspect history"
+msgstr "Inspekto historikun"
+
+msgid "Inspect identity history before recovery. Only verified original bytes can be restored. Recovery keeps damaged evidence and assets, and does not regenerate content."
+msgstr "Inspektoni historikun e identiteteve para rikuperimit. Mund të rikthehen vetëm bajtet origjinale të verifikuara. Rikuperimi ruan provat e dëmtuara dhe burimet, pa rigjeneruar përmbajtjen."
+
 #~ msgid "Inspect original HTML and answers"
 #~ msgstr "Shqyrto HTML-në dhe përgjigjet origjinale"
+
+msgid "Inspecting history…"
+msgstr "Duke inspektuar historikun…"
 
 msgid "Install"
 msgstr "Instalo"
@@ -7489,6 +7512,9 @@ msgstr "Nuk ka komente të hapura. Të rejat vijnë së pari këtu."
 msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
 msgstr "Nuk u zbulua licencë open-source. Sigurohuni që keni të drejtën të përfshini dhe shpërndani këtë font."
 
+msgid "No original evidence was saved before damage"
+msgstr "Nuk u ruajtën prova origjinale para dëmtimit"
+
 msgid "No other images in this book"
 msgstr "Nuk ka imazhe të tjera në këtë libër"
 
@@ -8133,6 +8159,10 @@ msgstr "Po hapet kuizi…"
 msgid "Operation failed"
 msgstr "Veprimi dështoi"
 
+#. placeholder {0}: mutation.data.count
+msgid "Operation recorded for {0} version(s). Review the current inspection before continuing. Generation has not been started."
+msgstr "Veprimi u regjistrua për {0} version(e). Shqyrtoni inspektimin aktual para se të vazhdoni. Gjenerimi nuk ka filluar."
+
 msgid "Option columns"
 msgstr "Kolonat e opsioneve"
 
@@ -8201,6 +8231,9 @@ msgstr "Ose ndajeni në një lidhje të re me zgjedhjet më sipër"
 
 msgid "Original"
 msgstr "Origjinal"
+
+msgid "Original evidence or record continuity cannot be verified"
+msgstr "Provat origjinale ose vazhdimësia e regjistrimit nuk mund të verifikohen"
 
 msgid "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
 msgstr "Të dhënat origjinale të nxjerrjes mungojnë ose janë të palexueshme. Të dhënat ekzistuese mbahen. Rivendosni një kopje të verifikuar të librit ose importojeni PDF-në si një libër të ri."
@@ -9277,6 +9310,9 @@ msgstr "Përmbajtja e leximit me zë"
 msgid "Read-only"
 msgstr "Vetëm për lexim"
 
+msgid "Readable versions included in this checkpoint"
+msgstr "Versionet e lexueshme të përfshira në këtë pikë rikuperimi"
+
 msgid "Reader"
 msgstr "Lexuesi"
 
@@ -9822,8 +9858,14 @@ msgstr "Rikthe elementin"
 msgid "Restore section to flow"
 msgstr "Rikthe seksionin në rrjedhë"
 
+msgid "Restore the listed recoverable versions exactly. A selected version receives a new version number so old edit drafts cannot overwrite it. Review new replacement consent before running Sectioning."
+msgstr "Riktheni saktësisht versionet e rikuperueshme të listuara. Një version i përzgjedhur merr një numër të ri versioni që draftet e vjetra të redaktimit të mos mund ta mbishkruajnë. Shqyrtoni një konfirmim të ri zëvendësimi para se të nisni ndarjen në seksione."
+
 msgid "Restore this term — it will be eligible again on the next regeneration."
 msgstr "Riktheje këtë term — do të jetë i pranueshëm përsëri në rigjenerimin tjetër."
+
+msgid "Restore verified history"
+msgstr "Rikthe historikun e verifikuar"
 
 msgid "restored"
 msgstr "rikthyer"
@@ -10222,6 +10264,9 @@ msgstr "Ruaj listën e kontrollit"
 msgid "Save failed"
 msgstr "Ruajtja dështoi"
 
+msgid "Save history checkpoint"
+msgstr "Ruaj pikën e rikuperimit të historikut"
+
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Ruani ose anuloni draftin para se të rishikoni rezultatet."
 
@@ -10236,6 +10281,9 @@ msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
 
 msgid "Save page review"
 msgstr "Ruaj rishikimin e faqes"
+
+msgid "Save recovery evidence for currently readable history. A checkpoint cannot recover records that were already damaged."
+msgstr "Ruani provat e rikuperimit për historikun që aktualisht mund të lexohet. Një pikë rikuperimi nuk mund të rikuperojë regjistrime që ishin dëmtuar më parë."
 
 msgid "Save section changes?"
 msgstr "Të ruhen ndryshimet e seksioneve?"
@@ -11156,6 +11204,9 @@ msgstr "Gjendja e përditësimit të softuerit"
 msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
 msgstr "Një pjesë e përmbajtjes u la jashtë paketës: {0} seksione të renderuara në {pageTotal} faqe (shfaqen deri në 20): {pageList} nuk kanë një seksion zotërues të verifikuar, ndaj nuk mund të përfshiheshin. Përmbajtja dhe historiku i tyre ruhen. Shqyrtoni identitetet e seksioneve në Storyboard dhe krijoni paketën përsëri."
 
+msgid "Some history cannot be recovered from the available evidence. Existing content stays retained. A verified book backup may be needed; choosing an older selected version does not repair missing history."
+msgstr "Një pjesë e historikut nuk mund të rikuperohet nga provat e disponueshme. Përmbajtja ekzistuese ruhet. Mund të nevojitet një kopje rezervë e verifikuar e librit; përzgjedhja e një versioni më të vjetër nuk e riparon historikun që mungon."
+
 msgid "Some items could not be updated. The list has been refreshed; completed changes are kept."
 msgstr "Disa elemente nuk mund të përditësoheshin. Lista u rifreskua; ndryshimet e përfunduara ruhen."
 
@@ -11929,6 +11980,9 @@ msgstr "Arkivi duhet të përmbajë një bazë të dhënash projekti dhe PDF-në
 msgid "The back cover of the book."
 msgstr "Kapaku i pasëm i librit."
 
+msgid "The book changed after inspection. Inspect its history again and review the affected versions before confirming recovery."
+msgstr "Libri ndryshoi pas inspektimit. Inspektoni përsëri historikun dhe shqyrtoni versionet e prekura para se të konfirmoni rikuperimin."
+
 msgid "The book changed while preparing the package. Prepare the export again using the current book."
 msgstr "Libri ndryshoi gjatë përgatitjes së paketës. Përgatiteni sërish eksportin duke përdorur versionin aktual të librit."
 
@@ -12114,6 +12168,9 @@ msgstr "Mesazhi përmban titullin, lidhjen dhe kodin."
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
 
+msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
+msgstr "Historiku origjinal nuk mund të verifikohej. Regjistrimet dhe burimet ekzistuese janë ruajtur. Rikuperimi kërkon prova të besueshme për këto versione të sakta."
+
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "Paketës i mungojnë skedarë të nevojshëm. Përgatiteni sërish eksportin para se ta shkarkoni."
 
@@ -12185,6 +12242,9 @@ msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin dembel."
 
 msgid "The reader experience"
 msgstr "Përvoja e lexuesit"
+
+msgid "The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions."
+msgstr "Kërkesa për rikuperim është e pavlefshme. Inspektoni përsëri librin dhe konfirmoni shprehimisht versionet e prekura."
 
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eksplicit."
@@ -12281,6 +12341,9 @@ msgstr "tema pamja e errët e ndritshme mënyra"
 
 msgid "theme appearance system automatic"
 msgstr "tema pamja sistemi automatik"
+
+msgid "There is no readable history that needs a recovery checkpoint."
+msgstr "Nuk ka historik të lexueshëm që ka nevojë për pikë rikuperimi."
 
 #~ msgid "These actions also resolve the linked source items in: {sources}."
 #~ msgstr "Këto veprime trajtojnë edhe elementet burimore të lidhura në: {sources}."
@@ -12592,6 +12655,12 @@ msgstr "Ky kuiz nuk është më në libër — mund të jetë hequr pasi lexuesi
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Ky test do të hiqet nga libri. Mund ta rikthesh nga historia e versioneve."
+
+msgid "This record was changed or recreated; older evidence cannot restore it"
+msgstr "Ky regjistrim është ndryshuar ose rikrijuar; provat më të vjetra nuk mund ta rikthejnë"
+
+msgid "This recovery request was already used with different details. Inspect the book again before making a new request."
+msgstr "Kjo kërkesë për rikuperim është përdorur tashmë me hollësi të tjera. Inspektoni përsëri librin para se të bëni një kërkesë të re."
 
 msgid "This release includes general improvements and fixes."
 msgstr "Ky version përfshin përmirësime të përgjithshme dhe rregullime."
@@ -13400,6 +13469,9 @@ msgstr "Variacione"
 msgid "Verified applied"
 msgstr "Vërtetimi u aplikua"
 
+msgid "Verified original available"
+msgstr "Origjinali i verifikuar është i disponueshëm"
+
 #. placeholder {0}: String(data.version)
 #. placeholder {0}: String(version)
 #. placeholder {0}: connection.worker_version
@@ -13481,6 +13553,9 @@ msgstr "Shiko faqen"
 
 msgid "View page {pageNum} larger"
 msgstr "Shiko faqen {pageNum} më të madhe"
+
+msgid "View recovery evidence"
+msgstr "Shiko provat e rikuperimit"
 
 msgid "Visible page entries"
 msgstr "Hyrjet e dukshme të faqes"

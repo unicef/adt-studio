@@ -105,6 +105,7 @@ export function sectioningReplacementSignature(storage: Storage, label: string, 
   })
   return configHash(JSON.stringify({
     bookDir, config, range, prompts,
+    historyRecovery: storage.getSelectedNodeVersion("history-recovery-state", "book"),
     outline: storage.getSelectedNodeVersion(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM),
     outlineReady,
     typeScale: storage.getSelectedNodeVersion(TYPE_SCALE_NODE, TYPE_SCALE_ITEM),

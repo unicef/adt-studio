@@ -745,3 +745,5 @@ export { BookConfigSaveReceipt } from "./book-config-save.js"
 export * from "./sectioning-lifecycle.js"
 
 export * from "./extraction.js"
+
+export * from "./history-recovery.js"

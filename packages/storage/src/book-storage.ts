@@ -9,6 +9,7 @@ import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPU
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
+import { insertNodeVersion, checkpointBeforeRetirement, readIdentityHistory } from "./history-evidence.js"
 import { parseHistoricalPayload } from "./history-integrity.js"
 import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
 
@@ -72,6 +73,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
   const storage: Storage = {
     bookDir: paths.bookDir,
     transaction,
+    readIdentityHistory: (nodes, itemId) => transaction(() => readIdentityHistory(db, nodes, itemId), "DEFERRED"),
     readSnapshot: (operation) => transaction(() => {
       const result = operation()
       if (result && typeof (result as { then?: unknown }).then === "function") throw new Error("Read snapshots must be synchronous")
@@ -79,6 +81,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     }, "DEFERRED"),
 
     clearExtractedData(): void {
+      transaction(() => checkpointBeforeRetirement(db))
       clearImageFiles(paths.imagesDir)
       clearImageFiles(paths.debugImagesDir)
       clearExtractedRows(db)
@@ -100,7 +103,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         const items = db.all(`SELECT node, item_id, MAX(version) AS version FROM node_data WHERE node IN (${placeholders})${itemId === undefined ? "" : " AND item_id = ?"} GROUP BY node, item_id`, itemId === undefined ? deletable : [...deletable, itemId]) as Array<{ node: string; item_id: string; version: number }>
         for (const item of items) {
           if (!readCurrentNodeRow(db, item.node, item.item_id)) continue
-          db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, NULL)", [item.node, item.item_id, item.version + 1])
+          insertNodeVersion(db, item.node, item.item_id, item.version + 1, null)
           db.run("INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?) ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version", [item.node, item.item_id, item.version + 1])
         }
       })
@@ -124,6 +127,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     deletePage(pageId: string): void {
+      transaction(() => checkpointBeforeRetirement(db, pageId))
       const rows = db.all("SELECT path FROM images WHERE page_id = ?", [pageId]) as Array<{
         path: string
       }>
@@ -387,10 +391,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         [node, itemId]
       ) as Array<{ max_version: number | null }>
       const nextVersion = (rows[0]?.max_version ?? 0) + 1
-      db.run(
-        "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
-        [node, itemId, nextVersion, JSON.stringify(data)]
-      )
+      insertNodeVersion(db, node, itemId, nextVersion, JSON.stringify(data))
       // A new write becomes the current version.
       db.run(
         `INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)
@@ -673,6 +674,7 @@ function clearImageFiles(imagesDir: string): void {
 function clearExtractedRows(db: sqlite.Database): void {
   db.exec("BEGIN IMMEDIATE")
   try {
+    checkpointBeforeRetirement(db)
     invalidateQuizOutput(db)
     db.run("DELETE FROM node_data WHERE node NOT IN ('font-registry', 'font-assignment', 'quiz-generation')")
     db.run("DELETE FROM node_current WHERE node NOT IN ('font-registry', 'font-assignment', 'quiz-generation')")
@@ -699,7 +701,7 @@ function invalidateQuizOutput(db: sqlite.Database, selectedItemId?: string): voi
       "SELECT MAX(version) + 1 AS version FROM node_data WHERE node = ? AND item_id = ?",
       [node, itemId]
     ) as Array<{ version: number }>
-    db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", [node, itemId, version, "null"])
+    insertNodeVersion(db, node, itemId, version, "null")
     db.run(
       `INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)
        ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version`,

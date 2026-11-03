@@ -267,6 +267,11 @@ msgstr "{0} flagged findings in this review"
 msgid "{0} fonts"
 msgstr "{0} fonts"
 
+#. placeholder {0}: state.data.issueCount
+#. placeholder {1}: state.data.checkpointable
+msgid "{0} history issue(s); {1} readable record(s) without a checkpoint. Showing up to 20 affected versions."
+msgstr "{0} history issue(s); {1} readable record(s) without a checkpoint. Showing up to 20 affected versions."
+
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
 #~ msgid "{0} image{1} selected"
@@ -882,6 +887,9 @@ msgstr "A fill-in-the-blank activity."
 
 msgid "A glossary term with this word already exists."
 msgstr "A glossary term with this word already exists."
+
+msgid "A historical record is missing; it cannot be reconstructed safely"
+msgstr "A historical record is missing; it cannot be reconstructed safely"
 
 msgid "A language is required so downstream stages can localize the book."
 msgstr "A language is required so downstream stages can localize the book."
@@ -5550,6 +5558,9 @@ msgstr "Hint when wrong (don't reveal the answer)"
 msgid "História e Sociedade - Vol. 1"
 msgstr "História e Sociedade - Vol. 1"
 
+msgid "History recovery"
+msgstr "History recovery"
+
 msgid "Hit"
 msgstr "Hit"
 
@@ -5627,6 +5638,9 @@ msgstr "HTML"
 
 msgid "HTML5 + EPUB"
 msgstr "HTML5 + EPUB"
+
+msgid "I reviewed this book and the affected versions, and explicitly confirm this operation."
+msgstr "I reviewed this book and the affected versions, and explicitly confirm this operation."
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "I understand the part was processed with different prompts/models and want to merge it anyway."
@@ -5900,8 +5914,17 @@ msgstr "Inside Cover"
 msgid "Inside the school, no internet needed"
 msgstr "Inside the school, no internet needed"
 
+msgid "Inspect history"
+msgstr "Inspect history"
+
+msgid "Inspect identity history before recovery. Only verified original bytes can be restored. Recovery keeps damaged evidence and assets, and does not regenerate content."
+msgstr "Inspect identity history before recovery. Only verified original bytes can be restored. Recovery keeps damaged evidence and assets, and does not regenerate content."
+
 #~ msgid "Inspect original HTML and answers"
 #~ msgstr "Inspect original HTML and answers"
+
+msgid "Inspecting history…"
+msgstr "Inspecting history…"
 
 msgid "Install"
 msgstr "Install"
@@ -7487,6 +7510,9 @@ msgstr "No open comments. New ones land here first."
 msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
 msgstr "No open-source license detected. Make sure you have the right to embed and distribute this font."
 
+msgid "No original evidence was saved before damage"
+msgstr "No original evidence was saved before damage"
+
 msgid "No other images in this book"
 msgstr "No other images in this book"
 
@@ -8131,6 +8157,10 @@ msgstr "Opening the quiz…"
 msgid "Operation failed"
 msgstr "Operation failed"
 
+#. placeholder {0}: mutation.data.count
+msgid "Operation recorded for {0} version(s). Review the current inspection before continuing. Generation has not been started."
+msgstr "Operation recorded for {0} version(s). Review the current inspection before continuing. Generation has not been started."
+
 msgid "Option columns"
 msgstr "Option columns"
 
@@ -8199,6 +8229,9 @@ msgstr "Or share on a new link with the choices above"
 
 msgid "Original"
 msgstr "Original"
+
+msgid "Original evidence or record continuity cannot be verified"
+msgstr "Original evidence or record continuity cannot be verified"
 
 msgid "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
 msgstr "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
@@ -9275,6 +9308,9 @@ msgstr "Read-Aloud Content"
 msgid "Read-only"
 msgstr "Read-only"
 
+msgid "Readable versions included in this checkpoint"
+msgstr "Readable versions included in this checkpoint"
+
 msgid "Reader"
 msgstr "Reader"
 
@@ -9820,8 +9856,14 @@ msgstr "Restore element"
 msgid "Restore section to flow"
 msgstr "Restore section to flow"
 
+msgid "Restore the listed recoverable versions exactly. A selected version receives a new version number so old edit drafts cannot overwrite it. Review new replacement consent before running Sectioning."
+msgstr "Restore the listed recoverable versions exactly. A selected version receives a new version number so old edit drafts cannot overwrite it. Review new replacement consent before running Sectioning."
+
 msgid "Restore this term — it will be eligible again on the next regeneration."
 msgstr "Restore this term — it will be eligible again on the next regeneration."
+
+msgid "Restore verified history"
+msgstr "Restore verified history"
 
 msgid "restored"
 msgstr "restored"
@@ -10220,6 +10262,9 @@ msgstr "Save checklist"
 msgid "Save failed"
 msgstr "Save failed"
 
+msgid "Save history checkpoint"
+msgstr "Save history checkpoint"
+
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Save or cancel your draft before reviewing outputs."
 
@@ -10234,6 +10279,9 @@ msgstr "Save or discard your edits first"
 
 msgid "Save page review"
 msgstr "Save page review"
+
+msgid "Save recovery evidence for currently readable history. A checkpoint cannot recover records that were already damaged."
+msgstr "Save recovery evidence for currently readable history. A checkpoint cannot recover records that were already damaged."
 
 msgid "Save section changes?"
 msgstr "Save section changes?"
@@ -11154,6 +11202,9 @@ msgstr "Software update status"
 msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
 msgstr "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
 
+msgid "Some history cannot be recovered from the available evidence. Existing content stays retained. A verified book backup may be needed; choosing an older selected version does not repair missing history."
+msgstr "Some history cannot be recovered from the available evidence. Existing content stays retained. A verified book backup may be needed; choosing an older selected version does not repair missing history."
+
 msgid "Some items could not be updated. The list has been refreshed; completed changes are kept."
 msgstr "Some items could not be updated. The list has been refreshed; completed changes are kept."
 
@@ -11927,6 +11978,9 @@ msgstr "The archive must contain a project database and its PDF. Re-export it fr
 msgid "The back cover of the book."
 msgstr "The back cover of the book."
 
+msgid "The book changed after inspection. Inspect its history again and review the affected versions before confirming recovery."
+msgstr "The book changed after inspection. Inspect its history again and review the affected versions before confirming recovery."
+
 msgid "The book changed while preparing the package. Prepare the export again using the current book."
 msgstr "The book changed while preparing the package. Prepare the export again using the current book."
 
@@ -12112,6 +12166,9 @@ msgstr "The message carries the title, the link and the code."
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
 
+msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
+msgstr "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
+
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "The package is missing required files. Prepare the export again before downloading it."
 
@@ -12183,6 +12240,9 @@ msgstr "The quick brown fox jumps over the lazy dog."
 
 msgid "The reader experience"
 msgstr "The reader experience"
+
+msgid "The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions."
+msgstr "The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions."
 
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "The rendering strategy used for sections without an explicit mapping."
@@ -12279,6 +12339,9 @@ msgstr "theme appearance dark light mode"
 
 msgid "theme appearance system automatic"
 msgstr "theme appearance system automatic"
+
+msgid "There is no readable history that needs a recovery checkpoint."
+msgstr "There is no readable history that needs a recovery checkpoint."
 
 #~ msgid "These actions also resolve the linked source items in: {sources}."
 #~ msgstr "These actions also resolve the linked source items in: {sources}."
@@ -12590,6 +12653,12 @@ msgstr "This quiz isn't in the book anymore — it may have been removed since t
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "This quiz will be removed from the book. You can still restore it from the version history."
+
+msgid "This record was changed or recreated; older evidence cannot restore it"
+msgstr "This record was changed or recreated; older evidence cannot restore it"
+
+msgid "This recovery request was already used with different details. Inspect the book again before making a new request."
+msgstr "This recovery request was already used with different details. Inspect the book again before making a new request."
 
 msgid "This release includes general improvements and fixes."
 msgstr "This release includes general improvements and fixes."
@@ -13398,6 +13467,9 @@ msgstr "Variations"
 msgid "Verified applied"
 msgstr "Verified applied"
 
+msgid "Verified original available"
+msgstr "Verified original available"
+
 #. placeholder {0}: String(data.version)
 #. placeholder {0}: String(version)
 #. placeholder {0}: connection.worker_version
@@ -13479,6 +13551,9 @@ msgstr "View page"
 
 msgid "View page {pageNum} larger"
 msgstr "View page {pageNum} larger"
+
+msgid "View recovery evidence"
+msgstr "View recovery evidence"
 
 msgid "Visible page entries"
 msgstr "Visible page entries"

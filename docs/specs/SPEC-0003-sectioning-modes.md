@@ -48,17 +48,17 @@ See the [final local integration and acceptance audit](../verification/spec-0003
 The [November 3 round-four local audit](../verification/spec-0003-round4-remediation.md)
 supersedes the round-three readiness recommendation. Reader/package/UI repairs
 and final checks pass, but corrupt historical identity data still blocks unrelated
-Sectioning regeneration after reset. The required refusal/repair product decision
-is pending; this is not an approved exception to the continuation requirement.
+Sectioning regeneration after reset. The subsequent verified-recovery implementation is tracked below; this earlier
+checkpoint is not full-contract acceptance.
 Historical reports and the remote PR description retain their dated attribution.
 
 The [verified history recovery work record](../verification/spec-0003-history-recovery.md)
 maps the owner's subsequent recovery direction to this contract. The shared
 early safety check must run before reset/provider work. Recovery requires proof
 of the original identity-bearing record and preservation of damaged evidence;
-an older valid selected version alone is insufficient. The exact persistence and
-old-app compatibility amendment remains pending, and no completed recovery path
-or specification approval is claimed by this work record.
+an older valid selected version alone is insufficient. The owner authorized exact-byte physical restoration with an immutable damage
+audit as a narrow exception to the no-overwrite rule. This does not approve the
+specification. Implementation and verification remain recorded in the work log.
 
 This deliberately refines SPEC-0002 AC-8/15: **all existing Sectioning is kept by
 ordinary runs**, including AI pages. Revert manual edits still restores the
@@ -156,9 +156,31 @@ positioned tree with HTML; accepting arbitrary semantic counts does not promise
 that a semantic split changes PDF geometry or produces separate fixed pages.
 
 An unreadable historical payload cannot safely supply spent identities for
-replacement. Report that page individually and require restoration of a valid
-historical version; other runnable pages continue. Retain its raw history and
-media. An explicitly confirmed reset still has the commit semantics above.
+replacement. Check the shared reservation history before Sectioning reset or
+provider work, and again at execution/publication. Merely selecting an older
+valid version is not proof of identities reserved by the damaged version.
+
+**Verified history recovery (owner-authorized, review pending):** capture original
+identity-bearing payloads with their book, node, item, version, insertion
+incarnation and byte digest. Recovery is a separate explicit inspect/confirm
+operation using shared writer admission and one SQLite transaction. Restore only
+an exact pre-damage witness; retain the damaged SQLite type/raw bytes and witness
+in an immutable audit. This narrow physical-restoration exception does not permit
+arbitrary entity edits, guessed IDs, silent history deletion or inferred ownership.
+Keep versions/authorship; append a byte-equivalent current version only when the
+repaired version was selected, so old editor baseVersion guards reject. Retired
+versions never become current through repair. Bind consent to the book, exact
+observed damage, witness and current versions; reject stale/cross-book requests,
+and make identical retries idempotent. Recovery changes existing admission and
+package proofs but grants no regeneration or freshness acceptance.
+
+If trusted evidence is missing, contradictory or corrupt, refuse affected
+ID-allocating work before reset/provider calls while retaining usable output.
+Unexpected missing rows are not repaired by guessing. Safely witnessed intentional
+retirements still reserve their identities through the existing factories.
+Healthy unrelated Storyboard work and genuine no-op Sectioning retain access.
+Checkpointing readable legacy history is explicit and cannot prove an already
+corrupt record. No new freshness system, lock or schema-version bump is introduced.
 
 Structural operations use stable ownership when retaining rendering. Historical
 HTML is not current input after reset and cannot be reassigned by index. Keep

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -225,6 +226,58 @@ it("history admission leaves no-op Sectioning and usable Storyboard reads availa
   expect((await run({ fromStage: "storyboard", toStage: "storyboard" })).status).toBe("completed")
   expect(renderPage).toHaveBeenCalledTimes(1)
   expect(history("web-rendering", "p2")).toHaveLength(2)
+})
+
+// Fault injection bypasses the SQL continuity trigger to model physical damage.
+// Ordinary SQL UPDATE and reused tuple refusal are separate storage regressions.
+it.each(["reflowable", "fixed", "reflowable-part", "fixed-part"])("verified recovery then fresh replacement, split and publication: %s", async layout => {
+  if (layout.startsWith("fixed")) fs.appendFileSync(configPath, "default_render_strategy: fixed\nrender_strategies:\n  fixed:\n    render_type: fixed_layout\n")
+  if (layout.endsWith("part")) fs.writeFileSync(path.join(dir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: label, title: null,
+    range: { startPage: 5, endPage: 10 }, pageCount: 100, fingerprint: {}, identityHash: "i", semanticsHash: "s", createdAt: "now", partLabelSuggestion: "part" }))
+  const target = layout.endsWith("part") ? "p7" : "p2"
+  const neighbor = target === "p7" ? "p2" : "p7"
+  const before = [history("page-sectioning", neighbor), history("web-rendering", neighbor)]
+  const source = fs.readFileSync(path.join(dir, `images/${target}_page.png`))
+  const oldConsent = await replacement([target])
+  const db = openBookDb(path.join(dir, `${label}.db`))
+  try {
+    db.exec("DROP TRIGGER history_track_update")
+    db.run("UPDATE node_data SET data='{damaged' WHERE node='page-sectioning' AND item_id=? AND version=1", [target])
+  } finally { db.close() }
+  const status = await (await app.request(`/books/${label}/history-recovery`)).json()
+  expect(status.issues).toMatchObject([{ node: "page-sectioning", itemId: target, version: 1, reason: "recoverable" }])
+  const request = { snapshot: status.snapshot, requestId: randomUUID(), confirmed: true,
+    records: status.issues.map(({ reason: _, ...record }: Record<string, unknown>) => record) }
+  const repaired = await send("history-recovery/repair", request)
+  expect(repaired.status, await repaired.clone().text()).toBe(200)
+  expect(await repaired.json()).toMatchObject({ count: 1, selectedVersions: [{ node: "page-sectioning", itemId: target, version: 2 }] })
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(renderPage).not.toHaveBeenCalled()
+  expect(history("web-rendering", target)).toHaveLength(1)
+  const audit = await app.request(`/books/${label}/history-recovery/audit/${request.requestId}`)
+  expect(audit.status).toBe(200)
+  expect(await audit.json()).toMatchObject([{ damaged: { hex: Buffer.from("{damaged").toString("hex").toUpperCase() } }])
+  expect((await send(`pages/${target}/sections/0/split`, { baseVersion: 1, beforeNodeIndex: 1 })).status).toBe(409)
+  expect((await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", ...oldConsent })).status).toBe(409)
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect((await send("config", { page_sectioning: { mode: "page" } }, "PUT")).status).toBe(200)
+  expect((await run({ toStage: "sectioning", ...await replacement([target]) })).status).toBe("completed")
+  expect((await send(`pages/${target}/sections/0/split`, { baseVersion: 3, beforeNodeIndex: 1 })).status).toBe(200)
+  expect((await run({ fromStage: "storyboard", toStage: "storyboard" })).status).toBe("completed")
+  const storage = store()
+  try { expect(storyboardCoverage(storage, [target]).complete).toBe(true) } finally { storage.close() }
+  expect(history("page-sectioning", neighbor)).toEqual(before[0])
+  // Ordinary Storyboard may refresh the active neighbor, but a part must not.
+  if (layout.endsWith("part")) expect(history("web-rendering", neighbor)).toEqual(before[1])
+  expect(fs.readFileSync(path.join(dir, `images/${target}_page.png`))).toEqual(source)
+})
+
+it("recovery HTTP validates explicit confirmation and stale snapshots without mutation", async () => {
+  const state = await (await app.request(`/books/${label}/history-recovery`)).json()
+  const before = rawHistoryState()
+  expect((await send("history-recovery/repair", { snapshot: state.snapshot, requestId: randomUUID(), records: [] })).status).toBe(400)
+  expect((await send("history-recovery/checkpoint", { snapshot: "0".repeat(64), requestId: randomUUID(), confirmed: true })).status).toBe(409)
+  expect(rawHistoryState()).toEqual(before)
 })
 
 // Original AC-18/19 mode gates and retained-current HTML were superseded by

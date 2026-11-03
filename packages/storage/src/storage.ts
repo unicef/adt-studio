@@ -1,3 +1,4 @@
+import type { IdentityHistoryRecord } from "@adt/types"
 import type { ExtractedPage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
 import type { OutputInputEvidence, RenderMethodValue } from "@adt/types"
@@ -118,6 +119,8 @@ export interface Storage {
    * retired one.
    */
   getAllNodeVersions(node: string, itemId: string): NodeDataRow[]
+  /** Extant history plus verified retired evidence, for existing ID allocators. */
+  readIdentityHistory?(nodes: readonly string[], itemId?: string): IdentityHistoryRecord[]
   /**
    * Every item id this node holds data for, in id order.
    *

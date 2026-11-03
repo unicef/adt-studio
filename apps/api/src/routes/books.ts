@@ -1,3 +1,4 @@
+import { createHistoryRecoveryRoutes } from "./history-recovery.js"
 import { readSectioningLifecycle, recoverSectioningTransition } from "@adt/storage"
 import { BookConfigError, effectiveSectioningMode, publishedAdtDirectory } from "@adt/pipeline"
 import { getStageClearNodes, getStageClearOrder } from "@adt/types"
@@ -121,6 +122,7 @@ export function createBookRoutes(
   const readPackageOwners = createRetainedPackageReader()
   app.use("/books/:label/*", bookWriterMiddleware(booksDir))
   app.use("/books/:label", bookWriterMiddleware(booksDir))
+  app.route("/", createHistoryRecoveryRoutes(booksDir))
 
   app.get("/books", (c) => {
     const books = listBooks(booksDir, configPath)

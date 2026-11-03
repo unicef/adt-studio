@@ -20,3 +20,6 @@ export { atomicBookFile, configHash, readConfigText, readSectioningLifecycle, wr
 export { ExtractionAdmissionError } from "./extraction-error.js"
 export { EXTRACTION_MANIFEST_FILE, extractionHash, readExtractionManifest, writeExtractionManifest, hashExtractionAsset, flushExtractionAsset, syncDirectory, inspectExtractionDestination, verifyExtractionInventory, assertExtractionReadable } from "./extraction-manifest.js"
 export { getStorageBookDir } from "./book-storage.js"
+
+export { insertNodeVersion } from "./history-evidence.js"
+export { HistoryRecoveryError, inspectHistoryRecovery, checkpointHistory, repairHistory, readHistoryRecoveryAudit } from "./history-recovery.js"

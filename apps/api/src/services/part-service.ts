@@ -1,3 +1,4 @@
+import { insertNodeVersion } from "@adt/storage"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -816,10 +817,7 @@ function mergeAdmittedPart(
         const key = `${row.node} ${row.item_id}`
         const nextVersion = (maxVersions.get(key) ?? 0) + 1
         maxVersions.set(key, nextVersion)
-        targetDb.run(
-          "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
-          [row.node, row.item_id, nextVersion, row.data],
-        )
+        insertNodeVersion(targetDb, row.node, row.item_id, nextVersion, row.data, "part-import")
         targetDb.run(
           `INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)
            ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version`,

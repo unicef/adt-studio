@@ -1896,6 +1896,18 @@ export const api = {
       { method: "POST", body: JSON.stringify({ version, baseVersion }) }
     ),
 
+  inspectHistoryRecovery: (label: string) =>
+    request<import("@adt/types").HistoryRecoveryStatus>(`/books/${label}/history-recovery`),
+
+  checkpointHistory: (label: string, body: import("@adt/types").HistoryCheckpointRequest) =>
+    request<import("@adt/types").HistoryRecoveryReceipt>(`/books/${label}/history-recovery/checkpoint`, { method: "POST", body: JSON.stringify(body) }),
+
+  repairHistory: (label: string, body: import("@adt/types").HistoryRepairRequest) =>
+    request<import("@adt/types").HistoryRecoveryReceipt>(`/books/${label}/history-recovery/repair`, { method: "POST", body: JSON.stringify(body) }),
+
+  getHistoryRecoveryAudit: (label: string, requestId: string) =>
+    request<unknown[]>(`/books/${label}/history-recovery/audit/${requestId}`),
+
   getSectioningModeState: (label: string) =>
     request<SectioningModeState>(`/books/${label}/sectioning-state`),
 

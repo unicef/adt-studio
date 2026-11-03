@@ -267,6 +267,11 @@ msgstr "{0} hallazgos señalados en esta revisión"
 msgid "{0} fonts"
 msgstr "{0} fuentes"
 
+#. placeholder {0}: state.data.issueCount
+#. placeholder {1}: state.data.checkpointable
+msgid "{0} history issue(s); {1} readable record(s) without a checkpoint. Showing up to 20 affected versions."
+msgstr "{0} problema(s) en el historial; {1} registro(s) legible(s) sin punto de recuperación. Se muestran hasta 20 versiones afectadas."
+
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
 #~ msgid "{0} image{1} selected"
@@ -882,6 +887,9 @@ msgstr "Una actividad de completar espacios en blanco."
 
 msgid "A glossary term with this word already exists."
 msgstr "Ya existe un término del glosario con esta palabra."
+
+msgid "A historical record is missing; it cannot be reconstructed safely"
+msgstr "Falta un registro del historial; no se puede reconstruir de forma segura"
 
 msgid "A language is required so downstream stages can localize the book."
 msgstr "Se requiere un idioma para que las etapas posteriores puedan localizar el libro."
@@ -5550,6 +5558,9 @@ msgstr "Pista cuando falla (no reveles la respuesta)"
 msgid "História e Sociedade - Vol. 1"
 msgstr "Historia y Sociedad - Vol. 1"
 
+msgid "History recovery"
+msgstr "Recuperación del historial"
+
 msgid "Hit"
 msgstr "Hit"
 
@@ -5627,6 +5638,9 @@ msgstr "HTML"
 
 msgid "HTML5 + EPUB"
 msgstr "HTML5 + EPUB"
+
+msgid "I reviewed this book and the affected versions, and explicitly confirm this operation."
+msgstr "He revisado este libro y las versiones afectadas y confirmo explícitamente esta operación."
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "Entiendo que la parte se procesó con distintos prompts/modelos y quiero fusionarla de todos modos."
@@ -5900,8 +5914,17 @@ msgstr "Contraportada interna"
 msgid "Inside the school, no internet needed"
 msgstr "Dentro de la escuela, sin necesidad de internet"
 
+msgid "Inspect history"
+msgstr "Inspeccionar historial"
+
+msgid "Inspect identity history before recovery. Only verified original bytes can be restored. Recovery keeps damaged evidence and assets, and does not regenerate content."
+msgstr "Inspeccione el historial de identidades antes de la recuperación. Solo se pueden restaurar los bytes originales verificados. La recuperación conserva las evidencias dañadas y los recursos, sin regenerar el contenido."
+
 #~ msgid "Inspect original HTML and answers"
 #~ msgstr "Inspeccionar el HTML y las respuestas originales"
+
+msgid "Inspecting history…"
+msgstr "Inspeccionando historial…"
 
 msgid "Install"
 msgstr "Instalar"
@@ -7487,6 +7510,9 @@ msgstr "No hay comentarios abiertos. Los nuevos llegan aquí primero."
 msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
 msgstr "No se detectó una licencia open source. Asegúrate de tener derecho a incrustar y distribuir esta fuente."
 
+msgid "No original evidence was saved before damage"
+msgstr "No se guardaron evidencias originales antes del daño"
+
 msgid "No other images in this book"
 msgstr "No hay otras imágenes en este libro"
 
@@ -8131,6 +8157,10 @@ msgstr "Abriendo el cuestionario…"
 msgid "Operation failed"
 msgstr "La operación falló"
 
+#. placeholder {0}: mutation.data.count
+msgid "Operation recorded for {0} version(s). Review the current inspection before continuing. Generation has not been started."
+msgstr "Operación registrada para {0} versión(es). Revise la inspección actual antes de continuar. No se ha iniciado la generación."
+
 msgid "Option columns"
 msgstr "Columnas de opciones"
 
@@ -8199,6 +8229,9 @@ msgstr "O comparte en un enlace nuevo con las opciones de arriba"
 
 msgid "Original"
 msgstr "Original"
+
+msgid "Original evidence or record continuity cannot be verified"
+msgstr "No se puede verificar la evidencia original ni la continuidad del registro"
 
 msgid "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
 msgstr "Los datos originales de extracción faltan o no se pueden leer. Se conservan los datos existentes. Restaura una copia verificada del libro o importa el PDF como un libro nuevo."
@@ -9275,6 +9308,9 @@ msgstr "Contenido de lectura en voz alta"
 msgid "Read-only"
 msgstr "Solo lectura"
 
+msgid "Readable versions included in this checkpoint"
+msgstr "Versiones legibles incluidas en este punto de recuperación"
+
 msgid "Reader"
 msgstr "Lector"
 
@@ -9820,8 +9856,14 @@ msgstr "Restaurar elemento"
 msgid "Restore section to flow"
 msgstr "Restaurar sección al flujo"
 
+msgid "Restore the listed recoverable versions exactly. A selected version receives a new version number so old edit drafts cannot overwrite it. Review new replacement consent before running Sectioning."
+msgstr "Restaure exactamente las versiones recuperables indicadas. Una versión seleccionada recibe un nuevo número de versión para que los borradores de edición antiguos no puedan sobrescribirla. Revise una nueva confirmación de sustitución antes de ejecutar la División en Secciones."
+
 msgid "Restore this term — it will be eligible again on the next regeneration."
 msgstr "Restaurar este término — será elegible nuevamente en la próxima regeneración."
+
+msgid "Restore verified history"
+msgstr "Restaurar historial verificado"
 
 msgid "restored"
 msgstr "restaurado"
@@ -10220,6 +10262,9 @@ msgstr "Guardar lista de verificación"
 msgid "Save failed"
 msgstr "Error al guardar"
 
+msgid "Save history checkpoint"
+msgstr "Guardar punto de recuperación del historial"
+
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Guarda o cancela tu borrador antes de revisar los resultados."
 
@@ -10234,6 +10279,9 @@ msgstr "Primero guarda o descarta tus cambios"
 
 msgid "Save page review"
 msgstr "Guardar revisión de la página"
+
+msgid "Save recovery evidence for currently readable history. A checkpoint cannot recover records that were already damaged."
+msgstr "Guarde evidencias de recuperación para el historial que se puede leer actualmente. Un punto de recuperación no puede recuperar registros que ya estaban dañados."
 
 msgid "Save section changes?"
 msgstr "¿Guardar los cambios de las secciones?"
@@ -11154,6 +11202,9 @@ msgstr "Estado de la actualización de software"
 msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
 msgstr "Se omitió parte del contenido del paquete: {0} sección(es) renderizada(s) en {pageTotal} página(s) (se muestran hasta 20): {pageList} no tienen una sección de origen verificada y no pudieron incluirse. Su contenido e historial se conservan. Revise las identidades de las secciones en Storyboard y vuelva a crear el paquete."
 
+msgid "Some history cannot be recovered from the available evidence. Existing content stays retained. A verified book backup may be needed; choosing an older selected version does not repair missing history."
+msgstr "Parte del historial no se puede recuperar con las evidencias disponibles. Se conserva el contenido existente. Puede ser necesaria una copia de seguridad verificada del libro; seleccionar una versión anterior no repara el historial que falta."
+
 msgid "Some items could not be updated. The list has been refreshed; completed changes are kept."
 msgstr "No se pudieron actualizar algunos elementos. La lista se ha actualizado; los cambios completados se conservan."
 
@@ -11927,6 +11978,9 @@ msgstr "El archivo debe contener una base de datos de proyecto y su PDF. Vuelve 
 msgid "The back cover of the book."
 msgstr "La contraportada del libro."
 
+msgid "The book changed after inspection. Inspect its history again and review the affected versions before confirming recovery."
+msgstr "El libro cambió después de la inspección. Inspeccione de nuevo su historial y revise las versiones afectadas antes de confirmar la recuperación."
+
 msgid "The book changed while preparing the package. Prepare the export again using the current book."
 msgstr "El libro cambió mientras se preparaba el paquete. Vuelve a preparar la exportación con el libro actual."
 
@@ -12112,6 +12166,9 @@ msgstr "El mensaje incluye el título, el enlace y el código."
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "El modelo detecta cajas delimitadoras para que cada elemento visual pueda almacenarse y disponerse por separado."
 
+msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
+msgstr "No se pudo verificar el historial original. Se han conservado los registros y recursos existentes. La recuperación requiere evidencias fiables para estas versiones exactas."
+
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "Faltan archivos necesarios en el paquete. Vuelve a preparar la exportación antes de descargarla."
 
@@ -12183,6 +12240,9 @@ msgstr "El veloz zorro marrón salta sobre el perro perezoso."
 
 msgid "The reader experience"
 msgstr "La experiencia del lector"
+
+msgid "The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions."
+msgstr "La solicitud de recuperación no es válida. Inspeccione el libro de nuevo y confirme explícitamente las versiones afectadas."
 
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "La estrategia de renderización usada para secciones sin un mapeo explícito."
@@ -12279,6 +12339,9 @@ msgstr "tema apariencia oscuro claro modo"
 
 msgid "theme appearance system automatic"
 msgstr "tema apariencia sistema automático"
+
+msgid "There is no readable history that needs a recovery checkpoint."
+msgstr "No hay historial legible que necesite un punto de recuperación."
 
 #~ msgid "These actions also resolve the linked source items in: {sources}."
 #~ msgstr "Estas acciones también resuelven los elementos de origen vinculados en: {sources}."
@@ -12590,6 +12653,12 @@ msgstr "Este cuestionario ya no está en el libro; puede que se haya eliminado d
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Este cuestionario se quitará del libro. Aún podrás restaurarlo desde el historial de versiones."
+
+msgid "This record was changed or recreated; older evidence cannot restore it"
+msgstr "Este registro se modificó o se volvió a crear; las evidencias anteriores no pueden restaurarlo"
+
+msgid "This recovery request was already used with different details. Inspect the book again before making a new request."
+msgstr "Esta solicitud de recuperación ya se utilizó con datos diferentes. Inspeccione el libro de nuevo antes de realizar una nueva solicitud."
 
 msgid "This release includes general improvements and fixes."
 msgstr "Esta versión incluye mejoras generales y correcciones."
@@ -13398,6 +13467,9 @@ msgstr "Variaciones"
 msgid "Verified applied"
 msgstr "Aplicación verificada"
 
+msgid "Verified original available"
+msgstr "Original verificado disponible"
+
 #. placeholder {0}: String(data.version)
 #. placeholder {0}: String(version)
 #. placeholder {0}: connection.worker_version
@@ -13479,6 +13551,9 @@ msgstr "Ver página"
 
 msgid "View page {pageNum} larger"
 msgstr "Ver la página {pageNum} más grande"
+
+msgid "View recovery evidence"
+msgstr "Ver evidencias de recuperación"
 
 msgid "Visible page entries"
 msgstr "Entradas visibles de la página"

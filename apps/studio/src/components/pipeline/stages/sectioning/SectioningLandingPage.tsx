@@ -1,3 +1,4 @@
+import { HistoryRecoveryPanel } from "./HistoryRecoveryPanel"
 import type { BookConfigResponse, RunStagesOptions } from "@/api/client"
 import { useState, useEffect, useMemo } from "react"
 import { useQueryClient } from "@tanstack/react-query"
@@ -184,6 +185,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
         />
       ) : null}
 
+      {hasExtractedPages && <HistoryRecoveryPanel bookLabel={bookLabel} />}
       {modeConfirmation.dialog}
       {updateMode.error && <p role="alert" className="text-sm text-destructive">{t`Could not save Sectioning mode.`} {updateMode.error.message}</p>}
       {modeConfirmation.state?.preferenceChanged && <p role="status" className="text-sm text-muted-foreground"><Trans>Generation preferences changed or their history is unknown. Saved content remains usable. Existing pages are kept unless you explicitly replace them.</Trans></p>}
