@@ -28,7 +28,7 @@ Important safeguards:
 - Prefer the larger composite only when the surrounding text/vectors are intrinsic labels, arrows, connectors, annotations, or other spatially meaningful parts of the figure.
 - Prefer the standalone artwork when the larger crop merely adds a heading, caption, exercise instruction, speech/thought prompt, callout background, or other text that should remain semantic HTML.
 - A tiny decorative icon does not make a heading or text-first callout into a figure. Reject both the decorative icon and duplicate callout crop when neither carries independent educational or narrative meaning. A section-marker icon (see below) is not decorative: keep it as a standalone image even when the callout crop is rejected.
-- If `hasRasterContent` is true, strongly favor keeping the candidate unless the raster is only a tiny decorative icon or another supplied candidate is the better canonical version.
+- If `hasRasterContent` is true, strongly favor keeping the candidate unless the raster is only a tiny decorative icon, a section-marker icon that also has its own standalone copy, or another supplied candidate is the better canonical version.
 - If `hasSelectableText` is false or figure extraction evidence is absent, do not reject content merely for being text-heavy; it may be scanned content with no HTML-safe copy.
 - Decorative fragments with no educational or narrative value may still be rejected.
 {% else %}
@@ -51,7 +51,7 @@ Meaningful:
 When uncertain, keep the image.
 {% endif %}
 
-Section-marker icons are meaningful. A section-marker icon is a small pictogram placed beside a heading or prompt to signal a kind of section or activity, for example question marks for questions, a thought cloud for "share your opinion", or a magnifying glass for research. Readers learn to recognize these icons across the book, so keep them even when they are small or appear on many pages. This covers the pictogram only: the empty boxes, tabs, banners, and panels behind a heading or callout are layout, not meaningful content.
+Section-marker icons are meaningful. A section-marker icon is a small pictogram placed beside a heading or prompt to signal a kind of section or activity, for example question marks for questions, a thought cloud for "share your opinion", or a magnifying glass for research. Readers learn to recognize these icons across the book, so keep them even when they are small or appear on many pages. This covers the pictogram only: the empty boxes, tabs, banners, and panels behind a heading or callout are layout, not meaningful content. Logos, publisher or series marks, and running header/footer decorations are not section markers.
 
 IMPORTANT:
 - Provide your reasoning before your determination for each image.
