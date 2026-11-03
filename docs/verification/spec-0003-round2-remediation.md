@@ -26,3 +26,19 @@ The November 3 Codex review of production/test source `1c36d36d` (local document
 | Reproducible source | Discard the first mixed-snapshot Claude run. Compare the complete frozen tracked-file manifest before and after each final run. The bounded reviewer gets an immutable commit snapshot, not the writer's mutable worktree. |
 
 Claude did not report an additional product defect. Its source conclusions about package integrity, invalid windows and current-version guards do not override Codex's concrete HTTP/SQLite/ZIP counterexamples. Both reviewers' qualifications remain in their original reports.
+
+## Bounded recheck of the local corrections
+
+The two original reports are accounted for. All eight before-fix Codex public reproducers were replayed against the immutable local `ec48e5a3` candidate (2,489 tracked files matched). All eight passed, including real Chromium, real SQLite, generated ZIPs, a source PDF, stale consent and the next valid operation. See `.local-docs/spec0003-round2-writer-20261103/{results/public-status.json,logs/browser-ec48-replay.json}`. Claude's macOS path controls then passed on an explicitly aliased temp directory: 16 passed, 16 Linux-only skipped.
+
+The independently delegated, bounded reviewer requested four corrections at `ec48e5a3`. None is a product deferral. The report is `.local-docs/spec0003-round2-bounded-recheck-ec48e5a3/report-ec48e5a3.md`.
+
+| Finding | Local correction and observable control |
+|---|---|
+| IR2-1, retained packaged Preview and same-ID alias | Resolve retained entries against the active owners; bind newly packaged HTML to its actual page/quiz and bytes. For pre-fix fixed artifacts with ambiguous retained evidence, use the live reader for healthy/current pages rather than serving a questionable archive or an offline script containing all its HTML. Direct downloads require trustworthy members. Test both bookmark forms, root navigation, the stale preloader, a subsequent valid restore, and explicit re-preparation. No raw/history/asset deletion or blanket version-freshness gate. |
+| IR2-2, unreadable neighbor | The output reading order treats malformed JSON as missing for that source page. Independent storage/admission errors still propagate. Test a previously built healthy partial package, malformed neighboring Sectioning, real ZIP membership, page access, and both status endpoints. |
+| IR2-3, process death during package swap | First read restores a recognizable last-published directory under shared admission if the writer died between renames. A fully promoted directory wins over backup; never adopt a staging directory or steal a mutex. Separate process exits at each real filesystem rename; first status and export must open the correct artifact without a new POST. |
+| IR2-4, symlink absent in archive | Required archive paths must be regular members reached through ordinary directories. Reject both a linked file and a linked directory even if their targets are inside the bundle. After a rebuild, open the ZIP and verify the language dictionary is present. |
+| Queued outline proof | Make every predecessor page fail instead of publishing a neighbor and invalidating an unrelated output version. The queued run now has only the intended changed input, rejects the receipt, makes no Sectioning calls and preserves both page histories. |
+
+Before the final narrowing of legacy artifact checks, these four focused files passed 93/93 (including the child-process deaths). The final source recheck, full branch and platform results are separate gates; this checkpoint does not approve the spec or certify a release.
