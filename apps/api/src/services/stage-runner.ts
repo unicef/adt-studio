@@ -386,21 +386,23 @@ function skipMessage(
 function finishPageStep(
   progress: StageRunProgress,
   step: StepName,
-  deps: Pick<PageFailureDeps, "failedPages" | "skippedByStep">
+  deps: Pick<PageFailureDeps, "failedPages" | "skippedByStep">,
+  warning?: string,
 ): void {
   const failures = deps.failedPages.filter((f) => f.step === step)
   if (failures.length > 0) {
+    const causes = ["STORYBOARD_INPUT_CHANGED", "SECTIONING_INPUT_UNREADABLE", "VERSION_CONFLICT"].filter(code => failures.some(f => f.msg.includes(code)))
     throw new StepError(
       step,
-      `${failures.length} page(s) failed:\n${failures
-        .map((f) => `${f.pageId}: ${f.msg}`)
-        .join("\n")}`
+      // Detailed page errors remain in per-page events/logs. The aggregate
+      // stays bounded and carries the full count through HTTP/SSE translation.
+      `PIPELINE_PAGES_FAILED: ${failures.slice(0, 20).map(f => f.pageId).join(", ")}; total=${failures.length}; causes=${causes.join(",")}`
     )
   }
   progress.emit({
     type: "step-complete",
     step,
-    message: skipMessage(deps.skippedByStep, step),
+    message: warning ?? skipMessage(deps.skippedByStep, step),
   })
 }
 
@@ -1004,6 +1006,7 @@ function createAdmittedStageRunner(): StageRunner {
             } else if (event.type === "step-skip") {
               runningSteps.delete(event.step)
               completionStorage.markStepSkipped(event.step)
+              if (event.message) completionStorage.updateStepMessage(event.step, event.message)
             } else if (event.type === "step-error") {
               runningSteps.delete(event.step)
               completionStorage.recordStepError(event.step, event.error)
@@ -1416,7 +1419,7 @@ async function runSectioningStep(
     const runInputSignature = sectioningReplacementSignature(storage, label, booksDir, configPath)
     const pages = selectSectioningPages(storage, allPages, options, runInputSignature)
     const unreadable = new Set<string>()
-    const previous = new Map(pages.map((page) => {
+    const previous = new Map(allPages.map((page) => {
       try {
         const row = storage.getLatestNodeData("page-sectioning", page.pageId)
         if (storage.getSelectedNodeVersion("page-sectioning", page.pageId) !== null && !PageSectioningOutput.safeParse(row?.data).success) unreadable.add(page.pageId)
@@ -1427,6 +1430,9 @@ async function runSectioningStep(
         return [page.pageId, null] as const
       }
     }))
+    const selectedIds = new Set(pages.map(page => page.pageId))
+    const retainedUnreadable = [...unreadable].filter(pageId => !selectedIds.has(pageId))
+    const retainedWarning = retainedUnreadable.length ? `SECTIONING_INPUT_UNREADABLE: ${retainedUnreadable.slice(0, 20).join(", ")}; total=${retainedUnreadable.length}` : undefined
     const previousVersions = new Map(pages.map((page) => [page.pageId, storage.getSelectedNodeVersion("page-sectioning", page.pageId)]))
     options.signal?.throwIfAborted()
     resetSectioningStoryboard(storage, options, sectioningReplacementSignature(storage, label, booksDir, configPath))
@@ -1436,7 +1442,7 @@ async function runSectioningStep(
     ]]))
     if (!pages.length) {
       options.signal?.throwIfAborted()
-      progress.emit({ type: "step-skip", step: "page-sectioning" })
+      progress.emit({ type: "step-skip", step: "page-sectioning", message: retainedWarning })
       progress.emit({ type: "step-skip", step: "translation" })
       return
     }
@@ -1652,14 +1658,14 @@ async function runSectioningStep(
       throw new StepError("page-sectioning", "Stopped by a page-error decision")
     }
 
-    finishPageStep(progress, "page-sectioning", pageFailureDeps)
+    finishPageStep(progress, "page-sectioning", pageFailureDeps, retainedWarning)
     if (translationConfig) {
       finishPageStep(progress, "translation", pageFailureDeps)
     } else {
       progress.emit({ type: "step-skip", step: "translation" })
     }
     options.signal?.throwIfAborted()
-    if (failedPages.length === 0 && skippedByStep.size === 0) completeSectioning(label, booksDir, config, configPath)
+    if (failedPages.length === 0 && skippedByStep.size === 0 && !retainedWarning) completeSectioning(label, booksDir, config, configPath)
   } finally {
     storage.close()
   }

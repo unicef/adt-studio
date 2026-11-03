@@ -1,13 +1,14 @@
 import fs from "node:fs"
 import path from "node:path"
 import type { Storage } from "@adt/storage"
-import { storyboardCoverage } from "@adt/pipeline"
+import { storyboardCoverage, packageFilesAvailable } from "@adt/pipeline"
 
 /** A retained partial bundle remains usable, but newly rendered source HTML
  * cannot establish that the bundle already contains all its required sections.
  * This checks membership only; ordinary freshness warnings remain independent. */
 export function storyboardPackageComplete(storage: Storage, bookDir: string, pageIds: string[]): boolean {
   const adtDir = path.join(bookDir, "adt")
+  if (!packageFilesAvailable(adtDir)) return false
   let manifest: unknown
   try { manifest = JSON.parse(fs.readFileSync(path.join(adtDir, "content", "pages.json"), "utf8")) }
   catch { return false }

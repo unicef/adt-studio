@@ -321,7 +321,7 @@ export function collectPageTexts(
   const result: PageText[] = []
   for (const page of pages) {
     const row = storage.getLatestNodeData("web-rendering", page.pageId)
-    if (!row) continue
+    if (row?.data == null) continue
     const parsed = WebRenderingOutput.safeParse(row.data)
     if (!parsed.success) {
       throw new Error(

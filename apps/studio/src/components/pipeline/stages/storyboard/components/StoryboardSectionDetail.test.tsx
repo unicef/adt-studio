@@ -10,11 +10,15 @@ import {
 } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { i18n } from "@lingui/core"
+import type { EditableActivity } from "@adt/types"
 import type { PageDetail } from "@/api/client"
 import type { SectionEditPanel } from "./SectionEditPanel"
 import type { StyleEditorPanel } from "./style-editor"
 
 const state = vi.hoisted(() => ({
+  editableQuery: {} as { data?: { activities: Record<string, EditableActivity>; version: number; paletteAccent: string } },
+  realActivityPanel: false,
+  activitySave: vi.fn().mockResolvedValue({ version: 3 }),
   headerSlot: null as HTMLElement | null,
   pickers: {} as Record<string, {onRestoringChange: (busy: boolean) => void; onRestored: () => void}>,
   frame: {} as {editable: boolean; onTextChanged?: (dataId: string, text: string) => void},
@@ -63,7 +67,9 @@ vi.mock("../../../components/StepViewRouter", () => ({
 }))
 vi.mock("@/hooks/use-editable-activities", () => ({
   useActivityStructure: () => ({}),
-  useEditableActivities: () => ({}),
+  useEditableActivities: () => state.editableQuery,
+  useSaveEditableActivities: () => ({ mutateAsync: state.activitySave, isPending: false }),
+  useGenerateActivityFeedback: () => ({ mutate: vi.fn(), isPending: false }),
   useConvertEditableActivity: () => ({}),
   useSetEditableActivityPresentation: () => ({}),
 }))
@@ -119,10 +125,15 @@ vi.mock("./AddImageDialog", () => ({
   ),
 }))
 vi.mock("./AiEditHistoryDrawer", () => ({ AiEditHistoryDrawer: () => null }))
-vi.mock("./EditableActivityPanel", () => ({
-  EditableActivityPanel: () => null,
-}))
-vi.mock("./ClassicActivityPanel", () => ({ ClassicActivityPanel: () => null }))
+vi.mock("./EditableActivityPanel", async (original) => {
+  const actual = await original<typeof import("./EditableActivityPanel")>()
+  return { EditableActivityPanel: (props: ComponentProps<typeof actual.EditableActivityPanel>) => state.realActivityPanel
+    ? <div data-testid="stepper-panel-host" data-open={String(props.open)}><actual.EditableActivityPanel {...props} /></div>
+    : null }
+})
+vi.mock("./ClassicActivityPanel", () => ({ ClassicActivityPanel: ({ open }: { open: boolean }) => <div data-testid="classic-panel-host" data-open={String(open)} /> }))
+vi.mock("./style-editor/controls/ColorPicker", () => ({ ColorPicker: () => null }))
+vi.mock("./style-editor/controls/Select", () => ({ Select: () => null }))
 vi.mock("@tanstack/react-router", async () => ({
   ...(await vi.importActual<object>("@tanstack/react-router")),
   useSearch: () => ({}),
@@ -149,7 +160,7 @@ vi.mock("./GenerateActivityDialog", () => ({
   GenerateActivityDialog: () => null,
 }))
 
-import { FloatingSaveProvider, useFloatingSaveLeaveAction } from "../../../components/floating-save"
+import { FloatingSaveProvider, useFloatingSaveLeaveAction, useHasUnsavedChanges } from "../../../components/floating-save"
 import { StoryboardSectionDetail } from "./StoryboardSectionDetail"
 
 let leaveAction: ReturnType<typeof useFloatingSaveLeaveAction>
@@ -203,6 +214,8 @@ function fixture(): PageDetail {
   } as PageDetail
 }
 beforeEach(() => {
+  state.editableQuery = {}; state.realActivityPanel = false
+  state.activitySave.mockReset().mockResolvedValue({ version: 3 })
   HTMLElement.prototype.scrollTo = vi.fn()
   i18n.load("en", {})
   i18n.activate("en")
@@ -510,4 +523,51 @@ it.each(["page-sectioning", "web-rendering"])("blocks iframe and inspector mutat
   expect(payload).toContain("Retained source draft")
   expect(payload).not.toContain("blocked-class")
   expect(payload).not.toContain("Blocked iframe edit")
+})
+
+const savedStepper: EditableActivity = {
+  kind: "open-ended", sectionType: "activity_open_ended_answer", enabled: true,
+  title: {text: "Original stepper title"},
+  steps: [{id: "step-1", prompt: {text: "Question"}, multiline: true}],
+}
+function activityPage(): PageDetail {
+  const page = fixture()
+  page.sectioningTree!.sections[0].sectionType = savedStepper.sectionType
+  page.rendering!.sections[0].sectionType = savedStepper.sectionType
+  return page
+}
+function UnsavedProbe() {
+  return <output data-testid="unsaved-activity">{String(useHasUnsavedChanges())}</output>
+}
+const parentView = (page: PageDetail) => <FloatingSaveProvider>
+  <StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page}/>
+  <UnsavedProbe/>
+</FloatingSaveProvider>
+
+it("a saved disabled stepper opens only the classic editor", () => {
+  state.realActivityPanel = true
+  state.editableQuery = {data: {activities: {"0": {...savedStepper, enabled:false}}, version:1, paletteAccent:"#2563EB"}}
+  render(parentView(activityPage()))
+  fireEvent.click(screen.getByRole("button", {name:"Edit activity"}))
+  expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("true")
+  expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("false")
+  expect(screen.getByTestId("unsaved-activity").textContent).toBe("false")
+})
+
+it("a dirty stepper session stays the sole open editor after current output is reset", async () => {
+  state.realActivityPanel = true
+  state.editableQuery = {data: {activities: {"0":savedStepper}, version:1, paletteAccent:"#2563EB"}}
+  const page = activityPage()
+  const mounted = render(parentView(page))
+  fireEvent.click(screen.getByRole("button", {name:"Edit activity"}))
+  expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("true")
+  fireEvent.change(screen.getByPlaceholderText("Title"), {target:{value:"Retained dirty stepper"}})
+  await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("true"))
+  state.editableQuery = {data: {activities:{}, version:2, paletteAccent:"#2563EB"}}
+  mounted.rerender(parentView({...page, rendering:undefined, versions:{...page.versions, rendering:2}}))
+  expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("true")
+  expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("false")
+  expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe("Retained dirty stepper")
+  expect(screen.getByTestId("unsaved-activity").textContent).toBe("true")
+  expect(state.activitySave).not.toHaveBeenCalled()
 })

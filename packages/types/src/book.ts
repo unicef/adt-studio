@@ -20,6 +20,8 @@ export const BookSummary = z.object({
   hasSourcePdf: z.boolean(),
   needsRebuild: z.boolean(),
   rebuildReason: z.string().nullable(),
+  /** No database snapshot was read. Admission/recovery does not authorize rebuilding. */
+  readUnavailable: z.boolean().optional(),
   completedStages: z.array(z.string()),
   createdAt: z.string(),
   modifiedAt: z.string(),

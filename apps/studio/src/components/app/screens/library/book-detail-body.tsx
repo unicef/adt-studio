@@ -99,6 +99,7 @@ export function DetailInfo({ book, handlers }: { book: DetailBook; handlers: Det
   const hasError = book.needsRebuild || !!book.hasError
   return (
     <div className="space-y-4">
+      {book.raw.readUnavailable && <p className="text-sm text-muted-foreground"><Trans>This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem.</Trans></p>}
       {hasError ? (
         <div className="flex items-center gap-3 rounded-xl border border-stage-toc/30 bg-stage-toc/10 px-3.5 py-3 text-[13px]">
           <TriangleAlert className="size-4 shrink-0 text-stage-toc" />

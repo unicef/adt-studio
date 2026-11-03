@@ -130,6 +130,7 @@ export function createBookRoutes(
       const book = getBook(label, booksDir, configPath)
       return c.json(book)
     } catch (err) {
+      if (err instanceof BookBusyError) throw err
       const message = err instanceof Error ? err.message : String(err)
       if (message.includes("not found")) {
         throw new HTTPException(404, { message })
@@ -321,6 +322,7 @@ export function createBookRoutes(
       const config = getBookConfig(label, booksDir)
       return c.json({ config: config ?? {} })
     } catch (err) {
+      if (err instanceof BookBusyError) throw err
       const message = err instanceof Error ? err.message : String(err)
       if (message.includes("not found")) {
         throw new HTTPException(404, { message })

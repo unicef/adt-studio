@@ -3,7 +3,7 @@ vi.mock("@lingui/core/macro", () => ({ msg: (parts: TemplateStringsArray, ...val
 vi.mock("@lingui/core", () => ({ i18n: { _: (descriptor: { id: string }) => descriptor.id } }))
 const { sectioningErrorMessage } = await import("./sectioning-error")
 
-it.each(["EXTRACTION_LEGACY", "EXTRACTION_INCOMPLETE", "EXTRACTION_SOURCE_CHANGED", "EXTRACTION_INPUTS_CHANGED", "EXTRACTION_ASSETS_INVALID", "EXTRACTION_INPUT_INVALID"])("maps %s consistently for HTTP codes and persisted/SSE diagnostics", code => {
+it.each(["SECTIONING_WINDOW_INVALID", "EXTRACTION_LEGACY", "EXTRACTION_INCOMPLETE", "EXTRACTION_SOURCE_CHANGED", "EXTRACTION_INPUTS_CHANGED", "EXTRACTION_ASSETS_INVALID", "EXTRACTION_INPUT_INVALID"])("maps %s consistently for HTTP codes and persisted/SSE diagnostics", code => {
   const diagnostic = `${code}: internal diagnostic; pnpm pipeline private-label private.pdf`
   const http = sectioningErrorMessage(diagnostic, code)
   expect(http).toBe(sectioningErrorMessage(diagnostic))
@@ -14,4 +14,14 @@ it.each(["EXTRACTION_LEGACY", "EXTRACTION_INCOMPLETE", "EXTRACTION_SOURCE_CHANGE
 })
 it("retains unrecognized provider diagnostics", () => {
   expect(sectioningErrorMessage("Provider returned diagnostic ABC")).toBe("Provider returned diagnostic ABC")
+})
+
+it.each(["PIPELINE_PAGES_FAILED", "SECTIONING_INPUT_UNREADABLE"])("keeps bounded page IDs and full counts for %s in HTTP/SSE messages", code => {
+  const message = `${code}: p2, p7; total=27; causes=INTERNAL_DETAIL`
+  const translated = sectioningErrorMessage(message)
+  expect(translated).toContain("27")
+  expect(translated).toContain("p2, p7")
+  expect(translated).not.toContain(code)
+  expect(translated).not.toContain("INTERNAL_DETAIL")
+  expect(sectioningErrorMessage(message, code)).toBe(translated)
 })

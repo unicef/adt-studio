@@ -103,7 +103,7 @@ export function collectQuizPages(storage: Storage): QuizPageInput[] {
   return storage.getPages().flatMap(page => {
     const rendering = storage.getLatestNodeData("web-rendering", page.pageId)
     const sectioning = getSemanticSectioning(storage, page.pageId)
-    if (!rendering || !sectioning) return []
+    if (rendering?.data == null || !sectioning) return []
     return [{ pageId: page.pageId, rendering: rendering.data, sectioning }]
   })
 }

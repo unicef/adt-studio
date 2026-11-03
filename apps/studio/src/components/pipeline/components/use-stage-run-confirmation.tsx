@@ -161,7 +161,7 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
       ? <p className="text-sm"><Trans>This replaces the manually edited or legacy table of contents. Its saved version remains in history.</Trans></p>
       : <div className="space-y-2 text-sm">
         <p><Trans>Saved pages:</Trans></p>
-        <ul className="max-h-48 overflow-y-auto">{work.map(r => <li key={r.itemId}><Trans>Page {r.pageNumber ?? r.itemId} ({r.itemId}): Sectioning v{r.version}, Storyboard v{r.renderingVersion ?? 0}, render tree v{r.renderTreeVersion ?? 0}</Trans></li>)}</ul>
+        <ul className="max-h-48 overflow-y-auto">{work.map(r => <li key={r.itemId}><Trans>Page {r.pageNumber ?? r.itemId} ({r.itemId}): Sectioning v{r.version}, Storyboard v{r.renderingVersion ?? 0}, render tree v{r.renderTreeVersion ?? 0}, activities v{r.editableActivityVersion ?? 0}</Trans></li>)}</ul>
         <p><Trans>Replacing these pages resets their current Storyboard, including manual edits. Saved versions and media stay in history; Storyboard must be rebuilt even if generation is cancelled or fails.</Trans></p>
         <label className="flex gap-2"><input type="checkbox" checked={replaceManual} onChange={event => setReplaceManual(event.target.checked)} /><Trans>Replace these pages and reset their Storyboard</Trans></label>
       </div>)}

@@ -384,14 +384,13 @@ describe("SPEC-0003 persisted data and publication", () => {
     } finally { db.close(); s.close() }
   })
 
-  it("publishes a successful rendering version while retaining all downstream entities", () => {
+  it("publishes a successful rendering version while retaining all downstream entities", async () => {
     const s = createBookStorage(label, root)
     s.putNodeData("image-captioning", "book", { manual: "retained" })
     writeSectioningLifecycle(dir, "dynamic", true)
-    fs.mkdirSync(path.join(dir, "adt", "content"), { recursive: true })
-    const entries = value(2).sections.map((section) => ({ section_id: section.sectionId, href: `${section.sectionId}.html` }))
-    fs.writeFileSync(path.join(dir, "adt", "content", "pages.json"), JSON.stringify(entries))
-    for (const entry of entries) fs.writeFileSync(path.join(dir, "adt", entry.href), "<p>Retained</p>")
+    const { createPackageRoutes } = await import("../routes/package.js")
+    const packaged = await createPackageRoutes(root, path.resolve("assets/adt"), globalConfig).request(`/books/${label}/package-adt`, { method: "POST" })
+    expect(packaged.status, await packaged.clone().text()).toBe(200)
     expect(getBook(label, root).completedStages).toContain("preview")
     const publication = createStoryboardPublication(s, label, root, globalConfig)
     publication.storage.putNodeData("web-rendering", "pg002", { sections: [{ html: "new" }] })

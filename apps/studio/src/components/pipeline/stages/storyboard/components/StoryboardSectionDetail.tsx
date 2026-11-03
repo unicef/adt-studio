@@ -684,7 +684,8 @@ export function StoryboardSectionDetail({
     pageId,
     pageHasActivitySection,
   )
-  const [editActivityPanelOpen, setEditActivityPanelOpen] = useState(false)
+  const [activityEditorKind, setActivityEditorKind] = useState<"stepper" | "classic" | null>(null)
+  const editActivityPanelOpen = activityEditorKind !== null
   const floatingDirtyEntries = useFloatingSaveDirtyEntries()
   const activityDraftDirty = floatingDirtyEntries.some(
     (entry) => entry.id === `editable-activity:${bookLabel}:${pageId}:${sectionIndex}`,
@@ -851,7 +852,7 @@ export function StoryboardSectionDetail({
     // Activities open interactive (matching step-by-step); "Edit activity"
     // in the banner opts into the WYSIWYG editor per section.
     setActivityPreviewMode(true)
-    setEditActivityPanelOpen(false)
+    setActivityEditorKind(null)
     needsRerenderRef.current = false
   }, [pageId, sectionIndex])
 
@@ -2490,7 +2491,7 @@ export function StoryboardSectionDetail({
   const editableBusy =
     convertEditableActivity.isPending || setEditablePresentation.isPending
 
-  const activityLinkMode = isActivitySection && !stepperEnabled && editActivityPanelOpen
+  const activityLinkMode = isActivitySection && activityEditorKind === "classic"
 
   useEffect(() => {
     setLinkedAnchor(null)
@@ -2512,7 +2513,7 @@ export function StoryboardSectionDetail({
     }
     if (editableEntry) {
       const enabling = !editableEntry.enabled
-      if (!enabling) setEditActivityPanelOpen(false)
+      if (!enabling) setActivityEditorKind(null)
       setEditablePresentation.mutate(
         { sectionIndex, enabled: enabling },
         {
@@ -2525,7 +2526,7 @@ export function StoryboardSectionDetail({
         onSuccess: (result) => {
           toast.success(t`Converted to a step-by-step activity`)
           if (result.warnings.length > 0) toast.warning(result.warnings.join(" "))
-          setEditActivityPanelOpen(true)
+          setActivityEditorKind("stepper")
         },
         onError: (err) =>
           toast.error(err instanceof Error ? err.message : t`Conversion failed`),
@@ -2551,7 +2552,7 @@ export function StoryboardSectionDetail({
       onSuccess: (result) => {
         toast.success(t`Rebuilt from the page`)
         if (result.warnings.length > 0) toast.warning(result.warnings.join(" "))
-        setEditActivityPanelOpen(true)
+        setActivityEditorKind("stepper")
       },
       onError: (err) =>
         toast.error(err instanceof Error ? err.message : t`Rebuild failed`),
@@ -2883,7 +2884,7 @@ export function StoryboardSectionDetail({
                       <>
                         <button
                           type="button"
-                          onClick={() => setEditActivityPanelOpen((v) => !v)}
+                          onClick={() => setActivityEditorKind(kind => kind === "stepper" ? null : "stepper")}
                           className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
                         >
                           <ListChecks className="h-3.5 w-3.5" />
@@ -2916,7 +2917,7 @@ export function StoryboardSectionDetail({
                             layout/style work. */}
                         <button
                           type="button"
-                          onClick={() => setEditActivityPanelOpen((v) => !v)}
+                          onClick={() => setActivityEditorKind(kind => kind === "classic" ? null : "classic")}
                           className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
                         >
                           <ListChecks className="h-3.5 w-3.5" />
@@ -2925,7 +2926,7 @@ export function StoryboardSectionDetail({
                         <button
                           type="button"
                           onClick={() => {
-                            setEditActivityPanelOpen(false)
+                            setActivityEditorKind(null)
                             setActivityPreviewMode((v) => !v)
                           }}
                           className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
@@ -3223,26 +3224,25 @@ export function StoryboardSectionDetail({
           book+page: the component instance survives page navigation, and a
           colliding key would keep another page's draft alive — saving it
           would corrupt this page's activity. */}
-      {editableEntry && (
-        <EditableActivityPanel
-          key={`${bookLabel}-${pageId}-${sectionIndex}-${editableVersion}`}
-          open={editActivityPanelOpen && stepperEnabled}
-          onClose={() => setEditActivityPanelOpen(false)}
+      <EditableActivityPanel
+          key={`${bookLabel}-${pageId}-${sectionIndex}`}
+          open={activityEditorKind === "stepper"}
+          onClose={() => setActivityEditorKind(null)}
           bookLabel={bookLabel}
           pageId={pageId}
           sectionIndex={sectionIndex}
           activity={editableEntry}
+          version={editableVersion}
           activities={editableActivitiesQuery.data?.activities ?? {}}
           paletteAccent={editableActivitiesQuery.data?.paletteAccent ?? "#2563EB"}
         />
-      )}
 
       {/* Slide-out classic-activity content editor — the non-converted
           counterpart: edits answers and data-id texts of the free-form HTML. */}
       {isActivitySection && !stepperEnabled && (
         <ClassicActivityPanel
-          open={editActivityPanelOpen}
-          onClose={() => setEditActivityPanelOpen(false)}
+          open={activityEditorKind === "classic"}
+          onClose={() => setActivityEditorKind(null)}
           bookLabel={bookLabel}
           leaves={unprunedLeafNodes}
           answers={renderedSection?.activityAnswers}

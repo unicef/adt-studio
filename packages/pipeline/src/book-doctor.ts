@@ -5,7 +5,9 @@
  * attention on this version: schema version, stale lock files, rendered
  * sections with no provable owner (omitted from preview and export), duplicate
  * text ids, and catalog ids that re-key on this version (whose translations and
- * audio detach). It writes nothing, migrates nothing and calls no model.
+ * audio detach). It does not repair content or call a model. Database reads
+ * use shared admission (including temporary ownership metadata) and normal
+ * current-schema initialization; ambiguous lock evidence is never removed.
  */
 import fs from "node:fs"
 import path from "node:path"

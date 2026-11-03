@@ -989,6 +989,10 @@ amendment and implementation, not specification approval.
 By Page constrains generation/cache validation only. Preferences are informational;
 ordinary Sectioning fills missing pages. Explicit exact-version replacement also
 confirms a scoped, version-preserving active Storyboard reset before generation.
+That scope includes editable step-by-step activities: their exact version appears
+in consent, reset deactivates it with history retained, and an editor saves against
+its draft-captured version. Shared source tracking marks retained generator output
+for review when reset changes its actual input.
 The reset is a database transaction; failed generation retains prior authored
 Sectioning and history while reset Storyboard remains missing. Ordinary rendering
 publishes each page's HTML/tree transaction immediately. Only a real layout switch

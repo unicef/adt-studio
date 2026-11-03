@@ -107,7 +107,7 @@ export interface BookVM {
 
 export function toBookVM(book: BookSummary, locale: string): BookVM {
   const discs = presentDiscs(book)
-  const pagesText =
+  const pagesText = book.readUnavailable ? i18n._(msg`Temporarily unavailable`) :
     book.pageCount > 0
       ? plural(book.pageCount, { one: "# page", other: "# pages" })
       : i18n._(msg`Not started`)
@@ -119,7 +119,7 @@ export function toBookVM(book: BookSummary, locale: string): BookVM {
     modified: formatRelative(book.modifiedAt, locale),
     lang: book.languageCode ? book.languageCode.toUpperCase() : "—",
     needsRebuild: book.needsRebuild,
-    isNew: book.pageCount === 0 && discs.length === 0,
+    isNew: !book.readUnavailable && book.pageCount === 0 && discs.length === 0,
     cover: deriveCover(book),
     discs,
     stageCount: discs.length,

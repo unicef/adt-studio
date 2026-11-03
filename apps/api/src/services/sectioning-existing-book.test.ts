@@ -247,9 +247,8 @@ it("partial section rendering stays usable but incomplete across page, library, 
 it("newly completed source output cannot complete an older partial package", async () => {
   expect((await run({ fromStage: "storyboard" })).status).toBe("completed")
   const adt = path.join(dir, "adt")
-  fs.mkdirSync(path.join(adt, "content"), { recursive: true })
-  const entries = ["p2_sec001", "p2_sec002", "p7_sec001", "p7_sec002"].map((id) => ({ section_id: id, href: `${id}.html` }))
-  for (const entry of entries) fs.writeFileSync(path.join(adt, entry.href), "<p>Retained output</p>")
+  expect((await app.request(`/books/${label}/package-adt`, { method: "POST" })).status).toBe(200)
+  const entries = JSON.parse(fs.readFileSync(path.join(adt, "content/pages.json"), "utf8")) as Array<{ section_id: string; href: string }>
   const manifest = path.join(adt, "content", "pages.json")
   fs.writeFileSync(manifest, JSON.stringify(entries.slice(0, 2)))
   const status = await (await app.request(`/books/${label}/package-adt/status`)).json()
@@ -426,3 +425,164 @@ it.each(["first generation", "same-layout rerun"].flatMap(runKind => [false, tru
     }
   },
 )
+
+// REVIEWER-DESIGNED, NOT RUN. Append this test to:
+// apps/api/src/services/sectioning-existing-book.test.ts
+// It intentionally reuses that file's real storage/Hono/stage runner fixtures
+// and its controlled sectionPage/renderPage outputs. No ownership/reset/read
+// helper is mocked. This is not provider accounting or a paid-model test.
+it("explicit scoped Sectioning replacement cannot attach an old enabled stepper to a new same-index same-type section", async () => {
+  const { EditableActivitiesEntity, EDITABLE_ACTIVITY_NODE, PageSectioningOutput } = await import("@adt/types")
+  const { unzipSync } = await import("fflate")
+  const { exportAdt } = await import("./export-service.js")
+  const oldMarker = "OLD_STEPPER_ANSWER_NOT_CURRENT"
+  const newMarker = "NEW_GENERATED_ACTIVITY_CURRENT"
+  const activityTree = (fresh: boolean) => {
+    const data = tree("p2", 1, fresh ? "ai" : "manual")
+    data.sections[0].sectionType = "activity_multiple_choice"
+    data.sections[0].nodes = [{
+      nodeId: fresh ? "p2_new_activity_text" : "p2_old_activity_text",
+      text: fresh ? newMarker : "Old semantic question", role: "text", isPruned: false,
+    }]
+    return PageSectioningOutput.parse(data)
+  }
+  const seeded = store()
+  let oldOwner: string
+  try {
+    const oldTree = activityTree(false)
+    oldOwner = oldTree.sections[0].sectionId!
+    seeded.putNodeData("page-sectioning", "p2", oldTree)
+    const renderingVersion = seeded.putNodeData("web-rendering", "p2", { sections: [{
+      sectionIndex: 0, sectionId: oldOwner, sectionType: "activity_multiple_choice", reasoning: "old",
+      html: `<section data-section-id="${oldOwner}"><p data-id="p2_old_activity_text">Old semantic question</p></section>`,
+    }] })
+    seeded.putNodeData(EDITABLE_ACTIVITY_NODE, "p2", EditableActivitiesEntity.parse({ activities: { "0": {
+      kind: "multiple-choice", sectionType: "activity_multiple_choice", enabled: true,
+      sourceRenderingVersion: renderingVersion,
+      steps: [{ id: "old-group", prompt: { text: oldMarker, dataId: "old-stepper-question" }, options: [
+        { itemId: "old-correct", correct: true, text: { text: "OLD_CORRECT_ANSWER" } },
+        { itemId: "old-wrong", correct: false, text: { text: "OLD_WRONG_ANSWER" } },
+      ] }],
+    } } }))
+  } finally { seeded.close() }
+  const oldActivity = history(EDITABLE_ACTIVITY_NODE, "p2")
+  const oldSource = history("page-sectioning", "p2")
+  const oldHtml = history("web-rendering", "p2")
+  const neighbor = [history("page-sectioning", "p7"), history("web-rendering", "p7"), history(EDITABLE_ACTIVITY_NODE, "p7")]
+  const pixels = fs.readFileSync(path.join(dir, "images/p2_page.png"))
+  // Positive control: the pre-reset stepper is genuinely visible through the
+  // production Preview route, not merely a stored but invalid test object.
+  const beforePreview = await app.request(`/books/${label}/adt-preview/${oldOwner!}.html`)
+  expect(beforePreview.status, await beforePreview.clone().text()).toBe(200)
+  expect(await beforePreview.text()).toContain(oldMarker)
+
+  sectionPage.mockImplementationOnce(async ({ pageId }: { pageId: string }) => {
+    expect(pageId).toBe("p2")
+    return activityTree(true)
+  })
+  renderPage.mockImplementation(async ({ sectioning }: { sectioning: ReturnType<typeof activityTree> }) => ({ sections: sectioning.sections.map((section, sectionIndex) => ({
+    sectionIndex, sectionId: section.sectionId, sectionType: section.sectionType, reasoning: "new",
+    html: `<section data-section-id="${section.sectionId}"><p data-id="p2_new_activity_text">${newMarker}</p></section>`,
+  })) }))
+  const consent = await replacement(["p2"])
+  expect(consent.protectedReplacements.map((record: { itemId: string }) => record.itemId)).toEqual(["p2"])
+  expect((await run({ ...consent, toStage: "sectioning" })).status).toBe("completed")
+  const afterReset = store()
+  let owner: string
+  try {
+    expect(afterReset.getLatestNodeData("web-rendering", "p2")?.data).toBeNull()
+    const current = PageSectioningOutput.parse(afterReset.getLatestNodeData("page-sectioning", "p2")?.data)
+    expect(current.sections).toHaveLength(1)
+    expect(current.sections[0].sectionType).toBe("activity_multiple_choice")
+    owner = current.sections[0].sectionId!
+    expect(owner).not.toBe(oldOwner!)
+    expect(JSON.stringify(current)).toContain(newMarker)
+  } finally { afterReset.close() }
+  const rendered = await send("pages/p2/re-render", {})
+  expect(rendered.status, await rendered.clone().text()).toBe(200)
+  expect(sectionPage).toHaveBeenCalledTimes(1)
+  expect(renderPage).toHaveBeenCalledTimes(1)
+
+  // Inspect the actual Preview and packaged HTML. Correct stored rendering
+  // alone is insufficient: both readers independently support stepper overrides.
+  const preview = await app.request(`/books/${label}/adt-preview/${owner!}.html`)
+  expect(preview.status, await preview.clone().text()).toBe(200)
+  const previewHtml = await preview.text()
+  expect.soft(previewHtml).toContain(newMarker)
+  expect.soft(previewHtml).not.toContain(oldMarker)
+  expect.soft(previewHtml).not.toContain("OLD_CORRECT_ANSWER")
+  await prepareExport(label, "adt", root, path.resolve("assets/adt"), configPath)
+  const artifact = await exportAdt(label, root)
+  const members = unzipSync(new Uint8Array(await new Response(artifact.stream).arrayBuffer()))
+  expect(members[`${owner!}.html`]).toBeDefined()
+  const packagedHtml = Buffer.from(members[`${owner!}.html`]).toString("utf8")
+  expect.soft(packagedHtml).toContain(newMarker)
+  expect.soft(packagedHtml).not.toContain(oldMarker)
+  expect.soft(packagedHtml).not.toContain("OLD_CORRECT_ANSWER")
+
+  // Deactivation is allowed; historical removal or unrelated mutation is not.
+  expect(history(EDITABLE_ACTIVITY_NODE, "p2").slice(0, oldActivity.length)).toEqual(oldActivity)
+  expect(history("page-sectioning", "p2").slice(0, oldSource.length)).toEqual(oldSource)
+  expect(history("web-rendering", "p2").slice(0, oldHtml.length)).toEqual(oldHtml)
+  expect([history("page-sectioning", "p7"), history("web-rendering", "p7"), history(EDITABLE_ACTIVITY_NODE, "p7")]).toEqual(neighbor)
+  expect(fs.readFileSync(path.join(dir, "images/p2_page.png")).equals(pixels)).toBe(true)
+})
+
+it("ordinary Sectioning reports unreadable retained pages while publishing unrelated missing work", async () => {
+  const s = store()
+  s.putNodeData("page-sectioning", "p2", null)
+  s.putExtractedPage({ pageId: "p9", pageNumber: 9, text: "New source", images: [], pageImage: { imageId: "p9_page", buffer: Buffer.from("new pixels"), format: "png", hash: "new", width: 4, height: 6 } })
+  s.putNodeData("image-filtering", "p9", { images: [] })
+  s.close()
+  const before = history("page-sectioning", "p2")
+  const neighbor = history("page-sectioning", "p7")
+  const messages: string[] = []
+  const stop = bus.addListener(label, event => { if (event.type === "progress" && (event.data.type === "step-skip" || event.data.type === "step-complete") && event.data.message) messages.push(event.data.message) })
+  const result = await run({ toStage: "sectioning" })
+  expect(result.status).toBe("completed")
+  stop()
+  expect(messages).toContain("SECTIONING_INPUT_UNREADABLE: p2; total=1")
+  const savedStatus = await (await app.request(`/books/${label}/step-status`)).json()
+  expect(savedStatus.stepMessages["page-sectioning"]).toBe("SECTIONING_INPUT_UNREADABLE: p2; total=1")
+  expect(history("page-sectioning", "p2")).toEqual(before)
+  expect(history("page-sectioning", "p7")).toEqual(neighbor)
+  expect(history("page-sectioning", "p9")).toHaveLength(1)
+  expect(sectionPage).toHaveBeenCalledTimes(1)
+})
+it.each(["{invalid", "{}"])("invalid required part window is localized and never broadened: %s", async content => {
+  const file = path.join(dir, "part.json")
+  fs.writeFileSync(file, content)
+  const before = [history("page-sectioning", "p2"), history("web-rendering", "p2")]
+  for (const response of [await send("stages/run", { fromStage: "sectioning", toStage: "sectioning" }), await send("pages/p2/re-render", {})]) {
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ code: "SECTIONING_WINDOW_INVALID" })
+  }
+  expect(fs.readFileSync(file, "utf8")).toBe(content)
+  expect([history("page-sectioning", "p2"), history("web-rendering", "p2")]).toEqual(before)
+  expect(sectionPage).not.toHaveBeenCalled(); expect(renderPage).not.toHaveBeenCalled()
+  fs.unlinkSync(file) // Explicit fixture repair, never a production fallback.
+  expect((await run({ toStage: "sectioning" })).status).toBe("completed")
+})
+
+it("aggregate page failures expose at most twenty IDs while retaining every page's diagnostic", async () => {
+  const s = store()
+  for (let n = 20; n < 45; n++) {
+    const id = `p${n}`
+    s.putExtractedPage({ pageId: id, pageNumber: n, text: "source", images: [], pageImage: { imageId: `${id}_page`, buffer: Buffer.from("pixels"), format: "png", hash: "pixels", width: 4, height: 6 } })
+    s.putNodeData("page-sectioning", id, tree(id))
+  }
+  s.close()
+  const before = [history("web-rendering", "p2"), history("web-rendering", "p7")]
+  const errors: string[] = []
+  const stop = bus.addListener(label, event => { if (event.type === "progress" && event.data.type === "step-error") errors.push(event.data.error) })
+  renderPage.mockRejectedValue(new Error("controlled per-page failure detail"))
+  const result = await run({ fromStage: "storyboard", pageErrorPolicy: "stop" })
+  stop()
+  expect(result.status).toBe("failed")
+  expect(result.error).toContain("PIPELINE_PAGES_FAILED:")
+  expect(result.error).toContain("total=27")
+  expect(result.error?.match(/\bp\d+\b/g)).toHaveLength(20)
+  expect(errors.filter(error => error.includes("controlled per-page failure detail"))).toHaveLength(27)
+  expect(renderPage).toHaveBeenCalledTimes(27)
+  expect([history("web-rendering", "p2"), history("web-rendering", "p7")]).toEqual(before)
+})

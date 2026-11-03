@@ -17,6 +17,7 @@ export const AuthoredReplacement = z.object({
   version: z.number().int().positive(),
   renderingVersion: z.number().int().nonnegative().optional(),
   renderTreeVersion: z.number().int().nonnegative().optional(),
+  editableActivityVersion: z.number().int().nonnegative().optional(),
   // Sectioning replacement also binds the reviewed generation settings/window.
   sectioningInputSignature: z.string().regex(/^[a-f0-9]{64}$/).optional(),
 }).strict()

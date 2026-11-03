@@ -1,6 +1,7 @@
 import type { Storage } from "@adt/storage"
-import { STAGE_ORDER, PIPELINE, getStageDependents, type AuthoredReplacement, type StageName } from "@adt/types"
+import { STAGE_ORDER, PIPELINE, getStageDependents, EDITABLE_ACTIVITY_NODE, type AuthoredReplacement, type StageName } from "@adt/types"
 import { isProtectedContent } from "./manual-edits.js"
+import { withSourceGenerationTracking } from "./source-generation-state.js"
 export class AuthoredReplacementError extends Error {
   readonly code: "VERSION_CONFLICT" | "REPLACEMENT_CONFIRMATION_INVALID"
   constructor(readonly status: 400 | 409, message: string, readonly currentVersion?: number) {
@@ -25,6 +26,7 @@ export function protectedAuthoredRecords(storage: Storage, sectioningInputSignat
           sectioningInputSignature,
           renderingVersion: storage.getSelectedNodeVersion("web-rendering", itemId) ?? 0,
           renderTreeVersion: storage.getSelectedNodeVersion("fixed-layout-sectioning", itemId) ?? 0,
+          editableActivityVersion: storage.getSelectedNodeVersion(EDITABLE_ACTIVITY_NODE, itemId) ?? 0,
         } : {}),
       })
     }
@@ -54,7 +56,8 @@ export function assertAuthoredReplacement(storage: Storage, options: {
     if (current !== record.version) throw new AuthoredReplacementError(409, "Content changed. Your draft has not been saved. Refresh before retrying.", current)
     if (record.node === "page-sectioning" && (
       record.renderingVersion !== (storage.getSelectedNodeVersion("web-rendering", record.itemId) ?? 0) ||
-      record.renderTreeVersion !== (storage.getSelectedNodeVersion("fixed-layout-sectioning", record.itemId) ?? 0)
+      record.renderTreeVersion !== (storage.getSelectedNodeVersion("fixed-layout-sectioning", record.itemId) ?? 0) ||
+      (record.editableActivityVersion ?? 0) !== (storage.getSelectedNodeVersion(EDITABLE_ACTIVITY_NODE, record.itemId) ?? 0)
     )) throw new AuthoredReplacementError(409, "Storyboard changed. Review the affected pages before resetting their output.", current)
   }
 
@@ -95,11 +98,11 @@ export function resetSectioningStoryboard(storage: Storage, options: {
 }, sectioningInputSignature?: string): void {
   const records = options.protectedReplacements?.filter((r) => r.node === "page-sectioning") ?? []
   if (!records.length) return
-  storage.transaction(() => {
+  withSourceGenerationTracking(storage, () => {
     assertSectioningInputConsent(options, sectioningInputSignature)
     assertAuthoredReplacement(storage, options)
     for (const record of records) {
-      for (const node of ["web-rendering", "fixed-layout-sectioning"]) {
+      for (const node of ["web-rendering", "fixed-layout-sectioning", EDITABLE_ACTIVITY_NODE]) {
         if (storage.getSelectedNodeVersion(node, record.itemId) !== null) storage.putNodeData(node, record.itemId, null)
       }
     }

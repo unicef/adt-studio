@@ -5294,6 +5294,9 @@ msgstr "Génération…"
 msgid "Generation failed"
 msgstr "La génération a échoué"
 
+msgid "Generation failed on {total} page(s) (showing up to 20): {pages}. Successful pages are retained. Inspect the page errors before retrying."
+msgstr "La génération a échoué pour {total} page(s) (20 au maximum affichées) : {pages}. Les pages générées avec succès sont conservées. Examinez les erreurs des pages avant de réessayer."
+
 msgid "Generation failed. Please try again."
 msgstr "La génération a échoué. Veuillez réessayer."
 
@@ -7241,6 +7244,9 @@ msgstr "Aucune évaluation d'accessibilité n'a encore été générée. Empaque
 msgid "No accessibility findings were reported for this page."
 msgstr "Aucun résultat d'accessibilité n'a été signalé pour cette page."
 
+msgid "No additional page IDs shown"
+msgstr "Aucun autre identifiant de page affiché"
+
 msgid "No AI edits yet for this section."
 msgstr "Aucune modification IA pour cette section pour l'instant."
 
@@ -8356,8 +8362,17 @@ msgstr "Page {0} — Section {1}"
 #. placeholder {2}: r.version
 #. placeholder {3}: r.renderingVersion ?? 0
 #. placeholder {4}: r.renderTreeVersion ?? 0
-msgid "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}"
-msgstr "Page {0} ({1}) : division en sections v{2}, Storyboard v{3}, arbre de rendu v{4}"
+#~ msgid "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}"
+#~ msgstr "Page {0} ({1}) : division en sections v{2}, Storyboard v{3}, arbre de rendu v{4}"
+
+#. placeholder {0}: r.pageNumber ?? r.itemId
+#. placeholder {1}: r.itemId
+#. placeholder {2}: r.version
+#. placeholder {3}: r.renderingVersion ?? 0
+#. placeholder {4}: r.renderTreeVersion ?? 0
+#. placeholder {5}: r.editableActivityVersion ?? 0
+msgid "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}, activities v{5}"
+msgstr "Page {0} ({1}) : Sectionnement v{2}, Scénarimage v{3}, arborescence de rendu v{4}, activités v{5}"
 
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
@@ -10261,6 +10276,9 @@ msgstr "Le contenu enregistré est indisponible ; votre brouillon est conservé"
 msgid "Saved pages:"
 msgstr "Pages enregistrées :"
 
+msgid "Saved Sectioning is unreadable on {total} page(s) (showing up to 20): {pages}. Those records were retained. Restore valid historical versions before replacing them. Other successful pages remain available."
+msgstr "Le Sectionnement enregistré est illisible pour {total} page(s) (20 au maximum affichées) : {pages}. Ces enregistrements sont conservés. Restaurez des versions valides de l’historique avant de les remplacer. Les autres pages générées avec succès restent disponibles."
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
 
@@ -11125,8 +11143,12 @@ msgstr "Statut de la mise à jour logicielle"
 #~ msgstr "Une partie du contenu a été exclue du paquet : {0} section(s) rendue(s) sur {pageList} n'ont pas de ligne de sectionnement et n'ont donc pas pu être incluses. Relancez le rendu du storyboard pour ces pages, puis empaquetez à nouveau."
 
 #. placeholder {0}: ownership.length
-msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
-msgstr "Une partie du contenu a été omise du paquet : {0} sections rendues sur {pageList} ne sont rattachées à aucune section vérifiée et n’ont pas pu être incluses. Leur contenu et leur historique sont conservés. Vérifiez leurs identités de section dans Storyboard, puis recréez le paquet."
+#~ msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
+#~ msgstr "Une partie du contenu a été omise du paquet : {0} sections rendues sur {pageList} ne sont rattachées à aucune section vérifiée et n’ont pas pu être incluses. Leur contenu et leur historique sont conservés. Vérifiez leurs identités de section dans Storyboard, puis recréez le paquet."
+
+#. placeholder {0}: ownership.length
+msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
+msgstr "Une partie du contenu a été omise du paquet : {0} section(s) rendue(s) sur {pageTotal} page(s) (20 au maximum affichées) : {pageList} n’ont pas de section propriétaire vérifiée et n’ont pas pu être incluses. Leur contenu et leur historique sont conservés. Vérifiez leurs identités de section dans le Scénarimage, puis recréez le paquet."
 
 msgid "Some items could not be updated. The list has been refreshed; completed changes are kept."
 msgstr "Certains éléments n’ont pas pu être mis à jour. La liste a été actualisée ; les modifications terminées sont conservées."
@@ -11753,6 +11775,9 @@ msgstr "Basé sur un modèle"
 msgid "Templated"
 msgstr "Modèle"
 
+msgid "Temporarily unavailable"
+msgstr "Temporairement indisponible"
+
 msgid "term"
 msgstr "terme"
 
@@ -11870,6 +11895,9 @@ msgstr "La résolution a échoué. Réessayez."
 
 msgid "That reply didn't send. Try again."
 msgstr "Cette réponse n’a pas été envoyée. Réessayez."
+
+msgid "The activity changed while feedback was being generated. Review your draft and try again."
+msgstr "L’activité a changé pendant la génération des commentaires. Vérifiez votre brouillon et réessayez."
 
 msgid "The address every share link will start with."
 msgstr "L'adresse avec laquelle chaque lien de partage commencera."
@@ -12311,6 +12339,9 @@ msgstr "Ce livre est entièrement assemblé"
 msgid "This book is not on this computer."
 msgstr "Ce livre n’est pas sur cet ordinateur."
 
+msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
+msgstr "Ce livre est temporairement indisponible. Son contenu enregistré est conservé. Essayez de l’ouvrir pour obtenir des détails, puis réessayez après avoir résolu le problème signalé."
+
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."
 msgstr "Ce livre est intitulé \\\"{0}\\\"."
@@ -12331,8 +12362,14 @@ msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "Ce livre était déjà partagé — une autre fenêtre l'a peut-être fait. Utilisez \"Mettre à jour le site\" pour envoyer vos dernières modifications au lien que vous avez déjà."
 
-msgid "This bundle is incomplete. Storyboard output is missing on pages {missing}. Render those pages to complete it."
-msgstr "Ce paquet est incomplet. Le rendu Storyboard manque pour les pages {missing}. Rendez ces pages pour le compléter."
+msgid "This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained."
+msgstr "La plage de pages enregistrée pour cette partie du livre est invalide ou illisible. Restaurez un manifeste de partie valide avant de lancer le traitement. Le contenu enregistré est conservé."
+
+msgid "This bundle is incomplete. Storyboard output is missing on {missingTotal} page(s) (showing up to 20): {missingList}. Render those pages to complete it."
+msgstr "Ce paquet est incomplet. La sortie du Scénarimage manque pour {missingTotal} page(s) (20 au maximum affichées) : {missingList}. Effectuez le rendu de ces pages pour le compléter."
+
+#~ msgid "This bundle is incomplete. Storyboard output is missing on pages {missing}. Render those pages to complete it."
+#~ msgstr "Ce paquet est incomplet. Le rendu Storyboard manque pour les pages {missing}. Rendez ces pages pour le compléter."
 
 msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "Cette action est irréversible. Tous les liens que vous avez partagés cesseront de fonctionner."

@@ -82,6 +82,9 @@ describe("Package routes", () => {
   }
 
   function createWebAssets(): void {
+    for (const bundle of ["base.bundle.min.js", "base.bundle.local.js"]) fs.writeFileSync(path.join(webAssetsDir, bundle), "window.__ADT_BUNDLE_TEST__ = true;")
+    fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+    fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), ".icon { display: inline; }")
     fs.writeFileSync(path.join(webAssetsDir, "base.js"), 'window.__ADT_BUNDLE_TEST__ = "ok";\n')
     fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")
     fs.writeFileSync(
@@ -89,6 +92,38 @@ describe("Package routes", () => {
       "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",
     )
   }
+
+  // Independent Codex C3: unchanged source hashes cannot prove a usable bundle.
+  it.each(["runtime", "entry", "stylesheet", "manifest", "directory"])(
+    "rebuilds a cached package with an unavailable required %s file",
+    { timeout: 30_000 }, async (kind) => {
+      createRenderedBook("damaged-package")
+      const routes = new Hono().onError(errorHandler).route("/api", createPackageRoutes(tmpDir, path.resolve("assets/adt")))
+      const url = "/api/books/damaged-package/package-adt"
+      expect((await routes.request(url, { method: "POST" })).status).toBe(200)
+      const adt = path.join(tmpDir, "damaged-package", "adt")
+      const html = fs.readFileSync(path.join(adt, "pg001_sec001.html"), "utf8")
+      const runtime = html.match(/assets\/(base\.bundle\.(?:min|local)\.js)/)![1]
+      const relative = kind === "runtime" || kind === "directory" ? `assets/${runtime}`
+        : kind === "entry" ? "index.html" : kind === "stylesheet" ? "content/tailwind_output.css" : "content/pages.json"
+      const file = path.join(adt, relative)
+      expect(fs.statSync(file).isFile()).toBe(true)
+      fs.unlinkSync(file)
+      if (kind === "directory") fs.mkdirSync(file)
+      const status = await routes.request(`${url}/status`)
+      expect(await status.json()).toMatchObject({ complete: false })
+      // A directory in a required file's place may be refused safely. Missing
+      // regular files must be rebuilt, and a later cache hit retains the repair.
+      const repaired = await routes.request(url, { method: "POST" })
+      if (kind === "directory" && repaired.status !== 200) return
+      expect(repaired.status, await repaired.clone().text()).toBe(200)
+      expect(fs.statSync(file).isFile()).toBe(true)
+      expect(await (await routes.request(`${url}/status`)).json()).toMatchObject({ complete: true })
+      const before = fs.statSync(file).mtimeMs
+      expect((await routes.request(url, { method: "POST" })).status).toBe(200)
+      expect(fs.statSync(file).mtimeMs).toBe(before)
+    },
+  )
 
   function easyReadOutput(text: string) {
     return {
@@ -386,11 +421,10 @@ describe("Package routes", () => {
     ])("keeps usable packages accessible independently of lifecycle metadata: %j", async ({ mode, ready, pending }) => {
       createRenderedBook("retained")
       const dir = path.join(tmpDir, "retained")
-      const pagesPath = path.join(dir, "adt", "content", "pages.json")
-      fs.mkdirSync(path.dirname(pagesPath), { recursive: true })
-      const pages = JSON.stringify([{ section_id: "pg001_sec001", href: "pg001_sec001.html" }])
-      fs.writeFileSync(pagesPath, pages)
-      fs.writeFileSync(path.join(dir, "adt", "pg001_sec001.html"), "<p>Retained content</p>")
+      createWebAssets()
+      expect((await app.request("/api/books/retained/package-adt", { method: "POST" })).status).toBe(200)
+      const pagesPath = path.join(dir, "adt/content/pages.json")
+      const pages = fs.readFileSync(pagesPath, "utf8")
       writeSectioningLifecycle(dir, mode, ready, pending)
       const response = await app.request("/api/books/retained/package-adt/status")
       expect(response.status).toBe(200)
@@ -438,14 +472,8 @@ describe("Package routes", () => {
 
     it("returns hasAdt=true with current usable rendering and a packaged href", async () => {
       createRenderedBook("book5")
-      const pagesPath = path.join(tmpDir, "book5", "adt", "content", "pages.json")
-      fs.mkdirSync(path.dirname(pagesPath), { recursive: true })
-      fs.writeFileSync(
-        pagesPath,
-        JSON.stringify([{ section_id: "pg001_sec001", href: "pg001_sec001.html" }]),
-      )
-
-      fs.writeFileSync(path.join(tmpDir, "book5", "adt", "pg001_sec001.html"), "<p>Packaged content</p>")
+      createWebAssets()
+      expect((await app.request("/api/books/book5/package-adt", { method: "POST" })).status).toBe(200)
       const res = await app.request("/api/books/book5/package-adt/status")
       expect(res.status).toBe(200)
       expect(await res.json()).toMatchObject({ label: "book5", hasAdt: true, complete: true })

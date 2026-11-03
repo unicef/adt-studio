@@ -788,6 +788,17 @@ function loadEditableRendering(storage: Storage, pageId: string, sectioning: Pag
   if (row?.data == null) return null
   const parsed = WebRenderingOutput.safeParse(row.data)
   if (!parsed.success) throw new HTTPException(409, { message: "Rendering is invalid. Restore matching versions before editing sections." })
+  const fixed = storage.getLatestNodeData("fixed-layout-sectioning", pageId)
+  if (fixed?.data != null) {
+    const positioned = PageSectioningOutput.safeParse(fixed.data)
+    const projected = withLegacyRenderingOwnership(storage, pageId, parsed.data)
+    if (!positioned.success || projected.sections.some(entry => !resolveRenderedSection(entry, positioned.data.sections, projected.sections))) {
+      throw new HTTPException(409, { message: "Section ownership is ambiguous. The existing content has been preserved." })
+    }
+    // Fixed HTML belongs to the independently published positioned tree.
+    // Semantic edits cannot clone/remap/drop that pair by semantic array index.
+    return null
+  }
   const seen = new Set<string>()
   const sections = withLegacyRenderingOwnership(storage, pageId, parsed.data).sections.map(entry => {
     const owner = renderedSectionId(entry)

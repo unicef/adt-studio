@@ -1243,10 +1243,11 @@ export const api = {
     label: string,
     pageId: string,
     activities: Record<string, EditableActivity>,
+    baseVersion: number,
   ) =>
     request<{ version: number }>(`/books/${label}/pages/${pageId}/editable-activities`, {
       method: "PUT",
-      body: JSON.stringify({ activities }),
+      body: JSON.stringify({ activities, baseVersion }),
     }),
 
   getActivityStructure: (label: string, pageId: string, sectionIndex: number) =>

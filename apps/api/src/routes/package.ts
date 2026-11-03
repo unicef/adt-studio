@@ -8,6 +8,7 @@ import { parseBookLabel, PackagingWarning, type PackagingStatus } from "@adt/typ
 import { createBookStorage } from "@adt/storage"
 import {
   packageAdtWeb,
+  packageFilesAvailable,
   computePackagingInputHash,
   loadBookConfig,
   normalizeLocale,
@@ -83,9 +84,11 @@ function readBuildWarnings(bookDir: string): PackagingWarning[] {
  * stale costs one rebuild per book on upgrade, once.
  */
 function isBuildCacheValid(bookDir: string, hash: string): boolean {
-  const hashPath = getBuildHashPath(bookDir)
-  if (!fs.existsSync(hashPath) || fs.readFileSync(hashPath, "utf-8").trim() !== hash) return false
-  return fs.existsSync(getBuildWarningsPath(bookDir))
+  try {
+    if (fs.readFileSync(getBuildHashPath(bookDir), "utf8").trim() !== hash) return false
+    PackagingWarning.array().parse(JSON.parse(fs.readFileSync(getBuildWarningsPath(bookDir), "utf8")))
+    return packageFilesAvailable(path.join(bookDir, "adt"))
+  } catch { return false }
 }
 
 function readBuildVersion(bookDir: string, fallbackHash: string): string {

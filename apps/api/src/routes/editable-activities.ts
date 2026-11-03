@@ -1,3 +1,5 @@
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
+import { assertEditVersion } from "../services/catalog-output-service.js"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -7,6 +9,7 @@ import {
   ContentNodeData,
   EditableActivity,
   EditableActivitiesEntity,
+  AuthoredSaveGuard,
   EDITABLE_ACTIVITY_NODE,
   PageSectioningOutput,
   WebRenderingOutput,
@@ -96,6 +99,7 @@ export function createEditableActivitiesRoutes(
   configPath?: string,
 ): Hono {
   const app = new Hono()
+  app.use("/books/:label/*", bookWriterMiddleware(booksDir))
 
   // GET — the page's editable activities (empty when none exist yet).
   app.get("/books/:label/pages/:pageId/editable-activities", (c) => {
@@ -128,6 +132,8 @@ export function createEditableActivitiesRoutes(
     if (body === null) {
       throw new HTTPException(400, { message: "Invalid JSON body." })
     }
+    const guard = AuthoredSaveGuard.safeParse(body)
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const parsed = EditableActivitiesEntity.safeParse(body)
     if (!parsed.success) {
       const details = parsed.error.issues
@@ -149,7 +155,10 @@ export function createEditableActivitiesRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const version = storage.putNodeData(EDITABLE_ACTIVITY_NODE, pageId, parsed.data)
+      const version = storage.transaction(() => {
+        assertEditVersion(storage.getSelectedNodeVersion(EDITABLE_ACTIVITY_NODE, pageId) ?? undefined, guard.data.baseVersion)
+        return storage.putNodeData(EDITABLE_ACTIVITY_NODE, pageId, parsed.data)
+      })
       return c.json({ version })
     } finally {
       storage.close()

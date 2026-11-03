@@ -90,7 +90,7 @@ must be reported/retained, not guessed missing. Scope uses extracted source page
 and actual part windows, not inferred contiguous PDF page numbers.
 
 Replacement is a distinct opt-in, off on every dialog open. Show affected page
-IDs/numbers and exact Sectioning, rendering and render-tree versions. Explain that
+IDs/numbers and exact Sectioning, rendering, render-tree and editable-activity versions. Explain that
 current Storyboard for those pages, including manual edits, must be rebuilt.
 The request carries the frozen named snapshot plus a receipt for the book,
 effective configuration and persisted page window. Settings Save & Re-run first
@@ -105,7 +105,7 @@ work must not broaden replacement to other existing pages.
 
 **Reset commit boundary:** after valid explicit consent and successful execution
 admission, before any generation, one SQLite transaction deactivates the named
-pages' active HTML and positioned trees using versioned null records and clears
+pages' active HTML, positioned trees and editable activities using versioned null records and clears
 only the affected completion claims. Do not delete history, physical media or
 Sectioning. Cancel before confirmation/admission changes nothing. After commit,
 the reset is intentional and survives cancellation, failure or restart; old
@@ -113,6 +113,14 @@ Storyboard stays recoverable in history, not active input. SQLite transaction
 rollback leaves the entire reset unchanged. No second filesystem reset journal is
 needed for this database-only transaction. The configuration journal remains for
 cross-file/database recovery of earlier transitions.
+
+Editable activities are part of that page's Storyboard reset, including enabled
+step-by-step answers. Bind their selected version to consent and reject stale
+editor saves using the draft's captured activity version. An old same-index,
+same-type activity must never become current for a regenerated semantic section.
+Compare the actual downstream generator inputs through SPEC-0001's shared source
+tracking in this transaction; retained Glossary/Quiz output needs review when its
+input disappears, independently of cleared execution attempts.
 
 Generate each selected page through #692's existing validator/cache/retry path.
 Publish successful Sectioning using SPEC-0002's guarded per-page transaction,

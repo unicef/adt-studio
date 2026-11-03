@@ -578,3 +578,55 @@ describe("wide quiz IDs in output formats", () => {
     } finally { storage.close() }
   })
 })
+
+// REVIEWER-DESIGNED, NOT RUN. Append to:
+// apps/api/src/routes/quiz-identity-regressions.test.ts
+// Reuses real Hono/storage/generateQuiz plus existing controlled generateObject
+// provider seam. This is caller-input isolation, not provider-cache accounting.
+it.each([false, true])("generate-one excludes an explicitly reset JSON-null page (reset-only selection: %s)", async (resetOnly) => {
+  const { protectedAuthoredRecords, resetSectioningStoryboard, sectioningReplacementSignature } = await import("@adt/pipeline")
+  const retained = quiz("Preserved existing quiz", "qz001", "pg002")
+  retained.options = retained.options.map((option, index) => ({ ...option, optionId: `qz001_o${index}` }))
+  seed([retained])
+  const before = useStorage(s => ({
+    quizHistory: s.getAllNodeVersions("quiz-generation", "book"),
+    neighborSource: s.getAllNodeVersions("page-sectioning", "pg002"),
+    neighborRendering: s.getAllNodeVersions("web-rendering", "pg002"),
+    resetSource: s.getAllNodeVersions("page-sectioning", "pg001"),
+  }))
+  useStorage(s => {
+    const signature = sectioningReplacementSignature(s, label, root, configPath)
+    resetSectioningStoryboard(s, {
+      fromStage: "sectioning", toStage: "sectioning", replaceManual: true,
+      protectedReplacements: protectedAuthoredRecords(s, signature).filter(record => record.node === "page-sectioning" && record.itemId === "pg001"),
+    }, signature)
+    expect(s.getLatestNodeData("web-rendering", "pg001")?.data).toBeNull()
+  })
+  generateObjectMock.mockClear()
+  const response = await app.request(`/books/${label}/quizzes/generate-one`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      pageIds: resetOnly ? ["pg001"] : ["pg001", "pg002"], afterPageId: "pg002", placement: "after",
+      baseVersion: useStorage(s => s.getLatestNodeData("quiz-generation", "book")!.version),
+    }),
+  })
+  if (resetOnly) {
+    expect(response.status, await response.clone().text()).toBe(400)
+    // Client-safe missing-input refusal, not a raw null/schema exception.
+    expect(await response.text()).not.toContain("Invalid web-rendering")
+    expect(generateObjectMock).not.toHaveBeenCalled()
+    expect(useStorage(s => s.getAllNodeVersions("quiz-generation", "book"))).toEqual(before.quizHistory)
+  } else {
+    expect(response.status, await response.clone().text()).toBe(200)
+    const body = await response.json()
+    expect(body.quiz.pageIds).toEqual(["pg002"])
+    expect(generateObjectMock).toHaveBeenCalledTimes(1)
+    expect(generateObjectMock.mock.calls[0][0].context.page_texts).toEqual([{ pageId: "pg002", text: "Page 2" }])
+    expect(stored().quizzes.find(item => item.quizId === "qz001")).toEqual(before.quizHistory[0].data && (before.quizHistory[0].data as QuizGenerationOutput).quizzes[0])
+    expect(useStorage(s => s.getAllNodeVersions("quiz-generation", "book").slice(0, before.quizHistory.length))).toEqual(before.quizHistory)
+  }
+  expect(useStorage(s => s.getAllNodeVersions("page-sectioning", "pg001"))).toEqual(before.resetSource)
+  expect(useStorage(s => s.getLatestNodeData("web-rendering", "pg001")?.data)).toBeNull()
+  expect(useStorage(s => s.getAllNodeVersions("page-sectioning", "pg002"))).toEqual(before.neighborSource)
+  expect(useStorage(s => s.getAllNodeVersions("web-rendering", "pg002"))).toEqual(before.neighborRendering)
+})

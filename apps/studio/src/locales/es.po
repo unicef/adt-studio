@@ -5292,6 +5292,9 @@ msgstr "Generando…"
 msgid "Generation failed"
 msgstr "Falló la generación"
 
+msgid "Generation failed on {total} page(s) (showing up to 20): {pages}. Successful pages are retained. Inspect the page errors before retrying."
+msgstr "La generación falló en {total} página(s) (se muestran hasta 20): {pages}. Las páginas generadas correctamente se conservan. Revise los errores de las páginas antes de volver a intentarlo."
+
 msgid "Generation failed. Please try again."
 msgstr "Falló la generación. Por favor, inténtalo de nuevo."
 
@@ -7239,6 +7242,9 @@ msgstr "Aún no se ha generado ninguna evaluación de accesibilidad. Empaquete l
 msgid "No accessibility findings were reported for this page."
 msgstr "No se informaron hallazgos de accesibilidad para esta página."
 
+msgid "No additional page IDs shown"
+msgstr "No se muestran más ID de página"
+
 msgid "No AI edits yet for this section."
 msgstr "Aún no hay ediciones con IA para esta sección."
 
@@ -8354,8 +8360,17 @@ msgstr "Página {0} — Sección {1}"
 #. placeholder {2}: r.version
 #. placeholder {3}: r.renderingVersion ?? 0
 #. placeholder {4}: r.renderTreeVersion ?? 0
-msgid "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}"
-msgstr "Página {0} ({1}): división en secciones v{2}, Storyboard v{3}, árbol de renderizado v{4}"
+#~ msgid "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}"
+#~ msgstr "Página {0} ({1}): división en secciones v{2}, Storyboard v{3}, árbol de renderizado v{4}"
+
+#. placeholder {0}: r.pageNumber ?? r.itemId
+#. placeholder {1}: r.itemId
+#. placeholder {2}: r.version
+#. placeholder {3}: r.renderingVersion ?? 0
+#. placeholder {4}: r.renderTreeVersion ?? 0
+#. placeholder {5}: r.editableActivityVersion ?? 0
+msgid "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}, activities v{5}"
+msgstr "Página {0} ({1}): Seccionamiento v{2}, Storyboard v{3}, árbol de renderizado v{4}, actividades v{5}"
 
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
@@ -10259,6 +10274,9 @@ msgstr "El contenido guardado no está disponible; tu borrador se conserva"
 msgid "Saved pages:"
 msgstr "Páginas guardadas:"
 
+msgid "Saved Sectioning is unreadable on {total} page(s) (showing up to 20): {pages}. Those records were retained. Restore valid historical versions before replacing them. Other successful pages remain available."
+msgstr "El Seccionamiento guardado es ilegible en {total} página(s) (se muestran hasta 20): {pages}. Esos registros se conservaron. Restaure versiones válidas del historial antes de reemplazarlos. Las demás páginas generadas correctamente siguen disponibles."
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "Guardado. Vuelva a empaquetar la Vista previa para aplicar."
 
@@ -11123,8 +11141,12 @@ msgstr "Estado de la actualización de software"
 #~ msgstr "Parte del contenido quedó fuera del paquete: {0} sección(es) renderizada(s) en {pageList} no tienen fila de seccionamiento, por lo que no se pudieron incluir. Vuelve a ejecutar la renderización del storyboard para esas páginas y empaqueta de nuevo."
 
 #. placeholder {0}: ownership.length
-msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
-msgstr "Parte del contenido quedó fuera del paquete: {0} secciones renderizadas de {pageList} no tienen una sección de origen verificada y no pudieron incluirse. Su contenido e historial se conservan. Revisa sus identidades de sección en Storyboard y vuelve a crear el paquete."
+#~ msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
+#~ msgstr "Parte del contenido quedó fuera del paquete: {0} secciones renderizadas de {pageList} no tienen una sección de origen verificada y no pudieron incluirse. Su contenido e historial se conservan. Revisa sus identidades de sección en Storyboard y vuelve a crear el paquete."
+
+#. placeholder {0}: ownership.length
+msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
+msgstr "Se omitió parte del contenido del paquete: {0} sección(es) renderizada(s) en {pageTotal} página(s) (se muestran hasta 20): {pageList} no tienen una sección de origen verificada y no pudieron incluirse. Su contenido e historial se conservan. Revise las identidades de las secciones en Storyboard y vuelva a crear el paquete."
 
 msgid "Some items could not be updated. The list has been refreshed; completed changes are kept."
 msgstr "No se pudieron actualizar algunos elementos. La lista se ha actualizado; los cambios completados se conservan."
@@ -11751,6 +11773,9 @@ msgstr "Basado en plantillas"
 msgid "Templated"
 msgstr "Con plantilla"
 
+msgid "Temporarily unavailable"
+msgstr "No disponible temporalmente"
+
 msgid "term"
 msgstr "término"
 
@@ -11868,6 +11893,9 @@ msgstr "No se resolvió. Inténtalo de nuevo."
 
 msgid "That reply didn't send. Try again."
 msgstr "Esa respuesta no se envió. Inténtalo de nuevo."
+
+msgid "The activity changed while feedback was being generated. Review your draft and try again."
+msgstr "La actividad cambió mientras se generaban los comentarios. Revise su borrador y vuelva a intentarlo."
 
 msgid "The address every share link will start with."
 msgstr "La dirección con la que comenzará cada enlace para compartir."
@@ -12309,6 +12337,9 @@ msgstr "Este libro está completamente ensamblado"
 msgid "This book is not on this computer."
 msgstr "Este libro no está en este equipo."
 
+msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
+msgstr "Este libro no está disponible temporalmente. Su contenido guardado se conserva. Intente abrirlo para ver los detalles y vuelva a intentarlo después de resolver el problema indicado."
+
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."
 msgstr "Este libro se titula \\\"{0}\\\"."
@@ -12329,8 +12360,14 @@ msgstr "Este libro se renderiza con diseño fijo, por lo que mantiene las fuente
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "Este libro ya estaba compartido; puede que lo haya hecho otra ventana. Usa \"Actualizar sitio\" para enviar tus últimos cambios al enlace que ya tienes."
 
-msgid "This bundle is incomplete. Storyboard output is missing on pages {missing}. Render those pages to complete it."
-msgstr "Este paquete está incompleto. Falta el resultado de Storyboard en las páginas {missing}. Renderiza esas páginas para completarlo."
+msgid "This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained."
+msgstr "El intervalo guardado de la parte de este libro no es válido o es ilegible. Restaure un manifiesto de parte válido antes de ejecutarlo. El contenido guardado se conserva."
+
+msgid "This bundle is incomplete. Storyboard output is missing on {missingTotal} page(s) (showing up to 20): {missingList}. Render those pages to complete it."
+msgstr "Este paquete está incompleto. Falta la salida de Storyboard en {missingTotal} página(s) (se muestran hasta 20): {missingList}. Renderice esas páginas para completarlo."
+
+#~ msgid "This bundle is incomplete. Storyboard output is missing on pages {missing}. Render those pages to complete it."
+#~ msgstr "Este paquete está incompleto. Falta el resultado de Storyboard en las páginas {missing}. Renderiza esas páginas para completarlo."
 
 msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "Esto no se puede deshacer. Todos los enlaces que has compartido dejarán de funcionar."

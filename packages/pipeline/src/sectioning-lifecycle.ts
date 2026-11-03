@@ -18,7 +18,7 @@ import { FIXED_LAYOUT_SECTIONING_NODE } from "./render-sectioning.js"
 export class SectioningSafetyError extends Error {
   readonly status = 409
 
-  constructor(readonly code: "SECTIONING_REGENERATION_BLOCKED" | "STORYBOARD_INPUT_CHANGED" | "STORYBOARD_PUBLICATION_INCOMPLETE" | "STORYBOARD_PAGE_INPUT_MISSING", message: string) {
+  constructor(readonly code: "SECTIONING_WINDOW_INVALID" | "SECTIONING_REGENERATION_BLOCKED" | "STORYBOARD_INPUT_CHANGED" | "STORYBOARD_PUBLICATION_INCOMPLETE" | "STORYBOARD_PAGE_INPUT_MISSING", message: string) {
     super(message.startsWith(`${code}:`) ? message : `${code}: ${message}`)
     this.name = "SectioningSafetyError"
   }
@@ -30,11 +30,17 @@ export const sectioningInvalidationSteps = () => {
   return PIPELINE.filter((stage) => affected.includes(stage.name)).flatMap((stage) => stage.steps.map((step) => step.name))
 }
 
-export function activeSectioningPages(storage: Storage, config: AppConfig, bookDir: string) {
+function requiredPartRange(bookDir: string) {
   const partFile = path.join(bookDir, "part.json")
-  const range = fs.existsSync(partFile)
-    ? PartManifest.parse(JSON.parse(fs.readFileSync(partFile, "utf8"))).range
-    : null
+  try { return PartManifest.parse(JSON.parse(fs.readFileSync(partFile, "utf8"))).range }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null
+    throw new SectioningSafetyError("SECTIONING_WINDOW_INVALID", "The saved part window is invalid or unreadable. Restore a valid part manifest before running this book. Saved content is retained.")
+  }
+}
+
+export function activeSectioningPages(storage: Storage, config: AppConfig, bookDir: string) {
+  const range = requiredPartRange(bookDir)
   const start = range?.startPage ?? config.start_page ?? 1
   const end = range?.endPage ?? config.end_page ?? Infinity
   return storage.getPages().filter((page) => page.pageNumber >= start && page.pageNumber <= end)
@@ -45,8 +51,7 @@ export function activeSectioningPages(storage: Storage, config: AppConfig, bookD
 export function sectioningReplacementSignature(storage: Storage, label: string, booksRoot: string, configPath?: string): string {
   const { bookDir } = resolveBookPaths(label, booksRoot)
   const config = loadBookConfig(label, booksRoot, configPath)
-  const partFile = path.join(bookDir, "part.json")
-  const range = fs.existsSync(partFile) ? PartManifest.parse(JSON.parse(fs.readFileSync(partFile, "utf8"))).range : null
+  const range = requiredPartRange(bookDir)
   return configHash(JSON.stringify({
     bookDir, config, range,
     // Preserve the complete extracted metadata snapshot, including page text.

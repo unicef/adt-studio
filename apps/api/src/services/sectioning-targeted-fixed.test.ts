@@ -141,3 +141,58 @@ it("uses the active part window for targeted fixed publication and retains the o
   expect(readSectioningLifecycle(dir)?.storyboardPending).toBe(true)
   expect(transport).not.toHaveBeenCalled()
 })
+
+// REVIEWER-DESIGNED, NOT RUN. Append to:
+// apps/api/src/services/sectioning-targeted-fixed.test.ts
+// beforeEach already performs real raven.pdf extraction + fixed rendering.
+// Reuses real routes, history(), store(), transport and repository fixture.
+it.each(["clone", "split", "merge", "delete"] as const)("active fixed output permits semantic %s without confusing positioned ownership", async (operation) => {
+  const { PageSectioningOutput } = await import("@adt/types")
+  const s = store()
+  let baseVersion: number
+  try {
+    const source = semantic(1)
+    source.sections[0].nodes.push({ nodeId: "pg001_t002", text: "Second manual node", role: "text", isPruned: false })
+    source.sections.push({ ...source.sections[0], sectionId: "pg001_sec010", nodes: [
+      { nodeId: "pg001_t003", text: "Neighbor semantic section", role: "text", isPruned: false },
+    ] })
+    baseVersion = s.putNodeData("page-sectioning", "pg001", source)
+  } finally { s.close() }
+  const before = history()
+  const originalImages = Object.fromEntries(fs.readdirSync(path.join(dir, "images")).map(file => [file, fs.readFileSync(path.join(dir, "images", file))]))
+  const app = routes()
+  const act = (index: number, version: number) => app.request(`/books/${label}/pages/pg001/sections/${index}${operation === "delete" ? "" : `/${operation}`}`, {
+    method: operation === "delete" ? "DELETE" : "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ baseVersion: version, ...(operation === "split" ? { beforeNodeIndex: 1 } : {}) }),
+  })
+  // Existing version and bounds protections remain effective.
+  expect((await act(0, baseVersion! - 1)).status).toBe(409)
+  expect(history()).toEqual(before)
+  const invalidIndex = await act(99, baseVersion!)
+  expect.soft(invalidIndex.status, await invalidIndex.clone().text()).toBe(400)
+  expect(history()).toEqual(before)
+  const response = await act(0, baseVersion!)
+  expect(response.status, await response.clone().text()).toBe(200)
+  const after = history()
+  expect(after[1]).toEqual(before[1])
+  // Semantic edits do not transform fixed PDF geometry or reset its usable pair.
+  expect(after[0]["fixed-layout-sectioning"]).toEqual(before[0]["fixed-layout-sectioning"])
+  expect(after[0]["web-rendering"]).toEqual(before[0]["web-rendering"])
+  expect(after[0]["page-sectioning"].slice(0, before[0]["page-sectioning"].length)).toEqual(before[0]["page-sectioning"])
+  const current = store()
+  let saved: ReturnType<typeof PageSectioningOutput.parse>
+  try { saved = PageSectioningOutput.parse(current.getLatestNodeData("page-sectioning", "pg001")?.data) }
+  finally { current.close() }
+  expect(saved!.sections).toHaveLength(operation === "clone" || operation === "split" ? 3 : 1)
+  expect(new Set(saved!.sections.map(section => section.sectionId)).size).toBe(saved!.sections.length)
+  const survivors = operation === "delete" ? ["pg001_sec010"] : operation === "merge" ? ["pg001_sec009"] : ["pg001_sec009", "pg001_sec010"]
+  expect(saved!.sections.map(section => section.sectionId)).toEqual(expect.arrayContaining(survivors))
+  expect(transport).not.toHaveBeenCalled()
+  // The next normal targeted action still works and never changes semantic IDs.
+  const rerender = await request(app, "pg001/re-render")
+  expect(rerender.status, await rerender.clone().text()).toBe(200)
+  expect(history()[1]).toEqual(before[1])
+  expect(history()[0]["page-sectioning"]).toEqual(after[0]["page-sectioning"])
+  for (const [file, bytes] of Object.entries(originalImages)) expect(fs.readFileSync(path.join(dir, "images", file)).equals(bytes)).toBe(true)
+  expect(transport).not.toHaveBeenCalled()
+})

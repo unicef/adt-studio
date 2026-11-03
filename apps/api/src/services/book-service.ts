@@ -14,8 +14,8 @@ import {
   type BookDetail,
   type PartRange,
 } from "@adt/types"
-import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile } from "@adt/storage"
-import { storyboardCoverage, activeSectioningPages, loadBookConfig, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
+import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
+import { SectioningSafetyError, storyboardCoverage, activeSectioningPages, loadBookConfig, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
 import { AppConfig } from "@adt/types"
 
 type BookDb = ReturnType<typeof openBookDb>
@@ -163,9 +163,13 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
     let needsRebuild = false
     let rebuildReason: string | null = null
     let completedStages: string[] = []
+    let readUnavailable = false
 
     if (fs.existsSync(dbPath)) {
       try {
+        if (fs.existsSync(path.join(bookDir, SECTIONING_JOURNAL))) {
+          withBookWriter(bookDir, () => recoverSectioningTransition(bookDir))
+        }
         const db = openBookDb(dbPath)
         try {
           const pages = db.all("SELECT COUNT(*) as count FROM pages") as Array<{
@@ -193,7 +197,11 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
           db.close()
         }
       } catch (err) {
-        if (isRecoverableDbError(err)) {
+        if (err instanceof BookBusyError || err instanceof SectioningSafetyError) {
+          // Keep the card and unrelated books accessible without inventing a
+          // database snapshot or offering a rebuild for temporary exclusion.
+          readUnavailable = true
+        } else if (isRecoverableDbError(err)) {
           needsRebuild = true
           rebuildReason = err.message.includes("locked")
             ? "Book database is temporarily locked. Try again shortly."
@@ -217,6 +225,7 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
       needsRebuild,
       rebuildReason,
       completedStages,
+      ...(readUnavailable ? { readUnavailable: true } : {}),
       createdAt,
       modifiedAt,
       part: readPartInfo(bookDir),
