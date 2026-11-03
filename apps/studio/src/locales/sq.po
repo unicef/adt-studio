@@ -10279,6 +10279,9 @@ msgstr "Faqet e ruajtura:"
 msgid "Saved Sectioning is unreadable on {total} page(s) (showing up to 20): {pages}. Those records were retained. Restore valid historical versions before replacing them. Other successful pages remain available."
 msgstr "Seksionimi i ruajtur nuk mund të lexohet në {total} faqe (shfaqen deri në 20): {pages}. Këto regjistrime u ruajtën. Riktheni versione të vlefshme nga historiku para se t’i zëvendësoni. Faqet e tjera të gjeneruara me sukses mbeten të disponueshme."
 
+msgid "Saved sections changed. Your unsaved editor is retained against its original version. Discard your edits to load the current section."
+msgstr "Seksionet e ruajtura kanë ndryshuar. Redaktori me ndryshimet tuaja të paruajtura mban versionin fillestar si referencë. Hidhni poshtë ndryshimet për të ngarkuar seksionin aktual."
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
 

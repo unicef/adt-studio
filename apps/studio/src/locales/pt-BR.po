@@ -10277,6 +10277,9 @@ msgstr "Páginas salvas:"
 msgid "Saved Sectioning is unreadable on {total} page(s) (showing up to 20): {pages}. Those records were retained. Restore valid historical versions before replacing them. Other successful pages remain available."
 msgstr "O Seccionamento salvo está ilegível em {total} página(s) (exibindo até 20): {pages}. Esses registros foram preservados. Restaure versões válidas do histórico antes de substituí-los. As outras páginas geradas com sucesso continuam disponíveis."
 
+msgid "Saved sections changed. Your unsaved editor is retained against its original version. Discard your edits to load the current section."
+msgstr "As seções salvas mudaram. O editor com suas alterações não salvas mantém a versão original como referência. Descarte suas alterações para carregar a seção atual."
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "Salvo. Reempacote a Prévia para aplicar."
 

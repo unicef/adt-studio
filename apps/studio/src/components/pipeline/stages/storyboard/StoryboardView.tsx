@@ -108,10 +108,25 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const prevPageId = currentPageIndex > 0 ? pageList[currentPageIndex - 1].pageId : null
   const nextPageId = currentPageIndex < pageList.length - 1 ? pageList[currentPageIndex + 1].pageId : null
 
-  const { data: page, isLoading: pageLoading } = usePage(
+  const { data: latestPage, isLoading: pageLoading } = usePage(
     bookLabel,
     !isQuizRoute && selectedPageId ? selectedPageId : "",
   )
+
+  // A successful regeneration can remove the selected section while its
+  // editor still owns a draft. Retain that editor's original identity/version
+  // context; never assign the draft to the new section at the same ordinal.
+  // Same-identity refreshes and our own Save acknowledgements stay live.
+  const editorScope = JSON.stringify([bookLabel, selectedPageId, sectionIndex])
+  const editorPageRef = useRef<{ scope: string; page: NonNullable<typeof latestPage> } | null>(null)
+  const previousEditor = editorPageRef.current
+  const previousSection = previousEditor?.page.sectioningTree?.sections[sectionIndex]
+  const latestSection = latestPage?.sectioningTree?.sections[sectionIndex]
+  const retainDraftContext = hasUnsavedChanges && previousEditor?.scope === editorScope && !!previousSection && (
+    !latestSection || latestSection.sectionId !== previousSection.sectionId
+  )
+  if (!retainDraftContext && latestPage) editorPageRef.current = { scope: editorScope, page: latestPage }
+  const page = retainDraftContext ? previousEditor?.page : latestPage
 
   const sectionCount = page?.sectioningTree?.sections.length ?? 0
 
@@ -413,11 +428,14 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
             <Trans>Re-run Storyboard</Trans>
           </Button>
         </div>}
+        {retainDraftContext && <div role="status" className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <Trans>Saved sections changed. Your unsaved editor is retained against its original version. Discard your edits to load the current section.</Trans>
+        </div>}
         <div className="flex-1 min-h-0">{content}</div>
       </div>
     )
 
-  if (showRunCard) {
+  if (showRunCard && !retainDraftContext) {
     return (
       <div className="p-4">
         <StageRunCard
@@ -431,7 +449,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     )
   }
 
-  if (pagesLoading) {
+  if (pagesLoading && !retainDraftContext) {
     return <LoadingState stageSlug="storyboard" label={<Trans>Loading pages...</Trans>} />
   }
 
@@ -486,7 +504,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     )
   }
 
-  if (pageLoading || !page) {
+  if ((pageLoading && !retainDraftContext) || !page) {
     return <LoadingState stageSlug="storyboard" label={<Trans>Loading page...</Trans>} />
   }
 
