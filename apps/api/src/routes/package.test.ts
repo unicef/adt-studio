@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
 import type { ExtractedPage } from "@adt/pdf"
-import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
+import { createBookStorage, openBookDb, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
 import { AccessibilityAssessmentOutput, type TaskInfo } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
 import { exportAdt, exportScorm } from "../services/export-service.js"
@@ -112,6 +112,38 @@ describe("Package routes", () => {
     expect(second.status, await second.clone().text()).toBe(200)
   })
 
+  it.each(["page-sectioning", "fixed-layout-sectioning"])("packages healthy pages beside unreadable selected %s without rewriting history", async node => {
+    const label = "corrupt-neighbor", directory = path.join(tmpDir, label)
+    createRenderedBook(label)
+    createWebAssets()
+    const storage = createBookStorage(label, tmpDir)
+    storage.putExtractedPage({ pageId: "pg002", pageNumber: 2, text: "Page two", pageImage: { imageId: "pg002_page", buffer: Buffer.from("retained image two"), hash: "two", width: 800, height: 1200, format: "png" }, images: [] })
+    for (const name of ["page-sectioning", "web-rendering"]) storage.putNodeData(name, "pg002", JSON.parse(JSON.stringify(storage.getLatestNodeData(name, "pg001")!.data).replaceAll("pg001", "pg002")))
+    if (node === "fixed-layout-sectioning") storage.putNodeData(node, "pg002", storage.getLatestNodeData("page-sectioning", "pg002")!.data)
+    storage.close()
+    const run = () => app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+    expect((await run()).status).toBe(200)
+    const raw = <T,>(read: (db: ReturnType<typeof openBookDb>) => T): T => withBookWriter(directory, () => {
+      const db = openBookDb(path.join(directory, label + ".db"))
+      try { return read(db) } finally { db.close() }
+    })
+    const original = raw(db => db.get("SELECT data FROM node_data WHERE node=? AND item_id=? AND version=1", [node, "pg002"]) as { data: string })
+    raw(db => db.run("UPDATE node_data SET data=? WHERE node=? AND item_id=? AND version=1", ["{broken", node, "pg002"]))
+    const history = () => raw(db => db.all("SELECT * FROM node_data WHERE node IN ('page-sectioning','fixed-layout-sectioning','web-rendering') ORDER BY node,item_id,version"))
+    const before = history()
+    const result = await run()
+    expect(result.status, await result.clone().text()).toBe(200)
+    expect((await result.json()).warnings).toEqual(expect.arrayContaining([expect.objectContaining({ pageId: "pg002" })]))
+    expect(await (await app.request(`/api/books/${label}/package-adt/status`)).json()).toMatchObject({ complete: false })
+    const zip = unzipSync(new Uint8Array(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer()))
+    expect(zip["pg001_sec001.html"]).toBeDefined()
+    expect(zip["pg002_sec001.html"]).toBeUndefined()
+    expect(history()).toEqual(before)
+    raw(db => db.run("UPDATE node_data SET data=? WHERE node=? AND item_id=? AND version=1", [original.data, node, "pg002"]))
+    expect((await run()).status).toBe(200)
+    expect(await (await app.request(`/api/books/${label}/package-adt/status`)).json()).toMatchObject({ complete: true })
+  })
+
   it("returns a typed recovery refusal and retains unknown journal and prior package bytes", async () => {
     createRenderedBook("journal-refusal")
     const routes = new Hono().onError(errorHandler).route("/api", createPackageRoutes(tmpDir, path.resolve("assets/adt")))
@@ -172,6 +204,8 @@ describe("Package routes", () => {
     '<img srcset="images/pg001_page.png 1x,images/missing.png 2x">',
     '<img src="/images/pg001_page.png">',
     '<style>.hero { background-image: image-set("images/missing.png" 1x) }</style>',
+    '<style>:root { --hero: "images/missing.png" } .hero { background-image: image-set(var(--hero) 1x) }</style>',
+    '<style>.hero { background-image: image-set(var(--missing, "images/missing.png") 1x) }</style>',
   ])("validates staged dependencies before replacing a downloadable publication: %s", async missing => {
     const label = "staged-validation"
     createRenderedBook(label)

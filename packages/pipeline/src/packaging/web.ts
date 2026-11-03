@@ -227,10 +227,21 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   // 1. Storage entity versions and content (exclude outputs like accessibility-assessment)
   const fingerprint = options.storage.getNodeVersionFingerprint(["accessibility-assessment"])
     .map((entry) => {
-      const row = options.storage.getLatestNodeData(entry.node, entry.itemId)
+      let dataHash: string
+      try {
+        const row = options.storage.getLatestNodeData(entry.node, entry.itemId)
+        dataHash = hashValue(row?.data ?? null)
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error
+        // An unreadable selected value supplies no usable content. Retain its
+        // exact node/item/version in the proof while readers omit that unit.
+        // Repair to readable content (even at the same version) changes this
+        // marker to a content hash; IO/admission failures still abort.
+        dataHash = "unreadable-json"
+      }
       return {
         ...entry,
-        dataHash: hashValue(row?.data ?? null),
+        dataHash,
       }
     })
   hash.update(JSON.stringify(fingerprint))
