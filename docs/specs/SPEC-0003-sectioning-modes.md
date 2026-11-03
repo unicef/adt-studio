@@ -45,7 +45,11 @@ SPEC-0002's actual approval is retained. Its merge is not SPEC-0003 approval or
 proof of this integration. Reuse the merged admission, ownership, guarded drafts,
 source tracking, versioned transactions and recovery; reverify combined behavior.
 See the [final local integration and acceptance audit](../verification/spec-0003-final-audit-2026-11-02.md), including standard Docker runtime/export/restart evidence and remaining verification limits.
-See also the [November 3 round-three local acceptance and independent recheck outcomes](../verification/spec-0003-round3-final-acceptance.md) for the tested head and remaining platform limits.
+The [November 3 round-four local audit](../verification/spec-0003-round4-remediation.md)
+supersedes the round-three readiness recommendation. Reader/package/UI repairs
+and final checks pass, but corrupt historical identity data still blocks unrelated
+Sectioning regeneration after reset. The required refusal/repair product decision
+is pending; this is not an approved exception to the continuation requirement.
 Historical reports and the remote PR description retain their dated attribution.
 
 This deliberately refines SPEC-0002 AC-8/15: **all existing Sectioning is kept by

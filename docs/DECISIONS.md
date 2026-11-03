@@ -1019,7 +1019,10 @@ does not approve this ADR or SPEC-0003.
 
 See [the amended contract](specs/SPEC-0003-sectioning-modes.md),
 [original AC mapping and evidence](verification/spec-0003-oct12-audit.md), and
-[the current local integration audit](verification/spec-0003-final-audit-2026-11-02.md).
+[the current local audit](verification/spec-0003-round4-remediation.md).
+The corrupt-history identity-allocation gap and its proposed refusal/repair
+choices remain unresolved; neither changes this decision without the owner's
+explicit choice.
 This decision remains proposed, with human review pending.
 
 ### Alternatives Considered

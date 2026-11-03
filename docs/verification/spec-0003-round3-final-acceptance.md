@@ -1,5 +1,10 @@
 # SPEC-0003 B1 — round-three local acceptance
 
+**Historical assessment, superseded by the [round-four audit](spec-0003-round4-remediation.md).**
+New review findings were reproduced after this checkpoint. In particular,
+corrupt-history regeneration remains unresolved; the readiness statement below
+records the earlier assessment and is not the current recommendation.
+
 **Ready for official human review of the revised B1 contract. All confirmed findings
 from both round-three reviews and the bounded independent rechecks are repaired.**
 The frozen runtime/test candidate is `6d3d9810ab19309691fa75a431b64d7ba1d24d1c`. This record
