@@ -897,11 +897,12 @@ describe("cross-page hash dedup", () => {
       classification: { images: [kept("pg002_im001"), kept("pg002_im002"), kept("pg002_im003"), kept("pg002_im004")] } },
     { pageId: "pg003", images: [image("pg003_im001", "tiny"), image("pg003_im002", "figure-a")],
       classification: { images: [kept("pg003_im001"), kept("pg003_im002")] }, figureInvolvedIds: ["pg003_im002"] },
+    { pageId: "pg004", images: [image("pg004_im001", "logo")], classification: { images: [kept("pg004_im001")] } },
   ]
 
   it("maps every later unpruned copy to the first unpruned copy, in page then id order", () => {
     const plan = planHashDedup(pages)
-    expect([...plan.ownerByImageId]).toEqual([["pg002_im001", "pg001_im002"], ["pg002_im002", "pg001_im002"]])
+    expect([...plan.ownerByImageId]).toEqual([["pg002_im001", "pg001_im002"], ["pg002_im002", "pg001_im002"], ["pg004_im001", "pg001_im002"]])
     // A deterministically pruned copy neither owns nor is deduplicated; an image without a hash is left alone;
     // an image that takes part in figure arbitration on its page is never deduplicated.
     expect(plan.ownerByImageId.has("pg003_im001")).toBe(false)
@@ -919,6 +920,14 @@ describe("cross-page hash dedup", () => {
     expect(plan.pageByImageId.size).toBe(0)
     // Only owners and duplicates are recorded, not every hashed image.
     expect(planHashDedup(pages).pageByImageId.has("pg001_im001")).toBe(false)
+  })
+
+  it("counts pages, not copies: three copies on two pages are judged on each page", () => {
+    const plan = planHashDedup([
+      { pageId: "pg001", images: [image("pg001_im001", "box"), image("pg001_im002", "box")], classification: { images: [kept("pg001_im001"), kept("pg001_im002")] } },
+      { pageId: "pg002", images: [image("pg002_im001", "box")], classification: { images: [kept("pg002_im001")] } },
+    ])
+    expect(plan.ownerByImageId.size).toBe(0)
   })
 
   it("collects the ids a page's figure extraction groups or covers", () => {
@@ -950,8 +959,8 @@ describe("cross-page hash dedup", () => {
     const plan = planHashDedup(pages)
     const store = new Map(pages.map((page) => [page.pageId, page.classification]))
     store.set("pg001", { images: [kept("pg001_im001"), pruned("pg001_im002", "not meaningful: a logo"), pages[0].classification.images[2]] })
-    const updated = applyHashDedupVerdicts(plan, (pageId) => store.get(pageId), new Set(["pg001", "pg002", "pg003"]))
-    expect([...updated.keys()]).toEqual(["pg002"])
+    const updated = applyHashDedupVerdicts(plan, (pageId) => store.get(pageId), new Set(["pg001", "pg002", "pg003", "pg004"]))
+    expect([...updated.keys()]).toEqual(["pg002", "pg004"])
     expect(updated.get("pg002")?.images.filter((entry) => entry.isPruned).map((entry) => entry.imageId)).toEqual(["pg002_im001", "pg002_im002"])
     // The owner's page did not complete: its pre-pass row still says "kept", but that is not a verdict.
     const failedOwner = applyHashDedupVerdicts(plan, (pageId) => pages.find((page) => page.pageId === pageId)?.classification, new Set(["pg002", "pg003"]))

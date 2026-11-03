@@ -370,10 +370,11 @@ export async function filterPageImageMeaningfulness(
  * are sent; after the pass the owner's verdict is copied onto its duplicates
  * with a reason that names the owner, so the decision stays inspectable.
  *
- * Only images with at least MIN_COPIES_TO_SHARE copies join the plan. The
- * model judges an image with its page as context, so a verdict is shared only
- * for true repeats (branding, running headers); an image on two pages (a
- * cover illustration reused on a story page) is judged on each.
+ * Only images with copies on at least MIN_PAGES_TO_SHARE pages join the plan.
+ * The model judges an image with its page as context, so a verdict is shared
+ * only for true repeats (branding, running headers); an image on two pages (a
+ * cover illustration reused on a story page) is judged on each, however many
+ * copies those pages hold.
  *
  * Only images that take no part in figure arbitration on their page join the
  * plan: a composite candidate or a raster covered by one is judged with its
@@ -396,7 +397,7 @@ export interface HashDedupPage {
   figureInvolvedIds?: Iterable<string>
 }
 
-export const MIN_COPIES_TO_SHARE = 3
+export const MIN_PAGES_TO_SHARE = 3
 
 /** Prefix of every propagated reason, so a shared verdict reads as one. */
 export const DUPLICATE_OF_PREFIX = "duplicate of "
@@ -427,7 +428,7 @@ export function planHashDedup(pages: HashDedupPage[]): HashDedupPlan {
   }
   const plan: HashDedupPlan = { ownerByImageId: new Map(), pageByImageId: new Map() }
   for (const [owner, ...duplicates] of copiesByHash.values()) {
-    if (duplicates.length + 1 < MIN_COPIES_TO_SHARE) continue
+    if (new Set([owner, ...duplicates].map((copy) => copy.pageId)).size < MIN_PAGES_TO_SHARE) continue
     plan.pageByImageId.set(owner.imageId, owner.pageId)
     for (const duplicate of duplicates) {
       plan.ownerByImageId.set(duplicate.imageId, owner.imageId)
