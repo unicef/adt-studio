@@ -81,3 +81,13 @@ The positive AI-edit fixture now sends its current rendering guard so its later
 stale-source case reaches the intended publication check; separate regressions
 retain the stale-render rejection checks. The b105 full-suite run was interrupted
 for this correction and is not counted as a completed pass.
+
+The same recheck then identified `quizId: null`, which the shared legacy resolver
+accepts as a missing ID. Its real-SQLite before receipt also escaped reservation.
+Reservation now invokes that shared resolver directly for each object entry,
+catching only its identity-validation error; it no longer applies a stricter
+write schema to readable legacy identity. The null case joins the HTTP matrix
+and passes with unchanged raw/history records. Its before/after receipts are
+`recheck-counterexamples-null-id-before.json` and
+`recheck-counterexamples-after-null-id.json`. The intermediate `8d0e52bf`
+full-suite attempt was stopped and is not final acceptance evidence.

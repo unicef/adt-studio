@@ -48,9 +48,9 @@ describe("Page routes", () => {
     after.close()
   })
 
-  it.each([false, true])("reserves readable legacy quiz IDs without document metadata (missing item metadata=%s)", async sparse => {
+  it.each(["full", "sparse", "null-id"])("reserves readable legacy quiz IDs without document metadata (%s)", async shape => {
     const storage = createBookStorage(label, tmpDir)
-    storage.putNodeData("quiz-generation", "book", { quizzes: [{ ...(sparse ? {} : { quizIndex: 0, reasoning: "" }), afterPageId: `${label}_p1`, pageIds: [`${label}_p1`], question: "Saved quiz", answerIndex: 0, options: ["A", "B", "C"].map(text => ({ text, explanation: text })) }] })
+    storage.putNodeData("quiz-generation", "book", { quizzes: [{ ...(shape === "full" ? { quizIndex: 0, reasoning: "" } : {}), ...(shape === "null-id" ? { quizId: null } : {}), afterPageId: `${label}_p1`, pageIds: [`${label}_p1`], question: "Saved quiz", answerIndex: 0, options: ["A", "B", "C"].map(text => ({ text, explanation: text })) }] })
     const priorQuiz = storage.getAllNodeVersions("quiz-generation", "book")
     expect(resolveReadingOrder(storage).items.map(item => item.id)).toContain("qz001")
     const row = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!

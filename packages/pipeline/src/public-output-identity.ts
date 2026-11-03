@@ -1,5 +1,6 @@
 import type { Storage } from "@adt/storage"
-import { PageSectioningOutput, Quiz, QuizGenerationOutput, resolveQuizId } from "@adt/types"
+import { PageSectioningOutput, QuizIdentityError, resolveQuizId } from "@adt/types"
+import type { Quiz, QuizGenerationOutput } from "@adt/types"
 
 /** A public identity is one URL/file member, never a path or the reader root.
  * Keep readable legacy names; do not reinterpret URL escapes as ownership. */
@@ -44,8 +45,11 @@ export function publicOutputOwners(storage: Storage): Map<string, Set<string>> {
     // JSON must not prevent reading the independent saved section tree.
     const data = storage.getLatestNodeData("quiz-generation", "book")?.data as Partial<QuizGenerationOutput> | undefined
     if (Array.isArray(data?.quizzes)) data.quizzes.forEach((quiz, index) => {
-      const identity = Quiz.pick({ quizId: true }).safeParse(quiz)
-      if (identity.success) reserve(resolveQuizId(identity.data, index), "\0quiz:" + index)
+      if (!quiz || typeof quiz !== "object" || Array.isArray(quiz)) return
+      // Match the shared reader's validation and nullish legacy fallback;
+      // a stricter write schema would miss identities that it still exposes.
+      try { reserve(resolveQuizId(quiz as Pick<Quiz, "quizId">, index), "\0quiz:" + index) }
+      catch (error) { if (!(error instanceof QuizIdentityError)) throw error }
     })
   } catch (error) { if (!(error instanceof SyntaxError)) throw error }
   return owners
