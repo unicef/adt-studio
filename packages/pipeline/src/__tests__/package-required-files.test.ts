@@ -58,6 +58,10 @@ it("validates shared runtime files once per read and notices their deletion on t
     String.raw`background-image: image-set("assets/second\2e png" 1x type("image/png"))`,
     String.raw`background-image: image-\73 et("assets/second.png" 1x)`,
     String.raw`background-image: u\72 l(assets/second\2e png)`,
+    '--hero: "assets/second.png"; background-image: image-set(var(--hero) 1x)',
+    'background-image: image-set(var(--missing, "assets/second.png") 1x)',
+    String.raw`--hero: "assets/second\2e png"; background-image: image-set(var(--hero) 1x)`,
+    '--first: var(--second); --second: "assets/second.png"; background-image: image-set(var(--first) 1x)',
   ]) {
     fs.writeFileSync(page, `<style>.hero { ${css} }</style>`)
     expect(packageFilesAvailable(root), css).toBe(false)
@@ -69,6 +73,22 @@ it("validates shared runtime files once per read and notices their deletion on t
   }
   fs.writeFileSync(page, `<style>/* url(missing.png) */ .text { content: 'url(missing.png)'; background: image-set("data:image/png;base64,AA" 1x type("image/png")); }</style>`)
   expect(packageFilesAvailable(root)).toBe(true)
+  fs.writeFileSync(path.join(root, "assets/defs.css"), ':root { --hero: "assets/second.png"; --label: "prose, not a file"; }')
+  fs.writeFileSync(page, '<link rel="stylesheet" href="assets/defs.css"><style>.hero{background-image:image-set(var(--hero) 1x)} .label{content:var(--label)}</style>')
+  expect(packageFilesAvailable(root)).toBe(false)
+  fs.writeFileSync(path.join(root, "assets/second.png"), "second image")
+  expect(packageFilesAvailable(root)).toBe(true)
+  fs.writeFileSync(path.join(root, "assets/use.css"), '@import "defs.css"; .hero{background-image:image-set(var(--hero) 1x)}')
+  fs.writeFileSync(path.join(root, "assets/defs.css"), ':root { --hero: "second.png"; }')
+  fs.writeFileSync(page, '<link rel="stylesheet" href="assets/use.css">')
+  // The definition is relative to the consumer stylesheet, never the HTML.
+  expect(packageFilesAvailable(root)).toBe(true)
+  fs.unlinkSync(path.join(root, "assets/second.png"))
+  expect(packageFilesAvailable(root)).toBe(false)
+  fs.writeFileSync(path.join(root, "assets/second.png"), "second image")
+  expect(packageFilesAvailable(root)).toBe(true)
+  fs.writeFileSync(path.join(root, "p2.html"), '<style>:root{--hero:"unused prose"}.text{content:var(--hero)}</style>')
+  expect(packageFilesAvailable(root)).toBe(true) // no variable leakage between documents
   fs.writeFileSync(page, '<img src="/assets/picture.png">')
   expect(packageFilesAvailable(root)).toBe(false)
   fs.writeFileSync(page, '<img src="assets/picture.png">')

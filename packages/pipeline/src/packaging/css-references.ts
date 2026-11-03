@@ -3,7 +3,13 @@ import postcss from "postcss"
 /** CSS values need token boundaries: strings in image-set() are URLs, while
  * strings in content/type() are not. Decode CSS escapes before resolving paths
  * and never discover dependencies inside comments or quoted prose. */
-function valueReferences(value: string, importRule = false): Array<{ url: string; stylesheet: boolean }> {
+function valueReferences(
+  value: string,
+  importRule = false,
+  variables: ReadonlyMap<string, readonly string[]> = new Map(),
+  context = "",
+  visited: Set<string> = new Set(),
+): Array<{ url: string; stylesheet: boolean }> {
   const references: Array<{ url: string; stylesheet: boolean }> = []
   let position = 0
   const escape = (): string => {
@@ -40,6 +46,27 @@ function valueReferences(value: string, importRule = false): Array<{ url: string
       position = end + 2
     }
   }
+  const variableArguments = () => {
+    const start = position
+    let depth = 1, comma = -1
+    while (position < value.length) {
+      const char = value[position]
+      if (char === '"' || char === "'") { string(); continue }
+      if (char === "\\") { escape(); continue }
+      if (value.slice(position, position + 2) === "/*") { skip(); continue }
+      if (char === "(") depth++
+      if (char === ")" && --depth === 0) {
+        const end = position++
+        const rawName = value.slice(start, comma < 0 ? end : comma).replace(/\/\*[\s\S]*?\*\//g, "").trim()
+        const name = valueReferences(`url(${rawName})`)[0]?.url ?? ""
+        return { name, fallback: comma < 0 ? undefined : value.slice(comma + 1, end) }
+      }
+      // A comma in a nested function is not the fallback separator.
+      if (char === "," && depth === 1 && comma < 0) comma = position
+      position++
+    }
+    throw new Error("Unclosed CSS variable")
+  }
   const walk = (parent = "") => {
     while (position < value.length) {
       skip()
@@ -63,6 +90,20 @@ function valueReferences(value: string, importRule = false): Array<{ url: string
         }
         if (value[position] !== "(") continue
         position++
+        if (name.toLowerCase() === "var") {
+          const { name: property, fallback } = variableArguments()
+          const key = JSON.stringify([property, parent, importRule])
+          if (!visited.has(key)) {
+            visited.add(key)
+            for (const candidate of variables.get(property) ?? []) {
+              references.push(...valueReferences(candidate, importRule, variables, parent, visited))
+            }
+          }
+          // Keep declared fallback assets portable too: CSS inheritance and
+          // conditional rules may select them in another viewport/state.
+          if (fallback !== undefined) references.push(...valueReferences(fallback, importRule, variables, parent, visited))
+          continue
+        }
         if (name.toLowerCase() !== "url") { walk(name.toLowerCase()); continue }
         skip()
         let url = ""
@@ -76,12 +117,11 @@ function valueReferences(value: string, importRule = false): Array<{ url: string
       if (char === "(") walk()
     }
   }
-  walk()
+  walk(context)
   return references
 }
 
-export function cssReferences(css: string): Array<{ url: string; stylesheet: boolean }> {
-  const references: Array<{ url: string; stylesheet: boolean }> = []
+export function parseCssSource(css: string) {
   // PostCSS does not tokenize escaped at-rule names. Normalize only those
   // identifiers (not arbitrary escapes that could turn URL bytes into syntax).
   const normalized = css.replace(/@((?:\\[0-9a-f]{1,6}[\t\n\r\f ]?|\\[^\n\r\f]|[\w-])+)/gi, (raw, identifier: string) => {
@@ -89,11 +129,28 @@ export function cssReferences(css: string): Array<{ url: string; stylesheet: boo
     return decoded && /^[a-z-]+$/i.test(decoded) ? `@${decoded}` : raw
   })
   const root = postcss.parse(normalized)
-  root.walkDecls(declaration => { references.push(...valueReferences(declaration.value)) })
+  const declarations: Array<{ property: string; value: string }> = []
+  const imports: string[] = []
+  root.walkDecls(declaration => {
+    declarations.push({ property: valueReferences(`url(${declaration.prop})`)[0]?.url ?? declaration.prop, value: declaration.value })
+  })
   root.walkAtRules(rule => {
     // Reuse CSS escape decoding for at-rule identifiers as well as values.
     const name = valueReferences(`url(${rule.name})`)[0]?.url.toLowerCase()
-    if (name === "import") references.push(...valueReferences(rule.params, true))
+    if (name === "import") imports.push(...valueReferences(rule.params, true).map(reference => reference.url))
   })
-  return references
+  return { declarations, imports }
+}
+
+/** Resolve possible variable values in one document's linked/imported/inline
+ * CSS, never across independent pages. URLs use the consumer declaration's
+ * base path, including when the quoted value came from another stylesheet. */
+export function cssReferences(sources: readonly { parsed: ReturnType<typeof parseCssSource>; from: string }[]) {
+  const variables = new Map<string, string[]>()
+  for (const { parsed } of sources) for (const declaration of parsed.declarations) {
+    if (!declaration.property.startsWith("--")) continue
+    variables.set(declaration.property, [...(variables.get(declaration.property) ?? []), declaration.value])
+  }
+  return sources.flatMap(({ parsed, from }) => parsed.declarations.flatMap(declaration =>
+    valueReferences(declaration.value, false, variables).map(reference => ({ ...reference, from }))))
 }

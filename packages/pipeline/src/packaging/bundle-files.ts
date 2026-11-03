@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { Parser } from "htmlparser2"
-import { cssReferences } from "./css-references.js"
+import { cssReferences, parseCssSource } from "./css-references.js"
 import { PublicationPageEntry } from "@adt/types"
 
 /** A normalized locale becomes one directory name in a generated bundle. */
@@ -83,31 +83,36 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
       if (local.startsWith("/") || local.includes("\\")) throw new Error("Root-absolute or nonportable bundle reference")
       return path.relative(root, member(path.join(path.dirname(from), local)))
     }
-    const styles = new Set<string>()
-    const checkCss = (css: string, from: string) => {
-      for (const reference of cssReferences(css)) {
-        if (reference.stylesheet) checkStylesheet(reference.url, from)
-        else relativeMember(reference.url, from)
-      }
-    }
-    const checkStylesheet = (url: string, from: string) => {
-      const file = relativeMember(url, from)
-      if (!file || styles.has(file)) return
-      styles.add(file)
-      checkCss(read(file), file)
-    }
+    const styles = new Map<string, ReturnType<typeof parseCssSource>>()
     const checkHtml = (html: string, from: string) => {
-      let style = false
+      const sources: Parameters<typeof cssReferences>[0][number][] = []
+      const includedStyles = new Set<string>()
+      const includeCss = (parsed: ReturnType<typeof parseCssSource>, base: string) => {
+        sources.push({ parsed, from: base })
+        for (const url of parsed.imports) includeStylesheet(url, base)
+      }
+      const includeStylesheet = (url: string, base: string) => {
+        const file = relativeMember(url, base)
+        if (!file || includedStyles.has(file)) return
+        includedStyles.add(file)
+        let parsed = styles.get(file)
+        if (!parsed) { parsed = parseCssSource(read(file)); styles.set(file, parsed) }
+        includeCss(parsed, file)
+      }
+      let style: string | undefined
       new Parser({ onopentag(name, attrs) {
-        if (name === "style") style = true
+        if (name === "style") style = ""
         if (["script", "img", "audio", "video", "source", "track", "embed", "iframe"].includes(name) && attrs.src) relativeMember(attrs.src, from)
         if (name === "video" && attrs.poster) relativeMember(attrs.poster, from)
         if (name === "object" && attrs.data) relativeMember(attrs.data, from)
         if (name === "image" && (attrs.href || attrs["xlink:href"])) relativeMember(attrs.href ?? attrs["xlink:href"], from)
-        if (name === "link" && attrs.rel?.split(/\s+/).includes("stylesheet") && attrs.href) checkStylesheet(attrs.href, from)
-        if (attrs.style) checkCss(attrs.style, from)
+        if (name === "link" && attrs.rel?.split(/\s+/).includes("stylesheet") && attrs.href) includeStylesheet(attrs.href, from)
+        if (attrs.style) includeCss(parseCssSource(attrs.style), from)
         if (attrs.srcset) for (const url of srcsetUrls(attrs.srcset)) relativeMember(url, from)
-      }, ontext(text) { if (style) checkCss(text, from) }, onclosetag(name) { if (name === "style") style = false } }).end(html)
+      }, ontext(text) { if (style !== undefined) style += text }, onclosetag(name) {
+        if (name === "style" && style !== undefined) { includeCss(parseCssSource(style), from); style = undefined }
+      } }).end(html)
+      for (const reference of cssReferences(sources)) relativeMember(reference.url, reference.from)
     }
     const pages = PublicationPageEntry.array().nonempty().parse(JSON.parse(read("content/pages.json")))
     checkHtml(read("index.html"), "index.html")
