@@ -981,6 +981,9 @@ export function createBookRoutes(
     const pagesPath = resolvePathWithin(adtDir, "content", "pages.json")
     if (!resolvedPath || !pagesPath) throw new HTTPException(400, { message: "Invalid path" })
     if (!fs.existsSync(pagesPath) || !fs.existsSync(resolvedPath)) throw new HTTPException(404, { message: "Not found" })
+    // Authorize the member whose bytes will be read, including a contained
+    // symlink or a trailing slash that resolves to a regular file.
+    filePath = path.relative(fs.realpathSync(adtDir), fs.realpathSync(resolvedPath)).split(path.sep).join("/")
     const dbPath = resolvePathWithin(booksDir, safeLabel, safeLabel + ".db")
     if (!dbPath) throw new HTTPException(400, { message: "Invalid path" })
     if (!fs.existsSync(dbPath)) throw new HTTPException(404, { message: "Book not found" })

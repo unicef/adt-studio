@@ -200,7 +200,10 @@ describe("Package routes", () => {
       expect((await get(file)).status).toBe(200)
       // An in-place file edit changes neither its directory entry nor SQL.
       fs.writeFileSync(diskPage, "Other owner's bytes")
-      const changed = await get(file); expect(changed.status).toBe(307); expect(await changed.text()).not.toContain("Other owner's bytes")
+      for (const url of [file, file + "/"]) {
+        const changed = await get(url); expect(changed.status).toBe(307); expect(await changed.text()).not.toContain("Other owner's bytes")
+        expect(changed.headers.get("Location")).toContain("/adt-preview/" + file)
+      }
       expect((await run()).status).toBe(200)
       expect(await (await get(file)).text()).toContain("Original text")
       fs.writeFileSync(path.join(tmpDir, label, "adt/assets/offline-preloader.js"), "Retired content is embedded here")
