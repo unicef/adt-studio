@@ -104,6 +104,21 @@ it("validates shared runtime files once per read and notices their deletion on t
     fs.writeFileSync(path.join(root, "assets/second.png"), "second image")
     expect(packageFilesAvailable(root), scoped).toBe(true)
   }
+  for (const condition of ["@media (min-width:1px)", "@supports (display:grid)", "@container (min-width:1px)"]) {
+    fs.writeFileSync(page, `<style>.hero{--hero:"assets/picture.png";background-image:image-set(var(--hero) 1x)} .label{--hero:"Not a file";content:var(--hero)} ${condition}{.hero{--hero:"assets/conditional.png"}}</style><div class="hero"></div><p class="label"></p>`)
+    expect(packageFilesAvailable(root), condition).toBe(false)
+    fs.writeFileSync(path.join(root, "assets/conditional.png"), "conditional image")
+    expect(packageFilesAvailable(root), condition).toBe(true)
+    expect(packageFilesAvailable(root), condition).toBe(true)
+    fs.unlinkSync(path.join(root, "assets/conditional.png"))
+    expect(packageFilesAvailable(root), condition).toBe(false)
+  }
+  fs.writeFileSync(page, '<style>.hero{--hero:"assets/picture.png";background-image:image-set(var(--hero) 1x)} .hero:hover{--hero:"assets/hover.png"}.label:hover{--hero:"Not a file";content:var(--hero)}</style><div class="hero"></div><p class="label"></p>')
+  expect(packageFilesAvailable(root)).toBe(false)
+  fs.writeFileSync(path.join(root, "assets/hover.png"), "hover image")
+  expect(packageFilesAvailable(root)).toBe(true)
+  fs.unlinkSync(path.join(root, "assets/hover.png"))
+  expect(packageFilesAvailable(root)).toBe(false)
   fs.writeFileSync(page, '<img src="/assets/picture.png">')
   expect(packageFilesAvailable(root)).toBe(false)
   fs.writeFileSync(page, '<img src="assets/picture.png">')

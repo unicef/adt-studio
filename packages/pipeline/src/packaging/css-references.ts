@@ -3,6 +3,14 @@ import { JSDOM, VirtualConsole } from "jsdom"
 
 type VariableLookup = (name: string) => readonly { value: string; lookup: VariableLookup }[]
 
+// Portable packages must retain assets used after ordinary reader interaction,
+// even when the static validation DOM is not currently hovered/focused/checked.
+const interactionState = /:(?:hover|active|focus(?:-visible|-within)?|visited|target|checked|indeterminate|disabled|enabled|open)\b/g
+function possibleSelector(selector: string): string {
+  return selector.replace(/:not\(\s*:(?:hover|active|focus(?:-visible|-within)?|visited|target|checked|indeterminate|disabled|enabled|open)\s*\)/g, "")
+    .replace(interactionState, "") || "*"
+}
+
 /** CSS values need token boundaries: strings in image-set() are URLs, while
  * strings in content/type() are not. Decode CSS escapes before resolving paths
  * and never discover dependencies inside comments or quoted prose. */
@@ -139,13 +147,19 @@ export function parseCssSource(css: string) {
     if (parent?.type === "rule" && "selector" in parent && typeof parent.selector === "string") return parent.selector
     return parent ? selectorFor(parent) : undefined
   }
-  const declarations: Array<{ property: string; value: string; selector?: string; variables: boolean }> = []
+  const conditional = (node: postcss.Node): boolean => {
+    const parent = node.parent
+    return parent?.type === "atrule" || (!!parent && conditional(parent))
+  }
+  const declarations: Array<{ property: string; value: string; selector?: string; variables: boolean; conditional: boolean }> = []
   const imports: string[] = []
   root.walkDecls(declaration => {
     declaration.prop = valueReferences(`url(${declaration.prop})`)[0]?.url ?? declaration.prop
     let variables = false
     valueReferences(declaration.value, false, () => { variables = true; return [] })
-    declarations.push({ property: declaration.prop, value: declaration.value, selector: selectorFor(declaration), variables })
+    const selector = selectorFor(declaration)
+    declarations.push({ property: declaration.prop, value: declaration.value, selector, variables,
+      conditional: conditional(declaration) || (selector !== undefined && possibleSelector(selector) !== selector) })
   })
   root.walkAtRules(rule => {
     // Reuse CSS escape decoding for at-rule identifiers as well as values.
@@ -168,6 +182,8 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
     variables.set(declaration.property, [...(variables.get(declaration.property) ?? []), declaration.value])
   }
   const possible: VariableLookup = name => (variables.get(name) ?? []).map(value => ({ value, lookup: possible }))
+  const conditionalDefinitions = sources.flatMap(source => source.parsed.declarations)
+    .filter(declaration => declaration.conditional && declaration.property.startsWith("--"))
   // Use the existing DOM/CSS implementation for selector specificity, inline
   // overrides and element scope. Scripts/resources are never enabled. Only
   // custom-property rules are installed, avoiding a full layout/style pass.
@@ -188,12 +204,25 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
       let lookup = lookups.get(element)
       if (!lookup) {
         const style = dom!.window.getComputedStyle(element)
+        // JSDOM has no viewport/layout engine. Keep the possible values from
+        // media/support/container/layer rules for this element, rather than
+        // incorrectly proving only the default viewport's asset set complete.
+        const alternatives = conditionalDefinitions.filter(declaration => {
+          if (!declaration.selector) return true
+          try { return element.matches(possibleSelector(declaration.selector)) } catch { return true }
+        })
         lookup = name => {
           const value = style.getPropertyValue(name).trim()
+          const conditional = alternatives.filter(declaration => declaration.property === name)
+            .flatMap(declaration => {
+              if (declaration.value === "initial") return []
+              if (declaration.value === "inherit" || declaration.value === "unset") return element.parentElement ? forElement(element.parentElement)(name) : []
+              return [{ value: declaration.value, lookup: lookup! }]
+            })
           if (value && value !== "inherit" && value !== "unset") {
-            return value === "initial" ? [] : [{ value, lookup: lookup! }]
+            return [...(value === "initial" ? [] : [{ value, lookup: lookup! }]), ...conditional]
           }
-          return element.parentElement ? forElement(element.parentElement)(name) : []
+          return [...conditional, ...(element.parentElement ? forElement(element.parentElement)(name) : [])]
         }
         lookups.set(element, lookup)
       }
@@ -212,7 +241,7 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
         if (document) {
           if (inlineStyle !== undefined) elements = [...document.querySelectorAll("[style]")].filter(element => element.getAttribute("style") === inlineStyle)
           else if (declaration.selector) {
-            try { elements = [...document.querySelectorAll(declaration.selector)] } catch { /* Dynamic/nested selectors retain conservative candidates. */ }
+            try { elements = [...document.querySelectorAll(possibleSelector(declaration.selector))] } catch { /* Unresolved nested selectors retain conservative candidates. */ }
           }
         }
         targets.set(key, elements)
