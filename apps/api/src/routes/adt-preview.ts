@@ -1059,6 +1059,11 @@ export function createAdtPreviewRoutes(
       // array position — ids are allocated once and never reused — so resolve by
       // id rather than indexing into the array.
       if (parseQuizId(pageId) !== null) {
+        // Direct URLs obey the same namespace/ownership projection as the
+        // manifest. A legacy alias must not expose the omitted quiz anyway.
+        if (!resolveReadingOrder(storage).items.some(item => item.kind === "quiz" && item.id === pageId)) {
+          throw new HTTPException(404, { message: `No quiz data for: ${pageId}` })
+        }
         const quizData = getQuizData(storage)
         const quiz = quizData?.quizzes?.find(
           (q, i) => resolveQuizId(q, i) === pageId

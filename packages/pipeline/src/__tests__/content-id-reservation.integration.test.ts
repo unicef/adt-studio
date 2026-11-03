@@ -67,3 +67,12 @@ it("new sections cannot claim retained answer namespaces without sectioning hist
   storage.putNodeData("text-catalog-translation", "fr", { entries: [{ id: "pg001_sec001_ans_input", text: "Retained answer", source: "manual" }] })
   expect(createSectionIdFactory(storage, "pg001")()).toBe("pg001_sec002")
 })
+
+// Round four: public filenames share a case-insensitive namespace with quizzes.
+it.each(["edit", "insert", "replace"] as const)("%s quiz allocation skips a case-alias held by a section", mode => {
+  storage.putNodeData("page-sectioning", "retired-page", { sections: [{ sectionId: "QZ001", nodes: [] }] })
+  const before = storage.getAllNodeVersions("page-sectioning", "retired-page")
+  const result = saveQuizOutput(storage, { quizzes: [{ quizIndex: 0, afterPageId: "pg001", pageIds: ["pg001"], question: "Question", options: [{ text: "Answer", explanation: "Why" }], answerIndex: 0, reasoning: "" }], generatedAt: "now" }, mode)
+  expect(result.output.quizzes[0].quizId).toBe("qz002")
+  expect(storage.getAllNodeVersions("page-sectioning", "retired-page")).toEqual(before)
+})

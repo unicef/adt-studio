@@ -12,7 +12,7 @@ export function isPublicOutputId(id: string): boolean {
 
 // Books move between case-sensitive and case-insensitive filesystems. Distinct
 // public IDs must not resolve to the same member on either supported platform.
-const memberKey = (id: string) => id.normalize("NFC").toLowerCase()
+export const publicOutputMemberKey = (id: string) => id.normalize("NFC").toLowerCase()
 
 /** Reserve both active source representations. The same page can own an ID in
  * its semantic and positioned trees, but two pages (or a quiz) cannot. */
@@ -58,8 +58,8 @@ export function publicOutputOwners(storage: Storage): Map<string, Set<string>> {
 export function ambiguousPublicOutputIds(storage: Storage): Set<string> {
   const owners = publicOutputOwners(storage)
   const members = new Map<string, string[]>()
-  for (const id of owners.keys()) members.set(memberKey(id), [...(members.get(memberKey(id)) ?? []), id])
-  return new Set([...owners].filter(([id, pages]) => !isPublicOutputId(id) || pages.size !== 1 || members.get(memberKey(id))!.length !== 1).map(([id]) => id))
+  for (const id of owners.keys()) members.set(publicOutputMemberKey(id), [...(members.get(publicOutputMemberKey(id)) ?? []), id])
+  return new Set([...owners].filter(([id, pages]) => !isPublicOutputId(id) || pages.size !== 1 || members.get(publicOutputMemberKey(id))!.length !== 1).map(([id]) => id))
 }
 
 /** Validate the complete proposed list before an editable source/render write. */
@@ -67,9 +67,9 @@ export function invalidPublicOutputIdentity(storage: Storage, pageId: string, id
   const owners = publicOutputOwners(storage)
   const seen = new Set<string>()
   for (const id of ids) {
-    const key = memberKey(id)
+    const key = publicOutputMemberKey(id)
     if (!isPublicOutputId(id) || seen.has(key) || [...owners].some(([current, pages]) =>
-      memberKey(current) === key && [...pages].some(owner => owner !== pageId && owner !== "\0duplicate:" + pageId))) return id
+      publicOutputMemberKey(current) === key && [...pages].some(owner => owner !== pageId && owner !== "\0duplicate:" + pageId))) return id
     seen.add(key)
   }
   return undefined

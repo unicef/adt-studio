@@ -632,3 +632,33 @@ it.each([false, true])("generate-one excludes an explicitly reset JSON-null page
   expect(useStorage(s => s.getAllNodeVersions("page-sectioning", "pg002"))).toEqual(before.neighborSource)
   expect(useStorage(s => s.getAllNodeVersions("web-rendering", "pg002"))).toEqual(before.neighborRendering)
 })
+
+it.each(["edit", "insert", "replace"] as const)("allocates quizzes around section public aliases at every writer (%s)", async mode => {
+  useStorage(s => {
+    const row = s.getLatestNodeData("page-sectioning", "pg001")!
+    const tree = row.data as import("@adt/types").PageSectioningOutput
+    tree.sections[0].sectionId = "QZ001"
+    s.putNodeData("page-sectioning", "pg001", tree)
+  })
+  if (mode === "edit") {
+    const response = await put([quiz("New")])
+    expect(response.status, await response.clone().text()).toBe(200)
+  } else useStorage(s => saveQuizOutput(s, output([quiz("New")]), mode))
+  expect(stored().quizzes[0].quizId).toBe("qz002")
+  const before = useStorage(s => s.getNodeVersionFingerprint())
+  expect((await put([quiz("Alias", "qz001")])).status).toBe(400)
+  expect(useStorage(s => s.getNodeVersionFingerprint())).toEqual(before)
+})
+
+it("direct quiz preview omits imported aliases just as the manifest does", async () => {
+  useStorage(s => {
+    const row = s.getLatestNodeData("page-sectioning", "pg001")!
+    const tree = row.data as import("@adt/types").PageSectioningOutput
+    tree.sections[0].sectionId = "QZ001"
+    s.putNodeData("page-sectioning", "pg001", tree)
+  })
+  seed([quiz("Imported", "qz001")])
+  const before = useStorage(s => s.getNodeVersionFingerprint())
+  expect((await app.request(`/books/${label}/adt-preview/qz001.html`)).status).toBe(404)
+  expect(useStorage(s => s.getNodeVersionFingerprint())).toEqual(before)
+})
