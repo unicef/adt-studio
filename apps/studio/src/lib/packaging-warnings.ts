@@ -36,14 +36,14 @@ export function describePackagingWarnings(
 
   const missing = [...new Set(warnings.filter((warning) => warning.kind === "missing-storyboard").map((warning) => warning.pageId))].sort()
   const missingTotal = missing.length
-  const missingList = missing.slice(0, 20).join(", ")
+  const shownMissing = missing.slice(0, 20)
+  const missingList = shownMissing.join(", ")
   const ownership = warnings.filter((warning) => warning.kind === "orphaned-rendering")
   const coverageMessage = missingTotal ? i18n._(msg`This bundle is incomplete. Storyboard output is missing on ${missingTotal} page(s) (showing up to 20): ${missingList}. Render those pages to complete it.`) : ""
   if (!ownership.length) return coverageMessage || null
   const pages = [...new Set(ownership.map((w) => w.pageId))].sort()
   const pageTotal = pages.length
-  const shown = new Set([...missing, ...pages].slice(0, 20))
-  const pageList = pages.filter(page => shown.has(page)).join(", ") || i18n._(msg`No additional page IDs shown`)
+  const pageList = pages.filter(page => !shownMissing.includes(page)).slice(0, 20 - shownMissing.length).join(", ") || i18n._(msg`No additional page IDs shown`)
   return [coverageMessage, i18n._(
     msg`Some content was left out of the bundle: ${ownership.length} rendered section(s) on ${pageTotal} page(s) (showing up to 20): ${pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again.`,
   )].filter(Boolean).join(" ")

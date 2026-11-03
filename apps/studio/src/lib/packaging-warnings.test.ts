@@ -80,3 +80,16 @@ it("shares the twenty-page display budget across combined warning categories", (
   expect(text).toContain("21 rendered section")
   expect(text).toContain("21 page")
 })
+
+it("does not repeat page IDs across overlapping missing-output and ownership categories", () => {
+  const warnings = Array.from({ length: 27 }, (_, index) => `pg${String(index + 1).padStart(3, "0")}`)
+    .flatMap(pageId => [
+      { kind: "missing-storyboard" as const, pageId, sectionIndex: 0 },
+      { kind: "orphaned-rendering" as const, pageId, sectionIndex: 1 },
+    ])
+  const message = describePackagingWarnings(warnings, i18n)!
+  expect(message.match(/pg\d+/g)).toHaveLength(20)
+  expect(message.match(/27 page\(s\)/g)).toHaveLength(2)
+  expect(message).toContain("27 rendered section")
+  expect(readPackagingWarnings({ warnings })).toEqual(warnings)
+})
