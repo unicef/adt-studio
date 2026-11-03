@@ -12,7 +12,7 @@ already holds its number — check both before taking one
 |-----------|-----------------------------------------------------------------|--------|-------------|-----------|
 | SPEC-0001 | Catalog-based freshness and scoped regeneration | in-review | @ksokolovic | Block 1 |
 | [SPEC-0002](SPEC-0002-manual-edit-preservation.md) | Manual-edit preservation for translation, quiz, sectioning, TOC | approved | @ksokolovic | Block 1   |
-| [SPEC-0003](SPEC-0003-sectioning-modes.md) | Sectioning modes — B1 generation preferences and safe publication | in-review | @ksokolovic | [Final local B1 acceptance](../verification/spec-0003-round2-final-acceptance.md); independently rechecked; combined Docker and bundled Desktop API verified; fresh CLI only; human approval pending; B2 deferred |
+| [SPEC-0003](SPEC-0003-sectioning-modes.md) | Sectioning modes — B1 generation preferences and safe publication | in-review | @ksokolovic | [Round-three local B1 acceptance](../verification/spec-0003-round3-final-acceptance.md); confirmed review findings repaired and independently rechecked; Docker and bundled Desktop API verified with stated platform limits; fresh CLI only; human approval pending; B2 deferred |
 | SPEC-0004 | Style guide, Styles panel, token-enforced rendering             | draft  | TBD         | Block 2   |
 | SPEC-0005 | Acceptance harness over the acceptance set                      | draft  | TBD         | Block 1   |
 | SPEC-0006 | Cloudflare publishing: scope, ops surface, security             | draft  | TBD         | Block 2   |

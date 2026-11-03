@@ -45,7 +45,7 @@ SPEC-0002's actual approval is retained. Its merge is not SPEC-0003 approval or
 proof of this integration. Reuse the merged admission, ownership, guarded drafts,
 source tracking, versioned transactions and recovery; reverify combined behavior.
 See the [final local integration and acceptance audit](../verification/spec-0003-final-audit-2026-11-02.md), including standard Docker runtime/export/restart evidence and remaining verification limits.
-See also the [November 3 final local acceptance and independent review outcomes](../verification/spec-0003-round2-final-acceptance.md) for the tested head and remaining platform limits.
+See also the [November 3 round-three local acceptance and independent recheck outcomes](../verification/spec-0003-round3-final-acceptance.md) for the tested head and remaining platform limits.
 Historical reports and the remote PR description retain their dated attribution.
 
 This deliberately refines SPEC-0002 AC-8/15: **all existing Sectioning is kept by

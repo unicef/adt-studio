@@ -1,5 +1,7 @@
 # SPEC-0003 B1: final local acceptance after the two independent reviews
 
+Historical checkpoint: the [round-three remediation and acceptance](spec-0003-round3-final-acceptance.md) supersede this readiness recommendation. The original findings and receipts below remain unchanged.
+
 **Recommendation: ready for official review of the revised B1 contract.** The last tested implementation is `0d8021ec152d026b7c01e82bc176c7bab9f32a19`. No confirmed in-scope defect from the two reviews or their bounded rechecks remains open. This is a local development result; SPEC-0003 and ADR 025 still await human approval. No remote change was made.
 
 ## Source and review boundary

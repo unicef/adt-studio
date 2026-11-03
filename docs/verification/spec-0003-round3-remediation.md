@@ -1,4 +1,4 @@
-# SPEC-0003 round-three remediation (local work in progress)
+# SPEC-0003 round-three remediation (completed local verification)
 
 The owner authorized addressing every confirmed finding from both independent
 reviews on November 3, including the inherited corrupt-database Library failure.
@@ -14,22 +14,23 @@ ignored `.local-docs/spec0003-round3-{codex-20261103-121243,claude-code-20261103
 
 | Finding | Contract / current defect | Required shared-boundary change | Verification and public entry points | Disposition |
 |---|---|---|---|---|
-| F1 P1 | Book storage/path containment; packaging writes outside its staging directory for unsafe IDs | Validate editable identities and contain every output member before writing; imported records fail safely | Storyboard PUT → Package task; prior export and sibling-book canary hashes unchanged | Pending |
-| F2 P1 | RAC-6, AC-24; changed prompts consume an old reset receipt | Bind selected resolved prompts and their version/content to consent and revalidation | Immediate, queued, in-flight prompt controls; zero calls/reset for stale receipt; fresh consent succeeds | Pending |
-| F3 P1 | RAC-7/12/18; cosmetic draft restores deactivated HTML | Guard rendering writes with captured selected rendering version, including both public writers and Studio | Failed reset and successful rerun with dirty second client; 409 preserves draft/history; next fresh save succeeds | Pending |
-| F4 P1 | RAC-2/9/11; legacy fixed pairs and empty outputs misclassify layout switches | Use the shared usable-pair resolver for actual published layout | Legacy fixed, empty first run and mixed-switch fixtures through ordinary/targeted/combined routes; publication barrier | Pending |
-| F5 P1 | RAC-12/13/18; page-local IDs collide in public namespace | Reject new book-wide collisions; safely disclose/omit ambiguous imported owners in every reader | Two pages with same ID, public saves, manifest/URLs/coverage and actual ZIP | Pending |
-| F6 P1 | RAC-13; a failed artifact replaces working export | Validate staged package with shared member validator before directory swap | Missing stylesheet, task/status/first download, previous ZIP bytes and recovery | Pending |
-| F7 P1 | RAC-12/13; missing referenced media passes package completeness | Share required media/member validation across build/cache/download | Remove referenced image/media; status/download fail safely; cache rebuild repairs exact member | Pending |
-| F8 P2 | Repeated idle step-status rereads all packaged bytes | Reuse bounded verification with selected-version/file-identity invalidation | Count actual file reads on unchanged HTTP polls; restore, swap, member changes invalidate | Pending |
-| F9 P2 | RAC-16, AC-20; part-window task error is English-only | Stable typed error/parameters through task and client in five locales | Real targeted task outside window → polling/SSE → localized mapper; extraction/strict compile | Pending |
-| F10 P1 | RAC-9; late event subscriber misses already published page | Initial catch-up after listener registration refreshes status and page availability | Two clients before/after page-one commit, page two held, actual saved page opens without reload | Pending |
-| Claude F-R3-1 High | Corrupt book DB aborts entire Library (inherited, expressly authorized) | Narrow typed corruption isolation while preserving DB/history and surfacing per-book unavailability | Real truncated SQLite + healthy neighbor via Library/API; repair restores listing; unrelated errors still propagate | Pending |
+| F1 P1 | Book storage/path containment; packaging writes outside its staging directory for unsafe IDs | Validate editable identities and contain every output member before writing; imported records fail safely | Storyboard PUT → Package task; prior export and sibling-book canary hashes unchanged | Passed — see final acceptance evidence |
+| F2 P1 | RAC-6, AC-24; changed prompts consume an old reset receipt | Bind selected resolved prompts and their version/content to consent and revalidation | Immediate, queued, in-flight prompt controls; zero calls/reset for stale receipt; fresh consent succeeds | Passed — see final acceptance evidence |
+| F3 P1 | RAC-7/12/18; cosmetic draft restores deactivated HTML | Guard rendering writes with captured selected rendering version, including both public writers and Studio | Failed reset and successful rerun with dirty second client; 409 preserves draft/history; next fresh save succeeds | Passed — see final acceptance evidence |
+| F4 P1 | RAC-2/9/11; legacy fixed pairs and empty outputs misclassify layout switches | Use the shared usable-pair resolver for actual published layout | Legacy fixed, empty first run and mixed-switch fixtures through ordinary/targeted/combined routes; publication barrier | Passed — see final acceptance evidence |
+| F5 P1 | RAC-12/13/18; page-local IDs collide in public namespace | Reject new book-wide collisions; safely disclose/omit ambiguous imported owners in every reader | Two pages with same ID, public saves, manifest/URLs/coverage and actual ZIP | Passed — see final acceptance evidence |
+| F6 P1 | RAC-13; a failed artifact replaces working export | Validate staged package with shared member validator before directory swap | Missing stylesheet, task/status/first download, previous ZIP bytes and recovery | Passed — see final acceptance evidence |
+| F7 P1 | RAC-12/13; missing referenced media passes package completeness | Share required media/member validation across build/cache/download | Remove referenced image/media; status/download fail safely; cache rebuild repairs exact member | Passed — see final acceptance evidence |
+| F8 P2 | Repeated idle step-status rereads all packaged bytes | Reuse bounded verification with selected-version/file-identity invalidation | Count actual file reads through the real Hono status route; restore, swap, member changes invalidate | Passed — see final acceptance evidence |
+| F9 P2 | RAC-16, AC-20; part-window task error is English-only | Stable typed error/parameters through task and client in five locales | Real targeted task outside window → polling → browser-loaded localized mapper; extraction/strict compile | Passed — see final acceptance evidence |
+| F10 P1 | RAC-9; late event subscriber misses already published page | Initial catch-up after listener registration refreshes status and page availability | Paired early/late connection scenarios, page two held, actual saved page opens without reload | Passed — see final acceptance evidence |
+| Claude F-R3-1 High | Corrupt book DB aborts entire Library (inherited, expressly authorized) | Narrow typed corruption isolation while preserving DB/history and surfacing per-book unavailability | Real truncated SQLite + healthy neighbor via Library/API; repair restores listing; unrelated errors still propagate | Passed — see final acceptance evidence |
 
-All checks are pending on the repaired candidate. Previous reports' green full
-suite and package checks do not exercise these failures. Record initial failures,
-focused regressions, complete branch checks, platform probes, and a separate
-independent recheck at the final frozen head here before claiming readiness.
+Final frozen runtime `6d3d9810` passed the whole branch, public/browser, compatibility,
+Linux and packaged runtime checks. The [final acceptance record](spec-0003-round3-final-acceptance.md)
+contains exact results, all 26 original mappings, 18 revised criteria, independent
+recheck, explicit deferrals and platform limits. Original failures and intermediate
+checkpoints below are retained; older green reports are not acceptance of these fixes.
 
 ## Bounded independent recheck, first candidate
 
@@ -66,8 +67,8 @@ guard is rejected rather than allowed to reactivate or overwrite newer HTML.
 This is an implemented concurrency contract, not an unapproved scope deferral.
 
 Final public/browser, package/restart, complete-branch and independent runtime
-recheck results remain pending below. The 16 skipped macOS cases require their
-separate Linux execution; they are not counted as passes here.
+recheck results are in the linked final acceptance record. The 16 macOS skips were
+subsequently covered by the separate 67-test Linux subset; that is not a full Linux suite.
 
 The follow-up at `b105e094` found IR3-4 (P1), the same public-identity boundary:
 a readable legacy quiz missing unused `reasoning` / deprecated `quizIndex`
