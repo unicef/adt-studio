@@ -257,7 +257,7 @@ export function createStageRoutes(
         const storage = createBookStorage(label, booksDir)
         try {
           assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
-          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements }, sectioningReplacementSignature(storage, label, booksDir, configPath))
+          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements }, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
         }
         finally { storage.close() }
       })
@@ -267,7 +267,7 @@ export function createStageRoutes(
       const storage = createBookStorage(label, booksDir)
       try {
           assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
-          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements }, sectioningReplacementSignature(storage, label, booksDir, configPath))
+          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements }, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
         }
       finally { storage.close() }
       prepare()
@@ -499,7 +499,7 @@ export function createStageRoutes(
       const storage = createBookStorage(safeLabel, booksDir)
       try {
         const numbers = new Map(activeSectioningPages(storage, loadBookConfig(safeLabel, booksDir, configPath), path.dirname(dbPath)).map((p) => [p.pageId, p.pageNumber]))
-        protectedWork = protectedAuthoredRecords(storage, sectioningReplacementSignature(storage, safeLabel, booksDir, configPath)).filter((record) => record.node !== "page-sectioning" || numbers.has(record.itemId)).map((record) => ({ ...record, pageNumber: numbers.get(record.itemId) }))
+        protectedWork = protectedAuthoredRecords(storage, sectioningReplacementSignature(storage, safeLabel, booksDir, configPath, promptsDir)).filter((record) => record.node !== "page-sectioning" || numbers.has(record.itemId)).map((record) => ({ ...record, pageNumber: numbers.get(record.itemId) }))
       } finally { storage.close() }
     }
     return c.json({
@@ -539,6 +539,11 @@ export function createStageRoutes(
           done = true
           unsubscribe()
         })
+
+        // Flush a frame after registration even when no new progress arrives.
+        // Reconnecting clients may have missed an already committed page.
+        try { await stream.writeSSE({ event: "ready", data: JSON.stringify({ label, runStatus: stageService.getStatus(label).active?.status ?? "idle" }) }) }
+        catch { done = true; unsubscribe(); return }
 
         // Keep streaming until the client disconnects
         while (!done) {

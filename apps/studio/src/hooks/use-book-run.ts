@@ -215,9 +215,18 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     const url = `${BASE_URL}/books/${label}/stages/status`
     const es = new EventSource(url)
 
-    // Refetch on (re)connection to catch up on any missed events
+    // The server emits ready after registering this listener, including on an
+    // otherwise idle stream. Catch up page availability as well as run status.
     es.addEventListener("open", () => {
       void refreshRunStatus(queryClient, label, false)
+    })
+    es.addEventListener("ready", (event) => {
+      const snapshot = JSON.parse(event.data)
+      void refreshRunStatus(queryClient, label, false)
+      if (["running", "cancelling"].includes(snapshot.runStatus)) {
+        const pages = { queryKey: ["books", label, "pages"] }
+        void queryClient.cancelQueries(pages).then(() => queryClient.invalidateQueries(pages))
+      }
     })
 
     es.addEventListener("progress", (e) => {
