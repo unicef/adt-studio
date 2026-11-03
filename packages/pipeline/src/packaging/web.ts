@@ -1,3 +1,4 @@
+import { storyboardSourceWarnings } from "../storyboard-source-state.js"
 import { recordPackagedOwners } from "./bundle-ownership.js"
 import { openPackageWork, publishedAdtDirectory } from "./publication-directory.js"
 import { isBundleLocale, packageFilesAvailable } from "./bundle-files.js"
@@ -1129,10 +1130,10 @@ async function buildWebPackage(
     fs.writeFileSync(path.join(adtDir, "AGENTS.md"), agentsMd)
   }
 
-  const coverage = storyboardCoverage(storage, options.config
-    ? activeSectioningPages(storage, options.config, bookDir).map((page) => page.pageId) : undefined)
+  const pageIds = options.config ? activeSectioningPages(storage, options.config, bookDir).map((page) => page.pageId) : undefined
+  const coverage = storyboardCoverage(storage, pageIds)
   const missing = [...new Set([...coverage.missingPages, ...coverage.missingSections.map((section) => section.pageId)])]
-  return { warnings: [...orphanedRenderings, ...missing.map((pageId) => ({ kind: "missing-storyboard" as const, pageId }))] }
+  return { warnings: [...orphanedRenderings, ...storyboardSourceWarnings(storage, pageIds), ...missing.map((pageId) => ({ kind: "missing-storyboard" as const, pageId }))] }
 }
 
 // ---------------------------------------------------------------------------

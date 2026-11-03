@@ -1,3 +1,4 @@
+import { StoryboardSourceNotice } from "../../components/StoryboardSourceNotice"
 import { useEffect, useRef, useCallback, useState, useMemo, type ReactNode } from "react"
 import { useSearch, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, ArrowRight, LayoutGrid, ListTree, RotateCcw, Table2 } from "lucide-react"
@@ -31,7 +32,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const [outlineMode, setOutlineMode] = useState(false)
   const hasUnsavedChanges = useHasUnsavedChanges()
   const { setExtra, setOnLabelClick } = useStepHeader()
-  const { stageState, queueRun, storyboardCoverage } = useBookRun()
+  const { stageState, queueRun, storyboardCoverage, sourceUpdateStages = [] } = useBookRun()
   const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const storyboardState = stageState("storyboard")
@@ -411,6 +412,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   // Adding/removing its wrapper would silently discard local editor drafts.
   const withStaleBanner = (content: ReactNode) => (
       <div className="flex flex-col h-full min-h-0">
+        {sourceUpdateStages.includes("storyboard") && <StoryboardSourceNotice />}
         {storyboardStale && <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-3 py-2">
           <div className="text-xs text-amber-900">
             <Trans>

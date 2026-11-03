@@ -11214,6 +11214,9 @@ msgstr "Candidats sources :"
 msgid "Source changed. Your edit has been kept."
 msgstr "La source a changé. Votre modification a été conservée."
 
+msgid "Source content changed after some Storyboard output was saved. The saved output remains available."
+msgstr "Le contenu source a changé après l’enregistrement d’une partie du storyboard. Le résultat enregistré reste accessible."
+
 msgid "Source file"
 msgstr "Fichier source"
 
@@ -11512,6 +11515,9 @@ msgstr "Le scénarimage a déjà été exécuté. Les modifications effectuées 
 
 msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
 msgstr "Les données d’entrée du Storyboard ont changé ou le périmètre demandé est incompatible avec cette mise en page. Actualisez le contenu enregistré et rendez à nouveau les pages concernées."
+
+msgid "Storyboard needs review"
+msgstr "Le storyboard doit être vérifié"
 
 msgid "Storyboard nodes:"
 msgstr "Nœuds du storyboard :"
@@ -12107,6 +12113,9 @@ msgstr "Le modèle détecte les zones de délimitation afin que chaque élément
 
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "Des fichiers requis manquent dans le paquet. Préparez à nouveau l’export avant de le télécharger."
+
+msgid "The package recovery folder is unrecognized. Existing files have been retained. Check the book folder before preparing another export."
+msgstr "Le dossier de récupération du paquet n’est pas reconnu. Les fichiers existants ont été conservés. Vérifiez le dossier du livre avant de préparer une nouvelle exportation."
 
 msgid "The page"
 msgstr "La page"

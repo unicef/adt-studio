@@ -11212,6 +11212,9 @@ msgstr "Candidatos de origen:"
 msgid "Source changed. Your edit has been kept."
 msgstr "La fuente ha cambiado. Se ha conservado tu edición."
 
+msgid "Source content changed after some Storyboard output was saved. The saved output remains available."
+msgstr "El contenido de origen cambió después de guardar parte del resultado del guion gráfico. El resultado guardado sigue disponible."
+
 msgid "Source file"
 msgstr "Archivo de origen"
 
@@ -11510,6 +11513,9 @@ msgstr "El storyboard ya se ejecutó. Los cambios realizados aquí no tendrán e
 
 msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
 msgstr "Los datos de entrada de Storyboard cambiaron o el alcance solicitado es incompatible con este diseño. Actualiza el contenido guardado y vuelve a renderizar las páginas afectadas."
+
+msgid "Storyboard needs review"
+msgstr "El guion gráfico necesita revisión"
 
 msgid "Storyboard nodes:"
 msgstr "Nodos del guion gráfico:"
@@ -12105,6 +12111,9 @@ msgstr "El modelo detecta cajas delimitadoras para que cada elemento visual pued
 
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "Faltan archivos necesarios en el paquete. Vuelve a preparar la exportación antes de descargarla."
+
+msgid "The package recovery folder is unrecognized. Existing files have been retained. Check the book folder before preparing another export."
+msgstr "No se reconoce la carpeta de recuperación del paquete. Se han conservado los archivos existentes. Revisa la carpeta del libro antes de preparar otra exportación."
 
 msgid "The page"
 msgstr "La página"

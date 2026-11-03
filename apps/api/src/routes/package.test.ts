@@ -99,6 +99,38 @@ describe("Package routes", () => {
     )
   }
 
+  it("uses the configured prompts directory for both admission and publication", async () => {
+    createRenderedBook("custom-prompts")
+    const prompts = path.join(tmpDir, "external-prompts")
+    fs.mkdirSync(prompts)
+    fs.writeFileSync(path.join(prompts, "web_generation_html.liquid"), "custom prompt")
+    const routes = new Hono().onError(errorHandler).route("/api", createPackageRoutes(tmpDir, path.resolve("assets/adt"), undefined, undefined, prompts))
+    const url = "/api/books/custom-prompts/package-adt"
+    const first = await routes.request(url, { method: "POST" })
+    expect(first.status, await first.clone().text()).toBe(200)
+    const second = await routes.request(url, { method: "POST" })
+    expect(second.status, await second.clone().text()).toBe(200)
+  })
+
+  it("returns a typed recovery refusal and retains unknown journal and prior package bytes", async () => {
+    createRenderedBook("journal-refusal")
+    const routes = new Hono().onError(errorHandler).route("/api", createPackageRoutes(tmpDir, path.resolve("assets/adt")))
+    const url = "/api/books/journal-refusal/package-adt"
+    expect((await routes.request(url, { method: "POST" })).status).toBe(200)
+    const book = path.join(tmpDir, "journal-refusal")
+    const html = fs.readFileSync(path.join(book, "adt", "pg001_sec001.html"))
+    fs.writeFileSync(path.join(book, ".adt-package-work", "format"), "unknown-format")
+    // Changed source forces a rebuild rather than the legitimate cache hit.
+    const storage = createBookStorage("journal-refusal", tmpDir)
+    storage.putNodeData("metadata", "book", { title: "Changed title" })
+    storage.close()
+    const response = await routes.request(url, { method: "POST" })
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ code: "PACKAGE_RECOVERY_UNSAFE" })
+    expect(fs.readFileSync(path.join(book, ".adt-package-work", "format"), "utf8")).toBe("unknown-format")
+    expect(fs.readFileSync(path.join(book, "adt", "pg001_sec001.html")).equals(html)).toBe(true)
+  })
+
   // Independent Codex C3: unchanged source hashes cannot prove a usable bundle.
   it.each(["runtime", "entry", "stylesheet", "manifest", "directory", "image"])(
     "rebuilds a cached package with an unavailable required %s file",
@@ -139,6 +171,7 @@ describe("Package routes", () => {
     '<link rel="stylesheet" href="missing-custom.css">',
     '<img srcset="images/pg001_page.png 1x,images/missing.png 2x">',
     '<img src="/images/pg001_page.png">',
+    '<style>.hero { background-image: image-set("images/missing.png" 1x) }</style>',
   ])("validates staged dependencies before replacing a downloadable publication: %s", async missing => {
     const label = "staged-validation"
     createRenderedBook(label)

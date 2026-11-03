@@ -11212,6 +11212,9 @@ msgstr "Source candidates:"
 msgid "Source changed. Your edit has been kept."
 msgstr "Source changed. Your edit has been kept."
 
+msgid "Source content changed after some Storyboard output was saved. The saved output remains available."
+msgstr "Source content changed after some Storyboard output was saved. The saved output remains available."
+
 msgid "Source file"
 msgstr "Source file"
 
@@ -11510,6 +11513,9 @@ msgstr "Storyboard has already been run. Changes made here will not take effect 
 
 msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
 msgstr "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
+
+msgid "Storyboard needs review"
+msgstr "Storyboard needs review"
 
 msgid "Storyboard nodes:"
 msgstr "Storyboard nodes:"
@@ -12105,6 +12111,9 @@ msgstr "The model detects bounding boxes so each visual element can be stored an
 
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "The package is missing required files. Prepare the export again before downloading it."
+
+msgid "The package recovery folder is unrecognized. Existing files have been retained. Check the book folder before preparing another export."
+msgstr "The package recovery folder is unrecognized. Existing files have been retained. Check the book folder before preparing another export."
 
 msgid "The page"
 msgstr "The page"

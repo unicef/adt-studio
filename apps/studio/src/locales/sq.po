@@ -11214,6 +11214,9 @@ msgstr "Kandidatët burimorë:"
 msgid "Source changed. Your edit has been kept."
 msgstr "Burimi ka ndryshuar. Ndryshimi juaj është ruajtur."
 
+msgid "Source content changed after some Storyboard output was saved. The saved output remains available."
+msgstr "Përmbajtja burimore ndryshoi pasi u ruajt një pjesë e skenarit vizual. Rezultati i ruajtur mbetet i disponueshëm."
+
 msgid "Source file"
 msgstr "Skedari burim"
 
@@ -11512,6 +11515,9 @@ msgstr "Storyboard-i është ekzekutuar tashmë. Ndryshimet e bëra këtu nuk do
 
 msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
 msgstr "Të dhënat hyrëse të Storyboard-it kanë ndryshuar ose shtrirja e kërkuar nuk përputhet me këtë paraqitje. Rifreskoni përmbajtjen e ruajtur dhe renderoni sërish faqet e prekura."
+
+msgid "Storyboard needs review"
+msgstr "Skenari vizual duhet rishikuar"
 
 msgid "Storyboard nodes:"
 msgstr "Nyjet e storyboard-it:"
@@ -12107,6 +12113,9 @@ msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të
 
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "Paketës i mungojnë skedarë të nevojshëm. Përgatiteni sërish eksportin para se ta shkarkoni."
+
+msgid "The package recovery folder is unrecognized. Existing files have been retained. Check the book folder before preparing another export."
+msgstr "Dosja e rikuperimit të paketës nuk njihet. Skedarët ekzistues janë ruajtur. Kontrolloni dosjen e librit para se të përgatitni një eksport tjetër."
 
 msgid "The page"
 msgstr "Faqja"

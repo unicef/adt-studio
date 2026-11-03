@@ -2110,3 +2110,14 @@ describe("book admission before the first extraction", () => {
     finally { retained.close() }
   })
 })
+
+it.each(["[broken", "- a\n- b", "not a mapping"])("config GET returns the shared localizable error for malformed overrides: %s", async raw => {
+  createTestBook("bad-config")
+  const file = path.join(tmpDir, "bad-config", "config.yaml")
+  fs.writeFileSync(file, raw)
+  const app = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
+  const response = await app.request("/books/bad-config/config")
+  expect(response.status).toBe(409)
+  expect(await response.json()).toMatchObject({ code: "BOOK_CONFIG_INVALID" })
+  expect(fs.readFileSync(file, "utf8")).toBe(raw)
+})

@@ -1655,7 +1655,7 @@ async function runSectioningStep(
             // Return the exact version produced by this synchronous transaction.
             // The caller advances consent only after SQLite commits successfully.
             return ownsTocChange && consent ? { consent, version: storage.getLatestNodeData("toc-generation", "book")!.version } : undefined
-          })
+          }, [page.pageId])
           if (tocRetirement) tocRetirement.consent.version = tocRetirement.version
         } catch (err) {
           const step = err instanceof StepError ? err.step : "page-sectioning"

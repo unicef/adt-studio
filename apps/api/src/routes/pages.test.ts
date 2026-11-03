@@ -86,6 +86,25 @@ describe("Page routes", () => {
     after.close()
   })
 
+  it.each(["page-sectioning", "fixed-layout-sectioning"])("isolates an unreadable %s page from healthy page list/detail reads", async node => {
+    const bad = `${label}_p2`
+    const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    db.run("INSERT INTO node_data (node,item_id,version,data) VALUES (?,?,99,?)", [node, bad, "{broken"])
+    db.run("INSERT OR REPLACE INTO node_current (node,item_id,version) VALUES (?,?,99)", [node, bad])
+    const before = db.all("SELECT * FROM node_data ORDER BY node,item_id,version")
+    db.close()
+    const response = await app.request(`/api/books/${label}/pages`)
+    expect(response.status, await response.clone().text()).toBe(200)
+    const pages = await response.json()
+    expect(pages.find((page: { pageId: string }) => page.pageId === `${label}_p1`)).toMatchObject({ hasRendering: true })
+    expect(pages.find((page: { pageId: string }) => page.pageId === bad)).toMatchObject({ hasRendering: false })
+    const detail = await app.request(`/api/books/${label}/pages/${label}_p1`)
+    expect(detail.status, await detail.clone().text()).toBe(200)
+    const verify = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    expect(verify.all("SELECT * FROM node_data ORDER BY node,item_id,version")).toEqual(before)
+    verify.close()
+  })
+
   it("keeps healthy saved page reads available when an unrelated quiz record is unreadable", async () => {
     const sql = openBookDb(path.join(tmpDir, label, `${label}.db`))
     sql.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", ["quiz-generation", "book", 1, "{broken"])

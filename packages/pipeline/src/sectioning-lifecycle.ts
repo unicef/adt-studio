@@ -1,3 +1,4 @@
+import { captureStoryboardSource, publishStoryboardSource } from "./storyboard-source-state.js"
 import fs from "node:fs"
 import path from "node:path"
 import {
@@ -24,7 +25,7 @@ import { buildBookOutlineConfig, readBookOutline } from "./book-outline.js"
 export class SectioningSafetyError extends Error {
   readonly status = 409
 
-  constructor(readonly code: "STORYBOARD_PAGE_OUTSIDE_WINDOW" | "PACKAGE_INPUTS_CHANGED" | "PACKAGE_FILES_INCOMPLETE" | "SECTIONING_WINDOW_INVALID" | "SECTIONING_REGENERATION_BLOCKED" | "STORYBOARD_INPUT_CHANGED" | "STORYBOARD_PUBLICATION_INCOMPLETE" | "STORYBOARD_PAGE_INPUT_MISSING", message: string) {
+  constructor(readonly code: "PACKAGE_RECOVERY_UNSAFE" | "STORYBOARD_PAGE_OUTSIDE_WINDOW" | "PACKAGE_INPUTS_CHANGED" | "PACKAGE_FILES_INCOMPLETE" | "SECTIONING_WINDOW_INVALID" | "SECTIONING_REGENERATION_BLOCKED" | "STORYBOARD_INPUT_CHANGED" | "STORYBOARD_PUBLICATION_INCOMPLETE" | "STORYBOARD_PAGE_INPUT_MISSING", message: string) {
     super(message.startsWith(`${code}:`) ? message : `${code}: ${message}`)
     this.name = "SectioningSafetyError"
   }
@@ -185,6 +186,7 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
   const outputs = new Map(pages.map(({ pageId }) => [pageId, outputVersion(pageId)]))
   const pending = new Map<string, Map<string, unknown>>()
   const published = new Set<string>()
+  const refreshedOwners = new Map<string, readonly string[]>()
   const staged: Storage = {
     ...storage,
     getPages: () => pages,
@@ -208,18 +210,20 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
         throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Storyboard inputs changed during rendering. Retry using the current saved content.")
       }
       for (const pageId of pageIds) {
+        const priorSource = captureStoryboardSource(storage, pageId)
         const writes = pending.get(pageId)
         if (!writes?.has("web-rendering")) throw new SectioningSafetyError("STORYBOARD_PUBLICATION_INCOMPLETE", "Storyboard did not produce every requested page. Previous output is kept.")
         if (!writes.has(FIXED_LAYOUT_SECTIONING_NODE) && storage.getSelectedNodeVersion(FIXED_LAYOUT_SECTIONING_NODE, pageId) !== null) {
           storage.putNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId, null)
         }
         for (const [node, data] of writes) storage.putNodeData(node, pageId, data)
+        publishStoryboardSource(storage, pageId, priorSource, refreshedOwners.get(pageId))
       }
       storage.clearNodesByType(["accessibility-assessment"])
       // The shared source-input comparison invalidates only affected source
       // generators. Catalog outputs/attempts keep their own freshness evidence;
       // a Storyboard rerun does not erase unrelated completion telemetry.
-    })
+    }, [])
     for (const id of pageIds) {
       pending.delete(id)
       published.add(id)
@@ -235,7 +239,10 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
       }
     },
     discardPage(pageId: string) { pending.delete(pageId) },
-    publishPage(pageId: string) { if (!layoutSwitch) commit([pageId]) },
+    publishPage(pageId: string, sectionIds?: readonly string[]) {
+      if (sectionIds) refreshedOwners.set(pageId, sectionIds)
+      if (!layoutSwitch) commit([pageId])
+    },
     publish(expectedPageIds: readonly string[] = [...pending.keys()]) {
       if (layoutSwitch) {
         if (pages.some((page) => !pending.get(page.pageId)?.has("web-rendering"))) {

@@ -6,11 +6,21 @@ import { getRenderSectioningRow, resolveRenderedSection, withLegacyRenderingOwne
 /** Coverage uses current records and stable owners, never attempts or historical
  * HTML. Empty/pruned trees need no output; unreadable trees remain missing. */
 export function storyboardCoverage(storage: Storage, pageIds = storage.getPages().map((page) => page.pageId), includesOutput?: (sectionId: string) => boolean): StoryboardCoverage {
+  return coverageForPages(storage, pageIds, ambiguousPublicOutputIds(storage), includesOutput)
+}
+
+/** One immutable namespace snapshot per request, with page-local results. The
+ * page list must not rescan every source page once for each displayed page. */
+export function storyboardCoverageByPage(storage: Storage, pageIds = storage.getPages().map(page => page.pageId)): Map<string, StoryboardCoverage> {
+  const ambiguous = ambiguousPublicOutputIds(storage)
+  return new Map(pageIds.map(pageId => [pageId, coverageForPages(storage, [pageId], ambiguous)]))
+}
+
+function coverageForPages(storage: Storage, pageIds: string[], ambiguous: ReadonlySet<string>, includesOutput?: (sectionId: string) => boolean): StoryboardCoverage {
   const missingPages: string[] = []
   const missingSections: Array<{ pageId: string; sectionId: string }> = []
   let included = 0
   let rendered = 0
-  const ambiguous = ambiguousPublicOutputIds(storage)
   for (const pageId of pageIds) {
     let input: unknown
     let rendering: unknown

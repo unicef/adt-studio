@@ -7,7 +7,7 @@ import { RenderingSave, StoryboardSave, AiSectionEdit } from "@adt/types"
 import { invalidPublicOutputIdentity } from "@adt/pipeline"
 import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
-import { storyboardCoverage, scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
+import { storyboardCoverageByPage, scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
 import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
 import { OutputEditGuard } from "@adt/types"
 import { outputEvidence } from "@adt/pipeline"
@@ -650,7 +650,7 @@ function saveStoryboardNode(
     // HTML it has already mirrored, or has queued a targeted re-render for. The
     // storyboard is current (or seconds from it) and only its dependents are
     // behind, so resetting the stage would take the editor away for nothing.
-    if (node === "page-sectioning") {
+    if (node === "page-sectioning" && inputSignature(priorSectioning?.success ? priorSectioning.data.sections : undefined) !== inputSignature(PageSectioningOutput.parse(saved).sections)) {
       markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
     }
     return nextVersion
@@ -1033,8 +1033,9 @@ export function createPageRoutes(
 
       const coverageStorage = createBookStorage(safeLabel, booksDir)
       try {
+        const coverage = storyboardCoverageByPage(coverageStorage, pages.map(page => page.page_id))
         for (const page of pages) {
-          if (storyboardCoverage(coverageStorage, [page.page_id]).rendered === 0) rendered.delete(page.page_id)
+          if (coverage.get(page.page_id)!.rendered === 0) rendered.delete(page.page_id)
         }
       } finally { coverageStorage.close() }
       const result: PageSummary[] = pages.map((p) => ({

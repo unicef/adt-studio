@@ -23,6 +23,7 @@ export const BookSummary = z.object({
   /** No database snapshot was read. Admission/recovery does not authorize rebuilding. */
   readUnavailable: z.boolean().optional(),
   completedStages: z.array(z.string()),
+  storyboardNeedsReview: z.boolean().optional(),
   createdAt: z.string(),
   modifiedAt: z.string(),
   /** Set when this book was imported as a page-range part of a larger book. */

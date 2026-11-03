@@ -608,7 +608,7 @@ async function runAdmittedFullPipeline(
           retireSectionIds(storage, (old?.sections ?? []).flatMap((section) => section.sectionId && !active.has(section.sectionId) ? [section.sectionId] : []))
           putSourceNodeData(storage, "page-sectioning", pageId, { ...reconciled, source: "ai" })
           reconcileTextCatalog(storage)
-        })
+        }, [pageId])
         publishedSectioningPages.push(pageId)
         p.emit({ type: "step-progress", step: "page-sectioning", message: pageId,
           page: publishedSectioningPages.length, totalPages: selected.length })

@@ -1,5 +1,5 @@
 import { storyboardPackageComplete } from "../services/storyboard-package-coverage.js"
-import { retainedPackageOwnership, publishedAdtDirectory, storyboardCoverage, activeSectioningPages, SectioningSafetyError } from "@adt/pipeline"
+import { storyboardCoverageByPage, retainedPackageOwnership, publishedAdtDirectory, storyboardCoverage, activeSectioningPages, SectioningSafetyError } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -199,9 +199,8 @@ export function createPackageRoutes(
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const pages = storage.getPages()
-      const hasRendering = pages.some(
-        (p) => storyboardCoverage(storage, [p.pageId]).rendered > 0,
-      )
+      const coverage = storyboardCoverageByPage(storage, pages.map(page => page.pageId))
+      const hasRendering = [...coverage.values()].some(page => page.rendered > 0)
       if (!hasRendering) {
         throw new HTTPException(409, {
           message: "At least one page must have a web rendering before packaging",
@@ -211,7 +210,7 @@ export function createPackageRoutes(
       // Fast path: skip task submission entirely when build cache is valid.
       // The bundle on disk is whatever the cached build produced, omissions
       // included, so replay that build's warnings rather than reporting none.
-      cacheState = getPackagingCacheState(storage, safeLabel, booksDir, bookDir, webAssetsDir, configPath)
+      cacheState = getPackagingCacheState(storage, safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir)
       if (cacheState.cached) {
         return c.json({
           status: "completed",

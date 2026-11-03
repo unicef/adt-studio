@@ -16,7 +16,7 @@ import {
   type PartRange,
 } from "@adt/types"
 import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
-import { BookConfigError, SectioningSafetyError, storyboardCoverage, activeSectioningPages, loadBookConfig, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
+import { BookConfigError, SectioningSafetyError, storyboardSourceWarnings, storyboardCoverage, activeSectioningPages, loadBookConfig, loadBookConfigOverrides, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
 import { AppConfig } from "@adt/types"
 
 type BookDb = ReturnType<typeof openBookDb>
@@ -80,7 +80,7 @@ export function readSplitSummary(
   }
 }
 
-function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string): string[] {
+function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string) {
   const rows = db.all("SELECT step, status FROM step_runs") as Array<{
     step: string
     status: string
@@ -104,9 +104,12 @@ function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string
     const config = loadBookConfig(label, booksDir, configPath)
     const pageIds = activeSectioningPages(storage, config, bookDir).map(page => page.pageId)
     const coverage = storyboardCoverage(storage, pageIds)
-    if (!coverage.complete) return completed.filter((stage) => stage !== "storyboard" && stage !== "package")
-    if (storyboardPackageComplete(storage, bookDir, pageIds, config)) completed.push("preview")
-    return completed
+    const storyboardNeedsReview = storyboardSourceWarnings(storage, pageIds).length > 0
+    if (coverage.complete && storyboardPackageComplete(storage, bookDir, pageIds, config)) completed.push("preview")
+    return {
+      completedStages: completed.filter(stage => (!storyboardNeedsReview || stage !== "storyboard") && (coverage.complete || (stage !== "storyboard" && stage !== "package"))),
+      storyboardNeedsReview,
+    }
   } finally { storage.close() }
 }
 
@@ -166,6 +169,7 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
     let needsRebuild = false
     let rebuildReason: string | null = null
     let completedStages: string[] = []
+    let storyboardNeedsReview = false
     let readUnavailable = false
 
     if (fs.existsSync(dbPath)) {
@@ -195,7 +199,7 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
             }
           }
 
-          completedStages = computeCompletedStages(db, bookDir, configPath)
+          ({ completedStages, storyboardNeedsReview } = computeCompletedStages(db, bookDir, configPath))
         } finally {
           db.close()
         }
@@ -229,6 +233,7 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
       needsRebuild,
       rebuildReason,
       completedStages,
+      ...(storyboardNeedsReview ? { storyboardNeedsReview: true } : {}),
       ...(readUnavailable ? { readUnavailable: true } : {}),
       createdAt,
       modifiedAt,
@@ -263,6 +268,7 @@ export function getBook(label: string, booksDir: string, configPath?: string): B
   let needsRebuild = false
   let rebuildReason: string | null = null
   let completedStages: string[] = []
+  let storyboardNeedsReview = false
 
   if (fs.existsSync(dbPath)) {
     try {
@@ -301,7 +307,7 @@ export function getBook(label: string, booksDir: string, configPath?: string): B
           }
         }
 
-        completedStages = computeCompletedStages(db, bookDir, configPath)
+        ({ completedStages, storyboardNeedsReview } = computeCompletedStages(db, bookDir, configPath))
       } finally {
         db.close()
       }
@@ -330,6 +336,7 @@ export function getBook(label: string, booksDir: string, configPath?: string): B
     needsRebuild,
     rebuildReason,
     completedStages,
+    ...(storyboardNeedsReview ? { storyboardNeedsReview: true } : {}),
     createdAt,
     modifiedAt,
     part: readPartInfo(bookDir),
@@ -416,19 +423,7 @@ export function getBookConfig(
     throw new Error(`Book not found: ${safeLabel}`)
   }
 
-  recoverSectioningTransition(bookDir)
-  const configPath = path.join(bookDir, "config.yaml")
-  if (!fs.existsSync(configPath)) {
-    return null
-  }
-
-  const content = fs.readFileSync(configPath, "utf-8")
-  const parsed = yaml.load(content)
-  // A journal-safe empty mapping is equivalent to removing all overrides.
-  // Readers and save receipts must not report an override merely because the
-  // transition protocol retained an empty file instead of unlinking it.
-  if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && Object.keys(parsed).length === 0) return null
-  return (parsed as Record<string, unknown>) ?? null
+  return loadBookConfigOverrides(label, booksDir)
 }
 
 export function updateBookConfig(

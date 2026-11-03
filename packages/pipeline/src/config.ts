@@ -54,34 +54,36 @@ export class BookConfigError extends Error {
   }
 }
 
-export function loadBookConfig(
-  label: string,
-  booksRoot: string,
-  configPath?: string
-): AppConfig {
+/** Raw overrides for the settings editor; no normalization or writes. */
+export function loadBookConfigOverrides(label: string, booksRoot: string): Record<string, unknown> | null {
   const safeLabel = parseBookLabel(label)
   const dir = path.join(path.resolve(booksRoot), safeLabel)
   if (fs.existsSync(dir)) recoverSectioningTransition(dir)
-  const base = loadConfig(configPath)
-  const bookConfigPath = path.join(
-    path.resolve(booksRoot),
-    safeLabel,
-    "config.yaml"
-  )
   let text: string
-  try { text = fs.readFileSync(bookConfigPath, "utf-8") }
+  try { text = fs.readFileSync(path.join(dir, "config.yaml"), "utf-8") }
   catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return base
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null
     throw new BookConfigError(label, error)
   }
   let overrides: unknown
   try { overrides = yaml.load(text) }
   catch (error) { throw new BookConfigError(label, error) }
-  if (overrides == null) return base // An empty override inherits the global config.
+  if (overrides == null) return null
   if (typeof overrides !== "object" || Array.isArray(overrides)) {
     throw new BookConfigError(label, "Expected a configuration mapping.")
   }
-  const parsed = AppConfig.safeParse(deepMerge(base, overrides as Record<string, unknown>))
+  return Object.keys(overrides).length ? overrides as Record<string, unknown> : null
+}
+
+export function loadBookConfig(
+  label: string,
+  booksRoot: string,
+  configPath?: string
+): AppConfig {
+  const overrides = loadBookConfigOverrides(label, booksRoot)
+  const base = loadConfig(configPath)
+  if (!overrides) return base
+  const parsed = AppConfig.safeParse(deepMerge(base, overrides))
   if (!parsed.success) throw new BookConfigError(label, parsed.error)
   return parsed.data
 }

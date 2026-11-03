@@ -93,8 +93,8 @@ export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRende
       const unavailable: string[] = []
       for (const item of options) {
         try {
-          await reRenderAdmittedPage(item, publication)
-          publication.publishPage(item.pageId)
+          const renderedIds = await reRenderAdmittedPage(item, publication)
+          publication.publishPage(item.pageId, renderedIds)
         } catch (error) {
           if (!(error instanceof SectioningSafetyError) || error.code !== "STORYBOARD_PAGE_INPUT_MISSING") throw error
           publication.discardPage(item.pageId)
@@ -113,7 +113,7 @@ export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRende
 
 async function reRenderAdmittedPage(
   options: ReRenderOptions, publication: ReturnType<typeof createStoryboardPublication>,
-): Promise<ReRenderResult> {
+): Promise<string[]> {
   const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, credentials } = options
 
   const storage = publication.storage
@@ -283,8 +283,8 @@ async function reRenderAdmittedPage(
           return owner ? { ...entry, sectionIndex: sectioning.sections.indexOf(owner) } : entry
         }).sort((a, b) => a.sectionIndex - b.sectionIndex) }
       }
-      const version = storage.putNodeData("web-rendering", pageId, rendering)
-      return { version, rendering }
+      storage.putNodeData("web-rendering", pageId, rendering)
+      return renderResult.sections.flatMap(entry => renderedSectionId(entry) ?? [])
     })
   } finally {
     if (visualRefinement) {

@@ -330,7 +330,7 @@ export {
   type FontAssignmentInput,
 } from "./font-assignment.js"
 export { applyFontToHtml, type FontScope } from "./font-apply.js"
-export { loadConfig, loadBookConfig, BookConfigError, deepMerge } from "./config.js"
+export { loadConfig, loadBookConfig, loadBookConfigOverrides, BookConfigError, deepMerge } from "./config.js"
 export { runFullPipeline, type FullPipelineOptions } from "./pipeline-dag.js"
 export {
   runDAG,
@@ -523,8 +523,10 @@ export { extractionOptionsFromConfig, prepareExtractionAdmission, assertSafeExtr
 
 export { protectedAuthoredRecords, assertAuthoredReplacement, replacementConfirmed, selectSectioningPages, resetSectioningStoryboard, AuthoredReplacementError } from "./authored-output.js"
 
-export { storyboardCoverage, missingStoryboardInputMessage } from "./storyboard-coverage.js"
+export { storyboardCoverage, storyboardCoverageByPage, missingStoryboardInputMessage } from "./storyboard-coverage.js"
 export { retainedPackageOwnership } from "./packaging/bundle-ownership.js"
 export { publishedAdtDirectory } from "./packaging/publication-directory.js"
 export { packageFilesAvailable } from "./packaging/bundle-files.js"
 export { isPublicOutputId, ambiguousPublicOutputIds, invalidPublicOutputIdentity } from "./public-output-identity.js"
+
+export { storyboardSourceWarnings } from "./storyboard-source-state.js"

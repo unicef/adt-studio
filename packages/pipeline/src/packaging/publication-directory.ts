@@ -2,6 +2,8 @@ import fs from "node:fs"
 import path from "node:path"
 import { withBookWriter } from "@adt/storage"
 
+import { SectioningSafetyError } from "../sectioning-lifecycle.js"
+
 const journalFormat = "adt-web-stage-v1\n"
 
 function isJournal(work: string): boolean {
@@ -17,7 +19,7 @@ export function openPackageWork(bookDir: string): string {
     fs.mkdirSync(work)
     fs.writeFileSync(path.join(work, "format"), journalFormat, { flag: "wx" })
   }
-  if (!isJournal(work)) throw new Error("Unrecognized package work directory. Existing files have been retained.")
+  if (!isJournal(work)) throw new SectioningSafetyError("PACKAGE_RECOVERY_UNSAFE", "Unrecognized package work directory. Existing files have been retained.")
   return work
 }
 

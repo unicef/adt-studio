@@ -1,5 +1,5 @@
 import { readSectioningLifecycle, recoverSectioningTransition } from "@adt/storage"
-import { effectiveSectioningMode, publishedAdtDirectory } from "@adt/pipeline"
+import { BookConfigError, effectiveSectioningMode, publishedAdtDirectory } from "@adt/pipeline"
 import { getStageClearNodes, getStageClearOrder } from "@adt/types"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import fs from "node:fs"
@@ -325,7 +325,7 @@ export function createBookRoutes(
       const config = getBookConfig(label, booksDir)
       return c.json({ config: config ?? {} })
     } catch (err) {
-      if (err instanceof BookBusyError) throw err
+      if (err instanceof BookBusyError || err instanceof BookConfigError) throw err
       const message = err instanceof Error ? err.message : String(err)
       if (message.includes("not found")) {
         throw new HTTPException(404, { message })

@@ -12,7 +12,7 @@ import { AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSk
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
-  getSourceGenerationUpdates,
+  getSourceGenerationUpdates, storyboardSourceWarnings,
   keepSourceGeneration,
   withSourceGenerationTracking,
   activeSectioningPages, sectioningReplacementSignature, selectSectioningPages, storyboardCoverage,
@@ -451,6 +451,7 @@ export function createStageRoutes(
         const config = loadBookConfig(safeLabel, booksDir, configPath)
         const pageIds = activeSectioningPages(storage, config, path.dirname(dbPath)).map(page => page.pageId)
         coverage = storyboardCoverage(storage, pageIds)
+        if (storyboardSourceWarnings(storage, pageIds).length) sourceUpdateStages.push("storyboard")
         packagedComplete = storyboardPackageComplete(storage, path.dirname(dbPath), pageIds, config)
         if (!coverage.complete && ["done", "skipped"].includes(steps["web-rendering"])) steps["web-rendering"] = "idle"
       } finally { storage.close() }
