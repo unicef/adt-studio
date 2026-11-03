@@ -8,7 +8,7 @@ issues: ["#708"]
 prs: ["#884"]
 adr: "docs/DECISIONS.md#025-sectioning-generation-preferences-scoped-reset-and-per-page-publication"
 created: 2026-09-22
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 ## Authorized product amendment (review pending)

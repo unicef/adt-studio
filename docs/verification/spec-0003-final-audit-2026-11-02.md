@@ -1,5 +1,7 @@
 # SPEC-0003 local acceptance audit — 2 November 2026
 
+> Superseded readiness assessment: the [November3 dual-review remediation](spec-0003-dual-review-remediation-2026-11-03.md) records new external counterexamples and their disposition. The results below remain historical evidence; they do not erase those findings.
+
 This audit covers the existing B1 implementation integrated onto merged SPEC-0001/0002. It does not restore the superseded saved-section-count restriction, approve SPEC-0003, or certify a release. This round is local only: no push, retarget, PR metadata/comment/review request, issue change or merge.
 
 ## Heads and integration
