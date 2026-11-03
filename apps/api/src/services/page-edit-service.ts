@@ -320,7 +320,6 @@ export async function aiEditSection(
     if (webAssetsDir) {
       const screenshotHtml = await buildScreenshotHtml({
         sectionHtml: currentHtml,
-        label,
         images: imagesForScreenshot,
         webAssetsDir,
         typographyCss,
@@ -441,7 +440,6 @@ export async function aiEditSection(
 
         const afterHtmlDoc = await buildScreenshotHtml({
           sectionHtml: candidateHtml,
-          label,
           images: afterImages,
           webAssetsDir: assetsDir,
           typographyCss,

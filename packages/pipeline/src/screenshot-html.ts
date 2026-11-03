@@ -13,8 +13,6 @@ import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "./html-semantics
 export interface BuildScreenshotHtmlOptions {
   /** The section HTML fragment (content inside <body>). */
   sectionHtml: string
-  /** Book label, used to match image src paths for rewriting. */
-  label: string
   /** Map of imageId → base64 data for inline embedding. */
   images: Map<string, { base64: string }>
   /** Path to the web assets directory (fonts, tailwind CSS entry, etc). */
@@ -39,7 +37,6 @@ export async function buildScreenshotHtml(
 ): Promise<string> {
   const {
     sectionHtml,
-    label,
     images,
     webAssetsDir,
     language = "en",
@@ -47,7 +44,7 @@ export async function buildScreenshotHtml(
   } = options
 
   // Rewrite image src attributes to inline base64 data URIs
-  const htmlWithInlineImages = normalizeSectionRoles(rewriteImageSrcs(sectionHtml, label, images))
+  const htmlWithInlineImages = normalizeSectionRoles(rewriteImageSrcs(sectionHtml, images))
 
   // Build Tailwind CSS from the section content
   const tailwindCss = await buildPreviewTailwindCss(
@@ -90,17 +87,14 @@ ${hasFitbMarkers ? FITB_HYDRATION_SCRIPT : ""}
 /**
  * Rewrite `<img src="/api/books/{label}/images/{imageId}">` to
  * `<img src="data:image/jpeg;base64,...">` using the provided images map.
+ * Any label is accepted: a copied or renamed book keeps the original label
+ * in its stored HTML, while the image ids resolve against this book.
  */
 function rewriteImageSrcs(
   html: string,
-  label: string,
   images: Map<string, { base64: string }>
 ): string {
-  // Match src attributes pointing to the book's image API endpoint
-  const pattern = new RegExp(
-    `src=["']/api/books/${escapeRegex(label)}/images/([^"']+)["']`,
-    "g"
-  )
+  const pattern = /src=["']\/api\/books\/[^/"']+\/images\/([^"']+)["']/g
   return html.replace(pattern, (_match, imageId: string) => {
     const img = images.get(imageId)
     if (img) {
@@ -209,8 +203,4 @@ const FITB_HYDRATION_SCRIPT = `<script>
 
 function escapeAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
-}
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }

@@ -94,7 +94,6 @@ export async function runVisualReviewLoop(
 ): Promise<VisualReviewResult> {
   const {
     initialHtml,
-    label,
     pageId,
     images,
     deps,
@@ -135,7 +134,6 @@ export async function runVisualReviewLoop(
     throwIfAborted(signal)
     const screenshotHtml = await buildScreenshotHtml({
       sectionHtml: html,
-      label,
       images,
       webAssetsDir: deps.webAssetsDir,
       typographyCss: deps.typographyCss,

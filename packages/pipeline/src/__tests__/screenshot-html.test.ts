@@ -29,7 +29,6 @@ describe("buildScreenshotHtml", () => {
 
     const html = await buildScreenshotHtml({
       sectionHtml: '<section data-section-id="s1"><p>Hello</p></section>',
-      label: "book",
       images: new Map(),
       webAssetsDir,
       language: "en",
@@ -47,7 +46,6 @@ describe("buildScreenshotHtml", () => {
 
     const html = await buildScreenshotHtml({
       sectionHtml: '<div id="content" class="container"><section role="article"><img src="/api/books/book/images/img001"></section></div>',
-      label: "book",
       images: new Map([["img001", { base64: "YWJjMTIz" }]]),
       webAssetsDir,
       language: "en",
@@ -59,6 +57,21 @@ describe("buildScreenshotHtml", () => {
     expect(html).not.toContain('role="article"')
   })
 
+  it("inlines images whose src still names the book the project was copied from", async () => {
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    createWebAssets(webAssetsDir)
+
+    const html = await buildScreenshotHtml({
+      sectionHtml: '<section><img src="/api/books/original-book/images/img001" data-id="img001"><img src="/api/books/original-book/images/missing"></section>',
+      images: new Map([["img001", { base64: "YWJjMTIz" }]]),
+      webAssetsDir,
+      language: "en",
+    })
+
+    expect(html).toContain('src="data:image/jpeg;base64,YWJjMTIz"')
+    expect(html).toContain('src="/api/books/original-book/images/missing"')
+  })
+
 
   it("promotes the first content heading to h1 for screenshot parity", async () => {
     const webAssetsDir = path.join(tmpDir, "assets-web")
@@ -66,7 +79,6 @@ describe("buildScreenshotHtml", () => {
 
     const html = await buildScreenshotHtml({
       sectionHtml: '<section data-section-id="s1"><h2 data-id="tx001">Lesson heading</h2><p>Hello</p></section>',
-      label: "book",
       images: new Map(),
       webAssetsDir,
       language: "en",

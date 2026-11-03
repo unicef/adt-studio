@@ -1600,7 +1600,6 @@ export function createPageRoutes(
 
       const screenshotHtml = await buildScreenshotHtml({
         sectionHtml,
-        label: safeLabel,
         images,
         webAssetsDir,
         typographyCss,
