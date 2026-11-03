@@ -36,7 +36,7 @@ export function assertReflowableSectioning(sectioning: PageSectioningOutput): vo
 /** Resolve explicit ownership, never overriding contradictory declarations. */
 export function renderedSectionId(rendering: SectionRendering): string | undefined {
   const doc = parseDocument(rendering.html)
-  const owners = DomUtils.findAll((element) => element.type === "tag" && element.attribs["data-section-id"] !== undefined, doc.children)
+  const owners = DomUtils.findAll(element => Object.hasOwn(element.attribs, "data-section-id"), doc.children)
   if (owners.length > 1) return undefined
   const root = owners[0]
   const htmlId = root?.attribs["data-section-id"]
@@ -66,7 +66,7 @@ function withLegacyFixedLayoutOwnership(
 ): WebRenderingOutput {
   if (rendering.sections.length !== 1) return rendering
   const entry = rendering.sections[0]
-  if (entry.sectionId || entry.html.includes("data-section-id")) return rendering
+  if (entry.sectionId !== undefined) return rendering
   const dedicatedRow = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
   const dedicated = dedicatedRow?.data === null ? null : dedicatedRow
   const fixed = PageSectioningOutputSchema.safeParse((dedicated ?? storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId))?.data)
@@ -77,11 +77,16 @@ function withLegacyFixedLayoutOwnership(
   const section = fixed.data.sections[0]
   if (!dedicated && (section.sectionType !== "fixed-layout-page" || !section.viewport || !section.placement || entry.sectionType !== "fixed-layout-page")) return rendering
   const doc = parseDocument(entry.html)
+  // HTML attribute names are case-insensitive. Even an empty or retired
+  // declaration is evidence; a compatibility read must never rewrite it.
+  if (DomUtils.findOne(element => Object.hasOwn(element.attribs, "data-section-id"), doc.children)) return rendering
   const roots = DomUtils.findAll((element) => element.type === "tag" && element.attribs.id === "content", doc.children)
   if (roots.length !== 1) return rendering
   const sectionId = fixed.data.sections[0].sectionId
   roots[0].attribs["data-section-id"] = sectionId
-  return { ...rendering, sections: [{ ...entry, sectionId, html: DomUtils.getOuterHTML(doc) }] }
+  const html = DomUtils.getOuterHTML(doc)
+  if (renderedSectionId({ ...entry, html }) !== sectionId) return rendering
+  return { ...rendering, sections: [{ ...entry, sectionId, html }] }
 }
 
 /** Read-only legacy compatibility, not historical proof. Whole content trees
@@ -91,7 +96,7 @@ export function withLegacyRenderingOwnership(storage: Storage, pageId: string, r
   const projected = withLegacyFixedLayoutOwnership(storage, pageId, rendering)
   const sections = getRenderSectioning(storage, pageId)?.sections ?? []
   const declarations = projected.sections.map(entry => {
-    const elements = DomUtils.findAll(element => element.type === "tag", parseDocument(entry.html).children)
+    const elements = DomUtils.findAll(() => true, parseDocument(entry.html).children)
     const owners = elements.filter(element => element.attribs["data-section-id"] !== undefined)
       .map(element => element.attribs["data-section-id"])
     return {

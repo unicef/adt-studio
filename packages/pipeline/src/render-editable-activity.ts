@@ -42,10 +42,9 @@ export function readEditableActivities(
 /** The enabled activity for a section, or null (disabled entries keep their
  *  data but render classic HTML).
  *
- *  Entities are keyed by sectionIndex, which can go stale when sections are
- *  added/deleted/merged (nothing migrates this node). The sectionType check
- *  makes a shifted entry inert instead of silently replacing whatever section
- *  now occupies the index. */
+ *  Structural edits migrate these index-keyed entries to their surviving
+ *  sections. The type check also keeps mismatched legacy or imported entries
+ *  from replacing the activity that now occupies the index. */
 export function enabledEditableActivity(
   entity: EditableActivitiesRow | null,
   sectionIndex: number,

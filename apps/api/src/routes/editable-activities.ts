@@ -112,7 +112,7 @@ export function createEditableActivitiesRoutes(
       const parsed = row ? EditableActivitiesEntity.safeParse(row.data) : null
       return c.json({
         activities: parsed?.success ? parsed.data.activities : {},
-        version: row?.version ?? 0,
+        version: row?.version ?? storage.getSelectedNodeVersion(EDITABLE_ACTIVITY_NODE, pageId) ?? 0,
         // The accent activities render with when no per-activity override is
         // set — lets the editor show the effective color, not a placeholder.
         paletteAccent: bookPaletteAccent(safeLabel, storage),

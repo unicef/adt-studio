@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
 import { afterEach, beforeEach, expect, it } from "vitest"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import { protectedAuthoredRecords, resetSectioningStoryboard } from "@adt/pipeline"
 import { EDITABLE_ACTIVITY_NODE } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
@@ -42,6 +42,24 @@ it("requires captured save versions and rejects a pre-reset activity draft witho
     expect(after.getAllNodeVersions(EDITABLE_ACTIVITY_NODE, pageId)).toHaveLength(2)
   } finally { after.close() }
 })
+it.each([true, false])("can save twice after refreshing a SQL-null invalidation (selected pointer: %s)", async pointer => {
+  expect((await save(0)).status).toBe(200)
+  const s = createBookStorage(label, root)
+  try { s.putNodeData(EDITABLE_ACTIVITY_NODE, pageId, null) } finally { s.close() }
+  const db = openBookDb(path.join(root, label, `${label}.db`))
+  try {
+    db.run("UPDATE node_data SET data = NULL WHERE node = ? AND item_id = ? AND version = 2", [EDITABLE_ACTIVITY_NODE, pageId])
+    if (!pointer) db.run("DELETE FROM node_current WHERE node = ? AND item_id = ?", [EDITABLE_ACTIVITY_NODE, pageId])
+  } finally { db.close() }
+  const read = async () => (await app.request(`/books/${label}/pages/${pageId}/editable-activities`)).json()
+  expect((await save(1)).status).toBe(409)
+  expect(await read()).toMatchObject({ activities: {}, version: 2 })
+  expect((await save((await read()).version)).status).toBe(200)
+  expect(await read()).toMatchObject({ ...entity, version: 3 })
+  expect((await save((await read()).version)).status).toBe(200)
+  expect(await read()).toMatchObject({ ...entity, version: 4 })
+})
+
 it("rejects reset consent when only the editable activity changed", async () => {
   expect((await save(0)).status).toBe(200)
   const storage = createBookStorage(label, root)
