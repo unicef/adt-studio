@@ -15,6 +15,26 @@ describe("Page routes", () => {
   let app: Hono
   const label = "test-book"
 
+  it.each(["storyboard", "rendering", "ai-edit", "ai-instruction"])("returns a localizable 400 for invalid %s requests without changing history or starting work", async kind => {
+    const pageId = `${label}_p1`
+    const storage = createBookStorage(label, tmpDir)
+    const before = ["page-sectioning", "web-rendering"].map(node => storage.getAllNodeVersions(node, pageId))
+    const rendering = storage.getLatestNodeData("web-rendering", pageId)!
+    storage.close()
+    const tasks = { submitTask: vi.fn(), getActiveTasks: () => [] } as unknown as TaskService
+    const guarded = new Hono().route("/api", createPageRoutes(tmpDir, "", "", globalConfigPath, tasks)).onError(errorHandler)
+    const endpoint = kind.startsWith("ai-") ? "sections/0/ai-edit" : kind
+    const body = kind === "storyboard" ? { rendering: rendering.data } : kind === "rendering" ? rendering.data
+      : kind === "ai-edit" ? { baseVersion: 1, instruction: "Edit" } : { baseVersion: 1, renderingBaseVersion: rendering.version, instruction: " " }
+    const response = await guarded.request(`/api/books/${label}/pages/${pageId}/${endpoint}`, { method: kind.startsWith("ai-") ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ code: "STORYBOARD_REQUEST_INVALID" })
+    expect(tasks.submitTask).not.toHaveBeenCalled()
+    const after = createBookStorage(label, tmpDir)
+    expect(["page-sectioning", "web-rendering"].map(node => after.getAllNodeVersions(node, pageId))).toEqual(before)
+    after.close()
+  })
+
   it.each([false, true])("rejects a second page claiming an existing public ID and omits ambiguous imported owners (case alias=%s)", async caseAlias => {
     const s = createBookStorage(label, tmpDir)
     const source = s.getLatestNodeData("page-sectioning", `${label}_p1`)!

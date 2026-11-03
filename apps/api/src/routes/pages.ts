@@ -1641,9 +1641,7 @@ export function createPageRoutes(
     const body = await c.req.json()
     const parsed = RenderingSave.safeParse(body)
     if (!parsed.success) {
-      throw new HTTPException(400, {
-        message: `Invalid web-rendering data: ${parsed.error.message}`,
-      })
+      return c.json({ code: "STORYBOARD_REQUEST_INVALID", error: "STORYBOARD_REQUEST_INVALID: Invalid edit request" }, 400)
     }
 
     const storage = createBookStorage(safeLabel, booksDir)
@@ -1689,9 +1687,7 @@ export function createPageRoutes(
     const body = await c.req.json()
     const parsed = StoryboardSave.safeParse(body)
     if (!parsed.success) {
-      throw new HTTPException(400, {
-        message: `Invalid storyboard save: ${parsed.error.message}`,
-      })
+      return c.json({ code: "STORYBOARD_REQUEST_INVALID", error: "STORYBOARD_REQUEST_INVALID: Invalid edit request" }, 400)
     }
     const { sectioning, rendering, renderingInSync } = parsed.data
     if (!sectioning && !rendering) {
@@ -2056,7 +2052,7 @@ export function createPageRoutes(
 
     const body = await c.req.json()
     const guard = AiSectionEdit.safeParse(body)
-    if (!guard.success) throw new HTTPException(400, { message: "Source and rendering versions are required for AI edits" })
+    if (!guard.success) return c.json({ code: "STORYBOARD_REQUEST_INVALID", error: "STORYBOARD_REQUEST_INVALID: Invalid edit request" }, 400)
     const checkBase = () => {
       const storage = createBookStorage(safeLabel, booksDir)
       try {

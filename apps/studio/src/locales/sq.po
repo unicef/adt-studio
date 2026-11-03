@@ -11989,6 +11989,9 @@ msgstr "Baza e të dhënave nuk mund të përgatitej"
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "Udhëzimi i parazgjedhur i TTS-së i aplikuar për çdo gjuhë, përveç rasteve kur anulohet më poshtë. OpenAI e përdor si udhëzim zëri dhe Gemini si drejtim theksi brenda kërkesës; Azure dhe ElevenLabs e injorojnë."
 
+msgid "The edit request is invalid. Refresh the saved content and try again."
+msgstr "Kërkesa për redaktim është e pavlefshme. Rifreskoni përmbajtjen e ruajtur dhe provoni përsëri."
+
 msgid "The end date can be changed once the sharing service answers"
 msgstr "Data e përfundimit mund të ndryshohet sapo shërbimi i ndarjes të përgjigjet"
 

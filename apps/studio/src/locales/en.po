@@ -11987,6 +11987,9 @@ msgstr "The database couldn't be prepared"
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 
+msgid "The edit request is invalid. Refresh the saved content and try again."
+msgstr "The edit request is invalid. Refresh the saved content and try again."
+
 msgid "The end date can be changed once the sharing service answers"
 msgstr "The end date can be changed once the sharing service answers"
 
