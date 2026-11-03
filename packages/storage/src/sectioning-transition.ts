@@ -41,11 +41,22 @@ export function atomicBookFile(file: string, text: string): void {
   }
 }
 
-export function readSectioningLifecycle(bookDir: string): SectioningLifecycle | null {
-  const file = path.join(bookDir, SECTIONING_LIFECYCLE)
-  if (!fs.existsSync(file)) return null
+/** null means absent; undefined means unreadable optional bookkeeping.
+ * Keep unreadable bytes/paths as evidence instead of replacing them on Save. */
+function readLifecycleText(bookDir: string): string | null | undefined {
+  try { return fs.readFileSync(path.join(bookDir, SECTIONING_LIFECYCLE), "utf8") }
+  catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (code === "ENOENT") return null
+    if (code) return undefined
+    throw error
+  }
+}
+
+function parseLifecycle(text: string | null | undefined): SectioningLifecycle | null {
+  if (text == null) return null
   try {
-    const parsed = SectioningLifecycle.safeParse(JSON.parse(fs.readFileSync(file, "utf8")))
+    const parsed = SectioningLifecycle.safeParse(JSON.parse(text))
     return parsed.success ? parsed.data : null
   } catch (error) {
     if (error instanceof SyntaxError) return null
@@ -53,8 +64,14 @@ export function readSectioningLifecycle(bookDir: string): SectioningLifecycle | 
   }
 }
 
+export function readSectioningLifecycle(bookDir: string): SectioningLifecycle | null {
+  return parseLifecycle(readLifecycleText(bookDir))
+}
+
 export function writeSectioningLifecycle(bookDir: string, mode: SectioningMode, sectioningReady: boolean, storyboardPending?: boolean): void {
-  const previous = readSectioningLifecycle(bookDir)
+  const text = readLifecycleText(bookDir)
+  if (text === undefined) return
+  const previous = parseLifecycle(text)
   const pending = storyboardPending ?? (!sectioningReady || previous?.storyboardPending === true || previous?.sectioningReady === false)
   atomicBookFile(path.join(bookDir, SECTIONING_LIFECYCLE), JSON.stringify({ version: 1, mode, sectioningReady, storyboardPending: pending }))
 }

@@ -566,41 +566,32 @@ async function runAdmittedFullPipeline(
 
     const isFixedLayout = isFixedLayoutBook(config)
 
-    const sectioningDrafts = new Map<string, PageSectioningOutput>()
-    let sectioningPages: PageData[] = []
-    let previousSectioning = new Map<string, ReturnType<Storage["getLatestNodeData"]>>()
+    const publishedSectioningPages: string[] = []
     executors.set("page-sectioning", async (p) => {
-      sectioningPages = activeSectioningPages(storage, config, bookDir)
-      previousSectioning = new Map(sectioningPages.map((page) => [page.pageId, storage.getLatestNodeData("page-sectioning", page.pageId)]))
+      const sectioningPages = activeSectioningPages(storage, config, bookDir)
+      const previousSectioning = new Map(sectioningPages.map((page) => [page.pageId, storage.getLatestNodeData("page-sectioning", page.pageId)]))
       const selected = selectSectioningPages(storage, sectioningPages, {})
       if (!selected.length) return
       const model = getModel(pageSectioningConfig.modelId)
       const bookOutline = readBookOutline(storage)
+      const metadata = storage.getLatestNodeData("metadata", "book")?.data as BookMetadata | null
+      const translationConfig = buildTranslationConfig(config, metadata?.language_code ?? null)
       await processWithConcurrency(selected, effectiveConcurrency, async (page) => {
         options.signal?.throwIfAborted()
         const row = storage.getLatestNodeData("image-filtering", page.pageId)
         const classification = row?.data as ImageClassificationOutput | undefined
         const imageIds = classification ? classification.images.filter((image) => !image.isPruned).map((image) => image.imageId)
           : storage.getPageImages(page.pageId).map((image) => image.imageId)
-        const result = await sectionPage({ pageId: page.pageId, pageNumber: page.pageNumber, text: page.text,
+        const draft = await sectionPage({ pageId: page.pageId, pageNumber: page.pageNumber, text: page.text,
           imageBase64: storage.getPageImageBase64(page.pageId),
           availableImages: imageIds.map((imageId) => ({ imageId, imageBase64: storage.getImageBase64(imageId) })),
           outline: outlineContextForPage(bookOutline, page.pageId),
         }, pageSectioningConfig, model)
         options.signal?.throwIfAborted()
-        sectioningDrafts.set(page.pageId, result)
-        p.emit({ type: "step-progress", step: "page-sectioning", message: page.pageId,
-          page: sectioningDrafts.size, totalPages: selected.length })
-      })
-    })
-
-    executors.set("translation", async (p) => {
-      const metadata = storage.getLatestNodeData("metadata", "book")?.data as BookMetadata | null
-      const translationConfig = buildTranslationConfig(config, metadata?.language_code ?? null)
-      // Like Studio, publish a page only after its generation and translation
-      // both succeed. Retained manual/unknown pages never enter translation.
-      await processWithConcurrency([...sectioningDrafts], effectiveConcurrency, async ([pageId, draft]) => {
-        options.signal?.throwIfAborted()
+        // A page is the publication unit, including optional translation.
+        // Deferring publication to the dependent DAG step loses completed pages
+        // whenever a later generation fails and that step is skipped.
+        const pageId = page.pageId
         const result = translationConfig
           ? await translatePageTree(pageId, draft, translationConfig, getModel(translationConfig.modelId)) : draft
         options.signal?.throwIfAborted()
@@ -618,8 +609,18 @@ async function runAdmittedFullPipeline(
           putSourceNodeData(storage, "page-sectioning", pageId, { ...reconciled, source: "ai" })
           reconcileTextCatalog(storage)
         })
-        p.emit({ type: "step-progress", step: "translation", message: pageId })
+        publishedSectioningPages.push(pageId)
+        p.emit({ type: "step-progress", step: "page-sectioning", message: pageId,
+          page: publishedSectioningPages.length, totalPages: selected.length })
       })
+    })
+
+    executors.set("translation", async (p) => {
+      // Preserve the shared DAG completion step. Each page's translation is
+      // already committed with its Sectioning; a failed stage stays incomplete.
+      for (const pageId of publishedSectioningPages) {
+        p.emit({ type: "step-progress", step: "translation", message: pageId })
+      }
       options.signal?.throwIfAborted()
       completeSectioning(label, booksRoot, config, configPath)
     })

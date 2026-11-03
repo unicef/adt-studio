@@ -54,6 +54,28 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); fs.rmSync(root, { recursive: true, force: true }) })
 
 describe("SPEC-0003 configuration publication", () => {
+  it.each(["permission", "directory"])("unreadable optional lifecycle (%s) preserves evidence and allows the next preference save", async (kind) => {
+    const file = path.join(dir, ".sectioning-lifecycle.json")
+    const original = "unreadable legacy bookkeeping"
+    if (kind === "permission") fs.writeFileSync(file, original, { mode: 0o000 })
+    else { fs.mkdirSync(file); fs.writeFileSync(path.join(file, "evidence"), original) }
+    const before = snapshot()
+    const app = new Hono().onError(errorHandler).route("/", createBookRoutes(root, undefined, globalConfig))
+    try {
+      const state = await app.request(`/books/${label}/sectioning-state`)
+      expect(state.status).toBe(200)
+      expect(await state.json()).toMatchObject({ effectiveMode: "dynamic", preferenceChanged: true })
+      const save = await app.request(`/books/${label}/config`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ config: config("page") }) })
+      expect(save.status, await save.clone().text()).toBe(200)
+      expect(loadBookConfig(label, root, globalConfig).page_sectioning?.mode).toBe("page")
+      expect(snapshot()).toEqual(before)
+      expect(readSectioningLifecycle(dir)).toBeNull()
+    } finally {
+      if (kind === "permission") fs.chmodSync(file, 0o600)
+    }
+    expect(fs.readFileSync(kind === "permission" ? file : path.join(file, "evidence"), "utf8")).toBe(original)
+  })
+
   it("does not announce a task that failed writer admission", async () => {
     const bus = createBookEventBus()
     const events: unknown[] = []
