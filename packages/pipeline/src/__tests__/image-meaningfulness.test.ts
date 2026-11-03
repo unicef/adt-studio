@@ -1,9 +1,12 @@
+import path from "node:path"
 import { describe, expect, it } from "vitest"
 import type { AppConfig, ImageClassificationOutput } from "@adt/types"
+import { createPromptEngine } from "@adt/llm"
 import type {
   GenerateObjectOptions,
   GenerateObjectResult,
   LLMModel,
+  Message,
 } from "@adt/llm"
 import {
   addFigureExtractionContext,
@@ -878,5 +881,57 @@ describe("filterPageImageMeaningfulness", () => {
     )
     expect(validation?.valid).toBe(true)
     expect(validation?.errors).toEqual([])
+  })
+})
+
+describe("image_meaningfulness prompt", () => {
+  // 1x1 PNG; the prompt only needs a valid image payload to render.
+  const png =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+
+  async function systemText(mode: "off" | "all" | "auto"): Promise<string> {
+    const engine = createPromptEngine(path.join(process.cwd(), "prompts"))
+    const messages: Message[] = await engine.renderPrompt("image_meaningfulness", {
+      page_image_base64: png,
+      page_text: "",
+      figure_extraction_mode: mode,
+      images: [{ imageId: "pg001_im001", imageBase64: png, width: 40, height: 40 }],
+    })
+    const system = messages.find((message) => message.role === "system")!
+    return typeof system.content === "string"
+      ? system.content
+      : system.content.map((part) => (part.type === "text" ? part.text : "")).join("")
+  }
+
+  it.each(["off", "all", "auto"] as const)(
+    "keeps section-marker icons but not logos or layout in %s mode (#1037)",
+    async (mode) => {
+      const text = await systemText(mode)
+      expect(text).toContain("Section-marker icons are meaningful.")
+      expect(text).toContain("keep them even when they are small or appear on many pages")
+      expect(text).toContain("empty boxes, tabs, banners, and panels behind a heading or callout are layout")
+      expect(text).toContain("Logos, publisher or series marks, and running header/footer decorations are not section markers.")
+    },
+  )
+
+  it.each(["off", "all"] as const)(
+    "limits the %s-mode decoration rule to ornaments with no recognizable subject",
+    async (mode) => {
+      const text = await systemText(mode)
+      expect(text).toContain("tiny ornaments with no recognizable subject")
+      expect(text).not.toContain("tiny decorative elements")
+      expect(text).not.toContain("section-marker icon that also has its own standalone copy")
+    },
+  )
+
+  it("lets auto mode keep a standalone marker icon instead of its callout crop", async () => {
+    const text = await systemText("auto")
+    expect(text).toContain("A section-marker icon (see below) is not decorative")
+    // The raster safeguard must not favor a callout crop over the icon's own copy,
+    // or auto dedup keeps the crop and prunes the standalone icon.
+    expect(text).toContain(
+      "unless the raster is only a tiny decorative icon, a section-marker icon that also has its own standalone copy,",
+    )
+    expect(text).not.toContain("tiny ornaments with no recognizable subject")
   })
 })
