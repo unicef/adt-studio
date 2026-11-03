@@ -573,7 +573,29 @@ export interface AiEditHistoryTurn {
   instruction: string
   attempts: Array<{ reasoning: string; timestamp: string; cached: boolean }>
   verify?: { applied: boolean; reason: string }
+  unsupported?: { reason: string }
 }
+
+export interface AiEditVerification {
+  applied: boolean
+  reason: string
+}
+
+export type AiEditResult =
+  | {
+      status: "applied"
+      html: string
+      reasoning: string
+      activityAnswers?: Record<string, string>
+      verification?: AiEditVerification
+      sectionIndex?: number
+    }
+  | {
+      status: "unsupported"
+      reason: string
+      reasoning: string
+      sectionIndex?: number
+    }
 
 export interface PageDetail {
   sectioningSynchronization?: import("@adt/types").SectioningSynchronization | null
@@ -1638,13 +1660,7 @@ export const api = {
     currentHtml: string | undefined,
     baseVersion: number,
   ) =>
-    request<{
-      taskId?: string
-      status?: string
-      html?: string
-      reasoning?: string
-      activityAnswers?: Record<string, string>
-    }>(
+    request<{ taskId: string; status: "submitted" } | AiEditResult>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit`,
       {
         method: "POST",
