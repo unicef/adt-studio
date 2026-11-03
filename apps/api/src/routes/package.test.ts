@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -154,6 +154,60 @@ describe("Package routes", () => {
     fs.unlinkSync(path.join(adt, "imsmanifest.xml"))
     await expect(exportScorm(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
     expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
+  })
+
+  it("opens a legitimate older reflowable package despite an unreadable unselected rendering", async () => {
+    const label = "older-reflow"; createRenderedBook(label); createWebAssets()
+    const dir = path.join(tmpDir, label), id = "pg001_sec001"
+    const s = createBookStorage(label, tmpDir)
+    s.putNodeData("web-rendering", "pg001", s.getLatestNodeData("web-rendering", "pg001")!.data); s.close()
+    expect((await app.request(`/api/books/${label}/package-adt`, { method: "POST" })).status).toBe(200)
+    fs.unlinkSync(path.join(dir, "adt/.build-owners"))
+    const db = openBookDb(path.join(dir, label + ".db"))
+    db.run("UPDATE node_data SET data='{' WHERE node='web-rendering' AND item_id='pg001' AND version=1"); db.close()
+    const routes = new Hono().onError(errorHandler).route("/api", createBookRoutes(tmpDir))
+    const html = await routes.request(`/api/books/${label}/adt/v-old/${id}.html`)
+    expect(html.status).toBe(200); expect(await html.text()).toContain("Original text")
+    const result = await exportAdt(label, tmpDir)
+    expect(Buffer.from(unzipSync(new Uint8Array(await new Response(result.stream).arrayBuffer()))[id + ".html"]).toString()).toContain("Original text")
+    const check = openBookDb(path.join(dir, label + ".db"))
+    expect(check.get("SELECT data FROM node_data WHERE node='web-rendering' AND item_id='pg001' AND version=1")).toEqual({ data: "{" })
+    check.close()
+  })
+
+  it("does not reread every packaged page for reader assets and rechecks prune, restore and repackage", async () => {
+    const label = "reader-cost"; createRenderedBook(label); createWebAssets()
+    const url = `/api/books/${label}`, id = "pg001_sec001", file = id + ".html"
+    const run = () => app.request(url + "/package-adt", { method: "POST" })
+    expect((await run()).status).toBe(200)
+    const routes = new Hono().onError(errorHandler).route("/api", createBookRoutes(tmpDir))
+    const get = (name: string) => routes.request(url + "/adt/v-book/" + name)
+    const diskPage = fs.realpathSync(path.join(tmpDir, label, "adt", file))
+    const reads = vi.spyOn(fs, "readFileSync")
+    try {
+      const count = () => reads.mock.calls.filter(([arg]) => arg === diskPage).length
+      for (const asset of ["assets/config.json", "content/pages.json", "assets/fonts.css", "assets/offline-preloader.js", "content/i18n/en/texts.json"]) {
+        const response = await get(asset)
+        expect(response.status, asset).toBe(200)
+      }
+      // The cold proof reads the page once. No page-content reads for later assets.
+      expect(count()).toBe(1)
+      const s = createBookStorage(label, tmpDir)
+      const original = s.getLatestNodeData("page-sectioning", "pg001")!.data as { sections: { isPruned: boolean }[] }
+      s.putNodeData("page-sectioning", "pg001", { ...original, sections: original.sections.map(section => ({ ...section, isPruned: true })) }); s.close()
+      expect((await get(file)).status).toBe(404)
+      const restore = createBookStorage(label, tmpDir); restore.putNodeData("page-sectioning", "pg001", original); restore.close()
+      expect((await get(file)).status).toBe(200)
+      // An in-place file edit changes neither its directory entry nor SQL.
+      fs.writeFileSync(diskPage, "Other owner's bytes")
+      const changed = await get(file); expect(changed.status).toBe(307); expect(await changed.text()).not.toContain("Other owner's bytes")
+      expect((await run()).status).toBe(200)
+      expect(await (await get(file)).text()).toContain("Original text")
+      fs.writeFileSync(path.join(tmpDir, label, "adt/assets/offline-preloader.js"), "Retired content is embedded here")
+      const oldScript = await get("assets/offline-preloader.js")
+      expect(oldScript.status).toBe(307); expect(await oldScript.text()).not.toContain("Retired content")
+      await expect(exportAdt(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    } finally { reads.mockRestore() }
   })
 
   it.each(["file", "directory"])("refuses a required %s symlink skipped by ZIP, then repairs the actual member", { timeout: 30_000 }, async kind => {

@@ -1,8 +1,10 @@
 import { readSectioningLifecycle, recoverSectioningTransition } from "@adt/storage"
-import { effectiveSectioningMode, retainedPackageOwnership, publishedAdtDirectory } from "@adt/pipeline"
+import { effectiveSectioningMode, publishedAdtDirectory } from "@adt/pipeline"
 import { getStageClearNodes, getStageClearOrder } from "@adt/types"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import fs from "node:fs"
+import { createHash } from "node:crypto"
+import { createRetainedPackageReader } from "../services/retained-package-reader.js"
 import { BookBusyError } from "@adt/storage"
 import path from "node:path"
 import { z } from "zod"
@@ -116,6 +118,7 @@ export function createBookRoutes(
   promptsDir = path.resolve("prompts"),
 ): Hono {
   const app = new Hono()
+  const readPackageOwners = createRetainedPackageReader()
   app.use("/books/:label/*", bookWriterMiddleware(booksDir))
   app.use("/books/:label", bookWriterMiddleware(booksDir))
 
@@ -983,7 +986,7 @@ export function createBookRoutes(
     if (!fs.existsSync(dbPath)) throw new HTTPException(404, { message: "Book not found" })
     const storage = createBookStorage(safeLabel, booksDir)
     let ownership
-    try { ownership = retainedPackageOwnership(storage, adtDir) }
+    try { ownership = readPackageOwners(storage, dbPath, adtDir) }
     finally { storage.close() }
     // A version segment busts caches; it does not establish current ownership.
     // In particular the offline preloader contains copies of *all* page HTML.
@@ -1017,6 +1020,10 @@ export function createBookRoutes(
     }
 
     const fileBuffer = fs.readFileSync(resolvedPath)
+    const memberDigest = ownership.memberDigests.get(filePath)
+    if (memberDigest && createHash("sha256").update(fileBuffer).digest("hex") !== memberDigest) {
+      return c.redirect(`/api/books/${safeLabel}/adt-preview/${filePath}${new URL(c.req.url).search}`, 307)
+    }
     const ext = path.extname(resolvedPath).toLowerCase()
     c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
     return c.body(fileBuffer)

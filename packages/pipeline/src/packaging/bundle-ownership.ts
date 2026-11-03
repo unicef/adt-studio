@@ -24,7 +24,12 @@ function regularMember(root: string, name: string): string {
  * prove its author. Bind new files to the resolver's source and final bytes. */
 export function recordPackagedOwners(root: string, items: readonly ResolvedItem[]): void {
   const entries = items.map(item => [item.id, owner(item), digest(fs.readFileSync(regularMember(root, item.id + ".html")))])
-  fs.writeFileSync(path.join(root, receipt), JSON.stringify(entries))
+  // The offline runtime embeds every page in one script. Check those bytes
+  // independently; a correct set of standalone HTML files cannot vouch for a
+  // preloader retained from a different package.
+  const offline = "assets/offline-preloader.js"
+  const preloader = digest(fs.readFileSync(regularMember(root, offline)))
+  fs.writeFileSync(path.join(root, receipt), JSON.stringify({ entries, preloader }))
 }
 
 function legacyOwnerUncertain(storage: Storage, item: ResolvedItem): boolean {
@@ -32,6 +37,15 @@ function legacyOwnerUncertain(storage: Storage, item: ResolvedItem): boolean {
   // Inspect retained evidence, not only the selected row: restoring a valid
   // render must not certify wrong bytes created before the ownership fix.
   try {
+    const soleFixedOwner = (node: string) => storage.getAllNodeVersions(node, item.pageId).some(row => {
+      const parsed = PageSectioningOutput.safeParse(row.data)
+      if (!parsed.success || parsed.data.sections.length !== 1) return false
+      const section = parsed.data.sections[0]
+      return section.sectionId === item.id && (node === "fixed-layout-sectioning" ||
+        (section.sectionType === "fixed-layout-page" && !!section.placement && !!section.viewport))
+    })
+    const dedicated = soleFixedOwner("fixed-layout-sectioning")
+    if (!dedicated && !soleFixedOwner("page-sectioning")) return false
     return storage.getAllNodeVersions("web-rendering", item.pageId).some(({ data }) => {
       const parsed = WebRenderingOutput.safeParse(data)
       if (!parsed.success || parsed.data.sections.length !== 1) return false
@@ -49,14 +63,7 @@ function legacyOwnerUncertain(storage: Storage, item: ResolvedItem): boolean {
         roots[0].attribs["data-section-id"] = item.id
         if (renderedSectionId({ ...entry, html: DomUtils.getOuterHTML(doc) }) === item.id) return false
       }
-      return ["fixed-layout-sectioning", "page-sectioning"].some(node =>
-        storage.getAllNodeVersions(node, item.pageId).some(row => {
-          const source = PageSectioningOutput.safeParse(row.data)
-          if (!source.success || source.data.sections.length !== 1) return false
-          const section = source.data.sections[0]
-          return section.sectionId === item.id && (node === "fixed-layout-sectioning" ||
-            (entry.sectionType === "fixed-layout-page" && section.sectionType === "fixed-layout-page" && !!section.placement && !!section.viewport))
-        }))
+      return dedicated || entry.sectionType === "fixed-layout-page"
     })
   } catch (error) { if (error instanceof SyntaxError) return true; throw error }
 }
@@ -66,13 +73,18 @@ export function retainedPackageOwnership(storage: Storage, root: string) {
   const current = new Map(order.items.map(item => [item.id, item]))
   // Do not hide admission/storage errors. An unreadable package manifest cannot
   // authorize serving files. The live reader still has its own source proof.
-  const result = { allOwned: false, entries: [] as { href: string; section_id: string }[], current }
+  const result = { allOwned: false, entries: [] as { href: string; section_id: string }[],
+    current: new Set(current.keys()), memberDigests: new Map<string, string>() }
   let manifest, receipts: Map<string, [unknown, unknown]> | undefined
   try {
     manifest = PublicationPageEntry.array().nonempty().parse(JSON.parse(fs.readFileSync(regularMember(root, "content/pages.json"), "utf8")))
     if (fs.lstatSync(path.join(root, receipt), { throwIfNoEntry: false })) {
-      const rows: unknown = JSON.parse(fs.readFileSync(regularMember(root, receipt), "utf8"))
-      if (!Array.isArray(rows)) return result
+      const record = JSON.parse(fs.readFileSync(regularMember(root, receipt), "utf8"))
+      const rows: unknown = record?.entries
+      const offline = "assets/offline-preloader.js"
+      if (!Array.isArray(rows) || typeof record.preloader !== "string" ||
+          digest(fs.readFileSync(regularMember(root, offline))) !== record.preloader) return result
+      result.memberDigests.set(offline, record.preloader)
       receipts = new Map()
       for (const row of rows) {
         if (!Array.isArray(row) || row.length !== 3 || typeof row[0] !== "string" || receipts.has(row[0])) return result
@@ -87,9 +99,12 @@ export function retainedPackageOwnership(storage: Storage, root: string) {
     if (receipts) {
       const proof = receipts.get(item.id)
       if (!proof || proof[0] !== owner(item)) continue
-      try { if (proof[1] !== digest(fs.readFileSync(regularMember(root, entry.href)))) continue }
-      catch { continue }
     } else if (legacyOwnerUncertain(storage, item)) continue
+    try {
+      const hash = digest(fs.readFileSync(regularMember(root, entry.href)))
+      if (receipts && hash !== receipts.get(item.id)?.[1]) continue
+      result.memberDigests.set(entry.href, hash)
+    } catch { continue }
     result.entries.push(entry)
   }
   const names = new Set(result.entries.map(entry => entry.href))
