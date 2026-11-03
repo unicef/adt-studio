@@ -309,14 +309,20 @@ it("names protected replacement snapshots and leaves them current on failed or c
   await saveProtected()
   expect((await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", replaceManual: true }, "POST")).status).toBe(409)
   const status = await json("step-status")
-  const replacement = { replaceManual: true, protectedReplacements: status.protectedWork.filter((r: { node: string }) => r.node === "page-sectioning").map(({ pageNumber: _, ...record }: Record<string, unknown>) => record) }
+  const beforeOutline = { replaceManual: true, protectedReplacements: status.protectedWork.filter((r: { node: string }) => r.node === "page-sectioning").map(({ pageNumber: _, ...record }: Record<string, unknown>) => record) }
   const db = book()
   for (const stage of PIPELINE.filter((s) => s.name === "extract")) for (const step of stage.steps) db.markStepCompleted(step.name)
   // Valid outline so no unrelated LLM prerequisite is involved.
   db.putNodeData("book-outline", "book", { entries: [], styleClusters: [], reasoning: "fixture" })
   db.close()
+  const stale = await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", ...beforeOutline }, "POST")
+  expect(stale.status).toBe(409)
+  expect(await stale.json()).toMatchObject({ code: "REPLACEMENT_CONFIRMATION_INVALID" })
+  expect(sectionPage).not.toHaveBeenCalled()
+  const replacement = { replaceManual: true, protectedReplacements: await sectioningConsent() }
   sectionPage.mockRejectedValue(new Error("provider unavailable"))
   expect((await run("sectioning", replacement)).status).toBe("failed")
+  expect(sectionPage).toHaveBeenCalled()
   expect(read("page-sectioning", "pg001")!.version).toBe(2)
   expect((await json("toc")).entries[0].sectionId).toBe("pg001_sec001")
 })
