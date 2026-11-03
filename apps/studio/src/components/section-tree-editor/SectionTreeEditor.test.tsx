@@ -224,3 +224,47 @@ describe("SectionTreeEditor drag and drop", () => {
     })
   })
 })
+
+describe("SectionTreeEditor inherited prune (#596)", () => {
+  const hiddenGroupSection: PageSectioningSection = {
+    ...initialSection,
+    nodes: [
+      {
+        nodeId: "hidden-group",
+        structure: "group",
+        isPruned: true,
+        children: [
+          { nodeId: "hidden-child", role: "text", text: "Me gustaría conocerte", isPruned: false },
+          { nodeId: "hidden-image", role: "image", isPruned: false },
+        ],
+      },
+      {
+        nodeId: "visible-group",
+        structure: "group",
+        isPruned: false,
+        children: [
+          { nodeId: "pruned-leaf", role: "text", text: "Own prune", isPruned: true },
+        ],
+      },
+    ],
+  }
+
+  it("shows leaves under a hidden group as hidden and disables their own toggle", () => {
+    render(<Harness onStructuralChange={vi.fn()} initial={hiddenGroupSection} />)
+
+    const inherited = screen.getAllByTitle("Hidden because its group is hidden")
+    expect(inherited).toHaveLength(2)
+    for (const button of inherited) {
+      expect((button as HTMLButtonElement).disabled).toBe(true)
+    }
+  })
+
+  it("keeps the group's own toggle and an own-pruned leaf's toggle enabled", () => {
+    render(<Harness onStructuralChange={vi.fn()} initial={hiddenGroupSection} />)
+
+    const include = screen.getAllByTitle("Include in render") as HTMLButtonElement[]
+    // hidden-group itself + pruned-leaf
+    expect(include).toHaveLength(2)
+    for (const button of include) expect(button.disabled).toBe(false)
+  })
+})
