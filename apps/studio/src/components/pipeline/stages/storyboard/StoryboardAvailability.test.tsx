@@ -33,6 +33,7 @@ vi.mock("@/components/pipeline/components/CascadeWarning", () => ({CascadeWarnin
 vi.mock("@/components/pipeline/components/LandingPageShell", () => ({LandingPageShell:({onRun,extraDisabled}: {onRun:()=>void;extraDisabled:boolean})=><button disabled={extraDisabled} onClick={() => onRun()}>Start storyboard</button>}))
 vi.mock("../../components/StageRunCard", () => ({StageRunCard:()=> <p>Storyboard run card</p>}))
 const {StoryboardView}=await import("./StoryboardView")
+const {StoryboardIndex}=await import("./StoryboardIndex")
 const {StoryboardLandingPage}=await import("./StoryboardLandingPage")
 beforeEach(()=>{mocks.pages=[{pageId:"p1",sectioningVersion:1,sectionCount:1,hasRendering:true,sections:[]}];mocks.loading=false;mocks.unsaved=false;mocks.state="idle";mocks.coverage=undefined;mocks.sectionIndex=0;mocks.page={sectioningTree:{sections:[{sectionId:"p1_s1"}]},versions:{sectioning:1,rendering:1}};mocks.select.mockReset();mocks.queue.mockReset()})
 afterEach(cleanup)
@@ -101,6 +102,22 @@ it("shows the run card after all active Storyboard output is reset without an un
  render(<StoryboardView bookLabel="book" selectedPageId="p1" />)
  expect(screen.getByText("Storyboard run card")).toBeTruthy()
  expect(screen.queryByRole("textbox",{name:"Activity draft"})).toBeNull()
+})
+it("the outer Storyboard route retains the dirty editor until discard after all-output reset", () => {
+ const view=render(<StoryboardIndex bookLabel="book" selectedPageId="p1" />)
+ fireEvent.change(screen.getByRole("textbox",{name:"Activity draft"}),{target:{value:"Draft through the public Storyboard route"}})
+ mocks.unsaved=true;mocks.pages=mocks.pages.map(page=>({...page,hasRendering:false}))
+ for (const state of ["running", "error", "idle"]) {
+  mocks.state=state
+  view.rerender(<StoryboardIndex bookLabel="book" selectedPageId="p1" />)
+  expect((screen.getByRole("textbox",{name:"Activity draft"}) as HTMLInputElement).value).toBe("Draft through the public Storyboard route")
+  expect(screen.queryByRole("button",{name:"Start storyboard"})).toBeNull()
+ }
+ mocks.unsaved=false
+ view.rerender(<StoryboardIndex bookLabel="book" selectedPageId="p1" />)
+ expect(screen.queryByRole("textbox",{name:"Activity draft"})).toBeNull()
+ fireEvent.click(screen.getByRole("button",{name:"Start storyboard"}))
+ expect(mocks.queue).toHaveBeenCalledWith({fromStage:"storyboard",toStage:"storyboard",apiKey:"stub",viewAfter:true})
 })
 it("keeps the original editor and guard context when regeneration removes its selected section", () => {
  mocks.sectionIndex=1
