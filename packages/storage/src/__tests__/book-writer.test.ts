@@ -336,7 +336,7 @@ it("a delayed reaper cannot displace a newly published live owner", async () => 
     import {withBookWriter} from ${JSON.stringify(path.resolve(import.meta.dirname, "../../dist/book-writer.js"))};
     const open=fs.openSync; let stopped=false;
     fs.openSync=function(file,...args) {
-      if (!stopped && String(file)===${JSON.stringify(path.join(f.bookDir, ".book-writer.json.recovery"))} && args[0]==='wx') {
+      if (!stopped && String(file)===${JSON.stringify(path.join(fs.realpathSync(f.bookDir), ".book-writer.json.recovery"))} && args[0]==='wx') {
         stopped=true; fs.writeFileSync(${JSON.stringify(paused)}, 'paused before reservation');
         const deadline=Date.now()+10000;
         while (!fs.existsSync(${JSON.stringify(resume)})) {
@@ -373,7 +373,7 @@ it("preserves a reaper killed in the owner-file gap and excludes fresh contender
     const unlink=fs.unlinkSync;
     fs.unlinkSync=function(file) {
       const result=unlink.call(fs,file);
-      if(String(file)===${JSON.stringify(path.join(f.bookDir, ".book-writer.json"))}) {
+      if(String(file)===${JSON.stringify(path.join(fs.realpathSync(f.bookDir), ".book-writer.json"))}) {
         fs.writeFileSync(${JSON.stringify(paused)},'old owner removed');
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,10000);
         throw new Error('test barrier timeout');
