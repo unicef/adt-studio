@@ -87,9 +87,9 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
     const checkHtml = (html: string, from: string) => {
       const sources: Parameters<typeof cssReferences>[0][number][] = []
       const includedStyles = new Set<string>()
-      const includeCss = (parsed: ReturnType<typeof parseCssSource>, base: string) => {
-        sources.push({ parsed, from: base })
+      const includeCss = (parsed: ReturnType<typeof parseCssSource>, base: string, inlineStyle?: string) => {
         for (const url of parsed.imports) includeStylesheet(url, base)
+        sources.push({ parsed, from: base, inlineStyle })
       }
       const includeStylesheet = (url: string, base: string) => {
         const file = relativeMember(url, base)
@@ -107,12 +107,12 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
         if (name === "object" && attrs.data) relativeMember(attrs.data, from)
         if (name === "image" && (attrs.href || attrs["xlink:href"])) relativeMember(attrs.href ?? attrs["xlink:href"], from)
         if (name === "link" && attrs.rel?.split(/\s+/).includes("stylesheet") && attrs.href) includeStylesheet(attrs.href, from)
-        if (attrs.style) includeCss(parseCssSource(attrs.style), from)
+        if (attrs.style) includeCss(parseCssSource(attrs.style), from, attrs.style)
         if (attrs.srcset) for (const url of srcsetUrls(attrs.srcset)) relativeMember(url, from)
       }, ontext(text) { if (style !== undefined) style += text }, onclosetag(name) {
         if (name === "style" && style !== undefined) { includeCss(parseCssSource(style), from); style = undefined }
       } }).end(html)
-      for (const reference of cssReferences(sources)) relativeMember(reference.url, reference.from)
+      for (const reference of cssReferences(sources, html)) relativeMember(reference.url, reference.from)
     }
     const pages = PublicationPageEntry.array().nonempty().parse(JSON.parse(read("content/pages.json")))
     checkHtml(read("index.html"), "index.html")

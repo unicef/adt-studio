@@ -89,6 +89,21 @@ it("validates shared runtime files once per read and notices their deletion on t
   expect(packageFilesAvailable(root)).toBe(true)
   fs.writeFileSync(path.join(root, "p2.html"), '<style>:root{--hero:"unused prose"}.text{content:var(--hero)}</style>')
   expect(packageFilesAvailable(root)).toBe(true) // no variable leakage between documents
+  for (const scoped of [
+    '<style>.label{--hero:"Not a file";content:var(--hero)}.hero{--hero:"assets/second.png";background-image:image-set(var(--hero) 1x)}</style><p class="label"></p><div class="hero"></div>',
+    '<style>:root{--hero:"Not a file"}.hero{--hero:"assets/second.png";background-image:image-set(var(--hero) 1x)}</style><div class="hero"></div>',
+    '<style>.hero{--hero:"Not a file";background-image:image-set(var(--hero) 1x)}</style><div class="hero" style="--hero:&quot;assets/second.png&quot;"></div>',
+    '<style>:root{--source:"assets/second.png";--hero:var(--source)}.hero{--source:"Not a file";background-image:image-set(var(--hero) 1x)}</style><div class="hero"></div>',
+    '<div style="--hero:&quot;assets/second.png&quot;"><div style="background-image:image-set(var(--hero) 1x)"></div></div><div style="--hero:&quot;Not a file&quot;;content:var(--hero)"></div>',
+  ]) {
+    fs.writeFileSync(page, scoped)
+    expect(packageFilesAvailable(root), scoped).toBe(true)
+    expect(packageFilesAvailable(root), scoped).toBe(true)
+    fs.unlinkSync(path.join(root, "assets/second.png"))
+    expect(packageFilesAvailable(root), scoped).toBe(false)
+    fs.writeFileSync(path.join(root, "assets/second.png"), "second image")
+    expect(packageFilesAvailable(root), scoped).toBe(true)
+  }
   fs.writeFileSync(page, '<img src="/assets/picture.png">')
   expect(packageFilesAvailable(root)).toBe(false)
   fs.writeFileSync(page, '<img src="assets/picture.png">')

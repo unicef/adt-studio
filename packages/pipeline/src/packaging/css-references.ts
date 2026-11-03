@@ -1,4 +1,7 @@
 import postcss from "postcss"
+import { JSDOM, VirtualConsole } from "jsdom"
+
+type VariableLookup = (name: string) => readonly { value: string; lookup: VariableLookup }[]
 
 /** CSS values need token boundaries: strings in image-set() are URLs, while
  * strings in content/type() are not. Decode CSS escapes before resolving paths
@@ -6,9 +9,9 @@ import postcss from "postcss"
 function valueReferences(
   value: string,
   importRule = false,
-  variables: ReadonlyMap<string, readonly string[]> = new Map(),
+  variables: VariableLookup = () => [],
   context = "",
-  visited: Set<string> = new Set(),
+  visited: Map<VariableLookup, Set<string>> = new Map(),
 ): Array<{ url: string; stylesheet: boolean }> {
   const references: Array<{ url: string; stylesheet: boolean }> = []
   let position = 0
@@ -93,10 +96,12 @@ function valueReferences(
         if (name.toLowerCase() === "var") {
           const { name: property, fallback } = variableArguments()
           const key = JSON.stringify([property, parent, importRule])
-          if (!visited.has(key)) {
-            visited.add(key)
-            for (const candidate of variables.get(property) ?? []) {
-              references.push(...valueReferences(candidate, importRule, variables, parent, visited))
+          const seen = visited.get(variables) ?? new Set<string>()
+          visited.set(variables, seen)
+          if (!seen.has(key)) {
+            seen.add(key)
+            for (const candidate of variables(property)) {
+              references.push(...valueReferences(candidate.value, importRule, candidate.lookup, parent, visited))
             }
           }
           // Keep declared fallback assets portable too: CSS inheritance and
@@ -129,28 +134,92 @@ export function parseCssSource(css: string) {
     return decoded && /^[a-z-]+$/i.test(decoded) ? `@${decoded}` : raw
   })
   const root = postcss.parse(normalized)
-  const declarations: Array<{ property: string; value: string }> = []
+  const selectorFor = (node: postcss.Node): string | undefined => {
+    const parent = node.parent
+    if (parent?.type === "rule" && "selector" in parent && typeof parent.selector === "string") return parent.selector
+    return parent ? selectorFor(parent) : undefined
+  }
+  const declarations: Array<{ property: string; value: string; selector?: string; variables: boolean }> = []
   const imports: string[] = []
   root.walkDecls(declaration => {
-    declarations.push({ property: valueReferences(`url(${declaration.prop})`)[0]?.url ?? declaration.prop, value: declaration.value })
+    declaration.prop = valueReferences(`url(${declaration.prop})`)[0]?.url ?? declaration.prop
+    let variables = false
+    valueReferences(declaration.value, false, () => { variables = true; return [] })
+    declarations.push({ property: declaration.prop, value: declaration.value, selector: selectorFor(declaration), variables })
   })
   root.walkAtRules(rule => {
     // Reuse CSS escape decoding for at-rule identifiers as well as values.
     const name = valueReferences(`url(${rule.name})`)[0]?.url.toLowerCase()
     if (name === "import") imports.push(...valueReferences(rule.params, true).map(reference => reference.url))
   })
-  return { declarations, imports }
+  const custom = root.clone()
+  custom.walkDecls(declaration => { if (!declaration.prop.startsWith("--")) declaration.remove() })
+  custom.walkAtRules("import", rule => { rule.remove() })
+  return { declarations, imports, customCss: custom.toString() }
 }
 
 /** Resolve possible variable values in one document's linked/imported/inline
  * CSS, never across independent pages. URLs use the consumer declaration's
  * base path, including when the quoted value came from another stylesheet. */
-export function cssReferences(sources: readonly { parsed: ReturnType<typeof parseCssSource>; from: string }[]) {
+export function cssReferences(sources: readonly { parsed: ReturnType<typeof parseCssSource>; from: string; inlineStyle?: string }[], html?: string) {
   const variables = new Map<string, string[]>()
   for (const { parsed } of sources) for (const declaration of parsed.declarations) {
     if (!declaration.property.startsWith("--")) continue
     variables.set(declaration.property, [...(variables.get(declaration.property) ?? []), declaration.value])
   }
-  return sources.flatMap(({ parsed, from }) => parsed.declarations.flatMap(declaration =>
-    valueReferences(declaration.value, false, variables).map(reference => ({ ...reference, from }))))
+  const possible: VariableLookup = name => (variables.get(name) ?? []).map(value => ({ value, lookup: possible }))
+  // Use the existing DOM/CSS implementation for selector specificity, inline
+  // overrides and element scope. Scripts/resources are never enabled. Only
+  // custom-property rules are installed, avoiding a full layout/style pass.
+  const needsScope = sources.some(source => source.parsed.declarations.some(declaration => declaration.variables && !declaration.property.startsWith("--")))
+  const dom = html === undefined || !needsScope ? undefined : new JSDOM(html, { virtualConsole: new VirtualConsole() })
+  try {
+    const document = dom?.window.document
+    if (document) {
+      for (const node of document.querySelectorAll('style, link[rel="stylesheet"]')) node.remove()
+      for (const source of sources) if (source.inlineStyle === undefined) {
+        const style = document.createElement("style")
+        style.textContent = source.parsed.customCss
+        document.head.append(style)
+      }
+    }
+    const lookups = new Map<Element, VariableLookup>()
+    const forElement = (element: Element): VariableLookup => {
+      let lookup = lookups.get(element)
+      if (!lookup) {
+        const style = dom!.window.getComputedStyle(element)
+        lookup = name => {
+          const value = style.getPropertyValue(name).trim()
+          if (value && value !== "inherit" && value !== "unset") {
+            return value === "initial" ? [] : [{ value, lookup: lookup! }]
+          }
+          return element.parentElement ? forElement(element.parentElement)(name) : []
+        }
+        lookups.set(element, lookup)
+      }
+      return lookup
+    }
+    const targets = new Map<string, Element[]>()
+    return sources.flatMap(({ parsed, from, inlineStyle }) => parsed.declarations.flatMap(declaration => {
+      // Definitions are expanded at their consumer, with that consumer's URL
+      // base. Prose/custom-property declarations alone are not image consumers.
+      if (declaration.property.startsWith("--")) return []
+      if (!declaration.variables) return valueReferences(declaration.value).map(reference => ({ ...reference, from }))
+      const key = JSON.stringify([inlineStyle, declaration.selector])
+      let elements = targets.get(key)
+      if (!elements) {
+        elements = []
+        if (document) {
+          if (inlineStyle !== undefined) elements = [...document.querySelectorAll("[style]")].filter(element => element.getAttribute("style") === inlineStyle)
+          else if (declaration.selector) {
+            try { elements = [...document.querySelectorAll(declaration.selector)] } catch { /* Dynamic/nested selectors retain conservative candidates. */ }
+          }
+        }
+        targets.set(key, elements)
+      }
+      const contexts = elements.length ? elements.map(forElement) : [possible]
+      return contexts.flatMap(lookup => valueReferences(declaration.value, false, lookup)
+        .map(reference => ({ ...reference, from })))
+    }))
+  } finally { dom?.window.close() }
 }
