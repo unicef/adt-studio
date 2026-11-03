@@ -46,9 +46,13 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   // run card in front of intact renderings would hide the very sections the user
   // came back to re-render. Matches the gate in StoryboardIndex.
   const hasRenderingData = (pages ?? []).some((p) => p.hasRendering)
-  const showRunCard = storyboardRunning || storyboardState === "error"
-    ? !hasPageData
-    : !storyboardDone && !hasRenderingData
+  // A reset may remove all active HTML while a saved-tree editor holds a
+  // local draft. Keep that editor until the user saves/discards or navigates.
+  const showRunCard = !(hasUnsavedChanges && hasPageData) && (
+    storyboardRunning || storyboardState === "error"
+      ? !hasPageData
+      : !storyboardDone && !hasRenderingData
+  )
 
   const handleRunStoryboard = useCallback(() => {
     if (!hasStructuredTextProvider || !sectioningReady || storyboardRunning) return
@@ -388,10 +392,11 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   // Attempt state is not evidence that Sectioning changed. Only the shared
   // saved-output read model can identify genuinely missing output here.
   const storyboardStale = storyboardCoverage?.complete === false && !storyboardRunning && hasRenderingData
-  const withStaleBanner = (content: ReactNode) =>
-    storyboardStale ? (
+  // Keep the editor subtree mounted when coverage or attempt state changes.
+  // Adding/removing its wrapper would silently discard local editor drafts.
+  const withStaleBanner = (content: ReactNode) => (
       <div className="flex flex-col h-full min-h-0">
-        <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-3 py-2">
+        {storyboardStale && <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-3 py-2">
           <div className="text-xs text-amber-900">
             <Trans>
               Some pages or sections are missing Storyboard output. Existing pages remain available.
@@ -407,11 +412,9 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
             <RotateCcw className="mr-1 h-3 w-3" />
             <Trans>Re-run Storyboard</Trans>
           </Button>
-        </div>
+        </div>}
         <div className="flex-1 min-h-0">{content}</div>
       </div>
-    ) : (
-      content
     )
 
   if (showRunCard) {
