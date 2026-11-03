@@ -28,6 +28,11 @@ const send = (route: string, body: unknown, method = "PUT") => {
     try { body = { ...(body as object), baseVersion: storage.getLatestNodeData("page-sectioning", "pg001")?.version ?? 0 } }
     finally { storage.close() }
   }
+  if (route.endsWith("/rendering")) {
+    const storage = db()
+    try { body = { baseVersion: storage.getSelectedNodeVersion("web-rendering", route.split("/")[1]) ?? 0, ...(body as object) } }
+    finally { storage.close() }
+  }
   return app.request(`/books/${label}/${route}`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
 }
 beforeEach(() => {

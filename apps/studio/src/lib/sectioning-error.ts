@@ -4,8 +4,13 @@ import { msg } from "@lingui/core/macro"
 /** HTTP codes and persisted/SSE code-prefixed errors use the same translations.
  * Provider diagnostics keep their existing presentation when no code matches. */
 export function sectioningErrorMessage(error?: string, code?: string): string | undefined {
-  const selected = code ?? error?.match(/\b(PACKAGE_FILES_INCOMPLETE|PACKAGE_INPUTS_CHANGED|BOOK_CONFIG_INVALID|SECTIONING_WINDOW_INVALID|PIPELINE_PAGES_FAILED|BOOK_BUSY|STORYBOARD_INPUT_CHANGED|STORYBOARD_PUBLICATION_INCOMPLETE|STORYBOARD_PAGE_INPUT_MISSING|SECTIONING_INPUT_UNREADABLE|SECTIONING_REGENERATION_BLOCKED|UNSAFE_RESUME_UNAVAILABLE|VERSION_CONFLICT|REPLACEMENT_CONFIRMATION_INVALID|EXTRACTION_LEGACY|EXTRACTION_INCOMPLETE|EXTRACTION_SOURCE_CHANGED|EXTRACTION_INPUTS_CHANGED|EXTRACTION_ASSETS_INVALID|EXTRACTION_INPUT_INVALID)\b/)?.[1]
+  const selected = code ?? error?.match(/\b(STORYBOARD_PAGE_OUTSIDE_WINDOW|PACKAGE_FILES_INCOMPLETE|PACKAGE_INPUTS_CHANGED|BOOK_CONFIG_INVALID|SECTIONING_WINDOW_INVALID|PIPELINE_PAGES_FAILED|BOOK_BUSY|STORYBOARD_INPUT_CHANGED|STORYBOARD_PUBLICATION_INCOMPLETE|STORYBOARD_PAGE_INPUT_MISSING|SECTIONING_INPUT_UNREADABLE|SECTIONING_REGENERATION_BLOCKED|UNSAFE_RESUME_UNAVAILABLE|VERSION_CONFLICT|REPLACEMENT_CONFIRMATION_INVALID|EXTRACTION_LEGACY|EXTRACTION_INCOMPLETE|EXTRACTION_SOURCE_CHANGED|EXTRACTION_INPUTS_CHANGED|EXTRACTION_ASSETS_INVALID|EXTRACTION_INPUT_INVALID)\b/)?.[1]
   switch (selected) {
+    case "STORYBOARD_PAGE_OUTSIDE_WINDOW": {
+      const pages = error?.match(/STORYBOARD_PAGE_OUTSIDE_WINDOW:\s*([^;]*)/)?.[1]?.trim() ?? ""
+      const total = error?.match(/; total=(\d+)/)?.[1] ?? ""
+      return i18n._(msg`The requested pages are outside the active page window (${total} total; showing up to 20): ${pages}. Select pages within the current window. Saved content is retained.`)
+    }
     case "PACKAGE_FILES_INCOMPLETE": return i18n._(msg`The package is missing required files. Prepare the export again before downloading it.`)
     case "PACKAGE_INPUTS_CHANGED": return i18n._(msg`The book changed while preparing the package. Prepare the export again using the current book.`)
     case "BOOK_CONFIG_INVALID": return i18n._(msg`This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again.`)

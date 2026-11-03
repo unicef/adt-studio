@@ -67,7 +67,8 @@ export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRende
     try {
       const publication = createStoryboardPublication(storage, label, booksDir, configPath)
       const pages = new Set(publication.storage.getPages().map((page) => page.pageId))
-      if (options.some((item) => !pages.has(item.pageId))) throw new Error("Requested page is outside the active source-page window")
+      const outside = options.filter(item => !pages.has(item.pageId)).map(item => item.pageId)
+      if (outside.length) throw new SectioningSafetyError("STORYBOARD_PAGE_OUTSIDE_WINDOW", `${outside.slice(0, 20).join(", ")}; total=${outside.length}`)
       publication.assertScope([...new Set(options.map((item) => item.pageId))])
       if (isFixedLayoutBook(loadBookConfig(label, booksDir, configPath))) {
         if (options.some((item) => item.sectionIndex !== undefined)) {

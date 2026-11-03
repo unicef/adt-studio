@@ -1,5 +1,6 @@
 import { PageSectioningOutput, WebRenderingOutput, type StoryboardCoverage } from "@adt/types"
 import type { Storage } from "@adt/storage"
+import { ambiguousPublicOutputIds, isPublicOutputId } from "./public-output-identity.js"
 import { getRenderSectioningRow, resolveRenderedSection, withLegacyRenderingOwnership } from "./render-sectioning.js"
 
 /** Coverage uses current records and stable owners, never attempts or historical
@@ -9,6 +10,7 @@ export function storyboardCoverage(storage: Storage, pageIds = storage.getPages(
   const missingSections: Array<{ pageId: string; sectionId: string }> = []
   let included = 0
   let rendered = 0
+  const ambiguous = ambiguousPublicOutputIds(storage)
   for (const pageId of pageIds) {
     let input: unknown
     let rendering: unknown
@@ -22,7 +24,7 @@ export function storyboardCoverage(storage: Storage, pageIds = storage.getPages(
       included++
       const matches = projected ? projected.sections.filter((entry) =>
         entry.html.trim() && resolveRenderedSection(entry, source.data.sections, projected.sections) === section) : []
-      if (matches.length === 1 && (!includesOutput || includesOutput(section.sectionId))) rendered++
+      if (isPublicOutputId(section.sectionId) && !ambiguous.has(section.sectionId) && matches.length === 1 && (!includesOutput || includesOutput(section.sectionId))) rendered++
       else missingSections.push({ pageId, sectionId: section.sectionId })
     }
   }

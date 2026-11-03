@@ -36,7 +36,15 @@ const prompts = path.resolve("prompts"), assets = path.resolve("assets/adt")
 const book = () => createBookStorage(label, root)
 const section = (id: string, text: string) => ({ sectionId: `${id}_sec001`, sectionType: "text_only", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: [{ nodeId: `${id}_t001`, role: "section_text", text, isPruned: false }] })
 const quiz = (question = "AI question") => ({ quizIndex: 0, afterPageId: "pg001", pageIds: ["pg001"], question, answerIndex: 0, reasoning: "", options: [{ text: "One", explanation: "Correct" }, { text: "Two", explanation: "No" }, { text: "Three", explanation: "No" }] })
-const send = (url: string, body: unknown, method = "PUT") => app.request(`/books/${label}/${url}`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+async function send(url: string, body: unknown, method = "PUT") {
+  const page = /^pages\/([^/]+)\/rendering$/.exec(url)
+  if (page && method === "PUT") {
+    const db = book()
+    try { body = { baseVersion: db.getSelectedNodeVersion("web-rendering", page[1]) ?? 0, ...(body as object) } }
+    finally { db.close() }
+  }
+  return app.request(`/books/${label}/${url}`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+}
 async function json(url: string) { const response = await app.request(`/books/${label}/${url}`); expect(response.status, await response.clone().text()).toBe(200); return response.json() }
 async function sectioningConsent() {
   return (await json("step-status")).protectedWork.filter((record: { node: string }) => record.node === "page-sectioning")

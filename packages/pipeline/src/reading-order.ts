@@ -13,6 +13,7 @@
  * user-editable order in at the marked point without moving any consumer.
  */
 import type { Storage } from "@adt/storage"
+import { ambiguousPublicOutputIds, isPublicOutputId } from "./public-output-identity.js"
 import type {
   PageSectioningSection,
   Quiz,
@@ -159,6 +160,7 @@ export function resolveReadingOrder(
   options: ResolveReadingOrderOptions = {}
 ): ResolvedReadingOrder {
   const pageContexts = readPageContexts(storage)
+  const ambiguous = ambiguousPublicOutputIds(storage)
 
   const quizRow = storage.getLatestNodeData("quiz-generation", "book")
   const quizzes =
@@ -192,6 +194,7 @@ export function resolveReadingOrder(
 
   const items: ResolvedItem[] = []
   for (const entry of order) {
+    if (!isPublicOutputId(entry.id) || ambiguous.has(entry.id)) continue
     if (entry.kind === "quiz") {
       const hit = quizzesById.get(entry.id)
       if (!hit) continue

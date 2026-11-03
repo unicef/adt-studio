@@ -16,7 +16,7 @@ it("retains unrecognized provider diagnostics", () => {
   expect(sectioningErrorMessage("Provider returned diagnostic ABC")).toBe("Provider returned diagnostic ABC")
 })
 
-it.each(["PIPELINE_PAGES_FAILED", "SECTIONING_INPUT_UNREADABLE"])("keeps bounded page IDs and full counts for %s in HTTP/SSE messages", code => {
+it.each(["PIPELINE_PAGES_FAILED", "SECTIONING_INPUT_UNREADABLE", "STORYBOARD_PAGE_OUTSIDE_WINDOW"])("keeps bounded page IDs and full counts for %s in HTTP/SSE messages", code => {
   const message = `${code}: p2, p7; total=27; causes=INTERNAL_DETAIL`
   const translated = sectioningErrorMessage(message)
   expect(translated).toContain("27")

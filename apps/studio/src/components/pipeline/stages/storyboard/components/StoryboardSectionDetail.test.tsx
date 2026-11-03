@@ -278,6 +278,7 @@ it.each([false, true])("preserves successor source and inspector drafts after an
   await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2))
   const payload = state.save.mock.calls[1][2]
   expect(payload.baseVersion).toBe(2)
+  expect(payload.renderingBaseVersion).toBe(2)
   expect(payload.sectioning.sections[0].nodes).toContainEqual(expect.objectContaining({ nodeId: "keep", text: "Second source draft" }))
   const doc = new DOMParser().parseFromString(payload.rendering.sections[0].html, "text/html")
   expect(doc.querySelector('[data-id="keep"]')?.className).toBe("text-red-600")
@@ -286,6 +287,24 @@ it.each([false, true])("preserves successor source and inspector drafts after an
   expect(payload.renderingInSync).toBe(false)
   expect(state.generate).not.toHaveBeenCalled()
   await waitFor(() => expect(screen.queryByRole("button", { name: "Save", exact: true })).toBeNull())
+})
+
+it("keeps the captured rendering version and cosmetic draft when a reset arrives through refetch", async () => {
+  const page = fixture()
+  state.save.mockRejectedValue(new Error("VERSION_CONFLICT: rendering changed"))
+  const editor = (value: PageDetail) => <FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={value} /><LeaveProbe /></FloatingSaveProvider>
+  const view = render(editor(page))
+  act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
+  view.rerender(editor({ ...page, versions: { ...page.versions, rendering: 2 }, rendering: null }))
+  await act(async () => { await leaveAction.saveAndStay().catch(() => {}) })
+  expect(state.save).toHaveBeenCalledTimes(1)
+  const payload = state.save.mock.calls[0][2]
+  expect(payload.renderingBaseVersion).toBe(1)
+  expect(payload.rendering.sections[0].html).toContain("text-blue-600")
+  expect(payload.rendering.sections[1]).toEqual(page.rendering!.sections[1])
+  expect(leaveAction.canSave).toBe(true)
+  await act(async () => { await leaveAction.saveAndStay().catch(() => {}) })
+  expect(state.save.mock.calls[1][2]).toEqual(payload)
 })
 
 it("Save & leave rejects if a successor inspector draft is created during the request", async () => {

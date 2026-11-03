@@ -18,6 +18,7 @@
  * tree in history. A config change alone never switches the active tree.
  */
 import type { NodeDataRow, Storage } from "@adt/storage"
+import { ambiguousPublicOutputIds, isPublicOutputId } from "./public-output-identity.js"
 import type { PageSectioningOutput, PageSectioningSection, SectionRendering, ContentNodeData, SectioningSynchronization } from "@adt/types"
 import { PageSectioningOutput as PageSectioningOutputSchema, WebRenderingOutput } from "@adt/types"
 import { parseDocument, DomUtils } from "htmlparser2"
@@ -179,12 +180,16 @@ export function resolveRenderedSection(
 
 /** Shared omission disclosure for preview, API and packaged output. */
 export function renderingOwnershipWarnings(storage: Storage) {
+  const ambiguous = ambiguousPublicOutputIds(storage)
   return storage.getPages().flatMap((page) => {
     const rendering = WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", page.pageId)?.data)
     if (!rendering.success) return []
     const sections = getRenderSectioning(storage, page.pageId)?.sections
     const projected = withLegacyRenderingOwnership(storage, page.pageId, rendering.data)
-    return projected.sections.filter((entry) => !resolveRenderedSection(entry, sections, projected.sections))
+    return projected.sections.filter((entry) => {
+      const owner = resolveRenderedSection(entry, sections, projected.sections)
+      return !owner || !isPublicOutputId(owner.sectionId) || ambiguous.has(owner.sectionId)
+    })
       .map((entry) => ({ kind: "orphaned-rendering" as const, pageId: page.pageId, sectionIndex: entry.sectionIndex }))
   })
 }
@@ -219,6 +224,22 @@ export function getRenderSectioning(
   if (!row) return undefined
   const parsed = PageSectioningOutputSchema.safeParse(row.data)
   return parsed.success ? parsed.data : undefined
+}
+
+/** Only usable published pairs establish a prior layout. This includes the
+ * accepted older producer whose positioned tree lived in page-sectioning. */
+export function publishedPageLayouts(storage: Storage, pageId: string): Set<"fixed" | "reflowable"> {
+  const layouts = new Set<"fixed" | "reflowable">()
+  const source = getRenderSectioning(storage, pageId)
+  const saved = WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", pageId)?.data)
+  if (!source || !saved.success) return layouts
+  const projected = withLegacyRenderingOwnership(storage, pageId, saved.data)
+  for (const rendering of projected.sections) {
+    const section = resolveRenderedSection(rendering, source.sections, projected.sections)
+    if (!section || section.isPruned || !rendering.html.trim()) continue
+    layouts.add(section.sectionType === "fixed-layout-page" && section.viewport && section.placement ? "fixed" : "reflowable")
+  }
+  return layouts
 }
 
 /**

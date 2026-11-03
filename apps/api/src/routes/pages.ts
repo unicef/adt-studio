@@ -3,6 +3,8 @@ import { putSourceNodeData, preserveRenderedOwnership, withSourceGenerationTrack
 import { cloneRenderedIdentities, stampRenderedOwner } from "@adt/pipeline"
 import { stampManualEdits } from "@adt/pipeline"
 import { AuthoredSaveGuard } from "@adt/types"
+import { RenderingSave, StoryboardSave } from "@adt/types"
+import { invalidPublicOutputIdentity } from "@adt/pipeline"
 import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
 import { storyboardCoverage, scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
@@ -605,6 +607,11 @@ function saveStoryboardNode(
       [PageSectioningOutput.parse(data)], () => itemId,
       (before, after) => !renderingChanged && inputSignature(before.sections) === inputSignature(after.sections),
     )[0] : data
+    const identities = node === "page-sectioning" ? PageSectioningOutput.parse(saved).sections.map(section => section.sectionId)
+      : WebRenderingOutput.parse(saved).sections.flatMap(section => renderedSectionId(section) ?? section.sectionId ?? [])
+    if (invalidPublicOutputIdentity(storage, itemId, identities) !== undefined) {
+      throw new HTTPException(409, { message: "STORYBOARD_INPUT_CHANGED: Section identities must be safe, unique and owned by this page." })
+    }
     if (node === "page-sectioning") {
       const before = PageSectioningOutput.safeParse(storage.getLatestNodeData(node, itemId)?.data)
       const after = PageSectioningOutput.parse(saved)
@@ -1632,7 +1639,7 @@ export function createPageRoutes(
     const safeLabel = parseBookLabel(label)
 
     const body = await c.req.json()
-    const parsed = WebRenderingOutput.safeParse(body)
+    const parsed = RenderingSave.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid web-rendering data: ${parsed.error.message}`,
@@ -1647,7 +1654,11 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
-      const version = storage.transaction(() => saveStoryboardNode(storage, "web-rendering", pageId, parsed.data))
+      const version = storage.transaction(() => {
+        assertNoActivePipelineRun(storage)
+        assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, parsed.data.baseVersion)
+        return saveStoryboardNode(storage, "web-rendering", pageId, WebRenderingOutput.parse(parsed.data))
+      })
       return c.json({ version })
     } finally {
       storage.close()
@@ -1676,14 +1687,7 @@ export function createPageRoutes(
     const safeLabel = parseBookLabel(label)
 
     const body = await c.req.json()
-    const parsed = z
-      .object({
-        sectioning: PageSectioningOutput.omit({ source: true }).optional(),
-        baseVersion: AuthoredSaveGuard.shape.baseVersion.optional(),
-        rendering: WebRenderingOutput.optional(),
-        renderingInSync: z.boolean().default(false),
-      })
-      .safeParse(body)
+    const parsed = StoryboardSave.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid storyboard save: ${parsed.error.message}`,
@@ -1723,6 +1727,8 @@ export function createPageRoutes(
       // single editor save. If any statement fails, none of them may survive.
       const previousSectioning = sectioning ? PageSectioningOutput.safeParse(storage.getLatestNodeData("page-sectioning", pageId)?.data) : null
       const { renderingVersion, sectioningVersion } = withSourceGenerationTracking(storage, () => {
+        assertNoActivePipelineRun(storage)
+        if (rendering) assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, parsed.data.renderingBaseVersion!)
         const saved = {
           renderingVersion: rendering
             ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)

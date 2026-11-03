@@ -56,6 +56,57 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
 describe("Storyboard layout publication", () => {
+  it("recognizes a legacy fixed pair, permits same-layout targeting and refuses a mixed-layout target", async () => {
+    await run()
+    const s = store()
+    const legacy = s.getLatestNodeData("fixed-layout-sectioning", "p2")!
+    s.putNodeData("page-sectioning", "p2", legacy.data)
+    s.putNodeData("fixed-layout-sectioning", "p2", null)
+    s.putNodeData("web-rendering", "p7", null)
+    s.putNodeData("fixed-layout-sectioning", "p7", null)
+    const before = s.getLatestNodeData("web-rendering", "p2")!
+    s.close()
+    // Targeting another page must see the legacy published layout on p2.
+    fs.writeFileSync(configPath, config)
+    await expect(reRenderPages([{ ...options(), label, pageId: "p7" }])).rejects.toThrow("STORYBOARD_PUBLICATION_INCOMPLETE")
+    const retained = store()
+    expect(retained.getLatestNodeData("web-rendering", "p2")).toEqual(before)
+    expect(retained.getLatestNodeData("web-rendering", "p7")?.data).toBeNull()
+    retained.close()
+    fs.writeFileSync(configPath, config + fixedConfig)
+    const [next] = await reRenderPages([{ ...options(), label, pageId: "p2" }])
+    expect(next.version).toBe(before.version + 1)
+  })
+
+  it("does not treat a saved empty rendering as prior reflowable output", async () => {
+    const s = store()
+    s.putNodeData("web-rendering", "p7", { sections: [] })
+    s.close()
+    const [next] = await reRenderPages([{ ...options(), label, pageId: "p2" }])
+    expect(next.version).toBe(1)
+    const after = store()
+    expect(after.getLatestNodeData("web-rendering", "p7")?.data).toEqual({ sections: [] })
+    after.close()
+  })
+
+  it("flushes a catch-up event for a late subscriber even while the worker is silent", async () => {
+    const bus = createBookEventBus()
+    const decisions = createPageErrorDecisions(bus)
+    const service = createStageService(createStageRunner(), bus, decisions)
+    const app = new Hono().onError(errorHandler).route("/", createStageRoutes(service, bus, decisions, root, root, root, configPath))
+    const response = await app.request(`/books/${label}/stages/status`, { headers: { accept: "text/event-stream" } })
+    const reader = response.body!.getReader()
+    try {
+      const frame = await reader.read()
+      expect(new TextDecoder().decode(frame.value)).toContain("event: ready")
+    } finally { await reader.cancel() }
+  })
+
+  it("reports an outside-window target with a typed bounded diagnostic and no render call", async () => {
+    fs.writeFileSync(configPath, config + "start_page: 7\nend_page: 7\n")
+    await expect(reRenderPages([{ ...options(), label, pageId: "p2" }])).rejects.toThrow("STORYBOARD_PAGE_OUTSIDE_WINDOW: p2; total=1")
+    expect(render).not.toHaveBeenCalled()
+  })
   it("targeted fixed-layout rendering keeps the positioned renderer and leaves other pages untouched", async () => {
     const db = openBookDb(path.join(root, label, `${label}.db`))
     db.run("UPDATE images SET width = ? WHERE page_id = ?", [8, "p7"])
@@ -203,6 +254,10 @@ describe("Storyboard layout publication", () => {
 
   it("does not publish a partial fixed layout when a requested page has no viewport", async () => {
     fs.writeFileSync(configPath, config)
+    render.mockImplementation(async (input) => {
+      const source = (input as { sectioning: ReturnType<typeof semantic> }).sectioning
+      return { sections: source.sections.map((section, sectionIndex) => ({ sectionId: section.sectionId, sectionIndex, sectionType: section.sectionType, reasoning: "published", html: `<main data-section-id="${section.sectionId}">Retained output</main>` })) }
+    })
     await run()
     const before = store()
     const old = ["p2", "p7"].map((id) => before.getAllNodeVersions("web-rendering", id))

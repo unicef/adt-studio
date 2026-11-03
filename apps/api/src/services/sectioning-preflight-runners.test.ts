@@ -33,8 +33,10 @@ beforeEach(() => {
   const s = store()
   for (const n of [2, 7]) {
     s.putExtractedPage({ pageId: `p${n}`, pageNumber: n, text: "text", pageImage: { imageId: `p${n}_page`, buffer: Buffer.from("image"), hash: "test", width: 4, height: 6, format: "png" }, images: [] })
-    s.putNodeData("page-sectioning", `p${n}`, output(n === 7 ? 2 : 1))
-    s.putNodeData("web-rendering", `p${n}`, { sections: [{ html: "saved" }] })
+    const tree = output(n === 7 ? 2 : 1)
+    for (const section of tree.sections) section.sectionId = section.sectionId.replace("p2_", `p${n}_`)
+    s.putNodeData("page-sectioning", `p${n}`, tree)
+    s.putNodeData("web-rendering", `p${n}`, rendered({ sectioning: tree }))
   }
   s.close()
   writeSectioningLifecycle(dir, "page", true)

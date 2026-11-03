@@ -51,6 +51,42 @@ async function replacement(ids?: string[]) {
   const { protectedWork } = await response.json()
   return { replaceManual: true, protectedReplacements: protectedWork.filter((record: { node: string; itemId: string }) => record.node === "page-sectioning" && (!ids || ids.includes(record.itemId))).map(({ pageNumber: _, ...record }: Record<string, unknown>) => record) }
 }
+
+it("rejects a changed effective Sectioning prompt before reset and accepts a freshly reviewed receipt", async () => {
+  const prompt = path.join(root, "page_sectioning.liquid")
+  fs.writeFileSync(prompt, "Reviewed prompt")
+  const receipt = await replacement(["p2"])
+  const before = history("web-rendering", "p2")
+  fs.writeFileSync(prompt, "Changed prompt")
+  const rejected = await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", ...receipt })
+  expect(rejected.status).toBe(409)
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(history("web-rendering", "p2")).toEqual(before)
+  expect((await run({ toStage: "sectioning", ...await replacement(["p2"]) })).status).toBe("completed")
+  expect(sectionPage).toHaveBeenCalledTimes(1)
+})
+
+it("binds a byte-identical prompt version selection and rejects a prompt change at publication", async () => {
+  const versions = path.join(dir, "prompts/.versions/page_sectioning")
+  fs.mkdirSync(versions, { recursive: true })
+  for (const version of ["1.liquid", "2.liquid"]) fs.writeFileSync(path.join(versions, version), "Identical reviewed prompt")
+  fs.writeFileSync(path.join(versions, ".current"), "1.liquid")
+  const stale = await replacement(["p2"])
+  fs.writeFileSync(path.join(versions, ".current"), "2.liquid")
+  expect((await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", ...stale })).status).toBe(409)
+  expect(sectionPage).not.toHaveBeenCalled()
+  const before = history("page-sectioning", "p2")
+  const fresh = await replacement(["p2"])
+  sectionPage.mockImplementationOnce(async ({ pageId }) => {
+    fs.writeFileSync(path.join(versions, "2.liquid"), "Changed outside the supported writer during generation")
+    return tree(pageId)
+  })
+  const result = await run({ toStage: "sectioning", ...fresh, pageErrorPolicy: "stop" })
+  expect(result.status).toBe("failed")
+  expect(result.error).toContain("STORYBOARD_INPUT_CHANGED")
+  expect(history("page-sectioning", "p2")).toEqual(before)
+  expect(history("web-rendering", "p2").at(-1)?.data).toBeNull()
+})
 async function run(extra = {}) {
   let result: { status: string; error?: string } | undefined
   const dispose = bus.addListener(label, (event) => {

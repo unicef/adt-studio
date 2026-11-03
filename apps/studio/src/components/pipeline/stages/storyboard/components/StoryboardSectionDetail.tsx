@@ -436,6 +436,8 @@ export function StoryboardSectionDetail({
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
   const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string; consequence?: string } | null>(null)
   const sectioningBaseVersion = useRef<number | null>(null)
+  const renderingBaseVersion = useRef<number | null>(null)
+  const renderingDraftBase = useRef<RenderingData | null>(null)
   const [pendingSectioning, setPendingSectioningState] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRenderingState] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
@@ -459,13 +461,15 @@ export function StoryboardSectionDetail({
   const markPending = useCallback((category: PendingCategory) => {
     if (restoringRef.current) return
     sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
+    renderingBaseVersion.current ??= page.versions.rendering ?? 0
+    renderingDraftBase.current ??= page.rendering
     setPendingCategories((prev) => {
       if (prev.has(category)) return prev
       const next = new Set(prev)
       next.add(category)
       return next
     })
-  }, [page.versions.sectioning])
+  }, [page.versions.sectioning, page.versions.rendering, page.rendering])
   // Tracks whether saved sectioning will still require an explicit LLM re-render.
   // Pure prune/delete can be resolved locally; unprune/type change/reorder need LLM.
   const needsRerenderRef = useRef(false)
@@ -479,15 +483,24 @@ export function StoryboardSectionDetail({
     const value = typeof next === "function" ? next(latestDraftRef.current.sectioning) : next
     latestDraftRef.current.sectioning = value
     if (value === null) sectioningBaseVersion.current = null
-    else sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
+    else {
+      sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
+      renderingBaseVersion.current ??= page.versions.rendering ?? 0
+      renderingDraftBase.current ??= page.rendering
+    }
     setPendingSectioningState(value)
-  }, [page.versions.sectioning])
+  }, [page.versions.sectioning, page.versions.rendering, page.rendering])
   const setPendingRendering = useCallback((next: SetStateAction<RenderingData | null>) => {
     if (restoringRef.current) return
     const value = typeof next === "function" ? next(latestDraftRef.current.rendering) : next
     latestDraftRef.current.rendering = value
+    if (value === null) { renderingBaseVersion.current = null; renderingDraftBase.current = null }
+    else {
+      renderingBaseVersion.current ??= page.versions.rendering ?? 0
+      renderingDraftBase.current ??= page.rendering
+    }
     setPendingRenderingState(value)
-  }, [])
+  }, [page.versions.rendering, page.rendering])
 
   // A response acknowledges only the draft sent with that request. Editors
   // remain usable while saving; later source, HTML and inspector edits must
@@ -951,10 +964,14 @@ export function StoryboardSectionDetail({
       const saved = await api.saveStoryboard(bookLabel, pageId, {
         ...sourceSave,
         baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
+        renderingBaseVersion: renderingBaseVersion.current ?? page.versions.rendering ?? 0,
         rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
       })
 
       const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
+      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.renderingVersion != null) {
+        renderingBaseVersion.current = saved.renderingVersion
+      }
       if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.sectioningVersion != null) {
         sectioningBaseVersion.current = saved.sectioningVersion
       }
@@ -1024,8 +1041,12 @@ export function StoryboardSectionDetail({
         rendering: stripTransientIds(renderingToSave),
         ...sourceSave,
         baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
+        renderingBaseVersion: renderingBaseVersion.current ?? page.versions.rendering ?? 0,
       })
       const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
+      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.renderingVersion != null) {
+        renderingBaseVersion.current = saved.renderingVersion
+      }
       if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.sectioningVersion != null) {
         sectioningBaseVersion.current = saved.sectioningVersion
       }
@@ -1812,10 +1833,10 @@ export function StoryboardSectionDetail({
   const flushPendingHtml = useCallback((): RenderingData | null => {
     const queued = pendingHtmlRef.current
     if (!queued) return pendingRendering
-    if (!page.rendering) return pendingRendering
+    const base = pendingRendering ?? renderingDraftBase.current ?? page.rendering
+    if (!base) return pendingRendering
     pendingHtmlRef.current = null
     setHasUnflushedEdits(false)
-    const base = pendingRendering ?? page.rendering
     const merged: RenderingData = {
       ...base,
       sections: base.sections.map((s) =>

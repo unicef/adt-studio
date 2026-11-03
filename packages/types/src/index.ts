@@ -257,6 +257,8 @@ export {
   FIXED_LAYOUT_MAX_SCALE,
   SectionRendering,
   WebRenderingOutput,
+  RenderingSave,
+  StoryboardSave,
   webRenderingLLMSchema,
   activityAnswersLLMSchema,
   visualReviewLLMSchema,

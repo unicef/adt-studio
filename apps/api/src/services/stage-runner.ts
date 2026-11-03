@@ -952,7 +952,7 @@ export function createStageRunner(): StageRunner {
         const storage = createBookStorage(label, options.booksDir)
         try {
           assertAuthoredReplacement(storage, options)
-          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, options.booksDir, options.configPath), bookDir), options, sectioningReplacementSignature(storage, label, options.booksDir, options.configPath))
+          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, options.booksDir, options.configPath), bookDir), options, sectioningReplacementSignature(storage, label, options.booksDir, options.configPath, options.promptsDir))
         } finally { storage.close() }
         return runner.run(label, options, progress)
       })
@@ -1416,7 +1416,7 @@ async function runSectioningStep(
   try {
     const config = loadBookConfig(label, booksDir, configPath)
     const allPages = activeSectioningPages(storage, config, path.join(path.resolve(booksDir), label))
-    const inputSignature = () => sectioningReplacementSignature(storage, label, booksDir, configPath)
+    const inputSignature = () => sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir)
     let runInputSignature = inputSignature()
     const assertRunInputs = () => {
       if (inputSignature() !== runInputSignature) {
@@ -1441,7 +1441,7 @@ async function runSectioningStep(
     const retainedWarning = retainedUnreadable.length ? `SECTIONING_INPUT_UNREADABLE: ${retainedUnreadable.slice(0, 20).join(", ")}; total=${retainedUnreadable.length}` : undefined
     const previousVersions = new Map(pages.map((page) => [page.pageId, storage.getSelectedNodeVersion("page-sectioning", page.pageId)]))
     options.signal?.throwIfAborted()
-    resetSectioningStoryboard(storage, options, sectioningReplacementSignature(storage, label, booksDir, configPath))
+    resetSectioningStoryboard(storage, options, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
     const outputVersions = new Map(pages.map(({ pageId }) => [pageId, [
       storage.getSelectedNodeVersion("web-rendering", pageId),
       storage.getSelectedNodeVersion("fixed-layout-sectioning", pageId),

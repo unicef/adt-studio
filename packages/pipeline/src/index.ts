@@ -527,3 +527,4 @@ export { storyboardCoverage, missingStoryboardInputMessage } from "./storyboard-
 export { retainedPackageOwnership } from "./packaging/bundle-ownership.js"
 export { publishedAdtDirectory } from "./packaging/publication-directory.js"
 export { packageFilesAvailable } from "./packaging/bundle-files.js"
+export { isPublicOutputId, ambiguousPublicOutputIds, invalidPublicOutputIdentity } from "./public-output-identity.js"

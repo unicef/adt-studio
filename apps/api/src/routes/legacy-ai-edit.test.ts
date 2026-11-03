@@ -69,7 +69,7 @@ it("does not expose an orphaned clone under a live index after Sectioning restor
   expect(page.sectioningSynchronization).toMatchObject({ sourceVersion: original, renderingVersion: renderedVersion,
     sections: [{ sectionId: "clone", status: "structural-drift", action: "review" }] })
   page.rendering.sections.find((entry: { sectionIndex: number }) => entry.sectionIndex === 1).html = '<section data-section-id="B"><p data-id="text-B">Edited B</p></section>'
-  expect((await app.request("/books/book/pages/pg001/rendering", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(page.rendering) })).status).toBe(200)
+  expect((await app.request("/books/book/pages/pg001/rendering", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...page.rendering, baseVersion: page.versions.rendering }) })).status).toBe(200)
   const saved = db.getLatestNodeData("web-rendering", "pg001")!.data as WebRenderingOutput
   expect(saved.sections.find(entry => entry.sectionId === "B")?.html).toContain("Edited B")
   expect(saved.sections.find(entry => entry.sectionId === "clone")).toMatchObject({ html: retained.sections[1].html, activityAnswers: retained.sections[1].activityAnswers })

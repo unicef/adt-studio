@@ -7,12 +7,83 @@ import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/st
 import { errorHandler } from "../middleware/error-handler.js"
 import { createPageRoutes } from "./pages.js"
 import type { TaskExecutor, TaskService } from "../services/task-service.js"
+import { resolveReadingOrder, storyboardCoverage, renderingOwnershipWarnings } from "@adt/pipeline"
 
 describe("Page routes", () => {
   let tmpDir: string
   let globalConfigPath: string
   let app: Hono
   const label = "test-book"
+
+  it.each([false, true])("rejects a second page claiming an existing public ID and omits ambiguous imported owners (case alias=%s)", async caseAlias => {
+    const s = createBookStorage(label, tmpDir)
+    const source = s.getLatestNodeData("page-sectioning", `${label}_p1`)!
+    const rendering = s.getLatestNodeData("web-rendering", `${label}_p1`)!
+    const claim = structuredClone(source.data) as import("@adt/types").PageSectioningOutput
+    const claimedRendering = structuredClone(rendering.data) as import("@adt/types").WebRenderingOutput
+    if (caseAlias) for (const section of claim.sections) {
+      const previous = section.sectionId
+      section.sectionId = previous.toUpperCase()
+      for (const rendered of claimedRendering.sections) {
+        if (rendered.sectionId === previous) rendered.sectionId = section.sectionId
+        rendered.html = rendered.html.replaceAll(previous, section.sectionId)
+      }
+    }
+    const id = `${label}_p2`
+    const before = s.getAllNodeVersions("page-sectioning", id)
+    const version = s.getSelectedNodeVersion("page-sectioning", id) ?? 0
+    s.close()
+    const request = await app.request(`/api/books/${label}/pages/${id}/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...claim, baseVersion: version }) })
+    expect(request.status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getAllNodeVersions("page-sectioning", id)).toEqual(before)
+    // An imported book can bypass HTTP validation. Both public claims must be
+    // omitted and disclosed, never silently picked by Map insertion order.
+    after.putNodeData("page-sectioning", id, claim)
+    after.putNodeData("web-rendering", id, claimedRendering)
+    expect(storyboardCoverage(after).complete).toBe(false)
+    expect(resolveReadingOrder(after).items).toHaveLength(0)
+    expect(renderingOwnershipWarnings(after).map(warning => warning.pageId)).toEqual(expect.arrayContaining([`${label}_p1`, id]))
+    expect(after.getLatestNodeData("web-rendering", `${label}_p1`)).toEqual(rendering)
+    after.close()
+  })
+
+  it.each(["storyboard", "rendering"])("rejects a stale %s draft after reset, preserves history, then accepts a fresh save", async endpoint => {
+    const pageId = `${label}_p1`
+    const storage = createBookStorage(label, tmpDir)
+    const original = storage.getLatestNodeData("web-rendering", pageId)!
+    const source = storage.getLatestNodeData("page-sectioning", pageId)!
+    const reset = storage.putNodeData("web-rendering", pageId, null)
+    const history = storage.getAllNodeVersions("web-rendering", pageId)
+    storage.close()
+    const save = (version?: number) => app.request(`/api/books/${label}/pages/${pageId}/${endpoint}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint === "storyboard"
+        ? { rendering: original.data, baseVersion: source.version, renderingBaseVersion: version }
+        : { ...(original.data as object), baseVersion: version }),
+    })
+    expect((await save()).status).toBe(400)
+    expect((await save(original.version)).status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getAllNodeVersions("web-rendering", pageId)).toEqual(history)
+    expect(after.getLatestNodeData("page-sectioning", pageId)).toEqual(source)
+    after.close()
+    expect((await save(reset)).status).toBe(200)
+  })
+
+  it.each(["../outside", "..\\outside", "index", "CON", "NUL.txt", "trailing.", "%2e%2e%2foutside"])("rejects unsafe public section identity %s without changing saved versions", async unsafe => {
+    const pageId = `${label}_p1`
+    const storage = createBookStorage(label, tmpDir)
+    const row = storage.getLatestNodeData("page-sectioning", pageId)!
+    const original = structuredClone(row)
+    storage.close()
+    const data = row.data as { sections: Array<{ sectionId: string }> }
+    data.sections[0].sectionId = unsafe
+    const response = await app.request(`/api/books/${label}/pages/${pageId}/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, baseVersion: row.version }) })
+    expect(response.status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getLatestNodeData("page-sectioning", pageId)).toEqual(original)
+    after.close()
+  })
 
   // These regression cases test structural/restore semantics. Emulate the
   // editor's version read; missing/stale/racing guards are exercised without
@@ -23,15 +94,15 @@ describe("Page routes", () => {
     let body: Record<string, unknown>
     try { body = init?.body ? JSON.parse(String(init.body)) : {} } catch { return app.request(url, init) }
     const restore = url.match(/\/versions\/([^/]+)\/([^/]+)\/restore/)
-    const page = url.match(/\/pages\/([^/]+)\/(sectioning|storyboard|sections\/\d+(?:\/(?:clone|split|merge|merge-cross-page|ai-edit))?)(?:\?|$)/)
+    const page = url.match(/\/pages\/([^/]+)\/(sectioning|rendering|storyboard|sections\/\d+(?:\/(?:clone|split|merge|merge-cross-page|ai-edit))?)(?:\?|$)/)
     if (!restore && !page) return app.request(url, init)
-    if (page?.[2] === "storyboard" && !body.sectioning) return app.request(url, init)
     const requestLabel = url.match(/\/books\/([^/]+)/)?.[1] ?? label
     const exists = fs.existsSync(path.join(tmpDir, requestLabel, `${requestLabel}.db`))
     const storage = exists ? createBookStorage(requestLabel, tmpDir) : null
     try {
-      const node = restore?.[1] ?? "page-sectioning", id = restore?.[2] ?? page![1]
-      body.baseVersion ??= storage?.getCurrentNodeVersion(node, id) ?? 0
+      const node = restore?.[1] ?? (page?.[2] === "rendering" ? "web-rendering" : "page-sectioning"), id = restore?.[2] ?? page![1]
+      body.baseVersion ??= storage?.getSelectedNodeVersion(node, id) ?? 0
+      if (page?.[2] === "storyboard" && body.rendering) body.renderingBaseVersion ??= storage?.getSelectedNodeVersion("web-rendering", id) ?? 0
       if (url.includes("merge-cross-page") && storage) {
         const pages = storage.getPages()
         const index = pages.findIndex((p) => p.pageId === id)

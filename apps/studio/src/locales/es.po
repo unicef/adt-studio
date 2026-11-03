@@ -12175,6 +12175,9 @@ msgstr "La estrategia de renderización usada para secciones sin un mapeo explí
 msgid "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which ADT Studio signs in through. This is expected."
 msgstr "La solicitud aparece como <0>Wrangler</0> — la propia herramienta de Cloudflare, a través de la cual ADT Studio inicia sesión. Esto es esperado."
 
+msgid "The requested pages are outside the active page window ({total} total; showing up to 20): {pages}. Select pages within the current window. Saved content is retained."
+msgstr "Las páginas solicitadas están fuera del intervalo de páginas activo ({total} en total; se muestran hasta 20): {pages}. Seleccione páginas dentro del intervalo actual. El contenido guardado se conserva."
+
 msgid "The same edition in every language."
 msgstr "La misma edición en cada idioma."
 

@@ -12177,6 +12177,9 @@ msgstr "La stratégie de rendu utilisée pour les sections sans correspondance e
 msgid "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which ADT Studio signs in through. This is expected."
 msgstr "La demande apparaît comme <0>Wrangler</0> — l'outil propre de Cloudflare, par lequel ADT Studio se connecte. C'est attendu."
 
+msgid "The requested pages are outside the active page window ({total} total; showing up to 20): {pages}. Select pages within the current window. Saved content is retained."
+msgstr "Les pages demandées sont en dehors de l’intervalle de pages actif ({total} au total ; jusqu’à 20 affichées) : {pages}. Sélectionnez des pages dans l’intervalle actuel. Le contenu enregistré est conservé."
+
 msgid "The same edition in every language."
 msgstr "La même édition dans chaque langue."
 

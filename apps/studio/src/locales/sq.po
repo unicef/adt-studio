@@ -12177,6 +12177,9 @@ msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eks
 msgid "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which ADT Studio signs in through. This is expected."
 msgstr "Kërkesa shfaqet si <0>Wrangler</0> — mjeti i vetë Cloudflare, përmes të cilit hyn ADT Studio. Kjo është e pritur."
 
+msgid "The requested pages are outside the active page window ({total} total; showing up to 20): {pages}. Select pages within the current window. Saved content is retained."
+msgstr "Faqet e kërkuara janë jashtë intervalit aktiv të faqeve ({total} gjithsej; shfaqen deri në 20): {pages}. Zgjidhni faqe brenda intervalit aktual. Përmbajtja e ruajtur mbahet."
+
 msgid "The same edition in every language."
 msgstr "I njëjti botim në çdo gjuhë."
 
