@@ -17,7 +17,7 @@ export interface PageThumbProps {
   className?: string
   style?: CSSProperties
   fit?: "cover" | "contain"
-  source?: "rendering" | "page" | "layered"
+  layered?: boolean
   viewport?: "mobile" | "desktop"
   shotWidth?: number
 }
@@ -52,22 +52,20 @@ export function PageThumb({
   className,
   style,
   fit = "cover",
-  source = "rendering",
+  layered = false,
   viewport = "mobile",
   shotWidth,
 }: PageThumbProps) {
   const contentLoaders = useVariant("loaders") === "content"
   const [ref, inView] = useInView<HTMLDivElement>(contentLoaders ? "800px" : "200px")
-  const pageImage = source === "page"
-  const layered = source === "layered"
   const [baseSettled, setBaseSettled] = useState(false)
   const screenshot = useSectionScreenshot(label, pageId, sectionIndex, {
     viewport,
     cacheKey,
     width: shotWidth,
-    enabled: inView && !pruned && !pageImage && (!layered || (baseSettled && !pending)),
+    enabled: inView && !pruned && (!layered || (baseSettled && !pending)),
   })
-  const needsPdf = pageImage || sectionIndex == null || pruned === true || pending === true || screenshot.isError
+  const needsPdf = sectionIndex == null || pruned === true || pending === true || screenshot.isError
   const awaitingShot = contentLoaders && !needsPdf && !screenshot.data
   const renderedWidth = useRenderedWidth(ref, inView, fit)
   const showPdf = inView && renderedWidth > 0 && (needsPdf || awaitingShot)
@@ -126,7 +124,7 @@ export function PageThumb({
             label={label}
             pageId={pageId}
             cssWidth={renderedWidth}
-            dimmed={pageImage ? !!pending : awaitingShot || !(contentLoaders && !pending && !pruned)}
+            dimmed={awaitingShot || !(contentLoaders && !pending && !pruned)}
             className={cn(
               "relative size-full object-center",
               fit === "contain" ? "bg-muted object-contain" : "object-cover",

@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { LayoutList, Link2, PanelBottom, RotateCcw, ShieldCheck } from "lucide-react"
+import { Link2, PanelBottom, RotateCcw, ShieldCheck } from "lucide-react"
 import { useRouter, useRouterState } from "@tanstack/react-router"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { readThemeMode, setThemeMode } from "@/lib/theme"
@@ -19,7 +19,7 @@ import { getVariant, resetVariants, setVariantValue, useVariants, type VariantKe
 
 export const NAV_LAB_PARAM = "navlab"
 
-const DOCK_KEYS = ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "railthumb"] as const
+const DOCK_KEYS = ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"] as const
 
 
 interface NavLabState {
@@ -88,23 +88,6 @@ export function NavLab() {
   ]
 
   const groups: LabGroup[] = [
-    {
-      key: "pages-list",
-      label: t`Pages list`,
-      icon: <LayoutList className="size-3.5" />,
-      controls: [
-        {
-          key: "railthumb",
-          label: t`Thumbnails`,
-          options: [
-            { value: "today", label: t`Today` },
-            { value: "page", label: t`Page image` },
-            { value: "layout", label: t`Rendered layout` },
-          ],
-        },
-      ],
-      note: t`How the storyboard's Pages list draws each page. Compare on a book with spreads (Triste) and a portrait one (Raven).`,
-    },
     {
       key: "dock",
       label: t`Dock`,
@@ -196,7 +179,6 @@ export function NavLab() {
 
   const values: LabValues = {
     stagestate: activeStage && activeStage.page === pageKey ? activeStage.id : "real-data",
-    railthumb: variants.railthumb,
     docklayout: variants.docklayout,
     sbsim: variants.sbsim,
     setupsplit: variants.setupsplit,
