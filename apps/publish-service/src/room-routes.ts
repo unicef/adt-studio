@@ -14,7 +14,7 @@ import {
 import { accessGranted } from "./access.js"
 import { callerIp, clientHandle, throttleSecretFor } from "./access-throttle.js"
 import type { Env } from "./env.js"
-import { errorResponse } from "./errors.js"
+import { COMMENTS_OFF_MESSAGE, errorResponse } from "./errors.js"
 import { randomId } from "./identity.js"
 import { mgmtSecretPresented } from "./middleware/mgmt-auth.js"
 import type { PublicationVariables } from "./middleware/publication-lookup.js"
@@ -191,6 +191,10 @@ export function registerRoomRoutes(app: Hono<RoomAppEnv>, deps: RoomRoutesDeps):
 
     if (!ticketed && !(await accessGranted(c))) {
       return errorResponse(c, "unauthorized", 401, "This book needs an access code")
+    }
+
+    if (publication.comments === false && !ticketed && !c.get("isAuthor")) {
+      return errorResponse(c, "comments_off", 403, COMMENTS_OFF_MESSAGE)
     }
 
     const peer = await peerFor(c, deps, publication.token, ticketed || c.get("isAuthor"))

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import type { AvailableExportFeatures } from "@/hooks/use-export-features"
 import {
@@ -30,13 +30,17 @@ export type IncludeKey = keyof IncludeChoiceValue
  * hands back the same answers — above all the same access code, which the author may already
  * have written on the board.
  */
-export function useShareForm(available: AvailableExportFeatures) {
+export function useShareForm(available: AvailableExportFeatures, previousComments?: boolean) {
   const { t, i18n } = useLingui()
   const [access, setAccess] = useState<AccessChoiceValue>(DEFAULT_ACCESS_CHOICE)
   /** Generated once, so the code the author is looking at is the code that gets shared. */
   const [code, setCodeRaw] = useState(() => generateAccessCode())
   const [expiry, setExpiry] = useState<ExpiryChoiceValue>(DEFAULT_EXPIRY_CHOICE)
   const [include, setInclude] = useState<IncludeChoiceValue>(DEFAULT_INCLUDE_CHOICE)
+  const [comments, setComments] = useState(true)
+  useEffect(() => {
+    if (previousComments === false) setComments(false)
+  }, [previousComments])
 
   /** A book with no narration shows no narration row, rather than a switch that does nothing. */
   const includeRows = (
@@ -68,10 +72,13 @@ export function useShareForm(available: AvailableExportFeatures) {
       setInclude((current) => ({ ...current, [key]: !current[key] })),
     includeRows,
     includedCount: included.length,
+    comments,
+    toggleComments: () => setComments((current) => !current),
     /** What the publish route takes. Built at the moment of sharing, so an end date is counted
      *  from the click, not from when the page opened. */
     toPublishOptions: () => {
-      const features = includeChoiceToFeatures(include)
+      const included = includeChoiceToFeatures(include)
+      const features = comments ? included : { ...included, comments: false }
       return {
         expiresAt: expiryChoiceToIso(expiry),
         accessCode: access === "code" ? normalizeAccessCodeInput(code) : null,

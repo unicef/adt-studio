@@ -921,6 +921,7 @@ describe("when a book's access changes", () => {
       ["revoked", (token) => env.DB.prepare("UPDATE publications SET revoked_at = ? WHERE token = ?").bind(new Date().toISOString(), token).run()],
       ["expired", (token) => env.DB.prepare("UPDATE publications SET expires_at = ? WHERE token = ?").bind(new Date(Date.now() - 60_000).toISOString(), token).run()],
       ["given a new code", async (token) => env.DB.prepare("UPDATE publications SET access_code = ? WHERE token = ?").bind(await hashAccessCode("MOONRISE"), token).run()],
+      ["made read-only", (token) => env.DB.prepare("UPDATE publications SET comments_off = 1 WHERE token = ?").bind(token).run()],
     ]
 
     it.each(changes)("tells only the author when the book was %s and the sender didn't say", async (_change, apply) => {

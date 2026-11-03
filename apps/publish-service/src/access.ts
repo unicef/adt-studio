@@ -4,6 +4,7 @@ import { createMiddleware } from "hono/factory"
 import { html, raw } from "hono/html"
 import {
   COMMENTER_NAME_MAX_LENGTH,
+  COMMENTER_SESSION_COOKIE,
   PUBLICATION_ACCESS_CODE_LENGTH,
   PUBLICATION_ACCESS_CODE_MAX_LENGTH,
   PUBLICATION_ACCESS_COOKIE,
@@ -127,6 +128,8 @@ export interface GatePageOptions {
   cover?: string | null
   /** Which language the door speaks — the one the reader will open in. English when absent. */
   locale?: GateLocale
+  nameOnly?: boolean
+  nameMissing?: boolean
 }
 
 /** What the page needs from inside the book: its cover and its languages, read together. */
@@ -299,6 +302,7 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
   const wrong = options.wrongCode === true
   const waiting = options.waiting === true
   const failed = wrong || waiting
+  const nameOnly = options.nameOnly === true
   const cover = options.cover ?? null
   const coverUrl = cover ? `/p/${publication.token}/${cover}` : null
   const locale = options.locale
@@ -432,10 +436,14 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
   <main>
     <div class="top">
       <span class="brand"><img src="${ADT_ICON_DATA_URI}" alt="" width="22" height="22">ADT Studio</span>
-      <span class="badge">${LOCK_ICON}<span data-i18n="badge">${t.badge}</span></span>
+      ${nameOnly ? "" : html`<span class="badge">${LOCK_ICON}<span data-i18n="badge">${t.badge}</span></span>`}
     </div>
     <h1${titleLanguage ? html` lang="${titleLanguage}"` : ""} dir="auto">${title}</h1>
-    <p class="intro" data-i18n="intro">${t.intro}</p>
+    ${nameOnly
+      ? html`<p class="intro" data-i18n="introName">${t.introName}</p>`
+      : publication.comments === false
+        ? html`<p class="intro" data-i18n="introReadOnly">${t.introReadOnly}</p>`
+        : html`<p class="intro" data-i18n="intro">${t.intro}</p>`}
     <form method="post" action="/p/${publication.token}/access">
       <input type="hidden" name="${NEXT_FIELD}" value="${options.next ?? ""}">
       <div class="field">
@@ -444,14 +452,14 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
                required autocomplete="name" spellcheck="false" enterkeyhint="next" maxlength="${COMMENTER_NAME_MAX_LENGTH}"
                value="${options.name ?? ""}"></div>
       </div>
-      <div class="field">
+      ${nameOnly ? "" : html`<div class="field">
         <label for="code" data-i18n="codeLabel">${t.codeLabel}</label>
         <div class="otp${wrong && !waiting ? " invalid" : ""}" data-min="${PUBLICATION_ACCESS_CODE_LENGTH}">
           <input id="code" name="${CODE_FIELD}" required autocomplete="off" autocapitalize="characters"
                  spellcheck="false" enterkeyhint="go" maxlength="${PUBLICATION_ACCESS_CODE_MAX_LENGTH}"
                  aria-describedby="${failed ? "code-error code-hint" : "code-hint"}"${failed ? html` autofocus` : ""}${wrong ? html` aria-invalid="true"` : ""}>
         </div>
-      </div>
+      </div>`}
       ${
         waiting
           ? html`<p class="error waiting" id="code-error" role="alert" data-i18n="waiting">${t.waiting}</p>`
@@ -459,7 +467,8 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
             ? html`<p class="error" id="code-error" role="alert" data-i18n="wrongCode">${t.wrongCode}</p>`
             : ""
       }
-      <p class="hint" id="code-hint" data-i18n="hint">${t.hint}</p>
+      ${options.nameMissing ? html`<p class="error" role="alert" data-i18n="nameMissing">${t.nameMissing}</p>` : ""}
+      ${nameOnly ? "" : html`<p class="hint" id="code-hint" data-i18n="hint">${t.hint}</p>`}
       <button type="submit" data-i18n="button">${t.button}</button>
     </form>
   </main>
@@ -502,11 +511,29 @@ export async function accessGranted(c: AccessContext): Promise<boolean> {
   )
 }
 
+const READER_NAMED_COOKIE = "adt_pub_named"
+
+function needsReaderName(c: AccessContext): boolean {
+  return (
+    c.get("publication").comments === false &&
+    c.get("accessCodeHash") === null &&
+    !c.get("isAuthor") &&
+    c.env?.MGMT_SECRET !== undefined &&
+    wantsHtml(c) &&
+    getCookie(c, COMMENTER_SESSION_COOKIE) === undefined &&
+    getCookie(c, READER_NAMED_COOKIE) === undefined
+  )
+}
+
 export function createAccessGate(resolveStore: (env: Env) => PublicationStore) {
   return createMiddleware<AccessAppEnv>(async (c, next) => {
-    if (await accessGranted(c)) return next()
-
     const publication = c.get("publication")
+
+    if (await accessGranted(c)) {
+      if (!needsReaderName(c)) return next()
+      const book = await describeBook(c, resolveStore(c.env), publication)
+      return c.html(gatePage(publication, { next: currentRelative(c, publication.token), nameOnly: true, ...book }))
+    }
 
     if (!wantsHtml(c)) {
       return errorResponse(c, "unauthorized", 401, UNAUTHORIZED_MESSAGE)
@@ -646,6 +673,27 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
     const verified = await verifyAccessCode(code, packed)
 
     if (packed === null) {
+      if (name === null && isForm && publication.comments === false) {
+        return c.html(
+          gatePage(publication, {
+            next,
+            nameOnly: true,
+            nameMissing: true,
+            ...(await describeBook(c, deps.resolveStore(c.env), publication)),
+          }),
+          400,
+        )
+      }
+      if (name !== null && secret !== undefined && publication.comments === false) {
+        await establishIdentity(c, publication.token, name, secret)
+        setCookie(c, READER_NAMED_COOKIE, "1", {
+          path: `/p/${publication.token}`,
+          httpOnly: true,
+          secure: true,
+          sameSite: "Lax",
+          maxAge: PUBLICATION_ACCESS_MAX_AGE_SECONDS,
+        })
+      }
       return isForm
         ? c.redirect(safeNext(publication.token, next), 303)
         : c.body(null, 204)

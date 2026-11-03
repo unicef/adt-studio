@@ -68,7 +68,8 @@ function withLegacyFixedLayoutOwnership(
   if (rendering.sections.length !== 1) return rendering
   const entry = rendering.sections[0]
   if (entry.sectionId || entry.html.includes("data-section-id")) return rendering
-  const dedicated = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
+  const dedicatedRow = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
+  const dedicated = dedicatedRow?.data === null ? null : dedicatedRow
   const fixed = PageSectioningOutputSchema.safeParse((dedicated ?? storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId))?.data)
   if (!fixed.success || fixed.data.sections.length !== 1) return rendering
   // v0.7.2/v0.7.3 wrote the positioned tree to page-sectioning. A generic
@@ -199,7 +200,8 @@ export function getRenderSectioningRow(
 /** Versions are scoped to a node: switching source nodes can keep version 1. */
 export function getRenderSectioningSelection(storage: Storage, pageId: string) {
   const fixed = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
-  if (fixed) return { node: FIXED_LAYOUT_SECTIONING_NODE, row: fixed } as const
+  // JSON null is a retained invalidation version, not an active positioned tree.
+  if (fixed && fixed.data !== null) return { node: FIXED_LAYOUT_SECTIONING_NODE, row: fixed } as const
   const semantic = storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId)
   return semantic ? { node: PAGE_SECTIONING_NODE, row: semantic } as const : null
 }

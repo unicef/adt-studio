@@ -116,10 +116,12 @@ describe("cloudflare oauth", () => {
       )
     })
 
-    it("refuses a second flow while one is still waiting in the browser", async () => {
+    it("replaces a flow that is still waiting in the browser", async () => {
       const { service } = build()
-      await service.start()
-      await expect(service.start()).rejects.toMatchObject({ code: "oauth_flow_pending" })
+      const first = await service.start()
+      const second = await service.start()
+      expect(service.status(first.state)).toMatchObject({ status: "expired", errorCode: "oauth_expired" })
+      expect(service.status(second.state)).toMatchObject({ status: "pending" })
     })
   })
 
@@ -290,6 +292,48 @@ describe("cloudflare oauth", () => {
         errorCode: "oauth_denied",
       })
       expect(store.readOAuth()).toBeNull()
+    })
+
+    it("never saves a login that a newer one replaced mid-exchange", async () => {
+      const fake = createFakeCloudflare()
+      let release: () => void = () => {}
+      const held = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      const { service, listener } = build({}, {
+        fetchFn: async (input, init) => {
+          if (String(input).includes("/oauth2/token")) await held
+          return fake.fetchFn(input, init)
+        },
+      })
+      const first = await service.start()
+      const firstHandle = listener.handle!
+      const exchange = firstHandle(callbackUrl({ code: "auth-code", state: first.state }))
+
+      const second = await service.start()
+      release()
+      const result = await exchange
+
+      expect(result.html).toContain("newer Cloudflare login replaced")
+      expect(service.status(first.state).status).toBe("expired")
+      expect(service.status(second.state).status).toBe("pending")
+      expect(store.readOAuth()).toBeNull()
+    })
+
+    it("keeps waiting when another tab owns the same login", async () => {
+      const { service, listener } = build()
+      const flow = await service.start()
+
+      const result = await listener.handle?.(
+        callbackUrl({ error: "request_forbidden", state: flow.state }),
+      )
+
+      expect(result?.html).toContain("another Cloudflare tab")
+      expect(service.status(flow.state)).toMatchObject({ status: "pending" })
+      expect(listener.closes).toBe(0)
+
+      await listener.handle?.(callbackUrl({ code: "good-code", state: flow.state }))
+      expect(service.status(flow.state).status).toBe("complete")
     })
 
     it("reports a rejected exchange without storing anything", async () => {

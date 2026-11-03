@@ -13,6 +13,7 @@ import {
 } from "../shared/openai-rest/speech.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
 import { GOOGLE_PROVIDER_ID } from "../google/index.js"
+import { listGoogleTtsModels } from "../google/discovery.js"
 
 export const GEMINI_PROVIDER_ID = "gemini"
 const ADAPTER_VERSION = "gemini-tts-1"
@@ -131,6 +132,11 @@ export const geminiProvider: ProviderModule<GeminiCredentials> = {
     modality === "tts" ? (ttsCapabilitiesFor(modelId) as never) : undefined,
 
   cacheFingerprint: () => ({ adapterVersion: ADAPTER_VERSION, origin: GEMINI_ORIGIN }),
+
+  // Same Generative Language API as the Google provider, so a successful
+  // listing is a real credential check (Settings shows "Connected — N
+  // models") instead of "no automatic check". TTS models only.
+  listModels: (context) => listGoogleTtsModels(context.credentials.apiKey, context.signal),
 
   createSpeechSynthesizer: (context) =>
     createGeminiSpeechSynthesizer(

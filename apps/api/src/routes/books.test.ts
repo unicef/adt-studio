@@ -288,6 +288,30 @@ describe("GET /books/:label/config", () => {
 })
 
 describe("PUT /books/:label/config", () => {
+  it("acknowledges effective settings before the next save, including inherited clears and map deletions", async () => {
+    createTestBook("receipt")
+    fs.writeFileSync(globalConfigPath, "toc_generation:\n  model: openai:gpt-4o-mini\n  max_retries: 3\nsection_types:\n  keep: Keep\n  remove: Remove\nstructure_types: {}\nrole_types: {}\n")
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
+    const save = (config: Record<string, unknown>) => app.request("/books/receipt/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config, includeEffectiveConfig: true }) })
+    const first = await save({ toc_generation: { max_retries: 4 }, section_types: { remove: null, added: "New" } })
+    expect(first.status).toBe(200)
+    const receipt = await first.json()
+    expect(receipt.config).toEqual({ toc_generation: { max_retries: 4 }, section_types: { remove: null, added: "New" } })
+    expect(receipt.activeConfig.merged.toc_generation).toMatchObject({ model: "openai:gpt-4o-mini", max_retries: 4 })
+    expect(receipt.activeConfig.merged.section_types).toEqual({ keep: "Keep", added: "New" })
+    expect(receipt.activeConfig.hasBookOverride).toBe(true)
+    const second = await save({ ...receipt.config, toc_generation: { ...receipt.activeConfig.merged.toc_generation, model: "openai:gpt-4o" } })
+    expect(second.status).toBe(200)
+    expect((await second.json()).activeConfig.merged.toc_generation).toMatchObject({ model: "openai:gpt-4o", max_retries: 4 })
+    const before = fs.readFileSync(path.join(tmpDir, "receipt/config.yaml"), "utf8")
+    const invalid = await save({ toc_generation: { max_retries: -1 } })
+    expect(invalid.status).toBe(400)
+    expect(fs.readFileSync(path.join(tmpDir, "receipt/config.yaml"), "utf8")).toBe(before)
+    const cleared = await save({})
+    expect(cleared.status).toBe(200)
+    expect((await cleared.json()).activeConfig).toMatchObject({ hasBookOverride: false, merged: { toc_generation: { max_retries: 3 } } })
+  })
+
   it("writes config overrides and returns them", async () => {
     createTestBook("put-config")
     const app = createBookRoutes(tmpDir)

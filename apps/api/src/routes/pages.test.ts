@@ -20,6 +20,34 @@ describe("Page routes", () => {
   let app: Hono
   const label = "test-book"
 
+  // These regression cases test structural/restore semantics. Emulate the
+  // editor's version read; missing/stale/racing guards are exercised without
+  // this helper in manual-edit-survival.test.ts.
+  function requestPageEdit(url: string, init?: RequestInit) {
+    const method = init?.method ?? "GET"
+    if (!["POST", "PUT", "DELETE"].includes(method)) return app.request(url, init)
+    let body: Record<string, unknown>
+    try { body = init?.body ? JSON.parse(String(init.body)) : {} } catch { return app.request(url, init) }
+    const restore = url.match(/\/versions\/([^/]+)\/([^/]+)\/restore/)
+    const page = url.match(/\/pages\/([^/]+)\/(sectioning|storyboard|sections\/\d+(?:\/(?:clone|split|merge|merge-cross-page|ai-edit))?)(?:\?|$)/)
+    if (!restore && !page) return app.request(url, init)
+    if (page?.[2] === "storyboard" && !body.sectioning) return app.request(url, init)
+    const requestLabel = url.match(/\/books\/([^/]+)/)?.[1] ?? label
+    const exists = fs.existsSync(path.join(tmpDir, requestLabel, `${requestLabel}.db`))
+    const storage = exists ? createBookStorage(requestLabel, tmpDir) : null
+    try {
+      const node = restore?.[1] ?? "page-sectioning", id = restore?.[2] ?? page![1]
+      body.baseVersion ??= storage?.getCurrentNodeVersion(node, id) ?? 0
+      if (url.includes("merge-cross-page") && storage) {
+        const pages = storage.getPages()
+        const index = pages.findIndex((p) => p.pageId === id)
+        const target = pages[index + (url.includes("direction=prev") ? -1 : 1)]
+        body.targetBaseVersion ??= target ? storage.getCurrentNodeVersion(node, target.pageId) ?? 0 : 0
+      }
+    } finally { storage?.close() }
+    return app.request(url, { ...init, headers: { "Content-Type": "application/json", ...init?.headers }, body: JSON.stringify(body) })
+  }
+
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pages-routes-"))
     // Isolated global config: routes must never fall back to the repo's live
@@ -154,11 +182,12 @@ describe("Page routes", () => {
       expect(fs.existsSync(path.join(tmpDir, "missing-book"))).toBe(false)
     })
 
-    it("does not resurrect invalidated rendering or its activity flags, and respects a restored pointer", async () => {
+    it.each(["SQL", "JSON"])("does not resurrect %s NULL rendering or its activity flags, and respects a restored pointer", async (kind) => {
       const storage = createBookStorage(label, tmpDir)
       const pageId = `${label}_p1`
       const version = storage.putNodeData("web-rendering", pageId, { sections: [{ sectionIndex: 0, sectionType: "content", html: "<p>Old activity</p>", activityAnswers: { answer: "old" } }] })
-      storage.clearNodesByType(["web-rendering"])
+      if (kind === "SQL") storage.clearNodesByType(["web-rendering"])
+      else storage.putNodeData("web-rendering", pageId, null)
       storage.close()
       const pages = await (await app.request(`/api/books/${label}/pages`)).json()
       expect(pages[0].hasRendering).toBe(false)
@@ -171,8 +200,30 @@ describe("Page routes", () => {
       expect(restored[0].sections[0].isActivity).toBe(true)
     })
 
+    it.each(["SQL", "JSON"])("uses selected caption output rather than historical rows after %s NULL invalidation", async (kind) => {
+      const storage = createBookStorage(label, tmpDir)
+      const pageId = `${label}_p1`
+      const version = storage.putNodeData("image-captioning", pageId, { captions: [{ imageId: "image", caption: "Saved manual caption", source: "manual" }] })
+      const invalidVersion = storage.putNodeData("image-captioning", pageId, null)
+      storage.close()
+      if (kind === "SQL") {
+        // Legacy invalidation can be a SQL NULL; current writers also store
+        // JSON null. Ordinary catalog clearing intentionally retains captions.
+        const legacy = openBookDb(path.join(tmpDir, label, `${label}.db`))
+        legacy.run("UPDATE node_data SET data = NULL WHERE node = ? AND item_id = ? AND version = ?", ["image-captioning", pageId, invalidVersion])
+        legacy.close()
+      }
+      const pages = await (await app.request(`/api/books/${label}/pages`)).json()
+      expect(pages[0].hasCaptioning).toBe(false)
+      const restore = createBookStorage(label, tmpDir)
+      restore.setCurrentNodeVersion("image-captioning", pageId, version)
+      restore.close()
+      const restored = await (await app.request(`/api/books/${label}/pages`)).json()
+      expect(restored[0].hasCaptioning).toBe(true)
+    })
+
     it("returns list of pages", async () => {
-      const res = await app.request(`/api/books/${label}/pages`)
+      const res = await requestPageEdit(`/api/books/${label}/pages`)
 
       expect(res.status).toBe(200)
       const body = await res.json()
@@ -187,14 +238,14 @@ describe("Page routes", () => {
     })
 
     it("returns 404 for nonexistent book", async () => {
-      const res = await app.request("/api/books/no-such-book/pages")
+      const res = await requestPageEdit("/api/books/no-such-book/pages")
       expect(res.status).toBe(404)
     })
   })
 
   describe("GET /api/books/:label/pages/:pageId", () => {
     it("returns full page data with pipeline outputs", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1`
       )
 
@@ -216,7 +267,7 @@ describe("Page routes", () => {
     })
 
     it("returns page without pipeline data if not processed", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p2`
       )
 
@@ -228,7 +279,7 @@ describe("Page routes", () => {
     })
 
     it("returns 404 for nonexistent page", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/fake-page`
       )
       expect(res.status).toBe(404)
@@ -237,7 +288,7 @@ describe("Page routes", () => {
 
   describe("GET /api/books/:label/pages/:pageId/image", () => {
     it("returns page image as base64 JSON", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/image`
       )
 
@@ -258,7 +309,7 @@ describe("Page routes", () => {
     })
 
     it("returns 404 for nonexistent page image", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/fake-page/image`
       )
       expect(res.status).toBe(404)
@@ -296,7 +347,7 @@ describe("Page routes", () => {
         ],
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sectioning`,
         {
           method: "PUT",
@@ -311,7 +362,7 @@ describe("Page routes", () => {
     })
 
     it("returns 400 for invalid body", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sectioning`,
         {
           method: "PUT",
@@ -329,7 +380,7 @@ describe("Page routes", () => {
         sections: [],
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/fake-page/sectioning`,
         {
           method: "PUT",
@@ -354,7 +405,7 @@ describe("Page routes", () => {
         seed.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sectioning`,
         {
           method: "PUT",
@@ -387,7 +438,7 @@ describe("Page routes", () => {
       seed.close()
       const cosmetic = structuredClone(original)
       cosmetic.sections[0].backgroundColor = "#ff0000"
-      const save = (body: unknown) => app.request(`/api/books/${label}/pages/${label}_p1/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      const save = (body: unknown) => requestPageEdit(`/api/books/${label}/pages/${label}_p1/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       expect((await save(cosmetic)).status).toBe(200)
       const afterCosmetic = createBookStorage(label, tmpDir)
       expect(afterCosmetic.getStepRuns().map((run) => run.step)).toEqual(expect.arrayContaining([...sourceSteps, "tts"]))
@@ -399,7 +450,7 @@ describe("Page routes", () => {
       changed.sections[0].nodes[0].role = "heading"
       afterCosmetic.putNodeData("page-sectioning", `${label}_p1`, changed)
       afterCosmetic.close()
-      const restored = await app.request(`/api/books/${label}/versions/page-sectioning/${label}_p1/restore`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }) })
+      const restored = await requestPageEdit(`/api/books/${label}/versions/page-sectioning/${label}_p1/restore`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }) })
       expect(restored.status).toBe(200)
       const after = createBookStorage(label, tmpDir)
       try {
@@ -421,7 +472,7 @@ describe("Page routes", () => {
         seed.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sectioning`,
         {
           method: "PUT",
@@ -452,7 +503,7 @@ describe("Page routes", () => {
         seed.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/rendering`,
         {
           method: "PUT",
@@ -485,7 +536,7 @@ describe("Page routes", () => {
     }
 
     const save = (body: unknown) =>
-      app.request(`/api/books/${label}/pages/${label}_p1/storyboard`, {
+      requestPageEdit(`/api/books/${label}/pages/${label}_p1/storyboard`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -636,7 +687,7 @@ describe("Page routes", () => {
     })
 
     it("returns 404 for nonexistent page", async () => {
-      const res = await app.request(`/api/books/${label}/pages/fake-page/storyboard`, {
+      const res = await requestPageEdit(`/api/books/${label}/pages/fake-page/storyboard`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rendering: { sections: [] } }),
@@ -653,7 +704,7 @@ describe("Page routes", () => {
         ],
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/image-filtering`,
         {
           method: "PUT",
@@ -668,7 +719,7 @@ describe("Page routes", () => {
     })
 
     it("returns 400 for invalid body", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/image-filtering`,
         {
           method: "PUT",
@@ -709,7 +760,7 @@ describe("Page routes", () => {
     it("keeps the storyboard complete when a section is deleted", async () => {
       seedCompletedChain()
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0`,
         { method: "DELETE" }
       )
@@ -724,7 +775,7 @@ describe("Page routes", () => {
     it("keeps the storyboard complete when a section is cloned", async () => {
       seedCompletedChain()
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
         { method: "POST" }
       )
@@ -792,7 +843,7 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
         { method: "POST" }
       )
@@ -886,7 +937,7 @@ describe("Page routes", () => {
       }
       // The Sectioning view saves a reordered tree through the plain PUT; the
       // storyboard route carries the same payload. Both must remap (K2).
-      const res = await app.request(`/api/books/${label}/pages/${label}_p1/sectioning`, {
+      const res = await requestPageEdit(`/api/books/${label}/pages/${label}_p1/sectioning`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reasoning: "reordered", sections: [section(2), section(1)] }),
@@ -918,7 +969,7 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0`,
         { method: "DELETE" }
       )
@@ -954,7 +1005,7 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
         { method: "POST" }
       )
@@ -1059,7 +1110,7 @@ describe("Page routes", () => {
         seed.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1090,7 +1141,7 @@ describe("Page routes", () => {
         seed.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1116,7 +1167,7 @@ describe("Page routes", () => {
     it("splits a section, keeping the first half's id and leaving the untouched section alone", async () => {
       seedThreeNodeSection({ rendering: true })
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1184,7 +1235,7 @@ describe("Page routes", () => {
     it("partitions the fixed-layout placement sidecar by subtree", async () => {
       seedThreeNodeSection({ placement: true })
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1257,7 +1308,7 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1345,7 +1396,7 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1372,7 +1423,7 @@ describe("Page routes", () => {
     it("returns 400 when splitting before the first node of the section", async () => {
       seedThreeNodeSection()
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1386,7 +1437,7 @@ describe("Page routes", () => {
     it("returns 400 unless exactly one of beforeNodeIndex/beforeNodeId is given", async () => {
       seedThreeNodeSection()
 
-      const neither = await app.request(
+      const neither = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1396,7 +1447,7 @@ describe("Page routes", () => {
       )
       expect(neither.status).toBe(400)
 
-      const both = await app.request(
+      const both = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1413,7 +1464,7 @@ describe("Page routes", () => {
     it("returns 400 when beforeNodeIndex is out of range or zero", async () => {
       seedThreeNodeSection()
 
-      const outOfRange = await app.request(
+      const outOfRange = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1423,7 +1474,7 @@ describe("Page routes", () => {
       )
       expect(outOfRange.status).toBe(400)
 
-      const zero = await app.request(
+      const zero = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/split`,
         {
           method: "POST",
@@ -1473,7 +1524,7 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/merge?direction=next`,
         { method: "POST" }
       )
@@ -1573,7 +1624,7 @@ describe("Page routes", () => {
     it("keeps every surviving id when a middle section is deleted", async () => {
       seedSections(4)
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/1`,
         { method: "DELETE" }
       )
@@ -1590,7 +1641,7 @@ describe("Page routes", () => {
     it("keeps every surviving id when a middle section is cloned", async () => {
       seedSections(3)
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
         { method: "POST" }
       )
@@ -1609,7 +1660,7 @@ describe("Page routes", () => {
     it("never reissues a retired id, even after the deletion is no longer visible", async () => {
       seedSections(3)
 
-      const del = await app.request(
+      const del = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/2`,
         { method: "DELETE" }
       )
@@ -1619,7 +1670,7 @@ describe("Page routes", () => {
       // A max-of-current counter would hand out `_sec003` again here, silently
       // adopting the deleted section's TOC entry, sign-language video and
       // answer-text catalog keys. The id space is tracked across all versions.
-      const clone = await app.request(
+      const clone = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
         { method: "POST" }
       )
@@ -1646,7 +1697,7 @@ describe("Page routes", () => {
       // TOC entry, sign-language video and answer-text catalog keys on two
       // pages at once. The existing tests for this endpoint use single-section
       // pages, so nothing there could have caught it.
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p2/sections/0/merge-cross-page?direction=prev`,
         { method: "POST" }
       )
@@ -1680,7 +1731,7 @@ describe("Page routes", () => {
     it("does not reissue a spent id after an earlier sectioning version is restored", async () => {
       const seededVersion = seedSections(3)
 
-      const clone = await app.request(
+      const clone = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
         { method: "POST" }
       )
@@ -1691,7 +1742,7 @@ describe("Page routes", () => {
       // the current-version pointer, so `_sec004` remains in history and must
       // stay spent. A counter stored on the entity would have been rewound
       // along with it and reissued `_sec004` to different content.
-      const restore = await app.request(
+      const restore = await requestPageEdit(
         `/api/books/${label}/versions/page-sectioning/${label}_p1/restore`,
         {
           method: "POST",
@@ -1708,7 +1759,7 @@ describe("Page routes", () => {
       restored.setCurrentNodeVersion("web-rendering", `${label}_p1`, matching!.version)
       restored.close()
 
-      const second = await app.request(
+      const second = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
         { method: "POST" }
       )
@@ -1733,7 +1784,7 @@ describe("Page routes", () => {
       }
       seedSections(1)
 
-      const clone = await app.request(
+      const clone = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
         { method: "POST" }
       )
@@ -1759,7 +1810,7 @@ describe("Page routes", () => {
       }
 
       // Merge sections 0 and 1: `_sec001` survives, `_sec002` is retired.
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/merge?direction=next`,
         { method: "POST" }
       )
@@ -1845,7 +1896,7 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const request = () => app.request(`/api/books/${label}/spreads/apply`, {
+      const request = () => requestPageEdit(`/api/books/${label}/spreads/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ spreadPairs: [] }),
@@ -1927,7 +1978,7 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/1`,
         { method: "DELETE" }
       )
@@ -1969,7 +2020,7 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/1`,
         { method: "DELETE" }
       )
@@ -2041,7 +2092,7 @@ describe("Page routes", () => {
       data.sections[0].nodes.push({ ...source, nodeId: `${source.nodeId}_easy_read`, text: "Legacy second source" })
       db.putNodeData("page-sectioning", `${label}_p1`, data)
       db.close()
-      const response = await app.request(`/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`, { method: "POST" })
+      const response = await requestPageEdit(`/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`, { method: "POST" })
       expect(response.status).toBe(200)
       const after = createBookStorage(label, tmpDir)
       try {
@@ -2054,7 +2105,7 @@ describe("Page routes", () => {
     it("records the source page in the target section's sourcePageIds", async () => {
       seedBothPages()
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`,
         { method: "POST" }
       )
@@ -2085,7 +2136,7 @@ describe("Page routes", () => {
     it("carries prior provenance from the moved section", async () => {
       seedBothPages({ sourcePageIds: [`${label}_p0`] })
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`,
         { method: "POST" }
       )
@@ -2115,7 +2166,7 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next&renderingInSync=1`,
         { method: "POST" }
       )
@@ -2146,12 +2197,16 @@ describe("Page routes", () => {
       taskApp.onError(errorHandler)
       taskApp.route("/api", routes)
 
+      const storage = createBookStorage(label, tmpDir)
+      const baseVersion = (() => {
+        try { return storage.getCurrentNodeVersion("page-sectioning", `${label}_p1`) ?? 0 } finally { storage.close() }
+      })()
       const res = await taskApp.request(
         `/api/books/${label}/pages/${label}_p1/sections/0/ai-edit`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-OpenAI-Key": "sk-test" },
-          body: JSON.stringify({ instruction }),
+          body: JSON.stringify({ instruction, baseVersion }),
         }
       )
       expect(res.status).toBe(200)
@@ -2260,7 +2315,7 @@ describe("Page routes", () => {
     })
 
     it("requires an API key", async () => {
-      const res = await app.request(`/api/books/${label}/pages/re-render`, {
+      const res = await requestPageEdit(`/api/books/${label}/pages/re-render`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pageIds: [`${label}_p1`] }),
@@ -2271,7 +2326,7 @@ describe("Page routes", () => {
 
   describe("POST /api/books/:label/pages/:pageId/re-render", () => {
     it("validates the request without requiring an unconditional OpenAI key", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/re-render?sectionIndex=99`,
         { method: "POST" }
       )
@@ -2282,7 +2337,7 @@ describe("Page routes", () => {
     })
 
     it("returns 400 when sectionIndex query is out of range", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/re-render?sectionIndex=99`,
         {
           method: "POST",
@@ -2315,7 +2370,7 @@ describe("Page routes", () => {
 
     it.each([false, true])("passes the target ratio for generation (style reference: %s)", async (withStyle) => {
       const fetchMock = mockGoogleImage()
-      const response = await app.request(endpoint, {
+      const response = await requestPageEdit(endpoint, {
         method: "POST", headers: googleHeaders,
         body: JSON.stringify({ prompt: "a diagram", targetImageId: `${pageId}_page`,
           ...(withStyle ? { styleImageId: "test-book_p2_page" } : {}) }),
@@ -2348,7 +2403,7 @@ describe("Page routes", () => {
 
     it("does not force source edits into a size or ratio bucket", async () => {
       const fetchMock = mockGoogleImage()
-      const response = await app.request(endpoint, {
+      const response = await requestPageEdit(endpoint, {
         method: "POST", headers: googleHeaders,
         body: JSON.stringify({ prompt: "translate the labels", targetImageId: `${pageId}_page`, referenceImageId: `${pageId}_page` }),
       })
@@ -2365,7 +2420,7 @@ describe("Page routes", () => {
             sectionIndex: 0, sectionId: `${pageId}_sec001`, sectionType: "content", reasoning: "test",
             html: `<section><img data-id="${pageId}_page" src="/api/books/${label}/images/${pageId}_page" width="800" height="600" ${style}></section>`,
           }] })
-          const response = await app.request(endpoint, {
+          const response = await requestPageEdit(endpoint, {
             method: "POST", headers: googleHeaders,
             body: JSON.stringify({ prompt: "a diagram", targetImageId: `${pageId}_page`, sectionIndex: 0, mode: "swap" }),
           })
@@ -2387,7 +2442,7 @@ describe("Page routes", () => {
       try {
         const beforeImages = storage.getPageImages(pageId)
         const beforeRendering = storage.getLatestNodeData("web-rendering", pageId)
-        const response = await app.request(endpoint, {
+        const response = await requestPageEdit(endpoint, {
           method: "POST", headers: googleHeaders,
           body: JSON.stringify({ prompt: "a diagram", targetImageId: `${pageId}_page`, sectionIndex: 0, mode: "swap" }),
         })
@@ -2408,7 +2463,7 @@ describe("Page routes", () => {
       ] }))
       vi.stubGlobal("fetch", fetchMock)
       try {
-        const response = await app.request(endpoint, {
+        const response = await requestPageEdit(endpoint, {
           method: "POST", headers: { "Content-Type": "application/json", "X-Google-API-Key": "google-test" },
           body: JSON.stringify({ prompt: "a labelled diagram" }),
         })
@@ -2429,7 +2484,7 @@ describe("Page routes", () => {
     })
 
     it("returns 400 when the selected image provider credential is missing", async () => {
-      const res = await app.request(endpoint, {
+      const res = await requestPageEdit(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: "a cat" }),
@@ -2441,7 +2496,7 @@ describe("Page routes", () => {
     })
 
     it("returns 400 when pageId query param is missing", async () => {
-      const res = await app.request(`/api/books/${label}/images/ai-generate`, {
+      const res = await requestPageEdit(`/api/books/${label}/images/ai-generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2456,7 +2511,7 @@ describe("Page routes", () => {
     })
 
     it("returns 400 when prompt is missing", async () => {
-      const res = await app.request(endpoint, {
+      const res = await requestPageEdit(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2471,7 +2526,7 @@ describe("Page routes", () => {
     })
 
     it("returns 404 for nonexistent book", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/no-such-book/images/ai-generate?pageId=pg001`,
         {
           method: "POST",
@@ -2487,7 +2542,7 @@ describe("Page routes", () => {
     })
 
     it("rejects referenceImageId with path traversal characters", async () => {
-      const res = await app.request(endpoint, {
+      const res = await requestPageEdit(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2505,7 +2560,7 @@ describe("Page routes", () => {
     })
 
     it("rejects targetImageId with path traversal characters", async () => {
-      const res = await app.request(endpoint, {
+      const res = await requestPageEdit(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2523,7 +2578,7 @@ describe("Page routes", () => {
     })
 
     it("returns 404 when reference image file does not exist", async () => {
-      const res = await app.request(endpoint, {
+      const res = await requestPageEdit(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2558,7 +2613,7 @@ describe("Page routes", () => {
       formData.append("pageId", `${label}_p1`)
       formData.append("sourceImageId", `${label}_p1_page`)
 
-      const res = await app.request(`/api/books/${label}/images`, {
+      const res = await requestPageEdit(`/api/books/${label}/images`, {
         method: "POST",
         body: formData,
       })
@@ -2585,14 +2640,14 @@ describe("Page routes", () => {
       form1.append("image", new Blob([pngHeader], { type: "image/png" }), "crop.png")
       form1.append("pageId", `${label}_p1`)
       form1.append("sourceImageId", `${label}_p1_page`)
-      await app.request(`/api/books/${label}/images`, { method: "POST", body: form1 })
+      await requestPageEdit(`/api/books/${label}/images`, { method: "POST", body: form1 })
 
       // Second upload
       const form2 = new FormData()
       form2.append("image", new Blob([pngHeader], { type: "image/png" }), "crop.png")
       form2.append("pageId", `${label}_p1`)
       form2.append("sourceImageId", `${label}_p1_page`)
-      const res = await app.request(`/api/books/${label}/images`, { method: "POST", body: form2 })
+      const res = await requestPageEdit(`/api/books/${label}/images`, { method: "POST", body: form2 })
 
       expect(res.status).toBe(200)
       const body = await res.json()
@@ -2604,7 +2659,7 @@ describe("Page routes", () => {
       formData.append("pageId", `${label}_p1`)
       formData.append("sourceImageId", `${label}_p1_page`)
 
-      const res = await app.request(`/api/books/${label}/images`, {
+      const res = await requestPageEdit(`/api/books/${label}/images`, {
         method: "POST",
         body: formData,
       })
@@ -2617,7 +2672,7 @@ describe("Page routes", () => {
       formData.append("image", new Blob([Buffer.alloc(10)], { type: "image/png" }), "crop.png")
       formData.append("sourceImageId", `${label}_p1_page`)
 
-      const res = await app.request(`/api/books/${label}/images`, {
+      const res = await requestPageEdit(`/api/books/${label}/images`, {
         method: "POST",
         body: formData,
       })
@@ -2630,7 +2685,7 @@ describe("Page routes", () => {
       formData.append("image", new Blob([Buffer.alloc(10)], { type: "image/png" }), "crop.png")
       formData.append("pageId", `${label}_p1`)
 
-      const res = await app.request(`/api/books/${label}/images`, {
+      const res = await requestPageEdit(`/api/books/${label}/images`, {
         method: "POST",
         body: formData,
       })
@@ -2644,7 +2699,7 @@ describe("Page routes", () => {
       formData.append("pageId", `${label}_p1`)
       formData.append("sourceImageId", "../../../etc/passwd")
 
-      const res = await app.request(`/api/books/${label}/images`, {
+      const res = await requestPageEdit(`/api/books/${label}/images`, {
         method: "POST",
         body: formData,
       })
@@ -2660,7 +2715,7 @@ describe("Page routes", () => {
       formData.append("pageId", "pg001")
       formData.append("sourceImageId", "img001")
 
-      const res = await app.request(`/api/books/no-such-book/images`, {
+      const res = await requestPageEdit(`/api/books/no-such-book/images`, {
         method: "POST",
         body: formData,
       })
@@ -2840,7 +2895,7 @@ describe("Page routes", () => {
         }],
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/sectioning`,
         {
           method: "PUT",
@@ -2867,7 +2922,7 @@ describe("Page routes", () => {
         }],
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/rendering`,
         {
           method: "PUT",
@@ -2900,7 +2955,7 @@ describe("Page routes", () => {
       formData.append("pageId", `${label}_p1`)
       formData.append("sourceImageId", `${label}_p1_page`)
 
-      const res = await app.request(`/api/books/${label}/images`, {
+      const res = await requestPageEdit(`/api/books/${label}/images`, {
         method: "POST",
         body: formData,
       })
@@ -2916,10 +2971,10 @@ describe("Page routes", () => {
 
       const data = {
         captions: [{ imageId: "img1", reasoning: "updated", caption: "A dog" }],
-        baseVersion: 1, sourceSignature: (await (await app.request(`/api/books/${label}/pages/${label}_p1`)).json()).captionSourceSignature,
+        baseVersion: 1, sourceSignature: (await (await requestPageEdit(`/api/books/${label}/pages/${label}_p1`)).json()).captionSourceSignature,
       }
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/image-captioning`,
         {
           method: "PUT",
@@ -2944,7 +2999,7 @@ describe("Page routes", () => {
       storage.close()
       seedDownstreamData(tmpDir, label)
 
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/versions/web-rendering/${label}_p1/restore`,
         {
           method: "POST",
@@ -3014,7 +3069,7 @@ describe("Page routes", () => {
       })
       storage.close()
 
-      const response = await app.request(
+      const response = await requestPageEdit(
         `/api/books/${label}/versions/core-tts-catalog/en/restore`,
         {
           method: "POST",
@@ -3033,7 +3088,7 @@ describe("Page routes", () => {
     })
 
     it("rejects nodes that are not exposed by the version picker", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/versions/metadata/book/restore`,
         { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }) }
       )
@@ -3041,7 +3096,7 @@ describe("Page routes", () => {
     })
 
     it("returns 400 for an invalid version", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/versions/web-rendering/${label}_p1/restore`,
         { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 0 }) }
       )
@@ -3049,7 +3104,7 @@ describe("Page routes", () => {
     })
 
     it("returns 404 for a nonexistent version", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/${label}/versions/web-rendering/${label}_p1/restore`,
         { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 99 }) }
       )
@@ -3057,7 +3112,7 @@ describe("Page routes", () => {
     })
 
     it("returns 404 for a nonexistent book without creating it", async () => {
-      const res = await app.request(
+      const res = await requestPageEdit(
         `/api/books/ghost-book/versions/web-rendering/x/restore`,
         { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }) }
       )

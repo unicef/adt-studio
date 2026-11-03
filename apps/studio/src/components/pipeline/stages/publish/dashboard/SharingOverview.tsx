@@ -39,6 +39,7 @@ function WaitingPanel({ data }: { data: DashboardData }) {
   const bookLabel = data.link.bookLabel
   const shown = data.threads
   const ready = data.status === "ready"
+  const destination = storyboardDestination(bookLabel, data.threads)
 
   return (
     <DashboardPanel
@@ -46,9 +47,9 @@ function WaitingPanel({ data }: { data: DashboardData }) {
       count={ready ? data.threads.length : undefined}
       tone="attention"
       action={
-        ready && data.threads.length > 0 ? (
+        ready && destination ? (
           <Link
-            {...storyboardDestination(bookLabel, data.threads)}
+            {...destination}
             className="flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-brand-700 transition-colors duration-150 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none dark:text-brand-300 dark:hover:bg-brand-500/10"
           >
             <Trans>Open all in Storyboard</Trans>
@@ -125,9 +126,10 @@ function WaitingRow({
       )}
     >
       <Link
-        {...threadDestination(bookLabel, thread)}
-        aria-disabled={held}
-        tabIndex={held ? -1 : undefined}
+        {...(threadDestination(bookLabel, thread) ?? { to: "." as const })}
+        aria-disabled={held || !threadDestination(bookLabel, thread)}
+        onClick={(event) => { if (held || !threadDestination(bookLabel, thread)) event.preventDefault() }}
+        tabIndex={held || !threadDestination(bookLabel, thread) ? -1 : undefined}
         className={cn(
           "flex min-w-0 flex-1 items-start gap-3 py-2.5 pl-4 transition-opacity duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none",
           held && "pointer-events-none opacity-45",
@@ -305,7 +307,7 @@ function VersionLine({ data }: { data: DashboardData }) {
       {live !== null ? (
         <>
           <span className="font-semibold text-foreground">
-            <Trans>v{live} is live</Trans>
+            {data.link.access === "open" ? <Trans>v{live} is live</Trans> : <Trans>Version {data.link.liveVersion}</Trans>}
           </span>
           <span aria-hidden="true" className="text-border">
             •

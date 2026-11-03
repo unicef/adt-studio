@@ -37,6 +37,7 @@ export type PublishErrorCode =
   | "invalid_claim"
   | "expired"
   | "revoked"
+  | "comments_off"
   | "payload_too_large"
   | "rate_limited"
   | "not_implemented"

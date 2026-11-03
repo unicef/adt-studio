@@ -1,7 +1,5 @@
-import { useMemo, type RefObject } from "react"
-import { buildThreads, filterThreads } from "@/components/publication-feedback/lib/threads"
-import { usePublicationComments } from "@/hooks/use-publication-feedback"
-import { useBookPublication } from "@/hooks/use-book-publication"
+import { type RefObject } from "react"
+import { useBookComments } from "./use-book-comments"
 import type { BookPreviewFrameHandle } from "../BookPreviewFrame"
 import { CommentsOnPage } from "./CommentsOnPage"
 import { useSectionComments } from "./use-section-comments"
@@ -62,12 +60,5 @@ export function StoryboardFeedbackOverlay({
 /** The count the storyboard's own chrome shows, so the toggle can say how much is waiting on this
  *  section without the comments being on. */
 export function useSectionFeedbackCount(bookLabel: string, sectionId: string): number {
-  const status = useBookPublication(bookLabel)
-  const published = status.data?.record !== null && status.data?.record !== undefined
-  const comments = usePublicationComments(bookLabel, published)
-
-  return useMemo(() => {
-    const all = buildThreads(comments.data?.comments ?? []).filter((thread) => thread.root.deleted_at === null)
-    return filterThreads(all, { resolution: "unresolved", pageSectionId: sectionId }).length
-  }, [comments.data, sectionId])
+  return useBookComments(bookLabel).bySection.get(sectionId)?.waiting ?? 0
 }

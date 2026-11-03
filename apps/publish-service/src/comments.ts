@@ -18,7 +18,7 @@ import {
 } from "@adt/types"
 import type { Env } from "./env.js"
 import { attemptGate, callerIp, throttleSecretFor } from "./access-throttle.js"
-import { errorResponse } from "./errors.js"
+import { COMMENTS_OFF_MESSAGE, errorResponse } from "./errors.js"
 import { exceedsLength, readJsonBody } from "./http.js"
 import { authorSessionMarker, normalizeDisplayName, verifyPin } from "./identity.js"
 import type { PublicationVariables } from "./middleware/publication-lookup.js"
@@ -228,6 +228,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
   app.get("/p/:token/comments", async (c) => {
     const publication = publicationOf(c)
+    if (publication.comments === false && !c.get("isAuthor")) return errorResponse(c, "comments_off", 403, COMMENTS_OFF_MESSAGE)
     const query = PublishCommentListQuery.safeParse(c.req.query())
     if (!query.success) {
       return errorResponse(c, "invalid_request", 400, query.error.message)
@@ -274,6 +275,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
   app.post("/p/:token/comments", async (c) => {
     const publication = publicationOf(c)
+    if (publication.comments === false && !c.get("isAuthor")) return errorResponse(c, "comments_off", 403, COMMENTS_OFF_MESSAGE)
     const authorName = requestedAuthorName(c)
     if (!authorName.ok) {
       return errorResponse(c, "invalid_request", 400, authorNameMessage())
@@ -367,6 +369,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
   app.patch("/p/:token/comments/:id", async (c) => {
     const publication = publicationOf(c)
+    if (publication.comments === false && !c.get("isAuthor")) return errorResponse(c, "comments_off", 403, COMMENTS_OFF_MESSAGE)
     const authorName = requestedAuthorName(c)
     if (!authorName.ok) {
       return errorResponse(c, "invalid_request", 400, authorNameMessage())
@@ -428,6 +431,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
   app.delete("/p/:token/comments/:id", async (c) => {
     const publication = publicationOf(c)
+    if (publication.comments === false && !c.get("isAuthor")) return errorResponse(c, "comments_off", 403, COMMENTS_OFF_MESSAGE)
     const authorName = requestedAuthorName(c)
     if (!authorName.ok) {
       return errorResponse(c, "invalid_request", 400, authorNameMessage())
@@ -470,6 +474,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
   app.post("/p/:token/comments/:id/resolve", async (c) => {
     const publication = publicationOf(c)
+    if (publication.comments === false && !c.get("isAuthor")) return errorResponse(c, "comments_off", 403, COMMENTS_OFF_MESSAGE)
     if (!c.get("isAuthor")) {
       return errorResponse(
         c,

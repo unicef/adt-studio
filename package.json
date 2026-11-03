@@ -48,7 +48,8 @@
       "tar": "7.5.19"
     },
     "patchedDependencies": {
-      "app-builder-lib@26.8.1": "patches/app-builder-lib@26.8.1.patch"
+      "app-builder-lib@26.8.1": "patches/app-builder-lib@26.8.1.patch",
+      "@tanstack/history@1.154.14": "patches/@tanstack__history@1.154.14.patch"
     }
   },
   "license": "AGPL-3.0-or-later"

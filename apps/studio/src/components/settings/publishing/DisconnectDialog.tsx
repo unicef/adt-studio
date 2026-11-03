@@ -43,7 +43,7 @@ export function DisconnectDialog({
           </AlertDialogTitle>
           <AlertDialogDescription>
             <Trans>
-              This computer will forget your token and Account ID, so you won't be able to share
+              This computer will forget its Cloudflare connection, so you won't be able to share
               or update books until you connect again. Books you have already shared stay online
               and their links keep working.
             </Trans>

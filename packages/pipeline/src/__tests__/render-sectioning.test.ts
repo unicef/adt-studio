@@ -56,6 +56,20 @@ describe("render-sectioning resolver", () => {
     }
   })
 
+  it("treats a null positioned version as retired while keeping its history restorable", () => {
+    const storage = makeStorage()
+    try {
+      storage.putNodeData("page-sectioning", "pg001", semantic)
+      const fixedVersion = storage.putNodeData("fixed-layout-sectioning", "pg001", positioned)
+      storage.putNodeData("fixed-layout-sectioning", "pg001", null)
+      expect(reasoningOf(getRenderSectioningRow(storage, "pg001"))).toBe("semantic")
+      expect(storage.getAllNodeVersions("fixed-layout-sectioning", "pg001").map(row => row.data)).toEqual([positioned, null])
+      storage.setCurrentNodeVersion("fixed-layout-sectioning", "pg001", fixedVersion)
+      expect(reasoningOf(getRenderSectioningRow(storage, "pg001"))).toBe("fixed")
+      expect(storage.getLatestNodeData("page-sectioning", "pg001")?.version).toBe(1)
+    } finally { storage.close() }
+  })
+
   it("returns null row when neither node exists", () => {
     const storage = makeStorage()
     try {

@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.14.6"
+export const PUBLISH_WORKER_VERSION = "0.15.0"
 
 /**
  * The oldest control plane this Studio's book host works against.
@@ -12,7 +12,7 @@ export const PUBLISH_WORKER_VERSION = "0.14.6"
  * did not always have — publishing then asks for the update instead of deploying a host that
  * would half-work against the old one.
  */
-export const BOOK_HOST_MIN_CONTROL_PLANE_VERSION = "0.14.0"
+export const BOOK_HOST_MIN_CONTROL_PLANE_VERSION = "0.15.0"
 
 /** Numeric dotted-version comparison: `true` when `version` is `minimum` or newer. Anything
  *  that does not parse is treated as unknown and allowed, so a missing version never blocks. */
@@ -91,6 +91,7 @@ export const Publication = z.object({
   created_at: z.string().datetime(),
   expires_at: z.string().datetime().nullable(),
   revoked_at: z.string().datetime().nullable(),
+  comments: z.boolean().optional(),
 })
 export type Publication = z.infer<typeof Publication>
 
@@ -141,6 +142,7 @@ export const PublicationUploadStartRequest = z.discriminatedUnion("kind", [
     expires_at: z.string().datetime().nullable().optional(),
     /** Plaintext in HTTPS; the Worker stores only its PBKDF2 hash. */
     access_code: PublicationAccessCode.nullable().optional(),
+    comments: z.boolean().optional(),
   }),
   z.object({ kind: z.literal("version"), ...PublicationUploadBase }),
 ])
@@ -199,10 +201,11 @@ export const PublicationUpdateRequest = z
   .object({
     expires_at: z.string().datetime().nullable().optional(),
     access_code: PublicationAccessCode.nullable().optional(),
+    comments: z.boolean().optional(),
   })
   .refine(
-    (value) => value.expires_at !== undefined || value.access_code !== undefined,
-    { message: "Provide expires_at, access_code, or both" },
+    (value) => value.expires_at !== undefined || value.access_code !== undefined || value.comments !== undefined,
+    { message: "Provide expires_at, access_code or comments" },
   )
 export type PublicationUpdateRequest = z.infer<typeof PublicationUpdateRequest>
 
@@ -306,6 +309,7 @@ export const PublishErrorCode = z.enum([
   "invalid_claim",
   "expired",
   "revoked",
+  "comments_off",
   "payload_too_large",
   "rate_limited",
   "not_implemented",
@@ -491,6 +495,7 @@ export const PublishFeatureSelection = z.object({
   readAloud: z.boolean().optional(),
   quizzes: z.boolean().optional(),
   signLanguage: z.boolean().optional(),
+  comments: z.boolean().optional(),
   /** Locales to include. Absent means every locale the book has. */
   languages: z.array(z.string().min(1)).optional(),
 })

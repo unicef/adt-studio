@@ -145,7 +145,7 @@ export async function provisionCloudflare(
     sleep = defaultSleep,
     now = () => new Date(),
     generateSecret = generateMgmtSecret,
-    healthAttempts = 8,
+    healthAttempts = 19,
   } = options
   const retry = { sleep, attempts: 3 }
 
@@ -484,7 +484,7 @@ export async function provisionCloudflare(
       throw new ProvisionError({
         code: "partial_provision",
         stepId: "verify-deployment",
-        message: `Everything is provisioned, but ${workerUrl} did not answer /health yet. workers.dev propagation can lag — resume from step 8 in a minute.`,
+        message: `Everything is set up, but Cloudflare isn't serving ${workerUrl} yet. New addresses can take a few minutes to go live — try again shortly.`,
       })
     }
 

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback, useState, type ReactNode } from "react"
-import { useSearch } from "@tanstack/react-router"
+import { useEffect, useRef, useCallback, useState, useMemo, type ReactNode } from "react"
+import { useSearch, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, ArrowRight, LayoutGrid, ListTree, RotateCcw, Table2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePages, usePage } from "@/hooks/use-pages"
@@ -18,6 +18,9 @@ import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { useHasUnsavedChanges } from "../../components/floating-save"
 import { parseQuizRouteId } from "@/lib/quiz-route"
+import { usePublicationComments } from "@/hooks/use-publication-feedback"
+import { useCommentsMode } from "./components/feedback/use-comments-mode"
+import { currentSectionLocations } from "./components/feedback/current-section-locations"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
@@ -59,24 +62,19 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const pageList = pages ?? []
   const { sectionIndex, setSectionIndex, skipNextResetRef } = useSectionNav()
 
-  /**
-   * A link that named a section — a reviewer's comment, opened where it was left.
-   *
-   * Applied after the layout's own reset-to-zero rather than around it: that effect fires on
-   * every page change and would otherwise win the race on the first render of a deep link.
-   * Keyed on the value, so moving sections by hand afterwards is not undone on the next render.
-   */
-  const { section: linkedSection } = useSearch({ strict: false }) as { section?: number }
-  const appliedSectionRef = useRef<number | null>(null)
-  useEffect(() => {
-    if (linkedSection === undefined) {
-      appliedSectionRef.current = null
-      return
-    }
-    if (appliedSectionRef.current === linkedSection) return
-    appliedSectionRef.current = linkedSection
-    setSectionIndex(linkedSection)
-  }, [linkedSection, setSectionIndex])
+  const search = useSearch({ strict: false }) as { section?: number; sectionId?: string; comment?: string }
+  const navigate = useNavigate()
+  const commentsMode = useCommentsMode(bookLabel)
+  const linkedComments = usePublicationComments(bookLabel, !!search.comment)
+  const linkedComment = linkedComments.data?.comments.find((comment) => comment.id === search.comment && !comment.deleted_at)
+  // Old comment URLs carried only an ordinal. Resolve the comment itself before
+  // selecting anything; the ordinal must never choose the owner of feedback.
+  const linkedId = search.comment ? linkedComment?.page_section_id : search.sectionId
+  const locations = useMemo(() => currentSectionLocations(pages ?? []), [pages])
+  const linkedLocation = linkedId ? locations.get(linkedId) : undefined
+  const hasFeedbackLink = !!(search.comment || search.sectionId)
+  const linkKey = JSON.stringify([search.comment, search.sectionId, search.section, selectedPageIdProp])
+  const appliedSectionRef = useRef<string | null>(null)
   // When navigating backward across page boundary, resolve to last section
   const pendingLastSection = useRef(false)
   // Guard: prevent silent navigation while AI image is generating
@@ -116,6 +114,23 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   )
 
   const sectionCount = page?.sectioningTree?.sections.length ?? 0
+
+  const linkedSections = (page?.sectioningTree?.sections ?? []).flatMap((section, index) => section.sectionId === linkedId ? [index] : [])
+  const linkedIndex = linkedSections.length === 1 ? linkedSections[0] : undefined
+  useEffect(() => {
+    if (appliedSectionRef.current === linkKey || hasUnsavedChanges) return
+    if (hasFeedbackLink) {
+      if (!linkedLocation || !linkedId) return
+      if (linkedLocation.pageId !== selectedPageIdProp) {
+        void navigate({ to: "/books/$label/$step/$pageId", params: { label: bookLabel, step: "storyboard", pageId: linkedLocation.pageId }, search: { sectionId: linkedId, comment: search.comment }, replace: true })
+        return
+      }
+      if (linkedIndex === undefined) return
+      if (search.comment) commentsMode.open(search.comment, linkedId)
+      setSectionIndex(linkedIndex)
+    } else if (search.section !== undefined) setSectionIndex(search.section)
+    appliedSectionRef.current = linkKey
+  }, [linkKey, hasUnsavedChanges, hasFeedbackLink, linkedId, linkedLocation, linkedIndex, selectedPageIdProp, search.comment, search.section, setSectionIndex, commentsMode.open, navigate, bookLabel])
 
   const confirmUnsavedNavigation = useCallback(
     () =>
@@ -480,6 +495,15 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   if (pageLoading || !page) {
     return <LoadingState stageSlug="storyboard" label={<Trans>Loading page...</Trans>} />
+  }
+
+  if (hasFeedbackLink && appliedSectionRef.current !== linkKey && !hasUnsavedChanges) {
+    if ((search.comment && linkedComments.isPending) || (linkedLocation && linkedLocation.pageId !== selectedPageIdProp)) {
+      return <LoadingState stageSlug="storyboard" label={<Trans>Loading page...</Trans>} />
+    }
+    if (!linkedLocation || linkedIndex === undefined) {
+      return <p role="status" className="p-4 text-sm"><Trans>This comment’s section is unavailable in the current book. Its feedback remains in Sharing.</Trans></p>
+    }
   }
 
   const ownershipWarning = page.sectioningSynchronization?.sections.some(section => section.status === "structural-drift") && (

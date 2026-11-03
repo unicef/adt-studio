@@ -1,6 +1,9 @@
 import { SourceGeneratorStep } from "@adt/types"
 import { putSourceNodeData, preserveRenderedOwnership, withSourceGenerationTracking, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
 import { cloneRenderedIdentities, stampRenderedOwner } from "@adt/pipeline"
+import { stampManualEdits } from "@adt/pipeline"
+import { AuthoredSaveGuard } from "@adt/types"
+import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
 import { scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
 import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
@@ -578,10 +581,10 @@ function saveStoryboardNode(
   node: "page-sectioning" | "web-rendering",
   itemId: string,
   data: unknown,
-  { renderingInSync = false, movedIds }: { renderingInSync?: boolean; movedIds?: ReadonlySet<string> } = {}
+  { renderingInSync = false, renderingChanged = false, movedIds }: { renderingInSync?: boolean; renderingChanged?: boolean; movedIds?: ReadonlySet<string> } = {}
 ): number {
   if (node === "page-sectioning") assertNoActivePipelineRun(storage)
-  const version = storage.transaction(() => {
+  return storage.transaction(() => {
     const beforeCatalog = buildTextCatalogSnapshot(storage, storage.getPages())
     const conflictsBefore = beforeCatalog.conflicts ?? []
     const localIds = sourceTextIds([
@@ -589,13 +592,24 @@ function saveStoryboardNode(
       storage.getLatestNodeData("web-rendering", itemId)?.data,
     ])
     const parsed = node === "web-rendering" ? WebRenderingOutput.safeParse(data) : null
+    const priorSectioning = node === "page-sectioning" ? PageSectioningOutput.safeParse(storage.getLatestNodeData(node, itemId)?.data) : null
     const saved = parsed?.success ? {
       ...parsed.data,
       sections: withLegacyRenderingOwnership(storage, itemId, parsed.data).sections.map((section) => {
         const owner = renderedSectionId(section)
         return owner ? { ...scopeLegacyActivityIds(section, owner), sectionId: owner } : section
       }),
-    } : data
+    } : node === "page-sectioning" ? stampManualEdits(
+      priorSectioning?.success ? [priorSectioning.data] : [],
+      [PageSectioningOutput.parse(data)], () => itemId,
+      (before, after) => !renderingChanged && inputSignature(before.sections) === inputSignature(after.sections),
+    )[0] : data
+    if (node === "page-sectioning") {
+      const before = PageSectioningOutput.safeParse(storage.getLatestNodeData(node, itemId)?.data)
+      const after = PageSectioningOutput.parse(saved)
+      const active = new Set(after.sections.map((section) => section.sectionId))
+      if (before.success) retireSectionIds(storage, before.data.sections.filter((section) => !active.has(section.sectionId)).map((section) => section.sectionId))
+    }
     const proposedIds = sourceTextIds(saved)
     const blankId = findIntroducedBlankContentId(proposedIds, [...localIds, ...(movedIds ?? [])])
     if (blankId !== undefined) throw new HTTPException(409, { message: "New content requires a nonblank data ID. Use distinct unused IDs." })
@@ -617,23 +631,22 @@ function saveStoryboardNode(
       && !beforeCatalog.entries.some(previous => previous.id === id && afterCatalog.entries.some(next => next.id === id && next.text === previous.text)))
     if (reused) throw new HTTPException(409, { message: `New content cannot reuse historical data ID: ${reused}. Use an unused ID or restore the original version.` })
     reconcileTextCatalog(storage)
+    clearCaptionData(storage)
+    // A sectioning change invalidates the storyboard's rendered HTML — and the
+    // structural ops go further: a split drops both halves' HTML and a cross-page
+    // merge empties both pages, so those sections would silently vanish from the
+    // packaged book while the stage still read "done". A `web-rendering` save is
+    // itself the storyboard's output, so it must NOT mark storyboard stale.
+    //
+    // `renderingInSync` is the Storyboard editor saving a per-section edit whose
+    // HTML it has already mirrored, or has queued a targeted re-render for. The
+    // storyboard is current (or seconds from it) and only its dependents are
+    // behind, so resetting the stage would take the editor away for nothing.
+    if (node === "page-sectioning") {
+      markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
+    }
     return nextVersion
   })
-  clearCaptionData(storage)
-  // A sectioning change invalidates the storyboard's rendered HTML — and the
-  // structural ops go further: a split drops both halves' HTML and a cross-page
-  // merge empties both pages, so those sections would silently vanish from the
-  // packaged book while the stage still read "done". A `web-rendering` save is
-  // itself the storyboard's output, so it must NOT mark storyboard stale.
-  //
-  // `renderingInSync` is the Storyboard editor saving a per-section edit whose
-  // HTML it has already mirrored, or has queued a targeted re-render for. The
-  // storyboard is current (or seconds from it) and only its dependents are
-  // behind, so resetting the stage would take the editor away for nothing.
-  if (node === "page-sectioning") {
-    markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
-  }
-  return version
 }
 
 /**
@@ -833,7 +846,7 @@ export function createPageRoutes(
         if (seenRenderings.has(row.item_id)) continue
         seenRenderings.add(row.item_id)
         // The selected NULL row invalidates output; history is not a fallback.
-        if (row.data === null) continue
+        if (row.data === null || row.data.trim() === "null") continue
         rendered.add(row.item_id)
         try {
           const parsed = JSON.parse(row.data) as {
@@ -859,11 +872,18 @@ export function createPageRoutes(
       // Check which pages have image-captioning output
       const captioned = new Set<string>()
       const captionRows = db.all(
-        "SELECT DISTINCT item_id FROM node_data WHERE node = ?",
+        `SELECT nd.item_id AS item_id, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
         ["image-captioning"]
-      ) as Array<{ item_id: string }>
+      ) as Array<{ item_id: string; data: string | null }>
+      const seenCaptions = new Set<string>()
       for (const row of captionRows) {
-        captioned.add(row.item_id)
+        if (seenCaptions.has(row.item_id)) continue
+        seenCaptions.add(row.item_id)
+        if (row.data !== null && row.data.trim() !== "null") captioned.add(row.item_id)
       }
 
       // Preserve extraction counts and include active assets introduced later
@@ -957,9 +977,9 @@ export function createPageRoutes(
           }
 
           const sectionEntries: PageSummarySection[] = (rawSections ?? []).map((s, i) => {
-            // `sectionId` is required by the schema; this only covers raw legacy
-            // rows that never had one. Display-only — nothing names a file from it.
-            const sectionId = s.sectionId ?? formatSectionId(row.item_id, i + 1)
+            // A missing legacy identity has no feedback/edit destination. The
+            // sidebar displays sectionIndex; never fabricate identity from it.
+            const sectionId = s.sectionId ?? ""
             // Pruned sections keep their own text in the per-section preview so
             // they can be displayed in the storyboard sidebar even when grayed out.
             const sectionText = collectText(s.nodes, { skipPruned: false })
@@ -1526,7 +1546,8 @@ export function createPageRoutes(
     const safeLabel = parseBookLabel(label)
 
     const body = await c.req.json()
-    const parsed = PageSectioningOutput.safeParse(body)
+    // Authorship is server-owned, not an editable field in the request body.
+    const parsed = PageSectioningOutput.omit({ source: true }).extend(AuthoredSaveGuard.shape).safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid page-sectioning data: ${parsed.error.message}`,
@@ -1541,6 +1562,7 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, parsed.data.baseVersion)
       // Sectioning change cascades to everything downstream.
       const previous = PageSectioningOutput.safeParse(storage.getLatestNodeData("page-sectioning", pageId)?.data)
       const version = withSourceGenerationTracking(storage, () => {
@@ -1636,7 +1658,8 @@ export function createPageRoutes(
     const body = await c.req.json()
     const parsed = z
       .object({
-        sectioning: PageSectioningOutput.optional(),
+        sectioning: PageSectioningOutput.omit({ source: true }).optional(),
+        baseVersion: AuthoredSaveGuard.shape.baseVersion.optional(),
         rendering: WebRenderingOutput.optional(),
         renderingInSync: z.boolean().default(false),
       })
@@ -1669,7 +1692,12 @@ export function createPageRoutes(
       }
 
       // Guard before either write, so a rejected save changes nothing at all.
-      if (sectioning) assertNoActivePipelineRun(storage)
+      if (sectioning) {
+        const guard = AuthoredSaveGuard.safeParse(parsed.data)
+        if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for sectioning saves" })
+        assertNoActivePipelineRun(storage)
+        assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+      }
 
       // Rendering, sectioning, downstream invalidations, and step status are a
       // single editor save. If any statement fails, none of them may survive.
@@ -1712,7 +1740,7 @@ export function createPageRoutes(
     const node = parsedNode.data
 
     const parsed = z
-      .object({ version: z.number().int().positive() })
+      .object({ version: z.number().int().positive(), ...AuthoredSaveGuard.shape })
       .safeParse(await c.req.json().catch(() => ({})))
     if (!parsed.success) {
       throw new HTTPException(400, {
@@ -1729,6 +1757,8 @@ export function createPageRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      assertAuthoredIdle(storage)
+      assertEditVersion(storage.getCurrentNodeVersion(node, itemId) ?? undefined, parsed.data.baseVersion)
       return withSourceGenerationTracking(storage, () => {
         const previousVersion = storage.getLatestNodeData(node, itemId)?.version
         if (node === "page-sectioning") preserveRenderedOwnership(storage, itemId)
@@ -2022,6 +2052,16 @@ export function createPageRoutes(
     const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
+    const guard = AuthoredSaveGuard.safeParse(body)
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for AI edits" })
+    const checkBase = () => {
+      const storage = createBookStorage(safeLabel, booksDir)
+      try {
+        assertAuthoredIdle(storage)
+        assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+      } finally { storage.close() }
+    }
+    checkBase()
     const instruction = body?.instruction
     if (!instruction || typeof instruction !== "string") {
       throw new HTTPException(400, { message: "Missing instruction in request body" })
@@ -2035,6 +2075,7 @@ export function createPageRoutes(
         "ai-edit",
         desc,
         async () => {
+          checkBase()
           const snapshot = (() => {
             const storage = createBookStorage(safeLabel, booksDir)
             try {
@@ -2068,7 +2109,8 @@ export function createPageRoutes(
           // Save the edited HTML as a new rendering version
           const storage = createBookStorage(safeLabel, booksDir)
           try {
-            storage.transaction(() => {
+            checkBase()
+            return storage.transaction(() => {
               if (storage.getLatestNodeData("web-rendering", pageId)?.version !== snapshot.renderingVersion ||
                   storage.getLatestNodeData("page-sectioning", pageId)?.version !== snapshot.sourceVersion) {
                 throw new HTTPException(409, { message: "Page changed during AI editing. Existing content has been preserved." })
@@ -2080,13 +2122,15 @@ export function createPageRoutes(
                   ...(result.activityAnswers ? { activityAnswers: result.activityAnswers } : {}),
                 } : entry,
               ) }
+              const sectioning = storage.getLatestNodeData("page-sectioning", pageId)
+              const renderingChanged = inputSignature(snapshot.rendering.sections.map(({ html, activityAnswers }) => ({ html, activityAnswers }))) !== inputSignature(updated.sections.map(({ html, activityAnswers }) => ({ html, activityAnswers })))
+              if (sectioning) saveStoryboardNode(storage, "page-sectioning", pageId, sectioning.data, { renderingInSync: true, renderingChanged })
               saveStoryboardNode(storage, "web-rendering", pageId, updated)
+              return { ...result, sectionIndex: idx }
             })
           } finally {
             storage.close()
           }
-
-          return { ...result, sectionIndex: idx }
         },
         { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
       )
@@ -2232,8 +2276,12 @@ export function createPageRoutes(
     const { label, pageId, sectionIndex: idx } = parsedParams.data
     const safeLabel = parseBookLabel(label)
 
+    const guard = AuthoredSaveGuard.safeParse(await c.req.json().catch(() => ({})))
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      assertNoActivePipelineRun(storage)
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
       return storage.transaction(() => {
         const pages = storage.getPages()
         if (!pages.find((p) => p.pageId === pageId)) {
@@ -2349,6 +2397,7 @@ export function createPageRoutes(
 
     const SplitSectionBody = z
       .object({
+        ...AuthoredSaveGuard.shape,
         beforeNodeIndex: z.number().int().min(1).optional(),
         beforeNodeId: z.string().min(1).optional(),
       })
@@ -2363,8 +2412,12 @@ export function createPageRoutes(
     }
     const { beforeNodeIndex, beforeNodeId } = parsedBody.data
 
+    const guard = AuthoredSaveGuard.safeParse(parsedBody.data)
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      assertNoActivePipelineRun(storage)
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
       return storage.transaction(() => {
         const pages = storage.getPages()
         if (!pages.find((p) => p.pageId === pageId)) {
@@ -2540,8 +2593,12 @@ export function createPageRoutes(
     // opts out of marking the stage stale. Off by default for every other caller.
     const renderingInSync = c.req.query("renderingInSync") === "1"
 
+    const guard = AuthoredSaveGuard.safeParse(await c.req.json().catch(() => ({})))
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      assertNoActivePipelineRun(storage)
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
       return storage.transaction(() => {
         const pages = storage.getPages()
         if (!pages.find((p) => p.pageId === pageId)) {
@@ -2705,8 +2762,12 @@ export function createPageRoutes(
       })
     }
     const { direction } = parsedQuery.data
+    const guard = AuthoredSaveGuard.extend({ targetBaseVersion: z.number().int().nonnegative().optional() }).safeParse(await c.req.raw.clone().json().catch(() => ({})))
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      assertNoActivePipelineRun(storage)
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
       return storage.transaction(() => {
         const pages = storage.getPages()
         const pageIndex = pages.findIndex((p) => p.pageId === pageId)
@@ -2720,6 +2781,8 @@ export function createPageRoutes(
           throw new HTTPException(400, { message: `No ${direction === "next" ? "next" : "previous"} page to merge into` })
         }
         const targetPageId = pages[targetPageIndex].pageId
+        if (guard.data.targetBaseVersion === undefined) throw new HTTPException(400, { message: "targetBaseVersion is required for cross-page merge" })
+        assertEditVersion(storage.getLatestNodeData("page-sectioning", targetPageId)?.version, guard.data.targetBaseVersion)
 
         // Load source sectioning
         const srcRow = storage.getLatestNodeData("page-sectioning", pageId)
@@ -2862,8 +2925,12 @@ export function createPageRoutes(
     const { label, pageId, sectionIndex: idx } = parsedParams.data
     const safeLabel = parseBookLabel(label)
 
+    const guard = AuthoredSaveGuard.safeParse(await c.req.json().catch(() => ({})))
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      assertNoActivePipelineRun(storage)
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
       return storage.transaction(() => {
         const pages = storage.getPages()
         if (!pages.find((p) => p.pageId === pageId)) {

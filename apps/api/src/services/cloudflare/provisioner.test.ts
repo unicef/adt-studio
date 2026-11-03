@@ -304,6 +304,7 @@ describe("provisionCloudflare — idempotent re-run", () => {
     "0002_feedback.sql",
     "0008_sessions_pinned_name_index.sql",
     "0009_static_asset_hashes.sql",
+    "0010_publication_comments.sql",
   ]
 
   it("ships exactly the migrations the contract documents", () => {

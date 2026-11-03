@@ -648,6 +648,9 @@ msgstr "{sections} seksione"
 msgid "{SEND_KEY} Enter to send"
 msgstr "{SEND_KEY} Enter për ta dërguar"
 
+msgid "{SEND_KEY} Enter to send · readers see it once the link is back on"
+msgstr "{SEND_KEY} Enter për ta dërguar · lexuesit e shohin kur lidhja të jetë sërish aktive"
+
 msgid "{SEND_KEY} Enter to send · the reader sees it on their copy"
 msgstr "{SEND_KEY} Enter për ta dërguar · lexuesi e sheh në kopjen e vet"
 
@@ -1751,6 +1754,9 @@ msgstr "tashmë aty"
 msgid "Also delete the sharing service and every shared book from my Cloudflare account"
 msgstr "Fshi gjithashtu shërbimin e ndarjes dhe çdo libër të ndarë nga llogaria ime Cloudflare"
 
+msgid "Also regenerate these pages and replace their saved content"
+msgstr "Rigjenero edhe këto faqe dhe zëvendëso përmbajtjen e tyre të ruajtur"
+
 msgid "Also used by {readerNames} unless that provider has its own key."
 msgstr "Përdoret edhe nga {readerNames}, përveç nëse ai ofrues ka çelësin e vet."
 
@@ -1916,6 +1922,9 @@ msgstr "Ndërfaqe Programimi Aplikacioni — një grup rregullash që lejon prog
 
 msgid "Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
 msgstr "Zbatohet vetëm për normalizimin e tekstit. Leximi me zë i matematikës ekzekutohet gjithsesi. Përgatitja zgjedh fillimisht lokalin e saktë, pastaj gjuhën bazë dhe në fund këtë parazgjedhje. Udhëzimi përfshihet në thirrjen LLM të ruajtur në memorie dhe të inspektueshme."
+
+msgid "Applies to books whose speech provider matches this model's provider. Other providers run on their own default, or on the model set in Speech settings."
+msgstr "Zbatohet për librat ofruesi i të folurit i të cilëve përputhet me atë të këtij modeli. Ofruesit e tjerë përdorin modelin e tyre të parazgjedhur ose atë të caktuar te cilësimet e Të folurit."
 
 msgid "Applies to every language routed to ElevenLabs."
 msgstr "Zbatohet për çdo gjuhë të drejtuar në ElevenLabs."
@@ -2141,6 +2150,9 @@ msgstr "Kthehu te versionet beta"
 
 msgid "Back to classic activity"
 msgstr "Kthehu te aktiviteti klasik"
+
+msgid "Back to comments"
+msgstr "Kthehu te komentet"
 
 msgid "Back to home"
 msgstr "Kthehu në shtëpi"
@@ -2610,6 +2622,9 @@ msgstr "Qendër"
 msgid "Change"
 msgstr "Ndrysho"
 
+msgid "Change and send"
+msgstr "Ndrysho dhe dërgo"
+
 msgid "Change how you share"
 msgstr "Ndrysho mënyrën si ndan"
 
@@ -2628,6 +2643,9 @@ msgstr "Ndrysho figurën e këtij termi"
 msgid "Changes detected"
 msgstr "U zbuluan ndryshime"
 
+msgid "Changes not saved"
+msgstr "Ndryshimet nuk janë ruajtur"
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzekutoni Storyboard dhe Eksportin për të zbatuar fontet e reja."
 
@@ -2636,6 +2654,9 @@ msgstr "Ndryshimi i gjuhës mund të ndikojë në punën e ruajtur."
 
 #~ msgid "Changing the language resets downstream work."
 #~ msgstr "Ndryshimi i gjuhës rivendos punën e mëvonshme."
+
+msgid "Changing this sends a fresh copy, so readers also get the edits you haven't shared yet."
+msgstr "Ky ndryshim dërgon një kopje të re, kështu që lexuesit marrin edhe ndryshimet që nuk i keni ndarë ende."
 
 msgid "Chapter"
 msgstr "Kapitull"
@@ -2721,8 +2742,8 @@ msgstr "Kontrollimi i llogarisë tuaj"
 msgid "Checking your sharing setup…"
 msgstr "Po kontrollohet konfigurimi juaj i ndarjes…"
 
-msgid "Checking your token"
-msgstr "Kontrollimi i tokenit tuaj"
+#~ msgid "Checking your token"
+#~ msgstr "Kontrollimi i tokenit tuaj"
 
 msgid "Checklist item"
 msgstr "Artikull liste kontrolli"
@@ -2983,6 +3004,9 @@ msgstr "Komente ({0})"
 msgid "Comments couldn't be loaded right now. They're safe — try again in a moment."
 msgstr "Komentet nuk u ngarkuan dot tani. Janë të sigurt — provoni përsëri pas pak."
 
+msgid "Comments off for readers"
+msgstr "Komentet janë çaktivizuar për lexuesit"
+
 msgid "Comments to read"
 msgstr "Komentet për të lexuar"
 
@@ -3084,6 +3108,9 @@ msgstr "Konfiguruar në server"
 
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
+
+msgid "Conflicting changes detected"
+msgstr "U zbuluan ndryshime që bien ndesh"
 
 msgid "Conflicting source text uses this ID. Resolve the source conflict before accepting dependent output."
 msgstr "Tekste burimore kundërthënëse përdorin këtë ID. Zgjidheni konfliktin në burim para se të pranoni përmbajtjen e varur."
@@ -3356,6 +3383,12 @@ msgstr "Përgjigja e saktë (alternativat ndahen me |)"
 msgid "Correct the metadata extracted from the document."
 msgstr "Korrigjoni meta të dhënat e nxjerra nga dokumenti."
 
+msgid "Could not load saved content."
+msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej."
+
+msgid "Could not load saved content. Retry"
+msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej. Provo përsëri"
+
 msgid "Could not load the AI provider catalogue."
 msgstr "Katalogu i ofruesve të IA-së nuk mund të ngarkohej."
 
@@ -3373,6 +3406,9 @@ msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i m
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsëri."
+
+msgid "Could not revert this page. Your edits were kept. Try again."
+msgstr "Ndryshimet e kësaj faqeje nuk mund të zhbëheshin. Ndryshimet tuaja u ruajtën. Provoni përsëri."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -3960,6 +3996,9 @@ msgstr "Hidh poshtë"
 msgid "Discard & leave"
 msgstr "Hidh poshtë dhe dil"
 
+msgid "Discard this draft and load the entire latest saved table of contents."
+msgstr "Hidhni poshtë këtë draft dhe ngarkoni të gjithë tabelën e fundit të ruajtur të përmbajtjes."
+
 msgid "Discard unsaved prompt changes?"
 msgstr "Të hidhen poshtë ndryshimet e paruajtura të promptit?"
 
@@ -4035,11 +4074,17 @@ msgstr "Draft"
 msgid "Drag & drop font files here"
 msgstr "Tërhiq dhe lësho skedarët e fontit këtu"
 
-msgid "Drag the handles to crop a rectangle. Drag inside to move."
-msgstr "Tërhiqni dorezat për të prerë një drejtkëndësh. Tërhiqni brenda për ta lëvizur."
+msgid "Drag an edge or corner to crop a rectangle. Drag inside to move."
+msgstr "Tërhiqni një skaj ose cep për të prerë një drejtkëndësh. Tërhiqni brenda për ta lëvizur."
 
-msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
-msgstr "Tërhiqni dorezat për të ripërmasuar (raporti i pamjes i kyçur). Tërhiqni brenda për ta lëvizur."
+msgid "Drag an edge or corner to resize (aspect ratio locked). Drag inside to move."
+msgstr "Tërhiqni një skaj ose cep për të ripërmasuar (raporti i pamjes i kyçur). Tërhiqni brenda për ta lëvizur."
+
+#~ msgid "Drag the handles to crop a rectangle. Drag inside to move."
+#~ msgstr "Tërhiqni dorezat për të prerë një drejtkëndësh. Tërhiqni brenda për ta lëvizur."
+
+#~ msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+#~ msgstr "Tërhiqni dorezat për të ripërmasuar (raporti i pamjes i kyçur). Tërhiqni brenda për ta lëvizur."
 
 msgid "Drag to move"
 msgstr "Tërhiq për të lëvizur"
@@ -6022,6 +6067,9 @@ msgstr "Mbaj përmbajtjen e filtruar"
 msgid "Keep going"
 msgstr "Vazhdo"
 
+msgid "Keep my changes"
+msgstr "Mbaj ndryshimet e mia"
+
 msgid "Keep my connection"
 msgstr "Mbaj lidhjen time"
 
@@ -6043,11 +6091,17 @@ msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të 
 msgid "Keep sharing"
 msgstr "Vazhdo ndarjen"
 
+msgid "Keep the values you entered where changes overlap."
+msgstr "Mbani vlerat që keni futur aty ku ndryshimet mbivendosen."
+
 msgid "Keep this one"
 msgstr "Mbaje këtë"
 
 msgid "Keep working"
 msgstr "Vazhdo punën"
+
+msgid "Keep your entire table of contents, including its chapter targets and order."
+msgstr "Mbani të gjithë tabelën tuaj të përmbajtjes, përfshirë destinacionet dhe renditjen e kapitujve."
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërkojnë ndarje."
@@ -6205,6 +6259,9 @@ msgstr "Lënë në versionin {0}"
 msgid "Left out of the shared copy only"
 msgstr "Lihet jashtë vetëm nga kopja e ndarë"
 
+msgid "Legacy · protected"
+msgstr "Përmbajtje e vjetër · e mbrojtur"
+
 msgid "Legal and compliance manuals"
 msgstr "Manuale ligjore dhe të pajtueshmërisë"
 
@@ -6216,6 +6273,9 @@ msgstr "Legjenda"
 
 msgid "Lenient"
 msgstr "I butë"
+
+msgid "Let readers comment and see each other"
+msgstr "Lejo lexuesit të komentojnë dhe të shohin njëri-tjetrin"
 
 msgid "Let the agent choose"
 msgstr "Lëre agjentin të zgjedhë"
@@ -6368,6 +6428,9 @@ msgstr "Segmentim i bazuar në LLM për të zbuluar dhe ndarë imazhet e kompozu
 msgid "LMS-ready with completion tracking"
 msgstr "Gati për LMS me gjurmim të përfundimit"
 
+msgid "Load latest saved values"
+msgstr "Ngarko vlerat e fundit të ruajtura"
+
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
 
@@ -6457,6 +6520,9 @@ msgstr "Duke ngarkuar përmbledhjen e vërtetimit të rishikuesit..."
 
 msgid "Loading reviewer validation…"
 msgstr "Duke ngarkuar vërtetimin e rishikuesit…"
+
+msgid "Loading saved content…"
+msgstr "Duke ngarkuar përmbajtjen e ruajtur…"
 
 msgid "Loading sectioning data..."
 msgstr "Duke ngarkuar të dhënat e seksionimit..."
@@ -6572,8 +6638,11 @@ msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studi
 msgid "Making a copy of the book"
 msgstr "Duke bërë një kopje të librit"
 
-msgid "Making sure the token works and has every permission it needs."
-msgstr "Po verifikojmë që tokeni funksionon dhe ka të gjitha lejet e nevojshme."
+msgid "Making sure the Studio can reach your account with every permission it needs."
+msgstr "Po kontrollohet që Studio mund të arrijë llogarinë tuaj me të gjitha lejet që i duhen."
+
+#~ msgid "Making sure the token works and has every permission it needs."
+#~ msgstr "Po verifikojmë që tokeni funksionon dhe ka të gjitha lejet e nevojshme."
 
 msgid "Manage"
 msgstr "Menaxho"
@@ -6592,6 +6661,9 @@ msgstr "Menaxhohet diku tjetër"
 
 msgid "Manual edit"
 msgstr "Ndryshim manual"
+
+msgid "Manual edits reverted for page {pageNumber}"
+msgstr "Ndryshimet manuale të faqes {pageNumber} u zhbënë"
 
 msgid "Manual only"
 msgstr "Vetëm manual"
@@ -7239,6 +7311,9 @@ msgstr "Nuk ka dallime nga prompt-i fallback."
 
 msgid "No disabled rules"
 msgstr "Nuk ka rregulla të çaktiviziuara"
+
+msgid "No earlier AI-generated version is available for this page."
+msgstr "Nuk ka version të mëparshëm të gjeneruar nga IA-ja për këtë faqe."
 
 msgid "No Easy Read for this page"
 msgstr "Nuk ka Lexim të Lehtë për këtë faqe"
@@ -8234,8 +8309,8 @@ msgstr "Faqja {0} — Seksioni {1}"
 
 #. placeholder {0}: at.pageNumber
 #. placeholder {1}: at.sectionNumber
-msgid "Page {0} · Section {1}"
-msgstr "Faqja {0} · Seksioni {1}"
+#~ msgid "Page {0} · Section {1}"
+#~ msgstr "Faqja {0} · Seksioni {1}"
 
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
@@ -8259,6 +8334,9 @@ msgstr "Faqja {pageId}"
 
 msgid "Page {pageNum}"
 msgstr "Faqja {pageNum}"
+
+msgid "Page {pageNumber} · Section {sectionNumber}"
+msgstr "Faqja {pageNumber} · Seksioni {sectionNumber}"
 
 msgid "page {shownStr}"
 msgstr "faqja {shownStr}"
@@ -8348,8 +8426,8 @@ msgstr "Faqet {0}–{1}"
 #. placeholder {0}: at.pageNumber
 #. placeholder {1}: at.lastPageNumber
 #. placeholder {2}: at.sectionNumber
-msgid "Pages {0}–{1} · Section {2}"
-msgstr "Faqet {0}–{1} · Seksioni {2}"
+#~ msgid "Pages {0}–{1} · Section {2}"
+#~ msgstr "Faqet {0}–{1} · Seksioni {2}"
 
 #. placeholder {0}: preview.range.startPage
 #. placeholder {1}: preview.range.endPage
@@ -8357,11 +8435,17 @@ msgstr "Faqet {0}–{1} · Seksioni {2}"
 msgid "Pages {0}–{1} of {2}"
 msgstr "Faqet {0}–{1} nga {2}"
 
+msgid "Pages {pageNumber}–{lastPageNumber} · Section {sectionNumber}"
+msgstr "Faqet {pageNumber}–{lastPageNumber} · Seksioni {sectionNumber}"
+
 msgid "pages {shownStr}"
 msgstr "faqet {shownStr}"
 
 msgid "Pages in the selected range"
 msgstr "Faqet në intervalin e zgjedhur"
+
+msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+msgstr "Faqet e renditura më poshtë do ta ruajnë përmbajtjen e tyre, përveç nëse zgjidhni ta zëvendësoni. Të gjitha faqet e tjera do të rigjenerohen."
 
 msgid "pages per quiz"
 msgstr "faqe për kuiz"
@@ -8371,6 +8455,9 @@ msgstr "Faqe për Kuiz"
 
 msgid "Pages reviewed"
 msgstr "Faqe të rishikuara"
+
+msgid "Pages with manual edits or unknown authorship:"
+msgstr "Faqe me ndryshime manuale ose autorësi të panjohur:"
 
 msgid "Paper Collage"
 msgstr "Kolazh Letre"
@@ -8799,6 +8886,9 @@ msgstr "udhëzime shabllone"
 #~ msgid "Protected content"
 #~ msgstr "Përmbajtje e mbrojtur"
 
+msgid "Protected quizzes to replace:"
+msgstr "Kuizet e mbrojtura për t’u zëvendësuar:"
+
 msgid "Provider"
 msgstr "Ofruesi"
 
@@ -9142,6 +9232,12 @@ msgstr "Lexuesit i shohin tashmë ndryshimet tuaja më të fundit."
 
 msgid "Readers appear here once they open the link and give a name."
 msgstr "Lexuesit shfaqen këtu sapo të hapin lidhjen dhe të japin një emër."
+
+msgid "Readers can't open the link right now. Everything they left is still here."
+msgstr "Lexuesit nuk mund ta hapin lidhjen tani. Gjithçka që lanë është ende këtu."
+
+msgid "Readers can't open the link until you resume sharing."
+msgstr "Lexuesit nuk mund ta hapin lidhjen derisa ta rifilloni ndarjen."
 
 msgid "Readers don't see your latest edits"
 msgstr "Lexuesit nuk i shohin ndryshimet tuaja më të fundit"
@@ -9510,6 +9606,9 @@ msgstr "Zëvendëso imazhin"
 msgid "Replace PDF"
 msgstr "Zëvendëso PDF-in"
 
+msgid "Replace protected quizzes"
+msgstr "Zëvendëso kuizet e mbrojtura"
+
 msgid "Replace quiz"
 msgstr "Zëvendëso kuizin"
 
@@ -9518,6 +9617,9 @@ msgstr "Zëvendëso kuizet"
 
 msgid "Replace this audio file"
 msgstr "Zëvendëso këtë skedar audio"
+
+msgid "Replace your overlapping changes with the latest saved values."
+msgstr "Zëvendësoni ndryshimet tuaja që mbivendosen me vlerat e fundit të ruajtura."
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Riluaj prezantimin e udhëzuar të ADT Studio."
@@ -9550,6 +9652,10 @@ msgstr "Përgjigju…"
 
 msgid "Report an issue"
 msgstr "Raporto një problem"
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "Kërkesa dështoi: {0}"
 
 msgid "Request settings"
 msgstr "Cilësimet e kërkesës"
@@ -9605,6 +9711,9 @@ msgstr "Zgjidh"
 #. placeholder {0}: thread.authorName
 msgid "Resolve {0}'s comment"
 msgstr "Zgjidh komentin nga {0}"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Zgjidh ndryshimet në konflikt para ruajtjes"
 
 msgid "Resolved"
 msgstr "Zgjidhur"
@@ -9696,6 +9805,12 @@ msgstr "Kthehu te publikimi"
 msgid "Revert language change"
 msgstr "Kthe ndryshimin e gjuhës"
 
+msgid "Revert manual edits"
+msgstr "Zhbëj ndryshimet manuale"
+
+msgid "Revert manual edits on page {pageNumber}?"
+msgstr "Të zhbëhen ndryshimet manuale të faqes {pageNumber}?"
+
 msgid "Revert to {originalLanguageName}"
 msgstr "Kthehu te {originalLanguageName}"
 
@@ -9766,6 +9881,9 @@ msgstr "Stili i rishikimit"
 
 msgid "Review the affected stages after this change."
 msgstr "Rishikoni fazat e prekura pas këtij ndryshimi."
+
+msgid "Review the chosen document, then save again."
+msgstr "Rishikoni dokumentin e zgjedhur dhe ruajeni përsëri."
 
 msgid "Review the comments waiting on you in the storyboard"
 msgstr "Shqyrto në storyboard komentet që ju presin"
@@ -10057,8 +10175,14 @@ msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime.
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Përmbajtja e ruajtur dhe seksionet e faqeve ruhen. Rishikoni fazat e prekura pas ndryshimit të gjuhës. Asnjë gjenerim nuk fillon automatikisht."
 
+msgid "Saved content could not be verified. Try again."
+msgstr "Përmbajtja e ruajtur nuk mund të verifikohej. Provoni përsëri."
+
 msgid "Saved content is kept. Review language-dependent outputs after saving. No generation starts automatically."
 msgstr "Përmbajtja e ruajtur ruhet. Rishikoni rezultatet që varen nga gjuha pas ruajtjes. Asnjë gjenerim nuk fillon automatikisht."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "Përmbajtja e ruajtur nuk është e disponueshme; drafti yt ruhet"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
@@ -10472,6 +10596,9 @@ msgstr "Dërgon tekstin e fjalisë fqinje së bashku me çdo kërkesë në mëny
 
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Dërgojeni këtë arkiv projekti te koordinatori për ta bashkuar në librin burim."
+
+msgid "Send your latest edits too?"
+msgstr "Të dërgohen edhe ndryshimet tuaja më të fundit?"
 
 msgid "Sending it to your Cloudflare account"
 msgstr "Duke e dërguar në llogarinë tuaj Cloudflare"
@@ -11810,8 +11937,11 @@ msgstr "Lidhja ndalon së funksionuari më {0}."
 msgid "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
 msgstr "Lidhja ndalon së funksionuari menjëherë, për të gjithë ata që e kanë atë. Kushdo që e hap do të shohë një mesazh të shkurtër që thotë se libri nuk është më i ndarë."
 
-msgid "The login could not be finished. Try again, or use an API token instead."
-msgstr "Hyrja nuk mund të përfundonte. Provoni përsëri, ose përdorni një token API në vend të kësaj."
+msgid "The login could not be finished. Try again in a moment."
+msgstr "Hyrja nuk u përfundua dot. Provoni sërish pas pak."
+
+#~ msgid "The login could not be finished. Try again, or use an API token instead."
+#~ msgstr "Hyrja nuk mund të përfundonte. Provoni përsëri, ose përdorni një token API në vend të kësaj."
 
 msgid "The login couldn't come back to the Studio"
 msgstr "Hyrja nuk mund të kthehej në Studio"
@@ -11947,6 +12077,9 @@ msgstr "Studio do të krijojë hapësirën ruajtëse dhe shërbimin e vogël në
 
 msgid "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 msgstr "Dielli ngroh ujin në oqeane, liqene dhe lumenj, duke e kthyer në avull që ngjitet në atmosferë. Ndërsa avulli ftohet në lartësi më të mëdha, kondensohet në pika të vogla që formojnë retë."
+
+msgid "The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again."
+msgstr "Tabela e përmbajtjes është riorganizuar ose zëvendësuar. Drafti juaj është i paprekur. Zgjidhni cilin dokument të plotë të mbani para se të vazhdoni redaktimin."
 
 msgid "The table of contents."
 msgstr "Tabela e përmbajtjes."
@@ -12100,14 +12233,20 @@ msgstr "Ky koment nuk lidhet me një faqe që Studio mund ta gjejë."
 msgid "This comment was deleted"
 msgstr "Ky koment u fshi"
 
+msgid "This comment’s section is unavailable in the current book. Its feedback remains in Sharing."
+msgstr "Seksioni i këtij komenti nuk është i disponueshëm në librin aktual. Komenti mbetet te Ndarja."
+
 msgid "This computer"
 msgstr "Ky kompjuter"
+
+msgid "This computer will forget its Cloudflare connection, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+msgstr "Ky kompjuter do ta harrojë lidhjen me Cloudflare, ndaj nuk do të mund të ndani ose përditësoni libra derisa të lidheni sërish. Librat që keni ndarë tashmë mbeten në internet dhe lidhjet e tyre vazhdojnë të funksionojnë."
 
 #~ msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
 #~ msgstr "Ky kompjuter do të harrojë tokenin dhe ID-në e llogarisë tuaj, kështu që nuk do të mund të publikoni ose përditësoni libra deri sa të lidheni përsëri. Librat që keni publikuar tashmë qëndrojnë online dhe lidhjet e tyre vazhdojnë të funksionojnë."
 
-msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
-msgstr "Ky kompjuter do të harrojë tokenin dhe ID-në e llogarisë suaj, prandaj nuk do të mund të ndani ose përditësoni libra derisa të lidheni përsëri. Librat që keni ndarë tashmë mbeten në internet dhe lidhjet e tyre vazhdojnë të funksionojnë."
+#~ msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+#~ msgstr "Ky kompjuter do të harrojë tokenin dhe ID-në e llogarisë suaj, prandaj nuk do të mund të ndani ose përditësoni libra derisa të lidheni përsëri. Librat që keni ndarë tashmë mbeten në internet dhe lidhjet e tyre vazhdojnë të funksionojnë."
 
 msgid "This connection isn't available yet."
 msgstr "Kjo lidhje nuk është ende e disponueshme."
@@ -12193,6 +12332,9 @@ msgstr "Kjo ndryshon vetëm ndërfaqen e ADT Studio. Nuk ndikon në gjuhët në 
 msgid "This option has no answer key entry"
 msgstr "Ky opsion nuk ka hyrje në çelësin e përgjigjeve"
 
+msgid "This page changed or a run started. Your edits were kept. Try again."
+msgstr "Kjo faqe ndryshoi ose filloi një ekzekutim. Ndryshimet tuaja u ruajtën. Provoni përsëri."
+
 msgid "This page has no captioned images"
 msgstr "Kjo faqe nuk ka imazhe me tituj"
 
@@ -12216,6 +12358,9 @@ msgstr "Kjo faqe nuk ka hyrje teksti të përkthyeshme"
 
 msgid "This page has not been reviewed yet"
 msgstr "Kjo faqe nuk është rishikuar akoma"
+
+msgid "This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved."
+msgstr "Kjo faqe u ndryshua pasi filluat redaktimin, prandaj disa vlera tani nuk përputhen. Ndryshimet tuaja nuk janë ruajtur."
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Shtresa e tekstit të integruar e kësaj faqeje është bosh, por hapi i Seksionimit rikuperoi tekst nga imazhi i faqes — pra duket si një faqe e skanuar ose vetëm me imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
@@ -12268,8 +12413,14 @@ msgstr "Kjo heq versionin global për këtë skedar prompti. Skedarët fallback 
 msgid "This removes the site and every shared version from your Cloudflare account. The book on this computer is untouched, and the link stops working for everyone."
 msgstr "Kjo heq faqen dhe çdo version të ndarë nga llogaria juaj Cloudflare. Libri në këtë kompjuter nuk preket, dhe lidhja ndalon së punuari për të gjithë."
 
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "Kjo zëvendëson tabelën e përmbajtjes të redaktuar manualisht ose të vjetër. Versioni i saj i ruajtur mbetet në historik."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Kjo rikthen fontin e parazgjedhur në çdo faqe dhe pastron mbishkrimet e fontit për element dhe përzgjedhjen e fontit për të gjithë librin. Fontet e bashkëngjitura mbeten në listë. Kthimi është i disponueshëm për çdo faqe nga historiku i versioneve."
+
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+msgstr "Kjo rikthen ndarjen e fundit në seksione të gjeneruar për këtë faqe. Versioni juaj i redaktuar mbetet në historik. Faqet e tjera i ruajnë ndryshimet e tyre. Kjo faqe mund të rigjenerohet në ekzekutimin e ardhshëm."
 
 msgid "This screen couldn’t load"
 msgstr "Ky ekran nuk mund të ngarkohej"
@@ -12301,6 +12452,9 @@ msgstr "Ky Studio i ndan librat me një lexues më të ri se sa mbështet shërb
 
 msgid "This system cannot show desktop notifications."
 msgstr "Ky sistem nuk mund të shfaqë njoftime në desktop."
+
+msgid "This table of contents has conflicting chapter identities. Restore an earlier version before editing."
+msgstr "Kjo tabelë e përmbajtjes ka identitete kapitujsh që bien ndesh. Riktheni një version të mëparshëm para redaktimit."
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ky tekst perceptohet vetëm nga teknologjitë ndihmëse."
@@ -13059,6 +13213,11 @@ msgstr "Versioni {0} (i fundit i njohur)"
 msgid "Version {0} → {1}. Your shared books stay online while this runs."
 msgstr "Versioni {0} → {1}. Librat tuaj të ndarë mbeten në internet gjatë kësaj kohe."
 
+#. placeholder {0}: publication.current_version
+#. placeholder {1}: publication.version_count
+msgid "Version {0} of {1}, not being served"
+msgstr "Versioni {0} nga {1}, nuk po shërbehet"
+
 msgid "Version {current}"
 msgstr "Versioni {current}"
 
@@ -13547,6 +13706,9 @@ msgstr "Librat tuaj do të jetojnë në llogarinë tuaj Cloudflare."
 msgid "Your browser opens Cloudflare's own sign-in page."
 msgstr "Shfletuesi juaj hap faqen e hyrjes së vetë Cloudflare."
 
+msgid "Your changes are still here. Review them before saving again."
+msgstr "Ndryshimet tuaja janë ende këtu. Rishikojini para se të ruani përsëri."
+
 msgid "Your choices are kept while you wait."
 msgstr "Zgjedhjet tuaja ruhen ndërsa prisni."
 
@@ -13591,6 +13753,9 @@ msgstr "Fontet e tua"
 
 msgid "Your link appears here once the book is shared"
 msgstr "Lidhja juaj shfaqet këtu sapo libri të ndahet"
+
+msgid "Your other edits will be kept. Review the result, then save again."
+msgstr "Ndryshimet tuaja të tjera do të ruhen. Rishikoni rezultatin, pastaj ruani përsëri."
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Faqet tuaja {displayStart}–{displayEnd}"

@@ -2,7 +2,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import type { PublishProgressEvent } from "@adt/types"
 import type { CloudflareConnectionRecord } from "./cloudflare/connection-store.js"
 import { createFakePublishWorker, type FakePublishWorker } from "./fake-publish-worker.js"
@@ -11,6 +11,7 @@ import {
   publishBook,
   readAllPublicationTokens,
   readPendingCommit,
+  readContentRevision,
   readPublicationRecord,
   reconcilePendingCommit,
   republishBook,
@@ -18,6 +19,7 @@ import {
   toPublishErrorEvent,
 } from "./publish-service.js"
 import { BookHostDeployError } from "./cloudflare/book-host-deploy.js"
+import { REVIEWER_PAGE_VALIDATION_NODE } from "./reviewer-validation-service.js"
 import { CloudflareTimeoutError } from "./cloudflare/client.js"
 import { createPublishWorkerClient } from "./publish-worker-client.js"
 import { createFakeBookHost, uploadedAssetText } from "./cloudflare/fake-book-host.js"
@@ -123,6 +125,24 @@ function uploadedFiles(worker: FakePublishWorker, version: number) {
   return worker.state.versions.get(TOKEN)?.find((entry) => entry.version === version)?.files ?? []
 }
 
+describe("content revision", () => {
+  it("moves for a book edit but not for a reviewer's validation", () => {
+    const save = (node: string) => {
+      const storage = createBookStorage(LABEL, tmpDir)
+      storage.putNodeData(node, "pg001", { saved: true })
+      storage.close()
+    }
+    save("web-rendering")
+    const before = readContentRevision(LABEL, tmpDir)
+
+    save(REVIEWER_PAGE_VALIDATION_NODE)
+    expect(readContentRevision(LABEL, tmpDir)).toBe(before)
+
+    save("web-rendering")
+    expect(readContentRevision(LABEL, tmpDir)).toBeGreaterThan(before!)
+  })
+})
+
 describe("publishing a book", () => {
   it("uploads the snapshot, registers it, and records the link", async () => {
     const { worker, events, options, cloudflare } = harness()
@@ -166,6 +186,22 @@ describe("publishing a book", () => {
     ).toBe(`const files = {"./assets/config.json":${JSON.stringify(CONFIG)}};\n`)
 
     expect(events.at(-1)).toMatchObject({ type: "complete" })
+  })
+
+  it("shares read-only: bakes comments off, records it, and an update keeps it", async () => {
+    const { worker, options, cloudflare } = harness()
+
+    const first = await publishBook({ ...options, features: { comments: false } })
+
+    const firstUpload = worker.state.uploads.keys().next().value as string
+    const firstConfig = uploadedAssetText(cloudflare, `/uploads/${firstUpload}/assets/config.json`)
+    expect(JSON.parse(firstConfig!).features.comments).toBe(false)
+    expect(readPublicationRecord(LABEL, tmpDir)?.features?.comments).toBe(false)
+
+    await republishBook({ ...options, record: first.record })
+    const uploads = [...worker.state.uploads.keys()]
+    const secondConfig = uploadedAssetText(cloudflare, `/uploads/${uploads.at(-1)}/assets/config.json`)
+    expect(JSON.parse(secondConfig!).features.comments).toBe(false)
   })
 
   it("reports every step in order and finishes each one", async () => {

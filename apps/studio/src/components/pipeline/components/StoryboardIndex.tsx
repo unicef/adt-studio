@@ -14,7 +14,6 @@ import { STAGES } from "../stage-config"
 import type { Quiz } from "@adt/types"
 import { parseQuizRouteId } from "@/lib/quiz-route"
 import { useBookComments } from "../stages/storyboard/components/feedback/use-book-comments"
-import { sectionIdFor } from "../stages/storyboard/components/feedback/storyboard-pins"
 import { useCommentsMode } from "../stages/storyboard/components/feedback/use-comments-mode"
 
 /**
@@ -60,7 +59,7 @@ export function StoryboardIndex({
     const out: StoryboardListItem[] = []
     for (const page of pages) {
       for (const section of page.sections) {
-        if (filtering && !bookComments.bySection.has(sectionIdFor(page.pageId, section.sectionIndex))) continue
+        if (filtering && !bookComments.bySection.has(section.sectionId)) continue
         out.push({
           kind: "section",
           page,
@@ -139,7 +138,7 @@ export function StoryboardIndex({
   /** From the filtered list a click goes to the section the ordinary way — unsaved-changes check
    *  and all — and asks that section to open its newest waiting comment. */
   const openComments = (pageId: string, sectionIndex: number) => {
-    const entry = bookComments.bySection.get(sectionIdFor(pageId, sectionIndex))
+    const entry = bookComments.bySection.get(pages?.find((page) => page.pageId === pageId)?.sections.find((section) => section.sectionIndex === sectionIndex)?.sectionId ?? "")
     if (entry) commentsMode.open(entry.latestThreadId, entry.sectionId)
     onSelectSection?.(pageId, sectionIndex)
   }
@@ -199,7 +198,7 @@ export function StoryboardIndex({
                       : onSelectSection?.(item.page.pageId, item.section.sectionIndex)
                   }
                   stageRunning={stageRunning}
-                  waiting={bookComments.bySection.get(sectionIdFor(item.page.pageId, item.section.sectionIndex))?.waiting ?? 0}
+                  waiting={bookComments.bySection.get(item.section.sectionId)?.waiting ?? 0}
                 />
               ) : (
                 <QuizRow

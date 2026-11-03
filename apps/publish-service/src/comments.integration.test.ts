@@ -1558,3 +1558,65 @@ describe("reader writes are bounded", () => {
     expect(page.comments[0]?.anchor?.selector).toBe(legacy.selector)
   })
 })
+
+describe("read-only publications", () => {
+  async function setComments(token: string, on: boolean): Promise<Response> {
+    return app().request(
+      `${BASE}/api/publications/${token}`,
+      asAuthor({ method: "PATCH", body: JSON.stringify({ comments: on }) }),
+      env,
+    )
+  }
+
+  it("refuses readers' comments and the room, keeps names, and lets the author read", async () => {
+    const token = await publish()
+    const maria = await claim(token, "Maria")
+    const root = await commentBody(
+      await comment(token, maria, { page_section_id: "pg001_sec001", body: "Before", anchor: ANCHOR }),
+    )
+
+    const off = await setComments(token, false)
+    expect(off.status).toBe(200)
+    expect(((await off.json()) as { publication: { comments?: boolean } }).publication.comments).toBe(false)
+
+    const readerList = await app().request(`${BASE}/p/${token}/comments`, asReviewer(maria), env)
+    expect(readerList.status).toBe(403)
+    await expect(readerList.json()).resolves.toMatchObject({ error: "comments_off" })
+    const readerWrite = await comment(token, maria, { page_section_id: "pg001_sec001", body: "After", anchor: ANCHOR })
+    expect(readerWrite.status).toBe(403)
+    const room = await app().request(`${BASE}/p/${token}/room`, asReviewer(maria, { headers: { upgrade: "websocket" } }), env)
+    expect(room.status).toBe(403)
+
+    const joao = await claim(token, "Joao")
+    expect(joao.session.name).toBe("Joao")
+    expect((await authorList(token)).comments.map((entry) => entry.id)).toEqual([root.id])
+  })
+
+  it("shows the earlier comments again once comments are back on", async () => {
+    const token = await publish()
+    const maria = await claim(token, "Maria")
+    const root = await commentBody(
+      await comment(token, maria, { page_section_id: "pg001_sec001", body: "Kept", anchor: ANCHOR }),
+    )
+    await setComments(token, false)
+    expect((await setComments(token, true)).status).toBe(200)
+    expect((await list(token, maria)).comments.map((entry) => entry.id)).toEqual([root.id])
+  })
+
+  it("can be shared read-only from the first upload", async () => {
+    const token = nextToken()
+    await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+      token,
+      title: "Raven and the Sun",
+      bookLabel: "raven",
+      pageManifest: MANIFEST,
+      files: { "index.html": "<h1>page one</h1>", "pg002_sec001.html": "<h1>page two</h1>" },
+      comments: false,
+    })
+    const maria = await claim(token, "Maria")
+    const res = await app().request(`${BASE}/p/${token}/comments`, asReviewer(maria), env)
+    expect(res.status).toBe(403)
+    const detail = await app().request(`${BASE}/api/publications/${token}`, asAuthor(), env)
+    expect(((await detail.json()) as { publication: { comments?: boolean } }).publication.comments).toBe(false)
+  })
+})

@@ -23,8 +23,8 @@ interface StepCopy {
 const STEP_COPY: Record<ProvisionStepId, StepCopy> = {
   "verify-token": {
     icon: ShieldCheck,
-    title: msg`Checking your token`,
-    detail: msg`Making sure the token works and has every permission it needs.`,
+    title: msg`Checking your account`,
+    detail: msg`Making sure the Studio can reach your account with every permission it needs.`,
   },
   "find-or-create-d1": {
     icon: Database,

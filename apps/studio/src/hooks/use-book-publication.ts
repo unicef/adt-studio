@@ -453,6 +453,16 @@ export function useSetPublicationAccessCode(label: string) {
   })
 }
 
+export function useSetPublicationComments(label: string) {
+  const queryClient = useQueryClient()
+  return useMutation<PublicationResponse, Error, boolean>({
+    mutationFn: (comments) => api.setBookPublicationComments(label, comments),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: bookPublicationKey(label) })
+    },
+  })
+}
+
 export function useSetPublicationExpiry(label: string) {
   const queryClient = useQueryClient()
   return useMutation<PublicationResponse, Error, string | null>({

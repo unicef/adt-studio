@@ -1,38 +1,26 @@
 import { describe, expect, it } from "vitest"
+import type { PageSummaryItem } from "@/api/client"
+import { currentSectionLocations } from "../storyboard/components/feedback/current-section-locations"
 import { feedbackDestination } from "./feedback-destination"
 
-describe("feedbackDestination", () => {
-  /** The reviewer's complaint, as an assertion: every row used to arrive at the same first page
-   *  with nothing selected, whichever comment had been clicked. */
-  it("carries the comment's own page, section and id", () => {
-    expect(feedbackDestination("raven", "pg012_sec002", "c-42")).toEqual({
-      to: "/books/$label/$step/$pageId",
-      params: { label: "raven", step: "storyboard", pageId: "pg012" },
-      search: { section: 1, comment: "c-42" },
-    })
+const pages = (ids: string[]) => [{ pageId: "pg001", pageNumber: 1, sections: ids.map((sectionId, sectionIndex) => ({ sectionId, sectionIndex })) }] as PageSummaryItem[]
+describe("feedback identity", () => {
+  it("carries the stable owner through the link after reorder, insertion and removal", () => {
+    for (const ids of [["pg001_sec002", "pg001_sec001"], ["pg001_sec003", "pg001_sec002", "pg001_sec001"], ["pg001_sec001"]]) {
+      const location = currentSectionLocations(pages(ids)).get("pg001_sec001")!
+      expect(location.sectionIndex).toBe(ids.indexOf("pg001_sec001"))
+      expect(feedbackDestination("raven", "pg001_sec001", "c-42", location.pageId)).toEqual({
+        to: "/books/$label/$step/$pageId", params: { label: "raven", step: "storyboard", pageId: "pg001" },
+        search: { sectionId: "pg001_sec001", comment: "c-42" },
+      })
+    }
   })
-
-  it("sends the first section to index zero, not one", () => {
-    const destination = feedbackDestination("raven", "pg001_sec001", "c-1")
-    expect(destination.search?.section).toBe(0)
-    expect(destination.params.pageId).toBe("pg001")
-  })
-
-  /** Two comments on one page differ only by section, so a row that dropped it would land the
-   *  author on the right page and the wrong half of it. */
-  it("distinguishes two sections of the same page", () => {
-    const first = feedbackDestination("raven", "pg007_sec001", "a")
-    const second = feedbackDestination("raven", "pg007_sec003", "b")
-    expect(first.params.pageId).toBe(second.params.pageId)
-    expect(first.search?.section).toBe(0)
-    expect(second.search?.section).toBe(2)
-  })
-
-  /** Still clickable: a dead row is worse than one that opens the stage. */
-  it("falls back to the stage when the section id makes no sense", () => {
-    expect(feedbackDestination("raven", "not-a-section-id", "c-9")).toEqual({
-      to: "/books/$label/$step",
-      params: { label: "raven", step: "storyboard" },
-    })
+  it("has no destination for retired, blank or ambiguous identities and reconnects restored IDs", () => {
+    expect(currentSectionLocations(pages(["pg001_sec003"])).has("pg001_sec001")).toBe(false)
+    expect(feedbackDestination("raven", "pg001_sec001", "c", null)).toBeNull()
+    expect(currentSectionLocations(pages(["", " ", "pg001_sec001", "pg001_sec001"])).size).toBe(0)
+    expect(currentSectionLocations(pages(["pg001_sec003", "pg001_sec001"])).get("pg001_sec001")?.sectionIndex).toBe(1)
+    const conflicting = [...pages(["pg001_sec001"]), { ...pages(["pg001_sec001"])[0], pageId: "pg002" }]
+    expect(currentSectionLocations(conflicting).has("pg001_sec001")).toBe(false)
   })
 })

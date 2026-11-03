@@ -7,6 +7,8 @@ vi.mock("@/lib/utils", () => ({
 
 import { isElectron } from "@/lib/utils"
 import {
+  api,
+  ApiError,
   cancelProviderCliLogin,
   getProviderHealth,
   logoutProviderCli,
@@ -164,4 +166,13 @@ describe("provider credential headers", () => {
     // disguised as Gemini's own, or it would outrank a server-side Gemini key.
     expect(headers.get("X-Gemini-API-Key")).toBeNull()
   })
+})
+
+it("retains upstream structured codes and SPEC-0002 conflict status in the same ApiError", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "Changed elsewhere", code: "VERSION_CONFLICT" }), { status: 409, headers: { "Content-Type": "application/json" } })))
+  try {
+    const error = await api.getPages("conflict-fixture").catch(error => error)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ status: 409, code: "VERSION_CONFLICT", message: "Changed elsewhere" })
+  } finally { vi.unstubAllGlobals() }
 })

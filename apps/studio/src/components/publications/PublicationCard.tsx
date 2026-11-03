@@ -246,7 +246,11 @@ export function PublicationCard({
               that reads "v3" next to three versions is right by accident. */}
           <Badge
             icon={History}
-            label={t`Now serving version ${publication.current_version} of ${publication.version_count}`}
+            label={
+              state === "active"
+                ? t`Now serving version ${publication.current_version} of ${publication.version_count}`
+                : t`Version ${publication.current_version} of ${publication.version_count}, not being served`
+            }
           >
             <Trans>v{publication.current_version}</Trans>
           </Badge>

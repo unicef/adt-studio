@@ -162,9 +162,11 @@ export function PageSheet({
 }
 
 export function OpenPageLink({ bookLabel, thread }: { bookLabel: string; thread: DashThread }) {
+  const destination = threadDestination(bookLabel, thread)
+  if (!destination) return null
   return (
     <Link
-      {...threadDestination(bookLabel, thread)}
+      {...destination}
       className="flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-brand-700 transition-colors duration-150 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none dark:text-brand-300 dark:hover:bg-brand-500/10"
     >
       {thread.quiz ? <Trans>Open quiz in Quizzes</Trans> : <Trans>Open page in Storyboard</Trans>}
@@ -257,6 +259,8 @@ export function ReplyComposer({
               <span className="text-amber-700 dark:text-amber-300">
                 <Trans>That reply didn't send. Try again.</Trans>
               </span>
+            ) : data.link.access !== "open" ? (
+              <Trans>{SEND_KEY} Enter to send · readers see it once the link is back on</Trans>
             ) : (
               <Trans>{SEND_KEY} Enter to send · the reader sees it on their copy</Trans>
             )}

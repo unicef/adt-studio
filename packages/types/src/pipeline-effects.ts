@@ -233,9 +233,11 @@ export function getStageRerunClearNodes(
   const fromIndex = STAGE_ORDER.indexOf(fromStage)
   const toIndex = STAGE_ORDER.indexOf(toStage)
 
-  // Preserve the selected source snapshot, including a restored older version.
-  // Generated sectioning reconciles identities against it before publication.
-  const preservedNodes = new Set<PipelineNodeName>(["page-sectioning", "fixed-layout-sectioning", "web-rendering"])
+  // Authored units remain current until successful publication, even when the
+  // downstream stage is outside this run. Clearing completion is independent.
+  const preservedNodes = new Set<PipelineNodeName>([
+    "page-sectioning", "toc-generation", "quiz-generation", "glossary", "web-rendering", "fixed-layout-sectioning",
+  ])
   for (const stage of STAGES_PRESERVING_OWN_OUTPUT) {
     for (const node of STAGE_OUTPUT_NODES[stage]) preservedNodes.add(node)
   }

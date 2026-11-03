@@ -37,6 +37,7 @@ interface PublicationRow {
   expires_at: string | null
   revoked_at: string | null
   access_code: string | null
+  comments_off?: number
 }
 
 interface VersionRow {
@@ -59,6 +60,7 @@ interface UploadRow {
   expected_files: number
   expires_at: string | null
   access_code: string | null
+  comments_off?: number
   created_at: string
   committed_at: string | null
   committed_result: string | null
@@ -166,7 +168,7 @@ function pruneBefore(at: string): string {
 /** Keep comment fields at zero until feedback is added in a later stack. */
 const PUBLICATION_LIST_SQL = `
   SELECT p.token, p.title, p.book_label, p.current_version, p.created_at, p.expires_at,
-         p.revoked_at, p.access_code,
+         p.revoked_at, p.access_code, p.comments_off,
          COALESCE(v.version_count, 0) AS version_count,
          v.snapshot_bytes AS snapshot_bytes,
          v.last_published_at AS last_published_at,
@@ -196,6 +198,7 @@ function toPublication(row: PublicationRow): Publication {
     created_at: row.created_at,
     expires_at: row.expires_at,
     revoked_at: row.revoked_at,
+    comments: row.comments_off !== 1,
   }
 }
 
@@ -225,6 +228,7 @@ function toUpload(row: UploadRow): StoredPublicationUpload {
     expectedFiles: row.expected_files,
     expiresAt: row.expires_at,
     accessCode: row.access_code,
+    commentsOff: row.comments_off === 1,
     createdAt: row.created_at,
     committedAt: row.committed_at,
     committedResult: committed,
@@ -240,7 +244,7 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
     const row = await db
       .prepare(
         `SELECT token, title, book_label, current_version, created_at, expires_at, revoked_at,
-                access_code
+                access_code, comments_off
          FROM publications WHERE token = ?`,
       )
       .bind(token)
@@ -287,15 +291,17 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
           db.prepare(
             `INSERT INTO publication_uploads
              (upload_id, kind, token, version, title, book_label, page_manifest, snapshot_prefix,
-              snapshot_bytes, expected_files, expires_at, access_code, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              snapshot_bytes, expected_files, expires_at, access_code, comments_off, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           ).bind(
             input.uploadId, request.kind, request.token, version,
             request.kind === "create" ? request.title : null,
             request.kind === "create" ? request.book_label : null,
             pageManifest, input.snapshotPrefix, snapshotBytes, request.files.length,
             request.kind === "create" ? request.expires_at ?? null : null,
-            input.accessCode, input.createdAt,
+            input.accessCode,
+            request.kind === "create" && request.comments === false ? 1 : 0,
+            input.createdAt,
           ),
           ...request.files.map((file) => db.prepare(
             `INSERT INTO publication_upload_files (upload_id, path, bytes, sha256, asset_hash) VALUES (?, ?, ?, ?, ?)`,
@@ -348,7 +354,7 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       if ((count?.completed ?? 0) !== upload.expectedFiles) return { ok: false, reason: "incomplete" }
 
       const publication: Publication = upload.kind === "create"
-        ? { token: upload.token, title: upload.title ?? "", book_label: upload.bookLabel ?? "", current_version: 1, created_at: committedAt, expires_at: upload.expiresAt, revoked_at: null }
+        ? { token: upload.token, title: upload.title ?? "", book_label: upload.bookLabel ?? "", current_version: 1, created_at: committedAt, expires_at: upload.expiresAt, revoked_at: null, comments: !upload.commentsOff }
         : (await readPublication(upload.token)) as Publication
       if (!publication) return { ok: false, reason: "not_found" }
       const nextPublication: Publication = upload.kind === "create" ? publication : { ...publication, current_version: upload.version }
@@ -363,8 +369,8 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       try {
         const statements = upload.kind === "create"
           ? [
-              db.prepare(`INSERT INTO publications (token, title, book_label, current_version, created_at, expires_at, revoked_at, access_code) VALUES (?, ?, ?, 1, ?, ?, NULL, ?)`)
-                .bind(publication.token, publication.title, publication.book_label, committedAt, publication.expires_at, upload.accessCode),
+              db.prepare(`INSERT INTO publications (token, title, book_label, current_version, created_at, expires_at, revoked_at, access_code, comments_off) VALUES (?, ?, ?, 1, ?, ?, NULL, ?, ?)`)
+                .bind(publication.token, publication.title, publication.book_label, committedAt, publication.expires_at, upload.accessCode, upload.commentsOff ? 1 : 0),
               db.prepare(`INSERT INTO versions (token, version, page_manifest, created_at, snapshot_bytes, snapshot_prefix, upload_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
                 .bind(upload.token, upload.version, JSON.stringify(upload.pageManifest), committedAt, upload.snapshotBytes, upload.snapshotPrefix, uploadId),
             ]
@@ -639,6 +645,15 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       const result = await db
         .prepare(`UPDATE publications SET expires_at = ? WHERE token = ?`)
         .bind(expiresAt, token)
+        .run()
+      if ((result.meta.changes ?? 0) === 0) return null
+      return readPublication(token)
+    },
+
+    async setComments(token, on) {
+      const result = await db
+        .prepare(`UPDATE publications SET comments_off = ? WHERE token = ?`)
+        .bind(on ? 0 : 1, token)
         .run()
       if ((result.meta.changes ?? 0) === 0) return null
       return readPublication(token)

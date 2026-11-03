@@ -47,6 +47,7 @@ const CODE_VERIFIER_LENGTH = 96
 const STATE_LENGTH = 32
 
 const OAUTH_FLOW_TTL_MS = 10 * 60 * 1000
+const REPLACED_LOGIN = "A newer Cloudflare login replaced this one. Finish the login ADT Studio opened last."
 const OAUTH_REFRESH_MARGIN_MS = 60 * 1000
 const OAUTH_TOKEN_TIMEOUT_MS = 15 * 1000
 
@@ -341,7 +342,7 @@ const defaultListenerFactory: OAuthCallbackListenerFactory = async ({ port, host
         reject(
           new CloudflareOAuthError(
             "oauth_port_busy",
-            `Port ${port} on this computer is already in use, so Cloudflare cannot send the login back. Close any other app that is signing in to Cloudflare (another ADT Studio window, or wrangler) and try again, or connect with an API token instead.`,
+            `Port ${port} on this computer is already in use, so Cloudflare cannot send the login back. Close any other app that is signing in to Cloudflare (another ADT Studio window, or wrangler) and try again.`,
             error,
           ),
         )
@@ -541,6 +542,14 @@ export function createCloudflareOAuthService(
     }
 
     const denial = url.searchParams.get("error")
+    if (denial === "request_forbidden") {
+      return {
+        status: 200,
+        html: oauthErrorPage(
+          "This login is also open in another Cloudflare tab, so this one can't finish it. Approve it in the other tab, or choose \u201cOpen the Cloudflare page again\u201d in ADT Studio.",
+        ),
+      }
+    }
     if (denial) {
       flow.status = "error"
       flow.errorCode = denial === "access_denied" ? "oauth_denied" : "oauth_exchange_failed"
@@ -571,6 +580,7 @@ export function createCloudflareOAuthService(
         ...(fetchFn === undefined ? {} : { fetchFn }),
         ...(options.apiBaseUrl === undefined ? {} : { baseUrl: options.apiBaseUrl }),
       })
+      if (flow.status !== "pending") return { status: 200, html: oauthErrorPage(REPLACED_LOGIN) }
 
       if (accounts.length === 0) {
         flow.status = "error"
@@ -608,6 +618,7 @@ export function createCloudflareOAuthService(
       await releaseListener(flow)
       return { status: 200, html: OAUTH_SUCCESS_PAGE }
     } catch (error) {
+      if (flow.status !== "pending") return { status: 200, html: oauthErrorPage(REPLACED_LOGIN) }
       flow.status = "error"
       flow.errorCode = isCloudflareOAuthError(error) ? error.code : "oauth_exchange_failed"
       flow.errorMessage = describeError(error)
@@ -619,11 +630,11 @@ export function createCloudflareOAuthService(
   return {
     async start() {
       pruneFlows()
-      if (pendingFlow()) {
-        throw new CloudflareOAuthError(
-          "oauth_flow_pending",
-          "A Cloudflare login is already waiting in the browser. Finish it, or wait a moment and start again.",
-        )
+      for (let waiting = pendingFlow(); waiting; waiting = pendingFlow()) {
+        waiting.status = "expired"
+        waiting.errorCode = "oauth_expired"
+        waiting.errorMessage = REPLACED_LOGIN
+        await releaseListener(waiting)
       }
 
       const codeVerifier = generateCodeVerifier()

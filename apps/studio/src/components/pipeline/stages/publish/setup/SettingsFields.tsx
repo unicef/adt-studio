@@ -180,6 +180,22 @@ export function SettingsFields({ form, disabled = false }: { form: ShareForm; di
         </ul>
       </Field>
       )}
+
+      <Field label={<Trans>Feedback</Trans>}>
+        <div className="flex h-10 items-center gap-2.5 rounded-lg border bg-white pl-3 pr-3">
+          <label htmlFor="share-comments" className="min-w-0 flex-1 cursor-pointer truncate text-sm text-foreground">
+            <Trans>Let readers comment and see each other</Trans>
+          </label>
+          <BrandedSwitch
+            id="share-comments"
+            color={ACCENT}
+            checked={form.comments}
+            onCheckedChange={form.toggleComments}
+            disabled={disabled}
+            className="h-5 w-9 [&>span]:size-4 [&>span]:data-[state=checked]:translate-x-4"
+          />
+        </div>
+      </Field>
     </div>
   )
 }

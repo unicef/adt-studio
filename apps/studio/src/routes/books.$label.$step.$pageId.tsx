@@ -13,11 +13,12 @@ import { StepViewRouter } from "@/components/pipeline/components/StepViewRouter"
  * was deleted, should still open the page rather than fail the route.
  */
 export const Route = createFileRoute("/books/$label/$step/$pageId")({
-  validateSearch: (search: Record<string, unknown>): { section?: number; comment?: string } => {
+  validateSearch: (search: Record<string, unknown>): { section?: number; sectionId?: string; comment?: string } => {
     const section = Number(search.section)
     const comment = typeof search.comment === "string" ? search.comment : undefined
     return {
       ...(Number.isInteger(section) && section >= 0 ? { section } : {}),
+      ...(typeof search.sectionId === "string" && search.sectionId.trim() ? { sectionId: search.sectionId } : {}),
       ...(comment !== undefined && comment.length > 0 ? { comment } : {}),
     }
   },

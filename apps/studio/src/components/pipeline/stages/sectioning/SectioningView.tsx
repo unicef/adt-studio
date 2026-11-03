@@ -5,6 +5,7 @@ import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
+import { useStageRunConfirmation } from "../../components/use-stage-run-confirmation"
 import { LoadingState } from "../../components/LoadingState"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { useFloatingSaveDirtyEntries } from "../../components/floating-save"
@@ -30,10 +31,10 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
     ? !hasPageData
     : !sectioningDone
 
-  const handleRunSectioning = useCallback(() => {
-    if (!hasStructuredTextProvider || sectioningRunning) return
-    queueRun({ fromStage: "sectioning", toStage: "sectioning", apiKey })
-  }, [hasStructuredTextProvider, sectioningRunning, apiKey, queueRun])
+  const confirmation = useStageRunConfirmation({ bookLabel, stage: "sectioning", available: hasStructuredTextProvider && !sectioningRunning, colorClass: "bg-amber-600 hover:bg-amber-700" })
+  const handleRunSectioning = () => {
+    void confirmation.requestRun(options => queueRun({ fromStage: "sectioning", toStage: "sectioning", apiKey, ...options }))
+  }
 
   const pageList = pages ?? []
 
@@ -183,6 +184,7 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [selectedPageId, canGoPrev, canGoNext, prevPageId, nextPageId, showRunCard])
 
+  const renderContent = () => {
   if (showRunCard) {
     return (
       <div className="p-4">
@@ -191,8 +193,9 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={sectioningRunning}
           completed={sectioningDone}
           onRun={handleRunSectioning}
-          disabled={!hasStructuredTextProvider || sectioningRunning}
+          disabled={!hasStructuredTextProvider || sectioningRunning || !!confirmation.disabledReason}
         />
+        {confirmation.notice}
       </div>
     )
   }
@@ -239,8 +242,9 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={sectioningRunning}
           completed={sectioningDone}
           onRun={handleRunSectioning}
-          disabled={!hasStructuredTextProvider || sectioningRunning}
+          disabled={!hasStructuredTextProvider || sectioningRunning || !!confirmation.disabledReason}
         />
+        {confirmation.notice}
       </div>
     )
   }
@@ -267,4 +271,6 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
       hasNextPage={canGoNext}
     />
   )
+  }
+  return <>{renderContent()}{confirmation.dialog}</>
 }
