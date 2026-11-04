@@ -7,14 +7,17 @@ import { reconcileSectioningIdentities } from "@adt/pipeline"
 import { requireExistingBook } from "../utils/book-exists.js"
 import { buildOutputSources, translatedDisplayEntries } from "@adt/pipeline"
 import { retainedTranslation, isProtectedContent, retireSectionIds } from "@adt/pipeline"
+import { PageSectioningOutput } from "@adt/types"
 import { assertEditVersion } from "./catalog-output-service.js"
-import { replacementConfirmed } from "./authored-output-service.js"
+import { assertAuthoredReplacement, replacementConfirmed } from "./authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
 import { outputSkipped } from "@adt/pipeline"
 import { retainedCoreTts, retainedEasyRead } from "@adt/pipeline"
 import { outputIdentityKey } from "@adt/pipeline"
 import { createHash } from "node:crypto"
 import { speechPageId, reconcileSpeechInputs, translateCatalog, inputSignature, reconcileTextCatalog, readOutputCatalog, buildImageInventory, selectedForGeneration, outputEvidence, assertOutputPublication, timestampInputSignature, deriveOutputStatus } from "@adt/pipeline"
+import { prepareSectioningRun, completeSectioning, storyboardCoverage, missingStoryboardInputMessage, createStoryboardPublication, activeSectioningPages, sectioningReplacementSignature } from "@adt/pipeline"
+import { selectSectioningPages, assertSectioningIdentityHistory, resetSectioningStoryboard, SectioningSafetyError } from "@adt/pipeline"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
@@ -154,7 +157,6 @@ import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
 import type {
   AppConfig,
   ImageClassificationOutput,
-  PageSectioningOutput,
   QuizGenerationOutput,
   WebRenderingOutput,
   ImageCaptioningOutput,
@@ -384,21 +386,23 @@ function skipMessage(
 function finishPageStep(
   progress: StageRunProgress,
   step: StepName,
-  deps: Pick<PageFailureDeps, "failedPages" | "skippedByStep">
+  deps: Pick<PageFailureDeps, "failedPages" | "skippedByStep">,
+  warning?: string,
 ): void {
   const failures = deps.failedPages.filter((f) => f.step === step)
   if (failures.length > 0) {
+    const causes = ["STORYBOARD_INPUT_CHANGED", "SECTIONING_INPUT_UNREADABLE", "VERSION_CONFLICT"].filter(code => failures.some(f => f.msg.includes(code)))
     throw new StepError(
       step,
-      `${failures.length} page(s) failed:\n${failures
-        .map((f) => `${f.pageId}: ${f.msg}`)
-        .join("\n")}`
+      // Detailed page errors remain in per-page events/logs. The aggregate
+      // stays bounded and carries the full count through HTTP/SSE translation.
+      `PIPELINE_PAGES_FAILED: ${failures.slice(0, 20).map(f => f.pageId).join(", ")}; total=${failures.length}; causes=${causes.join(",")}`
     )
   }
   progress.emit({
     type: "step-complete",
     step,
-    message: skipMessage(deps.skippedByStep, step),
+    message: warning ?? skipMessage(deps.skippedByStep, step),
   })
 }
 
@@ -939,6 +943,25 @@ const STAGE_RUNNERS: Record<StageName, RunFn> = {
  * Stage ordering comes from the shared PIPELINE definition.
  */
 export function createStageRunner(): StageRunner {
+  const runner = createAdmittedStageRunner()
+  return {
+    run(label, options, progress) {
+      const { bookDir } = resolveBookPaths(label, options.booksDir)
+      return withBookWriter(bookDir, async () => {
+        prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath)
+        const storage = createBookStorage(label, options.booksDir)
+        try {
+          assertAuthoredReplacement(storage, options)
+          const pages = selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, options.booksDir, options.configPath), bookDir), options, sectioningReplacementSignature(storage, label, options.booksDir, options.configPath, options.promptsDir))
+          assertSectioningIdentityHistory(storage, options, pages)
+        } finally { storage.close() }
+        return runner.run(label, options, progress)
+      })
+    },
+  }
+}
+
+function createAdmittedStageRunner(): StageRunner {
   return {
     async run(
       label: string,
@@ -976,11 +999,15 @@ export function createStageRunner(): StageRunner {
               runningSteps.add(event.step)
               completionStorage.markStepStarted(event.step)
             } else if (event.type === "step-complete") {
+              if (event.step === "web-rendering") {
+                event = { ...event, outputComplete: storyboardCoverage(completionStorage, activeSectioningPages(completionStorage, loadBookConfig(label, booksDir, options.configPath), bookDir).map((page) => page.pageId)).complete }
+              }
               runningSteps.delete(event.step)
               completionStorage.markStepCompleted(event.step, event.message)
             } else if (event.type === "step-skip") {
               runningSteps.delete(event.step)
               completionStorage.markStepSkipped(event.step)
+              if (event.message) completionStorage.updateStepMessage(event.step, event.message)
             } else if (event.type === "step-error") {
               runningSteps.delete(event.step)
               completionStorage.recordStepError(event.step, event.error)
@@ -1084,8 +1111,9 @@ async function generateAndStoreBookOutline(
   outlineModel: LLMModel,
   progress: StageRunProgress,
   signal?: AbortSignal,
+  commitOutlineChange: (write: () => void) => void = write => write(),
 ): Promise<ReturnType<typeof readBookOutline>> {
-  progress.emit({ type: "step-start", step: "book-outline" })
+  commitOutlineChange(() => progress.emit({ type: "step-start", step: "book-outline" }))
   try {
     if (pages.length === 0) {
       throw new Error("No extracted pages are available for book-outline generation.")
@@ -1103,11 +1131,10 @@ async function generateAndStoreBookOutline(
     })
     const evidence = buildBookOutlineEvidence(evidencePages, readTypeScale(storage))
     const outline = await generateBookOutline(evidence, outlineConfig, outlineModel)
-    storage.putNodeData(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, outline)
-    progress.emit({
-      type: "step-complete",
-      step: "book-outline",
-      message: `${outline.entries.length} headings`,
+    signal?.throwIfAborted()
+    commitOutlineChange(() => {
+      storage.putNodeData(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, outline)
+      progress.emit({ type: "step-complete", step: "book-outline", message: `${outline.entries.length} headings` })
     })
     console.log(`[stage-run] ${label}: book outline complete (${outline.entries.length} headings)`)
     return outline
@@ -1388,18 +1415,45 @@ async function runSectioningStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
-    const allPages = storage.getPages()
-    const previous = new Map(allPages.map((page) => [page.pageId, storage.getLatestNodeData("page-sectioning", page.pageId)]))
-    const pages = allPages.filter((page) => {
-      const row = previous.get(page.pageId)
-      return !row || !isProtectedContent(row.data as { source?: "ai" | "manual" }) || replacementConfirmed(options, "page-sectioning", page.pageId, row.version)
-    })
+    const config = loadBookConfig(label, booksDir, configPath)
+    const allPages = activeSectioningPages(storage, config, path.join(path.resolve(booksDir), label))
+    const inputSignature = () => sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir)
+    let runInputSignature = inputSignature()
+    const assertRunInputs = () => {
+      if (inputSignature() !== runInputSignature) {
+        throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Sectioning inputs changed. The generated result was not saved; retry against current inputs.")
+      }
+    }
+    const pages = selectSectioningPages(storage, allPages, options, runInputSignature)
+    assertSectioningIdentityHistory(storage, options, pages)
+    const unreadable = new Set<string>()
+    const previous = new Map(allPages.map((page) => {
+      try {
+        const row = storage.getLatestNodeData("page-sectioning", page.pageId)
+        if (storage.getSelectedNodeVersion("page-sectioning", page.pageId) !== null && !PageSectioningOutput.safeParse(row?.data).success) unreadable.add(page.pageId)
+        return [page.pageId, row] as const
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error
+        unreadable.add(page.pageId)
+        return [page.pageId, null] as const
+      }
+    }))
+    const selectedIds = new Set(pages.map(page => page.pageId))
+    const retainedUnreadable = [...unreadable].filter(pageId => !selectedIds.has(pageId))
+    const retainedWarning = retainedUnreadable.length ? `SECTIONING_INPUT_UNREADABLE: ${retainedUnreadable.slice(0, 20).join(", ")}; total=${retainedUnreadable.length}` : undefined
+    const previousVersions = new Map(pages.map((page) => [page.pageId, storage.getSelectedNodeVersion("page-sectioning", page.pageId)]))
+    options.signal?.throwIfAborted()
+    resetSectioningStoryboard(storage, options, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
+    const outputVersions = new Map(pages.map(({ pageId }) => [pageId, [
+      storage.getSelectedNodeVersion("web-rendering", pageId),
+      storage.getSelectedNodeVersion("fixed-layout-sectioning", pageId),
+    ]]))
     if (!pages.length) {
-      progress.emit({ type: "step-skip", step: "page-sectioning" })
+      options.signal?.throwIfAborted()
+      progress.emit({ type: "step-skip", step: "page-sectioning", message: retainedWarning })
       progress.emit({ type: "step-skip", step: "translation" })
       return
     }
-    const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
     const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
@@ -1494,6 +1548,14 @@ async function runSectioningStep(
         outlineModel,
         progress,
         options.signal,
+        write => {
+          // Progress persists through its own connection under the shared writer.
+          // Only our own synchronous outline write may advance the snapshot.
+          // Never adopt another writer's inputs across a provider await.
+          assertRunInputs()
+          write()
+          runInputSignature = inputSignature()
+        },
       )
     }
     const totalPages = pages.length
@@ -1530,6 +1592,7 @@ async function runSectioningStep(
             imageBase64: storage.getImageBase64(imageId),
           }))
 
+          if (unreadable.has(page.pageId)) throw new Error(`SECTIONING_INPUT_UNREADABLE: ${page.pageId}`)
           const generatedSectioning = await sectionPage(
             {
               pageId: page.pageId,
@@ -1572,8 +1635,14 @@ async function runSectioningStep(
           }
           options.signal?.throwIfAborted()
           const tocRetirement = withSourceGenerationTracking(storage, () => {
+            assertRunInputs()
+            const resetVersions = outputVersions.get(page.pageId)!
+            if (storage.getSelectedNodeVersion("web-rendering", page.pageId) !== resetVersions[0]
+              || storage.getSelectedNodeVersion("fixed-layout-sectioning", page.pageId) !== resetVersions[1]) {
+              throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Storyboard changed after the confirmed reset. Saved content is retained.")
+            }
             const before = previous.get(page.pageId)
-            assertEditVersion(storage.getLatestNodeData("page-sectioning", page.pageId)?.version, before?.version ?? 0)
+            assertEditVersion(storage.getSelectedNodeVersion("page-sectioning", page.pageId) ?? undefined, previousVersions.get(page.pageId) ?? 0)
             const reconciled = reconcileSectioningIdentities(storage, page.pageId, result)
             const sections = reconciled.sections
             const active = new Set(sections.map(section => section.sectionId))
@@ -1588,7 +1657,7 @@ async function runSectioningStep(
             // Return the exact version produced by this synchronous transaction.
             // The caller advances consent only after SQLite commits successfully.
             return ownsTocChange && consent ? { consent, version: storage.getLatestNodeData("toc-generation", "book")!.version } : undefined
-          })
+          }, [page.pageId])
           if (tocRetirement) tocRetirement.consent.version = tocRetirement.version
         } catch (err) {
           const step = err instanceof StepError ? err.step : "page-sectioning"
@@ -1603,12 +1672,14 @@ async function runSectioningStep(
       throw new StepError("page-sectioning", "Stopped by a page-error decision")
     }
 
-    finishPageStep(progress, "page-sectioning", pageFailureDeps)
+    finishPageStep(progress, "page-sectioning", pageFailureDeps, retainedWarning)
     if (translationConfig) {
       finishPageStep(progress, "translation", pageFailureDeps)
     } else {
       progress.emit({ type: "step-skip", step: "translation" })
     }
+    options.signal?.throwIfAborted()
+    if (failedPages.length === 0 && skippedByStep.size === 0 && !retainedWarning) completeSectioning(label, booksDir, config, configPath)
   } finally {
     storage.close()
   }
@@ -1621,11 +1692,49 @@ async function runStoryboardStep(
 ): Promise<void> {
   const { booksDir, promptsDir, webAssetsDir, configPath } = options
 
-  const storage = createBookStorage(label, booksDir)
+  const baseStorage = createBookStorage(label, booksDir)
+  let publication: ReturnType<typeof createStoryboardPublication>
+  try { publication = createStoryboardPublication(baseStorage, label, booksDir, configPath) } catch (err) { baseStorage.close(); throw err }
+  const storage = publication.storage
   let visualRefinement: VisualRefinementDeps | undefined
 
   try {
     const config = loadBookConfig(label, booksDir, configPath)
+
+    if (isFixedLayoutBook(config)) {
+      const pages = storage.getPages()
+      const totalPages = pages.length
+      // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
+      // and render from it, driven off the positioned-text + image-filtering
+      // data the extract step already wrote. No LLM call. This is the
+      // web-rendering step only — the semantic `page-sectioning` is owned and
+      // already produced by the sectioning stage, so we don't re-emit its
+      // progress here (that would wrongly re-mark the sectioning stage running).
+      console.log(`[stage-run] ${label}: fixed-layout rendering for ${totalPages} pages`)
+      progress.emit({ type: "step-start", step: "web-rendering" })
+      const { processFixedLayoutPages } = await import("@adt/pipeline")
+      if (options.signal?.aborted) throw new RunCancelledError()
+      const imageUrlPrefix = `/api/books/${label}/images`
+      const unavailable: string[] = []
+      await processFixedLayoutPages(storage, imageUrlPrefix, undefined, {
+        signal: options.signal,
+        onPage: (id) => {
+          if (options.signal?.aborted) throw new RunCancelledError()
+          publication.publishPage(id)
+          progress.emit({ type: "step-progress", step: "web-rendering", message: id, publishedPageId: publication.layoutSwitch ? undefined : id })
+        },
+        onUnavailable: (id) => {
+          unavailable.push(id)
+          progress.emit({ type: "step-progress", step: "web-rendering", message: `STORYBOARD_PAGE_INPUT_MISSING: ${id}` })
+        },
+      })
+      if (options.signal?.aborted) throw new RunCancelledError()
+      publication.publish()
+      if (unavailable.length) throw new StepError("web-rendering", missingStoryboardInputMessage(unavailable))
+      progress.emit({ type: "step-complete", step: "web-rendering" })
+      console.log(`[stage-run] ${label}: fixed-layout rendering complete`)
+      return
+    }
 
     const styleguideContent = loadStyleguideContent(
       config.styleguide,
@@ -1713,29 +1822,6 @@ async function runStoryboardStep(
     // Book typography (editable size-per-role map) — resolve once, share with all pages.
     const typography = readTypography(storage)
 
-    if (isFixedLayoutBook(config)) {
-      // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
-      // and render from it, driven off the positioned-text + image-filtering
-      // data the extract step already wrote. No LLM call. This is the
-      // web-rendering step only — the semantic `page-sectioning` is owned and
-      // already produced by the sectioning stage, so we don't re-emit its
-      // progress here (that would wrongly re-mark the sectioning stage running).
-      console.log(`[stage-run] ${label}: fixed-layout rendering for ${totalPages} pages`)
-      progress.emit({ type: "step-start", step: "web-rendering" })
-      const { processFixedLayoutPages } = await import("@adt/pipeline")
-      const imageUrlPrefix = `/api/books/${label}/images`
-      // Keep the rendering/tree pair intact on a failed synchronous publication.
-      // This is the pair-retention rule from PR #884, without its mode lifecycle.
-      storage.transaction(() => {
-        options.signal?.throwIfAborted()
-        processFixedLayoutPages(storage, imageUrlPrefix)
-        options.signal?.throwIfAborted()
-      })
-      progress.emit({ type: "step-complete", step: "web-rendering" })
-      console.log(`[stage-run] ${label}: fixed-layout rendering complete`)
-      return
-    }
-
     console.log(
       `[stage-run] ${label}: rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
     )
@@ -1768,22 +1854,17 @@ async function runStoryboardStep(
         try {
           if (options.signal?.aborted) throw new RunCancelledError()
 
-          const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-          if (!structuringRow) {
-            console.log(
-              `[stage-run] ${label}: skipping ${page.pageId} (no page-sectioning)`
-            )
-            completedRendering++
-            progress.emit({
-              type: "step-progress",
-              step: "web-rendering",
-              message: `${completedRendering}/${totalPages}`,
-              page: completedRendering,
-              totalPages,
-            })
+          let structuringRow: ReturnType<Storage["getLatestNodeData"]> = null
+          try { structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId) } catch (error) { if (!(error instanceof SyntaxError)) throw error }
+          const parsedSectioning = PageSectioningOutput.safeParse(structuringRow?.data)
+          if (!parsedSectioning.success) {
+            const skipped = skippedByStep.get("web-rendering") ?? new Set<string>()
+            skipped.add(page.pageId)
+            skippedByStep.set("web-rendering", skipped)
+            progress.emit({ type: "step-progress", step: "web-rendering", message: `STORYBOARD_PAGE_INPUT_MISSING: ${page.pageId}`, page: ++completedRendering, totalPages })
             return
           }
-          const sectioning = structuringRow.data as PageSectioningOutput
+          const sectioning = parsedSectioning.data
           assertReflowableSectioning(sectioning)
 
           const imageClassificationRow = storage.getLatestNodeData(
@@ -1847,11 +1928,17 @@ async function runStoryboardStep(
             { signal: options.signal },
           )
           if (options.signal?.aborted) throw new RunCancelledError()
-          putReflowableRendering(storage, page.pageId, renderResult)
+          storage.transaction(() => {
+            storage.putNodeData("web-rendering", page.pageId, renderResult)
+            // Switch away from a positioned tree only with its replacement HTML.
+            if (storage.getLatestNodeData("fixed-layout-sectioning", page.pageId)?.data != null) storage.putNodeData("fixed-layout-sectioning", page.pageId, null)
+          })
+          publication.publishPage(page.pageId)
           completedRendering++
           progress.emit({
             type: "step-progress",
             step: "web-rendering",
+            publishedPageId: publication.layoutSwitch ? undefined : page.pageId,
             message: `${completedRendering}/${totalPages}`,
             page: completedRendering,
             totalPages,
@@ -1862,6 +1949,7 @@ async function runStoryboardStep(
               `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${toErrorMessage(err)}`
             )
           }
+          publication.discardPage(page.pageId)
           await reportPageFailure(pageFailureDeps, progress, "web-rendering", page.pageId, err)
         }
       },
@@ -1872,6 +1960,12 @@ async function runStoryboardStep(
       throw new StepError("web-rendering", "Stopped by a page-error decision")
     }
 
+    // Only a layout switch requires whole-window success.
+    if (publication.layoutSwitch && (failedPages.length || (skippedByStep.get("web-rendering")?.size ?? 0) > 0)) {
+      throw new StepError("web-rendering", "STORYBOARD_PUBLICATION_INCOMPLETE: One or more pages did not finish. Previous output is kept.")
+    }
+    if (options.signal?.aborted) throw new RunCancelledError()
+    publication.publish()
     finishPageStep(progress, "web-rendering", pageFailureDeps)
     console.log(`[stage-run] ${label}: storyboard complete`)
   } finally {

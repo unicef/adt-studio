@@ -8,6 +8,7 @@ import { parseCliArgs, USAGE } from "./cli-args.js"
 import { runFullPipeline } from "./pipeline-dag.js"
 import { diagnoseBook, diagnoseBooks, formatDiagnosis, hasFindings } from "./book-doctor.js"
 import type { Progress } from "./progress.js"
+import { ExtractionAdmissionError, BookBusyError } from "@adt/storage"
 
 function log(msg: string): void {
   process.stderr.write(msg)
@@ -144,6 +145,10 @@ async function main(): Promise<void> {
 
   const { label, pdfPath, startPage, endPage, booksRoot, concurrency } =
     parseCliArgs(args)
+  const controller = new AbortController()
+  const cancel = () => controller.abort()
+  process.on("SIGINT", cancel)
+  process.on("SIGTERM", cancel)
 
   const promptsDir = path.resolve(process.cwd(), "prompts")
   const templatesDir = path.resolve(process.cwd(), "templates")
@@ -159,6 +164,7 @@ async function main(): Promise<void> {
         startPage,
         endPage,
         concurrency,
+        signal: controller.signal,
         promptsDir,
         templatesDir,
         webAssetsDir,
@@ -179,10 +185,20 @@ async function main(): Promise<void> {
   } catch (err) {
     progress.stop()
     throw err
+  } finally {
+    process.off("SIGINT", cancel)
+    process.off("SIGTERM", cancel)
   }
 }
 
 main().catch((err) => {
+  if (err instanceof ExtractionAdmissionError || err instanceof BookBusyError) {
+    process.stderr.write(`\nFailed: ${err.message}\n`)
+    if (err instanceof ExtractionAdmissionError && err.summary) {
+      process.stderr.write("Extraction: verified reusable\nDownstream: blocked; no work started\nCurrent/stale/protected scopes: not assessed\nContent changed: no. Generated output: none.\nPipeline incomplete; exiting with status 1.\nExisting-book CLI resume is deferred to SPEC-0010. Use Studio for Sectioning replacement.\n")
+    }
+    process.exit(1)
+  }
   const detail =
     err instanceof Error ? err.stack ?? err.message : String(err)
   process.stderr.write(`\nFailed: ${detail}\n`)

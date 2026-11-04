@@ -84,7 +84,7 @@ export function StageSidebar({
   const { i18n } = useLingui()
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
-  const { stageState, cancelRun, isCancelling, sourceUpdateStages = [] } = useBookRun()
+  const { stageState, cancelRun, isCancelling, sourceUpdateStages = [], storyboardCoverage } = useBookRun()
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
@@ -143,10 +143,11 @@ export function StageSidebar({
     flex1:     "flex-1",
   }
 
-  const validationCompleted = Boolean(accessibilityAssessment?.assessment)
+  const outputComplete = packageStatus?.complete !== false
+  const validationCompleted = outputComplete && Boolean(accessibilityAssessment?.assessment)
   const signLanguageCompleted = signLanguageData?.videos?.some((v) => v.sectionId !== null) ?? false
-  const previewCompleted = packageStatus?.hasAdt ?? false
-  const exportCompleted = tasks.some((t) => t.kind === "prepare-export" && t.status === "completed")
+  const previewCompleted = outputComplete && (packageStatus?.hasAdt ?? false)
+  const exportCompleted = outputComplete && tasks.some((t) => t.kind === "prepare-export" && t.status === "completed")
 
   const completionOverrides: Record<string, boolean> = {
     "sign-language": signLanguageCompleted,
@@ -233,7 +234,10 @@ export function StageSidebar({
 
     // Expose stage status to screen readers — the visual ring/color carries it
     // for sighted users, but the link's accessible name must say it too.
-    const statusKey = step.slug === "book" ? undefined : activeAttempt || state === "error" ? state : stageNeedsRerun ? "needs-update" : content?.current ? "done" : state
+    const retainedStoryboardStatus = step.slug === "storyboard" && state === "idle" && hasRenderings
+      ? storyboardCoverage?.complete === false ? "needs-update" : "output-available"
+      : undefined
+    const statusKey = step.slug === "book" ? undefined : activeAttempt || state === "error" ? state : stageNeedsRerun ? "needs-update" : content?.current ? "done" : retainedStoryboardStatus ?? state
     const stepAriaLabel = statusKey
       ? i18n._(msg`${stepLabel}: ${getStageStatusLabelI18n(statusKey)}`)
       : stepLabel

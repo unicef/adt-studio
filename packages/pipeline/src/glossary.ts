@@ -321,7 +321,7 @@ export function collectPageTexts(
   const result: PageText[] = []
   for (const page of pages) {
     const row = storage.getLatestNodeData("web-rendering", page.pageId)
-    if (!row) continue
+    if (row?.data == null) continue
     const parsed = WebRenderingOutput.safeParse(row.data)
     if (!parsed.success) {
       throw new Error(
@@ -463,6 +463,8 @@ export async function regenerateGlossaryPreservingEdits(
   // Run may be the first operation on an old book. Resolve positional/explicit
   // collisions in its original order before generated ordering can choose a
   // different owner for retained translations, recordings or manual edits.
+  // Prove identity history before materializing legacy IDs or making a paid call.
+  collectSpentContentIds(options.storage)
   const existingRow = materializeGlossaryIds(options.storage)
   const existingItems = ((existingRow?.data as GlossaryOutput | undefined)?.items ?? [])
     .map((item, index) => ({ ...item, id: getGlossaryItemTextId(item, index) }))

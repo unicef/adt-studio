@@ -1,14 +1,19 @@
 import { collectQuizPages } from "./quiz-generation.js"
-import { putSourceNodeData, putReflowableRendering, captureSourceGeneration, publishSourceGeneration } from "./source-generation-state.js"
+import { putSourceNodeData, withSourceGenerationTracking, captureSourceGeneration, publishSourceGeneration } from "./source-generation-state.js"
 import { reconcileSectioningIdentities } from "./sectioning-identity.js"
 import { buildOutputSources, translatedDisplayEntries } from "./output-sources.js"
+import { missingStoryboardInputMessage } from "./storyboard-coverage.js"
 import { captureOutputReferences } from "./output-references.js"
 import { publishSpeechOutput } from "@adt/storage"
 import { readOutputCatalog } from "./output-catalog.js"
 import { outputEvidence, inputSignature } from "./output-freshness.js"
 import { reconcileTextCatalog, buildImageInventory } from "./catalog-reconciliation.js"
-import { withBookWriter, withNewBookWriter, ownsBookWriter, resolveBookPaths } from "@adt/storage"
+import { withBookWriter, withNewBookWriter, resolveBookPaths, recoverSectioningTransition, ExtractionAdmissionError } from "@adt/storage"
+import { prepareExtractionAdmission, extractionOptionsFromConfig } from "./extraction-admission.js"
+import { selectSectioningPages, assertSectioningIdentityHistory } from "./authored-output.js"
+import { createSectionIdFactory, retireSectionIds } from "./section-ids.js"
 import { reconcileSpeechInputs } from "./speech-inputs.js"
+import { completeSectioning, createStoryboardPublication, activeSectioningPages, SectioningSafetyError } from "./sectioning-lifecycle.js"
 import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
@@ -25,8 +30,6 @@ import {
 import type { LLMModel, LlmLogEntry, LogLevel, TTSSynthesizer } from "@adt/llm"
 import type {
   StepName,
-  ImageClassificationOutput,
-  PageSectioningOutput,
   QuizGenerationOutput,
   BookMetadata,
   BookSummaryOutput,
@@ -39,7 +42,7 @@ import type {
   VoiceSlot,
   WebRenderingOutput,
 } from "@adt/types"
-import { isTtsExcluded, voiceSlotEntryId } from "@adt/types"
+import { ImageClassificationOutput, PageSectioningOutput, isTtsExcluded, voiceSlotEntryId, PIPELINE } from "@adt/types"
 import { extractPDF, figureExtractionFlags, resolveFigureExtractionMode } from "./pdf-extraction.js"
 import {
   resolveFontsCacheDir,
@@ -141,6 +144,7 @@ function progressOnly(p: Progress): Progress {
 }
 
 export interface FullPipelineOptions {
+  signal?: AbortSignal
   label: string
   pdfPath: string
   booksRoot: string
@@ -167,23 +171,30 @@ export interface FullPipelineOptions {
  *
  * Run the full pipeline using the DAG runner for CLI use.
  */
-export async function runFullPipeline(
+export async function runFullPipeline(options: FullPipelineOptions, progress: Progress = nullProgress): Promise<PipelineDAGResult> {
+  const { bookDir } = resolveBookPaths(options.label, options.booksRoot)
+  const admit = fs.existsSync(bookDir) ? withBookWriter : withNewBookWriter
+  return admit(bookDir, async () => {
+    options.signal?.throwIfAborted()
+    recoverSectioningTransition(bookDir)
+    const config = loadBookConfig(options.label, options.booksRoot, options.configPath)
+    const admission = prepareExtractionAdmission(bookDir, {
+      ...extractionOptionsFromConfig(options.pdfPath, config),
+      startPage: options.startPage ?? config.start_page,
+      endPage: options.endPage ?? config.end_page,
+    })
+    // Expanded existing-book resume is owned by SPEC-0010, not this increment.
+    if (admission.outcome === "reused" || "fromStage" in options || "toStage" in options) {
+      throw new ExtractionAdmissionError("UNSAFE_RESUME_UNAVAILABLE")
+    }
+    return runAdmittedFullPipeline(options, progress)
+  })
+}
+
+async function runAdmittedFullPipeline(
   options: FullPipelineOptions,
   progress: Progress = nullProgress,
 ): Promise<PipelineDAGResult> {
-  const admissionPath = resolveBookPaths(options.label, options.booksRoot).bookDir
-  if (!ownsBookWriter(admissionPath)) {
-    const admit = fs.existsSync(admissionPath) ? withBookWriter : withNewBookWriter
-    return admit(admissionPath, () => runFullPipeline(options, progress))
-  }
-  // The published SPEC-0010 safe-resume implementation refuses a destructive
-  // full rerun until extraction/source reconciliation is available.
-  const existingDb = path.join(admissionPath, `${options.label}.db`)
-  if (fs.existsSync(existingDb)) {
-    const existing = createBookStorage(options.label, options.booksRoot)
-    try { if (existing.getPages().length) throw new Error("UNSAFE_RESUME_UNAVAILABLE: full extraction rerun cannot preserve this existing book") }
-    finally { existing.close() }
-  }
   const {
     label,
     pdfPath,
@@ -202,18 +213,14 @@ export async function runFullPipeline(
 
   const storage = createBookStorage(label, booksRoot)
 
-  // Copy source PDF into book directory
+  // SPEC-0010 extraction snapshots source bytes only after admission. Scoped
+  // reruns never copy an external PDF over the retained source.
   const bookDir = path.join(booksRoot, label)
-  const destPdf = path.join(bookDir, `${label}.pdf`)
-  const resolvedPdf = path.resolve(pdfPath)
-  if (resolvedPdf !== path.resolve(destPdf)) {
-    fs.copyFileSync(resolvedPdf, destPdf)
-  }
 
   try {
     const config = loadBookConfig(label, booksRoot, configPath)
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksRoot), label, ".cache")
-    const promptEngine = createPromptEngine(promptsDir, { basePromptModelId: config.base_prompt_model })
+    const promptEngine = createPromptEngine([path.join(bookDir, "prompts"), promptsDir], { basePromptModelId: config.base_prompt_model })
     const templateEngine = createTemplateEngine(templatesDir)
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
@@ -243,7 +250,7 @@ export async function runFullPipeline(
     const getModel = (modelId: string): LLMModel => {
       let model = modelCache.get(modelId)
       if (!model) {
-        model = createLLMModel({ modelId, cacheDir, promptEngine, rateLimiter, logLevel, onLog: onLlmLog })
+        model = createLLMModel({ modelId, cacheDir, promptEngine, rateLimiter, logLevel, onLog: onLlmLog, signal: options.signal })
         modelCache.set(modelId, model)
       }
       return model
@@ -279,6 +286,7 @@ export async function runFullPipeline(
           // only consumer). Must match stage-runner so re-runs are consistent.
           fixedLayout: isFixedLayoutBook(config),
           fontsCacheDir: resolveFontsCacheDir(booksRoot),
+          signal: options.signal,
         },
         storage,
         progressOnly(p),
@@ -558,87 +566,84 @@ export async function runFullPipeline(
 
     const isFixedLayout = isFixedLayoutBook(config)
 
+    const publishedSectioningPages: string[] = []
     executors.set("page-sectioning", async (p) => {
-      // Semantic LLM sectioning runs for ALL books (including fixed-layout) so
-      // `page-sectioning` always holds the editable semantic tree, the
-      // Sectioning view never empties, and the render strategy can be toggled
-      // without re-sectioning. Fixed-layout's positioned tree + rendering is
-      // produced in the web-rendering step instead (see below).
+      const sectioningPages = activeSectioningPages(storage, config, bookDir)
+      const selected = selectSectioningPages(storage, sectioningPages, {})
+      if (!selected.length) return
+      assertSectioningIdentityHistory(storage, { fromStage: "sectioning", toStage: "sectioning" }, selected)
+      const previousSectioning = new Map(selected.map((page) => [page.pageId, storage.getLatestNodeData("page-sectioning", page.pageId)]))
       const model = getModel(pageSectioningConfig.modelId)
-      const pages = storage.getPages()
       const bookOutline = readBookOutline(storage)
-      const totalPages = pages.length
-      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
-        const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
-        if (!imageClassRow) return
-        const imageClassification = imageClassRow.data as ImageClassificationOutput
-        const unprunedImageIds = imageClassification.images
-          .filter((img) => !img.isPruned)
-          .map((img) => img.imageId)
-        const availableImages = unprunedImageIds.map((imageId) => ({
-          imageId,
-          imageBase64: storage.getImageBase64(imageId),
-        }))
-        const imageBase64 = storage.getPageImageBase64(page.pageId)
-        const result = await sectionPage(
-          {
-            pageId: page.pageId,
-            pageNumber: page.pageNumber,
-            text: page.text,
-            imageBase64,
-            availableImages,
-            outline: outlineContextForPage(bookOutline, page.pageId),
-          },
-          pageSectioningConfig,
-          model,
-        )
-        putSourceNodeData(storage, "page-sectioning", page.pageId, reconcileSectioningIdentities(storage, page.pageId, { ...result, source: "ai" }))
-        p.emit({
-          type: "step-progress",
-          step: "page-sectioning",
-          message: page.pageId,
-          page: pages.indexOf(page) + 1,
-          totalPages,
-        })
+      const metadata = storage.getLatestNodeData("metadata", "book")?.data as BookMetadata | null
+      const translationConfig = buildTranslationConfig(config, metadata?.language_code ?? null)
+      await processWithConcurrency(selected, effectiveConcurrency, async (page) => {
+        options.signal?.throwIfAborted()
+        const row = storage.getLatestNodeData("image-filtering", page.pageId)
+        const classification = row?.data as ImageClassificationOutput | undefined
+        const imageIds = classification ? classification.images.filter((image) => !image.isPruned).map((image) => image.imageId)
+          : storage.getPageImages(page.pageId).map((image) => image.imageId)
+        const draft = await sectionPage({ pageId: page.pageId, pageNumber: page.pageNumber, text: page.text,
+          imageBase64: storage.getPageImageBase64(page.pageId),
+          availableImages: imageIds.map((imageId) => ({ imageId, imageBase64: storage.getImageBase64(imageId) })),
+          outline: outlineContextForPage(bookOutline, page.pageId),
+        }, pageSectioningConfig, model)
+        options.signal?.throwIfAborted()
+        // A page is the publication unit, including optional translation.
+        // Deferring publication to the dependent DAG step loses completed pages
+        // whenever a later generation fails and that step is skipped.
+        const pageId = page.pageId
+        const result = translationConfig
+          ? await translatePageTree(pageId, draft, translationConfig, getModel(translationConfig.modelId)) : draft
+        options.signal?.throwIfAborted()
+        withSourceGenerationTracking(storage, () => {
+          const previous = previousSectioning.get(pageId)
+          if ((storage.getLatestNodeData("page-sectioning", pageId)?.version ?? 0) !== (previous?.version ?? 0)
+            || JSON.stringify(loadBookConfig(label, booksRoot, configPath)) !== JSON.stringify(config)
+            || JSON.stringify(activeSectioningPages(storage, config, bookDir)) !== JSON.stringify(sectioningPages)) {
+            throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Sectioning inputs changed during generation; previous output is kept.")
+          }
+          const reconciled = reconcileSectioningIdentities(storage, pageId, result)
+          const active = new Set(reconciled.sections.map(section => section.sectionId))
+          const old = previous?.data as PageSectioningOutput | undefined
+          retireSectionIds(storage, (old?.sections ?? []).flatMap((section) => section.sectionId && !active.has(section.sectionId) ? [section.sectionId] : []))
+          putSourceNodeData(storage, "page-sectioning", pageId, { ...reconciled, source: "ai" })
+          reconcileTextCatalog(storage)
+        }, [pageId])
+        publishedSectioningPages.push(pageId)
+        p.emit({ type: "step-progress", step: "page-sectioning", message: pageId,
+          page: publishedSectioningPages.length, totalPages: selected.length })
       })
     })
 
     executors.set("translation", async (p) => {
-      const metadataRow = storage.getLatestNodeData("metadata", "book")
-      const metadata = metadataRow?.data as BookMetadata | null
-      const translationConfig = buildTranslationConfig(config, metadata?.language_code ?? null)
-      if (!translationConfig) return
-      const model = getModel(translationConfig.modelId)
-      const pages = storage.getPages()
-      const totalPages = pages.length
-      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
-        const row = storage.getLatestNodeData("page-sectioning", page.pageId)
-        if (!row) return
-        const sectioning = row.data as PageSectioningOutput
-        const translated = await translatePageTree(
-          page.pageId,
-          sectioning,
-          translationConfig,
-          model,
-        )
-        putSourceNodeData(storage, "page-sectioning", page.pageId, { ...translated, source: "ai" })
-        p.emit({
-          type: "step-progress",
-          step: "translation",
-          message: page.pageId,
-          page: pages.indexOf(page) + 1,
-          totalPages,
-        })
-      })
+      // Preserve the shared DAG completion step. Each page's translation is
+      // already committed with its Sectioning; a failed stage stays incomplete.
+      for (const pageId of publishedSectioningPages) {
+        p.emit({ type: "step-progress", step: "translation", message: pageId })
+      }
+      options.signal?.throwIfAborted()
+      completeSectioning(label, booksRoot, config, configPath)
     })
 
     executors.set("web-rendering", async (p) => {
+      options.signal?.throwIfAborted()
+      const publication = createStoryboardPublication(storage, label, booksRoot, configPath)
+      const renderingStorage = publication.storage
       if (isFixedLayout) {
         // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
         // and render from it. Driven off positioned-text + image-filtering; no
         // LLM call. `page-sectioning` (semantic) is left intact.
         const imageUrlPrefix = `/api/books/${label}/images`
-        processFixedLayoutPages(storage, imageUrlPrefix)
+        const unavailable: string[] = []
+        await processFixedLayoutPages(renderingStorage, imageUrlPrefix, undefined, {
+          signal: options.signal,
+          onPage: (id) => { options.signal?.throwIfAborted(); publication.publishPage(id) },
+          onUnavailable: (id) => { unavailable.push(id); p.emit({ type: "step-progress", step: "web-rendering", message: missingStoryboardInputMessage([id]) }) },
+        })
+        options.signal?.throwIfAborted()
+        publication.publish()
+        if (unavailable.length) throw new Error(missingStoryboardInputMessage(unavailable))
         p.emit({ type: "step-progress", step: "web-rendering", message: "fixed-layout pages" })
         return
       }
@@ -654,25 +659,40 @@ export async function runFullPipeline(
         }
         return model
       }
-      const pages = storage.getPages()
+      const pages = renderingStorage.getPages()
       const totalPages = pages.length
       // Resolve once per book — every page shares the same typography.
-      const typography = readTypography(storage)
+      const typography = readTypography(renderingStorage)
+      const unavailable: string[] = []
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
-        if (!structuringRow || !imageClassRow) return
-        const sectioning = structuringRow.data as PageSectioningOutput
+        options.signal?.throwIfAborted()
+        let sectioning: PageSectioningOutput
+        let imageClassification: ImageClassificationOutput
+        try {
+          const tree = PageSectioningOutput.safeParse(renderingStorage.getLatestNodeData("page-sectioning", page.pageId)?.data)
+          const images = ImageClassificationOutput.safeParse(renderingStorage.getLatestNodeData("image-filtering", page.pageId)?.data)
+          if (!tree.success || !images.success) {
+            unavailable.push(page.pageId)
+            p.emit({ type: "step-progress", step: "web-rendering", message: missingStoryboardInputMessage([page.pageId]) })
+            return
+          }
+          sectioning = tree.data
+          imageClassification = images.data
+        } catch (error) {
+          if (!(error instanceof SyntaxError)) throw error
+          unavailable.push(page.pageId)
+          p.emit({ type: "step-progress", step: "web-rendering", message: missingStoryboardInputMessage([page.pageId]) })
+          return
+        }
         assertReflowableSectioning(sectioning)
-        const imageClassification = imageClassRow.data as ImageClassificationOutput
         const unprunedImageIds = imageClassification.images
           .filter((img) => !img.isPruned)
           .map((img) => img.imageId)
-        const pageDims = new Map(storage.getPageImages(page.pageId).map((img) => [img.imageId, { width: img.width, height: img.height }]))
+        const pageDims = new Map(renderingStorage.getPageImages(page.pageId).map((img) => [img.imageId, { width: img.width, height: img.height }]))
         const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
         for (const imageId of unprunedImageIds) {
           const dims = pageDims.get(imageId)
-          renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
+          renderImages.set(imageId, { base64: renderingStorage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
         }
         // Sections can reference images extracted on other pages (cross-page
         // merges, images added from another page) — those are not in this
@@ -680,19 +700,19 @@ export async function runFullPipeline(
         for (const imageId of collectReferencedImageIds(sectioning.sections)) {
           if (renderImages.has(imageId)) continue
           try {
-            const dims = storage.getImageDimensions(imageId)
-            renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width ?? undefined, height: dims?.height ?? undefined })
+            const dims = renderingStorage.getImageDimensions(imageId)
+            renderImages.set(imageId, { base64: renderingStorage.getImageBase64(imageId), width: dims?.width ?? undefined, height: dims?.height ?? undefined })
           } catch {
             // Image file no longer exists — leave it out; the renderer emits
             // the URL reference without pixels.
           }
         }
-        const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+        const pageImageBase64 = renderingStorage.getPageImageBase64(page.pageId)
         // Page images for content merged in from other pages (cross-page
         // merges) — per-section provenance recorded in sourcePageIds.
         const sourcePageImages = collectSourcePageImages(
           sectioning.sections,
-          (id) => storage.getPageImageBase64(id)
+          (id) => renderingStorage.getPageImageBase64(id)
         )
         const result = await renderPage(
           {
@@ -702,14 +722,18 @@ export async function runFullPipeline(
             sectioning: sectioning,
             images: renderImages,
             sourcePageImages,
-            bookFonts: buildBookFontsPromptContext(storage),
+            bookFonts: buildBookFontsPromptContext(renderingStorage),
             typography,
           },
           resolveRenderConfig,
           resolveRenderModel,
           templateEngine,
+          undefined,
+          { signal: options.signal },
         )
-        putReflowableRendering(storage, page.pageId, result)
+        options.signal?.throwIfAborted()
+        renderingStorage.putNodeData("web-rendering", page.pageId, result)
+        publication.publishPage(page.pageId)
         p.emit({
           type: "step-progress",
           step: "web-rendering",
@@ -718,7 +742,9 @@ export async function runFullPipeline(
           totalPages,
         })
       })
-
+      options.signal?.throwIfAborted()
+      publication.publish()
+      if (unavailable.length) throw new Error(missingStoryboardInputMessage(unavailable))
     })
 
     // ── Quizzes stage ───────────────────────────────────────────
@@ -1320,7 +1346,13 @@ export async function runFullPipeline(
       storage.putNodeData("accessibility-assessment", "book", output)
     })
 
-    return await runPipelineDAG(executors, progress)
+    const persistedProgress: Progress = { emit(event) {
+      if (event.type === "step-start" && event.step !== "extract") storage.markStepStarted(event.step)
+      if (event.type === "step-complete") storage.markStepCompleted(event.step)
+      if (event.type === "step-error") storage.recordStepError(event.step, event.error)
+      progress.emit(event)
+    } }
+    return await runPipelineDAG(executors, persistedProgress)
   } finally {
     storage.close()
   }

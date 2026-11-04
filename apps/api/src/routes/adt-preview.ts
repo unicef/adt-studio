@@ -492,6 +492,13 @@ export function createAdtPreviewRoutes(
   promptsDir = path.resolve("prompts"),
 ): Hono {
   const app = new Hono()
+  app.use("/books/:label/adt-preview/*", async (c, next) => {
+    const label = parseBookLabel(c.req.param("label"))
+    if (!fs.existsSync(path.join(path.resolve(booksDir), label))) throw new HTTPException(404, { message: "Book not found" })
+    // A mode-incompatible retained Storyboard is different from the usable
+    // stale captions/translation/speech warnings supplied by SPEC-0001.
+    await next()
+  })
 
   // Allow browser caching — the iframe URL includes a cache-busting version
   // parameter (v-{timestamp}) that changes on repackage, so stale content
@@ -1052,6 +1059,11 @@ export function createAdtPreviewRoutes(
       // array position — ids are allocated once and never reused — so resolve by
       // id rather than indexing into the array.
       if (parseQuizId(pageId) !== null) {
+        // Direct URLs obey the same namespace/ownership projection as the
+        // manifest. A legacy alias must not expose the omitted quiz anyway.
+        if (!resolveReadingOrder(storage).items.some(item => item.kind === "quiz" && item.id === pageId)) {
+          throw new HTTPException(404, { message: `No quiz data for: ${pageId}` })
+        }
         const quizData = getQuizData(storage)
         const quiz = quizData?.quizzes?.find(
           (q, i) => resolveQuizId(q, i) === pageId

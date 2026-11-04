@@ -15,6 +15,11 @@ export const AuthoredReplacement = z.object({
   node: z.enum(["page-sectioning", "toc-generation"]),
   itemId: z.string().min(1),
   version: z.number().int().positive(),
+  renderingVersion: z.number().int().nonnegative().optional(),
+  renderTreeVersion: z.number().int().nonnegative().optional(),
+  editableActivityVersion: z.number().int().nonnegative().optional(),
+  // Sectioning replacement also binds the reviewed generation settings/window.
+  sectioningInputSignature: z.string().regex(/^[a-f0-9]{64}$/).optional(),
 }).strict()
 export type AuthoredReplacement = z.infer<typeof AuthoredReplacement>
 export const AuthoredRunOptions = z.object({

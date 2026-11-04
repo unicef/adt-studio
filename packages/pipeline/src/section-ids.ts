@@ -58,12 +58,11 @@ export function collectSpentSectionIds(
     `${pageId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_s(?:ec)?\\d+`,
     "g"
   )
-  for (const node of nodes) {
-    for (const row of storage.getAllNodeVersions(node, pageId)) {
+  const rows = storage.readIdentityHistory?.(nodes, pageId) ?? nodes.flatMap(node => storage.getAllNodeVersions(node, pageId))
+  for (const row of rows) {
       for (const match of JSON.stringify(row.data).matchAll(pattern)) {
         spent.add(match[0])
       }
-    }
   }
   return spent
 }

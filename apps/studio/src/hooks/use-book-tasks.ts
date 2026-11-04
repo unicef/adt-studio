@@ -2,6 +2,8 @@ import { useCallback, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { api, type TaskInfoResponse } from "@/api/client"
 
+import { sectioningErrorMessage } from "@/lib/sectioning-error"
+
 const EMPTY_TASKS: TaskInfoResponse[] = []
 
 // ---------------------------------------------------------------------------
@@ -23,7 +25,7 @@ export function useBookTasks(label: string) {
     refetchInterval: 5_000,
   })
 
-  const tasks = data?.tasks ?? EMPTY_TASKS
+  const tasks = useMemo(() => data?.tasks.map((task) => ({ ...task, error: sectioningErrorMessage(task.error), progressMessage: sectioningErrorMessage(task.progressMessage) })) ?? EMPTY_TASKS, [data?.tasks])
 
   const runningTasks = useMemo(
     () => tasks.filter((t) => t.status === "running" || t.status === "queued"),

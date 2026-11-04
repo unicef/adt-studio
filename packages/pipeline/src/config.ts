@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import yaml from "js-yaml"
+import { recoverSectioningTransition } from "@adt/storage"
 import { AppConfig, parseBookLabel } from "@adt/types"
 
 /**
@@ -45,21 +46,44 @@ export function loadConfig(configPath?: string): AppConfig {
   return AppConfig.parse(raw)
 }
 
+/** A malformed book override must not make other books' Library cards unavailable. */
+export class BookConfigError extends Error {
+  constructor(readonly label: string, cause: unknown) {
+    super(`Cannot read configuration for ${label}: ${cause instanceof Error ? cause.message : String(cause)}`, { cause })
+    this.name = "BookConfigError"
+  }
+}
+
+/** Raw overrides for the settings editor; no normalization or writes. */
+export function loadBookConfigOverrides(label: string, booksRoot: string): Record<string, unknown> | null {
+  const safeLabel = parseBookLabel(label)
+  const dir = path.join(path.resolve(booksRoot), safeLabel)
+  if (fs.existsSync(dir)) recoverSectioningTransition(dir)
+  let text: string
+  try { text = fs.readFileSync(path.join(dir, "config.yaml"), "utf-8") }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null
+    throw new BookConfigError(label, error)
+  }
+  let overrides: unknown
+  try { overrides = yaml.load(text) }
+  catch (error) { throw new BookConfigError(label, error) }
+  if (overrides == null) return null
+  if (typeof overrides !== "object" || Array.isArray(overrides)) {
+    throw new BookConfigError(label, "Expected a configuration mapping.")
+  }
+  return Object.keys(overrides).length ? overrides as Record<string, unknown> : null
+}
+
 export function loadBookConfig(
   label: string,
   booksRoot: string,
   configPath?: string
 ): AppConfig {
-  const safeLabel = parseBookLabel(label)
+  const overrides = loadBookConfigOverrides(label, booksRoot)
   const base = loadConfig(configPath)
-  const bookConfigPath = path.join(
-    path.resolve(booksRoot),
-    safeLabel,
-    "config.yaml"
-  )
-  if (!fs.existsSync(bookConfigPath)) return base
-  const overrides = yaml.load(fs.readFileSync(bookConfigPath, "utf-8"))
-  return AppConfig.parse(
-    deepMerge(base, overrides as Record<string, unknown>)
-  )
+  if (!overrides) return base
+  const parsed = AppConfig.safeParse(deepMerge(base, overrides))
+  if (!parsed.success) throw new BookConfigError(label, parsed.error)
+  return parsed.data
 }

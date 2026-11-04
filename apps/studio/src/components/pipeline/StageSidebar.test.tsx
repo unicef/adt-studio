@@ -30,6 +30,8 @@ vi.mock("@/hooks/use-outputs", () => ({ useOutputSummary: () => {
   } }
 } }))
 vi.mock("./components/OutputReview", () => ({ useOutputs: () => outputsMock(), CatalogSummary: () => <div>Selected stage outputs</div> }))
+const storyboardMock = { pages: [] as Array<{ hasRendering: boolean }>, coverage: undefined as import("@adt/types").StoryboardCoverage | undefined }
+const packageStatusMock = { hasAdt: false, complete: true }
 
 vi.mock("@lingui/core", () => ({
   i18n: {
@@ -79,7 +81,7 @@ vi.mock("@tanstack/react-router", () => ({
     to?: string
     search?: { tab?: string }
   }) => (
-    <a title={title} data-to={to} data-tab={search?.tab} {...props}>{children}</a>
+    <a href={to} title={title} data-to={to} data-tab={search?.tab} {...props}>{children}</a>
   ),
   useMatchRoute: () => matchRouteMock,
   useNavigate: () => vi.fn(),
@@ -95,6 +97,7 @@ vi.mock("@/hooks/use-book-run", () => ({
   useBookRun: () => ({
     stageState: stageStateMock,
     sourceUpdateStages,
+    storyboardCoverage: storyboardMock.coverage,
     stepState: vi.fn(() => "idle"),
     stepProgress: vi.fn(() => null),
     cancelRun: cancelRunMock,
@@ -128,7 +131,7 @@ vi.mock("@/hooks/use-book-tasks", () => ({
 }))
 
 vi.mock("@/hooks/use-books", () => ({
-  usePackageAdtStatus: () => ({ data: { hasAdt: false } }),
+  usePackageAdtStatus: () => ({ data: packageStatusMock }),
 }))
 
 const publicationStatusMock = vi.fn<() => unknown>(() => undefined)
@@ -153,7 +156,7 @@ vi.mock("@/hooks/use-stage-missing-counts", () => ({
 }))
 
 vi.mock("@/hooks/use-pages", () => ({
-  usePages: () => ({ data: [] }),
+  usePages: () => ({ data: storyboardMock.pages }),
   usePageImage: () => ({ data: null }),
 }))
 
@@ -167,7 +170,10 @@ vi.mock("@/routes/books.$label", () => ({
 
 beforeEach(() => {
   sourceUpdateStages.length = 0;
+  storyboardMock.pages = []
+  storyboardMock.coverage = undefined
   matchRouteMock.mockReturnValue(true)
+  Object.assign(packageStatusMock, { hasAdt: false, complete: true })
 })
 
 afterEach(() => {
@@ -282,8 +288,22 @@ describe("StageSidebar", () => {
     expect(screen.getByTitle("Speech: failed")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Review Speech outputs.*Warnings: 1/ })).toBeTruthy()
   })
+  it("keeps incomplete output from claiming preview and validation completion", async () => {
+    stageStateMock.mockImplementation(() => "idle")
+    Object.assign(packageStatusMock, { hasAdt: true, complete: false })
+    const { StageSidebar } = await import("./components/StageSidebar")
+    const { rerender } = render(<StageSidebar bookLabel="demo-book" activeStep="book" />)
+    expect(screen.getByTitle("Preview").getAttribute("aria-label")).toBe("Preview: not started")
+    expect(screen.getByTitle("Validation").getAttribute("aria-label")).toBe("Validation: not started")
+    packageStatusMock.complete = true
+    rerender(<StageSidebar bookLabel="demo-book" activeStep="book" />)
+    expect(screen.getByTitle("Preview").getAttribute("aria-label")).toBe("Preview: done")
+  })
+
   it("routes the book settings button to the API Keys section", async () => {
-    matchRouteMock.mockReturnValue(true)
+    storyboardMock.pages = []
+  storyboardMock.coverage = undefined
+  matchRouteMock.mockReturnValue(true)
     const { StageSidebar } = await import("./components/StageSidebar")
     render(
       <StageSidebar
@@ -385,3 +405,12 @@ it.each(["toc", "quizzes", "glossary"])("shows persisted source update attention
   expect(badge.className).toContain("bg-amber-600")
   expect(badge.closest("a")?.getAttribute("aria-label")).toContain("needs update")
 })
+ it.each([true, false, undefined])("labels retained idle Storyboard output without claiming a completed attempt (coverage %s)", async (complete) => {
+  storyboardMock.pages = [{ hasRendering: true }]
+  storyboardMock.coverage = complete === undefined ? undefined : { complete, included: 2, rendered: complete ? 2 : 1, missingPages: [], missingSections: [] }
+  stageStateMock.mockReturnValue("idle")
+  const { StageSidebar } = await import("./components/StageSidebar")
+  render(<StageSidebar bookLabel="demo-book" activeStep="book" />)
+  expect(screen.getByRole("link", { name: complete === false ? "Storyboard: needs update" : "Storyboard: output available" })).toBeTruthy()
+  expect(screen.queryByRole("link", { name: "Storyboard: done" })).toBeNull()
+ })

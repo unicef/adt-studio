@@ -251,11 +251,15 @@ export {
 
 export { ExtractionWarning } from "./extraction-warning.js"
 export { PackagingWarning } from "./packaging-warning.js"
+export { PackagingStatus } from "./packaging-status.js"
 
 export {
   FIXED_LAYOUT_MAX_SCALE,
   SectionRendering,
   WebRenderingOutput,
+  RenderingSave,
+  AiSectionEdit,
+  StoryboardSave,
   webRenderingLLMSchema,
   activityAnswersLLMSchema,
   visualReviewLLMSchema,
@@ -736,5 +740,10 @@ export { OutputSkipRequest } from "./output-freshness.js"
 export { OutputDisclosureOptions } from "./output-freshness.js"
 
 export { SOURCE_GENERATION_RESET_STEPS } from "./pipeline.js"
-export { SourceGeneratorStep, SourceGenerationPolicy, SourceGenerationState, SourceGenerationReceipt } from "./source-generation-state.js"
+export { SourceGeneratorStep, SourceGenerationPolicy, StoryboardSourceState, SourceGenerationState, SourceGenerationReceipt } from "./source-generation-state.js"
 export { BookConfigSaveReceipt } from "./book-config-save.js"
+export * from "./sectioning-lifecycle.js"
+
+export * from "./extraction.js"
+
+export * from "./history-recovery.js"

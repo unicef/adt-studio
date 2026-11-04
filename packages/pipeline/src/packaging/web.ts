@@ -1,3 +1,9 @@
+import { storyboardSourceWarnings } from "../storyboard-source-state.js"
+import { recordPackagedOwners } from "./bundle-ownership.js"
+import { openPackageWork, publishedAdtDirectory } from "./publication-directory.js"
+import { isBundleLocale, packageFilesAvailable } from "./bundle-files.js"
+import { isPublicOutputId } from "../public-output-identity.js"
+import { BookConfigError } from "../config.js"
 import { buildImageInventory } from "../catalog-reconciliation.js"
 import { answerTextId, resolveQuizOptionId } from "@adt/types"
 import { scopeLegacyActivityIds } from "../catalog-reconciliation.js"
@@ -12,7 +18,7 @@ import { pathToFileURL } from "node:url"
 import { parseDocument, DomUtils } from "htmlparser2"
 import temml from "temml"
 import type { Storage } from "@adt/storage"
-import { bookAssetExists } from "@adt/storage"
+import { bookAssetExists, withBookWriter } from "@adt/storage"
 import type {
   ContentNodeData,
   PageSectioningSection,
@@ -63,6 +69,8 @@ import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries, buildEasyReadSourceBlocks } from "../easy-read.js"
 import { activeEasyRead } from "../retained-catalog.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
+import { storyboardCoverage } from "../storyboard-coverage.js"
+import { activeSectioningPages, requiredPartRange, SectioningSafetyError } from "../sectioning-lifecycle.js"
 import { renderingOwnershipWarnings } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
 import { orderTocEntries } from "../toc-reading-order.js"
@@ -72,6 +80,10 @@ import { buildTailwindCss } from "../tailwind.js"
 
 export interface PackageAdtWebOptions {
   config?: AppConfig
+  /** The caller may also bind publication to its live configuration/source snapshot. */
+  validatePublication?: () => void
+  /** Finish the unpublished artifact; its optional synchronous DB write commits with the directory swap. */
+  preparePublication?: (stagingRoot: string, result: PackageAdtWebResult) => Promise<() => void>
   promptsDir?: string
   configDir?: string
   bookDir: string
@@ -191,7 +203,8 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 16
+// Existing bundles may contain fixed HTML whose explicit owner was misread.
+const PACKAGING_FORMAT_VERSION = 18
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -214,10 +227,21 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   // 1. Storage entity versions and content (exclude outputs like accessibility-assessment)
   const fingerprint = options.storage.getNodeVersionFingerprint(["accessibility-assessment"])
     .map((entry) => {
-      const row = options.storage.getLatestNodeData(entry.node, entry.itemId)
+      let dataHash: string
+      try {
+        const row = options.storage.getLatestNodeData(entry.node, entry.itemId)
+        dataHash = hashValue(row?.data ?? null)
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error
+        // An unreadable selected value supplies no usable content. Retain its
+        // exact node/item/version in the proof while readers omit that unit.
+        // Repair to readable content (even at the same version) changes this
+        // marker to a content hash; IO/admission failures still abort.
+        dataHash = "unreadable-json"
+      }
       return {
         ...entry,
-        dataHash: hashValue(row?.data ?? null),
+        dataHash,
       }
     })
   hash.update(JSON.stringify(fingerprint))
@@ -235,6 +259,7 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
 
   // 3. Book config (affects rendering, accessibility, etc.)
   hash.update(JSON.stringify(options.config))
+  hash.update(JSON.stringify(requiredPartRange(options.bookDir)))
 
   // Effective prompt/profile content changes disclosure even when output bytes
   // are deliberately retained. Include these files in the package cache basis.
@@ -313,6 +338,49 @@ export async function packageAdtWeb(
   options: PackageAdtWebOptions,
   progress: Progress = nullProgress,
 ): Promise<PackageAdtWebResult> {
+  const locales = [options.language, ...options.outputLanguages].map(normalizeLocale)
+  if (!options.outputLanguages.length || !locales.every(isBundleLocale)) {
+    throw new BookConfigError(options.label, "Invalid package language identifier.")
+  }
+  return withBookWriter(options.bookDir, async () => {
+    const window = JSON.stringify(requiredPartRange(options.bookDir))
+    const work = openPackageWork(options.bookDir)
+    const output = publishedAdtDirectory(options.bookDir)
+    const previous = path.join(work, "previous")
+    const stagingRoot = fs.mkdtempSync(path.join(work, "build-"))
+    const staged = path.join(stagingRoot, "adt")
+    try {
+      const result = await buildWebPackage(storage, options, progress, staged)
+      const commit = await options.preparePublication?.(stagingRoot, result)
+      if (!packageFilesAvailable(staged, { format: "scorm", expectedLanguages: options.outputLanguages.map(normalizeLocale) })) {
+        throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "The staged package is missing required files. The previous package is retained.")
+      }
+      if (JSON.stringify(requiredPartRange(options.bookDir)) !== window) {
+        throw new SectioningSafetyError("SECTIONING_WINDOW_INVALID", "The part window changed while packaging. Retry using the current window.")
+      }
+      options.validatePublication?.()
+      // The stage is complete. Readers in this process cannot interleave these
+      // renames, and the shared writer already excludes other supported writers.
+      if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true })
+      if (fs.existsSync(output)) fs.renameSync(output, previous)
+      try {
+        fs.renameSync(staged, output)
+        commit?.()
+      } catch (error) {
+        if (fs.existsSync(output)) fs.renameSync(output, staged)
+        if (fs.existsSync(previous)) fs.renameSync(previous, output)
+        throw error
+      }
+      if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true })
+      progress.emit({ type: "step-complete", step: "package-web" })
+      return result
+    } finally { fs.rmSync(stagingRoot, { recursive: true, force: true }) }
+  })
+}
+
+async function buildWebPackage(
+  storage: Storage, options: PackageAdtWebOptions, progress: Progress, adtDir: string,
+): Promise<PackageAdtWebResult> {
   const {
     bookDir,
     label,
@@ -354,12 +422,9 @@ export async function packageAdtWeb(
   progress.emit({ type: "step-start", step })
   progress.emit({ type: "step-progress", step, message: "Setting up directories..." })
 
-  const adtDir = path.join(bookDir, "adt")
   const imageDir = path.join(adtDir, "images")
   const contentDir = path.join(adtDir, "content")
 
-  // Clear & create directory structure
-  if (fs.existsSync(adtDir)) fs.rmSync(adtDir, { recursive: true })
   fs.mkdirSync(imageDir, { recursive: true })
   fs.mkdirSync(contentDir, { recursive: true })
 
@@ -441,6 +506,7 @@ export async function packageAdtWeb(
   }
 
   for (const item of readingOrder.items) {
+    if (!isPublicOutputId(item.id)) throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Unsafe public section identity. Saved content is retained.")
     // Every page is named by its stable id. Nothing is named for its position,
     // so a page keeps its URL no matter where it sits in the reading order —
     // `index.html` is written separately below as a redirect to whatever page
@@ -1052,6 +1118,7 @@ export async function packageAdtWeb(
   generateOfflinePreloader(adtDir, outputLanguages)
 
   generateImsManifest(adtDir, title, label, pageList)
+  recordPackagedOwners(adtDir, readingOrder.items)
 
   // Render AGENTS.md from Liquid template with book-specific data
   const agentsMdTemplate = path.join(path.dirname(webAssetsDir), "AGENTS.md.liquid")
@@ -1074,9 +1141,10 @@ export async function packageAdtWeb(
     fs.writeFileSync(path.join(adtDir, "AGENTS.md"), agentsMd)
   }
 
-  progress.emit({ type: "step-complete", step })
-
-  return { warnings: orphanedRenderings }
+  const pageIds = options.config ? activeSectioningPages(storage, options.config, bookDir).map((page) => page.pageId) : undefined
+  const coverage = storyboardCoverage(storage, pageIds)
+  const missing = [...new Set([...coverage.missingPages, ...coverage.missingSections.map((section) => section.pageId)])]
+  return { warnings: [...orphanedRenderings, ...storyboardSourceWarnings(storage, pageIds), ...missing.map((pageId) => ({ kind: "missing-storyboard" as const, pageId }))] }
 }
 
 // ---------------------------------------------------------------------------

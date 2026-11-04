@@ -1,3 +1,4 @@
+import type { IdentityHistoryRecord } from "@adt/types"
 import type { ExtractedPage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
 import type { OutputInputEvidence, RenderMethodValue } from "@adt/types"
@@ -9,6 +10,8 @@ export interface PageData {
 }
 
 export interface ImageData {
+  /** Storage identity is requested by admission checks, not exposed in ordinary page reads. */
+  storedAsset?: { relativePath: string; hash: string; source: string }
   imageId: string
   width: number
   height: number
@@ -89,7 +92,7 @@ export interface Storage {
   getImageDimensions(imageId: string): { width: number; height: number } | null
   /** Look up basic metadata for an image: its page id and book-relative path on disk. */
   getImageMeta(imageId: string): { pageId: string; relativePath: string; hash?: string; width?: number; height?: number } | null
-  getPageImages(pageId: string): ImageData[]
+  getPageImages(pageId: string, includeStoredAsset?: boolean): ImageData[]
 
   /** Write a cropped image to disk as {imageId}_crop_v{version}.png and register it in the DB with source="crop". */
   putCroppedImage(input: CroppedImageInput): void
@@ -116,6 +119,8 @@ export interface Storage {
    * retired one.
    */
   getAllNodeVersions(node: string, itemId: string): NodeDataRow[]
+  /** Extant history plus verified retired evidence, for existing ID allocators. */
+  readIdentityHistory?(nodes: readonly string[], itemId?: string): IdentityHistoryRecord[]
   /**
    * Every item id this node holds data for, in id order.
    *
@@ -130,6 +135,8 @@ export interface Storage {
    *  (rollback). Returns false if that version doesn't exist. */
   setCurrentNodeVersion(node: string, itemId: string, version: number): boolean
   /** The active version pointer, or null when unset (current == MAX). */
+  getSelectedNodeVersion(node: string, itemId: string): number | null
+
   getCurrentNodeVersion(node: string, itemId: string): number | null
 
   /** Mark a pipeline step as started (running). */

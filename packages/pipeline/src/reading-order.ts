@@ -13,6 +13,7 @@
  * user-editable order in at the marked point without moving any consumer.
  */
 import type { Storage } from "@adt/storage"
+import { ambiguousPublicOutputIds, isPublicOutputId } from "./public-output-identity.js"
 import type {
   PageSectioningSection,
   Quiz,
@@ -96,12 +97,20 @@ interface PageContext {
 
 function readPageContexts(storage: Storage): PageContext[] {
   return storage.getPages().map((page) => {
-    const sectioning = getRenderSectioning(storage, page.pageId)
-    const row = storage.getLatestNodeData("web-rendering", page.pageId)
-    const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
-    const rendering = parsed?.success ? [...withLegacyRenderingOwnership(storage, page.pageId, parsed.data).sections] : []
-    rendering.sort((a, b) => a.sectionIndex - b.sectionIndex)
-    return { pageId: page.pageId, sections: sectioning?.sections ?? [], rendering }
+    try {
+      const sectioning = getRenderSectioning(storage, page.pageId)
+      const row = storage.getLatestNodeData("web-rendering", page.pageId)
+      const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
+      const rendering = parsed?.success ? [...withLegacyRenderingOwnership(storage, page.pageId, parsed.data).sections] : []
+      rendering.sort((a, b) => a.sectionIndex - b.sectionIndex)
+      return { pageId: page.pageId, sections: sectioning?.sections ?? [], rendering }
+    } catch (error) {
+      // JSON corruption is page-local. Its sections have no provable owner;
+      // the coverage read model reports this page as missing. Keep its slot
+      // for separately owned quizzes and never suppress storage/admission errors.
+      if (!(error instanceof SyntaxError)) throw error
+      return { pageId: page.pageId, sections: [], rendering: [] }
+    }
   })
 }
 
@@ -151,6 +160,7 @@ export function resolveReadingOrder(
   options: ResolveReadingOrderOptions = {}
 ): ResolvedReadingOrder {
   const pageContexts = readPageContexts(storage)
+  const ambiguous = ambiguousPublicOutputIds(storage)
 
   const quizRow = storage.getLatestNodeData("quiz-generation", "book")
   const quizzes =
@@ -184,6 +194,7 @@ export function resolveReadingOrder(
 
   const items: ResolvedItem[] = []
   for (const entry of order) {
+    if (!isPublicOutputId(entry.id) || ambiguous.has(entry.id)) continue
     if (entry.kind === "quiz") {
       const hit = quizzesById.get(entry.id)
       if (!hit) continue

@@ -261,9 +261,17 @@ export function resolveQuizPalette(storage: Storage): QuizPalette | null {
   const sectionTx: string[] = []
   const htmlColorful: string[] = []
   for (const page of storage.getPages()) {
-    const sec = storage.getLatestNodeData("page-sectioning", page.pageId)?.data as
-      | PageSectioningOutput
-      | undefined
+    let sec: PageSectioningOutput | undefined
+    let wr: { sections?: Array<{ html?: string }> } | undefined
+    try {
+      sec = storage.getLatestNodeData("page-sectioning", page.pageId)?.data as PageSectioningOutput | undefined
+      wr = storage.getLatestNodeData("web-rendering", page.pageId)?.data as typeof wr
+    } catch (error) {
+      // Palette inference is optional. An unreadable page cannot contribute
+      // colors, but must not prevent packaging unrelated, usable pages.
+      if (!(error instanceof SyntaxError)) throw error
+      continue
+    }
     if (sec && Array.isArray(sec.sections)) {
       for (const s of sec.sections) {
         const bg = normHex(s.backgroundColor)
@@ -272,9 +280,6 @@ export function resolveQuizPalette(storage: Storage): QuizPalette | null {
         if (tx) sectionTx.push(tx)
       }
     }
-    const wr = storage.getLatestNodeData("web-rendering", page.pageId)?.data as
-      | { sections?: Array<{ html?: string }> }
-      | undefined
     if (wr && Array.isArray(wr.sections)) {
       for (const s of wr.sections) htmlColorful.push(...colorCandidatesFromHtml(s.html ?? ""))
     }

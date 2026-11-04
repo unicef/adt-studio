@@ -3,16 +3,156 @@ import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import { Hono } from "hono"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createPageRoutes } from "./pages.js"
 import type { TaskExecutor, TaskService } from "../services/task-service.js"
+import { resolveReadingOrder, storyboardCoverage, renderingOwnershipWarnings } from "@adt/pipeline"
 
 describe("Page routes", () => {
   let tmpDir: string
   let globalConfigPath: string
   let app: Hono
   const label = "test-book"
+
+  it.each(["storyboard", "rendering", "ai-edit", "ai-instruction"])("returns a localizable 400 for invalid %s requests without changing history or starting work", async kind => {
+    const pageId = `${label}_p1`
+    const storage = createBookStorage(label, tmpDir)
+    const before = ["page-sectioning", "web-rendering"].map(node => storage.getAllNodeVersions(node, pageId))
+    const rendering = storage.getLatestNodeData("web-rendering", pageId)!
+    storage.close()
+    const tasks = { submitTask: vi.fn(), getActiveTasks: () => [] } as unknown as TaskService
+    const guarded = new Hono().route("/api", createPageRoutes(tmpDir, "", "", globalConfigPath, tasks)).onError(errorHandler)
+    const endpoint = kind.startsWith("ai-") ? "sections/0/ai-edit" : kind
+    const body = kind === "storyboard" ? { rendering: rendering.data } : kind === "rendering" ? rendering.data
+      : kind === "ai-edit" ? { baseVersion: 1, instruction: "Edit" } : { baseVersion: 1, renderingBaseVersion: rendering.version, instruction: " " }
+    const response = await guarded.request(`/api/books/${label}/pages/${pageId}/${endpoint}`, { method: kind.startsWith("ai-") ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ code: "STORYBOARD_REQUEST_INVALID" })
+    expect(tasks.submitTask).not.toHaveBeenCalled()
+    const after = createBookStorage(label, tmpDir)
+    expect(["page-sectioning", "web-rendering"].map(node => after.getAllNodeVersions(node, pageId))).toEqual(before)
+    after.close()
+  })
+
+  it.each([false, true])("rejects a second page claiming an existing public ID and omits ambiguous imported owners (case alias=%s)", async caseAlias => {
+    const s = createBookStorage(label, tmpDir)
+    const source = s.getLatestNodeData("page-sectioning", `${label}_p1`)!
+    const rendering = s.getLatestNodeData("web-rendering", `${label}_p1`)!
+    const claim = structuredClone(source.data) as import("@adt/types").PageSectioningOutput
+    const claimedRendering = structuredClone(rendering.data) as import("@adt/types").WebRenderingOutput
+    if (caseAlias) for (const section of claim.sections) {
+      const previous = section.sectionId
+      section.sectionId = previous.toUpperCase()
+      for (const rendered of claimedRendering.sections) {
+        if (rendered.sectionId === previous) rendered.sectionId = section.sectionId
+        rendered.html = rendered.html.replaceAll(previous, section.sectionId)
+      }
+    }
+    const id = `${label}_p2`
+    const before = s.getAllNodeVersions("page-sectioning", id)
+    const version = s.getSelectedNodeVersion("page-sectioning", id) ?? 0
+    s.close()
+    const request = await app.request(`/api/books/${label}/pages/${id}/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...claim, baseVersion: version }) })
+    expect(request.status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getAllNodeVersions("page-sectioning", id)).toEqual(before)
+    // An imported book can bypass HTTP validation. Both public claims must be
+    // omitted and disclosed, never silently picked by Map insertion order.
+    after.putNodeData("page-sectioning", id, claim)
+    after.putNodeData("web-rendering", id, claimedRendering)
+    expect(storyboardCoverage(after).complete).toBe(false)
+    expect(resolveReadingOrder(after).items).toHaveLength(0)
+    expect(renderingOwnershipWarnings(after).map(warning => warning.pageId)).toEqual(expect.arrayContaining([`${label}_p1`, id]))
+    expect(after.getLatestNodeData("web-rendering", `${label}_p1`)).toEqual(rendering)
+    after.close()
+  })
+
+  it.each(["full", "sparse", "null-id"])("reserves readable legacy quiz IDs without document metadata (%s)", async shape => {
+    const storage = createBookStorage(label, tmpDir)
+    storage.putNodeData("quiz-generation", "book", { quizzes: [{ ...(shape === "full" ? { quizIndex: 0, reasoning: "" } : {}), ...(shape === "null-id" ? { quizId: null } : {}), afterPageId: `${label}_p1`, pageIds: [`${label}_p1`], question: "Saved quiz", answerIndex: 0, options: ["A", "B", "C"].map(text => ({ text, explanation: text })) }] })
+    const priorQuiz = storage.getAllNodeVersions("quiz-generation", "book")
+    expect(resolveReadingOrder(storage).items.map(item => item.id)).toContain("qz001")
+    const row = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!
+    const prior = structuredClone(row)
+    const tree = row.data as import("@adt/types").PageSectioningOutput
+    tree.sections[0].sectionId = "qz001"
+    storage.close()
+    const response = await app.request(`/api/books/${label}/pages/${label}_p1/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...tree, baseVersion: row.version }) })
+    expect(response.status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getLatestNodeData("page-sectioning", `${label}_p1`)).toEqual(prior)
+    expect(after.getAllNodeVersions("quiz-generation", "book")).toEqual(priorQuiz)
+    after.close()
+  })
+
+  it.each(["page-sectioning", "fixed-layout-sectioning"])("isolates an unreadable %s page from healthy page list/detail reads", async node => {
+    const bad = `${label}_p2`
+    const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    db.run("INSERT INTO node_data (node,item_id,version,data) VALUES (?,?,99,?)", [node, bad, "{broken"])
+    db.run("INSERT OR REPLACE INTO node_current (node,item_id,version) VALUES (?,?,99)", [node, bad])
+    const before = db.all("SELECT * FROM node_data ORDER BY node,item_id,version")
+    db.close()
+    const response = await app.request(`/api/books/${label}/pages`)
+    expect(response.status, await response.clone().text()).toBe(200)
+    const pages = await response.json()
+    expect(pages.find((page: { pageId: string }) => page.pageId === `${label}_p1`)).toMatchObject({ hasRendering: true })
+    expect(pages.find((page: { pageId: string }) => page.pageId === bad)).toMatchObject({ hasRendering: false })
+    const detail = await app.request(`/api/books/${label}/pages/${label}_p1`)
+    expect(detail.status, await detail.clone().text()).toBe(200)
+    const verify = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    expect(verify.all("SELECT * FROM node_data ORDER BY node,item_id,version")).toEqual(before)
+    verify.close()
+  })
+
+  it("keeps healthy saved page reads available when an unrelated quiz record is unreadable", async () => {
+    const sql = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    sql.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", ["quiz-generation", "book", 1, "{broken"])
+    sql.close()
+    const response = await app.request(`/api/books/${label}/pages`)
+    expect(response.status).toBe(200)
+    expect((await response.json()).find((page: { pageId: string }) => page.pageId === `${label}_p1`)).toMatchObject({ hasRendering: true })
+    const verify = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    expect(verify.get("SELECT data FROM node_data WHERE node=? AND item_id=?", ["quiz-generation", "book"])).toMatchObject({ data: "{broken" })
+    verify.close()
+  })
+
+  it.each(["storyboard", "rendering"])("rejects a stale %s draft after reset, preserves history, then accepts a fresh save", async endpoint => {
+    const pageId = `${label}_p1`
+    const storage = createBookStorage(label, tmpDir)
+    const original = storage.getLatestNodeData("web-rendering", pageId)!
+    const source = storage.getLatestNodeData("page-sectioning", pageId)!
+    const reset = storage.putNodeData("web-rendering", pageId, null)
+    const history = storage.getAllNodeVersions("web-rendering", pageId)
+    storage.close()
+    const save = (version?: number) => app.request(`/api/books/${label}/pages/${pageId}/${endpoint}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(endpoint === "storyboard"
+        ? { rendering: original.data, baseVersion: source.version, renderingBaseVersion: version }
+        : { ...(original.data as object), baseVersion: version }),
+    })
+    expect((await save()).status).toBe(400)
+    expect((await save(original.version)).status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getAllNodeVersions("web-rendering", pageId)).toEqual(history)
+    expect(after.getLatestNodeData("page-sectioning", pageId)).toEqual(source)
+    after.close()
+    expect((await save(reset)).status).toBe(200)
+  })
+
+  it.each(["../outside", "..\\outside", "index", "CON", "NUL.txt", "trailing.", "%2e%2e%2foutside"])("rejects unsafe public section identity %s without changing saved versions", async unsafe => {
+    const pageId = `${label}_p1`
+    const storage = createBookStorage(label, tmpDir)
+    const row = storage.getLatestNodeData("page-sectioning", pageId)!
+    const original = structuredClone(row)
+    storage.close()
+    const data = row.data as { sections: Array<{ sectionId: string }> }
+    data.sections[0].sectionId = unsafe
+    const response = await app.request(`/api/books/${label}/pages/${pageId}/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, baseVersion: row.version }) })
+    expect(response.status).toBe(409)
+    const after = createBookStorage(label, tmpDir)
+    expect(after.getLatestNodeData("page-sectioning", pageId)).toEqual(original)
+    after.close()
+  })
 
   // These regression cases test structural/restore semantics. Emulate the
   // editor's version read; missing/stale/racing guards are exercised without
@@ -23,15 +163,15 @@ describe("Page routes", () => {
     let body: Record<string, unknown>
     try { body = init?.body ? JSON.parse(String(init.body)) : {} } catch { return app.request(url, init) }
     const restore = url.match(/\/versions\/([^/]+)\/([^/]+)\/restore/)
-    const page = url.match(/\/pages\/([^/]+)\/(sectioning|storyboard|sections\/\d+(?:\/(?:clone|split|merge|merge-cross-page|ai-edit))?)(?:\?|$)/)
+    const page = url.match(/\/pages\/([^/]+)\/(sectioning|rendering|storyboard|sections\/\d+(?:\/(?:clone|split|merge|merge-cross-page|ai-edit))?)(?:\?|$)/)
     if (!restore && !page) return app.request(url, init)
-    if (page?.[2] === "storyboard" && !body.sectioning) return app.request(url, init)
     const requestLabel = url.match(/\/books\/([^/]+)/)?.[1] ?? label
     const exists = fs.existsSync(path.join(tmpDir, requestLabel, `${requestLabel}.db`))
     const storage = exists ? createBookStorage(requestLabel, tmpDir) : null
     try {
-      const node = restore?.[1] ?? "page-sectioning", id = restore?.[2] ?? page![1]
-      body.baseVersion ??= storage?.getCurrentNodeVersion(node, id) ?? 0
+      const node = restore?.[1] ?? (page?.[2] === "rendering" ? "web-rendering" : "page-sectioning"), id = restore?.[2] ?? page![1]
+      body.baseVersion ??= storage?.getSelectedNodeVersion(node, id) ?? 0
+      if ((page?.[2] === "storyboard" && body.rendering) || url.includes("/ai-edit")) body.renderingBaseVersion ??= storage?.getSelectedNodeVersion("web-rendering", id) ?? 0
       if (url.includes("merge-cross-page") && storage) {
         const pages = storage.getPages()
         const index = pages.findIndex((p) => p.pageId === id)
@@ -114,6 +254,7 @@ describe("Page routes", () => {
         sections: [
           {
             sectionIndex: 0,
+            sectionId: `${label}_p1_sec001`,
             sectionType: "content",
             reasoning: "rendered",
             sectionId: `${label}_p1_sec001`,
@@ -179,7 +320,7 @@ describe("Page routes", () => {
     it.each(["SQL", "JSON"])("does not resurrect %s NULL rendering or its activity flags, and respects a restored pointer", async (kind) => {
       const storage = createBookStorage(label, tmpDir)
       const pageId = `${label}_p1`
-      const version = storage.putNodeData("web-rendering", pageId, { sections: [{ sectionIndex: 0, sectionType: "content", html: "<p>Old activity</p>", activityAnswers: { answer: "old" } }] })
+      const version = storage.putNodeData("web-rendering", pageId, { sections: [{ sectionIndex: 0, sectionId: `${pageId}_sec001`, sectionType: "content", reasoning: "rendered", html: "<p>Old activity</p>", activityAnswers: { answer: "old" } }] })
       if (kind === "SQL") storage.clearNodesByType(["web-rendering"])
       else storage.putNodeData("web-rendering", pageId, null)
       storage.close()
@@ -2176,6 +2317,7 @@ describe("Page routes", () => {
   })
 
   describe("POST /api/books/:label/pages/re-render", () => {
+    beforeEach(() => writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true))
     it("marks the Storyboard running before submitting one task for all pages", async () => {
       const storage = createBookStorage(label, tmpDir)
       try {
@@ -2236,6 +2378,7 @@ describe("Page routes", () => {
   })
 
   describe("POST /api/books/:label/pages/:pageId/re-render", () => {
+    beforeEach(() => writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true))
     it("validates the request without requiring an unconditional OpenAI key", async () => {
       const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/re-render?sectionIndex=99`,

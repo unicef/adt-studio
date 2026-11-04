@@ -99,6 +99,8 @@ function readyCoreTtsCatalog(...ids: string[]) {
 
 function createWebAssets(webAssetsDir: string): void {
   fs.mkdirSync(webAssetsDir, { recursive: true })
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), ".icon { display: inline; }")
   // Pre-built runtime bundles. In production these come from
   // apps/adt-runtime/build.config.mjs; in tests we write them directly so
   // buildJsBundle's "copy from webAssetsDir" path is exercised without
@@ -2035,6 +2037,7 @@ describe("packageAdtWeb", () => {
     expect(result.warnings).toEqual([
       { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 0 },
       { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 1 },
+      { kind: "missing-storyboard", pageId: "pg002" },
     ])
   })
 
@@ -2563,6 +2566,8 @@ describe("packageAdtWeb", () => {
     const runtimeDir = path.join(monorepoTmp, "apps", "adt-runtime")
     fs.mkdirSync(bookDir, { recursive: true })
     fs.mkdirSync(webAssetsDir, { recursive: true })
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), ".icon { display: inline; }")
     fs.mkdirSync(runtimeDir, { recursive: true })
 
     // Required non-bundle assets
@@ -2622,6 +2627,8 @@ describe("packageAdtWeb", () => {
     const runtimeDir = path.join(monorepoTmp, "apps", "adt-runtime")
     fs.mkdirSync(bookDir, { recursive: true })
     fs.mkdirSync(webAssetsDir, { recursive: true })
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), ".icon { display: inline; }")
     fs.mkdirSync(runtimeDir, { recursive: true })
 
     fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")

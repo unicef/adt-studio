@@ -2,8 +2,8 @@ import type { AuthoredContent } from "@adt/types"
 
 /** Authorship protection only. Shared freshness/admission can protect additional
  * output; being AI-authored is necessary, not sufficient, for replacement. */
-export function isProtectedContent(content: AuthoredContent): boolean {
-  return content.source !== "ai"
+export function isProtectedContent(content: AuthoredContent | null | undefined): boolean {
+  return content?.source !== "ai"
 }
 
 export function indexPreservedEntries<T>(entries: readonly T[], keyOf: (entry: T) => string): Map<string, T> {

@@ -142,6 +142,9 @@ export const BookWriterOwner = z.object({
   token: z.string().uuid(),
   pid: z.number().int().positive(),
   host: z.string().min(1),
+  // Filenames registered durably before every coordinated SQLite open. Absence
+  // supplies no mutex ownership proof, even when the recorded process is dead.
+  coordinatedDatabases: z.array(z.string().min(1).regex(/^(?!\.{1,2}$)[^/\\\0]+$/)).optional(),
   // Optional so leases written by older builds remain readable. This is
   // process ownership evidence, never content authorship or freshness.
   linuxProcess: z.object({

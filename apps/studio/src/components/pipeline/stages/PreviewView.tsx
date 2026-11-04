@@ -1,3 +1,5 @@
+import { useBookRun } from "@/hooks/use-book-run"
+import { StoryboardSourceNotice } from "../components/StoryboardSourceNotice"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { usePreviewPageSync } from "@/hooks/use-preview-page-sync"
 import type { AccessibilityFinding } from "@adt/types"
@@ -38,6 +40,7 @@ const HIGHLIGHT_PAGE_ATTR = "data-adt-a11y-hover-page"
 
 export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const { i18n } = useLingui()
+  const { sourceUpdateStages = [] } = useBookRun()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { previewHref?: string }
@@ -340,8 +343,9 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     )
 
     return (
-      <div className="relative h-full w-full bg-muted/20 overflow-hidden">
-        <div ref={wrapperRef} className="absolute inset-0 flex items-center justify-center overflow-hidden">
+      <div className="relative flex h-full w-full flex-col bg-muted/20 overflow-hidden">
+        {sourceUpdateStages.includes("storyboard") && <StoryboardSourceNotice />}
+        <div ref={wrapperRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           {isDesktop ? (
             <iframe
               ref={iframeRef}

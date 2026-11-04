@@ -436,6 +436,8 @@ export function StoryboardSectionDetail({
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
   const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string; consequence?: string } | null>(null)
   const sectioningBaseVersion = useRef<number | null>(null)
+  const renderingBaseVersion = useRef<number | null>(null)
+  const renderingDraftBase = useRef<RenderingData | null>(null)
   const [pendingSectioning, setPendingSectioningState] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRenderingState] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
@@ -459,13 +461,15 @@ export function StoryboardSectionDetail({
   const markPending = useCallback((category: PendingCategory) => {
     if (restoringRef.current) return
     sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
+    renderingBaseVersion.current ??= page.versions.rendering ?? 0
+    renderingDraftBase.current ??= page.rendering
     setPendingCategories((prev) => {
       if (prev.has(category)) return prev
       const next = new Set(prev)
       next.add(category)
       return next
     })
-  }, [page.versions.sectioning])
+  }, [page.versions.sectioning, page.versions.rendering, page.rendering])
   // Tracks whether saved sectioning will still require an explicit LLM re-render.
   // Pure prune/delete can be resolved locally; unprune/type change/reorder need LLM.
   const needsRerenderRef = useRef(false)
@@ -479,15 +483,24 @@ export function StoryboardSectionDetail({
     const value = typeof next === "function" ? next(latestDraftRef.current.sectioning) : next
     latestDraftRef.current.sectioning = value
     if (value === null) sectioningBaseVersion.current = null
-    else sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
+    else {
+      sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
+      renderingBaseVersion.current ??= page.versions.rendering ?? 0
+      renderingDraftBase.current ??= page.rendering
+    }
     setPendingSectioningState(value)
-  }, [page.versions.sectioning])
+  }, [page.versions.sectioning, page.versions.rendering, page.rendering])
   const setPendingRendering = useCallback((next: SetStateAction<RenderingData | null>) => {
     if (restoringRef.current) return
     const value = typeof next === "function" ? next(latestDraftRef.current.rendering) : next
     latestDraftRef.current.rendering = value
+    if (value === null) { renderingBaseVersion.current = null; renderingDraftBase.current = null }
+    else {
+      renderingBaseVersion.current ??= page.versions.rendering ?? 0
+      renderingDraftBase.current ??= page.rendering
+    }
     setPendingRenderingState(value)
-  }, [])
+  }, [page.versions.rendering, page.rendering])
 
   // A response acknowledges only the draft sent with that request. Editors
   // remain usable while saving; later source, HTML and inspector edits must
@@ -684,7 +697,8 @@ export function StoryboardSectionDetail({
     pageId,
     pageHasActivitySection,
   )
-  const [editActivityPanelOpen, setEditActivityPanelOpen] = useState(false)
+  const [activityEditorKind, setActivityEditorKind] = useState<"stepper" | "classic" | null>(null)
+  const editActivityPanelOpen = activityEditorKind !== null
   const floatingDirtyEntries = useFloatingSaveDirtyEntries()
   const activityDraftDirty = floatingDirtyEntries.some(
     (entry) => entry.id === `editable-activity:${bookLabel}:${pageId}:${sectionIndex}`,
@@ -851,7 +865,7 @@ export function StoryboardSectionDetail({
     // Activities open interactive (matching step-by-step); "Edit activity"
     // in the banner opts into the WYSIWYG editor per section.
     setActivityPreviewMode(true)
-    setEditActivityPanelOpen(false)
+    setActivityEditorKind(null)
     needsRerenderRef.current = false
   }, [pageId, sectionIndex])
 
@@ -950,10 +964,14 @@ export function StoryboardSectionDetail({
       const saved = await api.saveStoryboard(bookLabel, pageId, {
         ...sourceSave,
         baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
+        renderingBaseVersion: renderingBaseVersion.current ?? page.versions.rendering ?? 0,
         rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
       })
 
       const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
+      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.renderingVersion != null) {
+        renderingBaseVersion.current = saved.renderingVersion
+      }
       if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.sectioningVersion != null) {
         sectioningBaseVersion.current = saved.sectioningVersion
       }
@@ -1023,8 +1041,12 @@ export function StoryboardSectionDetail({
         rendering: stripTransientIds(renderingToSave),
         ...sourceSave,
         baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
+        renderingBaseVersion: renderingBaseVersion.current ?? page.versions.rendering ?? 0,
       })
       const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
+      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.renderingVersion != null) {
+        renderingBaseVersion.current = saved.renderingVersion
+      }
       if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.sectioningVersion != null) {
         sectioningBaseVersion.current = saved.sectioningVersion
       }
@@ -1811,10 +1833,10 @@ export function StoryboardSectionDetail({
   const flushPendingHtml = useCallback((): RenderingData | null => {
     const queued = pendingHtmlRef.current
     if (!queued) return pendingRendering
-    if (!page.rendering) return pendingRendering
+    const base = pendingRendering ?? renderingDraftBase.current ?? page.rendering
+    if (!base) return pendingRendering
     pendingHtmlRef.current = null
     setHasUnflushedEdits(false)
-    const base = pendingRendering ?? page.rendering
     const merged: RenderingData = {
       ...base,
       sections: base.sections.map((s) =>
@@ -2299,7 +2321,8 @@ export function StoryboardSectionDetail({
     if (!aiInstruction.trim() || !hasStructuredTextProvider || hasActiveTask || storyboardRunning) return
     setAiError(null)
 
-    const currentHtml = renderedSection?.html
+    const draft = flushPendingHtml() ?? pendingRendering ?? page.rendering
+    const currentHtml = getRenderedSectionByIndex(draft, sectionIndex)?.html
     const instruction = aiInstruction.trim()
     setAiInstruction("")
 
@@ -2310,8 +2333,11 @@ export function StoryboardSectionDetail({
       instruction,
       apiKey,
       currentHtml,
-      page.versions.sectioning ?? 0,
+      sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
+      renderingBaseVersion.current ?? page.versions.rendering ?? 0,
     ).catch((err) => {
+      if (latestDraftRef.current.scope !== draftScope) return
+      setAiInstruction(value => value || instruction)
       setAiError(err instanceof Error ? err.message : t`AI edit failed`)
     })
   }
@@ -2488,9 +2514,9 @@ export function StoryboardSectionDetail({
     section?.sectionType === "activity_open_ended_answer" ||
     section?.sectionType === "activity_underline_text"
   const editableBusy =
-    convertEditableActivity.isPending || setEditablePresentation.isPending
+    !editableActivitiesQuery.data || convertEditableActivity.isPending || setEditablePresentation.isPending
 
-  const activityLinkMode = isActivitySection && !stepperEnabled && editActivityPanelOpen
+  const activityLinkMode = isActivitySection && activityEditorKind === "classic"
 
   useEffect(() => {
     setLinkedAnchor(null)
@@ -2512,7 +2538,7 @@ export function StoryboardSectionDetail({
     }
     if (editableEntry) {
       const enabling = !editableEntry.enabled
-      if (!enabling) setEditActivityPanelOpen(false)
+      if (!enabling) setActivityEditorKind(null)
       setEditablePresentation.mutate(
         { sectionIndex, enabled: enabling },
         {
@@ -2525,7 +2551,7 @@ export function StoryboardSectionDetail({
         onSuccess: (result) => {
           toast.success(t`Converted to a step-by-step activity`)
           if (result.warnings.length > 0) toast.warning(result.warnings.join(" "))
-          setEditActivityPanelOpen(true)
+          setActivityEditorKind("stepper")
         },
         onError: (err) =>
           toast.error(err instanceof Error ? err.message : t`Conversion failed`),
@@ -2551,7 +2577,7 @@ export function StoryboardSectionDetail({
       onSuccess: (result) => {
         toast.success(t`Rebuilt from the page`)
         if (result.warnings.length > 0) toast.warning(result.warnings.join(" "))
-        setEditActivityPanelOpen(true)
+        setActivityEditorKind("stepper")
       },
       onError: (err) =>
         toast.error(err instanceof Error ? err.message : t`Rebuild failed`),
@@ -2883,7 +2909,7 @@ export function StoryboardSectionDetail({
                       <>
                         <button
                           type="button"
-                          onClick={() => setEditActivityPanelOpen((v) => !v)}
+                          onClick={() => setActivityEditorKind(kind => kind === "stepper" ? null : "stepper")}
                           className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
                         >
                           <ListChecks className="h-3.5 w-3.5" />
@@ -2916,8 +2942,11 @@ export function StoryboardSectionDetail({
                             layout/style work. */}
                         <button
                           type="button"
-                          onClick={() => setEditActivityPanelOpen((v) => !v)}
-                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
+                          onClick={() => setActivityEditorKind(kind => kind === "classic" ? null : "classic")}
+                          // Missing query data does not mean classic presentation.
+                          // Wait before choosing which guarded editor owns the session.
+                          disabled={!editableActivitiesQuery.data}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <ListChecks className="h-3.5 w-3.5" />
                           {t`Edit activity`}
@@ -2925,7 +2954,7 @@ export function StoryboardSectionDetail({
                         <button
                           type="button"
                           onClick={() => {
-                            setEditActivityPanelOpen(false)
+                            setActivityEditorKind(null)
                             setActivityPreviewMode((v) => !v)
                           }}
                           className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
@@ -3223,26 +3252,25 @@ export function StoryboardSectionDetail({
           book+page: the component instance survives page navigation, and a
           colliding key would keep another page's draft alive — saving it
           would corrupt this page's activity. */}
-      {editableEntry && (
-        <EditableActivityPanel
-          key={`${bookLabel}-${pageId}-${sectionIndex}-${editableVersion}`}
-          open={editActivityPanelOpen && stepperEnabled}
-          onClose={() => setEditActivityPanelOpen(false)}
+      <EditableActivityPanel
+          key={`${bookLabel}-${pageId}-${sectionIndex}`}
+          open={activityEditorKind === "stepper"}
+          onClose={() => setActivityEditorKind(null)}
           bookLabel={bookLabel}
           pageId={pageId}
           sectionIndex={sectionIndex}
           activity={editableEntry}
+          version={editableVersion}
           activities={editableActivitiesQuery.data?.activities ?? {}}
           paletteAccent={editableActivitiesQuery.data?.paletteAccent ?? "#2563EB"}
         />
-      )}
 
       {/* Slide-out classic-activity content editor — the non-converted
           counterpart: edits answers and data-id texts of the free-form HTML. */}
       {isActivitySection && !stepperEnabled && (
         <ClassicActivityPanel
-          open={editActivityPanelOpen}
-          onClose={() => setEditActivityPanelOpen(false)}
+          open={activityEditorKind === "classic"}
+          onClose={() => setActivityEditorKind(null)}
           bookLabel={bookLabel}
           leaves={unprunedLeafNodes}
           answers={renderedSection?.activityAnswers}

@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { damageNodePayload } from "../../../../packages/storage/src/__tests__/helpers/physical-damage.js"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, writeSectioningLifecycle, readSectioningLifecycle } from "@adt/storage"
+import { prepareSectioningRun, collectSpentContentIds, collectSpentSectionIds } from "@adt/pipeline"
 import { exportProject } from "./export-service.js"
 import { previewMerge, mergePart, importPart, isPartArchive, gapsOf, contiguousRanges } from "./part-service.js"
 
@@ -195,6 +197,53 @@ describe("previewMerge", () => {
 })
 
 describe("mergePart", () => {
+  it("refuses contradictory incoming proof before touching target versions or assets", async () => {
+    makeBook("raven"); addProcessedPage("raven", 1)
+    makeBook("raven-part"); addProcessedPage("raven-part", 3); writePartManifest("raven-part", 3, 3)
+    damageNodePayload(path.join(tmpDir, "raven-part", "raven-part.db"), "page-sectioning", "pg003", 1)
+    const snapshot = () => {
+      const dir = path.join(tmpDir, "raven")
+      return fs.readdirSync(dir, { recursive: true }).filter(file => fs.statSync(path.join(dir, String(file))).isFile()).map(file => [file, fs.readFileSync(path.join(dir, String(file))).toString("hex")])
+    }
+    const before = snapshot()
+    const zip = await streamToBuffer((await exportProject("raven-part", tmpDir)).stream)
+    expect(() => mergePart("raven", tmpDir, zip, {}, configPath)).toThrow("HISTORY_REPAIR_REQUIRED")
+    expect(snapshot()).toEqual(before)
+  })
+  it("imports retired identities without selecting historical content", async () => {
+    makeBook("raven")
+    makeBook("raven-part"); addProcessedPage("raven-part", 3); writePartManifest("raven-part", 3, 3)
+    const source = createBookStorage("raven-part", tmpDir)
+    source.putNodeData("page-sectioning", "pg003", { source: "manual", sections: [{ sectionId: "pg003_sec078", nodes: [{ nodeId: "retired_answer" }] }] })
+    source.putNodeData("page-sectioning", "pg003", { source: "manual", sections: [{ sectionId: "pg003_sec002", nodes: [] }] })
+    source.putNodeData("quiz-generation", "book", { quizzes: [{ quizId: "q099", options: [{ optionId: "retired_option" }] }] })
+    source.putNodeData("page-sectioning", "pg004", { sections: [{ sectionId: "pg004_sec088", nodes: [{ nodeId: "retired_page_answer" }] }] })
+    source.deletePage("pg004")
+    source.close()
+    const zip = await streamToBuffer((await exportProject("raven-part", tmpDir)).stream)
+    expect(mergePart("raven", tmpDir, zip, {}, configPath).addedPages).toBe(1)
+    const target = createBookStorage("raven", tmpDir)
+    try {
+      expect(collectSpentSectionIds(target, "pg003")).toContain("pg003_sec078")
+      expect(collectSpentContentIds(target).has("retired_answer")).toBe(true)
+      expect(collectSpentContentIds(target).has("retired_option")).toBe(true)
+      expect(collectSpentContentIds(target).has("retired_page_answer")).toBe(true)
+      expect(collectSpentSectionIds(target, "pg004")).toContain("pg004_sec088")
+      expect(target.getLatestNodeData("page-sectioning", "pg004")).toBeNull()
+      expect(target.getLatestNodeData("quiz-generation", "book")).toBeNull()
+      expect(target.getLatestNodeData("page-sectioning", "pg003")?.data).toEqual({ source: "manual", sections: [{ sectionId: "pg003_sec002", nodes: [] }] })
+    } finally { target.close() }
+  })
+
+  it("keeps a part-local tree renderable without lifecycle initialization", async () => {
+    makeBook("raven")
+    addProcessedPage("raven", 1)
+    writeSectioningLifecycle(path.join(tmpDir, "raven"), "dynamic", true)
+    const zip = await buildCompletedPart("raven-p003-004", 3, 4)
+    mergePart("raven", tmpDir, zip, {}, configPath)
+    expect(() => prepareSectioningRun("raven", tmpDir, "storyboard", "storyboard", configPath)).not.toThrow()
+    expect(readSectioningLifecycle(path.join(tmpDir, "raven"))?.sectioningReady).toBe(false)
+  })
   it("copies per-page data, carries cache, and marks book-level steps stale", async () => {
     makeBook("raven")
     addProcessedPage("raven", 1)

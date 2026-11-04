@@ -1,6 +1,6 @@
 import { parseDocument, DomUtils } from "htmlparser2"
 import type { Storage } from "@adt/storage"
-import { answerTextId, formatQuizId, resolveQuizOptionId, type GlossaryItem, type QuizOption } from "@adt/types"
+import { IDENTITY_HISTORY_NODES, answerTextId, formatQuizId, resolveQuizOptionId, type GlossaryItem, type QuizOption } from "@adt/types"
 
 export function getGlossaryItemTextId(item: Pick<GlossaryItem, "id">, index: number): string {
   return item.id?.trim() || `gl${String(index + 1).padStart(3, "0")}`
@@ -56,9 +56,10 @@ export function collectSpentContentIds(storage: Storage): Set<string> {
     }
   }
   for (const page of storage.getPages()) for (const image of storage.getPageImages(page.pageId)) add(image.imageId)
-  const nodes = ["page-sectioning", "fixed-layout-sectioning", "web-rendering", "glossary", "quiz-generation", "text-catalog", "text-catalog-translation", "core-tts-catalog", "easy-read", "tts", "tts-timestamps", "word-timestamps", "image-captioning"]
-  for (const node of nodes) for (const itemId of storage.getNodeItemIds(node)) {
-    for (const row of storage.getAllNodeVersions(node, itemId)) {
+  const rows = storage.readIdentityHistory?.(IDENTITY_HISTORY_NODES) ?? IDENTITY_HISTORY_NODES.flatMap(node =>
+    storage.getNodeItemIds(node).flatMap(itemId => storage.getAllNodeVersions(node, itemId).map(row => ({ ...row, node }))))
+  for (const row of rows) {
+      const node = row.node
       collect(row.data)
       if (!row.data || typeof row.data !== "object") continue
       const data = row.data as Record<string, unknown>
@@ -94,7 +95,6 @@ export function collectSpentContentIds(storage: Storage): Set<string> {
           }
         }
       }
-    }
   }
   return spent
 }

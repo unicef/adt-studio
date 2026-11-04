@@ -10,11 +10,15 @@ import {
 } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { i18n } from "@lingui/core"
+import type { EditableActivity } from "@adt/types"
 import type { PageDetail } from "@/api/client"
 import type { SectionEditPanel } from "./SectionEditPanel"
 import type { StyleEditorPanel } from "./style-editor"
 
 const state = vi.hoisted(() => ({
+  editableQuery: {} as { data?: { activities: Record<string, EditableActivity>; version: number; paletteAccent: string } },
+  realActivityPanel: false,
+  activitySave: vi.fn().mockResolvedValue({ version: 3 }),
   headerSlot: null as HTMLElement | null,
   pickers: {} as Record<string, {onRestoringChange: (busy: boolean) => void; onRestored: () => void}>,
   frame: {} as {editable: boolean; onTextChanged?: (dataId: string, text: string) => void},
@@ -22,6 +26,7 @@ const state = vi.hoisted(() => ({
   style: null as unknown as ComponentProps<typeof StyleEditorPanel>,
   save: vi.fn().mockResolvedValue({}),
   generate: vi.fn(),
+  aiEdit: vi.fn(),
   invalidate: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock("@lingui/react/macro", () => ({
@@ -36,7 +41,7 @@ vi.mock("@lingui/core/macro", () => ({
 }))
 vi.mock("@/api/client", () => ({
   BASE_URL: "/api",
-  api: { saveStoryboard: state.save, reRenderPage: state.generate },
+  api: { saveStoryboard: state.save, reRenderPage: state.generate, aiEditSection: state.aiEdit },
 }))
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => ({}),
@@ -63,7 +68,9 @@ vi.mock("../../../components/StepViewRouter", () => ({
 }))
 vi.mock("@/hooks/use-editable-activities", () => ({
   useActivityStructure: () => ({}),
-  useEditableActivities: () => ({}),
+  useEditableActivities: () => state.editableQuery,
+  useSaveEditableActivities: () => ({ mutateAsync: state.activitySave, isPending: false }),
+  useGenerateActivityFeedback: () => ({ mutate: vi.fn(), isPending: false }),
   useConvertEditableActivity: () => ({}),
   useSetEditableActivityPresentation: () => ({}),
 }))
@@ -119,10 +126,15 @@ vi.mock("./AddImageDialog", () => ({
   ),
 }))
 vi.mock("./AiEditHistoryDrawer", () => ({ AiEditHistoryDrawer: () => null }))
-vi.mock("./EditableActivityPanel", () => ({
-  EditableActivityPanel: () => null,
-}))
-vi.mock("./ClassicActivityPanel", () => ({ ClassicActivityPanel: () => null }))
+vi.mock("./EditableActivityPanel", async (original) => {
+  const actual = await original<typeof import("./EditableActivityPanel")>()
+  return { EditableActivityPanel: (props: ComponentProps<typeof actual.EditableActivityPanel>) => state.realActivityPanel
+    ? <div data-testid="stepper-panel-host" data-open={String(props.open)}><actual.EditableActivityPanel {...props} /></div>
+    : null }
+})
+vi.mock("./ClassicActivityPanel", () => ({ ClassicActivityPanel: ({ open }: { open: boolean }) => <div data-testid="classic-panel-host" data-open={String(open)} /> }))
+vi.mock("./style-editor/controls/ColorPicker", () => ({ ColorPicker: () => null }))
+vi.mock("./style-editor/controls/Select", () => ({ Select: () => null }))
 vi.mock("@tanstack/react-router", async () => ({
   ...(await vi.importActual<object>("@tanstack/react-router")),
   useSearch: () => ({}),
@@ -149,7 +161,7 @@ vi.mock("./GenerateActivityDialog", () => ({
   GenerateActivityDialog: () => null,
 }))
 
-import { FloatingSaveProvider, useFloatingSaveLeaveAction } from "../../../components/floating-save"
+import { FloatingSaveProvider, useFloatingSaveLeaveAction, useHasUnsavedChanges } from "../../../components/floating-save"
 import { StoryboardSectionDetail } from "./StoryboardSectionDetail"
 
 let leaveAction: ReturnType<typeof useFloatingSaveLeaveAction>
@@ -203,6 +215,8 @@ function fixture(): PageDetail {
   } as PageDetail
 }
 beforeEach(() => {
+  state.editableQuery = {}; state.realActivityPanel = false
+  state.activitySave.mockReset().mockResolvedValue({ version: 3 })
   HTMLElement.prototype.scrollTo = vi.fn()
   i18n.load("en", {})
   i18n.activate("en")
@@ -210,6 +224,7 @@ beforeEach(() => {
   state.headerSlot = null
   state.pickers = {}
   state.save.mockResolvedValue({})
+  state.aiEdit.mockReset().mockResolvedValue({ taskId: "ai-edit" })
 })
 afterEach(cleanup)
 
@@ -265,6 +280,7 @@ it.each([false, true])("preserves successor source and inspector drafts after an
   await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2))
   const payload = state.save.mock.calls[1][2]
   expect(payload.baseVersion).toBe(2)
+  expect(payload.renderingBaseVersion).toBe(2)
   expect(payload.sectioning.sections[0].nodes).toContainEqual(expect.objectContaining({ nodeId: "keep", text: "Second source draft" }))
   const doc = new DOMParser().parseFromString(payload.rendering.sections[0].html, "text/html")
   expect(doc.querySelector('[data-id="keep"]')?.className).toBe("text-red-600")
@@ -273,6 +289,24 @@ it.each([false, true])("preserves successor source and inspector drafts after an
   expect(payload.renderingInSync).toBe(false)
   expect(state.generate).not.toHaveBeenCalled()
   await waitFor(() => expect(screen.queryByRole("button", { name: "Save", exact: true })).toBeNull())
+})
+
+it("keeps the captured rendering version and cosmetic draft when a reset arrives through refetch", async () => {
+  const page = fixture()
+  state.save.mockRejectedValue(new Error("VERSION_CONFLICT: rendering changed"))
+  const editor = (value: PageDetail) => <FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={value} /><LeaveProbe /></FloatingSaveProvider>
+  const view = render(editor(page))
+  act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
+  view.rerender(editor({ ...page, versions: { ...page.versions, rendering: 2 }, rendering: null }))
+  await act(async () => { await leaveAction.saveAndStay().catch(() => {}) })
+  expect(state.save).toHaveBeenCalledTimes(1)
+  const payload = state.save.mock.calls[0][2]
+  expect(payload.renderingBaseVersion).toBe(1)
+  expect(payload.rendering.sections[0].html).toContain("text-blue-600")
+  expect(payload.rendering.sections[1]).toEqual(page.rendering!.sections[1])
+  expect(leaveAction.canSave).toBe(true)
+  await act(async () => { await leaveAction.saveAndStay().catch(() => {}) })
+  expect(state.save.mock.calls[1][2]).toEqual(payload)
 })
 
 it("Save & leave rejects if a successor inspector draft is created during the request", async () => {
@@ -510,4 +544,102 @@ it.each(["page-sectioning", "web-rendering"])("blocks iframe and inspector mutat
   expect(payload).toContain("Retained source draft")
   expect(payload).not.toContain("blocked-class")
   expect(payload).not.toContain("Blocked iframe edit")
+})
+
+const savedStepper: EditableActivity = {
+  kind: "open-ended", sectionType: "activity_open_ended_answer", enabled: true,
+  title: {text: "Original stepper title"},
+  steps: [{id: "step-1", prompt: {text: "Question"}, multiline: true}],
+}
+function activityPage(): PageDetail {
+  const page = fixture()
+  page.sectioningTree!.sections[0].sectionType = savedStepper.sectionType
+  page.rendering!.sections[0].sectionType = savedStepper.sectionType
+  return page
+}
+
+it.each([true, false])("waits for saved activity presentation before opening the editor (stepper=%s)", async enabled => {
+  state.realActivityPanel = true
+  state.editableQuery = {}
+  const page = activityPage()
+  const mounted = render(parentView(page))
+  const edit = screen.getByRole("button", { name: "Edit activity" }) as HTMLButtonElement
+  expect(edit.disabled).toBe(true)
+  fireEvent.click(edit)
+  expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("false")
+  state.editableQuery = { data: { activities: { "0": { ...savedStepper, enabled } }, version: 1, paletteAccent: "#2563EB" } }
+  mounted.rerender(parentView(page))
+  const ready = screen.getByRole("button", { name: "Edit activity" }) as HTMLButtonElement
+  expect(ready.disabled).toBe(false)
+  fireEvent.click(ready)
+  expect(screen.getByTestId(enabled ? "stepper-panel-host" : "classic-panel-host").getAttribute("data-open")).toBe("true")
+  if (enabled) {
+    fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "Typed after the saved presentation loaded" } })
+    expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe("Typed after the saved presentation loaded")
+    await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("true"))
+  }
+  expect(state.activitySave).not.toHaveBeenCalled()
+})
+function UnsavedProbe() {
+  return <output data-testid="unsaved-activity">{String(useHasUnsavedChanges())}</output>
+}
+const parentView = (page: PageDetail) => <FloatingSaveProvider>
+  <StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page}/>
+  <UnsavedProbe/>
+</FloatingSaveProvider>
+
+it("a saved disabled stepper opens only the classic editor", () => {
+  state.realActivityPanel = true
+  state.editableQuery = {data: {activities: {"0": {...savedStepper, enabled:false}}, version:1, paletteAccent:"#2563EB"}}
+  render(parentView(activityPage()))
+  fireEvent.click(screen.getByRole("button", {name:"Edit activity"}))
+  expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("true")
+  expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("false")
+  expect(screen.getByTestId("unsaved-activity").textContent).toBe("false")
+})
+
+it("a dirty stepper session stays the sole open editor after current output is reset", async () => {
+  state.realActivityPanel = true
+  state.editableQuery = {data: {activities: {"0":savedStepper}, version:1, paletteAccent:"#2563EB"}}
+  const page = activityPage()
+  const mounted = render(parentView(page))
+  fireEvent.click(screen.getByRole("button", {name:"Edit activity"}))
+  expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("true")
+  fireEvent.change(screen.getByPlaceholderText("Title"), {target:{value:"Retained dirty stepper"}})
+  await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("true"))
+  state.editableQuery = {data: {activities:{}, version:2, paletteAccent:"#2563EB"}}
+  mounted.rerender(parentView({...page, rendering:undefined, versions:{...page.versions, rendering:2}}))
+  expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("true")
+  expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("false")
+  expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe("Retained dirty stepper")
+  expect(screen.getByTestId("unsaved-activity").textContent).toBe("true")
+  expect(state.activitySave).not.toHaveBeenCalled()
+})
+
+it("AI edit submits the captured rendering version and retains its instruction and cosmetic draft on conflict", async () => {
+  const header = document.createElement("div")
+  document.body.appendChild(header)
+  state.headerSlot = header
+  state.aiEdit.mockRejectedValueOnce(new Error("Content changed"))
+  const page = fixture()
+  const view = render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page} /></FloatingSaveProvider>)
+  try {
+    act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
+    const newer = structuredClone(page)
+    newer.versions.rendering = 2
+    newer.rendering!.sections[0].html = newer.rendering!.sections[0].html.replace("Keep me", "Newer saved text")
+    view.rerender(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={newer} /></FloatingSaveProvider>)
+    const instruction = screen.getByPlaceholderText("Ask AI to edit...") as HTMLInputElement
+    fireEvent.change(instruction, { target: { value: "Make this clearer" } })
+    fireEvent.keyDown(instruction, { key: "Enter" })
+    await waitFor(() => expect(state.aiEdit).toHaveBeenCalledOnce())
+    const sent = state.aiEdit.mock.calls[0]
+    expect(sent[5]).toContain("text-blue-600")
+    expect(sent[5]).toContain("Keep me")
+    expect(sent[6]).toBe(1)
+    expect(sent[7]).toBe(1)
+    await waitFor(() => expect(instruction.value).toBe("Make this clearer"))
+    expect(screen.getByRole("button", { name: "Save", exact: true })).toBeTruthy()
+    expect(state.save).not.toHaveBeenCalled()
+  } finally { header.remove() }
 })

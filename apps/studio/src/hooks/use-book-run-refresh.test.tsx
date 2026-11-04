@@ -54,6 +54,19 @@ function setup() {
   return { client, read, key, hook, close: () => { hook.unmount(); stop(); client.clear() } }
 }
 
+it("a late subscriber discovers committed pages without another progress event or reload", async () => {
+  const { client, close } = setup()
+  const key = ["books", "book", "pages"]
+  client.setQueryData(key, [])
+  const readPages = vi.fn(async () => [{ pageId: "pg001", hasRendering: true }])
+  const stop = new QueryObserver(client, { queryKey: key, queryFn: readPages }).subscribe(() => {})
+  try {
+    expect(client.getQueryData(key)).toEqual([])
+    await act(async () => Events.current.emit("ready", { label: "book", runStatus: "running" }))
+    await waitFor(() => expect(client.getQueryData(key)).toEqual([{ pageId: "pg001", hasRendering: true }]))
+  } finally { stop(); close() }
+})
+
 it.each(["complete", "cancelled", "error"])("refreshes aggregate data once on %s, despite retained completed steps", async (terminal) => {
   const { client, read, key, close } = setup()
   try {

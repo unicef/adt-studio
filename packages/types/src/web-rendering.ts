@@ -1,4 +1,6 @@
 import { z } from "zod"
+import { PageSectioningOutput } from "./page-sectioning.js"
+import { AuthoredSaveGuard } from "./content-authorship.js"
 
 /**
  * Max upscale for a fixed-layout page filling its viewport. Shared by the
@@ -34,6 +36,31 @@ export const WebRenderingOutput = z.object({
   sections: z.array(SectionRendering),
 })
 export type WebRenderingOutput = z.infer<typeof WebRenderingOutput>
+
+export const RenderingSave = WebRenderingOutput.extend(AuthoredSaveGuard.shape)
+export type RenderingSave = z.infer<typeof RenderingSave>
+export const AiSectionEdit = z.object({
+  ...AuthoredSaveGuard.shape,
+  renderingBaseVersion: AuthoredSaveGuard.shape.baseVersion,
+  instruction: z.string().trim().min(1),
+  currentHtml: z.string().optional(),
+})
+export type AiSectionEdit = z.infer<typeof AiSectionEdit>
+export const StoryboardSave = z.object({
+  sectioning: PageSectioningOutput.omit({ source: true }).optional(),
+  baseVersion: AuthoredSaveGuard.shape.baseVersion.optional(),
+  rendering: WebRenderingOutput.optional(),
+  renderingBaseVersion: AuthoredSaveGuard.shape.baseVersion.optional(),
+  renderingInSync: z.boolean().default(false),
+}).superRefine((value, ctx) => {
+  if (value.rendering && value.renderingBaseVersion === undefined) {
+    ctx.addIssue({ code: "custom", path: ["renderingBaseVersion"], message: "renderingBaseVersion is required for rendering saves" })
+  }
+  if (value.sectioning && value.baseVersion === undefined) {
+    ctx.addIssue({ code: "custom", path: ["baseVersion"], message: "baseVersion is required for sectioning saves" })
+  }
+})
+export type StoryboardSave = z.infer<typeof StoryboardSave>
 
 export const webRenderingLLMSchema = z.object({
   reasoning: z.string(),

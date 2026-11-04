@@ -149,14 +149,18 @@ describe("cleanupInterruptedSteps", () => {
     return path.join(root, label)
   }
 
-  it("removes a stale WASM lock directory when no live writer holds the book", () => {
+  it("retains an anonymous WASM mutex without reader ownership proof and continues other books", () => {
     const root = booksRoot()
     const bookDir = seedBook(root, "crashed", true)
     const databaseLock = path.join(bookDir, "crashed.db.lock")
     fs.mkdirSync(databaseLock)
+    const original = fs.readFileSync(path.join(bookDir, "crashed.db"))
+    seedBook(root, "healthy", true)
     expect(() => cleanupInterruptedSteps(root)).not.toThrow()
-    expect(fs.existsSync(databaseLock)).toBe(false)
-    const storage = createBookStorage("crashed", root)
+    expect(fs.existsSync(databaseLock)).toBe(true)
+    expect(fs.readFileSync(path.join(bookDir, "crashed.db"))).toEqual(original)
+    expect(() => createBookStorage("crashed", root)).toThrow("BOOK_BUSY")
+    const storage = createBookStorage("healthy", root)
     try {
       expect(storage.getStepRuns().find((run) => run.step === "tts")?.status).toBe("error")
     } finally { storage.close() }

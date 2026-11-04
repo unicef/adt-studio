@@ -1,3 +1,4 @@
+import { publicOutputMemberKey } from "./public-output-identity.js"
 import { collectSpentContentIds } from "./content-ids.js"
 import { isProtectedContent, stampManualEdits } from "./manual-edits.js"
 import { quizPageGroupKey } from "./quiz-generation.js"
@@ -19,7 +20,7 @@ import {
 export function collectSpentQuizIds(storage: Storage): Set<string> {
   const ids = new Set<string>()
   for (const id of collectSpentContentIds(storage)) {
-    const base = /^(qz[0-9]+)(?:_|$)/.exec(id)?.[1]
+    const base = /^(qz[0-9]+)(?:_|$)/.exec(publicOutputMemberKey(id))?.[1]
     if (base && parseQuizId(base) !== null) ids.add(base)
   }
   for (const row of storage.getAllNodeVersions("quiz-generation", "book")) {
