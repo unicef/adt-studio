@@ -1041,7 +1041,10 @@ by an older runtime; existing noncooperating-concurrency limits remain unchanged
 The [verified recovery work record](verification/spec-0003-history-recovery.md)
 now maps the early admission check and recovery requirements. It details byte witnesses, tuple continuity, transactional audit, stale editor
 protection and the explicitly authorized exception; schema-14 readers remain
-compatible. Implementation and full acceptance are still being verified.
+compatible. The [November 4 local acceptance record](verification/spec-0003-recovery-acceptance-2026-11-04.md)
+records the completed implementation, full-suite/platform refresh and independent
+bounded rechecks at `2202e903`, including the exact compatibility limits and open
+platform findings. Local verification does not grant human or release acceptance.
 This decision remains proposed, with human review pending.
 
 ### Alternatives Considered
