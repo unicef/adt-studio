@@ -32,7 +32,7 @@ function book() {
 type Book = ReturnType<typeof book>
 /** Deliberately simulates storage damage outside SQL's continuity protocol.
  * A normal UPDATE is separately tested and MUST NOT qualify for restoration. */
-function damage(b: Book, raw = "{broken", version = 1, node = "page-sectioning", itemId = "p1") {
+function damage(b: Book, raw: string | null = "{broken", version = 1, node = "page-sectioning", itemId = "p1") {
   b.sql(db => {
     db.exec("DROP TRIGGER history_track_update")
     db.run("UPDATE node_data SET data=? WHERE node=? AND item_id=? AND version=?", [raw, node, itemId, version])
@@ -83,6 +83,64 @@ describe("verified historical recovery", () => {
     expect(fs.readFileSync(path.join(b.bookDir, "images", "original.png"), "utf8")).toBe("original image")
     expect(inspectHistoryRecovery(b.dbPath).issues).toEqual([])
     b.sql(db => expect(db.all("SELECT * FROM history_repair_permits")).toEqual([]))
+  })
+
+  it("checkpoints mixed readable history without changing existing proof or content", () => {
+    const b = book(); b.write({ id: "witnessed" })
+    b.sql(db => {
+      db.run("INSERT INTO node_data VALUES ('page-sectioning','later',1,?)", [' { "id": "legacy" } '])
+      db.run("INSERT INTO node_data VALUES ('quiz-generation','sql-null',1,?)", [null])
+      db.run("INSERT INTO node_data VALUES ('quiz-generation','json-null',1,?)", ["null"])
+    })
+    const before = rawState(b) as unknown[][]
+    const state = inspectHistoryRecovery(b.dbPath)
+    expect(state.checkpointable).toBe(3)
+    expect(checkpointHistory(b.dbPath, { snapshot: state.snapshot, requestId: randomUUID(), confirmed: true }).count).toBe(3)
+    const after = rawState(b) as unknown[][]
+    expect(after.slice(0, 4)).toEqual(before.slice(0, 4))
+    expect(after[4]).toHaveLength(4)
+    expect(after[4][0]).toEqual(before[4][0])
+    expect(inspectHistoryRecovery(b.dbPath)).toMatchObject({ checkpointable: 0, issueCount: 0 })
+    b.sql(db => db.run("INSERT INTO node_data VALUES ('page-sectioning','unreadable',1,?)", ["{broken"]))
+    const damaged = inspectHistoryRecovery(b.dbPath)
+    const refused = rawState(b)
+    expect(() => checkpointHistory(b.dbPath, { snapshot: damaged.snapshot, requestId: randomUUID(), confirmed: true })).toThrow("HISTORY_RECOVERY_UNVERIFIED")
+    expect(rawState(b)).toEqual(refused)
+  })
+
+  it.each(["older", "absent", "dangling"].flatMap(pointer => [null, "null"].map(raw => ({ pointer, raw }))))(
+    "advances the selected quiz repair with $pointer pointer and $raw damage", ({ pointer, raw }) => {
+      const b = book(); b.write({ id: "older" }, "quiz-generation", "book"); b.write({ id: "newer" }, "quiz-generation", "book")
+      const version = pointer === "older" ? 1 : 2
+      b.sql(db => {
+        if (pointer === "absent") db.run("DELETE FROM node_current WHERE node='quiz-generation'")
+        else db.run("UPDATE node_current SET version=? WHERE node='quiz-generation'", [pointer === "older" ? 1 : 99])
+      })
+      damage(b, raw, version, "quiz-generation", "book")
+      expect(repairHistory(b.dbPath, repairRequest(b)).selectedVersions).toEqual([{ node: "quiz-generation", itemId: "book", version: 3 }])
+      const storage = createBookStorage("book", b.root)
+      try {
+        expect(storage.getLatestNodeData("quiz-generation", "book")).toEqual({ version: 3, data: { id: version === 1 ? "older" : "newer" } })
+        expect(storage.getCurrentNodeVersion("quiz-generation", "book")).toBe(3)
+      } finally { storage.close() }
+    },
+  )
+
+  it("retires a quoted page identity without checkpointing an unreadable neighbor", () => {
+    const b = book(); const pageId = "page'quoted"
+    b.sql(db => {
+      db.run("INSERT INTO node_data VALUES ('page-sectioning',?,1,?)", [pageId, '{"id":"retired"}'])
+      db.run("INSERT INTO node_data VALUES ('page-sectioning','neighbor',1,?)", ["{broken"])
+    })
+    const storage = createBookStorage("book", b.root)
+    try {
+      storage.deletePage(pageId)
+      expect(storage.readIdentityHistory!(["page-sectioning"], pageId)).toEqual([{ node: "page-sectioning", itemId: pageId, version: 1, data: { id: "retired" } }])
+    } finally { storage.close() }
+    b.sql(db => {
+      expect(db.all("SELECT item_id,data FROM node_data WHERE node='page-sectioning'")).toEqual([{ item_id: "neighbor", data: "{broken" }])
+      expect(db.all("SELECT item_id FROM history_witnesses")).toEqual([{ item_id: pageId }])
+    })
   })
 
   it("does not select a repaired retired version or change unrelated versions", () => {

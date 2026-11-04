@@ -91,8 +91,8 @@ export function insertNodeVersion(db: sqlite.Database, node: string, itemId: str
   if ((IDENTITY_HISTORY_NODES as readonly string[]).includes(node)) captureHistoryWitness(db, { node: node as HistoryTuple["node"], itemId, version }, origin)
 }
 
-export function identityTuples(db: sqlite.Database): HistoryTuple[] {
-  return db.all(`SELECT node,item_id AS itemId,version FROM node_data WHERE node IN (${nodesSql}) ORDER BY node,item_id,version`) as HistoryTuple[]
+export function identityTuples(db: sqlite.Database, itemId?: string): HistoryTuple[] {
+  return db.all(`SELECT node,item_id AS itemId,version FROM node_data WHERE node IN (${nodesSql})${itemId === undefined ? "" : " AND item_id=?"} ORDER BY node,item_id,version`, itemId === undefined ? [] : [itemId]) as HistoryTuple[]
 }
 
 /** One-time first-open checkpoint, in the tracking installation transaction.
@@ -113,7 +113,7 @@ export function captureLegacyHistory(db: sqlite.Database): void {
   }
 }
 export function checkpointBeforeRetirement(db: sqlite.Database, itemId?: string): void {
-  for (const row of identityTuples(db)) if (itemId === undefined || row.itemId === itemId) captureHistoryWitness(db, row, "checkpoint")
+  for (const row of identityTuples(db, itemId)) captureHistoryWitness(db, row, "checkpoint")
 }
 
 /** Caller has validated the source with readIdentityHistory and owns the target

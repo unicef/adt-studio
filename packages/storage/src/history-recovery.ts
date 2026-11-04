@@ -6,6 +6,7 @@ import type sqlite from "node-sqlite3-wasm"
 import { HistoryCheckpointRequest, HistoryRepairRequest, HistoryRecoveryReceipt, type HistoryRecoveryStatus, type HistoryIssue, type HistoryTuple } from "@adt/types"
 import { openBookDb } from "./db.js"
 import { withBookWriter } from "./book-writer.js"
+import { readCurrentNodeRow } from "./node-current.js"
 import { captureHistoryWitness, decodeWitness, historyRows, decodeHistoryBytes, historyBookId, historyHash, historySlot, identityTuples, insertNodeVersion, readHistoryBytes, readWitness, tupleKey, verifyWitness } from "./history-evidence.js"
 
 export class HistoryRecoveryError extends Error {
@@ -126,7 +127,9 @@ export function checkpointHistory(dbPath: string, input: HistoryCheckpointReques
     // extraction destination. Recovery/checkpoint are separate explicit acts.
     if (state.issueCount) throw new HistoryRecoveryError("HISTORY_RECOVERY_UNVERIFIED")
     if (!state.checkpointable) throw new HistoryRecoveryError("HISTORY_RECOVERY_NOT_NEEDED")
-    for (const row of identityTuples(db)) captureHistoryWitness(db, row, "checkpoint")
+    // Inspection and capture share this transaction; existing proof was already
+    // verified, so only the listed unwitnessed records need capture.
+    for (const row of state.checkpointRecords) captureHistoryWitness(db, row, "checkpoint")
     return { requestId: body.requestId, operation: "checkpoint", count: state.checkpointable, revision: state.revision, replayed: false, selectedVersions: [] }
   }))
 }
@@ -148,8 +151,7 @@ export function repairHistory(dbPath: string, input: HistoryRepairRequest): Hist
       const slot = historySlot(db, row)!
       const witness = readWitness(db, row, slot.incarnation)!
       const damaged = readHistoryBytes(db, row)!
-      const current = db.get(`SELECT nd.version FROM node_data nd LEFT JOIN node_current nc ON nc.node=nd.node AND nc.item_id=nd.item_id
-        WHERE nd.node=? AND nd.item_id=? ORDER BY (nd.version=nc.version) DESC,nd.version DESC LIMIT 1`, [row.node, row.itemId]) as { version: number }
+      const current = readCurrentNodeRow(db, row.node, row.itemId, { includeInvalidated: true })!
       db.run("INSERT INTO history_recovery_audit VALUES (?,?,?,?,?)", [body.requestId, row.node, row.itemId, row.version, JSON.stringify({ tuple, damaged, witness, snapshot: body.snapshot, recoveredAt: new Date().toISOString() })])
       db.run("INSERT INTO history_repair_permits VALUES (?,?,?,?,?,?,?,?)", [row.node, row.itemId, row.version, slot.incarnation, damaged.storageType, damaged.hex, witness.bytes.storageType, witness.bytes.hex])
       // The sole historical-update exception: exact verified original bytes,
