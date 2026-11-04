@@ -1,5 +1,7 @@
 # SPEC-0003 — additional dual review and correction, 2026-11-04
 
+Subsequent bounded follow-up: [recovery simplifications 1 and 2](spec-0003-recovery-simplifications-2026-11-04.md), runtime `6fb147d51438c920d0afc568d14c3ee859295e79`. The prior whole-contract assessment and exact qualifications below remain unchanged; the follow-up records its own affected tests and independent recheck.
+
 **Local corrections and verification are complete within the amended B1 contract; ready for final human review with the qualifications below.** Both additional whole-contract reviews and both bounded rechecks are final. All 26 original mappings and 18 revised criteria pass the exercised authorized behavior. This is not unqualified platform or release acceptance.
 
 The owner requested one additional independent Codex and Claude whole-contract review after explicitly selecting automatic first-open capture of readable legacy history. Both reviewed `7b9e0d2981b9237ba98330c18ceac49a19a2eec8` (runtime `2202e903b81b3644ec47282d04e3f005b0864f33`) against prerequisite `4b9e40cc185cdbceb3ef248248e440c08f25fa82`. Neither review changed source. Their findings superseded the earlier all-pass claim on that candidate until corrected; their original reports remain intact.
