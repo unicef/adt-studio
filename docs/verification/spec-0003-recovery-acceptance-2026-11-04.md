@@ -1,5 +1,7 @@
 # SPEC-0003 — local recovery final disposition, 2026-11-04
 
+> Historical disposition at runtime `2202e903`. The [additional dual review and correction](spec-0003-final-dual-review-2026-11-04.md) supersedes this readiness conclusion at runtime `758af4d1613317dedde9bc785dfb0ed9bff2cbff`. Its complete 26/18 matrix, new findings, both bounded rechecks and exact-head verification are the current local acceptance record. Evidence below retains its original head and scope.
+
 **Local implementation and verification are complete within the amended B1
 contract; ready for final human review with the qualifications below.** The final
 tested runtime is `2202e903b81b3644ec47282d04e3f005b0864f33`, based on

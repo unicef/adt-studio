@@ -1,5 +1,7 @@
 # SPEC-0003 — verified-recovery independent review remediation
 
+The [final additional dual-review disposition](spec-0003-final-dual-review-2026-11-04.md) is the current local acceptance record at tested runtime `758af4d1613317dedde9bc785dfb0ed9bff2cbff`. Both reviewers rechecked the final corrections; no new concrete defect or owner policy question remains. It records stylesheet completeness, pre-reset unreadable admission, fixed-tree null churn, global-gap guidance and future migration discipline, preserving all 26 original/all 18 revised mappings and every qualification below. Older readiness statements remain historical.
+
 Local work only; no GitHub changes. Reviewed candidate:
 `bdbc9603823ef506198cec340019cebd85f81bde`, prerequisite
 `4b9e40cc185cdbceb3ef248248e440c08f25fa82`. Both independent whole-contract
