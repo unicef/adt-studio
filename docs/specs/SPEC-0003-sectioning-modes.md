@@ -179,15 +179,29 @@ ID-allocating work before reset/provider calls while retaining usable output.
 Unexpected missing rows are not repaired by guessing. Safely witnessed intentional
 retirements still reserve their identities through the existing factories.
 Healthy unrelated Storyboard work and genuine no-op Sectioning retain access.
-Checkpointing readable legacy history is explicit and cannot prove an already
-corrupt record. No new freshness system, lock or schema-version bump is introduced.
+On 2026-11-04 the owner delegated the outstanding older-build compatibility
+decision; the selected amendment automatically checkpoints readable, previously
+untracked identity history once when this runtime first opens the book. Tracking
+installation, exact-byte witnesses and the completion marker commit together.
+Capture does not change entities, current selections, assets, freshness, or
+regeneration consent. Malformed rows remain unverified without preventing capture
+of readable siblings. Existing proof is never replaced; tracked changes and later
+older-writer records still require explicit checkpointing. Neither automatic nor
+explicit capture can prove already corrupt or missing history. Recovery and
+regeneration remain explicit. No new freshness system, lock or schema-version
+bump is introduced.
 
 Integrity-object loss must remain detectable across reopen: installing missing
 tables/triggers is not evidence of uninterrupted tracking. Refuse recovery,
 checkpoint and identity allocation after such loss; keep ordinary usable reads
-available. After a healthy explicit checkpoint, retirement keeps its verified
-reservations. The older-build unwitnessed deletion case remains a product decision
-in the local review ledger; no new compatibility exclusion is assumed.
+available. After this initial capture or a healthy explicit checkpoint, sequential
+older-build deletion/clear keeps verified identity reservations and must not be
+refused after that build has already deleted its image files. This is identity
+continuity, not undo of an intentional destructive action or backup of its media.
+It cannot protect rows created and deleted wholly by an older runtime, nor
+already lost evidence. Noncooperating concurrent old runtimes remain outside the
+existing shared-admission guarantee. The implementation and bounded recheck of
+this amendment are recorded in the local review ledger.
 Part import validates source continuity before target mutation and preserves
 retired source identities in the existing reservation history. Inspection uses
 bounded, incremental reads; scoped allocation must not load unrelated payloads.

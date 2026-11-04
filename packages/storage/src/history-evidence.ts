@@ -61,7 +61,7 @@ export function readWitness(db: sqlite.Database, row: HistoryTuple, incarnation:
 }
 
 /** Caller owns the transaction. Capture never overwrites an existing witness
- * or manufactures evidence from malformed bytes. GET never calls this. */
+ * or manufactures evidence from malformed bytes. */
 export function captureHistoryWitness(db: sqlite.Database, row: HistoryTuple, origin: HistoryWitness["origin"]): void {
   assertHistoryEvidence(db)
   const bytes = readHistoryBytes(db, row)
@@ -93,6 +93,24 @@ export function insertNodeVersion(db: sqlite.Database, node: string, itemId: str
 
 export function identityTuples(db: sqlite.Database): HistoryTuple[] {
   return db.all(`SELECT node,item_id AS itemId,version FROM node_data WHERE node IN (${nodesSql}) ORDER BY node,item_id,version`) as HistoryTuple[]
+}
+
+/** One-time first-open checkpoint, in the tracking installation transaction.
+ * Only previously untracked rows qualify. Missing slots with existing proof,
+ * changed incarnations and unreadable bytes must never acquire fresh authority
+ * merely because the book was opened. Later old-writer rows need explicit
+ * checkpointing; reopening is not a rolling backup or an automatic repair. */
+export function captureLegacyHistory(db: sqlite.Database): void {
+  for (const row of historyRows<HistoryTuple>(db, `
+    SELECT n.node,n.item_id AS itemId,n.version FROM node_data n
+    WHERE n.node IN (${nodesSql})
+      AND NOT EXISTS (SELECT 1 FROM history_slots s WHERE s.node=n.node AND s.item_id=n.item_id AND s.version=n.version)
+      AND NOT EXISTS (SELECT 1 FROM history_witnesses w WHERE w.node=n.node AND w.item_id=n.item_id AND w.version=n.version)
+    ORDER BY n.node,n.item_id,n.version`)) {
+    const bytes = readHistoryBytes(db, row)!
+    try { decodeHistoryBytes(bytes) } catch { continue }
+    captureHistoryWitness(db, row, "checkpoint")
+  }
 }
 export function checkpointBeforeRetirement(db: sqlite.Database, itemId?: string): void {
   for (const row of identityTuples(db)) if (itemId === undefined || row.itemId === itemId) captureHistoryWitness(db, row, "checkpoint")

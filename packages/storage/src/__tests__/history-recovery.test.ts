@@ -51,7 +51,7 @@ function rawState(b: Book) {
 }
 
 describe("verified historical recovery", () => {
-  it("does not assign identity or checkpoint on inspection, including older healthy books", () => {
+  it("does not checkpoint later older-writer rows on inspection after initial capture", () => {
     const b = book()
     b.sql(db => db.run("INSERT INTO node_data VALUES ('page-sectioning','p1',1,?)", [JSON.stringify({ id: "legacy" })]))
     const before = rawState(b)

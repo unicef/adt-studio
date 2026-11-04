@@ -1,5 +1,17 @@
 # SPEC-0003 — local recovery acceptance checkpoint, 2026-11-04
 
+**F-2 follow-up in progress:** after the checkpoint below, the owner replied
+"use your best judgement here" to the two-option compatibility question. Root
+selected automatic one-time capture of readable, previously untracked legacy
+history. The spec/ADR now record that amendment; repair, regeneration and later
+checkpoints remain explicit. Four before regressions failed; six new and 25
+adjacent tests now pass. Actual retained older-runtime deletion/clear reproduces
+the original failure in eight cases and passes all eight after the correction,
+including image-file disposition and retained audio/identity reservations.
+Evidence: `.local-docs/spec0003-recovery-f2-20261104/`. Full-suite refresh and
+bounded independent recheck are pending; the earlier runtime results below are
+not relabeled as tests of the new source.
+
 **Not an unqualified completion or final-acceptance recommendation.** The tested
 runtime is `00b4a5c2705f2be1d2c7a599e90fe3192ff0ffe7`, based on
 `4b9e40cc185cdbceb3ef248248e440c08f25fa82`. The main corrections and bounded

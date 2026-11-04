@@ -83,20 +83,25 @@ function schemaMatches(db: sqlite.Database, required: Map<string, string>): bool
 /** Bootstrap only a genuinely untracked book. Never recreate lost objects and
  * erase evidence of a tracking gap. The schema-version row survives loss of all
  * recovery tables; older runtimes use named columns and retain this marker. */
-export function initHistoryEvidence(db: sqlite.Database): void {
+export function initHistoryEvidence(db: sqlite.Database, captureLegacy: (db: sqlite.Database) => void): void {
   const columns = new Set((db.all("PRAGMA table_info(schema_version)") as { name: string }[]).map(row => row.name))
   if (!columns.has("history_evidence_version")) db.exec("ALTER TABLE schema_version ADD COLUMN history_evidence_version INTEGER")
   if (!columns.has("history_evidence_gap")) db.exec("ALTER TABLE schema_version ADD COLUMN history_evidence_gap INTEGER NOT NULL DEFAULT 0")
-  const marker = db.get("SELECT history_evidence_version AS version,history_evidence_gap AS gap FROM schema_version WHERE id=1") as { version: number | null; gap: number }
+  if (!columns.has("history_legacy_capture")) db.exec("ALTER TABLE schema_version ADD COLUMN history_legacy_capture INTEGER NOT NULL DEFAULT 0")
+  const marker = db.get("SELECT history_evidence_version AS version,history_evidence_gap AS gap,history_legacy_capture AS captured FROM schema_version WHERE id=1") as { version: number | null; gap: number; captured: number }
   if (marker.gap) return
   const any = db.get("SELECT 1 FROM sqlite_master WHERE name LIKE 'history_%' LIMIT 1")
   const valid = marker.version === 1 ? schemaMatches(db, expected) : !any || schemaMatches(db, original)
   if (!valid) { db.run("UPDATE schema_version SET history_evidence_gap=1 WHERE id=1"); return }
-  if (marker.version === 1) return
+  if (marker.version === 1 && marker.captured === 1) return
   db.exec("BEGIN IMMEDIATE")
   try {
     db.exec(HISTORY_EVIDENCE_SQL)
     db.run("UPDATE schema_version SET history_evidence_version=1 WHERE id=1")
+    // The initial readable legacy checkpoint and its completion marker commit
+    // with tracking installation. A failed capture cannot leave partial proof.
+    if (marker.captured !== 1) captureLegacy(db)
+    db.run("UPDATE schema_version SET history_legacy_capture=1 WHERE id=1")
     db.exec("COMMIT")
   } catch (error) { db.exec("ROLLBACK"); throw error }
 }

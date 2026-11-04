@@ -5,6 +5,7 @@ import { SCHEMA_VERSION } from "@adt/types"
 import { BookBusyError, ownsBookWriter, withBookWriter } from "./book-writer.js"
 
 import { initHistoryEvidence } from "./history-schema.js"
+import { captureLegacyHistory } from "./history-evidence.js"
 import { openCoordinatedDatabase } from "./database-admission.js"
 
 const SCHEMA_SQL = `
@@ -128,7 +129,7 @@ function initSchema(db: sqlite.Database): void {
 
   if (tables.length === 0) {
     upsertSchemaVersion(db, SCHEMA_VERSION)
-    initHistoryEvidence(db)
+    initHistoryEvidence(db, captureLegacyHistory)
     return
   }
 
@@ -138,7 +139,7 @@ function initSchema(db: sqlite.Database): void {
   const existing = rows[0]?.version ?? 0
 
   if (existing === SCHEMA_VERSION) {
-    initHistoryEvidence(db)
+    initHistoryEvidence(db, captureLegacyHistory)
     cleanupDeprecatedSchema(db)
     return
   }
@@ -202,7 +203,7 @@ function initSchema(db: sqlite.Database): void {
   if (version === SCHEMA_VERSION) {
     cleanupDeprecatedSchema(db)
     upsertSchemaVersion(db, SCHEMA_VERSION)
-    initHistoryEvidence(db)
+    initHistoryEvidence(db, captureLegacyHistory)
     return
   }
 

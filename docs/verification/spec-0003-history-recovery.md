@@ -6,6 +6,15 @@ approval remains pending. The owner endorsed pursuing verified recovery after
 the round-four findings; the owner subsequently authorized the narrow exact-byte restoration exception.
 It does not authorize arbitrary historical edits or specification approval.
 
+**2026-11-04 amendment:** the owner delegated the F-2 compatibility decision.
+Readable, previously untracked identity history is now captured once on first
+open, atomically with tracking installation. This supersedes this historical
+record's explicit-only/GET-does-not-capture wording for that initial migration.
+Existing proof and tracked changes are never silently replaced; subsequent
+checkpoints, repair and regeneration retain their explicit consent. See the
+[acceptance record](spec-0003-recovery-acceptance-2026-11-04.md) for current evidence
+and the exact older-writer limitations.
+
 ## Contract and requirement map before editing runtime
 
 The [round-four matrix](spec-0003-round4-remediation.md) retains all original

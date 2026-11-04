@@ -81,7 +81,7 @@ it("does not apply an A response or recovery evidence to B after navigation", as
   expect(repair().disabled).toBe(true)
 })
 
-it("offers a healthy legacy checkpoint explicitly, never recovery for unverified history", async () => {
+it("offers a later readable-history checkpoint explicitly, never recovery for unverified history", async () => {
   mocks.inspect.mockResolvedValue({ ...state(), issues: [], issueCount: 0, checkpointable: 3 })
   mocks.checkpoint.mockResolvedValue({ operation: "checkpoint", count: 3, requestId: "checkpoint" })
   mount(); await inspect(); fireEvent.click(screen.getByRole("checkbox"))

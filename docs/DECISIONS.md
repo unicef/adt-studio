@@ -1027,9 +1027,17 @@ recreated as proof of uninterrupted history; a durable schema-14 marker records
 detectable continuity loss. Part merge validates source proof before mutation
 and carries retired identities as non-current reservations with source provenance.
 Exact witness payloads are compressed with the existing Node runtime; scoped SQL
-and incremental snapshot hashing bound inspection overhead. The sequential
-older-build deletion case remains an explicit pending contract decision in the
-local review ledger, not an assumed compatibility deferral.
+and incremental snapshot hashing bound inspection overhead. On 2026-11-04 the
+owner delegated the sequential older-build compatibility decision. The selected
+amendment captures readable, previously untracked identity rows once on first
+open, atomically with tracking installation and a durable completion marker.
+It changes no content, current selection, assets or freshness. Malformed rows
+remain unverified; existing proof and tracked changed incarnations are never
+automatically blessed. Later older-writer records still need explicit checkpoints,
+and repair/regeneration remain explicit. Captured identity reservations survive
+sequential old delete/clear without a SQL refusal after file deletion. This does
+not undo intentional asset removal or recover records created and removed wholly
+by an older runtime; existing noncooperating-concurrency limits remain unchanged.
 The [verified recovery work record](verification/spec-0003-history-recovery.md)
 now maps the early admission check and recovery requirements. It details byte witnesses, tuple continuity, transactional audit, stale editor
 protection and the explicitly authorized exception; schema-14 readers remain
