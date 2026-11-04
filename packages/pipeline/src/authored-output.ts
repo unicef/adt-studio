@@ -1,8 +1,9 @@
 import type { Storage } from "@adt/storage"
-import { STAGE_ORDER, PIPELINE, getStageDependents, EDITABLE_ACTIVITY_NODE, type AuthoredReplacement, type StageName, type OutputRunScope } from "@adt/types"
+import { STAGE_ORDER, PIPELINE, getStageDependents, EDITABLE_ACTIVITY_NODE, PageSectioningOutput, type AuthoredReplacement, type StageName, type OutputRunScope } from "@adt/types"
 import { isProtectedContent } from "./manual-edits.js"
 import { withSourceGenerationTracking } from "./source-generation-state.js"
 import { collectSpentContentIds } from "./content-ids.js"
+import { SectioningSafetyError } from "./sectioning-lifecycle.js"
 export class AuthoredReplacementError extends Error {
   readonly code: "VERSION_CONFLICT" | "REPLACEMENT_CONFIRMATION_INVALID"
   constructor(readonly status: 400 | 409, message: string, readonly currentVersion?: number) {
@@ -100,6 +101,11 @@ export function assertSectioningIdentityHistory(storage: Storage, options: {
   const stages = STAGE_ORDER.slice(STAGE_ORDER.indexOf(options.fromStage as StageName), STAGE_ORDER.indexOf(options.toStage as StageName) + 1)
   if (!stages.includes("sectioning") || options.outputScope?.selection?.identities || !selectedPages.length) return
   collectSpentContentIds(storage)
+  // Readable JSON can still be unusable Sectioning. Refuse selected existing
+  // trees before a separately committed reset, at admission and execution.
+  const unreadable = selectedPages.filter(({ pageId }) => storage.getSelectedNodeVersion("page-sectioning", pageId) !== null &&
+    !PageSectioningOutput.safeParse(storage.getLatestNodeData("page-sectioning", pageId)?.data).success).map(({ pageId }) => pageId)
+  if (unreadable.length) throw new SectioningSafetyError("SECTIONING_INPUT_UNREADABLE", `${unreadable.slice(0, 20).join(", ")}; total=${unreadable.length}`)
 }
 
 /** Reset is a separately confirmed, database-only transaction. It intentionally
@@ -113,7 +119,7 @@ export function resetSectioningStoryboard(storage: Storage, options: {
   withSourceGenerationTracking(storage, () => {
     assertSectioningInputConsent(options, sectioningInputSignature)
     assertAuthoredReplacement(storage, options)
-    collectSpentContentIds(storage)
+    assertSectioningIdentityHistory(storage, options, records.map(record => ({ pageId: record.itemId })))
     for (const record of records) {
       for (const node of ["web-rendering", "fixed-layout-sectioning", EDITABLE_ACTIVITY_NODE]) {
         if (storage.getSelectedNodeVersion(node, record.itemId) !== null) storage.putNodeData(node, record.itemId, null)

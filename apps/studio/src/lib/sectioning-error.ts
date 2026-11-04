@@ -13,7 +13,9 @@ export function sectioningErrorMessage(error?: string, code?: string): string | 
     case "HISTORY_RECOVERY_REQUEST_CONFLICT": return i18n._(msg`This recovery request was already used with different details. Inspect the book again before making a new request.`)
     case "HISTORY_RECOVERY_NOT_NEEDED": return i18n._(msg`There is no readable history that needs a recovery checkpoint.`)
     case "HISTORY_RECOVERY_REQUEST_INVALID": return i18n._(msg`The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions.`)
-    case "HISTORY_REPAIR_REQUIRED": return i18n._(msg`Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content.`)
+    case "HISTORY_REPAIR_REQUIRED":
+      if (error?.includes("history-evidence/book@0")) return i18n._(msg`History tracking is incomplete. Existing content is retained, but edits and generation that need verified history are unavailable. Restore a verified book backup; recovery cannot reconstruct missing tracking evidence.`)
+      return i18n._(msg`Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content.`)
     case "STORYBOARD_REQUEST_INVALID": return i18n._(msg`The edit request is invalid. Refresh the saved content and try again.`)
     case "STORYBOARD_PAGE_OUTSIDE_WINDOW": {
       const pages = error?.match(/STORYBOARD_PAGE_OUTSIDE_WINDOW:\s*([^;]*)/)?.[1]?.trim() ?? ""

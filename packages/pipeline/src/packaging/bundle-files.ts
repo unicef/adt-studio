@@ -107,7 +107,7 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
         if (name === "video" && attrs.poster) relativeMember(attrs.poster, from)
         if (name === "object" && attrs.data) relativeMember(attrs.data, from)
         if (["image", "use"].includes(name) && (attrs.href || attrs["xlink:href"])) relativeMember(attrs.href ?? attrs["xlink:href"], from)
-        if (name === "link" && attrs.rel?.split(/\s+/).includes("stylesheet") && attrs.href) includeStylesheet(attrs.href, from)
+      if (name === "link" && attrs.rel?.toLowerCase().split(/\s+/).includes("stylesheet") && attrs.href) includeStylesheet(attrs.href, from)
         if (attrs.style) includeCss(parseCssSource(attrs.style), from, attrs.style)
         if (attrs.srcset) for (const url of srcsetUrls(attrs.srcset)) relativeMember(url, from)
       }, ontext(text) { if (style !== undefined) style += text }, onclosetag(name) {

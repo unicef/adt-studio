@@ -24,6 +24,22 @@ beforeEach(() => {
 })
 afterEach(() => { storage.close(); fs.rmSync(root, { recursive: true, force: true }) })
 
+it("direct reset refuses an unreadable selected tree but retains access beside an unselected unreadable neighbor", () => {
+  const valid = storage.getLatestNodeData("page-sectioning", "p2")!.data
+  storage.putNodeData("page-sectioning", "p2", { sections: "invalid" })
+  const reset = () => resetSectioningStoryboard(storage, { fromStage: "sectioning", toStage: "sectioning", replaceManual: true,
+    protectedReplacements: protectedAuthoredRecords(storage, "receipt").filter(record => record.itemId === "p2") }, "receipt")
+  const before = storage.getAllNodeVersions("web-rendering", "p2")
+  expect(reset).toThrow("SECTIONING_INPUT_UNREADABLE: p2; total=1")
+  expect(storage.getAllNodeVersions("web-rendering", "p2")).toEqual(before)
+  storage.putNodeData("page-sectioning", "p2", valid)
+  storage.putNodeData("page-sectioning", "p7", { sections: "invalid" })
+  const neighbor = storage.getAllNodeVersions("web-rendering", "p7")
+  reset()
+  expect(storage.getLatestNodeData("web-rendering", "p2")?.data).toBeNull()
+  expect(storage.getAllNodeVersions("web-rendering", "p7")).toEqual(neighbor)
+})
+
 it("does not overwrite an image-bearing page with blank positioned output; runnable and truly blank pages still publish", async () => {
   const before = storage.getAllNodeVersions("web-rendering", "p2")
   const unavailable: string[] = [], published: string[] = []

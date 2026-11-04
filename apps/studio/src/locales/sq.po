@@ -5563,6 +5563,9 @@ msgstr "História e Sociedade - Vol. 1"
 msgid "History recovery"
 msgstr "Rikuperimi i historikut"
 
+msgid "History tracking is incomplete. Existing content is retained, but edits and generation that need verified history are unavailable. Restore a verified book backup; recovery cannot reconstruct missing tracking evidence."
+msgstr "Gjurmimi i historikut është i paplotë. Përmbajtja ekzistuese ruhet, por redaktimet dhe gjenerimi që kërkojnë historik të verifikuar nuk janë të disponueshme. Riktheni një kopje rezervë të verifikuar të librit; rikuperimi nuk mund të rindërtojë provat e munguara të gjurmimit."
+
 msgid "Hit"
 msgstr "Goditje"
 

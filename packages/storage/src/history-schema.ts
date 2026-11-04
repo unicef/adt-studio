@@ -11,7 +11,11 @@ const immutableKeys = {
 }
 
 /** Additive schema-14 evidence. Built-in SQL only: older applications must also
- * record tuple reuse. Empty tables do not make an unprocessed book processed. */
+ * record tuple reuse. Empty tables do not make an unprocessed book processed.
+ * This SQL and its identity-node list define persisted evidence version 1.
+ * Changing either requires a versioned migration that verifies the old format
+ * before changing it, with retained-v1 fixtures and missing-object controls.
+ * Recreating missing objects must never be treated as an upgrade or proof. */
 export const HISTORY_EVIDENCE_SQL = `
 CREATE TABLE IF NOT EXISTS history_identity (id INTEGER PRIMARY KEY CHECK(id=1), book_id TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS history_slots (

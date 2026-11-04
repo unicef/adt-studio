@@ -5561,6 +5561,9 @@ msgstr "História e Sociedade - Vol. 1"
 msgid "History recovery"
 msgstr "Recuperação do histórico"
 
+msgid "History tracking is incomplete. Existing content is retained, but edits and generation that need verified history are unavailable. Restore a verified book backup; recovery cannot reconstruct missing tracking evidence."
+msgstr "O registro do histórico está incompleto. O conteúdo existente é preservado, mas as edições e a geração que precisam de um histórico verificado não estão disponíveis. Restaure uma cópia de segurança verificada do livro; a recuperação não pode reconstruir as evidências de rastreamento ausentes."
+
 msgid "Hit"
 msgstr "Acerto"
 

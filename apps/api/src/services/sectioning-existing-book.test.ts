@@ -453,6 +453,25 @@ it.each(["page-sectioning", "web-rendering", "fixed-layout-sectioning"])("reject
   try { expect(after.getStepRuns()).toEqual(before) } finally { after.close() }
 })
 
+it("refuses a selected schema-unreadable replacement before resetting any output", async () => {
+  const s = store()
+  s.putNodeData("page-sectioning", "p2", { source: "manual", sections: "invalid" })
+  const steps = s.getStepRuns()
+  s.close()
+  const nodes = ["page-sectioning", "web-rendering", "fixed-layout-sectioning", "editable-activities"]
+  const snapshot = () => ["p2", "p7"].map(id => nodes.map(node => history(node, id)))
+  const before = snapshot()
+  const response = await send("stages/run", { fromStage: "sectioning", toStage: "storyboard", pageErrorPolicy: "stop", ...await replacement(["p2"]) })
+  await vi.waitFor(() => expect(service.getStatus(label).active).toBeNull(), { timeout: 10_000 })
+  expect(response.status).toBe(409)
+  expect(await response.json()).toMatchObject({ code: "SECTIONING_INPUT_UNREADABLE" })
+  expect(snapshot()).toEqual(before)
+  const after = store()
+  try { expect(after.getStepRuns()).toEqual(steps) } finally { after.close() }
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(renderPage).not.toHaveBeenCalled()
+})
+
 it.each([null, "null", "{broken json", JSON.stringify({ sections: "invalid" })])("ordinary Sectioning retains unreadable current records and Storyboard skips only that page: %s", async (raw) => {
   const db = openBookDb(path.join(dir, `${label}.db`))
   db.run("UPDATE node_data SET data = ? WHERE node = 'page-sectioning' AND item_id = 'p2'", [raw])

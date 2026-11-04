@@ -56,6 +56,29 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
 describe("Storyboard layout publication", () => {
+  it.each(["stage", "targeted"])("does not append fixed-tree deactivations during repeated reflowable %s rendering", async mode => {
+    await run()
+    fs.writeFileSync(configPath, config)
+    await run()
+    const snapshot = () => {
+      const s = store()
+      try { return ["p2", "p7"].map(id => ({ selected: s.getSelectedNodeVersion("fixed-layout-sectioning", id), versions: s.getAllNodeVersions("fixed-layout-sectioning", id) })) }
+      finally { s.close() }
+    }
+    const deactivated = snapshot()
+    expect(deactivated.map(row => row.versions.map(version => version.data === null))).toEqual([[false, true], [false, true]])
+    for (let i = 0; i < 3; i++) {
+      if (mode === "stage") await run()
+      else await reRenderPages([{ ...options(), label, pageId: "p2" }])
+      expect(snapshot()).toEqual(deactivated)
+    }
+    fs.writeFileSync(configPath, config + fixedConfig)
+    await run()
+    fs.writeFileSync(configPath, config)
+    await run()
+    expect(snapshot().map(row => row.versions.map(version => version.data === null))).toEqual([[false, true, false, true], [false, true, false, true]])
+  })
+
   it("recognizes a legacy fixed pair, permits same-layout targeting and refuses a mixed-layout target", async () => {
     await run()
     const s = store()

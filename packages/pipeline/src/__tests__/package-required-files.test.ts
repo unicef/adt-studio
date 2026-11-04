@@ -57,6 +57,16 @@ it("validates shared runtime files once per read and notices their deletion on t
   }
   fs.writeFileSync(page, '<svg><symbol id="icon"/><use href="#icon"/></svg><input type="text" src="unused.png">')
   expect(packageFilesAvailable(root)).toBe(true)
+  for (const rel of ["StyleSheet", "STYLESHEET", "alternate STYLESHEET"]) {
+    const css = path.join(root, "assets/essential.css")
+    fs.writeFileSync(page, `<link rel="${rel}" href="assets/essential.css">`)
+    expect(packageFilesAvailable(root), rel).toBe(false)
+    fs.writeFileSync(css, ".page { color: red }")
+    expect(packageFilesAvailable(root), rel).toBe(true)
+    expect(packageFilesAvailable(root), rel).toBe(true)
+    fs.unlinkSync(css)
+    expect(packageFilesAvailable(root), rel).toBe(false)
+  }
   for (const srcset of [
     "assets/picture.png 1x,assets/second.png 2x",
     "assets/picture.png 1x, assets/second.png 2x",

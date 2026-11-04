@@ -25,7 +25,7 @@ import { buildBookOutlineConfig, readBookOutline } from "./book-outline.js"
 export class SectioningSafetyError extends Error {
   readonly status = 409
 
-  constructor(readonly code: "PACKAGE_RECOVERY_UNSAFE" | "STORYBOARD_PAGE_OUTSIDE_WINDOW" | "PACKAGE_INPUTS_CHANGED" | "PACKAGE_FILES_INCOMPLETE" | "SECTIONING_WINDOW_INVALID" | "SECTIONING_REGENERATION_BLOCKED" | "STORYBOARD_INPUT_CHANGED" | "STORYBOARD_PUBLICATION_INCOMPLETE" | "STORYBOARD_PAGE_INPUT_MISSING", message: string) {
+  constructor(readonly code: "PACKAGE_RECOVERY_UNSAFE" | "STORYBOARD_PAGE_OUTSIDE_WINDOW" | "PACKAGE_INPUTS_CHANGED" | "PACKAGE_FILES_INCOMPLETE" | "SECTIONING_WINDOW_INVALID" | "SECTIONING_REGENERATION_BLOCKED" | "SECTIONING_INPUT_UNREADABLE" | "STORYBOARD_INPUT_CHANGED" | "STORYBOARD_PUBLICATION_INCOMPLETE" | "STORYBOARD_PAGE_INPUT_MISSING", message: string) {
     super(message.startsWith(`${code}:`) ? message : `${code}: ${message}`)
     this.name = "SectioningSafetyError"
   }
@@ -214,7 +214,7 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
         const priorSource = captureStoryboardSource(storage, pageId)
         const writes = pending.get(pageId)
         if (!writes?.has("web-rendering")) throw new SectioningSafetyError("STORYBOARD_PUBLICATION_INCOMPLETE", "Storyboard did not produce every requested page. Previous output is kept.")
-        if (!writes.has(FIXED_LAYOUT_SECTIONING_NODE) && storage.getSelectedNodeVersion(FIXED_LAYOUT_SECTIONING_NODE, pageId) !== null) {
+        if (!writes.has(FIXED_LAYOUT_SECTIONING_NODE) && storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)?.data != null) {
           storage.putNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId, null)
         }
         for (const [node, data] of writes) storage.putNodeData(node, pageId, data)

@@ -16,6 +16,16 @@ it("retains unrecognized provider diagnostics", () => {
   expect(sectioningErrorMessage("Provider returned diagnostic ABC")).toBe("Provider returned diagnostic ABC")
 })
 
+it("distinguishes lost tracking evidence from a recoverable damaged history row", () => {
+  const error = "HISTORY_REPAIR_REQUIRED: history-evidence/book@0"
+  const message = sectioningErrorMessage(error)
+  expect(message).toBe(sectioningErrorMessage(error, "HISTORY_REPAIR_REQUIRED"))
+  expect(message).toContain("verified book backup")
+  expect(message).toContain("cannot reconstruct")
+  expect(message).not.toContain("history-evidence")
+  expect(sectioningErrorMessage("HISTORY_REPAIR_REQUIRED: page-sectioning/p2@1")).not.toBe(message)
+})
+
 it.each(["PIPELINE_PAGES_FAILED", "SECTIONING_INPUT_UNREADABLE", "STORYBOARD_PAGE_OUTSIDE_WINDOW"])("keeps bounded page IDs and full counts for %s in HTTP/SSE messages", code => {
   const message = `${code}: p2, p7; total=27; causes=INTERNAL_DETAIL`
   const translated = sectioningErrorMessage(message)
