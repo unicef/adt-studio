@@ -8,7 +8,7 @@ issues: ["#708"]
 prs: ["#884"]
 adr: "docs/DECISIONS.md#025-sectioning-generation-preferences-scoped-reset-and-per-page-publication"
 created: 2026-09-22
-updated: 2026-11-03
+updated: 2026-11-05
 ---
 
 ## Authorized product amendment (review pending)
@@ -23,7 +23,7 @@ remains `in-review`; no human approval or release verification is inferred.
 accepting multiple generated sections. Merged #692 fixes that generation/cache
 boundary. #708 broadened it into a persisted-content restriction, preventing
 intentional editing and usable older books. The proposed #708 amendment is recorded
-here and in the [verbatim original-AC mapping](../verification/spec-0003-oct12-audit.md):
+here and in the [original acceptance-criteria mapping](#original-acceptance-criteria-mapping):
 replace its blocking criteria with generation validation, informational preference
 tracking, missing-only ordinary Sectioning, explicit reset/replacement and
 incremental Storyboard publication. The source issue itself is unchanged.
@@ -35,30 +35,15 @@ these newer product decisions and the owner's sequencing override.
 
 ## Prerequisites and policy refinement
 
-The November 2 integration first reconciled onto develop `f2e59a0d`, which contains merged
-SPEC-0001 #879 (squash `c153ba7d`, reviewed head `811d1475`) and approved
-SPEC-0002 #880 (final head `89a65f06`). The final refresh also includes develop
-`4b9e40cc`'s documentation-only SDD threshold update; runtime behavior is unchanged.
-SPEC-0003 previously inherited the obsolete
-SPEC-0002 boundary `09f0d1c7`; only its final increment is reconciled onto develop.
-SPEC-0002's actual approval is retained. Its merge is not SPEC-0003 approval or
-proof of this integration. Reuse the merged admission, ownership, guarded drafts,
-source tracking, versioned transactions and recovery; reverify combined behavior.
-See the [final local integration and acceptance audit](../verification/spec-0003-final-audit-2026-11-02.md), including standard Docker runtime/export/restart evidence and remaining verification limits.
-The [November 3 round-four local audit](../verification/spec-0003-round4-remediation.md)
-supersedes the round-three readiness recommendation. Reader/package/UI repairs
-and final checks pass, but corrupt historical identity data still blocks unrelated
-Sectioning regeneration after reset. The subsequent verified-recovery implementation is tracked below; this earlier
-checkpoint is not full-contract acceptance.
-Historical reports and the remote PR description retain their dated attribution.
+SPEC-0003 builds on merged SPEC-0001 #879 and approved SPEC-0002 #880 on develop.
+Their integration does not approve SPEC-0003. Reuse their admission, ownership,
+guarded drafts, source tracking, versioned transactions and recovery.
 
-The [verified history recovery work record](../verification/spec-0003-history-recovery.md)
-maps the owner's subsequent recovery direction to this contract. The shared
-early safety check must run before reset/provider work. Recovery requires proof
+The shared early safety check must run before reset/provider work. Recovery requires proof
 of the original identity-bearing record and preservation of damaged evidence;
 an older valid selected version alone is insufficient. The owner authorized exact-byte physical restoration with an immutable damage
 audit as a narrow exception to the no-overwrite rule. This does not approve the
-specification. Implementation and verification remain recorded in the work log.
+specification.
 
 This deliberately refines SPEC-0002 AC-8/15: **all existing Sectioning is kept by
 ordinary runs**, including AI pages. Revert manual edits still restores the
@@ -273,9 +258,8 @@ Studio handling in en, pt-BR, es, fr and sq. Obsolete mode-gate errors are remov
 
 ## Revised acceptance criteria
 
-Original AC-1–26 are preserved and individually mapped in the linked audit.
-Unchecked boxes retain pending acceptance/review metadata; actual test verdicts
-belong in the evidence matrix, not an invented approval.
+Original AC-1–26 are preserved and individually mapped below. Unchecked boxes
+retain pending human acceptance; passing verification does not grant approval.
 
 - [ ] RAC-1 Generation/cache validation in By Page rejects/retries anything other than one section; valid cache reuse remains unchanged with transport counts.
 - [ ] RAC-2 Both modes render valid saved trees of any section count, including manual edits, without an unrelated targeted-render blocker.
@@ -296,12 +280,42 @@ belong in the evidence matrix, not an invented approval.
 - [ ] RAC-17 Fresh CLI/DAG remains safe; expanded existing-book resume is deferred/refused here. No B2 modes, automatic merge, new dependency or competing freshness/lock subsystem.
 - [ ] RAC-18 Inherited authorship, draft, restore, stable ID/audio/TOC-consent, current-read and scoped cache guarantees survive integration, subject to the explicit legacy-owner qualification.
 
-## Verification and publication
+## Original acceptance-criteria mapping
 
-The current November round is **local only**: coherent local commits and evidence,
-no push, remote retarget/title/body/comment/review request, merge or issue edit.
-The proposed future base is develop. The publication procedure below applies only
-after later authorization, not automatically at the end of this audit.
+The authorized amendments replace the original behavior where marked revised or
+superseded. This mapping preserves requirement traceability; it is not a test
+report or an approval of superseded gates.
+
+| Original criterion | Disposition → revised criterion |
+|---|---|
+| AC-1: Dynamic to By Page invalidates Sectioning and every downstream step. | Revised → RAC14 |
+| AC-2: By Page to Dynamic invalidates the same dependency closure. | Revised → RAC14 |
+| AC-3: Extract completion and extracted data remain unchanged. | Retained → RAC14/18 |
+| AC-4: Every existing content version and referenced media byte survives a mode change. | Retained → RAC7/14/18 |
+| AC-5: Saving an unchanged effective mode causes no invalidation. | Retained → RAC14 |
+| AC-6: An unrelated config edit causes no mode invalidation. | Retained → RAC14/18 |
+| AC-7: A mode transition during active/conflicting work returns 409 with no mutation. | Shared guard retained → RAC15 |
+| AC-8: Studio confirms a transition when retained or completed downstream output exists. | Revised → RAC6/14 |
+| AC-9: Cancel leaves configuration unchanged and sends no mutation request. | Retained → RAC6/8 |
+| AC-10: A failed update restores/refetches the persisted selection and surfaces the error. | Retained → RAC14/18 |
+| AC-11: Successful transitions refresh config, debug config, step and relevant page/stage state. | Revised → RAC-12/13/14 |
+| AC-12: By Page preflight rejects a missing latest Sectioning result. | Superseded → RAC4 |
+| AC-13: By Page preflight rejects zero sections. | Superseded → RAC2/12 |
+| AC-14: By Page preflight rejects multiple sections. | Superseded → RAC2 |
+| AC-15: Any preflight failure preserves all rendering versions and starts no rendering call. | Revised → RAC9/10 |
+| AC-16: Exactly one valid section per source page permits Storyboard subject to other prerequisites. | Retained and broadened → RAC1/2 |
+| AC-17: Dynamic mode continues to accept multiple sections. | Retained → RAC2 |
+| AC-18: Historical/imported inconsistencies are caught without an observed config transition. | Superseded → RAC3/13 |
+| AC-19: API, queued, targeted and DAG/CLI paths enforce the same rule, including fixed layout. | Revised with explicit CLI limit → RAC4/17 |
+| AC-20: All new UI copy is translated in the five supported locales. | Expanded → RAC16 |
+| AC-21: The implementation adds no dependencies. | Retained → RAC17 |
+| AC-22: Effective override removal/default resolution is correct; invalid modes change nothing. | Retained → RAC14 |
+| AC-23: Injected file/DB failures and restart at each journal boundary never expose new mode with old current status. | Revised → RAC7/15 |
+| AC-24: Admission races and post-preflight edits cannot publish output based on obsolete configuration or section versions. | Retained → RAC6/10/15 |
+| AC-25: Errors contain the full failure count and at most 20 displayed page identities, including malformed/null results. | Revised → RAC4/16 |
+| AC-26: Invalid cached multi-section responses follow #692's eviction/retry behavior; valid cache reuse remains possible. | Retained → RAC1 |
+
+## Verification
 
 Exercise all nine consolidated-review scenarios through actual public entry points,
 real SQLite/filesystem, independent-process faults, stubbed transport counts and
@@ -311,12 +325,10 @@ Use representative disposable books, actual browser flows, standard combined
 Docker runtime/export/restart in both layouts, and packaged Desktop API/resources.
 Separate these from paid providers, signed releases and full cross-platform GUI.
 
-A separate reviewer receives original/amended specs, original ACs, both full
-reviews and exact integrated heads, builds its own map and adversarial probes,
-then rechecks fixes at frozen heads. Preserve PR title/body; publish only to #884,
-verify exact-head hosted CI and request @elasticsounds review in a comment. Do not
-merge or close source issues. ADR 025 and spec approval remain pending.
+Keep raw logs and review reports outside version control. Record concise commands,
+results, tested commits and verification limits in the PR discussion, including
+hosted CI for the published commit. ADR 025 and spec approval remain pending.
 
-### Fixed-layout input qualification (review F7)
+### Fixed-layout input qualification
 
 A fixed-layout rerender requires valid current `positioned-text` and `image-filtering` results for each page, with positive finite viewport dimensions. Missing, SQL/JSON-null or unreadable extraction input is not an explicitly empty page. Report it per page and retain that page's previous output; other ordinary-run pages may publish. An actual layout switch still requires every active page. An omitted classification is not a prune decision: an extracted or positioned illustration needs an explicit keep/prune decision, and every kept illustration needs a position. A validated empty positioned result and empty image classification can represent a truly blank source page. Legacy books with missing fixed inputs remain readable through their safely owned retained output; rebuilding those pages requires restoration of valid input or the extraction repair owned by SPEC-0010. Do not synthesize a blank success or recommend the deliberately unavailable existing-book Extract rerun.

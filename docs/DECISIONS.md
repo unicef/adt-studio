@@ -1017,9 +1017,8 @@ pre-edit owner snapshots, current writer recovery and validated configuration
 receipts. Unknown rendered-owner omission stays qualified. SPEC-0002 approval
 does not approve this ADR or SPEC-0003.
 
-See [the amended contract](specs/SPEC-0003-sectioning-modes.md),
-[original AC mapping and evidence](verification/spec-0003-oct12-audit.md), and
-[the current local audit](verification/spec-0003-round4-remediation.md).
+See [the amended contract](specs/SPEC-0003-sectioning-modes.md) and its
+[original acceptance-criteria mapping](specs/SPEC-0003-sectioning-modes.md#original-acceptance-criteria-mapping).
 The owner authorized verified exact-byte restoration with an immutable damage
 audit as a narrow physical-recovery exception; arbitrary historical editing is
 still forbidden. Recovery is not generation approval. Missing integrity objects are not
@@ -1038,13 +1037,9 @@ and repair/regeneration remain explicit. Captured identity reservations survive
 sequential old delete/clear without a SQL refusal after file deletion. This does
 not undo intentional asset removal or recover records created and removed wholly
 by an older runtime; existing noncooperating-concurrency limits remain unchanged.
-The [verified recovery work record](verification/spec-0003-history-recovery.md)
-now maps the early admission check and recovery requirements. It details byte witnesses, tuple continuity, transactional audit, stale editor
-protection and the explicitly authorized exception; schema-14 readers remain
-compatible. The [November 4 local acceptance record](verification/spec-0003-recovery-acceptance-2026-11-04.md)
-records the completed implementation, full-suite/platform refresh and independent
-bounded rechecks at `2202e903`, including the exact compatibility limits and open
-platform findings. Local verification does not grant human or release acceptance.
+The specification defines byte witnesses, tuple continuity, transactional audit,
+stale editor protection and the explicitly authorized exception; schema-14
+readers remain compatible. Verification does not grant human or release acceptance.
 This decision remains proposed, with human review pending.
 
 ### Alternatives Considered
