@@ -1,9 +1,16 @@
+import { useState } from "react"
 import { createPortal } from "react-dom"
+import type { Drawer as DrawerPrimitive } from "@base-ui/react/drawer"
 import { Popover, PopoverContent } from "@/shared/ui/popover"
-import { Sheet, SheetContent } from "@/shared/ui/sheet"
+import { Drawer, DrawerContent } from "@/shared/ui/drawer"
 import { useIsMobile } from "@/shared/hooks/use-is-mobile"
 import { useDockContext } from "@/features/dock/context/dock-context"
 import { getChromePortalContainer } from "@/shared/lib/chrome-portal"
+import { cn } from "@/shared/lib/utils"
+
+const SNAP_DEFAULT = 0.75
+const SNAP_EXPANDED = 0.9
+const SNAP_POINTS = [SNAP_DEFAULT, SNAP_EXPANDED]
 
 interface DockPanelProps {
   open: boolean
@@ -30,6 +37,53 @@ function InlineBar({ children }: { children: React.ReactNode }) {
   )
 }
 
+function MobileDrawer({
+  open,
+  onClose,
+  children,
+}: Pick<DockPanelProps, "open" | "onClose" | "children">) {
+  const [snapPoint, setSnapPoint] = useState<DrawerPrimitive.Root.SnapPoint | null>(SNAP_DEFAULT)
+  const [wasOpen, setWasOpen] = useState(open)
+
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) setSnapPoint(SNAP_DEFAULT)
+  }
+
+  return (
+    <Drawer
+      open={open}
+      showSwipeHandle
+      snapPoints={SNAP_POINTS}
+      snapToSequentialPoints
+      snapPoint={snapPoint}
+      onSnapPointChange={setSnapPoint}
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+    >
+      <DrawerContent
+        data-dock-panel=""
+        container={getChromePortalContainer() ?? undefined}
+        overlayClassName="z-[60] bg-transparent supports-backdrop-filter:backdrop-blur-none"
+        viewportClassName="z-[60]"
+        className="h-[90dvh] max-h-[90dvh] rounded-t-2xl shadow-lg"
+      >
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col transition-[padding] duration-450 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            snapPoint === SNAP_EXPANDED
+              ? "pb-[env(safe-area-inset-bottom)]"
+              : "pb-[calc(15dvh+env(safe-area-inset-bottom))]",
+          )}
+        >
+          {children}
+        </div>
+      </DrawerContent>
+    </Drawer>
+  )
+}
+
 function DockPanel({
   open,
   onClose,
@@ -51,27 +105,9 @@ function DockPanel({
 
   if (isMobile) {
     return (
-      <Sheet
-        open={open}
-        onOpenChange={(next) => {
-          if (!next) onClose()
-        }}
-      >
-        <SheetContent
-          data-dock-panel=""
-          side="bottom"
-          showCloseButton={false}
-          container={getChromePortalContainer() ?? undefined}
-          overlayClassName="z-[60]"
-          className="z-[60] flex max-h-[85dvh] flex-col gap-0 overflow-hidden rounded-t-2xl p-0 pb-[env(safe-area-inset-bottom)]"
-        >
-          <div
-            aria-hidden
-            className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/25"
-          />
-          {children}
-        </SheetContent>
-      </Sheet>
+      <MobileDrawer open={open} onClose={onClose}>
+        {children}
+      </MobileDrawer>
     )
   }
 
