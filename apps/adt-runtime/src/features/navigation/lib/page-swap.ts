@@ -310,6 +310,15 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
 }
 
+function preventRootSelectionUntil(done: Promise<unknown>): void {
+  const preventRootSelection = (event: MouseEvent) => {
+    if (event.target === document.documentElement) event.preventDefault()
+  }
+  const release = () => document.removeEventListener("mousedown", preventRootSelection, true)
+  document.addEventListener("mousedown", preventRootSelection, true)
+  done.then(release, release)
+}
+
 let inFlight: AbortController | null = null
 
 /**
@@ -409,6 +418,8 @@ export async function swapToPage(
       }
     ).startViewTransition
     if (viewTransition && !prefersReducedMotion()) {
+      const transition = viewTransition.call(document, commit)
+      preventRootSelectionUntil(transition.finished)
       // `updateCallbackDone`, not `finished`: this waits for `commit` itself
       // rather than the animation that follows it. A throw inside `commit`
       // rejects this promise, which reaches the catch below and lets the
@@ -416,7 +427,7 @@ export async function swapToPage(
       // the rejection inside the transition, `swapToPage` has already
       // returned "ok", and the reader is stranded on a pushed URL with a
       // half-committed page — the non-animated path recovers, this one did not.
-      await viewTransition.call(document, commit).updateCallbackDone
+      await transition.updateCallbackDone
     } else {
       commit()
     }

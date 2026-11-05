@@ -508,6 +508,31 @@ describe("swapToPage crossfade", () => {
     expect(startViewTransition).toHaveBeenCalledTimes(1)
   })
 
+  it("blocks root text selection only while the transition runs", async () => {
+    let finish!: () => void
+    const finished = new Promise<void>((resolve) => { finish = resolve })
+    Object.defineProperty(document, "startViewTransition", {
+      configurable: true,
+      value: (cb: () => void) => {
+        const done = Promise.resolve().then(cb)
+        return { updateCallbackDone: done, ready: done, finished }
+      },
+    })
+    mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+    const pressRoot = () => {
+      const event = new MouseEvent("mousedown", { bubbles: true, cancelable: true, detail: 2 })
+      document.documentElement.dispatchEvent(event)
+      return event.defaultPrevented
+    }
+
+    expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("ok")
+    expect(pressRoot()).toBe(true)
+    finish()
+    await finished
+    await Promise.resolve()
+    expect(pressRoot()).toBe(false)
+  })
+
   it("skips the transition when the OS asks for reduced motion", async () => {
     const startViewTransition = stubViewTransition()
     setSystemReducedMotion(true)
