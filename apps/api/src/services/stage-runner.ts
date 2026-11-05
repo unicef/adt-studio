@@ -1,11 +1,14 @@
 import { collectQuizPages } from "@adt/pipeline"
 import { OUTPUT_KIND_TO_STAGE, type OutputIdentity } from "@adt/types"
 import { outputRunReview } from "./output-run-review.js"
-import { putSourceNodeData, putReflowableRendering, assertReflowableSectioning, captureSourceGeneration, publishSourceGeneration } from "@adt/pipeline"
+import { withSourceGenerationTracking, putSourceNodeData, putReflowableRendering, assertReflowableSectioning, captureSourceGeneration, publishSourceGeneration } from "@adt/pipeline"
 import { bookAssetExists, readBookAsset } from "@adt/storage"
 import { reconcileSectioningIdentities } from "@adt/pipeline"
 import { requireExistingBook } from "../utils/book-exists.js"
 import { buildOutputSources, translatedDisplayEntries } from "@adt/pipeline"
+import { retainedTranslation, isProtectedContent, retireSectionIds } from "@adt/pipeline"
+import { assertEditVersion } from "./catalog-output-service.js"
+import { replacementConfirmed } from "./authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
 import { outputSkipped } from "@adt/pipeline"
 import { retainedCoreTts, retainedEasyRead } from "@adt/pipeline"
@@ -152,6 +155,7 @@ import type {
   AppConfig,
   ImageClassificationOutput,
   PageSectioningOutput,
+  QuizGenerationOutput,
   WebRenderingOutput,
   ImageCaptioningOutput,
   TextCatalogOutput,
@@ -943,6 +947,9 @@ export function createStageRunner(): StageRunner {
     ): Promise<void> {
       const bookDir = requireExistingBook(label, options.booksDir)
       if (!ownsBookWriter(bookDir)) return withBookWriter(bookDir, () => createStageRunner().run(label, options, progress))
+      // Consent belongs to this invocation. Only an exact, committed retirement
+      // below can advance it; never mutate the caller's queued request snapshot.
+      options = { ...options, protectedReplacements: options.protectedReplacements?.map((record) => ({ ...record })) }
       const { fromStage, toStage, booksDir } = options
       console.log(`[stage-run] ${label}: starting ${fromStage}→${toStage}`)
 
@@ -1047,8 +1054,12 @@ function resolveCredentialField(
   providerId: string,
   fieldKey: string,
 ): string {
-  const provider = getDefaultProviderRegistry().get(providerId)
-  const values = resolveProviderCredentials(provider, options.credentials)
+  const registry = getDefaultProviderRegistry()
+  const values = resolveProviderCredentials(
+    registry.get(providerId),
+    options.credentials,
+    registry.tryGet,
+  )
   return values[fieldKey] ?? ""
 }
 
@@ -1377,6 +1388,17 @@ async function runSectioningStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
+    const allPages = storage.getPages()
+    const previous = new Map(allPages.map((page) => [page.pageId, storage.getLatestNodeData("page-sectioning", page.pageId)]))
+    const pages = allPages.filter((page) => {
+      const row = previous.get(page.pageId)
+      return !row || !isProtectedContent(row.data as { source?: "ai" | "manual" }) || replacementConfirmed(options, "page-sectioning", page.pageId, row.version)
+    })
+    if (!pages.length) {
+      progress.emit({ type: "step-skip", step: "page-sectioning" })
+      progress.emit({ type: "step-skip", step: "translation" })
+      return
+    }
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
@@ -1432,7 +1454,6 @@ async function runSectioningStep(
         })
       : null
 
-    const pages = storage.getPages()
     const stepStatus = new Map(storage.getStepRuns().map((run) => [run.step, run.status]))
     const outlineStepStatus = stepStatus.get("book-outline")
     const outlineStepComplete = outlineStepStatus === "done" || outlineStepStatus === "skipped"
@@ -1467,7 +1488,7 @@ async function runSectioningStep(
       })
       bookOutline = await generateAndStoreBookOutline(
         label,
-        pages,
+        allPages,
         storage,
         outlineConfig,
         outlineModel,
@@ -1521,8 +1542,8 @@ async function runSectioningStep(
             pageSectioningConfig,
             structuringModel,
           )
-          const structuringResult = reconcileSectioningIdentities(storage, page.pageId, generatedSectioning)
-          putSourceNodeData(storage, "page-sectioning", page.pageId, structuringResult)
+          const structuringResult = generatedSectioning
+          let result = structuringResult
           completedStructuring++
           progress.emit({
             type: "step-progress",
@@ -1539,7 +1560,7 @@ async function runSectioningStep(
               translationConfig,
               translationModel,
             )
-            putSourceNodeData(storage, "page-sectioning", page.pageId, translated)
+            result = translated
             completedTranslation++
             progress.emit({
               type: "step-progress",
@@ -1549,6 +1570,26 @@ async function runSectioningStep(
               totalPages,
             })
           }
+          options.signal?.throwIfAborted()
+          const tocRetirement = withSourceGenerationTracking(storage, () => {
+            const before = previous.get(page.pageId)
+            assertEditVersion(storage.getLatestNodeData("page-sectioning", page.pageId)?.version, before?.version ?? 0)
+            const reconciled = reconcileSectioningIdentities(storage, page.pageId, result)
+            const sections = reconciled.sections
+            const active = new Set(sections.map(section => section.sectionId))
+            const old = before?.data as PageSectioningOutput | undefined
+            const tocBefore = storage.getLatestNodeData("toc-generation", "book")
+            const consent = options.protectedReplacements?.find((record) => record.node === "toc-generation" && record.itemId === "book")
+            if (options.replaceManual && consent) assertEditVersion(tocBefore?.version, consent.version)
+            const ownsTocChange = !!tocBefore && replacementConfirmed(options, "toc-generation", "book", tocBefore.version)
+            retireSectionIds(storage, (old?.sections ?? []).flatMap((section) => section.sectionId && !active.has(section.sectionId) ? [section.sectionId] : []))
+            putSourceNodeData(storage, "page-sectioning", page.pageId, { ...reconciled, source: "ai" })
+            reconcileTextCatalog(storage)
+            // Return the exact version produced by this synchronous transaction.
+            // The caller advances consent only after SQLite commits successfully.
+            return ownsTocChange && consent ? { consent, version: storage.getLatestNodeData("toc-generation", "book")!.version } : undefined
+          })
+          if (tocRetirement) tocRetirement.consent.version = tocRetirement.version
         } catch (err) {
           const step = err instanceof StepError ? err.step : "page-sectioning"
           console.error(`[stage-run] ${label}: ${page.pageId} failed at ${step}: ${toErrorMessage(err)}`)
@@ -1683,7 +1724,13 @@ async function runStoryboardStep(
       progress.emit({ type: "step-start", step: "web-rendering" })
       const { processFixedLayoutPages } = await import("@adt/pipeline")
       const imageUrlPrefix = `/api/books/${label}/images`
-      processFixedLayoutPages(storage, imageUrlPrefix)
+      // Keep the rendering/tree pair intact on a failed synchronous publication.
+      // This is the pair-retention rule from PR #884, without its mode lifecycle.
+      storage.transaction(() => {
+        options.signal?.throwIfAborted()
+        processFixedLayoutPages(storage, imageUrlPrefix)
+        options.signal?.throwIfAborted()
+      })
       progress.emit({ type: "step-complete", step: "web-rendering" })
       console.log(`[stage-run] ${label}: fixed-layout rendering complete`)
       return
@@ -1849,6 +1896,15 @@ async function runQuizzesStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
+    const previous = storage.getLatestNodeData("quiz-generation", "book")
+    const previousVersion = previous?.version ?? 0
+    const protectedPageGroups = ((previous?.data as QuizGenerationOutput | undefined)?.quizzes ?? [])
+      .filter(isProtectedContent).map((quiz) => quiz.pageIds)
+    const publish = (output: Parameters<typeof saveQuizOutput>[1]) => storage.transaction(() => {
+      options.signal?.throwIfAborted()
+      assertEditVersion(storage.getLatestNodeData("quiz-generation", "book")?.version, previousVersion)
+      return saveQuizOutput(storage, output, "replace")
+    })
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
@@ -1906,9 +1962,10 @@ async function runQuizzesStep(
     const sourceReceipt = captureSourceGeneration(storage, "quiz-generation", { quiz: quizConfig })
 
     if (quizPages.length > 0) {
-      assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes).length)
+      assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes, protectedPageGroups).length)
       const quizResult = await generateAllQuizzes(quizPages, quizConfig, quizModel, {
         concurrency: effectiveConcurrency,
+        protectedPageGroups,
         onQuizComplete: (completed, total) => {
           progress.emit({
             type: "step-progress",
@@ -1920,7 +1977,7 @@ async function runQuizzesStep(
         },
       })
       options.signal?.throwIfAborted()
-      publishSourceGeneration(storage, sourceReceipt, () => saveQuizOutput(storage, quizResult, "replace"))
+      publishSourceGeneration(storage, sourceReceipt, () => publish(quizResult), protectedPageGroups.length === 0)
       console.log(
         `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`
       )
@@ -1930,13 +1987,13 @@ async function runQuizzesStep(
         message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
       })
     } else {
-      // A successful empty rerun must not leave the preserved previous quizzes
-      // active. Keep their history, but publish the now-empty result.
+      // With no eligible pages, retire previous AI quizzes while the shared
+      // publisher retains protected quizzes and all prior versions.
       options.signal?.throwIfAborted()
-      publishSourceGeneration(storage, sourceReceipt, () => saveQuizOutput(storage, {
+      publishSourceGeneration(storage, sourceReceipt, () => publish({
         generatedAt: new Date().toISOString(), language: quizConfig.language,
         pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
-      }, "replace"))
+      }), protectedPageGroups.length === 0)
       // Nothing to generate. This is the silent "finished instantly, no quizzes"
       // case — surface it loudly instead of completing green with no output.
       console.warn(
@@ -2243,6 +2300,15 @@ async function runTocStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
+    const previous = storage.getLatestNodeData("toc-generation", "book")
+    const confirmed = options.replaceManual && options.protectedReplacements?.find((record) => record.node === "toc-generation" && record.itemId === "book")
+    // A named replacement that no longer matches is an error, never a successful
+    // no-op. Only the exact same-run retirement path may advance this snapshot.
+    if (confirmed) assertEditVersion(previous?.version, confirmed.version)
+    if (previous && isProtectedContent(previous.data as { source?: "ai" | "manual" }) && !replacementConfirmed(options, "toc-generation", "book", previous.version)) {
+      progress.emit({ type: "step-skip", step: "toc-generation" })
+      return
+    }
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
@@ -2298,7 +2364,10 @@ async function runTocStep(
       llmModel: tocModel,
     })
     options.signal?.throwIfAborted()
-    publishSourceGeneration(storage, sourceReceipt, () => storage.putNodeData("toc-generation", "book", toc))
+    publishSourceGeneration(storage, sourceReceipt, () => {
+      assertEditVersion(storage.getLatestNodeData("toc-generation", "book")?.version, previous?.version ?? 0)
+      storage.putNodeData("toc-generation", "book", { ...toc, source: "ai" })
+    })
 
     progress.emit({
       type: "step-progress",
@@ -2557,9 +2626,24 @@ async function runTranslateStep(
 
     // ── Step 2: Translate catalog to target languages ────────────────
     const targetLanguages = getTargetLanguages(outputLanguages, language)
-    if (targetLanguages.length === 0 || !translationEntries.some((entry) => entry.text.trim())) {
+    if (targetLanguages.length === 0) {
       progress.emit({ type: "step-skip", step: "catalog-translation" })
       console.log(`[stage-run] ${label}: catalog translation skipped`)
+    } else if (!translationEntries.some(entry => entry.text.trim())) {
+      // Retire membership without resolving a prompt/provider for an empty
+      // source. The prior document remains in version history.
+      options.signal?.throwIfAborted()
+      storage.transaction(() => {
+        for (const language of targetLanguages) {
+          const itemId = storage.getLatestNodeData("text-catalog-translation", language) ? language : language.replace("-", "_")
+          const row = storage.getLatestNodeData("text-catalog-translation", itemId)
+          const previous = row?.data as TextCatalogOutput | undefined
+          const activeIds = new Set(translationEntries.map(entry => entry.id))
+          const retained = previous?.entries.filter(entry => activeIds.has(entry.id)) ?? []
+          if (previous && retained.length !== previous.entries.length) storage.putNodeData("text-catalog-translation", itemId, { ...previous, entries: retained, generatedAt: new Date().toISOString() })
+        }
+      })
+      progress.emit({ type: "step-skip", step: "catalog-translation" })
     } else {
       progress.emit({ type: "step-start", step: "catalog-translation" })
 
@@ -2583,9 +2667,9 @@ async function runTranslateStep(
         const previous = previousRow?.data as TextCatalogOutput | undefined
         const captured = readRunOutputs(label, options, storage)
         const output = await translateCatalog({ entries: translationEntries, language: lang, config: translationConfig,
-          llmModel: translationModel, previous, references: captureOutputReferences(storage, "translation", lang), scope: options.outputScope, signal: options.signal })
+          llmModel: translationModel, previous: retainedTranslation(storage, lang, translationEntries.map((entry) => entry.id)), references: captureOutputReferences(storage, "translation", lang), scope: options.outputScope, signal: options.signal })
         options.signal?.throwIfAborted()
-        if (output !== previous) {
+        if (inputSignature(output.entries) !== inputSignature(previous?.entries)) {
           const changed = output.entries.filter((entry) => inputSignature(entry) !== inputSignature(previous?.entries.find((prior) => prior.id === entry.id)))
           const identities: OutputIdentity[] = changed.map(entry => ({ kind: "translation", id: entry.id, language: lang }))
           publishReviewSource(options, identities, () => storage.transaction(() => {
@@ -3699,7 +3783,15 @@ async function runSpeechStep(
 
     progress.emit({ type: "step-complete", step: "tts" })
 
-    const wordHighlightingEnabled = config.speech?.word_highlighting === true
+    // Word timestamps come from OpenAI Whisper. Without an OpenAI key the step
+    // is skipped (Studio shows it as unavailable) instead of saving an empty
+    // version that reports the step as complete. Unlike the disabled case,
+    // `speech.word_highlighting` stays on, so the preview keeps serving stored
+    // timestamps — publishing without timings keeps only those whose audio
+    // hash still matches, so the reader never highlights against the wrong audio.
+    const wordHighlightingRequested = config.speech?.word_highlighting === true
+    const hasWhisperKey = Boolean(openaiApiKey?.trim())
+    const wordHighlightingEnabled = wordHighlightingRequested && hasWhisperKey
     let wordTimestampsByLang = new Map<string, Record<string, WordTimestampEntry>>()
     let timestampFailedByLang = new Map<string, SpeechFailedEntry[]>()
     if (wordHighlightingEnabled) {
@@ -3734,7 +3826,11 @@ async function runSpeechStep(
 
     if (!wordHighlightingEnabled) {
       progress.emit({ type: "step-skip", step: "word-timestamps" })
-      console.log(`[stage-run] ${label}: word-level highlighting disabled; skipping timestamp generation`)
+      if (wordHighlightingRequested) {
+        console.warn(`[stage-run] ${label}: word-level highlighting needs an OpenAI key (Whisper); skipping timestamp generation`)
+      } else {
+        console.log(`[stage-run] ${label}: word-level highlighting disabled; skipping timestamp generation`)
+      }
     } else if (totalTimestampFailed > 0) {
       // Complete the step with gaps rather than erroring, mirroring the Gemini
       // TTS gap path above. The failures are persisted per-language in

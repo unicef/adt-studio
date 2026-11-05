@@ -407,6 +407,36 @@ describe("generateQuiz", () => {
 })
 
 describe("generateAllQuizzes", () => {
+  it("AC-4: skips protected page groups before model calls without regrouping neighboring pages", async () => {
+    const pages = Array.from({ length: 6 }, (_, i) => makePageInput(`pg00${i + 1}`, `<p>Page ${i + 1}</p>`))
+    const protectedPageGroups = [["pg004", "pg003"]]
+    const requested: string[][] = []
+    const llmModel = makeFakeLLMModel(validQuizResponse, ({ context }) => {
+      requested.push((context.page_texts as Array<{ pageId: string }>).map((page) => page.pageId))
+    })
+    const config = { language: "en", pagesPerQuiz: 2, promptName: "quiz_generation", modelId: "test", maxRetries: 0, timeoutMs: 1000 }
+
+    const result = await generateAllQuizzes(pages, config, llmModel, { protectedPageGroups })
+
+    expect(requested).toEqual([["pg001", "pg002"], ["pg005", "pg006"]])
+    expect(result.quizzes.map((quiz) => quiz.pageIds)).toEqual(requested)
+    expect(batchPages(pages, 2, undefined, protectedPageGroups).length).toBe(requested.length)
+    // Partial overlap is a different generation group, not permission to
+    // remove individual pages and shift the remaining batch boundaries.
+    expect(batchPages(pages, 2, undefined, [["pg003"]])).toHaveLength(3)
+  })
+
+  it("AC-4: makes no model call when every page group is protected", async () => {
+    const onCall = vi.fn()
+    const pages = [makePageInput("pg006", "<p>Six</p>"), makePageInput("pg007", "<p>Seven</p>"), makePageInput("pg008", "<p>Eight</p>")]
+    const config = { language: "en", pagesPerQuiz: 3, promptName: "quiz_generation", modelId: "test", maxRetries: 0, timeoutMs: 1000 }
+    const result = await generateAllQuizzes(pages, config, makeFakeLLMModel(validQuizResponse, onCall), {
+      protectedPageGroups: [["pg006", "pg007", "pg008"]],
+    })
+    expect(result.quizzes).toEqual([])
+    expect(onCall).not.toHaveBeenCalled()
+  })
+
   it("generates correct number of quizzes", async () => {
     let callCount = 0
     const llmModel = makeFakeLLMModel(validQuizResponse, () => {

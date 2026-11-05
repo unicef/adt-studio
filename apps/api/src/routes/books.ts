@@ -12,6 +12,8 @@ import {
   LLMModelId,
   SpeechGenerationModelId,
   AdtActivityImportDecision,
+  AppConfig,
+  type BookConfigSaveReceipt,
   type AiModality,
 } from "@adt/types"
 import {
@@ -22,7 +24,7 @@ import {
 } from "@adt/llm"
 import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
-import { normalizeLocale, getBaseLanguage, loadBookConfig, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
+import { normalizeLocale, getBaseLanguage, loadBookConfig, loadConfig, deepMerge, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
 import {
   listBooks,
   getBook,
@@ -95,6 +97,7 @@ function assertModelSupported(
 }
 
 const BookConfigUpdateRequest = z.object({
+  includeEffectiveConfig: z.boolean().optional(),
   config: z
     .object({
       default_model: LLMModelId.optional(),
@@ -437,8 +440,17 @@ export function createBookRoutes(
       const config = partInfo
         ? { ...body.config, start_page: partInfo.range.startPage, end_page: partInfo.range.endPage }
         : body.config
+      // Resolve before writing, so an invalid effective configuration cannot
+      // turn a successful disk write into an error response. Use the same
+      // preset merge/validation as the run and debug readers, not a UI merge.
+      const merged = body.includeEffectiveConfig
+        ? AppConfig.parse(deepMerge(loadConfig(configPath), config))
+        : undefined
       updateBookConfig(label, booksDir, config)
       const updated = getBookConfig(label, booksDir)
+      if (merged) return c.json({
+        config: updated ?? {}, activeConfig: { merged, hasBookOverride: updated !== null },
+      } satisfies BookConfigSaveReceipt)
       return c.json({ config: updated ?? {} })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)

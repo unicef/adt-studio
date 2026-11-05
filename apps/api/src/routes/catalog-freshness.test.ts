@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { createBookStorage, withBookWriter, storeImmutableAsset, publishSpeechOutput, restoreSpeechOutput } from "@adt/storage"
+import { createBookStorage, openBookDb, withBookWriter, storeImmutableAsset, publishSpeechOutput, restoreSpeechOutput } from "@adt/storage"
 import { outputEvidence, reconcileTextCatalog, packageAdtWeb, computePackagingInputHash, loadBookConfig, buildTextCatalogSnapshot } from "@adt/pipeline"
 import type { OutputStatus, TextCatalogOutput } from "@adt/types"
 import { createOutputRoutes } from "./outputs.js"
@@ -458,6 +458,12 @@ it("projects editor source guards identically without reading unrelated retained
 })
 
 it("shows Missing as stage attention only after that stage's first attempt", async () => {
+  // Model an actual first empty translation, not removal of a previously
+  // authored version whose active stable IDs SPEC-0002 correctly recovers.
+  const fixtureDb = openBookDb(path.join(root, label, `${label}.db`))
+  fixtureDb.run("DELETE FROM node_current WHERE node = ?", ["text-catalog-translation"])
+  fixtureDb.run("DELETE FROM node_data WHERE node = ?", ["text-catalog-translation"])
+  fixtureDb.close()
   const summary = async () => { const response = await app.request(`/books/${label}/outputs/summary`); expect(response.status).toBe(200); return response.json() }
   const db = storage()
   db.putNodeData("image-captioning", "pg001", { captions: [] })

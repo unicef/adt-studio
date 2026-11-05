@@ -1,13 +1,16 @@
 import { WordTimestampViewer } from "./components/WordTimestampViewer"
 import { useTTSData } from "@/hooks/use-tts";
 import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
+import { rebaseTranslationDraft, translationEditState, visibleTranslations } from "./lib/translation-draft"
+import { useGuardedDraft } from "@/hooks/use-guarded-draft"
+import { DraftConflict } from "../../components/DraftConflict"
 import { OutputReview, useOutputs } from "../../components/OutputReview"
 import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent } from "react"
 import { createPortal } from "react-dom"
 import { Link } from "@tanstack/react-router"
 import { AudioLines, Check, ChevronDown, ChevronRight, CircleStop, Languages, Loader2, Play, Pause, Plus, RotateCcw, Save, Settings, Trash2, TriangleAlert, Type, Upload, Volume2, VolumeX, WandSparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { DEFAULT_OPENAI_TTS_MODEL_ID, DEFAULT_ELEVENLABS_TTS_MODEL_ID, DEFAULT_ELEVENLABS_VOICE_ID } from "@adt/types"
+import { DEFAULT_ELEVENLABS_VOICE_ID } from "@adt/types"
 import { api, getAudioUrl, BASE_URL } from "@/api/client"
 import type { CoreTtsCatalogEntry, TextCatalogEntry, TranslationEvaluationStatusResponse, WordTimestamp, WordTimestampEntry, WordTimestampEditGuard, WordTimestampSaveResponse } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
@@ -19,13 +22,18 @@ import { LoadingState } from "../../components/LoadingState"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
-import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import {
+  useApiKey,
+  useBookStructuredTextAvailability,
+  useWordHighlightingUnavailable,
+} from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
+import { UnavailableHint } from "../../components/UnavailableHint"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { normalizeLocale } from "@/lib/languages"
-import { languageUsesSpeechProvider, resolveSpeechProviderForLanguage, speechProvidersForLanguages } from "@/lib/speech-routing"
+import { bookSpeechProviders, languageUsesSpeechProvider, resolveSpeechProviderForLanguage } from "@/lib/speech-routing"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -44,6 +52,7 @@ import {
 } from "./lib/catalog-entries";
 import { displayLang } from "./lib/display-lang";
 import { PROVIDER_LABELS } from "./lib/provider-labels"
+import { summarySpeechModel } from "./lib/speech-summary-model"
 import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices"
 import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
@@ -265,7 +274,6 @@ function TranslationReviewInline({
 // Values are voice/model identifiers, not user-facing copy — display only.
 // eslint-disable-next-line lingui/no-unlocalized-strings -- voice identifiers
 const DEFAULT_TTS_VOICE: Record<string, string> = { openai: "alloy", azure: "en-US-JennyNeural", gemini: "Kore", elevenlabs: DEFAULT_ELEVENLABS_VOICE_ID }
-const DEFAULT_TTS_MODEL: Record<string, string> = { openai: DEFAULT_OPENAI_TTS_MODEL_ID, azure: "azure-tts", gemini: "gemini-2.5-pro-preview-tts", elevenlabs: DEFAULT_ELEVENLABS_TTS_MODEL_ID }
 
 export function LanguageView({
   bookLabel,
@@ -375,6 +383,10 @@ export function LanguageView({
     isTranslationEvaluationEnabled(merged?.translation_evaluation);
   const wordHighlightingEnabled =
     speechConfigRecord?.word_highlighting === true;
+  // Without an OpenAI key (Whisper) the toggle is shown off and disabled.
+  const wordHighlightingUnavailable = useWordHighlightingUnavailable();
+  const effectiveWordHighlighting =
+    wordHighlightingEnabled && !wordHighlightingUnavailable;
   const configExcludedTextIds = useMemo(
     () =>
       Array.isArray(speechConfigRecord?.excluded_text_ids)
@@ -418,15 +430,12 @@ export function LanguageView({
   const configuredEditingLanguage = merged?.editing_language as
     string | undefined;
 
-  const speechLanguages = [configuredEditingLanguage ?? bookLanguage ?? "en", ...outputLanguages];
-  const hasBookSpeechProvider = !!activeConfigData && speechProvidersForLanguages(speechLanguages, speechConfig)
+  const hasBookSpeechProvider = !!activeConfigData && bookSpeechProviders(merged, bookLanguage)
     .some(provider => {
       const modelId = `${provider}:default`;
       return isAvailable("tts", modelId);
     });
-  const canRunStage = isSpeechStage
-    ? hasBookSpeechProvider && (!wordHighlightingEnabled || hasTranscriber)
-    : hasStructuredTextProvider;
+  const canRunStage = isSpeechStage ? hasBookSpeechProvider : hasStructuredTextProvider;
   const handleRun = useCallback(() => {
     if (!canRunStage || isRunning || speechDraftsRef.current.size > 0) return;
     queueRun({
@@ -681,18 +690,10 @@ export function LanguageView({
 
   const { restoring, restoringRef, onRestoringChange } = useVersionRestoreBusy(JSON.stringify([bookLabel, selectedLang]))
   // Pending state for edits (keyed by language)
-  const [pendingEntries, setPendingEntriesState] = useState<
-    TextCatalogEntry[] | null
-  >(null);
   const pendingEntriesRef = useRef<TextCatalogEntry[] | null>(null);
-  const setPendingEntries = useCallback((next: TextCatalogEntry[] | null) => {
-    if (restoringRef.current) return;
-    pendingEntriesRef.current = next;
-    setPendingEntriesState(next);
-  }, []);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
-  const pendingVersions = useRef({ baseVersion: 0, sourceVersion: 0, sourceSignature: "" });
+  const pendingVersions = useRef({ itemId: "", baseVersion: 0, sourceVersion: 0, sourceSignature: "" });
   const [generateErrorById, setGenerateErrorById] = useState<
     Record<string, string>
   >({});
@@ -700,25 +701,44 @@ export function LanguageView({
     Record<string, string>
   >({});
 
-  // Get translated entries for selected language
-  const legacyTranslationItemId = selectedLang?.replace("-", "_");
-  const translationItemId = selectedLang && !catalog?.translations?.[selectedLang] &&
-    legacyTranslationItemId && catalog?.translations?.[legacyTranslationItemId]
-    ? legacyTranslationItemId : selectedLang;
-  const translationScope = useMemo(() => ({ bookLabel, translationItemId }), [bookLabel, translationItemId]);
+  // Keep the logical editor scope stable when a canonical locale supersedes
+  // its legacy alias. The draft's physical target and guards travel together.
+  const editState = translationEditState(catalog, selectedLang);
+  const translationItemId = editState?.itemId ?? selectedLang;
+  const translationScope = useMemo(() => ({ bookLabel, selectedLang }), [bookLabel, selectedLang]);
   const translationScopeRef = useRef(translationScope);
   translationScopeRef.current = translationScope;
-  const translationData = translationItemId
-    ? catalog?.translations?.[translationItemId]
-    : undefined;
-  const translationSourceSignature = translationData?.sourceSignature ??
-    (selectedLang ? catalog?.translationSourceSignatures?.[normalizeLocale(selectedLang)] : undefined);
-  const translatedEntries = isSourceLang
-    ? entries
-    : (translationData?.entries ?? []);
-  const translationVersion = isSourceLang
-    ? (catalog?.version ?? null)
-    : (translationData?.version ?? (translationSourceSignature ? 0 : null));
+  const translatedEntries = isSourceLang ? entries : (editState?.entries ?? []);
+  const translationVersion = isSourceLang ? (catalog?.version ?? null) : (editState?.baseVersion ?? null);
+
+  const recoveredVersions = useRef(pendingVersions.current);
+  const draft = useGuardedDraft<TextCatalogEntry[]>(translatedEntries, translationVersion, async () => {
+    const latest = await api.getTextCatalog(bookLabel);
+    const recovered = translationEditState(latest, selectedLang);
+    if (!recovered) throw new Error(t`Saved content is unavailable; your draft is retained`);
+    // Review guards come from the shared output catalog, not translation text.
+    // Cancel even a cold pre-conflict read before exposing recovered content.
+    const outputsKey = ["books", bookLabel, "outputs"];
+    await queryClient.cancelQueries({ queryKey: outputsKey });
+    await queryClient.invalidateQueries({ queryKey: outputsKey }, { throwOnError: true });
+    // A cancelled/paused refetch can resolve with reverted cached data. Its
+    // invalidated state must not release the draft or enable stale review.
+    if (queryClient.getQueryCache().findAll({ queryKey: outputsKey, type: "active" }).some(query =>
+      query.state.isInvalidated || query.state.status !== "success" || query.state.fetchStatus !== "idle")) {
+      throw new Error(t`Saved content is unavailable; your draft is retained`);
+    }
+    queryClient.setQueryData(["books", bookLabel, "text-catalog"], latest);
+    const { entries: value, ...guards } = recovered;
+    if (translationScopeRef.current === translationScope) recoveredVersions.current = guards;
+    return { value, version: guards.baseVersion };
+  }, rebaseTranslationDraft);
+  const { pending: pendingEntries } = draft;
+  const setPendingEntries = useCallback((next: TextCatalogEntry[] | null) => {
+    if (restoringRef.current) return;
+    pendingEntriesRef.current = next;
+    draft.setPending(next);
+  }, [draft.setPending]);
+  pendingEntriesRef.current = pendingEntries;
 
   // Language changes are allowed only after the current draft/save is settled.
   useEffect(() => {
@@ -755,7 +775,7 @@ export function LanguageView({
     return id.startsWith("timings:") ? [id.slice(id.indexOf(":", 8) + 1)] : [];
   }));
   const hasTimestampDraft = timestampDraftIds.size > 0;
-  const hasOutputDraft = !!pendingEntries || speechDrafts.size > 0;
+  const hasOutputDraft = !!pendingEntries || speechDrafts.size > 0 || saving || restoring;
 
   const speechCatalogFor = useCallback(
     (language: string | null | undefined) => {
@@ -795,12 +815,22 @@ export function LanguageView({
     labelKey: pendingLabelKey,
     hasChanges: dirty,
   } = usePendingChanges({
-    prev: translatedEntries,
-    next: pendingEntries,
+    prev: visibleTranslations(translatedEntries),
+    next: pendingEntries && visibleTranslations(pendingEntries),
     keyOf: (e) => e.id,
     isEqual: (a, b) => a.text === b.text,
     noun: { one: t`translation`, other: t`translations` },
   });
+
+  // Recovery or a refetch can converge with the saved text without a keystroke.
+  // Release only a settled, conflict-free projection; an in-flight Save/restore
+  // still owns its acknowledgement and any successor edits.
+  useEffect(() => {
+    if (pendingEntries && pendingEntriesRef.current === pendingEntries && !dirty
+      && !saving && !restoring && !savingRef.current && !restoringRef.current && !draft.conflict) {
+      setPendingEntries(null);
+    }
+  }, [pendingEntries, dirty, saving, restoring, draft.conflict, setPendingEntries]);
 
   const languageSwitchBlocked = dirty || speechDrafts.size > 0 || saving || restoring;
   const languageSwitchReason = dirty || speechDrafts.size > 0
@@ -810,7 +840,7 @@ export function LanguageView({
     // Read the synchronous draft as well as disabling the pills. Reverting all
     // text to the saved value must allow switching without an unavailable Save.
     const pending = pendingEntriesRef.current;
-    const diff = pending && diffById(translatedEntries, pending, entry => entry.id, (a, b) => a.text === b.text);
+    const diff = pending && diffById(visibleTranslations(translatedEntries), visibleTranslations(pending), entry => entry.id, (a, b) => a.text === b.text);
     if (diff && (diff.added.length || diff.removed.length || diff.changed.length) || savingRef.current || restoringRef.current || speechDraftsRef.current.size > 0) return;
     setSelectedLang(language);
   };
@@ -825,21 +855,34 @@ export function LanguageView({
       }
       return;
     }
+    if (draft.conflict) throw new Error(t`Resolve conflicting edits before saving`);
     const submitted = pendingEntriesRef.current;
     if (!submitted || !translationItemId) return;
     const submittedVersions = pendingVersions.current;
     const submittedScope = translationScope;
+    let acknowledgedVersions: typeof submittedVersions | null = null;
     savingRef.current = true;
     setSaving(true);
     setSaveError(null);
     try {
     const minDelay = new Promise((r) => setTimeout(r, 400));
-    const result = await api.updateTranslation(bookLabel, translationItemId, {
+    const { itemId, ...guards } = submittedVersions;
+    const result = await api.updateTranslation(bookLabel, itemId, {
       entries: submitted,
-      ...submittedVersions,
+      ...guards,
     });
     if (translationScopeRef.current === submittedScope && pendingVersions.current === submittedVersions) {
       pendingVersions.current = { ...submittedVersions, baseVersion: result.version };
+      acknowledgedVersions = pendingVersions.current;
+      const pending = pendingEntriesRef.current;
+      if (pending) {
+        // Only our successful transaction may advance this draft's base. The
+        // server can collapse an intentionally edited legacy duplicate group;
+        // reapply successor edits to that exact saved shape, before refetch.
+        const reconciled = rebaseTranslationDraft(submitted, pending, result.entries).value;
+        setPendingEntries(reconciled);
+      }
+      draft.acknowledge(result.entries, result.version);
     }
     await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] });
     await queryClient.invalidateQueries({
@@ -857,12 +900,23 @@ export function LanguageView({
     });
     await minDelay;
     if (translationScopeRef.current === submittedScope) {
-      if (pendingEntriesRef.current === submitted) setPendingEntries(null);
+      const pending = pendingEntriesRef.current;
+      if (pending && pendingVersions.current === acknowledgedVersions) {
+        // Typing and then reverting a successor is also clean. Compare to our
+        // receipt, never to a refetch or a discarded/recreated draft's guards.
+        const remaining = diffById(visibleTranslations(result.entries), visibleTranslations(pending), entry => entry.id, (a, b) => a.text === b.text);
+        if (!remaining.added.length && !remaining.removed.length && !remaining.changed.length) setPendingEntries(null);
+      }
       setSaveError(null);
       setAppliedSuggestionEntryIds(new Set());
     }
     } catch (error) {
       if (translationScopeRef.current === submittedScope) setSaveError(error instanceof Error ? error.message : String(error));
+      if (translationScopeRef.current === submittedScope) {
+        await draft.handleError(error, undefined, () => {
+          if (translationScopeRef.current === submittedScope) pendingVersions.current = recoveredVersions.current;
+        });
+      }
       if (forNavigation) throw error;
     }
     finally {
@@ -876,23 +930,33 @@ export function LanguageView({
       setSaveError(message);
       throw new Error(message);
     }
-  }, [translationItemId, translationScope, bookLabel, queryClient, setPendingEntries, t]);
+  }, [translationItemId, translationScope, bookLabel, queryClient, setPendingEntries, t, draft]);
 
   const saveRef = useRef(saveTranslation);
   saveRef.current = saveTranslation;
 
   const updateEntry = (entryId: string, newText: string) => {
-    if (!pendingEntries) pendingVersions.current = { baseVersion: translationData?.version ?? 0, sourceVersion: catalog?.version ?? 0, sourceSignature: translationSourceSignature ?? "" };
+    if (!pendingEntries) {
+      if (!editState) {
+        setSaveError(t`Saved content is unavailable; your draft is retained`);
+        return;
+      }
+      const { entries: _entries, ...guards } = editState;
+      pendingVersions.current = guards;
+    }
     const base = pendingEntries ?? translatedEntries;
     // If no existing entry for this id, add one
     const exists = base.some((e) => e.id === entryId);
-    if (exists) {
-      setPendingEntries(
-        base.map((e) => (e.id === entryId ? { ...e, text: newText } : e)),
-      );
-    } else {
-      setPendingEntries([...base, { id: entryId, text: newText }]);
-    }
+    const next = exists
+      ? base.map((e) => (e.id === entryId ? { ...e, text: newText } : e))
+      : [...base, { id: entryId, text: newText }];
+    const remaining = diffById(visibleTranslations(translatedEntries), visibleTranslations(next), entry => entry.id, (a, b) => a.text === b.text);
+    // A never-submitted edit reverted to the saved text must release its draft
+    // projection too, so review/refetch can display newer persisted content.
+    // In-flight saves own their successor acknowledgement; conflicts still need
+    // an explicit recovery decision even when the visible text happens to match.
+    const clean = !remaining.added.length && !remaining.removed.length && !remaining.changed.length;
+    setPendingEntries(clean && !savingRef.current && !restoringRef.current && !draft.conflict ? null : next);
   };
 
   const applyReviewSuggestion = (entryId: string, suggestedText: string) => {
@@ -1552,23 +1616,17 @@ export function LanguageView({
         ? ((speechConfig as Record<string, unknown>).default_provider as string)
         : undefined) ?? "openai"
     const defaultVoice = DEFAULT_TTS_VOICE[provider] ?? DEFAULT_TTS_VOICE.openai
-    const configuredOpenAIDefault =
+    const globalDefault =
       typeof merged?.default_speech_generation_model === "string"
         ? merged.default_speech_generation_model
-        : DEFAULT_TTS_MODEL.openai
-    const defaultModel =
-      provider === "openai"
-        ? configuredOpenAIDefault
-        : DEFAULT_TTS_MODEL[provider] ?? configuredOpenAIDefault
+        : undefined
     if (!speechConfig || typeof speechConfig !== "object") {
-      return { provider, voice: defaultVoice, model: defaultModel };
+      return { provider, voice: defaultVoice, model: summarySpeechModel(provider, {}, globalDefault) };
     }
     const sc = speechConfig as Record<string, unknown>
     const voice = (sc.voice as string) ?? defaultVoice
-    const model = (sc.model as string) ?? undefined
-    const providers = sc.providers as Record<string, Record<string, unknown>> | undefined
-    const providerModel = providers?.[provider]?.model as string | undefined
-    return { provider, voice, model: providerModel ?? model ?? defaultModel }
+    const model = summarySpeechModel(provider, sc as Parameters<typeof summarySpeechModel>[1], globalDefault)
+    return { provider, voice, model }
   }, [merged?.default_speech_generation_model, speechConfig])
 
   const headerControls = catalog ? (
@@ -1940,14 +1998,38 @@ export function LanguageView({
                         {t`Highlights words in sync with the audio. Adds noticeable time to speech generation.`}
                       </p>
                     </div>
-                    <Switch
-                      id="word-highlight-landing"
-                      checked={wordHighlightingEnabled}
-                      onCheckedChange={toggleWordHighlighting}
-                      disabled={updateConfig.isPending || isRunning}
-                    />
+                    {(() => {
+                      const toggle = (
+                        <Switch
+                          id="word-highlight-landing"
+                          checked={effectiveWordHighlighting}
+                          onCheckedChange={toggleWordHighlighting}
+                          disabled={
+                            updateConfig.isPending ||
+                            isRunning ||
+                            wordHighlightingUnavailable
+                          }
+                          className={
+                            wordHighlightingUnavailable ? "pointer-events-none" : undefined
+                          }
+                        />
+                      );
+                      // A disabled switch gets no pointer events, so the
+                      // focusable wrapper carries the "why" tooltip instead.
+                      return wordHighlightingUnavailable ? (
+                        <UnavailableHint
+                          hint={t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`}
+                        >
+                          <span tabIndex={0} className="inline-flex rounded-full">
+                            {toggle}
+                          </span>
+                        </UnavailableHint>
+                      ) : (
+                        toggle
+                      );
+                    })()}
                   </div>
-                  <WordHighlightPreview enabled={wordHighlightingEnabled} />
+                  <WordHighlightPreview enabled={effectiveWordHighlighting} />
                 </div>
                 <Link
                   to="/books/$label/$step/settings"
@@ -1984,7 +2066,7 @@ export function LanguageView({
       {headerSlotEl &&
         headerControls &&
         createPortal(headerControls, headerSlotEl)}
-      <div className="flex flex-col h-full">
+      <div className="flex min-w-0 flex-col h-full">
         {/* Fixed header: alerts, language tabs, column headers */}
         <div className="shrink-0 px-4 pt-4 space-y-3">
           {isSpeechStage && hasStageError && runError && (
@@ -2340,7 +2422,7 @@ export function LanguageView({
               </div>
             )}
 
-          {saveError && <p role="alert" className="text-xs text-red-700">{saveError}</p>}
+          <DraftConflict error={draft.error ?? saveError} paths={draft.conflict?.paths} onResolve={draft.resolve} />
           {!isSourceLang && !isSpeechStage && evaluationStatus?.isStale && (
             <div
               role="status"

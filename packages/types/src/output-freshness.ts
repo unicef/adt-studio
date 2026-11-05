@@ -142,6 +142,14 @@ export const BookWriterOwner = z.object({
   token: z.string().uuid(),
   pid: z.number().int().positive(),
   host: z.string().min(1),
+  // Optional so leases written by older builds remain readable. This is
+  // process ownership evidence, never content authorship or freshness.
+  linuxProcess: z.object({
+    bootId: z.string().uuid(),
+    pidNamespace: z.string().regex(/^pid:\[\d+\]$/),
+    startTicks: z.string().regex(/^\d+$/),
+    dockerContainerId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  }).strict().optional(),
 }).strict()
 export type BookWriterOwner = z.infer<typeof BookWriterOwner>
 

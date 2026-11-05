@@ -123,6 +123,18 @@ vi.mock("./EditableActivityPanel", () => ({
   EditableActivityPanel: () => null,
 }))
 vi.mock("./ClassicActivityPanel", () => ({ ClassicActivityPanel: () => null }))
+vi.mock("@tanstack/react-router", async () => ({
+  ...(await vi.importActual<object>("@tanstack/react-router")),
+  useSearch: () => ({}),
+}))
+vi.mock("./feedback/StoryboardFeedbackOverlay", () => ({
+  StoryboardFeedbackOverlay: () => null,
+  useSectionFeedbackCount: () => 0,
+}))
+vi.mock("./feedback/use-comments-mode", () => ({
+  REQUEST_TTL_MS: 1000,
+  useCommentsMode: () => ({ on: false, setOn: () => {}, request: null, open: () => {}, consume: () => {} }),
+}))
 vi.mock("./ImageCropDialog", () => ({
   ImageCropDialog: () => null,
   pageBoundsToCropRect: vi.fn(),
@@ -247,11 +259,12 @@ it.each([false, true])("preserves successor source and inspector drafts after an
     state.panel.onStructuralChange?.()
     state.style.onClassesChange("keep", ["text-red-600"])
   })
-  await act(async () => { acknowledge({}); await new Promise((resolve) => setTimeout(resolve, 450)) })
+  await act(async () => { acknowledge({ sectioningVersion: 2, renderingVersion: 2 }); await new Promise((resolve) => setTimeout(resolve, 450)) })
   expect(state.panel.section.nodes).toContainEqual(expect.objectContaining({ nodeId: "keep", text: "Second source draft" }))
   fireEvent.click(screen.getByRole("button", { name: "Save", exact: true }))
   await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2))
   const payload = state.save.mock.calls[1][2]
+  expect(payload.baseVersion).toBe(2)
   expect(payload.sectioning.sections[0].nodes).toContainEqual(expect.objectContaining({ nodeId: "keep", text: "Second source draft" }))
   const doc = new DOMParser().parseFromString(payload.rendering.sections[0].html, "text/html")
   expect(doc.querySelector('[data-id="keep"]')?.className).toBe("text-red-600")

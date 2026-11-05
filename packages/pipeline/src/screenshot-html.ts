@@ -85,7 +85,7 @@ export async function buildScreenshotHtml(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="${escapeAttr(screenshotContentSecurityPolicy(baseHref))}" />
+  <meta http-equiv="Content-Security-Policy" content="${baseHref ? escapeAttr(importedPresentationContentSecurityPolicy(baseHref)) : SCREENSHOT_CONTENT_SECURITY_POLICY}" />
   ${baseHref ? `<base href="${escapeAttr(baseHref)}" />` : ""}
   <style>${tailwindCss}</style>
   <style>${fontCss}</style>
@@ -235,29 +235,33 @@ const fitbHydrationScriptHash = createHash("sha256")
   .update(FITB_HYDRATION_SCRIPT_CONTENT)
   .digest("base64")
 
-/**
- * The screenshot page's resource policy. An imported ADT renders against its
- * own published stylesheets, so its `baseHref` origin (the local API) is the
- * one extra source allowed for styles, fonts, images and `<base>`; scripts stay
- * limited to the FITB hydration hash either way.
- */
-export function screenshotContentSecurityPolicy(baseHref?: string): string {
-  const assetOrigin = baseHref ? ` ${new URL(baseHref).origin}` : ""
-  return [
-    "default-src 'none'",
-    `img-src data:${assetOrigin}`,
-    `font-src data:${assetOrigin}`,
-    `style-src 'unsafe-inline'${assetOrigin}`,
-    `script-src 'sha256-${fitbHydrationScriptHash}'`,
-    "connect-src 'none'",
-    "object-src 'none'",
-    "frame-src 'none'",
-    assetOrigin ? `base-uri${assetOrigin}` : "base-uri 'none'",
-    "form-action 'none'",
-  ].join("; ")
-}
+export const SCREENSHOT_CONTENT_SECURITY_POLICY = [
+  "default-src 'none'",
+  "img-src data:",
+  "font-src data:",
+  "style-src 'unsafe-inline'",
+  `script-src 'sha256-${fitbHydrationScriptHash}'`,
+  "connect-src 'none'",
+  "object-src 'none'",
+  "frame-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+].join("; ")
 
-export const SCREENSHOT_CONTENT_SECURITY_POLICY = screenshotContentSecurityPolicy()
+/**
+ * An imported ADT renders against its own published stylesheets, so its
+ * `baseHref` origin (the local API) is the one extra source allowed for styles,
+ * fonts, images and `<base>`; scripts stay limited to the FITB hydration hash.
+ * Every other screenshot uses SCREENSHOT_CONTENT_SECURITY_POLICY unchanged.
+ */
+export function importedPresentationContentSecurityPolicy(baseHref: string): string {
+  const origin = new URL(baseHref).origin
+  return SCREENSHOT_CONTENT_SECURITY_POLICY
+    .replace("img-src data:", `img-src data: ${origin}`)
+    .replace("font-src data:", `font-src data: ${origin}`)
+    .replace("style-src 'unsafe-inline'", `style-src 'unsafe-inline' ${origin}`)
+    .replace("base-uri 'none'", `base-uri ${origin}`)
+}
 
 function escapeAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;")

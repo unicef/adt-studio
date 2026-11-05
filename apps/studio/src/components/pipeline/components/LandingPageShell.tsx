@@ -1,4 +1,5 @@
-import { useState, type CSSProperties, type ReactNode } from "react"
+import { type RunStagesOptions } from "@/api/client"
+import { useState, type ComponentProps, type CSSProperties, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { Play, Loader2, Settings, X } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
@@ -15,14 +16,20 @@ import { PreviewShell } from "@/components/wizard/shared/PreviewShell"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
 import { BOOK_LEVEL_STAGES, type StageName } from "@adt/types"
 import { PartialMergeNotice } from "@/components/parts/PartialMergeNotice"
-import { getStageLabelI18n } from "../pipeline-i18n"
-import { CascadeResetDialog } from "./CascadeResetDialog"
+import { useStageRunConfirmation } from "./use-stage-run-confirmation"
 import { RunWarningDialog } from "./RunWarningDialog"
 import { MissingKeyNotice } from "./MissingKeyNotice"
 
-export function LandingPageShell({
+export function LandingPageShell(props: ComponentProps<typeof LandingPageContent>) {
+  // Consent belongs to one book and stage. Remount its entire lifecycle on a
+  // scope change, including history jumps and returning to a previous scope.
+  return <LandingPageContent key={JSON.stringify([props.bookLabel, props.stageSlug, props.confirmationStageSlug])} {...props} />
+}
+
+function LandingPageContent({
   bookLabel,
   stageSlug,
+  confirmationStageSlug = stageSlug,
   settingsTab = "general",
   colorClass,
   accentColor,
@@ -49,6 +56,8 @@ export function LandingPageShell({
 }: {
   bookLabel: string
   stageSlug: string
+  /** A combined run may include protected Sectioning before the visible stage. */
+  confirmationStageSlug?: string
   settingsTab?: string
   colorClass: string
   accentColor?: string
@@ -66,7 +75,7 @@ export function LandingPageShell({
   rerunLabel: ReactNode
   previewLabel: string
   previewBodyClassName?: string
-  onRun: () => void
+  onRun: (options?: Pick<RunStagesOptions, "replaceManual" | "protectedReplacements">) => void
   preview: ReactNode
   /**
    * When set, pressing Run first shows an advisory warning modal (e.g. the
@@ -79,11 +88,17 @@ export function LandingPageShell({
   hideFooter?: boolean
   children: ReactNode
 }) {
-  const [confirmOpen, setConfirmOpen] = useState(false)
   const [warnOpen, setWarnOpen] = useState(false)
   const downstreamAffected = useDownstreamWithOutput(stageSlug)
-  const needsConfirmation = isCompleted && downstreamAffected.length > 0
   const { isCancelling, cancelRun } = useBookRun()
+  const available = !isRunning && canRun && !extraDisabled
+  const confirmation = useStageRunConfirmation({
+    bookLabel, stage: confirmationStageSlug, available,
+    affectedStages: downstreamAffected,
+    confirmDownstream: isCompleted && downstreamAffected.length > 0,
+    confirmLabel: rerunLabel,
+    colorClass: hasError ? errorColorClass : colorClass,
+  })
 
   const accentStyle: CSSProperties = {}
   if (accentColor) {
@@ -94,20 +109,18 @@ export function LandingPageShell({
     ;(accentStyle as Record<string, string>)["--accent-color-soft"] =
       accentColorSoft
   }
-  const isDisabled = isRunning || !canRun || extraDisabled
+  const isDisabled = !available || !!confirmation.disabledReason
   const showTooltip = isDisabled && !isRunning && !!disabledReason
 
   // Run gates, applied outermost-first: fixed-layout (or other) warning, then
   // the cascade-reset confirmation, then the run itself.
   const proceedRun = () => {
-    if (needsConfirmation) {
-      setConfirmOpen(true)
-    } else {
-      onRun()
-    }
+    if (isDisabled) return
+    void confirmation.requestRun(options => onRun(options))
   }
 
   const handleRunClick = () => {
+    if (isDisabled) return
     if (runWarning) {
       setWarnOpen(true)
     } else {
@@ -116,16 +129,10 @@ export function LandingPageShell({
   }
 
   const handleWarnConfirm = () => {
+    if (!warnOpen) return
     setWarnOpen(false)
     proceedRun()
   }
-
-  const handleConfirm = () => {
-    setConfirmOpen(false)
-    onRun()
-  }
-
-  const stageLabel = getStageLabelI18n(stageSlug)
 
   const runButton = isRunning ? (
     <Button
@@ -176,6 +183,7 @@ export function LandingPageShell({
           )}
           {requiresProvider && <MissingKeyNotice bookLabel={bookLabel} />}
           {children}
+          {confirmation.notice}
         </div>
 
         {!hideFooter && (
@@ -232,21 +240,7 @@ export function LandingPageShell({
         </div>
       </main>
 
-      <CascadeResetDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        affectedStages={downstreamAffected}
-        headerStageSlug={stageSlug}
-        title={<Trans>Re-run {stageLabel}?</Trans>}
-        description={
-          <Trans>
-            Review the affected stages after this change.
-          </Trans>
-        }
-        confirmLabel={rerunLabel}
-        confirmColorClass={hasError ? errorColorClass : colorClass}
-        onConfirm={handleConfirm}
-      />
+      {confirmation.dialog}
 
       {runWarning && (
         <RunWarningDialog

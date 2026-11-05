@@ -7,7 +7,7 @@ import {
   buildScreenshotHtml,
   FITB_HYDRATION_SCRIPT,
   SCREENSHOT_CONTENT_SECURITY_POLICY,
-  screenshotContentSecurityPolicy,
+  importedPresentationContentSecurityPolicy,
 } from "../screenshot-html.js"
 
 function createWebAssets(webAssetsDir: string): void {
@@ -102,9 +102,9 @@ describe("buildScreenshotHtml", () => {
     expect(html).toContain('src="data:image/jpeg;base64,YWJjMTIz"')
     expect(html).not.toContain("adt-recovery-temp")
     expect(html).toContain(
-      `<meta http-equiv="Content-Security-Policy" content="${screenshotContentSecurityPolicy("http://127.0.0.1:3001/api/books/final-book/adt/")}" />`,
+      `<meta http-equiv="Content-Security-Policy" content="${importedPresentationContentSecurityPolicy("http://127.0.0.1:3001/api/books/final-book/adt/")}" />`,
     )
-    expect(screenshotContentSecurityPolicy("http://127.0.0.1:3001/api/books/final-book/adt/"))
+    expect(importedPresentationContentSecurityPolicy("http://127.0.0.1:3001/api/books/final-book/adt/"))
       .toContain("style-src 'unsafe-inline' http://127.0.0.1:3001")
   })
 

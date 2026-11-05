@@ -15,7 +15,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useWordHighlightingUnavailable } from "@/hooks/use-api-key"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "./components/SpeechPreview"
@@ -45,7 +45,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasTranscriber, isAvailable } = useApiKey()
+  const { apiKey, isAvailable } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("speech")
   const translateStatus = useStageStatus("translate")
@@ -53,6 +53,9 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const [wordHighlighting, setWordHighlighting] = useState(false)
   const [provider, setProvider] = useState<ProviderKey>("openai")
+  // Without an OpenAI key (Whisper) per-word highlighting is shown as unavailable.
+  const wordHighlightingUnavailable = useWordHighlightingUnavailable()
+  const effectiveWordHighlighting = wordHighlighting && !wordHighlightingUnavailable
 
   const providerAvailable = (providerId: ProviderKey) =>
     // eslint-disable-next-line lingui/no-unlocalized-strings -- qualified model identifier, never rendered
@@ -94,7 +97,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!providerAvailable(provider) || (wordHighlighting && !hasTranscriber) || !translateReady || status.isRunning) return
+    if (!providerAvailable(provider) || !translateReady || status.isRunning) return
     queueRun({ fromStage: "speech", toStage: "speech", apiKey, viewAfter: true })
   }
 
@@ -145,7 +148,6 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const selectedProviderKeyMissing = !providerKeyAvailable[provider]
-  const highlightingKeyMissing = wordHighlighting && !hasTranscriber
 
   const disabledProviderLabels = useMemo(
     () =>
@@ -167,15 +169,18 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const highlightingOptions = useMemo(
     () => [
       { value: "sentence" as const, label: t`Per-Sentence` },
-      { value: "word" as const, label: t`Per-Word` },
+      {
+        value: "word" as const,
+        label: t`Per-Word`,
+        disabled: wordHighlightingUnavailable,
+        disabledHint: t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`,
+      },
     ],
-    [t],
+    [t, wordHighlightingUnavailable],
   )
 
   const disabledReason = selectedProviderKeyMissing ? (
     <Trans>Add the selected provider's API key in Settings → AI providers to run speech.</Trans>
-  ) : highlightingKeyMissing ? (
-    <Trans>Add an OpenAI API key to generate per-word highlighting.</Trans>
   ) : !translateReady ? (
     <Trans>Run Language first — speech narrates the translated text.</Trans>
   ) : undefined
@@ -192,13 +197,13 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={selectedProviderKeyMissing || highlightingKeyMissing || !translateReady}
+      extraDisabled={selectedProviderKeyMissing || !translateReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Speech</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
       previewLabel={t`Speech Preview`}
       onRun={handleRun}
-      preview={<SpeechPreview wordHighlighting={wordHighlighting} />}
+      preview={<SpeechPreview wordHighlighting={effectiveWordHighlighting} />}
     >
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
@@ -274,7 +279,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         <SettingsField
           label={<Trans>Reader Highlighting</Trans>}
           hint={
-            wordHighlighting ? (
+            effectiveWordHighlighting ? (
               <Trans>
                 Highlights each word as it's narrated. Adds a transcription
                 step so audio aligns with text on the page.
@@ -289,7 +294,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         >
           <SegmentedControl
             options={highlightingOptions}
-            value={wordHighlighting ? "word" : "sentence"}
+            value={effectiveWordHighlighting ? "word" : "sentence"}
             onValueChange={(value) =>
               handleHighlightingToggle(value === "word")
             }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   hasSpeechProviderCredentials,
+  bookSpeechProviders,
   languageUsesSpeechProvider,
   resolveLocaleMapping,
   resolveSpeechProviderForLanguage,
@@ -130,5 +131,30 @@ describe("resolveLocaleMapping", () => {
       value: "d",
       source: "default",
     })
+  })
+})
+
+describe("bookSpeechProviders", () => {
+  it("routes the configured editing language plus every output language", () => {
+    expect(
+      bookSpeechProviders(
+        {
+          editing_language: "es",
+          output_languages: ["fr", "fr"],
+          speech: { default_provider: "openai", providers: { azure: { languages: ["es"] } } },
+        },
+        "en",
+      ).sort(),
+    ).toEqual(["azure", "openai"])
+  })
+
+  it("falls back to the book's language, then English, for the editing language", () => {
+    const speech = { default_provider: "openai", providers: { gemini: { languages: ["hi"] } } }
+    expect(bookSpeechProviders({ speech }, "hi")).toEqual(["gemini"])
+    expect(bookSpeechProviders({ speech }, null)).toEqual(["openai"])
+  })
+
+  it("defaults to OpenAI without any speech config", () => {
+    expect(bookSpeechProviders(undefined, null)).toEqual(["openai"])
   })
 })

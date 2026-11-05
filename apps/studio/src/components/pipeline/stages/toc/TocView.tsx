@@ -1,3 +1,7 @@
+import { AuthorshipBadge } from "../../components/AuthorshipBadge"
+import { rebaseTocDraft } from "@/lib/rebase-toc-draft"
+import { useGuardedDraft } from "@/hooks/use-guarded-draft"
+import { DraftConflict } from "../../components/DraftConflict"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
 import { ChevronDown, ChevronRight, ChevronLeft, ExternalLink, List, Plus, Search, Trash2, X } from "lucide-react"
@@ -133,7 +137,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const tocState = stageState("toc")
-  const tocDone = tocState === "done"
+  const tocDone = tocState === "done" || !!data
   const tocRunning = tocState === "running" || tocState === "queued"
   const hasRetainedToc = !!data?.entries.length
   const showRunCard = (!tocDone && !hasRetainedToc) || tocRunning
@@ -150,8 +154,16 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   }, [hasStructuredTextProvider, tocRunning, apiKey, queueRun])
 
   const { restoring, restoringRef, onRestoringChange, isCurrent } = useVersionRestoreBusy(bookLabel)
-  const [pending, setPendingState] = useState<TocData | null>(null)
-  const setPending = useCallback((next: TocData | null) => { if (!restoringRef.current) setPendingState(next) }, [])
+  const draft = useGuardedDraft<TocData>(data, data?.version, async () => {
+    const latest = await api.getToc(bookLabel)
+    if (!latest) throw new Error(t`Saved content is unavailable; your draft is retained`)
+    queryClient.setQueryData(["books", bookLabel, "toc"], latest)
+    return { value: latest, version: latest.version ?? 0 }
+  }, rebaseTocDraft)
+  const ambiguousDocument = !!data && (data.entries.some((entry) => !entry.id) || new Set(data.entries.map((entry) => entry.id)).size !== data.entries.length)
+  const { pending } = draft
+  const setPending = useCallback((next: TocData | null) => { if (!restoringRef.current) draft.setPending(next) }, [draft.setPending])
+  const wholeDocumentConflict = draft.conflict?.paths.includes("/entries") ?? false
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -192,23 +204,25 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
 
   const saveToc = useCallback(async () => {
     if (savingRef.current || restoringRef.current) throw new Error(t`Please wait for the current operation to finish`)
+    if (draft.conflict) throw new Error(t`Resolve conflicting edits before saving`)
     if (!pending) return
     savingRef.current = true
     setSaving(true)
     setSaveError(null)
     const minDelay = new Promise((r) => setTimeout(r, 400))
     try {
-      await api.updateToc(bookLabel, pending)
+      await api.updateToc(bookLabel, { ...pending, baseVersion: draft.baseVersion })
       if (isCurrent()) setPending(null)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "toc"] })
     } catch (error) {
       if (isCurrent()) setSaveError(error instanceof Error ? error.message : t`Save failed`)
+      if (isCurrent()) await draft.handleError(error)
       throw error
     } finally {
       await minDelay
       if (isCurrent()) { savingRef.current = false; setSaving(false) }
     }
-  }, [pending, bookLabel, queryClient, isCurrent, t])
+  }, [pending, bookLabel, queryClient, isCurrent, t, draft])
 
   const saveRef = useRef(saveToc)
   saveRef.current = saveToc
@@ -339,7 +353,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
 
   return (
     <EditorBusyBoundary busy={restoring || saving}>
-    {saveError && <p role="alert" className="p-3 text-xs text-destructive">{saveError}</p>}
+    {saveError && !draft.error && <p role="alert" className="p-3 text-xs text-destructive">{saveError}</p>}
     <StageContentGuard
       stageSlug="toc"
       isLoading={!showRunCard && isLoading}
@@ -355,8 +369,16 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
         />
       }
     >
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      {ambiguousDocument && <p role="alert" className="m-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{t`This table of contents has conflicting chapter identities. Restore an earlier version before editing.`}</p>}
+      <DraftConflict error={draft.error} paths={draft.conflict?.paths} onResolve={draft.resolve} wholeDocument={wholeDocumentConflict} />
+
+      <fieldset disabled={saving || restoring || wholeDocumentConflict || ambiguousDocument} className="flex min-w-0 flex-1 flex-col overflow-y-auto border-0 p-0">
         <TocHintBanner />
+        {data && data.source !== "ai" && (
+          <div className="flex items-center px-4 pt-3">
+            <AuthorshipBadge source={data.source} />
+          </div>
+        )}
         <div
           className="sticky top-0 z-20 flex items-center gap-3 px-6 py-3 bg-background/95 backdrop-blur-md border-b border-border/60"
           style={{ height: TOOLBAR_HEIGHT }}
@@ -475,7 +497,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
             ))
           )}
         </div>
-      </div>
+      </fieldset>
     </StageContentGuard>
     </EditorBusyBoundary>
   )

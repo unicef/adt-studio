@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
-import { catalogOutputs, editSourceSignature } from "../services/catalog-output-service.js"
 import { TextCatalogOutput } from "@adt/types"
 import { createTextCatalogRoutes } from "./text-catalog.js"
 
@@ -156,9 +155,7 @@ describe("text catalog routes", () => {
     seeded.markStepCompleted("accessibility-assessment")
     seeded.close()
     const app = createTextCatalogRoutes(tmpDir)
-    const guardStore = createBookStorage(label, tmpDir)
-    const sourceSignature = editSourceSignature(catalogOutputs(guardStore, label, tmpDir, path.resolve("prompts")), "translation", "es")
-    guardStore.close()
+    const sourceSignature = (await (await app.request(`/books/${label}/text-catalog`)).json()).translationSourceSignatures.es
 
     const res = await app.request(`/books/${label}/text-catalog-translation/es`, {
       method: "PUT",
@@ -473,4 +470,94 @@ describe("independent speech-entry saves in one versioned language catalog", () 
     expect(storage.getLatestNodeData("core-tts-catalog", "pt-BR")?.version).toBe(2)
     storage.close()
   })
+})
+
+// Read the public receipt; alias namespaces have independent version histories.
+// Identical numeric versions must never authorize an edit of a different row.
+it.each([false, true])("rejects a legacy translation receipt after an equally versioned canonical row appears (empty=%s)", async empty => {
+  const label = "translation-alias-race"
+  seedRenderedBook(label)
+  fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, pt-BR]\n")
+  const legacy = { entries: [{ id: "pg001_t001", text: "Legacy", source: "manual" }], generatedAt: "2026-11-01" }
+  const canonical = { entries: empty ? [] : [{ id: "pg001_t001", text: "Canonical", source: "manual" }], generatedAt: "2026-11-01" }
+  let storage = createBookStorage(label, tmpDir)
+  storage.putNodeData("text-catalog-translation", "pt_BR", legacy)
+  storage.close()
+  const app = createTextCatalogRoutes(tmpDir)
+  const before = await (await app.request(`/books/${label}/text-catalog`)).json()
+  storage = createBookStorage(label, tmpDir)
+  storage.putNodeData("text-catalog-translation", "pt-BR", canonical)
+  storage.close()
+  const res = await app.request(`/books/${label}/text-catalog-translation/pt_BR`, {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entries: [{ id: "pg001_t001", text: "Stale legacy draft" }], baseVersion: 1, sourceVersion: before.version, sourceSignature: before.translations.pt_BR.sourceSignature }),
+  })
+  expect(res.status).toBe(409)
+  const after = await (await app.request(`/books/${label}/text-catalog`)).json()
+  expect(after.translations["pt-BR"]).toMatchObject({ entries: canonical.entries, version: 1 })
+  expect(after.translations.pt_BR).toEqual(before.translations.pt_BR)
+  expect(after.translations["pt-BR"].sourceSignature).not.toBe(before.translations.pt_BR.sourceSignature)
+  storage = createBookStorage(label, tmpDir)
+  expect(storage.getAllNodeVersions("text-catalog-translation", "pt-BR")).toHaveLength(1)
+  storage.close()
+})
+
+it.each([null, { entries: "invalid" }, { entries: [{ id: "pg001_t001", text: null }] }])("reports an unreadable current canonical translation as present and rejects overwriting it: %j", async bad => {
+  const label = "translation-unreadable"
+  seedRenderedBook(label)
+  fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, pt-BR]\n")
+  const storage = createBookStorage(label, tmpDir)
+  storage.putNodeData("text-catalog-translation", "pt_BR", { entries: [{ id: "pg001_t001", text: "Legacy" }], generatedAt: "2026-11-01" })
+  storage.putNodeData("text-catalog-translation", "pt-BR", bad)
+  storage.close()
+  const app = createTextCatalogRoutes(tmpDir)
+  const catalog = await (await app.request(`/books/${label}/text-catalog`)).json()
+  expect(catalog.unavailableTranslations).toEqual(["pt-BR"])
+  expect(catalog.translations["pt-BR"]).toBeUndefined()
+  expect(catalog.translations.pt_BR.entries).toEqual([{ id: "pg001_t001", text: "Legacy" }])
+  const res = await app.request(`/books/${label}/text-catalog-translation/pt-BR`, {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entries: [{ id: "pg001_t001", text: "Replacement" }], baseVersion: 1, sourceVersion: catalog.version, sourceSignature: catalog.translationSourceSignatures["pt-BR"] }),
+  })
+  expect(res.status).toBe(409)
+  const verify = createBookStorage(label, tmpDir)
+  expect(verify.getLatestNodeData("text-catalog-translation", "pt-BR")?.data).toEqual(bad)
+  expect(verify.getAllNodeVersions("text-catalog-translation", "pt-BR")).toHaveLength(1)
+  verify.close()
+})
+
+it("returns its exact normalized transaction snapshot without borrowing a subsequent writer's version", async () => {
+  const label = "normalized-save-response"
+  seedRenderedBook(label)
+  fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, fr, es]\n")
+  const storage = createBookStorage(label, tmpDir)
+  const original = { generatedAt: "2026-11-01", entries: [{ id: "pg001_t001", text: "Visible", source: "ai" }, { id: "retired", text: "First retired", source: "manual" }, { id: "pg001_t001", text: "Hidden", source: "manual" }, { id: "retired", text: "Second retired" }] }
+  storage.putNodeData("text-catalog-translation", "fr", original)
+  storage.putNodeData("text-catalog-translation", "es", { ...original, entries: [{ id: "pg001_t001", text: "Vecino", source: "manual" }] })
+  const neighbor = storage.getAllNodeVersions("text-catalog-translation", "es")
+  const transport = vi.spyOn(globalThis, "fetch").mockImplementation(async () => { throw new Error("Save must not call a provider") })
+  try {
+    const app = createTextCatalogRoutes(tmpDir)
+    const read = await (await app.request(`/books/${label}/text-catalog`)).json()
+    const put = (entries: unknown, version: number) => app.request(`/books/${label}/text-catalog-translation/fr`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entries, baseVersion: version, sourceVersion: read.version, sourceSignature: read.translations.fr.sourceSignature }) })
+    const result = await put(original.entries.map(({ id, text }) => ({ id, text: id === "pg001_t001" ? "Submitted" : text })), 1)
+    expect(result.status).toBe(200)
+    const saved = await result.json()
+    const current = storage.getLatestNodeData("text-catalog-translation", "fr")!
+    expect(saved).toEqual({ version: 2, entries: (current.data as { entries: unknown[] }).entries })
+    expect(saved.entries.map((entry: { id: string }) => entry.id)).toEqual(["pg001_t001", "retired", "retired"])
+    expect(saved.entries.slice(1)).toEqual([original.entries[1], original.entries[3]])
+    expect(saved.entries[0]).toMatchObject({ text: "Submitted", source: "manual" })
+    // A normalized successor is accepted; a later stale receipt is still refused.
+    const successor = await put(saved.entries.map(({ id, text }: { id: string; text: string }) => ({ id, text: id === "pg001_t001" ? "Successor" : text })), saved.version)
+    expect(successor.status).toBe(200)
+    expect((await successor.json()).version).toBe(3)
+    const beforeRejection = storage.getAllNodeVersions("text-catalog-translation", "fr")
+    expect((await put([{ id: "pg001_t001", text: "Stale" }], saved.version)).status).toBe(409)
+    expect(storage.getAllNodeVersions("text-catalog-translation", "fr")).toEqual(beforeRejection)
+    expect(beforeRejection.find(row => row.version === 1)?.data).toEqual(original)
+    expect(beforeRejection.find(row => row.version === saved.version)?.data).toMatchObject({ entries: saved.entries })
+    expect(storage.getAllNodeVersions("text-catalog-translation", "es")).toEqual(neighbor)
+    expect(transport).not.toHaveBeenCalled()
+  } finally { transport.mockRestore(); storage.close() }
 })

@@ -3,8 +3,8 @@ import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
-import { msg } from "@lingui/core/macro"
-import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCircle, Loader2, Monitor, Puzzle } from "lucide-react"
+import { msg, plural } from "@lingui/core/macro"
+import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCircle, Loader2, MessageSquare, Monitor, Puzzle } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
@@ -14,6 +14,8 @@ import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection 
 import { STAGES } from "../stage-config"
 import type { Quiz } from "@adt/types"
 import { parseQuizRouteId } from "@/lib/quiz-route"
+import { useBookComments } from "../stages/storyboard/components/feedback/use-book-comments"
+import { useCommentsMode } from "../stages/storyboard/components/feedback/use-comments-mode"
 
 /**
  * Sidebar list shown only on the storyboard stage. Lists every section
@@ -40,6 +42,11 @@ export function StoryboardIndex({
   const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
   const storyboardStageDef = STAGES.find((s) => s.slug === "storyboard")
+  const bookComments = useBookComments(bookLabel)
+  /** Comments mode, shared with the toolbar's Comments button: the list shows only the sections
+   *  readers commented on while the page shows their pins. */
+  const commentsMode = useCommentsMode(bookLabel)
+  const filtering = commentsMode.on && bookComments.total > 0
 
   const items = useMemo<StoryboardListItem[]>(() => {
     if (!pages) return []
@@ -54,13 +61,14 @@ export function StoryboardIndex({
     const out: StoryboardListItem[] = []
     for (const page of pages) {
       for (const section of page.sections) {
+        if (filtering && !bookComments.bySection.has(section.sectionId)) continue
         out.push({
           kind: "section",
           page,
           section,
         })
       }
-      const quizzes = quizzesByAfterPageId.get(page.pageId)
+      const quizzes = filtering ? undefined : quizzesByAfterPageId.get(page.pageId)
       if (quizzes) {
         for (const { quiz, quizId } of quizzes) {
           out.push({ kind: "quiz", page, quiz, quizId })
@@ -68,7 +76,7 @@ export function StoryboardIndex({
       }
     }
     return out
-  }, [pages, quizzesData])
+  }, [pages, quizzesData, filtering, bookComments.bySection])
 
   const selectedItemIndex = useMemo(() => {
     if (!selectedPageId || sectionIndex == null) return -1
@@ -129,7 +137,23 @@ export function StoryboardIndex({
     )
   }
 
+  /** From the filtered list a click goes to the section the ordinary way — unsaved-changes check
+   *  and all — and asks that section to open its newest waiting comment. */
+  const openComments = (pageId: string, sectionIndex: number) => {
+    const entry = bookComments.bySection.get(pages?.find((page) => page.pageId === pageId)?.sections.find((section) => section.sectionIndex === sectionIndex)?.sectionId ?? "")
+    if (entry) commentsMode.open(entry.latestThreadId, entry.sectionId)
+    onSelectSection?.(pageId, sectionIndex)
+  }
+
   return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {bookComments.total > 0 ? (
+        <CommentsFilter
+          total={bookComments.total}
+          on={commentsMode.on}
+          onChange={commentsMode.setOn}
+        />
+      ) : null}
     <div ref={parentRef} className="flex-1 overflow-y-auto">
       <div
         style={{
@@ -171,10 +195,13 @@ export function StoryboardIndex({
                   activeColor={storyboardStageDef?.bgLight}
                   activeText={storyboardStageDef?.textColor}
                   onSelect={() =>
-                    onSelectSection?.(item.page.pageId, item.section.sectionIndex)
+                    filtering
+                      ? openComments(item.page.pageId, item.section.sectionIndex)
+                      : onSelectSection?.(item.page.pageId, item.section.sectionIndex)
                   }
                   stageRunning={stageRunning}
                   hasSourcePdf={book?.hasSourcePdf ?? false}
+                  waiting={bookComments.bySection.get(item.section.sectionId)?.waiting ?? 0}
                 />
               ) : (
                 <QuizRow
@@ -188,6 +215,56 @@ export function StoryboardIndex({
             </div>
           )
         })}
+      </div>
+    </div>
+    </div>
+  )
+}
+
+/**
+ * "All pages · Comments": one switch between the whole book and only the sections readers
+ * commented on, with how much is waiting. Shown only while there is something to find.
+ */
+function CommentsFilter({
+  total,
+  on,
+  onChange,
+}: {
+  total: number
+  on: boolean
+  onChange: (on: boolean) => void
+}) {
+  const { i18n } = useLingui()
+  return (
+    <div className="shrink-0 border-b px-2 py-1.5">
+      <div role="group" aria-label={i18n._(msg`Which pages`)} className="flex gap-0.5 rounded-lg bg-muted/70 p-0.5 text-[11px]">
+        <button
+          type="button"
+          aria-pressed={!on}
+          onClick={() => onChange(false)}
+          className={cn(
+            "flex-1 whitespace-nowrap rounded-md px-2 py-1 font-medium transition-colors duration-150 motion-reduce:transition-none",
+            !on ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Trans>All pages</Trans>
+        </button>
+        <button
+          type="button"
+          aria-pressed={on}
+          onClick={() => onChange(true)}
+          title={plural(total, { one: "# comment waiting", other: "# comments waiting" })}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 font-medium transition-colors duration-150 motion-reduce:transition-none",
+            on ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <MessageSquare className="size-3" aria-hidden="true" />
+          <Trans>Comments</Trans>
+          <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-semibold tabular-nums text-amber-800 dark:bg-amber-500/20 dark:text-amber-200">
+            {total}
+          </span>
+        </button>
       </div>
     </div>
   )
@@ -209,6 +286,7 @@ function SectionRow({
   onSelect,
   stageRunning,
   hasSourcePdf,
+  waiting = 0,
 }: {
   bookLabel: string
   page: PageSummaryItem
@@ -219,6 +297,8 @@ function SectionRow({
   onSelect: () => void
   stageRunning?: boolean
   hasSourcePdf: boolean
+  /** Reader comments waiting on this section. */
+  waiting?: number
 }) {
   const { i18n } = useLingui()
   const { data: pageImageData, isLoading: pageImageLoading } = usePageImage(bookLabel, page.pageId)
@@ -297,6 +377,15 @@ function SectionRow({
         {section.isActivity && (
           <div className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-violet-600 text-white ring-1 ring-background shadow-sm">
             <Puzzle className="w-2.5 h-2.5" />
+          </div>
+        )}
+        {waiting > 0 && (
+          <div
+            aria-label={plural(waiting, { one: "# comment waiting", other: "# comments waiting" })}
+            className="absolute -bottom-1 -right-1 flex h-4 min-w-4 items-center gap-0.5 rounded-full bg-amber-500 px-1 text-[9px] font-bold tabular-nums text-white ring-2 ring-background shadow-sm motion-safe:animate-in motion-safe:zoom-in-50"
+          >
+            <MessageSquare className="size-2.5" aria-hidden="true" />
+            {waiting}
           </div>
         )}
       </div>
