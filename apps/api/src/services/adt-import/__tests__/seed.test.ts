@@ -281,7 +281,11 @@ describe("ADT recovery workspace", () => {
     expect(ensureImportedAdtProjectProjection(session.label, booksDir)).toBe(false)
     expect(fs.readFileSync(path.join(revisionDir, "source.zip"))).toEqual(source)
     expect(JSON.parse(fs.readFileSync(path.join(bookDir, ".adt-import-current.json"), "utf8")))
-      .toMatchObject({ projectionVersion: ADT_IMPORT_PROJECTION_VERSION })
+      .toMatchObject({
+        projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
+        // A later upgrade replays only while these are still current.
+        projectedVersions: expect.objectContaining({ "web-rendering/pg001": expect.any(Number) }),
+      })
 
     // `packageAdtWeb` rebuilds `adt/` before presentation restore runs.
     fs.mkdirSync(path.join(bookDir, "adt"), { recursive: true })

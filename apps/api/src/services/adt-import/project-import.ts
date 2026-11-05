@@ -15,7 +15,7 @@ import {
 } from "./bundle-reader.js"
 import { assessAdtImportCompatibility } from "./compatibility.js"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./marker.js"
-import { ADT_IMPORT_PROJECTION_VERSION } from "./projection.js"
+import { ADT_IMPORT_PROJECTION_VERSION, readReplayedNodeVersions } from "./projection.js"
 import { seedImportedAdtProject } from "./seed/index.js"
 import { getBook, listBooks } from "../book-service.js"
 import { ensureProjectIdentity } from "../project-identity.js"
@@ -124,6 +124,7 @@ export function importAdtProject(
       version: 1,
       ...archive,
       projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
+      projectedVersions: readReplayedNodeVersions(label, resolvedBooksDir),
     })
     // Last write: until this marker is gone the directory stays hidden from
     // `listBooks`, so an interrupted import never leaves a usable-looking book.

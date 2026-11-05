@@ -23,6 +23,10 @@ export interface ImportedAdtCurrent {
   revisionId: string
   importedAt: string
   projectionVersion?: number
+  /** Versions of the entities the projection wrote, keyed `node/itemId`. */
+  projectedVersions?: Record<string, number>
+  /** Projection version an upgrade declined to replay because of later edits. */
+  projectionReplaySkippedFrom?: number | null
 }
 
 export function bookDirFor(label: string, booksDir: string): string {

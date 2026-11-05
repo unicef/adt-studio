@@ -77,11 +77,57 @@ function readPersistedActivityDecisions(
   }
   return recovered
 }
+/**
+ * Entities a projection writes over unconditionally. The other seeds only fill
+ * in what is missing, so they cannot replace later work. The activity review is
+ * rewritten too, but its decisions are read back and replayed first.
+ */
+const REPLAYED_NODES = new Set([
+  "page-sectioning",
+  "fixed-layout-sectioning",
+  "web-rendering",
+  "image-captioning",
+  "toc-generation",
+  "glossary",
+])
 
+/** Current version of every replayed entity, keyed `node/itemId`. */
+export function readReplayedNodeVersions(label: string, booksDir: string): Record<string, number> {
+  const storage = createBookStorage(label, booksDir)
+  try {
+    return Object.fromEntries(storage.getNodeVersionFingerprint()
+      .filter((row) => REPLAYED_NODES.has(row.node))
+      .map((row) => [`${row.node}/${row.itemId}`, row.version]))
+  } finally {
+    storage.close()
+  }
+}
+
+/**
+ * Whether replaying the archive would replace nothing but projection output.
+ * `projectedVersions` is recorded whenever a projection is written; a marker
+ * from before that has none, and a fresh import writes every entity once, so
+ * version 1 is the baseline then. Any other version means the user (or a
+ * pipeline run) has changed the entity since it was projected.
+ */
+function replayKeepsLaterWork(
+  current: Record<string, unknown>,
+  versions: Record<string, number>,
+): boolean {
+  const recorded = current.projectedVersions
+  const baseline = recorded && typeof recorded === "object" && !Array.isArray(recorded)
+    ? recorded as Record<string, unknown>
+    : null
+  return Object.entries(versions).every(([key, version]) => (
+    version === (baseline ? baseline[key] : 1)
+  ))
+}
 
 /** Upgrade projects imported before the normal pipeline projection existed.
  * Every entity write appends a version; the immutable source ZIP remains the
- * rollback/audit source if an upgrade is interrupted. */
+ * rollback/audit source if an upgrade is interrupted. A project changed since
+ * its last projection is never replayed: rebuilding it from the archive would
+ * make the archive's content current again over the user's later edits. */
 export function ensureImportedAdtProjectProjection(label: string, booksDir: string): boolean {
   const safeLabel = parseBookLabel(label)
   const bookDir = bookDirFor(label, booksDir)
@@ -100,6 +146,21 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
     typeof current.projectionVersion === "number"
     && current.projectionVersion >= ADT_IMPORT_PROJECTION_VERSION
   ) return false
+
+  if (!replayKeepsLaterWork(current, readReplayedNodeVersions(safeLabel, booksDir))) {
+    console.warn(
+      `[adt-import] ${safeLabel} changed after it was imported; keeping its current content instead of re-projecting the archive.`,
+    )
+    // Marked as upgraded so the check does not repeat on every start. No
+    // `projectedVersions` is recorded, so a later projection bump skips it too.
+    const { projectedVersions: _stale, ...rest } = current
+    writeImportedAdtCurrent(bookDir, {
+      ...rest,
+      projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
+      projectionReplaySkippedFrom: current.projectionVersion ?? null,
+    })
+    return false
+  }
 
   const sourceZip = readCurrentImportedAdtSource(safeLabel, booksDir)
   const bundle = readAdtBundle(sourceZip)
@@ -147,6 +208,7 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
   writeImportedAdtCurrent(bookDir, {
     ...current,
     projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
+    projectedVersions: readReplayedNodeVersions(safeLabel, booksDir),
   })
   return true
 }

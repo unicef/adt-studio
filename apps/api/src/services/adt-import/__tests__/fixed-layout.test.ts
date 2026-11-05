@@ -11,6 +11,7 @@ import type { AppConfig } from "@adt/types"
 import {
   ADT_IMPORT_PROJECTION_VERSION,
   ensureImportedAdtProjectProjection,
+  readReplayedNodeVersions,
 } from "../projection.js"
 import {
   json,
@@ -196,6 +197,55 @@ describe("imported fixed-layout books", () => {
     }
   })
 
+  it.each([
+    ["recorded", true],
+    ["never recorded", false],
+  ] as const)("keeps a later Storyboard edit instead of replaying the archive (projection %s)", (_case, recorded) => {
+    const { booksDir, session } = importFixedLayout()
+    const bookDir = path.join(booksDir, session.label)
+    const currentPath = path.join(bookDir, ".adt-import-current.json")
+    fs.mkdirSync(path.join(bookDir, ".adt-imports", "rev1"), { recursive: true })
+    fs.writeFileSync(
+      path.join(bookDir, ".adt-imports", "rev1", "source.zip"),
+      makeFixedLayoutBundle(),
+    )
+    const projectedVersions = readReplayedNodeVersions(session.label, booksDir)
+    const editedHtml = '<section data-section-id="pg001_sec001" data-section-type="content"><p>Edited in Studio</p></section>'
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "Edited in Studio.", html: editedHtml }],
+      })
+    } finally {
+      storage.close()
+    }
+    fs.writeFileSync(currentPath, JSON.stringify({
+      version: 1,
+      revisionId: "rev1",
+      importedAt: new Date().toISOString(),
+      projectionVersion: ADT_IMPORT_PROJECTION_VERSION - 1,
+      ...(recorded ? { projectedVersions } : {}),
+    }))
+
+    expect(ensureImportedAdtProjectProjection(session.label, booksDir)).toBe(false)
+
+    const after = createBookStorage(session.label, booksDir)
+    try {
+      const rendering = after.getLatestNodeData("web-rendering", "pg001")!
+        .data as { sections: Array<{ html: string }> }
+      expect(rendering.sections[0].html).toBe(editedHtml)
+    } finally {
+      after.close()
+    }
+    const marker = JSON.parse(fs.readFileSync(currentPath, "utf8")) as Record<string, unknown>
+    expect(marker).toMatchObject({
+      projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
+      projectionReplaySkippedFrom: ADT_IMPORT_PROJECTION_VERSION - 1,
+    })
+    expect(marker.projectedVersions).toBeUndefined()
+    expect(ensureImportedAdtProjectProjection(session.label, booksDir)).toBe(false)
+  })
+
   it("upgrades a project whose activity decisions were never recorded", () => {
     const { booksDir, session } = importFixedLayout()
     const bookDir = path.join(booksDir, session.label)
@@ -269,6 +319,14 @@ describe("imported fixed-layout books", () => {
     } finally {
       storage.close()
     }
+    // That reflowable rendering is what the old projection wrote, not an edit.
+    fs.writeFileSync(currentPath, JSON.stringify({
+      version: 1,
+      revisionId: "rev1",
+      importedAt: new Date().toISOString(),
+      projectionVersion: ADT_IMPORT_PROJECTION_VERSION - 1,
+      projectedVersions: readReplayedNodeVersions(session.label, booksDir),
+    }))
 
     expect(ensureImportedAdtProjectProjection(session.label, booksDir)).toBe(true)
     expect(ensureImportedAdtProjectProjection(session.label, booksDir)).toBe(false)
