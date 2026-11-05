@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { recoverImportedQuiz } from "../adt-round-trip/quiz.js"
+import { recoverImportedActivityAnswers, recoverImportedQuiz } from "../adt-round-trip/quiz.js"
 
 const TEXTS = {
   qz001_que: "Who was coming to visit The COPE Academy?",
@@ -36,6 +36,20 @@ describe("recoverImportedQuiz", () => {
     })
   })
 
+  it("keeps a stable option id that SPEC-0001 assigned to an edited option", () => {
+    const stableId = "qz001_o_0b6f0c1e-1a2b-4c3d-8e9f-0123456789ab"
+    const texts = { ...TEXTS, [stableId]: TEXTS.qz001_o1, [`${stableId}_exp`]: TEXTS.qz001_o1_exp }
+    delete (texts as Record<string, string>).qz001_o1
+    const recovered = recoverImportedQuiz(
+      page(`{"qz001_o0":false,"${stableId}":true,"qz001_o2":false}`),
+      "qz001",
+      texts,
+    )
+    expect(recovered?.answerIndex).toBe(1)
+    expect(recovered?.options.map((option) => option.optionId)).toEqual([undefined, stableId, undefined])
+    expect(recovered?.options[1].text).toBe("2) Volcanologists")
+  })
+
   it("reads the key from the section attribute when the script form is absent", () => {
     const html = `<section data-id="qz001" data-correct-answers="{&quot;qz001_o0&quot;:true,&quot;qz001_o1&quot;:false,&quot;qz001_o2&quot;:false}"></section>`
     expect(recoverImportedQuiz(html, "qz001", TEXTS)?.answerIndex).toBe(0)
@@ -65,5 +79,26 @@ describe("recoverImportedQuiz", () => {
     expect(recoverImportedQuiz(page(), "qz001", noQuestion)).toBeNull()
     const { qz001_o2: _o, ...noOption } = TEXTS
     expect(recoverImportedQuiz(page(), "qz001", noOption)).toBeNull()
+  })
+})
+
+describe("recoverImportedActivityAnswers", () => {
+  const page = (payload: string) => `<html><head><script type="text/javascript">window.correctAnswers = JSON.parse('${payload}');</script></head>
+    <body><section data-section-id="pg002_sec001" data-section-type="activity_fill_in_the_blank"><p data-id="pg002_t001">2 + 2 = [[blank:item-1]]</p></section></body></html>`
+
+  it("reads text, number and boolean answers as data", () => {
+    expect(recoverImportedActivityAnswers(page('{"item-1":"4","item-2":7,"item-3":true}'), "pg002_sec001"))
+      .toEqual({ "item-1": "4", "item-2": 7, "item-3": true })
+  })
+
+  it("prefers the section's data-correct-answers attribute", () => {
+    const html = `<section data-section-id="pg002_sec001" data-correct-answers='{"item-1":"four"}'></section>`
+    expect(recoverImportedActivityAnswers(html, "pg002_sec001")).toEqual({ "item-1": "four" })
+  })
+
+  it("rejects payloads that are not a flat map of plain values", () => {
+    expect(recoverImportedActivityAnswers(page('{"item-1":["4"]}'), "pg002_sec001")).toBeNull()
+    expect(recoverImportedActivityAnswers(page("{}"), "pg002_sec001")).toBeNull()
+    expect(recoverImportedActivityAnswers("<section></section>", "pg002_sec001")).toBeNull()
   })
 })

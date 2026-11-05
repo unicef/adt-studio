@@ -128,6 +128,14 @@ export function getImportedAdtFeaturesNeedingRegeneration(
   }
 }
 
+function packagedLanguages(adtDir: string): string[] {
+  const i18nDir = path.join(adtDir, "content", "i18n")
+  if (!fs.existsSync(i18nDir)) return []
+  return fs.readdirSync(i18nDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+}
+
 function escapePresentationAttribute(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -138,7 +146,10 @@ function escapePresentationAttribute(value: string): string {
 
 /** Restore supported presentation assets and custom activity registrations
  * after the normal pipeline packager has rebuilt an imported ADT. Generated
- * manifests and runtime files always win; only missing source assets are copied. */
+ * manifests and runtime files always win; only missing source assets are copied.
+ * Book content (`content/**`: texts, audio, glossary, timings) is never copied
+ * back: the packager decides what ships, including languages and features left
+ * out of this export. */
 export function restoreImportedAdtPresentation(label: string, booksDir: string): boolean {
   const safeLabel = parseBookLabel(label)
   const bookDir = path.join(path.resolve(booksDir), safeLabel)
@@ -167,6 +178,7 @@ export function restoreImportedAdtPresentation(label: string, booksDir: string):
     if (!archivePath.startsWith(bundle.root)) continue
     const relativePath = archivePath.slice(bundle.root.length)
     if (!relativePath || relativePath.endsWith("/") || relativePath.toLowerCase().endsWith(".html")) continue
+    if (relativePath.startsWith("content/")) continue
     const outputPath = path.resolve(adtDir, relativePath)
     if (!within(outputPath, adtDir) || fs.existsSync(outputPath)) continue
     fs.mkdirSync(path.dirname(outputPath), { recursive: true })
@@ -205,6 +217,6 @@ export function restoreImportedAdtPresentation(label: string, booksDir: string):
       changed = true
     }
   }
-  if (changed) generateOfflinePreloader(adtDir, bundle.manifest.languages.output)
+  if (changed) generateOfflinePreloader(adtDir, packagedLanguages(adtDir))
   return changed
 }

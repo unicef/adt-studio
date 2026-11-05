@@ -397,8 +397,7 @@ export async function packageAdtWeb(
     promptsDir: options.promptsDir ?? path.resolve("prompts"), configDir: options.configDir ?? path.resolve("config") }) : []
   const included = new Set<string>()
   const captionConsumers = new Set(buildImageInventory(storage).filter((image) => image.catalogLocations.length > 0).map((image) => image.id))
-  const catalogVersion = storage.getLatestNodeData("text-catalog", "book")?.version
-    ?? storage.putNodeData("text-catalog", "book", snapshot)
+  const catalogVersion = storage.getLatestNodeData("text-catalog", "book")?.version ?? null
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
   const glossary = glossaryRow?.data as GlossaryOutput | undefined

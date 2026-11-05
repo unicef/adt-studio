@@ -15,7 +15,7 @@ import { AdtImportError } from "./error.js"
 import { createAdtImportRepairGuide } from "./repair-guide.js"
 import { recoverImportedQuizzes } from "./quiz.js"
 import { recoverImportedSignLanguageVideos } from "./sign-language.js"
-import { recoverImportedAudio, stableImportedTextIds } from "./speech.js"
+import { currentImportedNarration, recoverImportedAudio } from "./speech.js"
 
 /**
  * How each pipeline feature will actually come out of this archive.
@@ -81,17 +81,16 @@ export function planImportedFeatureRecovery(
 
 /** Whether this archive carries narration audio the importer can adopt: the
  * same per-entry rule `seedImportedSpeech` applies, so a manifest alone is not
- * enough — at least one present file must narrate a text that is unchanged. */
+ * enough — at least one present file must still narrate the text it belongs to. */
 function hasRecoverableSpeech(
   bundle: ReadAdtBundle,
   files: Record<string, Uint8Array>,
   catalogEntries: ReadonlyArray<{ id: string; text: string }>,
-  sourceTexts: Record<string, string>,
 ): boolean {
   return recoverImportedAudio(
     bundle,
     files,
-    stableImportedTextIds(catalogEntries, sourceTexts),
+    currentImportedNarration(bundle, files, catalogEntries),
   ).length > 0
 }
 
@@ -168,7 +167,7 @@ export function previewAdtRecoveryImport(
       quizCount: activityReview.quizCount,
       declaredQuizCount: recoveredQuizzes.declaredCount,
       recoverableQuizCount: recoveredQuizzes.quizzes.length,
-      speechRecoverable: hasRecoverableSpeech(bundle, files, catalog.entries, sourceTexts),
+      speechRecoverable: hasRecoverableSpeech(bundle, files, catalog.entries),
       easyReadEntryCount: recoverableEasyReadIds(
         sourceTexts,
         new Set(catalog.entries.map((entry) => entry.id)),

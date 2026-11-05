@@ -30,7 +30,7 @@ export interface BuildAdtRoundTripManifestOptions {
   outputLanguages: string[]
   pageList: readonly AdtRoundTripManifestPage[]
   catalog: TextCatalogOutput
-  catalogVersion: number
+  catalogVersion: number | null
   easyReadEntries: ReadonlyArray<{ id: string }>
   glossaryVersion: number | null
   tocVersion: number | null

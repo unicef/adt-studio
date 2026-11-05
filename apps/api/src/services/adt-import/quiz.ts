@@ -1,5 +1,5 @@
 import { recoverImportedQuiz } from "@adt/pipeline"
-import { QuizGenerationOutput } from "@adt/types"
+import { QuizGenerationOutput, QuizId } from "@adt/types"
 
 import { readAdtBundle, type ReadAdtBundle } from "./bundle-reader.js"
 import { pageIdFromSection } from "./catalog.js"
@@ -10,7 +10,9 @@ import { pageIdFromSection } from "./catalog.js"
  * The quiz pages sit outside the storyboard (`pageIdFromSection` returns null
  * for them), so a quiz's placement is recovered from its position in the page
  * order: it belongs after the last content page preceding it, and covers the
- * content pages since the previous quiz.
+ * content pages since the previous quiz. A quiz keeps its exported section id
+ * as its `quizId`, because its catalog texts, translations and audio are keyed
+ * by that id rather than by its position.
  */
 export function recoverImportedQuizzes(
   bundle: ReturnType<typeof readAdtBundle>,
@@ -20,6 +22,7 @@ export function recoverImportedQuizzes(
   let declaredCount = 0
   let covered: string[] = []
   let lastContentPageId: string | null = null
+  const usedIds = new Set<string>()
 
   bundle.pages.forEach((page, index) => {
     const pageId = pageIdFromSection(page.section_id, index)
@@ -42,7 +45,12 @@ export function recoverImportedQuizzes(
       covered = []
       return
     }
+    const quizId = QuizId.safeParse(page.section_id).success && !usedIds.has(page.section_id)
+      ? page.section_id
+      : undefined
+    if (quizId) usedIds.add(quizId)
     quizzes.push({
+      ...(quizId ? { quizId } : {}),
       quizIndex: quizzes.length,
       afterPageId: lastContentPageId,
       pageIds: covered.length > 0 ? [...covered] : [lastContentPageId],

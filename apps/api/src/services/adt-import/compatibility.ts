@@ -14,6 +14,35 @@ import {
 } from "@adt/types"
 
 import type { ReadAdtBundle } from "./bundle-reader.js"
+import { pageIdFromSection } from "./catalog.js"
+
+/**
+ * Sections whose source page already ended earlier in the reading order.
+ * Import groups a page's sections together, so `pg001_sec001, pg002_sec001,
+ * pg001_sec002` would silently become `pg001_sec001, pg001_sec002,
+ * pg002_sec001`; such an order is rejected rather than rearranged.
+ */
+function interleavedReadingOrder(
+  pages: ReadonlyArray<{ section_id: string; href: string }>,
+): Array<{ href: string; pageId: string; after: string }> {
+  const closed = new Set<string>()
+  const interleaved: Array<{ href: string; pageId: string; after: string }> = []
+  let current: string | null = null
+  let previousSectionId = ""
+  pages.forEach((page, index) => {
+    const pageId = pageIdFromSection(page.section_id, index)
+    const key = pageId ?? `quiz:${page.section_id}`
+    if (key !== current) {
+      if (current !== null) closed.add(current)
+      if (pageId && closed.has(pageId)) {
+        interleaved.push({ href: page.href, pageId, after: previousSectionId })
+      }
+      current = key
+    }
+    previousSectionId = page.section_id
+  })
+  return interleaved
+}
 
 export function assessAdtImportCompatibility(
   bundle: ReadAdtBundle,
@@ -66,6 +95,13 @@ export function assessAdtImportCompatibility(
     ))
   )) {
     issues.push({ code: "changed-page-structure", pageHref: "content/pages.json" })
+  }
+  for (const entry of interleavedReadingOrder(bundle.pages)) {
+    issues.push({
+      code: "interleaved-reading-order",
+      pageHref: entry.href,
+      detail: `${entry.pageId} resumes after ${entry.after}`,
+    })
   }
   const declaredDataIds = bundle.manifest.editingContract?.pageDataIds
   if (bundle.manifest.editingContract?.version === ADT_EDITING_CONTRACT_VERSION && declaredOrder) {

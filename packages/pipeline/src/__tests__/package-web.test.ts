@@ -759,7 +759,7 @@ describe("packageAdtWeb", () => {
         tocGeneration: null,
         textCatalogTranslations: { fr: 1 },
       },
-      textCatalog: { version: 1 },
+      textCatalog: { version: null },
     })
     expect(roundTripManifest.frozen?.sourceTextsFingerprint).toMatch(/^[a-f0-9]{64}$/)
     expect(roundTripManifest.frozen?.pageHtmlFingerprints["pg001_sec001.html"]).toMatch(/^[a-f0-9]{64}$/)

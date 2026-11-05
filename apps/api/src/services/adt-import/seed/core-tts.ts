@@ -1,39 +1,19 @@
 import {
   createImportedCoreTtsCatalog,
-  flattenEasyReadEntries,
   getCoreTtsCatalog,
   getCoreTtsPreparationLocales,
+  mergeEasyReadEntries,
   normalizeLocale,
 } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 import { EasyReadOutput, TextCatalogOutput } from "@adt/types"
 
 import type { ReadAdtBundle } from "../bundle-reader.js"
-
-function readSpeechTexts(
-  bundle: ReadAdtBundle,
-  files: Record<string, Uint8Array>,
-  archiveLanguage: string | undefined,
-): Record<string, string> {
-  if (!archiveLanguage) return {}
-  const bytes = files[`${bundle.root}content/i18n/${archiveLanguage}/speech_texts.json`]
-  if (!bytes) return {}
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(new TextDecoder().decode(bytes))
-  } catch {
-    return {}
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {}
-  return Object.fromEntries(
-    Object.entries(parsed as Record<string, unknown>)
-      .filter((entry): entry is [string, string] => typeof entry[1] === "string"),
-  )
-}
+import { archivedSpeechIsCurrent, isExportUnchanged, readArchivedSpeechTexts } from "../speech.js"
 
 /** Give every locale the provider-text catalog the Speech stage reads from,
- * recovering the exporter's own speech texts where the archive kept them.
- * Locales that already have a catalog are left alone. */
+ * recovering the exporter's own speech texts where they still describe the
+ * displayed text. Locales that already have a catalog are left alone. */
 export function seedImportedCoreTts(
   label: string,
   booksDir: string,
@@ -46,10 +26,11 @@ export function seedImportedCoreTts(
     const catalog = TextCatalogOutput.safeParse(storage.getLatestNodeData("text-catalog", "book")?.data)
     if (!catalog.success) return
     const easyRead = EasyReadOutput.safeParse(storage.getLatestNodeData("easy-read", "book")?.data)
-    const sourceEntries = [
-      ...catalog.data.entries,
-      ...flattenEasyReadEntries(easyRead.success ? easyRead.data : null),
-    ]
+    const sourceEntries = mergeEasyReadEntries(
+      catalog.data.entries,
+      easyRead.success ? easyRead.data : null,
+    )
+    const exportUnchanged = isExportUnchanged(bundle)
     const sourceLanguage = normalizeLocale(bundle.manifest.languages.source)
     const archiveLanguages = new Map(
       [bundle.manifest.languages.source, ...bundle.manifest.languages.output]
@@ -71,10 +52,14 @@ export function seedImportedCoreTts(
         entries = translated.data.entries
       }
       if (entries.length === 0) continue
+      const speechTexts = readArchivedSpeechTexts(bundle, files, archiveLanguages.get(locale.language))
       storage.putNodeData("core-tts-catalog", locale.language, createImportedCoreTtsCatalog({
         language: locale.language,
         entries,
-        speechTexts: readSpeechTexts(bundle, files, archiveLanguages.get(locale.language)),
+        speechTexts: speechTexts ?? {},
+        staleIds: new Set(entries
+          .filter((entry) => !archivedSpeechIsCurrent(exportUnchanged, entry.text, speechTexts, entry.id))
+          .map((entry) => entry.id)),
         generatedAt,
       }))
     }

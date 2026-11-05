@@ -1,7 +1,10 @@
 import {
+  exportedActivityCatalogIds,
   extractTextCatalogEntriesFromHtml,
   projectImportedFixedLayoutPage,
   projectImportedHtmlSection,
+  recoverImportedActivityAnswers,
+  rewriteRenderedIdentityReferences,
   type ImportedFixedLayoutProjection,
 } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
@@ -138,12 +141,23 @@ export function seedImportedStoryboard(
               reasoning: "Imported fixed-layout HTML is the canonical storyboard source.",
               html: section.html,
             }))
-          : entries.map((entry, sectionIndex) => ({
-              sectionIndex,
-              sectionType: entry.projection.sectionType,
-              reasoning: "Imported HTML is the canonical storyboard source.",
-              html: entry.projection.html,
-            })),
+          : entries.map((entry, sectionIndex) => {
+              const activityAnswers = entry.projection.sectionType.startsWith("activity_")
+                ? recoverImportedActivityAnswers(pageHtml[entry.href] ?? "", entry.sectionId)
+                : null
+              const activityIds = legacyRecovery
+                ? new Map<string, string>()
+                : exportedActivityCatalogIds(pageHtml[entry.href] ?? "", pageId)
+              return {
+                sectionIndex,
+                sectionType: entry.projection.sectionType,
+                reasoning: "Imported HTML is the canonical storyboard source.",
+                html: activityIds.size > 0
+                  ? rewriteRenderedIdentityReferences(entry.projection.html, activityIds)
+                  : entry.projection.html,
+                ...(activityAnswers ? { activityAnswers } : {}),
+              }
+            }),
       })
       const captions = entries.flatMap((entry) => entry.projection.images)
         .filter((image) => Boolean(sourceTexts[image.imageId]) || image.alt.length > 0 || image.decorative)

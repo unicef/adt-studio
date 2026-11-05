@@ -5,7 +5,7 @@ import { createBookStorage } from "@adt/storage"
 import { TextCatalogOutput, TTSOutput, WordTimestampOutput } from "@adt/types"
 
 import type { ReadAdtBundle } from "../bundle-reader.js"
-import { recoverImportedAudio, stableImportedTextIds } from "../speech.js"
+import { currentImportedNarration, recoverImportedAudio } from "../speech.js"
 
 function readTimestamps(
   bytes: Uint8Array | undefined,
@@ -40,8 +40,7 @@ function readTimestamps(
   return entries
 }
 
-/** Adopt the archive's narration for every text whose recovered copy still
- * matches the published one. A locale that already has speech data keeps it,
+/** Adopt the archive's narration for every text it still narrates. A locale that already has speech data keeps it,
  * so a re-projection only fills in what is missing — including the step
  * statuses the Speech stage needs to count as complete. */
 export function seedImportedSpeech(
@@ -55,11 +54,11 @@ export function seedImportedSpeech(
   const storage = createBookStorage(label, booksDir)
   try {
     const catalog = TextCatalogOutput.safeParse(storage.getLatestNodeData("text-catalog", "book")?.data)
-    const stableIds = stableImportedTextIds(
-      catalog.success ? catalog.data.entries : [],
-      bundle.texts[bundle.manifest.languages.source] ?? {},
+    const recovered = recoverImportedAudio(
+      bundle,
+      files,
+      currentImportedNarration(bundle, files, catalog.success ? catalog.data.entries : []),
     )
-    const recovered = recoverImportedAudio(bundle, files, stableIds)
     let hasSpeech = false
     let hasTimestamps = false
     for (const { language, archiveLanguage, entries } of recovered) {

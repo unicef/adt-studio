@@ -202,6 +202,7 @@ export {
 export {
   buildTextCatalog,
   extractTextCatalogEntriesFromHtml,
+  exportedActivityCatalogIds,
 } from "./text-catalog.js"
 export {
   projectImportedHtmlSection,
@@ -225,6 +226,7 @@ export {
   type ImportedFixedLayoutProjection,
 } from "./adt-round-trip/fixed-layout.js"
 export {
+  recoverImportedActivityAnswers,
   recoverImportedQuiz,
   type ImportedQuizRecovery,
 } from "./adt-round-trip/quiz.js"
@@ -259,6 +261,7 @@ export {
   generateEasyRead,
   rewriteBlockEasyRead,
   flattenEasyReadEntries,
+  mergeEasyReadEntries,
   DEFAULT_EASY_READ_MODEL_ID,
   EMPTY_EASY_READ_GENERATED_AT,
   isDeterministicEmptyEasyReadOutput,
@@ -557,7 +560,7 @@ export { OutputPublicationConflict } from "./output-freshness.js"
 export { materializeGlossaryIds, projectMaterializedGlossary, reconcileGlossaryEditIds } from "./glossary.js"
 
 export { reconcileSectioningIdentities, collectSpentContentIds } from "./sectioning-identity.js"
-export { cloneRenderedIdentities, stampRenderedOwner } from "./rendered-identity.js"
+export { cloneRenderedIdentities, rewriteRenderedIdentityReferences, stampRenderedOwner } from "./rendered-identity.js"
 
 export { indexEasyReadEntries } from "./easy-read.js"
 

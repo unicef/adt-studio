@@ -21,6 +21,7 @@ const compatibilityIssueGuidance: Record<AdtImportCompatibilityIssueCode, string
   "nested-page": "Page HTML must stay at the bundle root.",
   "unexpected-bundle-entry": "The archive contains a folder outside the canonical ADT structure.",
   "changed-page-structure": "Page HTML and the page indexes disagree. Reconcile content/pages.json, editingContract.pageOrder, and editingContract.pageDataIds.",
+  "interleaved-reading-order": "Sections of one source page are split apart in the reading order. Keep every section that shares a pgNNN prefix together in content/pages.json and editingContract.pageOrder, or give a moved section its own new page id.",
   "missing-content-root": "A page is missing its canonical #content root.",
   "multiple-content-roots": "A page contains more than one #content root.",
   "missing-section": "A page is missing its canonical section.",

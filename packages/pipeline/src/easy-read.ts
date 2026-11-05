@@ -410,3 +410,27 @@ export function flattenEasyReadEntries(output: EasyReadOutput | null | undefined
   }
   return [...entries.values()]
 }
+
+/**
+ * The text catalog plus Easy Read entries, unique by id. A book imported from
+ * an ADT keeps the archive's `_easy_read` texts in its catalog as well, so the
+ * Easy Read entity's copy replaces the catalog's instead of being appended a
+ * second time.
+ */
+export function mergeEasyReadEntries(
+  catalogEntries: readonly TextCatalogEntry[],
+  output: EasyReadOutput | null | undefined,
+): TextCatalogEntry[] {
+  const easyReadEntries = flattenEasyReadEntries(output)
+  const easyReadIds = new Set(easyReadEntries.map((entry) => entry.id))
+  const merged = [
+    ...catalogEntries.filter((entry) => !easyReadIds.has(entry.id)),
+    ...easyReadEntries,
+  ]
+  const seen = new Set<string>()
+  return merged.filter((entry) => {
+    if (seen.has(entry.id)) return false
+    seen.add(entry.id)
+    return true
+  })
+}

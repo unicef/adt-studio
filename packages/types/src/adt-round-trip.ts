@@ -105,7 +105,9 @@ export type AdtBundleTexts = z.infer<typeof AdtBundleTexts>
 /**
  * Versioned merge metadata shipped in `adt/manifest.json`.
  *
- * `textCatalog.idFingerprint` covers the persisted text-catalog node. The
+ * `textCatalog.version` is the latest saved text-catalog version when the
+ * export ran (null when none was saved; exporting never saves one), and
+ * `textCatalog.idFingerprint` covers the ids of the catalog that was exported. The
  * separate `translatableText.idFingerprint` also includes Easy Read ids,
  * because those are emitted into texts.json and translated by the pipeline
  * even though they live in their own entity.
@@ -146,7 +148,7 @@ export const AdtRoundTripManifest = z.object({
     textCatalogTranslations: z.record(LocaleCode, EntityVersion),
   }).strict(),
   textCatalog: z.object({
-    version: EntityVersion,
+    version: EntityVersion.nullable(),
     idFingerprint: Sha256,
   }).strict(),
   translatableText: z.object({
@@ -242,6 +244,7 @@ export const AdtImportCompatibilityIssueCode = z.enum([
   "nested-page",
   "unexpected-bundle-entry",
   "changed-page-structure",
+  "interleaved-reading-order",
   "missing-content-root",
   "multiple-content-roots",
   "missing-section",

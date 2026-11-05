@@ -36,7 +36,7 @@ If a requested change requires breaking one of these rules, tell the user that t
 Treat the following files as one transaction. A structural edit is valid only when they agree:
 
 1. Create or remove the root-level page HTML file.
-2. Update `content/pages.json`. Each entry needs a unique `section_id`, unique root-level `href`, and the intended reading order.
+2. Update `content/pages.json`. Each entry needs a unique `section_id`, unique root-level `href`, and the intended reading order. Sections that share a source page prefix (`pg001_sec001`, `pg001_sec002`) must stay next to each other; to move one elsewhere, give it a new page ID instead.
 3. Mirror that exact order in `manifest.json` under `editingContract.pageOrder`, using `{ "sectionId", "href" }`.
 4. Set `editingContract.pageDataIds[href]` to every `data-id` in that page, in document order. Remove this key when removing a page.
 5. Add visible text from new `data-id` elements to `content/i18n/{{ language }}/texts.json`. Remove text only when its owning content is intentionally removed.

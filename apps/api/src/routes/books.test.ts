@@ -2585,6 +2585,13 @@ describe("book admission before the first extraction", () => {
     expect(started).toEqual(["fresh"])
   })
 
+  it("admits the collection-level ADT import instead of resolving it as a book label", async () => {
+    const form = new FormData()
+    form.append("zip", new File([new Uint8Array([1, 2, 3])], "not-an-adt.zip"))
+    const res = await lifecycleApp([]).request("/books/import-adt", { method: "POST", body: form })
+    expect(res.status).toBe(400)
+  })
+
   it("still rejects a folder recreated without its database or source PDF", async () => {
     const started: string[] = []
     const app = lifecycleApp(started)

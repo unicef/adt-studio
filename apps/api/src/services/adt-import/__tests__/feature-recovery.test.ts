@@ -4,7 +4,7 @@ import path from "node:path"
 
 import { describe, expect, it } from "vitest"
 import { strToU8, unzipSync, zipSync } from "fflate"
-import { getReadyCoreTtsEntries } from "@adt/pipeline"
+import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 
 import { getBook } from "../../book-service.js"
@@ -18,10 +18,13 @@ import {
   json,
   makeBundle,
   makeBundleWithEasyReadAndSignLanguage,
+  makeBundleWithFillInTheBlankAnswers,
   makeBundleWithPartiallyStableNarration,
+  makeBundleWithSpeechAfterGuideEdit,
   makeBundleWithSpeechTexts,
   makeBundleWithUnchangedHtmlCatalog,
   makeFixedLayoutBundle,
+  renameInArchive,
   seedFromArchive,
   temporaryRoots,
 } from "./fixtures.js"
@@ -81,6 +84,39 @@ describe("imported feature recovery", () => {
       // The quiz is anchored to the last content page that precedes it.
       expect(quiz.afterPageId).toBe("pg002")
       expect(quiz.pageIds).toEqual(["pg001", "pg002"])
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("keeps the exported quiz id instead of renumbering by position", () => {
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-quiz-id-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(renameInArchive(makeFixedLayoutBundle(), "qz001", "qz002"), booksDir)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const quizzes = (storage.getLatestNodeData("quiz-generation", "book")!
+        .data as { quizzes: Array<Record<string, unknown>> }).quizzes
+      expect(quizzes).toHaveLength(1)
+      expect(quizzes[0]).toMatchObject({ quizId: "qz002", question: "Which rock is molten?" })
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("recovers a standard activity's grading key as activity answers", () => {
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-activity-answers-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(makeBundleWithFillInTheBlankAnswers(), booksDir)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const rendering = storage.getLatestNodeData("web-rendering", "pg002")!
+        .data as { sections: Array<Record<string, unknown>> }
+      expect(rendering.sections[0]).toMatchObject({
+        sectionType: "activity_fill_in_the_blank",
+        activityAnswers: { "item-1": "4", "item-2": 7 },
+      })
+      expect(String(rendering.sections[0].html)).not.toContain("correctAnswers")
     } finally {
       storage.close()
     }
@@ -185,6 +221,8 @@ describe("imported Easy Read and sign language recovery", () => {
       storage.close()
     }
     expect(getImportedAdtFeaturesNeedingRegeneration(session.label, booksDir)).toEqual([])
+    expect(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8"))
+      .toMatch(/easy_read:\n\s+enabled: true/)
   })
 
   it("adopts page and glossary videos pinned to sections the project has", () => {
@@ -316,6 +354,49 @@ describe("imported translation and speech stage completion", () => {
         text: "Edited outside Studio, spoken plainly",
       })
       expect(entries).toContainEqual({ id: "gl001", text: "Hyena" })
+      const modes = new Map(getCoreTtsCatalog(storage, "en")!.entries
+        .map((entry) => [entry.id, entry.generation.mode]))
+      expect(modes.get("pg001_n001")).toBe("generated")
+      expect(modes.get("gl001")).toBe("unchanged")
+      expect([...modes.values()]).not.toContain("manual")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("withholds narration for text edited after export even when the HTML and texts.json agree", () => {
+    const archive = makeBundleWithSpeechAfterGuideEdit()
+    expect(previewAdtRecoveryImport(archive).featureRecovery.speech).toBe("recovered")
+
+    const { booksDir, session } = importedProject(archive)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const edited = getCoreTtsCatalog(storage, "en")!.entries.find((entry) => entry.id === "pg001_n001")
+      expect(edited).toMatchObject({
+        displayText: "Rewritten after export",
+        speechText: null,
+        status: "failed",
+        generation: { mode: "unchanged" },
+      })
+      expect(getReadyCoreTtsEntries(storage, "en")).toContainEqual({ id: "gl001", text: "Hyena" })
+      expect(storage.getLatestNodeData("tts", "en")?.data).toMatchObject({
+        entries: [expect.objectContaining({ textId: "gl001", fileName: "hyena.mp3" })],
+      })
+      expect(fs.existsSync(path.join(booksDir, session.label, "audio", "en", "original.mp3"))).toBe(false)
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("seeds each Easy Read speech text once", () => {
+    const { booksDir, session } = importedProject(makeBundleWithEasyReadAndSignLanguage())
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      for (const language of ["en", "es"]) {
+        const ids = getCoreTtsCatalog(storage, language)!.entries.map((entry) => entry.id)
+        expect(ids.filter((id) => id === "pg001_n001_easy_read")).toHaveLength(1)
+        expect(new Set(ids).size).toBe(ids.length)
+      }
     } finally {
       storage.close()
     }

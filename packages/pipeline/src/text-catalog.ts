@@ -31,14 +31,14 @@ import { pad3, textContentExcludingScripts } from "./html-text.js"
  * project generated inside Studio. Image alternative text is the exported
  * representation of an image caption, so it is recovered as catalog text too.
  */
-export function extractTextCatalogEntriesFromHtml(html: string, pageId?: string): TextCatalogEntry[] {
+function exportedLeafElements(html: string) {
   const doc = parseDocument(html)
   const contentRoot = DomUtils.findOne(
     (el) => el.type === "tag" && el.attribs?.id === "content",
     doc.children,
     true,
   )
-  const elements = DomUtils.findAll(
+  return DomUtils.findAll(
     (el) =>
       el.type === "tag" &&
       el.attribs?.["data-id"] !== undefined &&
@@ -49,6 +49,28 @@ export function extractTextCatalogEntriesFromHtml(html: string, pageId?: string)
       ),
     contentRoot?.children ?? doc.children,
   )
+}
+
+/**
+ * The catalog ids `extractTextCatalogEntriesFromHtml` gives a page's generated
+ * activity leaves (`activity_gen_*` → `pg001_ac001`), keyed by their data-id.
+ * An import writes them into the stored HTML so the recovered catalog, its
+ * translations and its audio keep naming the same leaves.
+ */
+export function exportedActivityCatalogIds(html: string, pageId: string): Map<string, string> {
+  const ids = new Map<string, string>()
+  let activityCounter = 0
+  for (const el of exportedLeafElements(html)) {
+    const dataId = el.attribs["data-id"]
+    if (!dataId.startsWith("activity_gen_")) continue
+    const id = `${pageId}_ac${pad3(++activityCounter)}`
+    if (!ids.has(dataId)) ids.set(dataId, id)
+  }
+  return ids
+}
+
+export function extractTextCatalogEntriesFromHtml(html: string, pageId?: string): TextCatalogEntry[] {
+  const elements = exportedLeafElements(html)
 
   const entries: TextCatalogEntry[] = []
   const seen = new Set<string>()

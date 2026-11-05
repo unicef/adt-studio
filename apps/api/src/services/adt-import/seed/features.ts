@@ -1,6 +1,6 @@
 import { normalizeLocale } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
-import { GlossaryOutput, QuizGenerationOutput, TocGenerationOutput } from "@adt/types"
+import { ensureQuizIds, GlossaryOutput, QuizGenerationOutput, TocGenerationOutput } from "@adt/types"
 
 import { readAdtBundle } from "../bundle-reader.js"
 import { pageIdFromSection } from "../catalog.js"
@@ -58,12 +58,12 @@ export function seedImportedFeatures(
     // `ensureImportedAdtProjectProjection`) must not replace quizzes the user
     // has edited in Studio since the import.
     if (quizzes.length > 0 && !storage.getLatestNodeData("quiz-generation", "book")) {
-      storage.putNodeData("quiz-generation", "book", QuizGenerationOutput.parse({
+      storage.putNodeData("quiz-generation", "book", ensureQuizIds(QuizGenerationOutput.parse({
         generatedAt,
         language: normalizeLocale(bundle.manifest.languages.source),
         pagesPerQuiz: Math.max(...quizzes.map((quiz) => quiz.pageIds.length)),
         quizzes,
-      }))
+      })).output)
       // Only claim the step is done when every quiz in the archive came back.
       // A partial recovery still needs the user to regenerate the rest.
       if (quizzes.length === declaredCount) {

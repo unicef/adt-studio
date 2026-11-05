@@ -47,6 +47,8 @@ function importedImageDimensions(bytes: Uint8Array, extension: string): { width:
 }
 
 
+/** The HTML `src` is the image the page shows, so a replacement that keeps the
+ * element's data-id wins over a stale file still named after that id. */
 function resolveImportedImage(
   files: Record<string, Uint8Array>,
   root: string,
@@ -56,7 +58,6 @@ function resolveImportedImage(
 ): { archivePath: string; bytes: Uint8Array; extension: string } | null {
   const supported = new Set(["png", "jpg", "jpeg", "webp", "gif", "svg"])
   const candidates: string[] = []
-  for (const extension of supported) candidates.push(`${root}images/${imageId}.${extension}`)
   if (src && !/^(?:data:|https?:|\/)/i.test(src)) {
     let decoded = src.split(/[?#]/, 1)[0]
     try { decoded = decodeURIComponent(decoded) } catch { /* keep the encoded form */ }
@@ -65,6 +66,7 @@ function resolveImportedImage(
       candidates.push(`${root}${relative}`)
     }
   }
+  for (const extension of supported) candidates.push(`${root}images/${imageId}.${extension}`)
   candidates.push(...Object.keys(files).filter((archivePath) => {
     if (!archivePath.startsWith(root)) return false
     const basename = path.posix.basename(archivePath)

@@ -389,14 +389,59 @@ export function makeBundleWithEasyReadAndSignLanguage(): Buffer {
   return Buffer.from(zipSync(files))
 }
 
-/** The unchanged-catalog archive with the exporter's own speech text for one
- * entry, so Core TTS recovery can be told apart from the display-text fallback. */
+/** Pins the archive's current source texts and page HTML as its export
+ * baseline, then applies `edit` the way an external editor would afterwards. */
+export function exportedThenEdited(
+  archive: Buffer,
+  edit: (files: Record<string, Uint8Array>) => void = () => {},
+): Buffer {
+  const files = unzipSync(archive)
+  const read = (filePath: string) => JSON.parse(new TextDecoder().decode(files[filePath]))
+  const manifest = read("manifest.json")
+  const pages = read("content/pages.json") as Array<{ href: string }>
+  manifest.frozen = {
+    sourceTextsFingerprint: sha256(read(`content/i18n/${manifest.languages.source}/texts.json`)),
+    pageHtmlFingerprints: Object.fromEntries(pages.map((page) => [
+      page.href,
+      createHash("sha256").update(files[page.href]).digest("hex"),
+    ])),
+  }
+  files["manifest.json"] = json(manifest)
+  edit(files)
+  return Buffer.from(zipSync(files))
+}
+
+/** An unchanged export carrying the exporter's own speech text for one entry,
+ * so Core TTS recovery can be told apart from the display-text fallback. */
 export function makeBundleWithSpeechTexts(): Buffer {
   const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
   files["content/i18n/en/speech_texts.json"] = json({
     pg001_n001: "Edited outside Studio, spoken plainly",
   })
-  return Buffer.from(zipSync(files))
+  return exportedThenEdited(Buffer.from(zipSync(files)))
+}
+
+/** An export whose narrated paragraph was then edited the way the shipped
+ * guide describes: the HTML and `texts.json` together, leaving the prepared
+ * speech and its audio untouched. The glossary term is not edited. */
+export function makeBundleWithSpeechAfterGuideEdit(): Buffer {
+  const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
+  files["content/i18n/en/speech_texts.json"] = json({
+    pg001_n001: "Edited outside Studio",
+    gl001: "Hyena",
+  })
+  files["content/i18n/en/audios.json"] = json({
+    pg001_n001: "original.mp3",
+    gl001: "hyena.mp3",
+  })
+  files["content/i18n/en/audio/hyena.mp3"] = strToU8("hyena audio")
+  return exportedThenEdited(Buffer.from(zipSync(files)), (edited) => {
+    const decode = (filePath: string) => new TextDecoder().decode(edited[filePath])
+    edited["index.html"] = strToU8(decode("index.html").replace("Edited outside Studio", "Rewritten after export"))
+    const texts = JSON.parse(decode("content/i18n/en/texts.json"))
+    texts.pg001_n001 = "Rewritten after export"
+    edited["content/i18n/en/texts.json"] = json(texts)
+  })
 }
 
 /** The legacy archive whose narrated paragraph was edited outside Studio, plus
@@ -408,5 +453,38 @@ export function makeBundleWithPartiallyStableNarration(): Buffer {
     gl001: "hyena.mp3",
   })
   files["content/i18n/en/audio/hyena.mp3"] = strToU8("hyena audio")
+  return Buffer.from(zipSync(files))
+}
+
+/** Every text file in the archive with `from` rewritten to `to`, e.g. to give
+ * the exported quiz the id it would have after an earlier one was deleted. */
+export function renameInArchive(archive: Buffer, from: string, to: string): Buffer {
+  const files = unzipSync(archive)
+  const renamed: Record<string, Uint8Array> = {}
+  for (const [filePath, bytes] of Object.entries(files)) {
+    const textFile = /\.(?:html|json)$/.test(filePath)
+    renamed[filePath.replaceAll(from, to)] = textFile
+      ? strToU8(new TextDecoder().decode(bytes).replaceAll(from, to))
+      : bytes
+  }
+  return Buffer.from(zipSync(renamed))
+}
+
+/** The fixed-layout export whose reflowable activity page is a fill-in-the-blank
+ * with its standard grading key in the page's inline answer script. */
+export function makeBundleWithFillInTheBlankAnswers(): Buffer {
+  const files = unzipSync(makeFixedLayoutBundle())
+  files["pg002_sec001.html"] = strToU8(`<!doctype html><html><head>
+    <script type="text/javascript">window.correctAnswers = JSON.parse('{"item-1":"4","item-2":7}');</script>
+  </head><body><main>
+    <div id="content">
+      <section data-section-id="pg002_sec001" data-section-type="activity_fill_in_the_blank">
+        <p data-id="pg002_p000">2 + 2 = [[blank:item-1]] and 3 + 4 = [[blank:item-2]]</p>
+      </section>
+    </div>
+  </main></body></html>`)
+  const texts = JSON.parse(new TextDecoder().decode(files["content/i18n/en/texts.json"]))
+  texts.pg002_p000 = "2 + 2 = [[blank:item-1]] and 3 + 4 = [[blank:item-2]]"
+  files["content/i18n/en/texts.json"] = json(texts)
   return Buffer.from(zipSync(files))
 }

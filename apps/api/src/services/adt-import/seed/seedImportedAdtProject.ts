@@ -132,7 +132,7 @@ export function seedImportedAdtProject(
     activityDecisions,
   )
   seedImportedFeatures(label, booksDir, bundle, createdAt)
-  seedImportedEasyRead(label, booksDir, bundle, createdAt)
+  const hasEasyRead = seedImportedEasyRead(label, booksDir, bundle, createdAt)
   seedImportedCoreTts(label, booksDir, bundle, files, createdAt)
   seedImportedImages(label, booksDir, bundle, files)
   seedImportedSignLanguage(label, booksDir, bundle, files)
@@ -144,6 +144,7 @@ export function seedImportedAdtProject(
     // normal books always include their source language here as well.
     output_languages: [sourceLanguage, ...outputLanguages],
     ...(storyboard.fixedLayoutPageCount > 0 ? FIXED_LAYOUT_CONFIG : {}),
+    ...(hasEasyRead ? { easy_read: { enabled: true } } : {}),
   }))
 
   return {

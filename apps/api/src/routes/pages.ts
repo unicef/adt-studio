@@ -106,8 +106,14 @@ import { isImportedAdtProject } from "../services/adt-import/source.js"
  */
 let sharedScreenshotRendererPromise: Promise<ScreenshotRenderer> | null = null
 
-function importedAdtBaseHref(requestUrl: string, label: string): string {
+/** Where the screenshot browser loads an imported ADT's presentation assets.
+ * The request's Host header is client-controlled and also feeds the page's
+ * CSP, so the origin is always this server's own loopback listener. */
+function importedAdtBaseHref(requestUrl: string, label: string, localPort?: number): string {
   const url = new URL(requestUrl)
+  url.protocol = "http:"
+  url.hostname = "127.0.0.1"
+  if (localPort) url.port = String(localPort)
   const booksSegment = "/books/"
   const booksIndex = url.pathname.indexOf(booksSegment)
   const routePrefix = booksIndex >= 0 ? url.pathname.slice(0, booksIndex) : ""
@@ -1504,7 +1510,11 @@ export function createPageRoutes(
         typographyCss,
         ...(importedPresentation
           ? {
-              baseHref: importedAdtBaseHref(c.req.url, safeLabel),
+              baseHref: importedAdtBaseHref(
+                c.req.url,
+                safeLabel,
+                (c.env as { incoming?: { socket?: { localPort?: number } } } | undefined)?.incoming?.socket?.localPort,
+              ),
               stylesheets: [...new Set([
                 "content/tailwind_output.css",
                 "assets/libs/fontawesome/css/all.min.css",

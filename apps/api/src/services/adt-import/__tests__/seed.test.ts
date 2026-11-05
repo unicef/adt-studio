@@ -3,8 +3,9 @@ import os from "node:os"
 import path from "node:path"
 
 import { describe, expect, it } from "vitest"
-import { unzipSync, zipSync } from "fflate"
+import { strToU8, unzipSync, zipSync } from "fflate"
 import yaml from "js-yaml"
+import { buildTextCatalog } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 
 import { listBooks } from "../../book-service.js"
@@ -83,6 +84,82 @@ describe("ADT recovery workspace", () => {
       { pageId: "pg001", pageNumber: 1 },
       { pageId: "pg002", pageNumber: 2 },
     ])
+  })
+
+  it("rejects a reading order that splits one source page's sections apart", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    files["pg001_sec002.html"] = strToU8(new TextDecoder().decode(files["pg002_sec001.html"])
+      .replace("pg002_sec001", "pg001_sec002")
+      .replaceAll("pg002_t001", "pg001_t002"))
+    const pages = [
+      { section_id: "pg001_sec001", href: "index.html" },
+      { section_id: "pg002_sec001", href: "pg002_sec001.html" },
+      { section_id: "pg001_sec002", href: "pg001_sec002.html" },
+    ]
+    files["content/pages.json"] = json(pages)
+    const manifest = JSON.parse(new TextDecoder().decode(files["manifest.json"]))
+    manifest.editingContract.pageOrder = pages.map((page) => ({ sectionId: page.section_id, href: page.href }))
+    manifest.editingContract.pageDataIds["pg001_sec002.html"] = ["pg001_t002"]
+    files["manifest.json"] = json(manifest)
+    const texts = JSON.parse(new TextDecoder().decode(files["content/i18n/en/texts.json"]))
+    texts.pg001_t002 = "Page added outside Studio"
+    files["content/i18n/en/texts.json"] = json(texts)
+
+    expect(assessArchive(Buffer.from(zipSync(files)))).toEqual({
+      supported: false,
+      issues: [{
+        code: "interleaved-reading-order",
+        pageHref: "pg001_sec002.html",
+        detail: "pg001 resumes after pg002_sec001",
+      }],
+    })
+  })
+
+  it("imports the image a page's src selects over a stale file named after its data-id", () => {
+    const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
+    files["index.html"] = strToU8(new TextDecoder().decode(files["index.html"])
+      .replace('src="images/pg001_im001.png"', 'src="images/replacement.svg"'))
+    const replacement = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 40"><rect width="60" height="40" fill="red"/></svg>'
+    files["images/replacement.svg"] = strToU8(replacement)
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-image-src-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const meta = storage.getImageMeta("pg001_im001")
+      expect(meta?.relativePath).toBe("images/pg001_im001.svg")
+      expect(fs.readFileSync(path.join(booksDir, session.label, meta!.relativePath), "utf8")).toBe(replacement)
+      expect(storage.getImageDimensions("pg001_im001")).toEqual({ width: 60, height: 40 })
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("keeps an older bundle's activity text ids when the catalog is rebuilt", async () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    files["pg002_sec001.html"] = strToU8(new TextDecoder().decode(files["pg002_sec001.html"])
+      .replace('data-id="pg002_t001"', 'data-id="activity_gen_q1"'))
+    files["content/i18n/en/texts.json"] = json({
+      pg001_t001: "Original page",
+      pg002_ac001: "Page added outside Studio",
+    })
+    const manifest = JSON.parse(new TextDecoder().decode(files["manifest.json"]))
+    manifest.editingContract.pageDataIds["pg002_sec001.html"] = ["activity_gen_q1"]
+    files["manifest.json"] = json(manifest)
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-activity-ids-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const rendering = storage.getLatestNodeData("web-rendering", "pg002")!
+        .data as { sections: Array<{ html: string }> }
+      expect(rendering.sections[0].html).toContain('data-id="pg002_ac001"')
+      expect(rendering.sections[0].html).not.toContain("activity_gen_q1")
+      const rebuilt = await buildTextCatalog(storage, storage.getPages())
+      expect(rebuilt.entries.map((entry) => entry.id)).toContain("pg002_ac001")
+    } finally {
+      storage.close()
+    }
   })
 
   it("rejects folders outside the canonical ADT bundle root", () => {
@@ -221,6 +298,8 @@ describe("ADT recovery workspace", () => {
     expect(fs.readFileSync(path.join(bookDir, "adt", "assets", "book-showcase.css"), "utf8"))
       .toContain("rebeccapurple")
     expect(fs.existsSync(path.join(bookDir, "adt", "showcase-assets", "paper.png"))).toBe(true)
+    expect(fs.existsSync(path.join(bookDir, "adt", "content", "i18n", "es", "texts.json"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "adt", "content", "i18n", "en", "glossary.json"))).toBe(false)
 
     const upgradedStorage = createBookStorage(session.label, booksDir)
     try {
