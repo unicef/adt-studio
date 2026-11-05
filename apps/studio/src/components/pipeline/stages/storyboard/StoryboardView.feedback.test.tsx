@@ -20,6 +20,7 @@ vi.mock("@/hooks/use-publication-feedback", () => ({ usePublicationComments: () 
 vi.mock("./components/feedback/use-comments-mode", () => ({ useCommentsMode: () => ({ open: state.open }) }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ stageState: () => "done", queueRun: vi.fn() }) }))
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({}), useBookStructuredTextAvailability: () => true }))
+vi.mock("@/hooks/use-books", () => ({ useBook: () => ({ data: { workingSource: "pdf" } }) }))
 vi.mock("../../components/StepViewRouter", () => ({ useStepHeader: () => ({ setExtra: state.header, setOnLabelClick: state.header }) }))
 vi.mock("../../components/floating-save", () => ({ useHasUnsavedChanges: () => state.dirty }))
 vi.mock("@/routes/books.$label", async () => {
