@@ -87,6 +87,30 @@ describe("buildTextCatalog", () => {
     ])
   })
 
+  it("keeps imported MathML so the packaged reader still renders formulas", async () => {
+    const formula = "<math><mrow><msup><mi>a</mi><mn>2</mn></msup><mo>&lt;</mo><mn>1</mn></mrow></math>"
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "text",
+            reasoning: "",
+            html: `<section><p data-id="pg001_n001">Se ${formula}, então</p><p data-id="pg001_n002">\\frac{1}{2}</p></section>`,
+          }],
+        },
+      },
+    })
+
+    const result = await buildTextCatalog(storage, [{ pageId: "pg001", pageNumber: 1, text: "" }])
+
+    expect(result.entries.map(({ id, text }) => ({ id, text }))).toEqual([
+      { id: "pg001_n001", text: `Se ${formula}, então` },
+      // Studio-rendered pages carry LaTeX text, which stays as it was.
+      { id: "pg001_n002", text: "\\frac{1}{2}" },
+    ])
+  })
+
   it("looks up captions for img data-ids", async () => {
     const storage = createMockStorage({
       "web-rendering": {

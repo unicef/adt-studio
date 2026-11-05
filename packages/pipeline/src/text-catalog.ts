@@ -70,8 +70,7 @@ export function exportedActivityCatalogIds(html: string, pageId: string): Map<st
 }
 
 /**
- * The catalog text of one exported leaf element. Plain text is its text
- * content, as when the catalog was built. Text containing math is different:
+ * The catalog text of one leaf element. Plain text is its text content. Text containing math is different:
  * export converted its LaTeX to MathML in both the page HTML and `texts.json`,
  * so flattening the `<math>` markup to text content ("35=35⋅55") would make
  * every formula look edited. Such text is reproduced in the exporter's own
@@ -205,8 +204,11 @@ function extractPageEntries(
         // Belt-and-braces: even for non-custom sections, exclude any inline
         // <script>/<style> bodies from the catalogued text. Authors shouldn't
         // be using them here, but a stray bit of inline JS shouldn't corrupt
-        // the catalog.
-        const text = textContentExcludingScripts(el).replace(/\s+/g, " ").trim()
+        // the catalog. Rendered math is kept as MathML rather than
+        // flattened: pages rendered from Studio carry LaTeX text here, but a
+        // book imported from an ADT stores the exported MathML, and the reader
+        // swaps each element's content for its catalog text.
+        const text = exportedElementText(el)
         if (text.length > 0) {
           entries.push({ id, text, locations: [{ ...location, role: el.name }] })
         }
