@@ -7,6 +7,8 @@ export const ADT_EDITING_CONTRACT_VERSION = 2 as const
 export const ADT_EDITING_CONTRACT_MIN_VERSION = 1 as const
 
 const Sha256 = z.string().regex(/^[a-f0-9]{64}$/, "Expected a lowercase SHA-256 digest")
+/** Truncated SHA-256 of one exported text (see `adtTextFingerprint`). */
+const TextFingerprint = z.string().regex(/^[a-f0-9]{16}$/, "Expected a 16-character text fingerprint")
 const LocaleCode = z.string().trim().min(2).max(35).regex(
   /^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$/,
   "Expected a locale code such as en, pt-BR, or sr-Latn",
@@ -50,7 +52,8 @@ export const AdtBundleTocEntry = z.object({
   title: z.string().trim().min(1),
   chapter_id: z.string().min(1),
   // Heading-derived fallback TOCs predate levels and intentionally omit it.
-  level: z.number().int().min(1).max(3).optional(),
+  // Same h1–h6 range Studio's own table of contents accepts (`TocEntry`).
+  level: z.number().int().min(1).max(6).optional(),
 }).strict()
 export type AdtBundleTocEntry = z.infer<typeof AdtBundleTocEntry>
 
@@ -158,6 +161,14 @@ export const AdtRoundTripManifest = z.object({
     // Some exports intentionally contain translated locales only.
     sourceTextsFingerprint: Sha256.optional(),
     pageHtmlFingerprints: z.record(z.string().min(1), Sha256),
+    /**
+     * Per archive locale, a fingerprint of every text id's exported
+     * `texts.json` value. Import compares each entry with this baseline to
+     * decide whether the archived narration still describes it, so one edited
+     * paragraph never invalidates the rest of the book's audio. Optional:
+     * exports made before it shipped fall back to a coarser rule.
+     */
+    textFingerprints: z.record(LocaleCode, z.record(z.string().min(1), TextFingerprint)).optional(),
   }).strict().optional(),
 }).strict().superRefine((manifest, ctx) => {
   const output = new Set(manifest.languages.output)

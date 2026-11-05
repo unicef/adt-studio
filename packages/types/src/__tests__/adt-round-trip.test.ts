@@ -36,6 +36,25 @@ describe("ADT round-trip archive schemas", () => {
     })
   })
 
+  it("accepts every heading level Studio's own TOC allows", () => {
+    for (const level of [1, 4, 6]) {
+      expect(AdtBundleToc.safeParse([{
+        section_id: "pg001_sec001",
+        href: "index.html",
+        title: "Deep heading",
+        chapter_id: "pg001_t001",
+        level,
+      }]).success).toBe(true)
+    }
+    expect(AdtBundleToc.safeParse([{
+      section_id: "pg001_sec001",
+      href: "index.html",
+      title: "Too deep",
+      chapter_id: "pg001_t001",
+      level: 7,
+    }]).success).toBe(false)
+  })
+
   it("allows heading-derived TOCs to omit level", () => {
     expect(AdtBundleToc.safeParse([
       {
