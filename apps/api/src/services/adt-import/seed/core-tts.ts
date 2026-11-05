@@ -9,7 +9,7 @@ import { createBookStorage } from "@adt/storage"
 import { EasyReadOutput, TextCatalogOutput } from "@adt/types"
 
 import type { ReadAdtBundle } from "../bundle-reader.js"
-import { archivedSpeechIsCurrent, isExportUnchanged, readArchivedSpeechTexts } from "../speech.js"
+import { currentImportedNarration, readArchivedSpeechTexts } from "../speech.js"
 
 /** Give every locale the provider-text catalog the Speech stage reads from,
  * recovering the exporter's own speech texts where they still describe the
@@ -30,7 +30,7 @@ export function seedImportedCoreTts(
       catalog.data.entries,
       easyRead.success ? easyRead.data : null,
     )
-    const exportUnchanged = isExportUnchanged(bundle)
+    const isCurrent = currentImportedNarration(bundle, files, catalog.data.entries)
     const sourceLanguage = normalizeLocale(bundle.manifest.languages.source)
     const archiveLanguages = new Map(
       [bundle.manifest.languages.source, ...bundle.manifest.languages.output]
@@ -52,13 +52,14 @@ export function seedImportedCoreTts(
         entries = translated.data.entries
       }
       if (entries.length === 0) continue
-      const speechTexts = readArchivedSpeechTexts(bundle, files, archiveLanguages.get(locale.language))
+      const archiveLanguage = archiveLanguages.get(locale.language)
+      const speechTexts = readArchivedSpeechTexts(bundle, files, archiveLanguage)
       storage.putNodeData("core-tts-catalog", locale.language, createImportedCoreTtsCatalog({
         language: locale.language,
         entries,
         speechTexts: speechTexts ?? {},
         staleIds: new Set(entries
-          .filter((entry) => !archivedSpeechIsCurrent(exportUnchanged, entry.text, speechTexts, entry.id))
+          .filter((entry) => archiveLanguage === undefined || !isCurrent(archiveLanguage, entry.id))
           .map((entry) => entry.id)),
         generatedAt,
       }))

@@ -1,6 +1,6 @@
 import path from "node:path"
 
-import { normalizeLocale } from "@adt/pipeline"
+import { adtTextFingerprint, normalizeLocale } from "@adt/pipeline"
 
 import type { ReadAdtBundle } from "./bundle-reader.js"
 import { compareWithExportBaseline } from "./catalog.js"
@@ -50,7 +50,8 @@ export function readArchivedSpeechTexts(
 }
 
 /**
- * Whether archived narration can still be presented as current for a text.
+ * Legacy rule for exports without per-entry text fingerprints: whether
+ * archived narration can still be presented as current for a text.
  * Only an export verified unchanged against its baseline vouches for every
  * entry. Otherwise the shipped guide lets the HTML and `texts.json` be edited
  * together, so their agreement proves nothing: the narration is trusted only
@@ -72,16 +73,41 @@ export function isExportUnchanged(bundle: ReadAdtBundle): boolean {
   return compareWithExportBaseline(bundle) === "unchanged"
 }
 
-/** Per archive locale and text id: may the archive's audio be adopted? */
+/**
+ * Per archive locale and text id: may the archive's audio and prepared speech
+ * be adopted?
+ *
+ * An export carrying `frozen.textFingerprints` is checked entry by entry
+ * against that baseline: narration stays current only while both the source
+ * text and the locale's displayed text are exactly what was exported. Editing
+ * the HTML and `texts.json` together therefore still invalidates the edited
+ * entry, and every untouched entry keeps its audio — including the ones whose
+ * prepared speech legitimately differs from the display text (numbers, math,
+ * abbreviations).
+ *
+ * Older exports have no per-entry baseline and fall back to the coarser rule
+ * in {@link archivedSpeechIsCurrent}.
+ */
 export function currentImportedNarration(
   bundle: ReadAdtBundle,
   files: Record<string, Uint8Array>,
   catalogEntries: ReadonlyArray<{ id: string; text: string }>,
 ): (archiveLanguage: string, textId: string) => boolean {
-  const stableIds = stableImportedTextIds(
-    catalogEntries,
-    bundle.texts[bundle.manifest.languages.source] ?? {},
-  )
+  const sourceLanguage = bundle.manifest.languages.source
+  const sourceTexts = bundle.texts[sourceLanguage] ?? {}
+  const stableIds = stableImportedTextIds(catalogEntries, sourceTexts)
+  const baseline = bundle.manifest.frozen?.textFingerprints
+  if (baseline) {
+    const unchanged = (language: string, textId: string): boolean => {
+      const text = bundle.texts[language]?.[textId]
+      const expected = baseline[language]?.[textId]
+      return text !== undefined && expected !== undefined && adtTextFingerprint(text) === expected
+    }
+    return (archiveLanguage, textId) => stableIds.has(textId)
+      && unchanged(sourceLanguage, textId)
+      && unchanged(archiveLanguage, textId)
+  }
+
   const exportUnchanged = isExportUnchanged(bundle)
   const speechByLanguage = new Map<string, Record<string, string> | null>()
   return (archiveLanguage, textId) => {

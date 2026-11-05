@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 
@@ -7,9 +8,18 @@ import { TextCatalogOutput, TTSOutput, WordTimestampOutput } from "@adt/types"
 import type { ReadAdtBundle } from "../bundle-reader.js"
 import { currentImportedNarration, recoverImportedAudio } from "../speech.js"
 
+/** Hex SHA-256 of an audio file, the identity Speech records as `audioHash`. */
+function audioHash(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex")
+}
+
+/** Word timings for each recovered audio file. Each one is tied to the hash of
+ * the audio it was measured on, so regenerating that audio (a voice change,
+ * say) makes the old timings unusable instead of leaving them on new audio. */
 function readTimestamps(
   bytes: Uint8Array | undefined,
   language: string,
+  audioHashes: ReadonlyMap<string, string>,
 ): WordTimestampOutput["entries"] {
   if (!bytes) return {}
   let runtime: Record<string, {
@@ -29,8 +39,10 @@ function readTimestamps(
         && typeof word.end === "number")
       .map((word) => ({ word: word.text as string, start: word.start as number, end: word.end as number }))
       ?? []
-    if (words.length === 0) continue
+    const hash = audioHashes.get(textId)
+    if (words.length === 0 || !hash) continue
     entries[textId] = {
+      audioHash: hash,
       textId,
       language,
       words,
@@ -40,7 +52,8 @@ function readTimestamps(
   return entries
 }
 
-/** Adopt the archive's narration for every text it still narrates. A locale that already has speech data keeps it,
+/** Adopt the archive's narration for every text it still narrates. A locale
+ * that already has speech data keeps it,
  * so a re-projection only fills in what is missing — including the step
  * statuses the Speech stage needs to count as complete. */
 export function seedImportedSpeech(
@@ -78,6 +91,11 @@ export function seedImportedSpeech(
             textId: entry.textId,
             language,
             fileName: entry.fileName,
+            // Exported narration was generated, never a manual recording. Its
+            // input evidence is stamped once the book's configuration is
+            // known (see stampImportedSpeechEvidence).
+            source: "ai",
+            audioHash: audioHash(entry.bytes),
             voice: "imported",
             model: "imported-adt",
             cached: false,
@@ -97,6 +115,7 @@ export function seedImportedSpeech(
       const timestampEntries = readTimestamps(
         files[`${bundle.root}content/i18n/${archiveLanguage}/timecode/timecode_output.json`],
         language,
+        new Map(entries.map((entry) => [entry.textId, audioHash(entry.bytes)])),
       )
       if (Object.keys(timestampEntries).length === 0) continue
       storage.putNodeData("tts-timestamps", language, WordTimestampOutput.parse({

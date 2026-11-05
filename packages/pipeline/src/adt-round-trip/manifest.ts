@@ -48,6 +48,31 @@ function fingerprintIds(ids: Iterable<string>): string {
     .digest("hex")
 }
 
+/**
+ * Fingerprint of one exported display text, recorded per locale in
+ * `frozen.textFingerprints` and recomputed by import to tell which entries
+ * changed after export. Truncated: it detects edits, it does not secure them.
+ */
+export function adtTextFingerprint(text: string): string {
+  return createHash("sha256").update(text).digest("hex").slice(0, 16)
+}
+
+function readTextFingerprints(contentDir: string, languages: readonly string[]): Record<string, Record<string, string>> {
+  const fingerprints: Record<string, Record<string, string>> = {}
+  for (const language of new Set(languages)) {
+    const filePath = path.join(contentDir, "i18n", language, "texts.json")
+    if (!fs.existsSync(filePath)) continue
+    const texts: unknown = JSON.parse(fs.readFileSync(filePath, "utf-8"))
+    if (!texts || typeof texts !== "object" || Array.isArray(texts)) continue
+    const locale: Record<string, string> = {}
+    for (const [id, text] of Object.entries(texts)) {
+      if (typeof text === "string") locale[id] = adtTextFingerprint(text)
+    }
+    fingerprints[language] = locale
+  }
+  return fingerprints
+}
+
 function hashJsonFile(filePath: string): string {
   return hashBuffer(Buffer.from(canonicalJson(JSON.parse(fs.readFileSync(filePath, "utf-8")))))
 }
@@ -150,6 +175,7 @@ export function buildAdtRoundTripManifest(
         ? { sourceTextsFingerprint: hashJsonFile(sourceTextsPath) }
         : {}),
       pageHtmlFingerprints,
+      textFingerprints: readTextFingerprints(contentDir, [language, ...outputLanguages]),
     },
   })
 }

@@ -17,6 +17,7 @@ import { assessAdtImportCompatibility } from "./compatibility.js"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./marker.js"
 import { ADT_IMPORT_PROJECTION_VERSION, readReplayedNodeVersions } from "./projection.js"
 import { seedImportedAdtProject } from "./seed/index.js"
+import { stampImportedSpeechEvidence, type ImportedSpeechEvidenceOptions } from "./speech-evidence.js"
 import { getBook, listBooks } from "../book-service.js"
 import { ensureProjectIdentity } from "../project-identity.js"
 import { importedAdtRevisionDir, writeImportedAdtCurrent } from "./source.js"
@@ -96,6 +97,10 @@ export function importAdtProject(
   options: {
     sourceFileName?: string
     activityDecisions?: readonly AdtActivityImportDecision[]
+    /** Where the book's speech configuration resolves from. Without it the
+     * recovered narration keeps no input evidence (see
+     * stampImportedSpeechEvidence). */
+    speechEvidence?: ImportedSpeechEvidenceOptions
   } = {},
 ): BookSummary {
   const resolvedBooksDir = path.resolve(booksDir)
@@ -113,6 +118,9 @@ export function importAdtProject(
   const bookDir = path.join(resolvedBooksDir, label)
   try {
     seedImportedAdtProject(label, resolvedBooksDir, bundle, files, options)
+    if (options.speechEvidence) {
+      stampImportedSpeechEvidence(label, resolvedBooksDir, options.speechEvidence)
+    }
     adoptProjectIdentity(bookDir, bundle, resolvedBooksDir)
     const archive = persistImportArchive(
       bookDir,

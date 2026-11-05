@@ -23,6 +23,7 @@ import {
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
 import { resolveReadingOrder } from "../reading-order.js"
+import { adtTextFingerprint } from "../adt-round-trip/manifest.js"
 
 /**
  * Read the bundle's first reading-order page. Goes through pages.json rather
@@ -763,6 +764,16 @@ describe("packageAdtWeb", () => {
     })
     expect(roundTripManifest.frozen?.sourceTextsFingerprint).toMatch(/^[a-f0-9]{64}$/)
     expect(roundTripManifest.frozen?.pageHtmlFingerprints["pg001_sec001.html"]).toMatch(/^[a-f0-9]{64}$/)
+    // Every shipped text is fingerprinted per locale, matching texts.json.
+    for (const language of ["en", "fr"]) {
+      const texts = JSON.parse(fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", language, "texts.json"),
+        "utf-8",
+      )) as Record<string, string>
+      expect(roundTripManifest.frozen?.textFingerprints?.[language]).toEqual(Object.fromEntries(
+        Object.entries(texts).map(([id, text]) => [id, adtTextFingerprint(text)]),
+      ))
+    }
     const agentsGuide = fs.readFileSync(path.join(bookDir, "adt", "AGENTS.md"), "utf-8")
     expect(agentsGuide).toContain("<!-- adt-studio-agent-guide: 2 -->")
     expect(agentsGuide).toContain("editing contract version `2`")

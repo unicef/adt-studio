@@ -4,12 +4,13 @@ import path from "node:path"
 
 import { describe, expect, it } from "vitest"
 import { strToU8, unzipSync, zipSync } from "fflate"
-import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "@adt/pipeline"
+import { getCoreTtsCatalog, getReadyCoreTtsEntries, loadBookConfig, readOutputCatalog } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 
 import { getBook } from "../../book-service.js"
 import { getImportedAdtFeaturesNeedingRegeneration } from "../presentation.js"
 import { previewAdtRecoveryImport } from "../preview.js"
+import { stampImportedSpeechEvidence } from "../speech-evidence.js"
 import {
   ADT_IMPORT_PROJECTION_VERSION,
   ensureImportedAdtProjectProjection,
@@ -17,6 +18,7 @@ import {
 import {
   json,
   makeBundle,
+  makeBundleWithBaselinedNarrationAfterEdit,
   makeBundleWithEasyReadAndSignLanguage,
   makeBundleWithFillInTheBlankAnswers,
   makeBundleWithPartiallyStableNarration,
@@ -386,6 +388,80 @@ describe("imported translation and speech stage completion", () => {
     } finally {
       storage.close()
     }
+  })
+
+  it("keeps untouched narration whose prepared speech differs from its display text", () => {
+    const { booksDir, session } = importedProject(makeBundleWithBaselinedNarrationAfterEdit())
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const catalog = new Map(getCoreTtsCatalog(storage, "en")!.entries.map((entry) => [entry.id, entry]))
+      // The edited paragraph is compared with its export baseline, not with
+      // the equally edited texts.json, so its old narration is withheld...
+      expect(catalog.get("pg001_n001")).toMatchObject({ speechText: null, status: "failed" })
+      // ...while one edit no longer invalidates narration elsewhere, even
+      // where the spoken words legitimately differ from the displayed ones.
+      expect(catalog.get("gl001")).toMatchObject({
+        displayText: "Hyena",
+        speechText: "the spotted hyena",
+        status: "ready",
+      })
+      expect(storage.getLatestNodeData("tts", "en")?.data).toMatchObject({
+        entries: [expect.objectContaining({ textId: "gl001", fileName: "hyena.mp3", source: "ai" })],
+      })
+      expect(fs.existsSync(path.join(booksDir, session.label, "audio", "en", "original.mp3"))).toBe(false)
+      // Timings survive only with their audio, and are tied to its bytes so
+      // regenerated audio can never inherit them.
+      const audio = (storage.getLatestNodeData("tts", "en")?.data as { entries: Array<{ audioHash?: string }> }).entries[0]
+      const timings = (storage.getLatestNodeData("tts-timestamps", "en")?.data as { entries: Record<string, { audioHash?: string }> }).entries
+      expect(Object.keys(timings)).toEqual(["gl001"])
+      expect(timings.gl001.audioHash).toBe(audio.audioHash)
+      expect(audio.audioHash).toMatch(/^[a-f0-9]{64}$/)
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("lets a voice change regenerate recovered narration", () => {
+    const { booksDir, session } = importedProject(makeBundleWithBaselinedNarrationAfterEdit())
+    const promptsDir = path.resolve("prompts")
+    stampImportedSpeechEvidence(session.label, booksDir, { promptsDir })
+    const audioStatus = () => {
+      const storage = createBookStorage(session.label, booksDir)
+      try {
+        return readOutputCatalog({
+          storage,
+          config: loadBookConfig(session.label, booksDir),
+          bookDir: path.join(booksDir, session.label),
+          promptsDir,
+          configDir: path.resolve("config"),
+          kinds: ["audio"],
+        }).find((status) => status.identity.kind === "audio" && status.identity.id === "gl001")!
+      } finally {
+        storage.close()
+      }
+    }
+
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      expect(storage.getLatestNodeData("tts", "en")?.data).toMatchObject({
+        entries: [expect.objectContaining({
+          textId: "gl001",
+          source: "ai",
+          speechInputSignature: expect.any(String),
+          input: expect.objectContaining({ signature: expect.any(String) }),
+        })],
+      })
+    } finally {
+      storage.close()
+    }
+    // Current, and not protected like unknown or manual content.
+    expect(audioStatus()).toMatchObject({ usable: true, protected: false, manual: false, updateNeeded: false })
+
+    fs.writeFileSync(
+      path.join(booksDir, session.label, "config.yaml"),
+      "speech:\n  primary_voices:\n    openai:\n      en:\n        voice: echo\n",
+    )
+    expect(audioStatus()).toMatchObject({ usable: true, protected: false, updateNeeded: true })
   })
 
   it("seeds each Easy Read speech text once", () => {

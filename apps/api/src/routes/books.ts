@@ -333,7 +333,11 @@ export function createBookRoutes(
       const book = importAdtProject(
         zipBuffer,
         booksDir,
-        { sourceFileName: zip.name, activityDecisions },
+        {
+          sourceFileName: zip.name,
+          activityDecisions,
+          speechEvidence: { promptsDir, configPath },
+        },
       )
       return c.json(book, 201)
     } catch (error) {

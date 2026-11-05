@@ -5,6 +5,7 @@ import { createHash } from "node:crypto"
 
 import { afterEach } from "vitest"
 import { strToU8, unzipSync, zipSync } from "fflate"
+import { adtTextFingerprint } from "@adt/pipeline"
 import { canonicalJson } from "@adt/types/fingerprint"
 
 import { extractAdtBundleArchiveFiles, readAdtBundle } from "../bundle-reader.js"
@@ -394,17 +395,30 @@ export function makeBundleWithEasyReadAndSignLanguage(): Buffer {
 export function exportedThenEdited(
   archive: Buffer,
   edit: (files: Record<string, Uint8Array>) => void = () => {},
+  options: { textFingerprints?: boolean } = {},
 ): Buffer {
   const files = unzipSync(archive)
   const read = (filePath: string) => JSON.parse(new TextDecoder().decode(files[filePath]))
   const manifest = read("manifest.json")
   const pages = read("content/pages.json") as Array<{ href: string }>
+  const languages = [...new Set<string>([manifest.languages.source, ...manifest.languages.output])]
   manifest.frozen = {
     sourceTextsFingerprint: sha256(read(`content/i18n/${manifest.languages.source}/texts.json`)),
     pageHtmlFingerprints: Object.fromEntries(pages.map((page) => [
       page.href,
       createHash("sha256").update(files[page.href]).digest("hex"),
     ])),
+    ...(options.textFingerprints
+      ? {
+          textFingerprints: Object.fromEntries(languages
+            .filter((language) => files[`content/i18n/${language}/texts.json`])
+            .map((language) => [
+              language,
+              Object.fromEntries(Object.entries(read(`content/i18n/${language}/texts.json`) as Record<string, string>)
+                .map(([id, text]) => [id, adtTextFingerprint(text)])),
+            ])),
+        }
+      : {}),
   }
   files["manifest.json"] = json(manifest)
   edit(files)
@@ -442,6 +456,33 @@ export function makeBundleWithSpeechAfterGuideEdit(): Buffer {
     texts.pg001_n001 = "Rewritten after export"
     edited["content/i18n/en/texts.json"] = json(texts)
   })
+}
+
+/** A current export (per-entry text baselines) whose glossary narration was
+ * prepared from different words than it displays — like numbers or math —
+ * and whose narrated paragraph was then edited in the HTML and `texts.json`. */
+export function makeBundleWithBaselinedNarrationAfterEdit(): Buffer {
+  const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
+  files["content/i18n/en/speech_texts.json"] = json({
+    pg001_n001: "Edited outside Studio",
+    gl001: "the spotted hyena",
+  })
+  files["content/i18n/en/audios.json"] = json({
+    pg001_n001: "original.mp3",
+    gl001: "hyena.mp3",
+  })
+  files["content/i18n/en/audio/hyena.mp3"] = strToU8("hyena audio")
+  files["content/i18n/en/timecode/timecode_output.json"] = json({
+    pg001_n001: { timecodes: [null, { word_timestamps: [{ text: "Edited", start: 0, end: 0.4 }] }] },
+    gl001: { timecodes: [null, { word_timestamps: [{ text: "hyena", start: 0, end: 0.5 }] }] },
+  })
+  return exportedThenEdited(Buffer.from(zipSync(files)), (edited) => {
+    const decode = (filePath: string) => new TextDecoder().decode(edited[filePath])
+    edited["index.html"] = strToU8(decode("index.html").replace("Edited outside Studio", "Rewritten after export"))
+    const texts = JSON.parse(decode("content/i18n/en/texts.json"))
+    texts.pg001_n001 = "Rewritten after export"
+    edited["content/i18n/en/texts.json"] = json(texts)
+  }, { textFingerprints: true })
 }
 
 /** The legacy archive whose narrated paragraph was edited outside Studio, plus

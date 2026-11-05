@@ -414,6 +414,7 @@ export {
   convertLatexToMathml,
 } from "./packaging/web.js"
 export {
+  adtTextFingerprint,
   buildAdtRoundTripManifest,
   collectTranslationBaselines,
   type BuildAdtRoundTripManifestOptions,
