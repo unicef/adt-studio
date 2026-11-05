@@ -69,6 +69,50 @@ export function exportedActivityCatalogIds(html: string, pageId: string): Map<st
   return ids
 }
 
+/**
+ * The catalog text of one exported leaf element. Plain text is its text
+ * content, as when the catalog was built. Text containing math is different:
+ * export converted its LaTeX to MathML in both the page HTML and `texts.json`,
+ * so flattening the `<math>` markup to text content ("35=35⋅55") would make
+ * every formula look edited. Such text is reproduced in the exporter's own
+ * MathML form instead — prose as text, `<math>` subtrees as markup with
+ * `&`/`<`/`>` escaped — and only ASCII whitespace is collapsed, because MathML
+ * spacing uses non-breaking spaces.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function exportedElementText(el: any): string {
+  const hasMath = DomUtils.findOne(
+    (child) => child.type === "tag" && child.name.toLowerCase() === "math",
+    el.children ?? [],
+    true,
+  ) !== null
+  if (!hasMath) return textContentExcludingScripts(el).replace(/\s+/g, " ").trim()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const children: any[] = el.children ?? []
+  return children.map((child) => serializeMathAwareText(child, false)).join("")
+    .replace(/[ \t\n\r\f]+/g, " ")
+    .replace(/^ +| +$/g, "")
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function serializeMathAwareText(node: any, inMath: boolean): string {
+  if (node.type === "text") return inMath ? escapeMathText(node.data ?? "") : node.data ?? ""
+  const name = String(node.name ?? "").toLowerCase()
+  if (name === "script" || name === "style") return ""
+  const math = inMath || name === "math"
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inner = (node.children ?? []).map((child: any) => serializeMathAwareText(child, math)).join("")
+  if (!math) return inner
+  const attributes = Object.entries((node.attribs ?? {}) as Record<string, string>)
+    .map(([key, value]) => ` ${key}="${value.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"`)
+    .join("")
+  return `<${node.name}${attributes}>${inner}</${node.name}>`
+}
+
+function escapeMathText(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
 export function extractTextCatalogEntriesFromHtml(html: string, pageId?: string): TextCatalogEntry[] {
   const elements = exportedLeafElements(html)
 
@@ -85,10 +129,9 @@ export function extractTextCatalogEntriesFromHtml(html: string, pageId?: string)
     }
     seen.add(id)
 
-    const text = (el.name === "img"
-      ? el.attribs.alt ?? ""
-      : textContentExcludingScripts(el)
-    ).replace(/\s+/g, " ").trim()
+    const text = el.name === "img"
+      ? (el.attribs.alt ?? "").replace(/\s+/g, " ").trim()
+      : exportedElementText(el)
     if (text.length > 0) entries.push({ id, text })
   }
   return entries

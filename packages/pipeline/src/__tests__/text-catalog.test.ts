@@ -695,6 +695,22 @@ describe("extractTextCatalogEntriesFromHtml", () => {
     ])
   })
 
+  it("recovers exported math in the same MathML form texts.json carries", () => {
+    // Export converts catalog LaTeX to MathML in both the page and texts.json;
+    // flattening it to text content ("35=35") would make every formula look edited.
+    const formula = '<math><mrow><mfrac><mn>3</mn><msqrt><mn>5</mn></msqrt></mfrac><mo>&lt;</mo>'
+      + '<mtext>\u00a0</mtext><mspace width="0pt" height="0.5em"></mspace><mi>x</mi></mrow></math>'
+    expect(extractTextCatalogEntriesFromHtml(`
+      <p data-id="pg001_n001">${formula}</p>
+      <p data-id="pg001_n002">(UFV-MG)  A expressão ${formula}, é &amp; mais</p>
+      <p data-id="pg001_n003">Plain\u00a0 text</p>
+    `)).toEqual([
+      { id: "pg001_n001", text: formula },
+      { id: "pg001_n002", text: `(UFV-MG) A expressão ${formula}, é & mais` },
+      { id: "pg001_n003", text: "Plain text" },
+    ])
+  })
+
   it("rejects duplicate stable ids instead of producing ambiguous speech", () => {
     expect(() => extractTextCatalogEntriesFromHtml(`
       <p data-id="pg001_n001">One</p>
