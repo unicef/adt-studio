@@ -24,10 +24,13 @@ interface EpubGlossaryConfigValue {
 export function EpubGlossaryOptions({
   bookLabel,
   disabled,
+  tone = "lime",
 }: {
   bookLabel: string;
   disabled?: boolean;
+  tone?: "lime" | "accent";
 }) {
+  const accent = tone === "accent";
   const { t } = useLingui();
   const { data: configData } = useBookConfig(bookLabel);
   const { data: pages } = usePages(bookLabel);
@@ -112,7 +115,12 @@ export function EpubGlossaryOptions({
   ];
 
   return (
-    <div className="ml-10 mr-2 mt-1 space-y-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+    <div
+      className={cn(
+        "space-y-2 rounded-lg p-3",
+        accent ? "bg-muted/50" : "ml-10 mr-2 mt-1 border border-slate-200 bg-slate-50/60",
+      )}
+    >
       <h5 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
         <Trans>Glossary format</Trans>
       </h5>
@@ -133,9 +141,13 @@ export function EpubGlossaryOptions({
               onClick={() => save({ mode: option.value })}
               className={cn(
                 "flex w-full items-start gap-2 rounded-md border px-2.5 py-2 text-left transition-colors",
-                checked
-                  ? "border-lime-400 bg-lime-50"
-                  : "border-slate-200 bg-white hover:bg-slate-50",
+                accent
+                  ? checked
+                    ? "border-(--accent)/50 bg-[color-mix(in_oklab,var(--accent)_8%,transparent)]"
+                    : "bg-card hover:bg-muted"
+                  : checked
+                    ? "border-lime-400 bg-lime-50"
+                    : "border-slate-200 bg-white hover:bg-slate-50",
                 disabled && "opacity-60 cursor-not-allowed",
               )}
             >
@@ -143,16 +155,20 @@ export function EpubGlossaryOptions({
                 aria-hidden
                 className={cn(
                   "mt-0.5 h-3 w-3 shrink-0 rounded-full border",
-                  checked
-                    ? "border-lime-600 bg-lime-500"
-                    : "border-slate-300 bg-white",
+                  accent
+                    ? checked
+                      ? "border-(--accent-solid) bg-(--accent-solid)"
+                      : "border-muted-foreground/40 bg-card"
+                    : checked
+                      ? "border-lime-600 bg-lime-500"
+                      : "border-slate-300 bg-white",
                 )}
               />
               <span className="min-w-0">
-                <span className="block text-xs font-medium text-slate-800">
+                <span className={cn("block text-xs font-medium", accent ? "text-foreground" : "text-slate-800")}>
                   {option.label}
                 </span>
-                <span className="block text-[11px] leading-snug text-slate-500">
+                <span className={cn("block text-[11px] leading-snug", accent ? "text-muted-foreground" : "text-slate-500")}>
                   {option.description}
                 </span>
               </span>

@@ -46,9 +46,26 @@ const hiddenStore = createPersistentStore<boolean>("adt.lab.toolbar-hidden", fal
 const collapsedStore = createPersistentStore<boolean>("adt.lab.toolbar-collapsed", false, (value): value is boolean => typeof value === "boolean")
 const groupStore = createPersistentStore<string>("adt.lab.toolbar-group", "", (value): value is string => typeof value === "string")
 
-function Segment({ control, value, onChange }: { control: LabControl; value: string; onChange: (value: string) => void }) {
+function Segment({
+  control,
+  value,
+  onChange,
+  targeted = false,
+}: {
+  control: LabControl
+  value: string
+  onChange: (value: string) => void
+  targeted?: boolean
+}) {
   return (
-    <div role="radiogroup" aria-label={typeof control.label === "string" ? control.label : control.key} className="flex flex-wrap items-center gap-0.5 rounded-xl bg-white/5 p-1">
+    <div
+      role="radiogroup"
+      aria-label={typeof control.label === "string" ? control.label : control.key}
+      className={
+        "flex flex-wrap items-center gap-0.5 rounded-xl bg-white/5 p-1 ring-1 transition-[box-shadow] duration-200 " +
+        (targeted ? "ring-white/35" : "ring-transparent")
+      }
+    >
       <span className="w-full px-1.5 pt-0.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/45">{control.label}</span>
       {control.options.map((option) => {
         const active = option.value === value
@@ -116,6 +133,8 @@ export function DevToolbar({
   const group = groups.find((candidate) => candidate.key === groupKey) ?? groups[0]
   const groupControls = group?.controls ?? []
   const cycled = groupControls.find((control) => control.cycle) ?? controls.find((control) => control.cycle) ?? groupControls[0] ?? controls[0]
+  const [targetIndex, setTargetIndex] = useState(0)
+  const targeted = groupControls.length > 0 ? groupControls[targetIndex % groupControls.length] : undefined
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setShown(true))
@@ -124,6 +143,23 @@ export function DevToolbar({
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.altKey && !event.metaKey && !event.ctrlKey && event.key.startsWith("Arrow") && targeted) {
+        const field = event.target instanceof HTMLElement && event.target.closest("input, textarea, select, [contenteditable=true]")
+        if (field) return
+        event.preventDefault()
+        event.stopPropagation()
+        if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+          const step = event.key === "ArrowDown" ? 1 : -1
+          setTargetIndex((current) => (current + step + groupControls.length) % groupControls.length)
+          setCollapsed(false)
+          return
+        }
+        const options = targeted.options
+        const index = Math.max(0, options.findIndex((option) => option.value === values[targeted.key]))
+        const next = options[(index + (event.key === "ArrowRight" ? 1 : -1) + options.length) % options.length]
+        onChange(targeted.key, next.value)
+        return
+      }
       if (event.metaKey || event.ctrlKey || event.altKey) return
       const target = event.target as Node | null
       const free = target === document.body || target === document.documentElement || (target !== null && root.current?.contains(target))
@@ -140,9 +176,9 @@ export function DevToolbar({
       const next = options[(index + (event.key === "ArrowRight" ? 1 : -1) + options.length) % options.length]
       onChange(cycled.key, next.value)
     }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [cycled, values, onChange, setHidden])
+    window.addEventListener("keydown", onKey, true)
+    return () => window.removeEventListener("keydown", onKey, true)
+  }, [cycled, targeted, groupControls.length, values, onChange, setHidden, setCollapsed])
 
   if (new URLSearchParams(window.location.search).get("toolbar") === "0") return null
 
@@ -246,8 +282,19 @@ export function DevToolbar({
             <>
               <div key={group.key} role="tabpanel" className="flex flex-col gap-1 animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out motion-reduce:animate-none">
                 {group.controls.map((control) => (
-                  <Segment key={control.id ?? control.key} control={control} value={values[control.key]} onChange={(value) => onChange(control.key, value)} />
+                  <Segment
+                    key={control.id ?? control.key}
+                    control={control}
+                    value={values[control.key]}
+                    onChange={(value) => onChange(control.key, value)}
+                    targeted={control === targeted}
+                  />
                 ))}
+                {group.controls.length > 0 && (
+                  <p className="px-2 pt-0.5 text-[11px] leading-snug text-white/45">
+                    {t`⌥↑↓ picks a row, ⌥←→ changes it. Works with dialogs open.`}
+                  </p>
+                )}
                 {group.content}
                 {group.note !== undefined && <p className="px-2 pt-0.5 pb-1 text-[11.5px] leading-snug text-white/55">{group.note}</p>}
               </div>
