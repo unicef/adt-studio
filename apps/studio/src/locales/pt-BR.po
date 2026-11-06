@@ -3341,6 +3341,9 @@ msgstr "Copiar o link para enviar"
 msgid "Copy the repair request"
 msgstr "Copie o pedido de correção"
 
+msgid "Copy the repair request and give it, with the unzipped export, to an AI assistant such as Claude or Codex. Then choose the ZIP it returns."
+msgstr "Copie a solicitação de reparo e entregue-a, junto com a exportação descompactada, a um assistente de IA como Claude ou Codex. Depois escolha o ZIP que ele devolver."
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Os recifes de coral cobrem menos de 1% do fundo do oceano, mas sustentam cerca de 25% de todas as espécies marinhas. Frequentemente chamados de 'florestas tropicais do mar', esses ecossistemas subaquáticos são construídos por pequenos animais chamados pólipos de coral."
 

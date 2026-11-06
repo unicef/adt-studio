@@ -198,7 +198,15 @@ export function ImportProject() {
       ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col overflow-auto bg-background">
-        <main className={cn("mx-auto flex min-h-0 w-full max-w-[max(72rem,72vw)] flex-1 flex-col gap-5 px-4 pb-6 pt-7 sm:px-8 2xl:px-16", ENTER)}>
+        <main
+          className={cn(
+            "mx-auto flex w-full max-w-[max(72rem,72vw)] flex-1 flex-col gap-5 px-4 pb-6 pt-7 sm:px-8 2xl:px-16",
+            // The review fits the window and scrolls inside its columns; the select
+            // step keeps its natural height and scrolls the page in short windows.
+            hasPreview && "min-h-0",
+            ENTER,
+          )}
+        >
           <ImportHeader step={step} failedStep={failedStep} />
           {hasPreview && zipFile && preview ? (
             <ImportReview
@@ -219,7 +227,7 @@ export function ImportProject() {
           )}
         </main>
 
-        <footer className="shrink-0 border-t border-border bg-background py-4">
+        <footer className="sticky bottom-0 shrink-0 border-t border-border bg-background py-4">
           <div className="mx-auto flex w-full max-w-[max(72rem,72vw)] items-center justify-between gap-4 px-4 sm:px-8 2xl:px-16">
             <Button
               type="button"

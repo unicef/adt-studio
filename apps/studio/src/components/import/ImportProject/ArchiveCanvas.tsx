@@ -53,13 +53,13 @@ export function ArchiveCanvas({ view, onBrowse }: { view: CanvasView; onBrowse: 
       aria-live="polite"
       onClick={view.tone === "idle" ? onBrowse : undefined}
       className={cn(
-        "grid min-h-[420px] flex-1 grid-rows-[1fr_auto] rounded-[18px] border-[1.5px] transition-[border-color,background-color,box-shadow] duration-300",
+        "grid shrink-0 flex-1 grid-rows-[1fr_auto] rounded-[18px] border-[1.5px] transition-[border-color,background-color,box-shadow] duration-300",
         view.tone === "idle" && "cursor-pointer",
         dots && "bg-[radial-gradient(circle_at_1px_1px,color-mix(in_oklch,var(--muted-foreground)_22%,transparent)_1px,transparent_0)] bg-[length:22px_22px]",
         TONES[view.tone],
       )}
     >
-      <div ref={center} className="flex flex-col items-center justify-center gap-3.5 px-6 py-8 text-center">
+      <div ref={center} className="flex min-h-[280px] flex-col items-center justify-center gap-3.5 px-6 py-8 text-center">
         <span
           data-flip="icon"
           className={cn(

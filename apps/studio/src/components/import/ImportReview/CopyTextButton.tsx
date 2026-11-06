@@ -14,9 +14,11 @@ const ICON_SWAP = "absolute inset-0 size-3.5 transition-[opacity,scale,filter] d
 export function CopyTextButton({
   value,
   children,
+  className,
 }: {
   value: string
   children: ReactNode
+  className?: string
 }) {
   const { t } = useLingui()
   const [state, setState] = useState<CopyState>("idle")
@@ -47,7 +49,7 @@ export function CopyTextButton({
       size="sm"
       variant="outline"
       onClick={copy}
-      className="h-8 border-brand-300/60 text-xs text-brand-600 hover:bg-brand-500/10 hover:text-brand-700 dark:border-brand-700/60 dark:text-brand-400 dark:hover:text-brand-300"
+      className={cn("h-8 border-brand-300/60 text-xs text-brand-600 hover:bg-brand-500/10 hover:text-brand-700 dark:border-brand-700/60 dark:text-brand-400 dark:hover:text-brand-300", className)}
     >
       <span aria-hidden="true" className="relative size-3.5 shrink-0">
         <Copy className={cn(ICON_SWAP, copied ? "scale-25 opacity-0 blur-[4px]" : "scale-100 opacity-100 blur-none")} />

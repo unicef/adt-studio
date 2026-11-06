@@ -3343,6 +3343,9 @@ msgstr "Kopjo lidhjen për ta dërguar"
 msgid "Copy the repair request"
 msgstr "Kopjoni kërkesën për riparim"
 
+msgid "Copy the repair request and give it, with the unzipped export, to an AI assistant such as Claude or Codex. Then choose the ZIP it returns."
+msgstr "Kopjoni kërkesën për riparim dhe jepjani, së bashku me eksportin e shpaketuar, një asistenti AI si Claude ose Codex. Pastaj zgjidhni ZIP-in që ai kthen."
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Rifet koraliere mbulojnë më pak se 1% të dyshemesë së oqeanit, por mbështesin rreth 25% të të gjitha specieve detare. Shpesh të quajtura 'pyjet e shiut të detit', këto ekosisteme nënujore ndërtohen nga kafshë të vogla të quajtura polipe korali."
 

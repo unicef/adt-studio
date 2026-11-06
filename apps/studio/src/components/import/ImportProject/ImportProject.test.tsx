@@ -71,7 +71,13 @@ vi.mock("@/hooks/use-archive-error", () => ({
     ? {
         title: "Archive problem",
         hint: "Review the archive details and try again.",
-        kind: error.includes("Internal server error") ? "server" : error.includes(".db") ? "not-recognized" : "other",
+        kind: error.includes("Internal server error")
+          ? "server"
+          : error.includes(".db")
+            ? "not-recognized"
+            : error.includes("Archive file") || error.includes("ADT bundle")
+              ? "adt-unreadable"
+              : "other",
       }
     : null,
 }))
@@ -574,6 +580,35 @@ describe("ImportProject", () => {
     expect(screen.getByText(/expected a .db and .pdf file/)).toBeTruthy()
     expect(screen.queryByRole("dialog")).toBeNull()
     expect(screen.getByRole("button", { name: "Import" }).hasAttribute("disabled")).toBe(true)
+  })
+
+  it("offers a repair request when an ADT export can't be read", async () => {
+    const message = "Archive file has an invalid shape: manifest.json at editingContract.nonActivities.0.sectionId: Section cannot be both an activity and a non-activity: pg012_sec002"
+    previewImport.mockRejectedValue(new Error(message))
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "repaired-adt.zip", { type: "application/zip" })] } })
+
+    expect(await screen.findByText("This ADT export can’t be read")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Copy repair request" }))
+    await waitFor(() => expect(writeClipboard).toHaveBeenCalled())
+    const prompt = writeClipboard.mock.calls.at(-1)![0] as string
+    expect(prompt).toContain("repaired-adt.zip")
+    expect(prompt).toContain(message)
+    expect(prompt).toContain("AGENTS.md")
+    expect(prompt).toContain("may appear in only one of the two lists")
+    expect(screen.getByRole("button", { name: "Choose repaired ZIP" })).toBeTruthy()
+  })
+
+  it("does not offer a repair request when editing files can't fix the archive", async () => {
+    previewImport.mockRejectedValue(new Error("ADT bundle exceeds the compressed archive size limit"))
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "huge.zip", { type: "application/zip" })] } })
+
+    expect(await screen.findByText("This ADT export can’t be read")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Copy repair request" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Choose repaired ZIP" })).toBeTruthy()
   })
 
   it("retries a server error with the same archive", async () => {

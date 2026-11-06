@@ -1821,6 +1821,12 @@ describe("POST /books/preview-import", () => {
     expect(body.agentGuide.activityPrompt).toContain("<activity_review_candidates_json>")
     expect(body.agentGuide.activityPrompt).toContain("pg001_sec001")
     expect(body.agentGuide.activityPrompt).toContain("data-adt-non-activity")
+    // Classifying is a move between the two lists. Saying only "update" let an
+    // agent add a section to nonActivities while leaving it in activities,
+    // which the bundle reader then rejects as a conflicting classification.
+    expect(body.agentGuide.activityPrompt).toContain("remove its entry from editingContract.activities")
+    expect(body.agentGuide.activityPrompt).toContain("remove its entry from editingContract.nonActivities")
+    expect(body.agentGuide.activityPrompt).toContain("no section id is listed in both")
   })
 
   it("reports unsupported exported HTML before import", async () => {
