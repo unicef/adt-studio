@@ -8,44 +8,7 @@ import { ImageClassificationOutput } from "@adt/types"
 
 import { readAdtBundle } from "../bundle-reader.js"
 import { pageIdFromSection } from "../catalog.js"
-
-function importedImageDimensions(bytes: Uint8Array, extension: string): { width: number; height: number } {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  if (extension === "png" && bytes.byteLength >= 24) {
-    return { width: view.getUint32(16), height: view.getUint32(20) }
-  }
-  if ((extension === "jpg" || extension === "jpeg") && bytes.byteLength >= 4) {
-    let offset = 2
-    while (offset + 9 < bytes.byteLength) {
-      if (bytes[offset] !== 0xff) {
-        offset++
-        continue
-      }
-      const marker = bytes[offset + 1]
-      const length = view.getUint16(offset + 2)
-      if (length < 2) break
-      if (marker >= 0xc0 && marker <= 0xc3) {
-        return { width: view.getUint16(offset + 7), height: view.getUint16(offset + 5) }
-      }
-      offset += length + 2
-    }
-  }
-  if (extension === "webp" && bytes.byteLength >= 30) {
-    const chunk = new TextDecoder("ascii").decode(bytes.subarray(12, 16))
-    if (chunk === "VP8X") {
-      const width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16)
-      const height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16)
-      return { width, height }
-    }
-  }
-  if (extension === "svg") {
-    const text = new TextDecoder().decode(bytes.subarray(0, Math.min(bytes.byteLength, 4096)))
-    const viewBox = text.match(/viewBox=["'][^"']*?([\d.]+)[ ,]+([\d.]+)["']/i)
-    if (viewBox) return { width: Math.max(1, Math.round(Number(viewBox[1]))), height: Math.max(1, Math.round(Number(viewBox[2]))) }
-  }
-  return { width: 1024, height: 1024 }
-}
-
+import { importedImageDimensions } from "./image-dimensions.js"
 
 /** The HTML `src` is the image the page shows, so a replacement that keeps the
  * element's data-id wins over a stale file still named after that id. */
