@@ -93,6 +93,11 @@ export const openaiManifest: ProviderManifest = {
     stt: "whisper-1",
   },
   docsUrl: "https://platform.openai.com/api-keys",
+  // Steps without a configured timeout (captioning, metadata, sectioning…)
+  // otherwise hit the GPT-6 Responses adapter's internal fallback, which the
+  // client can't see and so never retries. A declared floor makes every call's
+  // timeout explicit, so a timeout gets one retry with a doubled budget.
+  minimumRequestTimeoutMs: 180_000,
 }
 
 type OpenAiCredentials = z.infer<typeof credentialSchema>

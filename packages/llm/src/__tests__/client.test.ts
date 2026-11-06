@@ -430,6 +430,19 @@ describe("createLLMModel timeout budget", () => {
     ])
   })
 
+  it("retries a timeout once when only the provider floor sets the budget", async () => {
+    const { registry, requests, generate } = makeRegistry({ minimumRequestTimeoutMs: 180_000 })
+    generate
+      .mockRejectedValueOnce(timeoutError())
+      .mockResolvedValueOnce({ object: { ok: true }, usage: { inputTokens: 1, outputTokens: 1 } })
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+
+    const result = await llm.generateObject<{ ok: boolean }>({ schema, messages, maxRetries: 5 })
+
+    expect(result.object).toEqual({ ok: true })
+    expect(requests.map((r) => r.timeoutMs)).toEqual([180_000, 360_000])
+  })
+
   it("gives up after a second timeout even with retries left", async () => {
     const { registry, requests, generate } = makeRegistry()
     generate.mockRejectedValue(timeoutError())

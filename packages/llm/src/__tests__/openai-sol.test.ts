@@ -79,6 +79,10 @@ describe("Sol migration", () => {
     expect(openaiProvider.cacheFingerprint!(context).adapterVersion).toBe("openai-sol-responses-1")
   })
 
+  it("declares a request-timeout floor so unconfigured GPT-6 calls get a visible, retryable timeout", () => {
+    expect(openaiProvider.manifest.minimumRequestTimeoutMs).toBe(180_000)
+  })
+
   it("sends Terra through Responses with Luna's effort set, a medium default and its own cache adapter", async () => {
     fetchMock.mockImplementation(async () => textResponse())
     const terra = { ...context, modelId: "gpt-6.1-terra" }
