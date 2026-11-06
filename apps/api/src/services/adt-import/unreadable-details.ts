@@ -3,6 +3,7 @@ import type { AdtImportUnreadableDetails } from "@adt/types"
 
 import { extractAdtBundleArchiveFiles } from "./bundle-reader.js"
 import { recoveredPageCount } from "./catalog.js"
+import { previewCoverDataUri } from "./preview-cover.js"
 
 const MANIFEST_PATH = /^(?:[^/]+\/)?manifest\.json$/
 const COVER_PATH = /^(?:[^/]+\/)?cover\.(?:png|jpe?g|webp)$/i
@@ -90,9 +91,7 @@ export function readUnreadableAdtDetails(zipBuffer: Buffer): AdtImportUnreadable
 
   return {
     title: text(book?.title) ?? text(config?.title) ?? text(htmlTitle),
-    coverBase64: coverPath
-      ? `data:${coverMimeType(coverPath)};base64,${Buffer.from(files[coverPath]).toString("base64")}`
-      : null,
+    coverBase64: coverPath ? previewCoverDataUri({ bytes: files[coverPath], mimeType: coverMimeType(coverPath) }) : null,
     pageCount: pages && pages.length > 0 ? recoveredPageCount(pages) : null,
     imageCount: imageCount > 0 ? imageCount : null,
     tocEntryCount: Array.isArray(toc) ? toc.length : null,

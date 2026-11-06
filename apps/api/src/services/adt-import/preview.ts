@@ -10,6 +10,7 @@ import {
   hasSourceChanges,
   recoveredPageCount,
 } from "./catalog.js"
+import { previewCoverDataUri } from "./preview-cover.js"
 import { recoverableEasyReadIds } from "./easy-read.js"
 import { AdtImportError } from "./error.js"
 import { createAdtImportRepairGuide } from "./repair-guide.js"
@@ -145,9 +146,7 @@ export function previewAdtRecoveryImport(
     legacyRecovery: bundle.sourceFormat === "legacy-studio-export",
     label: bundle.manifest.book.label,
     title: bundle.title,
-    coverBase64: bundle.cover
-      ? `data:${bundle.cover.mimeType};base64,${Buffer.from(bundle.cover.bytes).toString("base64")}`
-      : null,
+    coverBase64: previewCoverDataUri(bundle.cover),
     sourceLanguage,
     outputLanguages,
     runtimeFeatures: bundle.runtimeFeatures,
