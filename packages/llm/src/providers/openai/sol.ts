@@ -15,8 +15,12 @@ export function isLuna(modelId: string): boolean {
   return /^gpt-6-luna(?:-\d{4}-\d{2}-\d{2})?$/.test(modelId)
 }
 
+export function isTerra(modelId: string): boolean {
+  return /^gpt-6\.1-terra(?:-\d{4}-\d{2}-\d{2})?$/.test(modelId)
+}
+
 export function usesGpt6Responses(modelId: string): boolean {
-  return isSol(modelId) || isLuna(modelId)
+  return isSol(modelId) || isLuna(modelId) || isTerra(modelId)
 }
 
 function requestedEffort(providerOptions?: Record<string, unknown>): unknown {
@@ -45,10 +49,12 @@ export function lunaInferenceOptions(providerOptions?: Record<string, unknown>):
 }
 
 export function gpt6InferenceOptions(modelId: string, providerOptions?: Record<string, unknown>): InferenceOptions {
-  return isLuna(modelId) ? lunaInferenceOptions(providerOptions) : solInferenceOptions(providerOptions)
+  // Terra accepts the same efforts as Luna (none…max) and also defaults to medium.
+  return isLuna(modelId) || isTerra(modelId) ? lunaInferenceOptions(providerOptions) : solInferenceOptions(providerOptions)
 }
 
 export function gpt6AdapterVersion(modelId: string): string {
+  if (isTerra(modelId)) return "openai-terra-responses-1"
   return isLuna(modelId) ? "openai-luna-responses-1" : "openai-sol-responses-1"
 }
 
