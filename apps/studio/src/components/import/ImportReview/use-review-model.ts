@@ -21,7 +21,8 @@ export type Tone = "green" | "amber" | "red" | "blue"
 export type CheckState = "ok" | "bad" | "warn" | "off"
 export type ReviewMode = "ready" | "activity" | "repair" | "blocked"
 
-export interface Stat { value: string; label: string; long?: boolean }
+/** A key number in the hero band; null marks a value that couldn't be read. */
+export interface Stat { value: string | null; label: string; long?: boolean }
 export interface Status { tone: Tone; icon: LucideIcon; title: string; text: string }
 export interface Check { icon: LucideIcon; label: string; value: string; state: CheckState }
 export interface Issue { file: string; text: string; code: string }
@@ -49,7 +50,7 @@ const FILE_CODES = new Set([
   "unsupported-script", "unsupported-asset-location", "missing-asset",
 ])
 
-function languageName(code: string, locale: string): string {
+export function languageName(code: string, locale: string): string {
   try {
     return new Intl.DisplayNames([locale], { type: "language" }).of(code) ?? code.toUpperCase()
   } catch {

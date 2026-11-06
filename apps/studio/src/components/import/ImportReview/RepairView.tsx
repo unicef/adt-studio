@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { RepairGuide } from "./RepairGuide"
 import { RepairRequest } from "./RepairRequest"
-import { Panel, StatusRow } from "./ReviewParts"
+import { IssueList, Panel, StatusRow } from "./ReviewParts"
 import type { Issue, Status } from "./use-review-model"
 
 const SWAP = "transition-[opacity,translate] duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:translate-x-0 motion-reduce:transition-opacity"
@@ -53,17 +53,7 @@ export function RepairView({
     >
       <Panel title={<Trans>To fix</Trans>}>
         <StatusRow status={status} />
-        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
-          {issues.map((issue, index) => (
-            <li key={`${issue.code}:${issue.file}:${index}`} className="px-3.5 py-2.5">
-              <div className="flex items-baseline justify-between gap-3">
-                <code className="truncate font-mono text-xs font-semibold text-foreground">{issue.file}</code>
-                <code className="shrink-0 font-mono text-[11px] text-muted-foreground">{issue.code}</code>
-              </div>
-              <p className="mt-1 break-words text-[13px] text-foreground">{issue.text}</p>
-            </li>
-          ))}
-        </ul>
+        <IssueList issues={issues} />
       </Panel>
       <div className="grid min-h-0 min-w-0 [&>*]:col-start-1 [&>*]:row-start-1">
         <Panel className={cn(SWAP, guideOpen ? "pointer-events-none -translate-x-2.5 opacity-0" : "opacity-100")}>

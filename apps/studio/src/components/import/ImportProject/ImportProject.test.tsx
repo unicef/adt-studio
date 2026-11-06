@@ -93,6 +93,7 @@ vi.mock("@/api/client", () => ({
   api: { previewImport },
   isPartImportPreview: (preview: { isPart?: boolean }) => preview.isPart === true,
   isAdtBundleImportPreview: (preview: { isAdtBundle?: boolean }) => preview.isAdtBundle === true,
+  unreadableAdtDetails: (error: unknown) => (error as { details?: unknown }).details ?? null,
 }))
 
 const { ImportProject } = await import("./ImportProject")
@@ -598,6 +599,37 @@ describe("ImportProject", () => {
     expect(prompt).toContain("AGENTS.md")
     expect(prompt).toContain("may appear in only one of the two lists")
     expect(screen.getByRole("button", { name: "Choose repaired ZIP" })).toBeTruthy()
+  })
+
+  it("shows the book it could still read beside the repair request", async () => {
+    const message = "Archive file has an invalid shape: manifest.json at editingContract.nonActivities.0.sectionId: Section cannot be both an activity and a non-activity: pg012_sec002"
+    previewImport.mockRejectedValue(Object.assign(new Error(message), {
+      details: {
+        title: "Volcanoes",
+        coverBase64: null,
+        pageCount: 25,
+        imageCount: null,
+        tocEntryCount: 10,
+        sourceLanguage: "en",
+        outputLanguages: [],
+      },
+    }))
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "repaired-adt.zip", { type: "application/zip" })] } })
+
+    expect(await screen.findByText("Volcanoes")).toBeTruthy()
+    expect(screen.getByText("This export can’t be read")).toBeTruthy()
+    expect(screen.getByText("Needs repair")).toBeTruthy()
+    expect(screen.getByText("manifest.json")).toBeTruthy()
+    // The image count couldn't be read, so it is marked instead of shown as 0.
+    expect(screen.getByText("Couldn’t be read")).toBeTruthy()
+    expect(screen.getByText(/Details marked “—” couldn’t be read/)).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Copy repair request" }))
+    await waitFor(() => expect(writeClipboard).toHaveBeenCalled())
+    expect(writeClipboard.mock.calls.at(-1)![0]).toContain(message)
+    const choose = screen.getByRole("button", { name: "Choose repaired ZIP" })
+    expect(choose.hasAttribute("disabled")).toBe(false)
   })
 
   it("does not offer a repair request when editing files can't fix the archive", async () => {

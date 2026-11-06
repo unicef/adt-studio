@@ -78,6 +78,7 @@ import {
 } from "../services/adt-import/project-import.js"
 import { AdtActivityReviewError } from "../services/adt-import/activity-reconciliation.js"
 import { readAdtAgentGuideTemplate } from "@adt/pipeline"
+import { readUnreadableAdtDetails } from "../services/adt-import/unreadable-details.js"
 import { resolvePathWithin } from "../utils/path-security.js"
 
 function assertModelSupported(
@@ -285,7 +286,13 @@ export function createBookRoutes(
         return c.json(previewImport(zipBuffer))
       }
       if (error instanceof AdtBundleReadError || error instanceof AdtImportError) {
-        throw new HTTPException(400, { message: error.message })
+        // The archive is refused either way; the details only let the screen
+        // show which book this is next to its repair request.
+        return c.json({
+          error: error.message,
+          code: "adt-unreadable",
+          details: readUnreadableAdtDetails(zipBuffer),
+        }, 400)
       }
       throw error
     }

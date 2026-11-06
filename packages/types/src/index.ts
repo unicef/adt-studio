@@ -136,6 +136,7 @@ export {
   AdtAgentGuideReview,
   AdtImportFeatureRecovery,
   AdtBundleImportPreview,
+  AdtImportUnreadableDetails,
 } from "./adt-round-trip.js"
 
 export {

@@ -371,3 +371,18 @@ export const AdtBundleImportPreview = z.object({
   agentGuide: AdtAgentGuideReview,
 })
 export type AdtBundleImportPreview = z.infer<typeof AdtBundleImportPreview>
+
+/** What `POST /books/preview-import` can still tell about an ADT export it
+ * could not read, sent as `details` beside the 400 `error`. The screen shows
+ * the book with its repair request; the import itself stays refused. Every
+ * field is null when that part of the archive could not be read. */
+export const AdtImportUnreadableDetails = z.object({
+  title: z.string().nullable(),
+  coverBase64: z.string().nullable(),
+  pageCount: z.number().int().nullable(),
+  imageCount: z.number().int().nullable(),
+  tocEntryCount: z.number().int().nullable(),
+  sourceLanguage: z.string().nullable(),
+  outputLanguages: z.array(z.string()).nullable(),
+})
+export type AdtImportUnreadableDetails = z.infer<typeof AdtImportUnreadableDetails>

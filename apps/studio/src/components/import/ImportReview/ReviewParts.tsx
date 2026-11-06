@@ -4,7 +4,7 @@ import { AlertCircle, Check as CheckIcon, Minus, X } from "lucide-react"
 import type { AnyImportPreview } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { FEATURES, featureStatus } from "./helpers"
-import type { Check, CheckState, Status, Step, Tone } from "./use-review-model"
+import type { Check, CheckState, Issue, Status, Step, Tone } from "./use-review-model"
 
 
 export function Panel({ title, children, className }: { title?: ReactNode; children: ReactNode; className?: string }) {
@@ -157,5 +157,22 @@ export function FactList({ facts }: { facts: Array<{ label: string; value: strin
         </div>
       ))}
     </dl>
+  )
+}
+
+/** The problems to fix, each with the file it is in and its code. */
+export function IssueList({ issues }: { issues: Issue[] }) {
+  return (
+    <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+      {issues.map((issue, index) => (
+        <li key={`${issue.code}:${issue.file}:${index}`} className="px-3.5 py-2.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <code className="truncate font-mono text-xs font-semibold text-foreground">{issue.file}</code>
+            <code className="shrink-0 font-mono text-[11px] text-muted-foreground">{issue.code}</code>
+          </div>
+          <p className="mt-1 break-words text-[13px] text-foreground">{issue.text}</p>
+        </li>
+      ))}
+    </ul>
   )
 }

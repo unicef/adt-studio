@@ -5,16 +5,18 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
 import { ActivityClassificationDialog } from "@/components/import/ActivityClassificationDialog"
 import { ImportReview, type ImportState } from "@/components/import/ImportReview/ImportReview"
+import { UnreadableReview } from "@/components/import/ImportReview/UnreadableReview"
 import { FileDropOverlay, useFileDropZone } from "@/components/ui/file-drop-overlay"
 import { cn, isZipFile } from "@/lib/utils"
 import { useImportAdtProject, useImportBook } from "@/hooks/use-books"
 import { useFriendlyArchiveError } from "@/hooks/use-archive-error"
-import { api, isAdtBundleImportPreview, isPartImportPreview } from "@/api/client"
-import type { AnyImportPreview } from "@/api/client"
+import { api, isAdtBundleImportPreview, isPartImportPreview, unreadableAdtDetails } from "@/api/client"
+import type { AdtImportUnreadableDetails, AnyImportPreview } from "@/api/client"
 import { ArchiveCanvas } from "./ArchiveCanvas"
 import { ImportHeader } from "./ImportHeader"
 import type { ImportStep } from "./ImportProgress"
 import { EMPTY_ACTIVITY_REVIEW } from "./helpers"
+import { canRepairByEditing } from "./repair-prompt"
 import { useCanvasView } from "./use-canvas-view"
 
 const ENTER = "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:fill-mode-both motion-safe:duration-300"
@@ -30,6 +32,7 @@ export function ImportProject() {
   const [preview, setPreview] = useState<AnyImportPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [previewErrorDetails, setPreviewErrorDetails] = useState<AdtImportUnreadableDetails | null>(null)
   const [activityDecisions, setActivityDecisions] = useState<Record<string, string | null>>({})
   const [activityDialogOpen, setActivityDialogOpen] = useState(false)
 
@@ -59,6 +62,7 @@ export function ImportProject() {
     const requestId = ++previewRequestRef.current
     setPreviewLoading(true)
     setPreviewError(null)
+    setPreviewErrorDetails(null)
     setPreview(null)
     setActivityDecisions({})
     setActivityDialogOpen(false)
@@ -71,6 +75,7 @@ export function ImportProject() {
     } catch (err) {
       if (requestId !== previewRequestRef.current) return
       setPreviewError(err instanceof Error ? err.message : t`Failed to read archive`)
+      setPreviewErrorDetails(unreadableAdtDetails(err))
     } finally {
       if (requestId === previewRequestRef.current) setPreviewLoading(false)
     }
@@ -138,6 +143,12 @@ export function ImportProject() {
   ])
 
   const hasPreview = !!(zipFile && preview && !previewError)
+  // An ADT export that couldn't be read, but whose book could still be
+  // identified: shown like the repair review instead of the canvas.
+  const unreadable = !previewLoading && zipFile && previewError && previewErrorDetails && canRepairByEditing(previewError)
+    ? { file: zipFile, details: previewErrorDetails, rawError: previewError }
+    : null
+  const showsBook = hasPreview || unreadable !== null
   const openPicker = useCallback(() => fileInputRef.current?.click(), [])
   const retryPreview = useCallback(() => { if (zipFile) loadPreview(zipFile) }, [zipFile, loadPreview])
 
@@ -152,7 +163,7 @@ export function ImportProject() {
     : null
 
   const canvasView = useCanvasView({
-    overlay: hasPreview ? null : overlay,
+    overlay: showsBook ? null : overlay,
     reading: previewLoading,
     file: zipFile,
     error: friendlyPreviewError,
@@ -161,12 +172,12 @@ export function ImportProject() {
     onRetry: retryPreview,
   })
   const importState: ImportState = importPending ? "importing" : friendlyImportError ? "failed" : "idle"
-  const step: ImportStep = importState !== "idle" ? 3 : previewLoading || hasPreview ? 2 : 1
-  const failedStep: ImportStep | null = importState === "failed" ? 3 : friendlyPreviewError && !previewLoading ? 1 : null
+  const step: ImportStep = importState !== "idle" ? 3 : previewLoading || showsBook ? 2 : 1
+  const failedStep: ImportStep | null = importState === "failed" ? 3 : friendlyPreviewError && !previewLoading && !unreadable ? 1 : null
 
   return (
     <>
-      {hasPreview ? (
+      {showsBook ? (
         <FileDropOverlay
           overlay={overlay}
           dropLabel={<Trans>Drop ZIP here</Trans>}
@@ -203,7 +214,7 @@ export function ImportProject() {
             "mx-auto flex w-full max-w-[max(72rem,72vw)] flex-1 flex-col gap-5 px-4 pb-6 pt-7 sm:px-8 2xl:px-16",
             // The review fits the window and scrolls inside its columns; the select
             // step keeps its natural height and scrolls the page in short windows.
-            hasPreview && "min-h-0",
+            showsBook && "min-h-0",
             ENTER,
           )}
         >
@@ -220,6 +231,14 @@ export function ImportProject() {
               importState={importState}
               importError={friendlyImportError}
               rawImportError={rawImportError}
+              onReplace={openPicker}
+            />
+          ) : unreadable ? (
+            <UnreadableReview
+              key={unreadable.file.name}
+              file={unreadable.file}
+              details={unreadable.details}
+              rawError={unreadable.rawError}
               onReplace={openPicker}
             />
           ) : (
@@ -242,11 +261,12 @@ export function ImportProject() {
             <Button
               type="button"
               disabled={
-                !preview ||
-                (!isPartImportPreview(preview) && !isAdtBundleImportPreview(preview) && !!preview.validationError) ||
-                importPending
+                importPending || (unreadable
+                  ? false
+                  : !preview
+                    || (!isPartImportPreview(preview) && !isAdtBundleImportPreview(preview) && !!preview.validationError))
               }
-              onClick={unsupportedAdt ? openPicker : handleImport}
+              onClick={unsupportedAdt || unreadable ? openPicker : handleImport}
               className="h-10 min-w-[180px] px-4 font-medium"
             >
               {importPending ? (
@@ -257,7 +277,7 @@ export function ImportProject() {
               ) : (
                 <>
                   <Upload className="h-4 w-4" />
-                  {unsupportedAdt
+                  {unsupportedAdt || unreadable
                     ? <Trans>Choose repaired ZIP</Trans>
                     : preview && isAdtBundleImportPreview(preview)
                       ? unresolvedActivityCount > 0

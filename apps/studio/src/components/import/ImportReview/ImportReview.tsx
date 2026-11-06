@@ -7,10 +7,10 @@ import { ErrorDetails } from "@/components/import/ImportProject/ErrorDetails"
 import type { FriendlyError } from "@/hooks/use-archive-error"
 import { cn } from "@/lib/utils"
 import { CopyTextButton } from "./CopyTextButton"
-import { HeroBand } from "./HeroBand"
+import { HeroBand, archiveKind } from "./HeroBand"
 import { RepairView } from "./RepairView"
 import { CheckList, FactList, FeaturesSummary, Panel, StatusRow, StepList } from "./ReviewParts"
-import { previewTitle } from "./helpers"
+import { previewCover, previewTitle } from "./helpers"
 import { useReviewModel } from "./use-review-model"
 
 export type ImportState = "idle" | "importing" | "failed"
@@ -131,7 +131,9 @@ export function ImportReview({
   return (
     <div aria-busy={importing} className="flex min-h-0 flex-1 flex-col gap-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
       <HeroBand
-        preview={preview}
+        kind={archiveKind(preview)}
+        cover={previewCover(preview)}
+        title={previewTitle(preview)}
         file={file}
         mode={model.mode}
         subtitle={model.subtitle}

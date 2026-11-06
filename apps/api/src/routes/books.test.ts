@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { openBookDb, createBookStorage } from "@adt/storage"
-import { zipSync } from "fflate"
+import { unzipSync, zipSync } from "fflate"
 import { SCHEMA_VERSION } from "@adt/types"
 import { getSourceGenerationUpdates, keepSourceGeneration } from "@adt/pipeline"
 import type { StageName } from "@adt/types"
@@ -2064,6 +2064,41 @@ describe("POST /books/preview-import", () => {
     const formData = new FormData()
     const res = await app.request("/books/preview-import", { method: "POST", body: formData })
     expect(res.status).toBe(400)
+  })
+
+  it("names the book it could still read when an ADT export's manifest is broken", async () => {
+    // A section in both activities and nonActivities: the strict reader
+    // rejects the manifest, but the title, cover and counts are still there.
+    const files = unzipSync(new Uint8Array(createExportedAdtZip({
+      activityInventory: [{ sectionId: "pg001_sec001", href: "index.html", type: "activity_open_ended_answer" }],
+    })))
+    const manifest = JSON.parse(new TextDecoder().decode(files["manifest.json"]))
+    manifest.editingContract.nonActivities = [{ sectionId: "pg001_sec001", href: "index.html" }]
+    files["manifest.json"] = new TextEncoder().encode(JSON.stringify(manifest))
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zipSync(files)], { type: "application/zip" }), "broken.zip")
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toContain("cannot be both an activity and a non-activity")
+    expect(body.code).toBe("adt-unreadable")
+    expect(body.details).toMatchObject({
+      title: "Exported Book",
+      pageCount: 1,
+      imageCount: 1,
+      tocEntryCount: 1,
+      sourceLanguage: "en",
+      outputLanguages: ["es"],
+    })
+    // Display only: the import itself still refuses the archive.
+    const importForm = new FormData()
+    importForm.append("zip", new Blob([zipSync(files)], { type: "application/zip" }), "broken.zip")
+    importForm.append("activityDecisions", "[]")
+    const imported = await app.request("/books/import-adt", { method: "POST", body: importForm })
+    expect(imported.status).toBe(400)
   })
 })
 
