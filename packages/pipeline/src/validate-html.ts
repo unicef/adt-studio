@@ -71,6 +71,15 @@ function countEditableElements(section: any): number {
   }
   count += choiceGroups.size
   count += ungroupedChoiceCount
+  // Underline activities use the text itself as the answer surface — no input
+  // elements — so each selectable segment is a response control.
+  count += DomUtils.findAll(
+    (el) =>
+      el.type === "tag" &&
+      typeof el.attribs?.class === "string" &&
+      el.attribs.class.split(/\s+/).includes("activity-underline-option"),
+    section.children ?? [],
+  ).length
   const markerText = DomUtils.textContent(section)
   count += markerText.match(BLANK_MARKER_RE)?.length ?? 0
   return count

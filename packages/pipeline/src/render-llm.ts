@@ -270,7 +270,7 @@ function validateWebRendering(
   if (sectionType === "table_of_contents") {
     candidateHtml = repairTableOfContentsLayout(candidateHtml, leaf_texts)
   }
-  const minimumEditableElements = minimumLearnerResponseCount(nodes)
+  const minimumEditableElements = minimumLearnerResponseCount(nodes, sectionType)
 
   const check = validateSectionHtml(
     candidateHtml,
@@ -312,18 +312,43 @@ function validateWebRendering(
  * an activity instruction (common on mixed page-mode pages), require at least
  * one control so a static screenshot cannot pass validation. Questions and
  * blank leaves often describe the same response, so use the larger count
- * instead of adding them together. */
-export function minimumLearnerResponseCount(nodes: RenderNode[]): number {
+ * instead of adding them together.
+ *
+ * Blank leaves that belong to one response count once, so the renderer can
+ * follow the activity's real structure:
+ * - a placeholder-only line (`___`) directly after another blank in the same
+ *   container is an extra writing line for that answer (one textarea), but a
+ *   single-character `_` is a per-letter cell and still counts on its own;
+ * - in a true/false section, the blank cells of one table row are the true and
+ *   false options of one statement (one choice group). */
+export function minimumLearnerResponseCount(nodes: RenderNode[], sectionType?: string): number {
   let questions = 0
   let blanks = 0
   let hasInstruction = false
-  function walk(node: RenderNode): void {
-    if (node.role === "activity_question") questions += 1
-    if (node.role === "activity_fill_in_the_blank") blanks += 1
-    if (node.role === "activity_instruction") hasInstruction = true
-    for (const child of node.children ?? []) walk(child)
+  const trueFalse = sectionType === "activity_true_false"
+  function walkChildren(children: RenderNode[], row: { counted: boolean } | null): void {
+    let previousWasBlank = false
+    for (const child of children) {
+      if (child.role === "activity_fill_in_the_blank") {
+        const text = (child.text ?? "").trim()
+        const continuationLine = previousWasBlank && text.length > 1 && isPlaceholderOnlyText(text)
+        if (row) {
+          if (!row.counted) blanks += 1
+          row.counted = true
+        } else if (!continuationLine) {
+          blanks += 1
+        }
+        previousWasBlank = true
+        continue
+      }
+      previousWasBlank = false
+      if (child.role === "activity_question") questions += 1
+      if (child.role === "activity_instruction") hasInstruction = true
+      const childRow = trueFalse && child.structure === "table_row" ? { counted: false } : row
+      walkChildren(child.children ?? [], childRow)
+    }
   }
-  for (const node of nodes) walk(node)
+  walkChildren(nodes, null)
   const explicit = Math.max(questions, blanks)
   return explicit > 0 ? explicit : hasInstruction ? 1 : 0
 }
