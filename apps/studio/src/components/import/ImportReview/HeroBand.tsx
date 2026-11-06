@@ -86,7 +86,7 @@ export function HeroBand({
           <TypeBadge preview={preview} />
           <StateBadge mode={mode} />
         </div>
-        <h2 className="truncate text-[28px] font-semibold leading-tight tracking-[-0.5px] text-foreground 2xl:text-[34px] [@media(max-height:960px)]:text-2xl">{title}</h2>
+        <h2 title={title} className="line-clamp-2 break-words text-[28px] font-semibold leading-tight tracking-[-0.5px] text-foreground 2xl:text-[34px] [@media(max-height:960px)]:text-2xl">{title}</h2>
         {subtitle ? <p className="truncate text-[13px] text-muted-foreground">{subtitle}</p> : null}
         <div className="mt-1 flex max-w-md items-center gap-2.5">
           <span className="grid size-8 shrink-0 place-items-center rounded-md bg-card text-muted-foreground">

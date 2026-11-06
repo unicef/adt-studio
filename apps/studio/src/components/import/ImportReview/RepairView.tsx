@@ -1,21 +1,26 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { BookOpen } from "lucide-react"
+import { BookOpen, Puzzle } from "lucide-react"
 import type { AdtBundleImportPreview } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CopyTextButton } from "./CopyTextButton"
 import { RepairGuide } from "./RepairGuide"
-import { Panel, StatusRow, StepList } from "./ReviewParts"
+import { Panel, StatusRow } from "./ReviewParts"
 import type { Issue, Status } from "./use-review-model"
 
 const SWAP = "transition-[opacity,translate] duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:translate-x-0 motion-reduce:transition-opacity"
 
+/** Where the repair request appends the full guide for an archive whose own
+ * guide is missing or outdated. The panel shows the request up to here: the
+ * guide has its own view, and copying still includes it. */
+const GUIDE_APPENDIX = "\n\n<current_adt_agent_guide>"
+
 /**
- * The repair layout: the problems on the left, how to repair on the right.
- * Opening the guide widens the right column from a third to two thirds while
- * "How to repair" fades out and the guide fades in, so the problems stay
- * readable beside the rules.
+ * The repair layout: the problems on the left, the repair request itself on
+ * the right, readable before it is copied. Opening the guide widens the right
+ * column to two thirds while the request fades out and the guide fades in, so
+ * the problems stay readable beside the rules.
  */
 export function RepairView({
   preview,
@@ -27,6 +32,11 @@ export function RepairView({
   issues: Issue[]
 }) {
   const { t } = useLingui()
+  const request = preview.agentGuide.repairPrompt
+  const shown = useMemo(() => {
+    const at = request.indexOf(GUIDE_APPENDIX)
+    return at === -1 ? { text: request, withGuide: false } : { text: request.slice(0, at), withGuide: true }
+  }, [request])
   const [guideOpen, setGuideOpen] = useState(false)
   const [guideMounted, setGuideMounted] = useState(false)
   const openGuide = () => {
@@ -37,7 +47,7 @@ export function RepairView({
   return (
     <div
       className={cn(
-        "grid min-h-[320px] flex-1 gap-4 transition-[grid-template-columns] duration-[360ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none lg:grid-cols-[2fr_1fr]",
+        "grid min-h-[320px] flex-1 gap-4 transition-[grid-template-columns] duration-[360ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none lg:grid-cols-[1fr_1.3fr]",
         guideOpen && "lg:grid-cols-[1fr_2fr]",
       )}
     >
@@ -56,24 +66,39 @@ export function RepairView({
         </ul>
       </Panel>
       <div className="grid min-h-0 min-w-0 [&>*]:col-start-1 [&>*]:row-start-1">
-        <Panel
-          title={<Trans>How to repair</Trans>}
-          className={cn(SWAP, guideOpen ? "pointer-events-none -translate-x-2.5 opacity-0" : "opacity-100")}
-        >
-          <div inert={guideOpen} className="flex min-h-0 flex-1 flex-col gap-4">
-            <StepList
-              steps={[
-                { title: t`Copy the repair request`, text: t`It lists the problems and the editing rules.` },
-                { title: t`Let your AI assistant fix it`, text: t`Then zip the folder again.` },
-                { title: t`Choose the repaired ZIP`, text: t`ADT Studio checks it again right away.` },
-              ]}
-            />
-            <div className="mt-auto flex flex-col gap-2 [&>button]:w-full">
-              <CopyTextButton value={preview.agentGuide.repairPrompt}><Trans>Copy repair request</Trans></CopyTextButton>
-              <Button type="button" variant="outline" size="sm" onClick={openGuide} className="h-8 text-xs">
+        <Panel className={cn(SWAP, guideOpen ? "pointer-events-none -translate-x-2.5 opacity-0" : "opacity-100")}>
+          <div inert={guideOpen} className="flex min-h-0 flex-1 flex-col gap-3">
+            <div className="flex shrink-0 items-center gap-2.5">
+              <span className="grid size-[30px] shrink-0 place-items-center rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400">
+                <Puzzle aria-hidden="true" className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-foreground"><Trans>Repair request</Trans></h3>
+                <p className="text-xs text-muted-foreground">
+                  <Trans>Give it to your AI assistant together with the unzipped archive.</Trans>
+                </p>
+              </div>
+            </div>
+            <pre
+              aria-label={t`Repair request`}
+              tabIndex={0}
+              className="min-h-[120px] flex-1 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-muted/50 px-3.5 py-3 font-sans text-[12.5px] leading-relaxed text-foreground"
+            >
+              {shown.text}
+            </pre>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <CopyTextButton value={request} primary>
+                <Trans>Copy repair request</Trans>
+              </CopyTextButton>
+              <Button type="button" variant="outline" size="sm" onClick={openGuide} className="h-9 text-sm">
                 <BookOpen className="size-3.5" />
                 <Trans>AI repair guide</Trans>
               </Button>
+              {shown.withGuide ? (
+                <span className="ml-auto text-xs text-muted-foreground">
+                  <Trans>The copy also includes the current guide, because this archive’s guide is missing or outdated.</Trans>
+                </span>
+              ) : null}
             </div>
           </div>
         </Panel>

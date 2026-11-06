@@ -1486,8 +1486,8 @@ msgstr "ADT Studio nuk mund ta importojë këtë ZIP"
 msgid "ADT Studio can’t tell whether its pages changed. They become the working source, so check generated features after import."
 msgstr "ADT Studio nuk mund ta dijë nëse faqet kanë ndryshuar. Ato bëhen burimi i punës, ndaj kontrolloni veçoritë e gjeneruara pas importimit."
 
-msgid "ADT Studio checks it again right away."
-msgstr "ADT Studio e kontrollon sërish menjëherë."
+#~ msgid "ADT Studio checks it again right away."
+#~ msgstr "ADT Studio e kontrollon sërish menjëherë."
 
 msgid "ADT Studio compared every page with the fingerprints saved at export."
 msgstr "ADT Studio krahasoi çdo faqe me gjurmët e ruajtura gjatë eksportimit."
@@ -2765,8 +2765,8 @@ msgstr "Zgjidh faqen nga e cila do të presësh."
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Zgjidhni skedarin e pjesës që ju është ndarë, ose eksportojeni përsëri."
 
-msgid "Choose the repaired ZIP"
-msgstr "Zgjidhni ZIP-in e riparuar"
+#~ msgid "Choose the repaired ZIP"
+#~ msgstr "Zgjidhni ZIP-in e riparuar"
 
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Zgjidhni faqet burimore dhe ku vendoset testi në redaktorin e faqeve."
@@ -3340,8 +3340,8 @@ msgstr "Kopjo lidhjen te {0}"
 msgid "Copy the link to send"
 msgstr "Kopjo lidhjen për ta dërguar"
 
-msgid "Copy the repair request"
-msgstr "Kopjoni kërkesën për riparim"
+#~ msgid "Copy the repair request"
+#~ msgstr "Kopjoni kërkesën për riparim"
 
 msgid "Copy the repair request and give it, with the unzipped export, to an AI assistant such as Claude or Codex. Then choose the ZIP it returns."
 msgstr "Kopjoni kërkesën për riparim dhe jepjani, së bashku me eksportin e shpaketuar, një asistenti AI si Claude ose Codex. Pastaj zgjidhni ZIP-in që ai kthen."
@@ -5265,6 +5265,9 @@ msgstr "Duke përgatitur lidhjen tuaj…"
 msgid "GitHub"
 msgstr "GitHub"
 
+msgid "Give it to your AI assistant together with the unzipped archive."
+msgstr "Jepjani asistentit tuaj AI së bashku me arkivin e shpaketuar."
+
 msgid "Global prompt reset to default."
 msgstr "Prompti global u resetua në parazgjedhje."
 
@@ -5562,8 +5565,8 @@ msgstr "Si funksionon tabela e përmbajtjes"
 msgid "How to add quizzes"
 msgstr "Si të shtohen kuizet"
 
-msgid "How to repair"
-msgstr "Si ta riparoni"
+#~ msgid "How to repair"
+#~ msgstr "Si ta riparoni"
 
 msgid "HTML"
 msgstr "HTML"
@@ -5969,8 +5972,8 @@ msgstr "Vetëm problemet"
 msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 msgstr "Ai përmban shtigje skedarësh të papritura. Përdorni një skedar .zip të eksportuar nga ADT Studio."
 
-msgid "It lists the problems and the editing rules."
-msgstr "Rendit problemet dhe rregullat e redaktimit."
+#~ msgid "It lists the problems and the editing rules."
+#~ msgstr "Rendit problemet dhe rregullat e redaktimit."
 
 msgid "It no longer opens. Sharing again makes a new one."
 msgstr "Nuk hapet më. Duke e ndarë përsëri krijohet një e re."
@@ -6275,8 +6278,8 @@ msgstr "Lëre agjentin të zgjedhë"
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Lëre modelin të shkruajë tituj përshkrues kapitujsh bazuar në përmbajtjen e çdo seksioni. Më i miri për libra tregimesh ose kur titujt mungojnë."
 
-msgid "Let your AI assistant fix it"
-msgstr "Lëreni asistentin IA ta rregullojë"
+#~ msgid "Let your AI assistant fix it"
+#~ msgstr "Lëreni asistentin IA ta rregullojë"
 
 msgid "Let's start"
 msgstr "Le të fillojmë"
@@ -9587,6 +9590,9 @@ msgstr "Renderimi i çdo faqeje në paraqitjen e storyboard-it të përdorur nga
 msgid "Reopen"
 msgstr "Rihap"
 
+msgid "Repair request"
+msgstr "Kërkesë për riparim"
+
 msgid "Replace"
 msgstr "Zëvendëso"
 
@@ -11814,6 +11820,9 @@ msgstr "Kontrolli i lidhjes nuk mundi të përfundohet."
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "Lidhja me Cloudflare u ndërpre ose zgjati shumë. Kontrolloni internetin, pastaj provoni përsëri — çdo gjë e konfiguruar ruhet."
 
+msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
+msgstr "Kopja përfshin edhe udhëzuesin aktual, sepse udhëzuesi i këtij arkivi mungon ose është i vjetëruar."
+
 msgid "The credits page."
 msgstr "Faqja e krediteve."
 
@@ -12134,8 +12143,8 @@ msgstr "tema pamja e errët e ndritshme mënyra"
 msgid "theme appearance system automatic"
 msgstr "tema pamja sistemi automatik"
 
-msgid "Then zip the folder again."
-msgstr "Pastaj ngjeshni sërish dosjen në ZIP."
+#~ msgid "Then zip the folder again."
+#~ msgstr "Pastaj ngjeshni sërish dosjen në ZIP."
 
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Këto ndryshime nuk janë zbatuar ende. Nëse del, do të humbasin — ose ruaji dhe ri-ekzekuto për t'i zbatuar. Ekzekutimi vazhdon në sfond ndërsa ti punon."

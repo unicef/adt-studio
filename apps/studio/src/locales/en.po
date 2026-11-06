@@ -1484,8 +1484,8 @@ msgstr "ADT Studio can’t import this ZIP"
 msgid "ADT Studio can’t tell whether its pages changed. They become the working source, so check generated features after import."
 msgstr "ADT Studio can’t tell whether its pages changed. They become the working source, so check generated features after import."
 
-msgid "ADT Studio checks it again right away."
-msgstr "ADT Studio checks it again right away."
+#~ msgid "ADT Studio checks it again right away."
+#~ msgstr "ADT Studio checks it again right away."
 
 msgid "ADT Studio compared every page with the fingerprints saved at export."
 msgstr "ADT Studio compared every page with the fingerprints saved at export."
@@ -2763,8 +2763,8 @@ msgstr "Choose the page to crop from."
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Choose the part file that was shared with you, or export it again."
 
-msgid "Choose the repaired ZIP"
-msgstr "Choose the repaired ZIP"
+#~ msgid "Choose the repaired ZIP"
+#~ msgstr "Choose the repaired ZIP"
 
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Choose the source pages and where the quiz lands in the page editor."
@@ -3338,8 +3338,8 @@ msgstr "Copy the link to {0}"
 msgid "Copy the link to send"
 msgstr "Copy the link to send"
 
-msgid "Copy the repair request"
-msgstr "Copy the repair request"
+#~ msgid "Copy the repair request"
+#~ msgstr "Copy the repair request"
 
 msgid "Copy the repair request and give it, with the unzipped export, to an AI assistant such as Claude or Codex. Then choose the ZIP it returns."
 msgstr "Copy the repair request and give it, with the unzipped export, to an AI assistant such as Claude or Codex. Then choose the ZIP it returns."
@@ -5263,6 +5263,9 @@ msgstr "Getting your link ready…"
 msgid "GitHub"
 msgstr "GitHub"
 
+msgid "Give it to your AI assistant together with the unzipped archive."
+msgstr "Give it to your AI assistant together with the unzipped archive."
+
 msgid "Global prompt reset to default."
 msgstr "Global prompt reset to default."
 
@@ -5560,8 +5563,8 @@ msgstr "How the table of contents works"
 msgid "How to add quizzes"
 msgstr "How to add quizzes"
 
-msgid "How to repair"
-msgstr "How to repair"
+#~ msgid "How to repair"
+#~ msgstr "How to repair"
 
 msgid "HTML"
 msgstr "HTML"
@@ -5967,8 +5970,8 @@ msgstr "Issues only"
 msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 msgstr "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 
-msgid "It lists the problems and the editing rules."
-msgstr "It lists the problems and the editing rules."
+#~ msgid "It lists the problems and the editing rules."
+#~ msgstr "It lists the problems and the editing rules."
 
 msgid "It no longer opens. Sharing again makes a new one."
 msgstr "It no longer opens. Sharing again makes a new one."
@@ -6273,8 +6276,8 @@ msgstr "Let the agent choose"
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 
-msgid "Let your AI assistant fix it"
-msgstr "Let your AI assistant fix it"
+#~ msgid "Let your AI assistant fix it"
+#~ msgstr "Let your AI assistant fix it"
 
 msgid "Let's start"
 msgstr "Let's start"
@@ -9585,6 +9588,9 @@ msgstr "Renders each page into the storyboard layout used by the web reader."
 msgid "Reopen"
 msgstr "Reopen"
 
+msgid "Repair request"
+msgstr "Repair request"
+
 msgid "Replace"
 msgstr "Replace"
 
@@ -11812,6 +11818,9 @@ msgstr "The connection check could not be completed."
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 
+msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
+msgstr "The copy also includes the current guide, because this archive’s guide is missing or outdated."
+
 msgid "The credits page."
 msgstr "The credits page."
 
@@ -12132,8 +12141,8 @@ msgstr "theme appearance dark light mode"
 msgid "theme appearance system automatic"
 msgstr "theme appearance system automatic"
 
-msgid "Then zip the folder again."
-msgstr "Then zip the folder again."
+#~ msgid "Then zip the folder again."
+#~ msgstr "Then zip the folder again."
 
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."

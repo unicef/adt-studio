@@ -1486,8 +1486,8 @@ msgstr "ADT Studio ne peut pas importer ce ZIP"
 msgid "ADT Studio can’t tell whether its pages changed. They become the working source, so check generated features after import."
 msgstr "ADT Studio ne peut pas savoir si ses pages ont changé. Elles deviennent la source de travail : vérifiez les fonctionnalités générées après l’import."
 
-msgid "ADT Studio checks it again right away."
-msgstr "ADT Studio le vérifie à nouveau immédiatement."
+#~ msgid "ADT Studio checks it again right away."
+#~ msgstr "ADT Studio le vérifie à nouveau immédiatement."
 
 msgid "ADT Studio compared every page with the fingerprints saved at export."
 msgstr "ADT Studio a comparé chaque page aux empreintes enregistrées lors de l’export."
@@ -2765,8 +2765,8 @@ msgstr "Choisissez la page à recadrer."
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Choisissez le fichier de partie qui vous a été partagé, ou exportez-le à nouveau."
 
-msgid "Choose the repaired ZIP"
-msgstr "Choisissez le ZIP réparé"
+#~ msgid "Choose the repaired ZIP"
+#~ msgstr "Choisissez le ZIP réparé"
 
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Choisissez les pages sources et l'emplacement du quiz dans l'éditeur de pages."
@@ -3340,8 +3340,8 @@ msgstr "Copier le lien vers {0}"
 msgid "Copy the link to send"
 msgstr "Copier le lien à envoyer"
 
-msgid "Copy the repair request"
-msgstr "Copiez la demande de réparation"
+#~ msgid "Copy the repair request"
+#~ msgstr "Copiez la demande de réparation"
 
 msgid "Copy the repair request and give it, with the unzipped export, to an AI assistant such as Claude or Codex. Then choose the ZIP it returns."
 msgstr "Copiez la demande de réparation et donnez-la, avec l’export décompressé, à un assistant IA comme Claude ou Codex. Choisissez ensuite le ZIP qu’il renvoie."
@@ -5265,6 +5265,9 @@ msgstr "Préparation de votre lien…"
 msgid "GitHub"
 msgstr "GitHub"
 
+msgid "Give it to your AI assistant together with the unzipped archive."
+msgstr "Donnez-la à votre assistant IA avec l’archive décompressée."
+
 msgid "Global prompt reset to default."
 msgstr "Prompt global réinitialisé par défaut."
 
@@ -5562,8 +5565,8 @@ msgstr "Comment fonctionne la table des matières"
 msgid "How to add quizzes"
 msgstr "Comment ajouter des quiz"
 
-msgid "How to repair"
-msgstr "Comment réparer"
+#~ msgid "How to repair"
+#~ msgstr "Comment réparer"
 
 msgid "HTML"
 msgstr "HTML"
@@ -5969,8 +5972,8 @@ msgstr "Problèmes uniquement"
 msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 msgstr "Il contient des chemins de fichiers inattendus. Utilisez un fichier .zip exporté depuis ADT Studio."
 
-msgid "It lists the problems and the editing rules."
-msgstr "Elle liste les problèmes et les règles d’édition."
+#~ msgid "It lists the problems and the editing rules."
+#~ msgstr "Elle liste les problèmes et les règles d’édition."
 
 msgid "It no longer opens. Sharing again makes a new one."
 msgstr "Il ne s’ouvre plus. Partager à nouveau en crée un nouveau."
@@ -6275,8 +6278,8 @@ msgstr "Laisser l'agent choisir"
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Laissez le modèle écrire des titres de chapitres descriptifs basés sur le contenu de chaque section. Idéal pour les livres d'histoires ou lorsque les titres manquent."
 
-msgid "Let your AI assistant fix it"
-msgstr "Laissez votre assistant IA le corriger"
+#~ msgid "Let your AI assistant fix it"
+#~ msgstr "Laissez votre assistant IA le corriger"
 
 msgid "Let's start"
 msgstr "Commençons"
@@ -9587,6 +9590,9 @@ msgstr "Rend chaque page dans la mise en page du storyboard utilisée par le lec
 msgid "Reopen"
 msgstr "Rouvrir"
 
+msgid "Repair request"
+msgstr "Demande de réparation"
+
 msgid "Replace"
 msgstr "Remplacer"
 
@@ -11814,6 +11820,9 @@ msgstr "La vérification de la connexion n'a pas pu aboutir."
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "La connexion à Cloudflare a été coupée ou a expiré. Vérifiez votre connexion Internet, puis réessayez — ce qui est déjà configuré est conservé."
 
+msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
+msgstr "La copie inclut aussi le guide actuel, car le guide de cette archive est absent ou obsolète."
+
 msgid "The credits page."
 msgstr "La page de crédits."
 
@@ -12134,8 +12143,8 @@ msgstr "thème apparence sombre clair mode"
 msgid "theme appearance system automatic"
 msgstr "thème apparence système automatique"
 
-msgid "Then zip the folder again."
-msgstr "Puis recompressez le dossier en ZIP."
+#~ msgid "Then zip the folder again."
+#~ msgstr "Puis recompressez le dossier en ZIP."
 
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Ces modifications n'ont pas encore été appliquées. Quittez et elles seront perdues — ou enregistrez et relancez pour les appliquer. L'exécution se poursuit en arrière-plan pendant que vous continuez à travailler."

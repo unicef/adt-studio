@@ -6,6 +6,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
+import { writeClipboardText } from "@/lib/clipboard"
 
 type CopyState = "idle" | "copied" | "error"
 
@@ -15,10 +16,13 @@ export function CopyTextButton({
   value,
   children,
   className,
+  primary = false,
 }: {
   value: string
   children: ReactNode
   className?: string
+  /** The main action of its panel: filled instead of the outlined default. */
+  primary?: boolean
 }) {
   const { t } = useLingui()
   const [state, setState] = useState<CopyState>("idle")
@@ -30,7 +34,7 @@ export function CopyTextButton({
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(value)
+      await writeClipboardText(value)
       setState("copied")
       toast.success(t`Copied`)
     } catch {
@@ -47,9 +51,14 @@ export function CopyTextButton({
     <Button
       type="button"
       size="sm"
-      variant="outline"
+      variant={primary ? "default" : "outline"}
       onClick={copy}
-      className={cn("h-8 border-brand-300/60 text-xs text-brand-600 hover:bg-brand-500/10 hover:text-brand-700 dark:border-brand-700/60 dark:text-brand-400 dark:hover:text-brand-300", className)}
+      className={cn(
+        primary
+          ? "h-9 bg-brand-600 px-4 text-sm text-primary-foreground hover:bg-brand-700"
+          : "h-8 border-brand-300/60 text-xs text-brand-600 hover:bg-brand-500/10 hover:text-brand-700 dark:border-brand-700/60 dark:text-brand-400 dark:hover:text-brand-300",
+        className,
+      )}
     >
       <span aria-hidden="true" className="relative size-3.5 shrink-0">
         <Copy className={cn(ICON_SWAP, copied ? "scale-25 opacity-0 blur-[4px]" : "scale-100 opacity-100 blur-none")} />

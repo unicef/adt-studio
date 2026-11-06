@@ -1860,7 +1860,11 @@ describe("POST /books/preview-import", () => {
       },
     })
     expect(body.agentGuide.currentGuide).toContain("<!-- adt-studio-agent-guide: 2 -->")
-    expect(body.agentGuide.repairPrompt).toContain('"code": "missing-content-root"')
+    // A readable numbered list, not raw validator JSON: people read this
+    // request in the review before handing it to an assistant.
+    expect(body.agentGuide.repairPrompt).toMatch(/Fix (this problem|these \d+ problems)/)
+    expect(body.agentGuide.repairPrompt).toMatch(/^1\. .*\(missing-content-root\)$/m)
+    expect(body.agentGuide.repairPrompt).not.toContain('"code":')
     expect(body.agentGuide.repairPrompt).toContain("<current_adt_agent_guide>")
   })
 
