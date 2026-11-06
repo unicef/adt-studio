@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState, useMemo, type ReactNode } from "react"
 import { useSearch, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, ArrowRight, LayoutGrid, ListTree, RotateCcw, Table2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, DownloadCloud, LayoutGrid, ListTree, RotateCcw, Table2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
@@ -402,8 +402,26 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   // restructuring session in Sectioning costs one render rather than one per
   // edit.
   const storyboardStale = !storyboardDone && !storyboardRunning && hasRenderingData
+  // An imported ADT has no regenerate button here, which reads as broken unless
+  // something says why. Neutral, not a warning: editing is the expected path.
+  const importedNote = !canRegenerate ? (
+    <div className="flex shrink-0 items-center gap-2 border-b bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
+      <DownloadCloud className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span className="min-w-0 truncate">
+        <Trans>
+          These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it
+          can’t overwrite them.
+        </Trans>
+      </span>
+    </div>
+  ) : null
   const withStaleBanner = (content: ReactNode) =>
-    storyboardStale ? (
+    importedNote ? (
+      <div className="flex flex-col h-full min-h-0">
+        {importedNote}
+        <div className="flex-1 min-h-0">{content}</div>
+      </div>
+    ) : storyboardStale ? (
       <div className="flex flex-col h-full min-h-0">
         <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-3 py-2">
           <div className="text-xs text-amber-900">

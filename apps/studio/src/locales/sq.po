@@ -5763,6 +5763,9 @@ msgstr "Importo .zip të kthyer"
 msgid "Import will"
 msgstr "Importimi do të"
 
+msgid "Imported"
+msgstr "I importuar"
+
 msgid "Imported ADT"
 msgstr "ADT i importuar"
 
@@ -12136,6 +12139,9 @@ msgstr "Këto ndryshime nuk janë zbatuar ende. Nëse del, do të humbasin — o
 
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Këto veçori përmirësojnë aksesin për personat me aftësi të kufizuara. Ekzekutimi i tyre para eksportimit ndihmon librin tuaj të përmbushë standardet e aksesibilitetit ADT."
+
+msgid "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
+msgstr "Këto faqe vijnë nga një eksport ADT i importuar. Redaktojini këtu; rigjenerimi i Storyboard-it është i çaktivizuar që të mos i mbishkruajë."
 
 msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Këto faqe nuk kanë shtresë teksti të integruar, por hapi i Seksionimit rikuperoi tekst nga imazhet e faqeve — pra ky PDF duket i skanuar ose i bazuar në imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."

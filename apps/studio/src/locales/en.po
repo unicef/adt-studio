@@ -5761,6 +5761,9 @@ msgstr "Import returned .zip"
 msgid "Import will"
 msgstr "Import will"
 
+msgid "Imported"
+msgstr "Imported"
+
 msgid "Imported ADT"
 msgstr "Imported ADT"
 
@@ -12134,6 +12137,9 @@ msgstr "These edits haven't been applied yet. Leave and they'll be lost — or s
 
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
+
+msgid "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
+msgstr "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
 
 msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."

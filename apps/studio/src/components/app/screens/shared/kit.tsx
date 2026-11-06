@@ -1,8 +1,8 @@
 import type { ReactNode } from "react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
-import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus, Globe, MessageSquare } from "lucide-react"
+import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus, Globe, MessageSquare, DownloadCloud } from "lucide-react"
 import { CORE_STAGE_ORDER } from "@adt/types"
-import { STAGES } from "@/components/pipeline/stage-config"
+import { STAGES, isImportedAdtStageAvailable } from "@/components/pipeline/stage-config"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
 import { BookCover } from "../../BookCover"
@@ -47,6 +47,17 @@ export function CommentsBadge({ count }: { count: number }) {
       <span className="sr-only">
         <Plural value={count} one="# open comment" other="# open comments" />
       </span>
+    </span>
+  )
+}
+
+/** Where the book came from, not a state to act on, so it sits quietly in the byline rather than
+ *  in a corner badge. Only re-imported ADT exports wear it: their pipeline runs from imported HTML. */
+export function ImportedMark({ className }: { className?: string }) {
+  return (
+    <span className={cn("inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground", className)}>
+      <DownloadCloud className="size-3" aria-hidden />
+      <Trans>Imported</Trans>
     </span>
   )
 }
@@ -111,8 +122,10 @@ export interface Progress {
 
 export function progressFor(vm: BookVM): Progress {
   const done = new Set(vm.discs.map((d) => d.slug))
-  const baseSteps = BASE.map((stage) => ({ stage, done: done.has(stage.slug) }))
-  const baseFrontier = BASE.find((s) => !done.has(s.slug)) ?? null
+  // A re-imported ADT starts from its HTML: the PDF stages are not part of its base, not unfinished.
+  const base = vm.imported ? BASE.filter((stage) => isImportedAdtStageAvailable(stage.slug)) : BASE
+  const baseSteps = base.map((stage) => ({ stage, done: done.has(stage.slug) }))
+  const baseFrontier = base.find((s) => !done.has(s.slug)) ?? null
   const baseComplete = !baseFrontier
   const optional = OPTIONAL.map((stage) => ({ stage, done: done.has(stage.slug) }))
   const optionalDone = optional.filter((o) => o.done)
@@ -301,8 +314,9 @@ export function GridCard({
       </div>
       <div className="mt-2.5">
         <div className="truncate text-[13px] font-semibold leading-tight">{vm.displayTitle}</div>
-        <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
-          {vm.authors} · {vm.pagesText}
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+          {vm.imported && <ImportedMark />}
+          <span className="truncate">{vm.authors} · {vm.pagesText}</span>
         </div>
         <div className="mt-2 flex items-center justify-between gap-2">
           <FrontierChip vm={vm} />
@@ -443,7 +457,12 @@ export function ShelfCard({
         {pinned && <Pin className="mt-[3px] size-3 shrink-0 fill-current text-muted-foreground" />}
         <div className="min-w-0">
           <div className="truncate text-[13px] font-semibold leading-tight">{vm.displayTitle}</div>
-          {showAuthor && <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>}
+          {(showAuthor || vm.imported) && (
+            <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+              {vm.imported && <ImportedMark />}
+              {showAuthor && <span className="truncate">{vm.authors}</span>}
+            </div>
+          )}
           {(elevated || progress) && <StageBar vm={vm} className="mt-2.5" />}
         </div>
       </div>
@@ -590,7 +609,10 @@ export function LibraryTable({ books, onOpen }: { books: BookVM[]; onOpen: (labe
                   </div>
                   <div className="min-w-0">
                     <div className="truncate font-semibold leading-tight">{vm.displayTitle}</div>
-                    <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>
+                    <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                      {vm.imported && <ImportedMark />}
+                      <span className="truncate">{vm.authors}</span>
+                    </div>
                   </div>
                 </button>
               </td>
