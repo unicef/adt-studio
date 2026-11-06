@@ -29,6 +29,7 @@ describe("buildUnreadableRepairPrompt", () => {
     const prompt = buildUnreadableRepairPrompt("book.zip", "Archive file is not valid JSON: manifest.json")
     expect(prompt).toContain("Reply with what you changed")
     expect(prompt).not.toMatch(/choose (that|the) ZIP/i)
+    expect(prompt).toContain("Do not introduce new problems.")
   })
 
   it("saves the result as a new ZIP beside the bundle, never over the input or inside it", () => {

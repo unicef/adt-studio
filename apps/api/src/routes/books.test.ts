@@ -1852,14 +1852,14 @@ describe("POST /books/preview-import", () => {
       },
       agentGuide: {
         status: "missing",
-        currentVersion: 2,
+        currentVersion: 3,
         files: {
           agentsMd: { present: false, current: false },
           claudeMd: { present: false, current: false },
         },
       },
     })
-    expect(body.agentGuide.currentGuide).toContain("<!-- adt-studio-agent-guide: 2 -->")
+    expect(body.agentGuide.currentGuide).toContain("<!-- adt-studio-agent-guide: 3 -->")
     // A readable numbered list, not raw validator JSON: people read this
     // request in the review before handing it to an assistant.
     expect(body.agentGuide.repairPrompt).toContain("<problems>")
@@ -1872,6 +1872,9 @@ describe("POST /books/preview-import", () => {
     // or an archive left inside the bundle folder.
     expect(body.agentGuide.repairPrompt).toMatch(/Save the result as [^ ]+-fixed\.zip next to the unzipped bundle folder/)
     expect(body.agentGuide.repairPrompt).toContain("Do not overwrite the input ZIP")
+    // Guards against a repair that creates new problems, like an added image without a data-id.
+    expect(body.agentGuide.repairPrompt).toContain("Do not introduce new problems.")
+    expect(body.agentGuide.repairPrompt).toContain("<img> without a new book-wide unique data-id")
     expect(body.agentGuide.repairPrompt).toContain("<current_adt_agent_guide>")
   })
 
@@ -1893,43 +1896,46 @@ describe("POST /books/preview-import", () => {
       return response.json()
     }
 
-    const current = await preview(2, false)
+    const current = await preview(3, false)
     expect(current.agentGuide).toMatchObject({
       status: "current",
       files: {
-        agentsMd: { version: 2, current: true },
-        claudeMd: { version: 2, current: true },
+        agentsMd: { version: 3, current: true },
+        claudeMd: { version: 3, current: true },
       },
     })
     expect(current.agentGuide.repairPrompt).not.toContain(
       "<current_adt_agent_guide>",
     )
 
-    const partial = await preview(2, true)
+    const partial = await preview(3, true)
     expect(partial.agentGuide).toMatchObject({
       status: "partial",
       files: {
-        agentsMd: { version: 2, current: true },
+        agentsMd: { version: 3, current: true },
         claudeMd: { present: false, current: false },
       },
     })
 
-    const outdated = await preview(1, false)
+    // Exports made before the repair rules (version 2) get the current guide
+    // in their repair request.
+    const outdated = await preview(2, false)
     expect(outdated.agentGuide).toMatchObject({
       status: "outdated",
       files: {
-        agentsMd: { version: 1, current: false },
-        claudeMd: { version: 1, current: false },
+        agentsMd: { version: 2, current: false },
+        claudeMd: { version: 2, current: false },
       },
     })
+    expect(outdated.agentGuide.repairPrompt).toContain("<current_adt_agent_guide>")
 
-    const newer = await preview(3, false)
+    const newer = await preview(4, false)
     expect(newer.agentGuide).toMatchObject({
       status: "current",
-      currentVersion: 2,
+      currentVersion: 3,
       files: {
-        agentsMd: { version: 3, current: true },
-        claudeMd: { version: 3, current: true },
+        agentsMd: { version: 4, current: true },
+        claudeMd: { version: 4, current: true },
       },
     })
   })

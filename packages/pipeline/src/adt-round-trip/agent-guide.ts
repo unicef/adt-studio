@@ -12,7 +12,10 @@ import { resolveQuizId, resolveQuizOptionId } from "@adt/types"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { ACTIVITY_CLASSIFICATION_GUIDE } from "./activity.js"
 
-export const ADT_AGENT_GUIDE_VERSION = 2 as const
+/** Bump when AGENTS.md.liquid changes, so older exports' guides read as
+ * outdated and repair requests carry the current one.
+ * 3: repair rules and the image data-id check. */
+export const ADT_AGENT_GUIDE_VERSION = 3 as const
 
 export interface AdtAgentGuidePageEntry {
   section_id: string

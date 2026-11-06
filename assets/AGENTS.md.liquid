@@ -31,6 +31,17 @@ This bundle declares ADT Studio editing contract version `{{ editingContractVers
 
 If a requested change requires breaking one of these rules, tell the user that the result will no longer be re-importable into ADT Studio and ask before proceeding.
 
+### Repairing a bundle ADT Studio rejected
+
+When ADT Studio lists problems to fix, a repair is valid only if it fixes them without creating new ones:
+
+- Change only what the listed problems need. Do not add images, elements, pages, scripts, or styles that the repair does not require, and do not rewrite content to tidy it up.
+- Anything you do add follows the new-element rules: a new book-wide unique `data-id`, listed in its page's `editingContract.pageDataIds` in document order, with its visible text added to `content/i18n/{{ language }}/texts.json`. Every `<img>` needs a `data-id`, and its file belongs in `images/`.
+- Keep existing `data-id` values, page filenames, and section IDs exactly as they are, even when they look inconsistent.
+- When you move a section between `editingContract.activities` and `editingContract.nonActivities`, remove it from the list it leaves.
+- Write any archive you create outside this folder.
+- Run the checklist below before handing the bundle back, and report anything you could not fix instead of guessing.
+
 ### Adding, removing, or reordering pages
 
 Treat the following files as one transaction. A structural edit is valid only when they agree:
@@ -185,9 +196,10 @@ The page shell must retain this relationship:
 2. Confirm every page exists at the bundle root and has a matching `editingContract.pageDataIds` entry.
 3. Confirm each page has exactly one `#content` root and its matching `section[data-section-id]`.
 4. Search the whole book for duplicate or missing `data-id` values.
-5. Confirm every `activities` and `nonActivities` entry matches `pageOrder`, with no duplicate or conflicting classifications.
-6. Confirm page images resolve from `images/`.
-7. Confirm no custom or remote stylesheets and no custom external scripts were added.
+5. Confirm every `<img>` has a `data-id`, and every `data-id` in a page is listed in that page's `editingContract.pageDataIds` entry.
+6. Confirm every `activities` and `nonActivities` entry matches `pageOrder`, with no duplicate or conflicting classifications.
+7. Confirm page images resolve from `images/`, and every referenced file exists in the bundle.
+8. Confirm no custom or remote stylesheets and no custom external scripts were added.
 
 Do not create a zip or any other archive inside this folder. If you package the
 bundle, write the archive outside the folder — a stray archive left inside gets

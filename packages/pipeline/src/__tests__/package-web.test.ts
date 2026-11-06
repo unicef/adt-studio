@@ -775,7 +775,8 @@ describe("packageAdtWeb", () => {
       ))
     }
     const agentsGuide = fs.readFileSync(path.join(bookDir, "adt", "AGENTS.md"), "utf-8")
-    expect(agentsGuide).toContain("<!-- adt-studio-agent-guide: 2 -->")
+    expect(agentsGuide).toContain("<!-- adt-studio-agent-guide: 3 -->")
+    expect(agentsGuide).toContain("### Repairing a bundle ADT Studio rejected")
     expect(agentsGuide).toContain("editing contract version `2`")
     expect(agentsGuide).toContain("activity_custom_<descriptive_slug>")
     expect(agentsGuide).toContain("editingContract.nonActivities")

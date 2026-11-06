@@ -81,6 +81,18 @@ function nextFixedName(base: string): string {
   return `${round[1]}-fixed-${round[2] ? Number(round[2]) + 1 : 2}.zip`
 }
 
+/** The changes that most often turn one repair into a new rejection. Kept
+ * in the request as well as AGENTS.md so exports with an older guide get them
+ * too. Mirrored in Studio's request for unreadable exports. */
+export const DO_NOT_INTRODUCE_PROBLEMS = [
+  "Do not introduce new problems. ADT Studio checks the whole bundle again and rejects it if your changes:",
+  "- add an element or <img> without a new book-wide unique data-id listed in its page's editingContract.pageDataIds;",
+  "- rename or remove an existing data-id, page filename, or section id;",
+  "- add a script, a stylesheet, or any file loaded from the internet;",
+  "- put page media anywhere but images/, or reference a file that isn't in the bundle;",
+  "- leave an archive or scratch file inside the bundle folder.",
+] as const
+
 function saveResultStep(output: string): string {
   return `Save the result as ${output} next to the unzipped bundle folder, with manifest.json at the root of the ZIP. Do not overwrite the input ZIP, and do not put the new ZIP inside the bundle folder.`
 }
@@ -153,6 +165,8 @@ export function createAdtImportRepairGuide(
     "- Fix only the problems listed. Change the book's text, images, and other content only where a fix requires it.",
     "- Where the guide covers a fix, follow the guide. If a fix is unclear, leave that part unchanged instead of guessing.",
     "",
+    ...DO_NOT_INTRODUCE_PROBLEMS,
+    "",
     "When you are done:",
     "1. Run the checklist in the guide.",
     `2. ${saveResultStep(output)}`,
@@ -188,6 +202,8 @@ export function createAdtImportRepairGuide(
         "<activity_review_candidates_json>",
         JSON.stringify(activityCandidates, null, 2),
         "</activity_review_candidates_json>",
+        "",
+        ...DO_NOT_INTRODUCE_PROBLEMS,
         "",
         "When you are done:",
         "1. Run the checklist in the guide, and confirm that no section id is listed in both editingContract.activities and editingContract.nonActivities.",
