@@ -119,7 +119,10 @@ export function analyzeImportedActivities(
       signals: inspection.signals,
       validationErrors: inspection.validationErrors,
       textPreview: inspection.textPreview,
-      previewHtml: options.includePreviews
+      // Only the classification dialog shows previews, and only for items that
+      // need review. Each one inlines the page's images, so building them for
+      // confirmed activities made a typical preview response several MB larger.
+      previewHtml: options.includePreviews && reasons.length > 0
         ? createSafeImportedHtmlPreview(
             bundle.pageHtml[page.href] ?? "",
             page.section_id,

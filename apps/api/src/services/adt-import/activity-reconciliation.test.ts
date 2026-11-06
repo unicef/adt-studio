@@ -84,6 +84,25 @@ describe("ADT activity reconciliation", () => {
     })
   })
 
+  it("builds page previews only for activities that need review", () => {
+    // Previews inline every image on the page. A 40-page export with 26
+    // confirmed activities produced a 9 MB preview response for a dialog
+    // that never shows confirmed items.
+    const review = analyzeImportedActivities(bundle(page("activity_open_ended_answer", `
+      <p data-id="text-1">Write a response</p>
+      <textarea data-activity-item="item-1" aria-label="Response"></textarea>
+    `), {
+      activities: [{
+        sectionId: "pg001_sec001",
+        href: "index.html",
+        type: "activity_open_ended_answer",
+      }],
+    }), { includePreviews: true })
+
+    expect(review.items[0].status).toBe("confirmed")
+    expect(review.items[0].previewHtml).toBe("")
+  })
+
   it("requires review for externally-added custom activities and unmarked controls", () => {
     const custom = analyzeImportedActivities(
       bundle(page(
