@@ -31,6 +31,12 @@ describe("buildUnreadableRepairPrompt", () => {
     expect(prompt).not.toMatch(/choose (that|the) ZIP/i)
   })
 
+  it("saves the result as a new ZIP beside the bundle, never over the input or inside it", () => {
+    const prompt = buildUnreadableRepairPrompt("repaired-adt.zip", "Archive file is not valid JSON: manifest.json")
+    expect(prompt).toContain("Save the result as repaired-adt-fixed.zip next to the unzipped bundle folder")
+    expect(prompt).toContain("Do not overwrite the input ZIP, and do not put the new ZIP inside the bundle folder.")
+  })
+
   it("explains the editing contract rules when the error is in it", () => {
     const prompt = buildUnreadableRepairPrompt(
       "book.zip",

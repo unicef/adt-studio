@@ -1868,6 +1868,10 @@ describe("POST /books/preview-import", () => {
     // Addressed to the AI assistant: it reports back, the person's steps stay in the UI.
     expect(body.agentGuide.repairPrompt).toContain("Reply with what you changed")
     expect(body.agentGuide.repairPrompt).not.toMatch(/choose (that|the) ZIP/i)
+    // A new ZIP named after the upload, beside the bundle: never the input itself
+    // or an archive left inside the bundle folder.
+    expect(body.agentGuide.repairPrompt).toMatch(/Save the result as [^ ]+-fixed\.zip next to the unzipped bundle folder/)
+    expect(body.agentGuide.repairPrompt).toContain("Do not overwrite the input ZIP")
     expect(body.agentGuide.repairPrompt).toContain("<current_adt_agent_guide>")
   })
 

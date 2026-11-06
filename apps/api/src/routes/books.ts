@@ -280,7 +280,7 @@ export function createBookRoutes(
     }
     try {
       const guideTemplate = readAdtAgentGuideTemplate(webAssetsDir) ?? undefined
-      return c.json(previewAdtRecoveryImport(zipBuffer, guideTemplate))
+      return c.json(previewAdtRecoveryImport(zipBuffer, guideTemplate, zip.name))
     } catch (error) {
       if (error instanceof AdtBundleNotDetectedError) {
         return c.json(previewImport(zipBuffer))

@@ -64,11 +64,24 @@ const compatibilityIssueFix: Record<AdtImportCompatibilityIssueCode, string> = {
   "missing-asset": "Add the missing file at the referenced path, or remove the reference.",
 }
 
+/** Where the assistant saves its result: a new ZIP named after the input,
+ * beside the bundle folder. Never the input itself, and never inside the
+ * bundle, where the guide forbids leftover archives. */
+export function repairedArchiveName(archiveName: string | undefined, fallbackLabel: string): string {
+  const base = archiveName?.split(/[\\/]/).pop()?.replace(/\.zip$/i, "").trim()
+  return `${base || fallbackLabel}-fixed.zip`
+}
+
+function saveResultStep(output: string): string {
+  return `Save the result as ${output} next to the unzipped bundle folder, with manifest.json at the root of the ZIP. Do not overwrite the input ZIP, and do not put the new ZIP inside the bundle folder.`
+}
+
 export function createAdtImportRepairGuide(
   bundle: ReadAdtBundle,
   compatibility: AdtImportCompatibility,
   template: string,
   activityReview: AdtImportedActivityReview,
+  archiveName?: string,
 ): AdtAgentGuideReview {
   const agentsMd = inspectAdtAgentGuide(bundle.agentGuides.agentsMd)
   const claudeMd = inspectAdtAgentGuide(bundle.agentGuides.claudeMd)
@@ -103,6 +116,7 @@ export function createAdtImportRepairGuide(
   const guideInstruction = status === "current"
     ? "Before editing anything, read AGENTS.md at the bundle root and follow its rules."
     : "The bundle's AGENTS.md and CLAUDE.md are missing or outdated. Before editing anything, replace both with the current guide inside <current_adt_agent_guide> at the end of this message, then follow its rules."
+  const output = repairedArchiveName(archiveName, bundle.manifest.book.label)
   const issueFiles = [...new Set(issues.map((issue) => issue.file).filter(Boolean))]
   const problemCount = issues.length === 1 ? "1 problem" : `${issues.length} problems`
   const where = issueFiles.length === 1 && issues.every((issue) => issue.file)
@@ -132,7 +146,7 @@ export function createAdtImportRepairGuide(
     "",
     "When you are done:",
     "1. Run the checklist in the guide.",
-    "2. Package the bundle as a ZIP with manifest.json at the root of the ZIP.",
+    `2. ${saveResultStep(output)}`,
     "3. Reply with what you changed for each problem, and anything you left unfixed and why.",
     ...(status === "current"
       ? []
@@ -168,7 +182,7 @@ export function createAdtImportRepairGuide(
         "",
         "When you are done:",
         "1. Run the checklist in the guide, and confirm that no section id is listed in both editingContract.activities and editingContract.nonActivities.",
-        "2. Package the bundle as a ZIP with manifest.json at the root of the ZIP.",
+        `2. ${saveResultStep(output)}`,
         "3. Reply with the type you chose for each page, and the pages you left unchanged and why.",
         ...(status === "current"
           ? []

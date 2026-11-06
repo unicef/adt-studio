@@ -97,6 +97,8 @@ function hasRecoverableSpeech(
 export function previewAdtRecoveryImport(
   zipBuffer: Buffer,
   agentGuideTemplate?: string,
+  /** The uploaded file's name, so the repair request can name its output. */
+  archiveName?: string,
 ): AdtBundleImportPreview {
   const bundle = readAdtBundle(zipBuffer, { includePreviewImages: true })
   if (bundle.pages.length === 0 || Object.keys(bundle.pageHtml).length === 0) {
@@ -174,6 +176,6 @@ export function previewAdtRecoveryImport(
       ).length,
       signLanguageVideoCount: recoverImportedSignLanguageVideos(bundle, files).length,
     }),
-    agentGuide: createAdtImportRepairGuide(bundle, compatibility, template, activityReview),
+    agentGuide: createAdtImportRepairGuide(bundle, compatibility, template, activityReview, archiveName),
   }
 }

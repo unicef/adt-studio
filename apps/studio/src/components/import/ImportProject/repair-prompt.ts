@@ -21,6 +21,9 @@ export function canRepairByEditing(rawError: string): boolean {
  * assistant that edits the bundle, not for the person who copies it. */
 export function buildUnreadableRepairPrompt(fileName: string, rawError: string): string {
   const touchesEditingContract = /editingContract/.test(rawError)
+  // A new ZIP beside the bundle folder: never the input itself, and never
+  // inside the bundle, where the guide forbids leftover archives.
+  const output = `${fileName.replace(/\.zip$/i, "").trim() || "adt-export"}-fixed.zip`
   return [
     `You are repairing an exported ADT (Accessible Digital Textbook) bundle from ${fileName} so that ADT Studio can import it again. You are working on the unzipped bundle.`,
     "",
@@ -45,7 +48,7 @@ export function buildUnreadableRepairPrompt(fileName: string, rawError: string):
     "",
     "When you are done:",
     "1. Run the checklist in the guide, if the bundle has one.",
-    "2. Package the bundle as a ZIP with manifest.json at the root of the ZIP.",
+    `2. Save the result as ${output} next to the unzipped bundle folder, with manifest.json at the root of the ZIP. Do not overwrite the input ZIP, and do not put the new ZIP inside the bundle folder.`,
     "3. Reply with what you changed, anything you left unfixed and why, and whether the guide was missing.",
   ].join("\n")
 }
