@@ -368,7 +368,9 @@ describe("imported translation and speech stage completion", () => {
 
   it("withholds narration for text edited after export even when the HTML and texts.json agree", () => {
     const archive = makeBundleWithSpeechAfterGuideEdit()
-    expect(previewAdtRecoveryImport(archive).featureRecovery.speech).toBe("recovered")
+    // Some narration is kept and the edited entry's is made again: the review
+    // must say "partial", not "recovered" (review finding #1).
+    expect(previewAdtRecoveryImport(archive).featureRecovery.speech).toBe("partial")
 
     const { booksDir, session } = importedProject(archive)
     const storage = createBookStorage(session.label, booksDir)
@@ -480,7 +482,7 @@ describe("imported translation and speech stage completion", () => {
 
   it("adopts narration only for texts the archive left unchanged", () => {
     const archive = makeBundleWithPartiallyStableNarration()
-    expect(previewAdtRecoveryImport(archive).featureRecovery.speech).toBe("recovered")
+    expect(previewAdtRecoveryImport(archive).featureRecovery.speech).toBe("partial")
 
     const { booksDir, session } = importedProject(archive)
     expect(session.contentChanged).toBe(true)

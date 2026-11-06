@@ -46,7 +46,8 @@ export function planImportedFeatureRecovery(
     quizCount: number
     declaredQuizCount: number
     recoverableQuizCount: number
-    speechRecoverable: boolean
+    /** Narrated entries in the archive, and how many are still current. */
+    speech: { kept: number; total: number }
     easyReadEntryCount: number
     signLanguageVideoCount: number
   },
@@ -58,7 +59,10 @@ export function planImportedFeatureRecovery(
   if (counts.tocEntryCount > 0) plan.toc = "recovered"
   if (counts.translationLanguageCount > 0) plan.translate = "recovered"
   if (bundle.runtimeFeatures.readAloud) {
-    plan.speech = counts.speechRecoverable ? "recovered" : "needs-regeneration"
+    const { kept, total } = counts.speech
+    // Narration for text edited after export is withheld and made again, so
+    // keeping some but not all of it is a partial recovery, not a full one.
+    plan.speech = kept === 0 ? "needs-regeneration" : kept < total ? "partial" : "recovered"
   }
   // A generated quiz keeps its text in the shared catalog and its answer key in
   // the quiz page, so it rebuilds into a real entity. Only a quiz missing either
@@ -80,19 +84,20 @@ export function planImportedFeatureRecovery(
   return plan
 }
 
-/** Whether this archive carries narration audio the importer can adopt: the
- * same per-entry rule `seedImportedSpeech` applies, so a manifest alone is not
- * enough — at least one present file must still narrate the text it belongs to. */
-function hasRecoverableSpeech(
+/** How much of the archive's narration the importer can adopt: the same
+ * per-entry rule `seedImportedSpeech` applies, counted against every audio
+ * file the archive carries. */
+function speechRecovery(
   bundle: ReadAdtBundle,
   files: Record<string, Uint8Array>,
   catalogEntries: ReadonlyArray<{ id: string; text: string }>,
-): boolean {
-  return recoverImportedAudio(
-    bundle,
-    files,
-    currentImportedNarration(bundle, files, catalogEntries),
-  ).length > 0
+): { kept: number; total: number } {
+  const count = (languages: ReturnType<typeof recoverImportedAudio>) => languages
+    .reduce((sum, language) => sum + language.entries.length, 0)
+  return {
+    kept: count(recoverImportedAudio(bundle, files, currentImportedNarration(bundle, files, catalogEntries))),
+    total: count(recoverImportedAudio(bundle, files, () => true)),
+  }
 }
 
 export function previewAdtRecoveryImport(
@@ -168,7 +173,7 @@ export function previewAdtRecoveryImport(
       quizCount: activityReview.quizCount,
       declaredQuizCount: recoveredQuizzes.declaredCount,
       recoverableQuizCount: recoveredQuizzes.quizzes.length,
-      speechRecoverable: hasRecoverableSpeech(bundle, files, catalog.entries),
+      speech: speechRecovery(bundle, files, catalog.entries),
       easyReadEntryCount: recoverableEasyReadIds(
         sourceTexts,
         new Set(catalog.entries.map((entry) => entry.id)),

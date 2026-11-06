@@ -6245,6 +6245,9 @@ msgstr "Mban shënim librat tuaj të ndarë."
 msgid "Kept"
 msgstr "Mbajtur"
 
+msgid "Kept where nothing changed since export. The rest is generated again."
+msgstr "Mbahet aty ku asgjë nuk ndryshoi që nga eksporti. Pjesa tjetër gjenerohet sërish."
+
 msgid "Key terms"
 msgstr "Termat kyç"
 
@@ -8672,6 +8675,9 @@ msgstr "Të dhënat e pjesës, PDF-ja dhe cilësimet u gjetën"
 #. placeholder {0}: part.sourceLabel
 msgid "Part of {0}"
 msgstr "Pjesë e {0}"
+
+msgid "Partly included"
+msgstr "I përfshirë pjesërisht"
 
 msgid "Parts"
 msgstr "Pjesë"

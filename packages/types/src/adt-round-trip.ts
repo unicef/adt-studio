@@ -350,7 +350,9 @@ export const AdtAgentGuideReview = z.object({
 })
 export type AdtAgentGuideReview = z.infer<typeof AdtAgentGuideReview>
 
-export const AdtImportFeatureRecovery = z.enum(["recovered", "needs-regeneration"])
+/** "partial": some of the archive's output is kept and the rest is made again,
+ * e.g. narration for text edited after export. */
+export const AdtImportFeatureRecovery = z.enum(["recovered", "partial", "needs-regeneration"])
 export type AdtImportFeatureRecovery = z.infer<typeof AdtImportFeatureRecovery>
 
 export const AdtBundleImportPreview = z.object({

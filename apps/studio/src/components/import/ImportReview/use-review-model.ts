@@ -165,7 +165,7 @@ export function useReviewModel(
     const imageCount = adt.imageCount ?? 0
     const total = adt.activityReview?.needsReviewCount ?? 0
     const set = Math.max(0, total - unresolvedActivityCount)
-    const recovered = FEATURES.filter((feature) => featureStatus(adt, feature.slug) === "recovered")
+    const recovered = FEATURES.filter((feature) => ["recovered", "partial"].includes(featureStatus(adt, feature.slug)))
     const recoveredCount = recovered.length
     return [
       { title: t`Archive checked`, text: t`${adt.pageCount} pages and ${imageCount} images read`, state: "done", status: t`Done` },

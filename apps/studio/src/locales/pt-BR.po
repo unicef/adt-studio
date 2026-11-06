@@ -6243,6 +6243,9 @@ msgstr "Mantém o registro dos seus livros compartilhados."
 msgid "Kept"
 msgstr "Mantida"
 
+msgid "Kept where nothing changed since export. The rest is generated again."
+msgstr "Mantido onde nada mudou desde a exportação. O restante é gerado novamente."
+
 msgid "Key terms"
 msgstr "Termos-chave"
 
@@ -8670,6 +8673,9 @@ msgstr "Detalhes da parte, PDF e configurações encontrados"
 #. placeholder {0}: part.sourceLabel
 msgid "Part of {0}"
 msgstr "Parte de {0}"
+
+msgid "Partly included"
+msgstr "Incluído em parte"
 
 msgid "Parts"
 msgstr "Partes"

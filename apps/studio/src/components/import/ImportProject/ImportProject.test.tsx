@@ -140,6 +140,7 @@ describe("ImportProject", () => {
       translationLanguageCount: 1,
       contentChanged: true,
       exportComparisonStatus: "unavailable",
+      featureRecovery: { speech: "partial", toc: "recovered" },
       compatibility: { supported: true, issues: [] },
       match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
     })
@@ -156,6 +157,10 @@ describe("ImportProject", () => {
       expect(screen.getByRole("button", { name: "Import as new project" })).toBeTruthy()
     })
     expect(screen.getByText("This export has no fingerprints")).toBeTruthy()
+    // Narration kept only where the text is unchanged since export reads as
+    // partly included, not as fully carried over (review finding #1).
+    expect(screen.getByText("Partly included")).toBeTruthy()
+    expect(screen.getByText("Kept where nothing changed since export. The rest is generated again.")).toBeTruthy()
     expect(screen.getByText(/can’t tell whether its pages changed/)).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 

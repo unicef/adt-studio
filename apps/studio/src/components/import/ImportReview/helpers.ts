@@ -46,7 +46,7 @@ export function previewCover(preview: AnyImportPreview): string | null {
   return preview.coverBase64
 }
 
-export type FeatureStatus = "recovered" | "needs-regeneration" | "available"
+export type FeatureStatus = "recovered" | "partial" | "needs-regeneration" | "available"
 
 /** The API reports what the import will actually produce. A published archive
  * can *use* a feature whose pipeline data it does not carry (a quiz without its

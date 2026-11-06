@@ -135,7 +135,7 @@ export function ReadinessList({ steps }: { steps: Step[] }) {
 export function FeaturesSummary({ preview }: { preview: AnyImportPreview }) {
   const { i18n } = useLingui()
   const withStatus = FEATURES.map((feature) => ({ feature, status: featureStatus(preview, feature.slug) }))
-  const included = withStatus.filter((entry) => entry.status === "recovered")
+  const included = withStatus.filter((entry) => entry.status === "recovered" || entry.status === "partial")
   const regenerate = withStatus.filter((entry) => entry.status === "needs-regeneration")
   const available = withStatus.filter((entry) => entry.status === "available")
   const availableCount = available.length
@@ -144,7 +144,8 @@ export function FeaturesSummary({ preview }: { preview: AnyImportPreview }) {
     <>
       {[...included, ...regenerate].map(({ feature, status }) => {
         const Icon = feature.icon
-        const recovered = status === "recovered"
+        const partial = status === "partial"
+        const recovered = status === "recovered" || partial
         return (
           <div key={feature.slug} className="flex items-start gap-3 border-b border-border py-2 last:border-b-0">
             <span
@@ -156,16 +157,22 @@ export function FeaturesSummary({ preview }: { preview: AnyImportPreview }) {
             <span className="min-w-0 flex-1">
               <span className="block text-[13.5px] font-semibold text-foreground">{i18n._(feature.label)}</span>
               <span className="block text-[12.5px] text-muted-foreground">
-                {recovered ? i18n._(feature.description) : <Trans>The publication uses this, but its editable data isn’t in the archive.</Trans>}
+                {partial
+                  ? <Trans>Kept where nothing changed since export. The rest is generated again.</Trans>
+                  : recovered
+                    ? i18n._(feature.description)
+                    : <Trans>The publication uses this, but its editable data isn’t in the archive.</Trans>}
               </span>
             </span>
             <span
               className={cn(
                 "shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold",
-                recovered ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                partial
+                  ? "bg-brand-500/10 text-brand-700 dark:text-brand-300"
+                  : recovered ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
               )}
             >
-              {recovered ? <Trans>Included</Trans> : <Trans>Generate again</Trans>}
+              {partial ? <Trans>Partly included</Trans> : recovered ? <Trans>Included</Trans> : <Trans>Generate again</Trans>}
             </span>
           </div>
         )
