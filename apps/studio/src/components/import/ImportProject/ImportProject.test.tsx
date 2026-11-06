@@ -68,7 +68,11 @@ vi.mock("@/hooks/use-books", () => ({
 
 vi.mock("@/hooks/use-archive-error", () => ({
   useFriendlyArchiveError: (error: string | null) => error
-    ? { title: "Archive problem", hint: "Review the archive details and try again." }
+    ? {
+        title: "Archive problem",
+        hint: "Review the archive details and try again.",
+        kind: error.includes("Internal server error") ? "server" : error.includes(".db") ? "not-recognized" : "other",
+      }
     : null,
 }))
 
@@ -138,8 +142,8 @@ describe("ImportProject", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Import as new project" })).toBeTruthy()
     })
-    expect(screen.getByText("Export baseline unavailable")).toBeTruthy()
-    expect(screen.getByText(/does not include fingerprints/)).toBeTruthy()
+    expect(screen.getByText("This export has no fingerprints")).toBeTruthy()
+    expect(screen.getByText(/can’t tell whether its pages changed/)).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 
     expect(importProject).not.toHaveBeenCalled()
@@ -275,7 +279,7 @@ describe("ImportProject", () => {
       expect(screen.getByRole("button", { name: "Import as new project" })).toBeTruthy()
     })
     expect(screen.queryByText("Import destination")).toBeNull()
-    expect(screen.getByText(/Existing projects stay unchanged/)).toBeTruthy()
+    expect(screen.getByText(/separate from your other projects/)).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 
     expect(importAdt).toHaveBeenCalledWith(
@@ -343,7 +347,8 @@ describe("ImportProject", () => {
 
     const review = await screen.findByRole("button", { name: "Review 1 activities" })
     expect(review).toHaveProperty("disabled", false)
-    expect(screen.getByText("Review 1 activities before import")).toBeTruthy()
+    expect(screen.getByText("index.html")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Review activities" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Copy AI instructions" }))
     await waitFor(() => {
       expect(writeClipboard).toHaveBeenCalledWith("Classify the ambiguous activity candidate.")
@@ -412,16 +417,20 @@ describe("ImportProject", () => {
       target: { files: [new File(["zip"], "unsupported.zip", { type: "application/zip" })] },
     })
 
-    expect(await screen.findByText("This archive needs repair before import")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "AI repair guide" })).toBeTruthy()
-    expect(screen.queryByText("Unsupported ADT structure")).toBeNull()
-    expect(screen.queryByText("Archive ready to review")).toBeNull()
-    expect(screen.getByText("Review details").className).toContain("text-amber-800")
-    fireEvent.click(screen.getByRole("button", { name: "Validation details" }))
+    expect(await screen.findByText(/to fix before import/)).toBeTruthy()
+    expect(screen.getByText("Needs repair")).toBeTruthy()
+    expect(screen.queryByRole("dialog")).toBeNull()
+    // The problems are listed inline instead of in a Validation details dialog.
     expect(screen.getByText("manifest.json")).toBeTruthy()
-    expect(screen.getAllByText("missing-editing-contract")).toHaveLength(2)
-    fireEvent.click(screen.getByRole("button", { name: "Close" }))
-    fireEvent.click(screen.getByRole("button", { name: "Copy repair request" }))
+    expect(screen.getByText("missing-editing-contract")).toBeTruthy()
+    expect(screen.getByText(/has no editing contract/)).toBeTruthy()
+    // The guide opens beside the problems, rendered from the real guide text.
+    fireEvent.click(screen.getByRole("button", { name: "AI repair guide" }))
+    const guide = screen.getByRole("region", { name: "AI repair guide" })
+    expect(guide.textContent).toContain("Editing Unsupported book")
+    expect(screen.getByText(/to fix before import/)).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Close the guide" }))
+    fireEvent.click(screen.getAllByRole("button", { name: "Copy repair request" })[0])
     await waitFor(() => expect(writeClipboard).toHaveBeenCalledWith(
       "Repair this exported ADT using the current guide.",
     ))
@@ -469,7 +478,7 @@ describe("ImportProject", () => {
     await screen.findByRole("button", { name: "Import as new project" })
     expect(screen.queryByRole("radio")).toBeNull()
     expect(screen.queryByText("Project: raven")).toBeNull()
-    expect(screen.getByText(/Existing projects stay unchanged/)).toBeTruthy()
+    expect(screen.getByText(/separate from your other projects/)).toBeTruthy()
   })
 
   it("announces a corrupt project preview as an error instead of ready", async () => {
@@ -494,8 +503,11 @@ describe("ImportProject", () => {
       target: { files: [new File(["zip"], "corrupt.zip", { type: "application/zip" })] },
     })
 
-    await waitFor(() => expect(screen.getByText("This project cannot be imported yet")).toBeTruthy())
-    expect(screen.getByRole("button", { name: "Validation details" })).toBeTruthy()
+    await waitFor(() => expect(screen.getByText("This project can’t be imported")).toBeTruthy())
+    expect(screen.getByText("Can’t be imported")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Show error details" }))
+    expect(screen.getByText("Invalid project database")).toBeTruthy()
+    expect(screen.queryByRole("dialog")).toBeNull()
     expect(screen.queryByText("Archive ready to review")).toBeNull()
     expect(screen.getByRole("button", { name: "Import as new project" }).hasAttribute("disabled")).toBe(true)
   })
@@ -546,5 +558,62 @@ describe("ImportProject", () => {
       target: { files: [new File(["other"], "other.zip", { type: "application/zip" })] },
     })
     expect(previewImport).toHaveBeenCalledTimes(1)
+  })
+
+  it("shows what ADT Studio looked for when a ZIP isn't an importable archive", async () => {
+    previewImport.mockRejectedValue(new Error("Invalid project archive: expected a .db and .pdf file at the root level"))
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "random.zip", { type: "application/zip" })] } })
+
+    expect(await screen.findByText("ADT Studio can’t import this ZIP")).toBeTruthy()
+    expect(screen.getByText(/random.zip doesn’t match any of the archive types/)).toBeTruthy()
+    expect(screen.getByText("Not found: manifest.json from an ADT Web export")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Choose another ZIP" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Show error details" }))
+    expect(screen.getByText(/expected a .db and .pdf file/)).toBeTruthy()
+    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(screen.getByRole("button", { name: "Import" }).hasAttribute("disabled")).toBe(true)
+  })
+
+  it("retries a server error with the same archive", async () => {
+    previewImport.mockRejectedValue(new Error("Internal server error"))
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(["zip"], "book.zip", { type: "application/zip" })
+    fireEvent.change(input, { target: { files: [file] } })
+
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }))
+    await waitFor(() => expect(previewImport).toHaveBeenCalledTimes(2))
+    expect(previewImport.mock.calls[1][0]).toBe(file)
+  })
+
+  it("shows an import failure inside the review instead of blaming the archive", async () => {
+    adtImportError = new Error("Internal server error")
+    previewImport.mockResolvedValue({
+      isAdtBundle: true,
+      legacyRecovery: false,
+      label: "volcanoes",
+      title: "Volcanoes",
+      coverBase64: null,
+      sourceLanguage: "en",
+      outputLanguages: [],
+      runtimeFeatures: {},
+      pageCount: 25,
+      imageCount: 52,
+      glossaryEntryCount: 0,
+      tocEntryCount: 10,
+      translationLanguageCount: 0,
+      contentChanged: false,
+      exportComparisonStatus: "unchanged",
+      compatibility: { supported: true, issues: [] },
+    })
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "volcanoes.zip", { type: "application/zip" })] } })
+
+    expect(await screen.findByText("The import didn’t finish")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Try import again" })).toBeTruthy()
+    expect(screen.getByText("Volcanoes")).toBeTruthy()
   })
 })

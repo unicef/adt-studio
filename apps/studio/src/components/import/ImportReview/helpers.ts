@@ -36,14 +36,6 @@ export const FEATURES = FEATURE_SLUGS.map((slug) => {
 })
 
 
-export type ReviewTab = "overview" | "features" | "review"
-export type DetailsDialog = "validation" | "guide" | null
-export type TabTransitionPhase = "idle" | "exiting" | "entering"
-
-export const TAB_EXIT_DURATION_MS = 120
-export const TAB_ENTER_DURATION_MS = 180
-
-
 export function previewTitle(preview: AnyImportPreview): string {
   if (isPartImportPreview(preview)) return preview.title ?? preview.sourceLabel
   if (isAdtBundleImportPreview(preview)) return preview.title
@@ -52,13 +44,6 @@ export function previewTitle(preview: AnyImportPreview): string {
 
 export function previewCover(preview: AnyImportPreview): string | null {
   return preview.coverBase64
-}
-
-export function needsReview(preview: AnyImportPreview, unresolvedActivityCount: number): boolean {
-  if (isAdtBundleImportPreview(preview)) {
-    return !preview.compatibility.supported || unresolvedActivityCount > 0
-  }
-  return !isPartImportPreview(preview) && Boolean(preview.validationError)
 }
 
 export type FeatureStatus = "recovered" | "needs-regeneration" | "available"

@@ -1,81 +1,66 @@
+import { Fragment } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertCircle, Check } from "lucide-react"
-
+import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-import type { ImportPhase } from "./helpers"
+export type ImportStep = 1 | 2 | 3
 
+/**
+ * Compact stepper for the import header. `failedStep` marks the step where the
+ * flow stopped: a read failure stays on step 1 (nothing was reviewed yet), an
+ * import failure on step 3.
+ */
 export function ImportProgress({
-  phase,
-  hasPreviewError,
-  hasImportError,
-  reviewNeedsAttention = false,
+  current,
+  failedStep = null,
 }: {
-  phase: ImportPhase
-  hasPreviewError: boolean
-  hasImportError: boolean
-  reviewNeedsAttention?: boolean
+  current: ImportStep
+  failedStep?: ImportStep | null
 }) {
   const { t } = useLingui()
-  const activeIndex = phase === "select" ? 0 : phase === "reading" || phase === "review" ? 1 : 2
-  const steps = [t`Select archive`, t`Review details`, t`Import project`]
+  const steps = [t`Select archive`, t`Review`, t`Import`]
 
   return (
-    <ol aria-label={t`Import progress`} className="mx-auto mt-5 flex w-full max-w-xl items-start">
+    <ol aria-label={t`Import progress`} className="flex shrink-0 items-center gap-2.5 text-[12.5px]">
       {steps.map((label, index) => {
-        const complete = index < activeIndex
-        const current = index === activeIndex
-        const failed = (hasPreviewError && index === 1) || (hasImportError && index === 2)
-        const needsAttention = reviewNeedsAttention && index === 1
+        const step = (index + 1) as ImportStep
+        const complete = step < current
+        const isCurrent = step === current
+        const failed = failedStep === step
         return (
-          <li key={label} className="relative flex flex-1 flex-col items-center gap-2 text-center">
-            {index < steps.length - 1 ? (
-              <span
+          <Fragment key={label}>
+            {index > 0 ? (
+              <li
                 aria-hidden="true"
-                className={cn(
-                  "absolute left-1/2 top-3 h-px w-full transition-colors duration-300",
-                  complete ? "bg-primary" : "bg-border",
-                )}
+                className={cn("h-px w-7 transition-colors duration-300", step <= current ? "bg-primary" : "bg-border")}
               />
             ) : null}
-            <span
+            <li
+              aria-current={isCurrent ? "step" : undefined}
               className={cn(
-                "relative z-10 flex size-6 items-center justify-center rounded-full border text-[11px] font-semibold tabular-nums transition-[color,background-color,border-color,box-shadow] duration-300",
-                failed
-                  ? "border-destructive bg-destructive/10 text-destructive"
-                  : needsAttention
-                    ? "border-amber-500 bg-amber-500/10 text-amber-700 ring-4 ring-amber-500/15 dark:text-amber-400"
-                  : complete
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : current
-                      ? "border-primary bg-background text-primary ring-4 ring-primary/15"
-                      : "border-border bg-background text-muted-foreground",
+                "inline-flex items-center gap-1.5 whitespace-nowrap transition-colors duration-300",
+                failed ? "font-semibold text-destructive" : isCurrent ? "font-semibold text-foreground" : "text-muted-foreground",
               )}
-              aria-current={current ? "step" : undefined}
             >
-              {failed || needsAttention ? (
-                <>
-                  <AlertCircle aria-hidden="true" className="size-3" />
-                  <span className="sr-only">
-                    {failed ? <Trans>Failed</Trans> : <Trans>Needs attention</Trans>}
-                  </span>
-                </>
-              ) : complete ? (
-                <>
-                  <Check aria-hidden="true" className="size-3" />
-                  <span className="sr-only"><Trans>Completed</Trans></span>
-                </>
-              ) : index + 1}
-            </span>
-            <span className={cn(
-              "relative z-10 whitespace-nowrap text-xs transition-colors duration-300",
-              current || complete ? "font-medium text-foreground" : "text-muted-foreground",
-              failed && "font-medium text-destructive",
-              needsAttention && "font-medium text-amber-800 dark:text-amber-300",
-            )}>
+              <span
+                className={cn(
+                  "grid size-5 place-items-center rounded-full border text-[10.5px] font-semibold tabular-nums transition-[color,background-color,border-color,box-shadow] duration-300",
+                  failed
+                    ? "border-destructive text-destructive ring-[3px] ring-destructive/15"
+                    : complete
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : isCurrent
+                        ? "border-primary text-primary ring-[3px] ring-primary/15"
+                        : "border-border text-muted-foreground",
+                )}
+              >
+                {failed ? "!" : complete ? <Check aria-hidden="true" className="size-3" /> : step}
+              </span>
               {label}
-            </span>
-          </li>
+              {failed ? <span className="sr-only"><Trans>Failed</Trans></span> : null}
+              {complete ? <span className="sr-only"><Trans>Completed</Trans></span> : null}
+            </li>
+          </Fragment>
         )
       })}
     </ol>

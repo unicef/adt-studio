@@ -1,8 +1,15 @@
 import { useLingui } from "@lingui/react/macro"
 
+/** What kind of failure it is, so a screen can choose its layout without
+ * matching English again. "not-recognized": no archive type ADT Studio
+ * imports was found. "adt-unreadable": an ADT export was recognized but one of
+ * its files is broken. "server": ADT Studio failed, not the file. */
+export type FriendlyErrorKind = "not-recognized" | "adt-unreadable" | "server" | "other"
+
 export interface FriendlyError {
   title: string
   hint: string
+  kind?: FriendlyErrorKind
 }
 
 /**
@@ -51,6 +58,7 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
 
   if (e.includes("legacy adt export") || e.includes("recognized legacy adt studio export")) {
     return {
+      kind: "adt-unreadable",
       title: t`This legacy ADT export is incomplete`,
       hint: t`ADT Studio recognized the publication, but required book files are missing or inconsistent. Open the error details to see what must be repaired.`,
     }
@@ -89,6 +97,7 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     e.includes("expected a .db")
   ) {
     return {
+      kind: "not-recognized",
       title: t`This isn't a valid ADT Studio project`,
       hint: t`The archive must contain a project database and its PDF. Re-export it from ADT Studio.`,
     }
@@ -115,6 +124,7 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     e.includes("offline cache")
   ) {
     return {
+      kind: "adt-unreadable",
       title: t`This isn't an editable ADT bundle`,
       hint: t`Choose a Web Export ZIP created by a current version of ADT Studio.`,
     }
@@ -123,6 +133,7 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
   // An unexpected server failure says nothing about the file, so don't blame it.
   if (e.includes("internal server error") || /request failed: 5\d\d/.test(e)) {
     return {
+      kind: "server",
       title: t`ADT Studio couldn't check this archive`,
       hint: t`Something went wrong in ADT Studio, not necessarily in your file. Try again; if it keeps failing, report the problem and include the archive.`,
     }
