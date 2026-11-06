@@ -44,4 +44,12 @@ describe("useFriendlyArchiveError", () => {
     expect(result.current?.title).toBe("This legacy ADT export is incomplete")
     expect(result.current?.hint).toContain("Open the error details")
   })
+
+  it("does not blame the file for an unexpected server failure", () => {
+    for (const raw of ["Internal server error", "Request failed: 502"]) {
+      const { result } = renderHook(() => useFriendlyArchiveError(raw))
+      expect(result.current?.title).toBe("ADT Studio couldn't check this archive")
+      expect(result.current?.hint).toContain("not necessarily in your file")
+    }
+  })
 })

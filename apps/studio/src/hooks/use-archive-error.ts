@@ -120,6 +120,14 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     }
   }
 
+  // An unexpected server failure says nothing about the file, so don't blame it.
+  if (e.includes("internal server error") || /request failed: 5\d\d/.test(e)) {
+    return {
+      title: t`ADT Studio couldn't check this archive`,
+      hint: t`Something went wrong in ADT Studio, not necessarily in your file. Try again; if it keeps failing, report the problem and include the archive.`,
+    }
+  }
+
   return {
     title: t`Invalid project archive`,
     hint: t`Make sure you're uploading a .zip file exported from ADT Studio.`,

@@ -1552,6 +1552,9 @@ msgstr "ADT STUDIO"
 msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
 msgstr "O ADT Studio aceita arquivos ZIP de até 512 MiB compactados. Escolha um pacote menor e tente novamente."
 
+msgid "ADT Studio couldn't check this archive"
+msgstr "O ADT Studio não conseguiu verificar este arquivo"
+
 msgid "ADT Studio found the book, but its HTML or files do not follow the round-trip structure."
 msgstr "O ADT Studio encontrou o livro, mas o HTML ou os arquivos dele não seguem a estrutura necessária para a reimportação."
 
@@ -11352,6 +11355,9 @@ msgstr "Algo mais na sua conta já usa o nome que o Studio precisa. Renomeie no 
 
 msgid "Something went wrong"
 msgstr "Algo deu errado"
+
+msgid "Something went wrong in ADT Studio, not necessarily in your file. Try again; if it keeps failing, report the problem and include the archive."
+msgstr "Algo deu errado no ADT Studio, não necessariamente no seu arquivo. Tente de novo; se continuar falhando, relate o problema e inclua o arquivo."
 
 msgid "Somewhere in the book"
 msgstr "Em algum lugar no livro"
