@@ -139,6 +139,12 @@ validation failures Luna produced on the base prompt (about 10% of pages on a
 - A captioned or labelled image lives only inside its `image_group`, and every
   book-outline entry listed for the page must appear as a heading leaf, including
   callout headings.
+- Writing lines count as a response area only when something on the page asks
+  the learner to respond. The base prompt's WRITABLE-PAGE PRECEDENCE makes any
+  lined page an activity; GPT-5.4 used judgment there, but Luna (and Sol and
+  Terra) labelled a notebook-paper divider page `activity_open_ended_answer`. A
+  page of lines or decoration with no question, instruction, prompt or labelled
+  field is a `separator`.
 - It adds a WRONG/RIGHT open-ended answer example, short execution guidance and
   a DONE WHEN checklist.
 
