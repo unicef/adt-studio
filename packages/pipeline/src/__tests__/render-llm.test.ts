@@ -5,7 +5,7 @@ import {
   minimumLearnerResponseCount,
   renderSectionLlm,
 } from "../render-llm.js"
-import type { RenderConfig, RenderSectionInput } from "../web-rendering.js"
+import type { RenderConfig, RenderNode, RenderSectionInput } from "../web-rendering.js"
 
 describe("collectOptionalTextIds", () => {
   it("marks single-underscore blank-cell leaves as optional (crossword cells)", () => {
@@ -130,6 +130,58 @@ describe("minimumLearnerResponseCount", () => {
         ],
       },
     ])).toBe(1)
+  })
+
+  it("counts extra writing lines under one answer once, so they can share a textarea", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "a", structure: "activity", children: [
+        { node_id: "q1", role: "activity_question", text: "Write about life in the village." },
+        { node_id: "l1", role: "activity_fill_in_the_blank", text: "___" },
+        { node_id: "l2", role: "activity_fill_in_the_blank", text: "___" },
+        { node_id: "l3", role: "activity_fill_in_the_blank", text: "___" },
+        { node_id: "i2", role: "activity_instruction", text: "Continue the sentence." },
+        { node_id: "s1", role: "activity_fill_in_the_blank", text: "Many people prefer the village because ___" },
+        { node_id: "s2", role: "activity_fill_in_the_blank", text: "___" },
+      ] },
+    ])).toBe(2)
+  })
+
+  it("still counts per-letter cells and separately labelled fields one by one", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "grid", structure: "activity", children: [
+        { node_id: "c1", role: "activity_fill_in_the_blank", text: "_" },
+        { node_id: "c2", role: "activity_fill_in_the_blank", text: "_" },
+        { node_id: "c3", role: "activity_fill_in_the_blank", text: "_" },
+      ] },
+      { node_id: "venn", structure: "image_group", children: [
+        { node_id: "label1", role: "label", text: "Another village" },
+        { node_id: "f1", role: "activity_fill_in_the_blank", text: "___" },
+        { node_id: "label2", role: "label", text: "In common" },
+        { node_id: "f2", role: "activity_fill_in_the_blank", text: "___" },
+      ] },
+    ])).toBe(5)
+  })
+
+  it("requires one response per question even when the questions share one writing area", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "a", structure: "activity", children: [
+        { node_id: "q1", role: "activity_question", text: "What are children's rights?" },
+        { node_id: "q2", role: "activity_question", text: "What is the fairest way?" },
+        { node_id: "q3", role: "activity_question", text: "How do you understand the saying?" },
+        { node_id: "shared", role: "activity_fill_in_the_blank", text: "___" },
+      ] },
+    ])).toBe(3)
+  })
+
+  it("counts the true and false cells of one true/false row as one statement", () => {
+    const row = (n: number): RenderNode => ({ node_id: `r${n}`, structure: "table_row", children: [
+      { node_id: `r${n}t`, structure: "table_cell", children: [{ node_id: `r${n}s`, role: "text", text: `Statement ${n}` }] },
+      { node_id: `r${n}v`, structure: "table_cell", children: [{ node_id: `r${n}vb`, role: "activity_fill_in_the_blank", text: "___" }] },
+      { node_id: `r${n}g`, structure: "table_cell", children: [{ node_id: `r${n}gb`, role: "activity_fill_in_the_blank", text: "___" }] },
+    ] })
+    const table: RenderNode[] = [{ node_id: "t", structure: "table", children: [row(1), row(2), row(3)] }]
+    expect(minimumLearnerResponseCount(table, "activity_true_false")).toBe(3)
+    expect(minimumLearnerResponseCount(table, "activity_fill_in_a_table")).toBe(6)
   })
 
   it("requires one response for non-English activity instructions", () => {
