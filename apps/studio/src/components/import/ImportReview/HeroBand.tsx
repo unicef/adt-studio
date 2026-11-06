@@ -91,7 +91,7 @@ export function HeroBand({
           <span className="sr-only"><Trans>No cover available</Trans></span>
         </span>
       )}
-      <div className="flex min-w-[18rem] flex-[2_1_18rem] flex-col gap-1.5">
+      <div className="flex min-w-[18rem] flex-[2_1_18rem] flex-col gap-1.5 2xl:min-w-[24rem]">
         <div className="flex flex-wrap gap-2">
           <TypeBadge kind={kind} />
           <StateBadge mode={mode} />
@@ -120,11 +120,11 @@ export function HeroBand({
       </div>
       <dl className="flex flex-wrap">
         {stats.map((stat, index) => (
-          <div key={stat.label} className={cn("flex flex-col-reverse px-5 2xl:px-8", index > 0 ? "border-l border-border" : "pl-0")}>
+          <div key={stat.label} className={cn("flex flex-col-reverse px-5 2xl:px-6", index > 0 ? "border-l border-border" : "pl-0")}>
             <dt className="mt-1.5 max-w-[10rem] text-balance text-[13px] leading-snug text-muted-foreground">{stat.label}</dt>
             <dd className={cn(
               "font-semibold leading-none tracking-[-1px] tabular-nums text-foreground",
-              stat.long ? "max-w-[14rem] truncate text-2xl" : "text-[40px] 2xl:text-5xl [@media(max-height:960px)]:text-[30px]",
+              stat.long ? "max-w-[14rem] truncate text-2xl" : "text-[40px] [@media(max-height:960px)]:text-[30px]",
             )}>
               {stat.value === null ? (
                 <span className="text-muted-foreground/60">
