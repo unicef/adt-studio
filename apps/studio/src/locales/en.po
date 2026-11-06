@@ -10814,6 +10814,9 @@ msgstr "Show all entries"
 msgid "Show all pages"
 msgstr "Show all pages"
 
+msgid "Show all quizzes"
+msgstr "Show all quizzes"
+
 msgid "Show all translations"
 msgstr "Show all translations"
 
