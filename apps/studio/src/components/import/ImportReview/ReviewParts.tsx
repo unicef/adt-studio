@@ -1,0 +1,235 @@
+import type { ReactNode } from "react"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { AlertCircle, Check as CheckIcon, Minus, X } from "lucide-react"
+import type { AnyImportPreview } from "@/api/client"
+import { cn } from "@/lib/utils"
+import { FEATURES, featureStatus } from "./helpers"
+import type { Check, CheckState, Issue, Status, Step, Tone } from "./use-review-model"
+
+
+export function Panel({ title, children, className }: { title?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <section className={cn("flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto rounded-xl border border-border bg-card p-4 [@media(max-height:960px)]:gap-1.5 [@media(max-height:960px)]:p-3", className)}>
+      {title ? <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{title}</h3> : null}
+      {children}
+    </section>
+  )
+}
+
+const TONE_CLASSNAMES: Record<Tone, string> = {
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- Tailwind classes, not user-visible copy.
+  green: "bg-muted [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400",
+  amber: "bg-amber-500/10 [&_svg]:text-amber-600 dark:[&_svg]:text-amber-400",
+  red: "bg-destructive/10 [&_svg]:text-destructive",
+  blue: "bg-brand-500/10 [&_svg]:text-brand-600 dark:[&_svg]:text-brand-400",
+}
+
+export function StatusRow({ status, children }: { status: Status; children?: ReactNode }) {
+  const Icon = status.icon
+  return (
+    <div className={cn("flex shrink-0 items-start gap-3 rounded-lg px-3.5 py-3", TONE_CLASSNAMES[status.tone])}>
+      <Icon aria-hidden="true" className="mt-0.5 size-[18px] shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-foreground">{status.title}</p>
+        <p className="text-[12.5px] leading-relaxed text-muted-foreground text-pretty">{status.text}</p>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+const CHECK_STYLE: Record<CheckState, { dot: string; value: string; icon: typeof CheckIcon }> = {
+  ok: { dot: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", value: "text-muted-foreground", icon: CheckIcon },
+  bad: { dot: "bg-destructive/10 text-destructive", value: "text-destructive", icon: X },
+  warn: { dot: "bg-amber-500/15 text-amber-600 dark:text-amber-400", value: "text-amber-700 dark:text-amber-400", icon: AlertCircle },
+  off: { dot: "bg-muted text-muted-foreground", value: "text-muted-foreground", icon: Minus },
+}
+
+export function CheckList({ checks }: { checks: Check[] }) {
+  return (
+    <ul className="flex flex-col">
+      {checks.map((check) => {
+        const style = CHECK_STYLE[check.state]
+        const Dot = style.icon
+        const Icon = check.icon
+        return (
+          <li key={check.label} className="flex items-center gap-2.5 border-b border-border py-2 last:border-b-0 [@media(max-height:960px)]:py-1.5">
+            <span className={cn("grid size-[18px] shrink-0 place-items-center rounded-full", style.dot)}>
+              <Dot aria-hidden="true" className="size-3" />
+            </span>
+            <Icon aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 text-[13.5px] text-foreground">{check.label}</span>
+            <span className={cn("text-right text-[13px] tabular-nums", style.value)}>{check.value}</span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/**
+ * "Import will" as a checklist with a readiness bar: what's done, what needs
+ * you before import, and what happens when you import. The bar counts only
+ * what has to be done before import.
+ */
+export function ReadinessList({ steps }: { steps: Step[] }) {
+  const required = steps.filter((step) => step.state !== "later")
+  const done = required.filter((step) => step.state === "done").length
+  const total = required.length
+  const ready = done === total
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex shrink-0 flex-col gap-1.5">
+        <div className="flex items-baseline justify-between gap-3 text-[13px]">
+          <span className="font-semibold text-foreground">
+            {ready ? <Trans>Ready to import</Trans> : <Trans>Before you import</Trans>}
+          </span>
+          <span className="tabular-nums text-muted-foreground"><Trans>{done} of {total} done</Trans></span>
+        </div>
+        <div aria-hidden="true" className="flex gap-1">
+          {required.map((step) => (
+            <span key={step.title} className={cn("h-1.5 flex-1 rounded-full", step.state === "done" ? "bg-emerald-500" : "bg-border")} />
+          ))}
+        </div>
+      </div>
+      <ol className="flex flex-1 flex-col justify-between">
+        {steps.map((step, index) => (
+          <li
+            key={step.title}
+            className={cn(
+              "flex items-start gap-3 py-2 [@media(max-height:960px)]:py-1",
+              index < steps.length - 1 && !step.noDivider && "border-b border-border",
+            )}
+          >
+            <span
+              className={cn(
+                "mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10.5px] font-semibold tabular-nums",
+                step.state === "done" && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+                step.state === "todo" && "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+                step.state === "later" && "bg-muted text-muted-foreground",
+              )}
+            >
+              {step.state === "done" ? <CheckIcon aria-hidden="true" className="size-3" /> : step.state === "todo" ? "!" : index + 1}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13.5px] font-semibold text-foreground">{step.title}</span>
+              <span className="block text-[12.5px] text-muted-foreground">{step.text}</span>
+            </span>
+            <span
+              className={cn(
+                "shrink-0 whitespace-nowrap pt-0.5 text-xs",
+                step.state === "done" && "text-emerald-700 dark:text-emerald-400",
+                step.state === "todo" && "font-semibold tabular-nums text-amber-700 dark:text-amber-400",
+                step.state === "later" && "text-muted-foreground",
+              )}
+            >
+              {step.status}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
+export function FeaturesSummary({ preview }: { preview: AnyImportPreview }) {
+  const { i18n } = useLingui()
+  const withStatus = FEATURES.map((feature) => ({ feature, status: featureStatus(preview, feature.slug) }))
+  const included = withStatus.filter((entry) => entry.status === "recovered" || entry.status === "partial")
+  const regenerate = withStatus.filter((entry) => entry.status === "needs-regeneration")
+  const available = withStatus.filter((entry) => entry.status === "available")
+  const availableCount = available.length
+
+  return (
+    <>
+      {[...included, ...regenerate].map(({ feature, status }) => {
+        const Icon = feature.icon
+        const partial = status === "partial"
+        const recovered = status === "recovered" || partial
+        // A fully included feature needs only its name: its generic
+        // description says nothing about this import and pushed the rest of
+        // the column out of view. Partial and missing ones keep a line that
+        // says what happens to them.
+        const note = partial
+          ? <Trans>Kept where nothing changed since export. The rest is generated again.</Trans>
+          : recovered
+            ? null
+            : <Trans>The publication uses this, but its editable data isn’t in the archive.</Trans>
+        return (
+          <div key={feature.slug} className={cn("flex gap-3 border-b border-border last:border-b-0", note ? "items-start py-2" : "items-center py-1.5")}>
+            <span
+              className={cn("grid shrink-0 place-items-center rounded-lg", note ? "size-8" : "size-6")}
+              style={recovered ? { backgroundColor: `${feature.hex}1f`, color: feature.hex } : undefined}
+            >
+              <Icon aria-hidden="true" className={cn(note ? "size-4" : "size-3.5", !recovered && "text-amber-600 dark:text-amber-400")} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13.5px] font-semibold text-foreground">{i18n._(feature.label)}</span>
+              {note ? <span className="block text-[12.5px] text-muted-foreground">{note}</span> : null}
+            </span>
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold",
+                partial
+                  ? "bg-brand-500/10 text-brand-700 dark:text-brand-300"
+                  : recovered ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+              )}
+            >
+              {partial ? <Trans>Partly included</Trans> : recovered ? <Trans>Included</Trans> : <Trans>Generate again</Trans>}
+            </span>
+          </div>
+        )
+      })}
+      {availableCount > 0 ? (
+        <>
+          <p className="text-[12.5px] text-muted-foreground">
+            {included.length + regenerate.length > 0
+              ? <Trans>{availableCount} more you can generate after import:</Trans>
+              : <Trans>You can generate these after import:</Trans>}
+          </p>
+          <ul className="flex flex-wrap gap-1.5">
+            {available.map(({ feature }) => {
+              const Icon = feature.icon
+              return (
+                <li key={feature.slug} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+                  <Icon aria-hidden="true" className="size-3" />
+                  {i18n._(feature.label)}
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      ) : null}
+    </>
+  )
+}
+
+export function FactList({ facts }: { facts: Array<{ label: string; value: string }> }) {
+  return (
+    <dl className="flex flex-col">
+      {facts.map((fact) => (
+        <div key={fact.label} className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-3 border-b border-border py-2 text-[13.5px] last:border-b-0">
+          <dt className="text-muted-foreground">{fact.label}</dt>
+          <dd className="text-foreground">{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+/** The problems to fix, each with the file it is in and its code. */
+export function IssueList({ issues }: { issues: Issue[] }) {
+  return (
+    <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+      {issues.map((issue, index) => (
+        <li key={`${issue.code}:${issue.file}:${index}`} className="px-3.5 py-2.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <code className="truncate font-mono text-xs font-semibold text-foreground">{issue.file}</code>
+            <code className="shrink-0 font-mono text-[11px] text-muted-foreground">{issue.code}</code>
+          </div>
+          <p className="mt-1 break-words text-[13px] text-foreground">{issue.text}</p>
+        </li>
+      ))}
+    </ul>
+  )
+}

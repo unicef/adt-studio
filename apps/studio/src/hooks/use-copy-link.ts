@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { writeClipboardText } from "@/lib/clipboard"
 
 export type CopyState = "idle" | "copied" | "failed"
 
@@ -27,7 +28,7 @@ export function useCopyLink(text: string, resetMs: number = RESET_MS) {
   const copy = useCallback(async () => {
     if (timerRef.current) clearTimeout(timerRef.current)
     try {
-      await navigator.clipboard.writeText(text)
+      await writeClipboardText(text)
       setState("copied")
     } catch {
       setState("failed")

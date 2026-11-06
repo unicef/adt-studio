@@ -13,6 +13,8 @@ import {
 } from "@adt/types"
 import type {
   AccessibilityAssessmentOutput,
+  AdtBundleImportPreview,
+  AdtImportUnreadableDetails,
   BookDetail,
   BookFont,
   BookFontRole,
@@ -175,21 +177,30 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => "")
     let message: string | undefined
     let code: string | null = null
+    let details: unknown
     try {
-      const parsed = JSON.parse(text) as { error?: string; code?: string }
+      const parsed = JSON.parse(text) as { error?: string; code?: string; details?: unknown }
       message = parsed.error
       code = typeof parsed.code === "string" ? parsed.code : null
+      details = parsed.details
     } catch {
       message = text || undefined
     }
-    throw new ApiError(message ?? i18n._(msg`Request failed: ${res.status}`), res.status, code)
+    throw new ApiError(message ?? i18n._(msg`Request failed: ${res.status}`), res.status, code, details)
   }
 
   return res.json()
 }
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number, readonly code: string | null = null) {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string | null = null,
+    /** Extra data a route sends beside the message, such as what an import
+     * preview could still read from an archive it rejected. */
+    readonly details?: unknown,
+  ) {
     super(message)
     this.name = "ApiError"
   }
@@ -283,12 +294,36 @@ export interface PartImportPreview {
   coverBase64: string | null
 }
 
-export type AnyImportPreview = ImportPreview | PartImportPreview
+export type { AdtBundleImportPreview, AdtImportUnreadableDetails }
+
+const UNREADABLE_DETAIL_KEYS = [
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- JSON field names, not UI text.
+  "title", "coverBase64", "pageCount", "imageCount", "tocEntryCount", "sourceLanguage", "outputLanguages",
+] as const
+
+/** What an import preview could still read from an ADT export it rejected,
+ * or null when the error carries none. */
+export function unreadableAdtDetails(error: unknown): AdtImportUnreadableDetails | null {
+  if (!(error instanceof ApiError) || error.code !== "adt-unreadable") return null
+  const details = error.details
+  if (!details || typeof details !== "object") return null
+  return UNREADABLE_DETAIL_KEYS.every((key) => key in details)
+    ? details as AdtImportUnreadableDetails
+    : null
+}
+
+export type AnyImportPreview = ImportPreview | PartImportPreview | AdtBundleImportPreview
 
 export function isPartImportPreview(
   preview: AnyImportPreview,
 ): preview is PartImportPreview {
   return (preview as PartImportPreview).isPart === true
+}
+
+export function isAdtBundleImportPreview(
+  preview: AnyImportPreview,
+): preview is AdtBundleImportPreview {
+  return (preview as AdtBundleImportPreview).isAdtBundle === true
 }
 
 export interface MergePreview {
@@ -1377,6 +1412,19 @@ export const api = {
     const formData = new FormData()
     formData.append("zip", zip)
     return request<BookSummary>("/books/import", {
+      method: "POST",
+      body: formData,
+    })
+  },
+
+  importAdtProject: (
+    zip: File,
+    activityDecisions: Array<{ sectionId: string; type: string | null }> = [],
+  ) => {
+    const formData = new FormData()
+    formData.append("zip", zip)
+    formData.append("activityDecisions", JSON.stringify(activityDecisions))
+    return request<BookSummary>("/books/import-adt", {
       method: "POST",
       body: formData,
     })

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 import { DomUtils, parseDocument } from "htmlparser2"
 import type { GenerateObjectOptions, GenerateObjectResult, LLMModel } from "@adt/llm"
 import type { PageData } from "@adt/storage"
-import { buildEasyReadConfig } from "../easy-read.js"
+import { buildEasyReadConfig, mergeEasyReadEntries } from "../easy-read.js"
 import {
   buildPageEasyReadBlocks,
   createEmptyEasyReadOutput,
@@ -648,5 +648,34 @@ describe("easy_read prompt", () => {
     expect(prompt).toContain("Do not keep 3 or more elements separated only by commas inside a table")
     expect(prompt).toContain("Each bullet must start with a hyphen and a space")
     expect(prompt).toContain("If 3 or more elements are the subject of a single short and very clear sentence")
+  })
+})
+
+describe("mergeEasyReadEntries", () => {
+  it("lets the Easy Read entity replace a catalog copy of the same id", () => {
+    const merged = mergeEasyReadEntries(
+      [
+        { id: "pg001_t001", text: "Original" },
+        { id: "pg001_t001_easy_read", text: "Stale copy" },
+      ],
+      {
+        generatedAt: "2026-10-22T00:00:00.000Z",
+        blocks: [{
+          blockId: "pg001_sec001",
+          pageId: "pg001",
+          sectionId: "pg001_sec001",
+          entries: [{
+            sourceId: "pg001_t001",
+            easyReadId: "pg001_t001_easy_read",
+            originalText: "Original",
+            text: "Simple",
+          }],
+        }],
+      } as never,
+    )
+    expect(merged.map(({ id, text }) => ({ id, text }))).toEqual([
+      { id: "pg001_t001", text: "Original" },
+      { id: "pg001_t001_easy_read", text: "Simple" },
+    ])
   })
 })

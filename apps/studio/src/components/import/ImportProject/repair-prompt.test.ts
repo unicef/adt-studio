@@ -1,0 +1,57 @@
+import { describe, expect, it } from "vitest"
+import { buildUnreadableRepairPrompt, canRepairByEditing, repairedArchiveName } from "./repair-prompt"
+
+describe("canRepairByEditing", () => {
+  it("accepts errors in the archive's files", () => {
+    expect(canRepairByEditing("Archive file is not valid JSON: manifest.json")).toBe(true)
+    expect(canRepairByEditing("ADT bundle is missing page HTML: 12.html")).toBe(true)
+    expect(canRepairByEditing("Legacy ADT export is missing assets/config.json")).toBe(true)
+  })
+
+  it("rejects a corrupt ZIP and size or entry limits", () => {
+    expect(canRepairByEditing("Invalid or unsupported ADT ZIP bundle")).toBe(false)
+    expect(canRepairByEditing("ADT bundle exceeds the expanded archive size limit")).toBe(false)
+    expect(canRepairByEditing("ADT bundle contains too many archive entries")).toBe(false)
+    expect(canRepairByEditing("ADT bundle file exceeds its size limit: a.png")).toBe(false)
+  })
+})
+
+describe("buildUnreadableRepairPrompt", () => {
+  it("quotes the error as data and points at the archive's guide", () => {
+    const prompt = buildUnreadableRepairPrompt("book.zip", "Archive file is not valid JSON: manifest.json")
+    expect(prompt).toContain("book.zip")
+    expect(prompt).toContain("<import_error>\nArchive file is not valid JSON: manifest.json\n</import_error>")
+    expect(prompt).toContain("AGENTS.md")
+    expect(prompt).not.toContain("editingContract.pageOrder")
+  })
+
+  it("is addressed to the AI assistant, which reports back instead of using ADT Studio", () => {
+    const prompt = buildUnreadableRepairPrompt("book.zip", "Archive file is not valid JSON: manifest.json")
+    expect(prompt).toContain("Reply with what you changed")
+    expect(prompt).not.toMatch(/choose (that|the) ZIP/i)
+    expect(prompt).toContain("Do not introduce new problems.")
+  })
+
+  it("saves the result as a new ZIP beside the bundle, never over the input or inside it", () => {
+    const prompt = buildUnreadableRepairPrompt("repaired-adt.zip", "Archive file is not valid JSON: manifest.json")
+    expect(prompt).toContain("Save the result as repaired-adt-fixed.zip next to the unzipped bundle folder")
+    expect(prompt).toContain("Do not overwrite the input ZIP, and do not put the new ZIP inside the bundle folder.")
+  })
+
+  it("explains the editing contract rules when the error is in it", () => {
+    const prompt = buildUnreadableRepairPrompt(
+      "book.zip",
+      "Archive file has an invalid shape: manifest.json at editingContract.nonActivities.0.sectionId: Section cannot be both an activity and a non-activity: pg012_sec002",
+    )
+    expect(prompt).toContain("a section id may appear in only one of the two lists")
+    expect(prompt).toContain("editingContract.pageOrder")
+  })
+})
+
+describe("repairedArchiveName", () => {
+  it("adds -fixed, then numbers later rounds", () => {
+    expect(repairedArchiveName("repaired-adt.zip")).toBe("repaired-adt-fixed.zip")
+    expect(repairedArchiveName("repaired-adt-fixed.zip")).toBe("repaired-adt-fixed-2.zip")
+    expect(repairedArchiveName("repaired-adt-fixed-2.zip")).toBe("repaired-adt-fixed-3.zip")
+  })
+})

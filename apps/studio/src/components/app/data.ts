@@ -97,6 +97,8 @@ export interface BookVM {
   modified: string
   lang: string
   needsRebuild: boolean
+  /** Built from an ADT Web export brought back in, so its imported HTML is the source. */
+  imported: boolean
   isNew: boolean
   cover: CoverSpec
   discs: StageDisc[]
@@ -119,6 +121,7 @@ export function toBookVM(book: BookSummary, locale: string): BookVM {
     modified: formatRelative(book.modifiedAt, locale),
     lang: book.languageCode ? book.languageCode.toUpperCase() : "—",
     needsRebuild: book.needsRebuild,
+    imported: book.workingSource === "imported-adt",
     isNew: book.pageCount === 0 && discs.length === 0,
     cover: deriveCover(book),
     discs,

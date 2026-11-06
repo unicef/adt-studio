@@ -98,6 +98,8 @@ import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEn
 import type { ResolvedCredentials } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
+import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
+import { isImportedAdtProject } from "../services/adt-import/source.js"
 
 /**
  * Lazily-initialized shared Playwright renderer for section screenshots.
@@ -106,6 +108,24 @@ import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/d
  * screenshot call opens its own browser context inside it.
  */
 let sharedScreenshotRendererPromise: Promise<ScreenshotRenderer> | null = null
+
+/** Where the screenshot browser loads an imported ADT's presentation assets.
+ * The request's Host header is client-controlled and also feeds the page's
+ * CSP, so the origin is always this server's own loopback listener. */
+function importedAdtBaseHref(requestUrl: string, label: string, localPort?: number): string {
+  const url = new URL(requestUrl)
+  url.protocol = "http:"
+  url.hostname = "127.0.0.1"
+  if (localPort) url.port = String(localPort)
+  const booksSegment = "/books/"
+  const booksIndex = url.pathname.indexOf(booksSegment)
+  const routePrefix = booksIndex >= 0 ? url.pathname.slice(0, booksIndex) : ""
+  url.pathname = `${routePrefix}/books/${encodeURIComponent(label)}/adt/`
+  url.search = ""
+  url.hash = ""
+  return url.href
+}
+
 function getSharedScreenshotRenderer(): Promise<ScreenshotRenderer> {
   if (!sharedScreenshotRendererPromise) {
     sharedScreenshotRendererPromise = createScreenshotRenderer().catch((err) => {
@@ -1505,12 +1525,31 @@ export function createPageRoutes(
         storage.close()
       }
 
+      const importedPresentation = isImportedAdtProject(bookDir)
+        ? getImportedAdtPresentationAssets(safeLabel, booksDir)
+        : null
       const screenshotHtml = await buildScreenshotHtml({
         sectionHtml,
         label: safeLabel,
         images,
         webAssetsDir,
         typographyCss,
+        ...(importedPresentation
+          ? {
+              baseHref: importedAdtBaseHref(
+                c.req.url,
+                safeLabel,
+                (c.env as { incoming?: { socket?: { localPort?: number } } } | undefined)?.incoming?.socket?.localPort,
+              ),
+              stylesheets: [...new Set([
+                "content/tailwind_output.css",
+                "assets/libs/fontawesome/css/all.min.css",
+                "assets/fonts.css",
+                ...importedPresentation.stylesheets,
+              ])],
+              contentClassName: importedPresentation.contentClasses.join(" "),
+            }
+          : {}),
       })
 
       // Cache key incorporates HTML + viewport so cache invalidates whenever

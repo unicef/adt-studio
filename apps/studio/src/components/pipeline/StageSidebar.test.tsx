@@ -13,6 +13,7 @@ const cancelRunMock = vi.fn()
 const toastInfoMock = vi.fn()
 const matchRouteMock = vi.fn(() => true)
 const searchMock = { tab: "reviewer-checklist" }
+let workingSource = "pdf"
 const ttsMock = vi.fn((): { data?: import("@/api/client").TTSResponse } => ({}))
 vi.mock("@/hooks/use-tts", () => ({ useTTSData: () => ttsMock() }))
 const outputsMock = vi.fn((): { data?: { summaries: { stages: Record<string, { applicable: number; current: boolean; updates: number; warnings: number; missing: number }> } } } => ({}))
@@ -128,6 +129,7 @@ vi.mock("@/hooks/use-book-tasks", () => ({
 }))
 
 vi.mock("@/hooks/use-books", () => ({
+  useBook: () => ({ data: { workingSource } }),
   usePackageAdtStatus: () => ({ data: { hasAdt: false } }),
 }))
 
@@ -174,6 +176,7 @@ afterEach(() => {
   cleanup()
   vi.clearAllMocks()
   stageStateMock.mockImplementation(defaultStageState)
+  workingSource = "pdf"
   outputsMock.mockReturnValue({})
   ttsMock.mockReturnValue({})
   publicationStatusMock.mockReturnValue(undefined)
@@ -373,6 +376,43 @@ describe("StageSidebar", () => {
 
     expect(cancelRunMock).toHaveBeenCalledTimes(1)
     expect(toastInfoMock).toHaveBeenCalledWith("Cancelling Storyboard step")
+  })
+
+  it("keeps PDF preparation stages navigable and explains why they are not needed", async () => {
+    workingSource = "imported-adt"
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(
+      <StageSidebar
+        bookLabel="imported-book"
+        activeStep="book"
+      />,
+    )
+
+    const extractLink = screen.getByLabelText("Extract: not needed for imported ADTs")
+    const sectioningLink = screen.getByLabelText("Sectioning: not needed for imported ADTs")
+
+    expect(extractLink.getAttribute("aria-disabled")).toBeNull()
+    expect(sectioningLink.getAttribute("aria-disabled")).toBeNull()
+    expect(extractLink.getAttribute("tabindex")).not.toBe("-1")
+    expect(sectioningLink.getAttribute("tabindex")).not.toBe("-1")
+    expect(extractLink.getAttribute("title")).toBe("Imported HTML already provides this stage's output")
+    expect(sectioningLink.getAttribute("title")).toBe("Imported HTML already provides this stage's output")
+    expect(screen.getAllByText("Not needed")).toHaveLength(2)
+    for (const title of [
+      "Storyboard",
+      "Quizzes",
+      "Image Captions",
+      "Glossary",
+      "Table of Contents",
+      "Easy Read",
+      "Language",
+      "Speech",
+      "Validation",
+      "Preview",
+      "Export",
+    ]) {
+      expect(screen.getByTitle(title).getAttribute("aria-disabled")).toBeNull()
+    }
   })
 })
 

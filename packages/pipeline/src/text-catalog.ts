@@ -20,28 +20,121 @@ import {
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
 import { withLegacyRenderingOwnership, getRenderSectioning, renderedSectionId, resolveRenderedSection } from "./render-sectioning.js"
+import { pad3, textContentExcludingScripts } from "./html-text.js"
 
 /**
- * Like DomUtils.textContent but skips the children of any <script>/<style>
- * descendants. Used so a stray inline script inside a data-id element doesn't
- * leak its source into the catalogued text (and from there into the runtime's
- * innerHTML replacement on translation).
+ * Recover the stable text entries embedded in an exported ADT HTML page.
+ *
+ * Exported pages are already the user's authoritative, possibly hand-edited
+ * source. Keeping this extractor beside the pipeline catalog builder ensures
+ * recovered bundle workspaces follow the same leaf `data-id` semantics as a
+ * project generated inside Studio. Image alternative text is the exported
+ * representation of an image caption, so it is recovered as catalog text too.
+ */
+function exportedLeafElements(html: string) {
+  const doc = parseDocument(html)
+  const contentRoot = DomUtils.findOne(
+    (el) => el.type === "tag" && el.attribs?.id === "content",
+    doc.children,
+    true,
+  )
+  return DomUtils.findAll(
+    (el) =>
+      el.type === "tag" &&
+      el.attribs?.["data-id"] !== undefined &&
+      !DomUtils.findOne(
+        (child) => child.type === "tag" && child.attribs?.["data-id"] !== undefined,
+        el.children ?? [],
+        true,
+      ),
+    contentRoot?.children ?? doc.children,
+  )
+}
+
+/**
+ * The catalog ids `extractTextCatalogEntriesFromHtml` gives a page's generated
+ * activity leaves (`activity_gen_*` → `pg001_ac001`), keyed by their data-id.
+ * An import writes them into the stored HTML so the recovered catalog, its
+ * translations and its audio keep naming the same leaves.
+ */
+export function exportedActivityCatalogIds(html: string, pageId: string): Map<string, string> {
+  const ids = new Map<string, string>()
+  for (const el of exportedLeafElements(html)) {
+    const dataId = el.attribs["data-id"]
+    // A responsive copy repeats its data-id and must name the same entry.
+    if (!dataId.startsWith("activity_gen_") || ids.has(dataId)) continue
+    ids.set(dataId, `${pageId}_ac${pad3(ids.size + 1)}`)
+  }
+  return ids
+}
+
+/**
+ * The catalog text of one leaf element. Plain text is its text content. Text containing math is different:
+ * export converted its LaTeX to MathML in both the page HTML and `texts.json`,
+ * so flattening the `<math>` markup to text content ("35=35⋅55") would make
+ * every formula look edited. Such text is reproduced in the exporter's own
+ * MathML form instead — prose as text, `<math>` subtrees as markup with
+ * `&`/`<`/`>` escaped — and only ASCII whitespace is collapsed, because MathML
+ * spacing uses non-breaking spaces.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function textContentExcludingScripts(node: any): string {
-  if (!node) return ""
-  if (node.type === "text") return node.data ?? ""
-  const tagName = (node.name ?? node.type ?? "").toLowerCase()
-  if (tagName === "script" || tagName === "style") return ""
-  if (Array.isArray(node.children)) {
-    let out = ""
-    for (const child of node.children) {
-      out += textContentExcludingScripts(child)
-    }
-    return out
-  }
-  return ""
+function exportedElementText(el: any): string {
+  const hasMath = DomUtils.findOne(
+    (child) => child.type === "tag" && child.name.toLowerCase() === "math",
+    el.children ?? [],
+    true,
+  ) !== null
+  if (!hasMath) return textContentExcludingScripts(el).replace(/\s+/g, " ").trim()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const children: any[] = el.children ?? []
+  return children.map((child) => serializeMathAwareText(child, false)).join("")
+    .replace(/[ \t\n\r\f]+/g, " ")
+    .replace(/^ +| +$/g, "")
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function serializeMathAwareText(node: any, inMath: boolean): string {
+  if (node.type === "text") return inMath ? escapeMathText(node.data ?? "") : node.data ?? ""
+  const name = String(node.name ?? "").toLowerCase()
+  if (name === "script" || name === "style") return ""
+  const math = inMath || name === "math"
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inner = (node.children ?? []).map((child: any) => serializeMathAwareText(child, math)).join("")
+  if (!math) return inner
+  const attributes = Object.entries((node.attribs ?? {}) as Record<string, string>)
+    .map(([key, value]) => ` ${key}="${value.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"`)
+    .join("")
+  return `<${node.name}${attributes}>${inner}</${node.name}>`
+}
+
+function escapeMathText(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
+export function extractTextCatalogEntriesFromHtml(html: string, pageId?: string): TextCatalogEntry[] {
+  const elements = exportedLeafElements(html)
+
+  const entries: TextCatalogEntry[] = []
+  const activityIds = pageId ? exportedActivityCatalogIds(html, pageId) : new Map<string, string>()
+  const seen = new Set<string>()
+  for (const el of elements) {
+    const dataId = el.attribs["data-id"]
+    // Responsive layouts export a desktop and a mobile copy under one data-id.
+    // The first copy is the entry, matching the imported storyboard node;
+    // copies whose content disagrees are reported by the import contract
+    // check (`duplicate-data-id`) before anything is imported.
+    if (seen.has(dataId)) continue
+    seen.add(dataId)
+    const id = activityIds.get(dataId) ?? dataId
+
+    const text = el.name === "img"
+      ? (el.attribs.alt ?? "").replace(/\s+/g, " ").trim()
+      : exportedElementText(el)
+    if (text.length > 0) entries.push({ id, text })
+  }
+  return entries
+}
+
 
 /**
  * Extract text catalog entries from a single page's rendered HTML sections.
@@ -110,8 +203,11 @@ function extractPageEntries(
         // Belt-and-braces: even for non-custom sections, exclude any inline
         // <script>/<style> bodies from the catalogued text. Authors shouldn't
         // be using them here, but a stray bit of inline JS shouldn't corrupt
-        // the catalog.
-        const text = textContentExcludingScripts(el).replace(/\s+/g, " ").trim()
+        // the catalog. Rendered math is kept as MathML rather than
+        // flattened: pages rendered from Studio carry LaTeX text here, but a
+        // book imported from an ADT stores the exported MathML, and the reader
+        // swaps each element's content for its catalog text.
+        const text = exportedElementText(el)
         if (text.length > 0) {
           entries.push({ id, text, locations: [{ ...location, role: el.name }] })
         }

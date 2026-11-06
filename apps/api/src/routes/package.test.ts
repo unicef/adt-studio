@@ -149,6 +149,28 @@ describe("Package routes", () => {
       expect(body.error).toContain("web rendering")
     })
 
+    it("packages an imported ADT from its projected pipeline data", async () => {
+      createRenderedBook("imported-preview")
+      createWebAssets()
+      const bookDir = path.join(tmpDir, "imported-preview")
+      fs.writeFileSync(
+        path.join(bookDir, ".adt-import-current.json"),
+        JSON.stringify({ version: 1, revisionId: "revision", importedAt: "2026-01-01T00:00:00.000Z" }),
+      )
+      fs.mkdirSync(path.join(bookDir, "adt"), { recursive: true })
+      fs.writeFileSync(path.join(bookDir, "adt", "pg001_sec001.html"), "edited HTML")
+
+      const res = await app.request("/api/books/imported-preview/package-adt", {
+        method: "POST",
+      })
+
+      expect(res.status).toBe(200)
+      const page = fs.readFileSync(path.join(bookDir, "adt", "pg001_sec001.html"), "utf8")
+      expect(page).not.toContain("edited HTML")
+      expect(page).toContain('<p data-id="pg001_n0001">Original text</p>')
+      expect(page).toContain('<img src="cover.png" alt="">')
+    })
+
     it("returns no warnings when rendering and sectioning agree", { timeout: 20_000 }, async () => {
       createRenderedBook("book-clean")
       createWebAssets()

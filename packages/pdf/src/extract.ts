@@ -4319,6 +4319,44 @@ export function renderPdfCover(
   }
 }
 
+/**
+ * Shrink a raster image (PNG, JPEG, WebP, GIF) to a JPEG thumbnail at most
+ * `maxWidth` pixels wide, for previews that only show it small. mupdf opens an
+ * image as a one-page document, so this needs no image library. Returns null
+ * when mupdf can't read the image; callers keep the original then.
+ */
+export function renderImageThumbnail(
+  imageBytes: Uint8Array,
+  mimeType: string,
+  options: { maxWidth: number; quality?: number },
+): Buffer | null {
+  try {
+    suppressStderr();
+    let doc: MupdfDocument
+    try {
+      doc = mupdf.Document.openDocument(imageBytes, mimeType);
+    } finally {
+      restoreStderr();
+    }
+    try {
+      const page = doc.loadPage(0);
+      const bounds = page.getBounds();
+      // The page is measured in points (its size depends on the image's DPI),
+      // so scale from the image's real pixel width to the target width.
+      const pointWidth = bounds[2] - bounds[0];
+      const pixelWidth = new mupdf.Image(imageBytes).getWidth();
+      const targetWidth = Math.min(pixelWidth, options.maxWidth);
+      const scale = targetWidth / pointWidth;
+      const pixmap = page.toPixmap(mupdf.Matrix.scale(scale, scale), mupdf.ColorSpace.DeviceRGB, false);
+      return Buffer.from(pixmap.asJPEG(options.quality ?? 82));
+    } finally {
+      doc.destroy();
+    }
+  } catch {
+    return null;
+  }
+}
+
 /** @internal Exported for testing */
 export const _testing = {
   parseSvgPathBbox,
