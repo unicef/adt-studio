@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { BookOpen, Puzzle } from "lucide-react"
+import { BookOpen } from "lucide-react"
 import type { AdtBundleImportPreview } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { CopyTextButton } from "./CopyTextButton"
 import { RepairGuide } from "./RepairGuide"
+import { RepairRequest } from "./RepairRequest"
 import { Panel, StatusRow } from "./ReviewParts"
 import type { Issue, Status } from "./use-review-model"
 
@@ -67,40 +67,25 @@ export function RepairView({
       </Panel>
       <div className="grid min-h-0 min-w-0 [&>*]:col-start-1 [&>*]:row-start-1">
         <Panel className={cn(SWAP, guideOpen ? "pointer-events-none -translate-x-2.5 opacity-0" : "opacity-100")}>
-          <div inert={guideOpen} className="flex min-h-0 flex-1 flex-col gap-3">
-            <div className="flex shrink-0 items-center gap-2.5">
-              <span className="grid size-[30px] shrink-0 place-items-center rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400">
-                <Puzzle aria-hidden="true" className="size-4" />
-              </span>
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-foreground"><Trans>Repair request</Trans></h3>
-                <p className="text-xs text-muted-foreground">
-                  <Trans>Give it to your AI assistant together with the unzipped archive.</Trans>
-                </p>
-              </div>
-            </div>
-            <pre
-              aria-label={t`Repair request`}
-              tabIndex={0}
-              className="min-h-[120px] flex-1 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-muted/50 px-3.5 py-3 font-sans text-[12.5px] leading-relaxed text-foreground"
-            >
-              {shown.text}
-            </pre>
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <CopyTextButton value={request} primary>
-                <Trans>Copy repair request</Trans>
-              </CopyTextButton>
-              <Button type="button" variant="outline" size="sm" onClick={openGuide} className="h-9 text-sm">
-                <BookOpen className="size-3.5" />
-                <Trans>AI repair guide</Trans>
-              </Button>
-              {shown.withGuide ? (
-                <span className="ml-auto text-xs text-muted-foreground">
-                  <Trans>The copy also includes the current guide, because this archive’s guide is missing or outdated.</Trans>
-                </span>
-              ) : null}
-            </div>
-          </div>
+          <RepairRequest
+            inert={guideOpen}
+            text={shown.text}
+            copyValue={request}
+            className="flex-1"
+            actions={(
+              <>
+                <Button type="button" variant="outline" size="sm" onClick={openGuide} className="h-9 text-sm">
+                  <BookOpen className="size-3.5" />
+                  <Trans>AI repair guide</Trans>
+                </Button>
+                {shown.withGuide ? (
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    <Trans>The copy also includes the current guide, because this archive’s guide is missing or outdated.</Trans>
+                  </span>
+                ) : null}
+              </>
+            )}
+          />
         </Panel>
         {guideMounted ? (
           <RepairGuide

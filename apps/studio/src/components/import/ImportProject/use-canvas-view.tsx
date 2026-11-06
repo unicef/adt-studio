@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import type { FriendlyError } from "@/hooks/use-archive-error"
 import { formatBytes } from "@/lib/utils"
 import type { CanvasView } from "./ArchiveCanvas"
-import { CopyTextButton } from "../ImportReview/CopyTextButton"
+import { RepairRequest } from "../ImportReview/RepairRequest"
 import { ErrorDetails } from "./ErrorDetails"
 import { buildUnreadableRepairPrompt, canRepairByEditing } from "./repair-prompt"
 
@@ -104,20 +104,17 @@ export function useCanvasView({
               </p>
             ) : null}
             {rawError && canRepairByEditing(rawError) ? (
-              <>
-                <p className="max-w-[560px] text-sm text-muted-foreground">
-                  <Trans>
-                    Copy the repair request and give it, with the unzipped export, to an AI assistant such as Claude or
-                    Codex. Then choose the ZIP it returns.
-                  </Trans>
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <CopyTextButton value={buildUnreadableRepairPrompt(file.name, rawError)} className="h-9 px-4 text-sm">
-                    <Trans>Copy repair request</Trans>
-                  </CopyTextButton>
-                  {chooseAnother(t`Choose repaired ZIP`)}
-                </div>
-              </>
+              <RepairRequest
+                text={buildUnreadableRepairPrompt(file.name, rawError)}
+                className="w-full max-w-[720px] rounded-xl border border-border bg-card p-4"
+                textClassName="max-h-[240px]"
+                actions={(
+                  <Button type="button" variant="outline" onClick={onBrowse} className="h-9 px-4">
+                    <Upload aria-hidden="true" className="size-4" />
+                    {t`Choose repaired ZIP`}
+                  </Button>
+                )}
+              />
             ) : (
               chooseAnother(t`Choose repaired ZIP`)
             )}
