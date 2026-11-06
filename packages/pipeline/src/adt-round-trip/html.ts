@@ -253,6 +253,8 @@ export const ADT_EDITING_ALLOWED_ROOT_ENTRIES = new Set([
   "imsmanifest.xml",
   ".build-hash",
   ".build-version",
+  // Packaging's warnings sidecar ships in every ADT export (apps/api/src/routes/package.ts).
+  ".build-warnings",
   ".DS_Store",
   "Thumbs.db",
   "__MACOSX",

@@ -86,6 +86,12 @@ describe("ADT recovery workspace", () => {
     ])
   })
 
+  it("accepts the packaging sidecars every Studio ADT export carries", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    files[".build-warnings"] = json([])
+    expect(assessArchive(Buffer.from(zipSync(files)))).toEqual({ supported: true, issues: [] })
+  })
+
   it("imports Studio's responsive desktop and mobile copies of one data-id", () => {
     const withMobileCopy = (mobileText: string) => {
       const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
