@@ -11,7 +11,8 @@ describe("Luna prompt variants", () => {
     const root = path.resolve(import.meta.dirname, "../../../../prompts")
     const folder = path.join(root, "openai_gpt_6_luna")
     const engine = createPromptEngine(root)
-    expect(fs.readdirSync(folder).filter((file) => file.endsWith(".liquid"))).toEqual(["web_generation_html.liquid"])
+    expect(fs.readdirSync(folder).filter((file) => file.endsWith(".liquid")).sort())
+      .toEqual(["page_sectioning.liquid", "web_generation_html.liquid"])
     expect(engine.resolvePrompt("web_generation_html", { modelId: "openai:gpt-6-luna" }).filePath)
       .toBe(path.join(folder, "web_generation_html.liquid"))
     expect(engine.resolvePrompt("visual_review", { modelId: "openai:gpt-6-luna" }).filePath)
@@ -21,6 +22,34 @@ describe("Luna prompt variants", () => {
     const liquidTokens = (text: string) => text.match(/\{%[\s\S]*?%\}|\{\{[\s\S]*?\}\}/g)
     expect(liquidTokens(luna)).toEqual(liquidTokens(base))
     await expect(engine.renderPrompt("web_generation_html", {}, { modelId: "openai:gpt-6-luna" })).resolves.toBeDefined()
+  })
+
+  it("ships a sectioning variant that keeps the base Liquid contract and separates roles from section types", async () => {
+    const root = path.resolve(import.meta.dirname, "../../../../prompts")
+    const folder = path.join(root, "openai_gpt_6_luna")
+    const engine = createPromptEngine(root)
+    expect(engine.resolvePrompt("page_sectioning", { modelId: "openai:gpt-6-luna" }).filePath)
+      .toBe(path.join(folder, "page_sectioning.liquid"))
+    for (const modelId of ["openai:gpt-6.1-sol", "openai:gpt-5.4"]) {
+      expect(engine.resolvePrompt("page_sectioning", { modelId }).filePath).toBe(path.join(root, "page_sectioning.liquid"))
+    }
+    const base = fs.readFileSync(path.join(root, "page_sectioning.liquid"), "utf8")
+    const luna = fs.readFileSync(path.join(folder, "page_sectioning.liquid"), "utf8")
+    const liquidTokens = (text: string) => text.match(/\{%[\s\S]*?%\}|\{\{[\s\S]*?\}\}/g)
+    expect(liquidTokens(luna)).toEqual(liquidTokens(base))
+
+    const context = {
+      structure_types: [{ key: "activity", description: "An activity" }],
+      role_types: [{ key: "activity_fill_in_the_blank", description: "Text with blanks" }],
+      section_types: [{ key: "activity_open_ended_answer", description: "Free-form writing" }],
+      mode: "dynamic",
+      page: { pageNumber: 4, text: "4", imageBase64: "" },
+      images: [],
+    }
+    const [system] = await engine.renderPrompt("page_sectioning", context, { modelId: "openai:gpt-6-luna" })
+    expect(system.content).toContain("ROLE TYPES and SECTION TYPES are two separate vocabularies")
+    expect(system.content).toContain("Writing lines in an `activity_open_ended_answer` section are `activity_fill_in_the_blank` leaves")
+    expect(system.content).toContain("## DONE WHEN")
   })
 })
 

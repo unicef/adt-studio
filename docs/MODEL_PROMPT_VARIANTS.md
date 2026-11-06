@@ -120,11 +120,29 @@ The `openai_gpt_6_1_sol` directory ships three variants:
   preserves the requested design and fixes the base prompt's contradictory
   mobile-first breakpoint advice. No source-fidelity requirement is added.
 
-The `openai_gpt_6_luna` directory ships one variant, `web_generation_html`, so
-web rendering on the default model also sizes and places images by their
-footprint on the original page. It retains the earlier prompt wording; the
-goal-first Sol rewrite does not change Luna. Every other task resolves the
-base prompts on Luna.
+The `openai_gpt_6_luna` directory ships two variants. `web_generation_html`
+sizes and places images by their footprint on the original page. It retains the
+earlier prompt wording; the goal-first Sol rewrite does not change Luna.
+
+`page_sectioning` keeps the base wording and adds targeted fixes for the
+validation failures Luna produced on the base prompt (about 10% of pages on a
+102-page workbook, against about 3% for GPT-5.4):
+
+- It separates the ROLE TYPES and SECTION TYPES vocabularies. Luna wrote the
+  section type `activity_open_ended_answer` as a leaf role on writing lines,
+  because `activity_fill_in_the_blank` is the one key present in both lists.
+- Every writable answer space is an `activity_fill_in_the_blank` leaf in every
+  activity section type, one leaf per distinct response field (several ruled
+  lines for one answer are one leaf). This matches the
+  `activity_open_ended_answer` render prompt, which emits one editable element
+  per response field.
+- A captioned or labelled image lives only inside its `image_group`, and every
+  book-outline entry listed for the page must appear as a heading leaf, including
+  callout headings.
+- It adds a WRONG/RIGHT open-ended answer example, short execution guidance and
+  a DONE WHEN checklist.
+
+Every other task resolves the base prompts on Luna.
 
 The web prompt replaces the appended execution-guidance block with goals and
 conditional layout decisions. It removes repeated instructions, qualifies
