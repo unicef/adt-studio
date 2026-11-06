@@ -79,6 +79,22 @@ describe("Sol migration", () => {
     expect(openaiProvider.cacheFingerprint!(context).adapterVersion).toBe("openai-sol-responses-1")
   })
 
+  it("sends Terra through Responses with Luna's effort set, a medium default and its own cache adapter", async () => {
+    fetchMock.mockImplementation(async () => textResponse())
+    const terra = { ...context, modelId: "gpt-6.1-terra" }
+    const backend = openaiProvider.createStructuredTextBackend!(terra)
+    await backend.generateStructured({ schema, strategy: "native-schema", temperature: 0.8, maxTokens: 100, messages })
+    await backend.generateStructured({ schema, strategy: "native-schema", maxTokens: 100,
+      providerOptions: { openai: { reasoningEffort: "none" } }, messages })
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.openai.com/v1/responses")
+    expect(body(0)).toMatchObject({ model: "gpt-6.1-terra", reasoning: { effort: "medium" }, store: false })
+    expect(body(0)).not.toHaveProperty("temperature")
+    expect(body(1)).toMatchObject({ reasoning: { effort: "none" } })
+    expect(openaiProvider.cacheFingerprint!(terra).adapterVersion).toBe("openai-terra-responses-1")
+    expect(openaiProvider.inferenceOptionsFor!("structured-text", "gpt-6.1-terra-2026-10-26", undefined))
+      .toEqual({ endpoint: "responses", providerOptions: { openai: { reasoningEffort: "medium" } } })
+  })
+
   it.each([undefined, "none", "minimal", "low", "medium", "high", "xhigh", "max"])(
     "AC-2: normalizes effective effort %s without mutating saved options", (effort) => {
       const options = { openai: { reasoningEffort: effort, topP: 0.9, logprobs: true } }
