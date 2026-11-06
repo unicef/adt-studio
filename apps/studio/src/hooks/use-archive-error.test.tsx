@@ -46,10 +46,22 @@ describe("useFriendlyArchiveError", () => {
   })
 
   it("does not blame the file for an unexpected server failure", () => {
-    for (const raw of ["Internal server error", "Request failed: 502"]) {
+    for (const raw of [
+      "Internal server error",
+      "Internal server error (reference 1a2b3c4d). The full error is in the ADT Studio server log.",
+      "Request failed: 502",
+    ]) {
       const { result } = renderHook(() => useFriendlyArchiveError(raw))
       expect(result.current?.title).toBe("ADT Studio couldn't check this archive")
       expect(result.current?.hint).toContain("not necessarily in your file")
+    }
+  })
+
+  it("says the server didn't answer when the request never got a response", () => {
+    for (const raw of ["Failed to fetch", "NetworkError when attempting to fetch resource.", "Load failed"]) {
+      const { result } = renderHook(() => useFriendlyArchiveError(raw))
+      expect(result.current?.kind).toBe("server")
+      expect(result.current?.hint).toContain("server didn't answer")
     }
   })
 })

@@ -139,6 +139,16 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     }
   }
 
+  // The request never got an answer (the browser's fetch failure, in Chrome,
+  // Firefox and Safari wording): the file was not checked at all.
+  if (e.includes("failed to fetch") || e.includes("networkerror") || e.includes("load failed")) {
+    return {
+      kind: "server",
+      title: t`ADT Studio couldn't check this archive`,
+      hint: t`ADT Studio's server didn't answer, so the file wasn't checked. Try again in a moment; if it keeps failing, restart ADT Studio.`,
+    }
+  }
+
   return {
     title: t`Invalid project archive`,
     hint: t`Make sure you're uploading a .zip file exported from ADT Studio.`,

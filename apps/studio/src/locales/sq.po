@@ -416,8 +416,8 @@ msgstr "{0} përkthime"
 #. placeholder {0}: i18n._(recovered[0].label)
 #. placeholder {1}: i18n._(recovered[1].label)
 #. placeholder {2}: recoveredCount - 2
-msgid "{0}, {1} and {2} more"
-msgstr "{0}, {1} dhe {2} të tjera"
+#~ msgid "{0}, {1} and {2} more"
+#~ msgstr "{0}, {1} dhe {2} të tjera"
 
 #. placeholder {0}: adt.title
 #~ msgid "{0}, separate from your other projects"
@@ -1587,6 +1587,9 @@ msgstr "ADT Studio kthen PDF-të në libra dixhitalë të aksesueshëm."
 
 msgid "ADT Studio will restart to finish installing."
 msgstr "ADT Studio do të riniset për të përfunduar instalimin."
+
+msgid "ADT Studio's server didn't answer, so the file wasn't checked. Try again in a moment; if it keeps failing, restart ADT Studio."
+msgstr "Serveri i ADT Studio nuk u përgjigj, prandaj skedari nuk u kontrollua. Provo sërish pas pak; nëse vazhdon të dështojë, rinis ADT Studio."
 
 msgid "ADT Web export"
 msgstr "Eksport ADT Web"
@@ -6504,6 +6507,9 @@ msgstr "Pamje liste"
 msgid "list_item"
 msgstr "list_item"
 
+msgid "Listed under Features"
+msgstr "Të listuara te Veçoritë"
+
 msgid "Listen"
 msgstr "Dëgjo"
 
@@ -8616,6 +8622,9 @@ msgstr "Faqet {range} nga {0}"
 
 msgid "pages {shownStr}"
 msgstr "faqet {shownStr}"
+
+msgid "Pages in the full book"
+msgstr "Faqe në librin e plotë"
 
 msgid "Pages in the selected range"
 msgstr "Faqet në intervalin e zgjedhur"

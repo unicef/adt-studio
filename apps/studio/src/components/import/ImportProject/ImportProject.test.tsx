@@ -175,6 +175,28 @@ describe("ImportProject", () => {
     })
   })
 
+  it("counts a book part's own pages, not the whole source book's", async () => {
+    previewImport.mockResolvedValue({
+      isPart: true,
+      label: "volcanoes-p001-003",
+      sourceLabel: "LP-4-Volcanoes-2",
+      title: "Volcanoes",
+      range: { startPage: 1, endPage: 3 },
+      // part.json's pageCount is the whole source PDF.
+      pageCount: 52,
+      coverBase64: null,
+    })
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "part.zip", { type: "application/zip" })] } })
+
+    const partPages = await screen.findByText("Pages in this part")
+    expect(partPages.parentElement?.textContent).toContain("3")
+    expect(partPages.parentElement?.textContent).not.toContain("52")
+    expect(screen.getByText("Pages in the full book").parentElement?.textContent).toContain("52")
+  })
+
   it("never pairs an older preview with a newly selected archive", async () => {
     let resolveFirst!: (value: unknown) => void
     let resolveSecond!: (value: unknown) => void

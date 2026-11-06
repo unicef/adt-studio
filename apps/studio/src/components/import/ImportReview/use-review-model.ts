@@ -106,9 +106,10 @@ export function useReviewModel(
       kind: "part",
       subtitle: t`Pages ${range} of ${preview.sourceLabel}`,
       stats: [
-        { value: String(preview.pageCount), label: t`Pages in this part` },
+        // The manifest's pageCount is the whole source PDF; the part is its range.
+        { value: String(preview.range.endPage - preview.range.startPage + 1), label: t`Pages in this part` },
         { value: range, label: t`Page range` },
-        { value: preview.sourceLabel, label: t`Original book`, long: true },
+        { value: String(preview.pageCount), label: t`Pages in the full book` },
       ],
       status: { tone: "blue", icon: Scissors, title: t`Imported as its own project`, text: t`Work on these pages on their own, then export the project to merge it back into the full book.` },
       checks: [
@@ -179,9 +180,8 @@ export function useReviewModel(
       { title: t`Use the exported pages`, text: t`They become the editable source`, state: "later", status: t`On import` },
       ...(recoveredCount > 0 ? [{
         title: t`Recover ${recoveredCount} {recoveredCount, plural, one {feature} other {features}}`,
-        text: recoveredCount > 2
-          ? t`${i18n._(recovered[0].label)}, ${i18n._(recovered[1].label)} and ${recoveredCount - 2} more`
-          : recovered.map((feature) => i18n._(feature.label)).join(", "),
+        // The Features column beside this list already names them.
+        text: t`Listed under Features`,
         state: "later" as const,
         status: t`On import`,
         noDivider: true,

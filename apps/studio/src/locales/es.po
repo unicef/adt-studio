@@ -414,8 +414,8 @@ msgstr "{0} traducciones"
 #. placeholder {0}: i18n._(recovered[0].label)
 #. placeholder {1}: i18n._(recovered[1].label)
 #. placeholder {2}: recoveredCount - 2
-msgid "{0}, {1} and {2} more"
-msgstr "{0}, {1} y {2} más"
+#~ msgid "{0}, {1} and {2} more"
+#~ msgstr "{0}, {1} y {2} más"
 
 #. placeholder {0}: adt.title
 #~ msgid "{0}, separate from your other projects"
@@ -1585,6 +1585,9 @@ msgstr "ADT Studio convierte PDFs en libros de texto digitales accesibles."
 
 msgid "ADT Studio will restart to finish installing."
 msgstr "ADT Studio se reiniciará para terminar la instalación."
+
+msgid "ADT Studio's server didn't answer, so the file wasn't checked. Try again in a moment; if it keeps failing, restart ADT Studio."
+msgstr "El servidor de ADT Studio no respondió, así que el archivo no se comprobó. Inténtalo de nuevo en un momento; si sigue fallando, reinicia ADT Studio."
 
 msgid "ADT Web export"
 msgstr "Exportación ADT Web"
@@ -6502,6 +6505,9 @@ msgstr "Vista de lista"
 msgid "list_item"
 msgstr "elemento_de_lista"
 
+msgid "Listed under Features"
+msgstr "Se muestran en Funcionalidades"
+
 msgid "Listen"
 msgstr "Escuchar"
 
@@ -8614,6 +8620,9 @@ msgstr "Páginas {range} de {0}"
 
 msgid "pages {shownStr}"
 msgstr "páginas {shownStr}"
+
+msgid "Pages in the full book"
+msgstr "Páginas del libro completo"
 
 msgid "Pages in the selected range"
 msgstr "Páginas del intervalo seleccionado"

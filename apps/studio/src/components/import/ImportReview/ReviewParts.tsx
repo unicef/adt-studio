@@ -97,7 +97,7 @@ export function ReadinessList({ steps }: { steps: Step[] }) {
           <li
             key={step.title}
             className={cn(
-              "flex items-start gap-3 py-2 [@media(max-height:960px)]:py-1.5",
+              "flex items-start gap-3 py-2 [@media(max-height:960px)]:py-1",
               index < steps.length - 1 && !step.noDivider && "border-b border-border",
             )}
           >
@@ -146,23 +146,26 @@ export function FeaturesSummary({ preview }: { preview: AnyImportPreview }) {
         const Icon = feature.icon
         const partial = status === "partial"
         const recovered = status === "recovered" || partial
+        // A fully included feature needs only its name: its generic
+        // description says nothing about this import and pushed the rest of
+        // the column out of view. Partial and missing ones keep a line that
+        // says what happens to them.
+        const note = partial
+          ? <Trans>Kept where nothing changed since export. The rest is generated again.</Trans>
+          : recovered
+            ? null
+            : <Trans>The publication uses this, but its editable data isn’t in the archive.</Trans>
         return (
-          <div key={feature.slug} className="flex items-start gap-3 border-b border-border py-2 last:border-b-0">
+          <div key={feature.slug} className={cn("flex gap-3 border-b border-border last:border-b-0", note ? "items-start py-2" : "items-center py-1.5")}>
             <span
-              className="grid size-8 shrink-0 place-items-center rounded-lg"
+              className={cn("grid shrink-0 place-items-center rounded-lg", note ? "size-8" : "size-6")}
               style={recovered ? { backgroundColor: `${feature.hex}1f`, color: feature.hex } : undefined}
             >
-              <Icon aria-hidden="true" className={cn("size-4", !recovered && "text-amber-600 dark:text-amber-400")} />
+              <Icon aria-hidden="true" className={cn(note ? "size-4" : "size-3.5", !recovered && "text-amber-600 dark:text-amber-400")} />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[13.5px] font-semibold text-foreground">{i18n._(feature.label)}</span>
-              <span className="block text-[12.5px] text-muted-foreground">
-                {partial
-                  ? <Trans>Kept where nothing changed since export. The rest is generated again.</Trans>
-                  : recovered
-                    ? i18n._(feature.description)
-                    : <Trans>The publication uses this, but its editable data isn’t in the archive.</Trans>}
-              </span>
+              {note ? <span className="block text-[12.5px] text-muted-foreground">{note}</span> : null}
             </span>
             <span
               className={cn(
