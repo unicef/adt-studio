@@ -7,6 +7,12 @@ describe("repairedArchiveName", () => {
     expect(repairedArchiveName("Volcanoes.ZIP", "book")).toBe("Volcanoes-fixed.zip")
   })
 
+  it("numbers later rounds instead of stacking -fixed", () => {
+    expect(repairedArchiveName("repaired-adt-studio-import-fixed.zip", "book")).toBe("repaired-adt-studio-import-fixed-2.zip")
+    expect(repairedArchiveName("book-fixed-2.zip", "book")).toBe("book-fixed-3.zip")
+    expect(repairedArchiveName("book-fixed-9.ZIP", "book")).toBe("book-fixed-10.zip")
+  })
+
   it("keeps only the file name when the browser sends a path", () => {
     expect(repairedArchiveName("C:\\Users\\me\\export.zip", "book")).toBe("export-fixed.zip")
   })

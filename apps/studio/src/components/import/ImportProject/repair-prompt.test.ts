@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { buildUnreadableRepairPrompt, canRepairByEditing } from "./repair-prompt"
+import { buildUnreadableRepairPrompt, canRepairByEditing, repairedArchiveName } from "./repair-prompt"
 
 describe("canRepairByEditing", () => {
   it("accepts errors in the archive's files", () => {
@@ -44,5 +44,13 @@ describe("buildUnreadableRepairPrompt", () => {
     )
     expect(prompt).toContain("a section id may appear in only one of the two lists")
     expect(prompt).toContain("editingContract.pageOrder")
+  })
+})
+
+describe("repairedArchiveName", () => {
+  it("adds -fixed, then numbers later rounds", () => {
+    expect(repairedArchiveName("repaired-adt.zip")).toBe("repaired-adt-fixed.zip")
+    expect(repairedArchiveName("repaired-adt-fixed.zip")).toBe("repaired-adt-fixed-2.zip")
+    expect(repairedArchiveName("repaired-adt-fixed-2.zip")).toBe("repaired-adt-fixed-3.zip")
   })
 })

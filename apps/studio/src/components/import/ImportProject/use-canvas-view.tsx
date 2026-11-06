@@ -99,7 +99,7 @@ export function useCanvasView({
         body: (
           <>
             {rawError ? (
-              <p className="max-w-[680px] rounded-lg border border-destructive/40 bg-card px-3.5 py-2.5 text-left font-mono text-xs leading-relaxed text-destructive">
+              <p className="max-w-[680px] whitespace-pre-line rounded-lg border border-destructive/40 bg-card px-3.5 py-2.5 text-left font-mono text-xs leading-relaxed text-destructive">
                 {rawError}
               </p>
             ) : null}

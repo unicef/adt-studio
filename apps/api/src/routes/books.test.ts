@@ -2073,6 +2073,32 @@ describe("POST /books/preview-import", () => {
     expect(res.status).toBe(400)
   })
 
+  it("reports every problem in a broken manifest, not just the first", async () => {
+    const files = unzipSync(new Uint8Array(createExportedAdtZip({
+      activityInventory: [{ sectionId: "pg001_sec001", href: "index.html", type: "activity_open_ended_answer" }],
+    })))
+    const manifest = JSON.parse(new TextDecoder().decode(files["manifest.json"]))
+    // Listed twice: once conflicting with activities, once as a duplicate.
+    manifest.editingContract.nonActivities = [
+      { sectionId: "pg001_sec001", href: "index.html" },
+      { sectionId: "pg001_sec001", href: "index.html" },
+    ]
+    files["manifest.json"] = new TextEncoder().encode(JSON.stringify(manifest))
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zipSync(files)], { type: "application/zip" }), "broken.zip")
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+
+    expect(res.status).toBe(400)
+    const lines = (await res.json()).error.split("\n")
+    expect(lines[0]).toBe("Archive file has an invalid shape: manifest.json has 2 problems")
+    expect(lines.slice(1)).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^- manifest\.json at editingContract\.nonActivities\.0\.sectionId: Section cannot be both/),
+      expect.stringMatching(/^- manifest\.json at editingContract\.nonActivities\.1\.sectionId: Duplicate non-activity section id/),
+    ]))
+  })
+
   it("names the book it could still read when an ADT export's manifest is broken", async () => {
     // A section in both activities and nonActivities: the strict reader
     // rejects the manifest, but the title, cover and counts are still there.

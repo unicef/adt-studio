@@ -15,6 +15,16 @@ export function canRepairByEditing(rawError: string): boolean {
   return !NOT_REPAIRABLE_BY_EDITING.some((pattern) => pattern.test(rawError))
 }
 
+/** Where the assistant saves its result: `book.zip` → `book-fixed.zip`, then
+ * `book-fixed-2.zip`, `book-fixed-3.zip` on later rounds, so suffixes never
+ * stack and the input's own name is never reused. Mirrors the API's rule. */
+export function repairedArchiveName(fileName: string): string {
+  const base = fileName.split(/[\\/]/).pop()?.replace(/\.zip$/i, "").trim() || "adt-export"
+  const round = base.match(/^(.*)-fixed(?:-(\d+))?$/)
+  if (!round) return `${base}-fixed.zip`
+  return `${round[1]}-fixed-${round[2] ? Number(round[2]) + 1 : 2}.zip`
+}
+
 /** A fixed repair request for an ADT export ADT Studio could not read at all.
  * The server has no review to send in this case, only the error, so this leans
  * on the AGENTS.md every export ships with for the rules. Written for the AI
@@ -23,7 +33,7 @@ export function buildUnreadableRepairPrompt(fileName: string, rawError: string):
   const touchesEditingContract = /editingContract/.test(rawError)
   // A new ZIP beside the bundle folder: never the input itself, and never
   // inside the bundle, where the guide forbids leftover archives.
-  const output = `${fileName.replace(/\.zip$/i, "").trim() || "adt-export"}-fixed.zip`
+  const output = repairedArchiveName(fileName)
   return [
     `You are repairing an exported ADT (Accessible Digital Textbook) bundle from ${fileName} so that ADT Studio can import it again. You are working on the unzipped bundle.`,
     "",

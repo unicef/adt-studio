@@ -5,11 +5,24 @@ import { buildUnreadableRepairPrompt } from "../ImportProject/repair-prompt"
 import { HeroBand } from "./HeroBand"
 import { RepairRequest } from "./RepairRequest"
 import { IssueList, Panel, StatusRow } from "./ReviewParts"
-import { languageName, type Stat } from "./use-review-model"
+import { languageName, type Issue, type Stat } from "./use-review-model"
 
 /** The file an archive read error names, such as `manifest.json` or a page. */
 function brokenFile(rawError: string): string | null {
   return rawError.match(/[\w./-]+\.(?:json|html|ya?ml)\b/)?.[0] ?? null
+}
+
+/** One entry per problem: a broken file can report several, one per "- " line
+ * under a summary line. */
+function readProblems(rawError: string, fallbackFile: string): Issue[] {
+  const [summary, ...lines] = rawError.split("\n")
+  const problems = lines.filter((line) => line.startsWith("- ")).map((line) => line.slice(2))
+  const fallback = brokenFile(summary) ?? fallbackFile
+  return (problems.length > 0 ? problems : [rawError]).map((text) => ({
+    file: brokenFile(text) ?? fallback,
+    code: "unreadable",
+    text,
+  }))
 }
 
 /**
@@ -75,7 +88,7 @@ export function UnreadableReview({
               text: t`One of its files is broken, so ADT Studio stopped reading it. An AI assistant can fix it; nothing is imported until you choose the repaired ZIP.`,
             }}
           />
-          <IssueList issues={[{ file: brokenFile(rawError) ?? file.name, code: "unreadable", text: rawError }]} />
+          <IssueList issues={readProblems(rawError, file.name)} />
           {somethingMissing ? (
             <p className="text-xs text-muted-foreground">
               <Trans>Details marked “—” couldn’t be read because of this problem.</Trans>

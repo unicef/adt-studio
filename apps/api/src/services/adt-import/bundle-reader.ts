@@ -155,6 +155,9 @@ function decodeUtf8(path: string, bytes: Uint8Array): string {
   }
 }
 
+/** A broken file can fail in many places; past this the list stops helping. */
+const MAX_REPORTED_SHAPE_PROBLEMS = 10
+
 function parseJson<T>(path: string, bytes: Uint8Array, schema: ZodType<T>): T {
   let value: unknown
   try {
@@ -165,9 +168,22 @@ function parseJson<T>(path: string, bytes: Uint8Array, schema: ZodType<T>): T {
   }
   const parsed = schema.safeParse(value)
   if (!parsed.success) {
-    const issue = parsed.error.issues[0]
-    const at = issue.path.length > 0 ? ` at ${issue.path.join(".")}` : ""
-    throw new AdtBundleReadError(`Archive file has an invalid shape: ${path}${at}: ${issue.message}`)
+    // Every problem in the file, not just the first, so one repair round can
+    // fix them all. One problem keeps the single-line form.
+    const problems = parsed.error.issues.map((issue) => {
+      const at = issue.path.length > 0 ? ` at ${issue.path.join(".")}` : ""
+      return `${path}${at}: ${issue.message}`
+    })
+    if (problems.length === 1) {
+      throw new AdtBundleReadError(`Archive file has an invalid shape: ${problems[0]}`)
+    }
+    const shown = problems.slice(0, MAX_REPORTED_SHAPE_PROBLEMS)
+    const more = problems.length - shown.length
+    throw new AdtBundleReadError([
+      `Archive file has an invalid shape: ${path} has ${problems.length} problems`,
+      ...shown.map((problem) => `- ${problem}`),
+      ...(more > 0 ? [`- …and ${more} more`] : []),
+    ].join("\n"))
   }
   return parsed.data
 }

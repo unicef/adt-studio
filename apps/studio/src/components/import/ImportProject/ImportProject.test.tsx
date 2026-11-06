@@ -632,6 +632,29 @@ describe("ImportProject", () => {
     expect(choose.hasAttribute("disabled")).toBe(false)
   })
 
+  it("lists each problem in a broken file on its own", async () => {
+    previewImport.mockRejectedValue(Object.assign(new Error([
+      "Archive file has an invalid shape: manifest.json has 2 problems",
+      "- manifest.json at book.title: Expected string, received number",
+      "- manifest.json at editingContract.nonActivities.0.sectionId: Section cannot be both an activity and a non-activity: pg012_sec002",
+    ].join("\n")), {
+      details: {
+        title: null, coverBase64: null, pageCount: 25, imageCount: 30,
+        tocEntryCount: 10, sourceLanguage: "en", outputLanguages: [],
+      },
+    }))
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(["zip"], "broken.zip", { type: "application/zip" })] } })
+
+    expect(await screen.findByText("Title couldn’t be read")).toBeTruthy()
+    expect(screen.getAllByText("manifest.json")).toHaveLength(2)
+    // One list item per problem (the request box quotes the whole error too).
+    const items = screen.getAllByRole("listitem").map((item) => item.textContent ?? "")
+    expect(items.some((text) => text.includes("at book.title: Expected string"))).toBe(true)
+    expect(items.some((text) => text.includes("Section cannot be both an activity"))).toBe(true)
+  })
+
   it("does not offer a repair request when editing files can't fix the archive", async () => {
     previewImport.mockRejectedValue(new Error("ADT bundle exceeds the compressed archive size limit"))
     const view = render(<ImportProject />)

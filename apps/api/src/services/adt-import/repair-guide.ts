@@ -69,7 +69,16 @@ const compatibilityIssueFix: Record<AdtImportCompatibilityIssueCode, string> = {
  * bundle, where the guide forbids leftover archives. */
 export function repairedArchiveName(archiveName: string | undefined, fallbackLabel: string): string {
   const base = archiveName?.split(/[\\/]/).pop()?.replace(/\.zip$/i, "").trim()
-  return `${base || fallbackLabel}-fixed.zip`
+  return nextFixedName(base || fallbackLabel)
+}
+
+/** `book` → `book-fixed`, `book-fixed` → `book-fixed-2`, `book-fixed-2` →
+ * `book-fixed-3`: a second repair round never stacks suffixes or reuses the
+ * input's own name. */
+function nextFixedName(base: string): string {
+  const round = base.match(/^(.*)-fixed(?:-(\d+))?$/)
+  if (!round) return `${base}-fixed.zip`
+  return `${round[1]}-fixed-${round[2] ? Number(round[2]) + 1 : 2}.zip`
 }
 
 function saveResultStep(output: string): string {
