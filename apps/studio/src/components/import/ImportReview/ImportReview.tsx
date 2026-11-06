@@ -8,8 +8,9 @@ import type { FriendlyError } from "@/hooks/use-archive-error"
 import { cn } from "@/lib/utils"
 import { CopyTextButton } from "./CopyTextButton"
 import { HeroBand, archiveKind } from "./HeroBand"
+import { ActivityBanner } from "./ActivityBanner"
 import { RepairView } from "./RepairView"
-import { CheckList, FactList, FeaturesSummary, Panel, StatusRow, StepList } from "./ReviewParts"
+import { CheckList, FactList, FeaturesSummary, Panel, ReadinessList, StatusRow } from "./ReviewParts"
 import { previewCover, previewTitle } from "./helpers"
 import { useReviewModel } from "./use-review-model"
 
@@ -24,6 +25,7 @@ export function ImportReview({
   preview,
   file,
   unresolvedActivityCount,
+  decidedSectionIds,
   onReviewActivities,
   validationError,
   rawValidationError,
@@ -35,6 +37,8 @@ export function ImportReview({
   preview: AnyImportPreview
   file: File
   unresolvedActivityCount: number
+  /** Activity pages already given a type in the dialog. */
+  decidedSectionIds: ReadonlySet<string>
   onReviewActivities: () => void
   validationError: FriendlyError | null
   rawValidationError: string | null
@@ -48,7 +52,9 @@ export function ImportReview({
   const title = previewTitle(preview)
   const importing = importState === "importing"
   const adt = isAdtBundleImportPreview(preview) ? preview : null
-  const needsReview = adt?.activityReview?.items.filter((item) => item.status === "needs-review") ?? []
+  const undecided = adt?.activityReview?.items.filter((item) => (
+    item.status === "needs-review" && !decidedSectionIds.has(item.sectionId)
+  )) ?? []
 
   const banner = importing ? (
     <div role="status" className="flex shrink-0 flex-col gap-2.5 rounded-xl bg-brand-500/10 px-4 py-3.5">
@@ -81,29 +87,16 @@ export function ImportReview({
         )}
       >
         <Panel title={attention ? <Trans>Needs your attention</Trans> : <Trans>Status and checks</Trans>}>
-          {model.status ? (
+          {model.mode === "activity" ? (
+            <ActivityBanner
+              items={undecided}
+              unresolvedCount={unresolvedActivityCount}
+              activityPrompt={adt?.agentGuide?.activityPrompt ?? null}
+              onChooseTypes={onReviewActivities}
+            />
+          ) : model.status ? (
             <StatusRow status={model.status}>
-              {model.mode === "activity" ? (
-                <div className="mt-3 flex flex-col gap-2">
-                  <ul className="flex flex-col gap-1.5">
-                    {needsReview.map((item) => (
-                      <li key={item.sectionId} className="flex items-center gap-2 rounded-md bg-card px-2.5 py-1.5 text-xs">
-                        <Puzzle aria-hidden="true" className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                        <code className="truncate font-mono text-foreground">{item.href}</code>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" size="sm" onClick={onReviewActivities} className="h-8 text-xs">
-                      <Puzzle className="size-3.5" />
-                      <Trans>Review activities</Trans>
-                    </Button>
-                    {adt?.agentGuide?.activityPrompt ? (
-                      <CopyTextButton value={adt.agentGuide.activityPrompt}><Trans>Copy AI instructions</Trans></CopyTextButton>
-                    ) : null}
-                  </div>
-                </div>
-              ) : model.mode === "blocked" ? (
+              {model.mode === "blocked" ? (
                 <div className="mt-2 flex flex-col items-start gap-2">
                   {rawValidationError ? <ErrorDetails message={rawValidationError} className="items-start" /> : null}
                   <Button type="button" variant="outline" size="sm" onClick={onReplace} className="h-8 text-xs">
@@ -122,7 +115,7 @@ export function ImportReview({
           <Panel title={<Trans>Features</Trans>}><FeaturesSummary preview={preview} /></Panel>
         )}
         {model.mode === "blocked" ? null : (
-          <Panel title={<Trans>Import will</Trans>}><StepList steps={model.steps} /></Panel>
+          <Panel title={<Trans>Import will</Trans>}><ReadinessList steps={model.steps} /></Panel>
         )}
       </div>
     )

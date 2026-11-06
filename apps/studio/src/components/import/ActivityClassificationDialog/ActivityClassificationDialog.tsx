@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { ArrowLeft, ArrowRight, Check, CircleAlert, FileText, Puzzle } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Puzzle } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 
 import { Button } from "@/components/ui/button"
@@ -14,13 +14,22 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
-import { ActivityClassificationSelect } from "./ActivityClassificationSelect"
+import { ActivityTypePanel } from "./ActivityTypePanel"
 import {
   hasDecision,
-  useActivityReasonLabel,
+  pageName,
   useActivityTypeLabel,
+  useControlsLabel,
   type ActivityReview,
 } from "./activity-labels"
+
+/** Outlines every control a learner can use, so the preview shows what made
+ * ADT Studio ask. Added to the sanitized preview, which runs no scripts. */
+const CONTROL_OUTLINE = "<style>input:not([type=hidden]),button,select,textarea,[draggable=true]{outline:2px solid #d97706!important;outline-offset:3px;border-radius:3px}</style>"
+
+function withControlsOutlined(html: string): string {
+  return /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${CONTROL_OUTLINE}</head>`) : CONTROL_OUTLINE + html
+}
 
 export function ActivityClassificationDialog({
   open,
@@ -37,7 +46,7 @@ export function ActivityClassificationDialog({
 }) {
   const { t } = useLingui()
   const activityTypeLabel = useActivityTypeLabel()
-  const activityReasonLabel = useActivityReasonLabel()
+  const controlsLabel = useControlsLabel()
   const items = useMemo(
     () => review.items.filter((item) => item.status === "needs-review"),
     [review.items],
@@ -55,7 +64,9 @@ export function ActivityClassificationDialog({
   const classifiedCount = items.filter((item) => hasDecision(decisions, item.sectionId)).length
   const allClassified = classifiedCount === items.length
   const options = activeItem
-    ? [...new Set([activeItem.suggestedType, ...review.typeOptions])]
+    // The server's own suggestion (often "Custom activity: external") goes last;
+    // the panel puts types that fit the controls first.
+    ? [...new Set([...review.typeOptions, activeItem.suggestedType])]
     : []
   const activeItemHasDecision = activeItem
     ? hasDecision(decisions, activeItem.sectionId)
@@ -75,9 +86,9 @@ export function ActivityClassificationDialog({
               <Puzzle className="size-4" />
             </span>
             <div>
-              <DialogTitle className="text-base"><Trans>Review activity pages</Trans></DialogTitle>
+              <DialogTitle className="text-base"><Trans>Choose activity types</Trans></DialogTitle>
               <DialogDescription className="mt-1 text-xs">
-                <Trans>Check each page and choose how ADT Studio should treat it after import.</Trans>
+                <Trans>These pages have controls a learner can use. Tell ADT Studio what each one is.</Trans>
               </DialogDescription>
             </div>
           </div>
@@ -102,7 +113,7 @@ export function ActivityClassificationDialog({
         </DialogHeader>
 
         <div className="flex min-h-0 flex-1">
-          <aside className="flex w-72 shrink-0 flex-col border-r border-border bg-muted/40">
+          <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-muted/40">
             <div className="border-b border-border px-4 py-3">
               <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
                 <span className="h-px w-6 shrink-0 bg-current opacity-50" />
@@ -137,13 +148,13 @@ export function ActivityClassificationDialog({
                         {classified ? <Check className="size-3.5" /> : <span>{index + 1}</span>}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-semibold">{item.href}</span>
+                        <span className="block truncate text-xs font-semibold">{pageName(item)}</span>
                         <span className="mt-0.5 block truncate text-[11px] font-normal text-muted-foreground">
                           {classified
                             ? decisions[item.sectionId] === null
                               ? t`Not an activity`
                               : activityTypeLabel(decisions[item.sectionId] ?? item.suggestedType)
-                            : t`Needs classification`}
+                            : t`Has ${controlsLabel(item.controls)}`}
                         </span>
                       </span>
                     </Button>
@@ -154,62 +165,46 @@ export function ActivityClassificationDialog({
           </aside>
 
           {activeItem ? (
-            <section className="flex min-w-0 flex-1 flex-col bg-background">
-              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-5 py-3">
-                <div className="flex min-w-0 items-center gap-2">
-                  <FileText className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate text-sm font-medium text-foreground">{activeItem.href}</span>
-                </div>
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  <Trans>Page {activeIndex + 1} of {items.length}</Trans>
-                </span>
-              </div>
-
-              <div className="min-h-0 flex-1 bg-muted p-4">
-                {activeItem.previewHtml ? (
-                  <iframe
-                    srcDoc={activeItem.previewHtml}
-                    sandbox=""
-                    title={t`Preview of ${activeItem.href}`}
-                    className="h-full w-full rounded-lg border border-border bg-white shadow-sm"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-card text-sm text-muted-foreground">
-                    <Trans>This page is unavailable in the imported archive.</Trans>
+            <>
+              <section className="flex min-w-0 flex-1 flex-col bg-background">
+                <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-5 py-3">
+                  <div className="flex min-w-0 items-baseline gap-2">
+                    <span className="truncate text-sm font-semibold text-foreground">{pageName(activeItem)}</span>
+                    <code className="truncate font-mono text-xs text-muted-foreground">{activeItem.href}</code>
                   </div>
-                )}
-              </div>
-
-              <div className="grid shrink-0 gap-4 border-t border-border bg-background px-5 py-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-end">
-                <div className="flex min-w-0 items-start gap-2.5">
-                  <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <div>
-                    <p className="text-xs font-semibold text-foreground"><Trans>Why this needs review</Trans></p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground text-pretty">
-                      {activityReasonLabel(activeItem.reasons[0])}
-                    </p>
-                    {activeItem.textPreview ? (
-                      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground/80">
-                        {activeItem.textPreview}
-                      </p>
-                    ) : null}
-                  </div>
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    <Trans>Page {activeIndex + 1} of {items.length}</Trans>
+                  </span>
                 </div>
-
-                <div>
-                  <p className="mb-1.5 text-xs font-semibold text-foreground">
-                    <Trans>Classification</Trans>
-                  </p>
-                  <ActivityClassificationSelect
-                    item={activeItem}
-                    options={options}
-                    hasSelection={activeItemHasDecision}
-                    value={activeItemHasDecision ? decisions[activeItem.sectionId] : undefined}
-                    onChange={(value) => onDecision(activeItem.sectionId, value)}
-                  />
+                <div className="min-h-0 flex-1 bg-muted p-4">
+                  {activeItem.previewHtml ? (
+                    <iframe
+                      srcDoc={withControlsOutlined(activeItem.previewHtml)}
+                      sandbox=""
+                      title={t`Preview of ${activeItem.href}`}
+                      className="h-full w-full rounded-lg border border-border bg-white shadow-sm"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-card text-sm text-muted-foreground">
+                      <Trans>This page is unavailable in the imported archive.</Trans>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </section>
+                <p className="shrink-0 border-t border-border px-5 py-2.5 text-xs text-muted-foreground">
+                  <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page, with no activity type.</Trans>
+                </p>
+              </section>
+              <aside className="flex w-[22rem] shrink-0 flex-col border-l border-border bg-background">
+                <ActivityTypePanel
+                  key={activeItem.sectionId}
+                  item={activeItem}
+                  options={options}
+                  hasSelection={activeItemHasDecision}
+                  value={activeItemHasDecision ? decisions[activeItem.sectionId] : undefined}
+                  onChange={(value) => onDecision(activeItem.sectionId, value)}
+                />
+              </aside>
+            </>
           ) : null}
         </div>
 

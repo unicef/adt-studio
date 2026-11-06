@@ -310,6 +310,13 @@ export const AdtImportedActivityReviewItem = z.object({
   validationErrors: z.array(z.string()),
   textPreview: z.string(),
   previewHtml: z.string(),
+  /** Controls a learner can use on the page, by kind. Absent from older previews. */
+  controls: z.array(z.object({
+    kind: z.enum(["text-field", "text-area", "button", "checkbox", "radio", "select", "draggable"]),
+    count: z.number().int(),
+  })).optional(),
+  /** The page's first heading. Absent from older previews. */
+  heading: z.string().nullable().optional(),
 })
 export type AdtImportedActivityReviewItem = z.infer<typeof AdtImportedActivityReviewItem>
 

@@ -119,6 +119,8 @@ export function analyzeImportedActivities(
       signals: inspection.signals,
       validationErrors: inspection.validationErrors,
       textPreview: inspection.textPreview,
+      controls: inspection.controls,
+      heading: inspection.heading,
       // Only the classification dialog shows previews, and only for items that
       // need review. Each one inlines the page's images, so building them for
       // confirmed activities made a typical preview response several MB larger.

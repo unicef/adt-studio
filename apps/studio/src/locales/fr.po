@@ -369,6 +369,10 @@ msgstr "{0} pages"
 msgid "{0} pages · split into {1} parts"
 msgstr "{0} pages · divisé en {1} parties"
 
+#. placeholder {0}: adt.pageCount
+msgid "{0} pages and {imageCount} images read"
+msgstr "{0} pages et {imageCount} images lues"
+
 #. placeholder {0}: section.criteria.length - reviewed
 msgid "{0} pending"
 msgstr "{0} en attente"
@@ -409,9 +413,15 @@ msgstr "{0} textes"
 msgid "{0} translations"
 msgstr "{0} traductions"
 
+#. placeholder {0}: i18n._(recovered[0].label)
+#. placeholder {1}: i18n._(recovered[1].label)
+#. placeholder {2}: recoveredCount - 2
+msgid "{0}, {1} and {2} more"
+msgstr "{0}, {1} et {2} de plus"
+
 #. placeholder {0}: adt.title
-msgid "{0}, separate from your other projects"
-msgstr "{0}, séparé de vos autres projets"
+#~ msgid "{0}, separate from your other projects"
+#~ msgstr "{0}, séparé de vos autres projets"
 
 #. placeholder {0}: newest.root.author_name
 #. placeholder {1}: newest.root.body
@@ -492,6 +502,27 @@ msgstr "{confirmCount} {confirmCount, plural, one {double page possible détect�
 msgid "{count, plural, one {# open comment} other {# open comments}}"
 msgstr "{count, plural, one {# commentaire ouvert} other {# commentaires ouverts}}"
 
+msgid "{count, plural, one {a button} other {# buttons}}"
+msgstr "{count, plural, one {un bouton} other {# boutons}}"
+
+msgid "{count, plural, one {a checkbox} other {# checkboxes}}"
+msgstr "{count, plural, one {une case à cocher} other {# cases à cocher}}"
+
+msgid "{count, plural, one {a draggable item} other {# draggable items}}"
+msgstr "{count, plural, one {un élément déplaçable} other {# éléments déplaçables}}"
+
+msgid "{count, plural, one {a dropdown} other {# dropdowns}}"
+msgstr "{count, plural, one {une liste déroulante} other {# listes déroulantes}}"
+
+msgid "{count, plural, one {a radio button} other {# radio buttons}}"
+msgstr "{count, plural, one {un bouton radio} other {# boutons radio}}"
+
+msgid "{count, plural, one {a text box} other {# text boxes}}"
+msgstr "{count, plural, one {une zone de texte} other {# zones de texte}}"
+
+msgid "{count, plural, one {a text field} other {# text fields}}"
+msgstr "{count, plural, one {un champ de texte} other {# champs de texte}}"
+
 msgid "{count, plural, one {the first version you've shared} other {# versions shared}}"
 msgstr "{count, plural, one {la première version que vous avez partagée} other {# versions partagées}}"
 
@@ -537,6 +568,9 @@ msgstr "{disabledProvidersText} est désactivé — ajoutez sa clé API dans Par
 msgid "{done} of {total} bytes"
 msgstr "{done} sur {total} octets"
 
+msgid "{done} of {total} done"
+msgstr "{done} sur {total} terminés"
+
 msgid "{done} of {total} files"
 msgstr "{done} sur {total} fichiers"
 
@@ -548,6 +582,12 @@ msgstr "{elapsed}s"
 
 msgid "{failed, plural, one {The last update didn't finish for # book — trying again is safe.} other {The last update didn't finish for # books — trying again is safe.}}"
 msgstr "{failed, plural, one {La dernière mise à jour n’a pas abouti pour # livre — vous pouvez réessayer sans risque.} other {La dernière mise à jour n’a pas abouti pour # livres — vous pouvez réessayer sans risque.}}"
+
+msgid "{first} and {second}"
+msgstr "{first} et {second}"
+
+msgid "{first}, {second} and more"
+msgstr "{first}, {second} et plus"
 
 msgid "{generatedFeatureCount} of 6 features generated"
 msgstr "{generatedFeatureCount} sur 6 fonctionnalités générées"
@@ -636,6 +676,9 @@ msgstr "{SEND_KEY} Entrée pour envoyer · les lecteurs le verront quand le lien
 
 msgid "{SEND_KEY} Enter to send · the reader sees it on their copy"
 msgstr "{SEND_KEY} Entrée pour envoyer · le lecteur la voit sur sa copie"
+
+msgid "{set} of {total}"
+msgstr "{set} sur {total}"
 
 msgid "{settled} of {total}"
 msgstr "{settled} sur {total}"
@@ -738,6 +781,9 @@ msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {page d�
 msgid "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {needs} other {need}} a type"
 msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {a besoin} other {ont besoin}} d’un type"
 
+msgid "{unresolvedCount, plural, one {Choose a type for # activity page} other {Choose a type for # activity pages}}"
+msgstr "{unresolvedCount, plural, one {Choisissez un type pour # page d’activité} other {Choisissez un type pour # pages d’activité}}"
+
 msgid "{waiting, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{waiting, plural, one {# commentaire en attente} other {# commentaires en attente}}"
 
@@ -745,8 +791,14 @@ msgstr "{waiting, plural, one {# commentaire en attente} other {# commentaires e
 msgid "/ Section {0}"
 msgstr "/ Section {0}"
 
+msgid "+{more} more"
+msgstr "+{more} de plus"
+
 msgid "×4"
 msgstr "×4"
+
+msgid "<0>{name}</0> has {controls}"
+msgstr "<0>{name}</0> contient {controls}"
 
 msgid "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> Readers still reach the link; reconnect here to manage it and see new feedback."
 msgstr "<0>Un autre ADT Studio a pris la main sur le partage de ce compte Cloudflare.</0> Les lecteurs accèdent toujours au lien ; reconnectez-vous ici pour le gérer et voir les nouveaux commentaires."
@@ -874,6 +926,9 @@ msgstr "Une figure de style qui décrit une chose comme si c'était une autre po
 msgid "A fill-in-the-blank activity."
 msgstr "Une activité à compléter."
 
+msgid "A generated comprehension quiz page."
+msgstr "Une page de quiz de compréhension générée."
+
 msgid "A glossary term with this word already exists."
 msgstr "Un terme du glossaire avec ce mot existe déjà."
 
@@ -978,6 +1033,9 @@ msgstr "Une histoire avec des personnages et des événements qui représentent 
 
 msgid "A structured table of contents lets readers jump directly to any section, which is especially important for keyboard and assistive technology users."
 msgstr "Un sommaire structuré permet aux lecteurs d'accéder directement à n'importe quelle section, ce qui est particulièrement important pour les utilisateurs de claviers et de technologies d'assistance."
+
+msgid "A Studio activity that fits none of the types."
+msgstr "Une activité Studio qui ne correspond à aucun type."
 
 msgid "A style guide provides consistent HTML and CSS patterns that the LLM uses when generating pages. It controls typography, colors, spacing, and component styles so every page in your book has a unified look."
 msgstr "Un guide de style fournit des modèles HTML et CSS cohérents que le LLM utilise lors de la génération des pages. Il contrôle la typographie, les couleurs, l'espacement et les styles de composants afin que chaque page de votre livre ait un aspect unifié."
@@ -1196,8 +1254,18 @@ msgstr "Texte de l'activité"
 msgid "Activity type"
 msgstr "Type d'activité"
 
+#. placeholder {0}: item.href
+msgid "Activity type for {0}"
+msgstr "Type d’activité de {0}"
+
+msgid "Activity types"
+msgstr "Types d’activité"
+
 msgid "Activity Types"
 msgstr "Types d'activité"
+
+msgid "Activity types to choose"
+msgstr "Types d’activité à choisir"
 
 msgid "Activity: Fill in a Table"
 msgstr "Activité : Remplir un tableau"
@@ -1548,6 +1616,9 @@ msgstr "Après"
 msgid "After {0}"
 msgstr "Après {0}"
 
+msgid "After import"
+msgstr "Après l’import"
+
 #. placeholder {0}: String(pageNumber)
 #. placeholder {0}: afterPage.pageNumber
 msgid "after page {0}"
@@ -1707,6 +1778,9 @@ msgstr "Toutes les sévérités"
 
 msgid "All steps"
 msgstr "Toutes les étapes"
+
+msgid "All types"
+msgstr "Tous les types"
 
 msgid "Allegory"
 msgstr "Allégorie"
@@ -1919,6 +1993,9 @@ msgstr "Application des modifications…"
 msgid "Archive"
 msgstr "Archive"
 
+msgid "Archive checked"
+msgstr "Archive vérifiée"
+
 msgid "Archive contents"
 msgstr "Contenu de l'archive"
 
@@ -1949,6 +2026,9 @@ msgstr "zones"
 
 msgid "Arrange extracted content into a structured storyboard with pages, sections, and layouts."
 msgstr "Organisez le contenu extrait en un scénarimage structuré avec des pages, des sections et des mises en page."
+
+msgid "Arrange items into an order or categories."
+msgstr "Classer des éléments dans un ordre ou des catégories."
 
 msgid "Article"
 msgstr "Article"
@@ -2174,6 +2254,9 @@ msgstr "Bearer Jeton"
 
 msgid "Before"
 msgstr "Avant"
+
+msgid "Before you import"
+msgstr "Avant l’import"
 
 msgid "Beneath Earth's crust, molten rock builds pressure over millennia until it finds a path to the surface."
 msgstr "Sous la croûte terrestre, la roche en fusion accumule de la pression pendant des millénaires jusqu'à ce qu'elle trouve un chemin vers la surface."
@@ -2651,8 +2734,8 @@ msgstr "Titre de chapitre"
 msgid "Chart / Graph"
 msgstr "Graphique / Diagramme"
 
-msgid "Check each page and choose how ADT Studio should treat it after import."
-msgstr "Vérifiez chaque page et choisissez comment ADT Studio doit la traiter après l'import."
+#~ msgid "Check each page and choose how ADT Studio should treat it after import."
+#~ msgstr "Vérifiez chaque page et choisissez comment ADT Studio doit la traiter après l'import."
 
 msgid "Check for new comments"
 msgstr "Vérifier les nouveaux commentaires"
@@ -2720,6 +2803,9 @@ msgstr "Choisissez une vidéo déjà téléversée ou téléversez-en une nouvel
 msgid "Choose a Web Export ZIP created by a current version of ADT Studio."
 msgstr "Choisissez un ZIP d'export Web créé par une version actuelle d'ADT Studio."
 
+msgid "Choose activity types"
+msgstr "Choisir les types d’activité"
+
 msgid "Choose Allow when Cloudflare asks"
 msgstr "Choisissez Autoriser quand Cloudflare le demande"
 
@@ -2732,8 +2818,11 @@ msgstr "Choisissez un modèle existant ou saisissez un nouvel id provider:model.
 msgid "Choose another ZIP"
 msgstr "Choisir un autre ZIP"
 
-msgid "Choose classification"
-msgstr "Choisir la classification"
+#~ msgid "Choose classification"
+#~ msgstr "Choisir la classification"
+
+msgid "Choose exactly one answer from several options."
+msgstr "Choisir exactement une réponse parmi plusieurs options."
 
 msgid "Choose features to include in this export"
 msgstr "Choisissez les fonctionnalités à inclure dans cette exportation"
@@ -2749,6 +2838,9 @@ msgstr "Choisissez comment le contenu doit être formaté."
 
 msgid "Choose images..."
 msgstr "Choisir des images..."
+
+msgid "Choose more than one correct answer."
+msgstr "Choisir plusieurs bonnes réponses."
 
 msgid "Choose Provider"
 msgstr "Choisir le fournisseur"
@@ -2774,6 +2866,9 @@ msgstr "Choisissez les pages sources et l'emplacement du quiz dans l'éditeur de
 msgid "Choose the target model. The new global prompt file will use this file content and the normal model-specific prompt name."
 msgstr "Choisissez le modèle cible. Le nouveau fichier de prompt global utilisera le contenu de ce fichier et le nom normal propre au modèle."
 
+msgid "Choose types"
+msgstr "Choisir les types"
+
 msgid "Choose which kinds of on-screen text are read aloud. Disabled types get no audio in the reader. You can also mute individual entries from the Speech and Language views."
 msgstr "Choisissez quels types de texte à l'écran sont lus à haute voix. Les types désactivés n'ont pas d'audio dans le lecteur. Vous pouvez aussi couper le son d'entrées individuelles depuis les vues Parole et Langue."
 
@@ -2789,12 +2884,12 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 msgid "Classic Storybook"
 msgstr "Classic Storybook"
 
-msgid "Classification"
-msgstr "Classification"
+#~ msgid "Classification"
+#~ msgstr "Classification"
 
 #. placeholder {0}: item.href
-msgid "Classification for {0}"
-msgstr "Classification pour {0}"
+#~ msgid "Classification for {0}"
+#~ msgstr "Classification pour {0}"
 
 msgid "Classify every page"
 msgstr "Classer chaque page"
@@ -3000,6 +3095,9 @@ msgstr "Comparer les versions"
 
 msgid "Compared with fallback prompt."
 msgstr "Comparé au prompt de repli."
+
+msgid "Complete missing cells in a table."
+msgstr "Compléter les cellules manquantes d’un tableau."
 
 msgid "Completed"
 msgstr "Terminé"
@@ -3654,6 +3752,9 @@ msgstr "Date de création"
 
 msgid "Debug mode is not enabled."
 msgstr "Le mode débogage n'est pas activé."
+
+msgid "Decide whether a statement is true or false."
+msgstr "Décider si une affirmation est vraie ou fausse."
 
 msgid "Decide whether to keep or replace protected content."
 msgstr "Choisissez de conserver ou de remplacer le contenu protégé."
@@ -4418,6 +4519,9 @@ msgstr "Anglais"
 msgid "Enhancements"
 msgstr "Améliorations"
 
+msgid "Enter a missing word or short phrase."
+msgstr "Saisir un mot ou une courte phrase manquante."
+
 msgid "Enter a model id for each task."
 msgstr "Saisissez un identifiant de modèle pour chaque tâche."
 
@@ -4851,6 +4955,9 @@ msgstr "Filtrer les fichiers de prompt..."
 
 msgid "Filter quizzes…"
 msgstr "Filtrer les quiz…"
+
+msgid "Filter types"
+msgstr "Filtrer les types"
 
 msgid "Filtered by:"
 msgstr "Filtré par :"
@@ -5400,6 +5507,10 @@ msgstr "Poignées"
 msgid "Hard terms become tappable — a clear, age-appropriate definition appears inline, without leaving the page."
 msgstr "Les termes difficiles deviennent cliquables — une définition claire et adaptée à l'âge s'affiche dans la page, sans la quitter."
 
+#. placeholder {0}: controlsLabel(item.controls)
+msgid "Has {0}"
+msgstr "Contient {0}"
+
 msgid "Has a problem"
 msgstr "Présente un problème"
 
@@ -5763,6 +5874,9 @@ msgstr "Importer un projet"
 msgid "Import as new project"
 msgstr "Importer comme nouveau projet"
 
+msgid "Import can’t start until each page has a type. Pick them yourself, or give the instructions to your AI assistant."
+msgstr "L’import ne peut pas commencer tant que chaque page n’a pas de type. Choisissez-les vous-même ou donnez les instructions à votre assistant IA."
+
 msgid "Import existing project"
 msgstr "Importer un projet existant"
 
@@ -5933,6 +6047,9 @@ msgstr "Interactif"
 msgid "Interactive assessment questions"
 msgstr "Questions d'évaluation interactives"
 
+msgid "interactive controls"
+msgstr "des contrôles interactifs"
+
 msgid "Interactive controls were found without an activity marker."
 msgstr "Des contrôles interactifs ont été trouvés sans marqueur d'activité."
 
@@ -6082,6 +6199,9 @@ msgstr "Conserver le contenu filtré"
 
 msgid "Keep going"
 msgstr "Continuer"
+
+msgid "Keep it as reading content. Its controls stay as they are."
+msgstr "La garder comme contenu de lecture. Ses contrôles restent tels quels."
 
 msgid "Keep my changes"
 msgstr "Conserver mes modifications"
@@ -6633,6 +6753,9 @@ msgstr "Faible"
 msgid "Lower values produce more consistent styling across pages."
 msgstr "Les valeurs plus basses produisent un style plus cohérent entre les pages."
 
+msgid "Made outside ADT Studio and kept as it is."
+msgstr "Créée en dehors d’ADT Studio et conservée telle quelle."
+
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Assurez-vous de télécharger un fichier .zip exporté depuis ADT Studio."
 
@@ -7093,6 +7216,9 @@ msgstr "Naviguez dans l'aperçu pour capturer des notes de révision spécifique
 msgid "Navigation"
 msgstr "Navigation"
 
+msgid "Needed before import"
+msgstr "Nécessaire avant l’import"
+
 msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio."
 msgstr "Nécessite une clé API OpenAI (OpenAI Whisper aligne les mots sur l'audio). Ajoutez-en une dans Paramètres → Fournisseurs IA pour l'activer. En attendant, l'audio régénéré est surligné par phrase ; les minutages par mot déjà calculés sont conservés pour l'audio inchangé."
 
@@ -7102,8 +7228,8 @@ msgstr "Nécessite une attention"
 msgid "Needs changes"
 msgstr "Modifications nécessaires"
 
-msgid "Needs classification"
-msgstr "Nécessite une classification"
+#~ msgid "Needs classification"
+#~ msgstr "Nécessite une classification"
 
 msgid "Needs fixing"
 msgstr "Besoin de correction"
@@ -7613,6 +7739,9 @@ msgstr "Aucune traduction ne nécessite d'attention."
 msgid "No translations were accepted anyway in this view."
 msgstr "Aucune traduction n'a été acceptée quand même dans cette vue."
 
+msgid "No type matches “{query}”."
+msgstr "Aucun type ne correspond à « {query} »."
+
 msgid "No unassigned videos are available."
 msgstr "Aucune vidéo non attribuée n’est disponible."
 
@@ -7879,6 +8008,9 @@ msgstr "Sur « <0>{0}</0> »"
 
 msgid "On a picture"
 msgstr "Sur une image"
+
+msgid "On import"
+msgstr "À l’import"
 
 msgid "On the marked spot"
 msgstr "À l’endroit marqué"
@@ -8245,6 +8377,10 @@ msgstr "Désynchronisé"
 msgid "Outline ID:"
 msgstr "ID du plan :"
 
+#. placeholder {0}: controlsLabel(activeItem.controls)
+msgid "Outlined: {0} found on this page, with no activity type."
+msgstr "Entouré : {0} sur cette page, sans type d’activité."
+
 msgid "Output languages"
 msgstr "Langues de sortie"
 
@@ -8505,6 +8641,9 @@ msgstr "Pages avec des modifications manuelles ou d’origine inconnue :"
 msgid "Pages, edits and generated features"
 msgstr "Pages, modifications et fonctionnalités générées"
 
+msgid "Pair related items from two groups."
+msgstr "Associer des éléments liés de deux groupes."
+
 msgid "Paper Collage"
 msgstr "Collage papier"
 
@@ -8526,6 +8665,9 @@ msgstr "Partie {0}"
 
 msgid "Part details (part.json)"
 msgstr "Détails de la partie (part.json)"
+
+msgid "Part details, PDF and settings found"
+msgstr "Détails de la partie, PDF et paramètres trouvés"
 
 #. placeholder {0}: part.sourceLabel
 msgid "Part of {0}"
@@ -8908,6 +9050,12 @@ msgstr "Sauvegarde du projet"
 
 msgid "Project database"
 msgstr "Base de données du projet"
+
+msgid "Project database and PDF found"
+msgstr "Base de données du projet et PDF trouvés"
+
+msgid "Project database found"
+msgstr "Base de données du projet trouvée"
 
 msgid "Project Name"
 msgstr "Nom du projet"
@@ -9406,6 +9554,9 @@ msgstr "Se reconnecter dans les Réglages"
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Enregistrez les résultats du réviseur pour la page actuelle et sauvegardez-les dans la session de validation active."
 
+msgid "Recover {recoveredCount} {recoveredCount, plural, one {feature} other {features}}"
+msgstr "Récupérer {recoveredCount} {recoveredCount, plural, one {fonctionnalité} other {fonctionnalités}}"
+
 msgid "Recrop from page"
 msgstr "Recadrer depuis la page"
 
@@ -9841,11 +9992,11 @@ msgstr "Vérifier les résultats de {label}"
 msgid "Review {unresolvedActivityCount} activities"
 msgstr "Vérifier {unresolvedActivityCount} activités"
 
-msgid "Review activities"
-msgstr "Vérifier les activités"
+#~ msgid "Review activities"
+#~ msgstr "Vérifier les activités"
 
-msgid "Review activity pages"
-msgstr "Vérifier les pages d'activités"
+#~ msgid "Review activity pages"
+#~ msgstr "Vérifier les pages d'activités"
 
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Examinez et peaufinez chaque bloc simplifié côte à côte avec l'original avant l'emballage."
@@ -9959,6 +10110,9 @@ msgstr "Réécrit le texte avant sa lecture à voix haute. Le texte de la page n
 
 msgid "Rewriting the story of this section..."
 msgstr "Réécriture de l'histoire de cette section..."
+
+msgid "Right after import"
+msgstr "Juste après l’import"
 
 msgid "Rising ocean temperatures cause coral bleaching - when stressed corals expel the colorful algae living inside them and turn white. Without these algae, corals slowly starve. Protecting reefs means reducing pollution, overfishing, and greenhouse gas emissions."
 msgstr "La hausse des températures océaniques provoque le blanchissement des coraux — lorsque les coraux stressés expulsent les algues colorées vivant en eux et deviennent blancs. Sans ces algues, les coraux meurent lentement de faim. Protéger les récifs signifie réduire la pollution, la surpêche et les émissions de gaz à effet de serre."
@@ -10551,6 +10705,9 @@ msgstr "Sélectionner les images à traduire"
 msgid "Select node type..."
 msgstr "Sélectionnez le type de nœud..."
 
+msgid "Select or underline part of a text."
+msgstr "Sélectionner ou souligner une partie d’un texte."
+
 msgid "Select reviewer session"
 msgstr "Sélectionner une session de révision"
 
@@ -11019,8 +11176,8 @@ msgstr "Recadrage intelligent"
 msgid "So only this computer can share or change your books."
 msgstr "Ainsi, seul cet ordinateur peut partager ou modifier vos livres."
 
-msgid "So you can keep working right away"
-msgstr "Pour continuer à travailler tout de suite"
+#~ msgid "So you can keep working right away"
+#~ msgstr "Pour continuer à travailler tout de suite"
 
 msgid "Software update"
 msgstr "Mise à jour logicielle"
@@ -11499,6 +11656,10 @@ msgstr "Succès"
 
 msgid "Suggest improved translations when an entry needs attention"
 msgstr "Suggérer des traductions améliorées lorsqu'une entrée nécessite une attention"
+
+#. placeholder {0}: controlsLabel(item.controls)
+msgid "Suggested for {0}"
+msgstr "Suggérés pour {0}"
 
 msgid "Suggested modification"
 msgstr "Modification suggérée"
@@ -12166,6 +12327,9 @@ msgstr "Ces fonctionnalités améliorent l'accès pour les personnes handicapée
 
 msgid "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
 msgstr "Ces pages proviennent d’un export ADT importé. Modifiez-les ici ; la régénération du Storyboard est désactivée pour qu’elle ne puisse pas les écraser."
+
+msgid "These pages have controls a learner can use. Tell ADT Studio what each one is."
+msgstr "Ces pages contiennent des contrôles que l’apprenant peut utiliser. Indiquez à ADT Studio ce qu’est chacune."
 
 msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Ces pages n'ont pas de couche de texte intégrée, mais l'étape de Sectionnement a récupéré du texte à partir des images des pages — ce PDF semble donc numérisé ou basé sur des images. Le pipeline peut toujours fonctionner à partir du texte récupéré, mais pour de meilleurs résumés, métadonnées et traductions, essayez d'obtenir une version de ce PDF basée sur du texte (avec une vraie couche de texte) plutôt qu'une copie numérisée."
@@ -13531,6 +13695,9 @@ msgstr "Nouveautés de cette version"
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "Lors de la description des images, mentionnez par leur nom tout objet, lieu ou personnage récurrent culturellement spécifique."
 
+msgid "When done"
+msgstr "Une fois terminé"
+
 msgid "When enabled, background colors from the styleguide are applied to the full page body."
 msgstr "Lorsque cette option est activée, les couleurs d'arrière-plan du guide de style sont appliquées à l'ensemble du corps de la page."
 
@@ -13600,8 +13767,8 @@ msgstr "Page entière"
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Vérifications du livre entier pour la sortie ADT empaquetée, plus les résultats du réviseur capturés depuis l'aperçu."
 
-msgid "Why this needs review"
-msgstr "Pourquoi cela nécessite une vérification"
+#~ msgid "Why this needs review"
+#~ msgstr "Pourquoi cela nécessite une vérification"
 
 msgid "Wide multilingual coverage with neural voices for many locales."
 msgstr "Large couverture multilingue avec des voix neuronales pour de nombreux lieux."
@@ -13662,6 +13829,9 @@ msgstr "Encapsule les requêtes « Modifier cette image ». L'IA reçoit l'image
 
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Encapsule les requêtes « Générer nouveau ». Prend en charge les variables user_prompt, style et image_type. Utilise la syntaxe Liquid pour les conditions."
+
+msgid "Write a free-form response."
+msgstr "Rédiger une réponse libre."
 
 msgid "Write correct/incorrect feedback for every step with AI"
 msgstr "Rédiger avec l'IA le retour correct/incorrect pour chaque étape"

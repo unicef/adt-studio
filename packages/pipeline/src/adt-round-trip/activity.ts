@@ -26,6 +26,21 @@ export type ImportedActivitySignal =
   | "draggable-content"
   | "custom-registration"
 
+/** The kinds of control a learner can use, as the import review names them. */
+export type ImportedActivityControlKind =
+  | "text-field"
+  | "text-area"
+  | "button"
+  | "checkbox"
+  | "radio"
+  | "select"
+  | "draggable"
+
+export interface ImportedActivityControl {
+  kind: ImportedActivityControlKind
+  count: number
+}
+
 export interface ImportedActivityInspection {
   sectionId: string
   sectionType: string | null
@@ -38,6 +53,24 @@ export interface ImportedActivityInspection {
   signals: ImportedActivitySignal[]
   validationErrors: string[]
   textPreview: string
+  /** Which controls the section holds, so the review can say "a text field"
+   * instead of "interactive controls", and suggest types that fit. */
+  controls: ImportedActivityControl[]
+  /** The section's first heading, a name people recognize in place of a file. */
+  heading: string | null
+}
+
+function controlKind(name: string, attributes: Record<string, string>): ImportedActivityControlKind | null {
+  if (name === "textarea") return "text-area"
+  if (name === "select") return "select"
+  if (name === "button") return "button"
+  if (name !== "input") return null
+  const type = (attributes.type ?? "text").toLowerCase()
+  if (type === "hidden") return null
+  if (type === "checkbox") return "checkbox"
+  if (type === "radio") return "radio"
+  if (["button", "submit", "reset", "image"].includes(type)) return "button"
+  return "text-field"
 }
 
 function textWithoutExecutableContent(node: any): string { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -72,6 +105,8 @@ export function inspectImportedActivity(
     ?.trim()
     .toLowerCase() === "true"
   const signals = new Set<ImportedActivitySignal>()
+  const controlCounts = new Map<ImportedActivityControlKind, number>()
+  let heading: string | null = null
 
   if (section) {
     const descendants = DomUtils.findAll(
@@ -81,17 +116,20 @@ export function inspectImportedActivity(
     for (const element of descendants) {
       const name = element.name?.toLowerCase()
       const attributes = element.attribs ?? {}
-      if (
-        ["button", "select", "textarea"].includes(name)
-        || (name === "input" && (attributes.type ?? "text").toLowerCase() !== "hidden")
-      ) {
+      const kind = name ? controlKind(name, attributes) : null
+      if (kind) {
         signals.add("interactive-control")
+        controlCounts.set(kind, (controlCounts.get(kind) ?? 0) + 1)
+      }
+      if (heading === null && name && /^h[1-6]$/.test(name)) {
+        heading = textWithoutExecutableContent(element).replace(/\s+/g, " ").trim().slice(0, 120) || null
       }
       if (Object.keys(attributes).some((attribute) => attribute.startsWith("data-activity-"))) {
         signals.add("activity-data")
       }
       if (attributes.draggable === "true" || attributes["aria-grabbed"] !== undefined) {
         signals.add("draggable-content")
+        controlCounts.set("draggable", (controlCounts.get("draggable") ?? 0) + 1)
       }
       if (
         (element.type === "script" || name === "script")
@@ -120,6 +158,8 @@ export function inspectImportedActivity(
     textPreview: section
       ? textWithoutExecutableContent(section).replace(/\s+/g, " ").trim().slice(0, 240)
       : "",
+    controls: [...controlCounts].map(([kind, count]) => ({ kind, count })),
+    heading,
   }
 }
 

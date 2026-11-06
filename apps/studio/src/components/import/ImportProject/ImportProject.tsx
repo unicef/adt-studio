@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, Loader2, Upload } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -152,6 +152,7 @@ export function ImportProject() {
   const openPicker = useCallback(() => fileInputRef.current?.click(), [])
   const retryPreview = useCallback(() => { if (zipFile) loadPreview(zipFile) }, [zipFile, loadPreview])
 
+  const decidedSectionIds = useMemo(() => new Set(Object.keys(activityDecisions)), [activityDecisions])
   const unresolvedActivityCount = preview && isAdtBundleImportPreview(preview)
     ? (preview.activityReview ?? EMPTY_ACTIVITY_REVIEW).items.filter((item) => (
         item.status === "needs-review"
@@ -225,6 +226,7 @@ export function ImportProject() {
               preview={preview}
               file={zipFile}
               unresolvedActivityCount={unresolvedActivityCount}
+              decidedSectionIds={decidedSectionIds}
               onReviewActivities={() => setActivityDialogOpen(true)}
               validationError={friendlyPreviewValidationError}
               rawValidationError={rawPreviewValidationError}

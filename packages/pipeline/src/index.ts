@@ -238,6 +238,8 @@ export {
   KNOWN_ACTIVITY_SECTION_TYPES,
   ACTIVITY_CLASSIFICATION_GUIDE,
   type ImportedActivityInspection,
+  type ImportedActivityControl,
+  type ImportedActivityControlKind,
   type ImportedActivitySignal,
 } from "./adt-round-trip/activity.js"
 export {

@@ -16,6 +16,7 @@ import {
 import type { AnyImportPreview, AdtBundleImportPreview } from "@/api/client"
 import { isAdtBundleImportPreview, isPartImportPreview } from "@/api/client"
 import type { FriendlyError } from "@/hooks/use-archive-error"
+import { FEATURES, featureStatus } from "./helpers"
 
 export type Tone = "green" | "amber" | "red" | "blue"
 export type CheckState = "ok" | "bad" | "warn" | "off"
@@ -26,7 +27,9 @@ export interface Stat { value: string | null; label: string; long?: boolean }
 export interface Status { tone: Tone; icon: LucideIcon; title: string; text: string }
 export interface Check { icon: LucideIcon; label: string; value: string; state: CheckState }
 export interface Issue { file: string; text: string; code: string }
-export interface Step { title: string; text: string }
+/** One line of "Import will": done already, needs you before import, or
+ * happens when you import (or later, for a part). */
+export interface Step { title: string; text: string; state: "done" | "todo" | "later"; status: string; noDivider?: boolean }
 
 export interface ReviewModel {
   mode: ReviewMode
@@ -115,9 +118,10 @@ export function useReviewModel(
       ],
       issues: [],
       steps: [
-        { title: t`Create the project`, text: t`Only pages ${range} of the book` },
-        { title: t`Edit and finish`, text: t`Run any stage on these pages` },
-        { title: t`Merge it back`, text: t`Export the part, then merge it into the full book` },
+        { title: t`Archive checked`, text: t`Part details, PDF and settings found`, state: "done", status: t`Done` },
+        { title: t`Create the project`, text: t`Only pages ${range} of the book`, state: "later", status: t`On import` },
+        { title: t`Edit and finish`, text: t`Run any stage on these pages`, state: "later", status: t`After import` },
+        { title: t`Merge it back`, text: t`Export the part, then merge it into the full book`, state: "later", status: t`When done` },
       ],
       facts: [
         { label: t`Original book`, value: preview.sourceLabel },
@@ -149,11 +153,41 @@ export function useReviewModel(
     ],
     issues: [],
     steps: [
-      { title: t`Create the project`, text: t`Separate from your other projects` },
-      { title: t`Restore its work`, text: t`Pages, edits and generated features` },
-      { title: t`Open the book`, text: t`So you can keep working right away` },
+      { title: t`Archive checked`, text: preview.hasSourcePdf ? t`Project database and PDF found` : t`Project database found`, state: "done", status: t`Done` },
+      { title: t`Create the project`, text: t`Separate from your other projects`, state: "later", status: t`On import` },
+      { title: t`Restore its work`, text: t`Pages, edits and generated features`, state: "later", status: t`On import` },
+      { title: t`Open the book`, text: t`Right after import`, state: "later", status: t`On import` },
     ],
     facts: null,
+  }
+
+  function adtSteps(adt: AdtBundleImportPreview): Step[] {
+    const imageCount = adt.imageCount ?? 0
+    const total = adt.activityReview?.needsReviewCount ?? 0
+    const set = Math.max(0, total - unresolvedActivityCount)
+    const recovered = FEATURES.filter((feature) => featureStatus(adt, feature.slug) === "recovered")
+    const recoveredCount = recovered.length
+    return [
+      { title: t`Archive checked`, text: t`${adt.pageCount} pages and ${imageCount} images read`, state: "done", status: t`Done` },
+      ...(total > 0 ? [{
+        title: t`Choose activity types`,
+        text: t`Needed before import`,
+        state: unresolvedActivityCount > 0 ? "todo" as const : "done" as const,
+        status: unresolvedActivityCount > 0 ? t`${set} of ${total}` : t`Done`,
+      }] : []),
+      { title: t`Create the project`, text: t`Separate from your other projects`, state: "later", status: t`On import` },
+      { title: t`Use the exported pages`, text: t`They become the editable source`, state: "later", status: t`On import` },
+      ...(recoveredCount > 0 ? [{
+        title: t`Recover ${recoveredCount} {recoveredCount, plural, one {feature} other {features}}`,
+        text: recoveredCount > 2
+          ? t`${i18n._(recovered[0].label)}, ${i18n._(recovered[1].label)} and ${recoveredCount - 2} more`
+          : recovered.map((feature) => i18n._(feature.label)).join(", "),
+        state: "later" as const,
+        status: t`On import`,
+        noDivider: true,
+      }] : []),
+      { title: t`Open the book`, text: t`Right after import`, state: "later", status: t`On import` },
+    ]
   }
 
   function adtModel(adt: AdtBundleImportPreview): ReviewModel {
@@ -205,11 +239,7 @@ export function useReviewModel(
         { icon: FolderPlus, label: t`New, separate project`, value: repair ? t`Not yet` : t`Yes`, state: repair ? "off" : "ok" },
       ],
       issues: issues.map((issue) => ({ file: issue.pageHref, code: issue.code, text: issueText(issue.code, issue.pageHref, issue.detail) })),
-      steps: [
-        { title: t`Create the project`, text: t`${adt.title}, separate from your other projects` },
-        { title: t`Use the exported pages`, text: t`They become the editable source` },
-        { title: t`Open the book`, text: t`So you can keep working right away` },
-      ],
+      steps: adtSteps(adt),
       facts: null,
     }
   }

@@ -32,8 +32,13 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigate,
 }))
 
+const pluralize = (count: number, forms: { one: string; other: string }) => (
+  count === 1 ? forms.one : forms.other
+).replace("#", String(count))
+
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Plural: ({ value, one, other }: { value: number; one: string; other: string }) => <>{pluralize(value, { one, other })}</>,
   useLingui: () => ({ t: interpolate, i18n: { _: (value: { message?: string }) => value.message ?? "" } }),
 }))
 
@@ -41,6 +46,7 @@ vi.mock("@lingui/core/macro", () => ({
   msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({
     message: interpolate(strings, ...values),
   }),
+  plural: (count: number, forms: { one: string; other: string }) => pluralize(count, forms),
 }))
 
 vi.mock("@/components/ui/file-drop-overlay", () => ({
@@ -286,7 +292,7 @@ describe("ImportProject", () => {
       expect(screen.getByRole("button", { name: "Import as new project" })).toBeTruthy()
     })
     expect(screen.queryByText("Import destination")).toBeNull()
-    expect(screen.getByText(/separate from your other projects/)).toBeTruthy()
+    expect(screen.getByText(/Separate from your other projects/)).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 
     expect(importAdt).toHaveBeenCalledWith(
@@ -354,8 +360,10 @@ describe("ImportProject", () => {
 
     const review = await screen.findByRole("button", { name: "Review 1 activities" })
     expect(review).toHaveProperty("disabled", false)
+    // The banner names each page and what was found on it, then one primary action.
+    expect(screen.getByText("Choose a type for 1 activity page")).toBeTruthy()
     expect(screen.getByText("index.html")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Review activities" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Choose types" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Copy AI instructions" }))
     await waitFor(() => {
       expect(writeClipboard).toHaveBeenCalledWith("Classify the ambiguous activity candidate.")
@@ -365,8 +373,12 @@ describe("ImportProject", () => {
     expect(screen.getByRole("dialog")).toBeTruthy()
     expect(screen.getByTitle("Preview of index.html").getAttribute("srcdoc"))
       .toContain("Drag each word")
-    fireEvent.click(screen.getByLabelText("Classification for index.html"))
-    fireEvent.click(await screen.findByRole("option", { name: "Custom activity: external" }))
+    // The type list replaces the dropdown: "Not an activity" stands on its own,
+    // and nothing is preselected.
+    expect(screen.getByRole("radio", { name: /Not an activity/ })).toHaveProperty("checked", false)
+    fireEvent.change(screen.getByPlaceholderText("Filter types"), { target: { value: "external" } })
+    expect(screen.queryByRole("radio", { name: /Matching/ })).toBeNull()
+    fireEvent.click(screen.getByRole("radio", { name: /Custom activity: external/ }))
     fireEvent.click(screen.getByRole("button", { name: "Finish review" }))
     const ready = screen.getByRole("button", { name: "Import as new project" })
     expect(ready).toHaveProperty("disabled", false)
@@ -485,7 +497,7 @@ describe("ImportProject", () => {
     await screen.findByRole("button", { name: "Import as new project" })
     expect(screen.queryByRole("radio")).toBeNull()
     expect(screen.queryByText("Project: raven")).toBeNull()
-    expect(screen.getByText(/separate from your other projects/)).toBeTruthy()
+    expect(screen.getByText(/Separate from your other projects/)).toBeTruthy()
   })
 
   it("announces a corrupt project preview as an error instead of ready", async () => {

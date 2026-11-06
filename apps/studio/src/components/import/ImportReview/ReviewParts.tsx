@@ -67,21 +67,68 @@ export function CheckList({ checks }: { checks: Check[] }) {
   )
 }
 
-export function StepList({ steps }: { steps: Step[] }) {
+/**
+ * "Import will" as a checklist with a readiness bar: what's done, what needs
+ * you before import, and what happens when you import. The bar counts only
+ * what has to be done before import.
+ */
+export function ReadinessList({ steps }: { steps: Step[] }) {
+  const required = steps.filter((step) => step.state !== "later")
+  const done = required.filter((step) => step.state === "done").length
+  const total = required.length
+  const ready = done === total
   return (
-    <ol className="flex flex-col gap-3 [@media(max-height:960px)]:gap-2">
-      {steps.map((step, index) => (
-        <li key={step.title} className="flex items-start gap-3">
-          <span className="grid size-6 shrink-0 place-items-center rounded-full border border-brand-200 bg-brand-500/10 text-[11px] font-semibold tabular-nums text-brand-600 dark:border-brand-800 dark:text-brand-400">
-            {index + 1}
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex shrink-0 flex-col gap-1.5">
+        <div className="flex items-baseline justify-between gap-3 text-[13px]">
+          <span className="font-semibold text-foreground">
+            {ready ? <Trans>Ready to import</Trans> : <Trans>Before you import</Trans>}
           </span>
-          <span className="min-w-0">
-            <span className="block text-[13.5px] font-semibold text-foreground">{step.title}</span>
-            <span className="block text-[12.5px] text-muted-foreground">{step.text}</span>
-          </span>
-        </li>
-      ))}
-    </ol>
+          <span className="tabular-nums text-muted-foreground"><Trans>{done} of {total} done</Trans></span>
+        </div>
+        <div aria-hidden="true" className="flex gap-1">
+          {required.map((step) => (
+            <span key={step.title} className={cn("h-1.5 flex-1 rounded-full", step.state === "done" ? "bg-emerald-500" : "bg-border")} />
+          ))}
+        </div>
+      </div>
+      <ol className="flex flex-1 flex-col justify-between">
+        {steps.map((step, index) => (
+          <li
+            key={step.title}
+            className={cn(
+              "flex items-start gap-3 py-2 [@media(max-height:960px)]:py-1.5",
+              index < steps.length - 1 && !step.noDivider && "border-b border-border",
+            )}
+          >
+            <span
+              className={cn(
+                "mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[10.5px] font-semibold tabular-nums",
+                step.state === "done" && "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+                step.state === "todo" && "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+                step.state === "later" && "bg-muted text-muted-foreground",
+              )}
+            >
+              {step.state === "done" ? <CheckIcon aria-hidden="true" className="size-3" /> : step.state === "todo" ? "!" : index + 1}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13.5px] font-semibold text-foreground">{step.title}</span>
+              <span className="block text-[12.5px] text-muted-foreground">{step.text}</span>
+            </span>
+            <span
+              className={cn(
+                "shrink-0 whitespace-nowrap pt-0.5 text-xs",
+                step.state === "done" && "text-emerald-700 dark:text-emerald-400",
+                step.state === "todo" && "font-semibold tabular-nums text-amber-700 dark:text-amber-400",
+                step.state === "later" && "text-muted-foreground",
+              )}
+            >
+              {step.status}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
   )
 }
 
