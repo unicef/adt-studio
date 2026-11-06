@@ -1862,9 +1862,12 @@ describe("POST /books/preview-import", () => {
     expect(body.agentGuide.currentGuide).toContain("<!-- adt-studio-agent-guide: 2 -->")
     // A readable numbered list, not raw validator JSON: people read this
     // request in the review before handing it to an assistant.
-    expect(body.agentGuide.repairPrompt).toMatch(/Fix (this problem|these \d+ problems)/)
-    expect(body.agentGuide.repairPrompt).toMatch(/^1\. .*\(missing-content-root\)$/m)
+    expect(body.agentGuide.repairPrompt).toContain("<problems>")
+    expect(body.agentGuide.repairPrompt).toMatch(/^ {3}problem: .*\(missing-content-root\)$/m)
     expect(body.agentGuide.repairPrompt).not.toContain('"code":')
+    // Addressed to the AI assistant: it reports back, the person's steps stay in the UI.
+    expect(body.agentGuide.repairPrompt).toContain("Reply with what you changed")
+    expect(body.agentGuide.repairPrompt).not.toMatch(/choose (that|the) ZIP/i)
     expect(body.agentGuide.repairPrompt).toContain("<current_adt_agent_guide>")
   })
 

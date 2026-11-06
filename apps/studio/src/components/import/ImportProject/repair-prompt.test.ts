@@ -25,6 +25,12 @@ describe("buildUnreadableRepairPrompt", () => {
     expect(prompt).not.toContain("editingContract.pageOrder")
   })
 
+  it("is addressed to the AI assistant, which reports back instead of using ADT Studio", () => {
+    const prompt = buildUnreadableRepairPrompt("book.zip", "Archive file is not valid JSON: manifest.json")
+    expect(prompt).toContain("Reply with what you changed")
+    expect(prompt).not.toMatch(/choose (that|the) ZIP/i)
+  })
+
   it("explains the editing contract rules when the error is in it", () => {
     const prompt = buildUnreadableRepairPrompt(
       "book.zip",
