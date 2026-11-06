@@ -78,7 +78,7 @@ const variants: Array<[string, AppConfig]> = [
     image_meaningfulness: { ...shipped.image_meaningfulness, model: "openai:gpt-5.5" },
   }],
   ["a non-default default model", { ...shipped, default_model: "anthropic:claude-opus-4" }],
-  ["an explicit book_outline model", { ...shipped, book_outline: { ...shipped.book_outline, model: "openai:gpt-6.1-sol" } }],
+  ["an explicit book_outline model", { ...shipped, book_outline: { ...shipped.book_outline, model: "openai:gpt-6-luna" } }],
 ]
 
 describe("task model display matches the pipeline runtime", () => {
@@ -92,9 +92,10 @@ describe("task model display matches the pipeline runtime", () => {
     }
   })
 
-  it("ships book outline on GPT-6 Luna", () => {
+  it("ships book outline on GPT-6.1 Sol at low effort", () => {
     const tasks = listTaskModels(shipped)
     const outline = tasks.find((task) => task.id === "book_outline")!
-    expect(displayedModel(tasks, outline, shipped.default_model!)).toBe("openai:gpt-6-luna")
+    expect(displayedModel(tasks, outline, shipped.default_model!)).toBe("openai:gpt-6.1-sol")
+    expect(shipped.book_outline?.reasoning_effort).toBe("low")
   })
 })

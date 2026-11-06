@@ -98,14 +98,15 @@ and its source, and structured-call logs record the resolved file path.
 The distributed execution default is `openai:gpt-6-luna`. The shipped
 `config.yaml` pins `openai:gpt-6.1-sol` for visual review (`visual_review.model`)
 and for every activity render strategy (`render_strategies.activity_*.config.model`),
-and `openai:gpt-6-luna` for book outline (`book_outline.model`); agents keep the provider's agent default, `gpt-6.1-sol`. Each of these is a
+and `openai:gpt-6.1-sol` at `low` effort for book outline (`book_outline.model`,
+`book_outline.reasoning_effort`); agents keep the provider's agent default, `gpt-6.1-sol`. Each of these is a
 task-model override shown in Settings > Models. Base prompt provenance remains `openai:gpt-5.4`;
 selecting GPT-5.4 still resolves the legacy base prompts.
 
 Visual review resolves its model as `visual_review.model`, then `default_model`
 (`resolveVisualReviewModelId` in `packages/pipeline/src/visual-review.ts`).
 
-The `openai_gpt_6_1_sol` directory ships three variants:
+The `openai_gpt_6_1_sol` directory ships six variants:
 
 - `web_generation_html`: leads with the goal, input authority, output format,
   and instruction priority, then separates HTML contracts from layout decisions
@@ -119,6 +120,25 @@ The `openai_gpt_6_1_sol` directory ships three variants:
   functional review of web adaptations and editor-directed rerenders. It
   preserves the requested design and fixes the base prompt's contradictory
   mobile-first breakpoint advice. No source-fidelity requirement is added.
+- `book_outline`, `book_outline_chunk` and `book_outline_synthesis`: the
+  single-pass prompt (books up to 24 pages) and the chunk and synthesis prompts
+  (longer books). They lead with the goal and input authority, define what is
+  and is not an outline heading (inline labels and full-sentence tips are not),
+  define each `kind`, and end with completion criteria that mirror the outline
+  validator. Two rules carry the hierarchy: STACKED HEADINGS (a unit title and
+  its first lesson sharing a page are two entries at two levels), and, in
+  synthesis, NORMALIZE STRUCTURE, NOT ONLY STYLE — a chunk that saw no other
+  unit opener may propose one a level too deep, so synthesis gives every
+  opener the levels of the others. When the TOC indentation guide is empty,
+  the printed TOC's same-page-number rows are read as parent and first child.
+
+  Evaluation (one 102-page Albanian workbook without TOC indentation; scored
+  against its printed TOC's 4 units and 28 lessons): Luna placed 1 of 4 units
+  at level 1 in both runs; Sol on the base prompts and Sol on these variants
+  both placed all 32 correctly in every run. The variants raised run-to-run
+  level agreement from 98% to 100% and dropped the base chunk prompt's habit
+  of merging the unit and lesson banners into one heading, which only the
+  synthesis call had been undoing. They add about 4% input tokens.
 
 The `openai_gpt_6_luna` directory ships two variants. `web_generation_html`
 sizes and places images by their footprint on the original page. It retains the
@@ -248,9 +268,10 @@ keep their existing lookup and contracts. The broader rewrite and representative
 complete that evaluation or claim its acceptance criteria.
 
 Image generation/editing and image translation use specialized image models.
-The shipped config pins the book-outline task to `openai:gpt-6-luna` through
-`book_outline.model`; without that value it follows `default_model` like any
-other task, with no mini-model fallback, and uses base prompts. Uploaded overrides and saved book files are never rewritten by the
+The shipped config pins the book-outline task to `openai:gpt-6.1-sol` at `low`
+effort through `book_outline.model` and `book_outline.reasoning_effort`, which
+resolves the Sol outline variants above; without those values it follows
+`default_model` like any other task, with no mini-model fallback. Uploaded overrides and saved book files are never rewritten by the
 default change.
 
 Settings > Models shows the model each task actually runs on. A task without its

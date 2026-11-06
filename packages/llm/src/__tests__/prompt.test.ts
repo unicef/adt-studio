@@ -54,6 +54,27 @@ describe("Luna prompt variants", () => {
 })
 
 describe("Sol prompt variants", () => {
+  it.each(["book_outline", "book_outline_chunk", "book_outline_synthesis"])(
+    "renders the %s variant with stacked-heading rules and delimited evidence; Luna keeps the base prompt",
+    async (name) => {
+      const root = path.resolve(import.meta.dirname, "../../../../prompts")
+      const engine = createPromptEngine(root)
+      expect(engine.resolvePrompt(name, { modelId: "openai:gpt-6-luna" }).filePath).toBe(path.join(root, `${name}.liquid`))
+      const context = {
+        type_scale: null, toc_hierarchy: [], candidates: [], pages: [], proof_sheets: [],
+        chunks: [{ chunk_id: "chunk-001", page_numbers: [1], style_clusters: [], entries: [] }],
+      }
+      const [system, user] = await engine.renderPrompt(name, context, { modelId: "openai:gpt-6.1-sol" })
+      const text = (content: unknown) => typeof content === "string"
+        ? content
+        : (content as Array<{ type: string; text?: string }>).map((part) => part.text ?? "").join("")
+      expect(text(system.content)).toContain("STACKED HEADINGS")
+      expect(text(system.content)).toContain("## DONE WHEN")
+      expect(text(user.content)).toContain("<toc_hierarchy>")
+      expect(text(user.content)).toContain("No reliable TOC hierarchy was detected.")
+    },
+  )
+
   it.each(["visual_review", "visual_review_flexible"])("keeps %s compatible with hidden source dots in generated TOC rows", async (name) => {
     const engine = createPromptEngine(path.resolve(import.meta.dirname, "../../../../prompts"))
     const context = {
@@ -234,7 +255,14 @@ describe("Sol prompt variants", () => {
     const files = fs.readdirSync(folder).filter((file) => file.endsWith(".liquid")).sort()
     // Only the explicitly adapted prompts ship a Sol variant; the rest
     // fall back to the base templates.
-    expect(files).toEqual(["visual_review.liquid", "visual_review_flexible.liquid", "web_generation_html.liquid"])
+    expect(files).toEqual([
+      "book_outline.liquid",
+      "book_outline_chunk.liquid",
+      "book_outline_synthesis.liquid",
+      "visual_review.liquid",
+      "visual_review_flexible.liquid",
+      "web_generation_html.liquid",
+    ])
     expect(engine.resolvePrompt("page_sectioning", { modelId: "openai:gpt-6.1-sol" }).filePath)
       .toBe(path.join(root, "page_sectioning.liquid"))
     for (const file of files) {
