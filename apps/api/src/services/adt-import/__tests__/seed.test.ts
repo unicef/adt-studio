@@ -86,6 +86,37 @@ describe("ADT recovery workspace", () => {
     ])
   })
 
+  it("imports Studio's responsive desktop and mobile copies of one data-id", () => {
+    const withMobileCopy = (mobileText: string) => {
+      const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+      files["index.html"] = strToU8(new TextDecoder().decode(files["index.html"]).replace(
+        '<p data-id="pg001_t001">Original page</p>',
+        '<div class="hidden md:block"><p data-id="pg001_t001">Original page</p></div>'
+          + `<div class="md:hidden"><p data-id="pg001_t001">${mobileText}</p></div>`,
+      ))
+      const manifest = JSON.parse(new TextDecoder().decode(files["manifest.json"]))
+      manifest.editingContract.pageDataIds["index.html"] = ["pg001_t001", "pg001_t001"]
+      files["manifest.json"] = json(manifest)
+      return Buffer.from(zipSync(files))
+    }
+
+    const responsive = withMobileCopy("Original page")
+    expect(assessArchive(responsive)).toEqual({ supported: true, issues: [] })
+    expect(previewAdtRecoveryImport(responsive)).toMatchObject({ pageCount: 2 })
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-responsive-"))
+    temporaryRoots.push(booksDir)
+    expect(seedFromArchive(responsive, booksDir, "responsive.zip"))
+      .toMatchObject({ pageCount: 2, recoveredHtmlEntryCount: 2 })
+
+    // Copies that disagree are a repair issue in the preview, not a server error.
+    const diverged = withMobileCopy("Edited on mobile only")
+    expect(assessArchive(diverged)).toEqual({
+      supported: false,
+      issues: [{ code: "duplicate-data-id", pageHref: "index.html", detail: "pg001_t001" }],
+    })
+    expect(previewAdtRecoveryImport(diverged).compatibility.supported).toBe(false)
+  })
+
   it("rejects a reading order that splits one source page's sections apart", () => {
     const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
     files["pg001_sec002.html"] = strToU8(new TextDecoder().decode(files["pg002_sec001.html"])

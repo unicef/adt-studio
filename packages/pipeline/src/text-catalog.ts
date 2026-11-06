@@ -59,12 +59,11 @@ function exportedLeafElements(html: string) {
  */
 export function exportedActivityCatalogIds(html: string, pageId: string): Map<string, string> {
   const ids = new Map<string, string>()
-  let activityCounter = 0
   for (const el of exportedLeafElements(html)) {
     const dataId = el.attribs["data-id"]
-    if (!dataId.startsWith("activity_gen_")) continue
-    const id = `${pageId}_ac${pad3(++activityCounter)}`
-    if (!ids.has(dataId)) ids.set(dataId, id)
+    // A responsive copy repeats its data-id and must name the same entry.
+    if (!dataId.startsWith("activity_gen_") || ids.has(dataId)) continue
+    ids.set(dataId, `${pageId}_ac${pad3(ids.size + 1)}`)
   }
   return ids
 }
@@ -116,17 +115,17 @@ export function extractTextCatalogEntriesFromHtml(html: string, pageId?: string)
   const elements = exportedLeafElements(html)
 
   const entries: TextCatalogEntry[] = []
+  const activityIds = pageId ? exportedActivityCatalogIds(html, pageId) : new Map<string, string>()
   const seen = new Set<string>()
-  let activityCounter = 0
   for (const el of elements) {
     const dataId = el.attribs["data-id"]
-    const id = pageId && dataId.startsWith("activity_gen_")
-      ? `${pageId}_ac${pad3(++activityCounter)}`
-      : dataId
-    if (seen.has(id)) {
-      throw new Error(`Duplicate data-id in exported ADT page: ${id}`)
-    }
-    seen.add(id)
+    // Responsive layouts export a desktop and a mobile copy under one data-id.
+    // The first copy is the entry, matching the imported storyboard node;
+    // copies whose content disagrees are reported by the import contract
+    // check (`duplicate-data-id`) before anything is imported.
+    if (seen.has(dataId)) continue
+    seen.add(dataId)
+    const id = activityIds.get(dataId) ?? dataId
 
     const text = el.name === "img"
       ? (el.attribs.alt ?? "").replace(/\s+/g, " ").trim()

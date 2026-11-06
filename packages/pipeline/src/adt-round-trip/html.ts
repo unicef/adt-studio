@@ -109,6 +109,15 @@ function isAllowedGoogleFontsLink(tag: string, rel: string, value: string): bool
     && /^https:\/\/fonts\.googleapis\.com\/css2\?/i.test(value)
 }
 
+/** What two copies of one data-id must share to be the same element. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function dataIdCopyContent(element: any): string {
+  if (element.name === "img") {
+    return `img\u0000${(element.attribs?.src ?? "").trim()}\u0000${(element.attribs?.alt ?? "").trim()}`
+  }
+  return textContentExcludingScripts(element).replace(/\s+/g, " ").trim()
+}
+
 /** Validate the stable HTML hooks ADT Studio needs to project an exported page
  * back into pipeline entities. This is deliberately a narrow contract: the
  * importer must reject unsupported page structures instead of guessing. */
@@ -150,7 +159,8 @@ export function inspectImportedHtmlContract(
       ...(section ? [section] : []),
       ...DomUtils.findAll((el) => el.type === "tag", dataIdRoot.children ?? []),
     ]
-    const ids = new Set<string>()
+    const contentById = new Map<string, string>()
+    const reportedDuplicates = new Set<string>()
     let dataIdCount = 0
     for (const element of elements) {
       if (element.type !== "tag") continue
@@ -158,8 +168,18 @@ export function inspectImportedHtmlContract(
       if (dataId) {
         pageDataIds.push(dataId)
         dataIdCount++
-        if (ids.has(dataId)) issues.push({ code: "duplicate-data-id", detail: dataId })
-        ids.add(dataId)
+        // Responsive layouts render the same element twice (a desktop and a
+        // mobile copy) under one data-id, and Studio exports them that way.
+        // Only copies that no longer agree are ambiguous: import keeps the
+        // first, so an edit made to the other copy would be lost silently.
+        const content = dataIdCopyContent(element)
+        const firstContent = contentById.get(dataId)
+        if (firstContent === undefined) {
+          contentById.set(dataId, content)
+        } else if (firstContent !== content && !reportedDuplicates.has(dataId)) {
+          reportedDuplicates.add(dataId)
+          issues.push({ code: "duplicate-data-id", detail: dataId })
+        }
       }
       if (
         element.name === "img"

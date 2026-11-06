@@ -28,7 +28,7 @@ const compatibilityIssueGuidance: Record<AdtImportCompatibilityIssueCode, string
   "multiple-sections": "A page contains more than one canonical section.",
   "missing-section-type": "A canonical section is missing data-section-type.",
   "missing-data-id": "Editable content is missing a stable data-id.",
-  "duplicate-data-id": "A data-id is duplicated.",
+  "duplicate-data-id": "Two elements share a data-id but their content differs. Responsive desktop and mobile copies of one element may share a data-id only while their text (or image src and alt) stays identical: apply the same edit to every copy, or give genuinely new content its own data-id.",
   "image-missing-data-id": "A content image is missing a stable data-id.",
   "remote-asset": "A page references a remote asset.",
   "unsafe-asset": "A page references an unsafe asset path.",

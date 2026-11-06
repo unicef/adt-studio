@@ -183,6 +183,32 @@ describe("inspectImportedHtmlContract", () => {
     })
   })
 
+  it("accepts identical responsive copies of a data-id and flags copies that disagree", () => {
+    const page = (mobileText: string, mobileAlt: string) => `
+      <div id="content">
+        <section data-section-id="pg001_sec001" data-section-type="content">
+          <div class="hidden md:block">
+            <p data-id="pg001_p000">Same text</p>
+            <img data-id="pg001_im001" src="images/pg001_im001.png" alt="A volcano">
+          </div>
+          <div class="md:hidden">
+            <p data-id="pg001_p000">${mobileText}</p>
+            <img data-id="pg001_im001" src="images/pg001_im001.png" alt="${mobileAlt}">
+          </div>
+        </section>
+      </div>
+    `
+    const identical = inspectImportedHtmlContract(page("Same  text", "A volcano"), "pg001_sec001")
+    expect(identical.issues.filter((issue) => issue.code === "duplicate-data-id")).toEqual([])
+    expect(identical.dataIds).toEqual(["pg001_p000", "pg001_im001", "pg001_p000", "pg001_im001"])
+
+    const edited = inspectImportedHtmlContract(page("Edited on mobile only", "A mountain"), "pg001_sec001")
+    expect(edited.issues.filter((issue) => issue.code === "duplicate-data-id")).toEqual([
+      { code: "duplicate-data-id", detail: "pg001_p000" },
+      { code: "duplicate-data-id", detail: "pg001_im001" },
+    ])
+  })
+
   it("accepts the legacy quiz section identity only when explicitly enabled", () => {
     const html = `
       <div id="content">

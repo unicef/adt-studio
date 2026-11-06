@@ -3,6 +3,7 @@ import type { Storage, PageData } from "@adt/storage"
 import {
   buildTextCatalog,
   extractTextCatalogEntriesFromHtml,
+  exportedActivityCatalogIds,
 } from "../text-catalog.js"
 
 function createMockStorage(
@@ -735,11 +736,30 @@ describe("extractTextCatalogEntriesFromHtml", () => {
     ])
   })
 
-  it("rejects duplicate stable ids instead of producing ambiguous speech", () => {
-    expect(() => extractTextCatalogEntriesFromHtml(`
-      <p data-id="pg001_n001">One</p>
-      <p data-id="pg001_n001">Two</p>
-    `)).toThrow("Duplicate data-id")
+  it("recovers one entry for the desktop and mobile copies of a responsive element", () => {
+    // Studio's own exports repeat a data-id across responsive layouts.
+    const html = `
+      <div id="content">
+        <div class="hidden md:block">
+          <p data-id="pg001_n001">Shared text</p>
+          <p data-id="activity_gen_q">Question</p>
+        </div>
+        <div class="md:hidden">
+          <p data-id="pg001_n001">Shared text</p>
+          <p data-id="activity_gen_q">Question</p>
+        </div>
+        <p data-id="activity_gen_a">Answer</p>
+      </div>
+    `
+    expect(extractTextCatalogEntriesFromHtml(html, "pg001")).toEqual([
+      { id: "pg001_n001", text: "Shared text" },
+      { id: "pg001_ac001", text: "Question" },
+      { id: "pg001_ac002", text: "Answer" },
+    ])
+    expect([...exportedActivityCatalogIds(html, "pg001")]).toEqual([
+      ["activity_gen_q", "pg001_ac001"],
+      ["activity_gen_a", "pg001_ac002"],
+    ])
   })
 
   it("uses the exported content root and rewrites generated activity ids", () => {
