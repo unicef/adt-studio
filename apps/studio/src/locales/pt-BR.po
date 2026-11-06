@@ -2441,7 +2441,7 @@ msgid "Brewing a fresh batch of HTML..."
 msgstr "Preparando uma nova leva de HTML..."
 
 msgid "Bring in a project, a book part, or an ADT Web export."
-msgstr "Traga um projeto, uma parte de livro ou uma exportação ADT Web."
+msgstr "Importe um projeto, uma parte de livro ou uma exportação ADT Web."
 
 msgid "Browse all Google Fonts…"
 msgstr "Explorar todas as Google Fonts…"
@@ -2558,7 +2558,7 @@ msgid "Can't reach the readers"
 msgstr "Não é possível acessar os leitores"
 
 msgid "Can’t tell"
-msgstr "Não dá para saber"
+msgstr "Não é possível saber"
 
 msgid "Cancel"
 msgstr "Cancelar"
@@ -5873,7 +5873,7 @@ msgid "Import as new project"
 msgstr "Importar como novo projeto"
 
 msgid "Import can’t start until each page has a type. Pick them yourself, or give the instructions to your AI assistant."
-msgstr "A importação não pode começar até que cada página tenha um tipo. Escolha você mesmo ou passe as instruções ao seu assistente de IA."
+msgstr "A importação não pode começar até que cada página tenha um tipo. Escolha-os você mesmo ou passe as instruções ao seu assistente de IA."
 
 msgid "Import existing project"
 msgstr "Importar projeto existente"
@@ -7236,7 +7236,7 @@ msgid "Needs rebuild"
 msgstr "Precisa ser reconstruído"
 
 msgid "Needs repair"
-msgstr "Precisa de correção"
+msgstr "Precisa de reparo"
 
 msgid "Needs review"
 msgstr "Precisa de revisão"
@@ -8662,7 +8662,7 @@ msgid "Part {0}"
 msgstr "Parte {0}"
 
 msgid "Part details (part.json)"
-msgstr "Dados da parte (part.json)"
+msgstr "Detalhes da parte (part.json)"
 
 msgid "Part details, PDF and settings found"
 msgstr "Detalhes da parte, PDF e configurações encontrados"
@@ -12231,7 +12231,7 @@ msgid "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which A
 msgstr "A solicitação aparece como <0>Wrangler</0> — a própria ferramenta do Cloudflare, pela qual o ADT Studio faz login. Isso é esperado."
 
 msgid "The rules ADT Studio checks. Your assistant gets them with the repair request."
-msgstr "As regras que o ADT Studio verifica. Seu assistente as recebe com o pedido de correção."
+msgstr "As regras que o ADT Studio verifica. Seu assistente as recebe com a solicitação de reparo."
 
 msgid "The same edition in every language."
 msgstr "A mesma edição em todos os idiomas."
@@ -12327,7 +12327,7 @@ msgid "These pages come from an imported ADT export. Edit them here; regeneratin
 msgstr "Estas páginas vêm de uma exportação ADT importada. Edite-as aqui; a regeneração do Storyboard está desativada para que ela não possa sobrescrevê-las."
 
 msgid "These pages have controls a learner can use. Tell ADT Studio what each one is."
-msgstr "Estas páginas têm controles que o estudante pode usar. Diga ao ADT Studio o que cada uma é."
+msgstr "Estas páginas têm controles que o estudante pode usar. Diga ao ADT Studio o que é cada uma."
 
 msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Estas páginas não têm camada de texto incorporada, mas a etapa de Seccionamento recuperou texto a partir das imagens das páginas — portanto este PDF parece digitalizado ou baseado em imagens. O pipeline ainda pode funcionar com o texto recuperado, mas para melhores resumos, metadados e traduções, tente obter uma versão deste PDF baseada em texto (com uma camada de texto real) em vez de uma cópia digitalizada."

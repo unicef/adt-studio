@@ -2441,7 +2441,7 @@ msgid "Brewing a fresh batch of HTML..."
 msgstr "Preparando un nuevo lote de HTML..."
 
 msgid "Bring in a project, a book part, or an ADT Web export."
-msgstr "Trae un proyecto, una parte de libro o una exportación ADT Web."
+msgstr "Importa un proyecto, una parte de libro o una exportación ADT Web."
 
 msgid "Browse all Google Fonts…"
 msgstr "Explorar todas las Google Fonts…"
@@ -2456,7 +2456,7 @@ msgid "Browse every Storyboard section and upload, replace, or remove its sign-l
 msgstr "Explora cada sección del Storyboard y sube, reemplaza o elimina su video de lenguaje de señas."
 
 msgid "Browse files"
-msgstr "Buscar archivos"
+msgstr "Examinar archivos"
 
 msgid "Browser didn't open? Use this link"
 msgstr "¿No se abrió el navegador? Use este enlace"
@@ -2558,7 +2558,7 @@ msgid "Can't reach the readers"
 msgstr "No se puede acceder a los lectores"
 
 msgid "Can’t tell"
-msgstr "No se sabe"
+msgstr "No se puede saber"
 
 msgid "Cancel"
 msgstr "Cancelar"
@@ -5105,7 +5105,7 @@ msgid "Forms & controls"
 msgstr "Formularios y controles"
 
 msgid "Found"
-msgstr "Encontrado"
+msgstr "Disponible"
 
 msgid "FR"
 msgstr "FR"
@@ -5888,7 +5888,7 @@ msgid "Import returned .zip"
 msgstr "Importar .zip devuelto"
 
 msgid "Import will"
-msgstr "Al importar se va a"
+msgstr "Qué hará la importación"
 
 msgid "Imported"
 msgstr "Importado"

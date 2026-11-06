@@ -417,7 +417,7 @@ msgstr "{0} traductions"
 #. placeholder {1}: i18n._(recovered[1].label)
 #. placeholder {2}: recoveredCount - 2
 msgid "{0}, {1} and {2} more"
-msgstr "{0}, {1} et {2} de plus"
+msgstr "{0}, {1} et {2} autres"
 
 #. placeholder {0}: adt.title
 #~ msgid "{0}, separate from your other projects"
@@ -481,7 +481,7 @@ msgid "{0}s ago"
 msgstr "il y a {0} s"
 
 msgid "{availableCount} more you can generate after import:"
-msgstr "{availableCount} de plus à générer après l’import :"
+msgstr "{availableCount} autres à générer après l’import :"
 
 #. placeholder {0}: items.length
 msgid "{classifiedCount} of {0} classified"
@@ -792,7 +792,7 @@ msgid "/ Section {0}"
 msgstr "/ Section {0}"
 
 msgid "+{more} more"
-msgstr "+{more} de plus"
+msgstr "+{more} autres"
 
 msgid "×4"
 msgstr "×4"
@@ -1256,7 +1256,7 @@ msgstr "Type d'activité"
 
 #. placeholder {0}: item.href
 msgid "Activity type for {0}"
-msgstr "Type d’activité de {0}"
+msgstr "Type d’activité pour {0}"
 
 msgid "Activity types"
 msgstr "Types d’activité"
@@ -2560,7 +2560,7 @@ msgid "Can't reach the readers"
 msgstr "Impossible d’accéder aux lecteurs"
 
 msgid "Can’t tell"
-msgstr "Impossible à dire"
+msgstr "Impossible à déterminer"
 
 msgid "Cancel"
 msgstr "Annuler"
@@ -3305,7 +3305,7 @@ msgid "Contents"
 msgstr "Contenu"
 
 msgid "Contents entries"
-msgstr "Entrées de la table des matières"
+msgstr "Entrées du sommaire"
 
 msgid "Context"
 msgstr "Contexte"
@@ -4520,7 +4520,7 @@ msgid "Enhancements"
 msgstr "Améliorations"
 
 msgid "Enter a missing word or short phrase."
-msgstr "Saisir un mot ou une courte phrase manquante."
+msgstr "Saisir un mot ou une courte phrase manquants."
 
 msgid "Enter a model id for each task."
 msgstr "Saisissez un identifiant de modèle pour chaque tâche."
@@ -5107,7 +5107,7 @@ msgid "Forms & controls"
 msgstr "Formulaires et contrôles"
 
 msgid "Found"
-msgstr "Trouvé"
+msgstr "Présent"
 
 msgid "FR"
 msgstr "FR"
@@ -5731,7 +5731,7 @@ msgid "Image captions"
 msgstr "Légendes d'images"
 
 msgid "Image Captions"
-msgstr "Image Légendes"
+msgstr "Légendes d’images"
 
 msgid "Image Cropping"
 msgstr "Recadrage d'images"
@@ -5875,7 +5875,7 @@ msgid "Import as new project"
 msgstr "Importer comme nouveau projet"
 
 msgid "Import can’t start until each page has a type. Pick them yourself, or give the instructions to your AI assistant."
-msgstr "L’import ne peut pas commencer tant que chaque page n’a pas de type. Choisissez-les vous-même ou donnez les instructions à votre assistant IA."
+msgstr "L’import ne peut pas commencer avant que chaque page ait un type. Choisissez-les vous-même ou donnez les instructions à votre assistant IA."
 
 msgid "Import existing project"
 msgstr "Importer un projet existant"
@@ -7827,7 +7827,7 @@ msgid "Not found in the book text"
 msgstr "Non trouvé dans le texte du livre"
 
 msgid "Not found: a .db file and the PDF at the top level"
-msgstr "Introuvable : un fichier .db et le PDF au premier niveau"
+msgstr "Introuvables : un fichier .db et le PDF au premier niveau"
 
 msgid "Not found: manifest.json from an ADT Web export"
 msgstr "Introuvable : manifest.json d’un export ADT Web"
@@ -11659,7 +11659,7 @@ msgstr "Suggérer des traductions améliorées lorsqu'une entrée nécessite une
 
 #. placeholder {0}: controlsLabel(item.controls)
 msgid "Suggested for {0}"
-msgstr "Suggérés pour {0}"
+msgstr "Suggestions pour {0}"
 
 msgid "Suggested modification"
 msgstr "Modification suggérée"
@@ -11719,7 +11719,7 @@ msgid "Table of contents"
 msgstr "Table des matières"
 
 msgid "Table of Contents"
-msgstr "tableau des matières"
+msgstr "Table des matières"
 
 msgid "Tables"
 msgstr "Tableaux"

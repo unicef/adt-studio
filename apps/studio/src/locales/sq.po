@@ -1564,7 +1564,7 @@ msgid "ADT Studio couldn't check this archive"
 msgstr "ADT Studio nuk mundi ta kontrollonte këtë arkiv"
 
 msgid "ADT Studio found the book, but these files don’t follow the editing rules. An AI assistant can fix them."
-msgstr "ADT Studio e gjeti librin, por këto skedarë nuk ndjekin rregullat e redaktimit. Një asistent IA mund t’i rregullojë."
+msgstr "ADT Studio e gjeti librin, por këta skedarë nuk ndjekin rregullat e redaktimit. Një asistent IA mund t’i rregullojë."
 
 msgid "ADT Studio is no longer signed in to {accountName}, so it can't share new books or update shared ones. Books you already shared stay online."
 msgstr "ADT Studio nuk është më i lidhur me {accountName}, prandaj nuk mund të ndajë libra të rinj ose të përditësojë ata që janë ndarë. Librat që keni ndarë tashmë mbeten në internet."
@@ -1997,7 +1997,7 @@ msgid "Archive checked"
 msgstr "Arkivi u kontrollua"
 
 msgid "Archive contents"
-msgstr "Arkivo përmbajtjen"
+msgstr "Përmbajtja e arkivit"
 
 #. placeholder {0}: confirmMerge?.label ?? ""
 msgid "Are you sure you want to {0}? This action cannot be undone."
@@ -3305,7 +3305,7 @@ msgid "Contents"
 msgstr "Përmbajtja"
 
 msgid "Contents entries"
-msgstr "Hyrje të përmbajtjes"
+msgstr "Hyrjet e tabelës së përmbajtjes"
 
 msgid "Context"
 msgstr "Konteksti"
@@ -5230,7 +5230,7 @@ msgid "Generate activity"
 msgstr "Gjenero aktivitet"
 
 msgid "Generate again"
-msgstr "Gjenerojeni sërish"
+msgstr "Do të rigjenerohet"
 
 msgid "Generate an open-ended reflection question about this page."
 msgstr "Gjenero një pyetje reflektimi me përgjigje të hapur për këtë faqe."
@@ -5379,7 +5379,7 @@ msgid "GitHub"
 msgstr "GitHub"
 
 msgid "Give it to your AI assistant together with the unzipped archive."
-msgstr "Jepjani asistentit tuaj AI së bashku me arkivin e shpaketuar."
+msgstr "Jepjani asistentit tuaj IA së bashku me arkivin e shpaketuar."
 
 msgid "Global prompt reset to default."
 msgstr "Prompti global u resetua në parazgjedhje."
@@ -5875,7 +5875,7 @@ msgid "Import as new project"
 msgstr "Importo si projekt i ri"
 
 msgid "Import can’t start until each page has a type. Pick them yourself, or give the instructions to your AI assistant."
-msgstr "Importimi nuk mund të fillojë derisa çdo faqe të ketë një lloj. Zgjidhini vetë ose jepjani udhëzimet asistentit tuaj AI."
+msgstr "Importimi nuk mund të fillojë derisa çdo faqe të ketë një lloj. Zgjidhini vetë ose jepjani udhëzimet asistentit tuaj IA."
 
 msgid "Import existing project"
 msgstr "Importo projekt ekzistues"
@@ -5890,7 +5890,7 @@ msgid "Import returned .zip"
 msgstr "Importo .zip të kthyer"
 
 msgid "Import will"
-msgstr "Importimi do të"
+msgstr "Çfarë do të bëjë importimi"
 
 msgid "Imported"
 msgstr "I importuar"
@@ -7163,7 +7163,7 @@ msgid "Multiple retained outputs share this ID. Save one reviewed value or expli
 msgstr "Disa rezultate të ruajtura ndajnë këtë ID. Ruani një vlerë të rishikuar ose zëvendësojeni shprehimisht. Versionet e mëparshme mbeten në historik."
 
 msgid "Multiple selection"
-msgstr "Zgjedhje e shumëfishtë"
+msgstr "Përzgjedhje e shumëfishtë"
 
 msgid "Mute all from read-aloud"
 msgstr "Heshtni të gjitha nga leximi me zë"
@@ -8039,7 +8039,7 @@ msgid "One column for every section. Clean and predictable."
 msgstr "Një kolonë për çdo seksion. E pastër dhe e parashikueshme."
 
 msgid "One of its files is broken, so ADT Studio stopped reading it. An AI assistant can fix it; nothing is imported until you choose the repaired ZIP."
-msgstr "Një nga skedarët e tij është i dëmtuar, ndaj ADT Studio ndaloi së lexuari. Një asistent AI mund ta rregullojë; asgjë nuk importohet derisa të zgjidhni ZIP-in e riparuar."
+msgstr "Një nga skedarët e tij është i dëmtuar, ndaj ADT Studio ndaloi së lexuari. Një asistent IA mund ta rregullojë; asgjë nuk importohet derisa të zgjidhni ZIP-in e riparuar."
 
 msgid "One step before you can run this"
 msgstr "Një hap para se ta ekzekutoni"
@@ -9049,7 +9049,7 @@ msgid "Project backup"
 msgstr "Rezervë e projektit"
 
 msgid "Project database"
-msgstr "Baza e të dhënave e projektit"
+msgstr "Baza e të dhënave të projektit"
 
 msgid "Project database and PDF found"
 msgstr "Baza e të dhënave të projektit dhe PDF-ja u gjetën"
@@ -9555,7 +9555,7 @@ msgid "Record reviewer findings for the current page and save them to the active
 msgstr "Regjistroni gjetjet e rishikuesit për faqen aktuale dhe ruajini në sesionin aktiv të validimit."
 
 msgid "Recover {recoveredCount} {recoveredCount, plural, one {feature} other {features}}"
-msgstr "Rikthe {recoveredCount} {recoveredCount, plural, one {veçori} other {veçori}}"
+msgstr "Riktheni {recoveredCount} {recoveredCount, plural, one {veçori} other {veçori}}"
 
 msgid "Recrop from page"
 msgstr "Rirritjo nga faqja"
@@ -13696,7 +13696,7 @@ msgid "When describing images, mention any culturally specific objects, location
 msgstr "Kur përshkruan imazhet, përmend çdo objekt specifik kulturor, vendndodhje ose personazh të përsëritur me emër."
 
 msgid "When done"
-msgstr "Kur të përfundojë"
+msgstr "Kur të përfundoni"
 
 msgid "When enabled, background colors from the styleguide are applied to the full page body."
 msgstr "Kur aktivizohet, ngjyrat e sfondit nga udhëzuesi i stilit aplikohen në të gjithë trupin e faqes."
