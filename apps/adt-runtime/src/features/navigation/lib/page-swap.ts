@@ -310,6 +310,24 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
 }
 
+/**
+ * Stop presses on the page root from selecting text while a page-turn
+ * transition runs.
+ *
+ * While a view transition animates, Chrome hit-tests every press to `<html>`
+ * instead of the element under the pointer, so a reader clicking Next two or
+ * three times in quick succession double- or triple-clicks the page and selects
+ * a word or paragraph of book text. `::view-transition { pointer-events: none }`
+ * does not change that hit-test.
+ *
+ * Cancelling the press drops its other defaults too (focus change, drag start,
+ * middle-click autoscroll). That is harmless for the quarter-second the
+ * animation runs, when no press can reach a control anyway, and it leaves focus
+ * on `<main>`, where `moveReadingPosition` put it.
+ *
+ * Each transition holds its own listener, so a skipped transition settling
+ * early does not release the one that replaced it.
+ */
 function preventRootSelectionUntil(done: Promise<unknown>): void {
   const preventRootSelection = (event: MouseEvent) => {
     if (event.target === document.documentElement) event.preventDefault()
