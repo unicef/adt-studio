@@ -106,7 +106,10 @@ import {
   buildTtsLogEntry,
   NO_SPEAKABLE_TEXT_REASON,
   classifyElevenLabsTtsError,
+  classifyTtsError,
   elevenLabsTtsRetryDelayMs,
+  openAiTtsRetryDelayMs,
+  OPENAI_TTS_MAX_RETRIES,
   ELEVENLABS_TTS_MAX_CONCURRENCY,
   ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
   findAdjacentSpeechText,
@@ -3554,6 +3557,28 @@ async function runSpeechStep(
                 const retryDelayMs = elevenLabsTtsRetryDelayMs(attemptCount)
                 console.warn(
                   `[stage-run] ${label}: ElevenLabs TTS ${kind === "rate-limit" ? "rate limited" : "transient error"} for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
+                )
+                await sleep(retryDelayMs, options.signal)
+                if (options.signal?.aborted) throw new RunCancelledError()
+                continue
+              }
+              throw err
+            }
+
+            // OpenAI: dropped connections, no-response timeouts, 429 and 5xx
+            // are transient. They arrive in bursts (a network blip fails every
+            // in-flight request at once), so retry with jittered backoff
+            // instead of losing the entry on its first attempt (#1067).
+            if (provider === "openai") {
+              const kind = classifyTtsError(msg)
+              if (
+                kind !== "permanent" &&
+                !options.signal?.aborted &&
+                attemptCount <= OPENAI_TTS_MAX_RETRIES
+              ) {
+                const retryDelayMs = openAiTtsRetryDelayMs(attemptCount)
+                console.warn(
+                  `[stage-run] ${label}: OpenAI TTS ${kind === "rate-limit" ? "rate limited" : "transient error"} for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${OPENAI_TTS_MAX_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
                 )
                 await sleep(retryDelayMs, options.signal)
                 if (options.signal?.aborted) throw new RunCancelledError()

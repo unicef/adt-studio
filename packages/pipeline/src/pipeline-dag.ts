@@ -109,10 +109,12 @@ import {
   NO_SPEAKABLE_TEXT_REASON,
   findAdjacentSpeechText,
   elevenLabsVoiceSettingsFromConfig,
-  classifyElevenLabsTtsError,
+  classifyTtsError,
   elevenLabsTtsRetryDelayMs,
+  openAiTtsRetryDelayMs,
   ELEVENLABS_TTS_MAX_CONCURRENCY,
   ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
+  OPENAI_TTS_MAX_RETRIES,
 } from "./speech.js"
 import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
@@ -1203,11 +1205,18 @@ export async function runFullPipeline(
         }
 
         // ElevenLabs throttles on concurrent requests, so a burst returns 429s
-        // that would otherwise fail the entry outright. Retry 429/5xx with the
-        // same backoff the API stage-runner uses.
+        // that would otherwise fail the entry outright. OpenAI drops every
+        // in-flight request at once on a network blip (#1067). Retry 429/5xx and
+        // transport errors with the same backoff the API stage-runner uses.
+        const retryPolicy =
+          provider === "elevenlabs"
+            ? { name: "ElevenLabs", maxRetries: ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES, delayMs: elevenLabsTtsRetryDelayMs }
+            : provider === "openai"
+              ? { name: "OpenAI", maxRetries: OPENAI_TTS_MAX_RETRIES, delayMs: (attempt: number) => openAiTtsRetryDelayMs(attempt) }
+              : null
         let entry: Awaited<ReturnType<typeof generateSpeechFile>>
         try {
-          if (provider === "elevenlabs") {
+          if (retryPolicy) {
             for (let retryCount = 1; ; retryCount++) {
               try {
                 entry = await generate()
@@ -1215,12 +1224,12 @@ export async function runFullPipeline(
               } catch (err) {
                 const message = err instanceof Error ? err.message : String(err)
                 if (
-                  classifyElevenLabsTtsError(message) === "permanent" ||
-                  retryCount > ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
+                  classifyTtsError(message) === "permanent" ||
+                  retryCount > retryPolicy.maxRetries
                 ) throw err
-                const delayMs = elevenLabsTtsRetryDelayMs(retryCount)
+                const delayMs = retryPolicy.delayMs(retryCount)
                 console.warn(
-                  `[pipeline] ElevenLabs TTS failed for ${item.textId} (${item.language}); retrying ${retryCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${delayMs}ms: ${message}`
+                  `[pipeline] ${retryPolicy.name} TTS failed for ${item.textId} (${item.language}); retrying ${retryCount + 1}/${retryPolicy.maxRetries + 1} in ${delayMs}ms: ${message}`
                 )
                 await new Promise((resolve) => setTimeout(resolve, delayMs))
               }
