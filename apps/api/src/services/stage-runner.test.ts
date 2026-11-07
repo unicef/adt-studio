@@ -1569,6 +1569,69 @@ speech:
     }
   })
 
+
+  describe("OpenAI TTS transport failures (#1067)", () => {
+    const spies: Array<{ mockRestore: () => void }> = []
+    afterEach(() => { for (const spy of spies.splice(0)) spy.mockRestore() })
+    const openAiConfig = `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: openai
+`
+    const setup = (label: string) => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+      const booksDir = path.join(tmpDir, "books")
+      const promptsDir = path.join(tmpDir, "prompts")
+      const configPath = path.join(tmpDir, "config.yaml")
+      fs.mkdirSync(promptsDir, { recursive: true })
+      for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
+      fs.writeFileSync(configPath, openAiConfig)
+      seedTextAndSpeechBook(booksDir, label)
+      return { booksDir, promptsDir, configPath }
+    }
+    const run = (label: string, dirs: { booksDir: string; promptsDir: string; configPath: string }, events: ProgressEvent[]) =>
+      createStageRunner().run(
+        label,
+        { ...dirs, credentials: { openai: { apiKey: "sk-test" } }, fromStage: "translate", toStage: "speech" },
+        { emit: (event) => events.push(event) },
+      )
+
+    it("retries a dropped connection instead of losing the entry on its first attempt", async () => {
+      const dirs = setup("openai-tts-dropped")
+      spies.push(vi.spyOn(Math, "random").mockReturnValue(0)) // shortest jittered backoff
+      spies.push(vi.spyOn(console, "warn").mockImplementation(() => {}))
+      generateSpeechFileMock
+        .mockRejectedValueOnce(new Error("fetch failed (UND_ERR_SOCKET: other side closed)"))
+        .mockResolvedValueOnce(undefined)
+
+      const events: ProgressEvent[] = []
+      await run("openai-tts-dropped", dirs, events)
+
+      expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
+      expect(events.some((event) => event.type === "step-complete" && event.step === "tts")).toBe(true)
+      const storage = createBookStorage("openai-tts-dropped", dirs.booksDir)
+      try {
+        const ttsOutput = storage.getLatestNodeData("tts", "en")?.data as { failed?: unknown[] } | undefined
+        expect(ttsOutput?.failed ?? []).toEqual([])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("does not retry a permanent OpenAI error", async () => {
+      const dirs = setup("openai-tts-permanent")
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+      spies.push(warn)
+      generateSpeechFileMock.mockRejectedValueOnce(new Error("TTS request failed (400): Invalid voice"))
+
+      await run("openai-tts-permanent", dirs, []).catch(() => {})
+
+      expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+      expect(warn.mock.calls.some((call) => String(call[0]).includes("OpenAI TTS"))).toBe(false)
+    })
+  })
   it("fails the speech step before any synthesis when a provider credential is missing", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")
