@@ -184,6 +184,35 @@ describe("minimumLearnerResponseCount", () => {
     expect(minimumLearnerResponseCount(table, "activity_fill_in_a_table")).toBe(6)
   })
 
+  it("counts only the empty cells of a letter-cell word, not the given letters", () => {
+    const cells = ["A", "_", "A", "R", "_", "-", "_", "A"].map((text, i): RenderNode => ({ node_id: `c${i}`, role: "activity_fill_in_the_blank", text }))
+    expect(minimumLearnerResponseCount([{ node_id: "a", structure: "activity", children: cells }], "activity_fill_in_the_blank")).toBe(3)
+  })
+
+  it("still counts word prompts that sit apart from the section's placeholder blanks", () => {
+    // "Make one sentence per word" items, each in its own list item, next to a
+    // separate exercise whose blanks show `___`: every word needs an answer.
+    const item = (id: string, text: string): RenderNode => ({ node_id: id, structure: "list_item", children: [{ node_id: `${id}t`, role: "activity_fill_in_the_blank", text }] })
+    const nodes: RenderNode[] = [{ node_id: "a", structure: "activity", children: [
+      { node_id: "l1", structure: "list", children: [item("w1", "1. bingwa"), item("w2", "2. heshimu"), item("w3", "3. azimia")] },
+      { node_id: "l2", structure: "list", children: [item("p1", "1. ___ kwamba ___"), item("p2", "2. ___ kuwa ___")] },
+    ] }]
+    expect(minimumLearnerResponseCount(nodes, "activity_fill_in_the_blank")).toBe(5)
+  })
+
+  it("treats a passage split into consecutive question sentences as one choice question", () => {
+    const option = (id: string): RenderNode => ({ node_id: id, structure: "activity_option", children: [{ node_id: `${id}t`, role: "text", text: id }] })
+    const nodes: RenderNode[] = [{ node_id: "a", structure: "activity", children: [
+      { node_id: "q1", role: "activity_question", text: "Episode one." }, option("o1"), option("o2"),
+      { node_id: "q2a", role: "activity_question", text: "The grandfather challenged her." },
+      { node_id: "q2b", role: "activity_question", text: "Elena accepted." },
+      { node_id: "q2c", role: "activity_question", text: "Sometimes she lost." }, option("o3"), option("o4"),
+    ] }]
+    expect(minimumLearnerResponseCount(nodes, "activity_multiple_choice")).toBe(2)
+    // Open-ended questions listed together are still separate answers.
+    expect(minimumLearnerResponseCount(nodes, "activity_open_ended_answer")).toBe(4)
+  })
+
   it("requires one response for non-English activity instructions", () => {
     expect(minimumLearnerResponseCount([
       { node_id: "i1", role: "activity_instruction", text: "Completa las frases." },

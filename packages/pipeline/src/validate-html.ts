@@ -80,6 +80,14 @@ function countEditableElements(section: any): number {
       el.attribs.class.split(/\s+/).includes("activity-underline-option"),
     section.children ?? [],
   ).length
+  // Matching, sorting and ordering answer by dragging cards, not by typing:
+  // each distinct draggable activity item is a response control.
+  count += new Set(
+    DomUtils.findAll(
+      (el) => el.type === "tag" && el.attribs?.draggable === "true" && !!el.attribs?.["data-activity-item"],
+      section.children ?? [],
+    ).map((el) => el.attribs["data-activity-item"]),
+  ).size
   const markerText = DomUtils.textContent(section)
   count += markerText.match(BLANK_MARKER_RE)?.length ?? 0
   return count
