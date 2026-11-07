@@ -311,7 +311,10 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         // can show sections/renderings as they complete (throttled to ~2s).
         // Invalidates both the page list (sidebar) and individual page details.
         if (pipelineStep === "web-rendering" && typeof d.publishedPageId === "string") {
-          queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+          // An initial read may predate this publication. Invalidation alone
+          // reuses that pending request when the query has no cached data yet.
+          const pages = { queryKey: ["books", label, "pages"] }
+          void queryClient.cancelQueries(pages).then(() => queryClient.invalidateQueries(pages))
         } else if ((PAGE_PROGRESS_STEPS as ReadonlySet<string>).has(pipelineStep) && (totalPages ?? 0) > 0) {
           const now = Date.now()
           if (now - lastPageInvalidateRef.current > 2000) {

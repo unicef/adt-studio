@@ -53,7 +53,7 @@ it.each([false, true])("a committed first page refreshes Studio immediately even
     await waitFor(() => expect(listeners.has("progress")).toBe(true))
     act(() => listeners.get("progress")!({ data: JSON.stringify({ type: "step-start", step: "web-rendering" }) }))
     invalidate.mockClear()
-    act(() => listeners.get("progress")!({ data: JSON.stringify({ type: "step-progress", step: "web-rendering", publishedPageId: "pg001", message: "1/2", ...(fixed ? {} : { page: 1, totalPages: 2 }) }) }))
+    await act(async () => listeners.get("progress")!({ data: JSON.stringify({ type: "step-progress", step: "web-rendering", publishedPageId: "pg001", message: "1/2", ...(fixed ? {} : { page: 1, totalPages: 2 }) }) }))
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["books", "retained", "pages"] })
     // No second-page progress event or timer is needed to make page 1 clickable.
   } finally { now.mockRestore(); invalidate.mockRestore() }
