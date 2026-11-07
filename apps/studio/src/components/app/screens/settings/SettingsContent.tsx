@@ -1,7 +1,8 @@
 import { Outlet } from "@tanstack/react-router"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 
-export function SettingsContent({ fullWidth }: { fullWidth: boolean }) {
+export function SettingsContent({ fullWidth, wide }: { fullWidth: boolean; wide: boolean }) {
   if (fullWidth) {
     return (
       <div className="flex min-h-0 flex-1 flex-col px-[34px] pb-6 pt-4">
@@ -13,7 +14,7 @@ export function SettingsContent({ fullWidth }: { fullWidth: boolean }) {
   return (
     <ScrollArea className="flex min-h-0 flex-1 flex-col" viewportClassName="topbar-scroll-fade">
       <ScrollBar className="z-10" />
-      <div className="mx-auto w-full max-w-[860px] px-[34px] pb-14 pt-4">
+      <div className={cn("mx-auto w-full px-[34px] pb-14 pt-4", wide ? "max-w-[1240px]" : "max-w-[860px]")}>
         <Outlet />
       </div>
     </ScrollArea>

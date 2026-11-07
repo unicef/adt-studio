@@ -1,12 +1,42 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { GenerateObjectResult, LLMModel } from "@adt/llm"
-import { runVisualReviewLoop } from "../visual-review.js"
+import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
+import type { AppConfig } from "@adt/types"
+import { resolveVisualReviewModelId, runVisualReviewLoop } from "../visual-review.js"
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
 
 describe("runVisualReviewLoop", () => {
+  it.each([
+    { name: "an unrepairable defect", revisions: [""], approved: false, expected: "Initial" },
+    { name: "an unchanged revision", revisions: ['<section data-section-id="s1">Initial</section>  '], approved: false, expected: "Initial" },
+    { name: "a revision cycle", revisions: ['<section data-section-id="s1">Revised</section>', '<section data-section-id="s1">Initial</section>'], approved: false, expected: "Revised" },
+    { name: "approval with extraneous content", revisions: ['<section data-section-id="s1">Ignored</section>'], approved: true, expected: "Initial" },
+  ])("stops on $name without extra calls or overwriting accepted HTML", async ({ revisions, approved, expected }) => {
+    let call = 0
+    const screenshot = vi.fn(async () => "aGVsbG8=")
+    const fakeModel: LLMModel = {
+      renderPrompt: async () => [{ role: "system", content: "You are a reviewer." }],
+      generateObject: async <T>() => {
+        if (call >= revisions.length) throw new Error("Unexpected extra review call")
+        return { object: { approved, reasoning: "review decision", content: revisions[call++] } as T } as GenerateObjectResult<T>
+      },
+    }
+    const result = await runVisualReviewLoop({
+      initialHtml: '<section data-section-id="s1">Initial</section>',
+      label: "book", pageId: "pg001", images: new Map(),
+      deps: { llmModel: fakeModel, screenshotRenderer: { screenshot, close: async () => {} }, webAssetsDir: "/tmp/nonexistent" },
+      promptName: "visual_review", maxIterations: 4, timeoutMs: 1000,
+      firstIterationScreenshotsText: "first set", nextIterationScreenshotsText: "next set", trailingContextText: "Section type: text_only",
+      validateHtml: () => ({ valid: true, errors: [] }),
+    })
+    expect(result).toEqual({ html: `<section data-section-id="s1">${expected}</section>`, approved })
+    expect(call).toBe(revisions.length)
+    expect(screenshot).toHaveBeenCalledTimes(3 * revisions.length)
+  })
+
   it("applies a validated revision and returns approved result", async () => {
     let call = 0
     const fakeModel: LLMModel = {
@@ -121,7 +151,7 @@ describe("runVisualReviewLoop", () => {
     expect(result.html).toBe(initialHtml)
   })
 
-  it("keeps original turn and latest two turns in conversation history", async () => {
+  it("keeps only the current turn in conversation history", async () => {
     let call = 0
     const userHtmlSnippetsByCall: string[][] = []
 
@@ -380,5 +410,15 @@ describe("runVisualReviewLoop", () => {
         signal: controller.signal,
       })
     ).rejects.toThrow()
+  })
+})
+
+describe("resolveVisualReviewModelId", () => {
+  const base = { structure_types: {}, role_types: {} } as AppConfig
+
+  it("prefers the visual_review model, then default_model, then the built-in default", () => {
+    expect(resolveVisualReviewModelId({ ...base, default_model: "openai:gpt-6-luna", visual_review: { model: "openai:gpt-6.1-sol" } })).toBe("openai:gpt-6.1-sol")
+    expect(resolveVisualReviewModelId({ ...base, default_model: "anthropic:claude-opus-4" })).toBe("anthropic:claude-opus-4")
+    expect(resolveVisualReviewModelId(base)).toBe(DEFAULT_LLM_MODEL_ID)
   })
 })

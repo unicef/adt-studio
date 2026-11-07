@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto"
 import type {
   ProviderManifest,
+  ReasoningEffort,
   StructuredOutputStrategy,
   StructuredTextCapabilities,
 } from "@adt/types"
+import { findReasoningEffortSupport, fitReasoningEffort } from "@adt/types"
 import type {
   LLMModel,
   GenerateObjectOptions,
@@ -34,19 +36,41 @@ import {
 import { getDefaultProviderRegistry } from "./providers/index.js"
 import type { ProviderRegistry, ResolvedBackend } from "./registry.js"
 import type { StructuredTextBackend } from "./ports/index.js"
+import { StructuredTextError } from "./ports/structured-text-backend.js"
 
 export type { LLMProviderCredentials }
+
+const EFFORT_TIMEOUT_FACTOR: Partial<Record<ReasoningEffort, number>> = {
+  high: 1.5,
+  xhigh: 2,
+  max: 2.5,
+}
+
+const TIMEOUT_RETRY_FACTOR = 2
 
 function resolveEffectiveTimeoutMs(
   manifest: ProviderManifest,
   requestedTimeoutMs: number | undefined,
+  effort: ReasoningEffort | undefined,
 ): number | undefined {
-  if (manifest.minimumRequestTimeoutMs === undefined) return requestedTimeoutMs
-  return Math.max(requestedTimeoutMs ?? 0, manifest.minimumRequestTimeoutMs)
+  const budgetMs = requestedTimeoutMs === undefined
+    ? undefined
+    : Math.round(requestedTimeoutMs * (effort ? EFFORT_TIMEOUT_FACTOR[effort] ?? 1 : 1))
+  if (manifest.minimumRequestTimeoutMs === undefined) return budgetMs
+  return Math.max(budgetMs ?? 0, manifest.minimumRequestTimeoutMs)
+}
+
+function isTimeoutError(err: unknown): boolean {
+  let current = err
+  for (let depth = 0; current instanceof Error && depth < 5; depth++) {
+    if (current.name === "TimeoutError") return true
+    current = current.cause
+  }
+  return false
 }
 
 export interface CreateLLMModelOptions {
-  modelId: string // "openai:gpt-5.4" format
+  modelId: string // Qualified "provider:model" format
   cacheDir?: string
   promptEngine?: PromptEngine
   onLog?: (entry: LlmLogEntry) => void
@@ -61,6 +85,18 @@ export interface CreateLLMModelOptions {
    *  Combined with each request's internal timeout; when it aborts, in-flight
    *  calls abort and the retry loop stops (a run cancel, not a timeout). */
   signal?: AbortSignal
+  reasoningEffort?: ReasoningEffort
+}
+
+export function withReasoningEffort(
+  providerOptions: Record<string, unknown> | undefined,
+  effort: ReasoningEffort | undefined,
+): Record<string, unknown> | undefined {
+  if (!effort) return providerOptions
+  const raw = providerOptions?.openai
+  const openai = raw && typeof raw === "object" ? raw as Record<string, unknown> : {}
+  if (openai.reasoningEffort !== undefined) return providerOptions
+  return { ...providerOptions, openai: { ...openai, reasoningEffort: effort } }
 }
 
 /**
@@ -94,6 +130,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       let system = opts.system
       let messages = opts.messages ?? []
       let resolvedPromptName = opts.prompt
+      let resolvedPromptPath: string | undefined
 
       const context = opts.context ?? {}
       // Per-call signal wins over the model-level signal; either one cancels.
@@ -103,7 +140,9 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         if (!promptEngine) {
           throw new Error("promptEngine required when using prompt option")
         }
-        resolvedPromptName = promptEngine.resolvePrompt(opts.prompt, { modelId }).resolvedName
+        const promptResolution = promptEngine.resolvePrompt(opts.prompt, { modelId })
+        resolvedPromptName = promptResolution.resolvedName
+        resolvedPromptPath = promptResolution.filePath
         const allMessages = await promptEngine.renderPrompt(
           opts.prompt,
           context,
@@ -183,11 +222,37 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         )
       }
       const effectiveTemperature = supportsTemperature ? opts.temperature : undefined
+      const requestedEffort = opts.reasoningEffort ?? options.reasoningEffort
+      const appliedEffort = fitReasoningEffort(
+        findReasoningEffortSupport(resolved.capabilities.reasoningEfforts, resolved.modelId),
+        requestedEffort,
+      )
+      if (requestedEffort && appliedEffort !== requestedEffort) {
+        log.info(
+          `[LLM] ${label} | reasoning effort ${requestedEffort} ${appliedEffort ? `adjusted to ${appliedEffort}` : "ignored"} | ${resolved.qualifiedModelId} does not support it`,
+        )
+      }
+      const providerOptions = withReasoningEffort(opts.providerOptions, appliedEffort)
+      const effective = registry.get(resolved.providerId).inferenceOptionsFor?.(
+        "structured-text", resolved.modelId, providerOptions, strategy,
+      ) ?? { providerOptions }
+      let callParams: Record<string, unknown> = {
+        requestedModel: modelId, ...effective, strategy,
+        resolvedPromptPath,
+        adapterVersion: resolved.fingerprint.adapterVersion,
+        temperature: effectiveTemperature, maxTokens: opts.maxTokens,
+        ...(requestedEffort && appliedEffort !== requestedEffort
+          ? { reasoningEffortAdjustment: { requested: requestedEffort, applied: appliedEffort ?? null } }
+          : {}),
+      }
       const effectiveTimeoutMs = resolveEffectiveTimeoutMs(
         registry.get(resolved.providerId).manifest,
         opts.timeoutMs,
+        appliedEffort,
       )
-      const legacyReadable = isLegacyCacheReadable(resolved.fingerprint)
+      let attemptTimeoutMs = effectiveTimeoutMs
+      let timedOutOnce = false
+      const legacyReadable = isLegacyCacheReadable(resolved.fingerprint) && !effective.providerOptions
 
       const generate = async (
         current: Message[],
@@ -199,13 +264,23 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           strategy,
           temperature: effectiveTemperature,
           maxTokens: opts.maxTokens,
-          timeoutMs: effectiveTimeoutMs,
+          timeoutMs: attemptTimeoutMs,
           signal: externalSignal,
+          providerOptions: effective.providerOptions,
         })
+        callParams = { ...callParams, ...generated.params }
         return { object: generated.object, usage: generated.usage }
       }
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        // A cache entry contains only validated output, not a provider response.
+        // Never attribute the preceding attempt's returned model to a cache hit.
+        delete callParams.returnedModel
+        delete callParams.remoteCachedInputTokens
+        delete callParams.reasoningTokens
+        delete callParams.attempts
+        delete callParams.inferenceAttempts
+        if (attemptTimeoutMs !== undefined) callParams.timeoutMs = attemptTimeoutMs
         const attemptStartedAt = Date.now()
         const attemptUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
         const hash = computeCacheKeyV2({
@@ -219,6 +294,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           structuredOutputStrategy: strategy,
           temperature: effectiveTemperature,
           maxTokens: opts.maxTokens,
+          providerOptions: effective.providerOptions,
         })
         // Reproduce the exact v1 key so a legacy entry from an unambiguous
         // backend still counts as a hit; configurable-origin providers skip it.
@@ -302,6 +378,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               )
               if (opts.log && onLog) {
                 onLog({
+                  params: { ...callParams },
                   requestId,
                   timestamp: new Date().toISOString(),
                   taskType: opts.log.taskType,
@@ -346,6 +423,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           // Log and return
           if (opts.log && onLog) {
             onLog({
+              params: { ...callParams },
               requestId,
               timestamp: new Date().toISOString(),
               taskType: opts.log.taskType,
@@ -376,6 +454,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             cached: lastCacheHit,
           }
         } catch (err) {
+          if (err instanceof StructuredTextError) {
+            attemptUsage.inputTokens += err.usage.inputTokens
+            attemptUsage.outputTokens += err.usage.outputTokens
+            totalUsage.inputTokens += err.usage.inputTokens
+            totalUsage.outputTokens += err.usage.outputTokens
+            callParams = { ...callParams, ...err.params }
+          }
           const errMsg = formatProviderError(err)
           allErrors.push(errMsg)
           if (cacheDir) {
@@ -385,8 +470,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
           // A deliberate external cancel never retries — detected by the signal,
           // not the error name (the SDK may wrap the AbortError). The internal
-          // timeout also aborts the call but leaves the signal intact, so those
-          // keep retrying as before.
+          // timeout leaves the signal intact; it gets one retry with a doubled
+          // budget, never a repeat of the request that just ran out of time.
           if (externalSignal?.aborted) {
             log.error(`[LLM] ${label} | cancelled | ${errMsg}`)
             throw err
@@ -394,13 +479,22 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
           // Provider/credential/model errors are configuration failures, not
           // transient ones — retrying them only delays the real message.
-          if (attempt < maxRetries && !AiProviderError.is(err)) {
+          const configurationError = AiProviderError.is(err) ||
+            err instanceof StructuredTextError && AiProviderError.is(err.cause)
+          const timedOut = isTimeoutError(err)
+          const timeoutExhausted = timedOut && (timedOutOnce || attemptTimeoutMs === undefined)
+          if (attempt < maxRetries && !configurationError && !timeoutExhausted) {
+            if (timedOut && attemptTimeoutMs !== undefined) {
+              timedOutOnce = true
+              attemptTimeoutMs = Math.round(attemptTimeoutMs * TIMEOUT_RETRY_FACTOR)
+            }
             const delayMs = backoffDelay(attempt)
             log.error(
               `[LLM] ${label} | error (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg} | retrying in ${delayMs}ms`
             )
             if (opts.log && onLog) {
               onLog({
+                params: { ...callParams },
                 requestId,
                 timestamp: new Date().toISOString(),
                 taskType: opts.log.taskType,
@@ -440,6 +534,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
           if (opts.log && onLog) {
             onLog({
+              params: { ...callParams },
               requestId,
               timestamp: new Date().toISOString(),
               taskType: opts.log.taskType,

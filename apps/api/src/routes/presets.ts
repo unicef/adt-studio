@@ -11,7 +11,13 @@ import {
   DefaultModelConfig,
   SpecializedModelDefaultsConfig,
   StyleguideName,
+  UpdateDefaultReasoningEffortRequest,
+  UpdateTaskModelRequest,
+  findReasoningEffortSupport,
+  resolveInheritedTaskModel,
   type AiModality,
+  type ReasoningEffort,
+  type TaskModelsResponse,
 } from "@adt/types"
 import {
   AiProviderError,
@@ -26,6 +32,8 @@ import {
   StyleguideWriteError,
   writeStyleguideFiles,
 } from "../services/styleguide.js"
+import { ConfigYamlEditError, setYamlPathValue } from "../services/config-yaml.js"
+import { listTaskModels, taskConfigPath } from "../services/task-models.js"
 
 function assertModelSupported(
   registry: ProviderRegistry,
@@ -39,6 +47,24 @@ function assertModelSupported(
       throw new HTTPException(400, { message: error.message })
     }
     throw error
+  }
+}
+
+function assertReasoningEffortSupported(
+  registry: ProviderRegistry,
+  modelId: string,
+  effort: ReasoningEffort,
+): void {
+  const parsed = resolveModelIdFor(registry, modelId, "structured-text")
+  const capabilities = registry.get(parsed.providerId).manifest.capabilities["structured-text"]
+  const support = findReasoningEffortSupport(capabilities?.reasoningEfforts, parsed.modelId)
+  if (!support) {
+    throw new HTTPException(400, { message: `${modelId} does not support a reasoning effort setting` })
+  }
+  if (!support.efforts.includes(effort)) {
+    throw new HTTPException(400, {
+      message: `${modelId} does not support reasoning effort "${effort}" (supported: ${support.efforts.join(", ")})`,
+    })
   }
 }
 
@@ -266,6 +292,103 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
     fs.writeFileSync(configPath, updated, "utf-8")
 
     return c.json(result.data)
+  })
+
+  const readTaskModels = (content: string): TaskModelsResponse => {
+    const parsed = AppConfig.parse(yaml.load(content))
+    return {
+      defaultModel: parsed.default_model ?? DEFAULT_LLM_MODEL_ID,
+      defaultReasoningEffort: parsed.default_reasoning_effort ?? null,
+      tasks: listTaskModels(parsed),
+    }
+  }
+
+  app.get("/config/task-models", (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+    return c.json(readTaskModels(fs.readFileSync(configPath, "utf-8")))
+  })
+
+  app.put("/config/task-models", async (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+
+    const result = UpdateTaskModelRequest.safeParse(await c.req.json())
+    if (!result.success) {
+      throw new HTTPException(400, { message: "Invalid task model" })
+    }
+
+    const content = fs.readFileSync(configPath, "utf-8")
+    const current = readTaskModels(content)
+    const task = current.tasks.find((entry) => entry.id === result.data.id)
+    if (!task) {
+      throw new HTTPException(404, { message: `Unknown task: ${result.data.id}` })
+    }
+    const { model, reasoningEffort } = result.data
+    if (model) {
+      assertModelSupported(registry, model, "structured-text")
+    }
+    const effectiveModel =
+      (model === undefined ? task.model : model) ??
+      resolveInheritedTaskModel(
+        task,
+        (taskId) => current.tasks.find((entry) => entry.id === taskId)?.model,
+        current.defaultModel,
+      ).model
+    const effectiveEffort = reasoningEffort === undefined ? task.reasoningEffort : reasoningEffort
+    if (effectiveEffort) {
+      assertReasoningEffortSupported(registry, effectiveModel, effectiveEffort)
+    }
+
+    let updated = content
+    try {
+      if (model !== undefined) {
+        updated = setYamlPathValue(updated, taskConfigPath(task, "model"), model)
+      }
+      if (reasoningEffort !== undefined) {
+        updated = setYamlPathValue(updated, taskConfigPath(task, "reasoning_effort"), reasoningEffort)
+      }
+    } catch (error) {
+      if (error instanceof ConfigYamlEditError) {
+        throw new HTTPException(409, { message: error.message })
+      }
+      throw error
+    }
+    const response = readTaskModels(updated)
+    fs.writeFileSync(configPath, updated, "utf-8")
+
+    return c.json(response)
+  })
+
+  app.put("/config/default-reasoning-effort", async (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+
+    const result = UpdateDefaultReasoningEffortRequest.safeParse(await c.req.json())
+    if (!result.success) {
+      throw new HTTPException(400, { message: "Invalid reasoning effort" })
+    }
+
+    let updated: string
+    try {
+      updated = setYamlPathValue(
+        fs.readFileSync(configPath, "utf-8"),
+        ["default_reasoning_effort"],
+        result.data.reasoningEffort,
+      )
+    } catch (error) {
+      if (error instanceof ConfigYamlEditError) {
+        throw new HTTPException(409, { message: error.message })
+      }
+      throw error
+    }
+    const response = readTaskModels(updated)
+    fs.writeFileSync(configPath, updated, "utf-8")
+
+    return c.json(response)
   })
 
   return app

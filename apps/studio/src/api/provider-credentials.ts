@@ -1,7 +1,9 @@
 import {
   applySharedCredentialFallbacks,
+  findReasoningEffortSupport,
   type AiModality,
   type ProviderDescriptor,
+  type ReasoningEffortSupport,
 } from "@adt/types"
 
 /** Credential values keyed by provider id, then manifest field key. */
@@ -99,6 +101,18 @@ export function checkModelModalitySupport(
     return { ok: false, providerId, reason: "unsupported-modality" }
   }
   return { ok: true, providerId }
+}
+
+export function reasoningEffortSupportFor(
+  providers: readonly ProviderDescriptor[],
+  modelId: string,
+): ReasoningEffortSupport | null {
+  const trimmed = modelId.trim()
+  if (!trimmed) return null
+  const separator = trimmed.indexOf(":")
+  const providerId = (separator === -1 ? "openai" : trimmed.slice(0, separator)).toLowerCase()
+  const provider = providers.find(({ manifest }) => manifest.id === providerId)
+  return findReasoningEffortSupport(provider?.manifest.capabilities["structured-text"]?.reasoningEfforts, trimmed)
 }
 
 /** Resolve availability for the effective provider/model exposed by `/providers`. */

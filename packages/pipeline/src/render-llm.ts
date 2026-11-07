@@ -92,6 +92,7 @@ export async function renderSectionLlm(
     maxRetries: config.maxRetries,
     maxTokens: 32768,
     temperature: config.temperature,
+    reasoningEffort: config.reasoningEffort,
     timeoutMs: config.timeoutMs,
     signal: options.signal,
     log: {
@@ -133,6 +134,7 @@ export async function renderSectionLlm(
       maxIterations: vr.maxIterations,
       timeoutMs: vr.timeoutMs,
       temperature: vr.temperature,
+      reasoningEffort: vr.reasoningEffort,
       pageImageBase64: input.pageImageBase64,
       additionalPageImages: input.sourcePages,
       promptContext: {
@@ -213,6 +215,7 @@ export async function renderSectionLlm(
       maxRetries: config.maxRetries,
       maxTokens: 4096,
       temperature: config.temperature,
+      reasoningEffort: config.reasoningEffort,
       timeoutMs: config.timeoutMs,
       signal: options.signal,
       log: {
@@ -267,7 +270,7 @@ function validateWebRendering(
   if (sectionType === "table_of_contents") {
     candidateHtml = repairTableOfContentsLayout(candidateHtml, leaf_texts)
   }
-  const minimumEditableElements = minimumLearnerResponseCount(nodes)
+  const minimumEditableElements = minimumLearnerResponseCount(nodes, sectionType)
 
   const check = validateSectionHtml(
     candidateHtml,
@@ -309,20 +312,75 @@ function validateWebRendering(
  * an activity instruction (common on mixed page-mode pages), require at least
  * one control so a static screenshot cannot pass validation. Questions and
  * blank leaves often describe the same response, so use the larger count
- * instead of adding them together. */
-export function minimumLearnerResponseCount(nodes: RenderNode[]): number {
+ * instead of adding them together.
+ *
+ * Blank leaves that belong to one response count once, so the renderer can
+ * follow the activity's real structure:
+ * - a placeholder-only line (`___`) directly after another blank in the same
+ *   container is an extra writing line for that answer (one textarea), but a
+ *   single-character `_` is a per-letter cell and still counts on its own;
+ * - in a true/false section, the blank cells of one table row are the true and
+ *   false options of one statement (one choice group);
+ * - in a letter-cell row that mixes given letters and empty cells, only the
+ *   cells with a placeholder are fields (siblings in one container only);
+ * - in a multiple-choice or multi-select section, consecutive question
+ *   sentences with no options between them are one question. */
+export function minimumLearnerResponseCount(nodes: RenderNode[], sectionType?: string): number {
   let questions = 0
   let blanks = 0
   let hasInstruction = false
-  function walk(node: RenderNode): void {
-    if (node.role === "activity_question") questions += 1
-    if (node.role === "activity_fill_in_the_blank") blanks += 1
-    if (node.role === "activity_instruction") hasInstruction = true
-    for (const child of node.children ?? []) walk(child)
+  const trueFalse = sectionType === "activity_true_false"
+  // In choice activities a passage split into consecutive question sentences
+  // shares one option set, so a run of adjacent questions is one question.
+  const choice = sectionType === "activity_multiple_choice" || sectionType === "activity_multi_select"
+  function walkChildren(children: RenderNode[], row: { counted: boolean } | null): void {
+    let previousWasBlank = false
+    let previousWasQuestion = false
+    // Letter-cell rows mix given letters with empty cells under the same role.
+    // When a sibling blank shows a placeholder, only placeholder leaves in this
+    // container are fields. Scoped to siblings so a word list elsewhere in the
+    // section ("1. bingwa", one sentence per word) still counts.
+    const placeholderBlanksOnly = children.some((sibling) =>
+      sibling.role === "activity_fill_in_the_blank" && hasPlaceholder(sibling.text ?? ""))
+    for (const child of children) {
+      if (child.role === "activity_fill_in_the_blank") {
+        const text = (child.text ?? "").trim()
+        previousWasQuestion = false
+        if (placeholderBlanksOnly && !hasPlaceholder(text)) {
+          previousWasBlank = false
+          continue
+        }
+        const continuationLine = previousWasBlank && text.length > 1 && isPlaceholderOnlyText(text)
+        if (row) {
+          if (!row.counted) blanks += 1
+          row.counted = true
+        } else if (!continuationLine) {
+          blanks += 1
+        }
+        previousWasBlank = true
+        continue
+      }
+      previousWasBlank = false
+      if (child.role === "activity_question") {
+        if (!(choice && previousWasQuestion)) questions += 1
+        previousWasQuestion = true
+        continue
+      }
+      previousWasQuestion = false
+      if (child.role === "activity_instruction") hasInstruction = true
+      const childRow = trueFalse && child.structure === "table_row" ? { counted: false } : row
+      walkChildren(child.children ?? [], childRow)
+    }
   }
-  for (const node of nodes) walk(node)
+  walkChildren(nodes, null)
   const explicit = Math.max(questions, blanks)
   return explicit > 0 ? explicit : hasInstruction ? 1 : 0
+}
+
+const BLANK_PLACEHOLDER_RE = /_|\.{3,}|\[placeholder:/
+
+function hasPlaceholder(text: string): boolean {
+  return BLANK_PLACEHOLDER_RE.test(text)
 }
 
 function collectLeafDataIdOrder(nodes: RenderNode[]): string[] {
