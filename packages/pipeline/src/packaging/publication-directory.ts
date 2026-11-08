@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { withBookWriter } from "@adt/storage"
 
-import { SectioningSafetyError } from "../sectioning-lifecycle.js"
+import { SectioningSafetyError } from "../sectioning-errors.js"
 
 const journalFormat = "adt-web-stage-v1\n"
 

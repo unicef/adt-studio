@@ -3,7 +3,7 @@ import { STAGE_ORDER, PIPELINE, getStageDependents, EDITABLE_ACTIVITY_NODE, Page
 import { isProtectedContent } from "./manual-edits.js"
 import { withSourceGenerationTracking } from "./source-generation-state.js"
 import { collectSpentContentIds } from "./content-ids.js"
-import { SectioningSafetyError } from "./sectioning-lifecycle.js"
+import { SectioningSafetyError } from "./sectioning-errors.js"
 export class AuthoredReplacementError extends Error {
   readonly code: "VERSION_CONFLICT" | "REPLACEMENT_CONFIRMATION_INVALID"
   constructor(readonly status: 400 | 409, message: string, readonly currentVersion?: number) {
