@@ -520,6 +520,7 @@ export { renderedTextIds, sourceTextIds, findIntroducedBlankContentId, findIntro
 export { effectiveSectioningMode, sectioningInvalidationSteps, assertSectioningReplacementSafe, prepareSectioningRun, completeSectioning } from "./sectioning-lifecycle.js"
 export { SectioningSafetyError } from "./sectioning-errors.js"
 export { requiredPartRange, activeSectioningPages } from "./sectioning-window.js"
+export { admitSectioningRun } from "./sectioning-admission.js"
 export { sectioningReplacementSignature } from "./sectioning-replacement-signature.js"
 export { createStoryboardPublication } from "./storyboard-publication.js"
 

@@ -9,7 +9,7 @@ import { buildOutputSources, translatedDisplayEntries } from "@adt/pipeline"
 import { retainedTranslation, isProtectedContent, retireSectionIds } from "@adt/pipeline"
 import { PageSectioningOutput } from "@adt/types"
 import { assertEditVersion } from "./catalog-output-service.js"
-import { assertAuthoredReplacement, replacementConfirmed } from "./authored-output-service.js"
+import { replacementConfirmed } from "./authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
 import { outputSkipped } from "@adt/pipeline"
 import { retainedCoreTts, retainedEasyRead } from "@adt/pipeline"
@@ -17,7 +17,7 @@ import { outputIdentityKey } from "@adt/pipeline"
 import { createHash } from "node:crypto"
 import { speechPageId, reconcileSpeechInputs, translateCatalog, inputSignature, reconcileTextCatalog, readOutputCatalog, buildImageInventory, selectedForGeneration, outputEvidence, assertOutputPublication, timestampInputSignature, deriveOutputStatus } from "@adt/pipeline"
 import { prepareSectioningRun, completeSectioning, storyboardCoverage, missingStoryboardInputMessage, createStoryboardPublication, activeSectioningPages, sectioningReplacementSignature } from "@adt/pipeline"
-import { selectSectioningPages, assertSectioningIdentityHistory, resetSectioningStoryboard, SectioningSafetyError } from "@adt/pipeline"
+import { admitSectioningRun, resetSectioningStoryboard, SectioningSafetyError } from "@adt/pipeline"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
@@ -951,9 +951,7 @@ export function createStageRunner(): StageRunner {
         prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath)
         const storage = createBookStorage(label, options.booksDir)
         try {
-          assertAuthoredReplacement(storage, options)
-          const pages = selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, options.booksDir, options.configPath), bookDir), options, sectioningReplacementSignature(storage, label, options.booksDir, options.configPath, options.promptsDir))
-          assertSectioningIdentityHistory(storage, options, pages)
+          admitSectioningRun(storage, label, options.booksDir, options, options.configPath, options.promptsDir)
         } finally { storage.close() }
         return runner.run(label, options, progress)
       })
@@ -1415,17 +1413,14 @@ async function runSectioningStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
-    const config = loadBookConfig(label, booksDir, configPath)
-    const allPages = activeSectioningPages(storage, config, path.join(path.resolve(booksDir), label))
+    const { config, allPages, pages, inputSignature: admittedSignature } = admitSectioningRun(storage, label, booksDir, options, configPath, promptsDir)
     const inputSignature = () => sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir)
-    let runInputSignature = inputSignature()
+    let runInputSignature = admittedSignature
     const assertRunInputs = () => {
       if (inputSignature() !== runInputSignature) {
         throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Sectioning inputs changed. The generated result was not saved; retry against current inputs.")
       }
     }
-    const pages = selectSectioningPages(storage, allPages, options, runInputSignature)
-    assertSectioningIdentityHistory(storage, options, pages)
     const unreadable = new Set<string>()
     const previous = new Map(allPages.map((page) => {
       try {

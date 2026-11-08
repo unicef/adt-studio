@@ -15,7 +15,7 @@ import {
   getSourceGenerationUpdates, storyboardSourceWarnings,
   keepSourceGeneration,
   withSourceGenerationTracking,
-  activeSectioningPages, sectioningReplacementSignature, selectSectioningPages, assertSectioningIdentityHistory, storyboardCoverage,
+  activeSectioningPages, sectioningReplacementSignature, admitSectioningRun, storyboardCoverage,
   isFixedLayoutBook,
   prepareSectioningRun,
   collectSpentSectionIds,
@@ -28,7 +28,7 @@ import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
-import { assertAuthoredReplacement, protectedAuthoredRecords } from "../services/authored-output-service.js"
+import { protectedAuthoredRecords } from "../services/authored-output-service.js"
 import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
 
 const StageRunBody = z
@@ -256,9 +256,7 @@ export function createStageRoutes(
         prepareSectioningRun(label, booksDir, fromStage, toStage, configPath)
         const storage = createBookStorage(label, booksDir)
         try {
-          assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
-          const pages = selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements }, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
-          assertSectioningIdentityHistory(storage, { fromStage, toStage, outputScope }, pages)
+          admitSectioningRun(storage, label, booksDir, { fromStage, toStage, replaceManual, protectedReplacements, outputScope }, configPath, promptsDir)
         }
         finally { storage.close() }
       })
@@ -267,10 +265,8 @@ export function createStageRoutes(
     const clearData = () => {
       const storage = createBookStorage(label, booksDir)
       try {
-          assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
-          const pages = selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements }, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
-          assertSectioningIdentityHistory(storage, { fromStage, toStage, outputScope }, pages)
-        }
+        admitSectioningRun(storage, label, booksDir, { fromStage, toStage, replaceManual, protectedReplacements, outputScope }, configPath, promptsDir)
+      }
       finally { storage.close() }
       prepare()
     }

@@ -578,7 +578,7 @@ it("newly completed source output cannot complete an older partial package", asy
 })
 
 
-it.each(["configuration", "outline", "image-filtering"])("queued Sectioning revalidates %s before resetting any page", async change => {
+it.each(["configuration", "outline", "image-filtering", "prompt", "page window"])("queued Sectioning revalidates %s before resetting any page", async change => {
   const consent = await replacement()
   const before = ["p2", "p7"].map(id => [history("page-sectioning", id), history("web-rendering", id)])
   const errors: string[] = []
@@ -596,6 +596,9 @@ it.each(["configuration", "outline", "image-filtering"])("queued Sectioning reva
   const queued = await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", pageErrorPolicy: "stop", ...consent })
   expect(await queued.json()).toMatchObject({ status: "queued" })
   if (change === "configuration") fs.appendFileSync(configPath, "editing_language: fr\n")
+  else if (change === "prompt") fs.writeFileSync(path.join(root, "page_sectioning.liquid"), "Changed while queued")
+  // Membership is unchanged: the persisted window itself binds consent.
+  else if (change === "page window") fs.writeFileSync(path.join(dir, "config.yaml"), "start_page: 2\nend_page: 7\n")
   else {
     const s = store()
     try {

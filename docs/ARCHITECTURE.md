@@ -171,6 +171,18 @@ Never hardcode stage/step ordering, names, or groupings anywhere else. Add new d
 
 ---
 
+### Sectioning admission and publication
+
+Sectioning's book-level policies live in focused `packages/pipeline/src/` modules:
+
+- `sectioning-window.ts` resolves whole-book and mandatory part page windows.
+- `sectioning-replacement-signature.ts` binds replacement consent to current configuration, source selections and prompts.
+- `sectioning-admission.ts` validates current replacement versions, selects missing or explicitly named pages, and checks identity history. HTTP admission, queued execution, the direct runner and the worker each call it independently; a returned snapshot does not authorize later work.
+- `sectioning-lifecycle.ts` retains extraction admission and informational lifecycle bookkeeping, with compatibility exports for existing callers.
+- `storyboard-publication.ts` prepares guarded publication. Ordinary same-layout runs publish successful page pairs incrementally; actual layout switches retain the previous layout until the active window can publish atomically.
+
+The shared admission helper does not replace the book writer, reset-transaction checks or publication-time input/version checks. Those boundaries remain responsible for revalidation immediately before their mutations. `sectioning-errors.ts` owns the shared error class so callers and middleware preserve error identity without a lifecycle/publication import cycle.
+
 ## Data Flow
 
 ```
