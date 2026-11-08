@@ -62,7 +62,7 @@ it.each([
   finally { inspect.close() }
 })
 
-it.each(["{broken", JSON.stringify({ version: 1 })])("GET /books isolates an invalid transition journal %s without changing it", async journal => {
+it.each(["", "{broken", JSON.stringify({ version: 1 })])("GET /books isolates an invalid transition journal %s without changing it", async journal => {
   const healthy = listBooks(root, configPath).find(book => book.label === "good")!
   const dir = path.join(root, "bad")
   fs.writeFileSync(path.join(dir, ".sectioning-transition.json"), journal)
@@ -77,6 +77,22 @@ it.each(["{broken", JSON.stringify({ version: 1 })])("GET /books isolates an inv
   expect(listed.find((book: { label: string }) => book.label === "good")).toEqual(healthy)
   expect((await app.request("/books/good")).status).toBe(200)
   expect(files.map(file => fs.readFileSync(path.join(dir, file)))).toEqual(before)
+})
+
+it.each(["config", "sectioning-state"].flatMap(endpoint =>
+  ["", "{broken", JSON.stringify({ version: 1 })].map(journal => ({ endpoint, journal }))
+))("GET $endpoint returns a typed conflict for invalid journal $journal without changing evidence", async ({ endpoint, journal }) => {
+  const dir = path.join(root, "bad")
+  fs.writeFileSync(path.join(dir, ".sectioning-transition.json"), journal)
+  fs.writeFileSync(path.join(dir, "config.yaml"), "page_sectioning:\n  mode: page\n")
+  const files = ["bad.db", "config.yaml", ".sectioning-transition.json", "images/pg001_page.png", "adt/index.html"]
+  const before = files.map(file => fs.readFileSync(path.join(dir, file)))
+  const app = new Hono().onError(errorHandler).route("/", createBookRoutes(root, undefined, configPath))
+  const response = await app.request(`/books/bad/${endpoint}`)
+  expect(response.status).toBe(409)
+  expect(await response.json()).toMatchObject({ code: "BOOK_BUSY", error: expect.stringContaining("journal is retained") })
+  for (const [index, file] of files.entries()) expect(fs.readFileSync(path.join(dir, file)).equals(before[index]), file).toBe(true)
+  expect((await app.request(`/books/good/${endpoint}`)).status).toBe(200)
 })
 
 it.each([null, { quizzes: [] }])("keeps readable legacy quiz data %j usable without rewriting it", data => {

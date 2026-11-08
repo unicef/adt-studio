@@ -106,8 +106,16 @@ export function recoverSectioningTransition(bookDir: string): void {
   if (!fs.existsSync(journal)) return
   withBookWriter(bookDir, () => {
     if (!fs.existsSync(journal)) return
-    const parsed = SectioningTransition.safeParse(JSON.parse(fs.readFileSync(journal, "utf8")))
-    if (!parsed.success) throw new BookBusyError("The saved Sectioning transition is invalid. Its journal is retained for inspection before recovery.")
+    const invalidJournal = "The saved Sectioning transition is invalid. Its journal is retained for inspection before recovery."
+    const text = fs.readFileSync(journal, "utf8")
+    let data: unknown
+    try { data = JSON.parse(text) }
+    catch (error) {
+      if (!(error instanceof SyntaxError)) throw error
+      throw new BookBusyError(invalidJournal)
+    }
+    const parsed = SectioningTransition.safeParse(data)
+    if (!parsed.success) throw new BookBusyError(invalidJournal)
     const transition = parsed.data
     const hash = configHash(readConfigText(bookDir))
     if (hash === transition.newHash) finishPublishedTransition(bookDir, transition)
