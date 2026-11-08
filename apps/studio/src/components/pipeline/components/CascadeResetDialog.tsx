@@ -88,7 +88,7 @@ export function CascadeResetDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-5 p-6 sm:max-w-md">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto p-6 sm:max-w-md">
         <DialogHeader className="flex-row items-start gap-3.5 space-y-0 text-left">
           {headerStage && (
             <span
