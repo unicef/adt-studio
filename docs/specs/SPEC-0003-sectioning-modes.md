@@ -8,7 +8,7 @@ issues: ["#708"]
 prs: ["#884"]
 adr: "docs/DECISIONS.md#025-sectioning-generation-preferences-scoped-reset-and-per-page-publication"
 created: 2026-09-22
-updated: 2026-11-05
+updated: 2026-11-08
 ---
 
 ## Authorized product amendment (review pending)
@@ -22,11 +22,12 @@ remains `in-review`; no human approval or release verification is inferred.
 **By Page controls Sectioning generation, not saved content.** Issue #666 reported
 accepting multiple generated sections. Merged #692 fixes that generation/cache
 boundary. #708 broadened it into a persisted-content restriction, preventing
-intentional editing and usable older books. The proposed #708 amendment is recorded
+intentional editing and usable older books. The authorized #708 amendment is recorded
 here and in the [original acceptance-criteria mapping](#original-acceptance-criteria-mapping):
 replace its blocking criteria with generation validation, informational preference
 tracking, missing-only ordinary Sectioning, explicit reset/replacement and
-incremental Storyboard publication. The source issue itself is unchanged.
+incremental Storyboard publication. This contract supersedes the original
+mode-invalidation and saved-cardinality requirements.
 
 SPEC-0003's B1 scope stays Dynamic/By Page. B2 modes and automatic cross-page merge
 remain deferred; manual structural editing remains supported. Roadmap/SDD stable
