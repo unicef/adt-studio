@@ -117,7 +117,9 @@ it.each(["none", "start", "end", "both"])("rejects a mandatory part beyond the P
   fs.writeFileSync(path.join(dir, "config.yaml"), `start_page: ${count}\nend_page: ${count + 1}\npage_sectioning:\n  mode: page\n`)
   const before = Object.fromEntries(fs.readdirSync(dir).map(name => [name, fs.readFileSync(path.join(dir, name))]))
   await expect(runFullPipeline({ ...options(), ...flags })).rejects.toMatchObject({ code: "EXTRACTION_INPUT_INVALID" })
-  for (const [name, bytes] of Object.entries(before)) expect(fs.readFileSync(path.join(dir, name))).toEqual(bytes)
+  // Compare the retained PDF bytes directly; deep equality traverses millions
+  // of Buffer properties and can exhaust the test timeout on CI workers.
+  for (const [name, bytes] of Object.entries(before)) expect(fs.readFileSync(path.join(dir, name)).equals(bytes), name).toBe(true)
   expect(fs.readdirSync(dir).sort()).toEqual(Object.keys(before).sort())
   expect(state.selected).toEqual([])
   expect(state.rendered).toEqual([])
