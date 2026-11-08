@@ -204,9 +204,10 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
           db.close()
         }
       } catch (err) {
-        if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof BookConfigError || isCorruptBookDatabase(err)) {
+        if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof BookConfigError || err instanceof SyntaxError || isCorruptBookDatabase(err)) {
           // Keep the card and unrelated books accessible without inventing a
-          // database snapshot or offering a rebuild for temporary exclusion.
+          // database snapshot or offering a rebuild for temporary exclusion or
+          // malformed persisted JSON. Retain the payload for explicit recovery.
           readUnavailable = true
           completedStages = []
         } else if (isRecoverableDbError(err)) {

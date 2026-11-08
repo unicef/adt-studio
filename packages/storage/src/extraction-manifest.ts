@@ -6,6 +6,7 @@ import { openCoordinatedDatabase } from "./database-admission.js"
 import { BookFontRegistry, FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID, ExtractionManifest, type ExtractionInputs } from "@adt/types"
 import { assertBookWriter, BookBusyError } from "./book-writer.js"
 import { ExtractionAdmissionError } from "./extraction-error.js"
+import { readSectioningLifecycle, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
 
 export const EXTRACTION_MANIFEST_FILE = "extraction.json"
 export const extractionHash = (bytes: string | Buffer): string => createHash("sha256").update(bytes).digest("hex")
@@ -71,6 +72,9 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
   const fontFiles = new Set<string>()
   for (const entry of fs.readdirSync(bookDir, { withFileTypes: true })) {
     if (entry.isSymbolicLink()) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+    // Changing a generation preference before Extract creates bookkeeping,
+    // not generated content. Still validate the sidecar and every DB row below.
+    if (entry.isFile() && entry.name === SECTIONING_LIFECYCLE && readSectioningLifecycle(bookDir)) continue
     if (entry.isDirectory() && entry.name === "fonts") {
       // Uploaded fonts are initial configuration inputs, but the directory is
       // not a blanket exception for unknown content or symlinks. Validate its

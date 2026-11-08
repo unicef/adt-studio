@@ -8,7 +8,7 @@ import { publishSpeechOutput } from "@adt/storage"
 import { readOutputCatalog } from "./output-catalog.js"
 import { outputEvidence, inputSignature } from "./output-freshness.js"
 import { reconcileTextCatalog, buildImageInventory } from "./catalog-reconciliation.js"
-import { withBookWriter, withNewBookWriter, resolveBookPaths, recoverSectioningTransition, ExtractionAdmissionError } from "@adt/storage"
+import { withBookWriter, withNewBookWriter, resolveBookPaths, recoverSectioningTransition, ExtractionAdmissionError, atomicBookFile } from "@adt/storage"
 import { prepareExtractionAdmission, extractionOptionsFromConfig } from "./extraction-admission.js"
 import { selectSectioningPages, assertSectioningIdentityHistory } from "./authored-output.js"
 import { createSectionIdFactory, retireSectionIds } from "./section-ids.js"
@@ -16,6 +16,7 @@ import { reconcileSpeechInputs } from "./speech-inputs.js"
 import { completeSectioning, createStoryboardPublication, activeSectioningPages, SectioningSafetyError } from "./sectioning-lifecycle.js"
 import fs from "node:fs"
 import path from "node:path"
+import yaml from "js-yaml"
 import { createBookStorage } from "@adt/storage"
 import type { Storage, PageData } from "@adt/storage"
 import {
@@ -121,7 +122,7 @@ import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
 import { getRenderSectioning, assertReflowableSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
-import { loadBookConfig } from "./config.js"
+import { loadBookConfig, loadBookConfigOverrides } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
 import { processWithConcurrency } from "./concurrency.js"
 import { runPipelineDAG, type StepExecutor, type PipelineDAGResult } from "./dag.js"
@@ -186,6 +187,16 @@ export async function runFullPipeline(options: FullPipelineOptions, progress: Pr
     // Expanded existing-book resume is owned by SPEC-0010, not this increment.
     if (admission.outcome === "reused" || "fromStage" in options || "toStage" in options) {
       throw new ExtractionAdmissionError("UNSAFE_RESUME_UNAVAILABLE")
+    }
+    if (options.startPage !== undefined || options.endPage !== undefined) {
+      // Only an admitted fresh run may persist its CLI window. Shared readers,
+      // publication guards and later app opens must see the extracted scope too.
+      // Admission has already validated the PDF bounds and mandatory part range.
+      atomicBookFile(path.join(bookDir, "config.yaml"), yaml.dump({
+        ...loadBookConfigOverrides(options.label, options.booksRoot),
+        start_page: admission.inputs.startPage,
+        end_page: admission.inputs.endPage,
+      }))
     }
     return runAdmittedFullPipeline(options, progress)
   })
