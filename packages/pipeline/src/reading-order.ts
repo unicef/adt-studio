@@ -12,7 +12,7 @@
  * The order is derived from source data today. Phase 5 slots a stored,
  * user-editable order in at the marked point without moving any consumer.
  */
-import type { Storage } from "@adt/storage"
+import { HistoryIntegrityError, type Storage } from "@adt/storage"
 import { ambiguousPublicOutputIds, isPublicOutputId } from "./public-output-identity.js"
 import type {
   PageSectioningSection,
@@ -163,10 +163,18 @@ export function resolveReadingOrder(
   const ambiguous = ambiguousPublicOutputIds(storage)
 
   const quizRow = storage.getLatestNodeData("quiz-generation", "book")
-  const quizzes =
-    options.includeQuizzes === false || !quizRow
-      ? []
-      : withResolvedQuizIds(quizRow.data as QuizGenerationOutput).quizzes
+  let quizzes: Quiz[] = []
+  if (options.includeQuizzes !== false && quizRow) {
+    try { quizzes = withResolvedQuizIds(quizRow.data as QuizGenerationOutput).quizzes }
+    catch (error) {
+      // Invalid stored shape is unavailable evidence, never an empty
+      // quiz set that could falsely establish package completeness.
+      if (error instanceof TypeError) {
+        throw new HistoryIntegrityError("quiz-generation", "book", quizRow.version)
+      }
+      throw error
+    }
+  }
 
   // Phase 5 inserts the stored, user-editable order here, reconciled against
   // this default. Until then the source-derived order is the only order.

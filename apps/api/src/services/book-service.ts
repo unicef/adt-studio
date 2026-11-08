@@ -11,6 +11,7 @@ import {
   PartManifest,
   PartsLedger,
   PIPELINE,
+  QuizIdentityError,
   type BookSummary,
   type BookDetail,
   type PartRange,
@@ -204,10 +205,10 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
           db.close()
         }
       } catch (err) {
-        if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof BookConfigError || err instanceof SyntaxError || isCorruptBookDatabase(err)) {
+        if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof BookConfigError || err instanceof SyntaxError || err instanceof QuizIdentityError || isCorruptBookDatabase(err)) {
           // Keep the card and unrelated books accessible without inventing a
           // database snapshot or offering a rebuild for temporary exclusion or
-          // malformed persisted JSON. Retain the payload for explicit recovery.
+          // malformed persisted data. Retain the payload for explicit recovery.
           readUnavailable = true
           completedStages = []
         } else if (isRecoverableDbError(err)) {

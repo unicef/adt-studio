@@ -6,6 +6,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { createBookStorage, readExtractionManifest } from "@adt/storage"
+import { countPdfPages } from "@adt/pdf"
 import type { StepName } from "@adt/types"
 import type { StepExecutor } from "../dag.js"
 
@@ -98,6 +99,39 @@ it("rejects CLI range overrides outside a mandatory part before changing its con
   expect(readExtractionManifest(path.dirname(file))).toBeNull()
   expect(state.selected).toEqual([])
 })
+
+it.each(["none", "start", "end", "both"])("rejects a mandatory part beyond the PDF without mutation, flags=%s", async bounds => {
+  part()
+  const count = countPdfPages(fs.readFileSync(source))
+  const flags = {
+    ...(["start", "both"].includes(bounds) ? { startPage: count } : {}),
+    ...(["end", "both"].includes(bounds) ? { endPage: count + 1 } : {}),
+  }
+  const dir = path.join(state.root, "range")
+  const manifestFile = path.join(dir, "part.json")
+  const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"))
+  manifest.range = { startPage: count, endPage: count + 1 }
+  manifest.pageCount = count + 1
+  fs.writeFileSync(manifestFile, JSON.stringify(manifest))
+  fs.copyFileSync(source, path.join(dir, "range.pdf"))
+  fs.writeFileSync(path.join(dir, "config.yaml"), `start_page: ${count}\nend_page: ${count + 1}\npage_sectioning:\n  mode: page\n`)
+  const before = Object.fromEntries(fs.readdirSync(dir).map(name => [name, fs.readFileSync(path.join(dir, name))]))
+  await expect(runFullPipeline({ ...options(), ...flags })).rejects.toMatchObject({ code: "EXTRACTION_INPUT_INVALID" })
+  for (const [name, bytes] of Object.entries(before)) expect(fs.readFileSync(path.join(dir, name))).toEqual(bytes)
+  expect(fs.readdirSync(dir).sort()).toEqual(Object.keys(before).sort())
+  expect(state.selected).toEqual([])
+  expect(state.rendered).toEqual([])
+}, 30_000)
+
+it("still clamps an optional whole-book end to the physical PDF length", async () => {
+  const count = countPdfPages(fs.readFileSync(source))
+  await runFullPipeline({ ...options(), startPage: count, endPage: count + 100 })
+  const pageId = `pg${String(count).padStart(3, "0")}`
+  expect(state.selected).toEqual([pageId])
+  expect(state.rendered).toEqual([pageId])
+  expect(loadBookConfig("range", state.root, configPath)).toMatchObject({ start_page: count, end_page: count })
+  expect(readExtractionManifest(path.join(state.root, "range"))?.inputs).toMatchObject({ startPage: count, endPage: count })
+}, 30_000)
 
 it.each([
   { override: { startPage: 2 }, expected: ["pg002", "pg003"] },

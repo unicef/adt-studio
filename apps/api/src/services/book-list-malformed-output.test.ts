@@ -30,9 +30,15 @@ beforeEach(() => {
 })
 afterEach(() => { vi.restoreAllMocks(); fs.rmSync(root, { recursive: true, force: true }) })
 
-it("GET /books isolates malformed quiz JSON, retains the damaged bytes and recovers on a valid version", async () => {
+it.each([
+  "{malformed quiz output",
+  JSON.stringify({ quizzes: [{ afterPageId: "pg001" }] }),
+  "[]",
+  JSON.stringify({ quizzes: [{ quizId: "BAD ID", afterPageId: "pg001", options: [] }] }),
+  JSON.stringify({ quizzes: [null] }),
+])("GET /books isolates damaged quiz data %s and recovers on a valid version", async damaged => {
   const healthy = listBooks(root, configPath).find(book => book.label === "good")!
-  const dbPath = path.join(root, "bad/bad.db"), damaged = "{malformed quiz output"
+  const dbPath = path.join(root, "bad/bad.db")
   const db = openBookDb(dbPath)
   try { db.run("UPDATE node_data SET data = ? WHERE node = ? AND item_id = ?", [damaged, "quiz-generation", "book"]) }
   finally { db.close() }
@@ -56,7 +62,34 @@ it("GET /books isolates malformed quiz JSON, retains the damaged bytes and recov
   finally { inspect.close() }
 })
 
-it("does not hide unrelated programming errors behind an unavailable book", () => {
-  vi.spyOn(fs, "statSync").mockImplementation(() => { throw new Error("unexpected filesystem failure") })
+it.each(["{broken", JSON.stringify({ version: 1 })])("GET /books isolates an invalid transition journal %s without changing it", async journal => {
+  const healthy = listBooks(root, configPath).find(book => book.label === "good")!
+  const dir = path.join(root, "bad")
+  fs.writeFileSync(path.join(dir, ".sectioning-transition.json"), journal)
+  fs.writeFileSync(path.join(dir, "config.yaml"), "page_sectioning:\n  mode: page\n")
+  const files = ["bad.db", "config.yaml", ".sectioning-transition.json", "images/pg001_page.png", "adt/index.html"]
+  const before = files.map(file => fs.readFileSync(path.join(dir, file)))
+  const app = new Hono().onError(errorHandler).route("/", createBookRoutes(root, undefined, configPath))
+  const response = await app.request("/books")
+  expect(response.status).toBe(200)
+  const listed = await response.json()
+  expect(listed.find((book: { label: string }) => book.label === "bad")).toMatchObject({ readUnavailable: true, needsRebuild: false, completedStages: [] })
+  expect(listed.find((book: { label: string }) => book.label === "good")).toEqual(healthy)
+  expect((await app.request("/books/good")).status).toBe(200)
+  expect(files.map(file => fs.readFileSync(path.join(dir, file)))).toEqual(before)
+})
+
+it.each([null, { quizzes: [] }])("keeps readable legacy quiz data %j usable without rewriting it", data => {
+  const dbPath = path.join(root, "bad/bad.db")
+  const db = openBookDb(dbPath)
+  try { db.run("UPDATE node_data SET data = ? WHERE node = ? AND item_id = ?", [JSON.stringify(data), "quiz-generation", "book"]) }
+  finally { db.close() }
+  const before = fs.readFileSync(dbPath)
+  expect(listBooks(root, configPath).find(book => book.label === "bad")?.readUnavailable).toBeUndefined()
+  expect(fs.readFileSync(dbPath)).toEqual(before)
+})
+
+it.each([new Error("unexpected filesystem failure"), new TypeError("unexpected filesystem failure")])("does not hide unrelated $name errors behind an unavailable book", error => {
+  vi.spyOn(fs, "statSync").mockImplementation(() => { throw error })
   expect(() => listBooks(root, configPath)).toThrow("unexpected filesystem failure")
 })

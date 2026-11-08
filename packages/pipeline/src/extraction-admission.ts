@@ -36,6 +36,8 @@ export function prepareExtractionAdmission(bookDir: string, options: ExtractOpti
     const partFile = path.join(bookDir, "part.json")
     if (fs.existsSync(partFile)) {
       const { range } = PartManifest.parse(JSON.parse(fs.readFileSync(partFile, "utf8")))
+      // A mandatory part window cannot be shortened like an optional CLI end.
+      if (range.endPage > count) throw new Error("Part window exceeds source PDF")
       if ((options.startPage !== undefined && options.startPage !== range.startPage) ||
         (options.endPage !== undefined && options.endPage !== range.endPage)) throw new Error("Part window is fixed")
       startPage = range.startPage
