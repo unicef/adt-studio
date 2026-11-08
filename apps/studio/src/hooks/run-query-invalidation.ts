@@ -1,11 +1,17 @@
-import type { QueryClient } from "@tanstack/react-query"
+import type { Query, QueryClient } from "@tanstack/react-query"
 
 /** Refresh the completed book and the list without overlapping prefixes.
  * Explicit cancellation also covers initial loads with no cached data: those
  * reads may have captured an older state before final publication. */
 export async function invalidateBookQueries(client: QueryClient, label: string) {
   const filters = [
-    { queryKey: ["books", label] },
+    {
+      queryKey: ["books", label],
+      // Finishing Extract refreshes shared snapshots, but must not cancel a
+      // user's pending Sectioning click. Its request-owned read still supplies
+      // fresh consent, with frozen versions checked again by the API.
+      predicate: (query: Query) => !(query.queryKey[2] === "step-status" && query.queryKey[3] === "confirmation"),
+    },
     { queryKey: ["books"], exact: true },
     { queryKey: ["package-adt-status", label] },
     { queryKey: ["debug"] },
@@ -20,7 +26,8 @@ export async function refreshRunStatus(client: QueryClient, label: string, publi
   // An accepted/terminal run can precede the first status response. An empty
   // receipt list distinguishes that case from merely opening an idle book.
   if (publicationExpected && client.getQueryData(receipts) === undefined) client.setQueryData(receipts, [])
-  const filter = { queryKey: ["books", label, "step-status"] }
+  // Refresh the shared snapshot without cancelling a click's protection read.
+  const filter = { queryKey: ["books", label, "step-status"], exact: true }
   await client.cancelQueries(filter)
   await client.invalidateQueries(filter)
 }

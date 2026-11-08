@@ -227,7 +227,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // Only cancel if we already have baseline data; otherwise the initial
       // fetch (on page load) would be killed and the UI would stay idle.
       if (queryClient.getQueryData(stepStatusKey(label))) {
-        queryClient.cancelQueries({ queryKey: stepStatusKey(label) })
+        // Supersede the shared status snapshot, not a pending run's consent read.
+        queryClient.cancelQueries({ queryKey: stepStatusKey(label), exact: true })
       }
 
       if (d.type === "step-start") {
