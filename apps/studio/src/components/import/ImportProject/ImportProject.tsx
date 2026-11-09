@@ -102,6 +102,11 @@ export function ImportProject() {
     [handleAccept, importPending],
   )
 
+  const openBook = useCallback((book: { label: string }) => navigate({
+    to: "/books/$label/$step",
+    params: { label: book.label, step: "book" },
+  }), [navigate])
+
   const handleImport = useCallback(() => {
     if (importPending || !zipFile || !preview) return
     if (isAdtBundleImportPreview(preview)) {
@@ -122,16 +127,12 @@ export function ImportProject() {
           type: activityDecisions[item.sectionId] ?? null,
         }))
       adtImportMutation.mutate({ zip: zipFile, activityDecisions: decisions }, {
-        onSuccess: (book) => navigate({
-          to: "/books/$label/$step",
-          params: { label: book.label, step: "book" },
-        }),
+        onSuccess: openBook,
       })
       return
     }
-    importMutation.mutate(zipFile, {
-      onSuccess: () => navigate({ to: "/" }),
-    })
+    // Backups and book parts open the new book too, as the review promises.
+    importMutation.mutate(zipFile, { onSuccess: openBook })
   }, [
     importPending,
     zipFile,
@@ -139,7 +140,7 @@ export function ImportProject() {
     activityDecisions,
     importMutation,
     adtImportMutation,
-    navigate,
+    openBook,
   ])
 
   const hasPreview = !!(zipFile && preview && !previewError)

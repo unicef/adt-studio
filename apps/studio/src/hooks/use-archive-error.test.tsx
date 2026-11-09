@@ -48,7 +48,7 @@ describe("useFriendlyArchiveError", () => {
   it("does not blame the file for an unexpected server failure", () => {
     for (const raw of [
       "Internal server error",
-      "Internal server error (reference 1a2b3c4d). The full error is in the ADT Studio server log.",
+      "Internal server error (reference 1a2b3c4d). Include this reference when you report the problem.",
       "Request failed: 502",
     ]) {
       const { result } = renderHook(() => useFriendlyArchiveError(raw))

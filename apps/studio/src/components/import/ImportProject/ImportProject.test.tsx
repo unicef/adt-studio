@@ -197,6 +197,33 @@ describe("ImportProject", () => {
     expect(screen.getByText("Pages in the full book").parentElement?.textContent).toContain("52")
   })
 
+  it("opens a book part after importing it, like every other import", async () => {
+    previewImport.mockResolvedValue({
+      isPart: true,
+      label: "volcanoes-p001-003",
+      sourceLabel: "LP-4-Volcanoes-2",
+      title: "Volcanoes",
+      range: { startPage: 1, endPage: 3 },
+      pageCount: 52,
+      coverBase64: null,
+    })
+    importProject.mockImplementation((_zip, options) => {
+      options.onSuccess({ label: "volcanoes-p001-003" })
+    })
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(["zip"], "part.zip", { type: "application/zip" })
+    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.click(await screen.findByRole("button", { name: "Import as new project" }))
+
+    expect(importProject).toHaveBeenCalledWith(file, expect.any(Object))
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/books/$label/$step",
+      params: { label: "volcanoes-p001-003", step: "book" },
+    })
+  })
+
   it("never pairs an older preview with a newly selected archive", async () => {
     let resolveFirst!: (value: unknown) => void
     let resolveSecond!: (value: unknown) => void
