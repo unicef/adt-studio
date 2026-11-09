@@ -15,28 +15,15 @@ export function archiveKind(preview: AnyImportPreview): ArchiveKind {
   return "backup"
 }
 
-function TypeBadge({ kind }: { kind: ArchiveKind }) {
-  if (kind === "part") {
-    return (
-      <Badge className="gap-1.5 border-indigo-200 bg-indigo-50 py-1 text-[11px] text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/40">
-        <Scissors className="size-3" />
-        <Trans>Completed book part</Trans>
-      </Badge>
-    )
-  }
-  if (kind === "adt") {
-    return (
-      <Badge className="gap-1.5 border-violet-200 bg-violet-50 py-1 text-[11px] text-violet-700 hover:bg-violet-50 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300 dark:hover:bg-violet-950/40">
-        <FileArchive className="size-3" />
-        <Trans>Exported ADT</Trans>
-      </Badge>
-    )
-  }
+/** The archive type, as quiet text: the state badge beside it is the one
+ * thing in the band that should catch the eye. */
+function TypeLabel({ kind }: { kind: ArchiveKind }) {
+  const Icon = kind === "part" ? Scissors : FileArchive
   return (
-    <Badge variant="info" className="gap-1.5 py-1 text-[11px]">
-      <FileArchive className="size-3" />
-      <Trans>Project backup</Trans>
-    </Badge>
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+      <Icon aria-hidden="true" className="size-3.5" />
+      {kind === "part" ? <Trans>Completed book part</Trans> : kind === "adt" ? <Trans>Exported ADT</Trans> : <Trans>Project backup</Trans>}
+    </span>
   )
 }
 
@@ -51,6 +38,18 @@ function StateBadge({ mode }: { mode: ReviewMode }) {
     return <Badge variant="warning" className="gap-1.5 py-1 text-[11px]"><AlertCircle className="size-3" /><Trans>Needs attention</Trans></Badge>
   }
   return <Badge variant="success" className="gap-1.5 py-1 text-[11px]"><Check className="size-3" /><Trans>Ready to import</Trans></Badge>
+}
+
+/** Title size steps down as the title grows, so a long one still fits in two
+ * lines instead of being clipped at display size. */
+const longTitleClass = "text-xl 2xl:text-2xl [@media(max-height:960px)]:text-lg"
+const mediumTitleClass = "text-2xl 2xl:text-[28px] [@media(max-height:960px)]:text-xl"
+const shortTitleClass = "text-[28px] 2xl:text-[32px] [@media(max-height:960px)]:text-2xl"
+
+function titleSize(title: string): string {
+  if (title.length > 70) return longTitleClass
+  if (title.length > 32) return mediumTitleClass
+  return shortTitleClass
 }
 
 /** The top band of the review step: the book, the archive it came from, and
@@ -83,7 +82,7 @@ export function HeroBand({
         <img
           src={cover.startsWith("data:") ? cover : `data:image/png;base64,${cover}`}
           alt={title ?? ""}
-          className="w-24 shrink-0 rounded-md bg-card object-contain shadow-[0_1px_2px_rgba(0,0,0,0.06),0_16px_35px_-18px_rgba(0,0,0,0.45)] outline outline-1 -outline-offset-1 outline-black/10 2xl:w-32 dark:outline-white/10 [@media(max-height:960px)]:w-[72px]"
+          className="w-24 shrink-0 rounded-md bg-card object-contain shadow-[0_1px_2px_rgba(0,0,0,0.06),0_16px_35px_-18px_rgba(0,0,0,0.45)] outline outline-1 -outline-offset-1 outline-black/10 2xl:w-28 dark:outline-white/10 [@media(max-height:960px)]:w-[72px]"
         />
       ) : (
         <span className="grid aspect-[3/4] w-24 shrink-0 place-items-center rounded-md border border-dashed border-border bg-card text-muted-foreground [@media(max-height:960px)]:w-[72px]">
@@ -91,40 +90,45 @@ export function HeroBand({
           <span className="sr-only"><Trans>No cover available</Trans></span>
         </span>
       )}
-      <div className="flex min-w-[18rem] flex-[2_1_18rem] flex-col gap-1.5 2xl:min-w-[24rem]">
-        <div className="flex flex-wrap gap-2">
-          <TypeBadge kind={kind} />
+      <div className="flex min-w-[22rem] flex-[2_1_22rem] flex-col gap-1 2xl:min-w-[26rem]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <TypeLabel kind={kind} />
           <StateBadge mode={mode} />
         </div>
         {title ? (
-          <h2 title={title} className="line-clamp-2 break-words text-[28px] font-semibold leading-tight tracking-[-0.5px] text-foreground 2xl:text-[34px] [@media(max-height:960px)]:text-2xl">{title}</h2>
+          <h2 title={title} className={cn("mt-0.5 line-clamp-2 text-pretty break-words font-semibold leading-tight tracking-[-0.5px] text-foreground", titleSize(title))}>{title}</h2>
         ) : (
-          <h2 className="text-[28px] font-semibold leading-tight tracking-[-0.5px] text-muted-foreground 2xl:text-[34px] [@media(max-height:960px)]:text-2xl">
+          <h2 className="mt-0.5 text-[28px] font-semibold leading-tight tracking-[-0.5px] text-muted-foreground 2xl:text-[32px] [@media(max-height:960px)]:text-2xl">
             <Trans>Title couldn’t be read</Trans>
           </h2>
         )}
         {subtitle ? <p className="truncate text-[13px] text-muted-foreground">{subtitle}</p> : null}
-        <div className="mt-1 flex max-w-md items-center gap-2.5">
-          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-card text-muted-foreground">
-            <FileArchive aria-hidden="true" className="size-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-xs font-medium text-foreground">{file.name}</span>
-            <span className="block text-[11px] tabular-nums text-muted-foreground">{formatBytes(file.size)}</span>
-          </span>
-          <Button type="button" variant="outline" size="sm" onClick={onReplace} disabled={replaceDisabled} className="h-8 shrink-0 px-3 text-xs">
-            <FileUp className="size-3.5" />
+        <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <FileArchive aria-hidden="true" className="size-3.5 shrink-0" />
+          <span className="min-w-0 truncate" title={file.name}>{file.name}</span>
+          <span aria-hidden="true">·</span>
+          <span className="shrink-0 tabular-nums">{formatBytes(file.size)}</span>
+          <span aria-hidden="true">·</span>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={onReplace}
+            disabled={replaceDisabled}
+            className="h-auto shrink-0 gap-1 p-0 text-xs font-medium"
+          >
+            <FileUp aria-hidden="true" className="size-3.5" />
             <Trans>Replace archive</Trans>
           </Button>
         </div>
       </div>
       <dl className="flex flex-wrap">
         {stats.map((stat, index) => (
-          <div key={stat.label} className={cn("flex flex-col-reverse px-5 2xl:px-6", index > 0 ? "border-l border-border" : "pl-0")}>
-            <dt className="mt-1.5 max-w-[10rem] text-balance text-[13px] leading-snug text-muted-foreground">{stat.label}</dt>
+          <div key={stat.label} className={cn("flex flex-col-reverse px-4 2xl:px-5", index > 0 ? "border-l border-border" : "pl-0")}>
+            <dt className="mt-1 max-w-[9rem] text-balance text-xs leading-snug text-muted-foreground">{stat.label}</dt>
             <dd className={cn(
               "font-semibold leading-none tracking-[-1px] tabular-nums text-foreground",
-              stat.long ? "max-w-[14rem] truncate text-2xl" : "text-[40px] [@media(max-height:960px)]:text-[30px]",
+              stat.long ? "max-w-[14rem] truncate text-xl" : "text-[28px] [@media(max-height:960px)]:text-2xl",
             )}>
               {stat.value === null ? (
                 <span className="text-muted-foreground/60">
