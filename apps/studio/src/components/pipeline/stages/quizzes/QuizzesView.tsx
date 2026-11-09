@@ -537,10 +537,10 @@ export function QuizzesView({
 
   const showPerPageEmpty =
     selectedPageId && displayQuizzes.length === 0 && quizzes.length > 0;
-  const showAllButton = selectedPageId ? (
+  const showAllButton = selectedPageId && onSelectPage ? (
     <button
       type="button"
-      onClick={() => onSelectPage?.(null)}
+      onClick={() => onSelectPage(null)}
       className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline transition-colors"
     >
       {t`Show all quizzes`}

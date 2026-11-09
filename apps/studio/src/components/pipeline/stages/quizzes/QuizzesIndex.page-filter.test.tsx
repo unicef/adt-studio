@@ -62,7 +62,7 @@ const response: QuizzesResponse = {
 
 let client: QueryClient
 
-function Harness({ pageId, onSelectPage }: { pageId?: string; onSelectPage: (pageId: string | null) => void }) {
+function Harness({ pageId, onSelectPage }: { pageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const [extra, setExtra] = useState<ReactNode>(null)
   return <HeaderContext.Provider value={{ setExtra }}>
     <header>{extra}</header>
@@ -89,6 +89,34 @@ afterEach(() => {
 })
 
 describe("#863: clearing the quizzes page filter", () => {
+  it.each(["pg001", "pg003"])("hides Show all quizzes without a callback for page %s", async (pageId) => {
+    render(<QueryClientProvider client={client}>
+      <Harness pageId={pageId} />
+    </QueryClientProvider>)
+
+    if (pageId === "pg001") {
+      expect(await screen.findByDisplayValue("Question for pg001")).toBeTruthy()
+    } else {
+      expect(await screen.findByText("No quizzes for this page")).toBeTruthy()
+    }
+    expect(screen.queryByRole("button", { name: "Show all quizzes", exact: true })).toBeNull()
+  })
+
+  it("shows all quizzes after clearing a page filter", async () => {
+    function FilteredQuizzes() {
+      const [pageId, setPageId] = useState<string | null>("pg001")
+      return <Harness pageId={pageId ?? undefined} onSelectPage={setPageId} />
+    }
+    render(<QueryClientProvider client={client}><FilteredQuizzes /></QueryClientProvider>)
+
+    expect(await screen.findByDisplayValue("Question for pg001")).toBeTruthy()
+    expect(screen.queryByDisplayValue("Question for pg002")).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Show all quizzes", exact: true }))
+    expect(await screen.findByDisplayValue("Question for pg002")).toBeTruthy()
+    expect(screen.getByDisplayValue("Question for pg001")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Show all quizzes", exact: true })).toBeNull()
+  })
+
   it.each([
     { pageId: "pg003", scope: "a page without quizzes", hasVisibleQuiz: false },
     { pageId: "pg001", scope: "a page showing only one of the two quizzes", hasVisibleQuiz: true },

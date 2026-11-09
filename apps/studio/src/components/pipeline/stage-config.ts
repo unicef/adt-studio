@@ -79,7 +79,6 @@ export const STAGE_DESCRIPTIONS: Record<NonBookStageSlug, string> = {
 export const STAGES_WITH_PAGES = new Set<StageSlug>([
   "sectioning",
   "storyboard",
-  "quizzes",
   "translate",
   "speech",
 ])
