@@ -27,17 +27,15 @@ export function VersionsSection() {
 
   return (
     <>
-      <div className="shrink-0">
-        <SettingsHeading>
-          <Trans>Versions</Trans>
-        </SettingsHeading>
-        <SettingsLead>
-          <Trans>
-            Browse every beta release, read what changed, and switch to any of them — including
-            an earlier one.
-          </Trans>
-        </SettingsLead>
-      </div>
+      <SettingsHeading>
+        <Trans>Versions</Trans>
+      </SettingsHeading>
+      <SettingsLead>
+        <Trans>
+          Browse every beta release, read what changed, and switch to any of them — including
+          an earlier one.
+        </Trans>
+      </SettingsLead>
 
       {preview.status && !installing && (
         <PreviewBuildBanner
@@ -49,35 +47,31 @@ export function VersionsSection() {
       {status.phase === "error" && (
         <p
           role="alert"
-          className="mb-3 shrink-0 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200"
+          className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200"
         >
           {status.message}
         </p>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
-        {installing ? (
-          <div className="flex min-h-0 flex-1 items-center justify-center p-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
-            <div className="w-full max-w-125 overflow-hidden rounded-xl ring-1 ring-border">
-              <UpdateStateSurface
-                status={status}
-                currentVersion={currentVersion}
-                onCancel={cancel}
-                onInstallNow={install}
-                onInstallLater={() => void installOnQuit()}
-                onClose={() => void navigate({ to: SETTINGS_PATHS.about })}
-              />
-            </div>
-          </div>
-        ) : (
-          <BetaVersionsView
-            key={switchTo?.key}
+      {installing ? (
+        <div className="mx-auto w-full max-w-125 overflow-hidden rounded-2xl border bg-card shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
+          <UpdateStateSurface
             status={status}
             currentVersion={currentVersion}
-            initialVersion={switchTo?.version}
+            onCancel={cancel}
+            onInstallNow={install}
+            onInstallLater={() => void installOnQuit()}
+            onClose={() => void navigate({ to: SETTINGS_PATHS.about })}
           />
-        )}
-      </div>
+        </div>
+      ) : (
+        <BetaVersionsView
+          key={switchTo?.key}
+          status={status}
+          currentVersion={currentVersion}
+          initialVersion={switchTo?.version}
+        />
+      )}
     </>
   )
 }

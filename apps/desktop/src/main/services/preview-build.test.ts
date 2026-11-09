@@ -69,6 +69,25 @@ describe("resolvePreviewBuildStatus", () => {
     });
   });
 
+  it("reports a removed preview only while its PR is open and no build of it is listed", () => {
+    const beta = release("v0.7.6-beta.1", "2026-08-19T00:00:00Z");
+    expect(status({ state: "open" }, [beta])?.removed).toBe(true);
+    expect(
+      status({ state: "open" }, [beta, release(PREVIEW, "2026-08-10T00:00:00Z")])?.removed,
+    ).toBe(false);
+    // A rebuild replaced this build: not removed, the update prompt offers it.
+    expect(
+      status({ state: "open" }, [beta, release(`${PREVIEW}.2`, "2026-08-12T00:00:00Z")])?.removed,
+    ).toBe(false);
+    // Another PR's preview does not count.
+    expect(
+      status({ state: "open" }, [beta, release("0.7.6-beta-pr-7710", "2026-08-12T00:00:00Z")])
+        ?.removed,
+    ).toBe(true);
+    // Cleanup after a merge or close is expected, and reported as that instead.
+    expect(status(MERGED, [beta])?.removed).toBe(false);
+  });
+
   it("names the first beta whose PR list includes the merge", () => {
     expect(
       status(MERGED, [

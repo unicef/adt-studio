@@ -1,6 +1,13 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { GitMerge, GitPullRequest, GitPullRequestClosed, PackageCheck, type LucideIcon } from "lucide-react"
+import {
+  GitMerge,
+  GitPullRequest,
+  GitPullRequestClosed,
+  PackageCheck,
+  PackageX,
+  type LucideIcon,
+} from "lucide-react"
 import type { PreviewBuildStatus } from "@/hooks/use-preview-build"
 import { formatVersion } from "./release-banner-utils"
 
@@ -34,10 +41,17 @@ export function previewBuildMessage(status: PreviewBuildStatus): PreviewBuildMes
       body: <Trans>It will arrive in the next beta.</Trans>,
     }
   }
+  if (status.removed) {
+    return {
+      icon: PackageX,
+      title: <Trans>The preview of PR #{pr} was removed</Trans>,
+      body: <Trans>It won't get new builds. Switch back to the latest beta to keep getting updates.</Trans>,
+    }
+  }
   return {
     icon: GitPullRequest,
     title: <Trans>You're on a preview of PR #{pr}</Trans>,
-    body: <Trans>Preview builds don't get update notices. This page tells you when the PR merges or closes.</Trans>,
+    body: <Trans>You'll get new builds of this PR as updates. This page tells you when the PR merges or closes.</Trans>,
   }
 }
 

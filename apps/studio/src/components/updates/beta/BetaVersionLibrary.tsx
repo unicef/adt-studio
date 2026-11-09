@@ -16,8 +16,10 @@ import { ReleaseDirectionBadge } from "./ReleaseDirectionBadge"
 import { ReleaseKindBadge } from "./ReleaseKindBadge"
 import {
   formatRelativeReleaseDate,
+  previewBranch,
   releaseContributors,
   releaseDisplayTitle,
+  showsDirection,
 } from "./beta-version-utils"
 import { formatVersion } from "../release-banner-utils"
 
@@ -27,6 +29,8 @@ interface BetaVersionLibraryProps {
   disabled: boolean
   onOpen: (version: string) => void
   onCardRef?: (version: string, node: HTMLButtonElement | null) => void
+  label?: string
+  currentVersion?: string | null
 }
 
 export function BetaVersionLibrary({
@@ -35,6 +39,8 @@ export function BetaVersionLibrary({
   disabled,
   onOpen,
   onCardRef,
+  label,
+  currentVersion,
 }: BetaVersionLibraryProps) {
   const { t, i18n } = useLingui()
   const [activeVersion, setActiveVersion] = useState(
@@ -86,8 +92,8 @@ export function BetaVersionLibrary({
   return (
     <div
       role="list"
-      aria-label={t`Beta release library`}
-      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      aria-label={label ?? t`Beta release library`}
+      className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,14rem),1fr))] gap-3"
     >
       {releases.map((release, index) => {
         const title = releaseDisplayTitle(release)
@@ -105,12 +111,13 @@ export function BetaVersionLibrary({
               disabled={disabled}
               tabIndex={release.version === activeVersion ? 0 : -1}
               onClick={() => onOpen(release.version)}
+              onFocus={() => setActiveVersion(release.version)}
               onKeyDown={(event) => handleKeyDown(event, index, release)}
-              className="h-full w-full cursor-pointer rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+              className="h-full w-full cursor-pointer rounded-2xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
             >
               <Card
                 className={cn(
-                  "flex h-full flex-col overflow-hidden shadow-none",
+                  "flex h-full flex-col overflow-hidden rounded-2xl shadow-sm transition-colors",
                   "hover:bg-accent/20",
                 )}
               >
@@ -132,18 +139,21 @@ export function BetaVersionLibrary({
                   </CardDescription>
                 </CardHeader>
                 <CardFooter className="mt-auto flex-wrap gap-2 p-3 pt-0">
-                  <ReleaseDirectionBadge direction={release.direction} />
-                  <ReleaseKindBadge version={release.version} />
-                  <span className="ml-auto">
-                    <ContributorAvatars logins={releaseContributors(release)} />
-                  </span>
-                  {release.totalBytes != null && (
-                    <span
-                      className="font-mono text-xs tabular-nums text-accent-foreground"
-                    >
-                      {formatBytes(release.totalBytes)}
-                    </span>
+                  {showsDirection(release, currentVersion) && (
+                    <ReleaseDirectionBadge direction={release.direction} />
                   )}
+                  <ReleaseKindBadge
+                    version={release.version}
+                    branch={previewBranch(release)}
+                  />
+                  <span className="ml-auto flex items-center gap-2">
+                    <ContributorAvatars logins={releaseContributors(release)} />
+                    {release.totalBytes != null && (
+                      <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                        {formatBytes(release.totalBytes)}
+                      </span>
+                    )}
+                  </span>
                 </CardFooter>
               </Card>
             </button>

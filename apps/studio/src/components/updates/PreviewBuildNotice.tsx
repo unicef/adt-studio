@@ -13,7 +13,7 @@ export function PreviewBuildNotice({
   onDismiss: () => void
 }) {
   const { icon: Icon, title, body } = previewBuildMessage(status)
-  const skin = status.state === "closed" ? "previewClosed" : "preview"
+  const skin = status.state === "closed" || status.removed ? "previewClosed" : "preview"
 
   return (
     <AmbientCard

@@ -5,6 +5,7 @@ import {
   fetchBetaReleaseCatalog,
   GITHUB_HEADERS,
   isNumberedBeta,
+  stagingLineOf,
   type BetaRelease,
 } from "./release-catalog";
 
@@ -25,6 +26,12 @@ export interface PreviewBuildStatus {
   state: PullRequest["state"];
   shippedIn?: string;
   latestBeta?: string;
+  /**
+   * The PR is still open but no release of its staging line is published any
+   * more (staging cleanup was run by hand, or the release was deleted), so this
+   * build will never be offered an update again.
+   */
+  removed?: boolean;
 }
 
 export function previewPullRequestNumber(version: string): number | undefined {
@@ -98,6 +105,11 @@ export function resolvePreviewBuildStatus(
             ?.version
         : undefined,
     latestBeta: numbered.at(-1)?.version,
+    removed:
+      pullRequest.state === "open" &&
+      !catalog.some(
+        (release) => stagingLineOf(release.version) === stagingLineOf(version),
+      ),
   };
 }
 

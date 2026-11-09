@@ -288,7 +288,19 @@ describe("release catalog version handling", () => {
     expect(isOfferedRelease("0.8.0-beta.1", "0.8.0-beta.2")).toBe(false);
     expect(isOfferedRelease("0.8.1-beta-pr-867", "0.8.0-beta.1")).toBe(false);
     expect(isOfferedRelease("0.8.1-beta.1", "0.8.1-beta-pr-867")).toBe(false);
+    expect(isOfferedRelease("0.8.1-beta-pr-868", "0.8.1-beta-pr-867")).toBe(false);
     expect(isOfferedRelease("not-a-version", "0.8.0-beta.1")).toBe(false);
+  });
+
+  it("offers a preview build only a newer build of its own PR", () => {
+    expect(isOfferedRelease("0.8.1-beta-pr-867.2", "0.8.1-beta-pr-867")).toBe(true);
+    expect(isOfferedRelease("0.8.1-beta-pr-867.3", "0.8.1-beta-pr-867.2")).toBe(true);
+    expect(isOfferedRelease("0.8.2-beta-pr-867", "0.8.1-beta-pr-867.4")).toBe(true);
+    expect(isOfferedRelease("0.8.1-beta-pr-867", "0.8.1-beta-pr-867")).toBe(false);
+    expect(isOfferedRelease("0.8.1-beta-pr-867", "0.8.1-beta-pr-867.2")).toBe(false);
+    expect(isOfferedRelease("0.8.1-beta-pr-8670", "0.8.1-beta-pr-867")).toBe(false);
+    // A numbered beta never sees a rebuild of someone's PR.
+    expect(isOfferedRelease("0.8.1-beta-pr-867.2", "0.8.0-beta.1")).toBe(false);
   });
 
   it("leaves stable installs exactly as they were", () => {

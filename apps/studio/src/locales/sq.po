@@ -1866,8 +1866,14 @@ msgstr "Version beta"
 msgid "Beta release library"
 msgstr "Biblioteka e versioneve beta"
 
-msgid "Beta versions"
+msgid "Beta releases"
 msgstr "Versionet beta"
+
+#~ msgid "Beta versions"
+#~ msgstr "Versionet beta"
+
+msgid "Beta<0/>Build"
+msgstr "Ndërtim<0/>beta"
 
 msgid "Bit Rate"
 msgstr "Shpejtësia e bitit"
@@ -2060,6 +2066,9 @@ msgstr "Ndërton tabelën e përmbajtjes nga seksionet e librit."
 
 msgid "Built for every reader"
 msgstr "Ndërtuar për çdo lexues"
+
+msgid "Built from a pull request to try a change before it ships in a beta."
+msgstr "Ndërtuar nga një pull request për të provuar një ndryshim para se të dalë në një beta."
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Paketonn librin e renderuar në një paketë ueb të vendosshme."
@@ -2293,8 +2302,8 @@ msgstr "Artikull liste kontrolli"
 msgid "choice"
 msgstr "zgjedhje"
 
-msgid "Choose a beta release to install."
-msgstr "Zgjidhni një version beta për ta instaluar."
+#~ msgid "Choose a beta release to install."
+#~ msgstr "Zgjidhni një version beta për ta instaluar."
 
 msgid "Choose a PDF"
 msgstr "Zgjidh një PDF"
@@ -5056,6 +5065,9 @@ msgstr "U krijua nga një PDF ose cilësime të ndryshme, ndaj nuk mund të bash
 msgid "It will arrive in the next beta."
 msgstr "Do të vijë në beta-n e ardhshme."
 
+msgid "It won't get new builds. Switch back to the latest beta to keep getting updates."
+msgstr "Nuk do të marrë ndërtime të reja. Kthehuni te beta më e fundit për të vazhduar të merrni përditësime."
+
 msgid "italic"
 msgstr "kursive"
 
@@ -7362,14 +7374,26 @@ msgstr "Para"
 msgid "Preview"
 msgstr "Pamje paraprake"
 
+msgid "Preview · {branch}"
+msgstr "Paraprak · {branch}"
+
 msgid "Preview · #{prNumber}"
 msgstr "Paraprak · #{prNumber}"
 
 msgid "Preview build"
 msgstr "Version paraprak"
 
-msgid "Preview builds don't get update notices. This page tells you when the PR merges or closes."
-msgstr "Versionet paraprake nuk marrin njoftime për përditësime. Kjo faqe të tregon kur PR-ja bashkohet ose mbyllet."
+msgid "Preview build of PR #{prNumber}"
+msgstr "Version paraprak i PR #{prNumber}"
+
+msgid "Preview build of PR #{prNumber} from {branch}"
+msgstr "Version paraprak i PR #{prNumber} nga {branch}"
+
+msgid "Preview builds"
+msgstr "Versione paraprake"
+
+#~ msgid "Preview builds don't get update notices. This page tells you when the PR merges or closes."
+#~ msgstr "Versionet paraprake nuk marrin njoftime për përditësime. Kjo faqe të tregon kur PR-ja bashkohet ose mbyllet."
 
 msgid "Preview linked page"
 msgstr "Shiko faqen e lidhur"
@@ -8524,8 +8548,11 @@ msgstr "Kërko libra…"
 msgid "Search by title or author…"
 msgstr "Kërko sipas titullit ose autorit…"
 
-msgid "Search by title, version, contributor, or PR…"
-msgstr "Kërko sipas titullit, versionit, kontribuuesit ose PR-së…"
+#~ msgid "Search by title, version, contributor, or PR…"
+#~ msgstr "Kërko sipas titullit, versionit, kontribuuesit ose PR-së…"
+
+msgid "Search by title, version, contributor, PR, or branch…"
+msgstr "Kërko sipas titullit, versionit, kontribuuesit, PR-së ose degës…"
 
 #~ msgid "Search by title, version, or description…"
 #~ msgstr "Kërko sipas titullit, versionit ose përshkrimit…"
@@ -9833,6 +9860,9 @@ msgstr "Pylli i Humbur"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
 
+msgid "The preview of PR #{pr} was removed"
+msgstr "Versioni paraprak i PR #{pr} u hoq"
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Procesi që bimët përdorin për të kthyer dritën e diellit, ujin dhe dioksidin e karbonit në ushqim."
 
@@ -10382,8 +10412,11 @@ msgstr "Provo sërish"
 msgid "Try another file"
 msgstr "Provo një skedar tjetër"
 
-msgid "Try another title, version, or description."
-msgstr "Provoni një titull, version ose përshkrim tjetër."
+msgid "Try another title, version, contributor, PR, or branch."
+msgstr "Provoni një titull, version, kontribuues, PR ose degë tjetër."
+
+#~ msgid "Try another title, version, or description."
+#~ msgstr "Provoni një titull, version ose përshkrim tjetër."
 
 msgid "Try any build — even an open PR — then roll back anytime."
 msgstr "Provoni çdo version — madje edhe një PR të hapur — pastaj kthehuni pas në çdo kohë."
@@ -11129,6 +11162,9 @@ msgstr "Nuk ke shtuar ende asnjë term manualisht"
 
 msgid "You haven't split any books"
 msgstr "Nuk keni ndarë asnjë libër"
+
+msgid "You'll get new builds of this PR as updates. This page tells you when the PR merges or closes."
+msgstr "Do të merrni ndërtimet e reja të këtij PR si përditësime. Kjo faqe ju njofton kur PR bashkohet ose mbyllet."
 
 msgid "You're all set"
 msgstr "Je gati"

@@ -63,7 +63,11 @@ package: apps/desktop/package.json
 
 The staging branch is deterministic per PR and force-pushed on every run, so
 re-running staging for a PR that already has a staging branch simply rebuilds it
-against the current `develop`. The build job then produces signed Windows,
+against the current `develop`. Each rebuild gets a new version: the first build
+is `0.7.5-beta-pr-123`, rebuilds on the same core are `0.7.5-beta-pr-123.2`,
+`.3`, and so on. The in-app updater never installs a version equal to the
+running one, so reusing the tag would strand everyone on the previous build;
+with a fresh version, installs of the PR are offered the rebuild as an update. The build job then produces signed Windows,
 macOS, and Linux installers plus their updater metadata (`beta*.yml`,
 `*.blockmap`), retained as workflow artifacts for 14 days.
 
@@ -74,8 +78,8 @@ release body is composed by
 which receives the PR number directly and renders the `### Release source`
 section the app parses for provenance — no PR discovery heuristics are needed.
 
-The pre-release is tagged with the version itself — `0.7.5-beta-pr-<n>`, **with
-no `v` prefix**. This matters for two reasons:
+The pre-release is tagged with the version itself — `0.7.5-beta-pr-<n>` (or
+`0.7.5-beta-pr-<n>.<build>` for a rebuild), **with no `v` prefix**. This matters for two reasons:
 
 - The `v*` tag namespace is protected (only the release automation's
   `RELEASE_PAT` may create `v*` tags), and staging runs with the default
@@ -92,9 +96,9 @@ belong to an open same-repository PR into `develop`; they use the
 `release-ai-preview` environment and are updated live. Closing the target PR
 removes the staging release through the normal cleanup workflow.
 
-The `publish` job is idempotent per PR: before creating the release it deletes
-any existing release (and its tag) ending in `-beta-pr-<n>`, then recreates it
-from the current build. Staging does not create a `v*` tag or a Docker image.
+The `publish` job keeps one release per PR: before creating the release it
+deletes any existing release (and its tag) ending in `-beta-pr-<n>` or
+`-beta-pr-<n>.<build>`, then publishes the current build under its new version. Staging does not create a `v*` tag or a Docker image.
 
 > Because the pre-release is a real GitHub Release, every beta-channel install
 > sees it in the version browser. Stale staging releases are torn down
@@ -105,7 +109,7 @@ from the current build. Staging does not create a `v*` tag or a Docker image.
 [`staging-cleanup.yml`](../.github/workflows/staging-cleanup.yml) tears down a
 PR's staging footprint automatically when the pull request closes (merged or
 not). It keys off the PR number (`pr-<n>`), deletes any pre-release ending in
-`-beta-pr-<n>` (with its tag), and deletes the `staging/pr-<n>` branch. The
+`-beta-pr-<n>` or `-beta-pr-<n>.<build>` (with its tag), and deletes the `staging/pr-<n>` branch. The
 automatic teardown only fires for PRs whose base is `develop`, mirroring the
 staging contract, so closing a same-branch PR that targets another base never
 removes the staging build.
@@ -444,13 +448,14 @@ channel, including staging versions such as `0.7.5-beta-pr-123`.
 | ----------------------------- | --------------- | ----------------------- |
 | Stable (`X.Y.Z`)              | `latest`        | Newer stable releases   |
 | Beta (`X.Y.Z-beta.N`)         | `beta`          | Newer numbered betas    |
-| Staging (`X.Y.Z-beta-pr-<n>`) | `beta`          | Nothing                 |
+| Staging (`X.Y.Z-beta-pr-<n>`) | `beta`          | Newer builds of the same PR |
 
 Any beta release, numbered or staging, newer or older, can still be installed
-from **Settings → Versions** (beta builds only). A staging install follows its
-PR instead: when the PR merges, ships in a numbered beta, or closes, the app
-says so on launch and in Versions, and offers the switch back to the latest
-numbered beta.
+from **Settings → Versions** (beta builds only). A staging install is never
+offered a numbered beta or another PR's build; it follows its PR instead: when
+the PR merges, ships in a numbered beta, or closes — or when its preview release
+is removed while the PR is still open — the app says so on launch and in
+Versions, and offers the switch back to the latest numbered beta.
 
 The version browser accepts numbered beta releases and PR-qualified staging
 builds. Staging artifacts themselves are not listed remotely because they are

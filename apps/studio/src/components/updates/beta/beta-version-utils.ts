@@ -37,9 +37,34 @@ function sourceSearchText(release: AvailableRelease): string {
   return [
     ...releaseContributors(release).map((login) => `@${login}`),
     ...prs.map((pr) => `#${pr.number} ${pr.title ?? ""}`),
+    previewBranch(release) ?? "",
   ]
     .join(" ")
     .toLowerCase()
+}
+
+/** True for a build of an open pull request rather than a numbered beta. */
+export function isPreviewRelease(release: AvailableRelease): boolean {
+  return previewPullRequestNumber(release.version) != null
+}
+
+/**
+ * A preview build's version is ordered by the beta it branched from, so "New" or
+ * "Earlier" says nothing useful about another PR's build. It does for builds of
+ * the PR you are running: a rebuild of it is a real update.
+ */
+export function showsDirection(release: AvailableRelease, currentVersion?: string | null): boolean {
+  if (!isPreviewRelease(release) || release.direction === "current") return true
+  const prNumber = previewPullRequestNumber(release.version)
+  return prNumber === previewPullRequestNumber(currentVersion ?? "")
+}
+
+/** The branch a preview build was built from, when the release notes name it. */
+export function previewBranch(release: AvailableRelease): string | undefined {
+  const prNumber = previewPullRequestNumber(release.version)
+  if (prNumber == null) return undefined
+  const pr = release.source?.prs.find((candidate) => candidate.number === prNumber)
+  return pr?.headRef || release.source?.branch || undefined
 }
 
 export function releaseContributors(release: AvailableRelease): string[] {

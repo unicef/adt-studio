@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import {
   formatVersion,
   getReleaseChannel,
+  previewPullRequestNumber,
   RELEASE_BANNER_ASPECT,
   type ReleaseChannel,
 } from "./release-banner-utils"
@@ -28,6 +29,7 @@ export function ReleaseFallbackBanner({
   className,
 }: ReleaseFallbackBannerProps) {
   const isBeta = channel === "beta"
+  const isPreview = previewPullRequestNumber(version) != null
   const label = formatVersion(version, "v0.0.0")
 
   return (
@@ -80,9 +82,15 @@ export function ReleaseFallbackBanner({
               compact ? "text-xl" : "text-[1.35rem] sm:text-[2.5rem]",
             )}
           >
-            {isBeta ? (
+            {isPreview ? (
               <Trans>
                 Preview
+                <br />
+                Build
+              </Trans>
+            ) : isBeta ? (
+              <Trans>
+                Beta
                 <br />
                 Build
               </Trans>

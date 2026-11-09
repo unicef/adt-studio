@@ -297,7 +297,7 @@ jobs:
           TARGET: ${{ needs.stage.outputs.commit }}
         run: |
           EXISTING=$(gh release list --repo "$REPO" --limit 200 --json tagName \
-            --jq '.[].tagName' | { grep -E -- "-beta-${SLUG}$" || true; })
+            --jq '.[].tagName' | { grep -E -- "-beta-${SLUG}(\.[0-9]+)?$" || true; })
           for release in $EXISTING; do
             gh release delete "$release" --repo "$REPO" --yes --cleanup-tag
           done

@@ -64,7 +64,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     label: msg`Application`,
     tabs: [
       { key: "about", label: msg`About`, icon: Info },
-      { key: "versions", label: msg`Versions`, icon: History, fullWidth: true, betaOnly: true },
+      { key: "versions", label: msg`Versions`, icon: History, betaOnly: true },
     ],
   },
 ]

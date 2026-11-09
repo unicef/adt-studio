@@ -23,7 +23,7 @@ export function PreviewBuildBanner({
   const { icon: Icon, title, body } = previewBuildMessage(status)
   const { title: prTitle, author } = status.pullRequest
   const target = status.latestBeta
-  const [box, tone] = TONE[status.state]
+  const [box, tone] = TONE[status.removed ? "closed" : status.state]
 
   return (
     <div
@@ -49,7 +49,9 @@ export function PreviewBuildBanner({
       </Button>
       {target && (
         <Button
-          variant={status.shippedIn || status.state === "closed" ? "default" : "outline"}
+          variant={
+            status.shippedIn || status.state === "closed" || status.removed ? "default" : "outline"
+          }
           size="sm"
           onClick={() => onSwitch(target)}
         >

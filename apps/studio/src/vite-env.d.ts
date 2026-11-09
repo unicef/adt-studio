@@ -134,6 +134,8 @@ interface ElectronPreviewBuildStatus {
   state: "open" | "merged" | "closed"
   shippedIn?: string
   latestBeta?: string
+  /** The PR is open but its preview release is gone, so no update will come. */
+  removed?: boolean
 }
 
 interface ElectronPostUpdateInfo {

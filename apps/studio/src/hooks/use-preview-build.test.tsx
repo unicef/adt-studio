@@ -64,6 +64,12 @@ describe("previewBuildNoticeKey", () => {
     expect(shipped).not.toBe(merged)
     expect(previewBuildNoticeKey(status({ state: "closed" }))).not.toBeNull()
   })
+
+  it("announces a preview whose release was removed while the PR is open", () => {
+    const removed = previewBuildNoticeKey(status({ removed: true }))
+    expect(removed).not.toBeNull()
+    expect(removed).not.toBe(previewBuildNoticeKey(status({ state: "closed" })))
+  })
 })
 
 describe("isPreviewBuildSettled", () => {

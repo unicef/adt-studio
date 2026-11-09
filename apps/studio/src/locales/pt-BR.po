@@ -1864,8 +1864,14 @@ msgstr "Versão beta"
 msgid "Beta release library"
 msgstr "Biblioteca de versões beta"
 
-msgid "Beta versions"
+msgid "Beta releases"
 msgstr "Versões beta"
+
+#~ msgid "Beta versions"
+#~ msgstr "Versões beta"
+
+msgid "Beta<0/>Build"
+msgstr "Versão<0/>beta"
 
 msgid "Bit Rate"
 msgstr "Taxa de bits"
@@ -2058,6 +2064,9 @@ msgstr "Cria o sumário a partir das seções do livro."
 
 msgid "Built for every reader"
 msgstr "Feito para todos os leitores"
+
+msgid "Built from a pull request to try a change before it ships in a beta."
+msgstr "Geradas a partir de um pull request para testar uma mudança antes de ela chegar a uma beta."
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Empacota o livro renderizado em um pacote web pronto para publicação."
@@ -2291,8 +2300,8 @@ msgstr "Item da lista de verificação"
 msgid "choice"
 msgstr "alternativa"
 
-msgid "Choose a beta release to install."
-msgstr "Escolha uma versão beta para instalar."
+#~ msgid "Choose a beta release to install."
+#~ msgstr "Escolha uma versão beta para instalar."
 
 msgid "Choose a PDF"
 msgstr "Escolha um PDF"
@@ -5054,6 +5063,9 @@ msgstr "Foi criada a partir de um PDF ou de configurações diferentes, por isso
 msgid "It will arrive in the next beta."
 msgstr "Ele chegará na próxima versão beta."
 
+msgid "It won't get new builds. Switch back to the latest beta to keep getting updates."
+msgstr "Ela não vai receber novas versões. Volte para a beta mais recente para continuar recebendo atualizações."
+
 msgid "italic"
 msgstr "itálico"
 
@@ -7360,14 +7372,26 @@ msgstr "Anterior"
 msgid "Preview"
 msgstr "Prévia"
 
+msgid "Preview · {branch}"
+msgstr "Prévia · {branch}"
+
 msgid "Preview · #{prNumber}"
 msgstr "Prévia · #{prNumber}"
 
 msgid "Preview build"
 msgstr "Versão de prévia"
 
-msgid "Preview builds don't get update notices. This page tells you when the PR merges or closes."
-msgstr "Versões de prévia não recebem avisos de atualização. Esta página avisa quando o PR for mesclado ou fechado."
+msgid "Preview build of PR #{prNumber}"
+msgstr "Versão de prévia do PR #{prNumber}"
+
+msgid "Preview build of PR #{prNumber} from {branch}"
+msgstr "Versão de prévia do PR #{prNumber} a partir de {branch}"
+
+msgid "Preview builds"
+msgstr "Versões de prévia"
+
+#~ msgid "Preview builds don't get update notices. This page tells you when the PR merges or closes."
+#~ msgstr "Versões de prévia não recebem avisos de atualização. Esta página avisa quando o PR for mesclado ou fechado."
 
 msgid "Preview linked page"
 msgstr "Ver prévia da página vinculada"
@@ -8522,8 +8546,11 @@ msgstr "Buscar livros…"
 msgid "Search by title or author…"
 msgstr "Buscar por título ou autor…"
 
-msgid "Search by title, version, contributor, or PR…"
-msgstr "Buscar por título, versão, colaborador ou PR…"
+#~ msgid "Search by title, version, contributor, or PR…"
+#~ msgstr "Buscar por título, versão, colaborador ou PR…"
+
+msgid "Search by title, version, contributor, PR, or branch…"
+msgstr "Buscar por título, versão, colaborador, PR ou branch…"
 
 #~ msgid "Search by title, version, or description…"
 #~ msgstr "Buscar por título, versão ou descrição…"
@@ -9831,6 +9858,9 @@ msgstr "A floresta perdida"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "O modelo detecta caixas delimitadoras para que cada elemento visual possa ser armazenado e disposto separadamente."
 
+msgid "The preview of PR #{pr} was removed"
+msgstr "A prévia do PR #{pr} foi removida"
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "O processo que as plantas usam para transformar luz solar, água e dióxido de carbono em alimento."
 
@@ -10380,8 +10410,11 @@ msgstr "Tentar novamente"
 msgid "Try another file"
 msgstr "Tentar outro arquivo"
 
-msgid "Try another title, version, or description."
-msgstr "Tente outro título, versão ou descrição."
+msgid "Try another title, version, contributor, PR, or branch."
+msgstr "Tente outro título, versão, colaborador, PR ou branch."
+
+#~ msgid "Try another title, version, or description."
+#~ msgstr "Tente outro título, versão ou descrição."
 
 msgid "Try any build — even an open PR — then roll back anytime."
 msgstr "Experimente qualquer versão — até um PR aberto — e reverta quando quiser."
@@ -11127,6 +11160,9 @@ msgstr "Você ainda não adicionou nenhum termo manualmente"
 
 msgid "You haven't split any books"
 msgstr "Você não dividiu nenhum livro"
+
+msgid "You'll get new builds of this PR as updates. This page tells you when the PR merges or closes."
+msgstr "Você vai receber as novas versões deste PR como atualizações. Esta página avisa quando o PR for mesclado ou fechado."
 
 msgid "You're all set"
 msgstr "Tudo certo"

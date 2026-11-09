@@ -80,11 +80,36 @@ export function isNumberedBeta(value: string): boolean {
   return parsed !== null && betaNumberOf(parsed) !== null;
 }
 
+/**
+ * The staging line a version belongs to — its first pre-release identifier,
+ * e.g. `beta-pr-803` for `0.9.1-beta-pr-803.2` — or undefined for anything that
+ * is not a staging (preview) build.
+ */
+export function stagingLineOf(value: string): string | undefined {
+  const first = parseReleaseTag(value)?.prerelease?.[0];
+  return typeof first === "string" && first.startsWith("beta-")
+    ? first
+    : undefined;
+}
+
+/**
+ * Which releases the update prompt may offer. A numbered beta is only offered
+ * newer numbered betas. A staging (preview) build is only offered a newer build
+ * of its own staging line — a rebuild of the same PR — never a numbered beta
+ * (the preview notice handles leaving for one) or another PR's build.
+ */
 export function isOfferedRelease(
   version: string,
   currentVersion: string,
 ): boolean {
   if (!isBetaReleaseVersion(currentVersion)) return true;
+  const currentLine = stagingLineOf(currentVersion);
+  if (currentLine) {
+    return (
+      stagingLineOf(version) === currentLine &&
+      compareReleaseVersions(version, currentVersion) > 0
+    );
+  }
   if (!isNumberedBeta(currentVersion) || !isNumberedBeta(version)) return false;
   return compareReleaseVersions(version, currentVersion) > 0;
 }

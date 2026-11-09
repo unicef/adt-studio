@@ -3,8 +3,10 @@ import type { AvailableRelease } from "@/hooks/use-update-status"
 import {
   filterVersionsByQuery,
   githubAvatarUrl,
+  previewBranch,
   releaseContributors,
   releaseDisplayTitle,
+  showsDirection,
 } from "./beta-version-utils"
 
 function release(overrides: Partial<AvailableRelease> = {}): AvailableRelease {
@@ -66,5 +68,41 @@ describe("filterVersionsByQuery", () => {
     expect(versions("@elastic")).toEqual(["0.8.0-beta.1"])
     expect(versions("cloudflare")).toEqual(["0.8.1-beta-pr-867"])
     expect(versions("#839")).toEqual(["0.8.0-beta.1"])
+  })
+})
+
+describe("previewBranch", () => {
+  it("names the staged PR's head branch, then the source branch, only for preview builds", () => {
+    const head = { ...pr(803), headRef: "issue-705" }
+    expect(previewBranch(release({ version: "0.9.1-beta-pr-803", source: { prs: [head], branch: "x" } }))).toBe(
+      "issue-705",
+    )
+    expect(previewBranch(release({ version: "0.9.1-beta-pr-803", source: { prs: [], branch: "issue-705" } }))).toBe(
+      "issue-705",
+    )
+    expect(previewBranch(release({ version: "0.9.1-beta-pr-803" }))).toBeUndefined()
+    expect(previewBranch(release({ version: "0.9.0-beta.3", source: { prs: [head], branch: "develop" } }))).toBeUndefined()
+  })
+
+  it("is searchable", () => {
+    const releases = [
+      release({ version: "0.9.1-beta-pr-803", source: { prs: [{ ...pr(803), headRef: "issue-705" }] } }),
+      release({ version: "0.9.0-beta.3" }),
+    ]
+    expect(filterVersionsByQuery(releases, "issue-705").map((r) => r.version)).toEqual(["0.9.1-beta-pr-803"])
+  })
+})
+
+describe("showsDirection", () => {
+  it("hides New/Earlier on preview builds but keeps Current", () => {
+    expect(showsDirection(release({ version: "0.9.0-beta.3", direction: "upgrade" }))).toBe(true)
+    expect(showsDirection(release({ version: "0.9.1-beta-pr-803", direction: "upgrade" }))).toBe(false)
+    expect(showsDirection(release({ version: "0.9.1-beta-pr-803", direction: "current" }))).toBe(true)
+    expect(
+      showsDirection(release({ version: "0.9.1-beta-pr-803.2", direction: "upgrade" }), "0.9.1-beta-pr-803"),
+    ).toBe(true)
+    expect(
+      showsDirection(release({ version: "0.9.1-beta-pr-804", direction: "upgrade" }), "0.9.1-beta-pr-803"),
+    ).toBe(false)
   })
 })

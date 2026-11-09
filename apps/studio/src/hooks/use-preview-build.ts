@@ -34,7 +34,11 @@ function subscribe(listener: () => void) {
 }
 
 export function previewBuildNoticeKey(status: PreviewBuildStatus | null): string | null {
-  if (!status || status.state === "open") return null
+  if (!status) return null
+  if (status.state === "open") {
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- storage key, never shown
+    return status.removed ? `${status.version}:removed` : null
+  }
   return [status.version, status.state, status.shippedIn ?? ""].join(":")
 }
 
