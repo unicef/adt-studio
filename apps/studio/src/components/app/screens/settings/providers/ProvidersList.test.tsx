@@ -86,11 +86,13 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ hash: location.hash }),
   useSearch: () => location.search,
 }))
+const invalidateQueries = vi.fn()
 vi.mock("@tanstack/react-query", () => ({
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQueryClient: () => ({ invalidateQueries }),
 }))
 vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn() } }))
 vi.mock("@/hooks/use-provider-health", () => ({
+  providerHealthKey: (providerId: string) => ["provider-health", providerId],
   useProviderHealth: (providerId: string, _draft: unknown, enabled: boolean) => ({
     data: enabled ? { ...health, providerId } : undefined,
     isFetching: false,
@@ -147,6 +149,7 @@ afterEach(() => {
   cleanup()
   location = { hash: "", search: {} }
   setCredential.mockClear()
+  invalidateQueries.mockClear()
   credentials = {}
   ownCredentials = {}
   cliLogin.status = null
@@ -285,6 +288,42 @@ describe("ProvidersList — live manifests", () => {
     fireEvent.click(within(panel).getByRole("button", { name: "Save" }))
 
     expect(setCredential).toHaveBeenCalledWith("openai", "apiKey", "sk-live")
+  })
+
+  it("re-checks the provider's connection after a save", async () => {
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    fireEvent.change(input, { target: { value: "sk-live" } })
+    fireEvent.click(within(panel).getByRole("button", { name: "Save" }))
+
+    // Every provider: a saved key can be shared with another provider (Gemini ← Google).
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["provider-health"] })
+  })
+
+  it("blocks the save when a key does not match the provider's key shape", async () => {
+    const openai = descriptor("openai", { displayName: "OpenAI" })
+    openai.manifest.credentialFields[0] = {
+      ...openai.manifest.credentialFields[0],
+      placeholder: "sk-...",
+      pattern: "^sk-(?!ant-)[A-Za-z0-9_-]+$",
+    }
+    providers = [openai, OLLAMA]
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    fireEvent.change(input, { target: { value: "sk-ant-api03-abc" } })
+
+    expect(
+      within(panel).getByText("This doesn't look like a valid key. It should look like sk-..."),
+    ).toBeTruthy()
+    expect(within(panel).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(true)
+
+    fireEvent.change(input, { target: { value: "sk-proj-abc123" } })
+    expect(within(panel).queryByText(/doesn't look like a valid key/)).toBeNull()
+    expect(within(panel).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(false)
   })
 
   it("blocks the save when a url field fails client validation", async () => {

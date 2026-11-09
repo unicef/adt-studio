@@ -32,6 +32,9 @@ import type { AppView } from "./types"
 import { useUpdateDialog } from "@/components/updates"
 import { SidebarLogo } from "./SidebarLogo"
 import { useSharingUpdate } from "@/hooks/use-sharing-update"
+import { useRejectedTextProvider } from "@/hooks/use-api-key"
+import { providerAnchor } from "./screens/settings/provider-anchor"
+import { cardKeyForProvider } from "./screens/settings/providers/cards"
 
 const DOCS_URL = "https://unicef.github.io/adt-studio/docs/get-started/";
 const ISSUES_URL = "https://github.com/unicef/adt-studio/issues";
@@ -89,6 +92,10 @@ export function AppSidebar({
   const [helpOpen, setHelpOpen] = useState(false)
   const { showWhatsNew } = useUpdateDialog()
   const sharingUpdate = useSharingUpdate()
+  // A refused key blocks every AI step, so it outranks the sharing update and
+  // links straight to that provider's key field.
+  const rejectedProvider = useRejectedTextProvider()
+  const rejectedName = rejectedProvider?.displayName ?? ""
 
   const items: { view: AppView; label: string; icon: LucideIcon; count?: number }[] = [
     { view: "home", label: t`Home`, icon: House },
@@ -154,14 +161,31 @@ export function AppSidebar({
 
       <div className="flex items-center gap-1.5 pt-1.5">
         <Link
-          to={sharingUpdate ? SETTINGS_PATHS.publishing : APP_PATHS.settings}
-          aria-label={sharingUpdate ? t`Settings — a sharing update is ready` : undefined}
+          {...(rejectedProvider
+            ? {
+                to: SETTINGS_PATHS.providers,
+                search: { auth: "api-key" as const },
+                hash: providerAnchor(cardKeyForProvider(rejectedProvider.providerId)),
+              }
+            : { to: sharingUpdate ? SETTINGS_PATHS.publishing : APP_PATHS.settings })}
+          aria-label={
+            rejectedProvider
+              ? t`Settings — the ${rejectedName} key was rejected`
+              : sharingUpdate
+                ? t`Settings — a sharing update is ready`
+                : undefined
+          }
           className="flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
         >
           <span className="relative">
             <Settings className="size-[17px]" />
-            {/* A dot, not a count: there is one thing waiting, and it is on the Sharing page. */}
-            {sharingUpdate ? (
+            {/* A dot, not a count: there is one thing waiting, on the page the link opens. */}
+            {rejectedProvider ? (
+              <span
+                aria-hidden
+                className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-red-500 ring-2 ring-sidebar motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-300"
+              />
+            ) : sharingUpdate ? (
               <span
                 aria-hidden
                 className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-brand-600 ring-2 ring-sidebar motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-300"

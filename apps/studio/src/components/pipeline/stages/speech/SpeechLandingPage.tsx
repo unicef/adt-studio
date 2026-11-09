@@ -15,7 +15,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey, useWordHighlightingUnavailable } from "@/hooks/use-api-key"
+import { useApiKey, useRejectedProvider, useWordHighlightingUnavailable } from "@/hooks/use-api-key"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "./components/SpeechPreview"
@@ -148,6 +148,9 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const selectedProviderKeyMissing = !providerKeyAvailable[provider]
+  // A key that is present but refused by the provider: warned, never disabled.
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- qualified model identifier, never rendered
+  const selectedProviderRejected = useRejectedProvider("tts", `${provider}:default`)
 
   const disabledProviderLabels = useMemo(
     () =>
@@ -238,6 +241,14 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
                 No API key for {linguiI18n._(PROVIDER_LABELS[provider])} yet.
                 Add one in Settings → AI providers to enable this provider.
               </Trans>
+            ) : selectedProviderRejected ? (
+              <span className="text-red-700 dark:text-red-300">
+                <Trans>
+                  {linguiI18n._(PROVIDER_LABELS[provider])} rejected the saved
+                  API key, so speech will fail. Update it in Settings → AI
+                  providers.
+                </Trans>
+              </span>
             ) : (
               linguiI18n._(PROVIDER_HINTS[provider])
             )

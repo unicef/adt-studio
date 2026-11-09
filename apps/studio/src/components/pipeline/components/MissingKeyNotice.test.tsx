@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { MissingKeyNotice } from "./MissingKeyNotice"
 
 const state = { available: false, ready: true }
+let rejected: { providerId: string; displayName: string } | null = null
 const navigate = vi.fn()
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }))
@@ -13,6 +14,7 @@ vi.mock("@lingui/react/macro", () => ({
 }))
 vi.mock("@/hooks/use-api-key", () => ({
   useBookStructuredTextStatus: () => state,
+  useBookRejectedTextProvider: () => rejected,
 }))
 
 describe("MissingKeyNotice", () => {
@@ -20,6 +22,7 @@ describe("MissingKeyNotice", () => {
   beforeEach(() => {
     navigate.mockClear()
     Object.assign(state, { available: false, ready: true })
+    rejected = null
   })
 
   it("explains the missing provider and opens the providers settings", () => {
@@ -43,5 +46,18 @@ describe("MissingKeyNotice", () => {
     state.available = true
     const { container } = render(<MissingKeyNotice bookLabel="b" />)
     expect(container.textContent).toBe("")
+  })
+
+  it("warns about a rejected key and opens that provider's card", () => {
+    state.available = true
+    rejected = { providerId: "google", displayName: "Google" }
+    render(<MissingKeyNotice bookLabel="b" />)
+    expect(screen.getByText("Your Google key was rejected")).toBeTruthy()
+    fireEvent.click(screen.getByText("Update key"))
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/settings/providers",
+      search: { auth: "api-key" },
+      hash: "settings-provider-google",
+    })
   })
 })

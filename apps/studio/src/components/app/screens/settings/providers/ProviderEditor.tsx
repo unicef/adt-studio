@@ -4,6 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
 import type { ProviderDescriptor } from "@adt/types"
 import { cn } from "@/lib/utils"
+import { useQueryClient } from "@tanstack/react-query"
 import { useProviderHealth } from "@/hooks/use-provider-health"
 import { PROVIDER_CARDS } from "./data"
 import {
@@ -63,7 +64,15 @@ const EXPAND_MS = 300
 
 /** API-key (and local base-URL) backend: editable credential form + status. */
 function ApiKeyPanel({ descriptor, store, active, focusKey = false }: { descriptor: ProviderDescriptor; store: Providers; active: boolean; focusKey?: boolean }) {
-  const draft = useDraft(descriptor, store)
+  const queryClient = useQueryClient()
+  // Re-check with the key just saved, so a wrong key shows up here instead of
+  // on the first failed run. Every provider, not just this one: a key can be
+  // shared (Gemini Speech reads the Google key), so its readers change too.
+  const draft = useDraft(descriptor, store, () => {
+    void queryClient.invalidateQueries({ queryKey: ["provider-health"] })
+  })
+  // Always the draft scope, even while untouched: switching scope on the first
+  // keystroke would change the query key and probe a half-typed key.
   const health = useProviderHealth(descriptor.manifest.id, draft.values, active)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -89,8 +98,8 @@ function ApiKeyPanel({ descriptor, store, active, focusKey = false }: { descript
  * CLI/SDK backend: login is detected, not entered — status, an in-app sign-in
  * when the backend offers one, and terminal guidance otherwise. No key field.
  */
-function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
-  const health = useProviderHealth(descriptor.manifest.id, store.credentials[descriptor.manifest.id], active)
+function CliPanel({ descriptor, active }: { descriptor: ProviderDescriptor; active: boolean }) {
+  const health = useProviderHealth(descriptor.manifest.id, undefined, active)
   const code = health.data?.code
   const canSignInHere = descriptor.supportsCliLogin === true
   // The in-app sign-in replaces the "run this in a terminal" guidance for a
@@ -110,7 +119,7 @@ function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescripto
 
 function Panel({ descriptor, store, active, focusKey }: { descriptor: ProviderDescriptor; store: Providers; active: boolean; focusKey: boolean }) {
   return authKind(descriptor) === "cli" ? (
-    <CliPanel descriptor={descriptor} store={store} active={active} />
+    <CliPanel descriptor={descriptor} active={active} />
   ) : (
     <ApiKeyPanel descriptor={descriptor} store={store} active={active} focusKey={focusKey} />
   )
@@ -153,7 +162,7 @@ export function ProviderCard({
         {mode === "api-key" ? (
           <ApiKeyPanel descriptor={apiDesc} store={store} active={active} focusKey={focusKey} />
         ) : (
-          <CliPanel descriptor={cliDesc} store={store} active={active} />
+          <CliPanel descriptor={cliDesc} active={active} />
         )}
       </div>
     )

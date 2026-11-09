@@ -380,6 +380,10 @@ msgstr "{0} pending save"
 msgid "{0} questions"
 msgstr "{0} questions"
 
+#. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
+msgid "{0} rejected the saved API key, so speech will fail. Update it in Settings → AI providers."
+msgstr "{0} rejected the saved API key, so speech will fail. Update it in Settings → AI providers."
+
 #. placeholder {0}: thread.replyCount
 msgid "{0} replies"
 msgstr "{0} replies"
@@ -604,6 +608,12 @@ msgstr "{missingForCurrentStage} language outputs are missing. Re-run to fill th
 
 msgid "{missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items."
 msgstr "{missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items."
+
+msgid "{name} key rejected"
+msgstr "{name} key rejected"
+
+msgid "{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later."
+msgstr "{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later."
 
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} flagged"
@@ -1633,6 +1643,9 @@ msgstr "AI Rendering"
 
 msgid "AI sees the current image and modifies it"
 msgstr "AI sees the current image and modifies it"
+
+msgid "AI steps will fail until the key is updated."
+msgstr "AI steps will fail until the key is updated."
 
 msgid "AI-powered"
 msgstr "AI-powered"
@@ -3261,6 +3274,9 @@ msgstr "Continue"
 
 msgid "Continue adding your book"
 msgstr "Continue adding your book"
+
+msgid "Continue anyway"
+msgstr "Continue anyway"
 
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"
@@ -6112,6 +6128,9 @@ msgstr "Kept"
 
 #~ msgid "Key must start with \"sk-\""
 #~ msgstr "Key must start with \"sk-\""
+
+msgid "Key rejected"
+msgstr "Key rejected"
 
 msgid "Key terms"
 msgstr "Key terms"
@@ -10674,6 +10693,9 @@ msgstr "Settings"
 msgid "Settings — a sharing update is ready"
 msgstr "Settings — a sharing update is ready"
 
+msgid "Settings — the {rejectedName} key was rejected"
+msgstr "Settings — the {rejectedName} key was rejected"
+
 msgid "Settings for this step are not yet available."
 msgstr "Settings for this step are not yet available."
 
@@ -11756,6 +11778,9 @@ msgstr "That didn't resolve. Try again."
 msgid "That reply didn't send. Try again."
 msgstr "That reply didn't send. Try again."
 
+msgid "The {name} key was rejected. Update the key."
+msgstr "The {name} key was rejected. Update the key."
+
 msgid "The address every share link will start with."
 msgstr "The address every share link will start with."
 
@@ -12236,6 +12261,12 @@ msgstr "This computer will forget its Cloudflare connection, so you won't be abl
 
 msgid "This connection isn't available yet."
 msgstr "This connection isn't available yet."
+
+msgid "This doesn't look like a valid key."
+msgstr "This doesn't look like a valid key."
+
+msgid "This doesn't look like a valid key. It should look like {example}"
+msgstr "This doesn't look like a valid key. It should look like {example}"
 
 msgid "This Easy Read text is shared across sections. Saving it updates every referring section, including sections outside the current filter."
 msgstr "This Easy Read text is shared across sections. Saving it updates every referring section, including sections outside the current filter."
@@ -12890,6 +12921,9 @@ msgstr "Update available"
 
 msgid "Update filtered items"
 msgstr "Update filtered items"
+
+msgid "Update key"
+msgstr "Update key"
 
 msgid "Update link"
 msgstr "Update link"
@@ -13670,6 +13704,12 @@ msgstr "you@example.com"
 
 msgid "Young adult fiction"
 msgstr "Young adult fiction"
+
+msgid "Your {name} key was rejected"
+msgstr "Your {name} key was rejected"
+
+msgid "Your {name} key was rejected, so books can't be processed yet."
+msgstr "Your {name} key was rejected, so books can't be processed yet."
 
 msgid "Your account needs a web address first"
 msgstr "Your account needs a web address first"

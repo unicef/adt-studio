@@ -186,10 +186,14 @@ export interface Draft {
  * Client-side echo of the provider's Zod schema, so a malformed endpoint or an
  * over-long region is caught before it reaches a request header. The server
  * schema stays the authority.
+ *
+ * Only fields the user changed are checked: a value saved before a rule
+ * existed must not block saving an edit to a different field.
  */
 function useFieldErrors(
   descriptor: ProviderDescriptor,
   values: Record<string, string>,
+  stored: Record<string, string>,
 ): Map<string, string> {
   const { t } = useLingui()
   return useMemo(() => {
@@ -197,6 +201,7 @@ function useFieldErrors(
     for (const field of descriptor.manifest.credentialFields) {
       const value = (values[field.key] ?? "").trim()
       if (!value) continue
+      if (value === (stored[field.key] ?? "").trim()) continue
       if (field.maxLength && value.length > field.maxLength) {
         errors.set(field.key, t`Maximum length is ${field.maxLength} characters.`)
         continue
@@ -215,7 +220,17 @@ function useFieldErrors(
       }
       if (field.pattern) {
         try {
-          if (!new RegExp(field.pattern).test(value)) errors.set(field.key, t`Invalid value.`)
+          if (!new RegExp(field.pattern).test(value)) {
+            const example = field.placeholder
+            errors.set(
+              field.key,
+              field.kind !== "secret"
+                ? t`Invalid value.`
+                : example
+                  ? t`This doesn't look like a valid key. It should look like ${example}`
+                  : t`This doesn't look like a valid key.`,
+            )
+          }
         } catch {
           // The manifest was already server-validated; ignore an unsupported
           // client RegExp feature and let the server schema decide.
@@ -223,7 +238,7 @@ function useFieldErrors(
       }
     }
     return errors
-  }, [descriptor, values, t])
+  }, [descriptor, values, stored, t])
 }
 
 export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSaved?: () => void): Draft {
@@ -248,7 +263,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSav
     setValues(JSON.parse(storedSignature) as Record<string, string>)
   }, [storedSignature])
 
-  const errors = useFieldErrors(descriptor, values)
+  const errors = useFieldErrors(descriptor, values, stored)
   const dirty = descriptor.manifest.credentialFields.some(
     (f) => (values[f.key] ?? "").trim() !== (stored[f.key] ?? "").trim(),
   )
@@ -586,7 +601,8 @@ export function useCardHealth(cardKey: string, store: Providers): CardHealth {
     enabled = true
   }
 
-  const health = useProviderHealth(probeId, store.credentials[probeId], enabled)
+  // Saved keys: the card status shares the cache entry the app-wide warnings read.
+  const health = useProviderHealth(probeId, undefined, enabled)
   return {
     data: enabled ? (health.data ?? null) : null,
     isFetching: enabled && health.isFetching,

@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/sonner"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { i18n } from "@lingui/core"
+import { useQueryClient } from "@tanstack/react-query"
 import { useProviderCredentials } from "@/hooks/use-provider-credentials"
 import { isProviderAvailable, type ProviderCredentialValues } from "@/api/provider-credentials"
 import type { AppLocale } from "@/i18n/locales"
@@ -47,6 +48,8 @@ function localized(
 ): string | undefined {
   return text?.[locale] ?? text?.en
 }
+
+const EMPTY_DRAFT: Record<string, string> = {}
 
 function fieldValue(
   values: ProviderCredentialValues,
@@ -83,6 +86,7 @@ export function ApiKeyDialog({
     isLoading,
     error,
   } = useProviderCredentials()
+  const queryClient = useQueryClient()
   const locale = i18n.locale as AppLocale
   const [activeProvider, setActiveProvider] = useState("")
   const [drafts, setDrafts] = useState<ProviderCredentialValues>({})
@@ -101,12 +105,15 @@ export function ApiKeyDialog({
     }
   }, [providers, activeProvider])
 
+  // Only fields the user changed are checked: a value saved before a rule
+  // existed (say, on another provider's tab) must not block every save.
   const fieldErrors = useMemo(() => {
     const errors = new Map<string, string>()
     for (const { manifest } of providers) {
       for (const field of manifest.credentialFields) {
         const value = fieldValue(drafts, manifest.id, field.key).trim()
         if (!value) continue
+        if (value === fieldValue(ownCredentials, manifest.id, field.key).trim()) continue
         const errorKey = `${manifest.id}:${field.key}`
         if (field.maxLength && value.length > field.maxLength) {
           errors.set(errorKey, t`Maximum length is ${field.maxLength} characters.`)
@@ -127,7 +134,15 @@ export function ApiKeyDialog({
         if (field.pattern) {
           try {
             if (!new RegExp(field.pattern).test(value)) {
-              errors.set(errorKey, t`Invalid value.`)
+              const example = field.placeholder
+              errors.set(
+                errorKey,
+                field.kind !== "secret"
+                  ? t`Invalid value.`
+                  : example
+                    ? t`This doesn't look like a valid key. It should look like ${example}`
+                    : t`This doesn't look like a valid key.`,
+              )
             }
           } catch {
             // The manifest was already server-validated. Ignore an unsupported
@@ -137,7 +152,7 @@ export function ApiKeyDialog({
       }
     }
     return errors
-  }, [drafts, providers, t])
+  }, [drafts, ownCredentials, providers, t])
 
   // Shared fallbacks (Gemini Speech ← Google) count for the availability tick,
   // but only a provider's own values are edited and saved here.
@@ -166,6 +181,8 @@ export function ApiKeyDialog({
         )
       }
     }
+    // Re-check every provider's connection with the keys just saved.
+    void queryClient.invalidateQueries({ queryKey: ["provider-health"] })
     if (embedded) toast.success(t`Provider credentials saved.`)
     else onOpenChange(false)
   }
@@ -299,7 +316,10 @@ export function ApiKeyDialog({
               >
                 <ProviderConnectionStatus
                   providerId={provider.manifest.id}
-                  draftCredentials={drafts[provider.manifest.id]}
+                  // Never undefined: a provider with nothing saved has no draft
+                  // entry yet, and switching from the saved-key scope to the
+                  // draft scope on the first keystroke would probe a half key.
+                  draftCredentials={drafts[provider.manifest.id] ?? EMPTY_DRAFT}
                 />
                 {provider.manifest.credentialFields.length > 0 ? (
                   provider.manifest.credentialFields.map((field) => renderField(provider, field))
