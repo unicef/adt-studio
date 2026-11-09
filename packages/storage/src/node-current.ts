@@ -22,11 +22,14 @@ export function readCurrentNodeRow(
      ORDER BY (nd.version = nc.version) DESC, nd.version DESC
      LIMIT 1`,
     [node, itemId]
-  ) as Array<{ version: number; data: string }>
-  // Quiz invalidation retains history behind a null current version. Keep this
-  // interpretation local to quizzes; other nodes retain their nullable payloads.
+  ) as Array<{ version: number; data: string | null }>
+  // SQL NULL is an invalidation marker, distinct from a nullable JSON payload.
+  // Legacy quiz invalidation used JSON null and keeps that interpretation.
   // Do not filter null rows in SQL: that would resurrect an older version.
-  return !options.includeInvalidated && node === "quiz-generation" && rows[0]?.data === "null" ? null : rows[0] ?? null
+  const row = rows[0]
+  if (!row) return null
+  if (!options.includeInvalidated && (row.data === null || node === "quiz-generation" && row.data === "null")) return null
+  return { version: row.version, data: row.data ?? "null" }
 }
 
 /**

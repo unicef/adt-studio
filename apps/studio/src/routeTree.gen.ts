@@ -13,6 +13,7 @@ import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as AppRouteImport } from "./routes/_app"
 import { Route as AppIndexRouteImport } from "./routes/_app.index"
 import { Route as PromptsSettingsRouteImport } from "./routes/prompts.settings"
+import { Route as DevPublishLoadersRouteImport } from "./routes/dev.publish-loaders"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
@@ -25,6 +26,7 @@ import { Route as BooksLabelDebugRouteImport } from "./routes/books.$label.debug
 import { Route as BooksLabelStepRouteImport } from "./routes/books.$label.$step"
 import { Route as AppSettingsVersionsRouteImport } from "./routes/_app.settings.versions"
 import { Route as AppSettingsThemeRouteImport } from "./routes/_app.settings.theme"
+import { Route as AppSettingsPublishingRouteImport } from "./routes/_app.settings.publishing"
 import { Route as AppSettingsProvidersRouteImport } from "./routes/_app.settings.providers"
 import { Route as AppSettingsPromptsRouteImport } from "./routes/_app.settings.prompts"
 import { Route as AppSettingsNotificationsRouteImport } from "./routes/_app.settings.notifications"
@@ -52,6 +54,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const PromptsSettingsRoute = PromptsSettingsRouteImport.update({
   id: "/prompts/settings",
   path: "/prompts/settings",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevPublishLoadersRoute = DevPublishLoadersRouteImport.update({
+  id: "/dev/publish-loaders",
+  path: "/dev/publish-loaders",
   getParentRoute: () => rootRouteImport,
 } as any)
 const BooksNewRoute = BooksNewRouteImport.update({
@@ -114,6 +121,11 @@ const AppSettingsThemeRoute = AppSettingsThemeRouteImport.update({
   path: "/theme",
   getParentRoute: () => AppSettingsRoute,
 } as any)
+const AppSettingsPublishingRoute = AppSettingsPublishingRouteImport.update({
+  id: "/publishing",
+  path: "/publishing",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 const AppSettingsProvidersRoute = AppSettingsProvidersRouteImport.update({
   id: "/providers",
   path: "/providers",
@@ -170,6 +182,7 @@ export interface FileRoutesByFullPath {
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/dev/publish-loaders": typeof DevPublishLoadersRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/settings/about": typeof AppSettingsAboutRoute
   "/settings/language": typeof AppSettingsLanguageRoute
@@ -177,6 +190,7 @@ export interface FileRoutesByFullPath {
   "/settings/notifications": typeof AppSettingsNotificationsRoute
   "/settings/prompts": typeof AppSettingsPromptsRoute
   "/settings/providers": typeof AppSettingsProvidersRoute
+  "/settings/publishing": typeof AppSettingsPublishingRoute
   "/settings/theme": typeof AppSettingsThemeRoute
   "/settings/versions": typeof AppSettingsVersionsRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
@@ -193,6 +207,7 @@ export interface FileRoutesByTo {
   "/library": typeof AppLibraryRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/dev/publish-loaders": typeof DevPublishLoadersRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/": typeof AppIndexRoute
   "/settings/about": typeof AppSettingsAboutRoute
@@ -201,6 +216,7 @@ export interface FileRoutesByTo {
   "/settings/notifications": typeof AppSettingsNotificationsRoute
   "/settings/prompts": typeof AppSettingsPromptsRoute
   "/settings/providers": typeof AppSettingsProvidersRoute
+  "/settings/publishing": typeof AppSettingsPublishingRoute
   "/settings/theme": typeof AppSettingsThemeRoute
   "/settings/versions": typeof AppSettingsVersionsRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
@@ -220,6 +236,7 @@ export interface FileRoutesById {
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/dev/publish-loaders": typeof DevPublishLoadersRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/_app/": typeof AppIndexRoute
   "/_app/settings/about": typeof AppSettingsAboutRoute
@@ -228,6 +245,7 @@ export interface FileRoutesById {
   "/_app/settings/notifications": typeof AppSettingsNotificationsRoute
   "/_app/settings/prompts": typeof AppSettingsPromptsRoute
   "/_app/settings/providers": typeof AppSettingsProvidersRoute
+  "/_app/settings/publishing": typeof AppSettingsPublishingRoute
   "/_app/settings/theme": typeof AppSettingsThemeRoute
   "/_app/settings/versions": typeof AppSettingsVersionsRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
@@ -249,6 +267,7 @@ export interface FileRouteTypes {
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/dev/publish-loaders"
     | "/prompts/settings"
     | "/settings/about"
     | "/settings/language"
@@ -256,6 +275,7 @@ export interface FileRouteTypes {
     | "/settings/notifications"
     | "/settings/prompts"
     | "/settings/providers"
+    | "/settings/publishing"
     | "/settings/theme"
     | "/settings/versions"
     | "/books/$label/$step"
@@ -272,6 +292,7 @@ export interface FileRouteTypes {
     | "/library"
     | "/books/import"
     | "/books/new"
+    | "/dev/publish-loaders"
     | "/prompts/settings"
     | "/"
     | "/settings/about"
@@ -280,6 +301,7 @@ export interface FileRouteTypes {
     | "/settings/notifications"
     | "/settings/prompts"
     | "/settings/providers"
+    | "/settings/publishing"
     | "/settings/theme"
     | "/settings/versions"
     | "/books/$label/debug"
@@ -298,6 +320,7 @@ export interface FileRouteTypes {
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/dev/publish-loaders"
     | "/prompts/settings"
     | "/_app/"
     | "/_app/settings/about"
@@ -306,6 +329,7 @@ export interface FileRouteTypes {
     | "/_app/settings/notifications"
     | "/_app/settings/prompts"
     | "/_app/settings/providers"
+    | "/_app/settings/publishing"
     | "/_app/settings/theme"
     | "/_app/settings/versions"
     | "/books/$label/$step"
@@ -323,6 +347,7 @@ export interface RootRouteChildren {
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
   BooksNewRoute: typeof BooksNewRoute
+  DevPublishLoadersRoute: typeof DevPublishLoadersRoute
   PromptsSettingsRoute: typeof PromptsSettingsRoute
 }
 
@@ -354,6 +379,13 @@ declare module "@tanstack/react-router" {
       path: "/prompts/settings"
       fullPath: "/prompts/settings"
       preLoaderRoute: typeof PromptsSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/dev/publish-loaders": {
+      id: "/dev/publish-loaders"
+      path: "/dev/publish-loaders"
+      fullPath: "/dev/publish-loaders"
+      preLoaderRoute: typeof DevPublishLoadersRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/books/new": {
@@ -440,6 +472,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppSettingsThemeRouteImport
       parentRoute: typeof AppSettingsRoute
     }
+    "/_app/settings/publishing": {
+      id: "/_app/settings/publishing"
+      path: "/publishing"
+      fullPath: "/settings/publishing"
+      preLoaderRoute: typeof AppSettingsPublishingRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     "/_app/settings/providers": {
       id: "/_app/settings/providers"
       path: "/providers"
@@ -513,6 +552,7 @@ interface AppSettingsRouteChildren {
   AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
   AppSettingsPromptsRoute: typeof AppSettingsPromptsRoute
   AppSettingsProvidersRoute: typeof AppSettingsProvidersRoute
+  AppSettingsPublishingRoute: typeof AppSettingsPublishingRoute
   AppSettingsThemeRoute: typeof AppSettingsThemeRoute
   AppSettingsVersionsRoute: typeof AppSettingsVersionsRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
@@ -525,6 +565,7 @@ const AppSettingsRouteChildren: AppSettingsRouteChildren = {
   AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
   AppSettingsPromptsRoute: AppSettingsPromptsRoute,
   AppSettingsProvidersRoute: AppSettingsProvidersRoute,
+  AppSettingsPublishingRoute: AppSettingsPublishingRoute,
   AppSettingsThemeRoute: AppSettingsThemeRoute,
   AppSettingsVersionsRoute: AppSettingsVersionsRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
@@ -588,6 +629,7 @@ const rootRouteChildren: RootRouteChildren = {
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
   BooksNewRoute: BooksNewRoute,
+  DevPublishLoadersRoute: DevPublishLoadersRoute,
   PromptsSettingsRoute: PromptsSettingsRoute,
 }
 export const routeTree = rootRouteImport

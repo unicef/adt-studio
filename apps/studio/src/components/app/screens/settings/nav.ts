@@ -7,6 +7,7 @@ import {
   ScrollText,
   Info,
   History,
+  Globe,
   type LucideIcon,
 } from "lucide-react"
 import { msg } from "@lingui/core/macro"
@@ -21,6 +22,7 @@ export const SETTINGS_PATHS = {
   models: "/settings/models",
   prompts: "/settings/prompts",
   about: "/settings/about",
+  publishing: "/settings/publishing",
   versions: "/settings/versions",
 } as const
 
@@ -63,6 +65,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     key: "application",
     label: msg`Application`,
     tabs: [
+      { key: "publishing", label: msg`Sharing`, icon: Globe, fullWidth: true },
       { key: "about", label: msg`About`, icon: Info },
       { key: "versions", label: msg`Versions`, icon: History, betaOnly: true },
     ],
@@ -93,10 +96,7 @@ export const SETTINGS_ANCHORS = {
 
 export const localeAnchor = (locale: string) => `settings-locale-${locale}`
 
-const PROVIDER_ANCHOR_PREFIX = "settings-provider-"
-export const providerAnchor = (provider: string) => `${PROVIDER_ANCHOR_PREFIX}${provider}`
-export const providerFromAnchor = (hash: string): string | null =>
-  hash.startsWith(PROVIDER_ANCHOR_PREFIX) ? hash.slice(PROVIDER_ANCHOR_PREFIX.length) : null
+export { providerAnchor, providerFromAnchor, type ProvidersSearch } from "./provider-anchor"
 
 export function isSettingsSectionAvailable(section: SettingsSection): boolean {
   return !SETTINGS_TAB_BY_KEY[section].betaOnly || isBetaBuild()

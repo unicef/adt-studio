@@ -30,6 +30,7 @@ import {
 } from "@/shared/state/config.atoms"
 import {
   currentLanguageAtom,
+  audioLanguageAtom,
   imageFilesAtom,
   translationsAtom,
 } from "@/features/language/state/language.atoms"
@@ -245,6 +246,7 @@ export async function bootRuntime(): Promise<void> {
     const persisted = readPersistedLanguage()
     const language = pickLanguage(config, persisted, htmlLang)
     store.set(currentLanguageAtom, language)
+    store.set(audioLanguageAtom, null)
     // WCAG 3.1.1: keep `<html lang>` aligned with the resolved language so
     // screen readers / hyphenation / spellcheck use the right pronunciation.
     document.documentElement.lang = language
@@ -260,6 +262,7 @@ export async function bootRuntime(): Promise<void> {
     store.set(tocAtom, toc)
     initAnalytics(config.analytics)
     initializePageContent()
+    store.set(audioLanguageAtom, language)
   } finally {
     // Always clear the dock skeleton — even on partial-load failures the dock
     // should reveal whatever data DID make it into atoms.
@@ -342,25 +345,36 @@ export function subscribeLanguageChanges(): () => void {
   // currentLanguageAtom is sync (atomWithStorage with getOnInit), but the
   // Jotai type still includes Promise<T> in its read signature; cast away.
   let lastLanguage = store.get(currentLanguageAtom) as string
+  let revision = 0
+  let disposed = false
 
   const unsubLanguage = store.sub(currentLanguageAtom, () => {
     const next = store.get(currentLanguageAtom) as string
     if (next === lastLanguage) return
     lastLanguage = next
+    const requestRevision = ++revision
+    const isCurrent = () => !disposed && revision === requestRevision
+    store.set(audioLanguageAtom, null)
     // WCAG 3.1.2: re-tag the document so assistive tech adjusts to the
     // new language alongside the translated content.
     if (typeof document !== "undefined") document.documentElement.lang = next
     const config = store.get(appConfigAtom)
     void Promise.all([
-      loadTranslations(next, config.bundleVersion),
-      loadGlossary(next, config.bundleVersion),
-      loadTimecodes(next, config.bundleVersion),
-    ]).then(() => applyDOMTranslations())
+      loadTranslations(next, config.bundleVersion, isCurrent),
+      loadGlossary(next, config.bundleVersion, isCurrent),
+      loadTimecodes(next, config.bundleVersion, isCurrent),
+    ]).then(() => {
+      if (isCurrent()) {
+        applyDOMTranslations()
+        store.set(audioLanguageAtom, next)
+      }
+    })
   })
 
   const unsubEasyRead = store.sub(easyReadModeAtom, () => applyDOMTranslations())
 
   return () => {
+    disposed = true
     unsubLanguage()
     unsubEasyRead()
   }

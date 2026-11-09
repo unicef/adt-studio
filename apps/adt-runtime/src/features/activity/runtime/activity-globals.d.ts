@@ -23,6 +23,8 @@
  */
 interface Window {
   correctAnswers?: Record<string, unknown>
+  /** Packaging resolves these catalog IDs from the stable section owner. */
+  activityAnswerTextIds?: Record<string, string>
   /**
    * Legacy: pairs of interchangeable items (e.g. "the same two answers in
    * either order"). The pipeline doesn't currently emit this, but the legacy

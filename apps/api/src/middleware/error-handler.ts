@@ -1,7 +1,10 @@
+import { OutputPublicationConflict } from "@adt/pipeline"
+import { EditConflictError } from "../services/edit-conflict.js"
 import type { ErrorHandler } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { AiProviderError } from "@adt/llm"
 import type { AiProviderErrorCode } from "@adt/types"
+import { BookBusyError } from "@adt/storage"
 
 /** A missing or unusable provider selection is a request problem, not a bug. */
 const PROVIDER_ERROR_STATUS: Record<AiProviderErrorCode, 400 | 422> = {
@@ -14,6 +17,9 @@ const PROVIDER_ERROR_STATUS: Record<AiProviderErrorCode, 400 | 422> = {
 }
 
 export const errorHandler: ErrorHandler = (err, c) => {
+  if (err instanceof OutputPublicationConflict) return c.json({ error: err.message, code: err.code }, 409)
+  if (err instanceof EditConflictError) return c.json({ error: err.message, code: err.code, currentVersion: err.currentVersion }, 409)
+  if (err instanceof BookBusyError) return c.json({ error: err.message, code: err.code }, 409)
   if (err instanceof HTTPException) {
     return c.json({ error: err.message }, err.status)
   }

@@ -1,6 +1,6 @@
 export function resolveSectioningStartStage(
   extractCovered: boolean,
-  hasAssembledPages: boolean,
+  hasExtractedPages: boolean,
 ): "extract" | "sectioning" {
-  return extractCovered || hasAssembledPages ? "sectioning" : "extract"
+  return extractCovered || hasExtractedPages ? "sectioning" : "extract"
 }

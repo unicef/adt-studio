@@ -21,6 +21,7 @@
  * absence of `[[blank:]]` markers in tables.
  */
 import { getDefaultStore } from "jotai"
+import { getTextInputs as getActivityInputs, type TextInput } from "../lib/text-inputs"
 import { translationsAtom } from "../../language/state/language.atoms"
 import {
   pagesAtom,
@@ -53,7 +54,6 @@ const FITB_SELECTOR =
 // `window.correctAnswers` / `window.interchangeablePairs` are declared once in
 // ./activity-globals.d.ts (shared by every activity initializer).
 
-type TextInput = HTMLInputElement | HTMLTextAreaElement
 
 function tr(key: string, fallback: string): string {
   const dict = getDefaultStore().get(translationsAtom)
@@ -78,6 +78,15 @@ function getCorrectAnswer(itemId: string): string | undefined {
   // must survive rather than collapse to undefined.
   const raw = window.correctAnswers?.[itemId]
   if (raw === undefined || raw === null) return undefined
+  // Only authored text answers use the display-language catalog. Packaging
+  // supplies the exact owner/key; the reader never infers ownership from DOM
+  // position. Missing/blank translations keep the original grading contract,
+  // and an explicitly open-ended source stays open-ended.
+  const catalogId = window.activityAnswerTextIds?.[itemId]
+  if (typeof raw === "string" && raw.length > 0 && catalogId) {
+    const translated = getDefaultStore().get(translationsAtom)[catalogId]
+    if (typeof translated === "string" && translated.trim().length > 0) return translated
+  }
   return typeof raw === "string" ? raw : String(raw)
 }
 
@@ -104,7 +113,7 @@ function saveInputState(input: TextInput): void {
   if (key) localStorage.setItem(key, input.value)
 }
 
-function loadInputState(inputs: NodeListOf<TextInput>): void {
+function loadInputState(inputs: readonly TextInput[]): void {
   inputs.forEach((input) => {
     const key = persistenceKey(input)
     if (!key) return
@@ -219,11 +228,6 @@ function escapeAttr(value: string): string {
   return String(value).replace(/"/g, "&quot;")
 }
 
-function getActivityInputs(section: HTMLElement): NodeListOf<TextInput> {
-  return section.querySelectorAll<TextInput>(
-    'input[type="text"]:not(#filter-input), textarea:not(#filter-input)',
-  )
-}
 
 function normalize(value: string): string {
   return value.trim().toLowerCase()
@@ -252,7 +256,7 @@ function validateValue(
 
   // Pipe-separated alternatives ("madre|mamá").
   if (correct.includes("|")) {
-    const acceptable = correct.split("|").map((a) => a.trim().toLowerCase())
+    const acceptable = correct.split("|").map(normalize)
     return { isCorrect: acceptable.includes(value), isFilled: true }
   }
 
@@ -262,8 +266,8 @@ function validateValue(
   if (pair && pair.length > 0) {
     const alternates = pair.map((id) => getCorrectAnswer(id))
     const matchesAny =
-      value === correct.toLowerCase() ||
-      alternates.some((a) => a != null && value === a.toLowerCase())
+      value === normalize(correct) ||
+      alternates.some((a) => a != null && value === normalize(a))
     if (!matchesAny) return { isCorrect: false, isFilled: true }
 
     // Reject duplicates across the pair.
@@ -281,7 +285,7 @@ function validateValue(
     return { isCorrect: true, isFilled: true }
   }
 
-  return { isCorrect: correct.toLowerCase() === value, isFilled: true }
+  return { isCorrect: normalize(correct) === value, isFilled: true }
 }
 
 function liveValidate(input: TextInput): void {
@@ -498,10 +502,10 @@ export function initializeFillInTheBlankActivity(): (() => void) | null {
   store.set(skipHandlerAtom, () => handleSkip)
   resetSubmit()
 
-  // Re-hydrate on language changes — translations overwrite innerHTML on each
-  // [data-id] element, which destroys the live <input>s we hydrated in. Walk
-  // the section again to restore them and re-attach listeners.
-  const unsubTranslations = store.sub(translationsAtom, () => {
+  // Dictionary publication precedes DOM translation. Rehydrate only after
+  // that replacement finishes, including Easy Read changes, so the new
+  // inputs and their persisted drafts survive the whole render lifecycle.
+  const onTranslationsApplied = () => {
     const focused = document.activeElement as HTMLElement | null
     const focusedItem = focused?.getAttribute?.("data-activity-item") ?? null
     hydrateFitbSentences(section)
@@ -515,11 +519,12 @@ export function initializeFillInTheBlankActivity(): (() => void) | null {
       )
       restored?.focus()
     }
-  })
+  }
+  document.addEventListener("adt:translations-applied", onTranslationsApplied)
 
   return () => {
     listenerCleanups.forEach((off) => off())
-    unsubTranslations()
+    document.removeEventListener("adt:translations-applied", onTranslationsApplied)
     store.set(validateHandlerAtom, () => null)
     store.set(skipHandlerAtom, () => null)
     store.set(submitEnabledAtom, false)

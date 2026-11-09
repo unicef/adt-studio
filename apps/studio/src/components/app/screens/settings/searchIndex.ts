@@ -65,6 +65,7 @@ const SECTION_KEYWORDS: Record<SettingsSection, MessageDescriptor> = {
   providers: msg`providers api key credentials endpoint`,
   models: msg`models llm image speech`,
   prompts: msg`prompts templates instructions`,
+  publishing: msg`sharing publishing Cloudflare hosting deployment`,
   about: msg`about version update logs diagnostics`,
   versions: msg`versions beta release downgrade rollback install changelog`,
 }

@@ -18,6 +18,8 @@ export type FlowTopBarProps = {
   title?: ReactNode
   /** Where the home affordance goes. Defaults to the library at `/`. */
   onBack?: () => void
+  /** Extra controls shown before the locale switcher. */
+  actions?: ReactNode
 }
 
 /**
@@ -26,7 +28,7 @@ export type FlowTopBarProps = {
  * hover — followed by the current page title. Owns the frameless-window drag
  * region, the macOS traffic-light spacing, and the Windows/Linux controls.
  */
-export function FlowTopBar({ title, onBack }: FlowTopBarProps) {
+export function FlowTopBar({ title, onBack, actions }: FlowTopBarProps) {
   const { t } = useLingui()
   const navigate = useNavigate()
   const platform = usePlatform()
@@ -68,6 +70,7 @@ export function FlowTopBar({ title, onBack }: FlowTopBarProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-1.5" style={NO_DRAG_REGION}>
+        {actions}
         <LocaleSwitcher variant="standalone" />
       </div>
 

@@ -1,0 +1,86 @@
+{
+  "runtimeCommit": "ab15d6d5",
+  "reviewedStartingHead": "cb808fa58bb9f3ca6913165d5e30e377161ef51c",
+  "base": "0b18602f8b42f4b52b4d2ccf2927635d5a4db572",
+  "fullTests": {
+    "files": 337,
+    "tests": 4189,
+    "seconds": 258.47,
+    "passed": true
+  },
+  "independentReview": {
+    "tests": 122,
+    "files": 9,
+    "remainingMustFix": 0
+  },
+  "typecheck": "passed",
+  "runtimeTypecheck": "passed",
+  "lint": {
+    "errors": 0,
+    "warnings": 8
+  },
+  "i18n": {
+    "messages": 3735,
+    "missing": 0,
+    "locales": [
+      "en",
+      "pt-BR",
+      "es",
+      "fr",
+      "sq"
+    ]
+  },
+  "desktop": "unsigned macOS arm64 build and packaged API passed",
+  "browser": {
+    "books": "/private/tmp/spec0001-note3-browser-books-K16ric",
+    "cosmeticSaveDoesNotWarn": true,
+    "bodySaveFlagsOnlyQuizGlossary": true,
+    "saveProviderCalls": 0,
+    "retainedWarningAndContentSurviveFailedRerun": true,
+    "reloadPreservesWarning": true,
+    "successfulRerunClearsOnlyRelevantWarning": true,
+    "providerRequests": 2,
+    "retainedHistoryAndManualTranslations": true,
+    "sourcePlaceholderPreserved": true,
+    "catalogOutputs": 230,
+    "legacyActivityPreview": true,
+    "momograde1Preview": true,
+    "browserErrors": [],
+    "packagedApi": true,
+    "builtStudio": true
+  },
+  "docker": {
+    "cleanBuild": "blocked by Debian signature failure during Playwright install-deps; Docker VM filesystem full",
+    "runtime": "current code bind-mounted into existing task image, not clean image",
+    "export": {
+      "exportDownloaded": true,
+      "suggestedFilename": "Catalog acceptance_ plant science-adt.zip",
+      "disclosures": [
+        "http://127.0.0.1:4216/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Afalse%2C%22quizzes%22%3Afalse%2C%22readAloud%22%3Atrue%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D",
+        "http://127.0.0.1:4216/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Afalse%2C%22quizzes%22%3Afalse%2C%22readAloud%22%3Afalse%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D"
+      ],
+      "errors": []
+    },
+    "restart": {
+      "fullOutputProjectionsUnchanged": true,
+      "retainedQuizWarningPersists": true,
+      "books": [
+        "catalog-acceptance",
+        "note3",
+        "legacy-leaf-acceptance"
+      ]
+    },
+    "zipFiles": 76,
+    "zipIntegrity": "passed",
+    "bundledChromium": "passed"
+  },
+  "notRun": [
+    "actual De-codable pg006",
+    "complete Electron GUI walkthrough",
+    "fresh-PDF CLI end-to-end",
+    "live paid providers",
+    "signed installers",
+    "Windows/Linux Desktop packages",
+    "release certification"
+  ]
+}

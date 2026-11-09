@@ -980,3 +980,35 @@ describe("PUT /books/:label/templates/:name", () => {
     expect(res.status).toBe(404)
   })
 })
+
+describe("book prompt and template label validation", () => {
+  it("rejects traversal labels on every book-scoped route", async () => {
+    writePrompt("page_sectioning", "global prompt")
+    writeTemplate("two_column_render", "global template")
+
+    const requests = [
+      { path: "/books/..%2Foutside/prompts/page_sectioning", method: "GET" },
+      { path: "/books/..%2Foutside/prompts/page_sectioning/versions", method: "GET" },
+      {
+        path: "/books/..%2Foutside/prompts/page_sectioning/versions/20260101T000000000Z-000.liquid/current",
+        method: "PUT",
+      },
+      { path: "/books/..%2Foutside/prompts/page_sectioning", method: "DELETE" },
+      { path: "/books/..%2Foutside/prompts/page_sectioning", method: "PUT" },
+      { path: "/books/..%2Foutside/templates/two_column_render", method: "GET" },
+      { path: "/books/..%2Foutside/templates/two_column_render", method: "PUT" },
+    ] as const
+
+    for (const { path: requestPath, method } of requests) {
+      const res = await app().request(requestPath, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: method === "PUT" ? JSON.stringify({ content: "traversal marker" }) : undefined,
+      })
+
+      expect(res.status, `${method} ${requestPath}`).toBe(400)
+    }
+
+    expect(fs.existsSync(path.join(tmpDir, "outside"))).toBe(false)
+  })
+})

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -40,10 +40,12 @@ function seedRenderedBook(label: string): void {
       },
       images: [],
     })
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "", sections: [{ sectionId: "pg001_sec001", sectionType: "content", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: [] }] })
     storage.putNodeData("web-rendering", "pg001", {
       sections: [
         {
           sectionIndex: 0,
+          sectionId: "pg001_sec001",
           sectionType: "content",
           reasoning: "",
           html: '<p data-id="pg001_t001">Hello world</p>',
@@ -78,8 +80,8 @@ function seedUnrenderedBook(label: string): void {
   }
 }
 
-describe("GET /books/:label/text-catalog lazy build", () => {
-  it("builds and persists a non-empty catalog on demand", async () => {
+describe("GET /books/:label/text-catalog projection", () => {
+  it("builds a non-empty read model without persisting on open", async () => {
     seedRenderedBook("rendered")
     const app = createTextCatalogRoutes(tmpDir)
     const res = await app.request("/books/rendered/text-catalog")
@@ -87,10 +89,10 @@ describe("GET /books/:label/text-catalog lazy build", () => {
     const body = await res.json()
     expect(body.entries.length).toBeGreaterThan(0)
 
-    // Persisted so downstream consumers (translate, speech, packaging) can read it.
+    // Opening the view must not create entity versions.
     const verify = createBookStorage("rendered", tmpDir)
     try {
-      expect(verify.getLatestNodeData("text-catalog", "book")).toBeTruthy()
+      expect(verify.getLatestNodeData("text-catalog", "book")).toBeNull()
     } finally {
       verify.close()
     }
@@ -123,7 +125,8 @@ describe("GET /books/:label/text-catalog lazy build", () => {
 describe("text catalog routes", () => {
   it("stores edited translations as valid text catalog output", async () => {
     const label = "edited-translations"
-    seedBook(label)
+    seedRenderedBook(label)
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, es]\n")
     const seeded = createBookStorage(label, tmpDir)
     seeded.putNodeData("core-tts-catalog", "es", {
       language: "es",
@@ -152,12 +155,13 @@ describe("text catalog routes", () => {
     seeded.markStepCompleted("accessibility-assessment")
     seeded.close()
     const app = createTextCatalogRoutes(tmpDir)
+    const sourceSignature = (await (await app.request(`/books/${label}/text-catalog`)).json()).translationSourceSignatures.es
 
     const res = await app.request(`/books/${label}/text-catalog-translation/es`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        entries: [{ id: "pg001_t001", text: "¿Lo haces tú?" }],
+        entries: [{ id: "pg001_t001", text: "¿Lo haces tú?" }], baseVersion: 0, sourceVersion: 0, sourceSignature,
       }),
     })
 
@@ -171,9 +175,9 @@ describe("text catalog routes", () => {
       expect(parsed.data?.generatedAt).toEqual(expect.any(String))
       expect(storage.getLatestNodeData("core-tts-catalog", "es")?.data).toMatchObject({
         entries: [{
-          displayText: "¿Lo haces tú?",
-          speechText: null,
-          status: "failed",
+          displayText: "¿Lo haces?",
+          speechText: "¿Lo haces?",
+          status: "ready",
         }],
       })
       expect(storage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
@@ -184,7 +188,7 @@ describe("text catalog routes", () => {
         "package-web",
         "accessibility-assessment",
       ]) {
-        expect(storage.getStepRuns().find((run) => run.step === step)).toBeUndefined()
+        expect(storage.getStepRuns().find((run) => run.step === step)).toMatchObject({ status: "done" })
       }
     } finally {
       storage.close()
@@ -193,7 +197,8 @@ describe("text catalog routes", () => {
 
   it("stores manual speech edits as a new Core TTS language version", async () => {
     const label = "edited-speech"
-    seedBook(label)
+    seedRenderedBook(label)
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, es]\n")
     const seeded = createBookStorage(label, tmpDir)
     try {
       seeded.putNodeData("core-tts-catalog", "en", {
@@ -248,12 +253,13 @@ describe("text catalog routes", () => {
     }
 
     const app = createTextCatalogRoutes(tmpDir)
+    const read = await (await app.request(`/books/${label}/text-catalog`)).json()
     const res = await app.request(
       `/books/${label}/core-tts-catalog/en/pg001_t001`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ speechText: "twenty-five" }),
+        body: JSON.stringify({ speechText: "twenty-five", baseVersion: 1, sourceSignature: read.speechTexts.en.sourceSignature }),
       },
     )
     expect(res.status).toBe(200)
@@ -266,10 +272,11 @@ describe("text catalog routes", () => {
       expect(current?.data).toMatchObject({
         entries: [{ speechText: "twenty-five", generation: { mode: "manual" } }],
       })
-      expect((storage.getLatestNodeData("tts", "en")?.data as { entries: unknown[] }).entries).toEqual([])
+      expect(storage.getLatestNodeData("tts", "en")?.version).toBe(1)
+      expect((storage.getLatestNodeData("tts", "en")?.data as { entries: unknown[] }).entries).toHaveLength(1)
       expect(
         (storage.getLatestNodeData("tts-timestamps", "en")?.data as { entries: Record<string, unknown> }).entries,
-      ).toEqual({})
+      ).toHaveProperty("pg001_t001")
       expect(storage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
       for (const step of [
         "tts",
@@ -277,7 +284,7 @@ describe("text catalog routes", () => {
         "package-web",
         "accessibility-assessment",
       ]) {
-        expect(storage.getStepRuns().find((run) => run.step === step)).toBeUndefined()
+        expect(storage.getStepRuns().find((run) => run.step === step)).toMatchObject({ status: "done" })
       }
       expect(storage.setCurrentNodeVersion("core-tts-catalog", "en", 1)).toBe(true)
     } finally {
@@ -287,7 +294,8 @@ describe("text catalog routes", () => {
 
   it("preserves an uploaded recording when its speech text is edited", async () => {
     const label = "manual-speech-audio"
-    seedBook(label)
+    seedRenderedBook(label)
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, es]\n")
     const seeded = createBookStorage(label, tmpDir)
     try {
       seeded.putNodeData("core-tts-catalog", "en", {
@@ -326,12 +334,13 @@ describe("text catalog routes", () => {
     }
 
     const app = createTextCatalogRoutes(tmpDir)
+    const read = await (await app.request(`/books/${label}/text-catalog`)).json()
     const response = await app.request(
       `/books/${label}/core-tts-catalog/en/pg001_t001`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ speechText: "Hello there" }),
+        body: JSON.stringify({ speechText: "Hello there", baseVersion: 1, sourceSignature: read.speechTexts.en.sourceSignature }),
       },
     )
     expect(response.status).toBe(200)
@@ -347,4 +356,208 @@ describe("text catalog routes", () => {
       storage.close()
     }
   })
+})
+
+describe("independent speech-entry saves in one versioned language catalog", () => {
+  function seedSpeechCatalog(itemId = "en") {
+    const label = "speech-entry-merge"
+    seedRenderedBook(label)
+    const storage = createBookStorage(label, tmpDir)
+    const entries = ["pg001_t001", "pg001_t002"].map((id, index) => ({
+      id, displayText: index === 0 ? "Hello world" : "Another sentence", speechText: index === 0 ? "Hello world" : "Another sentence",
+      changed: false, transformations: [], status: "ready", retainedLegacyNote: `Keep ${id}`,
+      generation: { mode: "unchanged", generatedAt: "before", enabledTransformations: [], sourceTextHash: "source", contextHash: "context" },
+    }))
+    storage.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionId: "pg001_sec001", sectionType: "content", reasoning: "", html: '<p data-id="pg001_t001">Hello world</p><p data-id="pg001_t002">Another sentence</p>' }] })
+    const catalog = { language: itemId.replace("_", "-"), generatedAt: "before", entries, retainedLegacyNote: "Keep catalog metadata" }
+    storage.putNodeData("core-tts-catalog", itemId, catalog)
+    storage.close()
+    const app = createTextCatalogRoutes(tmpDir)
+    const read = async () => (await (await app.request(`/books/${label}/text-catalog`)).json()).speechTexts
+    const save = (id: string, speechText: string, baseVersion: number, sourceSignature: string) => app.request(`/books/${label}/core-tts-catalog/${itemId.replace("_", "-")}/${id}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ speechText, baseVersion, sourceSignature }),
+    })
+    return { label, app, catalog, read, save }
+  }
+
+  it("merges two independently loaded entries while preserving unrelated current metadata and history", async () => {
+    const { label, catalog, read, save } = seedSpeechCatalog()
+    const guard = (await read()).en
+    const first = await save("pg001_t001", "Manual first", guard.version, guard.sourceSignature)
+    expect(first.status).toBe(200)
+    expect((await first.json()).version).toBe(2)
+    const second = await save("pg001_t002", "Manual second", guard.version, guard.sourceSignature)
+    expect(second.status).toBe(200)
+    expect((await second.json()).version).toBe(3)
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      const current = storage.getLatestNodeData("core-tts-catalog", "en")!
+      expect(current.data).toMatchObject({ retainedLegacyNote: "Keep catalog metadata", entries: [
+        { id: "pg001_t001", speechText: "Manual first", retainedLegacyNote: "Keep pg001_t001" },
+        { id: "pg001_t002", speechText: "Manual second", retainedLegacyNote: "Keep pg001_t002" },
+      ] })
+      expect(storage.getAllNodeVersions("core-tts-catalog", "en")[0].data).toEqual(catalog)
+    } finally { storage.close() }
+  })
+
+  it("rejects a stale same-entry writer and leaves the successful edit intact", async () => {
+    const { label, read, save } = seedSpeechCatalog()
+    const guard = (await read()).en
+    expect((await save("pg001_t001", "First writer", guard.version, guard.sourceSignature)).status).toBe(200)
+    const storage = createBookStorage(label, tmpDir)
+    const before = storage.getNodeVersionFingerprint()
+    expect((await save("pg001_t001", "Stale writer", guard.version, guard.sourceSignature)).status).toBe(409)
+    expect(storage.getNodeVersionFingerprint()).toEqual(before)
+    storage.close()
+  })
+
+  it.each(["future", "missing", "malformed", "duplicate-history", "duplicate-current", "source", "exclusion", "restored-future"])("rejects %s evidence without publishing a version", async mode => {
+    const { label, catalog, read, save } = seedSpeechCatalog()
+    const guard = (await read()).en
+    const storage = createBookStorage(label, tmpDir)
+    let baseVersion = guard.version
+    if (mode === "future") baseVersion = 5
+    if (mode === "missing") baseVersion = 0
+    if (mode === "malformed" || mode === "duplicate-history") {
+      baseVersion = storage.putNodeData("core-tts-catalog", "en", mode === "malformed" ? { invalid: true } : { ...catalog, entries: [catalog.entries[0], catalog.entries[0]] })
+      storage.putNodeData("core-tts-catalog", "en", catalog)
+    }
+    if (mode === "duplicate-current") storage.putNodeData("core-tts-catalog", "en", { ...catalog, entries: [catalog.entries[0], catalog.entries[0]] })
+    if (mode === "source") storage.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionId: "pg001_sec001", sectionType: "content", reasoning: "", html: '<p data-id="pg001_t001">Changed source</p><p data-id="pg001_t002">Another sentence</p>' }] })
+    if (mode === "exclusion") fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "speech:\n  excluded_text_ids: [pg001_t001]\n")
+    if (mode === "restored-future") { baseVersion = storage.putNodeData("core-tts-catalog", "en", catalog); storage.setCurrentNodeVersion("core-tts-catalog", "en", 1) }
+    const before = storage.getNodeVersionFingerprint()
+    expect((await save("pg001_t001", "Unsafe edit", baseVersion, guard.sourceSignature)).status).toBe(409)
+    expect(storage.getNodeVersionFingerprint()).toEqual(before)
+    storage.close()
+  })
+
+  it("compares the current restored branch with its real historical baseline", async () => {
+    const { label, catalog, read, save } = seedSpeechCatalog()
+    const guard = (await read()).en
+    const storage = createBookStorage(label, tmpDir)
+    storage.putNodeData("core-tts-catalog", "en", { ...catalog, entries: [{ ...catalog.entries[0], speechText: "Abandoned target" }, catalog.entries[1]] })
+    storage.setCurrentNodeVersion("core-tts-catalog", "en", 1)
+    storage.putNodeData("core-tts-catalog", "en", { ...catalog, entries: [catalog.entries[0], { ...catalog.entries[1], speechText: "Current neighbor" }] })
+    expect((await save("pg001_t001", "Manual target", guard.version, guard.sourceSignature)).status).toBe(200)
+    expect(storage.getLatestNodeData("core-tts-catalog", "en")?.data).toMatchObject({ entries: [{ speechText: "Manual target" }, { speechText: "Current neighbor" }] })
+    expect(storage.getAllNodeVersions("core-tts-catalog", "en")[1].data).toMatchObject({ entries: [{ speechText: "Abandoned target" }, { speechText: "Another sentence" }] })
+    storage.close()
+  })
+
+  it("keeps legacy locale saves in their actual version namespace", async () => {
+    const { label, read, save } = seedSpeechCatalog("pt_BR")
+    const guard = (await read()).pt_BR
+    expect((await save("pg001_t001", "Primeiro", guard.version, guard.sourceSignature)).status).toBe(200)
+    expect((await save("pg001_t002", "Segundo", guard.version, guard.sourceSignature)).status).toBe(200)
+    const storage = createBookStorage(label, tmpDir)
+    expect(storage.getLatestNodeData("core-tts-catalog", "pt_BR")?.version).toBe(3)
+    expect(storage.getLatestNodeData("core-tts-catalog", "pt-BR")).toBeNull()
+    storage.close()
+  })
+
+  it("rejects a legacy guard when another canonical namespace has the same numeric version", async () => {
+    const { label, catalog, read, save } = seedSpeechCatalog("pt_BR")
+    const legacy = (await read()).pt_BR
+    const storage = createBookStorage(label, tmpDir)
+    storage.putNodeData("core-tts-catalog", "pt-BR", catalog)
+    const before = storage.getNodeVersionFingerprint()
+    expect((await save("pg001_t001", "Wrong namespace", legacy.version, legacy.sourceSignature)).status).toBe(409)
+    expect(storage.getNodeVersionFingerprint()).toEqual(before)
+    const current = (await read())["pt-BR"]
+    expect((await save("pg001_t001", "Correct namespace", current.version, current.sourceSignature)).status).toBe(200)
+    expect(storage.getLatestNodeData("core-tts-catalog", "pt_BR")?.data).toEqual(catalog)
+    expect(storage.getLatestNodeData("core-tts-catalog", "pt-BR")?.version).toBe(2)
+    storage.close()
+  })
+})
+
+// Read the public receipt; alias namespaces have independent version histories.
+// Identical numeric versions must never authorize an edit of a different row.
+it.each([false, true])("rejects a legacy translation receipt after an equally versioned canonical row appears (empty=%s)", async empty => {
+  const label = "translation-alias-race"
+  seedRenderedBook(label)
+  fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, pt-BR]\n")
+  const legacy = { entries: [{ id: "pg001_t001", text: "Legacy", source: "manual" }], generatedAt: "2026-11-01" }
+  const canonical = { entries: empty ? [] : [{ id: "pg001_t001", text: "Canonical", source: "manual" }], generatedAt: "2026-11-01" }
+  let storage = createBookStorage(label, tmpDir)
+  storage.putNodeData("text-catalog-translation", "pt_BR", legacy)
+  storage.close()
+  const app = createTextCatalogRoutes(tmpDir)
+  const before = await (await app.request(`/books/${label}/text-catalog`)).json()
+  storage = createBookStorage(label, tmpDir)
+  storage.putNodeData("text-catalog-translation", "pt-BR", canonical)
+  storage.close()
+  const res = await app.request(`/books/${label}/text-catalog-translation/pt_BR`, {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entries: [{ id: "pg001_t001", text: "Stale legacy draft" }], baseVersion: 1, sourceVersion: before.version, sourceSignature: before.translations.pt_BR.sourceSignature }),
+  })
+  expect(res.status).toBe(409)
+  const after = await (await app.request(`/books/${label}/text-catalog`)).json()
+  expect(after.translations["pt-BR"]).toMatchObject({ entries: canonical.entries, version: 1 })
+  expect(after.translations.pt_BR).toEqual(before.translations.pt_BR)
+  expect(after.translations["pt-BR"].sourceSignature).not.toBe(before.translations.pt_BR.sourceSignature)
+  storage = createBookStorage(label, tmpDir)
+  expect(storage.getAllNodeVersions("text-catalog-translation", "pt-BR")).toHaveLength(1)
+  storage.close()
+})
+
+it.each([null, { entries: "invalid" }, { entries: [{ id: "pg001_t001", text: null }] }])("reports an unreadable current canonical translation as present and rejects overwriting it: %j", async bad => {
+  const label = "translation-unreadable"
+  seedRenderedBook(label)
+  fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, pt-BR]\n")
+  const storage = createBookStorage(label, tmpDir)
+  storage.putNodeData("text-catalog-translation", "pt_BR", { entries: [{ id: "pg001_t001", text: "Legacy" }], generatedAt: "2026-11-01" })
+  storage.putNodeData("text-catalog-translation", "pt-BR", bad)
+  storage.close()
+  const app = createTextCatalogRoutes(tmpDir)
+  const catalog = await (await app.request(`/books/${label}/text-catalog`)).json()
+  expect(catalog.unavailableTranslations).toEqual(["pt-BR"])
+  expect(catalog.translations["pt-BR"]).toBeUndefined()
+  expect(catalog.translations.pt_BR.entries).toEqual([{ id: "pg001_t001", text: "Legacy" }])
+  const res = await app.request(`/books/${label}/text-catalog-translation/pt-BR`, {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entries: [{ id: "pg001_t001", text: "Replacement" }], baseVersion: 1, sourceVersion: catalog.version, sourceSignature: catalog.translationSourceSignatures["pt-BR"] }),
+  })
+  expect(res.status).toBe(409)
+  const verify = createBookStorage(label, tmpDir)
+  expect(verify.getLatestNodeData("text-catalog-translation", "pt-BR")?.data).toEqual(bad)
+  expect(verify.getAllNodeVersions("text-catalog-translation", "pt-BR")).toHaveLength(1)
+  verify.close()
+})
+
+it("returns its exact normalized transaction snapshot without borrowing a subsequent writer's version", async () => {
+  const label = "normalized-save-response"
+  seedRenderedBook(label)
+  fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, fr, es]\n")
+  const storage = createBookStorage(label, tmpDir)
+  const original = { generatedAt: "2026-11-01", entries: [{ id: "pg001_t001", text: "Visible", source: "ai" }, { id: "retired", text: "First retired", source: "manual" }, { id: "pg001_t001", text: "Hidden", source: "manual" }, { id: "retired", text: "Second retired" }] }
+  storage.putNodeData("text-catalog-translation", "fr", original)
+  storage.putNodeData("text-catalog-translation", "es", { ...original, entries: [{ id: "pg001_t001", text: "Vecino", source: "manual" }] })
+  const neighbor = storage.getAllNodeVersions("text-catalog-translation", "es")
+  const transport = vi.spyOn(globalThis, "fetch").mockImplementation(async () => { throw new Error("Save must not call a provider") })
+  try {
+    const app = createTextCatalogRoutes(tmpDir)
+    const read = await (await app.request(`/books/${label}/text-catalog`)).json()
+    const put = (entries: unknown, version: number) => app.request(`/books/${label}/text-catalog-translation/fr`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entries, baseVersion: version, sourceVersion: read.version, sourceSignature: read.translations.fr.sourceSignature }) })
+    const result = await put(original.entries.map(({ id, text }) => ({ id, text: id === "pg001_t001" ? "Submitted" : text })), 1)
+    expect(result.status).toBe(200)
+    const saved = await result.json()
+    const current = storage.getLatestNodeData("text-catalog-translation", "fr")!
+    expect(saved).toEqual({ version: 2, entries: (current.data as { entries: unknown[] }).entries })
+    expect(saved.entries.map((entry: { id: string }) => entry.id)).toEqual(["pg001_t001", "retired", "retired"])
+    expect(saved.entries.slice(1)).toEqual([original.entries[1], original.entries[3]])
+    expect(saved.entries[0]).toMatchObject({ text: "Submitted", source: "manual" })
+    // A normalized successor is accepted; a later stale receipt is still refused.
+    const successor = await put(saved.entries.map(({ id, text }: { id: string; text: string }) => ({ id, text: id === "pg001_t001" ? "Successor" : text })), saved.version)
+    expect(successor.status).toBe(200)
+    expect((await successor.json()).version).toBe(3)
+    const beforeRejection = storage.getAllNodeVersions("text-catalog-translation", "fr")
+    expect((await put([{ id: "pg001_t001", text: "Stale" }], saved.version)).status).toBe(409)
+    expect(storage.getAllNodeVersions("text-catalog-translation", "fr")).toEqual(beforeRejection)
+    expect(beforeRejection.find(row => row.version === 1)?.data).toEqual(original)
+    expect(beforeRejection.find(row => row.version === saved.version)?.data).toMatchObject({ entries: saved.entries })
+    expect(storage.getAllNodeVersions("text-catalog-translation", "es")).toEqual(neighbor)
+    expect(transport).not.toHaveBeenCalled()
+  } finally { transport.mockRestore(); storage.close() }
 })

@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { render } from "@testing-library/react"
+import { cleanup, render } from "@testing-library/react"
 import { getDefaultStore } from "jotai"
 import { currentSectionIdAtom, pagesAtom } from "@/features/navigation/state/nav.atoms"
 import { PagePrefetcher } from "./PagePrefetcher"
+import { subscribeSoftNavHistory } from "../lib/page-swap"
 
 const pages = [
   { section_id: "pg001_sec001", href: "pg001_sec001.html" },
@@ -24,12 +25,17 @@ function prefetchHrefs(): Array<string | null> {
   )
 }
 
+let unsubscribe: (() => void) | undefined
+
 beforeEach(() => {
   getDefaultStore().set(pagesAtom, pages)
   getDefaultStore().set(currentSectionIdAtom, "pg002_sec001")
 })
 
 afterEach(() => {
+  cleanup()
+  unsubscribe?.()
+  unsubscribe = undefined
   getDefaultStore().set(pagesAtom, [])
   getDefaultStore().set(currentSectionIdAtom, null)
 })
@@ -37,6 +43,7 @@ afterEach(() => {
 describe("PagePrefetcher", () => {
   it("prefetches both neighbours but does not prerender when pages swap in place", () => {
     setLocation("http://localhost/book/pg002_sec001.html")
+    unsubscribe = subscribeSoftNavHistory()
 
     const view = render(<PagePrefetcher />)
 

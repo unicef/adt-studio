@@ -419,6 +419,33 @@ describe("resolveSpeechModel", () => {
 
   it("uses the shared default model for non-provider-specific fallbacks", () => {
     expect(resolveSpeechModel("openai", {}, "gpt-4o-audio")).toBe("gpt-4o-audio")
+    // An id of unknown shape still passes through for OpenAI.
+    expect(resolveSpeechModel("openai", {}, "my-custom-tts")).toBe("my-custom-tts")
+  })
+
+  it("honours the global default only for the provider it belongs to", () => {
+    expect(resolveSpeechModel("gemini", {}, "gemini-2.5-pro-preview-tts")).toBe(
+      "gemini-2.5-pro-preview-tts",
+    )
+    // A Gemini id must not be sent to OpenAI — OpenAI runs on its own default.
+    expect(resolveSpeechModel("openai", {}, "gemini-2.5-pro-preview-tts")).toBe("gpt-4o-mini-tts")
+    // An OpenAI id is not a Gemini model — Gemini runs on its own default.
+    expect(resolveSpeechModel("gemini", {}, "gpt-4o-mini-tts")).toBe("gemini-2.5-flash-preview-tts")
+    expect(resolveSpeechModel("elevenlabs", {}, "gemini-2.5-pro-preview-tts")).toBe(
+      "eleven_multilingual_v2",
+    )
+    // Unknown-shaped ids never reach a provider that has its own default.
+    expect(resolveSpeechModel("gemini", {}, "my-custom-tts")).toBe("gemini-2.5-flash-preview-tts")
+  })
+
+  it("lets the per-provider model keep overriding the global default", () => {
+    expect(
+      resolveSpeechModel(
+        "gemini",
+        { gemini: { model: "gemini-2.5-flash-preview-tts" } },
+        "gemini-2.5-pro-preview-tts",
+      ),
+    ).toBe("gemini-2.5-flash-preview-tts")
   })
 })
 
@@ -657,6 +684,31 @@ describe("generateSpeechFile", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 
+  it("preserves earlier audio across changed generation, cache reuse and late cancellation", async () => {
+    const options = {
+      textId: "p001_t001", text: "Original", language: "en",
+      model: "gpt-4o-mini-tts", voice: "alloy", instructions: "", format: "mp3",
+      bookDir, cacheDir, ttsSynthesizer: mockSynthesizer,
+    }
+    const first = await generateSpeechFile(options)
+    mockSynthesize.mockResolvedValueOnce(new Uint8Array(Buffer.from("changed-audio")))
+    const changed = await generateSpeechFile({ ...options, text: "Changed" })
+    expect(changed!.fileName).not.toBe(first!.fileName)
+    const reused = await generateSpeechFile(options)
+    expect(reused!.fileName).toBe(first!.fileName)
+    expect(mockSynthesize).toHaveBeenCalledTimes(2)
+    const controller = new AbortController()
+    mockSynthesize.mockImplementationOnce(async () => {
+      controller.abort()
+      return new Uint8Array(Buffer.from("late-result"))
+    })
+    await expect(generateSpeechFile({ ...options, text: "Cancelled", signal: controller.signal })).rejects.toThrow()
+    fs.rmSync(cacheDir, { recursive: true })
+    expect(fs.readFileSync(path.join(bookDir, "audio/en", first!.fileName), "utf8")).toBe("fake-audio-data")
+    expect(fs.readFileSync(path.join(bookDir, "audio/en", changed!.fileName), "utf8")).toBe("changed-audio")
+    expect(fs.readdirSync(path.join(bookDir, "audio/en"))).toHaveLength(2)
+  })
+
   it("generates a speech file and returns metadata", async () => {
     const result = await generateSpeechFile({
       textId: "p001_t001",
@@ -674,7 +726,10 @@ describe("generateSpeechFile", () => {
     expect(result).toEqual({
       textId: "p001_t001",
       language: "en",
-      fileName: "p001_t001.mp3",
+      fileName: expect.stringMatching(/^p001_t001--[a-f0-9]{64}\.mp3$/),
+      audioHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      speechInputSignature: expect.stringMatching(/^[a-f0-9]{64}$/),
+      source: "ai",
       voice: "alloy",
       model: "gpt-4o-mini-tts",
       cached: false,
@@ -682,7 +737,7 @@ describe("generateSpeechFile", () => {
     })
 
     // Verify file was written
-    const audioPath = path.join(bookDir, "audio", "en", "p001_t001.mp3")
+    const audioPath = path.join(bookDir, "audio", "en", result!.fileName)
     expect(fs.existsSync(audioPath)).toBe(true)
 
     // Verify cache was written
@@ -719,7 +774,10 @@ describe("generateSpeechFile", () => {
     expect(result).toEqual({
       textId: "p001_t001",
       language: "en",
-      fileName: "p001_t001--secondary.mp3",
+      fileName: expect.stringMatching(/^p001_t001--secondary--[a-f0-9]{64}\.mp3$/),
+      audioHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      speechInputSignature: expect.stringMatching(/^[a-f0-9]{64}$/),
+      source: "ai",
       voice: "shimmer",
       model: "gpt-4o-mini-tts",
       cached: false,
@@ -727,7 +785,7 @@ describe("generateSpeechFile", () => {
       voiceLabel: "Shimmer",
     })
 
-    const audioPath = path.join(bookDir, "audio", "en", "p001_t001--secondary.mp3")
+    const audioPath = path.join(bookDir, "audio", "en", result!.fileName)
     expect(fs.existsSync(audioPath)).toBe(true)
     // Primary file for the same textId must not exist / be untouched.
     const primaryAudioPath = path.join(bookDir, "audio", "en", "p001_t001.mp3")
@@ -749,7 +807,7 @@ describe("generateSpeechFile", () => {
     })
 
     expect(result?.language).toBe("en-US")
-    expect(fs.existsSync(path.join(bookDir, "audio", "en-US", "p001_t001.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(bookDir, "audio", "en-US", result!.fileName))).toBe(true)
     expect(fs.readdirSync(path.join(bookDir, "audio"))).toContain("en-US")
   })
 

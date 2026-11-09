@@ -33,6 +33,7 @@ import {
   getCachedPdfPageCount,
   getPdfPageCount,
 } from "@/components/wizard/shared/pdfMetadata"
+import { ProviderStatusChip } from "@/components/key-prompt/ProviderStatusChip"
 import { usePdfPreviewPages } from "@/components/wizard/shared/usePdfPreviewPages"
 
 const CARD_HEIGHT = "h-[340px]"
@@ -246,7 +247,7 @@ export function StepUpload() {
 
   return (
     <div className="flex flex-1 min-h-0 flex-col h-full bg-background">
-      <FlowTopBar title={t`Add Book`} />
+      <FlowTopBar title={t`Add Book`} actions={<ProviderStatusChip />} />
       <FileDropOverlay
         overlay={overlay}
         dropLabel={<Trans>Drop PDF here</Trans>}

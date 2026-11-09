@@ -77,7 +77,7 @@ export const ActivityNodeShapeSchema: z.ZodType<ActivityNodeShape> = z.lazy(
       nodeId: z
         .string()
         .describe(
-          "Unique id within the section. Use `<pageId>_q<n>` for question/instruction leaves, `<pageId>_opt<n>` for option containers, `<pageId>_t<n>` for text leaves inside options. For image leaves, nodeId MUST equal a real imageId from listPageImages — never invent.",
+          "Use a fresh, book-wide unused ID for every new non-image node, including containers. Never reuse an existing or historical content ID; the server rejects collisions and repeats. For image leaves, nodeId MUST equal a real imageId from listPageImages; shared image references are allowed. Preserve existing IDs only when editing their original content.",
         ),
       structure: z
         .enum(ACTIVITY_STRUCTURES)

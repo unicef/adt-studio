@@ -266,7 +266,7 @@ function resolveElevenLabsPcmSampleRate(sampleRate?: number): number {
     : ELEVENLABS_PCM_SAMPLE_RATE
 }
 
-function buildAzureOutputFormat(
+export function buildAzureOutputFormat(
   format: string,
   sampleRate?: number,
   bitRate?: string

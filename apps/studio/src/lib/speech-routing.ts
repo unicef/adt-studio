@@ -60,6 +60,44 @@ export function resolveSpeechProviderForLanguage(
   return defaultProvider
 }
 
+/** Providers configured for the requested book languages. Availability allows
+ * entering a run when any configured narrator is available; the server still
+ * validates credentials for the actual selected work. */
+export function speechProvidersForLanguages(languages: string[], speechConfig: unknown): string[] {
+  const providers = new Set(languages.map(language => resolveSpeechProviderForLanguage(language, speechConfig)))
+  const activeLanguages = new Set(languages.map(language => normalizeLocale(language).toLowerCase()))
+  const secondary = speechConfig && typeof speechConfig === "object"
+    ? (speechConfig as Record<string, unknown>).secondary_voices : undefined
+  if (secondary && typeof secondary === "object") {
+    for (const [language, value] of Object.entries(secondary)) {
+      if (!activeLanguages.has(normalizeLocale(language).toLowerCase()) || !value || typeof value !== "object") continue
+      const voice = value as Record<string, unknown>
+      if (typeof voice.provider === "string" && typeof voice.voice === "string" && voice.voice.trim()) providers.add(voice.provider)
+    }
+  }
+  return [...providers]
+}
+
+/** Speech providers a book's run narrates with: its editing language (the
+ * configured one, else the book's own, else English) plus every output
+ * language, routed through `speechProvidersForLanguages`. The one rule for
+ * "can this book synthesize" — callers check any of them is available. */
+export function bookSpeechProviders(
+  mergedConfig: Record<string, unknown> | undefined,
+  bookLanguage: string | null | undefined,
+): string[] {
+  const outputs = Array.isArray(mergedConfig?.output_languages)
+    ? mergedConfig.output_languages.filter((code): code is string => typeof code === "string")
+    : []
+  const editingLanguage = typeof mergedConfig?.editing_language === "string"
+    ? mergedConfig.editing_language
+    : bookLanguage ?? "en"
+  return speechProvidersForLanguages(
+    [editingLanguage, ...new Set(outputs.map((code) => normalizeLocale(code)))],
+    mergedConfig?.speech,
+  )
+}
+
 export function languageUsesSpeechProvider(
   languageCode: string,
   providerName: string,
