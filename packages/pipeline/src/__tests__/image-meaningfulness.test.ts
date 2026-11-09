@@ -889,11 +889,14 @@ describe("image_meaningfulness prompt", () => {
   const png =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
 
-  async function systemText(mode: "off" | "all" | "auto"): Promise<string> {
+  async function systemText(
+    mode: "off" | "all" | "auto",
+    pageText = "Selectable page text.",
+  ): Promise<string> {
     const engine = createPromptEngine(path.join(process.cwd(), "prompts"))
     const messages: Message[] = await engine.renderPrompt("image_meaningfulness", {
       page_image_base64: png,
-      page_text: "",
+      page_text: pageText,
       figure_extraction_mode: mode,
       images: [{ imageId: "pg001_im001", imageBase64: png, width: 40, height: 40 }],
     })
@@ -926,6 +929,34 @@ describe("image_meaningfulness prompt", () => {
       expect(text).toContain(
         "An image that combines a section-marker icon with heading text, body text, or a box, banner, or panel is not meaningful because of the icon: judge it as if the icon were absent.",
       )
+      // Live runs showed the model keeping the crop as "the only available
+      // representation" of the icon when no standalone copy was supplied.
+      expect(text).toContain(
+        "This applies even when that image is the only supplied copy of the icon: losing the icon is acceptable, but freezing heading or body text into an image is not.",
+      )
+      // ...but the model then generalized "don't freeze text" to picture labels and
+      // hid the only copy of an illustrated alphabet's picture cards.
+      expect(text).toContain(
+        "A word or label that belongs to a picture, such as the word printed under each picture of a vocabulary card, is part of that figure, not heading or body text.",
+      )
+    },
+  )
+
+  const NO_TEXT_NOTICE =
+    "This page has no selectable PDF text, so any text it shows exists only inside the supplied images."
+
+  it.each(["off", "all", "auto"] as const)(
+    "lets text crops be kept on a page with no selectable text in %s mode",
+    async (mode) => {
+      // A book whose text is drawn as vector outlines (no selectable text at all)
+      // only has its text inside the grouped crops; hiding them deletes the text.
+      const empty = await systemText(mode, "")
+      expect(empty).toContain(NO_TEXT_NOTICE)
+      expect(empty).toContain(
+        "Do not hide an image because it contains heading or body text: on this page that would remove the text from the book.",
+      )
+      expect(await systemText(mode, "  \n ")).toContain(NO_TEXT_NOTICE)
+      expect(await systemText(mode)).not.toContain(NO_TEXT_NOTICE)
     },
   )
 
