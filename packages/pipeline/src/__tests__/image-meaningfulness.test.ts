@@ -910,7 +910,33 @@ describe("image_meaningfulness prompt", () => {
       expect(text).toContain("Section-marker icons are meaningful.")
       expect(text).toContain("keep them even when they are small or appear on many pages")
       expect(text).toContain("empty boxes, tabs, banners, and panels behind a heading or callout are layout")
-      expect(text).toContain("Logos, publisher or series marks, and running header/footer decorations are not section markers.")
+      expect(text).toContain(
+        "Logos, publisher or series marks, art beside the page number, and running header or footer art that repeats beside the same text on every page are not section markers.",
+      )
+    },
+  )
+
+  it.each(["off", "all", "auto"] as const)(
+    "does not keep a heading or callout crop because it contains a marker icon in %s mode (#1038 review)",
+    async (mode) => {
+      const text = await systemText(mode)
+      // In off/all mode a header banner crop that includes the icon is judged on its
+      // own; without this rule the model keeps it "because of the icon", freezing
+      // heading and question text into an image.
+      expect(text).toContain(
+        "An image that combines a section-marker icon with heading text, body text, or a box, banner, or panel is not meaningful because of the icon: judge it as if the icon were absent.",
+      )
+    },
+  )
+
+  it.each(["off", "all", "auto"] as const)(
+    "treats a section-banner mascot as heading art, not page furniture, in %s mode",
+    async (mode) => {
+      const text = await systemText(mode)
+      expect(text).toContain(
+        "A recurring mascot or character drawn in a section-title banner is heading art, not page furniture: keep the character as its own image, but not the banner around it.",
+      )
+      expect(text).not.toContain("running header/footer decorations")
     },
   )
 
