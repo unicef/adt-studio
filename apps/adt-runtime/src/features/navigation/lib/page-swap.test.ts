@@ -97,7 +97,12 @@ function setLocation(href: string): void {
 function stubViewTransition(...finished: Promise<void>[]): ReturnType<typeof vi.fn> {
   const startViewTransition = vi.fn((cb: () => void) => {
     const done = Promise.resolve().then(cb)
-    return { updateCallbackDone: done, ready: done, finished: finished.shift() ?? done }
+    return {
+      updateCallbackDone: done,
+      ready: done,
+      finished: finished.shift() ?? done,
+      skipTransition: vi.fn(),
+    }
   })
   Object.defineProperty(document, "startViewTransition", {
     configurable: true,
@@ -595,6 +600,78 @@ describe("swapToPage crossfade", () => {
         await flush()
       }
       expect(pressIsCancelled()).toBe(false)
+    })
+
+    describe("forwarding the press to the control under the pointer", () => {
+      function nextButtonUnderPointer() {
+        const button = document.createElement("button")
+        const onClick = vi.fn()
+        button.addEventListener("click", onClick)
+        document.body.append(button)
+        Object.defineProperty(document, "elementFromPoint", {
+          configurable: true,
+          value: vi.fn(() => button),
+        })
+        return { button, onClick }
+      }
+      function pressRoot(button = 0): void {
+        document.documentElement.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, cancelable: true, button }),
+        )
+      }
+
+      afterEach(() => {
+        Reflect.deleteProperty(document, "elementFromPoint")
+      })
+
+      it("skips the animation and clicks the control", async () => {
+        const turn = animation()
+        const startViewTransition = stubViewTransition(turn.finished)
+        const { button, onClick } = nextButtonUnderPointer()
+        mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+        try {
+          expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("ok")
+          pressRoot()
+          expect(startViewTransition.mock.results[0].value.skipTransition).toHaveBeenCalledTimes(1)
+          expect(onClick).toHaveBeenCalledTimes(1)
+        } finally {
+          button.remove()
+          turn.resolve()
+          await flush()
+        }
+      })
+
+      it("ignores presses from other mouse buttons", async () => {
+        const turn = animation()
+        stubViewTransition(turn.finished)
+        const { button, onClick } = nextButtonUnderPointer()
+        mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+        try {
+          expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("ok")
+          pressRoot(1)
+          expect(onClick).not.toHaveBeenCalled()
+        } finally {
+          button.remove()
+          turn.resolve()
+          await flush()
+        }
+      })
+
+      it("stops forwarding once the animation finishes", async () => {
+        const turn = animation()
+        stubViewTransition(turn.finished)
+        const { button, onClick } = nextButtonUnderPointer()
+        mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+        try {
+          expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("ok")
+        } finally {
+          turn.resolve()
+          await flush()
+        }
+        pressRoot()
+        button.remove()
+        expect(onClick).not.toHaveBeenCalled()
+      })
     })
 
     it("is never blocked when the page turn does not animate", async () => {

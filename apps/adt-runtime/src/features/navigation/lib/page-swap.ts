@@ -321,20 +321,38 @@ function prefersReducedMotion(): boolean {
  * does not change that hit-test.
  *
  * Cancelling the press drops its other defaults too (focus change, drag start,
- * middle-click autoscroll). That is harmless for the quarter-second the
- * animation runs, when no press can reach a control anyway, and it leaves focus
- * on `<main>`, where `moveReadingPosition` put it.
+ * middle-click autoscroll), and it leaves focus on `<main>`, where
+ * `moveReadingPosition` put it.
+ *
+ * The press is not lost: skipping the transition restores normal hit-testing
+ * synchronously, so the control under the pointer is looked up and activated,
+ * which lets a reader turn pages as fast as they can click.
  *
  * Each transition holds its own listener, so a skipped transition settling
  * early does not release the one that replaced it.
  */
-function preventRootSelectionUntil(done: Promise<unknown>): void {
-  const preventRootSelection = (event: MouseEvent) => {
-    if (event.target === document.documentElement) event.preventDefault()
+function forwardRootPressesDuring(transition: PageTurnTransition): void {
+  const forwardRootPress = (event: MouseEvent) => {
+    if (event.target !== document.documentElement) return
+    event.preventDefault()
+    if (event.button !== 0) return
+    transition.skipTransition()
+    document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>(PRESSABLE_SELECTOR)
+      ?.click()
   }
-  const release = () => document.removeEventListener("mousedown", preventRootSelection, true)
-  document.addEventListener("mousedown", preventRootSelection, true)
-  done.then(release, release)
+  const release = () => document.removeEventListener("mousedown", forwardRootPress, true)
+  document.addEventListener("mousedown", forwardRootPress, true)
+  transition.finished.then(release, release)
+}
+
+const PRESSABLE_SELECTOR = "button, a[href], [role='button']"
+
+interface PageTurnTransition {
+  updateCallbackDone: Promise<void>
+  finished: Promise<void>
+  skipTransition: () => void
 }
 
 let inFlight: AbortController | null = null
@@ -429,15 +447,12 @@ export async function swapToPage(
 
     const viewTransition = (
       document as Document & {
-        startViewTransition?: (cb: () => void) => {
-          updateCallbackDone: Promise<void>
-          finished: Promise<void>
-        }
+        startViewTransition?: (cb: () => void) => PageTurnTransition
       }
     ).startViewTransition
     if (viewTransition && !prefersReducedMotion()) {
       const transition = viewTransition.call(document, commit)
-      preventRootSelectionUntil(transition.finished)
+      forwardRootPressesDuring(transition)
       // `updateCallbackDone`, not `finished`: this waits for `commit` itself
       // rather than the animation that follows it. A throw inside `commit`
       // rejects this promise, which reaches the catch below and lets the
