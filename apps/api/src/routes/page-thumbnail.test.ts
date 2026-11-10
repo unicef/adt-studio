@@ -158,3 +158,23 @@ describe("GET /api/books/:label/pages/:pageId/thumbnail", () => {
     expect((await app.request(`/api/books/missing-book/pages/${pageId}/thumbnail`)).status).toBe(404)
   })
 })
+
+describe("GET /books/:label/images/:imageId/thumbnail", () => {
+  it("returns a sized JPEG for any stored image and honours If-None-Match", async () => {
+    const { createBookRoutes } = await import("./books.js")
+    const books = createBookRoutes(tmpDir)
+    const res = await books.request(`/books/${label}/images/${pageId}_page/thumbnail?width=120`)
+    expect(res.status).toBe(200)
+    expect(res.headers.get("Content-Type")).toBe("image/jpeg")
+    expect(jpegSize(Buffer.from(await res.arrayBuffer())).width).toBe(150)
+    const again = await books.request(`/books/${label}/images/${pageId}_page/thumbnail?width=120`, { headers: { "If-None-Match": res.headers.get("ETag") ?? "" } })
+    expect(again.status).toBe(304)
+  })
+
+  it("rejects bad ids and returns 404 for unknown images", async () => {
+    const { createBookRoutes } = await import("./books.js")
+    const books = createBookRoutes(tmpDir)
+    expect((await books.request(`/books/${label}/images/..%2Fx/thumbnail`)).status).toBe(400)
+    expect((await books.request(`/books/${label}/images/${label}_nope/thumbnail`)).status).toBe(404)
+  })
+})

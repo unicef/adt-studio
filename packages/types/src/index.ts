@@ -211,6 +211,16 @@ export {
 export {
   imageMeaningfulnessLLMSchema,
 } from "./image-meaningfulness.js"
+export {
+  LEFT_OUT_CATEGORIES,
+  LeftOutCategory,
+  SecondOpinionVerdict,
+  SecondOpinionConfidence,
+  imageSecondOpinionLLMSchema,
+  SecondOpinionRequest,
+  SecondOpinionResult,
+  SecondOpinionResponse,
+} from "./image-second-opinion.js"
 
 export {
   ImageCropResult,

@@ -153,6 +153,32 @@ describe("Page routes", () => {
       expect(body[1]).toMatchObject({ hasCaptioning: false, captionCount: 0, decorativeCount: 0, uncaptionedCount: 0 })
     })
 
+    it("splits the current image filtering into kept, filtered and page-element counts", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("image-filtering", `${label}_p1`, {
+          images: [{ imageId: "old", isPruned: true, reason: "auto figure filter: stale" }],
+        })
+        storage.putNodeData("image-filtering", `${label}_p1`, {
+          images: [
+            { imageId: `${label}_p1_page`, isPruned: true, reason: "full-page render" },
+            { imageId: "a", isPruned: false },
+            { imageId: "b", isPruned: false, reason: "auto guard kept: large photo" },
+            { imageId: "c", isPruned: true, reason: "auto figure filter: a simple two-column table" },
+            { imageId: "d", isPruned: true, reason: "shortest side 13px < min_side 150px" },
+            { imageId: "e", isPruned: true, reason: "manual" },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+      const res = await app.request(`/api/books/${label}/pages`)
+      const body = await res.json()
+      expect(body[0]).toMatchObject({ imageCount: 5, keptImageCount: 2, filteredImageCount: 3, htmlImageCount: 1 })
+      expect(body[1].imageCount).toBe(0)
+      expect(body[1].keptImageCount).toBeUndefined()
+    })
+
     it("returns 404 for nonexistent book", async () => {
       const res = await app.request("/api/books/no-such-book/pages")
       expect(res.status).toBe(404)

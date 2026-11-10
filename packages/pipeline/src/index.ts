@@ -45,6 +45,18 @@ export {
   type MeaningfulnessPageInput,
 } from "./image-meaningfulness.js"
 export {
+  answerLanguageName,
+  buildSecondOpinionConfig,
+  describeLeftOutRule,
+  describePosition,
+  describeRepeats,
+  SECOND_OPINION_PROMPT_VERSION,
+  secondOpinionForPage,
+  type SecondOpinionConfig,
+  type SecondOpinionImageInput,
+  type SecondOpinionPageInput,
+} from "./image-second-opinion.js"
+export {
   cropPageImages,
   applyCrops,
   applyCrop,

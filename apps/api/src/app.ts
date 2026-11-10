@@ -17,6 +17,7 @@ import { createPromptRoutes } from "./routes/prompts.js"
 import { createTextCatalogRoutes } from "./routes/text-catalog.js"
 import { createEasyReadRoutes } from "./routes/easy-read.js"
 import { createBookSummaryRoutes } from "./routes/book-summary.js"
+import { createLeftOutReviewRoutes } from "./routes/left-out-review.js"
 import { createBookOutlineRoutes } from "./routes/book-outline.js"
 import { createFontRoutes } from "./routes/fonts.js"
 import { createTypographyRoutes } from "./routes/typography.js"
@@ -100,6 +101,7 @@ app.route("/api", healthRoutes)
 app.route("/api", createProviderRoutes(configPath))
 app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath, taskService))
 app.route("/api", createPageRoutes(booksDir, promptsDir, webAssetsDir, configPath, taskService))
+app.route("/api", createLeftOutReviewRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createGlossaryRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createTocRoutes(booksDir))
 app.route("/api", createDebugRoutes(booksDir, promptsDir, configPath))

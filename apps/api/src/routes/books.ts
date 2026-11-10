@@ -20,6 +20,7 @@ import {
 import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
 import { renderSourcePdfThumbnail, sourcePdfThumbnailTag } from "../services/source-pdf-thumbnails.js"
+import { pageImageThumbnailTag, renderPageImageThumbnail } from "../services/page-image-thumbnails.js"
 import { normalizeLocale, getBaseLanguage } from "@adt/pipeline"
 import {
   listBooks,
@@ -69,6 +70,17 @@ function assertModelSupported(
     throw error
   }
 }
+
+const ImageThumbnailQuery = z.object({
+  imageId: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
+  width: z.coerce
+    .number()
+    .int()
+    .min(64)
+    .max(1600)
+    .default(300)
+    .transform((width) => Math.ceil(width / 50) * 50),
+})
 
 const SourcePdfThumbnailQuery = z.object({
   page: z.coerce.number().int().min(1),
@@ -901,6 +913,57 @@ export function createBookRoutes(
   })
 
   // GET /books/:label/images/:imageId — Serve extracted image binary
+  // GET /books/:label/images/:imageId/thumbnail?width= — An extracted image as
+  // a JPEG no wider than `width`, for image walls and lists.
+  app.get("/books/:label/images/:imageId/thumbnail", (c) => {
+    let safeLabel: string
+    try {
+      safeLabel = parseBookLabel(c.req.param("label"))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new HTTPException(400, { message })
+    }
+    const parsed = ImageThumbnailQuery.safeParse({ imageId: c.req.param("imageId"), width: c.req.query("width") })
+    if (!parsed.success) {
+      throw new HTTPException(400, { message: "Invalid image or width" })
+    }
+    const { imageId, width } = parsed.data
+    const bookDir = path.join(path.resolve(booksDir), safeLabel)
+    const dbPath = path.join(bookDir, `${safeLabel}.db`)
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+    const db = openBookDb(dbPath)
+    let row: { path: string; hash: string } | undefined
+    try {
+      row = (db.all("SELECT path, hash FROM images WHERE image_id = ?", [imageId]) as Array<{ path: string; hash: string }>)[0]
+    } finally {
+      db.close()
+    }
+    if (!row) {
+      throw new HTTPException(404, { message: `Image not found: ${imageId}` })
+    }
+    const imagePath = path.resolve(bookDir, row.path)
+    if (!imagePath.startsWith(bookDir + path.sep) || !fs.existsSync(imagePath)) {
+      throw new HTTPException(404, { message: `Image not found: ${imageId}` })
+    }
+    const tag = pageImageThumbnailTag(imagePath, row.hash, width)
+    c.header("ETag", tag.etag)
+    c.header("Cache-Control", "private, max-age=3600")
+    const ifNoneMatch = c.req.header("If-None-Match")
+    if (ifNoneMatch && ifNoneMatch.split(",").some((value) => value.trim().replace(/^W\//, "") === tag.etag)) {
+      return c.body(null, 304)
+    }
+    try {
+      const { jpeg } = renderPageImageThumbnail(imagePath, width, tag)
+      c.header("Content-Type", "image/jpeg")
+      return c.body(new Uint8Array(jpeg))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new HTTPException(500, { message: `Failed to render image thumbnail: ${message}` })
+    }
+  })
+
   app.get("/books/:label/images/:imageId", (c) => {
     const { label, imageId } = c.req.param()
     let safeLabel: string

@@ -104,6 +104,27 @@ function getSharedScreenshotRenderer(): Promise<ScreenshotRenderer> {
   return sharedScreenshotRendererPromise
 }
 
+interface FilteringCounts {
+  keptImageCount: number
+  filteredImageCount: number
+  htmlImageCount: number
+}
+
+export function countFiltering(images: unknown, pageImageId: string): FilteringCounts {
+  const counts: FilteringCounts = { keptImageCount: 0, filteredImageCount: 0, htmlImageCount: 0 }
+  if (!Array.isArray(images)) return counts
+  for (const entry of images as Array<{ imageId?: unknown; isPruned?: unknown; reason?: unknown }>) {
+    if (!entry || entry.imageId === pageImageId) continue
+    if (!entry.isPruned) {
+      counts.keptImageCount++
+      continue
+    }
+    counts.filteredImageCount++
+    if (typeof entry.reason === "string" && /^auto figure filter\b/i.test(entry.reason.trim())) counts.htmlImageCount++
+  }
+  return counts
+}
+
 interface PageSummarySection {
   sectionId: string
   sectionIndex: number
@@ -120,6 +141,9 @@ interface PageSummary {
   hasCaptioning: boolean
   textPreview: string
   imageCount: number
+  keptImageCount?: number
+  filteredImageCount?: number
+  htmlImageCount?: number
   captionCount: number
   decorativeCount: number
   uncaptionedCount: number
@@ -977,6 +1001,7 @@ export function createPageRoutes(
 
       // Get image counts per page from image-filtering node data
       const imageCounts = new Map<string, number>()
+      const filteringCounts = new Map<string, FilteringCounts>()
       const imageRows = db.all(
         `SELECT nd.item_id AS item_id, nd.data AS data
          FROM node_data nd
@@ -993,6 +1018,7 @@ export function createPageRoutes(
             // Exclude page image from count
             const count = images.filter((img) => img.imageId !== `${row.item_id}_page`).length
             imageCounts.set(row.item_id, count)
+            filteringCounts.set(row.item_id, countFiltering(parsed.images, `${row.item_id}_page`))
           } catch {
             imageCounts.set(row.item_id, 0)
           }
@@ -1098,6 +1124,7 @@ export function createPageRoutes(
         hasCaptioning: captioned.has(p.page_id),
         textPreview: structuredText.get(p.page_id) ?? p.text.slice(0, 150),
         imageCount: imageCounts.get(p.page_id) ?? 0,
+        ...filteringCounts.get(p.page_id),
         ...(captionCounts.get(p.page_id) ?? NO_CAPTIONS),
         wordCount: p.text.trim() ? p.text.trim().split(/\s+/).length : 0,
         sectionCount: sectionCounts.get(p.page_id) ?? 0,
