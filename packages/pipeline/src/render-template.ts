@@ -17,6 +17,86 @@ function subtreeHasImage(node: RenderNode): boolean {
   return false
 }
 
+/** Heading level of the tag `_render_node.liquid` emits for a `heading` container led by this child. */
+const TEMPLATE_ROLE_LEVELS: Record<string, number> = {
+  chapter_title: 1,
+  section_heading: 2,
+  subheading: 3,
+}
+/** The template's tag when the leading child has no level of its own. */
+const FALLBACK_HEADING_LEVEL = 2
+
+/**
+ * Level a child would need in a heading container, mirroring the template's
+ * own role → tag rule; `null` for a child that is not a heading.
+ */
+function headingChildLevel(node: RenderNode): number | null {
+  if (node.role && Object.hasOwn(TEMPLATE_ROLE_LEVELS, node.role)) {
+    return TEMPLATE_ROLE_LEVELS[node.role]
+  }
+  if (node.heading_level !== undefined) return node.heading_level
+  if (node.role === "heading") return FALLBACK_HEADING_LEVEL
+  return null
+}
+
+/**
+ * Split each `heading` container whose single tag cannot fit all of its
+ * heading children (#812).
+ *
+ * The template renders a heading container as one `<hN>`, with N taken from
+ * its first child, and every child inline in it. A title plus a subtitle
+ * (or a unit title plus a lesson title) then puts the second heading inside
+ * the wrong level, and the typography validator fails the page.
+ *
+ * Only such containers are split: consecutive children of the same level stay
+ * together in one container (one tag), and a child that is not a heading is
+ * lifted out to render as its own block. Containers that render correctly
+ * today are returned unchanged. Leaf ids, text and order are preserved.
+ */
+export function splitMixedHeadingContainers(nodes: RenderNode[]): RenderNode[] {
+  return nodes.flatMap(splitNode)
+}
+
+function splitNode(node: RenderNode): RenderNode[] {
+  if (!node.children) return [node]
+  const children = splitMixedHeadingContainers(node.children)
+  if (node.structure !== "heading" || children.length === 0) {
+    return [{ ...node, children }]
+  }
+
+  const tagLevel = headingChildLevel(children[0]) ?? FALLBACK_HEADING_LEVEL
+  const fits = children.every((child) => {
+    const level = headingChildLevel(child)
+    return level === null || level === tagLevel
+  })
+  if (fits) return [{ ...node, children }]
+
+  const out: RenderNode[] = []
+  let part = 0
+  let run: RenderNode[] = []
+  let runLevel: number | null = null
+  const flush = () => {
+    if (run.length === 0) return
+    part += 1
+    out.push({ ...node, node_id: `${node.node_id}_part${part}`, children: run })
+    run = []
+    runLevel = null
+  }
+  for (const child of children) {
+    const level = headingChildLevel(child)
+    if (level === null) {
+      flush()
+      out.push(child)
+      continue
+    }
+    if (level !== runLevel) flush()
+    run.push(child)
+    runLevel = level
+  }
+  flush()
+  return out
+}
+
 /**
  * Partition top-level nodes into image-bearing vs text-only lists for
  * two-column layouts. A mixed `image_group` (image leaf + non-image
@@ -87,7 +167,8 @@ export async function renderSectionTemplate(
   const imageUrlPrefix = `/api/books/${input.label}/images`
   const { section, context: renderContext } = input
 
-  const { image_nodes, text_nodes } = partitionNodes(renderContext.nodes)
+  const nodes = splitMixedHeadingContainers(renderContext.nodes)
+  const { image_nodes, text_nodes } = partitionNodes(nodes)
 
   const templateContext: Record<string, unknown> = {
     section_id: section.sectionId,
@@ -96,7 +177,7 @@ export async function renderSectionTemplate(
     text_color: section.textColor,
     label: input.label,
     image_url_prefix: imageUrlPrefix,
-    nodes: renderContext.nodes,
+    nodes,
     image_nodes,
     text_nodes,
     leaf_texts: renderContext.leaf_texts,

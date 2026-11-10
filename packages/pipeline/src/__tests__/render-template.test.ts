@@ -374,25 +374,72 @@ describe("two_column_render.liquid", () => {
     )
   })
 
-  it("renders mixed-role heading-container children with their own semantic levels", async () => {
-    const engine = createTemplateEngine(templatesDir)
-    const input = makeInput({
-      nodes: [
-        groupNode("pg001_heading001", "heading", [
-          leafNode("pg001_title001", "chapter_title", "Book title"),
-          leafNode("pg001_subtitle001", "subheading", "Book subtitle"),
-        ]),
-      ],
-    })
-    const config = { ...templateConfig, templateName: "two_column_render" }
-    const result = await renderSectionTemplate(input, config, engine)
+  describe("heading containers", () => {
+    const render = async (children: ContentNodeData[], templateName = "two_column_render") => {
+      const engine = createTemplateEngine(templatesDir)
+      const input = makeInput({ nodes: [groupNode("pg001_hd001", "heading", children)] })
+      const result = await renderSectionTemplate(input, { ...templateConfig, templateName }, engine)
+      return result.html
+    }
 
-    expect(result.html).toContain(
-      '<h1 class="adt-h1" data-id="pg001_title001">Book title</h1>',
-    )
-    expect(result.html).toContain(
-      '<h3 class="adt-h3" data-id="pg001_subtitle001">Book subtitle</h3>',
-    )
+    it("splits a title and subtitle into their own heading levels (#812)", async () => {
+      for (const templateName of ["one_column_render", "two_column_render", "two_column_story"]) {
+        const html = await render(
+          [
+            leafNode("pg001_tx001", "chapter_title", "Book title"),
+            leafNode("pg001_tx002", "subheading", "Book subtitle"),
+          ],
+          templateName,
+        )
+        expect(html).toContain('<h1 class="adt-h1"><span data-id="pg001_tx001">Book title</span></h1>')
+        expect(html).toContain('<h3 class="adt-h3"><span data-id="pg001_tx002">Book subtitle</span></h3>')
+      }
+    })
+
+    it("keeps consecutive same-level lines in one heading and splits where the level changes", async () => {
+      const html = await render([
+        leafNode("pg001_tx001", "chapter_title", "Unit 3"),
+        leafNode("pg001_tx002", "chapter_title", "Our planet"),
+        leafNode("pg001_tx003", "section_heading", "Lesson 1"),
+      ])
+      expect(html).toContain(
+        '<h1 class="adt-h1"><span data-id="pg001_tx001">Unit 3</span> <span data-id="pg001_tx002">Our planet</span></h1>',
+      )
+      expect(html).toContain('<h2 class="adt-h2"><span data-id="pg001_tx003">Lesson 1</span></h2>')
+    })
+
+    it("renders a plain leaf in a split container as a paragraph", async () => {
+      const html = await render([
+        leafNode("pg001_tx001", "text", "Grade 4"),
+        leafNode("pg001_tx002", "chapter_title", "Society and Environment"),
+      ])
+      expect(html).toContain('<p data-id="pg001_tx001">Grade 4</p>')
+      expect(html).toContain('<h1 class="adt-h1"><span data-id="pg001_tx002">Society and Environment</span></h1>')
+    })
+
+    it("leaves containers the template already renders correctly unchanged", async () => {
+      // Same role on every line: one heading holding all lines.
+      expect(
+        await render([
+          leafNode("pg001_tx001", "chapter_title", "Line one"),
+          leafNode("pg001_tx002", "chapter_title", "Line two"),
+        ]),
+      ).toContain('<h1 class="adt-h1"><span data-id="pg001_tx001">Line one</span> <span data-id="pg001_tx002">Line two</span></h1>')
+      // No heading child: the <h2> fallback.
+      expect(
+        await render([
+          leafNode("pg001_tx001", "text", "First"),
+          leafNode("pg001_tx002", "text", "Second"),
+        ]),
+      ).toContain('<h2 class="adt-h2"><span data-id="pg001_tx001">First</span> <span data-id="pg001_tx002">Second</span></h2>')
+      // A plain leaf before an h2-level heading already validates inside the fallback <h2>.
+      expect(
+        await render([
+          leafNode("pg001_tx001", "text", "Unit 1"),
+          leafNode("pg001_tx002", "section_heading", "Lesson 1"),
+        ]),
+      ).toContain('<h2 class="adt-h2"><span data-id="pg001_tx001">Unit 1</span> <span data-id="pg001_tx002">Lesson 1</span></h2>')
+    })
   })
 
   it("routes a non-image_group container holding an image leaf into the image column", async () => {
