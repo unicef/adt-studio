@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { useQueryClient } from "@tanstack/react-query"
 import {
   CheckCircle2,
   AlertCircle,
@@ -27,7 +28,7 @@ import type {
   ProviderHealthCode,
   ProviderHealthResponse,
 } from "@adt/types"
-import { useProviderHealth } from "@/hooks/use-provider-health"
+import { recheckSavedKeys, useProviderHealth } from "@/hooks/use-provider-health"
 import { PROVIDER_CARDS } from "./data"
 import { PROVIDER_BRAND } from "./providerLogos"
 import { authKind, requiredFieldsFilled, type Providers } from "./useProviders"
@@ -178,7 +179,8 @@ export interface Draft {
   errors: Map<string, string>
   /** Per field: whose key a shared field is using, or who else reads this one. */
   sharedNotes: Map<string, string>
-  save: () => void
+  /** Saves, then waits for the live check so the toast reports the real result. */
+  save: () => Promise<void>
   remove: () => void
 }
 
@@ -241,8 +243,9 @@ function useFieldErrors(
   }, [descriptor, values, stored, t])
 }
 
-export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSaved?: () => void): Draft {
+export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draft {
   const { t } = useLingui()
+  const queryClient = useQueryClient()
   const id = descriptor.manifest.id
   const stored = useMemo(
     () =>
@@ -313,10 +316,18 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSav
     hasStored,
     errors,
     sharedNotes,
-    save: () => {
+    save: async () => {
       for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, (values[field.key] ?? "").trim())
-      toast.success(t`Provider credentials saved.`)
-      onSaved?.()
+      // Re-check with the key just saved, so a wrong key shows up here instead
+      // of on the first failed run. Every provider is re-checked, since a key
+      // can be shared (Gemini Speech reads the Google key).
+      const hasKey = descriptor.manifest.credentialFields.some(
+        (f) => f.kind === "secret" && (values[f.key] ?? "").trim(),
+      )
+      const rejected = await recheckSavedKeys(queryClient, hasKey ? [id] : [])
+      const name = descriptor.manifest.displayName
+      if (rejected.length > 0) toast.error(t`Saved, but ${name} rejected this API key. Check that you copied the whole key.`)
+      else toast.success(t`Provider credentials saved.`)
     },
     remove: () => {
       for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, "")
@@ -521,7 +532,7 @@ export function SaveRow({ draft }: { draft: Draft }) {
         size="sm"
         className="ml-auto"
         disabled={!draft.canSave}
-        onClick={draft.save}
+        onClick={() => void draft.save()}
       >
         <Trans>Save</Trans>
       </Button>

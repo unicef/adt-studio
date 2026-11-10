@@ -4,7 +4,6 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
 import type { ProviderDescriptor } from "@adt/types"
 import { cn } from "@/lib/utils"
-import { useQueryClient } from "@tanstack/react-query"
 import { useProviderHealth } from "@/hooks/use-provider-health"
 import { PROVIDER_CARDS } from "./data"
 import {
@@ -64,13 +63,7 @@ const EXPAND_MS = 300
 
 /** API-key (and local base-URL) backend: editable credential form + status. */
 function ApiKeyPanel({ descriptor, store, active, focusKey = false }: { descriptor: ProviderDescriptor; store: Providers; active: boolean; focusKey?: boolean }) {
-  const queryClient = useQueryClient()
-  // Re-check with the key just saved, so a wrong key shows up here instead of
-  // on the first failed run. Every provider, not just this one: a key can be
-  // shared (Gemini Speech reads the Google key), so its readers change too.
-  const draft = useDraft(descriptor, store, () => {
-    void queryClient.invalidateQueries({ queryKey: ["provider-health"] })
-  })
+  const draft = useDraft(descriptor, store)
   // Always the draft scope, even while untouched: switching scope on the first
   // keystroke would change the query key and probe a half-typed key.
   const health = useProviderHealth(descriptor.manifest.id, draft.values, active)

@@ -25,7 +25,6 @@ import { usePageTitle } from "@/hooks/use-page-title"
 import { useForceLightTheme } from "@/hooks/use-force-light-theme"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { MacOSTrafficLightSpacer } from "@/components/title-bar"
-import { BookApiKeyDialogProvider } from "@/components/settings/BookApiKeyDialogProvider"
 
 interface SectionNavContext {
   sectionIndex: number
@@ -50,12 +49,10 @@ function BookLayout() {
   useForceLightTheme()
 
   return (
-    <BookApiKeyDialogProvider>
-      <BookRunProvider value={bookRun}>
-        <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
-        <PageErrorDecisionDialog />
-      </BookRunProvider>
-    </BookApiKeyDialogProvider>
+    <BookRunProvider value={bookRun}>
+      <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
+      <PageErrorDecisionDialog />
+    </BookRunProvider>
   )
 }
 

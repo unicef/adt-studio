@@ -165,7 +165,7 @@ describe("useRejectedTextProvider", () => {
   })
 
   it("does not probe while the user types in a Settings form", async () => {
-    // The form's draft check, as ApiKeyPanel/ProviderConnectionStatus use it:
+    // The form's draft check, as ApiKeyPanel uses it:
     // the first value is the saved key, then the user clears and types.
     const { rerender } = renderHook(
       ({ apiKey }: { apiKey: string }) => useProviderHealth("openai", { apiKey }, true),

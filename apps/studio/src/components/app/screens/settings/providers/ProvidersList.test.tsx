@@ -90,9 +90,14 @@ const invalidateQueries = vi.fn()
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries }),
 }))
-vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn() } }))
+const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
+vi.mock("@/components/ui/sonner", () => ({ toast }))
+/** The providers whose saved key the post-save check reports as refused. */
+let rejectedAfterSave: string[] = []
+const recheckSavedKeys = vi.fn(async () => rejectedAfterSave)
 vi.mock("@/hooks/use-provider-health", () => ({
   providerHealthKey: (providerId: string) => ["provider-health", providerId],
+  recheckSavedKeys: (...args: unknown[]) => recheckSavedKeys(...(args as [])),
   useProviderHealth: (providerId: string, _draft: unknown, enabled: boolean) => ({
     data: enabled ? { ...health, providerId } : undefined,
     isFetching: false,
@@ -150,6 +155,10 @@ afterEach(() => {
   location = { hash: "", search: {} }
   setCredential.mockClear()
   invalidateQueries.mockClear()
+  recheckSavedKeys.mockClear()
+  toast.success.mockClear()
+  toast.error.mockClear()
+  rejectedAfterSave = []
   health = { providerId: "openai", ok: true, code: "ok", modelCount: 3 }
   credentials = {}
   ownCredentials = {}
@@ -299,8 +308,22 @@ describe("ProvidersList — live manifests", () => {
     fireEvent.change(input, { target: { value: "sk-live" } })
     fireEvent.click(within(panel).getByRole("button", { name: "Save" }))
 
-    // Every provider: a saved key can be shared with another provider (Gemini ← Google).
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["provider-health"] })
+    expect(recheckSavedKeys).toHaveBeenCalledWith(expect.anything(), ["openai"])
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Provider credentials saved."))
+  })
+
+  it("reports a refused key after saving instead of a plain success", async () => {
+    rejectedAfterSave = ["openai"]
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    fireEvent.change(input, { target: { value: "sk-wrong" } })
+    fireEvent.click(within(panel).getByRole("button", { name: "Save" }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1))
+    expect(toast.error.mock.calls[0][0]).toContain("OpenAI rejected this API key")
+    expect(toast.success).not.toHaveBeenCalled()
   })
 
   it("shows a saved key the provider refused as rejected on its card, not as connected", () => {

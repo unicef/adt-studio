@@ -159,8 +159,8 @@ msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {comentario} other {comentarios}}"
 
 #. placeholder {0}: health.modelCount
-msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-msgstr "{0, plural, one {Conectado correctamente: # modelo disponible.} other {Conectado correctamente: # modelos disponibles.}}"
+#~ msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
+#~ msgstr "{0, plural, one {Conectado correctamente: # modelo disponible.} other {Conectado correctamente: # modelos disponibles.}}"
 
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
@@ -1632,8 +1632,8 @@ msgstr "Superposición por IA"
 msgid "AI provider connected. Your book can be processed now."
 msgstr "Proveedor de IA conectado. Ya se puede procesar tu libro."
 
-msgid "AI provider credentials"
-msgstr "Credenciales de proveedores de IA"
+#~ msgid "AI provider credentials"
+#~ msgstr "Credenciales de proveedores de IA"
 
 msgid "AI providers"
 msgstr "Proveedores de IA"
@@ -3099,8 +3099,8 @@ msgstr "Configura las características a incluir en la exportación"
 #~ msgid "Configure provider credentials used by AI pipeline features on this machine."
 #~ msgstr "Configura las credenciales de los proveedores utilizadas por las funciones del pipeline de IA en este equipo."
 
-msgid "Configure the credentials used by AI features on this device."
-msgstr "Configura las credenciales que usan las funciones de IA en este dispositivo."
+#~ msgid "Configure the credentials used by AI features on this device."
+#~ msgstr "Configura las credenciales que usan las funciones de IA en este dispositivo."
 
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configura las credenciales de los proveedores usadas cuando ADT Studio ejecuta pasos de la pipeline de IA en esta máquina."
@@ -3108,8 +3108,8 @@ msgstr "Configura las credenciales de los proveedores usadas cuando ADT Studio e
 msgid "Configure voices and accents"
 msgstr "Configurar voces y acentos"
 
-msgid "Configured on server"
-msgstr "Configurado en el servidor"
+#~ msgid "Configured on server"
+#~ msgstr "Configurado en el servidor"
 
 msgid "Confirm merge"
 msgstr "Confirmar fusión"
@@ -3397,8 +3397,8 @@ msgstr "No se pudo cargar el contenido guardado."
 msgid "Could not load saved content. Retry"
 msgstr "No se pudo cargar el contenido guardado. Reintentar"
 
-msgid "Could not load the AI provider catalogue."
-msgstr "No se pudo cargar el catálogo de proveedores de IA."
+#~ msgid "Could not load the AI provider catalogue."
+#~ msgstr "No se pudo cargar el catálogo de proveedores de IA."
 
 msgid "Could not load the book outline."
 msgstr "No se pudo cargar el esquema del libro."
@@ -6144,8 +6144,8 @@ msgstr "Teclado y navegación"
 msgid "Keyboard shortcuts"
 msgstr "Atajos de teclado"
 
-msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-msgstr "Las claves se almacenan localmente en este navegador o sesión de escritorio y solo se envían con solicitudes de ejecución."
+#~ msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
+#~ msgstr "Las claves se almacenan localmente en este navegador o sesión de escritorio y solo se envían con solicitudes de ejecución."
 
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "Las claves se guardan localmente en este dispositivo — nunca se envían a ningún otro lugar."
@@ -6445,8 +6445,8 @@ msgstr "Cargar los últimos valores guardados"
 msgid "Loading accessibility summary..."
 msgstr "Cargando resumen de accesibilidad..."
 
-msgid "Loading AI providers…"
-msgstr "Cargando proveedores de IA…"
+#~ msgid "Loading AI providers…"
+#~ msgstr "Cargando proveedores de IA…"
 
 msgid "Loading beta versions…"
 msgstr "Cargando versiones beta…"
@@ -7972,8 +7972,8 @@ msgstr "Abrir todos en el Storyboard"
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Abre un proyecto ADT que <0>ya existe</0> — una copia de seguridad, una parte de un libro, o uno exportado por otra persona. Nada se convierte. <1>.zip → añadido tal cual</1>"
 
-msgid "Open API key settings"
-msgstr "Abrir configuración de claves API"
+#~ msgid "Open API key settings"
+#~ msgstr "Abrir configuración de claves API"
 
 msgid "Open command palette"
 msgstr "Abrir paleta de comandos"
@@ -8915,8 +8915,8 @@ msgstr "El proveedor \"{providerId}\" no está registrado. Agrega sus claves de 
 #~ msgid "Provider coming soon"
 #~ msgstr "Proveedor próximamente"
 
-msgid "Provider credentials"
-msgstr "Credenciales del proveedor"
+#~ msgid "Provider credentials"
+#~ msgstr "Credenciales del proveedor"
 
 msgid "Provider credentials saved."
 msgstr "Credenciales de proveedores guardadas."
@@ -8930,8 +8930,8 @@ msgstr "Documentación del proveedor"
 msgid "providers api key credentials endpoint"
 msgstr "proveedores clave API credenciales punto final"
 
-msgid "Providers unavailable"
-msgstr "Proveedores no disponibles"
+#~ msgid "Providers unavailable"
+#~ msgstr "Proveedores no disponibles"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Proporciona patrones HTML/CSS consistentes para páginas generadas por LLM."
@@ -10191,6 +10191,9 @@ msgstr "Se conserva el contenido guardado. Revise los resultados que dependen de
 
 msgid "Saved content is unavailable; your draft is retained"
 msgstr "El contenido guardado no está disponible; tu borrador se conserva"
+
+msgid "Saved, but {name} rejected this API key. Check that you copied the whole key."
+msgstr "Se guardó, pero {name} rechazó esta clave de API. Comprueba que copiaste la clave completa."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Guardado. Vuelva a empaquetar la Vista previa para aplicar."
@@ -11681,8 +11684,8 @@ msgstr "Los términos fueron seleccionados por IA del libro. Edita una definici�
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Términos, nombres de personajes o frases que el juez debe preservar o preferir."
 
-msgid "Test connection"
-msgstr "Probar conexión"
+#~ msgid "Test connection"
+#~ msgstr "Probar conexión"
 
 msgid "Test notification"
 msgstr "Probar notificación"
@@ -11847,8 +11850,8 @@ msgstr "La comunidad de organismos vivos en un lugar y la forma en que interact�
 #~ msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 #~ msgstr "Las etapas completadas que se muestran abajo se restablecerán y deberán ejecutarse de nuevo para usar el nuevo idioma. Se conservan tus secciones de página."
 
-msgid "The connection check could not be completed."
-msgstr "No se pudo completar la comprobación de la conexión."
+#~ msgid "The connection check could not be completed."
+#~ msgstr "No se pudo completar la comprobación de la conexión."
 
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "La conexión con Cloudflare se cortó o tardó demasiado. Revisa tu conexión a internet y vuelve a intentarlo; lo que ya está configurado se conserva."
@@ -12400,8 +12403,8 @@ msgstr "Esta posición ya tiene un cuestionario. Añade otro justo después o re
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Este aviso instruye al LLM cómo evaluar el HTML renderizado contra la página original. La selección arriba controla qué plantilla se usa."
 
-msgid "This provider does not require local credentials."
-msgstr "Este proveedor no requiere credenciales locales."
+#~ msgid "This provider does not require local credentials."
+#~ msgstr "Este proveedor no requiere credenciales locales."
 
 msgid "This provider has no automatic connection check."
 msgstr "Este proveedor no tiene verificación automática de conexión."
