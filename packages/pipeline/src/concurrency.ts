@@ -32,7 +32,8 @@ export interface Semaphore {
  * (e.g. a single Chromium instance) independently of caller-level concurrency.
  */
 export function createSemaphore(limit: number): Semaphore {
-  const max = Math.max(1, Math.floor(limit))
+  // A NaN limit would make `active < max` always false and queue every run forever.
+  const max = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : 1
   const waiters: Array<{
     grant: () => void
     reject: (reason: Error) => void

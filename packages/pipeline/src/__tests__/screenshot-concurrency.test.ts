@@ -87,6 +87,8 @@ describe("createSemaphore", () => {
     expect(createSemaphore(0).limit).toBe(1)
     expect(createSemaphore(-5).limit).toBe(1)
     expect(createSemaphore(2.9).limit).toBe(2)
+    expect(createSemaphore(Number.NaN).limit).toBe(1)
+    expect(createSemaphore(Number.POSITIVE_INFINITY).limit).toBe(1)
   })
 })
 
