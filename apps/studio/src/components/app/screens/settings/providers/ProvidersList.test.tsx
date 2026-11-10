@@ -150,6 +150,7 @@ afterEach(() => {
   location = { hash: "", search: {} }
   setCredential.mockClear()
   invalidateQueries.mockClear()
+  health = { providerId: "openai", ok: true, code: "ok", modelCount: 3 }
   credentials = {}
   ownCredentials = {}
   cliLogin.status = null
@@ -300,6 +301,26 @@ describe("ProvidersList — live manifests", () => {
 
     // Every provider: a saved key can be shared with another provider (Gemini ← Google).
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["provider-health"] })
+  })
+
+  it("shows a saved key the provider refused as rejected on its card, not as connected", () => {
+    ownCredentials = { openai: { apiKey: "sk-wrong" } }
+    credentials = { openai: { apiKey: "sk-wrong" } }
+    health = { providerId: "openai", ok: false, code: "invalid-credential" }
+    render(<ProvidersList />)
+
+    const row = document.querySelector<HTMLElement>('[aria-controls="prov-panel-openai"][aria-expanded]')!
+    expect(within(row).getByText("Credentials rejected")).toBeTruthy()
+    expect(within(row).queryByText("Authenticated · API key")).toBeNull()
+  })
+
+  it("shows a saved key as authenticated once its check passes", () => {
+    ownCredentials = { openai: { apiKey: "sk-good" } }
+    credentials = { openai: { apiKey: "sk-good" } }
+    render(<ProvidersList />)
+
+    const row = document.querySelector<HTMLElement>('[aria-controls="prov-panel-openai"][aria-expanded]')!
+    expect(within(row).getByText("Authenticated · API key")).toBeTruthy()
   })
 
   it("blocks the save when a key does not match the provider's key shape", async () => {

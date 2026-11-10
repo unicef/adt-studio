@@ -579,9 +579,10 @@ interface CardHealth {
 }
 
 /**
- * Resolve a vendor card to a single connection status: prefer the configured API key (cheap
- * local badge, no probe); if the vendor has no key but a CLI/local backend, probe that so a
- * live login still reads "Connected". Backs both the rail dot and the auth line from one probe.
+ * Resolve a vendor card to a single connection status: the saved-key check when an API key
+ * is configured (so a rejected key never reads as connected), else a CLI/local backend's probe
+ * so a live login still reads "Connected". Backs both the rail dot and the auth line from one
+ * probe — the same saved-key entry the app-wide "key rejected" warnings read.
  */
 export function useCardHealth(cardKey: string, store: Providers): CardHealth {
   const card = PROVIDER_CARDS[cardKey]
@@ -596,6 +597,7 @@ export function useCardHealth(cardKey: string, store: Providers): CardHealth {
     enabled = store.isRegistered(card.localProviderId)
   } else if (apiConfigured) {
     fallbackConfigured = true
+    enabled = true
   } else if (card.cliProviderId && store.isRegistered(card.cliProviderId)) {
     probeId = card.cliProviderId
     enabled = true
@@ -603,8 +605,12 @@ export function useCardHealth(cardKey: string, store: Providers): CardHealth {
 
   // Saved keys: the card status shares the cache entry the app-wide warnings read.
   const health = useProviderHealth(probeId, undefined, enabled)
+  // A provider without a live check only reports that a key is set: keep the
+  // configured badge for it rather than a muted "not checked".
+  const uninformative =
+    fallbackConfigured && (health.data?.code === "configured" || health.data?.code === "unsupported")
   return {
-    data: enabled ? (health.data ?? null) : null,
+    data: enabled && !uninformative ? (health.data ?? null) : null,
     isFetching: enabled && health.isFetching,
     fallbackConfigured,
   }
@@ -626,10 +632,10 @@ export function HealthDotMark({ data, isFetching, fallbackConfigured }: CardHeal
 /** Pure auth-line text from a resolved CardHealth (no probe of its own). */
 export function AuthLineFromHealth({ data, isFetching, fallbackConfigured }: CardHealth) {
   if (isFetching) return <Trans>Checking connection…</Trans>
-  if (fallbackConfigured) return <Trans>Authenticated · API key</Trans>
-  if (!data) return <Trans>Not configured</Trans>
+  if (!data) return fallbackConfigured ? <Trans>Authenticated · API key</Trans> : <Trans>Not configured</Trans>
   switch (data.code) {
     case "ok":
+      if (fallbackConfigured) return <Trans>Authenticated · API key</Trans>
       return data.detail ? <Trans>Authenticated · {data.detail}</Trans> : <Trans>Authenticated</Trans>
     case "local-login":
       return data.detail ? <Trans>Authenticated · {data.detail}</Trans> : <Trans>Authenticated · local login</Trans>
