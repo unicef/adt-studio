@@ -7701,6 +7701,9 @@ msgstr "I papajtueshëm me Paraqitjen e fiksuar"
 msgid "Not configured"
 msgstr "Nuk është konfiguruar"
 
+msgid "Not connected"
+msgstr "Jo i lidhur"
+
 msgid "Not detected"
 msgstr "Nuk u zbulua"
 
@@ -10697,6 +10700,9 @@ msgstr "Cilësime"
 
 msgid "Settings — a sharing update is ready"
 msgstr "Cilësimet — një përditësim i ndarjes është gati"
+
+msgid "Settings — no AI provider is connected"
+msgstr "Cilësimet — asnjë ofrues AI nuk është i lidhur"
 
 msgid "Settings — the {rejectedName} key was rejected"
 msgstr "Cilësimet — çelësi i {rejectedName} u refuzua"

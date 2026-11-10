@@ -7699,6 +7699,9 @@ msgstr "Incompatível com layout fixo"
 msgid "Not configured"
 msgstr "Não configurado"
 
+msgid "Not connected"
+msgstr "Não conectado"
+
 msgid "Not detected"
 msgstr "Não detectado"
 
@@ -10695,6 +10698,9 @@ msgstr "Configurações"
 
 msgid "Settings — a sharing update is ready"
 msgstr "Configurações — há uma atualização do compartilhamento"
+
+msgid "Settings — no AI provider is connected"
+msgstr "Configurações — nenhum provedor de IA está conectado"
 
 msgid "Settings — the {rejectedName} key was rejected"
 msgstr "Configurações — a chave da {rejectedName} foi recusada"

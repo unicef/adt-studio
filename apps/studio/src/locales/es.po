@@ -7699,6 +7699,9 @@ msgstr "No compatible con Diseño Fijo"
 msgid "Not configured"
 msgstr "No configurado"
 
+msgid "Not connected"
+msgstr "No conectado"
+
 msgid "Not detected"
 msgstr "No detectado"
 
@@ -10695,6 +10698,9 @@ msgstr "Configuración"
 
 msgid "Settings — a sharing update is ready"
 msgstr "Ajustes: hay una actualización para compartir"
+
+msgid "Settings — no AI provider is connected"
+msgstr "Configuración — no hay ningún proveedor de IA conectado"
 
 msgid "Settings — the {rejectedName} key was rejected"
 msgstr "Ajustes: la clave de {rejectedName} fue rechazada"
