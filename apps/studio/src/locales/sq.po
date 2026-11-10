@@ -160,10 +160,6 @@ msgstr "{0, plural, one {# detyrë trashëgon këtë model} other {# detyra tras
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {koment} other {komente}}"
 
-#. placeholder {0}: health.modelCount
-#~ msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-#~ msgstr "{0, plural, one {Lidhja u krye me sukses — # model në dispozicion.} other {Lidhja u krye me sukses — # modele në dispozicion.}}"
-
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {ditë} other {ditë}}"
@@ -1634,9 +1630,6 @@ msgstr "Mbivendosje AI"
 msgid "AI provider connected. Your book can be processed now."
 msgstr "Ofruesi i AI u lidh. Libri juaj tani mund të përpunohet."
 
-#~ msgid "AI provider credentials"
-#~ msgstr "Kredencialet e ofruesve të IA-së"
-
 msgid "AI providers"
 msgstr "Ofruesit e AI"
 
@@ -3101,17 +3094,11 @@ msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
 #~ msgid "Configure provider credentials used by AI pipeline features on this machine."
 #~ msgstr "Konfiguroni kredencialet e ofruesve që përdoren nga veçoritë e pipeline-it të IA-së në këtë pajisje."
 
-#~ msgid "Configure the credentials used by AI features on this device."
-#~ msgstr "Konfiguroni kredencialet që përdoren nga veçoritë e IA-së në këtë pajisje."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Konfiguro kredencialet e ofruesve që përdoren kur ADT Studio ekzekuton hapat e pipeline-it të IA-së në këtë makinë."
 
 msgid "Configure voices and accents"
 msgstr "Konfiguroni zërat dhe thekset"
-
-#~ msgid "Configured on server"
-#~ msgstr "Konfiguruar në server"
 
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
@@ -3398,9 +3385,6 @@ msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej."
 
 msgid "Could not load saved content. Retry"
 msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej. Provo përsëri"
-
-#~ msgid "Could not load the AI provider catalogue."
-#~ msgstr "Katalogu i ofruesve të IA-së nuk mund të ngarkohej."
 
 msgid "Could not load the book outline."
 msgstr "Struktura e librit nuk mund të ngarkohej."
@@ -6146,9 +6130,6 @@ msgstr "Tastierë dhe navigim"
 msgid "Keyboard shortcuts"
 msgstr "Shkurtesat e tastierës"
 
-#~ msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-#~ msgstr "Çelësat ruhen lokalisht në këtë shfletues ose sesion desktop dhe dërgohen vetëm me kërkesat e ekzekutimit."
-
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "Çelësat ruhen lokalisht në këtë pajisje — nuk dërgohen kurrë diku tjetër."
 
@@ -6446,9 +6427,6 @@ msgstr "Ngarko vlerat e fundit të ruajtura"
 
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
-
-#~ msgid "Loading AI providers…"
-#~ msgstr "Po ngarkohen ofruesit e IA-së…"
 
 msgid "Loading beta versions…"
 msgstr "Po ngarkohen versionet beta…"
@@ -7977,9 +7955,6 @@ msgstr "Hapi të gjitha në Storyboard"
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Hap një projekt ADT që <0>tashmë ekziston</0> — një kopje rezervë, një pjesë libri, ose një i eksportuar nga dikush tjetër. Asgjë nuk konvertohet. <1>.zip → shtuar siç është</1>"
 
-#~ msgid "Open API key settings"
-#~ msgstr "Hap cilësimet e çelësave API"
-
 msgid "Open command palette"
 msgstr "Hap paletën e komandave"
 
@@ -8920,9 +8895,6 @@ msgstr "Ofruesi \"{providerId}\" nuk është i regjistruar. Shto çelësat e tij
 #~ msgid "Provider coming soon"
 #~ msgstr "Ofruesi së shpejti"
 
-#~ msgid "Provider credentials"
-#~ msgstr "Kredencialet e ofruesit"
-
 msgid "Provider credentials saved."
 msgstr "Kredencialet e ofruesve u ruajtën."
 
@@ -8934,9 +8906,6 @@ msgstr "Dokumentacioni i ofruesit"
 
 msgid "providers api key credentials endpoint"
 msgstr "ofruesit çelësi api kredencialet pika fundore"
-
-#~ msgid "Providers unavailable"
-#~ msgstr "Ofruesit nuk janë të disponueshëm"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Siguron modele të qëndrueshme HTML/CSS për faqet e gjeneruara nga LLM."
@@ -11692,9 +11661,6 @@ msgstr "Termet u zgjodhën nga AI nga libri. Redakto një përkufizim ose emoji-
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termat, emrat e karaktereve ose frazat që gjykatësi duhet të ruajë ose preferojë."
 
-#~ msgid "Test connection"
-#~ msgstr "Testo lidhjen"
-
 msgid "Test notification"
 msgstr "Testo njoftimin"
 
@@ -11857,9 +11823,6 @@ msgstr "Bashkësia e organizmave të gjallë në një vend dhe mënyra si ndërv
 
 #~ msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 #~ msgstr "Fazat e përfunduara më poshtë do të rivendosen dhe duhet të ekzekutohen përsëri që të përdorin gjuhën e re. Seksionet e faqes suaj ruhen."
-
-#~ msgid "The connection check could not be completed."
-#~ msgstr "Kontrolli i lidhjes nuk mundi të përfundohet."
 
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "Lidhja me Cloudflare u ndërpre ose zgjati shumë. Kontrolloni internetin, pastaj provoni përsëri — çdo gjë e konfiguruar ruhet."
@@ -12273,12 +12236,6 @@ msgstr "Ky kompjuter do ta harrojë lidhjen me Cloudflare, ndaj nuk do të mund 
 msgid "This connection isn't available yet."
 msgstr "Kjo lidhje nuk është ende e disponueshme."
 
-#~ msgid "This doesn't look like a valid key."
-#~ msgstr "Ky nuk duket si çelës i vlefshëm."
-
-#~ msgid "This doesn't look like a valid key. It should look like {example}"
-#~ msgstr "Ky nuk duket si çelës i vlefshëm. Duhet të duket si {example}"
-
 msgid "This doesn't look like an API key for {name}."
 msgstr "Kjo nuk duket si një çelës API për {name}."
 
@@ -12416,9 +12373,6 @@ msgstr "Kjo pozicion tashmë ka një test. Shto një tjetër menjëherë pas tij
 
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundrejt faqes origjinale. Zgjedhja më lart kontrollon cilin shabllon përdoret."
-
-#~ msgid "This provider does not require local credentials."
-#~ msgstr "Ky ofrues nuk kërkon kredenciale lokale."
 
 msgid "This provider has no automatic connection check."
 msgstr "Ky ofrues nuk ka kontroll automatik të lidhjes."

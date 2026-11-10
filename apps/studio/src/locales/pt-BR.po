@@ -158,10 +158,6 @@ msgstr "{0, plural, one {# tarefa herda este modelo} other {# tarefas herdam est
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {comentário} other {comentários}}"
 
-#. placeholder {0}: health.modelCount
-#~ msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-#~ msgstr "{0, plural, one {Conectado com sucesso — # modelo disponível.} other {Conectado com sucesso — # modelos disponíveis.}}"
-
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {dia} other {dias}}"
@@ -1632,9 +1628,6 @@ msgstr "Sobreposição por IA"
 msgid "AI provider connected. Your book can be processed now."
 msgstr "Provedor de IA conectado. Seu livro já pode ser processado."
 
-#~ msgid "AI provider credentials"
-#~ msgstr "Credenciais de provedores de IA"
-
 msgid "AI providers"
 msgstr "Provedores de IA"
 
@@ -3099,17 +3092,11 @@ msgstr "Configure os recursos a incluir na exportação"
 #~ msgid "Configure provider credentials used by AI pipeline features on this machine."
 #~ msgstr "Configure as credenciais dos provedores usadas pelos recursos da pipeline de IA nesta máquina."
 
-#~ msgid "Configure the credentials used by AI features on this device."
-#~ msgstr "Configure as credenciais usadas pelos recursos de IA neste dispositivo."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configure as credenciais dos provedores usadas quando o ADT Studio executa passos do pipeline de IA nesta máquina."
 
 msgid "Configure voices and accents"
 msgstr "Configurar vozes e sotaques"
-
-#~ msgid "Configured on server"
-#~ msgstr "Configurado no servidor"
 
 msgid "Confirm merge"
 msgstr "Confirmar mesclagem"
@@ -3396,9 +3383,6 @@ msgstr "Não foi possível carregar o conteúdo salvo."
 
 msgid "Could not load saved content. Retry"
 msgstr "Não foi possível carregar o conteúdo salvo. Tentar novamente"
-
-#~ msgid "Could not load the AI provider catalogue."
-#~ msgstr "Não foi possível carregar o catálogo de provedores de IA."
 
 msgid "Could not load the book outline."
 msgstr "Não foi possível carregar a estrutura do livro."
@@ -6144,9 +6128,6 @@ msgstr "Teclado e navegação"
 msgid "Keyboard shortcuts"
 msgstr "Atalhos de teclado"
 
-#~ msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-#~ msgstr "As chaves são armazenadas localmente neste navegador ou sessão desktop e são enviadas apenas com solicitações de execução."
-
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "As chaves são armazenadas localmente neste dispositivo — nunca enviadas para nenhum outro lugar."
 
@@ -6444,9 +6425,6 @@ msgstr "Carregar os últimos valores salvos"
 
 msgid "Loading accessibility summary..."
 msgstr "Carregando resumo de acessibilidade..."
-
-#~ msgid "Loading AI providers…"
-#~ msgstr "Carregando provedores de IA…"
 
 msgid "Loading beta versions…"
 msgstr "Carregando versões beta…"
@@ -7975,9 +7953,6 @@ msgstr "Abrir todos no Storyboard"
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Abra um projeto ADT que <0>já existe</0> — um backup, uma parte de livro ou um exportado por outra pessoa. Nada é convertido. <1>.zip → adicionado como está</1>"
 
-#~ msgid "Open API key settings"
-#~ msgstr "Abrir configurações de chaves de API"
-
 msgid "Open command palette"
 msgstr "Abrir paleta de comandos"
 
@@ -8918,9 +8893,6 @@ msgstr "O provedor “{providerId}” não está registrado. Adicione as chaves 
 #~ msgid "Provider coming soon"
 #~ msgstr "Provedor em breve"
 
-#~ msgid "Provider credentials"
-#~ msgstr "Credenciais do provedor"
-
 msgid "Provider credentials saved."
 msgstr "Credenciais dos provedores salvas."
 
@@ -8932,9 +8904,6 @@ msgstr "Documentação do provedor"
 
 msgid "providers api key credentials endpoint"
 msgstr "provedores chave api credenciais endpoint"
-
-#~ msgid "Providers unavailable"
-#~ msgstr "Provedores indisponíveis"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Fornece padrões HTML/CSS consistentes para páginas geradas por LLM."
@@ -11690,9 +11659,6 @@ msgstr "Os termos foram escolhidos pela IA a partir do livro. Edite uma definiç
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termos, nomes de personagens ou frases que o juiz deve preservar ou preferir."
 
-#~ msgid "Test connection"
-#~ msgstr "Testar conexão"
-
 msgid "Test notification"
 msgstr "Notificação de teste"
 
@@ -11855,9 +11821,6 @@ msgstr "A comunidade de organismos vivos em um lugar e a forma como interagem en
 
 #~ msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 #~ msgstr "As etapas concluídas abaixo serão redefinidas e precisarão ser executadas novamente para usar o novo idioma. Suas seções de página são mantidas."
-
-#~ msgid "The connection check could not be completed."
-#~ msgstr "Não foi possível concluir a verificação da conexão."
 
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "A conexão com o Cloudflare caiu ou demorou demais. Verifique sua internet e tente novamente — o que já foi configurado é mantido."
@@ -12271,12 +12234,6 @@ msgstr "Este computador vai esquecer a conexão com o Cloudflare, então você n
 msgid "This connection isn't available yet."
 msgstr "Esta conexão ainda não está disponível."
 
-#~ msgid "This doesn't look like a valid key."
-#~ msgstr "Isso não parece uma chave válida."
-
-#~ msgid "This doesn't look like a valid key. It should look like {example}"
-#~ msgstr "Isso não parece uma chave válida. Ela deve ter este formato: {example}"
-
 msgid "This doesn't look like an API key for {name}."
 msgstr "Isso não parece uma chave de API de {name}."
 
@@ -12414,9 +12371,6 @@ msgstr "Esta posição já tem um questionário. Adicione outro logo depois ou s
 
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em relação à página original. A seleção acima controla qual template é usado."
-
-#~ msgid "This provider does not require local credentials."
-#~ msgstr "Este provedor não requer credenciais locais."
 
 msgid "This provider has no automatic connection check."
 msgstr "Este provedor não possui verificação automática de conexão."
