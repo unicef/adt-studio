@@ -372,7 +372,9 @@ describe("ProvidersList — live manifests", () => {
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["provider-health"] })
   })
 
-  it("blocks the save when a key does not match the provider's key shape", async () => {
+  it("warns about a key of an unexpected shape but still lets it be saved", async () => {
+    // The pattern is a hint: providers issue new key formats, and the live
+    // check after saving is what says whether a key works.
     const openai = descriptor("openai", { displayName: "OpenAI" })
     openai.manifest.credentialFields[0] = {
       ...openai.manifest.credentialFields[0],
@@ -387,12 +389,12 @@ describe("ProvidersList — live manifests", () => {
     fireEvent.change(input, { target: { value: "sk-ant-api03-abc" } })
 
     expect(
-      within(panel).getByText("This doesn't look like a valid key. It should look like sk-..."),
+      within(panel).getByText("This doesn't look like an API key for OpenAI. OpenAI keys usually start with sk-..."),
     ).toBeTruthy()
-    expect(within(panel).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(true)
+    expect(within(panel).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(false)
 
     fireEvent.change(input, { target: { value: "sk-proj-abc123" } })
-    expect(within(panel).queryByText(/doesn't look like a valid key/)).toBeNull()
+    expect(within(panel).queryByText(/doesn't look like/)).toBeNull()
     expect(within(panel).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(false)
   })
 

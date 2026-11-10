@@ -12271,11 +12271,17 @@ msgstr "Este computador vai esquecer a conexão com o Cloudflare, então você n
 msgid "This connection isn't available yet."
 msgstr "Esta conexão ainda não está disponível."
 
-msgid "This doesn't look like a valid key."
-msgstr "Isso não parece uma chave válida."
+#~ msgid "This doesn't look like a valid key."
+#~ msgstr "Isso não parece uma chave válida."
 
-msgid "This doesn't look like a valid key. It should look like {example}"
-msgstr "Isso não parece uma chave válida. Ela deve ter este formato: {example}"
+#~ msgid "This doesn't look like a valid key. It should look like {example}"
+#~ msgstr "Isso não parece uma chave válida. Ela deve ter este formato: {example}"
+
+msgid "This doesn't look like an API key for {name}."
+msgstr "Isso não parece uma chave de API de {name}."
+
+msgid "This doesn't look like an API key for {name}. {name} keys usually start with {example}"
+msgstr "Isso não parece uma chave de API de {name}. As chaves de {name} costumam começar com {example}"
 
 msgid "This Easy Read text is shared across sections. Saving it updates every referring section, including sections outside the current filter."
 msgstr "Este texto de Leitura fácil é compartilhado entre seções. Salvá-lo atualiza todas as seções que o utilizam, inclusive as que estão fora do filtro atual."

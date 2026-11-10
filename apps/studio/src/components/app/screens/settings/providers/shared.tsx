@@ -177,6 +177,8 @@ export interface Draft {
   canSave: boolean
   hasStored: boolean
   errors: Map<string, string>
+  /** Per field: a key whose shape looks wrong. Advisory only — Save stays enabled. */
+  warnings: Map<string, string>
   /** Per field: whose key a shared field is using, or who else reads this one. */
   sharedNotes: Map<string, string>
   /** Saves, then waits for the live check so the toast reports the real result. */
@@ -191,15 +193,21 @@ export interface Draft {
  *
  * Only fields the user changed are checked: a value saved before a rule
  * existed must not block saving an edit to a different field.
+ *
+ * A key that doesn't match its provider's usual shape is only a warning: the
+ * pattern is a client-side hint, providers do issue new key formats, and the
+ * live check after saving is what says whether a key works.
  */
 function useFieldErrors(
   descriptor: ProviderDescriptor,
   values: Record<string, string>,
   stored: Record<string, string>,
-): Map<string, string> {
+): { errors: Map<string, string>; warnings: Map<string, string> } {
   const { t } = useLingui()
   return useMemo(() => {
     const errors = new Map<string, string>()
+    const warnings = new Map<string, string>()
+    const name = descriptor.manifest.displayName
     for (const field of descriptor.manifest.credentialFields) {
       const value = (values[field.key] ?? "").trim()
       if (!value) continue
@@ -224,14 +232,14 @@ function useFieldErrors(
         try {
           if (!new RegExp(field.pattern).test(value)) {
             const example = field.placeholder
-            errors.set(
-              field.key,
-              field.kind !== "secret"
-                ? t`Invalid value.`
-                : example
-                  ? t`This doesn't look like a valid key. It should look like ${example}`
-                  : t`This doesn't look like a valid key.`,
-            )
+            if (field.kind !== "secret") errors.set(field.key, t`Invalid value.`)
+            else
+              warnings.set(
+                field.key,
+                example
+                  ? t`This doesn't look like an API key for ${name}. ${name} keys usually start with ${example}`
+                  : t`This doesn't look like an API key for ${name}.`,
+              )
           }
         } catch {
           // The manifest was already server-validated; ignore an unsupported
@@ -239,7 +247,7 @@ function useFieldErrors(
         }
       }
     }
-    return errors
+    return { errors, warnings }
   }, [descriptor, values, stored, t])
 }
 
@@ -266,7 +274,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
     setValues(JSON.parse(storedSignature) as Record<string, string>)
   }, [storedSignature])
 
-  const errors = useFieldErrors(descriptor, values, stored)
+  const { errors, warnings } = useFieldErrors(descriptor, values, stored)
   const dirty = descriptor.manifest.credentialFields.some(
     (f) => (values[f.key] ?? "").trim() !== (stored[f.key] ?? "").trim(),
   )
@@ -315,6 +323,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
     canSave: dirty && errors.size === 0,
     hasStored,
     errors,
+    warnings,
     sharedNotes,
     save: async () => {
       for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, (values[field.key] ?? "").trim())
@@ -391,6 +400,10 @@ export function CredentialFields({ draft, onSubmit }: { draft: Draft; onSubmit?:
             {draft.errors.has(field.key) ? (
               <p role="alert" className="text-[11.5px] leading-normal text-destructive">
                 {draft.errors.get(field.key)}
+              </p>
+            ) : draft.warnings.has(field.key) ? (
+              <p role="status" className="text-[11.5px] leading-normal text-amber-700 dark:text-amber-400">
+                {draft.warnings.get(field.key)}
               </p>
             ) : (
               <>

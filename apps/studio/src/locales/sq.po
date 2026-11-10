@@ -12273,11 +12273,17 @@ msgstr "Ky kompjuter do ta harrojë lidhjen me Cloudflare, ndaj nuk do të mund 
 msgid "This connection isn't available yet."
 msgstr "Kjo lidhje nuk është ende e disponueshme."
 
-msgid "This doesn't look like a valid key."
-msgstr "Ky nuk duket si çelës i vlefshëm."
+#~ msgid "This doesn't look like a valid key."
+#~ msgstr "Ky nuk duket si çelës i vlefshëm."
 
-msgid "This doesn't look like a valid key. It should look like {example}"
-msgstr "Ky nuk duket si çelës i vlefshëm. Duhet të duket si {example}"
+#~ msgid "This doesn't look like a valid key. It should look like {example}"
+#~ msgstr "Ky nuk duket si çelës i vlefshëm. Duhet të duket si {example}"
+
+msgid "This doesn't look like an API key for {name}."
+msgstr "Kjo nuk duket si një çelës API për {name}."
+
+msgid "This doesn't look like an API key for {name}. {name} keys usually start with {example}"
+msgstr "Kjo nuk duket si një çelës API për {name}. Çelësat e {name} zakonisht fillojnë me {example}"
 
 msgid "This Easy Read text is shared across sections. Saving it updates every referring section, including sections outside the current filter."
 msgstr "Ky tekst për Lexim të lehtë ndahet mes disa seksioneve. Ruajtja e tij përditëson çdo seksion që e përdor, përfshirë seksionet jashtë filtrit aktual."
