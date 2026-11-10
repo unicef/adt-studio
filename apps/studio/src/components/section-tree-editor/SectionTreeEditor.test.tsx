@@ -16,8 +16,18 @@ vi.mock("@lingui/react/macro", () => ({
   }),
 }))
 
+// Renders only the labels of a menu's visible items, so tests can assert
+// which actions a row offers without opening the Radix dropdown.
 vi.mock("@/components/ui/action-menu", () => ({
-  ActionMenu: () => null,
+  ActionMenu: ({ items }: { items: Array<{ label?: React.ReactNode; hidden?: boolean; separator?: true }> }) => (
+    <ul data-testid="row-menu">
+      {items
+        .filter((item) => !item.separator && !item.hidden)
+        .map((item, index) => (
+          <li key={index}>{item.label}</li>
+        ))}
+    </ul>
+  ),
 }))
 
 const initialSection: PageSectioningSection = {
@@ -266,5 +276,33 @@ describe("SectionTreeEditor inherited prune (#596)", () => {
     // hidden-group itself + pruned-leaf
     expect(include).toHaveLength(2)
     for (const button of include) expect(button.disabled).toBe(false)
+  })
+
+  it("offers Delete on every row under a hidden group, including nested groups", () => {
+    const nested: PageSectioningSection = {
+      ...initialSection,
+      nodes: [
+        {
+          nodeId: "outer-group",
+          structure: "group",
+          isPruned: true,
+          children: [
+            { nodeId: "outer-text", role: "text", text: "Outer", isPruned: false },
+            {
+              nodeId: "inner-group",
+              structure: "group",
+              isPruned: false,
+              children: [{ nodeId: "inner-image", role: "image", isPruned: false }],
+            },
+          ],
+        },
+        { nodeId: "visible-text", role: "text", text: "Visible", isPruned: false },
+      ],
+    }
+    render(<Harness onStructuralChange={vi.fn()} initial={nested} />)
+
+    // outer-group (own prune) + outer-text, inner-group, inner-image (inherited);
+    // visible-text offers no Delete.
+    expect(screen.getAllByText("Delete")).toHaveLength(4)
   })
 })

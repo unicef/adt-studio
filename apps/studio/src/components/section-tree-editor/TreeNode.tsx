@@ -554,7 +554,7 @@ function ContainerNode(props: TreeNodeProps) {
                 label: t`Delete`,
                 onClick: () => onDelete(node.nodeId),
                 danger: true,
-                hidden: !node.isPruned,
+                hidden: !(node.isPruned || props.ancestorPruned),
               },
             ]}
           />
@@ -770,7 +770,7 @@ function TextLeaf(props: TreeNodeProps) {
               label: t`Delete`,
               onClick: () => onDelete(node.nodeId),
               danger: true,
-              hidden: !node.isPruned,
+              hidden: !(node.isPruned || props.ancestorPruned),
             },
           ]}
         />
@@ -874,7 +874,7 @@ function ImageLeaf(props: TreeNodeProps) {
               label: t`Delete`,
               onClick: () => onDelete(node.nodeId),
               danger: true,
-              hidden: !node.isPruned,
+              hidden: !(node.isPruned || props.ancestorPruned),
             },
           ]}
         />
