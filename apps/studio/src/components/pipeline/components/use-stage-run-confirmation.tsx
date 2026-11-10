@@ -5,6 +5,7 @@ import type { StageName } from "@adt/types"
 import { api, type RunStagesOptions } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { CascadeResetDialog } from "./CascadeResetDialog"
+import { HistoryRecoveryLink } from "./HistoryRecoveryLink"
 import { getStageLabelI18n } from "../pipeline-i18n"
 
 type RunConsent = Pick<RunStagesOptions, "replaceManual" | "protectedReplacements">
@@ -143,7 +144,7 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
   const notice = <>
     {loading && <p className="text-xs text-muted-foreground"><Trans>Loading saved content…</Trans></p>}
     {(error || (protectedStage && status.isError)) && <div role="alert" className="space-y-1 text-sm text-red-700">
-      <p>{error ?? status.error?.message}</p>
+      <p>{error ?? status.error?.message} <HistoryRecoveryLink bookLabel={bookLabel} error={error ?? status.error?.message} /></p>
       {protectedStage && <Button variant="outline" size="sm" disabled={loading || busy} onClick={() => { setError(null); void status.refetch() }}><Trans>Retry</Trans></Button>}
     </div>}
   </>

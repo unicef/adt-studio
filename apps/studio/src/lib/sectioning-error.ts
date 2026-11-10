@@ -1,6 +1,19 @@
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 
+// Messages produced for HISTORY_REPAIR_REQUIRED, remembered so translated
+// errors can still be recognized without re-running the i18n macros here.
+const recoverableMessages = new Set<string>()
+const trackingMissingMessages = new Set<string>()
+
+/** Whether an error can be resolved from the book's History recovery settings.
+ * Accepts the raw server error/code or the message translated below. Missing
+ * tracking evidence needs a book backup, so it gets no recovery link. */
+export function needsHistoryRecovery(error?: string | null, code?: string | null): boolean {
+  if (error && (error.includes("history-evidence/book@0") || trackingMissingMessages.has(error))) return false
+  return code === "HISTORY_REPAIR_REQUIRED" || /\bHISTORY_REPAIR_REQUIRED\b/.test(error ?? "") || (!!error && recoverableMessages.has(error))
+}
+
 /** HTTP codes and persisted/SSE code-prefixed errors use the same translations.
  * Provider diagnostics keep their existing presentation when no code matches. */
 export function sectioningErrorMessage(error?: string, code?: string): string | undefined {
@@ -13,9 +26,14 @@ export function sectioningErrorMessage(error?: string, code?: string): string | 
     case "HISTORY_RECOVERY_REQUEST_CONFLICT": return i18n._(msg`This recovery request was already used with different details. Inspect the book again before making a new request.`)
     case "HISTORY_RECOVERY_NOT_NEEDED": return i18n._(msg`There is no readable history that needs a recovery checkpoint.`)
     case "HISTORY_RECOVERY_REQUEST_INVALID": return i18n._(msg`The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions.`)
-    case "HISTORY_REPAIR_REQUIRED":
-      if (error?.includes("history-evidence/book@0")) return i18n._(msg`History tracking is incomplete. Existing content is retained, but edits and generation that need verified history are unavailable. Restore a verified book backup; recovery cannot reconstruct missing tracking evidence.`)
-      return i18n._(msg`Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content.`)
+    case "HISTORY_REPAIR_REQUIRED": {
+      const trackingMissing = error?.includes("history-evidence/book@0") ?? false
+      const message = trackingMissing
+        ? i18n._(msg`History tracking is incomplete. Existing content is retained, but edits and generation that need verified history are unavailable. Restore a verified book backup; recovery cannot reconstruct missing tracking evidence.`)
+        : i18n._(msg`Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content.`)
+      ;(trackingMissing ? trackingMissingMessages : recoverableMessages).add(message)
+      return message
+    }
     case "STORYBOARD_REQUEST_INVALID": return i18n._(msg`The edit request is invalid. Refresh the saved content and try again.`)
     case "STORYBOARD_PAGE_OUTSIDE_WINDOW": {
       const pages = error?.match(/STORYBOARD_PAGE_OUTSIDE_WINDOW:\s*([^;]*)/)?.[1]?.trim() ?? ""

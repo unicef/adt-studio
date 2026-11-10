@@ -4,8 +4,19 @@ import { SettingsCard, SettingsField } from "@/components/pipeline/components/Se
 import { useBookApiKeyDialog } from "@/components/settings/BookApiKeyDialogProvider"
 import { Trans } from "@lingui/react/macro"
 import { BookModelSettings } from "./BookModelSettings"
+import { HistoryRecoveryPanel } from "./HistoryRecoveryPanel"
 
 export function BookSettings({ bookLabel, tab = "general" }: { bookLabel: string; tab?: string }) {
+  // Book-wide repair tool for damaged identity history. It is rarely needed,
+  // so it lives here rather than on a stage landing page.
+  if (tab === "history") {
+    return (
+      <div className="mx-auto w-full max-w-4xl p-4">
+        <HistoryRecoveryPanel bookLabel={bookLabel} />
+      </div>
+    )
+  }
+
   if (tab === "models") {
     return (
       <div className="mx-auto w-full max-w-4xl p-4">

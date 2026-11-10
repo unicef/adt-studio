@@ -1,5 +1,5 @@
 import { refreshRunStatus, reconcileRunPublication } from "./run-query-invalidation"
-import { sectioningErrorMessage } from "@/lib/sectioning-error"
+import { sectioningErrorMessage, needsHistoryRecovery } from "@/lib/sectioning-error"
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
@@ -75,6 +75,8 @@ interface StepStatusResponse {
 // ---------------------------------------------------------------------------
 
 export interface BookRunContextValue {
+  /** Book this run state belongs to (optional so partial test doubles stay valid). */
+  bookLabel?: string
   /** Retained generator content affected by a source edit; independent of run state. */
   sourceUpdateStages?: string[]
   /** Actual saved-output coverage, independent of the last attempt. */
@@ -803,7 +805,18 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             detail
               ? i18n._(msg`Could not start ${getStageLabelI18n(fromStage)}: ${detail}`)
               : i18n._(msg`Could not start ${getStageLabelI18n(fromStage)}.`),
-            { id: `run-start:${label}:${fromStage}`, duration: 12_000 },
+            {
+              id: `run-start:${label}:${fromStage}`,
+              duration: 12_000,
+              // Damaged history blocks the run until it is recovered; take the
+              // user straight to the book's History recovery settings.
+              action: needsHistoryRecovery(detail)
+                ? {
+                    label: i18n._(msg`Inspect history`),
+                    onClick: () => navigate({ to: "/books/$label/$step/settings", params: { label, step: "book" }, search: { tab: "history" } }),
+                  }
+                : undefined,
+            },
           )
           announceRef.current(i18n._(msg`${getStageLabelI18n(fromStage)} did not start`), "assertive")
           // The optimistic wipe above emptied the page caches for a run that
@@ -921,6 +934,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   return {
     sourceUpdateStages: data?.sourceUpdateStages ?? [],
     storyboardCoverage: data?.coverage,
+    bookLabel: label,
     stageState,
     stepState: stepStateAccessor,
     stepProgress: stepProgressAccessor,
