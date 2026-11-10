@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
-import type { ProviderDescriptor } from "@adt/types"
+import type { ProviderDescriptor, ProviderHealthResponse } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { useProviderHealth } from "@/hooks/use-provider-health"
 import { PROVIDER_CARDS } from "./data"
@@ -20,7 +20,7 @@ import {
   localize,
   useDraft,
 } from "./shared"
-import type { Providers } from "./useProviders"
+import { requiredFieldsFilled, type Providers } from "./useProviders"
 import type { ProvidersSearch } from "../nav"
 import { CliLoginControls } from "./CliLogin"
 
@@ -64,9 +64,18 @@ const EXPAND_MS = 300
 /** API-key (and local base-URL) backend: editable credential form + status. */
 function ApiKeyPanel({ descriptor, store, active, focusKey = false }: { descriptor: ProviderDescriptor; store: Providers; active: boolean; focusKey?: boolean }) {
   const draft = useDraft(descriptor, store)
+  const id = descriptor.manifest.id
+  // Nothing saved here, on the server, or shared from another provider: the
+  // answer is "a credential is missing" without asking, so the line says so
+  // straight away instead of flashing "Checking…" (say, right after Remove).
+  // Keyed on what is saved, not on the form, so typing never starts a probe;
+  // Refresh still checks whatever is typed.
+  const canCheck = requiredFieldsFilled(descriptor, store.credentials[id] ?? {})
   // Always the draft scope, even while untouched: switching scope on the first
   // keystroke would change the query key and probe a half-typed key.
-  const health = useProviderHealth(descriptor.manifest.id, draft.values, active)
+  const health = useProviderHealth(id, draft.values, active && canCheck)
+  const shown: ProviderHealthResponse | null =
+    health.data ?? (canCheck ? null : { providerId: id, ok: false, code: "missing-credential" })
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -77,7 +86,7 @@ function ApiKeyPanel({ descriptor, store, active, focusKey = false }: { descript
 
   return (
     <div ref={panelRef} className="flex flex-col gap-4">
-      <HealthLine health={health.data ?? null} isFetching={health.isFetching} onRefresh={() => void health.refetch()} />
+      <HealthLine health={shown} isFetching={health.isFetching} onRefresh={() => void health.refetch()} />
       <Handles descriptor={descriptor} />
       <CredentialFields draft={draft} onSubmit={draft.canSave ? draft.save : undefined} />
       <SaveRow draft={draft} />

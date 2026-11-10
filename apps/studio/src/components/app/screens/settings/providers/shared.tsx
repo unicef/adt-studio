@@ -28,7 +28,7 @@ import type {
   ProviderHealthCode,
   ProviderHealthResponse,
 } from "@adt/types"
-import { recheckSavedKeys, useProviderHealth } from "@/hooks/use-provider-health"
+import { providerHealthKey, recheckSavedKeys, useProviderHealth } from "@/hooks/use-provider-health"
 import { PROVIDER_CARDS } from "./data"
 import { PROVIDER_BRAND } from "./providerLogos"
 import { authKind, requiredFieldsFilled, type Providers } from "./useProviders"
@@ -332,6 +332,12 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
     remove: () => {
       for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, "")
       setValues(Object.fromEntries(descriptor.manifest.credentialFields.map((f) => [f.key, ""])))
+      // Forget the form's check of the removed values rather than re-run it: a
+      // re-check now would still send them, since the form has not re-rendered
+      // empty yet. The saved-key checks do re-run, because settings the server
+      // holds (or a key shared from another provider) may take over.
+      queryClient.removeQueries({ queryKey: [...providerHealthKey(id), "draft"] })
+      void queryClient.invalidateQueries({ queryKey: ["provider-health"] })
     },
   }
 }
@@ -642,7 +648,8 @@ export function HealthDotMark({ data, isFetching, fallbackConfigured }: CardHeal
 
 /** Pure auth-line text from a resolved CardHealth (no probe of its own). */
 export function AuthLineFromHealth({ data, isFetching, fallbackConfigured }: CardHealth) {
-  if (isFetching) return <Trans>Checking connection…</Trans>
+  // Like the dot: a refresh keeps the last result on screen instead of flashing "Checking".
+  if (isFetching && !data) return <Trans>Checking connection…</Trans>
   if (!data) return fallbackConfigured ? <Trans>Authenticated · API key</Trans> : <Trans>Not configured</Trans>
   switch (data.code) {
     case "ok":

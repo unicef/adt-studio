@@ -87,8 +87,9 @@ vi.mock("@tanstack/react-router", () => ({
   useSearch: () => location.search,
 }))
 const invalidateQueries = vi.fn()
+const removeQueries = vi.fn()
 vi.mock("@tanstack/react-query", () => ({
-  useQueryClient: () => ({ invalidateQueries }),
+  useQueryClient: () => ({ invalidateQueries, removeQueries }),
 }))
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock("@/components/ui/sonner", () => ({ toast }))
@@ -155,6 +156,7 @@ afterEach(() => {
   location = { hash: "", search: {} }
   setCredential.mockClear()
   invalidateQueries.mockClear()
+  removeQueries.mockClear()
   recheckSavedKeys.mockClear()
   toast.success.mockClear()
   toast.error.mockClear()
@@ -344,6 +346,30 @@ describe("ProvidersList — live manifests", () => {
 
     const row = document.querySelector<HTMLElement>('[aria-controls="prov-panel-openai"][aria-expanded]')!
     expect(within(row).getByText("Authenticated · API key")).toBeTruthy()
+  })
+
+  it("says a credential is missing without probing when nothing is saved", async () => {
+    // No key in the browser, on the server or shared: no "Checking…" flash, e.g. right after Remove.
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    await waitFor(() => expect(within(panel).getByText("A required credential is missing.")).toBeTruthy())
+    expect(within(panel).queryByText("Checking the connection…")).toBeNull()
+  })
+
+  it("re-checks the connection after a key is removed", async () => {
+    // Settings the server holds may take over from the removed browser key.
+    ownCredentials = { openai: { apiKey: "sk-wrong" } }
+    credentials = { openai: { apiKey: "sk-wrong" } }
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    fireEvent.click(await waitFor(() => within(panel).getByRole("button", { name: "Remove" })))
+
+    expect(setCredential).toHaveBeenCalledWith("openai", "apiKey", "")
+    // The form's check of the removed values is dropped, not re-run with them.
+    expect(removeQueries).toHaveBeenCalledWith({ queryKey: ["provider-health", "openai", "draft"] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["provider-health"] })
   })
 
   it("blocks the save when a key does not match the provider's key shape", async () => {
