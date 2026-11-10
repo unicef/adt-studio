@@ -116,6 +116,15 @@
   --animate-finale-glow: finale-glow 4.5s ease-in-out infinite;
 }
 
+@keyframes ai-scan {
+  0% {
+    top: -33%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
 @keyframes accordion-down {
   from {
     height: 0;
@@ -1074,9 +1083,3 @@ body:has([data-pipeline-dock="shown"]) [data-sonner-toaster][data-y-position="bo
 }
 
 
-body:has([data-verify-bar]) [data-pipeline-dock] {
-  bottom: calc(var(--verify-bar-h, 0px) + 1.25rem);
-}
-body:has([data-verify-bar]) :is([data-lab-toolbar], [data-lab-plan]) {
-  bottom: calc(var(--verify-bar-h, 0px) + 1rem);
-}

@@ -41,6 +41,7 @@ export function RailRow({
         <span className="flex items-center gap-1.5">
           {entry.failed && <StatusDot tone="failed" label={t`Has failures`} />}
           <span className={cn("min-w-0 flex-1 truncate text-xs font-semibold", !active && "text-foreground")}>{entry.title}</span>
+          {entry.meta && <span className={cn("flex shrink-0 items-center gap-0.5 text-[10px] tabular-nums", active ? "text-white/80" : "text-muted-foreground")}>{entry.meta}</span>}
           <span
             className={cn(
               "shrink-0 rounded-full px-1.5 font-mono text-[10px] leading-4 tabular-nums",
@@ -50,9 +51,9 @@ export function RailRow({
             {entry.count}
           </span>
         </span>
-        {!overview && (
+        {!overview && (entry.subtitle || entry.searchText || entry.emptySubtitle !== null) && (
           <span className={cn("line-clamp-2 text-[11px] leading-snug", active ? "text-white/80" : "text-muted-foreground")}>
-            {entry.subtitle || entry.searchText?.replace(/\n/g, " ") || t`No text`}
+            {entry.subtitle || entry.searchText?.replace(/\n/g, " ") || entry.emptySubtitle || t`No text`}
           </span>
         )}
       </span>

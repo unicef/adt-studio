@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 
-const PAGE_RATIO = 650 / 812
+export const CANVAS_PAGE_RATIO = 650 / 812
 const VISIBLE_ROWS = 3.4
 const MIN_WIDTH = 140
 const MAX_WIDTH = 300
@@ -11,7 +11,7 @@ const PAD_TOP = 32
 
 export function fitColumns(width: number, height: number): number {
   if (width <= 0 || height <= 0) return 6
-  const target = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, ((height - CANVAS_GAP * (VISIBLE_ROWS - 1)) / VISIBLE_ROWS) * PAGE_RATIO))
+  const target = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, ((height - CANVAS_GAP * (VISIBLE_ROWS - 1)) / VISIBLE_ROWS) * CANVAS_PAGE_RATIO))
   return Math.max(2, Math.floor((width + CANVAS_GAP) / (target + CANVAS_GAP)))
 }
 

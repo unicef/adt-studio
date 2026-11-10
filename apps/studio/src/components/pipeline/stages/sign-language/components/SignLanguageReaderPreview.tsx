@@ -2,23 +2,28 @@ import { Hand, Video as VideoIcon } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 
+const ON = "text-[var(--preview-accent)]"
+const SOFT_BG = "bg-[color-mix(in_srgb,var(--preview-accent)_10%,transparent)]"
+
 export function SignLanguageReaderPreview({
   hasAnyVideo,
+  accent,
 }: {
   hasAnyVideo: boolean
+  accent?: string
 }) {
   return (
-    <div className="relative flex flex-1 min-h-0 overflow-hidden ">
+    <div className="relative flex flex-1 min-h-0 overflow-hidden " style={accent ? { ["--preview-accent" as string]: accent } : undefined}>
       <div className="flex h-full w-full flex-col gap-3 px-5 py-5">
         {/* Header eyebrow */}
         <div className="flex items-center justify-between shrink-0">
           <div className="flex items-center gap-1.5">
-            <Hand className="h-3.5 w-3.5 text-cyan-700" strokeWidth={2} aria-hidden />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] leading-none text-cyan-700">
+            <Hand className={cn("h-3.5 w-3.5", accent ? ON : "text-cyan-700")} strokeWidth={2} aria-hidden />
+            <span className={cn("text-[10px] font-semibold uppercase tracking-[0.18em] leading-none", accent ? ON : "text-cyan-700")}>
               <Trans>Reader View</Trans>
             </span>
           </div>
-          <span className="text-[10px] font-medium uppercase tracking-[0.14em] leading-none text-cyan-500/80">
+          <span className={cn("text-[10px] font-medium uppercase tracking-[0.14em] leading-none", accent ? "text-muted-foreground" : "text-cyan-500/80")}>
             <Trans>Sample</Trans>
           </span>
         </div>
@@ -33,7 +38,14 @@ export function SignLanguageReaderPreview({
               <div className="h-1.5 w-10/12 rounded-full bg-muted" />
               <div className="h-1.5 w-3/4 rounded-full bg-muted" />
             </div>
-            <div className="mt-2 h-20 rounded-md bg-gradient-to-br from-cyan-100/70 via-sky-100/70 to-indigo-100/70" />
+            <div
+              className={cn(
+                "mt-2 h-20 rounded-md",
+                accent
+                  ? "bg-gradient-to-br from-[color-mix(in_srgb,var(--preview-accent)_18%,transparent)] to-[color-mix(in_srgb,var(--preview-accent)_6%,transparent)]"
+                  : "bg-gradient-to-br from-cyan-100/70 via-sky-100/70 to-indigo-100/70",
+              )}
+            />
             <div className="flex flex-col gap-1.5 pt-1">
               <div className="h-1.5 w-full rounded-full bg-muted" />
               <div className="h-1.5 w-11/12 rounded-full bg-muted" />
@@ -45,15 +57,25 @@ export function SignLanguageReaderPreview({
           {/* Floating sign-language PIP */}
           <div
             className={cn(
-              "absolute bottom-3 right-3 flex w-[88px] flex-col gap-1.5 rounded-lg border border-cyan-200 bg-background p-1.5 shadow-[0_8px_20px_-12px_rgba(8,145,178,0.5)]",
+              "absolute bottom-3 right-3 flex w-[88px] flex-col gap-1.5 rounded-lg border bg-background p-1.5",
+              accent
+                ? "border-[color-mix(in_srgb,var(--preview-accent)_35%,transparent)] shadow-[0_8px_20px_-12px_color-mix(in_srgb,var(--preview-accent)_60%,transparent)]"
+                : "border-cyan-200 shadow-[0_8px_20px_-12px_rgba(8,145,178,0.5)]",
               "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-500",
             )}
           >
-            <div className="relative aspect-[3/4] overflow-hidden rounded bg-gradient-to-b from-cyan-200/50 to-cyan-50">
+            <div
+              className={cn(
+                "relative aspect-[3/4] overflow-hidden rounded bg-gradient-to-b",
+                accent
+                  ? "from-[color-mix(in_srgb,var(--preview-accent)_28%,transparent)] to-[color-mix(in_srgb,var(--preview-accent)_6%,transparent)]"
+                  : "from-cyan-200/50 to-cyan-50",
+              )}
+            >
               {/* Stylized hand / figure */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <Hand
-                  className="h-9 w-9 text-cyan-700"
+                  className={cn("h-9 w-9", accent ? ON : "text-cyan-700")}
                   strokeWidth={1.5}
                   aria-hidden
                 />
@@ -71,11 +93,11 @@ export function SignLanguageReaderPreview({
             </div>
             <div className="flex items-center justify-between px-0.5">
               <VideoIcon
-                className="h-2.5 w-2.5 text-cyan-700"
+                className={cn("h-2.5 w-2.5", accent ? ON : "text-cyan-700")}
                 strokeWidth={2}
                 aria-hidden
               />
-              <span className="text-[8px] font-medium uppercase tracking-wider text-cyan-700">
+              <span className={cn("text-[8px] font-medium uppercase tracking-wider", accent ? ON : "text-cyan-700")}>
                 <Trans>Sign</Trans>
               </span>
             </div>
@@ -86,15 +108,25 @@ export function SignLanguageReaderPreview({
         <div
           className={cn(
             "flex shrink-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-[10.5px] transition-colors",
-            hasAnyVideo
-              ? "bg-cyan-50 text-cyan-700"
-              : "bg-[#f5f5f5] text-[#737373]",
+            accent
+              ? hasAnyVideo
+                ? cn(SOFT_BG, "text-foreground")
+                : "bg-muted text-muted-foreground"
+              : hasAnyVideo
+                ? "bg-cyan-50 text-cyan-700"
+                : "bg-[#f5f5f5] text-[#737373]",
           )}
         >
           <span
             className={cn(
               "inline-block h-1.5 w-1.5 rounded-full",
-              hasAnyVideo ? "bg-cyan-500" : "bg-[#a3a3a3]",
+              accent
+                ? hasAnyVideo
+                  ? "bg-[var(--preview-accent)]"
+                  : "bg-muted-foreground/50"
+                : hasAnyVideo
+                  ? "bg-cyan-500"
+                  : "bg-[#a3a3a3]",
             )}
             aria-hidden
           />

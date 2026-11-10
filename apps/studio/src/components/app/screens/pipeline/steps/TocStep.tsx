@@ -19,7 +19,8 @@ import { useTocEdits } from "./toc/useTocEdits"
 import { entryPageIds, levelsUsed, MIN_TOC_LEVEL } from "./toc/tocRows"
 import type { TocRowContext } from "./toc/TocEntryRow"
 import { TocOverview } from "./toc/TocOverview"
-import { TocPageDetail } from "./toc/TocPageDetail"
+import { TocPageView } from "./toc/page/TocPageView"
+import { useTocSectionOptions } from "./toc/useTocSectionOptions"
 import type { StepProps } from "./shared/types"
 
 const NO_SECTIONS: TocSection[] = []
@@ -30,10 +31,11 @@ export function TocStep(props: StepProps) {
   const query = useToc(label)
   const activity = useStageActivity("toc")
   const run = useRunActivity()
-  const edits = useTocEdits(label, query.data, activity.isActive)
+  const edits = useTocEdits(label, query.data, activity.isActive, plugin.hex)
   const entries = edits.items
-  const sectionsQuery = useTocSections(label, (query.data?.entries.length ?? 0) > 0)
-  const sections = sectionsQuery.data ?? NO_SECTIONS
+  const serverCount = query.data?.entries.length ?? 0
+  const sectionsQuery = useTocSections(label, serverCount > 0)
+  const sections = useTocSectionOptions(sectionsQuery.data ?? NO_SECTIONS, pages)
 
   const [level, setLevel] = useState("")
   const [search, setSearch] = useState("")
@@ -42,7 +44,16 @@ export function TocStep(props: StepProps) {
   const { flashKey, reveal } = useRowFlash()
 
   const pageIdByNumber = useMemo(() => new Map(pages.map((page) => [page.pageNumber, page.pageId])), [pages])
+  const pageNumberById = useMemo(() => new Map(pages.map((page) => [page.pageId, page.pageNumber])), [pages])
   const pagesOf = useCallback((entry: TocEntry) => entryPageIds(entry, sections, pageIdByNumber), [sections, pageIdByNumber])
+  const pageOf = useCallback(
+    (entry: TocEntry) => {
+      const pageId = pagesOf(entry)[0]
+      const pageNumber = pageId ? pageNumberById.get(pageId) : undefined
+      return pageId && pageNumber != null ? { pageId, pageNumber } : null
+    },
+    [pagesOf, pageNumberById],
+  )
   const scoped = usePageScopedItems({ pages, items: entries, pagesOf })
   const pageAspect = usePageAspect(label, scoped.navPages)
   const nav = usePageNav({ label, slug: plugin.slug, pages: scoped.navPages, allPages: pages })
@@ -56,6 +67,7 @@ export function TocStep(props: StepProps) {
   const locked = activity.isActive
   const { update, shift, addAfter, remove, editedKeys } = edits
   const openPreview = frame.onOpenPreview
+  const openPage = nav.open
   const insertAfter = useCallback(
     (afterId: string | null, entryLevel: number) => {
       setSearch("")
@@ -81,23 +93,28 @@ export function TocStep(props: StepProps) {
       onAddAfter: insertAfter,
       onRemove: remove,
       onPreview: (sectionId) => openPreview(sectionId),
+      pageOf,
+      onOpenPage: openPage,
     }),
-    [plugin.hex, locked, sections, sectionsQuery, editedKeys, freshId, flashKey, update, shift, insertAfter, remove, openPreview],
+    [plugin.hex, locked, sections, sectionsQuery, editedKeys, freshId, flashKey, update, shift, insertAfter, remove, openPreview, pageOf, openPage],
   )
 
   const count = entries.length
-  const entriesLabel = t`${plural(count, { one: "# entry", other: "# entries" })}`
+  const meta = t`${plural(count, { one: "# entry", other: "# entries" })} · ${plural(levels.length, { one: "# level", other: "# levels" })}`
   const surface = useStageSurface({
     label,
     slug: "toc",
     hex: plugin.hex,
+    pages,
     ready: count > 0,
-    outcome: t`Editing is paused until Table of Contents finishes.`,
+    hasOutput: serverCount > 0,
+    hintOpen: true,
+    outcome: t`Editing is paused until the table of contents is done.`,
     hint: {
       title: t`How the table of contents works`,
       body: t`These titles become the book's navigation menu. Rename them, change their level, link each one to a section, or add your own. Saving creates a new version, so you can always go back.`,
     },
-    onOpenPage: nav.open,
+    onOpenPage: openPage,
   })
 
   const railEntries = usePageRailEntries(label, scoped.navPages, {
@@ -107,7 +124,6 @@ export function TocStep(props: StepProps) {
   })
 
   const versionDiff = useMemo(() => tocVersionDiff(t), [t])
-  const serverCount = query.data?.entries.length ?? 0
   const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: serverCount > 0 })
   const runningView = useStepRunningView({
     ...props,
@@ -127,7 +143,7 @@ export function TocStep(props: StepProps) {
     <StepShell
       {...props}
       railEmpty={!selected}
-      chips={[entriesLabel, t`${plural(levels.length, { one: "# level", other: "# levels" })}`]}
+      chips={[]}
       headerExtra={
         <StepVersionPicker
           label={label}
@@ -151,23 +167,27 @@ export function TocStep(props: StepProps) {
       }
     >
       {selected ? (
-        <TocPageDetail
+        <TocPageView
           key={selected.pageId}
           label={label}
           pageId={selected.pageId}
           pageNumber={selected.pageNumber}
+          hex={plugin.hex}
           entries={scoped.itemsOn(selected.pageId)}
           ctx={ctx}
+          saveError={edits.saveError}
           prevPageId={nav.prevId}
           nextPageId={nav.nextId}
           onStep={nav.step}
           onClose={nav.close}
+          problem={surface.problem}
+          retry={surface.retry}
         />
       ) : (
         <TocOverview
           label={label}
           hex={plugin.hex}
-          meta={entriesLabel}
+          meta={meta}
           top={surface.top}
           help={surface.help}
           entries={entries}
@@ -178,6 +198,7 @@ export function TocStep(props: StepProps) {
           search={search}
           onSearch={setSearch}
           saveError={edits.saveError}
+          dirty={edits.dirty}
           ctx={ctx}
           addDisabledReason={locked ? t`Wait for the table of contents to finish generating.` : undefined}
           onAddEnd={() => insertAfter(null, MIN_TOC_LEVEL)}

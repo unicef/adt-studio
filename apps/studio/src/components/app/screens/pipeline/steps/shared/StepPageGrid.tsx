@@ -8,6 +8,8 @@ export interface StepPageCardContent {
   status?: ReactNode
   preview?: ReactNode
   failed?: boolean
+  waiting?: boolean
+  selected?: boolean
 }
 
 export function StepPageGrid({

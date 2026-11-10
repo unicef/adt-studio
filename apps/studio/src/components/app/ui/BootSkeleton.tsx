@@ -1,6 +1,6 @@
 import { Trans } from "@lingui/react/macro"
 import { STAGES } from "@/components/pipeline/stage-config"
-import { StageContentSkeleton } from "@/components/app/screens/pipeline/steps/shared/StepLoadingSkeleton"
+import { StageContentSkeleton, stepLoadingShape } from "@/components/app/screens/pipeline/steps/shared/StepLoadingSkeleton"
 import { useChromeRoot } from "@/components/app/lab/chrome"
 import { rememberedPageRatio } from "@/components/app/screens/pipeline/shared/usePageAspect"
 
@@ -57,10 +57,7 @@ function stageFromPath(): { slug: string; hex: string; label: string } | null {
   return stage && stage.slug !== "storyboard" ? { slug: stage.slug, hex: stage.hex, label: decodeSegment(label) } : null
 }
 
-const LIST_STAGES = new Set(["quizzes", "glossary", "toc", "translate", "speech", "easy-read", "validation", "sign-language"])
-
 function StageBootSkeleton({ hex, slug, label }: { hex: string; slug: string; label: string }) {
-  const list = LIST_STAGES.has(slug)
   const chrome = useChromeRoot(hex)
   return (
     <div role="status" aria-busy {...chrome} className="flex h-full w-full flex-col">
@@ -82,7 +79,7 @@ function StageBootSkeleton({ hex, slug, label }: { hex: string; slug: string; la
       </header>
       <div className="min-h-0 flex-1 p-2">
         <div data-chrome="center" className="h-full overflow-hidden rounded-xl">
-          <StageContentSkeleton shape={list ? "list" : "grid"} ratio={rememberedPageRatio(label)} slug={slug} />
+          <StageContentSkeleton shape={stepLoadingShape(slug)} ratio={rememberedPageRatio(label)} slug={slug} />
         </div>
       </div>
     </div>

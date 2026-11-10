@@ -19,6 +19,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { LightboxEntry } from "../lib/types"
+import { NoticeStrip } from "@/components/ui/notice-strip"
+import { Switch } from "@/components/ui/switch"
 
 export function Lightbox({
   bookLabel,
@@ -33,6 +35,7 @@ export function Lightbox({
   onSave,
   onDiscard,
   readOnly = false,
+  accent,
 }: {
   bookLabel: string
   entries: LightboxEntry[]
@@ -46,6 +49,7 @@ export function Lightbox({
   onSave: () => void
   onDiscard: () => void
   readOnly?: boolean
+  accent?: string
 }) {
   const { t } = useLingui()
   const entry = entries[index]
@@ -66,6 +70,123 @@ export function Lightbox({
   const isDecorative = cap.decorative === true
   const hasPrev = index > 0
   const hasNext = index < entries.length - 1
+  if (accent) {
+    return (
+      <Dialog
+        open
+        onOpenChange={(next) => {
+          if (!next) onClose()
+        }}
+      >
+        <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0" style={{ ["--accent-hex" as string]: accent }}>
+          <DialogHeader className="shrink-0 space-y-1 border-b px-5 py-3 pr-12 text-left">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <ImageIcon className="h-4 w-4 text-[var(--accent-hex)]" />
+              <Trans>Edit description</Trans>
+            </DialogTitle>
+            <DialogDescription className="flex items-center gap-2 text-[11px]">
+              <span className="rounded bg-muted px-1.5 py-0.5 font-mono font-medium text-foreground">{cap.imageId}</span>
+              <span>{t`Page ${String(pageNumber)}`}</span>
+              {entries.length > 1 && (
+                <span className="ml-auto tabular-nums">
+                  {index + 1} / {entries.length}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5 sm:flex-row">
+            <div className="relative flex h-[58vh] flex-1 items-center justify-center rounded-xl border bg-muted/30 p-2">
+              <img
+                src={`${BASE_URL}/books/${bookLabel}/images/${cap.imageId}`}
+                alt={isDecorative ? "" : cap.caption}
+                draggable={false}
+                className={`max-h-full max-w-full rounded object-contain transition-opacity duration-300 motion-reduce:transition-none ${isDecorative ? "opacity-80" : "opacity-100"}`}
+              />
+              {hasPrev && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate(index - 1)}
+                  aria-label={t`Previous image`}
+                  className="absolute top-1/2 left-2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border bg-background/90 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted"
+                >
+                  <ChevronLeft className="size-5" />
+                </button>
+              )}
+              {hasNext && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate(index + 1)}
+                  aria-label={t`Next image`}
+                  className="absolute top-1/2 right-2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border bg-background/90 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted"
+                >
+                  <ChevronRight className="size-5" />
+                </button>
+              )}
+            </div>
+
+            <aside className="flex w-full shrink-0 flex-col gap-3 sm:w-64">
+              {isDecorative ? (
+                <NoticeStrip
+                  tone="attention"
+                  hex={accent}
+                  icon={EyeOff}
+                  title={<Trans>Decorative</Trans>}
+                  body={<Trans>Screen readers skip this image, so it needs no description.</Trans>}
+                />
+              ) : (
+                <>
+                  <label htmlFor={`lightbox-${cap.imageId}`} className="text-[12px] font-medium text-muted-foreground">
+                    <Trans>Description</Trans>
+                  </label>
+                  <textarea
+                    id={`lightbox-${cap.imageId}`}
+                    value={cap.caption}
+                    onChange={(e) => onCaptionChange(entry, e.target.value)}
+                    readOnly={readOnly}
+                    aria-label={t`Description of ${cap.imageId}`}
+                    placeholder={t`Describe this image…`}
+                    className="min-h-[160px] flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm leading-relaxed text-foreground transition-[border-color,box-shadow] duration-150 placeholder:text-muted-foreground/60 read-only:bg-muted/40 read-only:text-muted-foreground focus:border-[var(--accent-hex)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent-hex)_30%,transparent)] focus:outline-none"
+                  />
+                </>
+              )}
+            </aside>
+          </div>
+
+          <DialogFooter className="shrink-0 items-center border-t px-5 py-3 sm:justify-between">
+            <label className={`flex shrink-0 items-center gap-2 text-[12.5px] font-medium ${readOnly ? "text-muted-foreground" : "cursor-pointer text-foreground"}`}>
+              <Switch
+                checked={isDecorative}
+                disabled={readOnly}
+                onCheckedChange={() => onToggleDecorative(entry)}
+                className="h-5 w-9 data-[state=checked]:bg-[var(--accent-hex)] [&>span]:size-4 [&>span]:data-[state=checked]:translate-x-4"
+              />
+              <Trans>Decorative</Trans>
+            </label>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={onDiscard}
+                disabled={!dirty || saving}
+                className="h-8 rounded-lg px-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+              >
+                {t`Discard`}
+              </button>
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={!dirty || saving || readOnly}
+                className="flex h-8 items-center gap-1.5 rounded-lg bg-[color-mix(in_oklab,var(--accent-hex)_85%,black)] px-3 text-[12.5px] font-semibold text-white transition-[background-color,opacity] hover:bg-[color-mix(in_oklab,var(--accent-hex)_75%,black)] disabled:pointer-events-none disabled:opacity-40"
+              >
+                {saving ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" /> : <Check className="size-3.5" />}
+                {t`Save changes`}
+              </button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
   return (
     <Dialog

@@ -33,20 +33,22 @@ export function GlossaryFiltersInline({
           { value: "all", label: t`All`, count: counts.all },
         ]}
       />
-      <button
-        type="button"
-        aria-pressed={mineOnly}
-        disabled={counts.mine === 0}
-        onClick={() => onMineOnly(!mineOnly)}
-        className={cn(
-          "flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition-colors disabled:pointer-events-none disabled:text-muted-foreground",
-          mineOnly ? "bg-foreground text-background" : "text-foreground hover:bg-muted",
-        )}
-      >
-        {mineOnly ? <Check className="size-3" /> : <PenLine className="size-3" />}
-        {t`Added by you`}
-        <span className="font-mono text-[11px] tabular-nums">{counts.mine}</span>
-      </button>
+      <span title={counts.mine === 0 ? t`You haven't added any terms yet. Add term adds your own.` : undefined}>
+        <button
+          type="button"
+          aria-pressed={mineOnly}
+          disabled={counts.mine === 0}
+          onClick={() => onMineOnly(!mineOnly)}
+          className={cn(
+            "flex h-9 items-center gap-1.5 rounded-[10px] border px-3 text-[12px] font-medium transition-colors disabled:pointer-events-none disabled:text-muted-foreground",
+            mineOnly ? "bg-foreground text-background" : "bg-card text-foreground hover:bg-muted",
+          )}
+        >
+          {mineOnly ? <Check className="size-3" /> : <PenLine className="size-3" />}
+          {t`Added by you`}
+          <span className="font-mono text-[11px] tabular-nums">{counts.mine}</span>
+        </button>
+      </span>
     </>
   )
 }

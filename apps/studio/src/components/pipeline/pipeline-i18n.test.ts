@@ -33,7 +33,7 @@ const {
 describe("pipeline-i18n", () => {
   it("returns validation stage labels", () => {
     expect(getStageLabelI18n("validation")).toBe("Validation")
-    expect(getStageRunningLabelI18n("validation")).toBe("Running Validation...")
+    expect(getStageRunningLabelI18n("validation")).toBe("Checking the book…")
     expect(getStageDescriptionI18n("validation")).toBe(
       "Run whole-book validation checks and configure accessibility assessment settings.",
     )

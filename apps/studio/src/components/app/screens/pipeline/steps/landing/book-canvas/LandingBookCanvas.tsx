@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { plural } from "@lingui/core/macro"
 import { useLingui } from "@lingui/react/macro"
 import { ImageOff } from "lucide-react"
 import { getSourcePdfThumbnailUrl } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { countGroups, groupPages, type PageGroup } from "@/components/app/screens/pipeline/shared/groupPages"
-import { CANVAS_GAP, CANVAS_ROWS, useCanvasFit } from "./useCanvasFit"
+import { rememberedSingleRatio } from "@/components/app/screens/pipeline/shared/usePageAspect"
+import { CANVAS_GAP, CANVAS_PAGE_RATIO, CANVAS_ROWS, useCanvasFit } from "./useCanvasFit"
+import { canvasColumns } from "./wallLayout"
 
 const THUMB_WIDTH = 300
 const SHEET = "relative overflow-hidden rounded-lg bg-card shadow-[0_8px_24px_-14px_rgba(15,23,42,0.4)] ring-1 ring-black/5"
@@ -16,6 +18,25 @@ function thumbUrl(bookLabel: string, number: number, width: number, attempt: num
   const url = new URL(getSourcePdfThumbnailUrl(bookLabel, number, width), window.location.href)
   if (attempt > 0) url.searchParams.set("retry", String(attempt))
   return url.toString()
+}
+
+function useSourcePageRatio(bookLabel: string, page: number, enabled: boolean): number {
+  const url = enabled ? thumbUrl(bookLabel, page, THUMB_WIDTH, 0) : null
+  const [measured, setMeasured] = useState<{ url: string; ratio: number } | null>(null)
+  useEffect(() => {
+    if (!url) return
+    const image = new Image()
+    image.decoding = "async"
+    image.onload = () => {
+      if (image.naturalWidth > 0 && image.naturalHeight > 0) setMeasured({ url, ratio: image.naturalWidth / image.naturalHeight })
+    }
+    image.src = url
+    return () => {
+      image.onload = null
+    }
+  }, [url])
+  if (measured && measured.url === url) return measured.ratio
+  return rememberedSingleRatio(bookLabel) ?? CANVAS_PAGE_RATIO
 }
 
 function PageImage({ bookLabel, number }: { bookLabel: string; number: number }) {
@@ -51,16 +72,16 @@ function PageImage({ bookLabel, number }: { bookLabel: string; number: number })
           decoding="async"
           onLoad={() => setState("loaded")}
           onError={() => setState(attempt === 0 ? "retrying" : "failed")}
-          className={cn("size-full object-cover transition-opacity duration-300 motion-reduce:transition-none", loaded ? "opacity-100" : "opacity-0")}
+          className={cn("size-full object-contain transition-opacity duration-300 motion-reduce:transition-none", loaded ? "opacity-100" : "opacity-0")}
         />
       )}
     </>
   )
 }
 
-function PageSheet({ bookLabel, number, className }: { bookLabel: string; number: number; className?: string }) {
+function PageSheet({ bookLabel, number, ratio, className }: { bookLabel: string; number: number; ratio: number; className?: string }) {
   return (
-    <div className={cn(SHEET, "aspect-[650/812]", className)}>
+    <div className={cn(SHEET, className)} style={{ aspectRatio: ratio }}>
       <PageImage bookLabel={bookLabel} number={number} />
       <span className="absolute bottom-1.5 left-1.5 rounded-md bg-zinc-900/60 px-1.5 py-0.5 font-mono text-[10.5px] font-medium tabular-nums text-white backdrop-blur-sm">
         {number}
@@ -73,29 +94,31 @@ function GroupSheet({
   bookLabel,
   group,
   spread,
+  ratio,
   first,
   last,
 }: {
   bookLabel: string
   group: PageGroup
   spread: boolean
+  ratio: number
   first: number
   last: number
 }) {
   const [left, right] = group
-  if (!spread) return <PageSheet bookLabel={bookLabel} number={left} />
+  if (!spread) return <PageSheet bookLabel={bookLabel} number={left} ratio={ratio} />
   if (right === undefined) {
     const onRight = left === first && first !== last
     return (
       <div className="grid grid-cols-2">
-        <PageSheet bookLabel={bookLabel} number={left} className={onRight ? "col-start-2" : undefined} />
+        <PageSheet bookLabel={bookLabel} number={left} ratio={ratio} className={onRight ? "col-start-2" : undefined} />
       </div>
     )
   }
   return (
     <div className="grid grid-cols-2">
-      <PageSheet bookLabel={bookLabel} number={left} className="rounded-r-none" />
-      <PageSheet bookLabel={bookLabel} number={right} className="rounded-l-none border-l border-black/10" />
+      <PageSheet bookLabel={bookLabel} number={left} ratio={ratio} className="rounded-r-none" />
+      <PageSheet bookLabel={bookLabel} number={right} ratio={ratio} className="rounded-l-none border-l border-black/10" />
     </div>
   )
 }
@@ -106,17 +129,20 @@ export function LandingBookCanvas({
   spread,
   totalPages,
   failed = false,
+  caption,
 }: {
   bookLabel: string
   range: [number, number]
   spread: boolean
   totalPages: number
   failed?: boolean
+  caption?: ReactNode
 }) {
   const { t } = useLingui()
   const { ref, cols } = useCanvasFit<HTMLDivElement>()
   const [first, last] = totalPages > 0 ? range : [1, 0]
-  const columns = spread ? Math.max(1, Math.round(cols / 2)) : cols
+  const ratio = useSourcePageRatio(bookLabel, first, totalPages > 0)
+  const columns = canvasColumns(cols, spread ? ratio * 2 : ratio)
   const groups = useMemo(() => groupPages(first, last, spread), [first, last, spread])
   const placeholders = totalPages > 0 ? 0 : cols * CANVAS_ROWS
   const total = countGroups(first, last, spread)
@@ -128,7 +154,7 @@ export function LandingBookCanvas({
           <div
             key={spread ? "spread" : "single"}
             className="grid items-start animate-in fade-in duration-300 motion-reduce:animate-none"
-            style={{ gridTemplateColumns: `repeat(${placeholders ? cols : columns}, minmax(0, 1fr))`, gap: CANVAS_GAP }}
+            style={{ gridTemplateColumns: `repeat(${placeholders ? canvasColumns(cols, ratio) : columns}, minmax(0, 1fr))`, gap: CANVAS_GAP }}
           >
             {groups.map((group, index) => (
               <div
@@ -137,11 +163,11 @@ export function LandingBookCanvas({
                 className="animate-in fade-in zoom-in-95 fill-mode-both duration-500 motion-reduce:animate-none"
                 style={{ animationDelay: `${Math.min(index, 16) * 30}ms` }}
               >
-                <GroupSheet bookLabel={bookLabel} group={group} spread={spread} first={first} last={last} />
+                <GroupSheet bookLabel={bookLabel} group={group} spread={spread} ratio={ratio} first={first} last={last} />
               </div>
             ))}
             {Array.from({ length: placeholders }, (_, index) => (
-              <div key={`placeholder-${index}`} className={cn(SHEET, "aspect-[650/812] bg-muted transition-opacity duration-300 motion-reduce:transition-none", failed ? "opacity-60" : "motion-safe:animate-pulse")} />
+              <div key={`placeholder-${index}`} style={{ aspectRatio: ratio }} className={cn(SHEET, "bg-muted transition-opacity duration-300 motion-reduce:transition-none", failed ? "opacity-60" : "motion-safe:animate-pulse")} />
             ))}
           </div>
         </div>
@@ -154,7 +180,7 @@ export function LandingBookCanvas({
               : t`Pages ${first}–${last} · ${plural(total, { one: "# page", other: "# pages" })}`}
           </span>
         )}
-        <span>{t`Extract turns each of these into text, images and structure.`}</span>
+        <span>{caption ?? t`Extract turns each of these into text, images and structure.`}</span>
       </p>
     </div>
   )

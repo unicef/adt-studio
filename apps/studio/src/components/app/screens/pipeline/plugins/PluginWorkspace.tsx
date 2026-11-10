@@ -9,10 +9,9 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "@/components/ui/sonner"
 import { useVariant } from "@/components/app/lab/variants"
 import { useChromeRoot } from "@/components/app/lab/chrome"
-import { usePanelFit } from "@/components/app/screens/pipeline/shared/panelFit"
+import { usePanelFit, useRailOpen } from "@/components/app/screens/pipeline/shared/panelFit"
 import { TopBar } from "@/components/app/screens/pipeline/chrome/PipelineChrome"
 import { useRunFinished } from "@/components/app/screens/pipeline/runs/useRunFinished"
-import { LiveRunStrip } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
 import { usePageParam } from "@/components/app/screens/pipeline/steps/shared/usePageParam"
 import { usePipelineState } from "@/components/app/screens/pipeline/shared/usePipelineState"
 
@@ -55,9 +54,10 @@ export function PluginWorkspace({
           icon: plugin.icon,
         }
       : rawActivity
-  const isActive = activity?.isActive ?? false
   const returnVariant = useVariant("return")
   const rowRef = useRef<HTMLDivElement>(null)
+  const [railOpen] = useRailOpen()
+  const railToggleShown = !railOpen && !railEmpty
   usePanelFit(rowRef)
   const [finished, dismissFinished] = useRunFinished(activity)
 
@@ -107,13 +107,12 @@ export function PluginWorkspace({
           <ScrollArea
             horizontal
             className="min-h-0 min-w-0 flex-1"
-            viewportClassName={cn("flex px-6 [&>div]:mx-auto", bodyViewportClassName)}
-          >
-            {activityStage !== plugin.slug && isActive && activity && (
-              <div className="mx-auto w-full max-w-[860px] pt-6">
-                <LiveRunStrip stage={activity} />
-              </div>
+            viewportClassName={cn(
+              "flex px-6 transition-[padding] duration-300 ease-out motion-reduce:transition-none [&>div]:mx-auto",
+              railToggleShown && "pl-16",
+              bodyViewportClassName,
             )}
+          >
             {children}
           </ScrollArea>
           </div>

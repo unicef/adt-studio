@@ -8,7 +8,7 @@ export function PreRunChecklist({ items }: { items: Prerequisite[] }) {
 
   return (
     <section data-settings-card="" className="flex flex-col gap-2.5 rounded-xl border bg-card p-3.5">
-      <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <h2 className="text-[12.5px] font-semibold text-foreground">
         <Trans>Before running</Trans>
       </h2>
       <ul className="flex flex-col gap-2">

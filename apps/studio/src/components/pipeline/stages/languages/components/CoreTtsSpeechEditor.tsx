@@ -9,10 +9,24 @@ import { cn } from "@/lib/utils"
 const badgeClass =
   "ml-1.5 inline-flex rounded px-1 py-0.5 text-[9px] font-medium ring-1 ring-inset"
 
-export function CoreTtsBadges({ entry }: { entry?: CoreTtsCatalogEntry }) {
+const quietBadgeClass =
+  "inline-flex items-center rounded-full border bg-transparent px-2 py-0.5 text-[10.5px] font-normal text-muted-foreground"
+
+export function CoreTtsBadges({ entry, quiet = false }: { entry?: CoreTtsCatalogEntry; quiet?: boolean }) {
   const { t } = useLingui()
 
   if (!entry) return null
+
+  if (quiet) {
+    return (
+      <>
+        {entry.transformations.includes("latex-to-speech") ? <span className={quietBadgeClass}>{t`Math read as words`}</span> : null}
+        {entry.transformations.includes("language-normalization") ? <span className={quietBadgeClass}>{t`Adjusted for speech`}</span> : null}
+        {entry.status === "failed" ? <span className={cn(quietBadgeClass, "border-destructive/40 text-destructive")}>{t`Couldn't prepare`}</span> : null}
+        {entry.generation.mode === "manual" ? <span className={quietBadgeClass}>{t`Edited by you`}</span> : null}
+      </>
+    )
+  }
 
   return (
     <>
@@ -37,22 +51,35 @@ export function CoreTtsSpeechEditor({
   language,
   displayText,
   entry,
+  accent,
+  editing: controlledEditing,
+  onEditingChange,
+  disabled = false,
 }: {
   bookLabel: string
   language: string
   displayText: string
   entry?: CoreTtsCatalogEntry
+  accent?: string
+  editing?: boolean
+  onEditingChange?: (editing: boolean) => void
+  disabled?: boolean
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const [editing, setEditing] = useState(entry?.status === "failed")
+  const [ownEditing, setOwnEditing] = useState(entry?.status === "failed")
+  const editing = (controlledEditing ?? ownEditing) && !disabled
+  const setEditing = (next: boolean) => {
+    setOwnEditing(next)
+    onEditingChange?.(next)
+  }
   const [value, setValue] = useState(entry?.speechText ?? "")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setValue(entry?.speechText ?? "")
-    setEditing(entry?.status === "failed")
+    setOwnEditing(entry?.status === "failed")
     setError(null)
   }, [entry?.generation.generatedAt, entry?.speechText, entry?.status])
 
@@ -91,6 +118,29 @@ export function CoreTtsSpeechEditor({
 
   const speechDiffers =
     entry.speechText !== null && entry.speechText !== displayText
+
+  if (accent) {
+    return (
+      <AccentSpeechEditor
+        entry={entry}
+        accent={accent}
+        editing={editing}
+        speechDiffers={speechDiffers}
+        value={value}
+        saving={saving}
+        error={error}
+        disabled={disabled}
+        onChange={setValue}
+        onEdit={() => setEditing(true)}
+        onSave={() => void save()}
+        onCancel={() => {
+          setValue(entry.speechText ?? "")
+          setEditing(false)
+          setError(null)
+        }}
+      />
+    )
+  }
 
   if (!editing && !speechDiffers && entry.status !== "failed") {
     return (
@@ -154,6 +204,102 @@ export function CoreTtsSpeechEditor({
         </button>
       )}
       {error ? <p className="mt-1 text-[10px] text-red-700">{error}</p> : null}
+    </div>
+  )
+}
+
+function AccentSpeechEditor({
+  entry,
+  accent,
+  editing,
+  speechDiffers,
+  value,
+  saving,
+  error,
+  disabled,
+  onChange,
+  onEdit,
+  onSave,
+  onCancel,
+}: {
+  entry: CoreTtsCatalogEntry
+  accent: string
+  editing: boolean
+  speechDiffers: boolean
+  value: string
+  saving: boolean
+  error: string | null
+  disabled: boolean
+  onChange: (value: string) => void
+  onEdit: () => void
+  onSave: () => void
+  onCancel: () => void
+}) {
+  const { t } = useLingui()
+  const failed = entry.status === "failed"
+  if (!editing && !speechDiffers && !failed && !error) return null
+  return (
+    <div
+      className="mt-1 border-l-2 pl-2.5 animate-in fade-in duration-200 motion-reduce:animate-none"
+      style={{ borderColor: `color-mix(in srgb, ${accent} 45%, transparent)`, ["--speech-accent" as string]: accent }}
+    >
+      {failed && entry.failureReason ? <p className="mb-1 text-[12px] leading-snug text-destructive">{entry.failureReason}</p> : null}
+      {editing ? (
+        <div className="flex flex-col gap-2">
+          <textarea
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault()
+                onCancel()
+              }
+              if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                event.preventDefault()
+                onSave()
+              }
+            }}
+            autoFocus
+            aria-label={t`What is read aloud`}
+            placeholder={t`Write the words the voice should say`}
+            rows={2}
+            className="w-full resize-y rounded-md border bg-background px-2 py-1.5 text-[12.5px] leading-relaxed text-foreground outline-none transition-[border-color,box-shadow] duration-150 focus:border-[color-mix(in_srgb,var(--speech-accent)_55%,transparent)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--speech-accent)_18%,transparent)]"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={saving || !value.trim()}
+              onClick={onSave}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-45"
+              style={{ backgroundColor: accent }}
+            >
+              {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+              {t`Save what is read`}
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={onCancel}
+              className="inline-flex h-8 items-center rounded-lg px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-45"
+            >
+              {t`Cancel`}
+            </button>
+          </div>
+        </div>
+      ) : entry.speechText !== null && speechDiffers ? (
+        <button
+          type="button"
+          onClick={disabled ? undefined : onEdit}
+          aria-disabled={disabled || undefined}
+          title={t`Edit what is read aloud`}
+          className="group/speech flex w-full items-start gap-2 rounded-md px-1 py-0.5 text-left text-[12.5px] leading-relaxed text-muted-foreground transition-colors hover:bg-muted aria-disabled:cursor-default aria-disabled:hover:bg-transparent"
+        >
+          <span className="sr-only">{t`Read aloud as:`}</span>
+          <span className="min-w-0 flex-1">{entry.speechText}</span>
+          {!disabled && <Pencil className="mt-1 size-3 shrink-0 opacity-0 transition-opacity group-hover/speech:opacity-100 group-focus-visible/speech:opacity-100" />}
+        </button>
+      ) : null}
+      {error ? <p className="mt-1 text-[12px] text-destructive">{error}</p> : null}
     </div>
   )
 }

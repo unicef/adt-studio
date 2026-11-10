@@ -14,6 +14,7 @@ export function QuizEditor({
   locked,
   pageNumbers,
   ratio,
+  range,
   onQuiz,
   onOption,
   onOpenThumb,
@@ -24,6 +25,7 @@ export function QuizEditor({
   locked: boolean
   pageNumbers: ReadonlyMap<string, number>
   ratio: number
+  range: string
   onQuiz: (patch: Partial<QuizRow>) => void
   onOption: (index: number, patch: Partial<QuizOption>) => void
   onOpenThumb: (pageId: string) => void
@@ -121,7 +123,7 @@ export function QuizEditor({
       {quiz.pageIds.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            <Trans>Made from pages</Trans>
+            {range ? <Trans>Made from pages {range}</Trans> : <Trans>Made from pages</Trans>}
           </span>
           <QuizThumbs label={label} pageIds={quiz.pageIds} pageNumbers={pageNumbers} ratio={ratio} size="lg" onOpen={onOpenThumb} />
         </div>

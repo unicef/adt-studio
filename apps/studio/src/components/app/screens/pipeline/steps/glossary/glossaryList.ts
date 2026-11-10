@@ -48,17 +48,20 @@ export function buildGlossaryList(
   const order = (list: GlossaryRow[]) => {
     const sorted = [...list]
     if (state.sort === "az") sorted.sort(byWord)
+    else if (state.sort === "za") sorted.sort((a, b) => byWord(b, a))
     else if (state.sort === "usage") sorted.sort((a, b) => usage(b) - usage(a) || byWord(a, b))
+    else if (state.sort === "rare") sorted.sort((a, b) => usage(a) - usage(b) || byWord(a, b))
     else sorted.sort((a, b) => firstPage(a) - firstPage(b) || byWord(a, b))
     return sorted
   }
   const mine = (row: GlossaryRow) => !state.mineOnly || row.source === "manual"
-  const inScope =
-    mode === "tray"
-      ? rows.filter(mine)
-      : rows.filter((row) => mine(row) && (state.filter === "all" || (state.filter === "pruned" ? row.pruned : !row.pruned)))
+  const prunedOnly = state.filter === "pruned"
+  const useTray = mode === "tray" && !prunedOnly
+  const inScope = useTray
+    ? rows.filter(mine)
+    : rows.filter((row) => mine(row) && (state.filter === "all" || (prunedOnly ? row.pruned : !row.pruned)))
   const found = inScope.filter((row) => matchesSearch(row, query))
-  const main = order(mode === "tray" ? found.filter((row) => !row.pruned) : found)
-  const tray = mode === "tray" ? order(found.filter((row) => row.pruned)) : []
+  const main = order(useTray ? found.filter((row) => !row.pruned) : found)
+  const tray = useTray ? order(found.filter((row) => row.pruned)) : []
   return { main, tray, counts, matches: { shown: main.length + tray.length, total: inScope.length } }
 }

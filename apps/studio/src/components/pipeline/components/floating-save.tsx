@@ -70,6 +70,7 @@ export interface FloatingSaveEntry {
    */
   labelKey?: string
   scope?: FloatingSaveScope
+  accent?: string
 }
 
 export interface FloatingSaveScope {
@@ -94,6 +95,7 @@ function signature(e: FloatingSaveEntry): string {
     e.resetStages?.join(",") ?? "",
     e.scope?.page ?? "",
     e.scope?.language ?? "",
+    e.accent ?? "",
   ].join("|")
 }
 
@@ -163,6 +165,7 @@ export function FloatingSaveProvider({
 
 interface BarProps {
   label?: ReactNode
+  accent?: string
   saving: boolean
   onSave?: () => void
   onSaveAndRerun?: () => void
@@ -196,6 +199,7 @@ function FloatingSaveHost({
     const e = entries[0]
     barProps = {
       label: e.label,
+      accent: e.accent,
       saving: e.saving,
       onSave: e.onSave
         ? () => {
@@ -216,6 +220,7 @@ function FloatingSaveHost({
           {t`${entries.length} items with unsaved changes`}
         </span>
       ),
+      accent: entries.find((e) => e.accent)?.accent,
       saving: entries.some((e) => e.saving),
       onSave: entries.some((e) => e.onSave)
         ? () => {
@@ -243,6 +248,14 @@ function FloatingSaveHost({
     const id = window.setTimeout(() => setMounted(false), EXIT_MS)
     return () => window.clearTimeout(id)
   }, [present])
+
+  const lifted = present && !!barProps?.accent
+  useEffect(() => {
+    if (!lifted) return
+    const root = document.documentElement
+    root.setAttribute("data-save-bar", "")
+    return () => root.removeAttribute("data-save-bar")
+  }, [lifted])
 
   if (!mounted || !lastProps.current) return null
   return <FloatingSaveBar {...lastProps.current} className={className} closing={!present} />

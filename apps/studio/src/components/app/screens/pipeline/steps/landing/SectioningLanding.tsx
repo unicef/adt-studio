@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo , type ReactNode } from "react"
+import { useState, useEffect, useMemo, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { StepLandingShell } from "./StepLandingShell"
 import { useLandingRunGate } from "./useLandingRunGate"
@@ -18,9 +18,7 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SectioningModeVisual } from "@/components/pipeline/stages/sectioning/components/SectioningModeVisual"
-import { SectioningPreview } from "@/components/pipeline/stages/sectioning/components/SectioningPreview"
 import { resolveSectioningStartStage } from "@/components/pipeline/stages/sectioning/SectioningLandingPage.helpers"
-import { useVariant } from "@/components/app/lab/variants"
 import { SectioningLandingCanvas } from "../sectioning/SectioningLandingCanvas"
 
 type SectioningModeKey = "dynamic" | "page"
@@ -36,7 +34,6 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
   const { queueRun } = useBookRun()
   const status = useStageStatus("sectioning")
   const gate = useLandingRunGate(bookLabel, "sectioning")
-  const landingVariant = useVariant("sectlanding")
   const extractStatus = useStageStatus("extract")
   const extractReady = extractStatus.isCompleted
   const extractCovered = extractStatus.isCompleted || extractStatus.isRunning
@@ -102,7 +99,6 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
     [t],
   )
 
-
   return (
     <StepLandingShell
       title={<Trans>Sectioning</Trans>}
@@ -156,10 +152,8 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
       disabledReason={gate.disabledReason}
       runLabel={<Trans>Run Sectioning</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
-      previewLabel={t`Sectioning Preview`}
       onRun={handleRun}
-      preview={<SectioningPreview />}
-      canvas={landingVariant === "current" ? undefined : <SectioningLandingCanvas bookLabel={bookLabel} variant={landingVariant} mode={sectioningMode} />}
+      canvas={<SectioningLandingCanvas bookLabel={bookLabel} mode={sectioningMode} />}
     >
       <SettingsCard>
         <SettingsField

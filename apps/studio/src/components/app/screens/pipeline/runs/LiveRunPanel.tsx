@@ -89,9 +89,10 @@ export interface PendingPageCardProps {
   textPreview?: boolean
   aspect?: number
   numbered?: boolean
+  fit?: "cover" | "contain"
 }
 
-export function PendingPageCard({ index, hex, arrived = false, label, pageId, pageNumber, textPreview = false, aspect = 3 / 4, numbered = true }: PendingPageCardProps) {
+export function PendingPageCard({ index, hex, arrived = false, label, pageId, pageNumber, textPreview = false, aspect = 3 / 4, numbered = true, fit = "cover" }: PendingPageCardProps) {
   const number = pageNumber ?? index + 1
   const { t } = useLingui()
   return (
@@ -106,6 +107,7 @@ export function PendingPageCard({ index, hex, arrived = false, label, pageId, pa
             label={label}
             pageId={pageId}
             sectionIndex={null}
+            fit={fit}
             className={cn(
               "absolute inset-0 h-full w-full object-cover transition-[opacity,filter] duration-700",
               arrived ? "opacity-100 grayscale-0" : "opacity-45 grayscale",
@@ -191,6 +193,7 @@ export function LiveRunPanel({ stage, total, outcome, label, pages }: LiveRunPan
             pageId={pages?.[index]?.pageId}
             pageNumber={pages?.[index]?.pageNumber}
             aspect={aspect.ratio}
+            fit={pages?.[index] ? aspect.fitOf(pages[index]) : undefined}
           />
         ))}
       </div>

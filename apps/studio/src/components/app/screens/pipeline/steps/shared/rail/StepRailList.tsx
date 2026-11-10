@@ -18,6 +18,7 @@ export function StepRailList({
   onSelect,
   footer,
   hoverPreview = false,
+  searchPlaceholder,
 }: {
   heading: ReactNode
   hex: string
@@ -26,6 +27,7 @@ export function StepRailList({
   onSelect?: (key: string | null) => void
   footer?: ReactNode
   hoverPreview?: boolean
+  searchPlaceholder?: string
 }) {
   const { t } = useLingui()
   const { label } = useParams({ strict: false }) as { label?: string }
@@ -63,6 +65,7 @@ export function StepRailList({
           query={query}
           onQuery={setQuery}
           matches={needle ? matches.length : null}
+          placeholder={searchPlaceholder}
           onSubmit={() => {
             const first = matches[0]
             if (first) onSelect?.(first.key)

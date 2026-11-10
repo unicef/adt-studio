@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
-import { api, type EasyReadSectionBlock } from "@/api/client"
+import { api, type EasyReadEntry, type EasyReadSectionBlock } from "@/api/client"
 import { useEasyRead } from "../shared/queries"
 import { useDocumentEdits } from "../shared/useDocumentEdits"
 
@@ -19,6 +19,7 @@ export interface EasyReadEdits {
   saving: boolean
   saveError: Error | null
   editedKeys: ReadonlySet<string>
+  isEntryEdited: (blockKey: EasyReadBlockKey, entry: EasyReadEntry) => boolean
   updateEntry: (blockKey: EasyReadBlockKey, easyReadId: string, text: string) => void
   save: () => Promise<void>
   discard: () => void
@@ -30,10 +31,12 @@ export function easyReadBlockKey(block: EasyReadBlockKey): string {
   return `${block.pageId}:${block.sectionId}:${block.sectionIndex}`
 }
 
+const entryKey = (block: EasyReadBlockKey, easyReadId: string) => `${easyReadBlockKey(block)}:${easyReadId}`
+
 const getBlocks = (doc: EasyReadDoc) => doc.blocks
 const setBlocks = (doc: EasyReadDoc, blocks: EasyReadSectionBlock[]) => ({ ...doc, blocks })
 
-export function useEasyReadEdits(label: string, options: { locked?: boolean } = {}): EasyReadEdits {
+export function useEasyReadEdits(label: string, options: { locked?: boolean; accent?: string } = {}): EasyReadEdits {
   const { t } = useLingui()
   const query = useEasyRead(label)
   const queryClient = useQueryClient()
@@ -78,9 +81,23 @@ export function useEasyReadEdits(label: string, options: { locked?: boolean } = 
     afterSave,
     locked: options.locked,
     lockedReason: t`Editing is paused until Easy Read finishes.`,
+    accent: options.accent,
   })
 
-  const { update } = edits
+  const savedText = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const block of query.data?.blocks ?? []) {
+      for (const entry of block.entries) map.set(entryKey(block, entry.easyReadId), entry.text.trim())
+    }
+    return map
+  }, [query.data])
+
+  const { update, editedKeys } = edits
+  const isEntryEdited = useCallback(
+    (block: EasyReadBlockKey, entry: EasyReadEntry) =>
+      editedKeys.has(easyReadBlockKey(block)) && savedText.get(entryKey(block, entry.easyReadId)) !== entry.text.trim(),
+    [editedKeys, savedText],
+  )
   const updateEntry = useCallback(
     (blockKey: EasyReadBlockKey, easyReadId: string, text: string) =>
       update(easyReadBlockKey(blockKey), (block) => ({
@@ -97,7 +114,8 @@ export function useEasyReadEdits(label: string, options: { locked?: boolean } = 
     dirty: edits.dirty,
     saving: edits.saving,
     saveError: edits.saveError,
-    editedKeys: edits.editedKeys,
+    editedKeys,
+    isEntryEdited,
     updateEntry,
     save: edits.save,
     discard: edits.discard,

@@ -3,7 +3,10 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import type { FilterValue } from "./types"
 
-export function FilterEmptyState({ filter }: { filter: FilterValue }) {
+const ACCENT_TAG = "bg-[color-mix(in_srgb,var(--empty-accent)_14%,transparent)] text-[var(--empty-accent)]"
+const ACCENT_ICON_BG = "border-[color-mix(in_srgb,var(--empty-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--empty-accent)_8%,transparent)]"
+
+export function FilterEmptyState({ filter, accent }: { filter: FilterValue; accent?: string }) {
   const { t } = useLingui()
   const config =
     filter === "missing"
@@ -55,23 +58,28 @@ export function FilterEmptyState({ filter }: { filter: FilterValue }) {
           }
   const { Icon } = config
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <div className="relative flex max-w-md flex-col items-center gap-5 overflow-hidden rounded-2xl border border-[#ececec] bg-white px-8 py-9 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)] motion-safe:animate-in motion-safe:fade-in-50 motion-safe:zoom-in-95 motion-safe:duration-500 motion-safe:ease-out">
+    <div className="flex flex-1 items-center justify-center p-6" style={accent ? { ["--empty-accent" as string]: accent } : undefined}>
+      <div
+        className={cn(
+          "relative flex max-w-md flex-col items-center gap-5 overflow-hidden rounded-2xl border px-8 py-9 text-center motion-safe:animate-in motion-safe:fade-in-50 motion-safe:zoom-in-95 motion-safe:duration-500 motion-safe:ease-out",
+          accent ? "bg-card shadow-sm" : "border-[#ececec] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)]",
+        )}
+      >
         <div
           className={cn(
             "pointer-events-none absolute -top-16 left-1/2 h-32 w-48 -translate-x-1/2 rounded-full blur-3xl",
-            config.glowClass,
+            accent ? "bg-[color-mix(in_srgb,var(--empty-accent)_18%,transparent)]" : config.glowClass,
           )}
           aria-hidden
         />
         <div
           className={cn(
             "relative flex h-12 w-12 items-center justify-center rounded-full border",
-            config.iconBgClass,
+            accent ? ACCENT_ICON_BG : config.iconBgClass,
           )}
         >
           <Icon
-            className={cn("h-5 w-5", config.iconColorClass)}
+            className={cn("h-5 w-5", accent ? "text-[var(--empty-accent)]" : config.iconColorClass)}
             strokeWidth={2}
             aria-hidden
           />
@@ -80,15 +88,15 @@ export function FilterEmptyState({ filter }: { filter: FilterValue }) {
           <span
             className={cn(
               "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
-              config.tagClass,
+              accent ? ACCENT_TAG : config.tagClass,
             )}
           >
             {config.tag}
           </span>
-          <h2 className="text-[17px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+          <h2 className={cn("text-[17px] font-semibold leading-tight tracking-tight", accent ? "text-foreground" : "text-[#0a0a0a]")}>
             {config.title}
           </h2>
-          <p className="w-[34ch] text-balance text-[13.5px] leading-relaxed text-[#525252]">
+          <p className={cn("w-[34ch] text-balance text-[13.5px] leading-relaxed", accent ? "text-muted-foreground" : "text-[#525252]")}>
             {config.body}
           </p>
         </div>

@@ -14,6 +14,7 @@ import { StepActionButton } from "../shared/StepActionButton"
 import { StepFilterTabs } from "../shared/StepFilterTabs"
 import { StepSearch } from "../shared/StepSearch"
 import { SaveError, StepBody, StepEmptyHint } from "../shared/ui"
+import { cn } from "@/lib/utils"
 import { TocEntryRow, type TocRowContext } from "./TocEntryRow"
 import { TocReaderMenu } from "./TocReaderMenu"
 
@@ -31,6 +32,7 @@ export function TocOverview({
   search,
   onSearch,
   saveError,
+  dirty,
   ctx,
   addDisabledReason,
   onAddEnd,
@@ -54,6 +56,7 @@ export function TocOverview({
   search: string
   onSearch: (value: string) => void
   saveError: Error | null
+  dirty: boolean
   ctx: TocRowContext
   addDisabledReason?: string
   onAddEnd: () => void
@@ -72,7 +75,7 @@ export function TocOverview({
 
   return (
     <StepBody
-      width="wide"
+      width="reading"
       title={getStageLabelI18n("toc")}
       meta={meta}
       titleExtra={help}
@@ -109,15 +112,7 @@ export function TocOverview({
             />
           )
         }
-        right={
-          byPage ? (
-            <ListPagesSwitch label={t`All entries`} onClick={onShowRows} />
-          ) : (
-            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-              {t`${plural(entries.length, { one: "# entry", other: "# entries" })}`}
-            </span>
-          )
-        }
+        right={byPage ? <ListPagesSwitch label={t`All entries`} onClick={onShowRows} /> : null}
       />
       <SaveError error={saveError} />
       {byPage ? (
@@ -151,19 +146,14 @@ export function TocOverview({
             ) : (
               shown.map((entry) => <TocEntryRow key={entry.id} entry={entry} ctx={ctx} />)
             )}
-            <button
-              type="button"
-              onClick={onAddEnd}
-              disabled={!!addDisabledReason}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-dashed px-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none"
-            >
-              <Plus className="size-3.5" />
-              <Trans>Add entry at the end</Trans>
-            </button>
           </div>
           <TocReaderMenu entries={entries} hex={hex} />
         </div>
       )}
+      <div
+        aria-hidden
+        className={cn("shrink-0 transition-[height] duration-200 ease-out motion-reduce:transition-none", dirty ? "h-20" : "h-0")}
+      />
     </StepBody>
   )
 }

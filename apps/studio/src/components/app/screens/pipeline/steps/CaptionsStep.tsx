@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
+import { EyeOff } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
 import type { PageDetail } from "@/api/client"
 import type { CaptionEntry } from "@/components/pipeline/stages/captions/lib/types"
 import { usePages } from "@/hooks/use-pages"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
@@ -13,11 +15,11 @@ import { StepRail } from "./shared/ui"
 import { usePageNav } from "./shared/usePageNav"
 import { usePageParam } from "./shared/usePageParam"
 import { usePageRailEntries } from "./shared/usePageRailEntries"
-import { usePageView } from "./shared/pageview/usePageView"
+import { useVariant } from "@/components/app/lab/variants"
 import { createDraftStore, useDraftKeys } from "./shared/pageview/draftStore"
 import { useStageSurface } from "./shared/useStageSurface"
 import { CaptionsOverview } from "./captions/CaptionsOverview"
-import { CaptionsPageDetail } from "./captions/CaptionsPageDetail"
+import { CaptionsPageView } from "./captions/page/CaptionsPageView"
 import type { ItemFilter } from "./captions/CaptionList"
 import { useCaptionSearch } from "./captions/useCaptionSearch"
 import { pageMatchesCaptionFilter, useCaptionStats, type CaptionFilter } from "./captions/useCaptionStats"
@@ -32,7 +34,10 @@ export function CaptionsStep(props: StepProps) {
   const run = useRunActivity()
   const activity = useStageActivity("captions")
   const pagesQuery = usePages(label)
-  const view = usePageView()
+  const capview = useVariant("capview")
+  const runGrid = useVariant("caprunning") === "grid"
+  const boldNext = useVariant("capnext") === "bold"
+  const view = capview === "feed" ? "items" : "pages"
   const [filter, setFilter] = useState<CaptionFilter>("all")
   const [search, setSearch] = useState("")
   const [draftStore] = useState(() => createDraftStore<CaptionEntry>())
@@ -49,7 +54,7 @@ export function CaptionsStep(props: StepProps) {
     hex: plugin.hex,
     pages,
     ready,
-    outcome: t`Editing is paused until Image Captions finishes.`,
+    outcome: t`Editing is paused until ${getStageLabelI18n("captions")} finishes.`,
     hint: {
       title: t`How image descriptions work`,
       body: t`AI wrote a short description of every picture, so screen readers and translations can say what's in it. Edit any description, or mark an image as decorative so screen readers skip it. Saving creates a new version of that page, so you can always go back.`,
@@ -57,6 +62,9 @@ export function CaptionsStep(props: StepProps) {
     onOpenPage: openPage,
     markExtra: missingCaptions,
     onShowFailed: () => setFilter("failed"),
+    hasOutput,
+    hintOpen: true,
+    boldNext,
   })
   const { marks } = surface
   const showFailed = surface.failView.marks && marks.failedCount > 0
@@ -71,14 +79,14 @@ export function CaptionsStep(props: StepProps) {
   const nav = usePageNav({ label, slug: plugin.slug, pages: railPages, allPages: pages })
 
   const searchResult = useCaptionSearch(label, stats.navPages, search)
-  const gridPages = useMemo(
-    () =>
-      stats.navPages.filter(
-        (page) =>
-          pageMatchesCaptionFilter(page, activeFilter, marks.isFailed) && (!searchResult.active || searchResult.matchesOn(page.pageId) > 0),
-      ),
-    [stats.navPages, activeFilter, marks, searchResult],
-  )
+  const waitingRun = runGrid && activity.isActive
+  const isWaiting = useCallback((page: PipelinePage) => waitingRun && page.captionCount === 0, [waitingRun])
+  const gridPages = useMemo(() => {
+    if (waitingRun && activeFilter === "all" && !searchResult.active) return pages.filter((page) => page.imageCount > 0 || page.captionCount > 0)
+    return stats.navPages.filter(
+      (page) => pageMatchesCaptionFilter(page, activeFilter, marks.isFailed) && (!searchResult.active || searchResult.matchesOn(page.pageId) > 0),
+    )
+  }, [waitingRun, pages, stats.navPages, activeFilter, marks, searchResult])
   const feedPages = useMemo(() => {
     if (keptPages.size === 0) return gridPages
     const shown = new Set(gridPages.map((page) => page.pageId))
@@ -88,7 +96,7 @@ export function CaptionsStep(props: StepProps) {
     (pageId: string) => keptPages.has(pageId) && !gridPages.some((page) => page.pageId === pageId),
     [keptPages, gridPages],
   )
-  const itemFilter: ItemFilter = activeFilter === "describe" || activeFilter === "decorative" ? activeFilter : "all"
+  const itemFilter: ItemFilter = activeFilter === "describe" || activeFilter === "captioned" || activeFilter === "decorative" ? activeFilter : "all"
 
   const firstCaption = useCallback(
     (page: PipelinePage) =>
@@ -98,6 +106,16 @@ export function CaptionsStep(props: StepProps) {
     [queryClient, label],
   )
   const captionsOn = useCallback((page: PipelinePage) => page.captionCount, [])
+  const decorativeMeta = useCallback(
+    (page: PipelinePage) =>
+      page.decorativeCount > 0 ? (
+        <span title={t`${plural(page.decorativeCount, { one: "# decorative image", other: "# decorative images" })}`} className="inline-flex items-center gap-0.5">
+          <EyeOff aria-hidden className="size-3" />
+          {page.decorativeCount}
+        </span>
+      ) : null,
+    [t],
+  )
   const railEntries = usePageRailEntries(label, railPages, {
     aspect,
     total: stats.total,
@@ -105,9 +123,12 @@ export function CaptionsStep(props: StepProps) {
     count: captionsOn,
     subtitle: firstCaption,
     failed: (page) => marks.isFailed(page.pageId),
+    meta: decorativeMeta,
   })
 
-  const imagesLabel = t`${plural(stats.total, { one: "# image", other: "# images" })}`
+  const imagesLabel = waitingRun
+    ? t`${stats.total} of ${plural(totalImages, { one: "# image", other: "# images" })}`
+    : t`${plural(stats.total, { one: "# image", other: "# images" })}`
   const loading = useStepLoading(props, { isLoading: pagesQuery.isPending, hasOutput })
   const runningView = useStepRunningView({
     ...props,
@@ -121,7 +142,8 @@ export function CaptionsStep(props: StepProps) {
     ...props,
     prerequisites: totalImages === 0 ? [{ key: "images", met: false, label: t`Book has images to describe — none found` }] : undefined,
   })
-  const phaseView = activity.isActive && !hasOutput ? runningView : loading ? loadingView : !hasOutput ? emptyView : null
+  const phaseView =
+    activity.isActive && !hasOutput && !runGrid ? runningView : loading ? loadingView : !hasOutput && !waitingRun ? emptyView : null
   if (phaseView) return <StepShell {...props} {...phaseView} />
 
   const selected = nav.selected
@@ -153,7 +175,7 @@ export function CaptionsStep(props: StepProps) {
       }
     >
       {selected ? (
-        <CaptionsPageDetail
+        <CaptionsPageView
           key={selected.pageId}
           label={label}
           pageId={selected.pageId}
@@ -166,6 +188,8 @@ export function CaptionsStep(props: StepProps) {
           nextPageId={nav.nextId}
           onStep={nav.step}
           onClose={nav.close}
+          problem={surface.problem}
+          retry={surface.retry}
         />
       ) : (
         <CaptionsOverview
@@ -193,6 +217,8 @@ export function CaptionsStep(props: StepProps) {
           onSearch={setSearch}
           searchResult={searchResult}
           onOpenPage={nav.open}
+          isWaiting={isWaiting}
+          split={capview === "split"}
         />
       )}
     </StepShell>

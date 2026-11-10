@@ -1,161 +1,207 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Upload } from "lucide-react"
-import {
-  useSignLanguageVideos,
-  useUploadSignLanguageVideo,
-  useDeleteSignLanguageVideo,
-  useAssignSignLanguageVideo,
-} from "@/hooks/use-sign-language-videos"
-import { isGlossaryVideoSectionId } from "@/lib/glossary-video"
-import { cn } from "@/lib/utils"
-import { buildSectionEntries } from "@/components/pipeline/stages/sign-language/components/sectionEntries"
+import { plural } from "@lingui/core/macro"
+import { TriangleAlert } from "lucide-react"
+import type { SignLanguageVideo } from "@/api/client"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
+import { useDeleteSignLanguageVideo, useAssignSignLanguageVideo } from "@/hooks/use-sign-language-videos"
+import { useStageStatus } from "@/hooks/use-stage-status"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
-import { SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
-import { HEADER_BUTTON, HEADER_BUTTON_LABELLED, HeaderButtonTile } from "./shared/headerButton"
-import { SignLanguageVideoCard } from "./sign-language/SignLanguageVideoCard"
+import { StepBody, StepRail } from "./shared/ui"
+import { ProblemNotice } from "./shared/problems/ProblemNotice"
+import { useStageSurface } from "./shared/useStageSurface"
+import { RemoveAllDialog } from "./sign-language/RemoveAllDialog"
+import { SectionTools } from "./sign-language/SectionTools"
+import { SignLanguageHeaderActions } from "./sign-language/SignLanguageHeaderActions"
+import { SignLanguageManage } from "./sign-language/SignLanguageManage"
+import { VideoFilterEmpty } from "./sign-language/VideoFilterEmpty"
+import { VideoGrid } from "./sign-language/VideoGrid"
+import { VideoPlayerDialog } from "./sign-language/VideoPlayerDialog"
+import { ALL_VIDEOS, NOT_PLACED, useSignLanguageModel, type VideoFilter } from "./sign-language/useSignLanguageModel"
+import { useSignLanguageNotes } from "./sign-language/useSignLanguageNotes"
+import { useSignLanguageRail } from "./sign-language/useSignLanguageRail"
+import { VIDEO_ACCEPT, useVideoUploads, type PendingUpload } from "./sign-language/useVideoUploads"
 import type { StepProps } from "./shared/types"
-
-/** Rail selection: "" = every video, null = the unassigned ones, else a page number. */
-type VideoFilter = string | null
 
 export function SignLanguageStep(props: StepProps) {
   const { label, plugin, pages } = props
-  const { t, i18n } = useLingui()
-  const query = useSignLanguageVideos(label)
-  const upload = useUploadSignLanguageVideo(label)
+  const { t } = useLingui()
+  const model = useSignLanguageModel(label, pages)
+  const { videos, sections, covered, total } = model
   const remove = useDeleteSignLanguageVideo(label)
   const assign = useAssignSignLanguageVideo(label)
+  const uploads = useVideoUploads(label, videos)
+  const storyboardReady = useStageStatus("storyboard").isCompleted
   const fileInput = useRef<HTMLInputElement>(null)
+  const target = useRef<string | null>(null)
 
-  // Glossary term videos are stored in the same collection but belong to the
-  // Glossary step; offering them a page here would silently detach them.
-  const videos = useMemo(
-    () => (query.data?.videos ?? []).filter((v) => !isGlossaryVideoSectionId(v.sectionId)),
-    [query.data],
+  const [filter, setFilter] = useState<VideoFilter>(ALL_VIDEOS)
+  const [manageOpen, setManageOpen] = useState(false)
+  const [removeAllOpen, setRemoveAllOpen] = useState(false)
+  const [playing, setPlaying] = useState<SignLanguageVideo | null>(null)
+
+  const canUpload = storyboardReady && sections.length > 0
+  const uploadReason = !storyboardReady ? (
+    <Trans>Run {getStageLabelI18n("storyboard")} first. Videos go on the sections it makes.</Trans>
+  ) : sections.length === 0 ? (
+    <Trans>This book has no sections to put videos on yet.</Trans>
+  ) : null
+
+  const pick = useCallback((sectionId: string | null) => {
+    target.current = sectionId
+    fileInput.current?.click()
+  }, [])
+
+  const pendingMatches = useCallback(
+    (item: PendingUpload, value: VideoFilter) => {
+      if (value === ALL_VIDEOS) return true
+      const page = item.target ? model.sectionById.get(item.target)?.pageNumber : undefined
+      if (value === NOT_PLACED) return page === undefined
+      return page !== undefined && String(page) === value
+    },
+    [model.sectionById],
   )
 
-  const sections = useMemo(() => buildSectionEntries(pages, i18n), [pages, i18n])
-  const pageBySection = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const section of sections) map.set(section.sectionId, section.pageNumber)
-    return map
-  }, [sections])
+  const onFiles = (files: File[]) => {
+    const sectionId = target.current
+    target.current = null
+    if (files.length === 0) return
+    const page = sectionId ? model.sectionById.get(sectionId)?.pageNumber : undefined
+    const shows = filter === ALL_VIDEOS || (filter === NOT_PLACED ? !sectionId : page !== undefined && String(page) === filter)
+    if (!shows) setFilter(ALL_VIDEOS)
+    uploads.add(files, sectionId)
+  }
 
-  const [filter, setFilter] = useState<VideoFilter>("")
-
-  const assigned = useMemo(() => videos.filter((v) => v.sectionId).length, [videos])
-
-  const railEntries = useMemo(() => {
-    const counts = new Map<number, number>()
-    for (const video of videos) {
-      const pageNumber = video.sectionId ? pageBySection.get(video.sectionId) : undefined
-      if (pageNumber === undefined) continue
-      counts.set(pageNumber, (counts.get(pageNumber) ?? 0) + 1)
-    }
-    return [...counts.entries()]
-      .sort(([a], [b]) => a - b)
-      .map(([pageNumber, count]) => ({
-        key: String(pageNumber),
-        title: t`Page ${pageNumber}`,
-        count,
-      }))
-  }, [videos, pageBySection, t])
-
-  const shown = useMemo(() => {
-    if (filter === "") return videos
-    if (filter === null) return videos.filter((v) => !v.sectionId)
-    return videos.filter(
-      (v) => v.sectionId != null && String(pageBySection.get(v.sectionId)) === filter,
-    )
-  }, [videos, filter, pageBySection])
-
-  const assignVideo = useCallback(
-    (videoId: string, sectionId: string | null) => assign.mutate({ videoId, sectionId }),
-    [assign],
-  )
+  const assignVideo = useCallback((videoId: string, sectionId: string | null) => assign.mutate({ videoId, sectionId }), [assign])
   const deleteVideo = useCallback((videoId: string) => remove.mutate(videoId), [remove])
+  const showUnplaced = useCallback(() => setFilter(NOT_PLACED), [])
+  const openPage = useCallback(
+    (pageId: string) => {
+      const page = pages.find((candidate) => candidate.pageId === pageId)
+      if (page) setFilter(String(page.pageNumber))
+    },
+    [pages],
+  )
 
-  const pickFile = useCallback(() => fileInput.current?.click(), [])
+  const notes = useSignLanguageNotes(model, showUnplaced)
+  const railEntries = useSignLanguageRail(model)
+  const surface = useStageSurface({
+    label,
+    slug: plugin.slug,
+    hex: plugin.hex,
+    pages,
+    ready: covered > 0,
+    outcome: null,
+    hint: {
+      title: t`How sign language works`,
+      body: t`Each section of the book can have one sign language video. Upload your videos, then choose the page each one belongs to. Readers see it in a small player beside that passage. A video that isn't on a page never reaches the book.`,
+    },
+    notes,
+    onOpenPage: openPage,
+    hasOutput: videos.length > 0,
+    hintOpen: true,
+  })
 
-  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: videos.length > 0 })
-  if (loading) return <StepLoading {...props} />
-  if (videos.length === 0) return <StepEmpty {...props} onRun={pickFile} onManual={pickFile} />
+  const shown = useMemo(() => videos.filter((video) => model.matches(video, filter)), [videos, model, filter])
+  const pendingShown = useMemo(() => uploads.pending.filter((item) => pendingMatches(item, filter)), [uploads.pending, pendingMatches, filter])
+
+  const loading = useStepLoading(props, { isLoading: model.isLoading, hasOutput: videos.length > 0 })
+  if (loading) return <StepLoading {...props} shape="list" />
+  if (videos.length === 0 && uploads.pending.length === 0) return <StepEmpty {...props} prerequisites={[]} onRun={() => pick(null)} onManual={() => pick(null)} />
+
+  const coverage = t`${covered} of ${plural(total, { one: "# section", other: "# sections" })} covered`
+  const count =
+    filter === ALL_VIDEOS
+      ? t`${plural(videos.length, { one: "# video", other: "# videos" })}`
+      : t`${shown.length} of ${plural(videos.length, { one: "# video", other: "# videos" })}`
+  const deletingId = remove.isPending ? (remove.variables ?? null) : null
+  const actionError = assign.error ? { title: t`Couldn't move the video`, error: assign.error } : remove.error ? { title: t`Couldn't remove the video`, error: remove.error } : null
 
   return (
     <StepShell
       {...props}
-      chips={[t`${videos.length} videos`, t`${assigned} assigned`]}
+      chips={[]}
       rail={
         <StepRail
           heading={<Trans>Videos by page</Trans>}
           hex={plugin.hex}
-          entries={[
-            { key: "", title: t`All videos`, count: videos.length },
-            { key: null, title: t`Unassigned`, count: videos.length - assigned },
-            ...railEntries,
-          ]}
+          entries={railEntries}
           activeKey={filter}
-          onSelect={setFilter}
+          onSelect={(key) => setFilter(key ?? ALL_VIDEOS)}
+          searchPlaceholder={t`Find a page or file`}
           footer={<Trans>Pick a page for a video so it plays alongside that passage.</Trans>}
         />
       }
     >
       <StepBody
-        title={<Trans>Sign language</Trans>}
-        meta={t`${videos.length} videos`}
-        actions={
-          <button type="button" onClick={pickFile} disabled={upload.isPending} className={cn(HEADER_BUTTON, HEADER_BUTTON_LABELLED)}>
-            <HeaderButtonTile icon={Upload} />
-            <Trans>Upload video</Trans>
-          </button>
-        }
+        title={getStageLabelI18n("sign-language")}
+        meta={`${coverage} · ${count}`}
+        titleExtra={surface.help}
+        actions={<SignLanguageHeaderActions canUpload={canUpload} uploadReason={uploadReason} onUpload={() => pick(null)} onRemoveAll={() => setRemoveAllOpen(true)} />}
       >
         <input
           ref={fileInput}
           type="file"
-          accept="video/*"
-          aria-label={t`Upload a sign language video`}
+          accept={VIDEO_ACCEPT}
+          multiple
+          aria-label={t`Upload sign language videos`}
           className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) upload.mutate(file)
-            e.target.value = ""
+          onChange={(event) => {
+            onFiles(Array.from(event.target.files ?? []))
+            event.target.value = ""
           }}
         />
 
-        <SaveError error={upload.error ?? remove.error ?? assign.error} />
+        {surface.top}
 
-        {sections.length === 0 ? (
-          <StepEmptyHint>
-            <Trans>
-              Run Storyboard first — videos are placed on the sections it produces.
-            </Trans>
-          </StepEmptyHint>
-        ) : null}
+        <SectionTools
+          hex={plugin.hex}
+          covered={covered}
+          total={total}
+          nextMissing={model.nextMissing}
+          nextUploading={model.nextMissing ? uploads.uploadingTarget(model.nextMissing.sectionId) : false}
+          canUpload={canUpload}
+          uploadReason={uploadReason}
+          onAddNext={pick}
+          onManage={() => setManageOpen(true)}
+        />
 
-        {shown.length === 0 ? (
-          <StepEmptyHint>
-            <Trans>No videos for this filter.</Trans>
-          </StepEmptyHint>
+        {actionError && <ProblemNotice level="blocked" icon={TriangleAlert} title={actionError.title} body={actionError.error.message} />}
+
+        {shown.length === 0 && pendingShown.length === 0 ? (
+          <VideoFilterEmpty filter={filter} onShowAll={() => setFilter(ALL_VIDEOS)} />
         ) : (
-          <div className="grid grid-cols-2 gap-3.5">
-            {shown.map((video) => (
-              <SignLanguageVideoCard
-                key={video.videoId}
-                video={video}
-                label={label}
-                hex={plugin.hex}
-                sections={sections}
-                isAssigning={assign.isPending && assign.variables?.videoId === video.videoId}
-                isDeleting={remove.isPending && remove.variables === video.videoId}
-                onAssign={assignVideo}
-                onDelete={deleteVideo}
-              />
-            ))}
-          </div>
+          <VideoGrid
+            label={label}
+            hex={plugin.hex}
+            model={model}
+            videos={shown}
+            pending={pendingShown}
+            assigningId={assign.isPending ? (assign.variables?.videoId ?? null) : null}
+            deletingId={deletingId}
+            onAssign={assignVideo}
+            onDelete={deleteVideo}
+            onRetry={uploads.retry}
+            onDismiss={uploads.dismiss}
+          />
         )}
       </StepBody>
+
+      <SignLanguageManage
+        label={label}
+        hex={plugin.hex}
+        model={model}
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        uploading={uploads.busy}
+        deletingId={deletingId}
+        onUpload={(sectionId) => pick(sectionId)}
+        onAssign={assignVideo}
+        onDelete={deleteVideo}
+        onPlay={setPlaying}
+      />
+      <RemoveAllDialog label={label} videos={videos} open={removeAllOpen} onOpenChange={setRemoveAllOpen} />
+      <VideoPlayerDialog label={label} video={playing} onClose={() => setPlaying(null)} />
     </StepShell>
   )
 }

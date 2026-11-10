@@ -31,6 +31,7 @@ interface NextStepCardViewProps {
   ready?: boolean
   confirm?: NextStepConfirm | null
   aside?: ReactNode
+  bold?: boolean
 }
 
 export function NextStepCard({
@@ -43,7 +44,7 @@ export function NextStepCard({
   return <NextStepCardView next={next} slug={slug} {...view} />
 }
 
-export function NextStepCardView({ next, slug, ready = true, confirm, aside }: NextStepCardViewProps) {
+export function NextStepCardView({ next, slug, ready = true, confirm, aside, bold = false }: NextStepCardViewProps) {
   const { i18n } = useLingui()
   const [asking, setAsking] = useState(false)
   if (!next) return null
@@ -57,7 +58,7 @@ export function NextStepCardView({ next, slug, ready = true, confirm, aside }: N
   }
   const whyMessage = WHY[next.slug]
   const why = whyMessage ? i18n._(whyMessage) : null
-  if (isQuietNextStep(next)) return <NextStepQuiet slug={slug} next={next} why={why} />
+  if (!bold && isQuietNextStep(next)) return <NextStepQuiet slug={slug} next={next} why={why} aside={aside} />
 
   const goButton = (
     <button

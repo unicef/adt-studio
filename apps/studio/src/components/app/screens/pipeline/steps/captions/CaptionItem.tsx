@@ -6,6 +6,8 @@ import { Switch } from "@/components/ui/switch"
 import type { CaptionEntry } from "@/components/pipeline/stages/captions/lib/types"
 import { cn } from "@/lib/utils"
 import { DraftField } from "../shared/list/DraftField"
+import { CaptionSaveTick } from "./CaptionSaveTick"
+import type { CaptionSaveState } from "./useCaptionEdits"
 
 export interface CaptionItemProps {
   label: string
@@ -18,6 +20,8 @@ export interface CaptionItemProps {
   onCaption: (imageId: string, caption: string) => void
   onDecorative: (imageId: string, decorative: boolean) => void
   onOpen: (imageId: string) => void
+  saveState?: CaptionSaveState | null
+  onUndo?: (imageId: string) => void
 }
 
 export const CaptionItem = memo(function CaptionItem({
@@ -31,6 +35,8 @@ export const CaptionItem = memo(function CaptionItem({
   onCaption,
   onDecorative,
   onOpen,
+  saveState = null,
+  onUndo,
 }: CaptionItemProps) {
   const { t } = useLingui()
   const switchId = useId()
@@ -40,7 +46,7 @@ export const CaptionItem = memo(function CaptionItem({
   const sourceLabel = manual ? t`Edited by you` : t`Written by AI`
 
   return (
-    <article data-caption-item={entry.imageId} className="@container rounded-xl border bg-card p-3">
+    <article data-caption-item={entry.imageId} className="@container rounded-xl border bg-card p-3" style={{ ["--item-hex" as string]: hex }}>
       <div className="grid grid-cols-1 gap-3 @[560px]:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
         <button
           type="button"
@@ -50,7 +56,7 @@ export const CaptionItem = memo(function CaptionItem({
         >
           <img
             src={`${BASE_URL}/books/${label}/images/${entry.imageId}`}
-            alt=""
+            alt={decorative ? "" : entry.caption}
             loading="lazy"
             draggable={false}
             className={cn("max-h-44 max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none", decorative && "opacity-60")}
@@ -76,7 +82,7 @@ export const CaptionItem = memo(function CaptionItem({
                 checked={decorative}
                 disabled={locked}
                 onCheckedChange={(checked) => onDecorative(entry.imageId, checked)}
-                className="h-5 w-9 [&>span]:size-4 [&>span]:data-[state=checked]:translate-x-4"
+                className="h-5 w-9 data-[state=checked]:bg-[var(--item-hex)] [&>span]:size-4 [&>span]:data-[state=checked]:translate-x-4"
               />
               <label htmlFor={switchId} className={cn("shrink-0 whitespace-nowrap text-[12px] font-medium", locked ? "text-muted-foreground" : "cursor-pointer text-foreground")}>
                 <Trans>Decorative</Trans>
@@ -88,8 +94,9 @@ export const CaptionItem = memo(function CaptionItem({
             <label htmlFor={fieldId} className="text-[11px] font-medium text-muted-foreground">
               <Trans>Description</Trans>
             </label>
+            {saveState && onUndo && <CaptionSaveTick state={saveState} onUndo={() => onUndo(entry.imageId)} />}
             <span className="grid size-4 place-items-center">
-              {edited && (
+              {edited && !saveState && (
                 <span
                   role="img"
                   aria-label={t`Edited, not saved yet`}

@@ -3,6 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { plural } from "@lingui/core/macro"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { PageLightbox } from "@/components/pipeline/components/PageLightbox"
 import { AddQuizDialog } from "@/components/pipeline/stages/quizzes/AddQuizDialog"
 import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
@@ -15,15 +16,20 @@ import { usePageNav } from "./shared/usePageNav"
 import { usePageRailEntries } from "./shared/usePageRailEntries"
 import { usePageScopedItems } from "./shared/list/usePageScopedItems"
 import { useExpandedRows } from "./shared/list/useExpandedRows"
+import { pageNumbersOf } from "./shared/list/pageJump"
 import { useStageSurface } from "./shared/useStageSurface"
 import { useQuizEdits } from "./quizzes/useQuizEdits"
-import type { QuizRow } from "./quizzes/quizRows"
+import { useQuizList } from "./quizzes/useQuizList"
+import { buildPageIndex, formatSourcePages } from "./quizzes/quizPages"
+import { quizMatches, type QuizRow } from "./quizzes/quizRows"
 import type { QuizRowContext } from "./quizzes/QuizRowItem"
+import type { QuizJumpEntry } from "./quizzes/QuizJumpMenu"
 import { QuizzesOverview } from "./quizzes/QuizzesOverview"
-import { QuizzesPageDetail } from "./quizzes/QuizzesPageDetail"
+import { QuizzesPageView } from "./quizzes/page/QuizzesPageView"
+import { quizPagesOf, quizzesOnPage } from "./quizzes/page/pageQuizzes"
 import type { StepProps } from "./shared/types"
 
-const afterPage = (quiz: QuizRow) => [quiz.afterPageId]
+const NO_QUIZZES: QuizRow[] = []
 
 export function QuizzesStep(props: StepProps) {
   const { label, plugin, pages } = props
@@ -32,7 +38,9 @@ export function QuizzesStep(props: StepProps) {
   const activity = useStageActivity("quizzes")
   const run = useRunActivity()
   const hasProvider = useBookStructuredTextAvailability(label)
-  const edits = useQuizEdits(label, query.data, activity.isActive)
+  const edits = useQuizEdits(label, query.data, activity.isActive, plugin.hex)
+  const serverQuizzes = query.data?.quizzes?.quizzes ?? NO_QUIZZES
+  const list = useQuizList(serverQuizzes, edits.items)
   const quizzes = edits.items
 
   const [search, setSearch] = useState("")
@@ -41,54 +49,77 @@ export function QuizzesStep(props: StepProps) {
   const [lightboxPageId, setLightboxPageId] = useState<string | null>(null)
   const expandedRows = useExpandedRows()
 
-  const pageNumbers = useMemo(() => new Map(pages.map((page) => [page.pageId, page.pageNumber])), [pages])
-  const scoped = usePageScopedItems({ pages, items: quizzes, pagesOf: afterPage })
+  const pageIndex = useMemo(() => buildPageIndex(pages), [pages])
+  const pagesById = useMemo(() => new Map(pages.map((page) => [page.pageId, page])), [pages])
+  const scoped = usePageScopedItems({ pages, items: quizzes, pagesOf: quizPagesOf })
   const pageAspect = usePageAspect(label, scoped.navPages)
   const nav = usePageNav({ label, slug: plugin.slug, pages: scoped.navPages, allPages: pages })
-  const positions = useMemo(() => new Map(quizzes.map((quiz, index) => [quiz.quizId, index + 1])), [quizzes])
-  const positionOf = useCallback((quiz: QuizRow) => positions.get(quiz.quizId) ?? 0, [positions])
+  const rangeOf = useCallback((quiz: QuizRow) => formatSourcePages(quiz.pageIds, pageIndex), [pageIndex])
 
-  const shown = useMemo(() => {
-    const needle = search.trim().toLocaleLowerCase()
-    if (!needle) return quizzes
-    return quizzes.filter((quiz) =>
-      [quiz.question, ...quiz.options.flatMap((option) => [option.text, option.explanation])].join(" ").toLocaleLowerCase().includes(needle),
-    )
-  }, [quizzes, search])
+  const shown = useMemo(() => list.listed.filter((row) => row.leaving || quizMatches(row.quiz, search)), [list.listed, search])
+  const jumpEntries = useMemo<QuizJumpEntry[]>(
+    () =>
+      list.rows.map(({ quiz, position, removed }) => ({
+        key: quiz.quizId,
+        position,
+        question: quiz.question,
+        pages: rangeOf(quiz),
+        pageNumbers: quiz.pageIds.flatMap((pageId) => {
+          const page = pagesById.get(pageId)
+          return page ? pageNumbersOf(page) : []
+        }),
+        removed,
+      })),
+    [list.rows, rangeOf, pagesById],
+  )
 
   const locked = activity.isActive
-  const { editQuiz, editOption, remove, editedKeys } = edits
+  const { editQuiz, editOption, remove, insert, editedKeys } = edits
+  const { restoreAfter } = list
+  const undo = useCallback(
+    (key: string) => {
+      const quiz = serverQuizzes.find((entry) => entry.quizId === key)
+      if (quiz) insert(quiz, restoreAfter(key))
+    },
+    [serverQuizzes, insert, restoreAfter],
+  )
   const ctx = useMemo<QuizRowContext>(
     () => ({
       label,
       hex: plugin.hex,
       locked,
       ratio: pageAspect.ratio,
-      pageNumbers,
+      pageNumbers: pageIndex.numberOf,
+      rangeOf,
       isEdited: (quiz) => editedKeys.has(quiz.quizId),
       onOpenPage: nav.open,
       onOpenThumb: setLightboxPageId,
       onQuiz: editQuiz,
       onOption: editOption,
       onRemove: remove,
+      onUndo: undo,
     }),
-    [label, plugin.hex, locked, pageAspect.ratio, pageNumbers, editedKeys, nav.open, editQuiz, editOption, remove],
+    [label, plugin.hex, locked, pageAspect.ratio, pageIndex, rangeOf, editedKeys, nav.open, editQuiz, editOption, remove, undo],
   )
 
   const count = quizzes.length
+  const serverCount = serverQuizzes.length
   const questionsLabel = t`${plural(count, { one: "# question", other: "# questions" })}`
   const every = query.data?.quizzes?.pagesPerQuiz ?? 1
+  const everyLabel = t`${plural(every, { one: "one after every page", other: "one every # pages" })}`
   const surface = useStageSurface({
     label,
     slug: "quizzes",
     hex: plugin.hex,
+    pages,
     ready: count > 0,
-    outcome: t`Editing is paused until Quizzes finishes.`,
+    outcome: t`Editing is paused until ${getStageLabelI18n("quizzes")} finishes.`,
     hint: {
       title: t`How quizzes work`,
       body: t`AI wrote these questions from the pages listed under each one. Edit any question, answer or feedback, change the correct answer, or remove a question. Saving creates a new version, so you can always go back.`,
     },
     onOpenPage: nav.open,
+    hasOutput: serverCount > 0,
   })
 
   const railEntries = usePageRailEntries(label, scoped.navPages, {
@@ -97,8 +128,10 @@ export function QuizzesStep(props: StepProps) {
     subtitle: (page) => scoped.itemsOn(page.pageId)[0]?.question,
   })
 
+  const selected = nav.selected
+  const pageItems = useMemo(() => (selected ? quizzesOnPage(list.rows, selected.pageId) : []), [selected, list.rows])
+
   const versionDiff = useMemo(() => quizzesVersionDiff(t), [t])
-  const serverCount = query.data?.quizzes?.quizzes.length ?? 0
   const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: serverCount > 0 })
   const runningView = useStepRunningView({
     ...props,
@@ -120,7 +153,6 @@ export function QuizzesStep(props: StepProps) {
         ? t`Set up AI access in Book settings to add a quiz.`
         : undefined
 
-  const selected = nav.selected
   const version = query.data?.version ?? null
   const historyVersion = query.data?.historyVersion ?? null
 
@@ -128,7 +160,7 @@ export function QuizzesStep(props: StepProps) {
     <StepShell
       {...props}
       railEmpty={!selected}
-      chips={[questionsLabel, t`${plural(every, { one: "A quiz after every page", other: "A quiz every # pages" })}`]}
+      chips={[questionsLabel, everyLabel]}
       headerExtra={
         <StepVersionPicker
           label={label}
@@ -149,36 +181,41 @@ export function QuizzesStep(props: StepProps) {
           entries={railEntries}
           activeKey={selected?.pageId ?? ""}
           onSelect={(key) => (key ? nav.open(key) : nav.close())}
-          footer={<Trans>Counts show how many questions come right after each page.</Trans>}
+          footer={<Trans>Counts show how many questions were made from each page, or are shown after it.</Trans>}
         />
       }
     >
       {selected ? (
-        <QuizzesPageDetail
+        <QuizzesPageView
           key={selected.pageId}
           label={label}
           pageId={selected.pageId}
           pageNumber={selected.pageNumber}
-          quizzes={scoped.itemsOn(selected.pageId)}
-          positionOf={positionOf}
+          hex={plugin.hex}
+          items={pageItems}
           ctx={ctx}
+          saveError={edits.saveError}
           prevPageId={nav.prevId}
           nextPageId={nav.nextId}
           onStep={nav.step}
           onClose={nav.close}
+          problem={surface.problem}
+          retry={surface.retry}
         />
       ) : (
         <QuizzesOverview
           label={label}
-          meta={questionsLabel}
+          hex={plugin.hex}
+          meta={`${questionsLabel} · ${everyLabel}`}
           top={surface.top}
           help={surface.help}
-          quizzes={quizzes}
+          total={list.rows.length}
           shown={shown}
-          positionOf={positionOf}
+          jumpEntries={jumpEntries}
           search={search}
           onSearch={setSearch}
           saveError={edits.saveError}
+          dirty={edits.dirty}
           ctx={ctx}
           expanded={expandedRows.open}
           onToggle={expandedRows.toggle}

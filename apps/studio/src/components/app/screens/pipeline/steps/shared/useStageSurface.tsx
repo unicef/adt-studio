@@ -1,6 +1,11 @@
 import type { ReactNode } from "react"
-import { NextStepCard } from "@/components/app/screens/pipeline/chrome/NextStepCard"
-import { LiveRunStrip } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
+import { CirclePlay } from "lucide-react"
+import { Trans } from "@lingui/react/macro"
+import { NextStepCardView } from "@/components/app/screens/pipeline/chrome/NextStepCard"
+import { CollapsingRunStrip } from "@/components/app/screens/pipeline/runs/CollapsingRunStrip"
+import { isQuietNextStep, useNextStep } from "@/components/app/screens/pipeline/shared/useNextStep"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
+import { useBookRun } from "@/hooks/use-book-run"
 import { useOptionalStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { useStageRerun } from "@/components/app/screens/pipeline/runs/useStageRerun"
 import { useRerunConfirm } from "@/components/app/screens/pipeline/runs/useRerunConfirm"
@@ -10,6 +15,8 @@ import { useHowItWorks } from "./how-it-works/useHowItWorks"
 import type { StepNote } from "./notes/NoteRow"
 import { NotesStrip } from "./notes/NotesStrip"
 import { ProblemStrip } from "./problems/ProblemStrip"
+import { FoldedProblem } from "./problems/FoldedProblem"
+import { ProblemNotice } from "./problems/ProblemNotice"
 import type { DescribedProblem, ProblemPage, ProblemStage } from "./problems/useDescribeProblem"
 import { useProblemAction } from "./problems/useProblemAction"
 import { useStageProblem } from "./problems/useStageProblem"
@@ -29,12 +36,17 @@ export interface StageSurfaceOptions<P extends ProblemPage = ProblemPage> {
   onOpenPage: (pageId: string) => void
   markExtra?: (page: P) => boolean
   onShowFailed?: () => void
+  hasOutput?: boolean
+  hintOpen?: boolean
+  boldNext?: boolean
 }
 
 export interface StageSurface {
   top: ReactNode
   help: ReactNode
   locked: boolean
+  interrupted: boolean
+  retry: { run: () => void; canRun: boolean; reason?: string | null }
   problem: DescribedProblem | null
   failView: StageFailView
   marks: StageMarks
@@ -54,6 +66,9 @@ export function useStageSurface<P extends ProblemPage = ProblemPage>({
   onOpenPage,
   markExtra,
   onShowFailed,
+  hasOutput = false,
+  hintOpen = false,
+  boldNext = false,
 }: StageSurfaceOptions<P>): StageSurface {
   const activity = useOptionalStageActivity(slug)
   const pipeline = activity !== null
@@ -68,14 +83,37 @@ export function useStageSurface<P extends ProblemPage = ProblemPage>({
   const failed = pipeline && problem.failed && problem.problem ? problem.problem : null
   const marks = useStageMarks({ enabled: failView.marks, problem: failed, pages, extra: markExtra })
   const showFailed = failView.marks && marks.failedCount > 0 ? onShowFailed : undefined
+  const next = useNextStep(label, slug, { partial: problem.partial })
+  const { stageState } = useBookRun()
+  const retry = { run: confirm.request, canRun: confirm.canRun, reason: confirm.disabledReason }
+  const quietNext = !boldNext && !!next && isQuietNextStep(next)
+  const fold = !!failed && failed.level === "partial" && !dirty && !!next && ready
+  const interrupted = pipeline && !failed && hasOutput && !(activity?.isActive ?? false) && stageState(slug) === "idle"
+  const stageName = getStageLabelI18n(slug)
 
   const top = (
     <>
-      {activity?.isActive && <LiveRunStrip stage={activity} outcome={outcome} />}
-      {failed && failView.form === "strip" && (
+      {activity && <CollapsingRunStrip stage={activity} outcome={outcome} />}
+      {interrupted && (
+        <ProblemNotice
+          level="resume"
+          hex={hex}
+          icon={CirclePlay}
+          title={<Trans>{stageName} stopped before it finished</Trans>}
+          body={<Trans>Some pages weren't done. Resume to finish them; everything already done is kept.</Trans>}
+          action={{
+            label: <Trans>Resume</Trans>,
+            icon: CirclePlay,
+            onClick: rerun.run,
+            disabled: !rerun.canRun,
+            disabledReason: rerun.disabledReason ?? undefined,
+          }}
+        />
+      )}
+      {failed && !fold && failView.form === "strip" && (
         <ProblemStrip problem={failed} action={actionFor(failed, { run: confirm.request, canRun: confirm.canRun, reason: confirm.disabledReason })} />
       )}
-      {failed && failView.form === "notice" && (
+      {failed && !fold && failView.form === "notice" && (
         <RunErrorNotice
           label={label}
           stage={slug as ProblemStage}
@@ -88,11 +126,31 @@ export function useStageSurface<P extends ProblemPage = ProblemPage>({
           retryReason={confirm.disabledReason}
         />
       )}
-      {!dirty && !failed && <NextStepCard label={label} slug={slug} partial={problem.partial} ready={ready} confirm={problem.partialConfirm} />}
-      <NotesStrip notes={allNotes} hex={hex} />
+      {!dirty && (!failed || fold) && !interrupted && (
+        <NextStepCardView
+          next={next}
+          slug={slug}
+          ready={ready}
+          confirm={problem.partialConfirm}
+          bold={boldNext}
+          aside={
+            fold ? (
+              <FoldedProblem
+                label={label}
+                problem={failed}
+                retry={retry}
+                onOpenPage={onOpenPage}
+                onShowItems={showFailed}
+                presentation={quietNext ? "strip" : "inline"}
+              />
+            ) : null
+          }
+        />
+      )}
+      <NotesStrip notes={allNotes} hex={hex} defaultOpen={hintOpen && !!howItWorks.note && !(activity?.isActive ?? false)} />
       {confirm.dialogs}
     </>
   )
 
-  return { top, help: howItWorks.help, locked: activity?.isActive ?? false, problem: failed, failView, marks }
+  return { top, help: howItWorks.help, locked: activity?.isActive ?? false, interrupted, retry, problem: failed, failView, marks }
 }

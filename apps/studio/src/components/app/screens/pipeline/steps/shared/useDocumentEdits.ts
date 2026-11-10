@@ -29,6 +29,8 @@ export interface DocumentEditsOptions<TDoc, TItem> {
   locked?: boolean
   lockedReason?: string
   scope?: FloatingSaveScope
+  accent?: string
+  autoSave?: boolean
   keepDraft?: DraftPersistence<TItem>
 }
 
@@ -72,6 +74,8 @@ export function useDocumentEdits<TDoc, TItem>({
   lockedReason,
   scope,
   keepDraft,
+  accent,
+  autoSave = false,
 }: DocumentEditsOptions<TDoc, TItem>): DocumentEdits<TItem> {
   const { t } = useLingui()
   const resetStages = useDownstreamWithOutput(stage)
@@ -228,11 +232,17 @@ export function useDocumentEdits<TDoc, TItem>({
     return run
   }, [saveOnce])
 
+  useEffect(() => {
+    if (!autoSave || !dirty || saving || locked || saveError) return
+    const timer = setTimeout(() => void save().catch(() => undefined), 120)
+    return () => clearTimeout(timer)
+  }, [autoSave, dirty, saving, locked, saveError, draft, save])
+
   useFloatingSave({
     id,
     stage,
     resetStages,
-    dirty,
+    dirty: autoSave ? dirty && saveError !== null : dirty,
     saving,
     label,
     labelKey,
@@ -241,6 +251,7 @@ export function useDocumentEdits<TDoc, TItem>({
     onDiscard: discard,
     saveDisabledReason: locked ? (lockedReason ?? t`Editing is paused while this stage runs.`) : undefined,
     scope,
+    accent,
   })
 
   return { items, dirty, saving, saveError, editedKeys, update, insert, remove, discard, save }

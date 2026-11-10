@@ -63,6 +63,10 @@ function storedPageRatio(label: string): StoredPageRatio | null {
   }
 }
 
+export function rememberedSingleRatio(label: string): number | null {
+  return storedPageRatio(label)?.single ?? null
+}
+
 export function rememberedPageRatio(label: string): number {
   return storedPageRatio(label)?.ratio ?? PORTRAIT
 }

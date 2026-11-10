@@ -52,8 +52,8 @@ export function useTtsExclusions(label: string) {
 
   const excludedIdSet = useMemo(() => new Set(effectiveIds), [effectiveIds])
 
-  const toggle = useCallback(
-    (textId: string) => {
+  const update = useCallback(
+    (mutate: (ids: Set<string>) => void) => {
       const currentConfig = { ...(bookConfigData?.config ?? {}) } as Record<string, unknown>
       const existingSpeech =
         currentConfig.speech && typeof currentConfig.speech === "object"
@@ -61,8 +61,7 @@ export function useTtsExclusions(label: string) {
           : {}
 
       const next = new Set(pendingIdsRef.current ?? effectiveIds)
-      if (next.has(textId)) next.delete(textId)
-      else next.add(textId)
+      mutate(next)
 
       const nextIds = [...next]
       pendingIdsRef.current = nextIds
@@ -88,6 +87,25 @@ export function useTtsExclusions(label: string) {
     [bookConfigData?.config, effectiveIds, label, queryClient, updateConfig],
   )
 
+  const toggle = useCallback(
+    (textId: string) =>
+      update((ids) => {
+        if (ids.has(textId)) ids.delete(textId)
+        else ids.add(textId)
+      }),
+    [update],
+  )
+
+  const muteMany = useCallback(
+    (textIds: readonly string[]) => {
+      if (textIds.length === 0) return
+      update((ids) => {
+        for (const id of textIds) ids.add(id)
+      })
+    },
+    [update],
+  )
+
   // `getEntryTtsExclusion` builds a fresh object per call, so handing its result
   // straight to a memoized row would break the memo on every render. Results are
   // cached per id and the cache is thrown away only when the config changes.
@@ -103,5 +121,5 @@ export function useTtsExclusions(label: string) {
     }
   }, [exclusionConfig])
 
-  return { exclusionFor, excludedIdSet, toggle }
+  return { exclusionFor, excludedIdSet, toggle, muteMany, isSaving: pendingIds !== null }
 }

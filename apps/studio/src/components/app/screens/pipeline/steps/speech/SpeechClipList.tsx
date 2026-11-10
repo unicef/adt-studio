@@ -1,17 +1,14 @@
-import { useCallback, useState } from "react"
+import { useCallback, useLayoutEffect, useRef, useState } from "react"
+import { useLingui } from "@lingui/react/macro"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import type {
-  CoreTtsCatalogEntry,
-  TTSEntry,
-  WordTimestamp,
-  WordTimestampEntry,
-} from "@/api/client"
-import type { EntryTtsExclusion } from "@/components/pipeline/stages/languages/lib/catalog-entries"
-import { SpeechEntryCard, type SpeechCapabilities } from "./SpeechEntryCard"
+import type { CoreTtsCatalogEntry, WordTimestamp, WordTimestampEntry } from "@/api/client"
+import { isEasyReadEntry, type EntryTtsExclusion } from "@/components/pipeline/stages/languages/lib/catalog-entries"
+import { SpeechClipRow, type ClipAbility } from "./SpeechClipRow"
+import type { ClipError } from "./useSpeechAudio"
+import type { SpeechRow } from "./speechRows"
 
-const ROW_ESTIMATE = 132
+const ROW_ESTIMATE = 112
 
-/** Ids of the clips with a mutation in flight, so a row can show its own spinner. */
 export interface SpeechBusyIds {
   generating?: string
   uploading?: string
@@ -20,24 +17,20 @@ export interface SpeechBusyIds {
 }
 
 export interface SpeechClipListProps {
-  /**
-   * The scroll viewport, owned by the step's body. It arrives as an element
-   * rather than a ref: the viewport is an *ancestor* of this list, and React
-   * attaches refs bottom-up, so a ref would still read null when the
-   * virtualizer first looks for it and the list would render nothing.
-   */
-  scrollElement: HTMLDivElement | null
-  rows: TTSEntry[]
+  rows: readonly SpeechRow[]
   label: string
   language: string
+  baseLanguage: string
+  baseLanguageName: string
   hex: string
-  textById: ReadonlyMap<string, string>
+  compare: boolean
+  pageNumberOf: (pageId: string | null) => number | null
   speechById: ReadonlyMap<string, CoreTtsCatalogEntry>
-  timestampsById?: Record<string, WordTimestampEntry>
-  errorById: Record<string, string>
+  timestampsById: Record<string, WordTimestampEntry>
+  errorFor: (textId: string) => ClipError | undefined
   exclusionFor: (textId: string) => EntryTtsExclusion
   mutedIdSet: ReadonlySet<string>
-  capabilities: SpeechCapabilities
+  ability: ClipAbility
   busy: SpeechBusyIds
   onToggleMute: (textId: string) => void
   onGenerate: (textId: string) => void
@@ -46,31 +39,44 @@ export interface SpeechClipListProps {
   onSaveTimestamps: (textId: string, words: WordTimestamp[], duration: number) => void
 }
 
-/**
- * The virtualized clip list, deliberately its own component.
- *
- * `useVirtualizer` re-renders whichever component hosts it on every scroll
- * frame. Hosting it in the step meant a scroll re-ran the step's whole hook
- * stack — queries, mutations, config reads — dozens of times per drag. Down
- * here the scroll only re-renders this list, and the rows' `memo` absorbs the
- * rest.
- *
- * Playback position lives here for the same reason: it ticks once per animation
- * frame while a clip plays, and the step above has no use for it.
- */
+function useScrollHost() {
+  const anchor = useRef<HTMLDivElement>(null)
+  const [host, setHost] = useState<{ element: HTMLElement | null; margin: number }>({ element: null, margin: 0 })
+
+  useLayoutEffect(() => {
+    const node = anchor.current
+    const element = node?.closest<HTMLElement>("[data-radix-scroll-area-viewport]") ?? null
+    if (!node || !element) return
+    const measure = () => {
+      const margin = Math.round(node.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop)
+      setHost((current) => (current.element === element && current.margin === margin ? current : { element, margin }))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    const content = element.firstElementChild
+    if (content) observer.observe(content)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  return { anchor, ...host }
+}
+
 export function SpeechClipList({
-  scrollElement,
   rows,
   label,
   language,
+  baseLanguage,
+  baseLanguageName,
   hex,
-  textById,
+  compare,
+  pageNumberOf,
   speechById,
   timestampsById,
-  errorById,
+  errorFor,
   exclusionFor,
   mutedIdSet,
-  capabilities,
+  ability,
   busy,
   onToggleMute,
   onGenerate,
@@ -78,67 +84,68 @@ export function SpeechClipList({
   onTranscribe,
   onSaveTimestamps,
 }: SpeechClipListProps) {
+  const { t } = useLingui()
+  const { anchor, element, margin } = useScrollHost()
   const virtualizer = useVirtualizer({
     count: rows.length,
-    getScrollElement: () => scrollElement,
+    getScrollElement: () => element,
     estimateSize: () => ROW_ESTIMATE,
     overscan: 4,
-    getItemKey: (index) => rows[index]?.textId ?? index,
+    scrollMargin: margin,
+    getItemKey: (index) => rows[index]?.id ?? index,
   })
 
-  // Only one clip plays at a time, so every other row renders with
-  // `isPlaying: false` and holds its memo through playback.
   const [playing, setPlaying] = useState<{ textId: string; time: number } | null>(null)
-  const handlePlaybackTime = useCallback(
-    (textId: string, time: number) => setPlaying({ textId, time }),
-    [],
-  )
+  const handlePlaybackTime = useCallback((textId: string, time: number) => setPlaying({ textId, time }), [])
   const handlePlayingChange = useCallback(
     (textId: string, isPlaying: boolean) =>
-      setPlaying((current) =>
-        isPlaying ? { textId, time: 0 } : current?.textId === textId ? null : current,
-      ),
+      setPlaying((current) => (isPlaying ? { textId, time: 0 } : current?.textId === textId ? null : current)),
     [],
   )
 
+  const viaCategory = t`Muted by a content type switch in the Speech settings`
+  const viaSource = t`Muted with its source text. Unmute that row instead.`
+
   return (
-    <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
-      {virtualizer.getVirtualItems().map((virtualRow) => {
-        const entry = rows[virtualRow.index]
-        const isPlaying = playing?.textId === entry.textId
+    <div ref={anchor} style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
+      {virtualizer.getVirtualItems().map((item) => {
+        const row = rows[item.index]
+        const exclusion = exclusionFor(row.id)
+        const lockReason = exclusion.byCategory
+          ? viaCategory
+          : exclusion.byId && isEasyReadEntry(row.id) && !mutedIdSet.has(row.id)
+            ? viaSource
+            : undefined
+        const isPlaying = playing?.textId === row.id
         return (
           <div
-            key={entry.textId}
-            data-index={virtualRow.index}
+            key={row.id}
+            data-index={item.index}
             ref={virtualizer.measureElement}
             className="pb-2"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              transform: `translateY(${virtualRow.start}px)`,
-            }}
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${item.start - margin}px)` }}
           >
-            <SpeechEntryCard
+            <SpeechClipRow
+              row={row}
               label={label}
               language={language}
+              baseLanguage={baseLanguage}
+              baseLanguageName={baseLanguageName}
               hex={hex}
-              textId={entry.textId}
-              displayText={textById.get(entry.textId) ?? ""}
-              audio={entry}
-              speechEntry={speechById.get(entry.textId)}
-              timestamps={timestampsById?.[entry.textId]}
-              exclusion={exclusionFor(entry.textId)}
+              pageNumber={pageNumberOf(row.pageId)}
+              speechEntry={speechById.get(row.id)}
+              timestamps={timestampsById[row.id]}
+              exclusion={exclusion}
+              muteLockedReason={lockReason}
+              compare={compare}
               isPlaying={isPlaying}
               playbackTime={isPlaying ? playing.time : 0}
-              errorMessage={errorById[entry.textId]}
-              capabilities={capabilities}
-              isGenerating={busy.generating === entry.textId}
-              isUploading={busy.uploading === entry.textId}
-              isTranscribing={busy.transcribing === entry.textId}
-              isSavingTimestamps={busy.savingTimestamps === entry.textId}
-              mutedIdSet={mutedIdSet}
+              error={errorFor(row.id)}
+              ability={ability}
+              isGenerating={busy.generating === row.id}
+              isUploading={busy.uploading === row.id}
+              isTranscribing={busy.transcribing === row.id}
+              isSavingTimestamps={busy.savingTimestamps === row.id}
               onToggleMute={onToggleMute}
               onGenerate={onGenerate}
               onUpload={onUpload}

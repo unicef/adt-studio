@@ -5,10 +5,10 @@ import { ChevronDown, StickyNote } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NoteRow, type StepNote } from "./NoteRow"
 
-export function NotesStrip({ notes, hex }: { notes: StepNote[]; hex: string }) {
+export function NotesStrip({ notes, hex, defaultOpen = false }: { notes: StepNote[]; hex: string; defaultOpen?: boolean }) {
   const { t } = useLingui()
   const attention = notes.filter((note) => note.attention).length
-  const [open, setOpen] = useState(attention > 0)
+  const [open, setOpen] = useState(attention > 0 || defaultOpen)
   const lastAttention = useRef(attention)
   useEffect(() => {
     if (attention > lastAttention.current) setOpen(true)
@@ -48,8 +48,8 @@ export function NotesStrip({ notes, hex }: { notes: StepNote[]; hex: string }) {
       </button>
       <div
         className={cn(
-          "grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
-          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+          "grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out motion-reduce:transition-none",
+          open ? "visible grid-rows-[1fr] opacity-100" : "invisible grid-rows-[0fr] opacity-0",
         )}
         inert={!open}
       >

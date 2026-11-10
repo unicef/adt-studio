@@ -27,7 +27,7 @@ import type { GlossaryRowContext } from "./glossary/GlossaryTermRow"
 import type { OccurrencePage } from "./glossary/TermOccurrences"
 import type { GlossaryRow } from "./glossary/glossaryRows"
 import { GlossaryOverview } from "./glossary/GlossaryOverview"
-import { GlossaryPageDetail } from "./glossary/GlossaryPageDetail"
+import { GlossaryPageView } from "./glossary/page/GlossaryPageView"
 import type { StepProps } from "./shared/types"
 
 const NO_VIDEOS: SignLanguageVideo[] = []
@@ -38,13 +38,19 @@ export function GlossaryStep(props: StepProps) {
   const query = useGlossary(label)
   const activity = useStageActivity("glossary")
   const run = useRunActivity()
-  const edits = useGlossaryEdits(label, query.data, activity.isActive)
+  const edits = useGlossaryEdits(label, query.data, activity.isActive, plugin.hex)
   const rows = edits.items
   const prunedMode = useVariant("pruned")
 
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<GlossaryFilter>("active")
   const [mineOnly, setMineOnly] = useState(false)
+  const mineCount = useMemo(() => rows.filter((row) => row.source === "manual").length, [rows])
+  const [seenMine, setSeenMine] = useState(mineCount)
+  if (seenMine !== mineCount) {
+    setSeenMine(mineCount)
+    if (mineCount === 0) setMineOnly(false)
+  }
   const [sort, setSort] = useState<GlossarySort>("book")
   const [showAdd, setShowAdd] = useState(false)
   const [showRows, setShowRows] = useState(false)
@@ -83,6 +89,7 @@ export function GlossaryStep(props: StepProps) {
   const active = list.counts.active
   const prunedCount = list.counts.pruned
   const termsLabel = t`${plural(active, { one: "# term", other: "# terms" })}`
+  const metaLabel = prunedCount > 0 ? t`${termsLabel} · ${plural(prunedCount, { one: "# pruned", other: "# pruned" })}` : termsLabel
 
   const locked = activity.isActive
   const lockedReason = t`Wait for the glossary to finish generating.`
@@ -115,6 +122,7 @@ export function GlossaryStep(props: StepProps) {
     label,
     slug: "glossary",
     hex: plugin.hex,
+    pages,
     ready: active > 0,
     outcome: t`Editing is paused until Glossary finishes.`,
     hint: {
@@ -122,6 +130,7 @@ export function GlossaryStep(props: StepProps) {
       body: t`AI picked these terms from the book. Edit a definition, its emojis or picture, add your own terms, or prune the ones you don't want. Pruned terms stay out of the book and out of future runs. Saving creates a new version, so you can always go back.`,
     },
     onOpenPage: nav.open,
+    hasOutput: (query.data?.items.length ?? 0) > 0,
   })
 
   const railEntries = usePageRailEntries(label, scoped.navPages, {
@@ -161,13 +170,19 @@ export function GlossaryStep(props: StepProps) {
     reveal(key)
   }
 
+  const clearFilters = () => {
+    setSearch("")
+    setFilter("active")
+    setMineOnly(false)
+  }
+
   const selected = nav.selected
 
   return (
     <StepShell
       {...props}
       railEmpty={!selected}
-      chips={[termsLabel, prunedCount > 0 ? t`${plural(prunedCount, { one: "# pruned", other: "# pruned" })}` : t`None pruned`]}
+      chips={[metaLabel]}
       headerExtra={
         <StepVersionPicker
           label={label}
@@ -191,23 +206,26 @@ export function GlossaryStep(props: StepProps) {
       }
     >
       {selected ? (
-        <GlossaryPageDetail
+        <GlossaryPageView
           key={selected.pageId}
           label={label}
           pageId={selected.pageId}
           pageNumber={selected.pageNumber}
           rows={scoped.itemsOn(selected.pageId)}
           ctx={ctx}
+          saveError={edits.saveError}
           prevPageId={nav.prevId}
           nextPageId={nav.nextId}
           onStep={nav.step}
           onClose={nav.close}
+          problem={surface.problem}
+          retry={surface.retry}
         />
       ) : (
         <GlossaryOverview
           label={label}
           hex={plugin.hex}
-          meta={termsLabel}
+          meta={metaLabel}
           top={surface.top}
           help={surface.help}
           list={list}
@@ -219,6 +237,7 @@ export function GlossaryStep(props: StepProps) {
           onMineOnly={setMineOnly}
           sort={sort}
           onSort={setSort}
+          onClearFilters={clearFilters}
           saveError={edits.saveError}
           ctx={ctx}
           expanded={expandedRows.open}

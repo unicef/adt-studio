@@ -108,11 +108,15 @@ export function WordTimestampViewer({
   onSave,
   isSaving,
   columns = 2,
+  accent,
+  disabled = false,
 }: {
   timestamps: WordTimestampEntry;
   onSave?: (words: WordTimestamp[], duration: number) => void;
   isSaving?: boolean;
   columns?: number;
+  accent?: string;
+  disabled?: boolean;
 }) {
   const { t } = useLingui();
   const [expanded, setExpanded] = useState(false);
@@ -163,16 +167,23 @@ export function WordTimestampViewer({
     columnChunks.push(words.slice(c * rowCount, (c + 1) * rowCount));
   }
 
-  const inputClass =
-    "w-14 tabular-nums text-[10px] text-muted-foreground bg-transparent border-b border-transparent hover:border-muted-foreground/30 focus:border-pink-500 focus:outline-none transition-colors text-right appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]";
+  const inputClass = cn(
+    "w-14 tabular-nums text-[10px] text-muted-foreground bg-transparent border-b border-transparent hover:border-muted-foreground/30 focus:outline-none transition-colors text-right appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]",
+    accent ? "focus:border-[var(--timing-accent)] text-[11px]" : "focus:border-pink-500",
+  );
+  const canSave = !!onSave && !disabled;
 
   return (
-    <div className="mt-1.5">
+    <div className="mt-1.5" style={accent ? { ["--timing-accent" as string]: accent } : undefined}>
       {/* Collapsed summary row */}
       <button
         type="button"
         onClick={handleExpand}
-        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        aria-expanded={expanded}
+        className={cn(
+          "flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer",
+          accent ? "h-6 rounded-md px-1 -ml-1 text-[11.5px] hover:bg-muted" : "text-[10px]",
+        )}
       >
         {expanded ? (
           <ChevronDown className="h-3 w-3" />
@@ -244,7 +255,7 @@ export function WordTimestampViewer({
             </div>
           </div>
           {/* Save/discard bar */}
-          {dirty && onSave && (
+          {dirty && canSave && (
             <div className="flex items-center justify-end gap-1.5 px-2 py-1.5 border-t bg-muted/30">
               <button
                 type="button"
@@ -258,7 +269,13 @@ export function WordTimestampViewer({
                 type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center gap-1 text-[10px] font-medium text-pink-600 hover:text-pink-700 transition-colors cursor-pointer disabled:opacity-40"
+                className={cn(
+                  "flex items-center gap-1 font-medium transition-colors cursor-pointer disabled:opacity-40",
+                  accent
+                    ? "h-7 rounded-md px-2.5 text-[11.5px] text-white hover:opacity-90"
+                    : "text-[10px] text-pink-600 hover:text-pink-700",
+                )}
+                style={accent ? { backgroundColor: accent } : undefined}
               >
                 {isSaving ? (
                   <Loader2 className="h-3 w-3 animate-spin" />

@@ -7,6 +7,9 @@ import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import type { PageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
 import { cn } from "@/lib/utils"
+import { HEADER_BUTTON, HEADER_BUTTON_LABELLED } from "../../shared/headerButton"
+
+const PICKER_TRIGGER = cn("h-6 gap-1 rounded-md border bg-card px-1.5 text-[11.5px]! font-semibold! text-foreground hover:bg-muted")
 import type { CaptionEntry } from "@/components/pipeline/stages/captions/lib/types"
 import { FeedGroup } from "../../shared/pageview/FeedGroup"
 import type { DraftStore } from "../../shared/pageview/draftStore"
@@ -47,32 +50,37 @@ export function CaptionsFeedGroup({
   const { t } = useLingui()
   const query = usePage(label, page.pageId, { enabled: context.near })
   const detail = query.data
-  const edits = useCaptionEdits(label, page.pageId, detail, locked, store)
+  const edits = useCaptionEdits(label, page.pageId, detail, locked, store, hex)
   const { onDirtyChange } = context
+  const described = Math.max(0, page.captionCount - page.uncaptionedCount - page.decorativeCount)
+  const matching = filter === "describe" ? page.uncaptionedCount : filter === "captioned" ? described : filter === "decorative" ? page.decorativeCount : page.captionCount
 
   useEffect(() => {
     onDirtyChange(edits.dirty)
   }, [edits.dirty, onDirtyChange])
 
   const header = (
-    <header className="flex items-center gap-3">
+    <header className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5 shadow-sm">
       <PageThumb label={label} pageId={page.pageId} sectionIndex={null} className={aspect.railThumbClassOf(page)} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
           <Trans>Page {page.pageNumber}</Trans>
           {failed && <StatusDot tone="failed" label={t`Not done`} />}
-        </span>
-        <span className="flex items-center gap-3 font-mono text-[11px] tabular-nums text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <ImageIcon aria-hidden className="size-3" />
-            {t`${plural(page.captionCount, { one: "# image", other: "# images" })}`}
+          <span className="flex items-center gap-3 font-mono text-[11px] font-normal tabular-nums text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <ImageIcon aria-hidden className="size-3" />
+              {filter === "all" ? t`${plural(page.captionCount, { one: "# image", other: "# images" })}` : t`${matching} of ${page.captionCount} images`}
+            </span>
+            {page.uncaptionedCount > 0 && (
+              <span className="flex items-center gap-1 text-[color-mix(in_oklab,var(--chrome-hex)_80%,black)] dark:text-[color-mix(in_oklab,var(--chrome-hex)_70%,white)]">
+                <CircleDashed aria-hidden className="size-3" />
+                {t`${plural(page.uncaptionedCount, { one: "# to describe", other: "# to describe" })}`}
+              </span>
+            )}
           </span>
-          <span className={cn("flex items-center gap-1", page.uncaptionedCount > 0 && "text-amber-700 dark:text-amber-400")}>
-            <CircleDashed aria-hidden className="size-3" />
-            {t`${plural(page.uncaptionedCount, { one: "# to describe", other: "# to describe" })}`}
-          </span>
-          {stale && <span className="font-sans text-muted-foreground">{t`Doesn't match the filter any more`}</span>}
         </span>
+        {page.textPreview.trim() && <span className="line-clamp-1 text-[12px] text-muted-foreground">{page.textPreview.replace(/\n/g, " ")}</span>}
+        {stale && <span className="text-[11px] text-muted-foreground">{t`Doesn't match the filter any more`}</span>}
       </div>
       {detail?.imageCaptioning && (
         <CaptionsVersionPicker
@@ -82,6 +90,8 @@ export function CaptionsFeedGroup({
           saving={edits.saving}
           dirty={edits.dirty}
           onRestored={edits.discard}
+          triggerClassName={PICKER_TRIGGER}
+          triggerLabel={detail.versions.imageCaptioning != null ? t`Description version ${detail.versions.imageCaptioning}. Change version` : undefined}
         />
       )}
       <button
@@ -89,7 +99,7 @@ export function CaptionsFeedGroup({
         data-feed-open={page.pageId}
         aria-label={t`Open page ${page.pageNumber}`}
         onClick={() => onOpenPage(page.pageId)}
-        className="flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[12px] font-medium text-foreground transition-colors duration-200 hover:bg-muted motion-reduce:transition-none"
+        className={cn(HEADER_BUTTON, HEADER_BUTTON_LABELLED, "pl-3 text-foreground")}
       >
         <Trans>Open page</Trans>
         <ArrowRight aria-hidden className="size-3.5" />

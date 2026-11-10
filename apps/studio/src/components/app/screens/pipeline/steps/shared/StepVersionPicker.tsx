@@ -19,6 +19,7 @@ export interface StepVersionPickerProps {
   dirty?: boolean
   onRestored?: () => void
   triggerClassName?: string
+  triggerLabel?: string
   diff: VersionDiffDescriptor
 }
 
@@ -33,6 +34,7 @@ export const StepVersionPicker = memo(function StepVersionPicker({
   dirty = false,
   onRestored = NOOP,
   triggerClassName,
+  triggerLabel,
   diff,
 }: StepVersionPickerProps) {
   const { confirmRestore, dialog } = useRestoreConfirm(dirty)
@@ -51,6 +53,7 @@ export const StepVersionPicker = memo(function StepVersionPicker({
         onDiscard={onRestored}
         confirmRestore={confirmRestore}
         triggerClassName={triggerClassName}
+        triggerLabel={triggerLabel}
         diff={diff}
       />
       {dialog}

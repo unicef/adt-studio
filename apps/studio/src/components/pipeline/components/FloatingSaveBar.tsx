@@ -25,6 +25,7 @@ interface FloatingSaveBarProps {
   closing?: boolean
   /** Overrides the default placement. */
   className?: string
+  accent?: string
 }
 
 export function FloatingSaveBar({
@@ -39,6 +40,7 @@ export function FloatingSaveBar({
   label,
   closing = false,
   className,
+  accent,
 }: FloatingSaveBarProps) {
   const { t } = useLingui()
   const saveDisabled = !!saveDisabledReason || saving
@@ -54,7 +56,9 @@ export function FloatingSaveBar({
         "inline-flex items-center gap-1.5 rounded px-3 py-1 text-[11px] font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
         onSaveAndRerun
           ? "bg-muted text-foreground hover:bg-muted-foreground/20"
-          : "bg-green-600 hover:bg-green-500 text-white shadow-sm shadow-green-600/20",
+          : accent
+            ? "h-8 rounded-lg px-3.5 text-[12.5px] font-semibold bg-[color-mix(in_oklab,var(--save-accent)_82%,black)] text-white hover:bg-[color-mix(in_oklab,var(--save-accent)_72%,black)]"
+            : "bg-green-600 hover:bg-green-500 text-white shadow-sm shadow-green-600/20",
       )}
     >
       {saving ? (
@@ -101,20 +105,31 @@ export function FloatingSaveBar({
   return createPortal(
     <div
       className={cn(
-        "fixed bottom-4 left-1/2 z-50 -translate-x-1/2",
+        "fixed bottom-4 left-1/2 -translate-x-1/2",
+        accent ? "z-40" : "z-50",
         closing
           ? "animate-out fill-mode-forwards slide-out-to-bottom-4 fade-out-0 zoom-out-95 duration-200 ease-in"
           : "animate-in slide-in-from-bottom-4 fade-in zoom-in-95 duration-300 ease-out",
         className,
       )}
     >
-      <div className="flex items-center gap-3 rounded-md border border-border/60 bg-background/95 backdrop-blur px-2 py-1.5 shadow-xl shadow-black/5">
+      <div
+        style={accent ? { ["--save-accent" as string]: accent } : undefined}
+        className={cn(
+          "flex items-center gap-3 border border-border/60 bg-background/95 backdrop-blur px-2 py-1.5 shadow-xl shadow-black/5",
+          accent ? "rounded-xl [&_button]:text-[12.5px]" : "rounded-md",
+        )}
+      >
         {/* Status indicator */}
         <div className="flex items-center gap-2 pl-2">
-          <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden>
-            <span className="absolute inset-0 rounded-full bg-amber-500/40 animate-ping" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
-          </span>
+          {accent ? (
+            <span aria-hidden className="inline-flex size-2 shrink-0 rounded-full bg-[var(--save-accent)]" />
+          ) : (
+            <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden>
+              <span className="absolute inset-0 rounded-full bg-amber-500/40 animate-ping" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+            </span>
+          )}
           {label ?? (
             <span className="text-[11px] font-medium text-foreground">
               {t`Unsaved changes`}

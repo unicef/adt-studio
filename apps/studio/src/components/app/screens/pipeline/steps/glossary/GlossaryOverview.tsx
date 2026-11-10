@@ -12,7 +12,8 @@ import { ListPagesGrid } from "../shared/list/variants/ListPagesGrid"
 import { ListPagesSwitch } from "../shared/list/variants/ListPagesSwitch"
 import { StepActionButton } from "../shared/StepActionButton"
 import { StepSearch } from "../shared/StepSearch"
-import { SaveError, StepBody, StepEmptyHint } from "../shared/ui"
+import { SaveError, StepBody } from "../shared/ui"
+import { GlossaryFilterEmpty } from "./GlossaryFilterEmpty"
 import { GlossaryTermRow, type GlossaryRowContext } from "./GlossaryTermRow"
 import { SortMenu, type GlossarySort } from "./SortMenu"
 import type { GlossaryFilter, GlossaryListResult } from "./glossaryList"
@@ -36,6 +37,7 @@ export interface GlossaryOverviewProps {
   onMineOnly: (value: boolean) => void
   sort: GlossarySort
   onSort: (value: GlossarySort) => void
+  onClearFilters: () => void
   saveError: Error | null
   ctx: GlossaryRowContext
   expanded: ReadonlySet<string>
@@ -97,7 +99,14 @@ export function GlossaryOverview(props: GlossaryOverviewProps) {
       <ListToolbar
         left={
           byPage ? null : prunedMode === "tray" ? (
-            <GlossaryFiltersTray counts={list.counts} mineOnly={props.mineOnly} onMineOnly={props.onMineOnly} hex={props.hex} />
+            <GlossaryFiltersTray
+              counts={list.counts}
+              filter={props.filter}
+              onFilter={props.onFilter}
+              mineOnly={props.mineOnly}
+              onMineOnly={props.onMineOnly}
+              hex={props.hex}
+            />
           ) : (
             <GlossaryFiltersInline
               counts={list.counts}
@@ -113,12 +122,7 @@ export function GlossaryOverview(props: GlossaryOverviewProps) {
           byPage ? (
             <ListPagesSwitch label={t`All terms`} onClick={props.onShowRows} />
           ) : (
-            <>
-              <SortMenu value={props.sort} onChange={props.onSort} />
-              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                {t`${plural(list.counts.active, { one: "# term", other: "# terms" })}`}
-              </span>
-            </>
+            <SortMenu value={props.sort} onChange={props.onSort} />
           )
         }
       />
@@ -138,20 +142,17 @@ export function GlossaryOverview(props: GlossaryOverviewProps) {
           }}
         />
       ) : list.main.length === 0 && list.tray.length === 0 ? (
-        <StepEmptyHint>
-          <span className="flex flex-col items-center gap-2">
-            {searching ? <Trans>No terms match “{props.search.trim()}”</Trans> : <Trans>No terms to show</Trans>}
-            {searching && (
-              <button type="button" onClick={() => props.onSearch("")} className="font-medium text-foreground underline-offset-4 hover:underline">
-                <Trans>Clear search</Trans>
-              </button>
-            )}
-          </span>
-        </StepEmptyHint>
+        <GlossaryFilterEmpty
+          search={props.search}
+          filter={props.filter}
+          mineOnly={props.mineOnly}
+          onClearSearch={() => props.onSearch("")}
+          onClearFilters={props.onClearFilters}
+        />
       ) : (
         <div className="flex flex-col gap-1.5">
           {list.main.map(renderRow)}
-          {prunedMode === "tray" && (
+          {list.tray.length > 0 && (
             <GlossaryPrunedTray count={list.tray.length} forceOpen={searching}>
               {list.tray.map(renderRow)}
             </GlossaryPrunedTray>

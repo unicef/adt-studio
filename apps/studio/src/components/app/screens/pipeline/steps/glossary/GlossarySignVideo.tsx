@@ -1,8 +1,7 @@
 import { useRef, useState } from "react"
-import { Check, Loader2, Plus, Trash2, Video } from "lucide-react"
+import { Loader2, Video } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { getSignLanguageVideoUrl, type SignLanguageVideo } from "@/api/client"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   useAssignSignLanguageVideo,
   useDeleteSignLanguageVideo,
@@ -10,6 +9,7 @@ import {
 } from "@/hooks/use-sign-language-videos"
 import { cn } from "@/lib/utils"
 import { MUTED_MEDIA } from "../shared/ui"
+import { SignVideoPicker } from "./SignVideoPicker"
 
 function message(error: unknown): string | null {
   return error instanceof Error ? error.message : null
@@ -70,13 +70,17 @@ export function GlossarySignVideo({
             preload="metadata"
             className={cn("aspect-video w-full rounded-md bg-black", muted && MUTED_MEDIA)}
           />
-          <div className="flex items-center gap-3 text-[12px] font-medium">
+          <div className="flex min-w-0 items-center gap-3 text-[12px] font-medium">
+            <span className="flex min-w-0 flex-1 items-center gap-1.5 font-normal text-muted-foreground" title={video.originalName}>
+              <Video aria-hidden className="size-3.5 shrink-0" />
+              <span className="truncate">{video.originalName}</span>
+            </span>
             <button
               type="button"
               disabled={busy || blocked}
               title={blockedReason}
               onClick={() => remove.mutate(video.videoId)}
-              className="flex items-center gap-1 text-destructive underline-offset-4 hover:underline disabled:text-muted-foreground disabled:no-underline"
+              className="flex shrink-0 items-center gap-1 text-destructive underline-offset-4 hover:underline disabled:text-muted-foreground disabled:no-underline"
             >
               {remove.isPending && <Loader2 className="size-3 animate-spin motion-reduce:animate-none" />}
               <Trans>Remove</Trans>
@@ -104,66 +108,19 @@ export function GlossarySignVideo({
         </p>
       )}
 
-      <Dialog open={!video && pickerOpen} onOpenChange={(open) => !busy && setPickerOpen(open)}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Add a sign-language video</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>Choose a video you already uploaded, or upload a new one. It is saved right away.</Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={busy}
-            className="flex h-9 w-fit items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors hover:bg-muted disabled:opacity-50"
-          >
-            {upload.isPending ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" /> : <Plus className="size-3.5" />}
-            <Trans>Upload a new video</Trans>
-          </button>
-          {unassigned.length === 0 ? (
-            <p className="rounded-md border border-dashed px-3 py-6 text-center text-[12px] text-muted-foreground">
-              <Trans>No unassigned videos yet.</Trans>
-            </p>
-          ) : (
-            <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
-              {unassigned.map((candidate) => (
-                <li key={candidate.videoId} className="flex items-center gap-3 rounded-lg border bg-card p-2">
-                  <video
-                    src={getSignLanguageVideoUrl(label, candidate.videoId)}
-                    className="h-16 w-24 shrink-0 rounded bg-black object-contain"
-                    muted
-                    preload="metadata"
-                  />
-                  <p className="min-w-0 flex-1 truncate text-[12px] font-medium" title={candidate.originalName}>
-                    {candidate.originalName}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => assignVideo(candidate.videoId)}
-                    disabled={busy}
-                    className="flex h-8 items-center gap-1 rounded-md border px-2.5 text-[12px] font-medium transition-colors hover:bg-muted disabled:opacity-50"
-                  >
-                    <Check className="size-3" />
-                    <Trans>Use video</Trans>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => remove.mutate(candidate.videoId)}
-                    disabled={busy}
-                    aria-label={t`Delete video from book`}
-                    className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DialogContent>
-      </Dialog>
+      <SignVideoPicker
+        open={!video && pickerOpen}
+        onOpenChange={setPickerOpen}
+        label={label}
+        candidates={unassigned}
+        busy={busy}
+        uploading={upload.isPending}
+        assigningId={assign.isPending ? (assign.variables?.videoId ?? null) : null}
+        deletingId={remove.isPending ? (remove.variables ?? null) : null}
+        onUpload={() => fileRef.current?.click()}
+        onUse={assignVideo}
+        onDelete={(videoId) => remove.mutate(videoId)}
+      />
     </div>
   )
 }

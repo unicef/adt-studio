@@ -24,6 +24,8 @@ export interface StepPageCardProps {
   status?: ReactNode
   preview?: ReactNode
   failed?: boolean
+  waiting?: boolean
+  selected?: boolean
 }
 
 const STAT_TONE = {
@@ -43,6 +45,8 @@ export const StepPageCard = memo(function StepPageCard({
   status,
   preview,
   failed = false,
+  waiting = false,
+  selected = false,
 }: StepPageCardProps) {
   const { t } = useLingui()
   const detailsId = useId()
@@ -50,13 +54,17 @@ export const StepPageCard = memo(function StepPageCard({
     <button
       type="button"
       onClick={() => onOpen(pageId)}
+      disabled={waiting}
+      aria-busy={waiting || undefined}
+      aria-pressed={selected || undefined}
       data-page-card={pageId}
       aria-label={t`Open page ${pageNumber}`}
       aria-describedby={detailsId}
       className={cn(
         "flex w-full flex-col overflow-hidden rounded-xl border bg-card text-left",
         failed && "border-destructive/40",
-        PAGE_CARD_INTERACTIVE,
+        selected && "border-[color-mix(in_srgb,var(--chrome-hex)_55%,transparent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--chrome-hex)_18%,transparent)]",
+        waiting ? "cursor-default opacity-70 transition-opacity duration-300 motion-reduce:transition-none [&_img]:grayscale" : PAGE_CARD_INTERACTIVE,
       )}
     >
       <PageThumb
@@ -94,8 +102,13 @@ export const StepPageCard = memo(function StepPageCard({
             )}
           </div>
         </div>
-        {preview !== undefined && (
-          <p className="line-clamp-2 min-h-[2lh] text-[11px] leading-relaxed text-muted-foreground">{preview}</p>
+        {waiting ? (
+          <span aria-hidden className="flex min-h-[2lh] flex-col justify-center gap-1.5 text-[11px] leading-relaxed">
+            <span className="block h-2 w-11/12 rounded bg-muted-foreground/15 motion-safe:animate-pulse" />
+            <span className="block h-2 w-2/3 rounded bg-muted-foreground/15 motion-safe:animate-pulse" />
+          </span>
+        ) : (
+          preview !== undefined && <p className="line-clamp-2 min-h-[2lh] text-[11px] leading-relaxed text-muted-foreground">{preview}</p>
         )}
       </div>
     </button>

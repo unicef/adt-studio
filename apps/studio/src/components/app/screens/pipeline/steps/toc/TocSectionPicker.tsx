@@ -1,24 +1,26 @@
 import { useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ChevronDown, Search } from "lucide-react"
-import type { TocSection } from "@/api/client"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { tint } from "@/components/app/screens/pipeline/shared/tint"
+import { useMissingSectionLabel, type TocSectionOption } from "./useTocSectionOptions"
 
 export interface TocSectionPickerProps {
   value: string
-  sections: TocSection[]
+  sections: readonly TocSectionOption[]
   hex: string
+  className?: string
   disabled?: boolean
   loadFailed?: boolean
   onRetry?: () => void
   onChange: (sectionId: string, href: string) => void
 }
 
-export function TocSectionPicker({ value, sections, hex, disabled = false, loadFailed = false, onRetry, onChange }: TocSectionPickerProps) {
+export function TocSectionPicker({ value, sections, hex, className, disabled = false, loadFailed = false, onRetry, onChange }: TocSectionPickerProps) {
   const { t } = useLingui()
+  const missingLabel = useMissingSectionLabel()
   const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState("")
 
@@ -28,21 +30,18 @@ export function TocSectionPicker({ value, sections, hex, disabled = false, loadF
   )
 
   const shown = useMemo(() => {
-    const query = filter.trim().toLowerCase()
+    const query = filter.trim().toLocaleLowerCase()
     if (!query) return sections
-    return sections.filter(
-      (section) =>
-        section.title.toLowerCase().includes(query) ||
-        section.sectionId.toLowerCase().includes(query),
-    )
+    return sections.filter((section) => section.search.includes(query))
   }, [sections, filter])
 
   const linked = value !== ""
-  const triggerLabel = current
-    ? t`p${current.pageNumber} · ${current.title}`
+  const triggerLabel = current ? t`p${current.pageNumber} · ${current.label}` : linked ? missingLabel(value) : t`Link page`
+  const description = current
+    ? t`Links to page ${current.pageNumber}: ${current.label}`
     : linked
-      ? value.slice(0, 12)
-      : t`Link page`
+      ? t`Links to ${missingLabel(value)}`
+      : t`Link to a page`
 
   return (
     <Popover
@@ -56,17 +55,12 @@ export function TocSectionPicker({ value, sections, hex, disabled = false, loadF
         <button
           type="button"
           disabled={disabled}
-          aria-label={
-            current
-              ? t`Links to page ${current.pageNumber}: ${current.title}`
-              : linked
-                ? t`Links to section ${value}`
-                : t`Link to a page`
-          }
-          title={current ? t`Links to page ${current.pageNumber}: ${current.title}` : linked ? t`Linked to ${value}` : t`No page linked`}
+          aria-label={description}
+          title={linked ? `${description} (${value})` : t`No page linked`}
           className={cn(
             "flex h-6 max-w-[180px] shrink-0 items-center gap-1 rounded-md border px-2 text-[11px] transition-colors disabled:cursor-default disabled:opacity-100",
             !linked && "border-dashed text-muted-foreground hover:text-foreground",
+            className,
           )}
           style={
             linked
@@ -79,7 +73,7 @@ export function TocSectionPicker({ value, sections, hex, disabled = false, loadF
         </button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-72 p-0">
+      <PopoverContent align="end" className="w-80 p-0">
         <div className="border-b p-2">
           <Input
             autoFocus
@@ -117,16 +111,23 @@ export function TocSectionPicker({ value, sections, hex, disabled = false, loadF
                     onChange(section.sectionId, section.href)
                     setOpen(false)
                   }}
+                  title={section.sectionId}
+                  aria-current={active || undefined}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] transition-colors",
+                    "flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] transition-colors",
                     active ? "font-semibold" : "hover:bg-muted",
                   )}
                   style={active ? { background: tint(hex, 0.12), color: hex } : undefined}
                 >
-                  <span className="w-6 shrink-0 font-mono text-[10px] tabular-nums opacity-70">
+                  <span className="w-7 shrink-0 pt-px font-mono text-[10px] tabular-nums opacity-70">
                     {t`p${section.pageNumber}`}
                   </span>
-                  <span className="min-w-0 flex-1 truncate">{section.title}</span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate">{section.label}</span>
+                    {section.detail && (
+                      <span className={cn("truncate text-[10.5px] font-normal", active ? "opacity-80" : "text-muted-foreground")}>{section.detail}</span>
+                    )}
+                  </span>
                 </button>
               )
             })

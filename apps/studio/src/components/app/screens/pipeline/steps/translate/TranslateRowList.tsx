@@ -1,10 +1,20 @@
-import { useVirtualizer } from "@tanstack/react-virtual"
-import { TranslateRow } from "./TranslateRow"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { defaultRangeExtractor, useVirtualizer, type Range } from "@tanstack/react-virtual"
+import { TranslateRow, type TranslateRowProps } from "./TranslateRow"
+import type { ReviewItem } from "./review/reviewState"
 import type { TranslateRow as TranslateRowData } from "./translateState"
+import type { RowSave } from "./useTranslationSave"
 
-const ROW_ESTIMATE = 96
+const ROW_ESTIMATE = 104
 
-export interface TranslateRowListProps {
+type SharedRowProps = Omit<TranslateRowProps, "row" | "place" | "translatedImageId" | "save" | "review" | "applied" | "accepting">
+
+export interface ScrollRequest {
+  id: string
+  nonce: number
+}
+
+export interface TranslateRowListProps extends SharedRowProps {
   /**
    * The scroll viewport, owned by the step's body. Passed as an element rather
    * than a ref: it is an *ancestor* of this list, and React attaches refs
@@ -13,42 +23,92 @@ export interface TranslateRowListProps {
    */
   scrollElement: HTMLDivElement | null
   rows: TranslateRowData[]
-  label: string
-  hex: string
-  language: string
-  isBase: boolean
-  isSaving: boolean
-  onSave: (id: string, text: string) => void
-  onOpenImage: (src: string) => void
+  placeOf: (id: string) => string
+  translatedImageOf: (id: string) => string | undefined
+  saves: ReadonlyMap<string, RowSave>
+  reviewOf: (id: string) => ReviewItem | undefined
+  appliedIds: ReadonlyMap<string, unknown>
+  accepting: string | null
+  scrollTo?: ScrollRequest | null
+}
+
+function useListOffset(scrollElement: HTMLDivElement | null, list: HTMLDivElement | null): number {
+  const [offset, setOffset] = useState(0)
+  useLayoutEffect(() => {
+    if (!scrollElement || !list) return
+    const measure = () => {
+      const next = list.getBoundingClientRect().top - scrollElement.getBoundingClientRect().top + scrollElement.scrollTop
+      setOffset((current) => (Math.abs(current - next) < 0.5 ? current : next))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    const content = scrollElement.firstElementChild
+    if (content) observer.observe(content)
+    observer.observe(scrollElement)
+    return () => observer.disconnect()
+  }, [scrollElement, list])
+  return offset
 }
 
 /**
  * The virtualized string list, split out of the step for the same reason as the
  * speech clip list: `useVirtualizer` re-renders its host on every scroll frame,
  * and the step's hook stack (catalog, config, book, mutations) has no business
- * re-running while someone drags a scrollbar.
+ * re-running while someone drags a scrollbar. Notices and filters scroll with
+ * the list above it, so it offsets itself by their height.
  */
 export function TranslateRowList({
   scrollElement,
   rows,
-  label,
-  hex,
-  language,
-  isBase,
-  isSaving,
-  onSave,
-  onOpenImage,
+  placeOf,
+  translatedImageOf,
+  saves,
+  reviewOf,
+  appliedIds,
+  accepting,
+  scrollTo,
+  ...shared
 }: TranslateRowListProps) {
+  const [list, setList] = useState<HTMLDivElement | null>(null)
+  const offset = useListOffset(scrollElement, list)
+  const focused = useRef<number | null>(null)
+  const rangeExtractor = useCallback((range: Range) => {
+    const indexes = defaultRangeExtractor(range)
+    const keep = focused.current
+    if (keep === null || keep >= range.count || indexes.includes(keep)) return indexes
+    return [...indexes, keep].sort((left, right) => left - right)
+  }, [])
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollElement,
     estimateSize: () => ROW_ESTIMATE,
     overscan: 6,
+    scrollMargin: offset,
+    rangeExtractor,
     getItemKey: (index) => rows[index]?.id ?? index,
   })
 
+  const handled = useRef(0)
+  useEffect(() => {
+    if (!scrollTo || scrollTo.nonce === handled.current) return
+    const index = rows.findIndex((row) => row.id === scrollTo.id)
+    if (index < 0) return
+    handled.current = scrollTo.nonce
+    virtualizer.scrollToIndex(index, { align: "center" })
+  }, [scrollTo, rows, virtualizer])
+
   return (
-    <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
+    <div
+      ref={setList}
+      onFocus={(event) => {
+        const index = event.target.closest<HTMLElement>("[data-index]")?.dataset.index
+        focused.current = index === undefined ? null : Number(index)
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) focused.current = null
+      }}
+      style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}
+    >
       {virtualizer.getVirtualItems().map((virtualRow) => {
         const row = rows[virtualRow.index]
         return (
@@ -62,18 +122,18 @@ export function TranslateRowList({
               top: 0,
               left: 0,
               width: "100%",
-              transform: `translateY(${virtualRow.start}px)`,
+              transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
             }}
           >
             <TranslateRow
+              {...shared}
               row={row}
-              label={label}
-              hex={hex}
-              language={language}
-              isBase={isBase}
-              isSaving={isSaving}
-              onSave={onSave}
-              onOpenImage={onOpenImage}
+              place={placeOf(row.id)}
+              translatedImageId={row.isImage ? translatedImageOf(row.id) : undefined}
+              save={saves.get(row.id)}
+              review={reviewOf(row.id)}
+              applied={appliedIds.has(row.id)}
+              accepting={accepting === row.id}
             />
           </div>
         )
@@ -81,4 +141,3 @@ export function TranslateRowList({
     </div>
   )
 }
-

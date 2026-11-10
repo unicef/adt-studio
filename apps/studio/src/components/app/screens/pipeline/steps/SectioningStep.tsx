@@ -8,20 +8,20 @@ import { NextStepCardView } from "@/components/app/screens/pipeline/chrome/NextS
 import { useStageProblem } from "./shared/problems/useStageProblem"
 import { RunErrorNotice } from "./shared/RunErrorNotice"
 import { CollapsingRunStrip } from "@/components/app/screens/pipeline/runs/CollapsingRunStrip"
+import { progressCounts } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
 import { nextStepFolds, useNextStep } from "@/components/app/screens/pipeline/shared/useNextStep"
 import { FoldedProblem } from "./shared/problems/FoldedProblem"
 import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
-import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
+import { useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { useSectioningRun } from "@/components/app/screens/pipeline/runs/useSectioningRun"
 import { useStageRerun } from "@/components/app/screens/pipeline/runs/useStageRerun"
 import { useRerunConfirm } from "@/components/app/screens/pipeline/runs/useRerunConfirm"
-import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView, useStepRunningView } from "./shared/StepShell"
+import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView } from "./shared/StepShell"
 import { StepBody, StepRail } from "./shared/ui"
 import { usePageNav } from "./shared/usePageNav"
 import { SectioningPageDetail } from "./sectioning/SectioningPageDetail"
 import { SectioningPageGrid } from "./sectioning/SectioningPageGrid"
 import type { StepProps } from "./shared/types"
-import { useVariants } from "@/components/app/lab/variants"
 import { NotesStrip } from "./shared/notes/NotesStrip"
 import { ExtractHeaderActions } from "./extract/ExtractHeaderActions"
 import { SectioningRunBanner } from "./sectioning/SectioningRunBanner"
@@ -31,13 +31,11 @@ import { useSectioningNotes } from "./sectioning/useSectioningNotes"
 export function SectioningStep(props: StepProps) {
   const { label, plugin, pages } = props
   const { t } = useLingui()
-  const run = useRunActivity()
   const sectioning = useStageActivity("sectioning")
   const extract = useStageActivity("extract")
   const sectioningRun = useSectioningRun(label)
   const retry = useRerunConfirm("sectioning", useStageRerun(label, "sectioning"))
   const pagesQuery = usePages(label)
-  const variants = useVariants()
   const {
     selected: selectedPage,
     prevId: prevPageId,
@@ -77,14 +75,7 @@ export function SectioningStep(props: StepProps) {
     hasOutput: sectionedCount > 0,
   })
 
-  const feeding = sectioning.isActive ? sectioning : extract.isActive ? extract : null
-  const runningView = useStepRunningView({
-    ...props,
-    stage: feeding,
-    isCancelling: run.isCancelling,
-    onCancel: run.cancelRun,
-    outcome: t`Sections show up here as each page is structured.`,
-  })
+  const busy = sectioning.isActive || extract.isActive
   const loadingView = useStepLoadingView(props)
   const emptyView = useStepEmptyView({
     ...props,
@@ -104,22 +95,19 @@ export function SectioningStep(props: StepProps) {
       },
     ],
   })
-  const notes = useSectioningNotes({ pages, sectioning, busy: feeding !== null, onOpenPage: openPage })
-  const gridRun = variants.sectrunning === "grid"
-  const straightToGrid = gridRun && feeding !== null && pages.length > 0
-  const phaseView = straightToGrid
-    ? null
-    : feeding && sectionedCount === 0 ? runningView : loading ? loadingView : sectionedCount === 0 ? emptyView : null
+  const notes = useSectioningNotes({ pages, sectioning, busy, onOpenPage: openPage })
+  const pendingCount = extract.isActive ? Math.max(0, (progressCounts(extract)?.total ?? 0) - pages.length) : 0
+  const phaseView = busy ? null : loading ? loadingView : sectionedCount === 0 ? emptyView : null
   if (phaseView) return <StepShell {...props} {...phaseView} />
 
   return (
     <StepShell
       {...props}
       railEmpty={!selectedPage}
-      chips={straightToGrid && sectionedCount === 0 ? [] : [t`${plural(total, { one: "# section", other: "# sections" })}`, pruned > 0 ? t`${pruned} dropped` : t`All kept`]}
+      chips={busy && sectionedCount === 0 ? [] : [t`${plural(total, { one: "# section", other: "# sections" })}`, pruned > 0 ? t`${pruned} dropped` : t`All kept`]}
       rail={
         <StepRail
-          heading={variants.sectrail === "pages" ? <Trans>Pages</Trans> : <Trans>Sections by page</Trans>}
+          heading={<Trans>Sections by page</Trans>}
           hex={plugin.hex}
           entries={[
             { key: "", title: t`All pages`, count: total },
@@ -159,12 +147,12 @@ export function SectioningStep(props: StepProps) {
         <StepBody
           title={getStageLabelI18n("sectioning")}
           meta={t`${plural(total, { one: "# section", other: "# sections" })}`}
-          actions={variants.secthead === "extract" ? <ExtractHeaderActions label={label} /> : undefined}
+          actions={<ExtractHeaderActions label={label} />}
         >
-          {straightToGrid && !sectioning.isActive ? (
+          {extract.isActive && !sectioning.isActive ? (
             <SectioningWaitStrip extract={extract} hex={plugin.hex} />
           ) : (
-            <CollapsingRunStrip stage={sectioning} outcome={gridRun ? undefined : t`Sections show up here as each page is structured.`} />
+            <CollapsingRunStrip stage={sectioning} />
           )}
           {stageProblem.failed && !foldProblem && (
             <RunErrorNotice
@@ -178,7 +166,7 @@ export function SectioningStep(props: StepProps) {
               retryReason={retry.disabledReason}
             />
           )}
-          {variants.sectresume === "strip" && <SectioningRunBanner run={sectioningRun} />}
+          <SectioningRunBanner run={sectioningRun} />
           {retry.dialogs}
           <NextStepCardView
             next={next}
@@ -195,13 +183,15 @@ export function SectioningStep(props: StepProps) {
               ) : null
             }
           />
-          {variants.sectnotes === "strip" && <NotesStrip notes={notes} hex={plugin.hex} />}
+          <NotesStrip notes={notes} hex={plugin.hex} />
           <SectioningPageGrid
             label={label}
             pages={pages}
             onOpen={openPage}
             aspect={pageAspect}
-            live={gridRun ? { hex: plugin.hex, pending: feeding !== null } : undefined}
+            hex={plugin.hex}
+            pending={busy}
+            pendingCount={pendingCount}
           />
         </StepBody>
       )}

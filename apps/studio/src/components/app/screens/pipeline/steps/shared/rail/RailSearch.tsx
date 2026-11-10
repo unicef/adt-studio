@@ -6,13 +6,16 @@ export function RailSearch({
   onQuery,
   matches,
   onSubmit,
+  placeholder,
 }: {
   query: string
   onQuery: (value: string) => void
   matches: number | null
   onSubmit: () => void
+  placeholder?: string
 }) {
   const { t } = useLingui()
+  const hint = placeholder ?? t`Go to page or find text`
   return (
     <label className="flex h-8 shrink-0 items-center gap-2 rounded-lg bg-muted/70 px-2.5 transition-[background-color,box-shadow] duration-150 focus-within:bg-card focus-within:ring-2 focus-within:ring-ring/60 focus-within:ring-inset motion-reduce:transition-none">
       <Search aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
@@ -29,8 +32,8 @@ export function RailSearch({
             onQuery("")
           }
         }}
-        placeholder={t`Go to page or find text`}
-        aria-label={t`Go to page or find text`}
+        placeholder={hint}
+        aria-label={hint}
         className="min-w-0 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-muted-foreground"
       />
       {matches != null && (

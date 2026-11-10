@@ -13,7 +13,7 @@ const CAPTION_SAMPLES: Record<GradeLevelKey, MessageDescriptor> = {
   advanced: msg`A wide-angle view down a fluorescent-lit supermarket aisle, with stacked branded cereal boxes lining the left shelves and assorted packaged dry goods on the right; a lone shopper stands at the far end, providing scale to the receding perspective.`,
 }
 
-export function CaptionsPreview({ grade, friendly = false }: { grade: GradeLevelKey; friendly?: boolean }) {
+export function CaptionsPreview({ grade }: { grade: GradeLevelKey; friendly?: boolean }) {
   /* eslint-disable lingui/no-unlocalized-strings -- mock textbook content, illustrative only */
   return (
     <div className="flex flex-1 min-h-0 flex-col bg-background">
@@ -106,13 +106,13 @@ export function CaptionsPreview({ grade, friendly = false }: { grade: GradeLevel
       </div>
       {/* Accessibility callout — explains who the captions are for. Kept
           visually quiet so it informs without competing with the preview. */}
-      <AccessibilityCallout friendly={friendly} />
+      <AccessibilityCallout />
     </div>
   )
   /* eslint-enable lingui/no-unlocalized-strings */
 }
 
-function AccessibilityCallout({ friendly }: { friendly: boolean }) {
+function AccessibilityCallout() {
   return (
     <div
       className="mx-6 mb-5 flex shrink-0 items-start gap-3.5 rounded-lg border border-teal-200 bg-gradient-to-br from-teal-50 to-white px-4 py-3.5 dark:border-teal-500/30 dark:from-teal-500/10 dark:to-transparent shadow-[0_6px_18px_-10px_rgba(13,148,136,0.35)]"
@@ -126,20 +126,13 @@ function AccessibilityCallout({ friendly }: { friendly: boolean }) {
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="text-[12.5px] font-semibold leading-tight text-teal-800 dark:text-teal-200">
-          {friendly ? <Trans>Image descriptions support accessibility.</Trans> : <Trans>Captions support accessibility.</Trans>}
+          <Trans>Image descriptions support accessibility.</Trans>
         </span>
         <p className="text-[11px] leading-3.75  text-black dark:text-foreground">
-          {friendly ? (
-            <Trans>
-              Image descriptions tell readers what each picture shows, so people who are blind or have low vision can
-              follow it through a screen reader.
-            </Trans>
-          ) : (
-            <Trans>
-            Captions describe each picture in words, so people who are blind
-            or have low vision can follow it through a screen reader. Adding captions helps ensure everyone can
-            access and understand your content.
-          </Trans>)}
+          <Trans>
+            Image descriptions tell readers what each picture shows, so people who are blind or have low vision can
+            follow it through a screen reader.
+          </Trans>
         </p>
       </div>
     </div>
@@ -150,7 +143,7 @@ function AltTextCard({ grade }: { grade: GradeLevelKey }) {
   return (
     <div className="flex shrink-0 flex-col gap-1 rounded-md border border-[#e5e5e5] bg-background p-2.5 shadow-[0px_4px_10px_0px_rgba(0,0,0,0.08)] transition-[height] duration-300 ease-out">
       <span className="text-[11px] font-semibold tracking-tight text-foreground">
-        <Trans>Image Alt-Text</Trans>
+        <Trans>Image description</Trans>
       </span>
       <p
         key={grade}

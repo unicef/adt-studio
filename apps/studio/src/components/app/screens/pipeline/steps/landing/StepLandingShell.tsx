@@ -12,6 +12,7 @@ import { STAGES } from "@/components/pipeline/stage-config"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
 import { cn } from "@/lib/utils"
+import { HEADER_BUTTON } from "../shared/headerButton"
 import { tint } from "@/components/app/screens/pipeline/shared/tint"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { StepLandingLayout } from "./StepLandingLayout"
@@ -21,6 +22,9 @@ import { useStageError } from "../shared/RunErrorNotice"
 import { useDescribeProblem, type ProblemStage } from "../shared/problems/useDescribeProblem"
 import { TONE_BUTTON } from "@/components/ui/notice-tone"
 import { problemTone } from "../shared/problems/problemTone"
+import { useStageRun } from "@/components/app/screens/pipeline/runs/useStageRun"
+import { useStepPrereq } from "@/components/app/screens/pipeline/runs/useStepPrereq"
+import { isDockSlug } from "@/components/app/screens/pipeline/shared/dockSlugs"
 
 export interface StepLandingShellProps {
   bookLabel: string
@@ -78,12 +82,14 @@ export function StepLandingShell({
   const { isCancelling, cancelRun } = useBookRun()
   const navigate = useNavigate()
   const hasAi = useBookStructuredTextAvailability(bookLabel)
+  const { isRunnable } = useStageRun(bookLabel, stageSlug)
+  const prereq = useStepPrereq(bookLabel, isDockSlug(stageSlug) ? stageSlug : "extract")
   const aiLink =
-    !hasAi ? (
+    isRunnable && !hasAi && prereq.isMet ? (
       <button
         type="button"
         onClick={() => void navigate({ to: "/pipeline/$label/settings/$section", params: { label: bookLabel, section: "api-keys" } })}
-        className="shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold text-foreground transition-colors hover:bg-muted"
+        className={cn(HEADER_BUTTON, "h-8 px-3 text-[12px] text-foreground")}
       >
         <Trans>Set up AI access</Trans>
       </button>

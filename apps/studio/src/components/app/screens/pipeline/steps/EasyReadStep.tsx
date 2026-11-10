@@ -1,204 +1,147 @@
-import { useCallback, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { RotateCcw, Search, X } from "lucide-react"
-import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
-import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
-import { LiveRunStrip } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
+import { plural } from "@lingui/core/macro"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { PageLightbox } from "@/components/pipeline/components/PageLightbox"
+import { useRunEasyRead } from "@/components/pipeline/stages/easy-read/use-run-easy-read"
+import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
+import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
+import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView, useStepRunningView } from "./shared/StepShell"
 import { StepVersionPicker } from "./shared/StepVersionPicker"
 import { easyReadVersionDiff } from "./shared/versionDiffs"
-import { useRunEasyRead } from "@/components/pipeline/stages/easy-read/use-run-easy-read"
-import { StepEmpty, StepLoading, StepRunning, StepShell, useStepLoading } from "./shared/StepShell"
-import { DetailNavButton, SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
-import { EasyReadPageSection, type EasyReadPageGroup } from "./easy-read/EasyReadPageSection"
+import { StepRail } from "./shared/ui"
+import { usePageNav } from "./shared/usePageNav"
+import { useStageSurface } from "./shared/useStageSurface"
+import { EasyReadOverview } from "./easy-read/EasyReadOverview"
+import { EasyReadPageView } from "./easy-read/page/EasyReadPageView"
 import { useEasyReadEdits } from "./easy-read/useEasyReadEdits"
+import { useEasyReadPages } from "./easy-read/useEasyReadPages"
+import { useEasyReadRail } from "./easy-read/useEasyReadRail"
 import type { StepProps } from "./shared/types"
 
 export function EasyReadStep(props: StepProps) {
-  const { label, plugin } = props
+  const { label, plugin, pages } = props
   const { t } = useLingui()
   const run = useRunActivity()
-  const stage = useStageActivity("easy-read")
+  const activity = useStageActivity("easy-read")
   const { runEasyRead, hasStructuredTextProvider } = useRunEasyRead(label)
-  const edits = useEasyReadEdits(label, { locked: stage.isActive })
-
-  const [activePageId, setActivePageId] = useState<string | null>(null)
-  const [lightboxPageId, setLightboxPageId] = useState<string | null>(null)
+  const edits = useEasyReadEdits(label, { locked: activity.isActive, accent: plugin.hex })
   const [search, setSearch] = useState("")
+  const [lightboxPageId, setLightboxPageId] = useState<string | null>(null)
 
-  const blocks = edits.blocks
+  const data = useEasyReadPages(pages, edits.blocks, search)
+  const aspect = usePageAspect(label, data.navPages)
+  const nav = usePageNav({ label, slug: plugin.slug, pages: data.navPages, allPages: pages })
+  const hasOutput = edits.blocks.length > 0
+  const name = getStageLabelI18n("easy-read")
+
+  const surface = useStageSurface({
+    label,
+    slug: "easy-read",
+    hex: plugin.hex,
+    pages,
+    ready: hasOutput,
+    hasOutput,
+    outcome: t`Editing is paused until ${name} finishes.`,
+    hint: {
+      title: t`How Easy Read works`,
+      body: t`Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate.`,
+    },
+    onOpenPage: nav.open,
+  })
+  const { marks } = surface
+  const isFailed = marks.isFailed
+
+  const railEntries = useEasyReadRail(label, data.navPages, { aspect, total: data.total, blocksOn: data.blocksOn, isFailed })
   const versionDiff = useMemo(() => easyReadVersionDiff(t), [t])
 
-  const railEntries = useMemo(() => {
-    const map = new Map<string, { pageNumber: number; count: number }>()
-    for (const block of blocks) {
-      const current = map.get(block.pageId) ?? { pageNumber: block.pageNumber, count: 0 }
-      current.count += block.entries.length
-      map.set(block.pageId, current)
-    }
-    return [...map.entries()].map(([pageId, value]) => ({
-      key: pageId,
-      title: t`Page ${value.pageNumber}`,
-      count: value.count,
-      thumb: (
-        <PageThumb label={label} pageId={pageId} sectionIndex={null} className="h-[52px] w-[38px]" />
-      ),
-    }))
-  }, [blocks, label, t])
-
-  const pageGroups = useMemo(() => {
-    const scoped = activePageId ? blocks.filter((block) => block.pageId === activePageId) : blocks
-    const query = search.trim().toLowerCase()
-    const filtered = query
-      ? scoped.filter((block) => {
-          if (block.sectionType.toLowerCase().includes(query)) return true
-          return block.entries.some(
-            (entry) =>
-              entry.originalText.toLowerCase().includes(query) ||
-              entry.text.toLowerCase().includes(query),
-          )
-        })
-      : scoped
-
-    const groups: EasyReadPageGroup[] = []
-    const indexByPage = new Map<string, number>()
-    for (const block of filtered) {
-      let index = indexByPage.get(block.pageId)
-      if (index === undefined) {
-        index = groups.length
-        indexByPage.set(block.pageId, index)
-        groups.push({ pageId: block.pageId, pageNumber: block.pageNumber, blocks: [] })
-      }
-      groups[index].blocks.push(block)
-    }
-    return groups
-  }, [blocks, activePageId, search])
-
-  const openPage = useCallback((pageId: string) => setLightboxPageId(pageId), [])
-
-  const isRunning = stage.isActive
-  const loading = useStepLoading(props, {
-    isLoading: edits.isLoading,
-    hasOutput: blocks.length > 0,
+  const loading = useStepLoading(props, { isLoading: edits.isLoading, hasOutput })
+  const runningView = useStepRunningView({
+    ...props,
+    stage: activity,
+    isCancelling: run.isCancelling,
+    onCancel: run.cancelRun,
+    outcome: t`Simplified blocks show up here as each section is rewritten.`,
   })
+  const loadingView = useStepLoadingView(props, { shape: "list" })
+  const emptyView = useStepEmptyView({ ...props, onRun: () => void runEasyRead(), canRun: hasStructuredTextProvider && !activity.isActive })
+  const phaseView = activity.isActive && !hasOutput ? runningView : loading ? loadingView : !hasOutput ? emptyView : null
+  if (phaseView) return <StepShell {...props} {...phaseView} />
 
-  if (isRunning && blocks.length === 0) {
-    return (
-      <StepRunning
-        {...props}
-        stage={stage}
-        isCancelling={run.isCancelling}
-        onCancel={run.cancelRun}
-        outcome={t`Simplified blocks show up here as each section is rewritten.`}
-      />
-    )
-  }
-  if (loading) return <StepLoading {...props} />
-  if (blocks.length === 0) {
-    return <StepEmpty {...props} onRun={() => void runEasyRead()} canRun={hasStructuredTextProvider && !isRunning} />
-  }
-
-  const total = blocks.reduce((sum, block) => sum + block.entries.length, 0)
-  const searchActive = search.trim().length > 0
-
-  const versionPicker = (
-    <StepVersionPicker
-      label={label}
-      step="easy-read"
-      currentVersion={edits.version}
-      isSaving={edits.saving}
-      dirty={edits.dirty}
-      onRestored={edits.discard}
-      diff={versionDiff}
-    />
-  )
+  const selected = nav.selected
+  const blocksLabel = t`${plural(data.total, { one: "# block", other: "# blocks" })}`
+  const regenerateReason = surface.locked
+    ? t`Wait for ${name} to finish.`
+    : surface.retry.canRun
+      ? null
+      : (surface.retry.reason ?? t`Wait for the current run to finish.`)
 
   return (
     <StepShell
       {...props}
-      chips={[t`${total} blocks`, t`${blocks.length} sections`]}
-      headerExtra={versionPicker}
+      chips={[blocksLabel]}
+      headerExtra={
+        <StepVersionPicker
+          label={label}
+          step="easy-read"
+          currentVersion={edits.version}
+          isSaving={edits.saving}
+          dirty={edits.dirty}
+          onRestored={edits.discard}
+          diff={versionDiff}
+        />
+      }
       rail={
         <StepRail
           heading={<Trans>Blocks by page</Trans>}
           hex={plugin.hex}
-          entries={[{ key: "", title: t`All pages`, count: total }, ...railEntries]}
-          activeKey={activePageId ?? ""}
-          onSelect={(key) => setActivePageId(key ? key : null)}
+          entries={railEntries}
+          activeKey={selected?.pageId ?? ""}
+          onSelect={(key) => (key ? nav.open(key) : nav.close())}
           footer={<Trans>Readers switch between the original text and these blocks.</Trans>}
         />
       }
     >
-      <StepBody
-        title={<Trans>Easy Read</Trans>}
-        meta={t`${total} blocks`}
-        actions={
-          <>
-            <div className="relative w-64">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t`Search original or Easy Read text…`}
-                aria-label={t`Search original or Easy Read text…`}
-                className="h-9 w-full rounded-[10px] border bg-background pl-8 pr-8 text-[12px] placeholder:text-muted-foreground/60 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_var(--brand-50)]"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  aria-label={t`Clear search`}
-                  className="absolute right-1 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <X className="size-3" />
-                </button>
-              )}
-            </div>
-            <DetailNavButton
-              icon={RotateCcw}
-              label={t`Regenerate Easy Read`}
-              onClick={() => void runEasyRead()}
-              disabled={!hasStructuredTextProvider || isRunning || edits.dirty}
-            >
-              <Trans>Regenerate</Trans>
-            </DetailNavButton>
-          </>
-        }
-      >
-        {stage.isActive && <LiveRunStrip stage={stage} outcome={t`Editing is paused until Easy Read finishes.`} />}
-        <SaveError error={edits.saveError} />
-
-        {pageGroups.length === 0 ? (
-          <StepEmptyHint>
-            <span className="flex flex-col items-center gap-2">
-              <Trans>No matching blocks</Trans>
-              {searchActive && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  className="font-medium underline-offset-2 hover:underline"
-                  style={{ color: plugin.hex }}
-                >
-                  <Trans>Clear search</Trans>
-                </button>
-              )}
-            </span>
-          </StepEmptyHint>
-        ) : (
-          pageGroups.map((group) => (
-            <EasyReadPageSection
-              key={group.pageId}
-              label={label}
-              group={group}
-              accent={plugin.hex}
-              disabled={isRunning || edits.saving}
-              onUpdateEntry={edits.updateEntry}
-              onOpenPage={openPage}
-            />
-          ))
-        )}
-      </StepBody>
+      {selected ? (
+        <EasyReadPageView
+          key={selected.pageId}
+          label={label}
+          pageId={selected.pageId}
+          pageNumber={selected.pageNumber}
+          hex={plugin.hex}
+          blocks={data.blocksOn(selected.pageId)}
+          locked={surface.locked}
+          saveError={edits.saveError}
+          isEdited={edits.isEntryEdited}
+          onUpdate={edits.updateEntry}
+          prevPageId={nav.prevId}
+          nextPageId={nav.nextId}
+          onStep={nav.step}
+          onClose={nav.close}
+          problem={surface.problem}
+          retry={surface.retry}
+        />
+      ) : (
+        <EasyReadOverview
+          label={label}
+          meta={blocksLabel}
+          top={surface.top}
+          help={surface.help}
+          data={data}
+          jumpPages={data.navPages}
+          aspect={aspect}
+          search={search}
+          onSearch={setSearch}
+          locked={surface.locked}
+          saveError={edits.saveError}
+          regenerate={{ run: surface.retry.run, disabledReason: regenerateReason }}
+          isFailed={isFailed}
+          isEdited={edits.isEntryEdited}
+          onUpdate={edits.updateEntry}
+          onOpenPage={nav.open}
+          onPreview={setLightboxPageId}
+        />
+      )}
 
       <PageLightbox
         bookLabel={label}

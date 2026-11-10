@@ -6,7 +6,7 @@ import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { useDocumentEdits } from "../shared/useDocumentEdits"
 import { classifyTerm, fromRows, rowKey, sameTerm, toRows, withTextEdit, type GlossaryRow, type GlossaryTextPatch } from "./glossaryRows"
 
-export function useGlossaryEdits(label: string, doc: GlossaryOutput | null | undefined, locked: boolean) {
+export function useGlossaryEdits(label: string, doc: GlossaryOutput | null | undefined, locked: boolean, accent?: string) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
 
@@ -48,6 +48,7 @@ export function useGlossaryEdits(label: string, doc: GlossaryOutput | null | und
     afterSave,
     locked,
     lockedReason: t`Wait for the glossary to finish generating.`,
+    accent,
   })
 
   const { update, insert, remove } = edits

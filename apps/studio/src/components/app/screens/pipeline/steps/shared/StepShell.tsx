@@ -10,7 +10,7 @@ import { PreRunChecklist } from "@/components/app/screens/pipeline/plugins/PreRu
 import { PluginRailEmpty } from "@/components/app/screens/pipeline/plugins/PluginRailEmpty"
 import { StepLanding, hasStepLanding } from "./StepLanding"
 import { hasFullHeightLanding } from "../landing/fullHeight"
-import { StageContentSkeleton, StepRailSkeleton, type StepLoadingShape } from "./StepLoadingSkeleton"
+import { StageContentSkeleton, StepRailSkeleton, stepLoadingShape, type StepLoadingShape } from "./StepLoadingSkeleton"
 import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 import { PluginWorkspace } from "@/components/app/screens/pipeline/plugins/PluginWorkspace"
 import { LiveRunPanel, RunChecklist, progressCounts } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
@@ -258,8 +258,9 @@ export function StepLoading({ shape, ...props }: StepProps & StepLoadingOptions)
   return <StepShell {...props} {...view} />
 }
 
-export function useStepLoadingView(props: StepProps, { shape = "grid" }: StepLoadingOptions = {}): StepView {
+export function useStepLoadingView(props: StepProps, { shape: requested }: StepLoadingOptions = {}): StepView {
   const { label, pages, plugin } = props
+  const shape = requested ?? stepLoadingShape(plugin.slug)
   const aspect = usePageAspect(label, pages)
   const search = useSearch({ strict: false })
   const pageOpen = typeof search.page === "string" && search.page !== ""

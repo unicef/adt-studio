@@ -1,7 +1,22 @@
 import { useLingui } from "@lingui/react/macro"
 import { isLandscapeRatio, pageGridClass } from "@/components/app/screens/pipeline/shared/usePageAspect"
 
-export type StepLoadingShape = "grid" | "list" | "report"
+export type StepLoadingShape = "grid" | "list" | "report" | "video"
+
+const STEP_SHAPES: Record<string, StepLoadingShape> = {
+  quizzes: "list",
+  glossary: "list",
+  toc: "list",
+  translate: "list",
+  speech: "list",
+  "easy-read": "list",
+  validation: "report",
+  "sign-language": "video",
+}
+
+export function stepLoadingShape(slug: string): StepLoadingShape {
+  return STEP_SHAPES[slug] ?? "grid"
+}
 
 const BAR = "rounded bg-muted-foreground/15"
 const LINE = "rounded bg-muted-foreground/10"
@@ -27,6 +42,7 @@ export function StepRailSkeleton({ thumbClassName }: { thumbClassName: string })
 
 const HEADER_ACTIONS: Record<string, number[]> = {
   extract: [131, 145],
+  sectioning: [131, 145],
 }
 
 function Heading({ slug }: { slug?: string }) {
@@ -119,7 +135,31 @@ function ReportSkeleton({ slug }: { slug?: string }) {
   )
 }
 
+function VideoSkeleton({ slug }: { slug?: string }) {
+  return (
+    <div aria-hidden className="mx-auto flex container flex-col gap-4 px-4 py-7 motion-safe:animate-pulse">
+      <Heading slug={slug} />
+      <div className="flex h-[76px] flex-col justify-center gap-2.5 rounded-xl border bg-card px-4">
+        <div className={`h-3 w-32 ${BAR}`} />
+        <div className="h-1.5 w-full rounded-full bg-muted" />
+      </div>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+        {Array.from({ length: 8 }, (_, index) => (
+          <div key={index} className="flex flex-col overflow-hidden rounded-xl border bg-card">
+            <div className="aspect-video border-b bg-muted" />
+            <div className="flex flex-col gap-2 px-3 py-2.5">
+              <div className={`h-2.5 w-24 ${BAR}`} />
+              <div className={`h-2 w-3/4 ${LINE}`} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function StageContentSkeleton({ shape = "grid", ratio, slug }: { shape?: StepLoadingShape; ratio: number; slug?: string }) {
+  if (shape === "video") return <VideoSkeleton slug={slug} />
   if (shape === "list") return <ListSkeleton slug={slug} />
   if (shape === "report") return <ReportSkeleton slug={slug} />
   return <GridSkeleton ratio={ratio} slug={slug} />

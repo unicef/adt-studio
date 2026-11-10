@@ -3,9 +3,12 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
 import { api, type QuizOption, type QuizzesResponse } from "@/api/client"
 import { useDocumentEdits } from "../shared/useDocumentEdits"
+import { inDocOrder } from "./quizPages"
 import { getQuizzes, quizKey, sameQuiz, setQuizzes, withOption, type QuizDoc, type QuizRow } from "./quizRows"
 
-export function useQuizEdits(label: string, data: QuizzesResponse | undefined, locked: boolean) {
+const setInDocOrder = (doc: QuizDoc, quizzes: QuizRow[]): QuizDoc => setQuizzes(doc, inDocOrder(doc.quizzes, quizzes))
+
+export function useQuizEdits(label: string, data: QuizzesResponse | undefined, locked: boolean, accent: string) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
   const save = useCallback((next: QuizDoc) => api.updateQuizzes(label, next), [label])
@@ -26,7 +29,7 @@ export function useQuizEdits(label: string, data: QuizzesResponse | undefined, l
     doc: data?.quizzes,
     versionKey: `${data?.version ?? "none"}:${data?.historyVersion ?? "none"}`,
     getItems: getQuizzes,
-    setItems: setQuizzes,
+    setItems: setInDocOrder,
     keyOf: quizKey,
     isEqual: sameQuiz,
     noun,
@@ -34,6 +37,7 @@ export function useQuizEdits(label: string, data: QuizzesResponse | undefined, l
     afterSave,
     locked,
     lockedReason: t`Wait for the quizzes to finish generating.`,
+    accent,
   })
 
   const { update } = edits

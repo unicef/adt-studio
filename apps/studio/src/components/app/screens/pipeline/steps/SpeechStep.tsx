@@ -1,105 +1,133 @@
-import { useVariant } from "@/components/app/lab/variants"
 import { useCallback, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, Search } from "lucide-react"
+import { plural } from "@lingui/core/macro"
 import type { WordTimestamp } from "@/api/client"
-import { Input } from "@/components/ui/input"
-import { useActiveConfig } from "@/hooks/use-debug"
-import { languageUsesSpeechProvider } from "@/lib/speech-routing"
+import { useVariant } from "@/components/app/lab/variants"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
+import { PROVIDER_LABELS } from "@/components/pipeline/stages/languages/lib/provider-labels"
+import type { CatalogCategory } from "@/components/pipeline/stages/languages/lib/catalog-entries"
+import { useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
+import { useStageRerun } from "@/components/app/screens/pipeline/runs/useStageRerun"
+import { useRerunConfirm } from "@/components/app/screens/pipeline/runs/useRerunConfirm"
+import { useStepPrereq } from "@/components/app/screens/pipeline/runs/useStepPrereq"
+import { useBookRun } from "@/hooks/use-book-run"
+import { useBookTasks } from "@/hooks/use-book-tasks"
 import { normalizeLocale } from "@/lib/languages"
-import { useSpeech, useTextCatalog } from "./shared/queries"
-import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
+import { NoMatches } from "./shared/list/NoMatches"
+import { StepShell, useStepEmptyView, useStepLoading, useStepLoadingView } from "./shared/StepShell"
+import { StepSearch } from "./shared/StepSearch"
 import { StepVersionPicker } from "./shared/StepVersionPicker"
-import { StepEmptyHint, StepRail, StepScrollBody, STEP_FILL_VIEWPORT_CLASSNAME } from "./shared/ui"
+import { StepBody, StepEmptyHint, StepRail, STEP_FILL_VIEWPORT_CLASSNAME } from "./shared/ui"
+import { useStageSurface } from "./shared/useStageSurface"
 import { speechVersionDiff } from "./shared/versionDiffs"
 import { SpeechClipList } from "./speech/SpeechClipList"
-import { useSpeechAudio } from "./speech/useSpeechAudio"
-import { useTtsExclusions } from "./speech/useTtsExclusions"
+import type { ClipAbility } from "./speech/SpeechClipRow"
+import { SpeechFailedNotice } from "./speech/SpeechFailedNotice"
+import { SpeechHeaderActions } from "./speech/SpeechHeaderActions"
+import { SpeechToolbar } from "./speech/SpeechToolbar"
+import { filterRows, type ClipFilter } from "./speech/speechRows"
+import { languageName } from "./speech/languageName"
+import { useSpeechModel } from "./speech/useSpeechModel"
+import { useSpeechNotes } from "./speech/useSpeechNotes"
+import { useSpeechProviders } from "./speech/useSpeechProviders"
 import type { StepProps } from "./shared/types"
 
-function languageName(code: string, locale: string): string {
-  if (!code) return ""
-  try {
-    return new Intl.DisplayNames([locale], { type: "language" }).of(code) ?? code.toUpperCase()
-  } catch {
-    return code.toUpperCase()
-  }
-}
-
 export function SpeechStep(props: StepProps) {
-  const { label, plugin } = props
+  const { label, plugin, pages } = props
   const { t, i18n } = useLingui()
   const friendly = useVariant("features") === "suggested"
-  const query = useSpeech(label)
-  const catalog = useTextCatalog(label)
-  const config = useActiveConfig(label)
+  const stageName = getStageLabelI18n("speech")
+  const activity = useStageActivity("speech")
+  const { stageState } = useBookRun()
+  const { isTaskRunning } = useBookTasks(label)
+  const prereq = useStepPrereq(label, "speech")
+  const providers = useSpeechProviders(label)
+  const model = useSpeechModel(label)
+  const { language, baseLanguage, rows, counts, audio, exclusions, slot } = model
 
-  const languages = useMemo(() => Object.keys(query.data?.languages ?? {}).sort(), [query.data])
-  const [active, setActive] = useState<string | null>(null)
+  const [clip, setClip] = useState<ClipFilter>("all")
+  const [category, setCategory] = useState<CatalogCategory>("all")
+  const [pageId, setPageId] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const language = active ?? languages[0] ?? ""
-  const data = language ? query.data?.languages[language] : undefined
+  const [compare, setCompare] = useState(false)
 
-  const audio = useSpeechAudio(label, language)
-  const exclusions = useTtsExclusions(label)
+  const pageById = useMemo(() => new Map(pages.map((page) => [page.pageId, page])), [pages])
+  const pageNumberOf = useCallback((id: string | null) => (id ? (pageById.get(id)?.pageNumber ?? null) : null), [pageById])
+  const pageOptions = useMemo(() => {
+    const used = new Set(rows.map((row) => row.pageId))
+    return pages.filter((page) => used.has(page.pageId)).map((page) => ({ pageId: page.pageId, pageNumber: page.pageNumber }))
+  }, [pages, rows])
+  const page = pageId ? (pageOptions.find((option) => option.pageId === pageId) ?? null) : null
 
-  const textById = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const entry of catalog.data?.entries ?? []) map.set(entry.id, entry.text)
-    for (const entry of (language ? catalog.data?.translations[language]?.entries : undefined) ?? [])
-      map.set(entry.id, entry.text)
-    return map
-  }, [catalog.data, language])
+  const activeClip: ClipFilter = clip === "failed" && counts.failed === 0 ? "all" : clip
+  const shown = useMemo(
+    () => filterRows(rows, { clip: activeClip, category, pageId: page?.pageId ?? null, search }),
+    [rows, activeClip, category, page, search],
+  )
 
-  const speechById = useMemo(() => {
-    const normalized = normalizeLocale(language || "")
-    const entries =
-      catalog.data?.speechTexts[normalized]?.entries ??
-      catalog.data?.speechTexts[normalized.replace("-", "_")]?.entries ??
-      []
-    return new Map(entries.map((entry) => [entry.id, entry]))
-  }, [catalog.data, language])
+  const state = stageState("speech")
+  const rerun = useStageRerun(label, "speech")
+  const confirm = useRerunConfirm("speech", rerun)
+  const missingProvider = model.languages.map((code) => providers.providerFor(code, "primary")).find((id) => !providers.isProviderReady(id))
+  const providerName = (id: string) => PROVIDER_LABELS[id] ?? id
+  const voiceReason = missingProvider ? t`Add a ${providerName(missingProvider)} key in AI access to create audio.` : null
+  const lockReason = t`Editing is paused until ${stageName} finishes.`
+  const locked = activity.isActive
+  const toCreate = counts.missing + counts.failed
+  const runAction = {
+    label: toCreate > 0 ? t`Create missing audio` : t`Create audio again`,
+    missing: toCreate > 0,
+    onClick: confirm.request,
+    disabled: locked || !confirm.canRun || !!voiceReason,
+    reason: locked ? lockReason : (confirm.disabledReason ?? voiceReason),
+  }
 
-  const entries = useMemo(() => data?.entries ?? [], [data])
-  const shown = useMemo(() => {
-    const needle = search.trim().toLowerCase()
-    if (!needle) return entries
-    return entries.filter(
-      (entry) =>
-        entry.textId.toLowerCase().includes(needle) ||
-        (textById.get(entry.textId) ?? "").toLowerCase().includes(needle),
-    )
-  }, [entries, search, textById])
+  const missingTiming = useMemo(() => rows.filter((row) => row.state === "ready" && !audio.timestampsById[row.id]).length, [rows, audio.timestampsById])
+  const showMissing = useCallback(() => setClip("missing"), [])
+  const notes = useSpeechNotes({
+    label,
+    rows,
+    counts,
+    settled: (state === "done" || state === "error") && !locked,
+    locked,
+    lockReason,
+    hasTranscriber: providers.hasTranscriber,
+    wantsTiming: model.wordHighlighting || Object.keys(audio.timestampsById).length > 0,
+    missingTiming,
+    run: runAction,
+    onMute: exclusions.muteMany,
+    onShowMissing: showMissing,
+  })
 
-  // Held as state, not a ref: the list below needs the element itself, and this
-  // resolves once at mount instead of on every scroll frame.
-  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null)
+  const surface = useStageSurface({
+    label,
+    slug: "speech",
+    hex: plugin.hex,
+    pages,
+    ready: counts.ready > 0,
+    outcome: lockReason,
+    hint: {
+      title: t`How read aloud works`,
+      body: t`Every text in the book was turned into speech in each language. Play a clip to check it, replace it with your own recording, or mute it so it isn't read aloud. Edit what is read when a word is said wrong, then create that clip again.`,
+    },
+    notes,
+    onOpenPage: setPageId,
+    onShowFailed: () => setClip("failed"),
+    hasOutput: model.hasAudio,
+    hintOpen: true,
+  })
 
-  const speechConfig = (config.data?.merged as Record<string, unknown> | undefined)?.speech
-  // Identical for every row, so it is memoized into one object the cards can
-  // hold by reference instead of three booleans threaded through each.
-  const capabilities = useMemo(
+  const ability: ClipAbility = useMemo(
     () => ({
-      canGenerate: !!language && languageUsesSpeechProvider(language, "gemini", speechConfig),
-      hasGeminiKey: audio.hasGeminiKey,
-      hasOpenaiKey: audio.hasOpenaiKey,
+      canGenerate: providers.canSynthesize(language, slot),
+      generateReason: providers.canSynthesize(language, slot)
+        ? null
+        : t`Add a ${providerName(providers.providerFor(language, slot))} key in AI access to create audio.`,
+      hasTranscriber: providers.hasTranscriber,
+      locked,
+      lockReason,
     }),
-    [language, speechConfig, audio.hasGeminiKey, audio.hasOpenaiKey],
-  )
-
-  const generateOne = audio.generate.mutate
-  const uploadOne = audio.upload.mutate
-  const transcribeOne = audio.transcribe.mutate
-  const saveTimestampsOne = audio.saveTimestamps.mutate
-
-  const handleUpload = useCallback(
-    (textId: string, file: File) => uploadOne({ textId, file }),
-    [uploadOne],
-  )
-  const handleSaveTimestamps = useCallback(
-    (textId: string, words: WordTimestamp[], duration: number) =>
-      saveTimestampsOne({ textId, words, duration }),
-    [saveTimestampsOne],
+    [providers, language, slot, locked, lockReason, t],
   )
 
   const busy = useMemo(
@@ -107,9 +135,7 @@ export function SpeechStep(props: StepProps) {
       generating: audio.generate.isPending ? audio.generate.variables : undefined,
       uploading: audio.upload.isPending ? audio.upload.variables?.textId : undefined,
       transcribing: audio.transcribe.isPending ? audio.transcribe.variables : undefined,
-      savingTimestamps: audio.saveTimestamps.isPending
-        ? audio.saveTimestamps.variables?.textId
-        : undefined,
+      savingTimestamps: audio.saveTimestamps.isPending ? audio.saveTimestamps.variables?.textId : undefined,
     }),
     [
       audio.generate.isPending, audio.generate.variables,
@@ -119,30 +145,75 @@ export function SpeechStep(props: StepProps) {
     ],
   )
 
+  const uploadOne = audio.upload.mutate
+  const saveTimestampsOne = audio.saveTimestamps.mutate
+  const handleUpload = useCallback((textId: string, file: File) => uploadOne({ textId, file }), [uploadOne])
+  const handleSaveTimestamps = useCallback(
+    (textId: string, words: WordTimestamp[], duration: number) => saveTimestampsOne({ textId, words, duration }),
+    [saveTimestampsOne],
+  )
   const versionDiff = useMemo(() => speechVersionDiff(t), [t])
 
-  const loading = useStepLoading(props, {
-    isLoading: query.isLoading,
-    hasOutput: languages.length > 0,
+  const loading = useStepLoading(props, { isLoading: model.isLoading, hasOutput: model.hasAudio })
+  const loadingView = useStepLoadingView(props, { shape: "list" })
+  const ttsReady = providers.isProviderReady(providers.defaultProvider)
+  const emptyView = useStepEmptyView({
+    ...props,
+    canRun: prereq.isMet && ttsReady,
+    runDisabledReason: ttsReady ? undefined : <Trans>Add a {providerName(providers.defaultProvider)} key in AI access to create the audio.</Trans>,
+    prerequisites: [
+      ...(prereq.upstream
+        ? [
+            {
+              key: "upstream",
+              met: prereq.isMet,
+              label: prereq.upstreamInFlight
+                ? t`${prereq.upstreamLabel} in progress — this stage waits its turn`
+                : t`${prereq.upstreamLabel} finished`,
+            },
+          ]
+        : []),
+      {
+        key: "api-key",
+        met: ttsReady,
+        label: ttsReady
+          ? t`Voice provider ready — ${providerName(providers.defaultProvider)}`
+          : t`Voice provider needs a key — ${providerName(providers.defaultProvider)}`,
+      },
+    ],
   })
-  if (loading) return <StepLoading {...props} />
-  if (languages.length === 0) return <StepEmpty {...props} />
 
-  const failed = data?.failed ?? []
-  const speechCatalogVersion = language
-    ? catalog.data?.speechTexts[normalizeLocale(language)]?.version ?? null
-    : null
+  const notRun = !model.hasAudio && state !== "done" && state !== "error"
+  const phaseView = activity.isActive && !model.hasAudio ? emptyView : loading ? loadingView : notRun || rows.length === 0 ? emptyView : null
+  if (phaseView) return <StepShell {...props} {...phaseView} />
+
+  const currentName = languageName(language, i18n.locale)
+  const baseName = languageName(baseLanguage, i18n.locale)
+  const meta = [
+    t`${plural(counts.total, { one: "# clip", other: "# clips" })}`,
+    counts.missing + counts.waiting > 0 ? t`${counts.missing + counts.waiting} without audio` : null,
+    counts.failed > 0 ? t`${counts.failed} failed` : null,
+    counts.muted > 0 ? t`${counts.muted} not read aloud` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ")
+  const filtered = activeClip !== "all" || category !== "all" || !!page
+  const clearFilters = () => {
+    setClip("all")
+    setCategory("all")
+    setPageId(null)
+  }
 
   return (
     <StepShell
       {...props}
-      chips={[t`${entries.length} clips`, t`${languages.length} languages`]}
+      chips={[]}
       headerExtra={
         <StepVersionPicker
           label={label}
           step="core-tts-catalog"
           itemId={normalizeLocale(language)}
-          currentVersion={speechCatalogVersion}
+          currentVersion={model.speechVersion}
           diff={versionDiff}
         />
       }
@@ -151,83 +222,124 @@ export function SpeechStep(props: StepProps) {
         <StepRail
           heading={friendly ? <Trans>Read-aloud languages</Trans> : <Trans>Narration languages</Trans>}
           hex={plugin.hex}
-          entries={languages.map((code) => ({
+          searchPlaceholder={t`Find a language`}
+          entries={model.languages.map((code) => ({
             key: code,
             title: languageName(code, i18n.locale),
-            subtitle: code,
-            count: query.data?.languages[code]?.entries.length ?? 0,
+            subtitle: code === baseLanguage ? t`${code} · Book language` : code,
+            count: model.audioCount(code),
+            emptySubtitle: null,
           }))}
           activeKey={language}
-          onSelect={(key) => {
-            setActive(key)
-            setSearch("")
-          }}
-          footer={
-            query.data?.live ? (
-              <Trans>A speech run is in progress — this list is updating.</Trans>
-            ) : (
-              <Trans>Word timestamps let the reader follow along as it plays.</Trans>
-            )
-          }
+          onSelect={(key) => key && model.setLanguage(key)}
+          footer={<Trans>Counts show how many clips have audio in each language.</Trans>}
         />
       }
     >
-      <StepScrollBody
-        viewportRef={setScrollElement}
-        title={friendly ? <Trans>Read aloud</Trans> : <Trans>Narration</Trans>}
-        meta={languageName(language, i18n.locale)}
+      <StepBody
+        title={stageName}
+        meta={meta}
+        titleExtra={surface.help}
         actions={
-          <Input
-            wrapperClassName="w-[240px]"
-            className="h-9 rounded-[10px]"
-            prependIcon={<Search className="size-3.5" />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t`Search id or spoken text…`}
+          <SpeechHeaderActions
+            hex={plugin.hex}
+            languageName={currentName}
+            search={
+              <StepSearch
+                value={search}
+                onChange={setSearch}
+                placeholder={t`Search spoken text…`}
+                ariaLabel={t`Search spoken text and clip IDs`}
+                matches={{ shown: shown.length, total: rows.length }}
+                className="w-[200px] xl:w-[260px]"
+              />
+            }
+            run={runAction}
+            transcribeAll={{
+              onConfirm: () => audio.transcribeAll.mutate(),
+              disabled: !providers.hasTranscriber || counts.ready === 0 || locked || audio.transcribeAll.isPending || isTaskRunning("transcribe-timestamps"),
+              reason: !providers.hasTranscriber
+                ? t`Word timing needs an OpenAI key in AI access.`
+                : isTaskRunning("transcribe-timestamps") || audio.transcribeAll.isPending
+                  ? t`Word timing is already being added.`
+                  : locked
+                    ? lockReason
+                    : null,
+            }}
+            deleteAll={{
+              onConfirm: () => audio.deleteAll.mutate(),
+              disabled: !model.hasAudio || locked || audio.deleteAll.isPending,
+              reason: locked ? lockReason : null,
+            }}
           />
         }
-        toolbar={
-          failed.length > 0 ? (
-            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              <span>
-                <Trans>{failed.length} clips failed to generate in the last run.</Trans>
-              </span>
-            </div>
-          ) : null
-        }
       >
+        {!locked && !surface.problem && (
+          <SpeechFailedNotice hex={plugin.hex} count={counts.failed} onShow={() => setClip("failed")} retry={runAction} />
+        )}
+        {surface.top}
+        {confirm.dialogs}
+        <SpeechToolbar
+          hex={plugin.hex}
+          counts={counts}
+          categories={model.categories}
+          clip={activeClip}
+          onClip={setClip}
+          category={category}
+          onCategory={setCategory}
+          voices={model.voices}
+          slot={slot}
+          onSlot={model.setSlot}
+          compare={compare}
+          onCompare={setCompare}
+          baseLanguageName={baseName}
+          showCompare={!model.isBase}
+          pages={pageOptions}
+          page={page}
+          onPage={setPageId}
+          shown={shown.length}
+        />
         {shown.length === 0 ? (
-          <StepEmptyHint>
-            {search ? (
-              <Trans>No clips match this search.</Trans>
-            ) : (
-              <Trans>No audio for this language yet.</Trans>
-            )}
-          </StepEmptyHint>
+          search.trim() ? (
+            <NoMatches query={search} noun={t`clips`} onClear={() => setSearch("")} />
+          ) : (
+            <StepEmptyHint>
+              <span className="flex flex-col items-center gap-2">
+                {filtered ? t`No clips match these filters.` : t`Nothing to read aloud in ${currentName} yet.`}
+                {filtered && (
+                  <button type="button" onClick={clearFilters} className="font-medium text-foreground underline-offset-4 transition-colors hover:underline">
+                    {t`Clear filters`}
+                  </button>
+                )}
+              </span>
+            </StepEmptyHint>
+          )
         ) : (
           <SpeechClipList
-            scrollElement={scrollElement}
+            key={`${language}:${slot}`}
             rows={shown}
             label={label}
             language={language}
+            baseLanguage={baseLanguage}
+            baseLanguageName={baseName}
             hex={plugin.hex}
-            textById={textById}
-            speechById={speechById}
+            compare={compare && !model.isBase}
+            pageNumberOf={pageNumberOf}
+            speechById={model.speechById}
             timestampsById={audio.timestampsById}
-            errorById={audio.errorById}
+            errorFor={audio.errorFor}
             exclusionFor={exclusions.exclusionFor}
             mutedIdSet={exclusions.excludedIdSet}
-            capabilities={capabilities}
+            ability={ability}
             busy={busy}
             onToggleMute={exclusions.toggle}
-            onGenerate={generateOne}
+            onGenerate={audio.generate.mutate}
             onUpload={handleUpload}
-            onTranscribe={transcribeOne}
+            onTranscribe={audio.transcribe.mutate}
             onSaveTimestamps={handleSaveTimestamps}
           />
         )}
-      </StepScrollBody>
+      </StepBody>
     </StepShell>
   )
 }

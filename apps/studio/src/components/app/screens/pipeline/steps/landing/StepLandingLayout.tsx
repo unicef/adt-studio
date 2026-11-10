@@ -53,7 +53,7 @@ export function StepLandingLayout(props: StepLandingLayoutProps) {
     <div className="@container/landing-layout flex h-full min-h-[520px] w-full animate-in fade-in duration-300 motion-reduce:animate-none">
       <aside className="flex w-full shrink-0 flex-col overflow-hidden @[1000px]/landing-layout:w-[560px] @[1000px]/landing-layout:border-r">
         <div className="flex shrink-0 flex-col gap-4 border-b px-8 pt-8 pb-5">{lead}</div>
-        <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-8 pt-6 pb-28">
+        <div className={cn("flex flex-1 flex-col overflow-y-auto px-8 pt-6 pb-28", FLAT_SETTINGS)}>
           {settings}
           {beforeRun}
         </div>

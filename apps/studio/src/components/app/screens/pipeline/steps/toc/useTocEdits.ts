@@ -5,7 +5,7 @@ import { api, type TocEntry, type TocGenerationOutput } from "@/api/client"
 import { useDocumentEdits } from "../shared/useDocumentEdits"
 import { clampLevel, entryKey, getEntries, sameEntry, setEntries } from "./tocRows"
 
-export function useTocEdits(label: string, doc: TocGenerationOutput | null | undefined, locked: boolean) {
+export function useTocEdits(label: string, doc: TocGenerationOutput | null | undefined, locked: boolean, accent?: string) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
   const save = useCallback((next: TocGenerationOutput) => api.updateToc(label, next), [label])
@@ -34,6 +34,7 @@ export function useTocEdits(label: string, doc: TocGenerationOutput | null | und
     afterSave,
     locked,
     lockedReason: t`Wait for the table of contents to finish generating.`,
+    accent,
   })
 
   const { update, insert } = edits

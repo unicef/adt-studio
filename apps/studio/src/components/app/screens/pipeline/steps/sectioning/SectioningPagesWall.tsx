@@ -1,11 +1,13 @@
-import { memo } from "react"
+import { memo, type ReactNode } from "react"
 import { plural } from "@lingui/core/macro"
 import { useLingui } from "@lingui/react/macro"
 import { Layers, Sparkles } from "lucide-react"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 import { tint } from "@/components/app/screens/pipeline/shared/tint"
+import { cn } from "@/lib/utils"
 import { CANVAS_GAP, useCanvasFit } from "../landing/book-canvas/useCanvasFit"
+import { canvasColumns, wallCell, type WallCell } from "../landing/book-canvas/wallLayout"
 
 export type SectioningWallMode = "dynamic" | "page"
 
@@ -32,24 +34,45 @@ function ModeBadge({ mode, hex }: { mode: SectioningWallMode; hex: string }) {
   )
 }
 
+function CellFrame({ cell, children }: { cell: WallCell; children: ReactNode }) {
+  if (cell.span === 2)
+    return (
+      <div className="relative">
+        <div style={{ width: `calc(50% - ${CANVAS_GAP / 2}px)`, aspectRatio: cell.ratio }} />
+        <div className={cn(SHEET, "absolute inset-0")}>{children}</div>
+      </div>
+    )
+  if (cell.half)
+    return (
+      <div className="grid grid-cols-2">
+        <div className={cn(SHEET, cell.half === "end" && "col-start-2")} style={{ aspectRatio: cell.ratio }}>
+          {children}
+        </div>
+      </div>
+    )
+  return (
+    <div className={SHEET} style={{ aspectRatio: cell.ratio }}>
+      {children}
+    </div>
+  )
+}
+
 const WallSheet = memo(function WallSheet({
   bookLabel,
   page,
-  ratio,
-  fit,
+  cell,
   mode,
   hex,
 }: {
   bookLabel: string
   page: WallPage
-  ratio: number
-  fit: "cover" | "contain"
+  cell: WallCell
   mode: SectioningWallMode
   hex: string
 }) {
   return (
-    <div className={SHEET} style={{ aspectRatio: ratio }}>
-      <PageThumb label={bookLabel} pageId={page.pageId} sectionIndex={null} fit={fit} className="absolute inset-0 size-full rounded-none border-0" />
+    <CellFrame cell={cell}>
+      <PageThumb label={bookLabel} pageId={page.pageId} sectionIndex={null} fit={cell.fit} className="absolute inset-0 size-full rounded-none border-0" />
       <div
         className="pointer-events-none absolute inset-0 rounded-lg transition-[box-shadow,background-color] duration-300 ease-out motion-reduce:transition-none"
         style={
@@ -62,7 +85,7 @@ const WallSheet = memo(function WallSheet({
       <span className="absolute bottom-1.5 left-1.5 rounded-md bg-zinc-900/60 px-1.5 py-0.5 font-mono text-[10.5px] font-medium tabular-nums text-white backdrop-blur-sm">
         {page.pageNumber}
       </span>
-    </div>
+    </CellFrame>
   )
 })
 
@@ -80,7 +103,7 @@ export function SectioningPagesWall({
   const { t } = useLingui()
   const { ref, cols } = useCanvasFit<HTMLDivElement>()
   const aspect = usePageAspect(bookLabel, pages)
-  const columns = aspect.landscape ? Math.max(1, Math.round(cols / 2)) : cols
+  const columns = canvasColumns(cols, aspect.ratio)
 
   return (
     <div aria-hidden className="absolute inset-0 overflow-hidden bg-muted/40">
@@ -90,15 +113,19 @@ export function SectioningPagesWall({
             className="grid items-start animate-in fade-in duration-300 motion-reduce:animate-none"
             style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: CANVAS_GAP }}
           >
-            {pages.map((page, index) => (
-              <div
-                key={page.pageId}
-                className="animate-in fade-in zoom-in-95 fill-mode-both duration-500 motion-reduce:animate-none"
-                style={{ animationDelay: `${Math.min(index, 16) * 30}ms` }}
-              >
-                <WallSheet bookLabel={bookLabel} page={page} ratio={aspect.ratio} fit={aspect.fitOf(page)} mode={mode} hex={hex} />
-              </div>
-            ))}
+            {pages.map((page, index) => {
+              const cell = wallCell({ pageRatio: aspect.ratioOf(page), wallRatio: aspect.ratio, first: index === 0 && pages.length > 1, columns })
+              return (
+                <div
+                  key={page.pageId}
+                  data-page={page.pageId}
+                  className="animate-in fade-in zoom-in-95 fill-mode-both duration-500 motion-reduce:animate-none"
+                  style={{ animationDelay: `${Math.min(index, 16) * 30}ms`, gridColumn: cell.span === 2 ? "span 2" : undefined }}
+                >
+                  <WallSheet bookLabel={bookLabel} page={page} cell={cell} mode={mode} hex={hex} />
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>

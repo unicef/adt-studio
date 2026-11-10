@@ -27,3 +27,9 @@ export function withOption(quiz: QuizRow, optionIndex: number, patch: Partial<Qu
 export function optionLetter(index: number): string {
   return String.fromCharCode(65 + index)
 }
+
+export function quizMatches(quiz: QuizRow, query: string): boolean {
+  const needle = query.trim().toLocaleLowerCase()
+  if (!needle) return true
+  return [quiz.question, ...quiz.options.flatMap((option) => [option.text, option.explanation])].join(" ").toLocaleLowerCase().includes(needle)
+}

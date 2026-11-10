@@ -14,17 +14,21 @@ export function FoldedProblem({
   problem,
   retry,
   onOpenPage,
+  onShowItems,
+  presentation = "inline",
 }: {
   label: string
   problem: DescribedProblem | null
   retry?: ProblemRetry
   onOpenPage?: (pageId: string) => void
+  onShowItems?: () => void
+  presentation?: "inline" | "strip"
 }) {
   const actionFor = useProblemAction(label)
   if (!problem || problem.level !== "partial") return null
   return (
     <ProblemNotice
-      presentation="inline"
+      presentation={presentation}
       level={problem.level}
       icon={CircleAlert}
       title={problem.title}
@@ -32,6 +36,7 @@ export function FoldedProblem({
       details={problem.details}
       pages={problem.pages}
       onOpenPage={onOpenPage}
+      onShowItems={onShowItems}
       action={actionFor(problem, retry)}
     />
   )

@@ -35,9 +35,19 @@ describe("buildGlossaryList", () => {
     expect(buildGlossaryList(rows, occurrences, "inline", { ...state, filter: "all" }).tray).toEqual([])
   })
 
-  it("sorts A–Z and by use", () => {
-    expect(buildGlossaryList(rows, occurrences, "tray", { ...state, sort: "az" }).main.map((r) => r.word)).toEqual(["bravo", "charlie", "delta"])
-    expect(buildGlossaryList(rows, occurrences, "tray", { ...state, sort: "usage" }).main.map((r) => r.word)).toEqual(["bravo", "charlie", "delta"])
+  it("sorts A–Z, Z–A and by use both ways", () => {
+    const words = (sort: GlossaryListState["sort"]) => buildGlossaryList(rows, occurrences, "tray", { ...state, sort }).main.map((r) => r.word)
+    expect(words("az")).toEqual(["bravo", "charlie", "delta"])
+    expect(words("za")).toEqual(["delta", "charlie", "bravo"])
+    expect(words("usage")).toEqual(["bravo", "charlie", "delta"])
+    expect(words("rare")).toEqual(["delta", "charlie", "bravo"])
+  })
+
+  it("lists only pruned terms, without a tray, when the Pruned filter is on in tray mode", () => {
+    const list = buildGlossaryList(rows, occurrences, "tray", { ...state, filter: "pruned" })
+    expect(list.main.map((r) => r.word)).toEqual(["alpha"])
+    expect(list.tray).toEqual([])
+    expect(list.matches).toEqual({ shown: 1, total: 1 })
   })
 
   it("searches every field and reports matches against the filter scope", () => {

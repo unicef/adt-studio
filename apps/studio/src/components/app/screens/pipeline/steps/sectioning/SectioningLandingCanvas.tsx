@@ -10,11 +10,9 @@ const FALLBACK_HEX = "#0284c7"
 
 export function SectioningLandingCanvas({
   bookLabel,
-  variant,
   mode,
 }: {
   bookLabel: string
-  variant: "pages" | "book"
   mode: SectioningWallMode
 }) {
   const { data: pages } = usePages(bookLabel)
@@ -23,7 +21,7 @@ export function SectioningLandingCanvas({
   const { data: sourcePdfInfo, isError: sourcePdfFailed } = useSourcePdfInfo(bookLabel)
   const hex = STAGES.find((stage) => stage.slug === "sectioning")?.hex ?? FALLBACK_HEX
 
-  if (variant === "pages" && pages && pages.length > 0) return <SectioningPagesWall bookLabel={bookLabel} pages={pages} mode={mode} hex={hex} />
+  if (pages && pages.length > 0) return <SectioningPagesWall bookLabel={bookLabel} pages={pages} mode={mode} hex={hex} />
 
   const totalPages = sourcePdfInfo?.pageCount ?? book?.pageCount ?? 0
   const config = bookConfigData?.config

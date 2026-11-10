@@ -7,10 +7,12 @@ import { findPageByNumber } from "./pageJump"
 export function PageJumpInput<P extends { pageId: string; pageNumber: number }>({
   pages,
   onJump,
+  current = null,
   className,
 }: {
   pages: readonly P[]
   onJump: (page: P) => void
+  current?: number | null
   className?: string
 }) {
   const { t } = useLingui()
@@ -49,11 +51,12 @@ export function PageJumpInput<P extends { pageId: string; pageNumber: number }>(
             jump()
           }
         }}
-        placeholder={t`Go to page`}
+        placeholder={current != null ? t`Page ${current}` : t`Go to page`}
+        title={current != null ? t`You're on page ${current}. Type a number to jump.` : undefined}
         aria-label={t`Go to page number`}
         aria-describedby={missing ? noteId : undefined}
         aria-invalid={missing ? true : undefined}
-        className="h-8 w-[112px] rounded-lg border bg-background pl-2.5 pr-7 text-[12px] text-foreground transition-[border-color,box-shadow] duration-150 placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
+        className="h-9 w-[120px] rounded-[10px] border bg-background pl-2.5 pr-7 text-[12px] text-foreground transition-[border-color,box-shadow] duration-150 placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
       />
       <CornerDownLeft aria-hidden className="pointer-events-none absolute right-2 size-3 text-muted-foreground" />
       {missing && (

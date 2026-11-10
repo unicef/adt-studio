@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 import type { SignLanguageVideo } from "@/api/client"
 import { SectionRow } from "./SectionRow"
 import { FilterEmptyState } from "./FilterEmptyState"
@@ -31,6 +32,7 @@ interface ManageSectionsDialogProps {
   onAssign: (videoId: string, sectionId: string | null) => void
   onDelete: (videoId: string) => void
   onPlay: (video: SignLanguageVideo) => void
+  accent?: string
 }
 
 export function ManageSectionsDialog({
@@ -50,6 +52,7 @@ export function ManageSectionsDialog({
   onAssign,
   onDelete,
   onPlay,
+  accent,
 }: ManageSectionsDialogProps) {
   const listScrollRef = useRef<HTMLDivElement>(null)
 
@@ -75,7 +78,12 @@ export function ManageSectionsDialog({
       <DialogContent className="flex h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
         {/* Header — matches SelectImagesDialog */}
         <div className="flex items-center gap-2 border-b px-5 py-3.5">
-          <Hand className="h-4 w-4 text-cyan-500" strokeWidth={2.25} aria-hidden />
+          <Hand
+            className={cn("h-4 w-4", !accent && "text-cyan-500")}
+            style={accent ? { color: accent } : undefined}
+            strokeWidth={2.25}
+            aria-hidden
+          />
           <DialogTitle className="text-sm font-semibold">
             <Trans>Manage sign-language videos</Trans>
           </DialogTitle>
@@ -117,7 +125,7 @@ export function ManageSectionsDialog({
           </Tabs>
 
           {filteredEntries.length === 0 ? (
-            <FilterEmptyState filter={filter} />
+            <FilterEmptyState filter={filter} accent={accent} />
           ) : (
             <div
               ref={listScrollRef}
@@ -145,7 +153,9 @@ export function ManageSectionsDialog({
                       }}
                       className={
                         virtualRow.index > 0
-                          ? "border-t border-[#f0f0f0]"
+                          ? accent
+                            ? "border-t border-border"
+                            : "border-t border-[#f0f0f0]"
                           : ""
                       }
                     >
@@ -160,6 +170,7 @@ export function ManageSectionsDialog({
                         onPlay={(video) => onPlay(video)}
                         uploading={uploadPending}
                         pendingDeleteId={pendingDeleteId}
+                        accent={accent}
                       />
                     </div>
                   )

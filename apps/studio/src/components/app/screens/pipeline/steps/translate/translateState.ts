@@ -3,6 +3,7 @@ import { getBaseLanguage, normalizeLocale } from "@/lib/languages"
 import {
   getEntryCategory,
   isAnswerEntry,
+  isEasyReadEntry,
   isImageEntry,
   type CatalogCategory,
 } from "@/components/pipeline/stages/languages/lib/catalog-entries"
@@ -16,8 +17,9 @@ import {
  * - The language list comes from the book config, not from whichever
  *   translations happen to exist — a configured language with no translation
  *   yet must still be selectable so it can be filled in.
- * - Rows are driven by the source catalog. A source entry with no counterpart
- *   in the translation is an untranslated row, not a missing one.
+ * - Rows are driven by the source catalog plus the Easy Read entries, which live
+ *   in their own node but are translated alongside the catalog. A source entry
+ *   with no counterpart in the translation is an untranslated row.
  */
 
 export interface TranslateRow {
@@ -27,7 +29,22 @@ export interface TranslateRow {
   category: CatalogCategory
   isImage: boolean
   isAnswer: boolean
+  pageId: string | null
+  readOnly: boolean
 }
+
+export type TranslateStatus = "all" | "untranslated"
+
+export interface RowFilter {
+  category: CatalogCategory
+  status: TranslateStatus
+  pageId: string | null
+  search: string
+}
+
+export const NO_FILTER: RowFilter = { category: "all", status: "all", pageId: null, search: "" }
+
+const PAGE_ID_RE = /^(pg\d+)/
 
 function normalizeCode(code: string | null | undefined): string | null {
   const trimmed = code?.trim()
@@ -67,16 +84,34 @@ export function isBaseLanguage(language: string, baseLanguage: string): boolean 
   return getBaseLanguage(language) === getBaseLanguage(baseLanguage)
 }
 
+export function pageIdOf(id: string): string | null {
+  return PAGE_ID_RE.exec(id)?.[1] ?? null
+}
+
+/** Source entries in list order: the catalog, then any Easy Read entry it does not already hold. */
+export function sourceEntriesOf(
+  catalog: TextCatalogResponse | null | undefined,
+  easyRead: readonly TextCatalogEntry[] = [],
+): TextCatalogEntry[] {
+  const entries = catalog?.entries ?? []
+  if (easyRead.length === 0) return entries
+  const known = new Set(entries.map((entry) => entry.id))
+  const extra = easyRead.filter((entry) => !known.has(entry.id))
+  return extra.length > 0 ? [...entries, ...extra] : entries
+}
+
 /**
  * One row per source entry, carrying the translation for `language` when there
- * is one. In base-language mode the source text is also the editable text.
+ * is one. In base-language mode the source text is also the editable text, and
+ * Easy Read rows are read-only there: their source belongs to the Easy Read step.
  */
 export function buildRows(
   catalog: TextCatalogResponse | null | undefined,
   language: string,
   isBase: boolean,
+  easyRead: readonly TextCatalogEntry[] = [],
 ): TranslateRow[] {
-  const sourceEntries = catalog?.entries ?? []
+  const sourceEntries = sourceEntriesOf(catalog, easyRead)
   if (sourceEntries.length === 0) return []
 
   const translated = isBase
@@ -94,6 +129,8 @@ export function buildRows(
       category: getEntryCategory(entry.id),
       isImage: isImageEntry(entry.id),
       isAnswer: isAnswerEntry(entry.id),
+      pageId: pageIdOf(entry.id),
+      readOnly: isBase && isEasyReadEntry(entry.id),
     })
   }
   return rows
@@ -107,6 +144,10 @@ export const CATEGORY_KEYS = [
   "easy-read",
 ] as const
 
+export function isUntranslated(row: TranslateRow): boolean {
+  return row.target.trim() === ""
+}
+
 export function countByCategory(rows: TranslateRow[]): Map<CatalogCategory, number> {
   const counts = new Map<CatalogCategory, number>()
   for (const row of rows) counts.set(row.category, (counts.get(row.category) ?? 0) + 1)
@@ -115,28 +156,60 @@ export function countByCategory(rows: TranslateRow[]): Map<CatalogCategory, numb
 
 export function countUntranslated(rows: TranslateRow[]): number {
   let total = 0
-  for (const row of rows) if (row.target.trim() === "") total += 1
+  for (const row of rows) if (isUntranslated(row)) total += 1
   return total
 }
 
+/** How many of the source ids hold a non-empty translation in `entries`. */
+export function countTranslated(
+  sourceIds: ReadonlySet<string>,
+  entries: readonly TextCatalogEntry[] | undefined,
+): number {
+  let total = 0
+  for (const entry of entries ?? []) if (sourceIds.has(entry.id) && entry.text.trim() !== "") total += 1
+  return total
+}
+
+/** Whether any language other than the base holds at least one translated string. */
+export function hasAnyTranslation(
+  catalog: TextCatalogResponse | null | undefined,
+  baseLanguage: string,
+): boolean {
+  for (const [code, translation] of Object.entries(catalog?.translations ?? {})) {
+    if (isBaseLanguage(normalizeLocale(code), baseLanguage)) continue
+    if (translation.entries.some((entry) => entry.text.trim() !== "")) return true
+  }
+  return false
+}
+
+function matchesSearch(row: TranslateRow, needle: string): boolean {
+  return (
+    row.id.toLowerCase().includes(needle) ||
+    row.source.toLowerCase().includes(needle) ||
+    row.target.toLowerCase().includes(needle)
+  )
+}
+
+/**
+ * Rows narrowed by every filter. `except` leaves one filter out, which is how
+ * each control counts what it would show while the others stay applied.
+ */
 export function filterRows(
   rows: TranslateRow[],
-  category: CatalogCategory,
-  search: string,
+  filter: RowFilter,
+  except?: keyof RowFilter,
 ): TranslateRow[] {
-  const needle = search.trim().toLowerCase()
-  if (category === "all" && !needle) return rows
+  const needle = except === "search" ? "" : filter.search.trim().toLowerCase()
+  const category = except === "category" ? "all" : filter.category
+  const status = except === "status" ? "all" : filter.status
+  const pageId = except === "pageId" ? null : filter.pageId
+  if (category === "all" && status === "all" && !pageId && !needle) return rows
   const out: TranslateRow[] = []
   for (const row of rows) {
     if (category !== "all" && row.category !== category) continue
-    if (
-      needle &&
-      !row.id.toLowerCase().includes(needle) &&
-      !row.source.toLowerCase().includes(needle) &&
-      !row.target.toLowerCase().includes(needle)
-    ) {
-      continue
-    }
+    if (status === "untranslated" && !isUntranslated(row)) continue
+    if (pageId && row.pageId !== pageId) continue
+    if (needle && !matchesSearch(row, needle)) continue
     out.push(row)
   }
   return out
@@ -159,4 +232,33 @@ export function patchEntries(
     return { ...entry, text }
   })
   return found ? next : [...next, { id, text }]
+}
+
+/** The catalog with one row's text replaced, for the optimistic cache write. */
+export function patchCatalog(
+  catalog: TextCatalogResponse,
+  language: string,
+  isBase: boolean,
+  id: string,
+  text: string,
+): TextCatalogResponse {
+  if (isBase) return { ...catalog, entries: patchEntries(catalog.entries, id, text) }
+  const current = catalog.translations[language]
+  return {
+    ...catalog,
+    translations: {
+      ...catalog.translations,
+      [language]: { version: current?.version ?? 0, entries: patchEntries(current?.entries ?? [], id, text) },
+    },
+  }
+}
+
+/** The entries a save sends for `language`. */
+export function entriesFor(
+  catalog: TextCatalogResponse | null | undefined,
+  language: string,
+  isBase: boolean,
+): TextCatalogEntry[] {
+  if (!catalog) return []
+  return isBase ? catalog.entries : catalog.translations[language]?.entries ?? []
 }

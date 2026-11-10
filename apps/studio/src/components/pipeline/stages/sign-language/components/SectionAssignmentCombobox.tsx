@@ -10,6 +10,12 @@ interface SectionAssignmentComboboxProps {
   sections: SectionEntry[]
   disabled?: boolean
   onAssign: (sectionId: string | null) => void
+  value?: string | null
+  orphanLabel?: string
+  placeholder?: string
+  ariaLabel?: string
+  accent?: string
+  className?: string
 }
 
 function matchesQuery(section: SectionEntry, query: string): boolean {
@@ -24,11 +30,20 @@ export function SectionAssignmentCombobox({
   sections,
   disabled = false,
   onAssign,
+  value,
+  orphanLabel,
+  placeholder,
+  ariaLabel,
+  accent,
+  className,
 }: SectionAssignmentComboboxProps) {
   const { t } = useLingui()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
+  const controlled = value !== undefined
+  const current = controlled ? (value ?? null) : null
+  const currentSection = current ? sections.find((section) => section.sectionId === current) : undefined
 
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const matchingSections = useMemo(
@@ -45,9 +60,18 @@ export function SectionAssignmentCombobox({
   }
 
   const select = (sectionId: string | null) => {
-    onAssign(sectionId)
+    if (!controlled || sectionId !== current) onAssign(sectionId)
     handleOpenChange(false)
   }
+
+  const triggerText = !controlled
+    ? t`Assign...`
+    : currentSection
+      ? currentSection.sectionLabel
+      : current
+        ? (orphanLabel ?? current)
+        : (placeholder ?? t`Assign...`)
+  const checkClass = accent ? "text-[var(--combo-accent)]" : "text-cyan-600"
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -55,21 +79,36 @@ export function SectionAssignmentCombobox({
         <button
           type="button"
           disabled={disabled}
+          aria-label={ariaLabel}
+          title={controlled && current ? current : undefined}
+          style={accent ? { ["--combo-accent" as string]: accent } : undefined}
           className={cn(
-            "flex h-7 w-32 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-left text-[11px]",
-            "ring-offset-0 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-cyan-600",
-            "data-[state=open]:ring-1 data-[state=open]:ring-inset data-[state=open]:ring-cyan-600",
-            "disabled:cursor-not-allowed disabled:opacity-50",
+            accent
+              ? cn(
+                  "flex h-9 w-full items-center gap-1.5 rounded-[10px] border border-input bg-background px-2.5 text-left text-[12px] text-foreground",
+                  "transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none",
+                  "outline-none focus-visible:border-[color-mix(in_srgb,var(--combo-accent)_55%,transparent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--combo-accent)_28%,transparent)]",
+                  "data-[state=open]:border-[color-mix(in_srgb,var(--combo-accent)_55%,transparent)] data-[state=open]:ring-2 data-[state=open]:ring-[color-mix(in_srgb,var(--combo-accent)_20%,transparent)]",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )
+              : cn(
+                  "flex h-7 w-32 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-left text-[11px]",
+                  "ring-offset-0 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-cyan-600",
+                  "data-[state=open]:ring-1 data-[state=open]:ring-inset data-[state=open]:ring-cyan-600",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                ),
+            className,
           )}
         >
-          <span className="truncate">{t`Assign...`}</span>
+          <span className={cn("truncate", controlled && !current && "text-muted-foreground")}>{triggerText}</span>
           <ChevronsUpDown className="ml-auto h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden />
         </button>
       </PopoverTrigger>
       <PopoverContent
         align="end"
         sideOffset={4}
-        className="w-72 p-0"
+        style={accent ? { ["--combo-accent" as string]: accent } : undefined}
+        className={cn("w-72 p-0", accent && "rounded-[10px]")}
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           inputRef.current?.focus()
@@ -88,45 +127,58 @@ export function SectionAssignmentCombobox({
             }}
             placeholder={t`Search sections`}
             prependIcon={<Search className="h-3.5 w-3.5" aria-hidden />}
-            className="h-8 text-[12px]"
+            className={cn(
+              "h-8 text-[12px]",
+              accent && "focus-visible:ring-[color-mix(in_srgb,var(--combo-accent)_35%,transparent)] focus-visible:ring-offset-0",
+            )}
           />
         </div>
         <div className="max-h-64 overflow-y-auto p-1.5" role="listbox">
           <button
             type="button"
             role="option"
-            aria-selected
+            aria-selected={controlled ? current === null : true}
             onClick={() => select(null)}
-            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+            className={cn(
+              "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
+              controlled && current !== null && "pl-8",
+            )}
           >
-            <Check className="h-3.5 w-3.5 shrink-0 text-cyan-600" aria-hidden />
+            {(!controlled || current === null) && <Check className={cn("h-3.5 w-3.5 shrink-0", checkClass)} aria-hidden />}
             <span><Trans>Unassigned</Trans></span>
           </button>
-          {matchingSections.map((section) => (
-            <button
-              key={section.sectionId}
-              type="button"
-              role="option"
-              aria-selected={false}
-              onClick={() => select(section.sectionId)}
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 pl-8 text-left text-[12px] transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
-            >
-              <span className="truncate">{section.sectionLabel}</span>
-              {/* A whitespace-only text node between flex items is not
-                  rendered, so this changes no layout — but without it the
-                  accessible name runs the two spans together as
-                  "Page 3 — Section 2pg003_sec005". */}
-              {" "}
-              {/* The label counts positions ("Section 2"); the id does not —
-                  ids are allocated once and never reused, so after a split or
-                  delete `Section 2` may well be `_sec005`. Showing it is what
-                  lets someone tell two sections apart, match a video back to
-                  the section it was pinned to, and search by id. */}
-              <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
-                {section.sectionId}
-              </span>
-            </button>
-          ))}
+          {matchingSections.map((section) => {
+            const selected = controlled && section.sectionId === current
+            return (
+              <button
+                key={section.sectionId}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => select(section.sectionId)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
+                  !selected && "pl-8",
+                )}
+              >
+                {selected && <Check className={cn("h-3.5 w-3.5 shrink-0", checkClass)} aria-hidden />}
+                <span className="truncate">{section.sectionLabel}</span>
+                {/* A whitespace-only text node between flex items is not
+                    rendered, so this changes no layout — but without it the
+                    accessible name runs the two spans together as
+                    "Page 3 — Section 2pg003_sec005". */}
+                {" "}
+                {/* The label counts positions ("Section 2"); the id does not —
+                    ids are allocated once and never reused, so after a split or
+                    delete `Section 2` may well be `_sec005`. Showing it is what
+                    lets someone tell two sections apart, match a video back to
+                    the section it was pinned to, and search by id. */}
+                <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
+                  {section.sectionId}
+                </span>
+              </button>
+            )
+          })}
           {matchingSections.length === 0 ? (
             <p className="px-2 py-4 text-center text-[12px] text-muted-foreground">
               <Trans>No sections found</Trans>

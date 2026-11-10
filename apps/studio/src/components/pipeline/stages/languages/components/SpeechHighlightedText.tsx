@@ -11,11 +11,15 @@ export function SpeechHighlightedText({
   timestamps,
   currentTime,
   isPlaying,
+  accent,
+  className,
 }: {
   text: string
   timestamps?: WordTimestampEntry
   currentTime: number
   isPlaying: boolean
+  accent?: string
+  className?: string
 }) {
   const segments = useMemo(() => buildDisplayWordSegments(text), [text])
   const timestampMappings = useMemo(
@@ -27,7 +31,7 @@ export function SpeechHighlightedText({
   )
 
   if (!timestamps || !timestampMappings || !isPlaying) {
-    return <p className="text-sm leading-relaxed mt-0.5">{text}</p>
+    return <p className={cn("text-sm leading-relaxed mt-0.5", className)}>{text}</p>
   }
 
   const activeWords = new Set<number>()
@@ -42,7 +46,7 @@ export function SpeechHighlightedText({
   })
 
   return (
-    <p className="text-sm leading-relaxed mt-0.5">
+    <p className={cn("text-sm leading-relaxed mt-0.5", className)}>
       {segments.map((segment, index) => {
         if (segment.wordIndex === null) return segment.text
         const active = activeWords.has(segment.wordIndex)
@@ -53,11 +57,14 @@ export function SpeechHighlightedText({
             className={cn(
               "rounded-sm px-0.5 transition-all duration-100 inline",
               active
-                ? "bg-pink-500 text-white"
+                ? accent
+                  ? "text-white"
+                  : "bg-pink-500 text-white"
                 : past
                   ? "text-foreground"
                   : "text-muted-foreground/50",
             )}
+            style={active && accent ? { backgroundColor: accent } : undefined}
           >
             {segment.text}
           </span>

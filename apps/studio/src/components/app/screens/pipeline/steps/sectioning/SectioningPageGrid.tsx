@@ -8,36 +8,42 @@ export function SectioningPageGrid({
   pages,
   onOpen,
   aspect,
-  live,
+  hex,
+  pending = false,
+  pendingCount = 0,
 }: {
   label: string
   pages: PipelinePage[]
   onOpen: (pageId: string) => void
   aspect: PageAspect
-  live?: { hex: string; pending: boolean }
+  hex: string
+  pending?: boolean
+  pendingCount?: number
 }) {
   return (
     <div className={aspect.gridClass}>
       {pages.map((page) =>
-        !live ? (
-          <SectioningPageCard key={page.pageId} label={label} page={page} onOpen={onOpen} aspect={aspect.ratio} fit={aspect.fitOf(page)} />
-        ) : live.pending && page.sectionCount === 0 ? (
+        pending && page.sectionCount === 0 ? (
           <PendingPageCard
             key={`pending-${page.pageId}`}
             index={page.pageNumber - 1}
-            hex={live.hex}
+            hex={hex}
             label={label}
             pageId={page.pageId}
             pageNumber={page.pageNumber}
             textPreview
             aspect={aspect.ratio}
+            fit={aspect.fitOf(page)}
           />
         ) : (
-          <div key={page.pageId} className="animate-in fade-in zoom-in-95 duration-300 motion-reduce:animate-none">
+          <div key={page.pageId} className={pending ? "animate-in fade-in zoom-in-95 duration-300 motion-reduce:animate-none" : undefined}>
             <SectioningPageCard label={label} page={page} onOpen={onOpen} aspect={aspect.ratio} fit={aspect.fitOf(page)} />
           </div>
         ),
       )}
+      {Array.from({ length: pendingCount }, (_, index) => (
+        <PendingPageCard key={`waiting-${pages.length + index}`} index={pages.length + index} hex={hex} textPreview aspect={aspect.ratio} numbered={false} />
+      ))}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Pause, Play } from "lucide-react"
+import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import { WAVEFORM_BARS, loadWaveform, peekWaveform } from "./waveform-cache"
 
@@ -30,13 +31,16 @@ export function WaveformPlayer({
   onTimeUpdate,
   onPlayingChange,
   accent,
+  label,
 }: {
   audioUrl: string;
   onTimeUpdate?: (time: number) => void;
   onPlayingChange?: (playing: boolean) => void;
   /** Hex accent for the played portion. Omitted keeps the classic pink. */
   accent?: string;
+  label?: string;
 }) {
+  const { t } = useLingui();
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -172,26 +176,48 @@ export function WaveformPlayer({
   const progressRatio = duration > 0 ? progress / duration : 0;
 
   return (
-    <div className="flex items-center gap-2 mt-1.5 w-full">
+    <div className={cn("flex items-center w-full", accent ? "gap-3" : "gap-2 mt-1.5")}>
       {/* Play / Pause */}
       <button
         type="button"
         onClick={toggle}
+        aria-label={
+          label
+            ? playing
+              ? t`Pause ${label}`
+              : t`Play ${label}`
+            : playing
+              ? t`Pause`
+              : t`Play`
+        }
+        aria-pressed={playing}
         className={cn(
-          "shrink-0 flex items-center justify-center w-6 h-6 rounded-full transition-all cursor-pointer",
+          "shrink-0 flex items-center justify-center rounded-full cursor-pointer",
+          accent
+            ? "size-9 transition-[background-color,color,transform,box-shadow] duration-200 ease-out hover:scale-105 active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-[color-mix(in_srgb,var(--wave-accent)_55%,transparent)]"
+            : "w-6 h-6 transition-all",
           playing
             ? accent
-              ? "text-white scale-110"
+              ? "text-white shadow-sm"
               : "bg-pink-500 text-white hover:bg-pink-600 scale-110"
-            : "bg-muted text-muted-foreground hover:scale-110",
+            : accent
+              ? "text-[var(--wave-accent)] dark:text-[color-mix(in_oklab,var(--wave-accent)_70%,white)]"
+              : "bg-muted text-muted-foreground hover:scale-110",
           !playing && !accent && "hover:bg-pink-100 hover:text-pink-600",
         )}
-        style={playing && accent ? { backgroundColor: accent } : undefined}
+        style={
+          accent
+            ? ({
+                ["--wave-accent" as string]: accent,
+                backgroundColor: playing ? accent : `color-mix(in srgb, ${accent} 14%, transparent)`,
+              } as React.CSSProperties)
+            : undefined
+        }
       >
         {playing ? (
-          <Pause className="w-2.5 h-2.5" />
+          <Pause className={accent ? "size-3.5" : "w-2.5 h-2.5"} />
         ) : (
-          <Play className="w-2.5 h-2.5 ml-0.5" />
+          <Play className={accent ? "size-3.5 ml-0.5" : "w-2.5 h-2.5 ml-0.5"} />
         )}
       </button>
 
@@ -200,6 +226,7 @@ export function WaveformPlayer({
         ref={waveContainerRef}
         onClick={seek}
         className="flex-1 flex items-center h-8 cursor-pointer"
+        aria-hidden={accent ? true : undefined}
       >
         {(waveform ?? PLACEHOLDER_BARS).map(
           (amp, i) => {
@@ -213,7 +240,13 @@ export function WaveformPlayer({
                 key={i}
                 className={cn(
                   "flex-1 rounded-full transition-colors",
-                  isPast && !accent ? "bg-pink-400" : !isPast ? "bg-gray-300" : "",
+                  isPast && !accent
+                    ? "bg-pink-400"
+                    : !isPast
+                      ? accent
+                        ? "bg-muted-foreground/25 dark:bg-muted-foreground/35"
+                        : "bg-gray-300"
+                      : "",
                 )}
                 style={{
                   height: `${h}px`,
@@ -227,7 +260,7 @@ export function WaveformPlayer({
       </div>
 
       {/* Time */}
-      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground w-8 text-right">
+      <span className={cn("shrink-0 tabular-nums text-muted-foreground text-right", accent ? "w-9 font-mono text-[11px]" : "text-[10px] w-8")}>
         {duration > 0 ? formatTime(playing ? progress : duration) : ""}
       </span>
     </div>

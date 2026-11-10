@@ -7,6 +7,12 @@ import { i18n as linguiI18n } from "@lingui/core"
 import type { MessageDescriptor } from "@lingui/core"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { StepLandingShell } from "./StepLandingShell"
+import { ImageWallCanvas } from "./book-canvas/ImageWallCanvas"
+import { LandingBookCanvas } from "./book-canvas/LandingBookCanvas"
+import { useVariant } from "@/components/app/lab/variants"
+import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
+import { useBook } from "@/hooks/use-books"
+import { usePages } from "@/hooks/use-pages"
 import { useLandingRunGate } from "./useLandingRunGate"
 import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
@@ -28,8 +34,8 @@ import {
 
 const GRADE_LEVEL_HINTS: Record<GradeLevelKey, MessageDescriptor> = {
   early: msg`Short, simple sentences for kindergarten through 5th grade.`,
-  middle: msg`Clear, descriptive captions for middle and high school readers.`,
-  advanced: msg`Detailed, technical captions for college and adult readers.`,
+  middle: msg`Clear, detailed descriptions for middle and high school readers.`,
+  advanced: msg`Detailed, technical descriptions for college and adult readers.`,
 }
 
 export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
@@ -42,12 +48,22 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
   const storyboardStatus = useStageStatus("storyboard")
   const storyboardReady = storyboardStatus.isCompleted
   const gate = useLandingRunGate(bookLabel, "captions", [
-    { ok: storyboardReady, reason: <Trans>Run Storyboard first — captions describe the images placed by Storyboard.</Trans> },
+    { ok: storyboardReady, reason: <Trans>Run Storyboard first. Image descriptions describe the images Storyboard places.</Trans> },
   ])
   const { compose: composeBookContext, canAutoFill } = useComposeBookContext(
     bookLabel,
     t`When describing images, mention any culturally specific objects, locations, or recurring characters by name.`,
   )
+
+  const landing = useVariant("caplanding")
+  const { data: pageList } = usePages(bookLabel)
+  const bookHasNoImages = !!pageList && pageList.every((page) => page.imageCount === 0)
+  const { data: book } = useBook(bookLabel)
+  const { data: sourcePdfInfo, isError: sourcePdfFailed } = useSourcePdfInfo(bookLabel)
+  const config = (activeConfigData?.merged ?? undefined) as { spread_mode?: boolean; start_page?: number; end_page?: number } | undefined
+  const totalPages = sourcePdfInfo?.pageCount ?? book?.pageCount ?? 0
+  const startPage = config?.start_page != null ? Number(config.start_page) : 1
+  const pageRange: [number, number] = [startPage, config?.end_page != null ? Number(config.end_page) : Math.max(startPage, totalPages || 1)]
 
   const [gradeLevel, setGradeLevel] = useState<GradeLevelKey>("middle")
   const [userPrompt, setUserPrompt] = useState("")
@@ -119,12 +135,26 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       hasError={status.hasError}
       canRun={true}
       extraDisabled={gate.blocked}
-      disabledReason={gate.disabledReason}
+      disabledReason={storyboardReady ? gate.disabledReason : undefined}
       runLabel={<Trans>Describe images</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
-      previewLabel={t`Captions Preview`}
+      previewLabel={t`Image descriptions preview`}
       onRun={handleRun}
-      preview={<CaptionsPreview grade={gradeLevel} />}
+      preview={landing === "sample" ? <CaptionsPreview grade={gradeLevel} /> : undefined}
+      canvas={
+        landing === "images" || (landing === "pages" && bookHasNoImages) ? (
+          <ImageWallCanvas bookLabel={bookLabel} />
+        ) : landing === "pages" && !bookHasNoImages ? (
+          <LandingBookCanvas
+            bookLabel={bookLabel}
+            range={pageRange}
+            spread={config?.spread_mode === true}
+            totalPages={totalPages}
+            failed={sourcePdfFailed}
+            caption={t`Image descriptions cover every picture on these pages.`}
+          />
+        ) : undefined
+      }
     >
 
       <PrereqGuard
@@ -132,7 +162,7 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
         stageSlug="captions"
         description={
           <Trans>
-            Captions describe the images that Storyboard places into pages.
+            Image descriptions describe the images that Storyboard places into pages.
             Finish Storyboard before running this stage.
           </Trans>
         }
@@ -167,7 +197,7 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
             compose={composeBookContext}
             canAutoFill={canAutoFill}
             accentHex="#0d9488"
-            dialogDescription={t`Optional notes to steer how captions are generated. Use Auto-fill to start from the book's title, language, and summary.`}
+            dialogDescription={t`Optional notes to steer how image descriptions are written. Use Auto-fill to start from the book's title, language, and summary.`}
             placeholder={t`e.g. emphasize cultural context, avoid technical jargon, mention colors when relevant…`}
           />
         </SettingsField>

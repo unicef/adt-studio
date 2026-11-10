@@ -46,14 +46,14 @@ export function StepBody({
   )
   if (fill)
     return (
-      <div className={cn("mx-auto flex h-full min-h-0 flex-col gap-4 px-4 pt-7 pb-24", BODY_WIDTH[width])}>
+      <div className={cn("mx-auto flex h-full min-h-0 flex-col gap-4 px-4 pt-7 pb-24 transition-[padding] duration-300 ease-out in-data-save-bar:pb-40 motion-reduce:transition-none", BODY_WIDTH[width])}>
         {heading}
         {children}
       </div>
     )
   return (
     <ScrollArea className="h-full w-full" viewportClassName="[&>div]:block!">
-      <div className={cn("mx-auto flex flex-col gap-4 px-4 pt-7 pb-24", BODY_WIDTH[width])}>
+      <div className={cn("mx-auto flex flex-col gap-4 px-4 pt-7 pb-24 transition-[padding] duration-300 ease-out in-data-save-bar:pb-40 motion-reduce:transition-none", BODY_WIDTH[width])}>
         {heading}
         {children}
       </div>
@@ -259,7 +259,7 @@ export function EditableText({
       }
     },
     className: cn(
-      "w-full resize-y rounded-md border bg-background px-1.5 py-1 outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_var(--brand-50)]",
+      "w-full resize-y rounded-md border bg-background px-1.5 py-1 outline-none transition-[border-color,box-shadow] duration-150 focus:border-[color-mix(in_srgb,var(--chrome-hex,var(--ring))_55%,transparent)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--chrome-hex,var(--ring))_18%,transparent)]",
       className,
     ),
   }
@@ -321,7 +321,7 @@ export function RowAction({
       className={cn(
         "grid size-6 shrink-0 place-items-center rounded-md border transition-colors",
         "disabled:pointer-events-none disabled:opacity-30",
-        active && "border-brand-300 bg-brand-50 text-brand-700",
+        active && "border-[color-mix(in_srgb,var(--chrome-hex,var(--ring))_40%,transparent)] bg-[color-mix(in_srgb,var(--chrome-hex,var(--ring))_10%,transparent)] text-[var(--chrome-hex,var(--ring))]",
         !active && tone === "danger" && "text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
         !active && tone === "default" && "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
@@ -340,6 +340,8 @@ export interface RailEntry {
   failed?: boolean
   pageNumber?: number
   searchText?: string
+  meta?: React.ReactNode
+  emptySubtitle?: string | null
 }
 
 export function StepRail({
@@ -350,6 +352,7 @@ export function StepRail({
   onSelect,
   footer,
   hoverPreview = false,
+  searchPlaceholder,
 }: {
   heading: React.ReactNode
   hex: string
@@ -358,6 +361,7 @@ export function StepRail({
   onSelect?: (key: string | null) => void
   footer?: React.ReactNode
   hoverPreview?: boolean
+  searchPlaceholder?: string
 }) {
   return (
     <StepRailList
@@ -368,6 +372,7 @@ export function StepRail({
       onSelect={onSelect}
       footer={footer}
       hoverPreview={hoverPreview}
+      searchPlaceholder={searchPlaceholder}
     />
   )
 }

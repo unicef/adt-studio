@@ -12,6 +12,8 @@ export function CaptionsVersionPicker({
   saving,
   dirty,
   onRestored,
+  triggerClassName,
+  triggerLabel,
 }: {
   label: string
   pageId: string
@@ -19,6 +21,8 @@ export function CaptionsVersionPicker({
   saving: boolean
   dirty: boolean
   onRestored: () => void
+  triggerClassName?: string
+  triggerLabel?: string
 }) {
   const { t } = useLingui()
   const diff = useMemo<VersionDiffDescriptor>(
@@ -43,6 +47,8 @@ export function CaptionsVersionPicker({
       dirty={dirty}
       onRestored={onRestored}
       diff={diff}
+      triggerClassName={triggerClassName}
+      triggerLabel={triggerLabel}
     />
   )
 }

@@ -19,11 +19,21 @@ export function buildImageSectionMap(page: PageDetail | undefined): Map<string, 
 export interface SectionTab {
   value: string
   sectionIndex: number
+  sectionType?: string
   count: number
 }
 
-export function sectionTabs(imageIds: readonly string[], sectionOf: ReadonlyMap<string, number>, sectionCount: number): SectionTab[] {
-  if (sectionCount <= 1) return []
+export function sectionTypeName(sectionType: string | undefined): string | null {
+  const words = sectionType?.replace(/[_-]+/g, " ").trim()
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : null
+}
+
+export function sectionTabs(
+  imageIds: readonly string[],
+  sectionOf: ReadonlyMap<string, number>,
+  sections: ReadonlyArray<{ sectionType?: string }>,
+): SectionTab[] {
+  if (sections.length <= 1) return []
   const counts = new Map<number, number>()
   for (const id of imageIds) {
     const index = sectionOf.get(id) ?? -1
@@ -32,5 +42,5 @@ export function sectionTabs(imageIds: readonly string[], sectionOf: ReadonlyMap<
   if (counts.size <= 1) return []
   return [...counts.entries()]
     .sort(([a], [b]) => (a < 0 ? 1 : b < 0 ? -1 : a - b))
-    .map(([sectionIndex, count]) => ({ value: String(sectionIndex), sectionIndex, count }))
+    .map(([sectionIndex, count]) => ({ value: String(sectionIndex), sectionIndex, sectionType: sections[sectionIndex]?.sectionType, count }))
 }

@@ -14,8 +14,8 @@ export interface HowItWorks {
 export function useHowItWorks(slug: string, { title, body }: { title: ReactNode; body: ReactNode }): HowItWorks {
   const mode = useVariant("hints")
   const [dismissed, setDismissed] = hintStore(slug).use()
-  if (mode === "help") return { note: null, help: <HintHelpButton title={title} body={body} /> }
-  if (mode === "none" || dismissed) return { note: null, help: null }
+  if (mode === "help" || (mode !== "none" && dismissed)) return { note: null, help: <HintHelpButton title={title} body={body} /> }
+  if (mode === "none") return { note: null, help: null }
   return {
     note: hintNote({ title, body, dismissLabel: <Trans>Got it</Trans>, onDismiss: () => setDismissed(true) }),
     help: null,
