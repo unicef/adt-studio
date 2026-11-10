@@ -202,23 +202,23 @@ app.post("/jobs", async (c) => {
 
 ### Path Traversal Prevention
 
+In API routes, use `apps/api/src/utils/path-security.ts` to check both lexical paths
+and canonical paths (resolving symlinks and Windows junctions). Start at a trusted
+configured root and pass each narrower boundary separately. A prefix-only check
+does not prevent symlink escapes, and an unchecked media directory must not become
+its own trusted root. Check before opening storage or reading a redirect manifest
+as well as before serving file contents.
+
 ```typescript
 // NEVER: Direct path concatenation
 const filePath = `${baseDir}/${userInput}`  // VULNERABLE
 
-// ALWAYS: Validate and normalize paths
-import path from "path"
+// API routes: validate route segments, then enforce nested containment
+import { resolvePathWithin } from "../utils/path-security.js"
 
-function getSafePath(baseDir: string, userPath: string): string {
-  const normalized = path.normalize(userPath)
-  const resolved = path.resolve(baseDir, normalized)
-
-  // Ensure resolved path is within baseDir
-  if (!resolved.startsWith(path.resolve(baseDir))) {
-    throw new Error("Path traversal attempt detected")
-  }
-
-  return resolved
+const resolved = resolvePathWithin(booksDir, safeLabel, "videos", fileName)
+if (!resolved) {
+  throw new HTTPException(403, { message: "Forbidden" })
 }
 ```
 

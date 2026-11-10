@@ -29,7 +29,7 @@ export function useRoleLabels(): Record<BookFontRole, string> {
     heading: t`Headings`,
     paragraph: t`Paragraph`,
     body: t`Body text`,
-    caption: t`Captions`,
+    caption: t({ message: "Captions", context: "typography role" }),
     decorative: t`Decorative`,
     mono: t`Monospace`,
     unassigned: t`Unassigned`,

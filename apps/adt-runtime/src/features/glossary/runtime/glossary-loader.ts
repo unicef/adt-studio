@@ -12,6 +12,7 @@ import {
 export async function loadGlossary(
   lang: string,
   bundleVersion?: string,
+  isCurrent: () => boolean = () => true,
 ): Promise<GlossaryData> {
   const versionParam = bundleVersion ? `?v=${bundleVersion}` : ""
   const url = `./content/i18n/${lang}/glossary.json${versionParam}`
@@ -19,15 +20,15 @@ export async function loadGlossary(
     const res = await fetch(url)
     if (!res.ok) {
       console.warn(`[glossary] ${url} returned ${res.status}`)
-      getDefaultStore().set(glossaryDataAtom, {})
+      if (isCurrent()) getDefaultStore().set(glossaryDataAtom, {})
       return {}
     }
     const data = (await res.json()) as GlossaryData
-    getDefaultStore().set(glossaryDataAtom, data ?? {})
+    if (isCurrent()) getDefaultStore().set(glossaryDataAtom, data ?? {})
     return data ?? {}
   } catch (err) {
     console.warn(`[glossary] failed to load ${url}`, err)
-    getDefaultStore().set(glossaryDataAtom, {})
+    if (isCurrent()) getDefaultStore().set(glossaryDataAtom, {})
     return {}
   }
 }

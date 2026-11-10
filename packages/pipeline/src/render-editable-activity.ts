@@ -110,12 +110,12 @@ export function resolveEditableActivityImages(
       resolved = { ...resolved, src: `images/${imageMap.get(img.imageId)}` }
     }
     const imageId = resolved.imageId
-    if (imageId) {
-      const preferredAlt = opts.preferredAltMap?.get(imageId)
-      if (preferredAlt !== undefined) resolved = { ...resolved, alt: preferredAlt }
-      if (opts.decorativeImageIds?.has(imageId)) {
-        resolved = { ...resolved, alt: "", decorative: true }
-      }
+    // Match HTML packaging: authored alt remains in the saved activity, while
+    // the reader/export projection uses only the current caption description.
+    const preferredAlt = imageId ? opts.preferredAltMap?.get(imageId)?.trim() ?? "" : ""
+    resolved = { ...resolved, alt: preferredAlt }
+    if (imageId && opts.decorativeImageIds?.has(imageId)) {
+      resolved = { ...resolved, alt: "", decorative: true }
     }
     return resolved
   }

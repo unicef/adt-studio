@@ -1,0 +1,190 @@
+{
+  "runtimeCommit": "254658e18e7123366bd5e47b9d8762ed1b45cbd0",
+  "startingHead": "f9ba8db2dc7767b57e94fa908481c95ac24b6675",
+  "base": "0b18602f8b42f4b52b4d2ccf2927635d5a4db572",
+  "pr": 879,
+  "humanSpecApproval": "pending",
+  "fullSuite": {
+    "files": 333,
+    "tests": 4137,
+    "passed": true,
+    "command": "DEVELOPER_DIR=/Library/Developer/CommandLineTools pnpm test",
+    "qualification": "Followed by final inert-preview resource fix; 33 affected UI tests, typecheck, lint, build and independent Chromium probe rerun after that fix."
+  },
+  "checks": {
+    "typecheck": "passed",
+    "runtimeTypecheck": "passed",
+    "lint": {
+      "errors": 0,
+      "warnings": 8
+    },
+    "rootBuild": "passed",
+    "apiBundle": "passed",
+    "studioBuild": "passed",
+    "locales": {
+      "en": 3731,
+      "esMissing": 0,
+      "frMissing": 0,
+      "ptBRMissing": 0,
+      "sqMissing": 0
+    },
+    "desktopUnpacked": "passed macOS arm64 ad-hoc package",
+    "cleanCombinedDockerBuild": "blocked: Docker VM filesystem 140GB, zero available",
+    "standaloneInvariantChecker": "not available in checkout"
+  },
+  "dockerRuntime": "Existing task-owned image with final current API, Studio and reader asset bind mounts; not a fresh image build",
+  "acceptance": {
+    "api": {
+      "health": true,
+      "bookCount": 3,
+      "outputCount": 230,
+      "cosmeticSavePreservesOutputs": true,
+      "concurrentSourceEditRejectsStaleSave": true,
+      "retainedFrenchUnchanged": true,
+      "invalidatedAccessibilityAbsent": true
+    },
+    "workedExamples": {
+      "evidence": [
+        "Example 1: cosmetic Save preserves all output signatures and status",
+        "Example 2: changed source appears beside protected French; unrelated caption unchanged",
+        "Example 3: glossary save discovers new image-caption work without changing Storyboard or inventing caption text consumers",
+        "Example 4: new and retired IDs render correctly; restoring original source reactivates retained French correction",
+        "Preview and Export show disclosure without changing freshness or review evidence"
+      ],
+      "errors": []
+    },
+    "review": {
+      "sourceSave": true,
+      "stageBadgeMatchesProjection": true,
+      "inlineKeep": true,
+      "manualTextPreserved": true,
+      "unrelatedTranslationsUnchanged": true,
+      "reloadKeepsCounts": true,
+      "before": {
+        "updates": 0,
+        "reviews": 16,
+        "warnings": 0,
+        "missing": 14,
+        "applicable": 30,
+        "current": false
+      },
+      "after": {
+        "updates": 0,
+        "reviews": 15,
+        "warnings": 0,
+        "missing": 14,
+        "applicable": 30,
+        "current": false
+      },
+      "generation": [],
+      "errors": []
+    },
+    "preview": {
+      "previewRendered": true,
+      "errors": []
+    },
+    "export": {
+      "exportDownloaded": true,
+      "suggestedFilename": "Catalog acceptance_ plant science-adt.zip",
+      "disclosures": [
+        "http://127.0.0.1:4208/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Afalse%2C%22quizzes%22%3Afalse%2C%22readAloud%22%3Atrue%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D",
+        "http://127.0.0.1:4208/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Afalse%2C%22quizzes%22%3Afalse%2C%22readAloud%22%3Afalse%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D"
+      ],
+      "errors": []
+    },
+    "zip": {
+      "validZip": true,
+      "entries": 76,
+      "sectionHtml": [
+        "pg001_sec001.html",
+        "pg002_sec001.html",
+        "pg003_sec001.html",
+        "pg004_sec001.html"
+      ],
+      "speechManifests": {
+        "content/i18n/en/audios.json": {},
+        "content/i18n/fr/audios.json": {}
+      },
+      "retainedFrenchFiles": [
+        "content/i18n/fr/speech_texts.json",
+        "content/i18n/fr/texts.json"
+      ]
+    },
+    "representative": {
+      "retainedTocEditableAfterReset": true,
+      "retainedGlossaryVisibleAfterReset": true,
+      "versionedSave": true,
+      "noGenerationRequests": true,
+      "representativePreview": true,
+      "representativeTextLength": 59,
+      "errors": []
+    },
+    "freshBook": {
+      "createdBeforeExtraction": true,
+      "settingsSavedBeforeExtraction": true,
+      "deletedBeforeExtraction": true,
+      "staleRunRejected404": true,
+      "bookNotRecreated": true,
+      "providerCalls": 0
+    },
+    "repair": {
+      "restoredPreview": true,
+      "bookImageDisplayed": true,
+      "preservedHtmlAndScripts": true,
+      "persistedAfterReload": true,
+      "reviewWrites": [
+        "http://127.0.0.1:4208/api/books/ownership-repair/adt-preview/convert-math",
+        "http://127.0.0.1:4208/api/books/ownership-repair/adt-preview/convert-math",
+        "http://127.0.0.1:4208/api/books/ownership-repair/pages/pg001/rendering-ownership",
+        "http://127.0.0.1:4208/api/books/ownership-repair/adt-preview/convert-math",
+        "http://127.0.0.1:4208/api/books/ownership-repair/adt-preview/convert-math"
+      ],
+      "errors": []
+    },
+    "restart": {
+      "restartPreservesCatalogAndReview": true,
+      "repairedOwnershipPersists": true
+    },
+    "packagedApi": {
+      "status": 200,
+      "books": 1,
+      "outputs": 230,
+      "runRevisionAvailable": true,
+      "packagedApi": "/Users/ksokolovic/Development/adt-studio/tmp/spec-0001-implementation/apps/desktop/release/mac-arm64/ADT-Studio-Beta.app/Contents/Resources/api/api-server.mjs"
+    }
+  },
+  "independentPreview": {
+    "srcdoc": "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; img-src http://review.local/api/books/book/images/\"><svg xmlns=\"http://www.w3.org/2000/svg\"><a><text x=\"10\" y=\"20\">Open</text></a></svg><div style=\"background-image:url(https://remote.invalid/style.png)\">Styled</div><img data-id=\"pg001_im001\" src=\"http://review.local/api/books/book/images/pg001_im001\"><video></video><style>@import url(https://remote.invalid/style.css);</style>",
+    "attempted": [
+      "http://review.local/api/books/book/images/pg001_im001"
+    ],
+    "frameUrls": [
+      "http://review.local/",
+      "about:srcdoc"
+    ]
+  },
+  "limits": [
+    "Human spec/assumption review pending",
+    "Actual historical fixed producers v0.7.2 and v0.7.3; v0.7.1 unavailable locally",
+    "No paid-provider quality or billing certification",
+    "No Electron GUI, signed/notarized or Windows/Linux installer tests",
+    "No merge, release or issue closure"
+  ],
+  "independentAcceptance": {
+    "runtimeCommit": "254658e18e7123366bd5e47b9d8762ed1b45cbd0",
+    "remainingActionableBlockers": 0,
+    "historicalIdentityProbes": 18,
+    "pageToolRepairTests": 104,
+    "freshBookTests": 5,
+    "mountedRepairTests": 6,
+    "initialPublicationRace": 1,
+    "historicalRefs": [
+      "v0.7.2",
+      "v0.7.3",
+      "v0.8.1-beta.1"
+    ],
+    "customProducerCommit": "e7ea55f4f77e70c06951ede3b538a441786c3f9d",
+    "customProducerQualification": "Creation implementation unchanged; four helper imports redirected to current source",
+    "actualBrowserResources": "Exactly one contained book-image request; no remote resources, SVG navigation or script execution"
+  }
+}

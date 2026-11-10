@@ -67,7 +67,7 @@ export function LanguageSection() {
                       sel ? "text-brand-800" : "text-foreground",
                     )}
                   >
-                    {i18n._(l.native)}
+                    {l.native}
                   </div>
                   <div className="mt-0.5 truncate text-[11.5px] leading-tight text-muted-foreground">
                     {i18n._(l.name)}

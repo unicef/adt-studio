@@ -74,6 +74,23 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
+  it("moves the latest write for any saved item, ignoring the excluded nodes", () => {
+    const { storage } = createTempStorage()
+
+    storage.putNodeData("web-rendering", "pg005", { html: "a" })
+    for (let i = 0; i < 5; i++) storage.putNodeData("web-rendering", "pg003", { html: String(i) })
+    const before = storage.latestNodeWriteExcluding("publication", "publication-pending-commit")
+
+    storage.putNodeData("publication", "book", { version: 1 })
+    storage.putNodeData("publication-pending-commit", "book", { version: 1 })
+    expect(storage.latestNodeWriteExcluding("publication", "publication-pending-commit")).toBe(before)
+
+    storage.putNodeData("web-rendering", "pg005", { html: "b" })
+    expect(storage.latestNodeWriteExcluding("publication", "publication-pending-commit")).toBeGreaterThan(before!)
+
+    storage.close()
+  })
+
   it("stores metadata via putNodeData", () => {
     const { storage } = createTempStorage()
 
@@ -217,7 +234,7 @@ describe("createBookStorage", () => {
       height: 150,
     })
     expect(newId).toBe("pg001_im001_tr_es")
-    expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_es.png"))).toBe(true)
+    expect(fs.existsSync(path.join(paths.bookDir, storage.getImageMeta("pg001_im001_tr_es")!.relativePath))).toBe(true)
 
     // A JPEG variant (e.g. from the Google image backend) gets a .jpg extension.
     storage.putTranslatedImage({
@@ -229,7 +246,7 @@ describe("createBookStorage", () => {
       width: 200,
       height: 150,
     })
-    expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_fr.jpg"))).toBe(true)
+    expect(fs.existsSync(path.join(paths.bookDir, storage.getImageMeta("pg001_im001_tr_fr")!.relativePath))).toBe(true)
 
     const db = openBookDb(paths.dbPath)
     const rows = db.all(
@@ -243,7 +260,7 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
-  it("clearTranslatedImages removes translate rows and files but leaves originals", () => {
+  it("clearTranslatedImages retires manifests while retaining physical history and originals", () => {
     const { storage, paths } = createTempStorage()
     storage.putExtractedPage(makePage(1))
 
@@ -263,13 +280,15 @@ describe("createBookStorage", () => {
       width: 200,
       height: 150,
     })
-    expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_es.png"))).toBe(true)
-    expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_fr.png"))).toBe(true)
+    expect(fs.existsSync(path.join(paths.bookDir, storage.getImageMeta("pg001_im001_tr_es")!.relativePath))).toBe(true)
+    expect(fs.existsSync(path.join(paths.bookDir, storage.getImageMeta("pg001_im001_tr_fr")!.relativePath))).toBe(true)
 
+    const retainedPaths = ["es", "fr"].map((lang) => path.join(paths.bookDir, storage.getImageMeta(`pg001_im001_tr_${lang}`)!.relativePath))
     storage.clearTranslatedImages()
 
-    expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_es.png"))).toBe(false)
-    expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_fr.png"))).toBe(false)
+    expect(storage.getImageMeta("pg001_im001_tr_es")).toBeNull()
+    for (const retained of retainedPaths) expect(fs.existsSync(retained)).toBe(true)
+    expect(storage.getImageMeta("pg001_im001_tr_fr")).toBeNull()
     // Original extracted image is untouched
     expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001.png"))).toBe(true)
 
@@ -298,13 +317,13 @@ describe("createBookStorage", () => {
 
     storage.clearTranslatedImages({ languageCodes: ["fr"] })
 
-    expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_es.png"))).toBe(true)
-    expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_fr.png"))).toBe(false)
-    expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_pt-BR.png"))).toBe(true)
+    expect(fs.existsSync(path.join(paths.bookDir, storage.getImageMeta("pg001_im001_tr_es")!.relativePath))).toBe(true)
+    expect(storage.getImageMeta("pg001_im001_tr_fr")).toBeNull()
+    expect(fs.existsSync(path.join(paths.bookDir, storage.getImageMeta("pg001_im001_tr_pt-BR")!.relativePath))).toBe(true)
     storage.close()
   })
 
-  it("putTranslatedImage upsert overwrites the file and row for the same language", () => {
+  it("putTranslatedImage publishes a new immutable file and retains the previous bytes", () => {
     const { storage, paths } = createTempStorage()
     storage.putExtractedPage(makePage(1))
 
@@ -325,7 +344,9 @@ describe("createBookStorage", () => {
       height: 150,
     })
 
-    const onDisk = fs.readFileSync(path.join(paths.imagesDir, "pg001_im001_tr_es.png"))
+    const onDisk = fs.readFileSync(path.join(paths.bookDir, storage.getImageMeta("pg001_im001_tr_es")!.relativePath))
+    const first = storage.getAllNodeVersions("image-translation", "pg001_im001_tr_es")[0].data as { relativePath: string }
+    expect(fs.readFileSync(path.join(paths.bookDir, first.relativePath), "utf8")).toBe("first")
     expect(onDisk.toString()).toBe("second")
 
     const db = openBookDb(paths.dbPath)
@@ -347,7 +368,7 @@ describe("createBookStorage", () => {
     storage.putExtractedPage(makePage(1))
 
     const meta = storage.getImageMeta("pg001_im001")
-    expect(meta).toEqual({ pageId: "pg001", relativePath: "images/pg001_im001.png" })
+    expect(meta).toMatchObject({ pageId: "pg001", relativePath: "images/pg001_im001.png", hash: expect.any(String), width: expect.any(Number), height: expect.any(Number) })
     expect(storage.getImageMeta("nonexistent")).toBeNull()
     storage.close()
   })
@@ -780,7 +801,7 @@ describe("quiz history retention on invalidation", () => {
         { version: 1, data: first }, { version: 2, data: { quizzes: [{ quizId: "qz002" }] } },
         { version: 3, data: null },
       ])
-      expect(storage.getAllNodeVersions("text-catalog", "book")).toEqual([])
+      expect(storage.getAllNodeVersions("text-catalog", "book")).toEqual([{ version: 1, data: { entries: [] } }])
       const db = openBookDb(paths.dbPath)
       try {
         expect(readCurrentNodeRow(db, "quiz-generation", "book")).toBeNull()
@@ -843,4 +864,36 @@ describe("quiz history retention on invalidation", () => {
       ])
     } finally { storage.close() }
   })
+})
+
+it("read snapshots keep a consistent view and release the WASM lock for the next writer", () => {
+  const { storage, paths } = createTempStorage()
+  storage.putNodeData("metadata", "book", { value: "before" })
+  const writer = openBookDb(paths.dbPath)
+  try {
+    storage.readSnapshot(() => {
+      expect(storage.getLatestNodeData("metadata", "book")?.data).toEqual({ value: "before" })
+      expect(() => writer.exec("BEGIN IMMEDIATE")).toThrow("database is locked")
+      expect(storage.getLatestNodeData("metadata", "book")?.data).toEqual({ value: "before" })
+    })
+    writer.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", ["metadata", "book", 2, JSON.stringify({ value: "after" })])
+    writer.run("UPDATE node_current SET version = ? WHERE node = ? AND item_id = ?", [2, "metadata", "book"])
+    expect(storage.readSnapshot(() => storage.getLatestNodeData("metadata", "book")?.data)).toEqual({ value: "after" })
+  } finally { writer.close(); storage.close() }
+})
+
+it("releases failed read snapshots and joins an outer transaction without committing it", () => {
+  const { storage } = createTempStorage()
+  try {
+    storage.putNodeData("metadata", "book", { value: "before" })
+    expect(() => storage.readSnapshot(() => { throw new Error("read failed") })).toThrow("read failed")
+    expect(() => storage.readSnapshot(() => Promise.resolve())).toThrow("must be synchronous")
+    expect(() => storage.transaction(() => {
+      storage.putNodeData("metadata", "book", { value: "inside" })
+      expect(storage.readSnapshot(() => storage.getLatestNodeData("metadata", "book")?.data)).toEqual({ value: "inside" })
+      throw new Error("publication rejected")
+    })).toThrow("publication rejected")
+    expect(storage.getLatestNodeData("metadata", "book")?.data).toEqual({ value: "before" })
+    expect(storage.getAllNodeVersions("metadata", "book")).toHaveLength(1)
+  } finally { storage.close() }
 })

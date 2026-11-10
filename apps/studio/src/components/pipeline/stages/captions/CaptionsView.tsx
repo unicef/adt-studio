@@ -30,12 +30,22 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
   const captionsState = stageState("captions")
   const captionsDone = captionsState === "done"
   const captionsRunning = captionsState === "running" || captionsState === "queued"
-  const showRunCard = !captionsDone || captionsRunning
   const { sectionIndex, setSectionIndex } = useSectionNav()
   const [decorativeFilter, setDecorativeFilter] = useState<DecorativeFilter>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [activePageId, setActivePageId] = useState<string | null>(null)
+  const [pendingPages, setPendingPages] = useState<Set<string>>(() => new Set())
+  const onPendingChange = useCallback((pageId: string, pending: boolean) => {
+    const key = JSON.stringify([bookLabel, pageId])
+    setPendingPages(previous => {
+      if (previous.has(key) === pending) return previous
+      const next = new Set(previous)
+      if (pending) next.add(key)
+      else next.delete(key)
+      return next
+    })
+  }, [bookLabel])
 
   const handleRunCaptions = useCallback(() => {
     if (!hasStructuredTextProvider || captionsRunning) return
@@ -47,6 +57,7 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
     [pages],
   )
   const hasCaptionData = pagesWithImages.some((p) => p.hasCaptioning)
+  const showRunCard = (!captionsDone && !hasCaptionData) || captionsRunning
 
   const displayPages = useMemo(
     () =>
@@ -110,7 +121,8 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
   const captionDetailsLoading = pageDetailQueries.some((q) => q.isLoading)
   const filtersActive = decorativeFilter !== "all" || searchQuery.trim().length > 0
   const showFilterEmpty =
-    hasCaptionData && filtersActive && !captionDetailsLoading && visibleCaptionTotal === 0
+    hasCaptionData && filtersActive && !captionDetailsLoading && visibleCaptionTotal === 0 &&
+    !displayPages.some(page => pendingPages.has(JSON.stringify([bookLabel, page.pageId])))
 
   const pageJumperEntries: PageJumperEntry[] = useMemo(
     () =>
@@ -366,7 +378,7 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
       </div>
 
       <div className="flex flex-1 flex-col gap-8 px-4 pb-12 pt-3">
-        {showFilterEmpty ? (
+        {showFilterEmpty && (
           <FilteredEmptyState
             icon={ImageIcon}
             color="teal"
@@ -381,22 +393,22 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
             }}
             clearLabel={searchQuery.trim() ? t`Clear search` : t`Clear filters`}
           />
-        ) : (
-          displayPages.map((page) => (
-            <PageCaptions
-              key={page.pageId}
-              bookLabel={bookLabel}
-              pageId={page.pageId}
-              pageNumber={page.pageNumber}
-              textPreview={page.textPreview}
-              emptyState={singlePageEmptyState}
-              filterSectionIndex={page.pageId === selectedPageId ? filterSectionIndex : undefined}
-              decorativeFilter={decorativeFilter}
-              searchQuery={searchQuery}
-              toolbarHeight={TOOLBAR_HEIGHT}
-            />
-          ))
         )}
+        {displayPages.map((page) => (
+          <PageCaptions
+            key={JSON.stringify([bookLabel, page.pageId])}
+            bookLabel={bookLabel}
+            pageId={page.pageId}
+            pageNumber={page.pageNumber}
+            textPreview={page.textPreview}
+            emptyState={singlePageEmptyState}
+            filterSectionIndex={page.pageId === selectedPageId ? filterSectionIndex : undefined}
+            decorativeFilter={decorativeFilter}
+            searchQuery={searchQuery}
+            toolbarHeight={TOOLBAR_HEIGHT}
+            onPendingChange={onPendingChange}
+          />
+        ))}
       </div>
     </div>
       )}

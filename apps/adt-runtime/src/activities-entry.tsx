@@ -12,6 +12,8 @@
  * to the next reading-order entry). The host reader tracks that page change via
  * the manifest's readingOrder, so no postMessage channel is needed.
  */
+// First, before any module can append a <style> to <head> — see page-head.ts.
+import "@/features/navigation/lib/page-head"
 import { createRoot } from "react-dom/client"
 import {
   Provider as JotaiProvider,

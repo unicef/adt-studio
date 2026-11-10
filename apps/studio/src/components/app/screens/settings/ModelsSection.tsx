@@ -1,6 +1,7 @@
+import { useRef, useState } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Link } from "@tanstack/react-router"
-import { AudioLines, Brain, ImageIcon, Loader2, TriangleAlert } from "lucide-react"
+import { AudioLines, Brain, ImageIcon, Info, Loader2, TriangleAlert } from "lucide-react"
 import {
   DEFAULT_IMAGE_GENERATION_MODEL_ID,
   DEFAULT_OPENAI_TTS_MODEL_ID,
@@ -17,6 +18,7 @@ import {
 import { getStepLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { SettingsHeading, SettingsLead } from "./ui"
 import { SETTINGS_ANCHORS } from "./nav"
 import {
@@ -93,12 +95,51 @@ function SaveButton({
   )
 }
 
+/**
+ * (i) icon whose tooltip opens on hover and focus like any tooltip, and also
+ * toggles on click. Radix closes a tooltip on trigger click by default, so the
+ * open state is controlled and the click handler prevents that default. Radix
+ * also closes it on pointer down, before the click, so a mouse or touch click
+ * toggles from the state it had before that pointer down.
+ */
+function InfoTooltip({ content }: { content: React.ReactNode }) {
+  const { t } = useLingui()
+  const [open, setOpen] = useState(false)
+  const openAtPointerDown = useRef<boolean | null>(null)
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={t`More info`}
+            onPointerDown={() => {
+              openAtPointerDown.current = open
+            }}
+            onClick={(event) => {
+              event.preventDefault()
+              const wasOpen = openAtPointerDown.current
+              openAtPointerDown.current = null
+              setOpen((current) => !(wasOpen ?? current))
+            }}
+            className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Info className="size-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-[280px]">{content}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
 function SpecializedCard({
   anchorId,
   icon: Icon,
   tile,
   title,
   description,
+  info,
   inputId,
   value,
   onChange,
@@ -114,6 +155,8 @@ function SpecializedCard({
   tile: string
   title: React.ReactNode
   description: React.ReactNode
+  /** Longer explanation behind an (i) icon, so the card keeps its one-line description. */
+  info?: React.ReactNode
   inputId: string
   value: string
   onChange: (value: string) => void
@@ -131,7 +174,10 @@ function SpecializedCard({
           <Icon className="size-[19px]" />
         </span>
         <div className="min-w-0">
-          <div className="text-sm font-semibold">{title}</div>
+          <div className="flex items-center gap-1.5">
+            <div className="text-sm font-semibold">{title}</div>
+            {info && <InfoTooltip content={info} />}
+          </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
         </div>
       </div>
@@ -316,6 +362,12 @@ export function ModelsSection() {
           tile="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
           title={<Trans>Speech generation</Trans>}
           description={<Trans>OpenAI, Azure, and Gemini text-to-speech.</Trans>}
+          info={
+            <Trans>
+              Applies to books whose speech provider matches this model's provider. Other
+              providers run on their own default, or on the model set in Speech settings.
+            </Trans>
+          }
           inputId="app-speech-generation-model"
           value={specialized.speechDraft}
           onChange={specialized.setSpeechDraft}

@@ -35,7 +35,7 @@ export function FeatureScene({
           <Icon className="h-4 w-4" strokeWidth={2.4} />
           {eyebrow}
         </div>
-        <h2 className="text-[30px] font-semibold leading-[1.08] tracking-[-0.02em] text-[var(--ob-fg)]">
+        <h2 className="text-balance text-[30px] font-semibold leading-[1.08] tracking-[-0.02em] text-[var(--ob-fg)]">
           {title}
         </h2>
         <p className="mt-4 max-w-[330px] text-[15px] leading-relaxed text-[var(--ob-muted)]">

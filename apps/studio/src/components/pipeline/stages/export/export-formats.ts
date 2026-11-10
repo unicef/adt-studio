@@ -7,6 +7,7 @@ export type ExportFormat = "project" | "webpub" | "scorm" | "adt" | "epub" | "pn
 export interface FormatConfig {
   icon: LucideIcon
   label: string
+  runLabel: string
   description: string
   textColor: string
   bgLight: string
@@ -18,7 +19,7 @@ export interface FormatConfig {
 /**
  * Static export format configuration — single source of truth for all export UI
  */
-export const EXPORT_FORMAT_CONFIG: Record<ExportFormat, Omit<FormatConfig, "label" | "description" | "badge">> = {
+export const EXPORT_FORMAT_CONFIG: Record<ExportFormat, Omit<FormatConfig, "label" | "runLabel" | "description" | "badge">> = {
   project: {
     icon: FileDown,
     textColor: "text-emerald-600",
@@ -78,6 +79,7 @@ export function buildExportFormatConfig(
     project: {
       ...EXPORT_FORMAT_CONFIG.project,
       label: opts.isPart ? t(msg`Completed Part`) : t(msg`Project Archive`),
+      runLabel: opts.isPart ? t(msg`Export completed part`) : t(msg`Export project archive`),
       description: opts.isPart
         ? t(msg`Send this project archive back to the coordinator to merge into the source book.`)
         : t(msg`Back up or transfer the full project including the database, PDF, and all pipeline outputs.`),
@@ -86,28 +88,33 @@ export function buildExportFormatConfig(
     adt: {
       ...EXPORT_FORMAT_CONFIG.adt,
       label: t(msg`Web Export`),
+      runLabel: t(msg`Export for the web`),
       description: t(msg`Full ADT bundle — HTML pages, images, audio, quizzes, and the compiled web app.`),
     },
     scorm: {
       ...EXPORT_FORMAT_CONFIG.scorm,
       label: t(msg`SCORM Export`),
+      runLabel: t(msg`Export SCORM package`),
       description: t(msg`Upload to an LMS as a SCORM 1.2 package with completion tracking and offline support.`),
     },
     webpub: {
       ...EXPORT_FORMAT_CONFIG.webpub,
       label: t(msg`WebPub Export`),
+      runLabel: t(msg`Export WebPub`),
       description: t(msg`Readium Web Publication format for standards-based digital distribution platforms.`),
       badge: t(msg`Beta`),
     },
     epub: {
       ...EXPORT_FORMAT_CONFIG.epub,
       label: t(msg`EPUB Export`),
+      runLabel: t(msg`Export EPUB`),
       description: t(msg`Standard EPUB 3 file for e-readers, reading apps, and accessibility tools. Interactive features (quizzes, TTS) work in readers that support JavaScript.`),
       badge: t(msg`Beta`),
     },
     pnld: {
       ...EXPORT_FORMAT_CONFIG.pnld,
       label: t(msg`PNLD Export`),
+      runLabel: t(msg`Export PNLD package`),
       description: t(msg`Brazilian PNLD digital work (.zip) with HTML5 content, content.opf and toc.ncx metadata, for submission to the FNDE VALIDE reader.`),
       badge: t(msg`Beta`),
     },

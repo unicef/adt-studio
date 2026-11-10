@@ -7,7 +7,9 @@ import { api } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import { useActiveConfig } from "@/hooks/use-debug"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { useRegisterDirtyTabs } from "@/hooks/use-settings-dirty-tabs"
@@ -25,8 +27,14 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
     queryKey: ["core-tts-profiles"],
     queryFn: () => api.getCoreTtsProfiles(),
   })
+  const { data: activeConfigData } = useActiveConfig(bookLabel)
+  const coreTtsConfig = (activeConfigData?.merged as { core_tts?: { prompt?: unknown } } | undefined)?.core_tts
+  const promptName =
+    typeof coreTtsConfig?.prompt === "string" ? coreTtsConfig.prompt : "core_tts_preparation"
   const [entries, setEntries] = useState<Record<string, string>>({})
   const [dirty, setDirty] = useState(false)
+  const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null)
+  const isDirty = dirty || promptDraft != null
   const [saving, setSaving] = useState(false)
   const [newLocale, setNewLocale] = useState("")
   const [adding, setAdding] = useState(false)
@@ -38,9 +46,15 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
   const save = async () => {
     setSaving(true)
     try {
-      await api.updateCoreTtsProfiles(entries)
-      await queryClient.invalidateQueries({ queryKey: ["core-tts-profiles"] })
+      if (dirty) {
+        await api.updateCoreTtsProfiles(entries)
+        await queryClient.invalidateQueries({ queryKey: ["core-tts-profiles"] })
+      }
+      if (promptDraft != null) {
+        await savePromptDraft(queryClient, promptName, bookLabel, promptDraft)
+      }
       setDirty(false)
+      setPromptDraft(null)
     } finally {
       setSaving(false)
     }
@@ -54,12 +68,12 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
   useRegisterDirtyTabs(
     "settings:core-tts-profiles",
     "translate",
-    dirty ? ["core-tts-profiles"] : [],
+    isDirty ? ["core-tts-profiles"] : [],
     true,
   )
   useFloatingSave({
     id: "settings:core-tts-profiles",
-    dirty,
+    dirty: isDirty,
     saving,
     onSave: save,
     onSaveAndRerun: async () => {
@@ -76,7 +90,7 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
   })
 
   if (isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">{t`Loading TTS normalization...`}</div>
+    return <div className="p-4 text-sm text-muted-foreground">{t`Loading speech preparation...`}</div>
   }
 
   const update = (key: string, value: string) => {
@@ -106,7 +120,7 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
       <div className="space-y-2">
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t`Default guidance`}</Label>
         <p className="text-xs text-muted-foreground">
-          {t`Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call.`}
+          {t`Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call.`}
         </p>
         <textarea
           value={entries.default ?? ""}
@@ -154,6 +168,19 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
             />
           </div>
         ))}
+      </div>
+
+      {/* PromptViewer fills its parent's height; a form has none, so give it one. */}
+      <div className="h-[44rem] border-t pt-4">
+        <PromptViewer
+          promptName={promptName}
+          bookLabel={bookLabel}
+          title={t`Speech Preparation Prompt`}
+          description={t`The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both.`}
+          draft={promptDraft}
+          hideModel
+          onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
+        />
       </div>
     </div>
   )

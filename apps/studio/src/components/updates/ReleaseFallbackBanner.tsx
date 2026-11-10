@@ -81,23 +81,17 @@ export function ReleaseFallbackBanner({
             )}
           >
             {isBeta ? (
-              <>
-                <div>
-                  <Trans>Preview</Trans>
-                </div>
-                <div>
-                  <Trans>Build</Trans>
-                </div>
-              </>
+              <Trans>
+                Preview
+                <br />
+                Build
+              </Trans>
             ) : (
-              <>
-                <div>
-                  <Trans>Quality</Trans>
-                </div>
-                <div>
-                  <Trans>Improvements</Trans>
-                </div>
-              </>
+              <Trans>
+                Quality
+                <br />
+                Improvements
+              </Trans>
             )}
           </div>
         </div>

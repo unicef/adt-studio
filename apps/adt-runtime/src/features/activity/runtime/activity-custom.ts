@@ -10,6 +10,7 @@ import {
   validateHandlerAtom,
 } from "@/features/activity/state/activity.atoms"
 import { playActivitySound } from "@/features/activity/runtime/sounds"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 /**
  * `activity_custom_*` — the escape hatch for fully-interactive activities that
@@ -150,6 +151,8 @@ export function initializeCustomActivity(): (() => void) | null {
   const store = getDefaultStore()
   const hasNextPage = findNextPageHref() !== null
   const registered: PendingCustomActivity[] = []
+  let disposed = false
+  let validationInFlight = false
 
   const runValidation = async () => {
     // No grader registered (e.g. the <head> stub is missing because the book
@@ -162,9 +165,11 @@ export function initializeCustomActivity(): (() => void) | null {
       try {
         if (!(await handlers.validate())) allPass = false
       } catch (err) {
+        if (disposed) return
         console.error("Custom activity validate() threw:", err)
         allPass = false
       }
+      if (disposed) return
     }
 
     playActivitySound(allPass ? "success" : "error")
@@ -180,18 +185,21 @@ export function initializeCustomActivity(): (() => void) | null {
   }
 
   const handleValidate = () => {
+    if (disposed || validationInFlight) return
     // Post-success: the button is now "Next" — advance to the next page.
     if (store.get(submitStateAtom) === "next") {
       const href = findNextPageHref()
-      if (href) window.location.href = href
+      if (href) navigateToPage(href)
       return
     }
-    void runValidation()
+    validationInFlight = true
+    void runValidation().finally(() => { validationInFlight = false })
   }
 
   const handleSkip = () => {
+    if (disposed) return
     const href = findNextPageHref()
-    if (href) window.location.href = href
+    if (href) navigateToPage(href)
   }
 
   const wire = () => {
@@ -206,8 +214,11 @@ export function initializeCustomActivity(): (() => void) | null {
 
   const register = (entry: PendingCustomActivity | null | undefined) => {
     if (
+      disposed ||
       !entry ||
       !(entry.section instanceof HTMLElement) ||
+      !entry.section.isConnected ||
+      !entry.section.matches(CUSTOM_SELECTOR) ||
       !entry.handlers ||
       typeof entry.handlers.validate !== "function"
     ) {
@@ -226,6 +237,7 @@ export function initializeCustomActivity(): (() => void) | null {
     register({ section, handlers })
 
   return () => {
+    disposed = true
     store.set(validateHandlerAtom, () => null)
     store.set(skipHandlerAtom, () => null)
     store.set(submitEnabledAtom, false)

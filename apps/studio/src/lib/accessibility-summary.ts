@@ -28,7 +28,7 @@ export interface AccessibilityFindingPageSummary {
   sectionId: string
   href: string
   title: string | null
-  pageNumber: number | null
+  position: number
   count: number
 }
 
@@ -227,7 +227,7 @@ export function buildFrequentAccessibilityFindings(
     categoryKey: AccessibilityCategoryKey
   }>()
 
-  for (const page of assessment.pages) {
+  for (const [index, page] of assessment.pages.entries()) {
     for (const finding of page.violations) {
       const categoryKey = getCategoryKey(finding)
       const key = `violation:${finding.id}`
@@ -247,7 +247,7 @@ export function buildFrequentAccessibilityFindings(
         sectionId: page.sectionId,
         href: page.href,
         title: page.title,
-        pageNumber: page.pageNumber,
+        position: index + 1,
         count: 0,
       }
       pageEntry.count += 1
@@ -274,7 +274,7 @@ export function buildFrequentAccessibilityFindings(
         sectionId: page.sectionId,
         href: page.href,
         title: page.title,
-        pageNumber: page.pageNumber,
+        position: index + 1,
         count: 0,
       }
       pageEntry.count += 1
@@ -298,18 +298,7 @@ export function buildFrequentAccessibilityFindings(
       pageCoverage: finding.pages.size / pageCount,
       categoryKey: finding.categoryKey,
       categoryLabel: finding.categoryKey,
-      pages: [...finding.pages.values()].sort((left, right) => {
-        if (left.pageNumber != null && right.pageNumber != null && left.pageNumber !== right.pageNumber) {
-          return left.pageNumber - right.pageNumber
-        }
-        if (left.pageNumber != null) {
-          return -1
-        }
-        if (right.pageNumber != null) {
-          return 1
-        }
-        return left.href.localeCompare(right.href)
-      }),
+      pages: [...finding.pages.values()].sort((left, right) => left.position - right.position),
     }))
     .sort((left, right) => {
       if (left.pagesAffected !== right.pagesAffected) {

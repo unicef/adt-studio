@@ -9,6 +9,16 @@ import { z } from "zod"
 export const FIXED_LAYOUT_MAX_SCALE = 2
 
 export const SectionRendering = z.object({
+  /** Stable owner captured when this rendering is published; never an index. */
+  sectionId: z.string().min(1).optional(),
+  /** Retained metadata from development ownership repairs. It is not used to
+   * resolve ownership or certify freshness; contradictory declarations fail closed. */
+  ownerReview: z.object({
+    signature: z.string(),
+    renderingVersion: z.number().int().positive(),
+    sectioningNode: z.enum(["page-sectioning", "fixed-layout-sectioning"]),
+    sectioningVersion: z.number().int().positive(),
+  }).optional(),
   sectionIndex: z.number().int(),
   sectionType: z.string(),
   reasoning: z.string(),

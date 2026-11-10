@@ -103,6 +103,7 @@ function makeStorageWithSection(opts: {
               ...(opts.tocSection
                 ? [
                     {
+                      sectionId: "toc_section",
                       sectionIndex: 0,
                       sectionType: "table_of_contents",
                       reasoning: "",
@@ -111,6 +112,7 @@ function makeStorageWithSection(opts: {
                   ]
                 : []),
               {
+                sectionId: "sec_001",
                 sectionIndex: opts.tocSection ? 1 : 0,
                 sectionType: "content",
                 reasoning: "",
@@ -230,7 +232,7 @@ describe("generateToc", () => {
             version: 1,
             data: {
               sections: [
-                { sectionIndex: 0, sectionType: "fixed-layout-page", reasoning: "", html: "<div>x</div>" },
+                { sectionId: "pg001_sec001", sectionIndex: 0, sectionType: "fixed-layout-page", reasoning: "", html: "<div>x</div>" },
               ],
             },
           }

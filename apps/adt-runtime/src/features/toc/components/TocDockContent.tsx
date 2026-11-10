@@ -1,4 +1,4 @@
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Fragment, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import {
@@ -9,10 +9,12 @@ import {
   type TocEntry,
 } from "@/features/navigation/state/nav.atoms";
 import { activeNavTabAtom } from "@/shared/state/ui.atoms";
+import { followedPeerAtom } from "@/features/comments/state/follow.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { cn } from "@/shared/lib/utils";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { DockContent } from "@/features/dock/components/DockLayout";
+import { navigateToPage, prefetchPage } from "@/features/navigation/lib/page-swap"
 
 export function TocContent() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,26 +24,12 @@ export function TocContent() {
   const [tab, setTab] = useAtom(activeNavTabAtom);
   const { t } = useTranslation();
 
-  const tocEntries: TocEntry[] = useMemo(
-    () =>
-      toc.length > 0
-        ? toc
-        : pages.map((p) => ({
-            section_id: p.section_id,
-            href: p.href,
-            title: p.section_id,
-            chapter_id: p.section_id,
-            level: undefined,
-          })),
-    [toc, pages],
-  );
-
   const filteredTocEntries = useMemo(
     () =>
-      tocEntries.filter((entry) =>
+      toc.filter((entry) =>
         entry.title.toLowerCase().includes(searchTerm.toLowerCase()),
       ),
-    [tocEntries, searchTerm],
+    [toc, searchTerm],
   );
 
   return (
@@ -63,7 +51,7 @@ export function TocContent() {
         </TabsList>
 
         <TabsContent value="toc" className="min-h-0">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full overflow-hidden">
             <TocList entries={filteredTocEntries} currentSectionId={currentSectionId} />
           </ScrollArea>
         </TabsContent>
@@ -91,23 +79,30 @@ function TocList({
   entries: TocEntry[];
   currentSectionId: string | null;
 }) {
+  /** Picking a destination yourself ends a follow, for the same reason turning the page does. */
+  const stopFollowing = useSetAtom(followedPeerAtom);
   return (
     <ul className="py-1">
-      {entries.map((entry) => {
+      {entries.map((entry, index) => {
         const active = entry.section_id === currentSectionId;
         return (
-          <li key={entry.section_id}>
+          <li key={`${entry.section_id}:${index}`}>
             <button
               type="button"
               title={entry.title}
+              disabled={!entry.href}
               onClick={() => {
-                window.location.href = entry.href;
+                stopFollowing(null);
+                navigateToPage(entry.href);
               }}
+              onPointerEnter={() => entry.href && prefetchPage(entry.href)}
+              onFocus={() => entry.href && prefetchPage(entry.href)}
               className={cn(
                 "w-full text-left rounded-md px-2.5 py-1.5 text-base",
                 "hover:bg-accent hover:text-accent-foreground",
                 "focus:outline-none focus:bg-accent focus:text-accent-foreground",
                 "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                "disabled:text-muted-foreground disabled:hover:bg-transparent",
                 active && "bg-accent text-accent-foreground font-medium",
                 entry.level === 2 && "pl-6",
                 entry.level === 3 && "pl-9",
@@ -146,6 +141,7 @@ function PageList({
   printPageLabel: string;
   coverLabel: string;
 }) {
+  const stopFollowing = useSetAtom(followedPeerAtom);
   const items = useMemo<PageListItem[]>(() => {
     const chapterLookup = new Map<string, TocEntry>();
     for (const chapter of toc) {
@@ -195,8 +191,11 @@ function PageList({
               <button
                 type="button"
                 onClick={() => {
-                  window.location.href = page.href;
+                  stopFollowing(null);
+                  navigateToPage(page.href);
                 }}
+                onPointerEnter={() => prefetchPage(page.href)}
+                onFocus={() => prefetchPage(page.href)}
                 aria-label={ariaLabel}
                 title={ariaLabel}
                 aria-current={active ? "page" : undefined}

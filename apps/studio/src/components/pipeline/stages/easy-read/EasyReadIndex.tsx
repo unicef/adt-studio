@@ -1,4 +1,5 @@
 import { useStageStatus } from "@/hooks/use-stage-status"
+import { useHasSavedOutputs } from "../../components/OutputReview"
 import { EasyReadLandingPage } from "./EasyReadLandingPage"
 import { EasyReadView } from "./EasyReadView"
 
@@ -13,8 +14,9 @@ export function EasyReadIndex({
   onSelectPage?: (pageId: string | null) => void
 }) {
   const status = useStageStatus("easy-read")
+  const hasSaved = useHasSavedOutputs(bookLabel, "easy-read")
 
-  if (status.isCompleted || status.isRunning) {
+  if (status.isCompleted || status.isRunning || hasSaved) {
     return (
       <EasyReadView
         bookLabel={bookLabel}

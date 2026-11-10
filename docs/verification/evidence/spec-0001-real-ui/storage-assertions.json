@@ -1,0 +1,261 @@
+{
+  "momograde1": {
+    "originalVersionsRetained": 124,
+    "newVersions": [
+      [
+        "accessibility-assessment",
+        "book",
+        2
+      ],
+      [
+        "accessibility-assessment",
+        "book",
+        3
+      ],
+      [
+        "page-sectioning",
+        "pg005",
+        2
+      ],
+      [
+        "text-catalog",
+        "book",
+        2
+      ],
+      [
+        "text-catalog",
+        "book",
+        3
+      ],
+      [
+        "web-rendering",
+        "pg005",
+        2
+      ],
+      [
+        "web-rendering",
+        "pg005",
+        3
+      ]
+    ],
+    "sourceChanges": [
+      [
+        "/sections/0/nodes/1/children/0/text",
+        "Every night the monkeys climb a tree to sleep in.",
+        "Every evening the monkeys climb a tree to sleep in."
+      ]
+    ],
+    "originalBookUnchanged": true,
+    "unchangedPhysicalFiles": 178
+  },
+  "note3": {
+    "originalVersionsRetained": 10,
+    "newVersions": [
+      [
+        "glossary",
+        "book",
+        2
+      ],
+      [
+        "page-sectioning",
+        "pg001",
+        2
+      ],
+      [
+        "page-sectioning",
+        "pg001",
+        3
+      ],
+      [
+        "source-generation-state",
+        "glossary",
+        2
+      ],
+      [
+        "source-generation-state",
+        "glossary",
+        3
+      ],
+      [
+        "source-generation-state",
+        "quiz-generation",
+        2
+      ],
+      [
+        "text-catalog",
+        "book",
+        1
+      ],
+      [
+        "text-catalog",
+        "book",
+        2
+      ],
+      [
+        "text-catalog",
+        "book",
+        3
+      ],
+      [
+        "web-rendering",
+        "pg001",
+        2
+      ],
+      [
+        "web-rendering",
+        "pg001",
+        3
+      ]
+    ],
+    "onlySuccessfulGlossaryClearedWarning": true
+  },
+  "legacy-unowned": {
+    "originalVersionsRetained": 4,
+    "newVersions": [
+      [
+        "accessibility-assessment",
+        "book",
+        1
+      ],
+      [
+        "page-sectioning",
+        "pg001",
+        2
+      ],
+      [
+        "text-catalog",
+        "book",
+        1
+      ],
+      [
+        "text-catalog",
+        "book",
+        2
+      ],
+      [
+        "web-rendering",
+        "pg001",
+        2
+      ],
+      [
+        "web-rendering",
+        "pg001",
+        3
+      ]
+    ],
+    "originalHtmlScriptsAnswersAndFrenchUnchanged": true
+  },
+  "catalog-acceptance": {
+    "originalVersionsRetained": 38,
+    "newVersions": [
+      [
+        "accessibility-assessment",
+        "book",
+        2
+      ],
+      [
+        "glossary",
+        "book",
+        4
+      ],
+      [
+        "glossary",
+        "book",
+        5
+      ],
+      [
+        "page-sectioning",
+        "pg003",
+        2
+      ],
+      [
+        "page-sectioning",
+        "pg003",
+        3
+      ],
+      [
+        "page-sectioning",
+        "pg004",
+        2
+      ],
+      [
+        "source-generation-state",
+        "glossary",
+        1
+      ],
+      [
+        "source-generation-state",
+        "toc-generation",
+        1
+      ],
+      [
+        "text-catalog",
+        "book",
+        10
+      ],
+      [
+        "text-catalog",
+        "book",
+        11
+      ],
+      [
+        "text-catalog",
+        "book",
+        12
+      ],
+      [
+        "text-catalog-translation",
+        "fr",
+        3
+      ],
+      [
+        "web-rendering",
+        "pg003",
+        2
+      ],
+      [
+        "web-rendering",
+        "pg003",
+        3
+      ],
+      [
+        "web-rendering",
+        "pg004",
+        2
+      ]
+    ],
+    "keepChangedOnlyReviewFor": "pg001_t002",
+    "mixedSaveReload": {
+      "excludedLeafAbsentFromHtml": true,
+      "newSourceTextRetained": true,
+      "sharedImageIdRetained": true,
+      "imageWidth": "75%",
+      "neighborPagesUnchanged": [
+        "pg001",
+        "pg002"
+      ],
+      "manualEasyReadUnchanged": true
+    },
+    "glossaryEdit": {
+      "stableId": "gl001",
+      "definitionAndImageSaved": true,
+      "sharedImageId": "pg004_im001_crop_v99"
+    },
+    "repeatedImageExclusion": {
+      "allLocalOccurrencesRemoved": true,
+      "otherPageAndGlossaryReferenceRetained": true,
+      "originalAssetRetained": true
+    }
+  },
+  "providerRequests": 3,
+  "webExport": {
+    "files": 71,
+    "integrity": "passed",
+    "customScripts": 3,
+    "manualFrenchAnswersPresent": true,
+    "freshnessManifests": [
+      "content/i18n/en/freshness.json",
+      "content/i18n/fr/freshness.json"
+    ]
+  }
+}

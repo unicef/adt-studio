@@ -1,5 +1,5 @@
 import { ArrowRight, Languages } from "lucide-react"
-import { Trans } from "@lingui/react/macro"
+import { Plural, Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import { displayLang } from "../lib/display-lang"
 
@@ -84,10 +84,11 @@ export function LanguagePreview({
             aria-hidden
           />
           {imagesEnabled ? (
-            <Trans>
-              {imageCount} image{imageCount === 1 ? "" : "s"} will be
-              translated
-            </Trans>
+            <Plural
+              value={imageCount}
+              one="# image will be translated"
+              other="# images will be translated"
+            />
           ) : (
             <Trans>Images stay in the source language</Trans>
           )}

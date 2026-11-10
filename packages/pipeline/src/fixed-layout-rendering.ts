@@ -1,3 +1,4 @@
+import { withSourceGenerationTracking, putSourceNodeData } from "./source-generation-state.js"
 /**
  * Fixed-Layout Rendering
  *
@@ -458,13 +459,14 @@ export function renderFixedLayoutPage(
   // dimensions from the style rule, not this book-wide value.
   const refWidthAttr =
     referenceWidth !== undefined ? ` data-fl-reference-width="${Math.round(referenceWidth)}"` : ""
-  const html = `<div id="content"${refWidthAttr} style="position:relative;width:${viewport.width}px;height:${viewport.height}px;margin:0 auto;overflow:hidden">
+  const html = `<div id="content" data-section-id="${section.sectionId}"${refWidthAttr} style="position:relative;width:${viewport.width}px;height:${viewport.height}px;margin:0 auto;overflow:hidden">
 ${elements.join("\n")}${fitScript}
 </div>`
 
   return {
     sections: [
       {
+        sectionId: section.sectionId,
         sectionIndex: 0,
         sectionType: "fixed-layout-page",
         reasoning: "Fixed-layout: rendered from positioned section JSON (text + image bounds).",
@@ -550,14 +552,15 @@ export function processFixedLayoutPages(
     // Store the positioned tree under its OWN node so it never clobbers the
     // semantic `page-sectioning` (which the Sectioning view + reflowable
     // rendering rely on, and which must survive a render-strategy switch).
-    storage.putNodeData("fixed-layout-sectioning", page.pageId, sectioning)
-
     const rendering = renderFixedLayoutPage(
       sectioning.sections[0],
       imageUrlPrefix,
       referenceWidth,
     )
-    storage.putNodeData("web-rendering", page.pageId, rendering)
+    withSourceGenerationTracking(storage, () => {
+      putSourceNodeData(storage, "fixed-layout-sectioning", page.pageId, sectioning)
+      putSourceNodeData(storage, "web-rendering", page.pageId, rendering)
+    })
   }
 
   // Positioned text is produced by the Extract stage only when the book is

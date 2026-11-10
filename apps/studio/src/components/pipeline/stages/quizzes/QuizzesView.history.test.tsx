@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import React, { createContext, useContext, useState, type ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { QuizzesResponse } from "@/api/client"
 
+const actions = vi.hoisted(() => ({ stay: async () => {} }))
 const join = (strings: TemplateStringsArray, ...values: unknown[]) =>
   strings.reduce((text, part, index) => text + part + (index < values.length ? String(values[index]) : ""), "")
 
@@ -24,14 +25,14 @@ vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({ data: [] }), usePageIma
 vi.mock("@/hooks/use-api-key", () => ({ useBookStructuredTextAvailability: () => false }))
 vi.mock("@/hooks/use-stage-status", () => ({ useStageStatus: () => ({ isRunning: false }) }))
 vi.mock("../../components/floating-save", () => ({
-  useFloatingSave: () => {},
+  useFloatingSave: (entry: {onSaveStay?: () => Promise<void>}) => { if (entry.onSaveStay) actions.stay = entry.onSaveStay },
   PendingChip: ({ children }: { children: ReactNode }) => <>{children}</>,
 }))
 vi.mock("./components/QuizzesHintBanner", () => ({ QuizzesHintBanner: () => null }))
 vi.mock("./components/QuizJumper", () => ({ QuizJumper: () => null }))
 vi.mock("./AddQuizDialog", () => ({ AddQuizDialog: () => null }))
 vi.mock("../../components/PageLightbox", () => ({ PageLightbox: () => null }))
-vi.mock("@/api/client", () => ({ api: { getQuizzes: vi.fn(), getVersionHistory: vi.fn(), restoreVersion: vi.fn() } }))
+vi.mock("@/api/client", async (original) => ({ ...await original<typeof import("@/api/client")>(), api: { getQuizzes: vi.fn(), getVersionHistory: vi.fn(), restoreVersion: vi.fn(), updateQuizzes: vi.fn() } }))
 vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const { api } = await import("@/api/client")
@@ -94,7 +95,7 @@ describe("quiz history recovery", () => {
     expect(screen.queryByDisplayValue("Retained question")).toBeNull()
     fireEvent.click(trigger)
     fireEvent.click(await screen.findByRole("button", { name: /^v\s*1/ }))
-    await waitFor(() => expect(api.restoreVersion).toHaveBeenCalledWith("book", "quiz-generation", "book", 1))
+    await waitFor(() => expect(api.restoreVersion).toHaveBeenCalledWith("book", "quiz-generation", "book", 1, 2))
     expect(await screen.findByDisplayValue("Retained question")).toBeTruthy()
     expect(api.getVersionHistory).toHaveBeenCalledWith("book", "quiz-generation", "book", true, true)
 
@@ -102,7 +103,7 @@ describe("quiz history recovery", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^v\s*2\s*Invalidated/ }))
     expect(await screen.findByRole("button", { name: /^v\s*2\s*Invalidated$/ })).toBeTruthy()
     expect(screen.queryByDisplayValue("Retained question")).toBeNull()
-    expect(api.restoreVersion).toHaveBeenLastCalledWith("book", "quiz-generation", "book", 2)
+    expect(api.restoreVersion).toHaveBeenLastCalledWith("book", "quiz-generation", "book", 2, 1)
   })
 
   it("keeps recovery available after a failed restore", async () => {
@@ -122,4 +123,112 @@ describe("quiz history recovery", () => {
     expect(screen.queryByRole("button", { name: /^v\s*\d/ })).toBeNull()
     expect(api.getVersionHistory).not.toHaveBeenCalled()
   })
+})
+
+describe("sidebar attention", () => {
+  it("refreshes Language and Speech attention after a quiz is deleted", async () => {
+    response = { quizzes: output, version: 1, historyVersion: 1 }
+    vi.mocked(api.updateQuizzes).mockResolvedValue({} as never)
+    renderView()
+    fireEvent.click(await screen.findByRole("button", { name: "Delete this quiz" }))
+    const refresh = vi.spyOn(client, "invalidateQueries")
+    fireEvent.click(await screen.findByRole("button", { name: "Delete quiz" }))
+    await waitFor(() => expect(api.updateQuizzes).toHaveBeenCalled())
+    await waitFor(() => expect(refresh).toHaveBeenCalledWith({ queryKey: ["books", "book", "outputs"] }))
+  })
+})
+
+it("keeps a failed quiz draft and unlocks its retry without accepting overlapping edits", async () => {
+  response = {quizzes: output, version: 1, historyVersion: 1}
+  let fail!: () => void
+  vi.mocked(api.updateQuizzes).mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = () => reject(new Error("Quiz save failed")) })).mockResolvedValue({} as never)
+  renderView()
+  fireEvent.change(await screen.findByDisplayValue("Retained question"), {target: {value: "Submitted question"}})
+  let saved!: Promise<void>
+  await act(async () => { saved = actions.stay(); void saved?.catch(() => {}) })
+  const input = screen.getByDisplayValue("Submitted question") as HTMLTextAreaElement
+  expect(input.matches(":disabled")).toBe(true)
+  fireEvent.change(input, {target: {value: "Must not enter while saving"}})
+  expect(input.value).toBe("Submitted question")
+  await act(async () => { fail(); await expect(saved).rejects.toThrow("Quiz save failed") })
+  expect(screen.getByDisplayValue("Submitted question")).toBeTruthy()
+  expect(screen.getByRole("alert").textContent).toContain("Quiz save failed")
+  await act(async () => { await actions.stay() })
+  expect(api.updateQuizzes).toHaveBeenLastCalledWith("book", expect.objectContaining({quizzes: [expect.objectContaining({question: "Submitted question"})]}))
+})
+
+
+it("preserves a quiz draft through a background version change and failed restore", async () => {
+  response = { quizzes: output, version: 2, historyVersion: 2 }
+  let fail!: () => void
+  vi.mocked(api.restoreVersion).mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = () => reject(new Error("Restore failed")) }))
+  renderView()
+  fireEvent.change(await screen.findByDisplayValue("Retained question"), {target: {value: "Manual question"}})
+  fireEvent.click(screen.getByRole("button", {name: /^v\s*2$/}))
+  fireEvent.click(await screen.findByRole("button", {name: /^v\s*1/}))
+  expect((screen.getByDisplayValue("Manual question") as HTMLTextAreaElement).matches(":disabled")).toBe(true)
+  await act(async () => {
+    response = {quizzes: output, version: 3, historyVersion: 3}
+    await client.invalidateQueries({queryKey: ["books", "book", "quizzes"]})
+  })
+  expect(screen.getByDisplayValue("Manual question")).toBeTruthy()
+  await act(async () => fail())
+  expect(screen.getByDisplayValue("Manual question")).toBeTruthy()
+  expect((screen.getByDisplayValue("Manual question") as HTMLTextAreaElement).matches(":disabled")).toBe(false)
+})
+
+it("unlocks a failed quiz deletion for retry while retaining drafts and blocking restore during deletion", async () => {
+  response = { quizzes: output, version: 2, historyVersion: 2 }
+  let fail!: () => void
+  vi.mocked(api.updateQuizzes).mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = () => reject(new Error("Delete failed")) })).mockResolvedValue({} as never)
+  renderView()
+  fireEvent.change(await screen.findByDisplayValue("Retained question"), {target: {value: "Manual question before delete"}})
+  fireEvent.click(screen.getByRole("button", {name: "Delete this quiz"}))
+  fireEvent.click(await screen.findByRole("button", {name: "Delete quiz"}))
+  expect(screen.queryByRole("button", {name: /^v\s*2$/})).toBeNull()
+  expect((screen.getByDisplayValue("Manual question before delete") as HTMLTextAreaElement).matches(":disabled")).toBe(true)
+  await act(async () => { await expect(actions.stay()).rejects.toThrow("Please wait for the current operation to finish") })
+  await act(async () => fail())
+  expect(screen.getByDisplayValue("Manual question before delete")).toBeTruthy()
+  expect(screen.getByRole("alert").textContent).toContain("Delete failed")
+  fireEvent.click(screen.getByRole("button", {name: "Delete quiz"}))
+  await waitFor(() => expect(api.updateQuizzes).toHaveBeenCalledTimes(2))
+  expect(api.updateQuizzes).toHaveBeenLastCalledWith("book", expect.objectContaining({quizzes: []}))
+})
+
+it("locks the editor until restore and refetch finish, then permits a new draft", async () => {
+  response = { quizzes: output, version: 2, historyVersion: 2 }
+  let complete!: () => void
+  const barrier = new Promise<void>((resolve) => { complete = resolve })
+  vi.mocked(api.restoreVersion).mockImplementationOnce(async () => {
+    await barrier
+    response = { quizzes: { ...output, quizzes: [{ ...output.quizzes[0], question: "Old restored question" }] }, version: 1, historyVersion: 1 }
+    return { node: "quiz-generation", itemId: "book", version: 1 }
+  })
+  renderView()
+  await screen.findByDisplayValue("Retained question")
+  fireEvent.click(await screen.findByRole("button", { name: /^v\s*2$/ }))
+  fireEvent.click(await screen.findByRole("button", { name: /^v\s*1/ }))
+  await waitFor(() => expect(api.restoreVersion).toHaveBeenCalled())
+  expect(screen.getByDisplayValue("Retained question").matches(":disabled")).toBe(true)
+  complete()
+  await waitFor(() => expect(toast.success).toHaveBeenCalled())
+  const input = screen.getByDisplayValue("Old restored question")
+  expect(input.matches(":disabled")).toBe(false)
+  fireEvent.change(input, { target: { value: "New draft after restore" } })
+  expect(screen.getByDisplayValue("New draft after restore")).toBeTruthy()
+})
+
+it("retains a draft typed after opening history when the selected restore fails", async () => {
+  vi.mocked(api.restoreVersion).mockRejectedValueOnce(new Error("Restore failed"))
+  response = { quizzes: output, version: 2, historyVersion: 2 }
+  renderView()
+  const input = await screen.findByDisplayValue("Retained question")
+  fireEvent.click(await screen.findByRole("button", { name: /^v\s*2$/ }))
+  await screen.findByRole("button", { name: /^v\s*1/ })
+  fireEvent.change(input, { target: { value: "Keep my draft" } })
+  fireEvent.click(screen.getByRole("button", { name: /^v\s*1/ }))
+  await waitFor(() => expect(toast.error).toHaveBeenCalled())
+  expect(api.restoreVersion).toHaveBeenCalledWith("book", "quiz-generation", "book", 1, 2)
+  expect(screen.getByDisplayValue("Keep my draft")).toBeTruthy()
 })

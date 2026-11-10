@@ -1299,7 +1299,7 @@ export function ClassicActivityPanel({
             </Tooltip>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            {t`Changing the type regenerates the activity when you save.`}
+            {t`Save the new type, then choose Regenerate to update the activity.`}
           </p>
         </div>
       )}

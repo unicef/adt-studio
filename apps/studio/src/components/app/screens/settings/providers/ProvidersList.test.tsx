@@ -65,6 +65,7 @@ const OLLAMA = descriptor("ollama", {
 
 let providers: ProviderDescriptor[] = []
 let health: ProviderHealthResponse = { providerId: "openai", ok: true, code: "ok", modelCount: 3 }
+let location: { hash: string; search: { auth?: "api-key" } } = { hash: "", search: {} }
 
 vi.mock("@lingui/core/macro", () => ({
   msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({
@@ -82,7 +83,8 @@ vi.mock("@lingui/react/macro", () => ({
 }))
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
-  useLocation: () => ({ hash: "" }),
+  useLocation: () => ({ hash: location.hash }),
+  useSearch: () => location.search,
 }))
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
@@ -107,8 +109,12 @@ vi.mock("@/hooks/use-cli-login", () => ({ useCliLogin: () => cliLogin }))
 vi.mock("@/hooks/use-provider-credentials", () => ({
   useProviderCredentials: () => ({
     providers,
-    credentials: {},
-    credentialValue: () => "",
+    credentials,
+    credentialValue: (providerId: string, fieldKey: string) =>
+      credentials[providerId]?.[fieldKey] ?? "",
+    ownCredentials,
+    ownCredentialValue: (providerId: string, fieldKey: string) =>
+      ownCredentials[providerId]?.[fieldKey] ?? "",
     setCredential,
     isLoading: false,
     error: null,
@@ -116,6 +122,9 @@ vi.mock("@/hooks/use-provider-credentials", () => ({
 }))
 
 const setCredential = vi.fn()
+/** Effective values (shared fallbacks applied) and own stored values, per test. */
+let credentials: Record<string, Record<string, string>> = {}
+let ownCredentials: Record<string, Record<string, string>> = {}
 
 const { ProvidersList } = await import("./ProvidersList")
 
@@ -136,7 +145,10 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  location = { hash: "", search: {} }
   setCredential.mockClear()
+  credentials = {}
+  ownCredentials = {}
   cliLogin.status = null
   cliLogin.start.mockClear()
   cliLogin.logout.mockClear()
@@ -221,6 +233,34 @@ describe("ProvidersList — CLI sign-in", () => {
   })
 })
 
+describe("ProvidersList — connect provider link", () => {
+  beforeEach(() => {
+    providers = [descriptor("openai", { displayName: "OpenAI" }), CODEX]
+    health = { providerId: "codex", ok: false, code: "not-logged-in" }
+  })
+
+  it("opens the linked card on its API-key field when asked for api-key auth", async () => {
+    location = { hash: "settings-provider-openai", search: { auth: "api-key" } }
+    render(<ProvidersList />)
+
+    const toggle = document.querySelector('[aria-controls="prov-panel-openai"][aria-expanded]')
+    expect(toggle?.getAttribute("aria-expanded")).toBe("true")
+    const panel = document.getElementById("prov-panel-openai")!
+    const input = within(panel).getByLabelText("API key")
+    expect(within(panel).queryByRole("button", { name: /Sign in with ChatGPT/ })).toBeNull()
+    await waitFor(() => expect(document.activeElement).toBe(input))
+  })
+
+  it("keeps the CLI default for a plain anchor link", () => {
+    location = { hash: "settings-provider-openai", search: {} }
+    render(<ProvidersList />)
+
+    const panel = document.getElementById("prov-panel-openai")!
+    expect(within(panel).getByRole("button", { name: /Sign in with ChatGPT/ })).toBeTruthy()
+    expect(within(panel).queryByLabelText("API key")).toBeNull()
+  })
+})
+
 describe("ProvidersList — live manifests", () => {
   it("marks a card whose backend the server does not register", () => {
     render(<ProvidersList />)
@@ -266,5 +306,42 @@ describe("ProvidersList — live manifests", () => {
     await waitFor(() =>
       expect(within(panel).getByText("The provider could not be reached.")).toBeTruthy(),
     )
+  })
+
+  it("tells a shared-key card whose key it is using and who else reads the source", async () => {
+    const google = descriptor("google", { displayName: "Google" })
+    const gemini = descriptor("gemini", {
+      displayName: "Gemini Speech",
+      modalities: ["tts"],
+      capabilities: {
+        tts: { formats: ["wav"], voices: [], languages: [], instructions: true, rateLimitMode: "fixed" },
+      },
+      credentialFields: [
+        {
+          ...descriptor("gemini").manifest.credentialFields[0],
+          sharedWith: { providerId: "google", fieldKey: "apiKey" },
+        },
+      ],
+    })
+    providers = [google, gemini]
+    ownCredentials = { google: { apiKey: "AIza-google" } }
+    credentials = { google: { apiKey: "AIza-google" }, gemini: { apiKey: "AIza-google" } }
+    render(<ProvidersList />)
+
+    const geminiPanel = panelFor("gemini")
+    await waitFor(() =>
+      expect(
+        within(geminiPanel).getByText(
+          "Using the Google API key. Enter a key here only to use a different one.",
+        ),
+      ).toBeTruthy(),
+    )
+    // Nothing is stored for Gemini Speech itself, so there is nothing to remove.
+    expect(within(geminiPanel).queryByRole("button", { name: "Remove" })).toBeNull()
+
+    const googlePanel = panelFor("google")
+    expect(
+      within(googlePanel).getByText("Also used by Gemini Speech unless that provider has its own key."),
+    ).toBeTruthy()
   })
 })

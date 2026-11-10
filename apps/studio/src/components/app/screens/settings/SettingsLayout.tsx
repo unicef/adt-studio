@@ -14,7 +14,7 @@ export function SettingsLayout() {
     <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
       <SettingsSidebar />
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-        <TopBar className="absolute inset-x-0 top-0 z-[3] drag-region" />
+        <TopBar className="shrink-0 drag-region" />
         <SettingsContent fullWidth={fullWidth} />
       </div>
     </div>

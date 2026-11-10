@@ -30,6 +30,7 @@ import {
 } from "@/shared/state/config.atoms"
 import {
   currentLanguageAtom,
+  audioLanguageAtom,
   imageFilesAtom,
   translationsAtom,
 } from "@/features/language/state/language.atoms"
@@ -49,6 +50,7 @@ import { glossaryDataAtom } from "@/features/glossary/state/glossary.atoms"
 import {
   currentPageNumberAtom,
   currentSectionIdAtom,
+  pageEpochAtom,
   pagesAtom,
   tocAtom,
 } from "@/features/navigation/state/nav.atoms"
@@ -156,6 +158,79 @@ function readPersistedLanguage(): string | null {
   }
 }
 
+let activityDisposers: Array<() => void> = []
+
+/**
+ * Release the previous page's activity initializers.
+ *
+ * Most initializers only bind to nodes inside `#content`, which a swap throws
+ * away — but the word-bank, quiz, and stepper types also attach `keydown` /
+ * drag handlers to `document`, which outlives the swap. Without this the
+ * listeners accumulate one set per page turn and the discarded ones keep
+ * responding to keystrokes on behalf of a page the reader has left.
+ *
+ * Exported so a page swap can run it *before* replacing the DOM. A disposer
+ * that restores state it captured on mount — the stepper puts back the body
+ * background it found — would otherwise run after the incoming page is already
+ * in place and overwrite it with the departing page's value.
+ */
+export function disposeActivityInitializers(): void {
+  for (const dispose of activityDisposers) {
+    try {
+      dispose()
+    } catch (err) {
+      console.warn("Activity teardown error", err)
+    }
+  }
+  activityDisposers = []
+}
+
+/**
+ * Bind the runtime to whatever page content is currently in the DOM: read the
+ * per-page metas into atoms, apply translations / glossary highlights, reveal
+ * `#content`, then hand each activity type its initializer.
+ *
+ * Called once from `bootRuntime` and again after every in-place page swap
+ * (see `features/navigation/lib/page-swap.ts`), so everything here must be safe
+ * to re-run against a fresh `#content` subtree.
+ */
+export function initializePageContent(): void {
+  const store = getDefaultStore()
+  store.set(currentSectionIdAtom, readCurrentSectionId())
+  store.set(currentPageNumberAtom, readCurrentPageNumber())
+  // Page-type signal (fixed for this page) + initial mode toggle.
+  const isActivity = readIsActivityPage()
+  store.set(isActivityPageAtom, isActivity)
+  store.set(activityModeAtom, isActivity)
+
+  applyDOMTranslations()
+
+  showMainContent()
+  processGlossaryLocateHint()
+
+  disposeActivityInitializers()
+  // Stepper first — sections it owns carry data-activity-variant="stepper"
+  // and are excluded from the classic initializers' selectors.
+  activityDisposers = [
+    initializeStepperActivity(),
+    initializeQuizActivity(),
+    initializeMultiSelectActivity(),
+    initializeUnderlineTextActivity(),
+    initializeFillInTheBlankActivity(),
+    initializeOpenEndedActivity(),
+    initializeTrueFalseActivity(),
+    initializeSortingActivity(),
+    initializeOrderingActivity(),
+    initializeMatchingActivity(),
+    initializeCustomActivity(),
+    initializeWordBankActivity(),
+  ].filter((dispose): dispose is () => void => dispose !== null)
+
+  // Last: consumers that cache nodes out of #content (read-aloud) rebuild off
+  // this, and must not do so until the new DOM is fully wired.
+  store.set(pageEpochAtom, store.get(pageEpochAtom) + 1)
+}
+
 export async function bootRuntime(): Promise<void> {
   installShowContentFallback()
   addFavicons()
@@ -171,6 +246,7 @@ export async function bootRuntime(): Promise<void> {
     const persisted = readPersistedLanguage()
     const language = pickLanguage(config, persisted, htmlLang)
     store.set(currentLanguageAtom, language)
+    store.set(audioLanguageAtom, null)
     // WCAG 3.1.1: keep `<html lang>` aligned with the resolved language so
     // screen readers / hyphenation / spellcheck use the right pronunciation.
     document.documentElement.lang = language
@@ -184,32 +260,9 @@ export async function bootRuntime(): Promise<void> {
     ])
     store.set(pagesAtom, pages)
     store.set(tocAtom, toc)
-    store.set(currentSectionIdAtom, readCurrentSectionId())
-    store.set(currentPageNumberAtom, readCurrentPageNumber())
-    // Page-type signal (fixed for the document) + initial mode toggle.
-    const isActivity = readIsActivityPage()
-    store.set(isActivityPageAtom, isActivity)
-    store.set(activityModeAtom, isActivity)
-
-    applyDOMTranslations()
-
     initAnalytics(config.analytics)
-    showMainContent()
-    processGlossaryLocateHint()
-    // Stepper first — sections it owns carry data-activity-variant="stepper"
-    // and are excluded from the classic initializers' selectors.
-    initializeStepperActivity()
-    initializeQuizActivity()
-    initializeMultiSelectActivity()
-    initializeUnderlineTextActivity()
-    initializeFillInTheBlankActivity()
-    initializeOpenEndedActivity()
-    initializeTrueFalseActivity()
-    initializeSortingActivity()
-    initializeOrderingActivity()
-    initializeMatchingActivity()
-    initializeCustomActivity()
-    initializeWordBankActivity()
+    initializePageContent()
+    store.set(audioLanguageAtom, language)
   } finally {
     // Always clear the dock skeleton — even on partial-load failures the dock
     // should reveal whatever data DID make it into atoms.
@@ -292,25 +345,36 @@ export function subscribeLanguageChanges(): () => void {
   // currentLanguageAtom is sync (atomWithStorage with getOnInit), but the
   // Jotai type still includes Promise<T> in its read signature; cast away.
   let lastLanguage = store.get(currentLanguageAtom) as string
+  let revision = 0
+  let disposed = false
 
   const unsubLanguage = store.sub(currentLanguageAtom, () => {
     const next = store.get(currentLanguageAtom) as string
     if (next === lastLanguage) return
     lastLanguage = next
+    const requestRevision = ++revision
+    const isCurrent = () => !disposed && revision === requestRevision
+    store.set(audioLanguageAtom, null)
     // WCAG 3.1.2: re-tag the document so assistive tech adjusts to the
     // new language alongside the translated content.
     if (typeof document !== "undefined") document.documentElement.lang = next
     const config = store.get(appConfigAtom)
     void Promise.all([
-      loadTranslations(next, config.bundleVersion),
-      loadGlossary(next, config.bundleVersion),
-      loadTimecodes(next, config.bundleVersion),
-    ]).then(() => applyDOMTranslations())
+      loadTranslations(next, config.bundleVersion, isCurrent),
+      loadGlossary(next, config.bundleVersion, isCurrent),
+      loadTimecodes(next, config.bundleVersion, isCurrent),
+    ]).then(() => {
+      if (isCurrent()) {
+        applyDOMTranslations()
+        store.set(audioLanguageAtom, next)
+      }
+    })
   })
 
   const unsubEasyRead = store.sub(easyReadModeAtom, () => applyDOMTranslations())
 
   return () => {
+    disposed = true
     unsubLanguage()
     unsubEasyRead()
   }

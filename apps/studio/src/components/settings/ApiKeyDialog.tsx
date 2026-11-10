@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { Check, ExternalLink, Eye, EyeOff } from "lucide-react"
-import type { CredentialFieldManifest, ProviderDescriptor } from "@adt/types"
+import {
+  applySharedCredentialFallbacks,
+  type CredentialFieldManifest,
+  type ProviderDescriptor,
+} from "@adt/types"
 import {
   Dialog,
   DialogContent,
@@ -74,7 +78,7 @@ export function ApiKeyDialog({
   const { t } = useLingui()
   const {
     providers,
-    credentials,
+    ownCredentials,
     setCredential,
     isLoading,
     error,
@@ -86,9 +90,9 @@ export function ApiKeyDialog({
 
   useEffect(() => {
     if (!open) return
-    setDrafts(structuredClone(credentials))
+    setDrafts(structuredClone(ownCredentials))
     setVisibleSecrets({})
-  }, [open, credentials])
+  }, [open, ownCredentials])
 
   useEffect(() => {
     if (providers.length === 0) return
@@ -135,7 +139,14 @@ export function ApiKeyDialog({
     return errors
   }, [drafts, providers, t])
 
-  const hasChanges = !valuesEqual(providers, drafts, credentials)
+  // Shared fallbacks (Gemini Speech ← Google) count for the availability tick,
+  // but only a provider's own values are edited and saved here.
+  const effectiveDrafts = useMemo(
+    () => applySharedCredentialFallbacks(providers.map(({ manifest }) => manifest), drafts),
+    [providers, drafts],
+  )
+
+  const hasChanges = !valuesEqual(providers, drafts, ownCredentials)
   const canSave = hasChanges && fieldErrors.size === 0
 
   const updateDraft = (providerId: string, fieldKey: string, value: string) => {
@@ -268,7 +279,7 @@ export function ApiKeyDialog({
         <Tabs value={activeProvider} onValueChange={setActiveProvider}>
           <TabsList className="h-auto w-full justify-start overflow-x-auto">
             {providers.map((provider) => {
-              const available = isProviderAvailable(provider, drafts)
+              const available = isProviderAvailable(provider, effectiveDrafts)
               return (
                 <TabsTrigger key={provider.manifest.id} value={provider.manifest.id}>
                   {provider.manifest.displayName}

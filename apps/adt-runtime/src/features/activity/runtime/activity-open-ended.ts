@@ -13,6 +13,7 @@
  * non-gibberish, non-profane text counts as accepted.
  */
 import { getDefaultStore } from "jotai"
+import { getTextInputs as getActivityInputs, type TextInput } from "../lib/text-inputs"
 import { translationsAtom } from "../../language/state/language.atoms"
 import {
   pagesAtom,
@@ -36,13 +37,13 @@ import { showActivityProgressToast } from "../lib/progress-toast"
 import { announceToScreenReader } from "../../../shared/lib/aria-live"
 import { containsProfanity } from "../lib/profanity-detector"
 import { getSharedTextValidator } from "../lib/text-validator"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 // :not([data-activity-variant="stepper"]) — sections converted to the
 // step-by-step presentation are rendered by activity-stepper.tsx instead.
 const OPEN_ENDED_SELECTOR =
   'section[data-section-type="activity_open_ended_answer"]:not([data-activity-variant="stepper"])'
 
-type TextInput = HTMLInputElement | HTMLTextAreaElement
 type InputVerdict = "empty" | "clean" | "gibberish" | "profanity"
 
 function tr(key: string, fallback: string): string {
@@ -74,7 +75,7 @@ function saveInputState(input: TextInput): void {
   if (key) localStorage.setItem(key, input.value)
 }
 
-function loadInputState(inputs: NodeListOf<TextInput>): void {
+function loadInputState(inputs: readonly TextInput[]): void {
   inputs.forEach((input) => {
     const key = persistenceKey(input)
     if (!key) return
@@ -83,11 +84,6 @@ function loadInputState(inputs: NodeListOf<TextInput>): void {
   })
 }
 
-function getActivityInputs(section: HTMLElement): NodeListOf<TextInput> {
-  return section.querySelectorAll<TextInput>(
-    'input[type="text"]:not(#filter-input), textarea:not(#filter-input)',
-  )
-}
 
 async function classifyInput(input: TextInput): Promise<InputVerdict> {
   const value = input.value.trim()
@@ -116,7 +112,10 @@ interface FullValidationResult {
   firstFlagged: TextInput | null
 }
 
-async function validateAll(section: HTMLElement): Promise<FullValidationResult> {
+async function validateAll(
+  section: HTMLElement,
+  isCurrent: () => boolean,
+): Promise<FullValidationResult | null> {
   clearSectionFeedback(section)
 
   let total = 0
@@ -130,6 +129,7 @@ async function validateAll(section: HTMLElement): Promise<FullValidationResult> 
   for (const input of inputs) {
     total++
     const verdict = await classifyInput(input)
+    if (!isCurrent()) return null
     if (verdict === "empty") {
       emptyCount++
       if (!firstEmpty) firstEmpty = input
@@ -185,6 +185,8 @@ export function initializeOpenEndedActivity(): (() => void) | null {
   // interleave DOM feedback and play `success`/`error` sounds twice. Block
   // the second click until the first finishes.
   let validationInFlight = false
+  let disposed = false
+  let inputRevision = 0
 
   function attachInputListeners(): void {
     listenerCleanups.forEach((off) => off())
@@ -192,6 +194,7 @@ export function initializeOpenEndedActivity(): (() => void) | null {
 
     getActivityInputs(section).forEach((input) => {
       const onInput = () => {
+        inputRevision++
         // Clear any stale validation feedback so the user isn't staring at a
         // red border while they're editing. Re-validation happens on submit.
         clearInputValidationFeedback(input)
@@ -228,7 +231,10 @@ export function initializeOpenEndedActivity(): (() => void) | null {
   }
 
   async function runValidation(): Promise<void> {
-    const result = await validateAll(section)
+    const revision = inputRevision
+    const isCurrent = () => !disposed && revision === inputRevision
+    const result = await validateAll(section, isCurrent)
+    if (!result || !isCurrent()) return
     const { total, cleanCount, emptyCount, flaggedCount, firstEmpty, firstFlagged } =
       result
 
@@ -278,10 +284,11 @@ export function initializeOpenEndedActivity(): (() => void) | null {
   }
 
   function handleValidate(): void {
+    if (disposed) return
     const state = store.get(submitStateAtom)
     if (state === "next") {
       const href = findNextPageHref()
-      if (href) window.location.href = href
+      if (href) navigateToPage(href)
       return
     }
     if (validationInFlight) return
@@ -292,8 +299,9 @@ export function initializeOpenEndedActivity(): (() => void) | null {
   }
 
   function handleSkip(): void {
+    if (disposed) return
     const href = findNextPageHref()
-    if (href) window.location.href = href
+    if (href) navigateToPage(href)
   }
 
   attachInputListeners()
@@ -309,6 +317,7 @@ export function initializeOpenEndedActivity(): (() => void) | null {
   })
 
   return () => {
+    disposed = true
     listenerCleanups.forEach((off) => off())
     unsubTranslations()
     store.set(validateHandlerAtom, () => null)
