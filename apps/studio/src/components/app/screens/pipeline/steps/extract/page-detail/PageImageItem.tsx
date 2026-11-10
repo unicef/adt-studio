@@ -4,6 +4,7 @@ import { Crop, EyeOff, ImageOff, Loader2, RotateCcw, Scissors } from "lucide-rea
 import { cn } from "@/lib/utils"
 import { extractedImageUrl } from "../useExtractImages"
 import { humanReason } from "./humanReason"
+import { REASON_ICON } from "./reasonIcon"
 import { imageDetailLine, imageDetailTooltip, imagePositionText } from "./imageDetails"
 import type { PageImageEntry } from "./usePageDetailData"
 
@@ -52,6 +53,10 @@ export const PageImageItem = memo(function PageImageItem({
   const [failed, setFailed] = useState(false)
   const reason = humanReason(entry.reason)
   const reasonText = typeof reason.label === "string" ? reason.label : i18n._(reason.label)
+  const explain = reason.explain ? i18n._(reason.explain) : null
+  const pageElements = reason.kind === "page-elements"
+  const guardKept = !entry.isPruned && reason.kind === "guard-kept"
+  const ReasonIcon = REASON_ICON[reason.kind]
   const size = entry.width && entry.height ? `${entry.width} × ${entry.height}` : null
   const position = imagePositionText(i18n, entry)
   const editActions = (
@@ -95,12 +100,17 @@ export const PageImageItem = memo(function PageImageItem({
       <span className="flex min-w-[150px] flex-1 flex-col">
         {entry.isPruned ? (
           <>
-            <span className="line-clamp-2 text-[12px] leading-snug font-medium text-foreground" title={reason.raw ?? undefined}>
-              {reasonText}
+            <span
+              className={cn("flex items-center gap-1 text-[12px] leading-snug font-medium", pageElements ? "text-[var(--chrome-hex)]" : "text-foreground")}
+              title={reason.raw ?? undefined}
+            >
+              <ReasonIcon className="size-3 shrink-0" aria-hidden />
+              <span className="line-clamp-2">{reasonText}</span>
             </span>
+            {explain && <span className="text-[11px] leading-snug text-muted-foreground">{explain}</span>}
             {reason.detail && (
-              <span className="line-clamp-2 text-[11px] leading-snug text-muted-foreground" title={reason.detail}>
-                {reason.detail}
+              <span className="line-clamp-2 text-[11px] leading-snug text-muted-foreground/80 italic" title={reason.detail}>
+                <Trans>AI: {reason.detail}</Trans>
               </span>
             )}
           </>
@@ -109,6 +119,12 @@ export const PageImageItem = memo(function PageImageItem({
             <span className="text-[12px] font-medium text-foreground">
               <Trans>Image {entry.number}</Trans>
             </span>
+            {guardKept && (
+              <span className="flex items-center gap-1 text-[11px] leading-snug text-muted-foreground" title={explain ?? undefined}>
+                <ReasonIcon className="size-3 shrink-0" aria-hidden />
+                {reasonText}
+              </span>
+            )}
           </>
         )}
         <span className="truncate font-mono text-[10.5px] text-muted-foreground/90">{imageDetailLine(entry)}</span>
@@ -123,7 +139,7 @@ export const PageImageItem = memo(function PageImageItem({
           {editActions}
           <button type="button" onClick={() => onTogglePrune(entry.imageId)} className={cn(BRING_BACK, "ml-1")}>
             <RotateCcw className="size-3" />
-            <Trans>Bring back</Trans>
+            {pageElements ? <Trans>Keep as image</Trans> : <Trans>Bring back</Trans>}
           </button>
         </span>
       ) : (

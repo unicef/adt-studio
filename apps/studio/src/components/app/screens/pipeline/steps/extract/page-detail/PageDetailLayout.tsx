@@ -1,75 +1,77 @@
-import { useCallback, useRef, useState } from "react"
 import type { PageDetail } from "@/api/client"
-import { PageDetailSheet } from "./PageDetailSheet"
-import { PagePreview } from "./PagePreview"
+import { InspectorLayout } from "@/components/app/screens/pipeline/steps/shared/page-inspector/layout"
+import { PageDetailSheet } from "@/components/app/screens/pipeline/steps/shared/page-inspector/PageDetailSheet"
+import { PagePreview } from "@/components/app/screens/pipeline/steps/shared/page-inspector/PagePreview"
 import { FontsSection } from "./sections/FontsSection"
 import { FullSection } from "./sections/FullSection"
 import { ImagesSection } from "./sections/ImagesSection"
 import { SectionTitle } from "./sections/sectionTitle"
 import { TextSection } from "./sections/TextSection"
-import type { SectionKind, SectionMore } from "./sections/types"
-import { useBoxSelection } from "./useBoxSelection"
+import type { SectionKind } from "./sections/types"
+import { useInspectorSheet } from "@/components/app/screens/pipeline/steps/shared/page-inspector/useInspectorSheet"
+import { useBoxSelection } from "@/components/app/screens/pipeline/steps/shared/page-inspector/useBoxSelection"
 import type { PageDetailData } from "./usePageDetailData"
+import { useLeftOutLayer } from "../prune-review/marks/useLeftOutLayer"
+import { useLeftOutPage } from "../prune-review/LeftOutContext"
+import { PanelTabs, usePanelTab } from "./PanelTabs"
+
+const NO_BOXES: PageDetailData["entries"] = []
 
 export function PageDetailLayout({ label, pageId, page, data }: { label: string; pageId: string; page: PageDetail; data: PageDetailData }) {
   const selection = useBoxSelection()
-  const [openKind, setOpenKind] = useState<SectionKind | null>(null)
-  const [shownKind, setShownKind] = useState<SectionKind>("images")
-  const triggers = useRef<Record<SectionKind, HTMLButtonElement | null>>({ images: null, text: null, fonts: null })
+  const sheet = useInspectorSheet<SectionKind>("images")
+  const { more } = sheet
+  const leftOutPage = useLeftOutPage()
+  const reviewTab = leftOutPage?.reviewTab ?? null
+  const panelTab = usePanelTab(reviewTab, pageId)
+  const reviewing = panelTab.tab === "review"
+  const leftOut = useLeftOutLayer({ pageId, data, selection, reviewing })
 
-  const close = useCallback(() => {
-    if (openKind) {
-      const trigger = triggers.current[openKind]
-      requestAnimationFrame(() => trigger?.focus({ preventScroll: true }))
-    }
-    setOpenKind(null)
-  }, [openKind])
-
-  const more = (kind: SectionKind): SectionMore => ({
-    open: openKind === kind,
-    buttonRef: (element) => {
-      triggers.current[kind] = element
-    },
-    onMore: () => {
-      setShownKind(kind)
-      setOpenKind(kind)
-    },
-  })
+  const details = (
+    <>
+      <ImagesSection label={label} pageId={pageId} data={data} selection={selection} more={more("images")} />
+      <TextSection page={page} metadataRunning={data.metadataRunning} more={more("text")} />
+      <FontsSection page={page} reflowableFont={data.reflowableFont} more={more("fonts")} />
+    </>
+  )
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,26%)]">
-      <div className="relative min-h-[420px] min-w-0 lg:min-h-0">
-        <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl border bg-card p-5 shadow-sm [container-type:size]">
+    <InspectorLayout
+      page={
+        <>
           <PagePreview
             src={data.pageSrc}
             lowSrc={data.lowSrc}
             pageNumber={page.pageNumber}
             size={data.pageSize}
-            entries={data.entries}
-            hoverId={selection.hoverId}
-            selectedId={selection.selectedId}
+            entries={reviewing ? NO_BOXES : data.entries}
+            hoverId={reviewing ? null : selection.hoverId}
+            selectedId={reviewing ? null : selection.selectedId}
             onHover={selection.hover}
             onSelect={selection.select}
+            overlay={leftOut.overlay}
           />
-        </div>
+        </>
+      }
+      sheet={
         <PageDetailSheet
-          open={openKind != null}
-          contentKey={shownKind}
-          title={<SectionTitle kind={shownKind} data={data} />}
+          open={sheet.open}
+          contentKey={sheet.shownKind}
+          title={<SectionTitle kind={sheet.shownKind} data={data} />}
           pageSrc={data.pageSrc}
           pageNumber={page.pageNumber}
-          onClose={close}
+          onClose={sheet.close}
         >
-          <FullSection kind={shownKind} label={label} page={page} data={data} selection={selection} />
+          <FullSection kind={sheet.shownKind} label={label} page={page} data={data} selection={selection} />
         </PageDetailSheet>
-      </div>
-      <aside className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain p-4 [scrollbar-width:thin]">
-          <ImagesSection label={label} pageId={pageId} data={data} selection={selection} more={more("images")} />
-          <TextSection page={page} metadataRunning={data.metadataRunning} more={more("text")} />
-          <FontsSection page={page} reflowableFont={data.reflowableFont} more={more("fonts")} />
-        </div>
-      </aside>
-    </div>
+      }
+      panel={
+        reviewTab && leftOutPage ? (
+          <PanelTabs pageId={pageId} hex={leftOutPage.hex} review={reviewTab} details={details} tab={panelTab.tab ?? "details"} onChoose={panelTab.choose} />
+        ) : (
+          details
+        )
+      }
+    />
   )
 }

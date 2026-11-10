@@ -11,11 +11,14 @@ export function useOpenTarget(stage: string, stageStates: StageStates | null) {
     (target: TestingTarget) => {
       if (target.kind === "page" || target.kind === "grid") {
         clearStageState()
-        const book = target.kind === "page" ? (target.book ?? TEST_BOOKS.done) : TEST_BOOKS.done
+        const book = target.book ?? TEST_BOOKS.done
+        const withState = target.kind === "page" ? stageStates?.byPage[stage]?.find((candidate) => candidate.id === target.stateId) : undefined
         void navigate({
           to: "/pipeline/$label/$step",
           params: { label: book, step: stage },
           search: (prev) => ({ ...prev, page: target.kind === "page" ? target.pageId : undefined }),
+        }).then(() => {
+          if (withState) applyStageState(stage, withState)
         })
         return
       }

@@ -4,10 +4,12 @@ import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import { useQueryClient } from "@tanstack/react-query"
 import { STAGE_BY_NAME, type StageName } from "@adt/types"
-import { api, setRequestInterceptor, type AccessibilityAssessmentResponse, type PageDetail, type TaskInfoResponse } from "@/api/client"
+import { api, setRequestInterceptor, type AccessibilityAssessmentResponse, type PageDetail, type PageSummaryItem, type TaskInfoResponse } from "@/api/client"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { LAB_ENABLED, getVariant } from "./variants"
 import { keptCount, mockPage, openFirstPage, openPageId, type PageMock } from "./pageMocks"
+import { keptImageIds, mockCaptionPage, mockCaptionPages, withCaptionsDone, type CaptionMock } from "./captionMocks"
+import { mockPrunePage, mockPruneSummary, rememberPrunePut, type PruneMock } from "./pruneMocks"
 
 export interface RunScenario {
   kind: "run"
@@ -21,6 +23,7 @@ export interface RunScenario {
   arrivingPages?: boolean
   pausedAt?: number
   pauseAtMs?: number
+  captionMock?: CaptionMock
 }
 
 export interface SlowLoadScenario {
@@ -81,8 +84,11 @@ export interface FaultScenario {
   warnedPages?: number
   spreadSuggestions?: number[]
   pageMock?: PageMock
+  pruneMock?: PruneMock
   slowPagesMs?: number
   failSpreads?: boolean
+  captionMock?: CaptionMock
+  noProviders?: boolean
   startedAt: number
   pausedAt?: number
   pauseAtMs?: number
@@ -103,8 +109,23 @@ export function startScenario(scenario: Scenario | null) {
   scenarioStore.set(scenario)
 }
 
+const held = new Set<() => void>()
+
+function holdFor(ms: number) {
+  return new Promise<void>((resolve) => {
+    const release = () => {
+      window.clearTimeout(timer)
+      held.delete(release)
+      resolve()
+    }
+    const timer = window.setTimeout(release, ms)
+    held.add(release)
+  })
+}
+
 export function stopScenario() {
   scenarioStore.set(null)
+  for (const release of [...held]) release()
 }
 
 export function getScenario(): Scenario | null {
@@ -357,14 +378,63 @@ export function isPageDetailKey(key: readonly unknown[], book: string): boolean 
   return key[0] === "books" && key[1] === book && key[2] === "pages" && typeof key[3] === "string" && key.length === 4
 }
 
-function faultIntercept(scenario: FaultScenario, path: string, method: string, passthrough: () => Promise<unknown>) {
+const keptCache = new Map<string, number>()
+
+async function keptCounts(book: string, pages: ReadonlyArray<{ pageId: string; imageCount: number }>): Promise<Map<string, number>> {
+  const counts = new Map<string, number>()
+  await Promise.all(
+    pages.map(async (page) => {
+      if (page.imageCount === 0) return
+      const key = `${book}/${page.pageId}`
+      if (!keptCache.has(key)) keptCache.set(key, keptImageIds(await api.getPage(book, page.pageId)).length)
+      counts.set(page.pageId, keptCache.get(key) ?? 0)
+    }),
+  )
+  return counts
+}
+
+function captionPagesMock(book: string, mock: CaptionMock, passthrough: () => Promise<unknown>) {
+  return (passthrough() as Promise<Parameters<typeof mockCaptionPages>[1]>).then(async (pages) =>
+    mockCaptionPages(book, pages, mock, mock.synthetic ? await keptCounts(book, pages) : undefined),
+  )
+}
+
+function pruneIntercept(scenario: FaultScenario, mock: PruneMock, path: string, method: string, body: unknown, passthrough: () => Promise<unknown>) {
   const book = scenario.book
+  const put = path.match(/^\/books\/[^/]+\/pages\/([^/?]+)\/image-filtering$/)
+  if (put && method === "PUT") {
+    rememberPrunePut(book, scenario.startedAt, put[1], typeof body === "string" ? JSON.parse(body) : null)
+    return Promise.resolve({ version: 0 })
+  }
+  if (method !== "GET") return null
+  if (path === `/books/${book}/pages`) {
+    return (passthrough() as Promise<PageSummaryItem[]>).then((pages) => mockPruneSummary(book, scenario.startedAt, pages, mock, (pageId) => api.getPage(book, pageId)))
+  }
+  if (/^\/books\/[^/]+\/pages\/[^/?]+$/.test(path)) {
+    return (passthrough() as Promise<PageDetail>).then((page) => mockPrunePage(book, scenario.startedAt, page, mock))
+  }
+  return null
+}
+
+function faultIntercept(scenario: FaultScenario, path: string, method: string, passthrough: () => Promise<unknown>, body?: unknown) {
+  const book = scenario.book
+  if (scenario.pruneMock && bookOf(path) === book) {
+    const mocked = pruneIntercept(scenario, scenario.pruneMock, path, method, body, passthrough)
+    if (mocked) return mocked
+  }
   if (scenario.slowPagesMs && method === "GET" && bookOf(path) === book && PAGE_DETAIL_PATH.test(path)) {
     return sleep(scenario.slowPagesMs).then(passthrough)
   }
   if (scenario.failSpreads && method !== "GET" && bookOf(path) === book) {
     if (path === `/books/${book}/spreads/apply`) return sleep(600).then(() => Promise.reject(new Error(i18n._(msg`Simulated: the spread merge failed`))))
     return Promise.resolve({})
+  }
+  if (scenario.captionMock && method === "GET" && bookOf(path) === book) {
+    const mock = scenario.captionMock
+    if (path === `/books/${book}/pages`) return captionPagesMock(book, mock, passthrough)
+    if (/^\/books\/[^/]+\/pages\/[^/?]+$/.test(path)) {
+      return (passthrough() as Promise<PageDetail>).then((page) => mockCaptionPage(book, page, mock))
+    }
   }
   if (scenario.pageMock && bookOf(path) === book) {
     const mocked = mockIntercept(scenario, scenario.pageMock, path, method, passthrough)
@@ -373,7 +443,7 @@ function faultIntercept(scenario: FaultScenario, path: string, method: string, p
   if (method !== "GET" || bookOf(path) !== book) return null
   const { status } = scenario
   if (path === `/books/${book}/step-status`) {
-    return (passthrough() as Promise<StepStatusLike>).then((real) => ({
+    return (passthrough() as Promise<StepStatusLike>).then((fetched) => scenario.captionMock?.synthetic ? withCaptionsDone(fetched) : fetched).then((real) => ({
       ...real,
       ...status,
       stages: { ...real.stages, ...status.stages },
@@ -398,6 +468,17 @@ function faultIntercept(scenario: FaultScenario, path: string, method: string, p
 
 interface ProvidersLike {
   providers: Array<{ configuredOnServer?: boolean; fieldStatus: Array<{ key: string; configuredOnServer: boolean }> }>
+}
+
+function simulateUnconfiguredProviders(passthrough: () => Promise<unknown>) {
+  return (passthrough() as Promise<ProvidersLike>).then((real) => ({
+    ...real,
+    providers: real.providers.map((provider) => ({
+      ...provider,
+      configuredOnServer: false,
+      fieldStatus: provider.fieldStatus.map((field) => ({ ...field, configuredOnServer: false })),
+    })),
+  }))
 }
 
 function simulateConfiguredProviders(passthrough: () => Promise<unknown>) {
@@ -440,14 +521,15 @@ function simulate(path: string, options: RequestInit | undefined, passthrough: (
   const scenario = scenarioStore.get()
   if (!scenario) return null
 
+  if (path === "/providers" && method === "GET" && scenario.kind === "fault" && scenario.noProviders) return simulateUnconfiguredProviders(passthrough)
   if (path === "/providers" && method === "GET" && scenario.kind !== "slow-load") return simulateConfiguredProviders(passthrough)
 
-  if (scenario.kind === "fault") return faultIntercept(scenario, path, method, passthrough)
+  if (scenario.kind === "fault") return faultIntercept(scenario, path, method, passthrough, options?.body)
 
   if (scenario.kind === "slow-load") {
     const isData = scenario.all ? !(scenario.keepShell && SHELL_PATH.test(path)) : /^\/books(\?|$)/.test(path) || /^\/books\/[^/]+\/pages(\?|$)/.test(path)
     if (isData && method === "GET" && performance.now() < BOOT_WINDOW_MS) {
-      return sleep(scenario.delayMs).then(passthrough)
+      return holdFor(scenario.delayMs).then(passthrough)
     }
     return null
   }
@@ -477,7 +559,14 @@ function simulate(path: string, options: RequestInit | undefined, passthrough: (
   }
 
   if (book !== scenario.book || method !== "GET") return null
-  if (path === `/books/${book}/step-status`) return simulateStepStatus(scenario, passthrough)
+  const runMock = scenario.captionMock
+  if (runMock) {
+    if (path === `/books/${book}/pages`) return captionPagesMock(book, runMock, passthrough)
+    if (/^\/books\/[^/]+\/pages\/[^/?]+$/.test(path)) return (passthrough() as Promise<PageDetail>).then((page) => mockCaptionPage(book, page, runMock))
+  }
+  if (path === `/books/${book}/step-status`) {
+    return simulateStepStatus(scenario, runMock?.synthetic ? () => (passthrough() as Promise<StepStatusLike>).then(withCaptionsDone) : passthrough)
+  }
   if (path === `/books/${book}/stages/status`) {
     const { finished } = runProgress(scenario)
     if (finished) return null
@@ -508,6 +597,12 @@ function intercept(path: string, options: RequestInit | undefined, passthrough: 
 }
 
 if (LAB_ENABLED) setRequestInterceptor(intercept)
+
+if (LAB_ENABLED && !IN_LAB_FRAME && scenarioStore.get()?.kind === "slow-load") {
+  window.setTimeout(() => {
+    if (scenarioStore.get()?.kind === "slow-load") scenarioStore.set(null)
+  }, BOOT_WINDOW_MS)
+}
 
 export function LabSimulationDriver() {
   const queryClient = useQueryClient()

@@ -6,11 +6,16 @@ import { DetailNavButton, SaveError, StepBody } from "../../shared/ui"
 import { PageLoadError, PageNoticeGroup } from "../../shared/page-detail/PageNotices"
 import { PageDetailLayout } from "./PageDetailLayout"
 import { usePageDetailData } from "./usePageDetailData"
-import { PageDetailLoading } from "./loading/PageDetailLoading"
+import { PlaceholderPanel } from "./loading/PlaceholderPanel"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
+import type { PageSummaryItem } from "@/api/client"
+import { PageDetailLoading } from "@/components/app/screens/pipeline/steps/shared/page-inspector/loading/PageDetailLoading"
 import type { DescribedProblem } from "@/components/app/screens/pipeline/steps/shared/problems/useDescribeProblem"
 import type { ProblemRetry } from "@/components/app/screens/pipeline/steps/shared/problems/FoldedProblem"
-import { usePageProblem } from "./problem/usePageProblem"
-import { PageProblemChip } from "./problem/PageProblemChip"
+import { usePageProblem } from "@/components/app/screens/pipeline/steps/shared/page-inspector/problem/usePageProblem"
+import { PageProblemChip } from "@/components/app/screens/pipeline/steps/shared/page-inspector/problem/PageProblemChip"
+
+const renderPlaceholderPanel = (summary: PageSummaryItem | null) => <PlaceholderPanel summary={summary} />
 
 export function ExtractPageDetail({
   label,
@@ -89,7 +94,7 @@ export function ExtractPageDetail({
       title={<Trans>Page {page?.pageNumber ?? pageNumber}</Trans>}
       width="fluid"
       fill
-      titleExtra={pageProblem ? <PageProblemChip problem={pageProblem} hex={hex} onAllPages={onClose} /> : undefined}
+      titleExtra={pageProblem ? <PageProblemChip problem={pageProblem} hex={hex} stageName={getStageLabelI18n("extract")} onAllPages={onClose} /> : undefined}
       actions={
         <>
           <DetailNavButton icon={ChevronLeft} label={t`Previous page`} onClick={() => prevPageId && onStep(prevPageId)} disabled={!prevPageId} />
@@ -103,7 +108,7 @@ export function ExtractPageDetail({
       {query.isError && !page ? (
         <PageLoadError pageNumber={pageNumber} onRetry={() => void query.refetch()} />
       ) : (
-        <PageDetailLoading label={label} pageId={pageId} pageNumber={pageNumber} ready={!!page} pageSrc={pageSrc}>
+        <PageDetailLoading label={label} pageId={pageId} pageNumber={pageNumber} ready={!!page} pageSrc={pageSrc} panel={renderPlaceholderPanel}>
           {content}
         </PageDetailLoading>
       )}

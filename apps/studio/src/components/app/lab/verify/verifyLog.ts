@@ -12,11 +12,13 @@ export interface LogEntry {
   variants?: VariantKey[]
 }
 
+const praticasBookId = "Pra-ticas-de-Alfabetizac-a-o-e-de-Matema-tica--Vol.-II"
+
 export const VERIFY_LOG: Record<string, LogEntry> = {
   "extract:page-ask": { status: "pinned", text: msg`Being reworked in another PR.` },
 }
 
-export type TestingTarget = { kind: "grid" } | { kind: "page"; pageId: string; book?: string } | { kind: "state"; stateId: string; theme?: "dark" }
+export type TestingTarget = { kind: "grid"; book?: string } | { kind: "page"; pageId: string; book?: string; stateId?: string } | { kind: "state"; stateId: string; theme?: "dark" }
 
 export interface TestingLink {
   label: MessageDescriptor
@@ -31,58 +33,53 @@ export interface TestingItem {
 }
 
 export const TESTING_NOW: Record<string, TestingItem[]> = {
-  sectioning: [
+  extract: [
     {
-      id: "sectlanding",
-      variants: ["sectlanding"],
-      text: msg`Not run: Extract's docked panel next to the extracted pages (switch Sectioning Mode and watch the badges change) or next to the PDF wall.`,
+      id: "exbstate",
+      variants: ["exbstate"],
+      text: msg`Final Extract. The left-out banner before the AI, the AI second look (intro, running, in the background, finished), after the AI, answers in another language, part-way, all checked and nothing to check. Then open a page: Page details first with the nudge, Review shows only the left-out outlines. Buttons in simulated states never save.`,
       links: [
-        { label: msg`Not run`, target: { kind: "state", stateId: "notrun" } },
-        { label: msg`Extract hasn't run`, target: { kind: "state", stateId: "prereq-extract" } },
-        { label: msg`Not run · dark`, target: { kind: "state", stateId: "notrun", theme: "dark" } },
+        { label: msg`Banner before the AI`, target: { kind: "state", stateId: "lo-banner" } },
+        { label: msg`AI second look`, target: { kind: "state", stateId: "lo-ai-intro" } },
+        { label: msg`After the AI`, target: { kind: "state", stateId: "lo-ai-done" } },
+        { label: msg`Other language`, target: { kind: "state", stateId: "lo-ai-language" } },
+        { label: msg`Dark`, target: { kind: "state", stateId: "lo-ai-done", theme: "dark" } },
+      ],
+    },
+  ],
+  captions: [
+    {
+      id: "caplanding",
+      variants: ["caplanding"],
+      text: msg`Not run: what sits next to the settings: a sample page, the book's own images, or its pages. Also check a book with no images.`,
+      links: [
+        { label: msg`Not run`, target: { kind: "state", stateId: "never" } },
+        { label: msg`Book has no images`, target: { kind: "state", stateId: "no-images" } },
       ],
     },
     {
-      id: "sectrunning",
-      variants: ["sectrunning"],
-      text: msg`Running: straight to the page grid with Extract's slim strip; pages wait in grey until they get sections.`,
-      links: [
-        { label: msg`Starting · 0 of 21`, target: { kind: "state", stateId: "starting" } },
-        { label: msg`10 of 21`, target: { kind: "state", stateId: "setup" } },
-        { label: msg`Extract still running`, target: { kind: "state", stateId: "extract-feeding" } },
-        { label: msg`Just finished`, target: { kind: "state", stateId: "finished" } },
-      ],
+      id: "caprunning",
+      variants: ["caprunning"],
+      text: msg`Running with no descriptions yet: a progress panel, or the page grid filling in under a slim strip.`,
+      links: [{ label: msg`Running · no results`, target: { kind: "state", stateId: "running-empty" } }],
     },
     {
-      id: "sectnotes",
-      variants: ["sectnotes"],
-      text: msg`Notes strip: dropped sections, pages read from images, pages with no sections and skipped pages, each only when it applies.`,
-      links: [
-        { label: msg`Sections dropped`, target: { kind: "state", stateId: "dropped" } },
-        { label: msg`Scanned pages`, target: { kind: "state", stateId: "scanned" } },
-        { label: msg`Pages skipped`, target: { kind: "state", stateId: "skipped" } },
-      ],
+      id: "capnext",
+      variants: ["capnext"],
+      text: msg`Top card when some pages failed: a quiet "almost ready" card or the bold Next card, each with the error folded in.`,
+      links: [{ label: msg`Some pages failed`, target: { kind: "state", stateId: "page-errors" } }],
     },
     {
-      id: "sectresume",
-      variants: ["sectresume"],
-      text: msg`Interrupted: the same Resume strip as Extract.`,
-      links: [{ label: msg`Interrupted`, target: { kind: "state", stateId: "interrupted" } }],
+      id: "capview",
+      variants: ["capview"],
+      text: msg`The page grid with results: open a page to edit, one long editable list, or the grid with page 1's editor already open on the right.`,
+      links: [{ label: msg`Page grid`, target: { kind: "state", stateId: "done" } }],
     },
     {
-      id: "secthead",
-      variants: ["secthead"],
-      text: msg`Header: Extract's Book info and Source PDF button cards next to the title.`,
-      links: [{ label: msg`Has results`, target: { kind: "state", stateId: "done" } }],
-    },
-    {
-      id: "sectrail",
-      variants: ["sectrail"],
-      text: msg`Pages list heading: "Pages" like Extract instead of "Sections by page"; the counts still show sections. The list shows once a page is open.`,
-      links: [
-        { label: msg`Open pages 8–9`, target: { kind: "page", pageId: "pg008009" } },
-        { label: msg`Page errors`, target: { kind: "state", stateId: "page-errors" } },
-      ],
+      id: "capsave",
+      variants: ["capsave"],
+      text: msg`Page 12: "Saves automatically" shows in the Images header when saving is instant. Edit a description to see the Saved tick and Undo, or the Save bar.`,
+      links: [{ label: msg`Edit page 12`, target: { kind: "page", pageId: "pg012013", book: "lab-triste", stateId: "done" } }],
     },
   ],
 }

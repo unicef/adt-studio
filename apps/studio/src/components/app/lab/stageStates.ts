@@ -3,7 +3,7 @@ import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { clearAddedOutputs, clearNeedsDismissed, setNeedsDismissedFor, setOutputsFor } from "./outputs"
 import { setBookSim } from "./bookSim"
 import { startScenario, stopScenario, type Scenario } from "./simulate"
-import { setVariantValue } from "./variants"
+import { setVariantValue, type VariantKey } from "./variants"
 import { statesFor } from "./testPlan/states"
 import { LAB_TESTS, TEST_BOOKS, type LabSim, type LabState } from "./testPlan/tests"
 
@@ -15,6 +15,7 @@ export interface StageState {
   test?: string
   state?: string
   groups?: string[]
+  variants?: Record<string, string>
   scenario?: Omit<LabState, "id" | "label" | "hint" | "path" | "reload"> & { sim: LabSim | null }
 }
 
@@ -98,6 +99,8 @@ export function applyStageState(page: string, state: StageState) {
   clearNeedsDismissed()
   setBookSim("real")
   setVariantValue("sbsim", "real")
+  setVariantValue("exbstate", state.variants?.exbstate ?? "real")
+  for (const [key, value] of Object.entries(state.variants ?? {})) if (key !== "exbstate") setVariantValue(key as VariantKey, value)
   if (!sim) stopScenario()
   else if (sim.kind === "slow-load") startScenario(sim as Scenario)
   else {
@@ -113,5 +116,6 @@ export function applyStageState(page: string, state: StageState) {
 
 export function clearStageState() {
   stopScenario()
+  setVariantValue("exbstate", "real")
   activeStore.set(null)
 }

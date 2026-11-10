@@ -4,6 +4,8 @@ import { EyeOff, ImageOff, RotateCcw } from "lucide-react"
 import { cn, prefersReducedMotion } from "@/lib/utils"
 import { extractedImageUrl } from "../useExtractImages"
 import { reasonText } from "./imageLabel"
+import { humanReason } from "./humanReason"
+import { REASON_ICON } from "./reasonIcon"
 import { imageDetailTooltip } from "./imageDetails"
 import type { PageImageEntry } from "./usePageDetailData"
 
@@ -38,6 +40,10 @@ export const ImageCompactRow = memo(function ImageCompactRow({
     if (active || selected) ref.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" })
   }, [active, selected])
   const summary = entry.isPruned ? reasonText(i18n, entry) : entry.width && entry.height ? `${entry.width} × ${entry.height}` : t`Kept`
+  const reason = humanReason(entry.reason)
+  const pageElements = entry.isPruned && reason.kind === "page-elements"
+  const PageElementsIcon = REASON_ICON["page-elements"]
+  const explain = reason.explain ? i18n._(reason.explain) : null
   return (
     <div
       ref={ref}
@@ -82,15 +88,19 @@ export const ImageCompactRow = memo(function ImageCompactRow({
             />
           )}
         </span>
-        <span className={cn("min-w-0 flex-1 truncate text-[12px]", entry.isPruned ? "text-muted-foreground" : "text-foreground")} title={entry.reason}>
-          {summary}
+        <span
+          className={cn("flex min-w-0 flex-1 items-center gap-1 text-[12px]", pageElements ? "font-medium text-[var(--chrome-hex)]" : entry.isPruned ? "text-muted-foreground" : "text-foreground")}
+          title={entry.isPruned ? [summary, explain, reason.detail].filter(Boolean).join("\n") : entry.reason}
+        >
+          {pageElements && <PageElementsIcon className="size-3 shrink-0" aria-hidden />}
+          <span className="truncate">{summary}</span>
         </span>
       </button>
       <button
         type="button"
         onClick={() => onTogglePrune(entry.imageId)}
-        aria-label={entry.isPruned ? t`Bring back image ${entry.number}` : t`Filter out image ${entry.number}`}
-        title={entry.isPruned ? t`Bring back` : t`Filter out`}
+        aria-label={pageElements ? t`Keep image ${entry.number} as an image` : entry.isPruned ? t`Bring back image ${entry.number}` : t`Filter out image ${entry.number}`}
+        title={pageElements ? t`Keep as image` : entry.isPruned ? t`Bring back` : t`Filter out`}
         className={QUICK_ACTION}
       >
         {entry.isPruned ? <RotateCcw className="size-3" /> : <EyeOff className="size-3" />}

@@ -5,7 +5,7 @@ import type { PageSummaryItem } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { IMAGE_PREVIEW } from "../sections/ImagesSection"
 import { READING_TEXT, TEXT_PREVIEW_LINES } from "../sections/TextSection"
-import { SkeletonBar, SkeletonLine } from "./SkeletonBar"
+import { SkeletonBar, SkeletonLine } from "@/components/app/screens/pipeline/steps/shared/page-inspector/loading/SkeletonBar"
 
 const SKELETON_IMAGES = 3
 const SKELETON_TEXT_LINES = 6

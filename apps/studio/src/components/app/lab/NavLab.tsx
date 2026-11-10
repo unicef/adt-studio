@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { Link2, PanelBottom, RotateCcw, ShieldCheck } from "lucide-react"
+import { Eraser, Link2, PanelBottom, RotateCcw, ShieldCheck } from "lucide-react"
+import { ImageIcon } from "lucide-react"
 import { useRouter, useRouterState } from "@tanstack/react-router"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { readThemeMode, setThemeMode } from "@/lib/theme"
@@ -20,6 +21,46 @@ import { getVariant, resetVariants, setVariantValue, useVariants, type VariantKe
 export const NAV_LAB_PARAM = "navlab"
 
 const DOCK_KEYS = ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"] as const
+
+const CAPTION_KEYS = ["caplanding", "caprunning", "capnext", "capview", "capsave"] as const
+const EXTRACT_KEYS = ["exbstate"] as const
+const LEFT_OUT_STORES = [
+  "adt.extract.left-out.dismissed",
+  "adt.extract.left-out.judge-mode",
+  "adt.extract.left-out.judgements",
+  "adt.extract.left-out.marks",
+  "adt.extract.left-out.review",
+  "adt.extract.left-out.second-opinion.v2",
+  "adt.extract.left-out.show-all",
+  "adt.extract.left-out.language-ok",
+] as const
+const RESET_PARAM = "lab-reset"
+
+function bookInPath(): string | null {
+  const [, root, book] = window.location.pathname.split("/")
+  return root === "pipeline" && book ? decodeURIComponent(book) : null
+}
+
+function resetLeftOutReview() {
+  const book = bookInPath()
+  if (book) {
+    for (const key of LEFT_OUT_STORES) {
+      try {
+        const all = JSON.parse(window.localStorage.getItem(key) ?? "{}") as Record<string, unknown>
+        delete all[book]
+        window.localStorage.setItem(key, JSON.stringify(all))
+      } catch {
+        window.localStorage.removeItem(key)
+      }
+    }
+  }
+  setVariantValue("exbstate", "real")
+  clearStageState()
+  const url = new URL(window.location.href)
+  url.searchParams.delete(RESET_PARAM)
+  url.searchParams.delete("page")
+  window.location.replace(url.toString())
+}
 
 
 interface NavLabState {
@@ -137,6 +178,56 @@ export function NavLab() {
       ],
       note: t`Decided: Storyboard first, Ink · theme, every step as a tile, sheet card, scale highlight, instant screen changes. Outputs join the book once they run.`,
     },
+    {
+      key: "captions",
+      label: t`Captions`,
+      icon: <ImageIcon className="size-3.5" />,
+      controls: [
+        {
+          key: "caplanding",
+          label: t`Not run`,
+          options: [
+            { value: "sample", label: t`Sample` },
+            { value: "images", label: t`Image wall` },
+            { value: "pages", label: t`Page wall` },
+          ],
+        },
+        {
+          key: "caprunning",
+          label: t`Running`,
+          options: [
+            { value: "panel", label: t`Progress panel` },
+            { value: "grid", label: t`Straight to grid` },
+          ],
+        },
+        {
+          key: "capnext",
+          label: t`Top card`,
+          options: [
+            { value: "quiet", label: t`Quiet when ready` },
+            { value: "bold", label: t`Always bold` },
+          ],
+        },
+        {
+          key: "capview",
+          label: t`Editing`,
+          options: [
+            { value: "grid", label: t`Grid, then page` },
+            { value: "feed", label: t`One scroll` },
+            { value: "split", label: t`Grid + editor` },
+          ],
+        },
+        {
+          key: "capsave",
+          label: t`Saving`,
+          options: [
+            { value: "bar", label: t`Save bar` },
+            { value: "auto", label: t`Save instantly` },
+          ],
+        },
+      ],
+      note: t`Image descriptions decisions. Open Verify → Testing now for the exact screens to compare.`,
+    },
   ]
   const controls: LabControl[] = [
     { key: "book", label: t`Book`, options: books },
@@ -166,6 +257,18 @@ export function NavLab() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+    if (params.get(RESET_PARAM) === "left-out") {
+      resetLeftOutReview()
+      return
+    }
+    for (const key of EXTRACT_KEYS) {
+      const value = params.get(`lab-${key}`)
+      if (value) setVariantValue(key, value)
+    }
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
     if (!params.has(NAV_LAB_PARAM)) return
     const overrides = Object.fromEntries(DOCK_KEYS.flatMap((key) => (params.get(`nl-${key}`) ? [[key, params.get(`nl-${key}`) ?? ""]] : [])))
     const book = params.get("nl-book") ?? state.book
@@ -184,6 +287,11 @@ export function NavLab() {
     setupsplit: variants.setupsplit,
     dockfocus: variants.dockfocus,
     dockpin: variants.dockpin,
+    caplanding: variants.caplanding,
+    caprunning: variants.caprunning,
+    capnext: variants.capnext,
+    capview: variants.capview,
+    capsave: variants.capsave,
     book: BOOKS[state.book] ? state.book : "all",
     theme: readThemeMode() === "dark" ? "dark" : "light",
   }
@@ -196,6 +304,10 @@ export function NavLab() {
       }
       const state = pageStates.find((candidate) => candidate.id === value)
       if (state && pageKey) applyStageState(pageKey, state)
+      return
+    }
+    if ((CAPTION_KEYS as readonly string[]).includes(key)) {
+      setVariantValue(key as VariantKey, value)
       return
     }
     if ((DOCK_KEYS as readonly string[]).includes(key)) {
@@ -239,6 +351,7 @@ export function NavLab() {
       actions={[
         { key: "restart", label: t`Restart this state`, icon: <RotateCcw className="size-3.5" />, onClick: () => go(state.book, state.screen) },
         { key: "link", label: t`Copy a link to this combination`, icon: <Link2 className="size-3.5" />, onClick: copyLink },
+        { key: "reset-left-out", label: t`Reset left-out review for this book (AI answers, checks, dismissals)`, icon: <Eraser className="size-3.5" />, onClick: resetLeftOutReview },
       ]}
     />
     </>

@@ -20,7 +20,16 @@ import {
   Languages,
   Lightbulb,
   Archive,
+  ImageMinus,
+  ListChecks,
+  Signpost,
+  BellRing,
+  MapPin,
+  StepForward,
+  Tally3,
   type LucideIcon,
+  PanelsTopLeft,
+  SlidersHorizontal,
   Sparkles,
 } from "lucide-react"
 import { useMemo } from "react"
@@ -53,12 +62,12 @@ export interface VariantState {
   langnav: "cards" | "pills" | "menu"
   hints: "note" | "help" | "none"
   pruned: "inline" | "tray"
-  sectlanding: "current" | "pages" | "book"
-  sectrunning: "current" | "grid"
-  sectnotes: "current" | "strip"
-  sectresume: "current" | "strip"
-  secthead: "current" | "extract"
-  sectrail: "current" | "pages"
+  caplanding: "sample" | "images" | "pages"
+  caprunning: "panel" | "grid"
+  capnext: "quiet" | "bold"
+  capview: "grid" | "feed" | "split"
+  capsave: "bar" | "auto"
+  exbstate: "real" | "loading" | "before-ai" | "open" | "warning" | "ai-intro" | "ai-running" | "ai-background" | "ai-panel-done" | "ai-done" | "ai-other-language" | "checking" | "finished" | "fine"
 }
 
 export type VariantKey = keyof VariantState
@@ -269,58 +278,76 @@ export const VARIANT_GROUPS = [
     ],
   },
   {
-    key: "sectlanding",
+    key: "caplanding",
     icon: PanelTop,
-    label: msg`Sectioning · Not run`,
+    label: msg`Image descriptions · Not run`,
     options: [
-      { value: "current", label: msg`Current`, hint: msg`Today: a 560px settings column with bordered cards and a static sample illustration.` },
-      { value: "pages", label: msg`Extracted pages`, hint: msg`Extract's docked panel next to a wall of the extracted pages. Each page shows what the chosen mode will do (1 section, or AI decides) and updates as you switch. Falls back to the PDF wall when Extract hasn't run.` },
-      { value: "book", label: msg`PDF wall`, hint: msg`Extract's docked panel next to the same source-PDF wall Extract shows.` },
+      { value: "sample", label: msg`Sample`, hint: msg`Today: settings in a column next to an illustrative sample page.` },
+      { value: "images", label: msg`Image wall`, hint: msg`Extract's docked settings panel next to a wall of the book's own images, numbered.` },
+      { value: "pages", label: msg`Page wall`, hint: msg`Extract's docked settings panel next to the same page wall Extract shows.` },
     ],
   },
   {
-    key: "sectrunning",
+    key: "caprunning",
     icon: Loader,
-    label: msg`Sectioning · Running`,
+    label: msg`Image descriptions · Running`,
     options: [
-      { value: "current", label: msg`Current`, hint: msg`Today: a checklist card, then a progress panel, until the first page is sectioned. While Extract runs, Extract's progress shows here.` },
-      { value: "grid", label: msg`Straight to grid`, hint: msg`Like Extract: the page grid with a slim progress strip on top. Pages without sections are grey and shimmer until they're sectioned. While Extract runs, a strip says Sectioning starts when it finishes.` },
+      { value: "panel", label: msg`Progress panel`, hint: msg`Today: a progress panel replaces the screen until the first page is described.` },
+      { value: "grid", label: msg`Straight to grid`, hint: msg`Like Extract: the page grid with a slim progress strip; pages wait in grey until they get descriptions.` },
     ],
   },
   {
-    key: "sectnotes",
+    key: "capnext",
     icon: Lightbulb,
-    label: msg`Sectioning · Notes`,
+    label: msg`Image descriptions · Top card`,
     options: [
-      { value: "current", label: msg`None`, hint: msg`Today: dropped sections only show as a chip and on each card.` },
-      { value: "strip", label: msg`Notes strip`, hint: msg`Extract's collapsible notes: sections dropped, pages read from images, pages with no sections and pages skipped, each only when it applies.` },
+      { value: "quiet", label: msg`Quiet when ready`, hint: msg`Today: a bold Next card right after a run, a quiet "is ready" card once only Preview is left.` },
+      { value: "bold", label: msg`Always bold`, hint: msg`Always the bold "Next:" card like Extract, with page errors folded into it.` },
     ],
   },
   {
-    key: "sectresume",
+    key: "capview",
+    icon: LayoutGrid,
+    label: msg`Image descriptions · Editing`,
+    options: [
+      { value: "grid", label: msg`Grid, then page`, hint: msg`Today: a grid of pages; open one to edit its descriptions.` },
+      { value: "feed", label: msg`One scroll`, hint: msg`The old default: every description in one scroll, editable in place, in the new design.` },
+      { value: "split", label: msg`Grid + editor`, hint: msg`The page grid; clicking a page opens its descriptions on the right without leaving the grid.` },
+    ],
+  },
+  {
+    key: "capsave",
     icon: Undo2,
-    label: msg`Sectioning · Interrupted`,
+    label: msg`Image descriptions · Saving`,
     options: [
-      { value: "current", label: msg`Current`, hint: msg`Today: an interrupted run looks like a finished one.` },
-      { value: "strip", label: msg`Resume strip`, hint: msg`The same Resume strip as Extract: Sectioning stopped before it finished, Resume keeps what's done.` },
+      { value: "bar", label: msg`Save bar`, hint: msg`Today: edits wait for Save or Discard on a floating bar.` },
+      { value: "auto", label: msg`Save instantly`, hint: msg`The old behaviour: every edit and decorative switch saves at once, with a Saved tick and Undo for a few seconds.` },
     ],
   },
+
+
+
+
+
   {
-    key: "secthead",
-    icon: MousePointerClick,
-    label: msg`Sectioning · Header`,
+    key: "exbstate",
+    icon: SlidersHorizontal,
+    label: msg`Extract · Banner state (simulated)`,
     options: [
-      { value: "current", label: msg`None`, hint: msg`Today: no buttons next to the title.` },
-      { value: "extract", label: msg`Like Extract`, hint: msg`The Book info and Source PDF button cards from Extract.` },
-    ],
-  },
-  {
-    key: "sectrail",
-    icon: Rows3,
-    label: msg`Sectioning · List heading`,
-    options: [
-      { value: "current", label: msg`Sections by page`, hint: msg`Today's heading above the pages list.` },
-      { value: "pages", label: msg`Pages`, hint: msg`"Pages", like Extract. The counts still show sections.` },
+      { value: "real", label: msg`Real data`, hint: msg`What the book really says right now.` },
+      { value: "loading", label: msg`Loading`, hint: msg`Still reading which pictures were left out.` },
+      { value: "before-ai", label: msg`Before AI`, hint: msg`Nothing checked yet and no AI second look.` },
+      { value: "open", label: msg`Pictures open`, hint: msg`The banner unfolded, before any AI second look.` },
+      { value: "warning", label: msg`Warning before Sectioning`, hint: msg`Nothing checked yet; pressing Go to Sectioning asks to check the left-out pictures first.` },
+      { value: "ai-intro", label: msg`AI · intro`, hint: msg`The AI second look panel explains what it will do, before starting.` },
+      { value: "ai-running", label: msg`AI · running`, hint: msg`The AI second look panel is half done, showing the page it is looking at.` },
+      { value: "ai-background", label: msg`AI · background`, hint: msg`The AI second look runs in the background: a pill at the top right, the banner says how far it is.` },
+      { value: "ai-panel-done", label: msg`AI · done panel`, hint: msg`The AI second look panel when it finishes: totals and the pictures to check first.` },
+      { value: "ai-done", label: msg`AI done`, hint: msg`The AI answered every flagged picture (simulated answers).` },
+      { value: "ai-other-language", label: msg`AI · other language`, hint: msg`The AI answered in another language than Studio is in now: the banner and each answer say so and offer to ask again.` },
+      { value: "checking", label: msg`Checking`, hint: msg`The user checked a few pages and stopped.` },
+      { value: "finished", label: msg`Finished`, hint: msg`Every flagged picture was decided.` },
+      { value: "fine", label: msg`All fine`, hint: msg`Nothing left out looks needed.` },
     ],
   },
 ] satisfies VariantGroup[]
@@ -354,22 +381,22 @@ export const GROUP_META: Record<VariantKey, { tier: VariantTier }> = {
   langnav: { tier: "step" },
   hints: { tier: "step" },
   pruned: { tier: "step" },
-  sectlanding: { tier: "step" },
-  sectrunning: { tier: "step" },
-  sectnotes: { tier: "step" },
-  sectresume: { tier: "step" },
-  secthead: { tier: "step" },
-  sectrail: { tier: "step" },
+  caplanding: { tier: "step" },
+  caprunning: { tier: "step" },
+  capnext: { tier: "step" },
+  capview: { tier: "step" },
+  capsave: { tier: "step" },
+  exbstate: { tier: "step" },
 }
 
 
 export type LabStep = "extract" | "sectioning" | "storyboard" | "output" | "validation" | "preview"
 
 export const STEP_GROUPS: Record<LabStep, VariantKey[]> = {
-  extract: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
-  sectioning: ["sectlanding", "sectrunning", "sectnotes", "sectresume", "secthead", "sectrail", "docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
+  extract: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "exbstate"],
+  sectioning: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin"],
   storyboard: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "features", "ai", "loaders"],
-  output: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "features", "stagefail", "pageview", "listview", "detailpane", "langnav", "hints", "pruned"],
+  output: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "features", "stagefail", "pageview", "listview", "detailpane", "langnav", "hints", "pruned", "caplanding", "caprunning", "capnext", "capview", "capsave"],
   validation: ["docklayout", "sbsim", "setupsplit", "dockfocus", "dockpin", "return", "stagefail", "hints"],
   preview: ["export"],
 }
@@ -406,12 +433,12 @@ export const DEFAULT_VARIANTS: VariantState = {
   langnav: "cards",
   hints: "note",
   pruned: "tray",
-  sectlanding: "current",
-  sectrunning: "current",
-  sectnotes: "current",
-  sectresume: "current",
-  secthead: "current",
-  sectrail: "current",
+  caplanding: "sample",
+  caprunning: "panel",
+  capnext: "quiet",
+  capview: "grid",
+  capsave: "bar",
+  exbstate: "real",
 }
 
 function isVariantRecord(value: unknown): value is Partial<Record<string, string>> {

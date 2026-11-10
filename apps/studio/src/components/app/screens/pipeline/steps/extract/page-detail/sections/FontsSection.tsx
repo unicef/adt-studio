@@ -1,9 +1,9 @@
 import { Trans } from "@lingui/react/macro"
 import { Type } from "lucide-react"
 import type { PageDetail } from "@/api/client"
-import { PageSection } from "../PageSection"
+import { PageSection } from "@/components/app/screens/pipeline/steps/shared/page-inspector/PageSection"
 import { hasFontInfo, PageFontList } from "../PageFontList"
-import { SeeMoreButton } from "./SeeMoreButton"
+import { SeeMoreButton } from "@/components/app/screens/pipeline/steps/shared/page-inspector/SeeMoreButton"
 import type { SectionMore } from "./types"
 
 export const FONT_PREVIEW = 4

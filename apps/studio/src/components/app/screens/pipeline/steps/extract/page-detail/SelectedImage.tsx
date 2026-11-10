@@ -1,9 +1,9 @@
 import { Trans } from "@lingui/react/macro"
 import { MousePointerClick } from "lucide-react"
 import { useBookStructuredTextAvailability } from "@/hooks/use-api-key"
-import { CrossFade } from "./CrossFade"
+import { CrossFade } from "@/components/app/screens/pipeline/steps/shared/page-inspector/CrossFade"
 import { PageImageItem } from "./PageImageItem"
-import type { BoxSelection } from "./useBoxSelection"
+import type { BoxSelection } from "@/components/app/screens/pipeline/steps/shared/page-inspector/useBoxSelection"
 import type { PageDetailData } from "./usePageDetailData"
 
 export function SelectedImage({ label, data, selection, hint = false }: { label: string; data: PageDetailData; selection: BoxSelection; hint?: boolean }) {

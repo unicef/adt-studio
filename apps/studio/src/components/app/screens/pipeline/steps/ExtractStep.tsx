@@ -26,6 +26,9 @@ import { CollapsingRunStrip } from "@/components/app/screens/pipeline/runs/Colla
 import { ExtractRunBanner } from "./extract/ExtractRunBanner"
 import { ExtractHeaderActions } from "./extract/ExtractHeaderActions"
 import { useSpreadReview } from "./extract/useSpreadReview"
+import { pruneTotals, useFilteredImages } from "./extract/prune-review/useFilteredImages"
+import { useLeftOutReview, useLeftOutVariants } from "./extract/prune-review/useLeftOutReview"
+import { LeftOutProvider } from "./extract/prune-review/LeftOutContext"
 import type { StepProps } from "./shared/types"
 import type { StepNote } from "./shared/notes/NoteRow"
 import { NotesStrip } from "./shared/notes/NotesStrip"
@@ -133,6 +136,25 @@ export function ExtractStep(props: StepProps) {
           body: t`${skippedNames} couldn't process them, so the run went on without them. Re-run Extract to try them again.`,
         }
       : null
+  const sectioningState = bookRun.stageState("sectioning")
+  const leftOutVariants = useLeftOutVariants()
+  const leftOutData = useFilteredImages(label, pages, {
+    enabled: !extract.isActive,
+    blocked: extract.isActive || sectioningState === "running" || sectioningState === "queued",
+    focusPageId: selectedPage?.pageId ?? null,
+  })
+  const leftOut = useLeftOutReview({
+    label,
+    hex: plugin.hex,
+    pages,
+    totals: pruneTotals(pages),
+    data: leftOutData,
+    variants: leftOutVariants,
+    pageId: selectedPage?.pageId ?? null,
+    openPage,
+    stepPage,
+    closeDetail,
+  })
   const notes = [metadataNote, spreadsNote, skippedNote, scannedNote].filter((note): note is StepNote => note !== null)
   const { problem, partial, partialConfirm } = useStageProblem({
     stage: "extract",
@@ -222,7 +244,7 @@ export function ExtractStep(props: StepProps) {
       }
     >
       {selectedPage ? (
-        <>
+        <LeftOutProvider value={leftOut.pageApi}>
           <ExtractPageDetail
             key={selectedPage.pageId}
             label={label}
@@ -237,7 +259,7 @@ export function ExtractStep(props: StepProps) {
             retry={retryAction}
           />
           {retry.dialogs}
-        </>
+        </LeftOutProvider>
       ) : (
         <StepBody
           title={getStageLabelI18n("extract")}
@@ -252,8 +274,14 @@ export function ExtractStep(props: StepProps) {
           <NextStepCardView
             next={next}
             slug={plugin.slug}
-            confirm={partialConfirm ?? bannerConfirm}
-            aside={foldProblem ? <FoldedProblem label={label} problem={problem} retry={retryAction} onOpenPage={openPage} /> : null}
+            confirm={partialConfirm ?? bannerConfirm ?? leftOut.nextConfirm}
+            aside={
+              foldProblem ? (
+                <div className="flex flex-col gap-2">
+                  <FoldedProblem label={label} problem={problem} retry={retryAction} onOpenPage={openPage} />
+                </div>
+              ) : null
+            }
           />
 
           {spreads.applyFailed && !spreads.applying && (
@@ -266,23 +294,26 @@ export function ExtractStep(props: StepProps) {
               action={{ label: <Trans>Try again</Trans>, icon: RotateCcw, onClick: spreads.retryApply }}
             />
           )}
+          {leftOut.alertCard}
           <NotesStrip notes={notes} hex={plugin.hex} />
           {spreads.picker}
 
           <ExtractPageGrid
-            label={label}
-            pages={pages}
-            onOpen={openPage}
-            aspect={pageAspect}
-            hex={plugin.hex}
-            pendingCount={
-              extract.isActive
-                ? Math.max(0, (progressCounts(extract)?.total || expectedPages || pages.length) - pages.length)
-                : 0
-            }
-          />
+              label={label}
+              pages={pages}
+              leftOut={leftOut.cards ?? undefined}
+              onOpen={openPage}
+              aspect={pageAspect}
+              hex={plugin.hex}
+              pendingCount={
+                extract.isActive
+                  ? Math.max(0, (progressCounts(extract)?.total || expectedPages || pages.length) - pages.length)
+                  : 0
+              }
+            />
         </StepBody>
       )}
+      {leftOut.aiLayer}
     </StepShell>
   )
 }

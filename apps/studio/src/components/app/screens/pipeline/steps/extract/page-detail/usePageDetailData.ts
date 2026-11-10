@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import type { PageBox, PageSize } from "../../shared/page-inspector/types"
 import { resolveReflowableFont } from "@adt/types"
 import { usePage, usePageImage, usePages } from "@/hooks/use-pages"
 import { useActiveConfig } from "@/hooks/use-debug"
@@ -8,26 +9,13 @@ import { usePrefetchAdjacentPages } from "../../shared/usePrefetchAdjacentPages"
 import { useExtractImages } from "../useExtractImages"
 import { lowResThumbnail, pageViewThumbnailUrl } from "@/components/app/screens/pipeline/shared/page-thumbnail/pageThumbnail"
 
-export interface ImageBounds {
-  x: number
-  y: number
-  width: number
-  height: number
-}
+export type { ImageBounds, PageSize } from "../../shared/page-inspector/types"
 
-export interface PageImageEntry {
-  imageId: string
-  number: number
+export interface PageImageEntry extends PageBox {
   isPruned: boolean
   reason?: string
-  bounds?: ImageBounds
   width?: number
   height?: number
-}
-
-export interface PageSize {
-  w: number
-  h: number
 }
 
 export function usePageDetailData(label: string, pageId: string, prevPageId: string | null, nextPageId: string | null) {

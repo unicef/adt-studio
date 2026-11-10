@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import type { MessageDescriptor } from "@lingui/core"
 import { useLingui } from "@lingui/react/macro"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
@@ -31,6 +32,7 @@ export function stateVariantKeys(page: string, state: StageState | null): Varian
 
 export function useVerifyModel(page: string | null, stageStates: StageStates | null, active: { page: string; id: string } | null) {
   const { t, i18n } = useLingui()
+  const queryClient = useQueryClient()
   const [record, setRecord] = recordStore.use()
   const [, setChecked] = checkedStore.use()
   const [storedFilter, setFilter] = filterStore.use()
@@ -68,7 +70,9 @@ export function useVerifyModel(page: string | null, stageStates: StageStates | n
 
   const open = (position: number) => {
     const target = states[position]
-    if (page && target) applyStageState(page, target)
+    if (!page || !target) return
+    applyStageState(page, target)
+    if (target.kind !== "content") void queryClient.resetQueries({ queryKey: ["books"] })
   }
   const order = visible.map(({ position }) => position)
   const others = order.filter((position) => position !== index)

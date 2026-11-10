@@ -1,6 +1,6 @@
 import { ImageGroups, ImagesEmptyState } from "./ImageGroups"
 import { ImageThumb } from "./ImageThumb"
-import type { BoxSelection } from "./useBoxSelection"
+import type { BoxSelection } from "@/components/app/screens/pipeline/steps/shared/page-inspector/useBoxSelection"
 import type { PageDetailData, PageImageEntry } from "./usePageDetailData"
 
 function thumbs(label: string, data: PageDetailData, selection: BoxSelection, items: PageImageEntry[], className: string) {

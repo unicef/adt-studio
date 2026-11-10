@@ -65,7 +65,6 @@ export function PlanMenu() {
     return (
       <button
         type="button"
-        data-lab-plan=""
         onClick={() => setUi((current) => ({ ...current, open: true }))}
         className={cn(
           "fixed bottom-4 left-4 z-[2147482999] flex max-w-[320px] items-center gap-2 rounded-full bg-zinc-900/92 py-1.5 pr-3.5 pl-2.5 text-[12px] text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] ring-1 ring-white/10 backdrop-blur-md",
@@ -80,7 +79,6 @@ export function PlanMenu() {
 
   return (
     <aside
-      data-lab-plan=""
       aria-label={t`Plan`}
       className={cn(
         "fixed bottom-4 left-4 z-[2147482999] flex max-h-[min(640px,calc(100vh-96px))] w-[340px] flex-col overflow-hidden rounded-2xl bg-zinc-900/95 text-white shadow-[0_24px_60px_-16px_rgba(0,0,0,0.55)] ring-1 ring-white/10 backdrop-blur-md",

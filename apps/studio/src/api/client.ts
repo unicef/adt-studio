@@ -95,6 +95,10 @@ export function getSourcePdfThumbnailUrl(label: string, page: number, width: num
   return `${BASE_URL}/books/${label}/source-pdf/pages/${page}/thumbnail?width=${width}`
 }
 
+export function getImageThumbnailUrl(label: string, imageId: string, width: number): string {
+  return `${BASE_URL}/books/${label}/images/${imageId}/thumbnail?width=${width}`
+}
+
 export function getPageThumbnailUrl(label: string, pageId: string, width: number): string {
   return `${BASE_URL}/books/${label}/pages/${pageId}/thumbnail?width=${width}`
 }
@@ -104,6 +108,37 @@ export function getBookCoverUrl(label: string, cacheKey?: string): string {
   if (!cacheKey) return base
   const params = new URLSearchParams({ v: cacheKey })
   return `${base}?${params.toString()}`
+}
+
+export interface LeftOutPage {
+  pageId: string
+  imageClassification: NonNullable<PageDetail["imageClassification"]>
+  imagesMeta: PageDetail["imagesMeta"]
+}
+
+export type LeftOutOpinionVerdict = "keep" | "remove" | "unsure"
+
+export type LeftOutCategory =
+  | "exercise-visual"
+  | "illustration"
+  | "photo"
+  | "diagram"
+  | "icon"
+  | "logo-or-branding"
+  | "decoration"
+  | "divider-or-border"
+  | "text-as-image"
+  | "blank-or-artifact"
+  | "fragment"
+
+export type LeftOutOpinionConfidence = "high" | "medium" | "low"
+
+export interface LeftOutSecondOpinionResponse {
+  pageId: string
+  modelId: string
+  promptVersion: number
+  language?: string
+  results: Array<{ imageId: string; verdict: LeftOutOpinionVerdict; category: LeftOutCategory; reasoning: string; confidence: LeftOutOpinionConfidence }>
 }
 
 export type RequestInterceptor = (
@@ -456,6 +491,9 @@ export interface PageSummaryItem {
   hasCaptioning: boolean
   textPreview: string
   imageCount: number
+  keptImageCount?: number
+  filteredImageCount?: number
+  htmlImageCount?: number
   captionCount?: number
   decorativeCount?: number
   uncaptionedCount?: number
@@ -1331,6 +1369,22 @@ export const api = {
 
   getPageImage: (label: string, pageId: string) =>
     request<{ imageBase64: string }>(`/books/${label}/pages/${pageId}/image`),
+
+  getLeftOut: (label: string) => request<{ pages: LeftOutPage[] }>(`/books/${label}/left-out`),
+
+  askLeftOutSecondOpinion: async (
+    label: string,
+    pageId: string,
+    imageIds: string[],
+    apiKey: string,
+    repeats?: Record<string, { count: number; pages: number }>,
+    language?: string,
+  ) =>
+    request<LeftOutSecondOpinionResponse>(`/books/${label}/pages/${pageId}/left-out/second-opinion`, {
+      method: "POST",
+      headers: await buildApiHeaders(apiKey),
+      body: JSON.stringify({ imageIds, repeats, language }),
+    }),
 
   updateImageClassification: (label: string, pageId: string, data: unknown) =>
     request<{ version: number }>(`/books/${label}/pages/${pageId}/image-filtering`, {

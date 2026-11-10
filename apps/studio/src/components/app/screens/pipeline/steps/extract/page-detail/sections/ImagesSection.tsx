@@ -1,16 +1,18 @@
 import { useState } from "react"
-import { Trans } from "@lingui/react/macro"
-import { Image as ImageIcon } from "lucide-react"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { plural } from "@lingui/core/macro"
+import { Image as ImageIcon, LayoutTemplate } from "lucide-react"
+import { isPageElements } from "../humanReason"
 import { Collapsible, CollapseChevron } from "../../../shared/list/Collapsible"
 import { noImagesLine } from "../emptyCopy"
 import { ImageCompactRow } from "../ImageCompactRow"
 import { ImagesSegmentError } from "../ImageGroups"
 import { ImagesVersion } from "../ImagesVersion"
-import { PageSection } from "../PageSection"
+import { PageSection } from "@/components/app/screens/pipeline/steps/shared/page-inspector/PageSection"
 import { SelectedImage } from "../SelectedImage"
-import type { BoxSelection } from "../useBoxSelection"
+import type { BoxSelection } from "@/components/app/screens/pipeline/steps/shared/page-inspector/useBoxSelection"
 import type { PageDetailData, PageImageEntry } from "../usePageDetailData"
-import { SeeMoreButton } from "./SeeMoreButton"
+import { SeeMoreButton } from "@/components/app/screens/pipeline/steps/shared/page-inspector/SeeMoreButton"
 import type { SectionMore } from "./types"
 
 export const IMAGE_PREVIEW = 6
@@ -28,9 +30,11 @@ export function ImagesSection({
   selection: BoxSelection
   more: SectionMore
 }) {
+  const { t } = useLingui()
   const [showFiltered, setShowFiltered] = useState(false)
   const kept = data.entries.filter((entry) => !entry.isPruned)
   const filtered = data.entries.filter((entry) => entry.isPruned)
+  const pageElements = filtered.filter((entry) => isPageElements(entry.reason)).length
   const filteredOpen = showFiltered || filtered.some((entry) => entry.imageId === selection.activeId)
   const hiddenKept = Math.max(0, kept.length - IMAGE_PREVIEW)
 
@@ -81,6 +85,12 @@ export function ImagesSection({
           >
             <Trans>Filtered out ({filtered.length})</Trans>
             <CollapseChevron open={filteredOpen} />
+            {pageElements > 0 && (
+              <span className="ml-1 flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--chrome-hex)_12%,transparent)] px-1.5 py-px text-[11px] font-semibold text-[var(--chrome-hex)]">
+                <LayoutTemplate className="size-3" aria-hidden />
+                {t`${plural(pageElements, { one: "# becomes page elements", other: "# become page elements" })}`}
+              </span>
+            )}
           </button>
           <Collapsible open={filteredOpen}>{rows(filtered)}</Collapsible>
         </div>

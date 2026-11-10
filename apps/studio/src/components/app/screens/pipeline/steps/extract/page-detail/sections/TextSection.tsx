@@ -2,9 +2,9 @@ import { Trans } from "@lingui/react/macro"
 import { FileText, Loader2 } from "lucide-react"
 import type { PageDetail } from "@/api/client"
 import { cn } from "@/lib/utils"
-import { ClampedText } from "../ClampedText"
+import { ClampedText } from "@/components/app/screens/pipeline/steps/shared/page-inspector/ClampedText"
 import { noTextLine } from "../emptyCopy"
-import { PageSection } from "../PageSection"
+import { PageSection } from "@/components/app/screens/pipeline/steps/shared/page-inspector/PageSection"
 import type { SectionMore } from "./types"
 
 export const TEXT_PREVIEW_LINES = 8
