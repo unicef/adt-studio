@@ -16,8 +16,11 @@ vi.mock("@lingui/core/macro", () => ({
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useLingui: () => ({
-    t: (strings: TemplateStringsArray, ...values: unknown[]) =>
-      strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
+    // Tagged template, or the descriptor form `t({ comment, message })`.
+    t: (strings: TemplateStringsArray | { message: string }, ...values: unknown[]) =>
+      "message" in strings
+        ? strings.message
+        : strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
   }),
 }))
 vi.mock("@/hooks/use-api-key", () => ({

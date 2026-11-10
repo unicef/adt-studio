@@ -548,15 +548,6 @@ msgstr "{generatedFeatureCount} de 6 recursos gerados"
 msgid "{hours}h ago"
 msgstr "há {hours} h"
 
-msgid "{id, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
-msgstr "{id, select, google {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} gemini {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} azure {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} custom {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} other {Salva, mas a {name} recusou esta chave de API. Confira se você copiou a chave inteira.}}"
-
-msgid "{id, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
-msgstr "{id, select, google {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} gemini {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} azure {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} custom {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} other {Isso não parece uma chave de API da {name}. As chaves da {name} costumam começar com {example}}}"
-
-msgid "{id, select, other {This doesn't look like an API key for {name}.}}"
-msgstr "{id, select, google {Isso não parece uma chave de API do {name}.} gemini {Isso não parece uma chave de API do {name}.} azure {Isso não parece uma chave de API do {name}.} custom {Isso não parece uma chave de API do {name}.} other {Isso não parece uma chave de API da {name}.}}"
-
 msgid "{imageCount, plural, one {# image will be translated} other {# images will be translated}}"
 msgstr "{imageCount, plural, one {# imagem será traduzida} other {# imagens serão traduzidas}}"
 
@@ -631,29 +622,49 @@ msgstr "{pdfFilename} · {pageCount} páginas"
 msgid "{position} of {total}"
 msgstr "{position} de {total}"
 
-msgid "{provider, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
-msgstr "{provider, select, google {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} gemini {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} azure {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} custom {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} other {A {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} key rejected}}"
+msgstr "{providerKey, select, google {Chave do {name} recusada} gemini {Chave do {name} recusada} azure {Chave do {name} recusada} custom {Chave do {name} recusada} ollama {Chave do {name} recusada} codex {Chave do {name} recusada} claude_agent {Chave do {name} recusada} other {Chave da {name} recusada}}"
 
-msgid "{providerId, select, other {{name} key rejected}}"
-msgstr "{providerId, select, google {Chave do {name} recusada} gemini {Chave do {name} recusada} azure {Chave do {name} recusada} custom {Chave do {name} recusada} other {Chave da {name} recusada}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+msgstr "{providerKey, select, google {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} gemini {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} azure {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} custom {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} ollama {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} codex {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} claude_agent {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} other {A {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.}}"
 
-msgid "{providerId, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
-msgstr "{providerId, select, google {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} gemini {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} azure {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} custom {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} other {A {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+msgstr "{providerKey, select, google {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} gemini {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} azure {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} custom {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} ollama {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} codex {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} claude_agent {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} other {A {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.}}"
 
-msgid "{providerId, select, other {The {name} key was rejected. Update the key.}}"
-msgstr "{providerId, select, google {A chave do {name} foi recusada. Atualize a chave.} gemini {A chave do {name} foi recusada. Atualize a chave.} azure {A chave do {name} foi recusada. Atualize a chave.} custom {A chave do {name} foi recusada. Atualize a chave.} other {A chave da {name} foi recusada. Atualize a chave.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
+msgstr "{providerKey, select, google {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} gemini {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} azure {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} custom {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} ollama {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} codex {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} claude_agent {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} other {Salva, mas a {name} recusou esta chave de API. Confira se você copiou a chave inteira.}}"
 
-msgid "{providerId, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
-msgstr "{providerId, select, google {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} gemini {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} azure {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} custom {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} other {Sua chave da {name} foi recusada, então ainda não é possível processar livros.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Settings — the {rejectedName} key was rejected}}"
+msgstr "{providerKey, select, google {Configurações — a chave do {rejectedName} foi recusada} gemini {Configurações — a chave do {rejectedName} foi recusada} azure {Configurações — a chave do {rejectedName} foi recusada} custom {Configurações — a chave do {rejectedName} foi recusada} ollama {Configurações — a chave do {rejectedName} foi recusada} codex {Configurações — a chave do {rejectedName} foi recusada} claude_agent {Configurações — a chave do {rejectedName} foi recusada} other {Configurações — a chave da {rejectedName} foi recusada}}"
 
-msgid "{providerId, select, other {Your {name} key was rejected}}"
-msgstr "{providerId, select, google {Sua chave do {name} foi recusada} gemini {Sua chave do {name} foi recusada} azure {Sua chave do {name} foi recusada} custom {Sua chave do {name} foi recusada} other {Sua chave da {name} foi recusada}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
+msgstr "{providerKey, select, google {A chave do {name} foi recusada. Atualize a chave.} gemini {A chave do {name} foi recusada. Atualize a chave.} azure {A chave do {name} foi recusada. Atualize a chave.} custom {A chave do {name} foi recusada. Atualize a chave.} ollama {A chave do {name} foi recusada. Atualize a chave.} codex {A chave do {name} foi recusada. Atualize a chave.} claude_agent {A chave do {name} foi recusada. Atualize a chave.} other {A chave da {name} foi recusada. Atualize a chave.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{providerKey, select, google {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} gemini {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} azure {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} custom {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} ollama {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} codex {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} claude_agent {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} other {Isso não parece uma chave de API da {name}. As chaves da {name} costumam começar com {example}}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{providerKey, select, google {Isso não parece uma chave de API do {name}.} gemini {Isso não parece uma chave de API do {name}.} azure {Isso não parece uma chave de API do {name}.} custom {Isso não parece uma chave de API do {name}.} ollama {Isso não parece uma chave de API do {name}.} codex {Isso não parece uma chave de API do {name}.} claude_agent {Isso não parece uma chave de API do {name}.} other {Isso não parece uma chave de API da {name}.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+msgstr "{providerKey, select, google {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} gemini {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} azure {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} custom {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} ollama {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} codex {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} claude_agent {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} other {Sua chave da {name} foi recusada, então ainda não é possível processar livros.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected}}"
+msgstr "{providerKey, select, google {Sua chave do {name} foi recusada} gemini {Sua chave do {name} foi recusada} azure {Sua chave do {name} foi recusada} custom {Sua chave do {name} foi recusada} ollama {Sua chave do {name} foi recusada} codex {Sua chave do {name} foi recusada} claude_agent {Sua chave do {name} foi recusada} other {Sua chave da {name} foi recusada}}"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {região detectada} other {regiões detectadas}}"
-
-msgid "{rejectedProviderId, select, other {Settings — the {rejectedName} key was rejected}}"
-msgstr "{rejectedProviderId, select, google {Configurações — a chave do {rejectedName} foi recusada} gemini {Configurações — a chave do {rejectedName} foi recusada} azure {Configurações — a chave do {rejectedName} foi recusada} custom {Configurações — a chave do {rejectedName} foi recusada} other {Configurações — a chave da {rejectedName} foi recusada}}"
 
 #. placeholder {0}: reviewCount === 1 ? "manual review item" : "manual review items"
 #~ msgid "{reviewCount} {0}"
@@ -3468,6 +3479,9 @@ msgstr "Não foi possível ler este PDF"
 
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Não foi possível restaurar a v{version}. Tente novamente."
+
+msgid "Couldn't save the credentials in this browser. Check that site storage is allowed, then try again."
+msgstr "Não foi possível salvar as credenciais neste navegador. Confira se o armazenamento do site está permitido e tente de novo."
 
 msgid "Couldn't save the glossary. Your draft is kept; check for newer changes before trying again."
 msgstr "Não foi possível salvar o glossário. Seu rascunho foi mantido; verifique se há alterações mais recentes antes de tentar novamente."

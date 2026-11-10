@@ -548,15 +548,6 @@ msgstr "{generatedFeatureCount} of 6 features generated"
 msgid "{hours}h ago"
 msgstr "{hours}h ago"
 
-msgid "{id, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
-msgstr "{id, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
-
-msgid "{id, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
-msgstr "{id, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
-
-msgid "{id, select, other {This doesn't look like an API key for {name}.}}"
-msgstr "{id, select, other {This doesn't look like an API key for {name}.}}"
-
 msgid "{imageCount, plural, one {# image will be translated} other {# images will be translated}}"
 msgstr "{imageCount, plural, one {# image will be translated} other {# images will be translated}}"
 
@@ -631,29 +622,49 @@ msgstr "{pdfFilename} · {pageCount} pages"
 msgid "{position} of {total}"
 msgstr "{position} of {total}"
 
-msgid "{provider, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
-msgstr "{provider, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} key rejected}}"
+msgstr "{providerKey, select, other {{name} key rejected}}"
 
-msgid "{providerId, select, other {{name} key rejected}}"
-msgstr "{providerId, select, other {{name} key rejected}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+msgstr "{providerKey, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
 
-msgid "{providerId, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
-msgstr "{providerId, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+msgstr "{providerKey, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
 
-msgid "{providerId, select, other {The {name} key was rejected. Update the key.}}"
-msgstr "{providerId, select, other {The {name} key was rejected. Update the key.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
+msgstr "{providerKey, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
 
-msgid "{providerId, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
-msgstr "{providerId, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Settings — the {rejectedName} key was rejected}}"
+msgstr "{providerKey, select, other {Settings — the {rejectedName} key was rejected}}"
 
-msgid "{providerId, select, other {Your {name} key was rejected}}"
-msgstr "{providerId, select, other {Your {name} key was rejected}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
+msgstr "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{providerKey, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{providerKey, select, other {This doesn't look like an API key for {name}.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+msgstr "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected}}"
+msgstr "{providerKey, select, other {Your {name} key was rejected}}"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
-
-msgid "{rejectedProviderId, select, other {Settings — the {rejectedName} key was rejected}}"
-msgstr "{rejectedProviderId, select, other {Settings — the {rejectedName} key was rejected}}"
 
 #. placeholder {0}: reviewCount === 1 ? "manual review item" : "manual review items"
 #~ msgid "{reviewCount} {0}"
@@ -3468,6 +3479,9 @@ msgstr "Couldn't read this PDF"
 
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Couldn't restore v{version}. Please try again."
+
+msgid "Couldn't save the credentials in this browser. Check that site storage is allowed, then try again."
+msgstr "Couldn't save the credentials in this browser. Check that site storage is allowed, then try again."
 
 msgid "Couldn't save the glossary. Your draft is kept; check for newer changes before trying again."
 msgstr "Couldn't save the glossary. Your draft is kept; check for newer changes before trying again."

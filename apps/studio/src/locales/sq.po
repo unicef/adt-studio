@@ -550,15 +550,6 @@ msgstr "{generatedFeatureCount} nga 6 veçori të gjeneruara"
 msgid "{hours}h ago"
 msgstr "{hours} orë më parë"
 
-msgid "{id, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
-msgstr "{id, select, other {U ruajt, por {name} e refuzoi këtë çelës API. Kontrolloni që e keni kopjuar të gjithë çelësin.}}"
-
-msgid "{id, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
-msgstr "{id, select, other {Kjo nuk duket si një çelës API për {name}. Çelësat e {name} zakonisht fillojnë me {example}}}"
-
-msgid "{id, select, other {This doesn't look like an API key for {name}.}}"
-msgstr "{id, select, other {Kjo nuk duket si një çelës API për {name}.}}"
-
 msgid "{imageCount, plural, one {# image will be translated} other {# images will be translated}}"
 msgstr "{imageCount, plural, one {# imazh do të përkthehet} other {# imazhe do të përkthehen}}"
 
@@ -633,29 +624,49 @@ msgstr "{pdfFilename} · {pageCount} faqe"
 msgid "{position} of {total}"
 msgstr "{position} nga {total}"
 
-msgid "{provider, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
-msgstr "{provider, select, other {{selectedProviderLabel} refuzoi çelësin e ruajtur të API-së, prandaj leximi me zë do të dështojë. Përditësojeni te Cilësime → Ofruesit e AI.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} key rejected}}"
+msgstr "{providerKey, select, other {Çelësi i {name} u refuzua}}"
 
-msgid "{providerId, select, other {{name} key rejected}}"
-msgstr "{providerId, select, other {Çelësi i {name} u refuzua}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+msgstr "{providerKey, select, other {{name} refuzoi çelësin e ruajtur të API-së, prandaj nxjerrja dhe hapat e tjerë të AI-së do të dështojnë. Përditësoni çelësin, ose konfiguroni librin tani dhe rregullojeni më vonë.}}"
 
-msgid "{providerId, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
-msgstr "{providerId, select, other {{name} refuzoi çelësin e ruajtur të API-së, prandaj nxjerrja dhe hapat e tjerë të AI-së do të dështojnë. Përditësoni çelësin, ose konfiguroni librin tani dhe rregullojeni më vonë.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+msgstr "{providerKey, select, other {{selectedProviderLabel} refuzoi çelësin e ruajtur të API-së, prandaj leximi me zë do të dështojë. Përditësojeni te Cilësime → Ofruesit e AI.}}"
 
-msgid "{providerId, select, other {The {name} key was rejected. Update the key.}}"
-msgstr "{providerId, select, other {Çelësi i {name} u refuzua. Përditësoni çelësin.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
+msgstr "{providerKey, select, other {U ruajt, por {name} e refuzoi këtë çelës API. Kontrolloni që e keni kopjuar të gjithë çelësin.}}"
 
-msgid "{providerId, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
-msgstr "{providerId, select, other {Çelësi juaj i {name} u refuzua, prandaj librat nuk mund të përpunohen ende.}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Settings — the {rejectedName} key was rejected}}"
+msgstr "{providerKey, select, other {Cilësime — çelësi i {rejectedName} u refuzua}}"
 
-msgid "{providerId, select, other {Your {name} key was rejected}}"
-msgstr "{providerId, select, other {Çelësi juaj i {name} u refuzua}}"
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
+msgstr "{providerKey, select, other {Çelësi i {name} u refuzua. Përditësoni çelësin.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{providerKey, select, other {Kjo nuk duket si një çelës API për {name}. Çelësat e {name} zakonisht fillojnë me {example}}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{providerKey, select, other {Kjo nuk duket si një çelës API për {name}.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua, prandaj librat nuk mund të përpunohen ende.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected}}"
+msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua}}"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
-
-msgid "{rejectedProviderId, select, other {Settings — the {rejectedName} key was rejected}}"
-msgstr "{rejectedProviderId, select, other {Cilësime — çelësi i {rejectedName} u refuzua}}"
 
 #. placeholder {0}: reviewCount === 1 ? "manual review item" : "manual review items"
 #~ msgid "{reviewCount} {0}"
@@ -3470,6 +3481,9 @@ msgstr "Nuk mund të lexohej ky PDF"
 
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Nuk u rikthye dot v{version}. Ju lutemi provoni përsëri."
+
+msgid "Couldn't save the credentials in this browser. Check that site storage is allowed, then try again."
+msgstr "Kredencialet nuk u ruajtën në këtë shfletues. Kontrolloni që ruajtja e sajtit të jetë e lejuar dhe provoni sërish."
 
 msgid "Couldn't save the glossary. Your draft is kept; check for newer changes before trying again."
 msgstr "Fjalorthi nuk mund të ruhej. Drafti juaj është ruajtur; kontrolloni nëse ka ndryshime më të reja përpara se të provoni përsëri."

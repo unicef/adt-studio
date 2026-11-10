@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { select } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { providerSelectKey } from "@/i18n/provider-select-key"
 import { useQueryClient } from "@tanstack/react-query"
 import {
   CheckCircle2,
@@ -210,7 +211,7 @@ function useFieldErrors(
     const warnings = new Map<string, string>()
     const name = descriptor.manifest.displayName
     // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
-    const id = descriptor.manifest.id
+    const providerKey = providerSelectKey(descriptor.manifest.id)
     for (const field of descriptor.manifest.credentialFields) {
       const value = (values[field.key] ?? "").trim()
       if (!value) continue
@@ -240,8 +241,8 @@ function useFieldErrors(
               warnings.set(
                 field.key,
                 example
-                  ? t`${select(id, { other: `This doesn't look like an API key for ${name}. ${name} keys usually start with ${example}` })}`
-                  : t`${select(id, { other: `This doesn't look like an API key for ${name}.` })}`,
+                  ? t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `This doesn't look like an API key for ${name}. ${name} keys usually start with ${example}` })}` })
+                  : t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `This doesn't look like an API key for ${name}.` })}` }),
               )
           }
         } catch {
@@ -329,7 +330,14 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
     warnings,
     sharedNotes,
     save: async () => {
-      for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, (values[field.key] ?? "").trim())
+      // `save` is async, so a storage failure would otherwise vanish into the
+      // void-ed promise of the Save button instead of reaching the user.
+      try {
+        for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, (values[field.key] ?? "").trim())
+      } catch {
+        toast.error(t`Couldn't save the credentials in this browser. Check that site storage is allowed, then try again.`)
+        return
+      }
       // Re-check with the key just saved, so a wrong key shows up here instead
       // of on the first failed run. Every provider is re-checked, since a key
       // can be shared (Gemini Speech reads the Google key).
@@ -338,7 +346,8 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
       )
       const rejected = await recheckSavedKeys(queryClient, hasKey ? [id] : [])
       const name = descriptor.manifest.displayName
-      if (rejected.length > 0) toast.error(t`${select(id, { other: `Saved, but ${name} rejected this API key. Check that you copied the whole key.` })}`)
+      const providerKey = providerSelectKey(id)
+      if (rejected.length > 0) toast.error(t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Saved, but ${name} rejected this API key. Check that you copied the whole key.` })}` }))
       else toast.success(t`Provider credentials saved.`)
     },
     remove: () => {

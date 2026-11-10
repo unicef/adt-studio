@@ -68,7 +68,7 @@ function Row({ cardKey, open, onToggle, store, requestedAuth }: { cardKey: strin
 /**
  * The provider cards grouped by role (models & reasoning, speech & voices),
  * with the loading and error states. Shared by Settings → AI providers and
- * the book's API key dialog, so both edit credentials the same way.
+ * the book's API keys screen, so both edit credentials the same way.
  */
 export function ProviderCardGroups({
   store,

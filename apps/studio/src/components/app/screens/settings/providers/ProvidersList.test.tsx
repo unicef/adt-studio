@@ -79,8 +79,11 @@ vi.mock("@lingui/react/macro", () => ({
   Plural: () => null,
   useLingui: () => ({
     i18n: { locale: "en", _: (descriptor: { id: string }) => descriptor.id },
-    t: (strings: TemplateStringsArray, ...values: unknown[]) =>
-      strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
+    // Tagged template, or the descriptor form `t({ comment, message })`.
+    t: (strings: TemplateStringsArray | { message: string }, ...values: unknown[]) =>
+      "message" in strings
+        ? strings.message
+        : strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
   }),
 }))
 vi.mock("@tanstack/react-router", () => ({

@@ -68,7 +68,7 @@ vi.mock("@/hooks/use-provider-credentials", () => ({
 }))
 
 const { useRejectedTextProvider } = await import("./use-api-key")
-const { useProviderHealth } = await import("./use-provider-health")
+const { recheckSavedKeys, useProviderHealth } = await import("./use-provider-health")
 
 let queryClient: QueryClient
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -175,5 +175,45 @@ describe("useRejectedTextProvider", () => {
     for (const apiKey of ["", "s", "sk-", "sk-new-key"]) rerender({ apiKey })
     await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
     expect(getProviderHealth).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("recheckSavedKeys", () => {
+  it("shares the warning's live check and reports the refused key", async () => {
+    // The app-wide warning already observes the saved-key check.
+    credentials = { openai: { apiKey: "sk-good" } }
+    const { result } = renderHook(() => useRejectedTextProvider(), { wrapper })
+    await waitFor(() => expect(getProviderHealth).toHaveBeenCalledTimes(1))
+    expect(result.current).toBeNull()
+
+    // The user saves a wrong key: one fresh check, shared by the save and the warning.
+    storedCode = "invalid-credential"
+    let rejected: string[] = []
+    await act(async () => {
+      rejected = await recheckSavedKeys(queryClient, ["openai"])
+    })
+    expect(rejected).toEqual(["openai"])
+    expect(getProviderHealth).toHaveBeenCalledTimes(2)
+    await waitFor(() => expect(result.current?.providerId).toBe("openai"))
+  })
+
+  it("never reports an outage or a failed request as a refused key", async () => {
+    storedCode = "unreachable"
+    expect(await recheckSavedKeys(queryClient, ["openai"])).toEqual([])
+
+    getProviderHealth.mockRejectedValueOnce(new Error("network down"))
+    expect(await recheckSavedKeys(queryClient, ["custom"])).toEqual([])
+  })
+
+  it("gives up on a check that never answers instead of holding the save", async () => {
+    vi.useFakeTimers()
+    try {
+      getProviderHealth.mockImplementationOnce(() => new Promise(() => {}))
+      const pending = recheckSavedKeys(queryClient, ["openai"])
+      await vi.advanceTimersByTimeAsync(15_000)
+      expect(await pending).toEqual([])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

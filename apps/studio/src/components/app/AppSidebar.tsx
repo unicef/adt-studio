@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { useState } from "react"
 import { useLingui } from "@lingui/react/macro"
+import { providerSelectKey } from "@/i18n/provider-select-key"
 import { Trans } from "@lingui/react/macro"
 import { msg, select } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
@@ -97,7 +98,7 @@ export function AppSidebar({
   const rejectedProvider = useRejectedTextProvider()
   const rejectedName = rejectedProvider?.displayName ?? ""
   // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
-  const rejectedProviderId = rejectedProvider?.providerId ?? ""
+  const providerKey = providerSelectKey(rejectedProvider?.providerId ?? "")
   // No provider can run the text steps at all: same link, amber instead of red.
   const needsProvider = useNeedsTextProvider()
 
@@ -180,7 +181,7 @@ export function AppSidebar({
               : { to: sharingUpdate ? SETTINGS_PATHS.publishing : APP_PATHS.settings })}
           aria-label={
             rejectedProvider
-              ? t`${select(rejectedProviderId, { other: `Settings — the ${rejectedName} key was rejected` })}`
+              ? t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Settings — the ${rejectedName} key was rejected` })}` })
               : needsProvider
                 ? t`Settings — no AI provider is connected`
                 : sharingUpdate

@@ -1,6 +1,7 @@
 import { select } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useConnectProvider } from "@/hooks/use-connect-provider"
+import { providerSelectKey } from "@/i18n/provider-select-key"
 import { useNeedsTextProvider, useRejectedTextProvider } from "@/hooks/use-api-key"
 
 const CHIP_CLASS =
@@ -42,15 +43,19 @@ function NoProviderChip() {
 function RejectedKeyChip({ providerId, name }: { providerId: string; name: string }) {
   const { t } = useLingui()
   const update = useConnectProvider({ from: "add-book", providerId })
+  const providerKey = providerSelectKey(providerId)
   return (
     <button
       type="button"
       onClick={update}
-      aria-label={t`${select(providerId, { other: `The ${name} key was rejected. Update the key.` })}`}
+      aria-label={t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `The ${name} key was rejected. Update the key.` })}` })}
       className={CHIP_CLASS}
     >
       <span aria-hidden className="size-1.5 rounded-full bg-red-500" />
-      {t`${select(providerId, { other: `${name} key rejected` })}`}
+      {t({
+        comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.",
+        message: `${select(providerKey, { other: `${name} key rejected` })}`,
+      })}
       <span className="text-brand-700 dark:text-brand-300">
         <Trans>Update</Trans>
       </span>

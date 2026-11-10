@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { KeyRound, ShieldAlert } from "lucide-react"
 import { select } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { providerSelectKey } from "@/i18n/provider-select-key"
 import { Button } from "@/components/ui/button"
 
 /** Welcome screen: connecting a provider comes first, then the book. `ctas` are the add/import buttons. */
@@ -40,12 +41,13 @@ export function WelcomeRejectedKeyPrompt({
   ctas: ReactNode
 }) {
   const { t } = useLingui()
+  const providerKey = providerSelectKey(providerId)
   return (
     <>
       <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13.5px] text-muted-foreground">
         <ShieldAlert className="size-4 text-red-600" aria-hidden />
         <span>
-          {t`${select(providerId, { other: `Your ${name} key was rejected, so books can't be processed yet.` })}`}
+          {t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Your ${name} key was rejected, so books can't be processed yet.` })}` })}
         </span>
         <button
           type="button"
@@ -97,6 +99,7 @@ export function RejectedKeyBanner({
   onUpdate: () => void
 }) {
   const { t } = useLingui()
+  const providerKey = providerSelectKey(providerId)
   return (
     <div
       role="alert"
@@ -110,7 +113,7 @@ export function RejectedKeyBanner({
       </span>
       <div className="min-w-[14rem] flex-1">
         <div className="text-[13.5px] font-semibold">
-          {t`${select(providerId, { other: `Your ${name} key was rejected` })}`}
+          {t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Your ${name} key was rejected` })}` })}
         </div>
         <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">
           <Trans>AI steps will fail until the key is updated.</Trans>

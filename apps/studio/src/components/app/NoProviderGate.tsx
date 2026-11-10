@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode } from "react"
 import { select } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { providerSelectKey } from "@/i18n/provider-select-key"
 import { ArrowRight, FileText, KeyRound } from "lucide-react"
 import {
   Dialog,
@@ -61,7 +62,7 @@ export function NoProviderGate({ children }: { children: ReactNode }) {
   const open = !dismissed && reason !== null
   const name = rejected?.displayName ?? ""
   // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
-  const providerId = rejected?.providerId ?? ""
+  const providerKey = providerSelectKey(rejected?.providerId ?? "")
 
   return (
     <>
@@ -78,14 +79,14 @@ export function NoProviderGate({ children }: { children: ReactNode }) {
           <DialogHeader className="gap-1.5 px-6 pt-5 text-left">
             <DialogTitle className="text-[17px] leading-tight tracking-[-0.01em]">
               {reason === "rejected" ? (
-                t`${select(providerId, { other: `Your ${name} key was rejected` })}`
+                t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Your ${name} key was rejected` })}` })
               ) : (
                 <Trans>Connect an AI provider to process your book</Trans>
               )}
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
               {reason === "rejected" ? (
-                t`${select(providerId, { other: `${name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.` })}`
+                t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `${name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.` })}` })
               ) : (
                 <Trans>Connect your AI provider to extract and process pages. You can still set up the book without one.</Trans>
               )}

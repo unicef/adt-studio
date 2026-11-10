@@ -41,10 +41,15 @@ export async function recheckSavedKeys(
         })
         .then((health) => health.code === "invalid-credential")
         .catch(() => false)
-      const timeout = new Promise<boolean>((resolve) =>
-        setTimeout(() => resolve(false), SAVE_CHECK_TIMEOUT_MS),
-      )
-      return (await Promise.race([check, timeout])) ? providerId : null
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const timeout = new Promise<boolean>((resolve) => {
+        timer = setTimeout(() => resolve(false), SAVE_CHECK_TIMEOUT_MS)
+      })
+      try {
+        return (await Promise.race([check, timeout])) ? providerId : null
+      } finally {
+        clearTimeout(timer)
+      }
     }),
   )
   return results.filter((id): id is string => id !== null)
