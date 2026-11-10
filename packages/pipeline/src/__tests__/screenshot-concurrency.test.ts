@@ -66,6 +66,23 @@ describe("createSemaphore", () => {
     expect(order).toEqual([1, 2, 3, 4])
   })
 
+  it("frees the slot for later callers after a queued caller aborts", async () => {
+    const semaphore = createSemaphore(1)
+    let release!: () => void
+    const holding = semaphore.run(() => new Promise<void>((r) => { release = r }))
+
+    const controller = new AbortController()
+    const queued = semaphore.run(async () => "never", controller.signal)
+    controller.abort(new Error("cancelled"))
+    await expect(queued).rejects.toThrow("cancelled")
+    expect(semaphore.queued).toBe(0)
+
+    release()
+    await holding
+    expect(semaphore.active).toBe(0)
+    await expect(semaphore.run(async () => "next")).resolves.toBe("next")
+  })
+
   it("coerces invalid limits to at least 1", async () => {
     expect(createSemaphore(0).limit).toBe(1)
     expect(createSemaphore(-5).limit).toBe(1)
