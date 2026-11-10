@@ -376,10 +376,6 @@ msgstr "{0} a salvar"
 msgid "{0} questions"
 msgstr "{0} questões"
 
-#. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
-msgid "{0} rejected the saved API key, so speech will fail. Update it in Settings → AI providers."
-msgstr "{0} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA."
-
 #. placeholder {0}: thread.replyCount
 msgid "{0} replies"
 msgstr "{0} respostas"
@@ -552,6 +548,15 @@ msgstr "{generatedFeatureCount} de 6 recursos gerados"
 msgid "{hours}h ago"
 msgstr "há {hours} h"
 
+msgid "{id, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
+msgstr "{id, select, google {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} gemini {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} azure {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} custom {Salva, mas o {name} recusou esta chave de API. Confira se você copiou a chave inteira.} other {Salva, mas a {name} recusou esta chave de API. Confira se você copiou a chave inteira.}}"
+
+msgid "{id, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{id, select, google {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} gemini {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} azure {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} custom {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} other {Isso não parece uma chave de API da {name}. As chaves da {name} costumam começar com {example}}}"
+
+msgid "{id, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{id, select, google {Isso não parece uma chave de API do {name}.} gemini {Isso não parece uma chave de API do {name}.} azure {Isso não parece uma chave de API do {name}.} custom {Isso não parece uma chave de API do {name}.} other {Isso não parece uma chave de API da {name}.}}"
+
 msgid "{imageCount, plural, one {# image will be translated} other {# images will be translated}}"
 msgstr "{imageCount, plural, one {# imagem será traduzida} other {# imagens serão traduzidas}}"
 
@@ -605,12 +610,6 @@ msgstr "Faltam {missingForCurrentStage} resultados de idioma. Execute novamente 
 msgid "{missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items."
 msgstr "Faltam {missingForCurrentStage} resultados de fala. Execute novamente para gerar os itens ausentes."
 
-msgid "{name} key rejected"
-msgstr "Chave da {name} recusada"
-
-msgid "{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later."
-msgstr "A {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois."
-
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} sinalizados"
 
@@ -632,8 +631,29 @@ msgstr "{pdfFilename} · {pageCount} páginas"
 msgid "{position} of {total}"
 msgstr "{position} de {total}"
 
+msgid "{provider, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+msgstr "{provider, select, google {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} gemini {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} azure {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} custom {O {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.} other {A {selectedProviderLabel} recusou a chave de API salva, então a narração vai falhar. Atualize-a em Configurações → Provedores de IA.}}"
+
+msgid "{providerId, select, other {{name} key rejected}}"
+msgstr "{providerId, select, google {Chave do {name} recusada} gemini {Chave do {name} recusada} azure {Chave do {name} recusada} custom {Chave do {name} recusada} other {Chave da {name} recusada}}"
+
+msgid "{providerId, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+msgstr "{providerId, select, google {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} gemini {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} azure {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} custom {O {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.} other {A {name} recusou a chave de API salva, então a extração e as outras etapas de IA vão falhar. Atualize a chave, ou configure o livro agora e corrija depois.}}"
+
+msgid "{providerId, select, other {The {name} key was rejected. Update the key.}}"
+msgstr "{providerId, select, google {A chave do {name} foi recusada. Atualize a chave.} gemini {A chave do {name} foi recusada. Atualize a chave.} azure {A chave do {name} foi recusada. Atualize a chave.} custom {A chave do {name} foi recusada. Atualize a chave.} other {A chave da {name} foi recusada. Atualize a chave.}}"
+
+msgid "{providerId, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+msgstr "{providerId, select, google {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} gemini {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} azure {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} custom {Sua chave do {name} foi recusada, então ainda não é possível processar livros.} other {Sua chave da {name} foi recusada, então ainda não é possível processar livros.}}"
+
+msgid "{providerId, select, other {Your {name} key was rejected}}"
+msgstr "{providerId, select, google {Sua chave do {name} foi recusada} gemini {Sua chave do {name} foi recusada} azure {Sua chave do {name} foi recusada} custom {Sua chave do {name} foi recusada} other {Sua chave da {name} foi recusada}}"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {região detectada} other {regiões detectadas}}"
+
+msgid "{rejectedProviderId, select, other {Settings — the {rejectedName} key was rejected}}"
+msgstr "{rejectedProviderId, select, google {Configurações — a chave do {rejectedName} foi recusada} gemini {Configurações — a chave do {rejectedName} foi recusada} azure {Configurações — a chave do {rejectedName} foi recusada} custom {Configurações — a chave do {rejectedName} foi recusada} other {Configurações — a chave da {rejectedName} foi recusada}}"
 
 #. placeholder {0}: reviewCount === 1 ? "manual review item" : "manual review items"
 #~ msgid "{reviewCount} {0}"
@@ -10164,9 +10184,6 @@ msgstr "O conteúdo salvo é mantido. Revise os resultados que dependem do idiom
 msgid "Saved content is unavailable; your draft is retained"
 msgstr "O conteúdo salvo está indisponível; seu rascunho foi mantido"
 
-msgid "Saved, but {name} rejected this API key. Check that you copied the whole key."
-msgstr "Salva, mas {name} recusou esta chave de API. Confira se você copiou a chave inteira."
-
 msgid "Saved. Re-package Preview to apply."
 msgstr "Salvo. Reempacote a Prévia para aplicar."
 
@@ -10670,9 +10687,6 @@ msgstr "Configurações — há uma atualização do compartilhamento"
 
 msgid "Settings — no AI provider is connected"
 msgstr "Configurações — nenhum provedor de IA está conectado"
-
-msgid "Settings — the {rejectedName} key was rejected"
-msgstr "Configurações — a chave da {rejectedName} foi recusada"
 
 msgid "Settings for this step are not yet available."
 msgstr "As configurações para esta etapa ainda não estão disponíveis."
@@ -11753,9 +11767,6 @@ msgstr "Não foi possível resolver. Tente de novo."
 msgid "That reply didn't send. Try again."
 msgstr "A resposta não foi enviada. Tente de novo."
 
-msgid "The {name} key was rejected. Update the key."
-msgstr "A chave da {name} foi recusada. Atualize a chave."
-
 msgid "The address every share link will start with."
 msgstr "O endereço com o qual cada link de compartilhamento começará."
 
@@ -12233,12 +12244,6 @@ msgstr "Este computador vai esquecer a conexão com o Cloudflare, então você n
 
 msgid "This connection isn't available yet."
 msgstr "Esta conexão ainda não está disponível."
-
-msgid "This doesn't look like an API key for {name}."
-msgstr "Isso não parece uma chave de API de {name}."
-
-msgid "This doesn't look like an API key for {name}. {name} keys usually start with {example}"
-msgstr "Isso não parece uma chave de API de {name}. As chaves de {name} costumam começar com {example}"
 
 msgid "This Easy Read text is shared across sections. Saving it updates every referring section, including sections outside the current filter."
 msgstr "Este texto de Leitura fácil é compartilhado entre seções. Salvá-lo atualiza todas as seções que o utilizam, inclusive as que estão fora do filtro atual."
@@ -13673,12 +13678,6 @@ msgstr "voce@exemplo.com"
 
 msgid "Young adult fiction"
 msgstr "Ficção para jovens adultos"
-
-msgid "Your {name} key was rejected"
-msgstr "Sua chave da {name} foi recusada"
-
-msgid "Your {name} key was rejected, so books can't be processed yet."
-msgstr "Sua chave da {name} foi recusada, então ainda não é possível processar livros."
 
 msgid "Your account needs a web address first"
 msgstr "Sua conta precisa de um endereço web primeiro"

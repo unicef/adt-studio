@@ -15,6 +15,6 @@ export function MissingKeyNotice({ bookLabel }: { bookLabel: string }) {
   const update = useConnectProvider(rejected ? { providerId: rejected.providerId } : {})
   if (!ready) return null
   if (!available) return <MissingKeyBanner onConnect={connect} />
-  if (rejected) return <RejectedKeyBanner name={rejected.displayName} onUpdate={update} />
+  if (rejected) return <RejectedKeyBanner providerId={rejected.providerId} name={rejected.displayName} onUpdate={update} />
   return null
 }

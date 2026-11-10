@@ -72,7 +72,7 @@ export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
               ctas={ctas}
             />
           ) : rejected ? (
-            <WelcomeRejectedKeyPrompt name={rejected.displayName} onUpdate={update} ctas={ctas} />
+            <WelcomeRejectedKeyPrompt providerId={rejected.providerId} name={rejected.displayName} onUpdate={update} ctas={ctas} />
           ) : (
             <div className="flex flex-wrap gap-3">{ctas}</div>
           )}

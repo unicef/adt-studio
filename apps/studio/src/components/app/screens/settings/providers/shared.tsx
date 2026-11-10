@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { select } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useQueryClient } from "@tanstack/react-query"
 import {
@@ -208,6 +209,8 @@ function useFieldErrors(
     const errors = new Map<string, string>()
     const warnings = new Map<string, string>()
     const name = descriptor.manifest.displayName
+    // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
+    const id = descriptor.manifest.id
     for (const field of descriptor.manifest.credentialFields) {
       const value = (values[field.key] ?? "").trim()
       if (!value) continue
@@ -237,8 +240,8 @@ function useFieldErrors(
               warnings.set(
                 field.key,
                 example
-                  ? t`This doesn't look like an API key for ${name}. ${name} keys usually start with ${example}`
-                  : t`This doesn't look like an API key for ${name}.`,
+                  ? t`${select(id, { other: `This doesn't look like an API key for ${name}. ${name} keys usually start with ${example}` })}`
+                  : t`${select(id, { other: `This doesn't look like an API key for ${name}.` })}`,
               )
           }
         } catch {
@@ -335,7 +338,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
       )
       const rejected = await recheckSavedKeys(queryClient, hasKey ? [id] : [])
       const name = descriptor.manifest.displayName
-      if (rejected.length > 0) toast.error(t`Saved, but ${name} rejected this API key. Check that you copied the whole key.`)
+      if (rejected.length > 0) toast.error(t`${select(id, { other: `Saved, but ${name} rejected this API key. Check that you copied the whole key.` })}`)
       else toast.success(t`Provider credentials saved.`)
     },
     remove: () => {

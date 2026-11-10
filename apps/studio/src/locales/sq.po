@@ -378,10 +378,6 @@ msgstr "{0} në pritje të ruajtjes"
 msgid "{0} questions"
 msgstr "{0} pyetje"
 
-#. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
-msgid "{0} rejected the saved API key, so speech will fail. Update it in Settings → AI providers."
-msgstr "{0} refuzoi çelësin e ruajtur të API-së, prandaj leximi me zë do të dështojë. Përditësojeni te Cilësime → Ofruesit e AI."
-
 #. placeholder {0}: thread.replyCount
 msgid "{0} replies"
 msgstr "{0} përgjigje"
@@ -554,6 +550,15 @@ msgstr "{generatedFeatureCount} nga 6 veçori të gjeneruara"
 msgid "{hours}h ago"
 msgstr "{hours} orë më parë"
 
+msgid "{id, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
+msgstr "{id, select, other {U ruajt, por {name} e refuzoi këtë çelës API. Kontrolloni që e keni kopjuar të gjithë çelësin.}}"
+
+msgid "{id, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{id, select, other {Kjo nuk duket si një çelës API për {name}. Çelësat e {name} zakonisht fillojnë me {example}}}"
+
+msgid "{id, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{id, select, other {Kjo nuk duket si një çelës API për {name}.}}"
+
 msgid "{imageCount, plural, one {# image will be translated} other {# images will be translated}}"
 msgstr "{imageCount, plural, one {# imazh do të përkthehet} other {# imazhe do të përkthehen}}"
 
@@ -607,12 +612,6 @@ msgstr "Mungojnë {missingForCurrentStage} rezultate gjuhësore. Ekzekutojeni s�
 msgid "{missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items."
 msgstr "Mungojnë {missingForCurrentStage} rezultate të të folurit. Ekzekutojeni sërish për të gjeneruar elementet që mungojnë."
 
-msgid "{name} key rejected"
-msgstr "Çelësi i {name} u refuzua"
-
-msgid "{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later."
-msgstr "{name} refuzoi çelësin e ruajtur të API-së, prandaj nxjerrja dhe hapat e tjerë të IA-së do të dështojnë. Përditësoni çelësin, ose konfiguroni librin tani dhe rregullojeni më vonë."
-
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} të shënuara"
 
@@ -634,8 +633,29 @@ msgstr "{pdfFilename} · {pageCount} faqe"
 msgid "{position} of {total}"
 msgstr "{position} nga {total}"
 
+msgid "{provider, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+msgstr "{provider, select, other {{selectedProviderLabel} refuzoi çelësin e ruajtur të API-së, prandaj leximi me zë do të dështojë. Përditësojeni te Cilësime → Ofruesit e AI.}}"
+
+msgid "{providerId, select, other {{name} key rejected}}"
+msgstr "{providerId, select, other {Çelësi i {name} u refuzua}}"
+
+msgid "{providerId, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+msgstr "{providerId, select, other {{name} refuzoi çelësin e ruajtur të API-së, prandaj nxjerrja dhe hapat e tjerë të AI-së do të dështojnë. Përditësoni çelësin, ose konfiguroni librin tani dhe rregullojeni më vonë.}}"
+
+msgid "{providerId, select, other {The {name} key was rejected. Update the key.}}"
+msgstr "{providerId, select, other {Çelësi i {name} u refuzua. Përditësoni çelësin.}}"
+
+msgid "{providerId, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+msgstr "{providerId, select, other {Çelësi juaj i {name} u refuzua, prandaj librat nuk mund të përpunohen ende.}}"
+
+msgid "{providerId, select, other {Your {name} key was rejected}}"
+msgstr "{providerId, select, other {Çelësi juaj i {name} u refuzua}}"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
+
+msgid "{rejectedProviderId, select, other {Settings — the {rejectedName} key was rejected}}"
+msgstr "{rejectedProviderId, select, other {Cilësime — çelësi i {rejectedName} u refuzua}}"
 
 #. placeholder {0}: reviewCount === 1 ? "manual review item" : "manual review items"
 #~ msgid "{reviewCount} {0}"
@@ -1640,7 +1660,7 @@ msgid "AI sees the current image and modifies it"
 msgstr "AI sheh imazhin aktual dhe e modifikon atë"
 
 msgid "AI steps will fail until the key is updated."
-msgstr "Hapat e IA-së do të dështojnë derisa të përditësohet çelësi."
+msgstr "Hapat e AI-së do të dështojnë derisa të përditësohet çelësi."
 
 msgid "AI-powered"
 msgstr "I fuqizuar nga AI"
@@ -10166,9 +10186,6 @@ msgstr "Përmbajtja e ruajtur ruhet. Rishikoni rezultatet që varen nga gjuha pa
 msgid "Saved content is unavailable; your draft is retained"
 msgstr "Përmbajtja e ruajtur nuk është e disponueshme; drafti yt ruhet"
 
-msgid "Saved, but {name} rejected this API key. Check that you copied the whole key."
-msgstr "U ruajt, por {name} e refuzoi këtë çelës API. Kontrolloni që e keni kopjuar të gjithë çelësin."
-
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
 
@@ -10671,10 +10688,7 @@ msgid "Settings — a sharing update is ready"
 msgstr "Cilësimet — një përditësim i ndarjes është gati"
 
 msgid "Settings — no AI provider is connected"
-msgstr "Cilësimet — asnjë ofrues AI nuk është i lidhur"
-
-msgid "Settings — the {rejectedName} key was rejected"
-msgstr "Cilësimet — çelësi i {rejectedName} u refuzua"
+msgstr "Cilësime — asnjë ofrues AI nuk është i lidhur"
 
 msgid "Settings for this step are not yet available."
 msgstr "Cilësimet për këtë hap nuk janë ende të disponueshme."
@@ -11755,9 +11769,6 @@ msgstr "Nuk u zgjidh. Provoni përsëri."
 msgid "That reply didn't send. Try again."
 msgstr "Përgjigjja nuk u dërgua. Provoni përsëri."
 
-msgid "The {name} key was rejected. Update the key."
-msgstr "Çelësi i {name} u refuzua. Përditësoni çelësin."
-
 msgid "The address every share link will start with."
 msgstr "Adresa me të cilën do të fillojë çdo lidhje ndarjeje."
 
@@ -12235,12 +12246,6 @@ msgstr "Ky kompjuter do ta harrojë lidhjen me Cloudflare, ndaj nuk do të mund 
 
 msgid "This connection isn't available yet."
 msgstr "Kjo lidhje nuk është ende e disponueshme."
-
-msgid "This doesn't look like an API key for {name}."
-msgstr "Kjo nuk duket si një çelës API për {name}."
-
-msgid "This doesn't look like an API key for {name}. {name} keys usually start with {example}"
-msgstr "Kjo nuk duket si një çelës API për {name}. Çelësat e {name} zakonisht fillojnë me {example}"
 
 msgid "This Easy Read text is shared across sections. Saving it updates every referring section, including sections outside the current filter."
 msgstr "Ky tekst për Lexim të lehtë ndahet mes disa seksioneve. Ruajtja e tij përditëson çdo seksion që e përdor, përfshirë seksionet jashtë filtrit aktual."
@@ -13675,12 +13680,6 @@ msgstr "ju@example.com"
 
 msgid "Young adult fiction"
 msgstr "Fiksion për të rinj"
-
-msgid "Your {name} key was rejected"
-msgstr "Çelësi juaj i {name} u refuzua"
-
-msgid "Your {name} key was rejected, so books can't be processed yet."
-msgstr "Çelësi juaj i {name} u refuzua, prandaj librat nuk mund të përpunohen ende."
 
 msgid "Your account needs a web address first"
 msgstr "Llogaria juaj ka nevojë për një adresë interneti së pari"

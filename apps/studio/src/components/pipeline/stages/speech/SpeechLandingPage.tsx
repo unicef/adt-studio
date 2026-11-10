@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { AlertCircle, Pencil, Settings2 } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { msg } from "@lingui/core/macro"
+import { msg, select } from "@lingui/core/macro"
 import { i18n as linguiI18n } from "@lingui/core"
 import type { MessageDescriptor } from "@lingui/core"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
@@ -151,6 +151,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   // A key that is present but refused by the provider: warned, never disabled.
   // eslint-disable-next-line lingui/no-unlocalized-strings -- qualified model identifier, never rendered
   const selectedProviderRejected = useRejectedProvider("tts", `${provider}:default`)
+  const selectedProviderLabel = linguiI18n._(PROVIDER_LABELS[provider])
 
   const disabledProviderLabels = useMemo(
     () =>
@@ -243,11 +244,8 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
               </Trans>
             ) : selectedProviderRejected ? (
               <span className="text-red-700 dark:text-red-300">
-                <Trans>
-                  {linguiI18n._(PROVIDER_LABELS[provider])} rejected the saved
-                  API key, so speech will fail. Update it in Settings → AI
-                  providers.
-                </Trans>
+                {/* `select` lets translations pick the article for the name (pt-BR: "a OpenAI", "o Azure"). */}
+                {t`${select(provider, { other: `${selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.` })}`}
               </span>
             ) : (
               linguiI18n._(PROVIDER_HINTS[provider])

@@ -13,6 +13,10 @@ const state = {
 }
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }))
+// `select` keeps its `other` branch, which is the English text.
+vi.mock("@lingui/core/macro", () => ({
+  select: (_value: string, branches: { other: string }) => branches.other,
+}))
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useLingui: () => ({

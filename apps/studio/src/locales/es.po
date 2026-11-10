@@ -376,10 +376,6 @@ msgstr "{0} pendientes de guardar"
 msgid "{0} questions"
 msgstr "{0} preguntas"
 
-#. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
-msgid "{0} rejected the saved API key, so speech will fail. Update it in Settings → AI providers."
-msgstr "{0} rechazó la clave de API guardada, así que la narración fallará. Actualízala en Configuración → Proveedores de IA."
-
 #. placeholder {0}: thread.replyCount
 msgid "{0} replies"
 msgstr "{0} respuestas"
@@ -552,6 +548,15 @@ msgstr "{generatedFeatureCount} de 6 características generadas"
 msgid "{hours}h ago"
 msgstr "hace {hours}h"
 
+msgid "{id, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
+msgstr "{id, select, other {Se guardó, pero {name} rechazó esta clave de API. Comprueba que copiaste la clave completa.}}"
+
+msgid "{id, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{id, select, other {Esto no parece una clave de API de {name}. Las claves de {name} suelen empezar por {example}}}"
+
+msgid "{id, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{id, select, other {Esto no parece una clave de API de {name}.}}"
+
 msgid "{imageCount, plural, one {# image will be translated} other {# images will be translated}}"
 msgstr "{imageCount, plural, one {# imagen será traducida} other {# imágenes serán traducidas}}"
 
@@ -605,12 +610,6 @@ msgstr "Faltan {missingForCurrentStage} resultados de idioma. Vuelve a ejecutar 
 msgid "{missingForCurrentStage} speech outputs are missing. Re-run to generate the missing items."
 msgstr "Faltan {missingForCurrentStage} resultados de voz. Vuelve a ejecutar para generar los elementos que faltan."
 
-msgid "{name} key rejected"
-msgstr "Clave de {name} rechazada"
-
-msgid "{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later."
-msgstr "{name} rechazó la clave de API guardada, así que la extracción y los demás pasos de IA fallarán. Actualiza la clave, o configura el libro ahora y corrígela más tarde."
-
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} marcados"
 
@@ -632,8 +631,29 @@ msgstr "{pdfFilename} · {pageCount} páginas"
 msgid "{position} of {total}"
 msgstr "{position} de {total}"
 
+msgid "{provider, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+msgstr "{provider, select, other {{selectedProviderLabel} rechazó la clave de API guardada, así que la narración fallará. Actualízala en Configuración → Proveedores de IA.}}"
+
+msgid "{providerId, select, other {{name} key rejected}}"
+msgstr "{providerId, select, other {Clave de {name} rechazada}}"
+
+msgid "{providerId, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+msgstr "{providerId, select, other {{name} rechazó la clave de API guardada, así que la extracción y los demás pasos de IA fallarán. Actualiza la clave, o configura el libro ahora y corrígela más tarde.}}"
+
+msgid "{providerId, select, other {The {name} key was rejected. Update the key.}}"
+msgstr "{providerId, select, other {La clave de {name} fue rechazada. Actualiza la clave.}}"
+
+msgid "{providerId, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+msgstr "{providerId, select, other {Tu clave de {name} fue rechazada, así que todavía no se pueden procesar libros.}}"
+
+msgid "{providerId, select, other {Your {name} key was rejected}}"
+msgstr "{providerId, select, other {Tu clave de {name} fue rechazada}}"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {región detectada} other {regiones detectadas}}"
+
+msgid "{rejectedProviderId, select, other {Settings — the {rejectedName} key was rejected}}"
+msgstr "{rejectedProviderId, select, other {Configuración — la clave de {rejectedName} fue rechazada}}"
 
 #. placeholder {0}: reviewCount === 1 ? "manual review item" : "manual review items"
 #~ msgid "{reviewCount} {0}"
@@ -10164,9 +10184,6 @@ msgstr "Se conserva el contenido guardado. Revise los resultados que dependen de
 msgid "Saved content is unavailable; your draft is retained"
 msgstr "El contenido guardado no está disponible; tu borrador se conserva"
 
-msgid "Saved, but {name} rejected this API key. Check that you copied the whole key."
-msgstr "Se guardó, pero {name} rechazó esta clave de API. Comprueba que copiaste la clave completa."
-
 msgid "Saved. Re-package Preview to apply."
 msgstr "Guardado. Vuelva a empaquetar la Vista previa para aplicar."
 
@@ -10670,9 +10687,6 @@ msgstr "Ajustes: hay una actualización para compartir"
 
 msgid "Settings — no AI provider is connected"
 msgstr "Configuración — no hay ningún proveedor de IA conectado"
-
-msgid "Settings — the {rejectedName} key was rejected"
-msgstr "Ajustes: la clave de {rejectedName} fue rechazada"
 
 msgid "Settings for this step are not yet available."
 msgstr "La configuración para esta etapa aún no está disponible."
@@ -11753,9 +11767,6 @@ msgstr "No se resolvió. Inténtalo de nuevo."
 msgid "That reply didn't send. Try again."
 msgstr "Esa respuesta no se envió. Inténtalo de nuevo."
 
-msgid "The {name} key was rejected. Update the key."
-msgstr "La clave de {name} fue rechazada. Actualiza la clave."
-
 msgid "The address every share link will start with."
 msgstr "La dirección con la que comenzará cada enlace para compartir."
 
@@ -12233,12 +12244,6 @@ msgstr "Este equipo olvidará su conexión con Cloudflare, así que no podrás c
 
 msgid "This connection isn't available yet."
 msgstr "Esta conexión aún no está disponible."
-
-msgid "This doesn't look like an API key for {name}."
-msgstr "Esto no parece una clave de API de {name}."
-
-msgid "This doesn't look like an API key for {name}. {name} keys usually start with {example}"
-msgstr "Esto no parece una clave de API de {name}. Las claves de {name} suelen empezar por {example}"
 
 msgid "This Easy Read text is shared across sections. Saving it updates every referring section, including sections outside the current filter."
 msgstr "Este texto de Lectura fácil se comparte entre secciones. Al guardarlo, se actualizan todas las secciones que lo usan, incluidas las que quedan fuera del filtro actual."
@@ -13673,12 +13678,6 @@ msgstr "tu@ejemplo.com"
 
 msgid "Young adult fiction"
 msgstr "Ficción para jóvenes adultos"
-
-msgid "Your {name} key was rejected"
-msgstr "Tu clave de {name} fue rechazada"
-
-msgid "Your {name} key was rejected, so books can't be processed yet."
-msgstr "Tu clave de {name} fue rechazada, así que todavía no se pueden procesar libros."
 
 msgid "Your account needs a web address first"
 msgstr "Tu cuenta necesita una dirección web primero"

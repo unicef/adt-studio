@@ -68,6 +68,8 @@ let health: ProviderHealthResponse = { providerId: "openai", ok: true, code: "ok
 let location: { hash: string; search: { auth?: "api-key" } } = { hash: "", search: {} }
 
 vi.mock("@lingui/core/macro", () => ({
+  // `select` keeps its `other` branch, which is the English text.
+  select: (_value: string, branches: { other: string }) => branches.other,
   msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({
     id: strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
   }),

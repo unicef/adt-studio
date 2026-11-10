@@ -9,8 +9,16 @@ let rejected: { providerId: string; displayName: string } | null = null
 const navigate = vi.fn()
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }))
+// `select` keeps its `other` branch, which is the English text.
+vi.mock("@lingui/core/macro", () => ({
+  select: (_value: string, branches: { other: string }) => branches.other,
+}))
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useLingui: () => ({
+    t: (strings: TemplateStringsArray, ...values: unknown[]) =>
+      strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
+  }),
 }))
 vi.mock("@/hooks/use-api-key", () => ({
   useBookStructuredTextStatus: () => state,

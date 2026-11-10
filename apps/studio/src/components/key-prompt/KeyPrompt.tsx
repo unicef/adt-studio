@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { KeyRound, ShieldAlert } from "lucide-react"
-import { Trans } from "@lingui/react/macro"
+import { select } from "@lingui/core/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
 
 /** Welcome screen: connecting a provider comes first, then the book. `ctas` are the add/import buttons. */
@@ -27,20 +28,24 @@ export function WelcomeKeyPrompt({ onConnect, ctas }: { onConnect: () => void; c
 
 /** Welcome screen: the provider is set up but refuses its key. `ctas` are the add/import buttons. */
 export function WelcomeRejectedKeyPrompt({
+  providerId,
   name,
   onUpdate,
   ctas,
 }: {
+  /** Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google"). */
+  providerId: string
   name: string
   onUpdate: () => void
   ctas: ReactNode
 }) {
+  const { t } = useLingui()
   return (
     <>
       <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13.5px] text-muted-foreground">
         <ShieldAlert className="size-4 text-red-600" aria-hidden />
         <span>
-          <Trans>Your {name} key was rejected, so books can't be processed yet.</Trans>
+          {t`${select(providerId, { other: `Your ${name} key was rejected, so books can't be processed yet.` })}`}
         </span>
         <button
           type="button"
@@ -81,7 +86,17 @@ export function MissingKeyBanner({ onConnect }: { onConnect: () => void }) {
 }
 
 /** Book overview and stage pages: the provider is set up but refuses its key. */
-export function RejectedKeyBanner({ name, onUpdate }: { name: string; onUpdate: () => void }) {
+export function RejectedKeyBanner({
+  providerId,
+  name,
+  onUpdate,
+}: {
+  /** Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google"). */
+  providerId: string
+  name: string
+  onUpdate: () => void
+}) {
+  const { t } = useLingui()
   return (
     <div
       role="alert"
@@ -95,7 +110,7 @@ export function RejectedKeyBanner({ name, onUpdate }: { name: string; onUpdate: 
       </span>
       <div className="min-w-[14rem] flex-1">
         <div className="text-[13.5px] font-semibold">
-          <Trans>Your {name} key was rejected</Trans>
+          {t`${select(providerId, { other: `Your ${name} key was rejected` })}`}
         </div>
         <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">
           <Trans>AI steps will fail until the key is updated.</Trans>

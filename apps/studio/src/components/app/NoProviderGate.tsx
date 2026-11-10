@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode } from "react"
-import { Trans } from "@lingui/react/macro"
+import { select } from "@lingui/core/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight, FileText, KeyRound } from "lucide-react"
 import {
   Dialog,
@@ -45,6 +46,7 @@ function ProviderFlow() {
  * user can continue either way.
  */
 export function NoProviderGate({ children }: { children: ReactNode }) {
+  const { t } = useLingui()
   const needsProvider = useNeedsTextProvider()
   const rejected = useRejectedTextProvider()
   const connect = useConnectProvider({
@@ -58,6 +60,8 @@ export function NoProviderGate({ children }: { children: ReactNode }) {
   const reason = needsProvider ? "missing" : rejected ? "rejected" : null
   const open = !dismissed && reason !== null
   const name = rejected?.displayName ?? ""
+  // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
+  const providerId = rejected?.providerId ?? ""
 
   return (
     <>
@@ -74,14 +78,14 @@ export function NoProviderGate({ children }: { children: ReactNode }) {
           <DialogHeader className="gap-1.5 px-6 pt-5 text-left">
             <DialogTitle className="text-[17px] leading-tight tracking-[-0.01em]">
               {reason === "rejected" ? (
-                <Trans>Your {name} key was rejected</Trans>
+                t`${select(providerId, { other: `Your ${name} key was rejected` })}`
               ) : (
                 <Trans>Connect an AI provider to process your book</Trans>
               )}
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
               {reason === "rejected" ? (
-                <Trans>{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.</Trans>
+                t`${select(providerId, { other: `${name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.` })}`
               ) : (
                 <Trans>Connect your AI provider to extract and process pages. You can still set up the book without one.</Trans>
               )}
