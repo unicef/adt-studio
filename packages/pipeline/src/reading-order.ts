@@ -12,6 +12,7 @@
  * The order is derived from source data today. Phase 5 slots a stored,
  * user-editable order in at the marked point without moving any consumer.
  */
+import { partScopedPages } from "./sectioning-window.js"
 import { HistoryIntegrityError, type Storage } from "@adt/storage"
 import { ambiguousPublicOutputIds, isPublicOutputId } from "./public-output-identity.js"
 import type {
@@ -65,6 +66,8 @@ export interface ResolvedReadingOrder {
 export interface ResolveReadingOrderOptions {
   /** Drop quiz pages entirely (packaging with the quizzes feature disabled). */
   includeQuizzes?: boolean
+  /** Additional caller scope; never broadens a mandatory part range. */
+  pageIds?: readonly string[]
 }
 
 /** The `content/pages.json` entry shape, built in exactly one place. */
@@ -95,8 +98,9 @@ interface PageContext {
   rendering: SectionRendering[]
 }
 
-function readPageContexts(storage: Storage): PageContext[] {
-  return storage.getPages().map((page) => {
+function readPageContexts(storage: Storage, pageIds?: readonly string[]): PageContext[] {
+  const selected = pageIds && new Set(pageIds)
+  return partScopedPages(storage).filter(page => !selected || selected.has(page.pageId)).map((page) => {
     try {
       const sectioning = getRenderSectioning(storage, page.pageId)
       const row = storage.getLatestNodeData("web-rendering", page.pageId)
@@ -178,7 +182,7 @@ export function resolveReadingOrder(
   storage: Storage,
   options: ResolveReadingOrderOptions = {}
 ): ResolvedReadingOrder {
-  const pageContexts = readPageContexts(storage)
+  const pageContexts = readPageContexts(storage, options.pageIds)
   const ambiguous = ambiguousPublicOutputIds(storage)
 
   const quizzes = options.includeQuizzes === false ? [] : readReadingOrderQuizzes(storage)

@@ -1,5 +1,5 @@
 import { catalogOutputs } from "../services/catalog-output-service.js"
-import { reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks } from "@adt/pipeline"
+import { partScopedPages, requiredPartRange, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { createHash } from "node:crypto"
@@ -205,7 +205,7 @@ function getBookTitle(storage: Storage): string {
 }
 
 async function getTextCatalog(storage: Storage): Promise<TextCatalogOutput> {
-  const pages = storage.getPages()
+  const pages = partScopedPages(storage)
   return await buildTextCatalog(storage, pages)
 }
 
@@ -216,7 +216,10 @@ function getGlossary(storage: Storage): GlossaryOutput | undefined {
 
 function getQuizData(storage: Storage): QuizGenerationOutput | undefined {
   const row = storage.getLatestNodeData("quiz-generation", "book")
-  return row ? withResolvedQuizIds(row.data as QuizGenerationOutput) : undefined
+  if (!row) return undefined
+  const data = withResolvedQuizIds(row.data as QuizGenerationOutput)
+  const pages = new Set(partScopedPages(storage).map(page => page.pageId))
+  return { ...data, quizzes: data.quizzes.filter(quiz => pages.has(quiz.afterPageId)) }
 }
 
 function buildTextsMap(
@@ -234,7 +237,7 @@ function buildTextsMap(
     if (catalog?.entries) {
       for (const e of catalog.entries) textsMap[e.id] = e.text
     }
-    const easyReadEntries = easyReadEnabled ? flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))) : []
+    const easyReadEntries = easyReadEnabled ? flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, partScopedPages(storage)))) : []
     for (const e of easyReadEntries) textsMap[e.id] = e.text
   } else {
     const legacyLang = normalizedLang.replace("-", "_")
@@ -244,7 +247,7 @@ function buildTextsMap(
     if (transRow) {
       const translated = transRow.data as TextCatalogOutput
       const active = new Set((catalog?.entries ?? []).map((entry) => entry.id))
-      const easy = activeEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))
+      const easy = activeEasyRead(storage, buildEasyReadSourceBlocks(storage, partScopedPages(storage)))
       if (easyReadEnabled) for (const entry of flattenEasyReadEntries(easy)) active.add(entry.id)
       for (const e of translated.entries) if (active.has(e.id) && !Object.hasOwn(textsMap, e.id)) textsMap[e.id] = e.text
     }
@@ -410,7 +413,7 @@ function buildPreviewConfig(
   // Also check if any rendered sections are activity types
   let hasActivitySections = false
   if (!hasQuiz) {
-    const pages = storage.getPages()
+    const pages = partScopedPages(storage)
     for (const page of pages) {
       const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
       if (renderRow) {
@@ -426,7 +429,7 @@ function buildPreviewConfig(
   }
 
   const hasSignLanguageVideos = storage.getSignLanguageVideos().some((v) => v.sectionId !== null)
-  const hasEasyRead = easyReadEnabled && flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))).length > 0
+  const hasEasyRead = easyReadEnabled && flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, partScopedPages(storage)))).length > 0
 
   // Available languages = the source language + every translation actually
   // present in the DB. We restrict against the book's configured
@@ -495,6 +498,7 @@ export function createAdtPreviewRoutes(
   app.use("/books/:label/adt-preview/*", async (c, next) => {
     const label = parseBookLabel(c.req.param("label"))
     if (!fs.existsSync(path.join(path.resolve(booksDir), label))) throw new HTTPException(404, { message: "Book not found" })
+    requiredPartRange(path.join(path.resolve(booksDir), label))
     // A mode-incompatible retained Storyboard is different from the usable
     // stale captions/translation/speech warnings supplied by SPEC-0001.
     await next()
@@ -514,6 +518,7 @@ export function createAdtPreviewRoutes(
     if (!fs.existsSync(path.join(bookDir, `${safeLabel}.db`))) {
       throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
     }
+    requiredPartRange(bookDir)
     return { safeLabel, bookDir }
   }
 
@@ -537,9 +542,16 @@ export function createAdtPreviewRoutes(
 
   function previewSpeech(storage: Storage, label: string, language: string) {
     const config = loadBookConfig(label, booksDir, configPath)
-    return reconcileSpeechInputs({ storage, config, sourceLanguage: config.editing_language ?? getBookLanguage(storage),
+    const entries = reconcileSpeechInputs({ storage, config, sourceLanguage: config.editing_language ?? getBookLanguage(storage),
       languages: [language], profiles: loadCoreTtsProfiles(configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config")),
       promptsDir, bookDir: path.join(path.resolve(booksDir), label), persist: false })[0]?.entries ?? []
+    if (!storage.bookDir || !requiredPartRange(storage.bookDir)) return entries
+    const pages = partScopedPages(storage)
+    const ids = new Set([
+      ...buildTextCatalogSnapshot(storage, pages).entries,
+      ...flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, pages))),
+    ].map(entry => entry.id))
+    return entries.filter(entry => ids.has(entry.id))
   }
   function includedSpeechIds(storage: Storage, label: string, language: string, voiceSlot?: VoiceSlot, kind: "audio" | "timestamps" = "audio") {
     const usableSpeech = new Set(previewSpeech(storage, label, language).filter((entry) => entry.speechText?.trim()).map((entry) => entry.id))
@@ -682,7 +694,7 @@ export function createAdtPreviewRoutes(
       if (pending) return await pending
 
       const build = (async () => {
-        const pages = storage.getPages()
+        const pages = partScopedPages(storage)
         let allHtml = ""
         for (const page of pages) {
           const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)

@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { readBookContentIdentity, type Storage } from "@adt/storage"
-import { retainedPackageOwnership } from "@adt/pipeline"
+import { retainedPackageOwnership, requiredPartRange } from "@adt/pipeline"
 
 function stamp(file: string): string {
   const s = fs.statSync(file, { bigint: true, throwIfNoEntry: false })
@@ -16,7 +16,9 @@ function stamp(file: string): string {
 export function createRetainedPackageReader() {
   const proofs = new Map<string, { key: string; members: Map<string, string>; value: ReturnType<typeof retainedPackageOwnership> }>()
   const read = (db: Storage, bookDb: string, root: string, cachedOnly = false) => {
+    requiredPartRange(path.dirname(bookDb))
     const key = JSON.stringify([
+      stamp(path.join(path.dirname(bookDb), "part.json")),
       db.getNodeVersionFingerprint(), readBookContentIdentity(bookDb), ...[root,
         path.join(root, "content"), path.join(root, "content/pages.json"), path.join(root, ".build-owners"),
         path.join(root, "index.html"), path.join(root, "assets/offline-preloader.js")].map(stamp),

@@ -7,15 +7,16 @@ import type { ExtractedPage } from "@adt/pdf"
 import { createBookStorage, openBookDb, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
 import { AccessibilityAssessmentOutput, type TaskInfo } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
-import { exportAdt, exportScorm } from "../services/export-service.js"
+import { exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld } from "../services/export-service.js"
 import { spawnSync } from "node:child_process"
 import { pathToFileURL } from "node:url"
 import { unzipSync } from "fflate"
-import { packageAdtWeb, loadBookConfig } from "@adt/pipeline"
+import { packageAdtWeb, packageWebpub, loadBookConfig } from "@adt/pipeline"
 import { createBookRoutes } from "./books.js"
 import { listBooks, getBook } from "../services/book-service.js"
 import type { TaskService } from "../services/task-service.js"
 import { createPackageRoutes } from "./package.js"
+import { createAdtPreviewRoutes } from "./adt-preview.js"
 
 describe("Package routes", () => {
   let tmpDir: string
@@ -495,6 +496,56 @@ describe("Package routes", () => {
     expect(abandoned.filter(name => fs.existsSync(path.join(work, name)))).toEqual([])
     expect(fs.readFileSync(path.join(unknown, "notes"), "utf8")).toBe("owner file")
     expect(fs.lstatSync(alias).isSymbolicLink()).toBe(true)
+  })
+
+  it("enforces the mandatory part scope in retained packages and newly built reader content", { timeout: 30_000 }, async () => {
+    const label = "part-membership"; createRenderedBook(label); createWebAssets()
+    const dir = path.join(tmpDir, label), url = `/api/books/${label}/package-adt`
+    const storage = createBookStorage(label, tmpDir)
+    storage.putExtractedPage({ pageId: "pg002", pageNumber: 2, text: "OUTSIDE_PAGE_TWO", images: [], pageImage: { imageId: "pg002_page", buffer: Buffer.from("page two"), format: "png", hash: "two", width: 800, height: 1200 } })
+    for (const node of ["page-sectioning", "web-rendering"]) storage.putNodeData(node, "pg002", JSON.parse(JSON.stringify(storage.getLatestNodeData(node, "pg001")!.data).replaceAll("pg001", "pg002").replaceAll("Original text", "OUTSIDE_PAGE_TWO")))
+    storage.putNodeData("quiz-generation", "book", { generatedAt: "2026-11-11", language: "en", pagesPerQuiz: 1, quizzes: [1, 2].map(n => ({ quizId: `qz00${n}`, quizIndex: n - 1, afterPageId: `pg00${n}`, pageIds: [`pg00${n}`], question: n === 1 ? "Inside quiz" : "OUTSIDE_QUIZ", options: [{ text: "A", explanation: "A" }, { text: "B", explanation: "B" }], answerIndex: 0, reasoning: "fixture" })) })
+    storage.close()
+    const readers = new Hono().onError(errorHandler).route("/api", createBookRoutes(tmpDir)).route("/api", createAdtPreviewRoutes(tmpDir, webAssetsDir))
+    expect((await app.request(url, { method: "POST" })).status).toBe(200)
+    const derivedStorage = createBookStorage(label, tmpDir)
+    try { packageWebpub(derivedStorage, { bookDir: dir, label, webAssetsDir, title: "Part", language: "en", outputLanguages: ["en"] }) } finally { derivedStorage.close() }
+    fs.cpSync(path.join(dir, "webpub"), path.join(dir, "epub/OEBPS"), { recursive: true })
+    fs.cpSync(path.join(dir, "webpub"), path.join(dir, "pnld"), { recursive: true })
+    const prior = fs.readFileSync(path.join(dir, "adt/pg002_sec001.html"))
+    // Prime the shared retained proof before changing only the part manifest.
+    expect((await readers.request(`/api/books/${label}/adt/pg002_sec001.html`)).status).toBe(200)
+    fs.writeFileSync(path.join(dir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: label, title: null, range: { startPage: 1, endPage: 1 }, pageCount: 2, fingerprint: {}, identityHash: "fixture", semanticsHash: "fixture", createdAt: "2026-11-11", partLabelSuggestion: label }))
+    for (const download of [exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld]) await expect(download(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(fs.readFileSync(path.join(dir, "adt/pg002_sec001.html"))).toEqual(prior)
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: false })
+    expect((await readers.request(`/api/books/${label}/adt/pg002_sec001.html`)).status).toBe(404)
+    expect((await readers.request(`/api/books/${label}/adt-preview/pg002_sec001.html`)).status).toBe(404)
+    expect(await (await readers.request(`/api/books/${label}/adt-preview/content/pages.json`)).json()).toEqual([expect.objectContaining({ section_id: "pg001_sec001" }), expect.objectContaining({ section_id: "qz001" })])
+    expect((await app.request(url, { method: "POST" })).status).toBe(200)
+    const zip = unzipSync(new Uint8Array(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer()))
+    expect(zip["pg001_sec001.html"]).toBeDefined()
+    expect(zip["pg002_sec001.html"]).toBeUndefined()
+    expect(zip["qz001.html"]).toBeDefined()
+    expect(zip["qz002.html"]).toBeUndefined()
+    const liveTexts = await (await readers.request(`/api/books/${label}/adt-preview/content/i18n/en/texts.json`)).text()
+    expect(liveTexts).not.toContain("OUTSIDE_")
+    for (const member of ["content/pages.json", "content/i18n/en/texts.json", "assets/offline-preloader.js"]) {
+      expect(Buffer.from(zip[member]).toString()).not.toContain("pg002")
+      expect(Buffer.from(zip[member]).toString()).not.toContain("qz002")
+    }
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
+    const scopedStorage = createBookStorage(label, tmpDir)
+    try { packageWebpub(scopedStorage, { bookDir: dir, label, webAssetsDir, title: "Part", language: "en", outputLanguages: ["en"] }) } finally { scopedStorage.close() }
+    const webpub = unzipSync(new Uint8Array(await new Response((await exportWebpub(label, tmpDir)).stream).arrayBuffer()))
+    expect(webpub["pg001_sec001.html"]).toBeDefined()
+    expect(webpub["pg002_sec001.html"]).toBeUndefined()
+    fs.writeFileSync(path.join(dir, "part.json"), "{")
+    for (const route of ["adt/pg001_sec001.html", "adt/assets/offline-preloader.js", "adt-preview/content/pages.json"]) {
+      const response = await readers.request(`/api/books/${label}/${route}`)
+      expect(response.status).toBe(409)
+      expect(await response.json()).toMatchObject({ code: "SECTIONING_WINDOW_INVALID" })
+    }
   })
 
   it("invalid part windows reject both cache paths without changing the previous package", { timeout: 30_000 }, async () => {

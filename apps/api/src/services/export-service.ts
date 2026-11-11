@@ -6,7 +6,7 @@ import type { PackagingWarning } from "@adt/types"
 import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { readRetainedPackageOwnership } from "./retained-package-reader.js"
-import { publishedAdtDirectory, requiredPartRange, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import { publishedAdtDirectory, requiredPartRange, resolveReadingOrder, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream, type ZipStreamOptions } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 
@@ -305,10 +305,30 @@ export async function exportWebpub(
   const webpubDir = path.join(bookDir, "webpub")
 
   return {
-    stream: createZipStream(webpubDir),
+    stream: readableDerivedPackageZip(bookDir, webpubDir),
     filename: `${title}.webpub`,
     safeFilename: `${safeLabel}.webpub`,
   }
+}
+
+/** Derived reader formats keep the source package's owner membership even
+ * after relocating/rewriting HTML. An old export cannot broaden a saved part. */
+function readableDerivedPackageZip(bookDir: string, directory: string, contentRoot = directory) {
+  return withBookWriter(bookDir, () => {
+    if (requiredPartRange(bookDir)) {
+      const storage = createBookStorage(path.basename(bookDir), path.dirname(bookDir))
+      try {
+        const allowed = resolveReadingOrder(storage).positionById
+        let entries: unknown
+        try { entries = JSON.parse(fs.readFileSync(path.join(contentRoot, ".build-owners"), "utf8")).entries }
+        catch { /* Unproven retained membership requires explicit preparation. */ }
+        if (!Array.isArray(entries) || !entries.length || entries.some(row => !Array.isArray(row) || typeof row[0] !== "string" || !allowed.has(row[0]))) {
+          throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again within the current part window.")
+        }
+      } finally { storage.close() }
+    }
+    return createAdmittedZipStream(bookDir, directory)
+  })
 }
 
 function readablePackageZip(bookDir: string, directory: string, format: "scorm" | "web") {
@@ -412,7 +432,7 @@ export async function exportEpub(
   }
 
   return {
-    stream: createZipStream(epubDir),
+    stream: readableDerivedPackageZip(bookDir, epubDir, path.join(epubDir, "OEBPS")),
     filename: `${title}.epub`,
     safeFilename: `${safeLabel}.epub`,
   }
@@ -437,7 +457,7 @@ export async function exportPnld(
   }
 
   return {
-    stream: createZipStream(pnldDir),
+    stream: readableDerivedPackageZip(bookDir, pnldDir),
     filename: `${title}.zip`,
     safeFilename: `${safeLabel}-pnld.zip`,
   }

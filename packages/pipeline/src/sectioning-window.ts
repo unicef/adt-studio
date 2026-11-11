@@ -19,3 +19,10 @@ export function activeSectioningPages(storage: Storage, config: AppConfig, bookD
   const end = range?.endPage ?? config.end_page ?? Infinity
   return storage.getPages().filter((page) => page.pageNumber >= start && page.pageNumber <= end)
 }
+
+/** Mandatory imported-part scope also applies to read projections. Retained
+ * out-of-window database records remain in history but are not reader output. */
+export function partScopedPages(storage: Storage, bookDir = storage.bookDir) {
+  const range = bookDir ? requiredPartRange(bookDir) : null
+  return storage.getPages().filter(page => !range || page.pageNumber >= range.startPage && page.pageNumber <= range.endPage)
+}

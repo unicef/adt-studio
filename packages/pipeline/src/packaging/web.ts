@@ -71,7 +71,7 @@ import { flattenEasyReadEntries, buildEasyReadSourceBlocks } from "../easy-read.
 import { activeEasyRead } from "../retained-catalog.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
 import { storyboardCoverage } from "../storyboard-coverage.js"
-import { activeSectioningPages, requiredPartRange } from "../sectioning-window.js"
+import { activeSectioningPages, requiredPartRange, partScopedPages } from "../sectioning-window.js"
 import { SectioningSafetyError } from "../sectioning-errors.js"
 import { renderingOwnershipWarnings } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
@@ -422,8 +422,11 @@ async function buildWebPackage(
   const step = "package-web" as const
   // Validate stored/imported quiz identities before deleting or writing any
   // bundle files. API validation alone cannot protect imported book databases.
+  const pages = partScopedPages(storage, bookDir)
+  const pageIdsInPart = new Set(pages.map(page => page.pageId))
   const quizRow = storage.getLatestNodeData("quiz-generation", "book")
   const quizData = quizRow ? withResolvedQuizIds(quizRow.data as QuizGenerationOutput) : undefined
+  if (quizData) quizData.quizzes = quizData.quizzes.filter(quiz => pageIdsInPart.has(quiz.afterPageId))
   progress.emit({ type: "step-start", step })
   progress.emit({ type: "step-progress", step, message: "Setting up directories..." })
 
@@ -436,7 +439,6 @@ async function buildWebPackage(
   // ------------------------------------------------------------------
   // Collect data from storage
   // ------------------------------------------------------------------
-  const pages = storage.getPages()
   const imageMap = buildImageMap(path.join(bookDir, "images"), storage)
 
   // Always rebuild the text catalog to avoid staleness; only persist if changed
@@ -447,7 +449,7 @@ async function buildWebPackage(
   const resolvedSpeech = options.config ? reconcileSpeechInputs({ storage, config: options.config, sourceLanguage: language,
     languages: outputLanguages, profiles: loadCoreTtsProfiles(options.configDir ?? path.resolve("config")),
     promptsDir: options.promptsDir ?? path.resolve("prompts"), bookDir, persist: false }) : undefined
-  const speechEntries = (lang: string) => ((resolvedSpeech?.find((item) => item.language === lang) ?? getCoreTtsCatalog(storage, lang))?.entries ?? []).filter((entry) => !options.config || eligibleIds.has(entry.id))
+  const speechEntries = (lang: string) => ((resolvedSpeech?.find((item) => item.language === lang) ?? getCoreTtsCatalog(storage, lang))?.entries ?? []).filter((entry) => eligibleIds.has(entry.id))
   const freshness = options.config ? readOutputCatalog({ storage, config: options.config, bookDir,
     promptsDir: options.promptsDir ?? path.resolve("prompts"), configDir: options.configDir ?? path.resolve("config") }) : []
   const included = new Set<string>()
@@ -483,12 +485,13 @@ async function buildWebPackage(
   const copiedImages = new Set<string>()
   // Keep reporting orphaned renderings even though the shared order resolver
   // correctly omits entries without a real sectionId.
-  const orphanedRenderings = renderingOwnershipWarnings(storage)
+  const orphanedRenderings = renderingOwnershipWarnings(storage).filter(warning => pageIdsInPart.has(warning.pageId))
 
   // The book's output sequence — the same resolver the live preview uses, so
   // the two cannot drift.
   const readingOrder = resolveReadingOrder(storage, {
     includeQuizzes: features?.quizzes !== false,
+    pageIds: pages.map(page => page.pageId),
   })
 
   // Reading order revisits a page once per section, so per-page reads are
@@ -1153,7 +1156,7 @@ async function buildWebPackage(
     fs.writeFileSync(path.join(adtDir, "AGENTS.md"), agentsMd)
   }
 
-  const pageIds = options.config ? activeSectioningPages(storage, options.config, bookDir).map((page) => page.pageId) : undefined
+  const pageIds = (options.config ? activeSectioningPages(storage, options.config, bookDir) : pages).map(page => page.pageId)
   const coverage = storyboardCoverage(storage, pageIds)
   const missing = [...new Set([...coverage.missingPages, ...coverage.missingSections.map((section) => section.pageId)])]
   return { warnings: [...orphanedRenderings, ...storyboardSourceWarnings(storage, pageIds), ...missing.map((pageId) => ({ kind: "missing-storyboard" as const, pageId }))] }
