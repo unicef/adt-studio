@@ -16,8 +16,8 @@ beforeEach(() => {
   mocks.repair.mockImplementation(async (_, request) => ({ requestId: request.requestId, count: 1, operation: "repair", revision: 1, replayed: false, selectedVersions: [] }))
 })
 afterEach(cleanup)
-function mount() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+function mount(staleTime = 0) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime }, mutations: { retry: false } } })
   const view = render(<QueryClientProvider client={client}><HistoryRecoveryPanel bookLabel="A" /></QueryClientProvider>)
   return { client, view }
 }
@@ -88,4 +88,45 @@ it("offers a later readable-history checkpoint explicitly, never recovery for un
   fireEvent.click(screen.getByRole("button", { name: "Save history checkpoint" }))
   await waitFor(() => expect(mocks.checkpoint).toHaveBeenCalledTimes(1))
   expect(mocks.repair).not.toHaveBeenCalled()
+})
+
+
+it("every explicit Inspect refreshes a fresh cache after Cancel and waits for new consent", async () => {
+  mount(5 * 60 * 1000)
+  await inspect()
+  fireEvent.click(screen.getByRole("checkbox"))
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
+  let finish!: (value: unknown) => void
+  mocks.inspect.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  fireEvent.click(screen.getByRole("button", { name: "Inspect history" }))
+  await waitFor(() => expect(mocks.inspect).toHaveBeenCalledTimes(2))
+  expect(repair().disabled).toBe(true)
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false)
+  finish({ ...state(), snapshot: "b".repeat(64) })
+  await waitFor(() => expect((screen.getByRole("checkbox") as HTMLInputElement).disabled).toBe(false))
+  expect(repair().disabled).toBe(true)
+  fireEvent.click(screen.getByRole("checkbox"))
+  fireEvent.click(repair())
+  await waitFor(() => expect(mocks.repair).toHaveBeenCalledTimes(1))
+  expect(mocks.repair.mock.calls[0][1].snapshot).toBe("b".repeat(64))
+})
+
+
+it("Cancel aborts inspection and a late result cannot replace the next explicit inspection", async () => {
+  mount(5 * 60 * 1000); await inspect()
+  let late!: (value: unknown) => void
+  mocks.inspect.mockImplementationOnce(() => new Promise(resolve => { late = resolve }))
+  fireEvent.click(screen.getByRole("button", { name: "Inspect history" }))
+  await waitFor(() => expect(mocks.inspect).toHaveBeenCalledTimes(2))
+  const signal = mocks.inspect.mock.calls[1][1] as AbortSignal
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
+  expect(signal.aborted).toBe(true)
+  mocks.inspect.mockResolvedValueOnce({ ...state(), snapshot: "b".repeat(64) })
+  await inspect()
+  await waitFor(() => expect(mocks.inspect).toHaveBeenCalledTimes(3))
+  late({ ...state(), snapshot: "c".repeat(64) })
+  await waitFor(() => expect((screen.getByRole("checkbox") as HTMLInputElement).disabled).toBe(false))
+  fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(repair())
+  await waitFor(() => expect(mocks.repair).toHaveBeenCalledTimes(1))
+  expect(mocks.repair.mock.calls[0][1].snapshot).toBe("b".repeat(64))
 })

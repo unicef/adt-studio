@@ -19,7 +19,7 @@ function BookHistoryRecovery({ bookLabel }: { bookLabel: string }) {
   const [audit, setAudit] = useState<unknown[] | null>(null)
   const state = useQuery({
     queryKey: ["books", bookLabel, "history-recovery"],
-    queryFn: () => api.inspectHistoryRecovery(bookLabel), enabled: opened,
+    queryFn: ({ signal }) => api.inspectHistoryRecovery(bookLabel, signal), enabled: opened,
   })
   const recoverable = state.data?.issues.filter(issue => issue.reason === "recoverable") ?? []
   const operation = recoverable.length > 0 ? "repair" : "checkpoint"
@@ -47,7 +47,7 @@ function BookHistoryRecovery({ bookLabel }: { bookLabel: string }) {
       case "missing-record": return t`A historical record is missing; it cannot be reconstructed safely`
     }
   }
-  const inspect = () => { setOpened(true); setConfirmation(null); setAudit(null); mutation.reset(); if (opened) void state.refetch() }
+  const inspect = () => { setOpened(true); setConfirmation(null); setAudit(null); mutation.reset(); void state.refetch() }
   return <section className="space-y-3 rounded-lg border p-4">
     <h2 className="font-medium"><Trans>History recovery</Trans></h2>
     <p className="text-sm text-muted-foreground"><Trans>Inspect identity history before recovery. Only verified original bytes can be restored. Recovery keeps damaged evidence and assets, and does not regenerate content.</Trans></p>
@@ -80,7 +80,7 @@ function BookHistoryRecovery({ bookLabel }: { bookLabel: string }) {
             const request: HistoryCheckpointRequest = { ...confirmation, confirmed: true }
             mutation.mutate(operation === "repair" ? { ...request, records: recoverable.map(({ node, itemId, version, beforeHash, witnessHash }) => ({ node, itemId, version, beforeHash, witnessHash: witnessHash! })) } : request)
           }}>{operation === "repair" ? <Trans>Restore verified history</Trans> : <Trans>Save history checkpoint</Trans>}</Button>
-          <Button variant="outline" disabled={mutation.isPending} onClick={() => { setConfirmation(null); setOpened(false); mutation.reset(); setAudit(null) }}><Trans>Cancel</Trans></Button>
+          <Button variant="outline" disabled={mutation.isPending} onClick={() => { setConfirmation(null); setOpened(false); mutation.reset(); setAudit(null); void client.cancelQueries({ queryKey: ["books", bookLabel, "history-recovery"], exact: true }) }}><Trans>Cancel</Trans></Button>
         </div>
       </>}
     </>}

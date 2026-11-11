@@ -1896,8 +1896,8 @@ export const api = {
       { method: "POST", body: JSON.stringify({ version, baseVersion }) }
     ),
 
-  inspectHistoryRecovery: (label: string) =>
-    request<import("@adt/types").HistoryRecoveryStatus>(`/books/${label}/history-recovery`),
+  inspectHistoryRecovery: (label: string, signal?: AbortSignal) =>
+    request<import("@adt/types").HistoryRecoveryStatus>(`/books/${label}/history-recovery`, { signal }),
 
   checkpointHistory: (label: string, body: import("@adt/types").HistoryCheckpointRequest) =>
     request<import("@adt/types").HistoryRecoveryReceipt>(`/books/${label}/history-recovery/checkpoint`, { method: "POST", body: JSON.stringify(body) }),
