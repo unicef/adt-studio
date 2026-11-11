@@ -9,7 +9,7 @@ export async function invalidateBookQueries(client: QueryClient, label: string) 
     { queryKey: ["books", label], predicate: (query: Parameters<typeof isRunConfirmationQuery>[0]) => !isRunConfirmationQuery(query) },
     { queryKey: ["books"], exact: true },
     { queryKey: ["package-adt-status", label] },
-    { queryKey: ["debug"] },
+    { queryKey: ["debug"], predicate: (query: Parameters<typeof isRunConfirmationQuery>[0]) => query.queryKey[2] === label },
   ]
   await Promise.all(filters.map((filter) => client.cancelQueries(filter)))
   await Promise.all(filters.map((filter) => client.invalidateQueries(filter)))

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { QueryClient, QueryClientProvider, QueryObserver } from "@tanstack/react-query"
+import { runConfirmationQueryKey } from "@/hooks/run-confirmation-query"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
@@ -79,6 +80,28 @@ it("does not apply an A response or recovery evidence to B after navigation", as
   await inspect()
   expect(screen.queryByText(/Operation recorded/)).toBeNull()
   expect(repair().disabled).toBe(true)
+})
+
+it("a late recovery refreshes only its book and leaves request-owned confirmation reads alone", async () => {
+  let complete!: (value: unknown) => void
+  mocks.repair.mockImplementationOnce(() => new Promise(resolve => { complete = resolve }))
+  const { client, view } = mount(Infinity); await inspect()
+  fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(repair())
+  await waitFor(() => expect(complete).toBeDefined())
+  view.rerender(<QueryClientProvider client={client}><HistoryRecoveryPanel bookLabel="B" /></QueryClientProvider>)
+  const keys = [
+    ["books"], ["books", "A", "outputs"], ["books", "B", "outputs"],
+    ["debug", "versions", "A"], ["debug", "versions", "B"],
+    runConfirmationQueryKey("A", "sectioning", "dialog", 1), runConfirmationQueryKey("B", "sectioning", "dialog", 1),
+    ["package-adt-status", "A"], ["package-adt-status", "B"],
+  ]
+  const reads = keys.map(() => vi.fn(async () => "current"))
+  const stops = keys.map((queryKey, index) => new QueryObserver(client, { queryKey, queryFn: reads[index], initialData: "saved" }).subscribe(() => {}))
+  try {
+    complete({ requestId: "A", operation: "repair", count: 1, revision: 1, replayed: false, selectedVersions: [] })
+    await waitFor(() => expect(reads[1]).toHaveBeenCalledTimes(1))
+    expect(reads.map(read => read.mock.calls.length)).toEqual([1, 1, 0, 1, 0, 0, 0, 1, 0])
+  } finally { stops.forEach(stop => stop()); client.clear() }
 })
 
 it("offers a later readable-history checkpoint explicitly, never recovery for unverified history", async () => {

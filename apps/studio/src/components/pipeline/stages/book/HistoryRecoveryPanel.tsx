@@ -4,6 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import type { HistoryCheckpointRequest, HistoryIssue, HistoryRepairRequest } from "@adt/types"
 import { api } from "@/api/client"
 import { Button } from "@/components/ui/button"
+import { invalidateBookQueries } from "@/hooks/run-query-invalidation"
 
 /** Book identity resets the entire dialog/request lifecycle, even when two
  * books happen to have identical local version numbers and record names. */
@@ -30,7 +31,7 @@ function BookHistoryRecovery({ bookLabel }: { bookLabel: string }) {
       setConfirmation(null)
       // A recovered payload does not make a stage complete. Refetch the shared
       // read models rather than manufacturing optimistic completion/freshness.
-      await client.invalidateQueries({ predicate: query => query.queryKey.includes(bookLabel) || query.queryKey[0] === "books" })
+      await invalidateBookQueries(client, bookLabel)
     },
   })
   const auditQuery = useMutation({ mutationFn: (requestId: string) => api.getHistoryRecoveryAudit(bookLabel, requestId), onSuccess: setAudit })
