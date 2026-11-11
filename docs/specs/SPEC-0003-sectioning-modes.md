@@ -80,6 +80,9 @@ Missing, old or unreadable lifecycle bookkeeping is unknown information, never
 an initialization prerequisite. Reads do not manufacture generation provenance.
 Keep durable configuration journaling and recovery of earlier journal formats;
 new preference saves do not erase completed attempts or content freshness.
+The known persisted legacy mode `section` resolves to Dynamic, including global
+inheritance and Settings responses, without rewriting YAML on open. New saves
+still accept only `dynamic` or `page`; unknown persisted values remain errors.
 
 ### Sectioning selection and explicit reset
 

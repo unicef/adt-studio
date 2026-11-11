@@ -43,7 +43,19 @@ export function loadConfig(configPath?: string): AppConfig {
     throw new Error(`Config file not found: ${resolved}`)
   }
   const raw = yaml.load(fs.readFileSync(resolved, "utf-8"))
-  return AppConfig.parse(raw)
+  return AppConfig.parse(normalizePersistedMode(raw))
+}
+
+/** The old settings UI wrote "section" for dynamic sectioning. Normalize that
+ * known alias only while reading persisted YAML, including settings responses.
+ * Modern request validation stays strict, and merely opening never rewrites it. */
+function normalizePersistedMode(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw
+  const config = raw as Record<string, unknown>
+  const sectioning = config.page_sectioning
+  if (!sectioning || typeof sectioning !== "object" || Array.isArray(sectioning) ||
+      !("mode" in sectioning) || sectioning.mode !== "section") return raw
+  return { ...config, page_sectioning: { ...sectioning, mode: "dynamic" } }
 }
 
 /** A malformed book override must not make other books' Library cards unavailable. */
@@ -54,7 +66,8 @@ export class BookConfigError extends Error {
   }
 }
 
-/** Raw overrides for the settings editor; no normalization or writes. */
+/** Persisted overrides for settings, with known legacy aliases normalized in
+ * memory. Preserve unknown fields and never write during a read. */
 export function loadBookConfigOverrides(label: string, booksRoot: string): Record<string, unknown> | null {
   const safeLabel = parseBookLabel(label)
   const dir = path.join(path.resolve(booksRoot), safeLabel)
@@ -72,7 +85,7 @@ export function loadBookConfigOverrides(label: string, booksRoot: string): Recor
   if (typeof overrides !== "object" || Array.isArray(overrides)) {
     throw new BookConfigError(label, "Expected a configuration mapping.")
   }
-  return Object.keys(overrides).length ? overrides as Record<string, unknown> : null
+  return Object.keys(overrides).length ? normalizePersistedMode(overrides) as Record<string, unknown> : null
 }
 
 export function loadBookConfig(

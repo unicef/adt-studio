@@ -144,6 +144,36 @@ function rawHistoryState() {
   } finally { db.close() }
 }
 
+it("keeps legacy section-mode books readable, runnable and editable through public callers", async () => {
+  const file = path.join(dir, "config.yaml")
+  const legacy = "page_sectioning:\n  mode: section\nconcurrency: 1\n"
+  fs.writeFileSync(file, legacy)
+  const before = ["p2", "p7"].map(id => [history("page-sectioning", id), history("web-rendering", id)])
+  const listed = await app.request("/books")
+  expect(listed.status).toBe(200)
+  expect(JSON.stringify(await listed.json())).not.toContain('"readUnavailable":true')
+  expect((await app.request(`/books/${label}`)).status).toBe(200)
+  expect((await app.request(`/books/${label}/step-status`)).status).toBe(200)
+  expect((await app.request(`/books/${label}/adt-preview/content/pages.json`)).status).toBe(200)
+  await prepareExport(label, "webpub", root, path.resolve("assets/adt"), configPath)
+  expect(fs.readFileSync(file, "utf8")).toBe(legacy)
+  expect((await run({ toStage: "sectioning" })).status).toBe("completed")
+  expect(sectionPage).not.toHaveBeenCalled()
+  // Settings readers return a usable modern value, so an unrelated save need
+  // not echo an invalid legacy alias back through the strict write boundary.
+  const current = await (await app.request(`/books/${label}/config`)).json()
+  expect(current.config.page_sectioning.mode).toBe("dynamic")
+  expect((await send("config", { ...current.config, concurrency: 2 }, "PUT")).status).toBe(200)
+  expect((await send("config", { page_sectioning: { mode: "page" } }, "PUT")).status).toBe(200)
+  const saved = fs.readFileSync(file, "utf8")
+  expect(saved).toContain("mode: page")
+  for (const mode of ["section", "arbitrary-invalid"]) {
+    expect((await send("config", { page_sectioning: { mode } }, "PUT")).status).toBe(400)
+    expect(fs.readFileSync(file, "utf8")).toBe(saved)
+  }
+  expect(["p2", "p7"].map(id => [history("page-sectioning", id), history("web-rendering", id)])).toEqual(before)
+}, 30000)
+
 function damageNeighborHistory() {
   const db = openBookDb(path.join(dir, `${label}.db`))
   try { db.run("UPDATE node_data SET data = ? WHERE node = ? AND item_id = ? AND version = ?", ["{unreadable historical identity", "page-sectioning", "p7", 1]) }

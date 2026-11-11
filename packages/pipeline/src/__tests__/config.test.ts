@@ -2,7 +2,8 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
-import { deepMerge, loadBookConfig } from "../config.js"
+import { deepMerge, loadBookConfig, loadBookConfigOverrides, loadConfig } from "../config.js"
+import { AppConfig } from "@adt/types"
 
 const dirs: string[] = []
 
@@ -64,6 +65,22 @@ describe("deepMerge", () => {
 })
 
 describe("loadBookConfig", () => {
+  it.each(["global", "book", "override"])("reads legacy section mode from %s without rewriting persisted bytes", source => {
+    const booksRoot = makeTempDir(), label = "legacy"
+    fs.mkdirSync(path.join(booksRoot, label))
+    const global = path.join(booksRoot, "global.yaml"), local = path.join(booksRoot, label, "config.yaml")
+    const base = `structure_types: {}\nrole_types: {}\npage_sectioning:\n  mode: ${source === "book" ? "page" : "section"}\n  max_retries: 3\n`
+    const override = source === "book" ? "page_sectioning:\n  mode: section\n" : source === "override" ? "page_sectioning:\n  mode: page\n" : "concurrency: 2\n"
+    fs.writeFileSync(global, base); fs.writeFileSync(local, override)
+    expect(loadBookConfig(label, booksRoot, global).page_sectioning).toMatchObject({ mode: source === "override" ? "page" : "dynamic", max_retries: 3 })
+    if (source !== "book") expect(loadConfig(global).page_sectioning?.mode).toBe("dynamic")
+    if (source === "book") expect(loadBookConfigOverrides(label, booksRoot)).toMatchObject({ page_sectioning: { mode: "dynamic" } })
+    expect(fs.readFileSync(global, "utf8")).toBe(base)
+    expect(fs.readFileSync(local, "utf8")).toBe(override)
+    expect(AppConfig.safeParse({ structure_types: {}, role_types: {}, page_sectioning: { mode: "section" } }).success).toBe(false)
+    fs.writeFileSync(local, "page_sectioning:\n  mode: arbitrary-invalid\n")
+    expect(() => loadBookConfig(label, booksRoot, global)).toThrow()
+  })
   it("loads and merges book-level config overrides", () => {
     const booksRoot = makeTempDir()
     const label = "book-one"
