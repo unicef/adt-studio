@@ -148,6 +148,25 @@ export function defaultReadingOrder(
   return items
 }
 
+/** Validate selected quiz identities without scanning page output or bundle files. */
+export function readReadingOrderQuizzes(storage: Storage): Quiz[] {
+  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
+  let quizzes: Quiz[] = []
+  if (quizRow) {
+    try { quizzes = withResolvedQuizIds(quizRow.data as QuizGenerationOutput).quizzes }
+    catch (error) {
+      // Invalid stored shape is unavailable evidence, never an empty
+      // quiz set that could falsely establish package completeness.
+      if (error instanceof TypeError) {
+        throw new HistoryIntegrityError("quiz-generation", "book", quizRow.version)
+      }
+      throw error
+    }
+  }
+
+  return quizzes
+}
+
 /**
  * Resolve the book's output sequence.
  *
@@ -162,19 +181,7 @@ export function resolveReadingOrder(
   const pageContexts = readPageContexts(storage)
   const ambiguous = ambiguousPublicOutputIds(storage)
 
-  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
-  let quizzes: Quiz[] = []
-  if (options.includeQuizzes !== false && quizRow) {
-    try { quizzes = withResolvedQuizIds(quizRow.data as QuizGenerationOutput).quizzes }
-    catch (error) {
-      // Invalid stored shape is unavailable evidence, never an empty
-      // quiz set that could falsely establish package completeness.
-      if (error instanceof TypeError) {
-        throw new HistoryIntegrityError("quiz-generation", "book", quizRow.version)
-      }
-      throw error
-    }
-  }
+  const quizzes = options.includeQuizzes === false ? [] : readReadingOrderQuizzes(storage)
 
   // Phase 5 inserts the stored, user-editable order here, reconciled against
   // this default. Until then the source-derived order is the only order.

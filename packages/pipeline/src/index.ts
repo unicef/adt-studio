@@ -435,6 +435,7 @@ export {
 } from "./section-ids.js"
 export {
   resolveReadingOrder,
+  readReadingOrderQuizzes,
   defaultReadingOrder,
   toPageEntry,
   readingOrderHref,

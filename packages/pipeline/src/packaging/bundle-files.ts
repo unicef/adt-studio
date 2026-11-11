@@ -44,13 +44,16 @@ function stamp(file: string): string {
 /** Validate the files required to open the generated reader. This is separate
  * from source freshness and source coverage: a valid partial bundle can still
  * be cached with its omission warnings. Never follow a bundle path outside it. */
-export function packageFilesAvailable(adtDir: string, options: { format?: "web" | "scorm"; expectedLanguages?: readonly string[] } = {}): boolean {
+export function packageFilesAvailable(adtDir: string, options: { format?: "web" | "scorm"; expectedLanguages?: readonly string[]; cachedOnly?: boolean } = {}): boolean {
   try {
     const root = fs.realpathSync(adtDir)
     const key = JSON.stringify([root, options.format, options.expectedLanguages])
     const hit = proofs.get(key)
     if (hit && [...hit].every(([file, identity]) => stamp(file) === identity)) return true
     proofs.delete(key)
+    // Library summaries may reuse a current proof, but never cold-verify all
+    // documents while enumerating books. Unknown is not complete.
+    if (options.cachedOnly) return false
     const dependencies = new Map<string, string>([[root, stamp(root)]])
     const readFiles = new Map<string, string>()
     const member = (relative: string): string => {

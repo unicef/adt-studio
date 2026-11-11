@@ -15,7 +15,7 @@ function stamp(file: string): string {
  * No timers, cached content, or durable freshness state. */
 export function createRetainedPackageReader() {
   const proofs = new Map<string, { key: string; members: Map<string, string>; value: ReturnType<typeof retainedPackageOwnership> }>()
-  return (db: Storage, bookDb: string, root: string) => {
+  const read = (db: Storage, bookDb: string, root: string, cachedOnly = false) => {
     const key = JSON.stringify([
       db.getNodeVersionFingerprint(), readBookContentIdentity(bookDb), ...[root,
         path.join(root, "content"), path.join(root, "content/pages.json"), path.join(root, ".build-owners"),
@@ -23,6 +23,8 @@ export function createRetainedPackageReader() {
     ])
     const hit = proofs.get(root)
     if (hit?.key === key && [...hit.members].every(([file, identity]) => stamp(file) === identity)) return hit.value
+    proofs.delete(root)
+    if (cachedOnly) return undefined
     const value = retainedPackageOwnership(db, root)
     // Bound retained metadata; the book's source HTML and media are never cached.
     proofs.delete(root)
@@ -34,6 +36,10 @@ export function createRetainedPackageReader() {
     proofs.set(root, { key, members, value })
     return value
   }
+  return Object.assign(
+    (db: Storage, bookDb: string, root: string) => read(db, bookDb, root)!,
+    { peek: (db: Storage, bookDb: string, root: string) => read(db, bookDb, root, true) },
+  )
 }
 
 /** One process-wide proof cache, shared by preview serving, package status,

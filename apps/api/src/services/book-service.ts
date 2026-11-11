@@ -1,6 +1,7 @@
 import { storyboardPackageComplete, currentStoryboardCoverage, currentStoryboardSourceWarnings } from "./storyboard-package-coverage.js"
 import { isCorruptBookDatabase } from "@adt/storage"
 import fs from "node:fs"
+import { setImmediate as yieldToRequests } from "node:timers/promises"
 import path from "node:path"
 import yaml from "js-yaml"
 import {
@@ -17,7 +18,7 @@ import {
   type PartRange,
 } from "@adt/types"
 import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
-import { BookConfigError, SectioningSafetyError, activeSectioningPages, loadBookConfig, loadBookConfigOverrides, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
+import { BookConfigError, SectioningSafetyError, readReadingOrderQuizzes, activeSectioningPages, loadBookConfig, loadBookConfigOverrides, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
 import { AppConfig } from "@adt/types"
 
 type BookDb = ReturnType<typeof openBookDb>
@@ -81,7 +82,7 @@ export function readSplitSummary(
   }
 }
 
-function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string) {
+function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string, cachedPackageOnly = false) {
   const rows = db.all("SELECT step, status FROM step_runs") as Array<{
     step: string
     status: string
@@ -103,10 +104,11 @@ function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string
   const storage = createBookStorage(label, booksDir)
   try {
     const config = loadBookConfig(label, booksDir, configPath)
+    if (cachedPackageOnly) readReadingOrderQuizzes(storage)
     const pageIds = activeSectioningPages(storage, config, bookDir).map(page => page.pageId)
     const coverage = currentStoryboardCoverage(storage, bookDir, pageIds)
     const storyboardNeedsReview = currentStoryboardSourceWarnings(storage, bookDir, pageIds).length > 0
-    if (coverage.complete && storyboardPackageComplete(storage, bookDir, pageIds, config)) completed.push("preview")
+    if (coverage.complete && storyboardPackageComplete(storage, bookDir, pageIds, config, cachedPackageOnly)) completed.push("preview")
     return {
       completedStages: completed.filter(stage => (!storyboardNeedsReview || stage !== "storyboard") && (coverage.complete || (stage !== "storyboard" && stage !== "package"))),
       storyboardNeedsReview,
@@ -146,12 +148,11 @@ function isRecoverableDbError(err: unknown): err is Error {
   return err.message.includes("Schema version mismatch") || err.message.includes("database is locked")
 }
 
-export function listBooks(booksDir: string, configPath?: string): BookSummary[] {
+function* scanBookSummaries(booksDir: string, configPath?: string): Generator<BookSummary> {
   const resolvedDir = path.resolve(booksDir)
-  if (!fs.existsSync(resolvedDir)) return []
+  if (!fs.existsSync(resolvedDir)) return
 
   const entries = fs.readdirSync(resolvedDir, { withFileTypes: true })
-  const books: BookSummary[] = []
 
   for (const entry of entries) {
     if (!entry.isDirectory()) continue
@@ -200,7 +201,7 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
             }
           }
 
-          ({ completedStages, storyboardNeedsReview } = computeCompletedStages(db, bookDir, configPath))
+          ({ completedStages, storyboardNeedsReview } = computeCompletedStages(db, bookDir, configPath, true))
         } finally {
           db.close()
         }
@@ -224,7 +225,7 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
 
     const { createdAt, modifiedAt } = resolveTimestamps(bookDir, dbPath, pdfPath)
 
-    books.push({
+    yield {
       label,
       title,
       authors,
@@ -241,11 +242,23 @@ export function listBooks(booksDir: string, configPath?: string): BookSummary[] 
       modifiedAt,
       part: readPartInfo(bookDir),
       split: readSplitSummary(bookDir, pageCount),
-    })
+    }
   }
+}
 
-  books.sort((a, b) => a.label.localeCompare(b.label))
-  return books
+export function listBooks(booksDir: string, configPath?: string): BookSummary[] {
+  return [...scanBookSummaries(booksDir, configPath)].sort((a, b) => a.label.localeCompare(b.label))
+}
+
+/** Yield between books so one Library request does not monopolize the API.
+ * The synchronous service shares this exact enumeration for non-HTTP callers. */
+export async function listBooksAsync(booksDir: string, configPath?: string): Promise<BookSummary[]> {
+  const books: BookSummary[] = []
+  for (const book of scanBookSummaries(booksDir, configPath)) {
+    books.push(book)
+    await yieldToRequests()
+  }
+  return books.sort((a, b) => a.label.localeCompare(b.label))
 }
 
 export function getBook(label: string, booksDir: string, configPath?: string): BookDetail {

@@ -12,7 +12,7 @@ const sourceWarningMemo = createBookStateMemo<ReturnType<typeof storyboardSource
 /** Coverage plus the sections that satisfy every coverage rule except package
  * membership. Derived only from saved state, so it is reused until that changes. */
 function coverageState(storage: Storage, bookDir: string, pageIds: string[]) {
-  return coverageMemo(JSON.stringify([bookStateKey(storage, bookDir), pageIds]), () => {
+  return coverageMemo(bookDir, bookStateKey(storage, bookDir), JSON.stringify(pageIds), () => {
     const renderable: string[] = []
     const coverage = storyboardCoverage(storage, pageIds, (sectionId) => { renderable.push(sectionId); return true })
     return { coverage, renderable }
@@ -26,18 +26,19 @@ export function currentStoryboardCoverage(storage: Storage, bookDir: string, pag
 
 /** `storyboardSourceWarnings` for polled read models, reused while the saved book is unchanged. */
 export function currentStoryboardSourceWarnings(storage: Storage, bookDir: string, pageIds: string[]) {
-  return sourceWarningMemo(JSON.stringify([bookStateKey(storage, bookDir), pageIds]), () => storyboardSourceWarnings(storage, pageIds))
+  return sourceWarningMemo(bookDir, bookStateKey(storage, bookDir), JSON.stringify(pageIds), () => storyboardSourceWarnings(storage, pageIds))
 }
 
 /** A retained partial bundle remains usable, but newly rendered source HTML
  * cannot establish that the bundle already contains all its required sections.
  * This checks membership only; ordinary freshness warnings remain independent. */
-export function storyboardPackageComplete(storage: Storage, bookDir: string, pageIds: string[], config: AppConfig): boolean {
+export function storyboardPackageComplete(storage: Storage, bookDir: string, pageIds: string[], config: AppConfig, cachedOnly = false): boolean {
   const adtDir = publishedAdtDirectory(bookDir)
   if (!fs.existsSync(adtDir)) return false
   const expectedLanguages = [...(config.output_languages ?? []), ...(config.editing_language ? [config.editing_language] : [])].map(normalizeLocale)
-  const ownership = readRetainedPackageOwnership(storage, path.join(bookDir, path.basename(bookDir) + ".db"), adtDir)
-  if (!ownership.allOwned || !packageFilesAvailable(adtDir, { expectedLanguages })) return false
+  const readOwnership = cachedOnly ? readRetainedPackageOwnership.peek : readRetainedPackageOwnership
+  const ownership = readOwnership(storage, path.join(bookDir, path.basename(bookDir) + ".db"), adtDir)
+  if (!ownership?.allOwned || !packageFilesAvailable(adtDir, { expectedLanguages, cachedOnly })) return false
   const { coverage, renderable } = coverageState(storage, bookDir, pageIds)
   const packaged = new Map<string, number>()
   for (const entry of ownership.entries) {

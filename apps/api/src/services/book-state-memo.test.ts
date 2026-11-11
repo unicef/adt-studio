@@ -14,7 +14,7 @@ it("reuses a derived result until the saved book changes, including writes that 
   const storage = createBookStorage(label, booksDir)
   let computed = 0
   const memo = createBookStateMemo<number>()
-  const read = () => memo(bookStateKey(storage, bookDir), () => ++computed)
+  const read = () => memo(bookDir, bookStateKey(storage, bookDir), "all", () => ++computed)
   try {
     storage.putNodeData("metadata", "book", { title: "First" })
     expect(read()).toBe(1)
@@ -35,16 +35,16 @@ it("reuses a derived result until the saved book changes, including writes that 
   })
   const reopened = createBookStorage(label, booksDir)
   try {
-    expect(memo(bookStateKey(reopened, bookDir), () => ++computed)).toBe(3)
+    expect(memo(bookDir, bookStateKey(reopened, bookDir), "all", () => ++computed)).toBe(3)
   } finally { reopened.close() }
 })
 
 it("bounds retained results", () => {
   const memo = createBookStateMemo<number>(2)
   let computed = 0
-  for (const key of ["a", "b", "c"]) memo(key, () => ++computed)
-  expect(memo("c", () => ++computed)).toBe(3)
-  expect(memo("a", () => ++computed)).toBe(4) // evicted, recomputed
+  for (const key of ["a", "b", "c"]) memo(key, "generation", "all", () => ++computed)
+  expect(memo("c", "generation", "all", () => ++computed)).toBe(3)
+  expect(memo("a", "generation", "all", () => ++computed)).toBe(4) // evicted, recomputed
 })
 
 
@@ -53,7 +53,7 @@ it("retains content-derived proofs across known telemetry writes, but never acro
   let storage = createBookStorage(label, booksDir)
   let computed = 0
   const memo = createBookStateMemo<number>()
-  const read = () => memo(bookStateKey(storage, bookDir), () => ++computed)
+  const read = () => memo(bookDir, bookStateKey(storage, bookDir), "all", () => ++computed)
   try {
     storage.putNodeData("metadata", "book", { title: "Original" })
     expect(read()).toBe(1)
@@ -94,4 +94,19 @@ it("does not classify a telemetry write with a content-mutating trigger as telem
     expect(bookStateKey(storage, bookDir)).not.toBe(before)
     expect(storage.getLatestNodeData("metadata", "book")?.data).toEqual({ title: "Changed" })
   } finally { storage.close() }
+})
+
+
+it("keeps a 40-book working set despite repeated edits, and bounds per-book variants", () => {
+  const memo = createBookStateMemo<number>()
+  let computed = 0
+  for (let i = 0; i < 40; i++) memo(`book-${i}`, "original", "all", () => ++computed)
+  for (let i = 0; i < 100; i++) memo("book-0", `generation-${i}`, "all", () => ++computed)
+  const afterEdits = computed
+  for (let i = 1; i < 40; i++) expect(memo(`book-${i}`, "original", "all", () => ++computed)).toBe(i + 1)
+  expect(computed).toBe(afterEdits)
+  for (let i = 0; i < 5; i++) memo("book-0", "latest", `window-${i}`, () => ++computed)
+  const afterVariants = computed
+  memo("book-0", "latest", "window-0", () => ++computed)
+  expect(computed).toBe(afterVariants + 1)
 })

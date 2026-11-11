@@ -32,7 +32,7 @@ import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/stora
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
 import { normalizeLocale, getBaseLanguage, loadBookConfig, loadConfig, deepMerge, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
 import {
-  listBooks,
+  listBooksAsync,
   getBook,
   createBook,
   deleteBook,
@@ -124,8 +124,8 @@ export function createBookRoutes(
   app.use("/books/:label", bookWriterMiddleware(booksDir))
   app.route("/", createHistoryRecoveryRoutes(booksDir))
 
-  app.get("/books", (c) => {
-    const books = listBooks(booksDir, configPath)
+  app.get("/books", async (c) => {
+    const books = await listBooksAsync(booksDir, configPath)
     return c.json(books)
   })
 

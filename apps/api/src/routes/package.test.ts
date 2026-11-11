@@ -13,6 +13,7 @@ import { pathToFileURL } from "node:url"
 import { unzipSync } from "fflate"
 import { packageAdtWeb, loadBookConfig } from "@adt/pipeline"
 import { createBookRoutes } from "./books.js"
+import { listBooks, getBook } from "../services/book-service.js"
 import type { TaskService } from "../services/task-service.js"
 import { createPackageRoutes } from "./package.js"
 
@@ -303,6 +304,40 @@ describe("Package routes", () => {
     const check = openBookDb(path.join(dir, label + ".db"))
     expect(check.get("SELECT data FROM node_data WHERE node='web-rendering' AND item_id='pg001' AND version=1")).toEqual({ data: "{" })
     check.close()
+  })
+
+  it.each([8, 10, 40])("lists a cold %i-book library without verifying each package and reuses only current proven completeness", { timeout: 30_000 }, async count => {
+    createRenderedBook("seed"); createWebAssets()
+    expect((await app.request("/api/books/seed/package-adt", { method: "POST" })).status).toBe(200)
+    for (let i = 0; i < count; i++) {
+      const label = `copy-${i}`, dir = path.join(tmpDir, label)
+      fs.cpSync(path.join(tmpDir, "seed"), dir, { recursive: true })
+      fs.renameSync(path.join(dir, "seed.db"), path.join(dir, `${label}.db`))
+    }
+    const reads = vi.spyOn(fs, "readFileSync")
+    const htmlReads = () => reads.mock.calls.filter(([file]) => typeof file === "string" && file.endsWith(".html")).length
+    try {
+      const cold = listBooks(tmpDir)
+      expect(cold.filter(book => book.label.startsWith("copy-"))).toHaveLength(count)
+      expect(htmlReads()).toBe(0)
+      const routes = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
+      let settled = false
+      const listing = routes.request("/books").then(response => { settled = true; return response })
+      await new Promise<void>(resolve => setImmediate(resolve))
+      expect(settled).toBe(false) // unrelated requests get a turn between books
+      expect((await listing).status).toBe(200)
+      expect(htmlReads()).toBe(0)
+      expect(cold.find(book => book.label === "copy-0")?.completedStages).not.toContain("preview")
+      // A single-book read performs the proof on demand and warms the Library.
+      expect(getBook("copy-0", tmpDir).completedStages).toContain("preview")
+      expect(htmlReads()).toBeGreaterThan(0)
+      reads.mockClear()
+      expect(listBooks(tmpDir).find(book => book.label === "copy-0")?.completedStages).toContain("preview")
+      expect(htmlReads()).toBe(0)
+      fs.writeFileSync(path.join(tmpDir, "copy-0/adt/pg001_sec001.html"), "damaged")
+      expect(listBooks(tmpDir).find(book => book.label === "copy-0")?.completedStages).not.toContain("preview")
+      expect(htmlReads()).toBe(0)
+    } finally { reads.mockRestore() }
   })
 
   it("does not reread every packaged page for reader assets and rechecks prune, restore and repackage", async () => {
