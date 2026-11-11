@@ -4,7 +4,9 @@ import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
 import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
-import { publishedAdtDirectory, retainedPackageOwnership, requiredPartRange, SectioningSafetyError, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import type { Storage } from "@adt/storage"
+import { readRetainedPackageOwnership } from "./retained-package-reader.js"
+import { publishedAdtDirectory, requiredPartRange, SectioningSafetyError, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream, type ZipStreamOptions } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 
@@ -187,6 +189,7 @@ async function prepareAdmittedExport(
     }
 
     const { warnings } = await packageAdtWeb(storage, opts)
+    if (format === "adt" || format === "scorm") warmDownloadProofs(storage, bookDir, format === "scorm" ? "scorm" : "web")
 
     if (format === "webpub") {
       packageWebpub(storage, opts)
@@ -200,6 +203,18 @@ async function prepareAdmittedExport(
   } finally {
     storage.close()
   }
+}
+
+/** The build just staged and verified this bundle. Record the download's
+ * ownership and required-file proofs for this process now, while the user is
+ * already waiting on the build, so the download that follows starts warm.
+ * Warming only: the download still checks both and refuses on failure. */
+function warmDownloadProofs(storage: Storage, bookDir: string, format: "scorm" | "web") {
+  const directory = publishedAdtDirectory(bookDir)
+  try {
+    readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), directory)
+    packageFilesAvailable(directory, { format })
+  } catch { /* The download re-checks and reports any refusal. */ }
 }
 
 /** Keep YAML, lifecycle and SQLite from different transitions out of one ZIP.
@@ -303,7 +318,8 @@ function readablePackageZip(bookDir: string, directory: string, format: "scorm" 
     try {
       // Older bundles can still name an owner rejected by today's resolver.
       // Downloads may be partial but cannot distribute retired or unowned pages.
-      if (!retainedPackageOwnership(storage, directory).allOwned || !packageFilesAvailable(directory, { format })) {
+      if (!readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), directory).allOwned ||
+        !packageFilesAvailable(directory, { format })) {
         throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from the current saved content.")
       }
     } finally { storage.close() }

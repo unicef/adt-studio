@@ -320,8 +320,9 @@ describe("Package routes", () => {
         const response = await get(asset)
         expect(response.status, asset).toBe(200)
       }
-      // The cold proof reads the page once. No page-content reads for later assets.
-      expect(count()).toBe(1)
+      // The build records its ownership proof in the shared reader, so at most
+      // one cold proof reads the page. No page-content reads for later assets.
+      expect(count()).toBeLessThanOrEqual(1)
       const s = createBookStorage(label, tmpDir)
       const original = s.getLatestNodeData("page-sectioning", "pg001")!.data as { sections: { isPruned: boolean }[] }
       s.putNodeData("page-sectioning", "pg001", { ...original, sections: original.sections.map(section => ({ ...section, isPruned: true })) }); s.close()

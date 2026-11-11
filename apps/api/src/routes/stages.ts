@@ -1,5 +1,5 @@
 import { requireExistingBook } from "../utils/book-exists.js"
-import { storyboardPackageComplete } from "../services/storyboard-package-coverage.js"
+import { storyboardPackageComplete, currentStoryboardCoverage, currentStoryboardSourceWarnings } from "../services/storyboard-package-coverage.js"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -12,7 +12,7 @@ import { AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSk
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
-  getSourceGenerationUpdates, storyboardSourceWarnings,
+  getSourceGenerationUpdates,
   keepSourceGeneration,
   withSourceGenerationTracking,
   activeSectioningPages, sectioningReplacementSignature, admitSectioningRun, storyboardCoverage,
@@ -448,8 +448,8 @@ export function createStageRoutes(
       try {
         const config = loadBookConfig(safeLabel, booksDir, configPath)
         const pageIds = activeSectioningPages(storage, config, path.dirname(dbPath)).map(page => page.pageId)
-        coverage = storyboardCoverage(storage, pageIds)
-        if (storyboardSourceWarnings(storage, pageIds).length) sourceUpdateStages.push("storyboard")
+        coverage = currentStoryboardCoverage(storage, path.dirname(dbPath), pageIds)
+        if (currentStoryboardSourceWarnings(storage, path.dirname(dbPath), pageIds).length) sourceUpdateStages.push("storyboard")
         packagedComplete = storyboardPackageComplete(storage, path.dirname(dbPath), pageIds, config)
         if (!coverage.complete && ["done", "skipped"].includes(steps["web-rendering"])) steps["web-rendering"] = "idle"
       } finally { storage.close() }

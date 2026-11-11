@@ -1,5 +1,6 @@
-import { storyboardPackageComplete } from "../services/storyboard-package-coverage.js"
-import { storyboardCoverageByPage, retainedPackageOwnership, publishedAdtDirectory, storyboardCoverage, activeSectioningPages, SectioningSafetyError } from "@adt/pipeline"
+import { storyboardPackageComplete, currentStoryboardCoverage } from "../services/storyboard-package-coverage.js"
+import { readRetainedPackageOwnership } from "../services/retained-package-reader.js"
+import { publishedAdtDirectory, activeSectioningPages, SectioningSafetyError } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -88,7 +89,8 @@ function isBuildCacheValid(storage: Storage, bookDir: string, hash: string, expe
     if (fs.readFileSync(getBuildHashPath(bookDir), "utf8").trim() !== hash) return false
     PackagingWarning.array().parse(JSON.parse(fs.readFileSync(getBuildWarningsPath(bookDir), "utf8")))
     const root = publishedAdtDirectory(bookDir)
-    return packageFilesAvailable(root, { expectedLanguages }) && retainedPackageOwnership(storage, root).allOwned
+    return packageFilesAvailable(root, { expectedLanguages }) &&
+      readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), root).allOwned
   } catch { return false }
 }
 
@@ -198,9 +200,7 @@ export function createPackageRoutes(
     let cacheState: PackagingCacheState
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const pages = storage.getPages()
-      const coverage = storyboardCoverageByPage(storage, pages.map(page => page.pageId))
-      const hasRendering = [...coverage.values()].some(page => page.rendered > 0)
+      const hasRendering = currentStoryboardCoverage(storage, bookDir, storage.getPages().map(page => page.pageId)).rendered > 0
       if (!hasRendering) {
         throw new HTTPException(409, {
           message: "At least one page must have a web rendering before packaging",
@@ -287,7 +287,7 @@ export function createPackageRoutes(
       try {
         const config = loadBookConfig(safeLabel, booksDir, configPath)
         const pageIds = activeSectioningPages(storage, config, bookDir).map(page => page.pageId)
-        const coverage = storyboardCoverage(storage, pageIds)
+        const coverage = currentStoryboardCoverage(storage, bookDir, pageIds)
         status.complete = storyboardPackageComplete(storage, bookDir, pageIds, config)
         status.hasAdt = status.hasAdt && coverage.rendered > 0
       }
@@ -372,6 +372,9 @@ async function runPackaging(
       reflowableFont: config.reflowable_font,
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
     })
+    // Record the new bundle's status proofs while the build is still running,
+    // so the first status poll after it does not repeat them. Warming only.
+    try { storyboardPackageComplete(storage, bookDir, activeSectioningPages(storage, config, bookDir).map(page => page.pageId), config) } catch { /* status re-checks */ }
     return { version: bundleVersion, warnings }
   } finally {
     storage.close()

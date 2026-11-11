@@ -1,4 +1,4 @@
-import { storyboardPackageComplete } from "./storyboard-package-coverage.js"
+import { storyboardPackageComplete, currentStoryboardCoverage, currentStoryboardSourceWarnings } from "./storyboard-package-coverage.js"
 import { isCorruptBookDatabase } from "@adt/storage"
 import fs from "node:fs"
 import path from "node:path"
@@ -17,7 +17,7 @@ import {
   type PartRange,
 } from "@adt/types"
 import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
-import { BookConfigError, SectioningSafetyError, storyboardSourceWarnings, storyboardCoverage, activeSectioningPages, loadBookConfig, loadBookConfigOverrides, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
+import { BookConfigError, SectioningSafetyError, activeSectioningPages, loadBookConfig, loadBookConfigOverrides, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
 import { AppConfig } from "@adt/types"
 
 type BookDb = ReturnType<typeof openBookDb>
@@ -104,8 +104,8 @@ function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string
   try {
     const config = loadBookConfig(label, booksDir, configPath)
     const pageIds = activeSectioningPages(storage, config, bookDir).map(page => page.pageId)
-    const coverage = storyboardCoverage(storage, pageIds)
-    const storyboardNeedsReview = storyboardSourceWarnings(storage, pageIds).length > 0
+    const coverage = currentStoryboardCoverage(storage, bookDir, pageIds)
+    const storyboardNeedsReview = currentStoryboardSourceWarnings(storage, bookDir, pageIds).length > 0
     if (coverage.complete && storyboardPackageComplete(storage, bookDir, pageIds, config)) completed.push("preview")
     return {
       completedStages: completed.filter(stage => (!storyboardNeedsReview || stage !== "storyboard") && (coverage.complete || (stage !== "storyboard" && stage !== "package"))),

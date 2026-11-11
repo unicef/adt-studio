@@ -5,7 +5,7 @@ import { getStageClearNodes, getStageClearOrder } from "@adt/types"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import fs from "node:fs"
 import { createHash } from "node:crypto"
-import { createRetainedPackageReader } from "../services/retained-package-reader.js"
+import { readRetainedPackageOwnership } from "../services/retained-package-reader.js"
 import { BookBusyError } from "@adt/storage"
 import path from "node:path"
 import { z } from "zod"
@@ -119,7 +119,7 @@ export function createBookRoutes(
   promptsDir = path.resolve("prompts"),
 ): Hono {
   const app = new Hono()
-  const readPackageOwners = createRetainedPackageReader()
+  const readPackageOwners = readRetainedPackageOwnership
   app.use("/books/:label/*", bookWriterMiddleware(booksDir))
   app.use("/books/:label", bookWriterMiddleware(booksDir))
   app.route("/", createHistoryRecoveryRoutes(booksDir))

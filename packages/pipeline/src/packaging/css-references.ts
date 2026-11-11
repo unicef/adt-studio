@@ -3,6 +3,9 @@ import { JSDOM, VirtualConsole } from "jsdom"
 
 type VariableLookup = (name: string) => readonly { value: string; lookup: VariableLookup }[]
 
+/** Stands in for any variable value to detect var() in a URL position. */
+const VARIABLE_URL_PROBE = "adt-variable-url-probe"
+
 // Portable packages must retain assets used after ordinary reader interaction,
 // even when the static validation DOM is not currently hovered/focused/checked.
 const interactionState = /:(?:hover|active|focus(?:-visible|-within)?|visited|target|checked|indeterminate|disabled|enabled|open)\b/g
@@ -153,10 +156,24 @@ export function parseCssSource(css: string) {
   }
   const declarations: Array<{ property: string; value: string; selector?: string; variables: boolean; conditional: boolean }> = []
   const imports: string[] = []
+  // References that do not depend on the consuming document: computed once per
+  // stylesheet instead of once per page that links it.
+  const directReferences: Array<{ url: string; stylesheet: boolean }> = []
+  // Whether any custom property in this source can carry a URL to a consumer:
+  // a definition that itself contains url()/image-set(), or a var() used where
+  // a quoted string is a URL (image-set). Only then is element scoping needed.
+  let variableUrls = false
   root.walkDecls(declaration => {
     declaration.prop = valueReferences(`url(${declaration.prop})`)[0]?.url ?? declaration.prop
     let variables = false
-    valueReferences(declaration.value, false, () => { variables = true; return [] })
+    const references = valueReferences(declaration.value, false, () => {
+      variables = true
+      return [{ value: `"${VARIABLE_URL_PROBE}"`, lookup: () => [] }]
+    })
+    const direct = references.filter(reference => reference.url !== VARIABLE_URL_PROBE)
+    if (direct.length !== references.length) variableUrls = true
+    if (declaration.prop.startsWith("--")) { if (direct.length) variableUrls = true }
+    else directReferences.push(...direct)
     const selector = selectorFor(declaration)
     declarations.push({ property: declaration.prop, value: declaration.value, selector, variables,
       conditional: conditional(declaration) || (selector !== undefined && possibleSelector(selector) !== selector) })
@@ -169,13 +186,19 @@ export function parseCssSource(css: string) {
   const custom = root.clone()
   custom.walkDecls(declaration => { if (!declaration.prop.startsWith("--")) declaration.remove() })
   custom.walkAtRules("import", rule => { rule.remove() })
-  return { declarations, imports, customCss: custom.toString() }
+  return { declarations, imports, customCss: custom.toString(), directReferences, variableUrls }
 }
 
 /** Resolve possible variable values in one document's linked/imported/inline
  * CSS, never across independent pages. URLs use the consumer declaration's
  * base path, including when the quoted value came from another stylesheet. */
 export function cssReferences(sources: readonly { parsed: ReturnType<typeof parseCssSource>; from: string; inlineStyle?: string }[], html?: string) {
+  // No variable in this document can resolve to a URL (true for the generated
+  // Tailwind/Font Awesome/fonts stylesheets): the per-stylesheet references are
+  // complete, and building a DOM per page to scope variables would find nothing.
+  if (!sources.some(source => source.parsed.variableUrls)) {
+    return sources.flatMap(({ parsed, from }) => parsed.directReferences.map(reference => ({ ...reference, from })))
+  }
   const variables = new Map<string, string[]>()
   for (const { parsed } of sources) for (const declaration of parsed.declarations) {
     if (!declaration.property.startsWith("--")) continue

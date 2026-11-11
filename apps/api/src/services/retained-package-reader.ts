@@ -35,3 +35,8 @@ export function createRetainedPackageReader() {
     return value
   }
 }
+
+/** One process-wide proof cache, shared by preview serving, package status,
+ * the build cache check and export downloads, so a bundle's ownership is
+ * projected once per change rather than once per request path. */
+export const readRetainedPackageOwnership = createRetainedPackageReader()
