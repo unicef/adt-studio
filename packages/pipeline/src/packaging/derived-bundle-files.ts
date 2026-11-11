@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { Parser } from "htmlparser2"
+import { JSDOM } from "jsdom"
 import { DerivedWebpubFiles, PackageFileDiagnostic } from "@adt/types"
 import { SectioningSafetyError } from "../sectioning-errors.js"
 
@@ -27,6 +27,16 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
       document = href
       return fs.readFileSync(path.join(root, member(href)), "utf8")
     }
+    const xml = <T>(href: string, name: string, namespace: string, inspect: (root: Element) => T): T => {
+      // HTML tokenizers repair mismatched/truncated XML, including at EOF.
+      // Use the existing strict XML parser; implied closures are not proof.
+      const dom = new JSDOM(read(href), { contentType: "application/xml" })
+      try {
+        const element = dom.window.document.documentElement
+        if (element.localName !== name || element.namespaceURI !== namespace) throw new Error("Invalid reader XML root")
+        return inspect(element)
+      } finally { dom.window.close() }
+    }
     const expected = sectionIds.map(id => format === "epub" ? `OEBPS/${id}.xhtml` : format === "pnld" ? `content/${id}.html` : `${id}.html`)
     let readingOrder: string[]
     if (format === "webpub") {
@@ -37,36 +47,29 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
       const prefix = format === "epub" ? "OEBPS" : ""
       if (format === "epub") {
         if (read("mimetype") !== "application/epub+zip") throw new Error("Invalid EPUB mimetype")
-        let containerValid = false
-        new Parser({ onopentag(name, attrs) {
-          if (name === "rootfile" && attrs["full-path"] === "OEBPS/content.opf") containerValid = true
-        } }, { xmlMode: true }).end(read("META-INF/container.xml"))
-        if (!containerValid) throw new Error("Missing EPUB rootfile")
+        xml("META-INF/container.xml", "container", "urn:oasis:names:tc:opendocument:xmlns:container", container => {
+          const roots = container.getElementsByTagNameNS(container.namespaceURI, "rootfile")
+          if (![...roots].some(file => file.getAttribute("full-path") === "OEBPS/content.opf" &&
+              file.getAttribute("media-type") === "application/oebps-package+xml")) throw new Error("Missing EPUB rootfile")
+        })
       }
-      const files = new Map<string, string>(), spine: string[] = [], stack: string[] = []
-      let closedManifest = false, closedSpine = false, closedPackage = false
-      new Parser({ onopentag(name, attrs) {
-        const parent = stack.at(-1)
-        stack.push(name)
-        if (name === "item" && parent === "manifest") {
-          if (!attrs.id || !attrs.href || files.has(attrs.id)) throw new Error("Invalid manifest item")
-          files.set(attrs.id, member(attrs.href, prefix))
+      readingOrder = xml(path.join(prefix, "content.opf"), "package", "http://www.idpf.org/2007/opf", publication => {
+        const children = (name: string) => [...publication.children].filter(element =>
+          element.localName === name && element.namespaceURI === publication.namespaceURI)
+        const manifests = children("manifest"), spines = children("spine")
+        if (manifests.length !== 1 || spines.length !== 1 || !spines[0].children.length) throw new Error("Incomplete reader structure")
+        const files = new Map<string, string>()
+        for (const item of manifests[0].children) {
+          const id = item.getAttribute("id"), href = item.getAttribute("href")
+          if (item.localName !== "item" || item.namespaceURI !== publication.namespaceURI ||
+              !id || !href || files.has(id)) throw new Error("Invalid manifest item")
+          files.set(id, member(href, prefix))
         }
-        if (name === "itemref" && parent === "spine") {
-          if (!attrs.idref) throw new Error("Invalid spine item")
-          spine.push(attrs.idref)
-        }
-      }, onclosetag(name) {
-        if (stack.pop() !== name) throw new Error("Invalid reader structure")
-        if (name === "manifest") closedManifest = true
-        if (name === "spine") closedSpine = true
-        if (name === "package") closedPackage = true
-      } }, { xmlMode: true }).end(read(path.join(prefix, "content.opf")))
-      if (!closedPackage || !closedManifest || !closedSpine || stack.length || !spine.length) throw new Error("Incomplete reader structure")
-      readingOrder = spine.map(id => {
-        const href = files.get(id)
-        if (!href) throw new Error("Undeclared spine member")
-        return href
+        return [...spines[0].children].map(item => {
+          const id = item.getAttribute("idref"), href = id && files.get(id)
+          if (item.localName !== "itemref" || item.namespaceURI !== publication.namespaceURI || !href) throw new Error("Undeclared spine member")
+          return href
+        })
       })
     }
     const declared = new Set(readingOrder)

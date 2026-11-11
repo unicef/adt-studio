@@ -894,3 +894,40 @@ it.each(["webpub", "epub", "pnld"] as const)("requires complete declared files i
   await prepareExport(label, format, tmpDir, webAssetsDir)
   expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
 })
+
+it.each(["epub", "pnld"] as const)("rejects malformed XML in real %s reader structure", async format => {
+  const label = "xml-structure"
+  createBookWithMetadata(label, label)
+  addPagesAndRenderings(label, 1)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  const download = format === "epub" ? exportEpub : exportPnld
+  const directory = path.join(tmpDir, label, format)
+  const opf = path.join(directory, format === "epub" ? "OEBPS/content.opf" : "content.opf")
+  const original = fs.readFileSync(opf, "utf8")
+  const refused = async () => {
+    const outcome = await download(label, tmpDir).then(async result => { await streamToBuffer(result.stream); return "accepted" }, error => error.code)
+    expect(outcome).toBe("PACKAGE_FILES_INCOMPLETE")
+  }
+  for (const malformed of [
+    original.replace("</package>", ""),
+    original.replace("</spine>", "</wrong-spine>"),
+    original.replace('version="3.0"', 'version=3.0'),
+    original.replace('xmlns="http://www.idpf.org/2007/opf"', 'xmlns="urn:wrong-format"'),
+  ]) {
+    fs.writeFileSync(opf, malformed)
+    await refused()
+    expect(fs.readFileSync(opf, "utf8")).toBe(malformed)
+  }
+  fs.writeFileSync(opf, original)
+  if (format === "epub") {
+    const container = path.join(directory, "META-INF/container.xml")
+    const xml = fs.readFileSync(container, "utf8")
+    for (const malformed of [xml.replace("</container>", ""), xml.replace("</rootfiles>", "</wrong-rootfiles>")]) {
+      fs.writeFileSync(container, malformed)
+      await refused()
+      expect(fs.readFileSync(container, "utf8")).toBe(malformed)
+    }
+    fs.writeFileSync(container, xml)
+  }
+  expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+})
