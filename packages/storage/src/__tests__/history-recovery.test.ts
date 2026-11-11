@@ -10,7 +10,7 @@ import { createBookStorage, resolveBookPaths } from "../book-storage.js"
 import { openBookDb } from "../db.js"
 import { checkpointHistory, inspectHistoryRecovery, inspectHistoryRecoveryAsync, readHistoryRecoveryAudit, repairHistory } from "../history-recovery.js"
 import { HISTORY_EVIDENCE_SQL, insertNodeVersion } from "../history-evidence.js"
-import { withBookWriter } from "../book-writer.js"
+import { ownsBookWriter, withBookWriter } from "../book-writer.js"
 import type { HistoryRepairRequest } from "@adt/types"
 
 const roots: string[] = []
@@ -324,7 +324,7 @@ describe("verified historical recovery", () => {
 })
 
 
-it("yields during large inspection while preserving one snapshot and writer exclusion", async () => {
+it.each(["content", "telemetry", "raw rewrite", "schema loss", "database replacement"])("yields without blocking same-process %s writes and rejects changed evidence", async kind => {
   const b = book()
   const storage = createBookStorage("book", b.root)
   try {
@@ -339,22 +339,55 @@ it("yields during large inspection while preserving one snapshot and writer excl
   const unrelated = book()
   const tick = new Promise<void>(resolve => setImmediate(() => {
     visitedDuringInspection = !completed
-    try { withBookWriter(b.bookDir, () => b.write({ id: "must-not-write" })) } catch (error) { writeError = error }
+    try { withBookWriter(b.bookDir, () => {
+      if (kind === "content") b.write({ id: "concurrent-version" })
+      else if (kind === "raw rewrite") b.sql(db => db.run("UPDATE node_data SET data=? WHERE node='page-sectioning' AND item_id='p1'", [JSON.stringify({ id: "raw-change" })]))
+      else if (kind === "schema loss") b.sql(db => db.exec("DROP TABLE history_recovery_requests"))
+      else if (kind === "database replacement") { fs.renameSync(b.dbPath, b.dbPath + ".before"); fs.copyFileSync(unrelated.dbPath, b.dbPath) }
+      else { const storage = createBookStorage("book", b.root); try { storage.markStepStarted("package-web") } finally { storage.close() } }
+    }) } catch (error) { writeError = error }
     unrelated.write({ id: "unrelated-book-can-write" })
     resolve()
   }))
-  const inspected = await inspectHistoryRecoveryAsync(b.dbPath)
+  let inspected: Awaited<ReturnType<typeof inspectHistoryRecoveryAsync>> | undefined
+  if (kind !== "telemetry") await expect(inspectHistoryRecoveryAsync(b.dbPath)).rejects.toThrow("HISTORY_RECOVERY_STALE")
+  else inspected = await inspectHistoryRecoveryAsync(b.dbPath)
   completed = true
   await tick
   expect(visitedDuringInspection).toBe(true)
-  expect(String(writeError)).toContain("BOOK_BUSY")
-  expect(inspected).toEqual(before)
-  expect(inspectHistoryRecovery(b.dbPath)).toEqual(before)
+  expect(writeError).toBeUndefined()
+  if (kind === "telemetry") expect(inspected).toEqual(before)
+  else if (kind === "content") {
+    expect(inspectHistoryRecovery(b.dbPath).snapshot).not.toEqual(before.snapshot)
+    expect(() => checkpointHistory(b.dbPath, { snapshot: before.snapshot, requestId: randomUUID(), confirmed: true })).toThrow("HISTORY_RECOVERY_STALE")
+  }
 })
 
-it("asynchronous inspection retains damaged-history diagnostics and releases admission on abort", async () => {
+it("inspects while an unrelated same-process writer is active without granting writer authority", async () => {
+  const b = book(); b.write({ id: "p1_sec001" })
+  const before = inspectHistoryRecovery(b.dbPath)
+  let release!: () => void
+  // Create the inspection continuation outside the writer's AsyncLocalStorage.
+  let inspect!: () => void
+  const inspection = new Promise<void>(resolve => { inspect = resolve }).then(async () => {
+    expect(ownsBookWriter(b.bookDir)).toBe(false)
+    const result = await inspectHistoryRecoveryAsync(b.dbPath)
+    expect(ownsBookWriter(b.bookDir)).toBe(false)
+    return result
+  })
+  const writer = withBookWriter(b.bookDir, () => new Promise<void>(resolve => { release = resolve; inspect() }))
+  try { expect(await inspection).toEqual(before) }
+  finally { release(); await writer }
+})
+
+it("asynchronous inspection retains damaged-history diagnostics and closes statements on abort", async () => {
   const b = book(); b.write({ id: "p1_sec001" }); damage(b)
   expect(await inspectHistoryRecoveryAsync(b.dbPath)).toEqual(inspectHistoryRecovery(b.dbPath))
+  b.sql(db => {
+    db.exec("BEGIN")
+    for (let i = 0; i < 80; i++) db.run("INSERT INTO node_data VALUES ('page-sectioning',?,1,?)", [`abort-${i}`, JSON.stringify({ text: "large scan ".repeat(2000) })])
+    db.exec("COMMIT")
+  })
   const abort = new AbortController()
   const tick = new Promise<void>(resolve => setImmediate(() => { abort.abort(); resolve() }))
   try { await expect(inspectHistoryRecoveryAsync(b.dbPath, abort.signal)).rejects.toThrow() }

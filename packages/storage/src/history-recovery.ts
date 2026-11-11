@@ -5,9 +5,11 @@ import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import { HistoryCheckpointRequest, HistoryRepairRequest, HistoryRecoveryReceipt, type HistoryRecoveryStatus, type HistoryIssue, type HistoryTuple } from "@adt/types"
 import { openBookDb } from "./db.js"
+import { openCoordinatedDatabase } from "./database-admission.js"
+import { readBookContentIdentity } from "./book-content-identity.js"
 import { withBookWriter } from "./book-writer.js"
 import { readCurrentNodeRow } from "./node-current.js"
-import { captureHistoryWitness, decodeWitness, historyRows, decodeHistoryBytes, historyBookId, historyHash, historySlot, identityTuples, insertNodeVersion, readHistoryBytes, readWitness, tupleKey, verifyWitness } from "./history-evidence.js"
+import { captureHistoryWitness, decodeWitness, decodeHistoryBytes, historyBookId, historyHash, historySlot, identityTuples, insertNodeVersion, readHistoryBytes, readWitness, tupleKey, verifyWitness } from "./history-evidence.js"
 
 export class HistoryRecoveryError extends Error {
   constructor(readonly code: "HISTORY_RECOVERY_STALE" | "HISTORY_RECOVERY_UNVERIFIED" | "HISTORY_RECOVERY_REQUEST_CONFLICT" | "HISTORY_RECOVERY_NOT_NEEDED" | "HISTORY_RECOVERY_REQUEST_INVALID" | "HISTORY_RECOVERY_BOOK_MISSING" | "HISTORY_RECOVERY_AUDIT_MISSING", readonly status: 400 | 404 | 409 = 409) {
@@ -20,31 +22,57 @@ function revision(db: sqlite.Database): number {
   return (db.get("SELECT COUNT(DISTINCT request_id) AS value FROM history_recovery_audit") as { value: number }).value
 }
 
+const inspectionKeys = {
+  node_data: ["node", "item_id", "version"],
+  node_current: ["node", "item_id"],
+  history_slots: ["node", "item_id", "version"],
+  history_witnesses: ["node", "item_id", "version", "incarnation"],
+  history_recovery_requests: ["request_id"],
+  history_recovery_audit: ["request_id", "node", "item_id", "version"],
+} as const
+
+/** Keyset reads finalize each statement before yielding, retaining the original
+ * deterministic digest order without a cursor across batch boundaries. */
+function* inspectionTableRows<T>(database: () => sqlite.Database, table: keyof typeof inspectionKeys, columns: string): Generator<T> {
+  const keys = inspectionKeys[table]
+  const aliases = keys.map((_, i) => `inspection_key_${i}`)
+  let after: (string | number)[] | undefined
+  for (;;) {
+    const row = database().get(`SELECT ${keys.map((key, i) => `${key} AS ${aliases[i]}`).join(",")},${columns} FROM ${table}
+      ${after ? `WHERE (${keys.join(",")}) > (${keys.map(() => "?").join(",")})` : ""}
+      ORDER BY ${keys.join(",")} LIMIT 1`, after ?? []) as Record<string, string | number> | undefined
+    if (!row) return
+    after = aliases.map(alias => row[alias])
+    for (const alias of aliases) delete row[alias]
+    yield row as T
+  }
+}
+
 /** One inspection algorithm for synchronous mutation preflight and yielding
- * HTTP reads. The caller holds one SQLite snapshot throughout. Inspection never
+ * HTTP reads. The caller guarantees unchanged evidence throughout. Inspection never
  * backfills evidence; paths bind consent across copies. */
-function* inspectRows(db: sqlite.Database, dbPath: string): Generator<void, HistoryRecoveryStatus> {
-  assertHistoryEvidence(db)
+function* inspectRows(database: () => sqlite.Database, dbPath: string): Generator<void, HistoryRecoveryStatus> {
+  assertHistoryEvidence(database())
   yield
-  const bookId = historyBookId(db)
+  const bookId = historyBookId(database())
   const issues = new Map<string, HistoryIssue>()
   const checkpointRecords: HistoryTuple[] = []
-  const tuples = identityTuples(db)
+  const tuples = identityTuples(database())
   const extant = new Set(tuples.map(tupleKey))
   for (const row of tuples) {
     yield
-    const bytes = readHistoryBytes(db, row)!
+    const bytes = readHistoryBytes(database(), row)!
     const beforeHash = historyHash(bytes)
-    const slot = historySlot(db, row)
+    const slot = historySlot(database(), row)
     let valid = true
     try { decodeHistoryBytes(bytes) } catch { valid = false }
     try {
       if (slot?.present === 0) throw new Error("Lost continuity")
-      const witness = slot && readWitness(db, row, slot.incarnation)
+      const witness = slot && readWitness(database(), row, slot.incarnation)
       if (witness && beforeHash !== historyHash(witness.bytes)) {
         issues.set(tupleKey(row), { ...row, reason: "recoverable", beforeHash, witnessHash: witness.digest })
       } else if (!valid) {
-        const old = db.get("SELECT 1 FROM history_witnesses WHERE node=? AND item_id=? AND version=?", [row.node, row.itemId, row.version])
+        const old = database().get("SELECT 1 FROM history_witnesses WHERE node=? AND item_id=? AND version=?", [row.node, row.itemId, row.version])
         issues.set(tupleKey(row), { ...row, reason: old ? "changed-record" : "missing-witness", beforeHash })
       } else if (!witness) checkpointRecords.push(row)
     } catch { issues.set(tupleKey(row), { ...row, reason: "invalid-witness", beforeHash }) }
@@ -52,43 +80,43 @@ function* inspectRows(db: sqlite.Database, dbPath: string): Generator<void, Hist
   // Detect damaged witnesses and missing tracked records even when the current
   // source is readable. Neither case can be repaired by inventing a new row.
   const witnessed = new Set<string>()
-  for (const row of historyRows<HistoryTuple & { incarnation: string; evidence: string }>(db, "SELECT node,item_id AS itemId,version,incarnation,evidence FROM history_witnesses ORDER BY node,item_id,version,incarnation")) {
+  for (const row of inspectionTableRows<HistoryTuple & { incarnation: string; evidence: string }>(database, "history_witnesses", "node,item_id AS itemId,version,incarnation,evidence")) {
     yield
     const tuple = { node: row.node, itemId: row.itemId, version: row.version }
     try {
-      if (!historySlot(db, row)) throw new Error("Missing insertion continuity")
+      if (!historySlot(database(), row)) throw new Error("Missing insertion continuity")
       const proof = verifyWitness(decodeWitness(row.evidence), bookId)
       if (tupleKey(proof) !== tupleKey(row) || proof.incarnation !== row.incarnation) throw new Error("Mismatched proof")
       witnessed.add(`${tupleKey(row)}:${row.incarnation}`)
-    } catch { issues.set(tupleKey(row), { ...tuple, reason: "invalid-witness", beforeHash: historyHash(readHistoryBytes(db, row) ?? null) }) }
+    } catch { issues.set(tupleKey(row), { ...tuple, reason: "invalid-witness", beforeHash: historyHash(readHistoryBytes(database(), row) ?? null) }) }
   }
-  for (const row of db.all("SELECT node,item_id AS itemId,version,incarnation,present FROM history_slots ORDER BY node,item_id,version") as Array<HistoryTuple & { incarnation: string; present: number }>) {
+  for (const row of database().all("SELECT node,item_id AS itemId,version,incarnation,present FROM history_slots ORDER BY node,item_id,version") as Array<HistoryTuple & { incarnation: string; present: number }>) {
     yield
     if (extant.has(tupleKey(row))) continue
     if (row.present !== 0 || !witnessed.has(`${tupleKey(row)}:${row.incarnation}`)) {
       issues.set(tupleKey(row), { node: row.node, itemId: row.itemId, version: row.version, reason: "missing-record", beforeHash: historyHash(null) })
     }
   }
-  if (db.all("SELECT 1 FROM history_repair_permits").length) throw new HistoryRecoveryError("HISTORY_RECOVERY_UNVERIFIED")
+  if (database().all("SELECT 1 FROM history_repair_permits").length) throw new HistoryRecoveryError("HISTORY_RECOVERY_UNVERIFIED")
   const digest = createHash("sha256")
   digest.update(JSON.stringify([path.join(fs.realpathSync(path.dirname(dbPath)), path.basename(dbPath)), bookId]))
-  for (const [table, query] of Object.entries({
-    rows: "SELECT node,item_id,version,typeof(data) AS storage_type,hex(CAST(data AS BLOB)) AS bytes FROM node_data ORDER BY node,item_id,version",
-    current: "SELECT * FROM node_current ORDER BY node,item_id",
-    slots: "SELECT * FROM history_slots ORDER BY node,item_id,version",
-    witnesses: "SELECT * FROM history_witnesses ORDER BY node,item_id,version,incarnation",
-    requests: "SELECT * FROM history_recovery_requests ORDER BY request_id",
-    audit: "SELECT * FROM history_recovery_audit ORDER BY request_id,node,item_id,version",
-  })) {
-    digest.update(table + "\0")
-    for (const row of historyRows(db, query)) { yield; digest.update(JSON.stringify(row) + "\0") }
+  for (const [label, table, columns] of [
+    ["rows", "node_data", "node,item_id,version,typeof(data) AS storage_type,hex(CAST(data AS BLOB)) AS bytes"],
+    ["current", "node_current", "*"],
+    ["slots", "history_slots", "*"],
+    ["witnesses", "history_witnesses", "*"],
+    ["requests", "history_recovery_requests", "*"],
+    ["audit", "history_recovery_audit", "*"],
+  ] as const) {
+    digest.update(label + "\0")
+    for (const row of inspectionTableRows(database, table, columns)) { yield; digest.update(JSON.stringify(row) + "\0") }
   }
   const snapshot = digest.digest("hex")
-  return { snapshot, bookId, checkpointable: checkpointRecords.length, checkpointRecords, issueCount: issues.size, issues: [...issues.values()].sort((a, b) => Number(b.reason === "recoverable") - Number(a.reason === "recoverable")).slice(0, 20), revision: revision(db) }
+  return { snapshot, bookId, checkpointable: checkpointRecords.length, checkpointRecords, issueCount: issues.size, issues: [...issues.values()].sort((a, b) => Number(b.reason === "recoverable") - Number(a.reason === "recoverable")).slice(0, 20), revision: revision(database()) }
 }
 
 function inspect(db: sqlite.Database, dbPath: string): HistoryRecoveryStatus {
-  const rows = inspectRows(db, dbPath)
+  const rows = inspectRows(() => db, dbPath)
   for (;;) { const next = rows.next(); if (next.done) return next.value }
 }
 
@@ -115,30 +143,38 @@ export function inspectHistoryRecovery(dbPath: string): HistoryRecoveryStatus {
   return withDatabase(dbPath, false, db => inspect(db, dbPath))
 }
 
-/** Yield between rows without releasing the transaction or writer exclusion.
- * Ordinary readers may borrow admission, but an unrelated writer cannot change
- * the book while inspection is suspended. Cancellation closes active statements. */
-export function inspectHistoryRecoveryAsync(dbPath: string, signal?: AbortSignal): Promise<HistoryRecoveryStatus> {
-  return withBookWriter(path.dirname(dbPath), async () => {
-    signal?.throwIfAborted()
-    const db = openBookDb(dbPath)
-    const rows = inspectRows(db, dbPath)
-    try {
-      db.exec("BEGIN DEFERRED")
+/** The WASM driver uses rollback journaling: keeping a cursor/transaction
+ * across await can block even a same-process reader. Scan bounded synchronous
+ * batches, closing every handle before yielding. A changed content identity
+ * invalidates the whole result; mutation requests still revalidate consent. */
+export async function inspectHistoryRecoveryAsync(dbPath: string, signal?: AbortSignal): Promise<HistoryRecoveryStatus> {
+  signal?.throwIfAborted()
+  const initial = openBookDb(dbPath)
+  initial.close()
+  const identity = readBookContentIdentity(dbPath)
+  const unchanged = () => {
+    if (readBookContentIdentity(dbPath) !== identity) throw new HistoryRecoveryError("HISTORY_RECOVERY_STALE")
+  }
+  let db: sqlite.Database
+  const rows = inspectRows(() => db, dbPath)
+  try {
+    for (;;) {
+      signal?.throwIfAborted()
+      unchanged()
+      db = openCoordinatedDatabase(dbPath, { readOnly: true, fileMustExist: true })
+      let result: IteratorResult<void, HistoryRecoveryStatus>
       try {
-        let deadline = 0
-        for (;;) {
-          signal?.throwIfAborted()
-          const next = rows.next()
-          if (next.done) { db.exec("COMMIT"); return next.value }
-          if (performance.now() >= deadline) {
-            await new Promise<void>(resolve => setImmediate(resolve))
-            deadline = performance.now() + 8
-          }
-        }
-      } catch (error) { db.exec("ROLLBACK"); throw error }
-    } finally { rows.return(undefined as never); db.close() }
-  })
+        unchanged()
+        db.exec("BEGIN DEFERRED")
+        const deadline = performance.now() + 8
+        do { result = rows.next() } while (!result.done && performance.now() < deadline)
+        db.exec("COMMIT")
+      } finally { db.close() }
+      unchanged()
+      if (result.done) return result.value
+      await new Promise<void>(resolve => setImmediate(resolve))
+    }
+  } finally { rows.return(undefined as never) }
 }
 
 function request(db: sqlite.Database, dbPath: string, operation: "repair" | "checkpoint", body: HistoryCheckpointRequest | HistoryRepairRequest, apply: (state: HistoryRecoveryStatus) => HistoryRecoveryReceipt): HistoryRecoveryReceipt {
