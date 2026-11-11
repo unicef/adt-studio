@@ -1,3 +1,4 @@
+import { preserveContentIdentityAcrossTelemetry } from "./book-content-identity.js"
 import { storeImmutableAsset } from "./immutable-assets.js"
 import { createHash } from "node:crypto"
 import fs from "node:fs"
@@ -68,6 +69,14 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     } finally {
       transactionDepth = 0
     }
+  }
+
+  const telemetryRun = (table: "step_runs" | "llm_log", sql: string, values: Parameters<sqlite.Database["run"]>[1]) => {
+    const write = () => { db.run(sql, values) }
+    // An outer transaction may contain content writes. Custom triggers also
+    // make a nominal telemetry statement untrustworthy for proof reuse.
+    if (transactionDepth || db.all("SELECT 1 FROM sqlite_master WHERE type='trigger' AND tbl_name=? LIMIT 1", [table]).length) write()
+    else preserveContentIdentityAcrossTelemetry(paths.dbPath, write)
   }
 
   const storage: Storage = {
@@ -449,7 +458,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     markStepStarted(step: string): void {
-      db.run(
+      telemetryRun("step_runs",
         `INSERT INTO step_runs (step, status, started_at) VALUES (?, 'running', ?)
          ON CONFLICT (step) DO UPDATE SET status='running', started_at=excluded.started_at, completed_at=NULL, error=NULL, message=NULL`,
         [step, new Date().toISOString()]
@@ -458,14 +467,14 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     markStepCompleted(step: string, message?: string): void {
       if (message !== undefined) {
-        db.run(
+        telemetryRun("step_runs",
           `INSERT INTO step_runs (step, status, completed_at, message) VALUES (?, 'done', ?, ?)
            ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at, message=excluded.message`,
           [step, new Date().toISOString(), message]
         )
         return
       }
-      db.run(
+      telemetryRun("step_runs",
         `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'done', ?)
          ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at`,
         [step, new Date().toISOString()]
@@ -473,7 +482,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     markStepSkipped(step: string): void {
-      db.run(
+      telemetryRun("step_runs",
         `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'skipped', ?)
          ON CONFLICT (step) DO UPDATE SET status='skipped', completed_at=excluded.completed_at`,
         [step, new Date().toISOString()]
@@ -481,7 +490,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     recordStepError(step: string, error: string): void {
-      db.run(
+      telemetryRun("step_runs",
         `INSERT INTO step_runs (step, status, error) VALUES (?, 'error', ?)
          ON CONFLICT (step) DO UPDATE SET status='error', error=excluded.error`,
         [step, error]
@@ -489,7 +498,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     updateStepMessage(step: string, message: string): void {
-      db.run(
+      telemetryRun("step_runs",
         `INSERT INTO step_runs (step, status, message) VALUES (?, 'running', ?)
          ON CONFLICT (step) DO UPDATE SET message=excluded.message`,
         [step, message]
@@ -571,7 +580,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     appendLlmLog(entry: LlmLogEntry): void {
-      db.run(
+      telemetryRun("llm_log",
         "INSERT INTO llm_log (request_id, timestamp, step, item_id, success, error_count, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
           entry.requestId,

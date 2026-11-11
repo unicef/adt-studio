@@ -46,3 +46,52 @@ it("bounds retained results", () => {
   expect(memo("c", () => ++computed)).toBe(3)
   expect(memo("a", () => ++computed)).toBe(4) // evicted, recomputed
 })
+
+
+it("retains content-derived proofs across known telemetry writes, but never across an unexplained rewrite", () => {
+  const label = "telemetry", bookDir = path.join(booksDir, label)
+  let storage = createBookStorage(label, booksDir)
+  let computed = 0
+  const memo = createBookStateMemo<number>()
+  const read = () => memo(bookStateKey(storage, bookDir), () => ++computed)
+  try {
+    storage.putNodeData("metadata", "book", { title: "Original" })
+    expect(read()).toBe(1)
+    for (let i = 0; i < 20; i++) {
+      storage.markStepStarted("web-rendering")
+      storage.updateStepMessage("web-rendering", `${i}/20`)
+      storage.appendLlmLog({ requestId: `request-${i}`, timestamp: new Date().toISOString(), taskType: "web-rendering", promptName: "fixture", modelId: "fixture", cacheHit: true, success: true, errorCount: 0, attempt: 1, durationMs: 0, messages: [] })
+      storage.markStepCompleted("web-rendering")
+      expect(read()).toBe(1)
+    }
+    storage.close()
+    storage = createBookStorage(label, booksDir)
+    expect(read()).toBe(1)
+    const db = openBookDb(path.join(bookDir, `${label}.db`))
+    try { db.run("UPDATE node_data SET data=? WHERE node='metadata'", [JSON.stringify({ title: "Raw rewrite" })]) }
+    finally { db.close() }
+    // A supported telemetry write after an external change must not hide it.
+    storage.updateStepMessage("web-rendering", "After raw rewrite")
+    expect(read()).toBe(2)
+    expect(read()).toBe(2)
+    storage.putNodeData("metadata", "book", { title: "New version" })
+    expect(read()).toBe(3)
+    storage.setCurrentNodeVersion("metadata", "book", 1)
+    expect(read()).toBe(4)
+  } finally { storage.close() }
+})
+
+it("does not classify a telemetry write with a content-mutating trigger as telemetry only", () => {
+  const label = "trigger", bookDir = path.join(booksDir, label)
+  const storage = createBookStorage(label, booksDir)
+  try {
+    storage.putNodeData("metadata", "book", { title: "Original" })
+    const db = openBookDb(path.join(bookDir, `${label}.db`))
+    try { db.exec(`CREATE TRIGGER unexpected_telemetry AFTER INSERT ON step_runs BEGIN UPDATE node_data SET data='{"title":"Changed"}' WHERE node='metadata'; END`) }
+    finally { db.close() }
+    const before = bookStateKey(storage, bookDir)
+    storage.markStepStarted("web-rendering")
+    expect(bookStateKey(storage, bookDir)).not.toBe(before)
+    expect(storage.getLatestNodeData("metadata", "book")?.data).toEqual({ title: "Changed" })
+  } finally { storage.close() }
+})

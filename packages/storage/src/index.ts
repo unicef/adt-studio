@@ -23,3 +23,5 @@ export { getStorageBookDir } from "./book-storage.js"
 
 export { insertNodeVersion, readIdentityHistory, importHistoryReservations, historyBookId } from "./history-evidence.js"
 export { HistoryRecoveryError, inspectHistoryRecovery, checkpointHistory, repairHistory, readHistoryRecoveryAudit } from "./history-recovery.js"
+
+export { readBookContentIdentity } from "./book-content-identity.js"

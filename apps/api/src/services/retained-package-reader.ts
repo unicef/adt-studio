@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import type { Storage } from "@adt/storage"
+import { readBookContentIdentity, type Storage } from "@adt/storage"
 import { retainedPackageOwnership } from "@adt/pipeline"
 
 function stamp(file: string): string {
@@ -17,7 +17,7 @@ export function createRetainedPackageReader() {
   const proofs = new Map<string, { key: string; members: Map<string, string>; value: ReturnType<typeof retainedPackageOwnership> }>()
   return (db: Storage, bookDb: string, root: string) => {
     const key = JSON.stringify([
-      db.getNodeVersionFingerprint(), ...[bookDb, bookDb + "-wal", root,
+      db.getNodeVersionFingerprint(), readBookContentIdentity(bookDb), ...[root,
         path.join(root, "content"), path.join(root, "content/pages.json"), path.join(root, ".build-owners"),
         path.join(root, "index.html"), path.join(root, "assets/offline-preloader.js")].map(stamp),
     ])

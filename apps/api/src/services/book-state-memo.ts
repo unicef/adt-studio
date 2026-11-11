@@ -1,19 +1,11 @@
-import fs from "node:fs"
 import path from "node:path"
-import type { Storage } from "@adt/storage"
+import { readBookContentIdentity, type Storage } from "@adt/storage"
 
-function stamp(file: string): string {
-  const s = fs.statSync(file, { bigint: true, throwIfNoEntry: false })
-  return s ? [s.dev, s.ino, s.size, s.mtimeNs, s.ctimeNs].join(":") : "-"
-}
-
-/** Identity of a book's saved state for derived read models. Every supported
- * save adds or selects a node version and rewrites the SQLite file, so both
- * the version fingerprint and the database file identity must be unchanged
- * for a derived result to be reused. Cheap: one indexed query and two stats. */
+/** Identity of a book's saved state for derived read models. Content writes and unexplained file changes invalidate. The storage boundary
+ * preserves identity only for proven telemetry-only statements. */
 export function bookStateKey(storage: Storage, bookDir: string): string {
   const db = path.join(bookDir, `${path.basename(bookDir)}.db`)
-  return JSON.stringify([storage.getNodeVersionFingerprint(), stamp(db), stamp(`${db}-wal`)])
+  return JSON.stringify([storage.getNodeVersionFingerprint(), readBookContentIdentity(db)])
 }
 
 /** Bounded in-process memo for results derived purely from saved book state.

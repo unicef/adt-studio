@@ -323,6 +323,28 @@ describe("Package routes", () => {
       // The build records its ownership proof in the shared reader, so at most
       // one cold proof reads the page. No page-content reads for later assets.
       expect(count()).toBeLessThanOrEqual(1)
+      const telemetry = createBookStorage(label, tmpDir)
+      try {
+        for (let i = 0; i < 12; i++) {
+          telemetry.markStepStarted("web-rendering")
+          telemetry.updateStepMessage("web-rendering", `${i}/12`)
+          expect((await get("assets/config.json")).status).toBe(200)
+        }
+        expect(count()).toBeLessThanOrEqual(1)
+        // A same-version raw rewrite followed by known progress must still
+        // invalidate ownership; the node-version fingerprint alone cannot.
+        const raw = openBookDb(path.join(tmpDir, label, label + ".db"))
+        try {
+          const before = raw.get("SELECT data FROM node_data WHERE node='page-sectioning' AND item_id='pg001' AND version=1") as { data: string }
+          const changed = JSON.parse(before.data)
+          changed.sections[0].isPruned = true
+          raw.run("UPDATE node_data SET data=? WHERE node='page-sectioning' AND item_id='pg001' AND version=1", [JSON.stringify(changed)])
+          telemetry.updateStepMessage("web-rendering", "After unexplained write")
+          expect((await get(file)).status).toBe(404)
+          raw.run("UPDATE node_data SET data=? WHERE node='page-sectioning' AND item_id='pg001' AND version=1", [before.data])
+          expect((await get(file)).status).toBe(200)
+        } finally { raw.close() }
+      } finally { telemetry.close() }
       const s = createBookStorage(label, tmpDir)
       const original = s.getLatestNodeData("page-sectioning", "pg001")!.data as { sections: { isPruned: boolean }[] }
       s.putNodeData("page-sectioning", "pg001", { ...original, sections: original.sections.map(section => ({ ...section, isPruned: true })) }); s.close()
