@@ -340,6 +340,36 @@ describe("Package routes", () => {
     } finally { reads.mockRestore() }
   })
 
+  it("revalidates asset bytes and current ownership before honoring conditional requests", async () => {
+    const label = "conditional-assets"; createRenderedBook(label); createWebAssets()
+    expect((await app.request(`/api/books/${label}/package-adt`, { method: "POST" })).status).toBe(200)
+    const routes = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
+    const url = `/books/${label}/adt/v-deliberately-unchanged/assets/config.json`
+    const first = await routes.request(url)
+    expect(first.status).toBe(200)
+    const etag = first.headers.get("ETag")
+    expect(etag).toMatch(/^"[a-f0-9]{64}"$/)
+    expect(first.headers.get("Cache-Control")).toBe("private, no-cache")
+    const conditional = () => routes.request(url, { headers: { "If-None-Match": etag! } })
+    const repeated = await conditional()
+    expect(repeated.status).toBe(304)
+    expect(await repeated.text()).toBe("")
+    fs.appendFileSync(path.join(tmpDir, label, "adt/assets/config.json"), " ")
+    const changed = await conditional()
+    expect(changed.status).toBe(200)
+    expect(changed.headers.get("ETag")).not.toBe(etag)
+    for (const member of ["pg001_sec001.html", "assets/offline-preloader.js"]) {
+      const sensitive = await routes.request(`/books/${label}/adt/v-old/${member}`, { headers: { "If-None-Match": etag! } })
+      expect(sensitive.status).toBe(200)
+      expect(sensitive.headers.get("Cache-Control")).toBe("no-store")
+    }
+    const storage = createBookStorage(label, tmpDir)
+    try { storage.putNodeData("web-rendering", "pg001", null) } finally { storage.close() }
+    const retired = await conditional()
+    expect(retired.status).not.toBe(304)
+    expect(retired.headers.get("Cache-Control")).toBe("no-store")
+  })
+
   it("does not reread every packaged page for reader assets and rechecks prune, restore and repackage", async () => {
     const label = "reader-cost"; createRenderedBook(label); createWebAssets()
     const url = `/api/books/${label}`, id = "pg001_sec001", file = id + ".html"

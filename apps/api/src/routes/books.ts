@@ -1031,6 +1031,15 @@ export function createBookRoutes(
     }
     const ext = path.extname(resolvedPath).toLowerCase()
     c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
+    if (ext !== ".html" && filePath !== "assets/offline-preloader.js") {
+      // Revalidate every use after database admission and current ownership.
+      // The URL's version segment is not proof; the validator names actual
+      // bytes, including edits made without changing the package version.
+      const etag = `"${createHash("sha256").update(fileBuffer).digest("hex")}"`
+      c.header("Cache-Control", "private, no-cache")
+      c.header("ETag", etag)
+      if (c.req.header("If-None-Match")?.split(",").some(value => value.trim().replace(/^W\//, "") === etag)) return c.body(null, 304)
+    }
     return c.body(fileBuffer)
   })
 
