@@ -8090,6 +8090,9 @@ msgstr "Abrir los ajustes para compartir"
 msgid "Open source PDF in a new tab"
 msgstr "Abrir el PDF de origen en una nueva pestaña"
 
+msgid "Open the book to verify Preview"
+msgstr "Abra el libro para verificar la vista previa"
+
 msgid "Open the Cloudflare page again"
 msgstr "Abrir la página de Cloudflare de nuevo"
 

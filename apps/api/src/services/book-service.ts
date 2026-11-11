@@ -1,4 +1,4 @@
-import { storyboardPackageComplete, currentStoryboardCoverage, currentStoryboardSourceWarnings } from "./storyboard-package-coverage.js"
+import { storyboardPackageStatus, currentStoryboardCoverage, currentStoryboardSourceWarnings } from "./storyboard-package-coverage.js"
 import { isCorruptBookDatabase } from "@adt/storage"
 import fs from "node:fs"
 import { setImmediate as yieldToRequests } from "node:timers/promises"
@@ -108,10 +108,12 @@ function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string
     const pageIds = activeSectioningPages(storage, config, bookDir).map(page => page.pageId)
     const coverage = currentStoryboardCoverage(storage, bookDir, pageIds)
     const storyboardNeedsReview = currentStoryboardSourceWarnings(storage, bookDir, pageIds).length > 0
-    if (coverage.complete && storyboardPackageComplete(storage, bookDir, pageIds, config, cachedPackageOnly)) completed.push("preview")
+    const previewStatus = storyboardPackageStatus(storage, bookDir, pageIds, config, cachedPackageOnly)
+    if (previewStatus === "complete") completed.push("preview")
     return {
       completedStages: completed.filter(stage => (!storyboardNeedsReview || stage !== "storyboard") && (coverage.complete || (stage !== "storyboard" && stage !== "package"))),
       storyboardNeedsReview,
+      previewStatus,
     }
   } finally { storage.close() }
 }
@@ -171,6 +173,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
     let needsRebuild = false
     let rebuildReason: string | null = null
     let completedStages: string[] = []
+    let previewStatus: BookSummary["previewStatus"] = "incomplete"
     let storyboardNeedsReview = false
     let readUnavailable = false
 
@@ -201,7 +204,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
             }
           }
 
-          ({ completedStages, storyboardNeedsReview } = computeCompletedStages(db, bookDir, configPath, true))
+          ({ completedStages, storyboardNeedsReview, previewStatus } = computeCompletedStages(db, bookDir, configPath, true))
         } finally {
           db.close()
         }
@@ -211,6 +214,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
           // database snapshot or offering a rebuild for temporary exclusion or
           // malformed persisted data. Retain the payload for explicit recovery.
           readUnavailable = true
+          previewStatus = "unverified"
           completedStages = []
         } else if (isRecoverableDbError(err)) {
           needsRebuild = true
@@ -236,6 +240,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
       needsRebuild,
       rebuildReason,
       completedStages,
+      previewStatus,
       ...(storyboardNeedsReview ? { storyboardNeedsReview: true } : {}),
       ...(readUnavailable ? { readUnavailable: true } : {}),
       createdAt,
@@ -283,6 +288,7 @@ export function getBook(label: string, booksDir: string, configPath?: string): B
   let needsRebuild = false
   let rebuildReason: string | null = null
   let completedStages: string[] = []
+  let previewStatus: BookSummary["previewStatus"] = "incomplete"
   let storyboardNeedsReview = false
 
   if (fs.existsSync(dbPath)) {
@@ -322,7 +328,7 @@ export function getBook(label: string, booksDir: string, configPath?: string): B
           }
         }
 
-        ({ completedStages, storyboardNeedsReview } = computeCompletedStages(db, bookDir, configPath))
+        ({ completedStages, storyboardNeedsReview, previewStatus } = computeCompletedStages(db, bookDir, configPath))
       } finally {
         db.close()
       }
@@ -351,6 +357,7 @@ export function getBook(label: string, booksDir: string, configPath?: string): B
     needsRebuild,
     rebuildReason,
     completedStages,
+    previewStatus,
     ...(storyboardNeedsReview ? { storyboardNeedsReview: true } : {}),
     createdAt,
     modifiedAt,

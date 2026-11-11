@@ -8090,6 +8090,9 @@ msgstr "Open sharing settings"
 msgid "Open source PDF in a new tab"
 msgstr "Open source PDF in a new tab"
 
+msgid "Open the book to verify Preview"
+msgstr "Open the book to verify Preview"
+
 msgid "Open the Cloudflare page again"
 msgstr "Open the Cloudflare page again"
 

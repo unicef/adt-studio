@@ -154,6 +154,7 @@ export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels
     const extra = Math.max(0, p.optionalDone.length - max)
     return (
       <div className={cn("flex items-center gap-1", className)}>
+        {vm.raw.previewStatus === "unverified" && <span className="text-xs text-muted-foreground"><Trans>Open the book to verify Preview</Trans></span>}
         {vm.raw.storyboardNeedsReview && <span title={t`Storyboard needs review`} className="text-xs text-amber-700"><Trans>Storyboard needs review</Trans></span>}
         {p.baseComplete ? (
           <span title={t`Base ready`} className="grid size-5 place-items-center rounded-full bg-stage-validation/12 text-stage-validation">
@@ -175,6 +176,7 @@ export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels
   const extra = Math.max(0, p.optionalDone.length - 7)
   return (
     <div className={className}>
+      {vm.raw.previewStatus === "unverified" && <p className="mb-1 text-xs text-muted-foreground"><Trans>Open the book to verify Preview</Trans></p>}
       {vm.raw.storyboardNeedsReview && <p className="mb-1 text-xs text-amber-700"><Trans>Storyboard needs review</Trans></p>}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1">

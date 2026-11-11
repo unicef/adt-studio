@@ -8092,6 +8092,9 @@ msgstr "Hap cilësimet e ndarjes"
 msgid "Open source PDF in a new tab"
 msgstr "Hapni PDF-in burimor në një skedë të re"
 
+msgid "Open the book to verify Preview"
+msgstr "Hapni librin për të verifikuar pamjen paraprake"
+
 msgid "Open the Cloudflare page again"
 msgstr "Hap përsëri faqen e Cloudflare"
 

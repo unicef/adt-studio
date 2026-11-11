@@ -24,6 +24,8 @@ export const BookSummary = z.object({
   readUnavailable: z.boolean().optional(),
   completedStages: z.array(z.string()),
   storyboardNeedsReview: z.boolean().optional(),
+  /** Unverified is distinct from a known missing or incomplete package. */
+  previewStatus: z.enum(["complete", "incomplete", "unverified"]).optional(),
   createdAt: z.string(),
   modifiedAt: z.string(),
   /** Set when this book was imported as a page-range part of a larger book. */
