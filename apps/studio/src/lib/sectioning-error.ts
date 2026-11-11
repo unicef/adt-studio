@@ -41,7 +41,20 @@ export function sectioningErrorMessage(error?: string, code?: string): string | 
       return i18n._(msg`The requested pages are outside the active page window (${total} total; showing up to 20): ${pages}. Select pages within the current window. Saved content is retained.`)
     }
     case "PACKAGE_RECOVERY_UNSAFE": return i18n._(msg`The package recovery folder is unrecognized. Existing files have been retained. Check the book folder before preparing another export.`)
-    case "PACKAGE_FILES_INCOMPLETE": return i18n._(msg`The package is missing required files. Prepare the export again before downloading it.`)
+    case "PACKAGE_FILES_INCOMPLETE": {
+      // Accept only the bounded, portable diagnostic fields. Legacy messages
+      // and malformed/untrusted details retain the generic translated fallback.
+      try {
+        const detail: unknown = JSON.parse(error?.match(/PACKAGE_FILES_INCOMPLETE:\s*(.*)/)?.[1] ?? "")
+        const safe = (value: unknown): value is string => typeof value === "string" && value.length > 0 && value.length <= 240 &&
+          !/[\\:\x00-\x1f\x7f]/.test(value) && !value.startsWith("/") && !value.split("/").some(part => !part || part === "." || part === "..")
+        if (detail && typeof detail === "object" && "document" in detail && "member" in detail && safe(detail.document) && safe(detail.member)) {
+          const { document, member } = detail
+          return i18n._(msg`The package document ${document} requires a missing or invalid file: ${member}. Existing output is retained. Correct the saved content or restore the file, then prepare the export again.`)
+        }
+      } catch { /* use the translated fallback */ }
+      return i18n._(msg`The package is missing required files. Prepare the export again before downloading it.`)
+    }
     case "PACKAGE_INPUTS_CHANGED": return i18n._(msg`The book changed while preparing the package. Prepare the export again using the current book.`)
     case "BOOK_CONFIG_INVALID": return i18n._(msg`This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again.`)
     case "SECTIONING_WINDOW_INVALID": return i18n._(msg`This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained.`)

@@ -6,7 +6,7 @@ import type { PackagingWarning } from "@adt/types"
 import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { readRetainedPackageOwnership } from "./retained-package-reader.js"
-import { publishedAdtDirectory, requiredPartRange, SectioningSafetyError, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import { publishedAdtDirectory, requiredPartRange, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream, type ZipStreamOptions } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 
@@ -318,10 +318,10 @@ function readablePackageZip(bookDir: string, directory: string, format: "scorm" 
     try {
       // Older bundles can still name an owner rejected by today's resolver.
       // Downloads may be partial but cannot distribute retired or unowned pages.
-      if (!readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), directory).allOwned ||
-        !packageFilesAvailable(directory, { format })) {
+      if (!readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), directory).allOwned) {
         throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from the current saved content.")
       }
+      assertPackageFilesAvailable(directory, { format })
     } finally { storage.close() }
     // The ZIP producer may yield between files; keep shared admission until it finishes.
     return createAdmittedZipStream(bookDir, directory)

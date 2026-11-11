@@ -229,7 +229,13 @@ describe("Package routes", () => {
     s.close()
     const result = await run()
     expect(result.status).toBe(409)
-    expect(await result.json()).toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    const failure = await result.json()
+    expect(failure).toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    if (!missing.includes('src="/')) {
+      expect(failure.error).toContain('"document":"pg001_sec001.html"')
+      expect(failure.error).toContain('"member":')
+    }
+    expect(failure.error).not.toContain(tmpDir)
     expect(await readZip()).toEqual(original)
     const repair = createBookStorage(label, tmpDir)
     repair.putNodeData("web-rendering", "pg001", saved)

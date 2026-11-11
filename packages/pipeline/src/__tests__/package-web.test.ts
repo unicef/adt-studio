@@ -3334,6 +3334,32 @@ describe("packageWebpub", () => {
     return { bookDir, webAssetsDir, storage }
   }
 
+  it.each(["html", "image", "css"])("reports a bounded originating document and missing %s member while retaining the prior package", async kind => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage, "Prior book")
+    const prior = fs.readFileSync(path.join(bookDir, "adt/index.html"))
+    let document = "", member = ""
+    const promise = packageAdtWeb(storage, {
+      bookDir, webAssetsDir, label: "book", language: "en", outputLanguages: ["en"], title: "Damaged book",
+      preparePublication: async stagingRoot => {
+        const staged = path.join(stagingRoot, "adt")
+        document = JSON.parse(fs.readFileSync(path.join(staged, "content/pages.json"), "utf8"))[0].href
+        member = kind === "html" ? document : "assets/missing.png"
+        if (kind === "html") fs.unlinkSync(path.join(staged, document))
+        if (kind === "image") fs.appendFileSync(path.join(staged, document), '<img src="assets/missing.png">')
+        if (kind === "css") {
+          fs.appendFileSync(path.join(staged, document), '<link rel="stylesheet" href="assets/broken.css">')
+          fs.writeFileSync(path.join(staged, "assets/broken.css"), 'body { background: url(missing.png) }')
+        }
+      },
+    })
+    await expect(promise).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    const error = await promise.catch(error => error as Error)
+    expect(error.message).toBe(`PACKAGE_FILES_INCOMPLETE: ${JSON.stringify({ document, member })}`)
+    expect(error.message).not.toContain(bookDir)
+    expect(fs.readFileSync(path.join(bookDir, "adt/index.html"))).toEqual(prior)
+  })
+
   it("cancellation at package publication retains the previous bundle and removes only its staging", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage, "Prior book")

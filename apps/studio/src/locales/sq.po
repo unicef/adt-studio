@@ -12180,6 +12180,9 @@ msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të
 msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
 msgstr "Historiku origjinal nuk mund të verifikohej. Regjistrimet dhe burimet ekzistuese janë ruajtur. Rikuperimi kërkon prova të besueshme për këto versione të sakta."
 
+msgid "The package document {document} requires a missing or invalid file: {member}. Existing output is retained. Correct the saved content or restore the file, then prepare the export again."
+msgstr "Dokumenti {document} i paketës kërkon një skedar që mungon ose është i pavlefshëm: {member}. Dalja ekzistuese ruhet. Korrigjoni përmbajtjen e ruajtur ose riktheni skedarin, pastaj përgatiteni sërish eksportin."
+
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "Paketës i mungojnë skedarë të nevojshëm. Përgatiteni sërish eksportin para se ta shkarkoni."
 

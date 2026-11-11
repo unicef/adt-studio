@@ -12178,6 +12178,9 @@ msgstr "El modelo detecta cajas delimitadoras para que cada elemento visual pued
 msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
 msgstr "No se pudo verificar el historial original. Se han conservado los registros y recursos existentes. La recuperación requiere evidencias fiables para estas versiones exactas."
 
+msgid "The package document {document} requires a missing or invalid file: {member}. Existing output is retained. Correct the saved content or restore the file, then prepare the export again."
+msgstr "El documento {document} del paquete requiere un archivo que falta o no es válido: {member}. Se conserva la salida existente. Corrige el contenido guardado o restaura el archivo y vuelve a preparar la exportación."
+
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "Faltan archivos necesarios en el paquete. Vuelve a preparar la exportación antes de descargarla."
 

@@ -2,7 +2,7 @@ import { setImmediate as yieldToEventLoop } from "node:timers/promises"
 import { storyboardSourceWarnings } from "../storyboard-source-state.js"
 import { recordPackagedOwners } from "./bundle-ownership.js"
 import { openPackageWork, publishedAdtDirectory } from "./publication-directory.js"
-import { isBundleLocale, packageFilesAvailable } from "./bundle-files.js"
+import { isBundleLocale, assertPackageFilesAvailable } from "./bundle-files.js"
 import { isPublicOutputId } from "../public-output-identity.js"
 import { BookConfigError } from "../config.js"
 import { buildImageInventory } from "../catalog-reconciliation.js"
@@ -358,9 +358,7 @@ export async function packageAdtWeb(
       options.signal?.throwIfAborted()
       const commit = await options.preparePublication?.(stagingRoot, result)
       options.signal?.throwIfAborted()
-      if (!packageFilesAvailable(staged, { format: "scorm", expectedLanguages: options.outputLanguages.map(normalizeLocale) })) {
-        throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "The staged package is missing required files. The previous package is retained.")
-      }
+      assertPackageFilesAvailable(staged, { format: "scorm", expectedLanguages: options.outputLanguages.map(normalizeLocale) })
       if (JSON.stringify(requiredPartRange(options.bookDir)) !== window) {
         throw new SectioningSafetyError("SECTIONING_WINDOW_INVALID", "The part window changed while packaging. Retry using the current window.")
       }

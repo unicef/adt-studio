@@ -16,6 +16,17 @@ it("retains unrecognized provider diagnostics", () => {
   expect(sectioningErrorMessage("Provider returned diagnostic ABC")).toBe("Provider returned diagnostic ABC")
 })
 
+it("keeps safe package document and member diagnostics for HTTP and SSE", () => {
+  const raw = 'PACKAGE_FILES_INCOMPLETE: {"document":"pg001_sec001.html","member":"assets/missing.png"}'
+  const message = sectioningErrorMessage(raw)
+  expect(message).toContain("pg001_sec001.html")
+  expect(message).toContain("assets/missing.png")
+  expect(message).toBe(sectioningErrorMessage(raw, "PACKAGE_FILES_INCOMPLETE"))
+  for (const member of ["/private/secret", "../secret", "a\\\\secret", "a".repeat(241)]) {
+    expect(sectioningErrorMessage(`PACKAGE_FILES_INCOMPLETE: ${JSON.stringify({ document: "page.html", member })}`)).not.toContain(member)
+  }
+})
+
 it("distinguishes lost tracking evidence from a recoverable damaged history row", () => {
   const error = "HISTORY_REPAIR_REQUIRED: history-evidence/book@0"
   const message = sectioningErrorMessage(error)

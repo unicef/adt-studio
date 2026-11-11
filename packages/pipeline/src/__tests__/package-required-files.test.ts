@@ -25,9 +25,17 @@ it("validates shared runtime files once per read and notices their deletion on t
   expect(packageFilesAvailable(root)).toBe(true)
   expect(reads).toHaveBeenCalledTimes(firstReads)
   fs.unlinkSync(runtime)
-  expect(packageFilesAvailable(root)).toBe(false)
+  const failure = vi.fn()
+  expect(packageFilesAvailable(root, { onFailure: failure })).toBe(false)
+  expect(failure).toHaveBeenCalledWith({ document: "p1.html", member: "assets/base.js" })
   fs.writeFileSync(runtime, "window.readerLoaded = true")
   const page = path.join(root, "p1.html")
+  for (const unsafe of ["/private/secret", "../../secret", "a".repeat(241)]) {
+    failure.mockClear()
+    fs.writeFileSync(page, `<img src="${unsafe}">`)
+    expect(packageFilesAvailable(root, { onFailure: failure })).toBe(false)
+    expect(failure).toHaveBeenCalledWith({})
+  }
   fs.writeFileSync(page, '<main><img src="assets/picture.png"></main>')
   expect(packageFilesAvailable(root)).toBe(false)
   const picture = path.join(root, "assets/picture.png")

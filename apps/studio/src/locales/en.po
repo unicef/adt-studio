@@ -12178,6 +12178,9 @@ msgstr "The model detects bounding boxes so each visual element can be stored an
 msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
 msgstr "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
 
+msgid "The package document {document} requires a missing or invalid file: {member}. Existing output is retained. Correct the saved content or restore the file, then prepare the export again."
+msgstr "The package document {document} requires a missing or invalid file: {member}. Existing output is retained. Correct the saved content or restore the file, then prepare the export again."
+
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "The package is missing required files. Prepare the export again before downloading it."
 

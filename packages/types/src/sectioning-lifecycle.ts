@@ -34,3 +34,12 @@ export const StoryboardCoverage = z.object({
   missingSections: z.array(z.object({ pageId: z.string(), sectionId: z.string() })),
 })
 export type StoryboardCoverage = z.infer<typeof StoryboardCoverage>
+
+/** Bounded portable paths only; diagnostics never expose absolute host paths. */
+const PackageDiagnosticPath = z.string().min(1).max(240).refine(value =>
+  !/[\\:\x00-\x1f\x7f]/.test(value) && !value.startsWith("/") &&
+  !value.split("/").some(part => part === ".." || part === "." || !part))
+export const PackageFileDiagnostic = z.object({
+  document: PackageDiagnosticPath.optional(), member: PackageDiagnosticPath.optional(),
+})
+export type PackageFileDiagnostic = z.infer<typeof PackageFileDiagnostic>

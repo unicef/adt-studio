@@ -2,7 +2,8 @@ import fs from "node:fs"
 import path from "node:path"
 import { Parser } from "htmlparser2"
 import { cssReferences, parseCssSource } from "./css-references.js"
-import { PublicationPageEntry } from "@adt/types"
+import { PackageFileDiagnostic, PublicationPageEntry } from "@adt/types"
+import { SectioningSafetyError } from "../sectioning-errors.js"
 
 /** A normalized locale becomes one directory name in a generated bundle. */
 export const isBundleLocale = (value: unknown): value is string =>
@@ -44,20 +45,30 @@ function stamp(file: string): string {
 /** Validate the files required to open the generated reader. This is separate
  * from source freshness and source coverage: a valid partial bundle can still
  * be cached with its omission warnings. Never follow a bundle path outside it. */
-export function packageFilesAvailable(adtDir: string, options: { format?: "web" | "scorm"; expectedLanguages?: readonly string[]; cachedOnly?: boolean } = {}): boolean {
+export function packageFilesAvailable(adtDir: string, options: { format?: "web" | "scorm"; expectedLanguages?: readonly string[]; cachedOnly?: boolean; onFailure?: (diagnostic: PackageFileDiagnostic) => void } = {}): boolean {
+  let document: string | undefined, lastMember: string | undefined
+  const fail = () => {
+    const diagnostic = PackageFileDiagnostic.safeParse({ document, member: lastMember })
+    options.onFailure?.(diagnostic.success ? diagnostic.data : {})
+    return false
+  }
   try {
     const root = fs.realpathSync(adtDir)
     const key = JSON.stringify([root, options.format, options.expectedLanguages])
     const hit = proofs.get(key)
-    if (hit && [...hit].every(([file, identity]) => stamp(file) === identity)) return true
+    // A removed dependency invalidates the proof; continue the cold check to
+    // identify its originating document instead of swallowing stat errors.
+    try { if (hit && [...hit].every(([file, identity]) => stamp(file) === identity)) return true } catch { /* recheck below */ }
     proofs.delete(key)
     // Library summaries may reuse a current proof, but never cold-verify all
     // documents while enumerating books. Unknown is not complete.
-    if (options.cachedOnly) return false
+    if (options.cachedOnly) return fail()
     const dependencies = new Map<string, string>([[root, stamp(root)]])
     const readFiles = new Map<string, string>()
     const member = (relative: string): string => {
+      lastMember = relative
       const requested = path.resolve(root, relative)
+      if (!requested.startsWith(root + path.sep)) throw new Error("Bundle path escapes root")
       const resolved = fs.realpathSync(requested)
       // The ZIP enumerator does not materialize symbolic links, even when
       // their targets are inside the bundle (including directory aliases).
@@ -66,7 +77,8 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
       for (let file = resolved; file !== root; file = path.dirname(file)) dependencies.set(file, stamp(file))
       return resolved
     }
-    const read = (relative: string): string => {
+    const read = (relative: string, preserveDocument = false): string => {
+      if (!preserveDocument) document = relative
       const resolved = member(relative)
       const cached = readFiles.get(resolved)
       if (cached !== undefined) return cached
@@ -82,12 +94,14 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
       if (!url || external(url)) return undefined
       // A host-root URL cannot resolve inside a portable/offline package.
       // Do not let path.join reinterpret it as a bundle-relative member.
+      lastMember = url
       const local = decodeURIComponent(url.split(/[?#]/)[0])
       if (local.startsWith("/") || local.includes("\\")) throw new Error("Root-absolute or nonportable bundle reference")
       return path.relative(root, member(path.join(path.dirname(from), local)))
     }
     const styles = new Map<string, ReturnType<typeof parseCssSource>>()
     const checkHtml = (html: string, from: string) => {
+      document = from
       const sources: Parameters<typeof cssReferences>[0][number][] = []
       const includedStyles = new Set<string>()
       const includeCss = (parsed: ReturnType<typeof parseCssSource>, base: string, inlineStyle?: string) => {
@@ -99,7 +113,7 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
         if (!file || includedStyles.has(file)) return
         includedStyles.add(file)
         let parsed = styles.get(file)
-        if (!parsed) { parsed = parseCssSource(read(file)); styles.set(file, parsed) }
+        if (!parsed) { parsed = parseCssSource(read(file, true)); styles.set(file, parsed) }
         includeCss(parsed, file)
       }
       let style: string | undefined
@@ -110,7 +124,7 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
         if (name === "video" && attrs.poster) relativeMember(attrs.poster, from)
         if (name === "object" && attrs.data) relativeMember(attrs.data, from)
         if (["image", "use"].includes(name) && (attrs.href || attrs["xlink:href"])) relativeMember(attrs.href ?? attrs["xlink:href"], from)
-      if (name === "link" && attrs.rel?.toLowerCase().split(/\s+/).includes("stylesheet") && attrs.href) includeStylesheet(attrs.href, from)
+        if (name === "link" && attrs.rel?.toLowerCase().split(/\s+/).includes("stylesheet") && attrs.href) includeStylesheet(attrs.href, from)
         if (attrs.style) includeCss(parseCssSource(attrs.style), from, attrs.style)
         if (attrs.srcset) for (const url of srcsetUrls(attrs.srcset)) relativeMember(url, from)
       }, ontext(text) { if (style !== undefined) style += text }, onclosetag(name) {
@@ -125,18 +139,18 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
     const config = JSON.parse(read("assets/config.json"))
     const languages: unknown = config?.languages?.available
     if (!Array.isArray(languages) || !languages.length || !languages.includes(config.languages.default) ||
-        options.expectedLanguages?.some(language => !languages.includes(language))) return false
+        options.expectedLanguages?.some(language => !languages.includes(language))) return fail()
     for (const language of languages) {
-      if (!isBundleLocale(language)) return false
+      if (!isBundleLocale(language)) return fail()
       // These dictionaries are written even when empty and are loaded on
       // demand by the reader. Voice, glossary and timing files are conditional.
       for (const name of ["texts", "speech_texts", "audios", "videos", "images"]) {
         const data = JSON.parse(read(`content/i18n/${language}/${name}.json`))
-        if (data === null || typeof data !== "object" || Array.isArray(data)) return false
+        if (data === null || typeof data !== "object" || Array.isArray(data)) return fail()
         if (["audios", "videos", "images"].includes(name)) {
           const folder = name === "images" ? "images" : `content/i18n/${language}/${name === "audios" ? "audio" : "video"}`
           for (const file of Object.values(data)) {
-            if (typeof file !== "string") return false
+            if (typeof file !== "string") return fail()
             relativeMember(file, folder + "/manifest.json")
           }
         }
@@ -145,25 +159,33 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
       if (fs.existsSync(path.join(root, voices))) {
         const data = JSON.parse(read(voices))
         for (const slot of [data.primary, data.secondary]) for (const file of Object.values(slot?.audios ?? {})) {
-          if (typeof file !== "string") return false
+          if (typeof file !== "string") return fail()
           relativeMember(file, `content/i18n/${language}/audio/manifest.json`)
         }
       }
       const glossary = `content/i18n/${language}/glossary.json`
       if (fs.existsSync(path.join(root, glossary))) {
         const entries: unknown = JSON.parse(read(glossary))
-        if (!entries || typeof entries !== "object" || Array.isArray(entries)) return false
+        if (!entries || typeof entries !== "object" || Array.isArray(entries)) return fail()
         for (const entry of Object.values(entries)) {
-          if (!entry || typeof entry !== "object") return false
+          if (!entry || typeof entry !== "object") return fail()
           for (const name of ["image", "video"] as const) {
             const file = (entry as Record<string, unknown>)[name]
             if (file !== undefined) {
-              if (typeof file !== "string") return false
+              if (typeof file !== "string") return fail()
               relativeMember(file, "index.html")
             }
           }
         }
       }
+    }
+    const seen = new Set<string>()
+    for (const page of pages) {
+      if (!page || typeof page.href !== "string" || typeof page.section_id !== "string" ||
+        path.basename(page.href) !== page.href || page.href !== page.section_id + ".html" || seen.has(page.href)) return fail()
+      seen.add(page.href)
+      const html = read(page.href)
+      checkHtml(html, page.href)
     }
     if (options.format === "scorm") {
       const members = new Set<string>()
@@ -172,20 +194,22 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
         if (name === "resource" && attrs.href === "index.html" && attrs["adlcp:scormtype"] === "sco") launch = true
         if (name === "file" && attrs.href) { member(attrs.href); members.add(attrs.href) }
       } }, { xmlMode: true }).end(read("imsmanifest.xml"))
-      if (!launch || !members.has("index.html") || pages.some(page => !members.has(page.href))) return false
+      if (!launch || !members.has("index.html") || pages.some(page => !members.has(page.href))) return fail()
     }
-    const seen = new Set<string>()
-    for (const page of pages) {
-      if (!page || typeof page.href !== "string" || typeof page.section_id !== "string" ||
-        path.basename(page.href) !== page.href || page.href !== page.section_id + ".html" || seen.has(page.href)) return false
-      seen.add(page.href)
-      const html = read(page.href)
-      checkHtml(html, page.href)
-    }
-    if (!fs.readdirSync(root).every(name => !name.toLowerCase().endsWith(".html") || name === "index.html" || seen.has(name))) return false
-    if (![...dependencies].every(([file, identity]) => stamp(file) === identity)) return false
+    if (!fs.readdirSync(root).every(name => !name.toLowerCase().endsWith(".html") || name === "index.html" || seen.has(name))) return fail()
+    if (![...dependencies].every(([file, identity]) => stamp(file) === identity)) return fail()
     if (proofs.size >= 8) proofs.delete(proofs.keys().next().value!)
     proofs.set(key, dependencies)
     return true
-  } catch { return false }
+  } catch { return fail() }
+}
+
+/** Same verifier and proof cache as status/Preview, with actionable failure for
+ * explicit package preparation and downloads. The code-prefixed JSON survives
+ * HTTP, persisted step messages and SSE without exposing filesystem exceptions. */
+export function assertPackageFilesAvailable(adtDir: string, options: { format?: "web" | "scorm"; expectedLanguages?: readonly string[] } = {}): void {
+  let diagnostic: PackageFileDiagnostic = {}
+  if (!packageFilesAvailable(adtDir, { ...options, onFailure: failure => { diagnostic = failure } })) {
+    throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", JSON.stringify(diagnostic))
+  }
 }

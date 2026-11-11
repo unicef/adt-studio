@@ -12180,6 +12180,9 @@ msgstr "Le modèle détecte les zones de délimitation afin que chaque élément
 msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
 msgstr "L’historique d’origine n’a pas pu être vérifié. Les enregistrements et ressources existants ont été conservés. La récupération exige des preuves fiables pour ces versions exactes."
 
+msgid "The package document {document} requires a missing or invalid file: {member}. Existing output is retained. Correct the saved content or restore the file, then prepare the export again."
+msgstr "Le document {document} du paquet nécessite un fichier manquant ou invalide : {member}. La sortie existante est conservée. Corrigez le contenu enregistré ou restaurez le fichier, puis préparez à nouveau l’export."
+
 msgid "The package is missing required files. Prepare the export again before downloading it."
 msgstr "Des fichiers requis manquent dans le paquet. Préparez à nouveau l’export avant de le télécharger."
 
