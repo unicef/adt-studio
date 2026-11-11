@@ -49,8 +49,13 @@ it.each([false, true])("passes the real editor projection through atomic Save wi
   const edited = backPropagateTextChanges(sections, 0, editedHtml, rendering.sections[0].html)
   const response = await app.request(`/books/${label}/pages/pg001/storyboard`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ baseVersion: 1, renderingBaseVersion: 1, rendering: { sections: [{ ...rendering.sections[0], html: editedHtml }] }, ...(edited === sections ? {} : { sectioning: edited, renderingInSync: true }) }) })
   expect(response.status).toBe(200)
+  const receipt = await response.json()
   const db = storage()
   try {
+    expect(receipt.sectioning).toEqual(db.getLatestNodeData("page-sectioning", "pg001")?.data)
+    expect(receipt.rendering).toEqual(db.getLatestNodeData("web-rendering", "pg001")?.data)
+    expect(receipt.sectioningVersion).toBe(db.getLatestNodeData("page-sectioning", "pg001")?.version)
+    expect(receipt.renderingVersion).toBe(db.getLatestNodeData("web-rendering", "pg001")?.version)
     expect((db.getLatestNodeData("page-sectioning", "pg001")!.data as PageSectioningOutput).sections[0].nodes[1].text).toBe(genuine ? "The evening sky is [placeholder:blue]." : "The sky is [placeholder:blue].")
     expect(db.getAllNodeVersions("page-sectioning", "pg001")).toHaveLength(genuine ? 2 : 1)
     expect(db.getAllNodeVersions("page-sectioning", "pg001")[0].data).toEqual(sections)

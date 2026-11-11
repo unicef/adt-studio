@@ -37,6 +37,16 @@ export const WebRenderingOutput = z.object({
 })
 export type WebRenderingOutput = z.infer<typeof WebRenderingOutput>
 
+/** Canonical page pair returned by an atomic editor save. Acknowledged guards
+ * and values travel together so a delayed GET cannot seed the next draft. */
+export const StoryboardSaveResult = z.object({
+  sectioningVersion: z.number().int().positive().nullable(),
+  renderingVersion: z.number().int().positive().nullable(),
+  sectioning: PageSectioningOutput.nullable(),
+  rendering: WebRenderingOutput.nullable(),
+})
+export type StoryboardSaveResult = z.infer<typeof StoryboardSaveResult>
+
 export const RenderingSave = WebRenderingOutput.extend(AuthoredSaveGuard.shape)
 export type RenderingSave = z.infer<typeof RenderingSave>
 export const AiSectionEdit = z.object({

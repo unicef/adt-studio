@@ -4,7 +4,7 @@ import { captureStoryboardSource, publishSynchronizedStoryboardText } from "@adt
 import { cloneRenderedIdentities, stampRenderedOwner } from "@adt/pipeline"
 import { stampManualEdits } from "@adt/pipeline"
 import { AuthoredSaveGuard } from "@adt/types"
-import { RenderingSave, StoryboardSave, AiSectionEdit } from "@adt/types"
+import { RenderingSave, StoryboardSave, StoryboardSaveResult, AiSectionEdit } from "@adt/types"
 import { invalidPublicOutputIdentity } from "@adt/pipeline"
 import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
@@ -1724,31 +1724,34 @@ export function createPageRoutes(
       // Rendering, sectioning, downstream invalidations, and step status are a
       // single editor save. If any statement fails, none of them may survive.
       const previousSectioning = sectioning ? PageSectioningOutput.safeParse(storage.getLatestNodeData("page-sectioning", pageId)?.data) : null
-      const { renderingVersion, sectioningVersion } = withSourceGenerationTracking(storage, () => {
+      const saved = withSourceGenerationTracking(storage, () => {
         assertNoActivePipelineRun(storage)
         if (rendering) assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, parsed.data.renderingBaseVersion!)
         const synchronized = sectioning && rendering && renderingInSync
         const priorSource = synchronized ? captureStoryboardSource(storage, pageId) : undefined
         const oldRendering = synchronized ? WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", pageId)?.data) : undefined
         const priorRendering = oldRendering?.success ? withLegacyRenderingOwnership(storage, pageId, oldRendering.data) : undefined
-        const saved = {
-          renderingVersion: rendering
-            ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
-            : null,
-          sectioningVersion: sectioning
-            ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
-            : null,
-        }
+        if (rendering) saveStoryboardNode(storage, "web-rendering", pageId, rendering)
+        if (sectioning) saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
         if (sectioning) {
           const remap = sectionReorderMap(previousSectioning?.success ? previousSectioning.data : undefined, sectioning)
           if (remap) migrateEditableActivities(storage, pageId, { mapIndex: remap })
         }
         if (synchronized) publishSynchronizedStoryboardText(storage, pageId, priorSource,
           previousSectioning?.success ? previousSectioning.data : undefined, priorRendering)
-        return saved
+        const sourceRow = storage.getLatestNodeData("page-sectioning", pageId)
+        const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+        const canonicalSource = PageSectioningOutput.safeParse(sourceRow?.data)
+        const canonicalRendering = WebRenderingOutput.safeParse(renderingRow?.data)
+        return StoryboardSaveResult.parse({
+          sectioningVersion: sourceRow?.version ?? null,
+          renderingVersion: renderingRow?.version ?? null,
+          sectioning: canonicalSource.success ? canonicalSource.data : null,
+          rendering: canonicalRendering.success ? canonicalRendering.data : null,
+        })
       }, [pageId])
 
-      return c.json({ sectioningVersion, renderingVersion })
+      return c.json(saved)
     } finally {
       storage.close()
     }

@@ -1,3 +1,6 @@
+import { rebaseDraft } from "@/lib/rebase-draft"
+import { applyStoryboardSave, useStoryboardSaveReceipt } from "./use-storyboard-save-receipt"
+import type { StoryboardSaveResult } from "@adt/types"
 import { sectioningSaveFromRendering } from "../lib/back-propagate-text"
 import { EditorBusyBoundary, useVersionRestoreBusy } from "../../../components/version-restore"
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode, type SetStateAction } from "react"
@@ -384,7 +387,7 @@ export function StoryboardSectionDetail({
   bookLabel,
   pageId,
   sectionIndex,
-  page,
+  page: incomingPage,
   navigationExtra,
   navigationArrows,
   onGeneratingChange,
@@ -410,6 +413,7 @@ export function StoryboardSectionDetail({
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const { page, current: acknowledgedPage, acknowledge: acknowledgePage } = useStoryboardSaveReceipt(bookLabel, pageId, incomingPage)
   const {
     apiKey,
     hasImageProvider,
@@ -480,7 +484,9 @@ export function StoryboardSectionDetail({
   // A response can arrive in the same batch as a successor edit.
   const setPendingSectioning = useCallback((next: SetStateAction<SectioningData | null>) => {
     if (restoringRef.current) return
-    const value = typeof next === "function" ? next(latestDraftRef.current.sectioning) : next
+    let value = typeof next === "function" ? next(latestDraftRef.current.sectioning) : next
+    const canonical = acknowledgedPage.current.sectioningTree
+    if (value && !latestDraftRef.current.sectioning && canonical && page.sectioningTree && canonical !== page.sectioningTree) value = rebaseDraft(page.sectioningTree as SectioningData, value, canonical as SectioningData).value
     latestDraftRef.current.sectioning = value
     if (value === null) sectioningBaseVersion.current = null
     else {
@@ -489,10 +495,12 @@ export function StoryboardSectionDetail({
       renderingDraftBase.current ??= page.rendering
     }
     setPendingSectioningState(value)
-  }, [page.versions.sectioning, page.versions.rendering, page.rendering])
+  }, [page.versions.sectioning, page.versions.rendering, page.rendering, page.sectioningTree, acknowledgedPage])
   const setPendingRendering = useCallback((next: SetStateAction<RenderingData | null>) => {
     if (restoringRef.current) return
-    const value = typeof next === "function" ? next(latestDraftRef.current.rendering) : next
+    let value = typeof next === "function" ? next(latestDraftRef.current.rendering) : next
+    const canonical = acknowledgedPage.current.rendering
+    if (value && !latestDraftRef.current.rendering && canonical && page.rendering && canonical !== page.rendering) value = rebaseDraft(page.rendering, value, canonical).value
     latestDraftRef.current.rendering = value
     if (value === null) { renderingBaseVersion.current = null; renderingDraftBase.current = null }
     else {
@@ -500,7 +508,7 @@ export function StoryboardSectionDetail({
       renderingDraftBase.current ??= page.rendering
     }
     setPendingRenderingState(value)
-  }, [page.versions.rendering, page.rendering])
+  }, [page.versions.rendering, page.rendering, acknowledgedPage])
 
   // A response acknowledges only the draft sent with that request. Editors
   // remain usable while saving; later source, HTML and inspector edits must
@@ -514,6 +522,35 @@ export function StoryboardSectionDetail({
     needsRerenderRef.current = false
     return true
   }
+  const acceptSave = async (saved: StoryboardSaveResult, sentSectioning: SectioningData | null, sentRendering: RenderingData | null) => {
+    await queryClient.cancelQueries({ queryKey: ["books", bookLabel, "pages", pageId], exact: true })
+    const sameScope = latestDraftRef.current.scope === draftScope
+    const acknowledged = sameScope && acknowledgeDraft(sentSectioning, sentRendering)
+    if (sameScope) {
+      const latest = latestDraftRef.current
+      if (!acknowledged) {
+        if (latest.sectioning && saved.sectioning) setPendingSectioning(rebaseDraft(sentSectioning ?? page.sectioningTree as SectioningData, latest.sectioning, saved.sectioning).value)
+        if (latest.rendering && saved.rendering && sentRendering) setPendingRendering(rebaseDraft(sentRendering, latest.rendering, saved.rendering).value)
+      }
+      acknowledgePage(saved)
+      // Keep the acknowledged guards even when no successor existed at the
+      // instant of acknowledgement. A later edit can precede the GET response.
+      if (saved.renderingVersion != null) renderingBaseVersion.current = saved.renderingVersion
+      if (saved.sectioningVersion != null) sectioningBaseVersion.current = saved.sectioningVersion
+      if (saved.rendering) renderingDraftBase.current = saved.rendering
+    }
+    queryClient.setQueryData<PageDetail>(["books", bookLabel, "pages", pageId], current => current ? applyStoryboardSave(current, saved) : current)
+    return acknowledged
+  }
+  useEffect(() => {
+    // A new authoritative query can be an external edit or an explicit restore.
+    // Clean editors start their next draft there; dirty drafts retain their guard.
+    if (!latestDraftRef.current.sectioning && !latestDraftRef.current.rendering && !pendingHtmlRef.current) {
+      sectioningBaseVersion.current = null
+      renderingBaseVersion.current = null
+      renderingDraftBase.current = null
+    }
+  }, [incomingPage])
   const draftIsSaved = () => latestDraftRef.current.scope === draftScope && !latestDraftRef.current.sectioning && !latestDraftRef.current.rendering && !pendingHtmlRef.current
 
   // Inline editing state
@@ -969,13 +1006,7 @@ export function StoryboardSectionDetail({
         rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
       })
 
-      const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
-      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.renderingVersion != null) {
-        renderingBaseVersion.current = saved.renderingVersion
-      }
-      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.sectioningVersion != null) {
-        sectioningBaseVersion.current = saved.sectioningVersion
-      }
+      const acknowledged = await acceptSave(saved, pendingSectioning, renderingToSave)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
@@ -1044,13 +1075,7 @@ export function StoryboardSectionDetail({
         baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
         renderingBaseVersion: renderingBaseVersion.current ?? page.versions.rendering ?? 0,
       })
-      const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
-      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.renderingVersion != null) {
-        renderingBaseVersion.current = saved.renderingVersion
-      }
-      if (!acknowledged && latestDraftRef.current.scope === draftScope && saved.sectioningVersion != null) {
-        sectioningBaseVersion.current = saved.sectioningVersion
-      }
+      const acknowledged = await acceptSave(saved, pendingSectioning, renderingToSave)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)

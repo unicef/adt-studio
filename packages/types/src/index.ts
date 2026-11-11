@@ -260,6 +260,7 @@ export {
   RenderingSave,
   AiSectionEdit,
   StoryboardSave,
+  StoryboardSaveResult,
   webRenderingLLMSchema,
   activityAnswersLLMSchema,
   visualReviewLLMSchema,

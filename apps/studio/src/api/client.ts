@@ -1511,7 +1511,7 @@ export const api = {
     pageId: string,
     data: { sectioning?: unknown; rendering?: unknown; renderingInSync?: boolean; baseVersion?: number; renderingBaseVersion?: number }
   ) =>
-    request<{ sectioningVersion: number | null; renderingVersion: number | null }>(
+    request<import("@adt/types").StoryboardSaveResult>(
       `/books/${label}/pages/${pageId}/storyboard`,
       { method: "PUT", body: JSON.stringify(data) }
     ),

@@ -690,7 +690,7 @@ describe("Page routes", () => {
       })
       expect(res.status).toBe(200)
       // Both fixtures are at v1, so one save advances each exactly once.
-      expect(await res.json()).toEqual({ sectioningVersion: 2, renderingVersion: 2 })
+      expect(await res.json()).toMatchObject({ sectioningVersion: 2, renderingVersion: 2 })
 
       const after = createBookStorage(label, tmpDir)
       try {

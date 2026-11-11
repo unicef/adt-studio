@@ -30,6 +30,8 @@ const state = vi.hoisted(() => ({
   generate: vi.fn(),
   aiEdit: vi.fn(),
   invalidate: vi.fn().mockResolvedValue(undefined),
+  cancel: vi.fn().mockResolvedValue(undefined),
+  setQueryData: vi.fn(),
 }))
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -47,7 +49,7 @@ vi.mock("@/api/client", () => ({
 }))
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => ({}),
-  useQueryClient: () => ({ invalidateQueries: state.invalidate }),
+  useQueryClient: () => ({ invalidateQueries: state.invalidate, cancelQueries: state.cancel, setQueryData: state.setQueryData }),
 }))
 vi.mock("@/hooks/use-api-key", () => ({
   useApiKey: () => ({}),
@@ -226,6 +228,7 @@ beforeEach(() => {
   state.headerSlot = null
   state.pickers = {}
   state.save.mockResolvedValue({})
+  state.invalidate.mockReset().mockResolvedValue(undefined)
   state.aiEdit.mockReset().mockResolvedValue({ taskId: "ai-edit" })
 })
 afterEach(cleanup)
@@ -702,4 +705,46 @@ it("does not open another book's stepper when an earlier rebuild completes", asy
     expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("true")
     expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("false")
   } finally { confirm.mockRestore() }
+})
+
+it.each([[false, 7], [true, 7], [false, 1], [true, 1]] as const)("uses acknowledged canonical edits before refetch and accepts a fresh query (source=%s, next version=%s)", async (sourceEdit, nextVersion) => {
+  const page = fixture()
+  let finishRefetch!: () => void
+  state.invalidate.mockImplementationOnce(() => new Promise<void>(resolve => { finishRefetch = resolve }))
+  state.save.mockImplementationOnce(async (_book, _page, payload) => ({ sectioningVersion: sourceEdit ? 2 : 1, renderingVersion: sourceEdit ? 1 : 2,
+    sectioning: { ...(payload.sectioning ?? page.sectioningTree), source: "manual" },
+    rendering: { ...(payload.rendering ?? page.rendering), sections: (payload.rendering ?? page.rendering).sections.map((section: object) => ({ ...section, reasoning: "Canonical saved reasoning" })) },
+  }))
+  const view = (shown = page) => <FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={shown}/><LeaveProbe/></FloatingSaveProvider>
+  const mounted = render(view())
+  if (sourceEdit) act(() => state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map(node => node.nodeId === "keep" ? { ...node, text: "First saved text" } : node) }))
+  else act(() => state.style.onClassesChange("keep", ["text-red-600"]))
+  let first!: Promise<unknown>
+  await act(async () => { first = leaveAction.saveAndStay().catch(error => error); await Promise.resolve() })
+  await waitFor(() => expect(state.invalidate).toHaveBeenCalled())
+  // The acknowledgement landed, but GET remains delayed and props still carry v1.
+  if (sourceEdit) act(() => state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map(node => node.nodeId === "retire" ? { ...node, text: "Second edit" } : node) }))
+  else act(() => state.style.onClassesChange("retire", ["font-bold"]))
+  await act(async () => { finishRefetch(); await first })
+  await act(async () => { await leaveAction.saveAndStay() })
+  expect(state.save).toHaveBeenCalledTimes(2)
+  const second = state.save.mock.calls[1][2]
+  if (sourceEdit) {
+    expect(second.baseVersion).toBe(2)
+    expect(second.sectioning.source).toBe("manual")
+    expect(second.sectioning.sections[0].nodes.map((node: { text: string }) => node.text)).toEqual(["First saved text", "Second edit"])
+  } else {
+    expect(second.renderingBaseVersion).toBe(2)
+    expect(second.rendering.sections[0].reasoning).toBe("Canonical saved reasoning")
+    expect(second.rendering.sections[0].html).toContain("text-red-600")
+    expect(second.rendering.sections[0].html).toContain("font-bold")
+  }
+  const fresh = structuredClone(page)
+  fresh.versions = { ...fresh.versions, sectioning: nextVersion, rendering: nextVersion }
+  mounted.rerender(view(fresh))
+  if (sourceEdit) act(() => state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map(node => node.nodeId === "retire" ? { ...node, text: "Edit from fresh query" } : node) }))
+  else act(() => state.style.onClassesChange("retire", ["font-light"]))
+  await act(async () => { await leaveAction.saveAndStay() })
+  const third = state.save.mock.calls[2][2]
+  expect(sourceEdit ? third.baseVersion : third.renderingBaseVersion).toBe(nextVersion)
 })
