@@ -192,13 +192,36 @@ export function TreeNode(props: TreeNodeProps) {
   return <ContainerNode {...props} />
 }
 
+/**
+ * Center `row` vertically in its nearest scrollable ancestor, and scroll
+ * nothing else. `scrollIntoView` also scrolls every ancestor, including
+ * `overflow: hidden` ones and horizontally: the storyboard highlights a row
+ * while its slide-out panel is still off-screen, so that shifted the whole
+ * section view sideways by a panel width (#596).
+ */
+function scrollRowIntoScrollParent(row: HTMLElement) {
+  let scroller = row.parentElement
+  while (scroller) {
+    const { overflowY } = getComputedStyle(scroller)
+    if (overflowY === "auto" || overflowY === "scroll") break
+    scroller = scroller.parentElement
+  }
+  if (!scroller) return
+  const rowRect = row.getBoundingClientRect()
+  const scrollerRect = scroller.getBoundingClientRect()
+  const top =
+    scroller.scrollTop + (rowRect.top - scrollerRect.top) - (scrollerRect.height - rowRect.height) / 2
+  if (typeof scroller.scrollTo === "function") scroller.scrollTo({ top, behavior: "smooth" })
+  else scroller.scrollTop = top
+}
+
 // Ring + scroll the row the caller pointed at (e.g. from the storyboard's
 // missing-elements notice, #596).
 function useHighlightedRow(props: TreeNodeProps) {
   const highlighted = props.highlightNodeId === props.node.nodeId
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (highlighted) ref.current?.scrollIntoView({ block: "center", behavior: "smooth" })
+    if (highlighted && ref.current) scrollRowIntoScrollParent(ref.current)
   }, [highlighted])
   return {
     ref,
