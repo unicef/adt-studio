@@ -327,24 +327,5 @@ Three PRs, each reverting on its own:
 Follow-ups, each a fast-lane issue citing this spec: the es, fr and sq catalog reviews
 (one PR per locale, a second agent checking every change), and a small sample project
 archive, imported through the existing import (`apps/api/src/services/import-service.ts`)
-so translation-only PRs can reach book screens, with a CI test that imports it.
-
-## Decisions to ratify
-
-| # | Decision | Where |
-|---|---|---|
-| R-1 | Translation happens in the author's session, from call sites; no key-based path remains | Workflow, §1, §6 |
-| R-2 | Catalogs keep `origins: false`; call sites on demand, meaning in `comment`/`context` | §1, Options |
-| R-3 | One glossary and forbidden-terms file per locale, pt-BR from #900 | §2 |
-| R-4 | Length is a warning on changed strings only; the screen check decides fit | §3, §4 |
-| R-5 | The screen check runs on the author's app, with no committed test data | §4, Non-goals |
-| R-6 | The HTML report is optional and lives in `.context/`, never committed | §5 |
-| R-7 | No native-speaker gate; es/fr/sq reviews are follow-ups | Non-goals |
-
-## Open questions
-
-None blocking.
-
-1. **Can a sample project archive be imported across schema versions?** Decides
-   whether the follow-up needs a regeneration script. Owner: @Eliezir, before the first
-   locale review. Default: regenerate the archive whenever its import test fails.
+so translation-only PRs can reach book screens, with a CI test that imports it. Whether an
+archive imports across schema versions is that issue's first question.
