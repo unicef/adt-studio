@@ -75,6 +75,8 @@ export interface SignLanguageVideoData {
 export interface Storage {
   /** Canonical book-owned asset root, available on real filesystem storage. */
   readonly bookDir?: string
+  /** Existing durable book identity; reads never create a new identity. */
+  getBookIdentity?(): string | null
   /** Run all storage operations in one SQLite transaction. Nested calls join
    *  the outer transaction. Any thrown error rolls the whole operation back. */
   transaction<T>(operation: () => T): T

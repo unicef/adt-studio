@@ -748,3 +748,5 @@ export * from "./sectioning-lifecycle.js"
 export * from "./extraction.js"
 
 export * from "./history-recovery.js"
+
+export { PackageOwnershipReceipt } from "./package-ownership.js"

@@ -778,3 +778,25 @@ describe("exportEpub — fixed-layout", () => {
     expect(html).toContain("_page")
   })
 })
+
+
+it.each(["webpub", "epub", "pnld"] as const)("binds real %s exports to their originating book and keeps relocated copies usable", async format => {
+  for (const label of ["owned-a", "foreign-b"]) {
+    createBookWithMetadata(label, label)
+    addPagesAndRenderings(label, 1)
+    await prepareExport(label, format, tmpDir, webAssetsDir)
+  }
+  const download = { webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  const a = path.join(tmpDir, "owned-a"), b = path.join(tmpDir, "foreign-b")
+  fs.cpSync(a, path.join(tmpDir, "relocated"), { recursive: true })
+  fs.renameSync(path.join(tmpDir, "relocated/owned-a.db"), path.join(tmpDir, "relocated/relocated.db"))
+  expect((await streamToBuffer((await download("relocated", tmpDir)).stream)).length).toBeGreaterThan(0)
+  fs.rmSync(path.join(a, format), { recursive: true })
+  fs.cpSync(path.join(b, format), path.join(a, format), { recursive: true })
+  const receiptPath = format === "epub" ? "OEBPS/.build-owners" : format === "pnld" ? "resources/data/.build-owners" : ".build-owners"
+  const before = fs.readFileSync(path.join(a, format, receiptPath))
+  await expect(download("owned-a", tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+  expect(fs.readFileSync(path.join(a, format, receiptPath))).toEqual(before)
+  await prepareExport("owned-a", format, tmpDir, webAssetsDir)
+  expect((await streamToBuffer((await download("owned-a", tmpDir)).stream)).length).toBeGreaterThan(0)
+})

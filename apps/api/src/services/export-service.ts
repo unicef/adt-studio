@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel } from "@adt/types"
+import { parseBookLabel, PackageOwnershipReceipt } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
 import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
 import type { Storage } from "@adt/storage"
@@ -315,18 +315,17 @@ export async function exportWebpub(
  * after relocating/rewriting HTML. An old export cannot broaden a saved part. */
 function readableDerivedPackageZip(bookDir: string, directory: string, contentRoot = directory) {
   return withBookWriter(bookDir, () => {
-    if (requiredPartRange(bookDir)) {
-      const storage = createBookStorage(path.basename(bookDir), path.dirname(bookDir))
-      try {
-        const allowed = resolveReadingOrder(storage).positionById
-        let entries: unknown
-        try { entries = JSON.parse(fs.readFileSync(path.join(contentRoot, ".build-owners"), "utf8")).entries }
-        catch { /* Unproven retained membership requires explicit preparation. */ }
-        if (!Array.isArray(entries) || !entries.length || entries.some(row => !Array.isArray(row) || typeof row[0] !== "string" || !allowed.has(row[0]))) {
-          throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again within the current part window.")
-        }
-      } finally { storage.close() }
-    }
+    requiredPartRange(bookDir)
+    const storage = createBookStorage(path.basename(bookDir), path.dirname(bookDir))
+    try {
+      const allowed = resolveReadingOrder(storage).positionById
+      let receipt: ReturnType<typeof PackageOwnershipReceipt.parse> | undefined
+      try { receipt = PackageOwnershipReceipt.parse(JSON.parse(fs.readFileSync(path.join(contentRoot, ".build-owners"), "utf8"))) }
+      catch { /* Unproven retained membership/origin requires explicit preparation. */ }
+      if (!receipt || receipt.bookId !== storage.getBookIdentity?.() || !receipt.entries.length || receipt.entries.some(row => !allowed.has(row[0]))) {
+        throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from this book's current owned content.")
+      }
+    } finally { storage.close() }
     return createAdmittedZipStream(bookDir, directory)
   })
 }
@@ -457,7 +456,7 @@ export async function exportPnld(
   }
 
   return {
-    stream: readableDerivedPackageZip(bookDir, pnldDir),
+    stream: readableDerivedPackageZip(bookDir, pnldDir, path.join(pnldDir, "resources/data")),
     filename: `${title}.zip`,
     safeFilename: `${safeLabel}-pnld.zip`,
   }

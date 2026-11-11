@@ -1133,7 +1133,7 @@ async function buildWebPackage(
   generateOfflinePreloader(adtDir, outputLanguages)
 
   generateImsManifest(adtDir, title, label, pageList)
-  recordPackagedOwners(adtDir, readingOrder.items)
+  recordPackagedOwners(storage, adtDir, readingOrder.items)
 
   // Render AGENTS.md from Liquid template with book-specific data
   const agentsMdTemplate = path.join(path.dirname(webAssetsDir), "AGENTS.md.liquid")

@@ -436,6 +436,8 @@ export function buildAdtSidecar(pnldDir: string): void {
   const assets = path.join(pnldDir, "assets")
   const content = path.join(pnldDir, "content")
 
+  // Retain origin evidence beside the relocated reader data.
+  moveFile(path.join(pnldDir, ".build-owners"), path.join(data, ".build-owners"))
   moveFile(path.join(assets, "config.json"), path.join(data, "assets", "config.json"))
   moveDir(path.join(assets, "interface_translations"), path.join(data, "assets", "interface_translations"))
   moveFile(path.join(content, "pages.json"), path.join(data, "content", "pages.json"))

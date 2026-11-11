@@ -294,7 +294,37 @@ describe("Package routes", () => {
     expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
   })
 
-  it("opens a legitimate older reflowable package despite an unreadable unselected rendering", async () => {
+  it("rejects another book's intact package while retaining same-book relocation", { timeout: 30_000 }, async () => {
+    createWebAssets()
+    for (const label of ["origin-a", "origin-b"]) {
+      createRenderedBook(label)
+      const storage = createBookStorage(label, tmpDir)
+      const row = storage.getLatestNodeData("web-rendering", "pg001")!.data
+      storage.putNodeData("web-rendering", "pg001", JSON.parse(JSON.stringify(row).replaceAll("Original text", label === "origin-a" ? "BOOK_A" : "BOOK_B_PRIVATE")))
+      storage.close()
+      expect((await app.request(`/api/books/${label}/package-adt`, { method: "POST" })).status).toBe(200)
+    }
+    const a = path.join(tmpDir, "origin-a"), b = path.join(tmpDir, "origin-b")
+    fs.cpSync(a, path.join(tmpDir, "relocated"), { recursive: true })
+    fs.renameSync(path.join(tmpDir, "relocated/origin-a.db"), path.join(tmpDir, "relocated/relocated.db"))
+    const moved = unzipSync(new Uint8Array(await new Response((await exportAdt("relocated", tmpDir)).stream).arrayBuffer()))
+    expect(Buffer.from(moved["pg001_sec001.html"]).toString()).toContain("BOOK_A")
+    fs.rmSync(path.join(a, "adt"), { recursive: true })
+    fs.cpSync(path.join(b, "adt"), path.join(a, "adt"), { recursive: true })
+    const routes = new Hono().onError(errorHandler).route("/api", createBookRoutes(tmpDir))
+    const response = await routes.request("/api/books/origin-a/adt/pg001_sec001.html")
+    expect(response.status).toBe(307)
+    expect(await response.text()).not.toContain("BOOK_B_PRIVATE")
+    await expect(exportAdt("origin-a", tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(await (await app.request("/api/books/origin-a/package-adt/status")).json()).toMatchObject({ complete: false })
+    expect(fs.readFileSync(path.join(a, "adt/pg001_sec001.html"), "utf8")).toContain("BOOK_B_PRIVATE")
+    expect((await app.request("/api/books/origin-a/package-adt", { method: "POST" })).status).toBe(200)
+    const rebuilt = unzipSync(new Uint8Array(await new Response((await exportAdt("origin-a", tmpDir)).stream).arrayBuffer()))
+    expect(Buffer.from(rebuilt["pg001_sec001.html"]).toString()).toContain("BOOK_A")
+    expect(Buffer.from(rebuilt["pg001_sec001.html"]).toString()).not.toContain("BOOK_B_PRIVATE")
+  })
+
+  it("keeps older reflowable source readable and explicitly rebuilds its unbound package despite an unreadable unselected rendering", async () => {
     const label = "older-reflow"; createRenderedBook(label); createWebAssets()
     const dir = path.join(tmpDir, label), id = "pg001_sec001"
     const s = createBookStorage(label, tmpDir)
@@ -305,7 +335,15 @@ describe("Package routes", () => {
     db.run("UPDATE node_data SET data='{' WHERE node='web-rendering' AND item_id='pg001' AND version=1"); db.close()
     const routes = new Hono().onError(errorHandler).route("/api", createBookRoutes(tmpDir))
     const html = await routes.request(`/api/books/${label}/adt/v-old/${id}.html`)
-    expect(html.status).toBe(200); expect(await html.text()).toContain("Original text")
+    expect(html.status).toBe(307)
+    expect(html.headers.get("Location")).toBe(`/api/books/${label}/adt-preview/${id}.html`)
+    const live = new Hono().onError(errorHandler).route("/api", createAdtPreviewRoutes(tmpDir, webAssetsDir))
+    const source = await live.request(`/api/books/${label}/adt-preview/${id}.html`)
+    expect(source.status).toBe(200)
+    expect(await source.text()).toContain("Original text")
+    await expect(exportAdt(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(fs.readFileSync(path.join(dir, "adt", id + ".html"), "utf8")).toContain("Original text")
+    expect((await app.request(`/api/books/${label}/package-adt`, { method: "POST" })).status).toBe(200)
     const result = await exportAdt(label, tmpDir)
     expect(Buffer.from(unzipSync(new Uint8Array(await new Response(result.stream).arrayBuffer()))[id + ".html"]).toString()).toContain("Original text")
     const check = openBookDb(path.join(dir, label + ".db"))

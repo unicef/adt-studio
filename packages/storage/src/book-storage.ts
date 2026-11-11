@@ -10,7 +10,7 @@ import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPU
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
-import { insertNodeVersion, checkpointBeforeRetirement, readIdentityHistory, readIdentityHistoryIds } from "./history-evidence.js"
+import { historyBookId, insertNodeVersion, checkpointBeforeRetirement, readIdentityHistory, readIdentityHistoryIds } from "./history-evidence.js"
 import { parseHistoricalPayload } from "./history-integrity.js"
 import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
 
@@ -81,6 +81,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
   const storage: Storage = {
     bookDir: paths.bookDir,
+    getBookIdentity: () => db.get("SELECT 1 FROM sqlite_master WHERE type='table' AND name='history_identity'") ? historyBookId(db) : null,
     transaction,
     readIdentityHistory: (nodes, itemId) => transaction(() => readIdentityHistory(db, nodes, itemId), "DEFERRED"),
     readIdentityHistoryIds: (nodes, project, itemId) => transaction(() => readIdentityHistoryIds(db, nodes, paths.dbPath, project, itemId), "DEFERRED"),
