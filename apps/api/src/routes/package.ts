@@ -6,7 +6,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, PackagingWarning, type PackagingStatus } from "@adt/types"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, HistoryRecoveryError } from "@adt/storage"
 import {
   packageAdtWeb,
   packageFilesAvailable,
@@ -259,7 +259,7 @@ export function createPackageRoutes(
         warnings: result.warnings,
       })
     } catch (err) {
-      if (err instanceof HTTPException || err instanceof SectioningSafetyError) throw err
+      if (err instanceof HTTPException || err instanceof SectioningSafetyError || err instanceof HistoryRecoveryError) throw err
       const message = err instanceof Error ? err.message : String(err)
       throw new HTTPException(500, { message: `Packaging failed: ${message}` })
     }

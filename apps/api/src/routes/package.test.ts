@@ -165,6 +165,25 @@ describe("Package routes", () => {
     expect(fs.readFileSync(path.join(book, "adt", "pg001_sec001.html")).equals(html)).toBe(true)
   })
 
+  it("reports unavailable book identity as unverified history and preserves the prior package", async () => {
+    const label = "missing-book-identity"
+    createRenderedBook(label)
+    createWebAssets()
+    const url = `/api/books/${label}/package-adt`
+    expect((await app.request(url, { method: "POST" })).status).toBe(200)
+    const directory = path.join(tmpDir, label)
+    const page = path.join(directory, "adt", "pg001_sec001.html")
+    const before = fs.readFileSync(page)
+    const db = openBookDb(path.join(directory, label + ".db"))
+    try { db.run("DROP TABLE history_identity") } finally { db.close() }
+    // The retained receipt no longer has verifiable origin, so a cache hit
+    // cannot bypass the missing identity. No content is edited.
+    const response = await app.request(url, { method: "POST" })
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ code: "HISTORY_RECOVERY_UNVERIFIED" })
+    expect(fs.readFileSync(page)).toEqual(before)
+  })
+
   // Independent Codex C3: unchanged source hashes cannot prove a usable bundle.
   it.each(["runtime", "entry", "stylesheet", "manifest", "directory", "image"])(
     "rebuilds a cached package with an unavailable required %s file",

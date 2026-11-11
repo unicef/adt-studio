@@ -1,9 +1,8 @@
 import fs from "node:fs"
 import path from "node:path"
 import { createHash } from "node:crypto"
-import type { Storage } from "@adt/storage"
+import { HistoryRecoveryError, type Storage } from "@adt/storage"
 import { PackageOwnershipReceipt, PublicationPageEntry } from "@adt/types"
-import { SectioningSafetyError } from "../sectioning-errors.js"
 import { resolveReadingOrder, type ResolvedItem } from "../reading-order.js"
 
 const receipt = ".build-owners"
@@ -23,7 +22,7 @@ function regularMember(root: string, name: string): string {
  * prove its author. Bind new files to the resolver's source and final bytes. */
 export function recordPackagedOwners(storage: Storage, root: string, items: readonly ResolvedItem[]): void {
   const bookId = storage.getBookIdentity?.() ?? null
-  if (storage.bookDir && !bookId) throw new SectioningSafetyError("PACKAGE_RECOVERY_UNSAFE", "Book identity is unavailable; the previous package is retained.")
+  if (storage.bookDir && !bookId) throw new HistoryRecoveryError("HISTORY_RECOVERY_UNVERIFIED")
   const entries = items.map(item => [item.id, owner(item), digest(fs.readFileSync(regularMember(root, item.id + ".html")))])
   // The offline runtime embeds every page in one script. Check those bytes
   // independently; a correct set of standalone HTML files cannot vouch for a
