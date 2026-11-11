@@ -37,6 +37,50 @@ place for the safeguard ([section 3](#3-where-a-safeguard-belongs)), not a slowe
 more restricted product. When no placement satisfies both, stop and bring the trade-off
 to the product owner before building it ([section 7](#7-stop-and-ask)).
 
+## The cardinal rule
+
+**Never degrade the happy path in service of an edge case.**
+
+The happy path is what most users do most of the time: take a healthy PDF through the
+pipeline on a current build with a working key and connection, open a healthy book,
+edit it, rerun a stage, preview and export. An edge case is anything rare: a damaged
+record, a crash at the wrong moment, a file changed outside the app, a second process
+writing the same book, a book from a much older build, a model answer in an unexpected
+shape.
+
+Edge cases deserve solutions, and some deserve careful ones. What they do not deserve is
+a cost charged to everyone else. The happy path is preserved first, and the edge case is
+solved alongside it. Every goal below is this rule applied to one part of the product.
+
+"Degrade" means any of these: slower, more provider calls, an extra click, dialog or
+step, more on the screen, a new way to fail or be blocked, or lower output quality.
+
+How to apply it:
+
+1. **Name the happy path your change touches, and measure it before you start.**
+2. **Make the edge case pay for itself.** Detect it, then branch into the special
+   handling, so the cost lands on the affected book, page or moment and nowhere else.
+3. **Make detection free for everyone else.** Notice the problem where it surfaces (a
+   failed write, a failed read, an error from the provider), when the data is written,
+   in an explicit tool, or in the background. Do not scan every book on every request
+   for a problem that is almost never there.
+4. **Prove the happy path is unchanged.** The same time, provider calls, clicks and
+   screens as before, measured on the reference books ([section 2](#2-budgets)).
+5. **If no design keeps the happy path intact, stop and ask**
+   ([section 7](#7-stop-and-ask)). That trade is the product owner's to make, and it is
+   made in writing before anything is built.
+
+Where this rule has been broken before, and how each case was resolved:
+
+| Edge case | What the happy path paid | Resolution |
+|---|---|---|
+| A package missing a file it needs | Every status poll and every export download re-verified the whole bundle. The download went from 2 s to about 4 min | Verify once when the bundle is built and store the result ([#884][884-export]) |
+| A media file corrupted or replaced outside the app | Every status read re-read about 281 MB of audio and images | Trust the recorded hash and check that the file exists. Verify bytes on write and on restore ([#879 Note 1][879-note1]) |
+| Damaged book history | A recovery panel on the Sectioning page of every book | The panel moved to Book settings, linked from the errors that need it ([#884][884-history]) |
+| A run that must publish all its pages together (a layout switch) | Every ordinary Storyboard run held all pages back until the last one finished | All-or-nothing publication kept for layout switches only ([#884, 12 October][884-oct12]) |
+| Protected manual work replaced on out-of-date consent | Queueing Sectioning while Extract runs stopped working on the first click | The fresh check becomes part of the click ([#1071][i1071], proposed in [#1072][pr1072]) |
+| Two processes writing the same book | After a crash, a healthy book stayed locked and could not be deleted | Startup clears a lock that has no live owner ([#879 Note 4][879-note4], [Note 7][879-note7]) |
+
 ## 1. The goals at a glance
 
 | # | Goal | Watch for |
@@ -106,7 +150,8 @@ books:
 ## 3. Where a safeguard belongs
 
 Most of the regressions behind this document came from a correct safeguard in the wrong
-place. Three questions decide the place.
+place. This section is [the cardinal rule](#the-cardinal-rule) applied to safeguards.
+Three questions decide the place.
 
 **When does it run?** In order of preference:
 
@@ -536,6 +581,8 @@ New blocks, refusals or confirmations, and the loss each one prevents:
 New visible UI (elements, warnings, strings), with screenshot:
 Existing-book check (book from the previous release opens, renders, previews, exports):
 
+- [ ] The happy path is unchanged: same time, provider calls, clicks and screens as before
+- [ ] Any edge case I handled pays its own cost; nothing was added for every user or book
 - [ ] No read, polled or download path does work that grows with the size of the book
 - [ ] Nothing is re-read or re-hashed that a recorded ID or hash already identifies
 - [ ] Unchanged inputs cause no provider call, no new version and no changed output
@@ -564,6 +611,7 @@ Stop and write to the product owner before building, or before going further, wh
 of these is true. An agent session reports the point and waits; it does not choose for
 the user.
 
+- An edge case you cannot handle without some cost to the happy path.
 - Something measurably slower on a path the user touches, or more provider calls for
   the same result.
 - A new block, refusal, confirmation or required step.
