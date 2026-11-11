@@ -10,6 +10,9 @@ import {
 } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { i18n } from "@lingui/core"
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query"
+import { applyStoryboardSave } from "./use-storyboard-save-receipt"
+import type { StoryboardSaveResult } from "@adt/types"
 import type { EditableActivity } from "@adt/types"
 import type { PageDetail } from "@/api/client"
 import type { SectionEditPanel } from "./SectionEditPanel"
@@ -18,6 +21,7 @@ import type { StyleEditorPanel } from "./style-editor"
 const state = vi.hoisted(() => ({
   editableQuery: {} as { data?: { activities: Record<string, EditableActivity>; version: number; paletteAccent: string } },
   realActivityPanel: false,
+  realQuery: false,
   activitySave: vi.fn().mockResolvedValue({ version: 3 }),
   presentation: vi.fn(),
   convert: vi.fn(),
@@ -45,12 +49,15 @@ vi.mock("@lingui/core/macro", () => ({
 }))
 vi.mock("@/api/client", () => ({
   BASE_URL: "/api",
-  api: { saveStoryboard: state.save, reRenderPage: state.generate, aiEditSection: state.aiEdit },
+  api: { getActiveConfig: async () => ({}), saveStoryboard: state.save, reRenderPage: state.generate, aiEditSection: state.aiEdit },
 }))
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({}),
-  useQueryClient: () => ({ invalidateQueries: state.invalidate, cancelQueries: state.cancel, setQueryData: state.setQueryData }),
-}))
+vi.mock("@tanstack/react-query", async importOriginal => {
+  const actual = await importOriginal<typeof import("@tanstack/react-query")>()
+  return { ...actual,
+    useQuery: (...args: Parameters<typeof actual.useQuery>) => state.realQuery ? actual.useQuery(...args) : {},
+    useQueryClient: () => state.realQuery ? actual.useQueryClient() : { invalidateQueries: state.invalidate, cancelQueries: state.cancel, setQueryData: state.setQueryData },
+  }
+})
 vi.mock("@/hooks/use-api-key", () => ({
   useApiKey: () => ({}),
   useBookStructuredTextAvailability: () => true,
@@ -219,7 +226,7 @@ function fixture(): PageDetail {
   } as PageDetail
 }
 beforeEach(() => {
-  state.editableQuery = {}; state.realActivityPanel = false
+  state.editableQuery = {}; state.realActivityPanel = false; state.realQuery = false
   state.activitySave.mockReset().mockResolvedValue({ version: 3 })
   HTMLElement.prototype.scrollTo = vi.fn()
   i18n.load("en", {})
@@ -747,4 +754,76 @@ it.each([[false, 7], [true, 7], [false, 1], [true, 1]] as const)("uses acknowled
   await act(async () => { await leaveAction.saveAndStay() })
   const third = state.save.mock.calls[2][2]
   expect(sourceEdit ? third.baseVersion : third.renderingBaseVersion).toBe(nextVersion)
+})
+
+
+it.each([[false, 7], [true, 7], [false, 1], [true, 1]] as const)("reconciles actual QueryClient receipts, cancelled reads and successor guards (source=%s, restore=%s)", async (sourceEdit, restoredVersion) => {
+  state.realQuery = true
+  const initial = fixture()
+  let server = initial
+  const key = ["books", "fixture", "pages", "pg001"]
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  const reads: { resolve: (page: PageDetail) => void; signal: AbortSignal }[] = []
+  let readCount = 0
+  function ConnectedEditor() {
+    const query = useQuery({ queryKey: key, initialData: initial, queryFn: ({ signal }) => {
+      if (readCount++ < 2) return new Promise<PageDetail>(resolve => reads.push({ resolve, signal }))
+      return Promise.resolve(server)
+    } })
+    return <FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={query.data}/><LeaveProbe/></FloatingSaveProvider>
+  }
+  let releaseAck!: () => void
+  const ack = new Promise<void>(resolve => { releaseAck = resolve })
+  state.save.mockImplementation(async (_book, _page, payload) => {
+    const saved: StoryboardSaveResult = {
+      ...(payload.sectioning ? { sectioningVersion: (server.versions.sectioning ?? 0) + 1, sectioning: { ...payload.sectioning, source: "manual" } } : {}),
+      ...(payload.rendering ? { renderingVersion: (server.versions.rendering ?? 0) + 1, rendering: { ...payload.rendering, sections: payload.rendering.sections.map((section: object) => ({ ...section, reasoning: "Canonical response" })) } } : {}),
+    }
+    server = applyStoryboardSave(server, saved)
+    if (state.save.mock.calls.length === 1) await ack
+    return saved
+  })
+  const mounted = render(<QueryClientProvider client={client}><ConnectedEditor/></QueryClientProvider>)
+  const edit = (id: string, value: string) => act(() => {
+    if (sourceEdit) state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map(node => node.nodeId === id ? { ...node, text: value } : node) })
+    else state.style.onClassesChange(id, [value])
+  })
+  try {
+    // An older GET is still in flight when the write acknowledgement arrives.
+    void client.refetchQueries({ queryKey: key, exact: true })
+    await waitFor(() => expect(reads).toHaveLength(1))
+    edit("keep", sourceEdit ? "First saved text" : "text-red-600")
+    let first!: Promise<unknown>
+    await act(async () => { first = leaveAction.saveAndStay().catch(error => error); await Promise.resolve() })
+    await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1))
+    edit("retire", sourceEdit ? "Successor before acknowledgement" : "font-bold")
+    await act(async () => { releaseAck(); await Promise.resolve() })
+    await waitFor(() => expect(reads).toHaveLength(2))
+    expect(reads[0].signal.aborted).toBe(true)
+    const acknowledged = client.getQueryData<PageDetail>(key)!
+    expect(sourceEdit ? acknowledged.versions.sectioning : acknowledged.versions.rendering).toBe(2)
+    await act(async () => { reads[0].resolve(initial); await Promise.resolve() })
+    expect(client.getQueryData<PageDetail>(key)).toBe(acknowledged)
+    await act(async () => { reads[1].resolve(server); expect(await first).toEqual(new Error("Newer edits are still unsaved. Save them before leaving.")) })
+    expect(leaveAction.canSave).toBe(true)
+    await act(async () => { await leaveAction.saveAndStay() })
+    const second = state.save.mock.calls[1][2]
+    expect(sourceEdit ? second.baseVersion : second.renderingBaseVersion).toBe(2)
+    if (sourceEdit) {
+      expect(second.sectioning.source).toBe("manual")
+      expect(second.sectioning.sections[0].nodes.map((node: { text: string }) => node.text)).toEqual(["First saved text", "Successor before acknowledgement"])
+    } else {
+      expect(second.rendering.sections[0].reasoning).toBe("Canonical response")
+      expect(second.rendering.sections[0].html).toContain("text-red-600")
+      expect(second.rendering.sections[0].html).toContain("font-bold")
+    }
+    // A fresh query can legitimately restore an older version; cached receipt
+    // guards must clear after the actual observer receives that new snapshot.
+    server = { ...structuredClone(initial), versions: { sectioning: restoredVersion, rendering: restoredVersion } }
+    await act(async () => { client.setQueryData(key, server); await new Promise(resolve => setTimeout(resolve, 0)) })
+    edit("retire", sourceEdit ? "Edit after restore" : "font-light")
+    await act(async () => { await leaveAction.saveAndStay() })
+    const third = state.save.mock.calls[2][2]
+    expect(sourceEdit ? third.baseVersion : third.renderingBaseVersion).toBe(restoredVersion)
+  } finally { mounted.unmount(); client.clear() }
 })

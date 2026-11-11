@@ -1858,9 +1858,12 @@ export function StoryboardSectionDetail({
 
   const flushPendingHtml = useCallback((): RenderingData | null => {
     const queued = pendingHtmlRef.current
-    if (!queued) return pendingRendering
-    const base = pendingRendering ?? renderingDraftBase.current ?? page.rendering
-    if (!base) return pendingRendering
+    // Effect cleanup may run with a pre-acknowledgement closure. Merge queued
+    // inspector HTML into the current draft, including canonical save fields.
+    const pending = latestDraftRef.current.rendering
+    if (!queued) return pending
+    const base = pending ?? renderingDraftBase.current ?? page.rendering
+    if (!base) return pending
     pendingHtmlRef.current = null
     setHasUnflushedEdits(false)
     const merged: RenderingData = {
@@ -1871,7 +1874,7 @@ export function StoryboardSectionDetail({
     }
     setPendingRendering(merged)
     return merged
-  }, [page.rendering, pendingRendering])
+  }, [page.rendering, setPendingRendering])
 
   useEffect(() => {
     return () => {
