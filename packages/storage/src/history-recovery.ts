@@ -20,16 +20,19 @@ function revision(db: sqlite.Database): number {
   return (db.get("SELECT COUNT(DISTINCT request_id) AS value FROM history_recovery_audit") as { value: number }).value
 }
 
-/** Only synchronous, consistent reads. No witnesses, book identity or legacy
- * continuity are backfilled by inspection. Paths bind consent across copies. */
-function inspect(db: sqlite.Database, dbPath: string): HistoryRecoveryStatus {
+/** One inspection algorithm for synchronous mutation preflight and yielding
+ * HTTP reads. The caller holds one SQLite snapshot throughout. Inspection never
+ * backfills evidence; paths bind consent across copies. */
+function* inspectRows(db: sqlite.Database, dbPath: string): Generator<void, HistoryRecoveryStatus> {
   assertHistoryEvidence(db)
+  yield
   const bookId = historyBookId(db)
   const issues = new Map<string, HistoryIssue>()
   const checkpointRecords: HistoryTuple[] = []
   const tuples = identityTuples(db)
   const extant = new Set(tuples.map(tupleKey))
   for (const row of tuples) {
+    yield
     const bytes = readHistoryBytes(db, row)!
     const beforeHash = historyHash(bytes)
     const slot = historySlot(db, row)
@@ -50,6 +53,7 @@ function inspect(db: sqlite.Database, dbPath: string): HistoryRecoveryStatus {
   // source is readable. Neither case can be repaired by inventing a new row.
   const witnessed = new Set<string>()
   for (const row of historyRows<HistoryTuple & { incarnation: string; evidence: string }>(db, "SELECT node,item_id AS itemId,version,incarnation,evidence FROM history_witnesses ORDER BY node,item_id,version,incarnation")) {
+    yield
     const tuple = { node: row.node, itemId: row.itemId, version: row.version }
     try {
       if (!historySlot(db, row)) throw new Error("Missing insertion continuity")
@@ -59,6 +63,7 @@ function inspect(db: sqlite.Database, dbPath: string): HistoryRecoveryStatus {
     } catch { issues.set(tupleKey(row), { ...tuple, reason: "invalid-witness", beforeHash: historyHash(readHistoryBytes(db, row) ?? null) }) }
   }
   for (const row of db.all("SELECT node,item_id AS itemId,version,incarnation,present FROM history_slots ORDER BY node,item_id,version") as Array<HistoryTuple & { incarnation: string; present: number }>) {
+    yield
     if (extant.has(tupleKey(row))) continue
     if (row.present !== 0 || !witnessed.has(`${tupleKey(row)}:${row.incarnation}`)) {
       issues.set(tupleKey(row), { node: row.node, itemId: row.itemId, version: row.version, reason: "missing-record", beforeHash: historyHash(null) })
@@ -76,10 +81,15 @@ function inspect(db: sqlite.Database, dbPath: string): HistoryRecoveryStatus {
     audit: "SELECT * FROM history_recovery_audit ORDER BY request_id,node,item_id,version",
   })) {
     digest.update(table + "\0")
-    for (const row of historyRows(db, query)) digest.update(JSON.stringify(row) + "\0")
+    for (const row of historyRows(db, query)) { yield; digest.update(JSON.stringify(row) + "\0") }
   }
   const snapshot = digest.digest("hex")
   return { snapshot, bookId, checkpointable: checkpointRecords.length, checkpointRecords, issueCount: issues.size, issues: [...issues.values()].sort((a, b) => Number(b.reason === "recoverable") - Number(a.reason === "recoverable")).slice(0, 20), revision: revision(db) }
+}
+
+function inspect(db: sqlite.Database, dbPath: string): HistoryRecoveryStatus {
+  const rows = inspectRows(db, dbPath)
+  for (;;) { const next = rows.next(); if (next.done) return next.value }
 }
 
 function withDatabase<T>(dbPath: string, write: boolean, operation: (db: sqlite.Database) => T): T {
@@ -103,6 +113,32 @@ function withDatabase<T>(dbPath: string, write: boolean, operation: (db: sqlite.
 
 export function inspectHistoryRecovery(dbPath: string): HistoryRecoveryStatus {
   return withDatabase(dbPath, false, db => inspect(db, dbPath))
+}
+
+/** Yield between rows without releasing the transaction or writer exclusion.
+ * Ordinary readers may borrow admission, but an unrelated writer cannot change
+ * the book while inspection is suspended. Cancellation closes active statements. */
+export function inspectHistoryRecoveryAsync(dbPath: string, signal?: AbortSignal): Promise<HistoryRecoveryStatus> {
+  return withBookWriter(path.dirname(dbPath), async () => {
+    signal?.throwIfAborted()
+    const db = openBookDb(dbPath)
+    const rows = inspectRows(db, dbPath)
+    try {
+      db.exec("BEGIN DEFERRED")
+      try {
+        let deadline = 0
+        for (;;) {
+          signal?.throwIfAborted()
+          const next = rows.next()
+          if (next.done) { db.exec("COMMIT"); return next.value }
+          if (performance.now() >= deadline) {
+            await new Promise<void>(resolve => setImmediate(resolve))
+            deadline = performance.now() + 8
+          }
+        }
+      } catch (error) { db.exec("ROLLBACK"); throw error }
+    } finally { rows.return(undefined as never); db.close() }
+  })
 }
 
 function request(db: sqlite.Database, dbPath: string, operation: "repair" | "checkpoint", body: HistoryCheckpointRequest | HistoryRepairRequest, apply: (state: HistoryRecoveryStatus) => HistoryRecoveryReceipt): HistoryRecoveryReceipt {

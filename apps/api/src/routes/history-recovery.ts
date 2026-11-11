@@ -2,7 +2,7 @@ import fs from "node:fs"
 import { Hono } from "hono"
 import { z } from "zod"
 import { HistoryCheckpointRequest, HistoryRepairRequest, parseBookLabel } from "@adt/types"
-import { checkpointHistory, inspectHistoryRecovery, repairHistory, readHistoryRecoveryAudit, HistoryRecoveryError } from "@adt/storage"
+import { checkpointHistory, inspectHistoryRecoveryAsync, repairHistory, readHistoryRecoveryAudit, HistoryRecoveryError } from "@adt/storage"
 import { resolvePathWithin } from "../utils/path-security.js"
 
 /** Mounted behind the existing book writer middleware. The storage entry
@@ -16,7 +16,7 @@ export function createHistoryRecoveryRoutes(booksDir: string): Hono {
     if (!file || !fs.existsSync(file)) throw new HistoryRecoveryError("HISTORY_RECOVERY_BOOK_MISSING", 404)
     return file
   }
-  app.get("/books/:label/history-recovery", c => c.json(inspectHistoryRecovery(database(c.req.param("label")))))
+  app.get("/books/:label/history-recovery", async c => c.json(await inspectHistoryRecoveryAsync(database(c.req.param("label")), c.req.raw.signal)))
   app.post("/books/:label/history-recovery/checkpoint", async c => {
     const body = HistoryCheckpointRequest.safeParse(await c.req.json().catch(() => null))
     if (!body.success) return c.json({ code: "HISTORY_RECOVERY_REQUEST_INVALID", error: "HISTORY_RECOVERY_REQUEST_INVALID" }, 400)
