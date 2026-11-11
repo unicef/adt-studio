@@ -21,6 +21,8 @@ describe("splitMixedHeadingContainers", () => {
       heading("h2", [leaf("c", "text"), leaf("d", "text")]),
       heading("h3", [leaf("e", "text"), leaf("f", "section_heading")]),
       heading("h4", [leaf("g", "heading", { heading_level: 4 }), leaf("h", "heading", { heading_level: 4 })]),
+      heading("h5", [leaf("i", "chapter_title"), leaf("j", "heading")]),
+      heading("h6", [leaf("k", "subheading"), leaf("l", "heading")]),
     ]
     expect(splitMixedHeadingContainers(nodes)).toEqual(nodes)
   })

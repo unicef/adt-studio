@@ -28,14 +28,14 @@ const FALLBACK_HEADING_LEVEL = 2
 
 /**
  * Level a child would need in a heading container, mirroring the template's
- * own role → tag rule; `null` for a child that is not a heading.
+ * own role → tag rule; `null` for a child that fits any tag: a plain child, or
+ * a `heading` leaf without `heading_level` (the validator accepts any level).
  */
 function headingChildLevel(node: RenderNode): number | null {
   if (node.role && Object.hasOwn(TEMPLATE_ROLE_LEVELS, node.role)) {
     return TEMPLATE_ROLE_LEVELS[node.role]
   }
   if (node.heading_level !== undefined) return node.heading_level
-  if (node.role === "heading") return FALLBACK_HEADING_LEVEL
   return null
 }
 

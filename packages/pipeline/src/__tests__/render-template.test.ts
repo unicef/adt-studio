@@ -440,6 +440,28 @@ describe("two_column_render.liquid", () => {
         ]),
       ).toContain('<h2 class="adt-h2"><span data-id="pg001_tx001">Unit 1</span> <span data-id="pg001_tx002">Lesson 1</span></h2>')
     })
+
+    it("routes an image child of a split container to the image column once (#812, pg054)", async () => {
+      const engine = createTemplateEngine(templatesDir)
+      const input = makeInput({
+        nodes: [
+          groupNode("pg001_hd001", "heading", [
+            { nodeId: "pg001_im001", isPruned: false, role: "image" },
+            leafNode("pg001_tx001", "subheading", "Unit 5"),
+            leafNode("pg001_tx002", "section_heading", "Our community"),
+          ]),
+          groupNode("pg001_gp001", "paragraph", [leafNode("pg001_tx003", "text", "Body")]),
+        ],
+        images: new Map([["pg001_im001", { base64: "base64data" }]]),
+      })
+      const config = { ...templateConfig, templateName: "two_column_render" }
+      const { html } = await renderSectionTemplate(input, config, engine)
+      expect(html.match(/data-id="pg001_im001"/g)).toHaveLength(1)
+      expect(html).toContain('<h3 class="adt-h3"><span data-id="pg001_tx001">Unit 5</span></h3>')
+      expect(html).toContain('<h2 class="adt-h2"><span data-id="pg001_tx002">Our community</span></h2>')
+      // The image column follows the text column, so the icon is not inside a heading.
+      expect(html.indexOf('data-id="pg001_im001"')).toBeGreaterThan(html.indexOf('data-id="pg001_tx003"'))
+    })
   })
 
   it("routes a non-image_group container holding an image leaf into the image column", async () => {
