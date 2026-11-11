@@ -28,7 +28,9 @@ works against it.
     call site, no length limit.
   - An agent asked to "translate the missing strings" works from the `.po` file, which
     has no file references (`origins: false`), so it sees the same bare keys.
-  - Nobody looks at the result on screen.
+  - It is hard to keep track of the changes in all 4 translated languages, especially
+    since developers don't speak most of them. Even when a translation breaks the UI,
+    they can't tell which word is wrong or what a shorter replacement would be.
 
   A string translated alone can't tell a button from a heading, a verb from a noun
   ("Review details"), or "Light" the theme from "Light" the review depth. It also can't
