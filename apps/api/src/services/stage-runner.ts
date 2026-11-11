@@ -1828,7 +1828,9 @@ async function runStoryboardStep(
     // "Starting…" on slow or retry-heavy models.
     progress.emit({ type: "step-start", step: "web-rendering" })
 
-    await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir))
+    // Font registry maintenance is an admitted book write, not staged page
+    // output. Keep the publication wrapper restricted to HTML/tree pairs.
+    await ensureBookGoogleFontsCached(baseStorage, resolveFontsCacheDir(booksDir))
 
     let completedRendering = 0
     const failedPages: FailedPage[] = []

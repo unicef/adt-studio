@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Hono } from "hono"
 import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
-import { getRenderSectioning } from "@adt/pipeline"
+import { createStoryboardPublication, getRenderSectioning } from "@adt/pipeline"
 import { createStageRunner } from "./stage-runner.js"
 import { reRenderPages } from "./page-edit-service.js"
 import { createBookEventBus } from "./book-event-bus.js"
@@ -53,7 +53,71 @@ beforeEach(() => {
   writeSectioningLifecycle(path.join(root, label), "page", true)
   render.mockReset().mockResolvedValue({ sections: [] })
 })
-afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
+afterEach(() => { vi.unstubAllGlobals(); fs.rmSync(root, { recursive: true, force: true }) })
+
+describe("Storyboard font-cache maintenance", () => {
+  beforeEach(() => vi.stubEnv("FONTS_CACHE_DIR", path.join(root, ".fonts-cache")))
+  afterEach(() => vi.unstubAllEnvs())
+  const faces = [{ file: "stale.woff2", weight: 400, style: "normal", format: "woff2" }]
+  function seed(stale: boolean) {
+    const s = store()
+    try { s.putNodeData("font-registry", "book", { fonts: [{ id: "lexend", family: "Lexend", source: "google", faces: stale ? faces : [] }] }) }
+    finally { s.close() }
+  }
+  function fontFetch() {
+    const fetch = vi.fn(async (input: string) => {
+      if (input.startsWith("https://fonts.googleapis.com/")) return new Response("@font-face {font-family:'Lexend';font-style:normal;font-weight:400;src:url(https://fonts.gstatic.com/test.woff2) format('woff2');}")
+      if (input === "https://fonts.gstatic.com/test.woff2") return new Response("fixture-font")
+      throw new Error(`Unexpected network request: ${input}`)
+    })
+    vi.stubGlobal("fetch", fetch)
+    return fetch
+  }
+  it.each([false, true])("updates %s stale font faces through base storage without loosening publication scope", async stale => {
+    fs.writeFileSync(configPath, config)
+    seed(stale)
+    const fetch = fontFetch()
+    await run()
+    const s = store()
+    try {
+      const registry = s.getLatestNodeData("font-registry", "book")!
+      expect(registry.version).toBe(2)
+      expect(registry.data).toMatchObject({ fonts: [{ faces: [{ format: "woff2" }] }] })
+      expect(s.getAllNodeVersions("font-registry", "book")[0].data).toMatchObject({ fonts: [{ faces: stale ? faces : [] }] })
+      expect(() => createStoryboardPublication(s, label, root, configPath).storage.putNodeData("font-registry", "book", registry.data)).toThrow("STORYBOARD_INPUT_CHANGED")
+    } finally { s.close() }
+    expect(fetch).toHaveBeenCalledTimes(2)
+    await run()
+    expect(fetch).toHaveBeenCalledTimes(2)
+    const after = store()
+    try { expect(after.getLatestNodeData("font-registry", "book")?.version).toBe(2) }
+    finally { after.close() }
+  })
+  it("preserves the registry on offline fetch and allows a later successful retry", async () => {
+    fs.writeFileSync(configPath, config)
+    seed(false)
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")))
+    await run()
+    const s = store()
+    try { expect(s.getLatestNodeData("font-registry", "book")?.version).toBe(1) }
+    finally { s.close() }
+    fontFetch()
+    await run()
+    const after = store()
+    try { expect(after.getLatestNodeData("font-registry", "book")?.version).toBe(2) }
+    finally { after.close() }
+  })
+  it("keeps positioned fixed-layout rendering independent of optional Google font maintenance", async () => {
+    seed(false)
+    const fetch = fontFetch()
+    await run()
+    expect(fetch).not.toHaveBeenCalled()
+    expect(render).not.toHaveBeenCalled()
+    const s = store()
+    try { expect(s.getLatestNodeData("web-rendering", "p2")?.version).toBe(1) }
+    finally { s.close() }
+  })
+})
 
 describe("Storyboard layout publication", () => {
   it.each(["stage", "targeted"])("does not append fixed-tree deactivations during repeated reflowable %s rendering", async mode => {
