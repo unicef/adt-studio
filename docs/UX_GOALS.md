@@ -26,12 +26,18 @@ The [six core principles](../AGENTS.md) say what must never be lost. The goals b
 what using the product must stay like while we protect it. A change that passes its
 acceptance criteria and breaks one of these goals is not finished.
 
+The goals also cover the reliability work that comes next: fewer bugs, runs that finish
+without the user stepping in, and output that is consistent from page to page and from
+run to run. Every bug and every failed item costs the user time and confidence, so a
+failure the user meets is a UX problem before it is anything else
+([section 4.7](#47-reliable-and-consistent-output-goals-21-to-25)).
+
 When a goal and a safeguard seem to conflict, the answer is almost always a different
 place for the safeguard ([section 3](#3-where-a-safeguard-belongs)), not a slower or
 more restricted product. When no placement satisfies both, stop and bring the trade-off
 to the product owner before building it ([section 7](#7-stop-and-ask)).
 
-## 1. The 20 goals at a glance
+## 1. The goals at a glance
 
 | # | Goal | Watch for |
 |---|------|-----------|
@@ -60,6 +66,14 @@ to the product owner before building it ([section 7](#7-stop-and-ask)).
 | 18 | Every new visible element earns its place. | A panel, banner or badge shown on every book for a rare case. Warnings before a stage has ever run. |
 | 19 | The interface speaks the user's language. | Internal terms in UI text (hash, lease, witness, checkpoint, identity). Strings missing from a locale. |
 | 20 | The smallest change that solves the reported problem. | Protection wider than the bug that prompted it. A branch that grows well past its issue. |
+| | **Reliable and consistent output** | |
+| 21 | A run completes without the user stepping in. | A stage that needs a second run to produce everything. Items left failed or missing after a clean run. |
+| 22 | Unexpected model output is absorbed. | A wrong shape, wrong order or invalid nesting from the model failing a page, a stage or the whole book. |
+| 23 | The same thing is treated the same way everywhere in a book. | The same icon, heading style or voice handled differently on different pages. |
+| 24 | The same inputs give the same output. | A rerun with nothing changed, or after a small edit, altering content the user did not touch. |
+| 25 | What the user reviewed is what ships. | Preview, export and the reader disagreeing. Content dropped from the output without a word. |
+| | **Explaining failures** | |
+| 26 | When something fails, the user is told what failed, why, and what to do. | "A page failed" with no reason. Raw text such as `fetch failed` or `HTTP 401` shown as the message. A failure visible only in the debug log. |
 
 ## 2. Budgets
 
@@ -77,6 +91,8 @@ number in the linked review. "Proposed" is a default until triage agrees a figur
 | Downloads a prepared export | About 2 s on the 102-page reference book | Set in [#884][884-export] |
 | Runs Storyboard | A finished page can be opened within seconds, while other pages are still running | Set in [#884][884-oct12] |
 | Runs any stage | No slower and no more provider calls than `develop` for the same book and settings, unless the product owner agreed to the cost | Proposed |
+| Runs the whole pipeline on a reference book | Finishes with no failed or missing items and no manual retry | Proposed |
+| Reruns a stage with nothing changed | No provider calls and identical output | Proposed; follows from core principle 3 |
 
 **Reference books.** Until the acceptance set is agreed (SPEC-0005), measure on three
 books:
@@ -352,6 +368,132 @@ the whole book down with it.
   books, so the glossary disappeared while a run was active ([#879 Note 4][879-note4],
   item 8).
 
+### 4.7 Reliable and consistent output (goals 21 to 25)
+
+**The goal.** The user can trust a run and trust its result. A book goes through the
+pipeline once and comes out complete. The same thing is handled the same way on every
+page. What was reviewed in Studio is what the reader shows. A bug or a failed item is
+not a technical detail to the person who meets it: it is lost time, a rerun they pay
+for, and less confidence in everything else the product produced.
+
+**What to do.**
+
+- Count a failure as a defect. If a clean run on a reference book leaves a failed or
+  missing item, something needs fixing, whether the cause is our code, a race between
+  stages or the model.
+- Expect bad model output. A wrong shape, a wrong order, truncated JSON, invalid nesting
+  and invented values will all happen. Validate the output, repair it in code where the
+  intent is clear, retry where it is not, and fall back for that one page or item. The
+  book never fails because of one answer.
+- Make a rerun reproduce what was accepted. Store the accepted result so that the same
+  request returns it, including when it was reached through a retry.
+- Decide once per book when the same asset or pattern repeats: a recurring icon, a
+  heading style, a narrator voice. Per-page decisions on repeated things are where
+  inconsistency comes from.
+- Use code instead of a model call where the rule is known, such as type scale, IDs and
+  ordering. Output computed by a rule is consistent by construction.
+- Give preview, export and the reader one path to the content. Where they must differ,
+  a test asserts that they agree.
+- Drop nothing silently. When content cannot be included, say so where the user will
+  see it.
+- Fix the class, not the single case. When a bug is reported for one page type,
+  provider or language, check its siblings. Add a regression test that fails before the
+  fix and passes after it
+  ([fast lane](SPEC_DRIVEN_DEVELOPMENT.md#fast-lane--no-spec)).
+- Reproduce on a real book before the fix and confirm on the same book after it.
+
+**Seen before.**
+
+- Book Outline failed a 20-page book on all six attempts, blocking every later stage,
+  because the model returned headings grouped by level instead of in page order
+  ([#1035][i1035]; [#1036][pr1036] restores the order instead of failing).
+- Template rendering stopped Storyboard on any page where a heading sat inside a
+  paragraph ([#1073][i1073], fix in [#1074][pr1074]).
+- The same recurring section icon was hidden on some pages and kept on others, then
+  marked decorative on some pages and captioned on others ([#1037][i1037],
+  [#1070][i1070]).
+- A Storyboard rerun after one page was split changed three untouched pages. Their
+  first render had needed a retry, and the accepted retry was not stored under the
+  original request ([#1085][i1085]).
+- On a first run, glossary, quiz and caption text got no audio because the text catalog
+  was built in parallel with the stages that produce them. A second run gave different
+  audio ([#808][i808]).
+- Speech preparation never reused its earlier result and its text drifted between runs,
+  so unchanged entries were synthesized again at full cost ([#809][i809]).
+- Live Preview paired sections by position and could show different content from the
+  export ([#879 Note 2][879-note2], item 3). Quizzes attached to a page the book no
+  longer had were left out of the output without notice ([#860][i860]).
+
+### 4.8 Telling the user why something failed (goal 26)
+
+**The goal.** When something fails, the user learns three things in the place they are
+looking: what failed, why, and what they can do. "OpenAI rejected your API key" lets a
+user fix the problem in a minute. "A page failed in Storyboard" leaves them guessing
+whether the cause is their key, their connection, the provider, the book or the app.
+Most failures in a run come from a request to a model, and those have a small number of
+causes that can each be named.
+
+**Name the cause.** A failed model or speech request falls into one of these. Each has
+its own message and its own next step.
+
+| Cause | What the user is told | What they can do |
+|---|---|---|
+| Key missing, rejected, expired or revoked | Which provider refused the key | Open that provider's key settings |
+| Account out of credit or quota | That the provider account has no quota left | Check the account, or switch provider |
+| Rate limited | That the provider is limiting requests and the run has slowed down | Usually nothing; the run continues |
+| No connection, dropped connection or timeout | That the provider could not be reached, and how many items were affected | Check the connection, then retry the failed items |
+| Provider outage or overload | That the provider is having problems | Retry later |
+| Model not available to this key | Which model, and for which step | Choose another model |
+| Request too large for the model | Which page or item is too large | Choose another model |
+| Content declined by the provider | Which page or item the provider refused to process | Edit the content, or try another provider |
+| The model's answer stayed invalid after every retry | Which page, and what was wrong, in plain words | Re-run that page, or edit it by hand |
+| An error inside ADT Studio | That the problem is in the app and not in their setup | Retry, and copy the details for a report |
+
+**What to do.**
+
+- Classify the failure where it happens, in the model and speech clients, into a stable
+  reason code. Keep the provider, model, step and page or item with it. Connection
+  checks already work this way: `PROVIDER_HEALTH_CODES` in `@adt/types` are "stable
+  identifiers the Studio maps to translated messages". Run failures need the same
+  treatment. Today the `step-error` event carries one free-text string.
+- Studio turns the code into a translated message and an action. The API does not send
+  prose meant for the user, and a raw status, exception text or stack trace is never
+  the message.
+- Keep the raw detail (HTTP status, provider error code, `err.cause`) in the log, and
+  make "View details" open the failed call itself. This is core principle 4 applied to
+  failures.
+- Show the reason where the failure is: on the stage's run card, on the failed page or
+  item, and in the run summary. Store it with the step status so it is still there
+  after a refresh or a restart.
+- Give one message per cause, with a count, such as "794 of 3,111 recordings failed:
+  the connection to OpenAI dropped". Never one notice per item.
+- Keep "retrying" apart from "failed". While retries are succeeding the run shows at
+  most a quiet note. The failure message appears when the retries are used up.
+- Check what can be checked before the work starts: a missing or rejected key, no
+  connection, a model the key cannot use. Refuse the run with the reason instead of
+  failing every page with it.
+- Say whose side the problem is on: the user's key, account or connection, the
+  provider, the content, or ADT Studio.
+- Never put a key or any other secret in a message or a log.
+
+**Seen before.**
+
+- Studio's notice for a failed page reads "A page failed in" followed by the stage
+  name, and gives no reason (`apps/studio/src/hooks/use-book-run.ts`).
+- All 794 failed recordings in one speech run were reported as `fetch failed`. The
+  underlying cause had been discarded, so neither the user nor the team could say what
+  had happened ([#1067][i1067]).
+- Re-running Extract on a book with pages answered "Internal server error". A revoked
+  key or quota error during speech preparation produced a green step and no message
+  ([#879 Note 4][879-note4], items 4 and 10).
+- An expired Google key was reported as the provider being unreachable
+  ([#1026][i1026]). A saved key that the provider rejects produced no warning
+  ([#1075][i1075], fix in [#1076][pr1076]).
+- "View details" on a failed recording did not open that recording or its error
+  ([#998][i998]). Failures were not counted in the debug Stats tab ([#718][i718]).
+- Two pieces of work in progress should meet this goal: provider-failure classification
+  in SPEC-0013 ([#889][pr889]) and connectivity detection in SPEC-0017 ([#950][pr950]).
+
 ## 5. How product and development work together
 
 Two kinds of knowledge meet in every change. The developer knows what can go wrong with
@@ -404,7 +546,14 @@ Existing-book check (book from the previous release opens, renders, previews, ex
 - [ ] A later stage can be queued, on the first click, while an earlier one runs
 - [ ] A problem on one page or item does not stop the others
 - [ ] Transient provider errors are retried, timed out, and logged with their cause
+- [ ] A clean run on the reference books ends with no failed or missing items
+- [ ] Unexpected model output on one page is repaired, retried or reported for that page
+- [ ] A repeated asset or pattern gets the same treatment on every page
+- [ ] A rerun with nothing changed makes no provider calls and changes no output
+- [ ] Preview, export and the reader show the same content; nothing is dropped silently
+- [ ] Bug fixes: a regression test fails before the fix, and sibling cases were checked
 - [ ] Every new message is in plain words, names a next step, and is in all five locales
+- [ ] A failure tells the user what failed, why and what to do; the raw cause is in the log
 - [ ] No new always-visible element, or the product owner agreed to it
 - [ ] The change does what its issue asks; wider protections were raised first
 ```
@@ -422,6 +571,8 @@ the user.
 - A check that covers the whole book, or one that runs on a read, a poll or a download.
 - A change in how books from earlier releases open, render, preview or export.
 - A safeguard that needs a goal in this document to give way.
+- A failure or inconsistency on the reference books that the change cannot remove, so
+  the user will still meet it.
 - Scope beyond the issue or the approved spec.
 
 The message can be short: what the safeguard protects, what it costs the user, the
@@ -441,10 +592,26 @@ options and their cost, and a recommendation.
 [879-note7]: https://github.com/unicef/adt-studio/pull/879#pullrequestreview-5552755170
 [i996]: https://github.com/unicef/adt-studio/issues/996
 [i997]: https://github.com/unicef/adt-studio/issues/997
+[i718]: https://github.com/unicef/adt-studio/issues/718
+[i808]: https://github.com/unicef/adt-studio/issues/808
+[i809]: https://github.com/unicef/adt-studio/issues/809
+[i860]: https://github.com/unicef/adt-studio/issues/860
+[pr889]: https://github.com/unicef/adt-studio/pull/889
+[pr950]: https://github.com/unicef/adt-studio/pull/950
+[i998]: https://github.com/unicef/adt-studio/issues/998
+[i1026]: https://github.com/unicef/adt-studio/issues/1026
+[i1035]: https://github.com/unicef/adt-studio/issues/1035
+[pr1036]: https://github.com/unicef/adt-studio/pull/1036
+[i1037]: https://github.com/unicef/adt-studio/issues/1037
 [i1067]: https://github.com/unicef/adt-studio/issues/1067
 [pr1069]: https://github.com/unicef/adt-studio/pull/1069
+[i1070]: https://github.com/unicef/adt-studio/issues/1070
 [i1071]: https://github.com/unicef/adt-studio/issues/1071
 [pr1072]: https://github.com/unicef/adt-studio/pull/1072
+[i1073]: https://github.com/unicef/adt-studio/issues/1073
+[i1075]: https://github.com/unicef/adt-studio/issues/1075
+[pr1076]: https://github.com/unicef/adt-studio/pull/1076
+[pr1074]: https://github.com/unicef/adt-studio/pull/1074
 [i1083]: https://github.com/unicef/adt-studio/issues/1083
 [i1085]: https://github.com/unicef/adt-studio/issues/1085
 [i1086]: https://github.com/unicef/adt-studio/issues/1086
