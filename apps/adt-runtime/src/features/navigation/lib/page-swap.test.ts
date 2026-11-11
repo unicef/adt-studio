@@ -539,6 +539,17 @@ describe("swapToPage crossfade", () => {
     // Lets the release chained on `finished` run.
     const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
+    beforeEach(() => {
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: vi.fn(() => null),
+      })
+    })
+
+    afterEach(() => {
+      Reflect.deleteProperty(document, "elementFromPoint")
+    })
+
     it("is blocked while the animation runs and allowed once it finishes", async () => {
       const turn = animation()
       stubViewTransition(turn.finished)
@@ -619,10 +630,6 @@ describe("swapToPage crossfade", () => {
           new MouseEvent("mousedown", { bubbles: true, cancelable: true, button }),
         )
       }
-
-      afterEach(() => {
-        Reflect.deleteProperty(document, "elementFromPoint")
-      })
 
       it("skips the animation and clicks the control", async () => {
         const turn = animation()
