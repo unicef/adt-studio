@@ -246,7 +246,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // Only cancel if we already have baseline data; otherwise the initial
       // fetch (on page load) would be killed and the UI would stay idle.
       if (queryClient.getQueryData(stepStatusKey(label))) {
-        queryClient.cancelQueries({ queryKey: stepStatusKey(label) })
+        queryClient.cancelQueries({ queryKey: stepStatusKey(label), exact: true })
       }
 
       if (d.type === "step-start") {
@@ -580,7 +580,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
               ? { kind: eventTaskKind, pageId: eventPageId }
               : undefined
           if (completedTask?.kind === "package-adt") {
-            queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+            queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"], exact: true })
             queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
             queryClient.invalidateQueries({ queryKey: ["debug", "accessibility", label] })
             queryClient.invalidateQueries({ queryKey: ["debug", "versions", label, "accessibility-assessment", "book"] })
@@ -627,7 +627,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           }
           if (completedTask?.kind === "book-summary") {
             // Refresh the book detail so the banner shows the new summary.
-            queryClient.invalidateQueries({ queryKey: ["books", label] })
+            queryClient.invalidateQueries({ queryKey: ["books", label], exact: true })
           }
           // Always refetch tasks so we pick up the final state even if we missed start
           queryClient.invalidateQueries({ queryKey: bookTasksKey(label) })
@@ -648,7 +648,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         // The server may have changed step status before reporting the task
         // error. Refresh it even if task-start was missed and polling had
         // stopped because the cached pipeline previously looked complete.
-        queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+        queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"], exact: true })
         if (eventTaskKind === "re-render") {
           if (eventPageId) {
             queryClient.invalidateQueries({ queryKey: ["books", label, "pages", eventPageId] })

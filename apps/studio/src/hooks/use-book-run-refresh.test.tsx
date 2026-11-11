@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest"
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider, QueryObserver } from "@tanstack/react-query"
 import { PIPELINE } from "@adt/types"
+import { runConfirmationQueryKey } from "./run-confirmation-query"
 
 vi.mock("@/api/client", () => ({ BASE_URL: "", api: { getStepStatus: vi.fn(), getStagesStatus: vi.fn() } }))
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }))
@@ -357,4 +358,23 @@ it("follows an already-running populated read with a fresh read for the final pu
     expect(readPages).toHaveBeenCalledTimes(3)
     expect(client.getQueryData(key)).toBe(3)
   } finally { stop(); close() }
+})
+
+
+it("SSE progress leaves an explicit confirmation read alive while cancelling stale shared status", async () => {
+  const { client, close } = setup({ settle: false })
+  let release!: () => void
+  let signal!: AbortSignal
+  const key = runConfirmationQueryKey("book", "sectioning", "explicit-action", 1)
+  const confirmation = client.fetchQuery({ queryKey: key, queryFn: ({ signal: ownedSignal }) => {
+    signal = ownedSignal
+    return new Promise<number>(resolve => { release = () => resolve(11) })
+  } }).then(value => ({ value }), error => ({ error }))
+  try {
+    await act(async () => Events.current.emit("progress", { type: "step-progress", step: "web-rendering", publishedPageId: "pg001" }))
+    const wasAborted = signal.aborted
+    release()
+    expect(await confirmation).toEqual({ value: 11 })
+    expect(wasAborted).toBe(false)
+  } finally { close() }
 })
