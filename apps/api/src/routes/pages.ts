@@ -1,5 +1,6 @@
 import { SourceGeneratorStep } from "@adt/types"
 import { putSourceNodeData, preserveRenderedOwnership, withSourceGenerationTracking, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
+import { captureStoryboardSource, publishSynchronizedStoryboardText } from "@adt/pipeline"
 import { cloneRenderedIdentities, stampRenderedOwner } from "@adt/pipeline"
 import { stampManualEdits } from "@adt/pipeline"
 import { AuthoredSaveGuard } from "@adt/types"
@@ -1598,7 +1599,7 @@ export function createPageRoutes(
         const remap = sectionReorderMap(previous.success ? previous.data : undefined, parsed.data)
         if (remap) migrateEditableActivities(storage, pageId, { mapIndex: remap })
         return saved
-      })
+      }, [pageId])
       return c.json({ version })
     } finally {
       storage.close()
@@ -1726,6 +1727,10 @@ export function createPageRoutes(
       const { renderingVersion, sectioningVersion } = withSourceGenerationTracking(storage, () => {
         assertNoActivePipelineRun(storage)
         if (rendering) assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, parsed.data.renderingBaseVersion!)
+        const synchronized = sectioning && rendering && renderingInSync
+        const priorSource = synchronized ? captureStoryboardSource(storage, pageId) : undefined
+        const oldRendering = synchronized ? WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", pageId)?.data) : undefined
+        const priorRendering = oldRendering?.success ? withLegacyRenderingOwnership(storage, pageId, oldRendering.data) : undefined
         const saved = {
           renderingVersion: rendering
             ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
@@ -1738,8 +1743,10 @@ export function createPageRoutes(
           const remap = sectionReorderMap(previousSectioning?.success ? previousSectioning.data : undefined, sectioning)
           if (remap) migrateEditableActivities(storage, pageId, { mapIndex: remap })
         }
+        if (synchronized) publishSynchronizedStoryboardText(storage, pageId, priorSource,
+          previousSectioning?.success ? previousSectioning.data : undefined, priorRendering)
         return saved
-      })
+      }, [pageId])
 
       return c.json({ sectioningVersion, renderingVersion })
     } finally {

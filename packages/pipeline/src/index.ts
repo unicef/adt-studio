@@ -535,4 +535,4 @@ export { publishedAdtDirectory } from "./packaging/publication-directory.js"
 export { packageFilesAvailable } from "./packaging/bundle-files.js"
 export { isPublicOutputId, ambiguousPublicOutputIds, invalidPublicOutputIdentity } from "./public-output-identity.js"
 
-export { storyboardSourceWarnings } from "./storyboard-source-state.js"
+export { storyboardSourceWarnings, captureStoryboardSource, publishSynchronizedStoryboardText } from "./storyboard-source-state.js"
