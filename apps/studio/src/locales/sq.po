@@ -9737,6 +9737,9 @@ msgstr "Zëvendëso këtë skedar audio"
 msgid "Replace your overlapping changes with the latest saved values."
 msgstr "Zëvendësoni ndryshimet tuaja që mbivendosen me vlerat e fundit të ruajtura."
 
+msgid "Replacement inputs could not be verified. Existing pages will stay unchanged."
+msgstr "Të dhënat për zëvendësim nuk mund të verifikoheshin. Faqet ekzistuese do të mbeten të pandryshuara."
+
 msgid "Replacing these pages resets their current Storyboard, including manual edits. Saved versions and media stay in history; Storyboard must be rebuilt even if generation is cancelled or fails."
 msgstr "Zëvendësimi i këtyre faqeve rivendos Storyboard-in aktual, përfshirë ndryshimet manuale. Versionet dhe mediat e ruajtura mbeten në historik; Storyboard-i duhet rindërtuar edhe nëse gjenerimi anulohet ose dështon."
 

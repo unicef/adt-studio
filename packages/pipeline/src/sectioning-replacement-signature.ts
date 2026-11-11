@@ -8,6 +8,7 @@ import { TYPE_SCALE_NODE, TYPE_SCALE_ITEM } from "./type-scale.js"
 import { buildPageSectioningConfig } from "./page-sectioning.js"
 import { buildTranslationConfig } from "./translation.js"
 import { activeSectioningPages, requiredPartRange } from "./sectioning-window.js"
+import { AuthoredReplacementError } from "./authored-output.js"
 
 /** Dynamic Liquid includes cannot use the prompt engine's static fingerprint.
  * For that uncommon case bind the complete prompt roots conservatively, so a
@@ -28,7 +29,7 @@ function promptRootBasis(roots: readonly string[]): unknown[] {
 
 /** A replacement receipt is scoped to this book, effective configuration and
  * persisted page window. It is admission evidence, not output freshness. */
-export function sectioningReplacementSignature(storage: Storage, label: string, booksRoot: string, configPath?: string, promptsDir?: string): string {
+function replacementSignature(storage: Storage, label: string, booksRoot: string, configPath?: string, promptsDir?: string): string {
   const { bookDir } = resolveBookPaths(label, booksRoot)
   const config = loadBookConfig(label, booksRoot, configPath)
   const range = requiredPartRange(bookDir)
@@ -75,4 +76,14 @@ export function sectioningReplacementSignature(storage: Storage, label: string, 
       images: storage.getPageImages(page.pageId, true),
     })),
   }))
+}
+
+/** Unreadable saved inputs cannot issue replacement consent. Ordinary no-op
+ * execution need not call this; status callers may omit the unusable receipt. */
+export function sectioningReplacementSignature(...args: Parameters<typeof replacementSignature>): string {
+  try { return replacementSignature(...args) }
+  catch (error) {
+    if (!(error instanceof SyntaxError)) throw error
+    throw new AuthoredReplacementError(409, "Saved replacement inputs are unreadable. Restore valid inputs before replacing pages.")
+  }
 }

@@ -9735,6 +9735,9 @@ msgstr "Reemplazar este archivo de audio"
 msgid "Replace your overlapping changes with the latest saved values."
 msgstr "Reemplaza tus cambios superpuestos por los últimos valores guardados."
 
+msgid "Replacement inputs could not be verified. Existing pages will stay unchanged."
+msgstr "No se pudieron verificar los datos necesarios para el reemplazo. Las páginas existentes permanecerán sin cambios."
+
 msgid "Replacing these pages resets their current Storyboard, including manual edits. Saved versions and media stay in history; Storyboard must be rebuilt even if generation is cancelled or fails."
 msgstr "Al reemplazar estas páginas se restablece su Storyboard actual, incluidas las ediciones manuales. Las versiones guardadas y los archivos multimedia permanecen en el historial; Storyboard debe reconstruirse aunque la generación se cancele o falle."
 

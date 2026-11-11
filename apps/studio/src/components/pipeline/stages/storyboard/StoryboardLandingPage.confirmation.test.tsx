@@ -27,7 +27,7 @@ i18n.load("en", {}); i18n.activate("en")
 const { api } = await import("@/api/client")
 const { StoryboardLandingPage } = await import("./StoryboardLandingPage")
 const { TooltipProvider } = await import("@/components/ui/tooltip")
-const protectedPage = { node: "page-sectioning", itemId: "pg003", version: 7, pageNumber: 3, renderingVersion: 9, renderTreeVersion: 2 }
+const protectedPage = { node: "page-sectioning", itemId: "pg003", version: 7, pageNumber: 3, renderingVersion: 9, renderTreeVersion: 2, sectioningInputSignature: "a".repeat(64) }
 let client: QueryClient
 beforeEach(() => { vi.clearAllMocks(); state.provider = true; state.config.merged.default_render_strategy = ""; state.completed = false; state.running = false; state.pages = [{ pageId: "pg003" }]; vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [protectedPage] } as never); client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } }) })
 afterEach(() => { cleanup(); client.clear() })
@@ -73,7 +73,7 @@ it("confirms the protected Sectioning in a restored book's combined run, default
   fireEvent.click(within(dialog).getByRole("checkbox"))
   act(() => client.setQueryData(["books", "a", "step-status"], { protectedWork: [{ ...protectedPage, version: 8 }] }))
   fireEvent.click(within(dialog).getByRole("button", { name: "Re-run" }))
-  await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ fromStage: "sectioning", toStage: "storyboard", replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 7, renderingVersion: 9, renderTreeVersion: 2 }] })))
+  await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ fromStage: "sectioning", toStage: "storyboard", replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 7, renderingVersion: 9, renderTreeVersion: 2, sectioningInputSignature: "a".repeat(64) }] })))
 })
 it.each(["book", "range"])("drops combined-run consent if its %s changes", async change => {
   const show = mount(); await open()

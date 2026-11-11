@@ -145,6 +145,7 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
   const loading = protectedStage && (status.isPending || status.isFetching)
   const disabledReason = busy || loading ? t`Loading saved content…` : protectedStage && status.isError ? status.error.message : undefined
   const work = snapshot?.scope === scope ? snapshot.work : []
+  const replacementUnavailable = stage === "sectioning" && work.some(record => !record.sectioningInputSignature)
   const stageLabel = getStageLabelI18n(stage)
   const notice = <>
     {loading && <p className="text-xs text-muted-foreground"><Trans>Loading saved content…</Trans></p>}
@@ -168,6 +169,7 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
     onConfirm={() => {
       if (!isCurrent() || snapshot?.scope !== scope) return
       const replace = work.length > 0 && (stage === "toc" || replaceManual)
+      if (replace && replacementUnavailable) return
       finish({ replaceManual: replace, protectedReplacements: replace ? work.map(({ pageNumber: _pageNumber, ...record }) => record) : [] })
     }}
   >
@@ -178,7 +180,8 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
         <p><Trans>Saved pages:</Trans></p>
         <ul className="max-h-48 overflow-y-auto">{work.map(r => <li key={r.itemId}><Trans>Page {r.pageNumber ?? r.itemId} ({r.itemId}): Sectioning v{r.version}, Storyboard v{r.renderingVersion ?? 0}, render tree v{r.renderTreeVersion ?? 0}, activities v{r.editableActivityVersion ?? 0}</Trans></li>)}</ul>
         <p><Trans>Replacing these pages resets their current Storyboard, including manual edits. Saved versions and media stay in history; Storyboard must be rebuilt even if generation is cancelled or fails.</Trans></p>
-        <label className="flex gap-2"><input type="checkbox" checked={replaceManual} onChange={event => setReplaceManual(event.target.checked)} /><Trans>Replace these pages and reset their Storyboard</Trans></label>
+        {replacementUnavailable && <p role="status"><Trans>Replacement inputs could not be verified. Existing pages will stay unchanged.</Trans></p>}
+        <label className="flex gap-2"><input type="checkbox" checked={replaceManual} disabled={replacementUnavailable} onChange={event => setReplaceManual(event.target.checked)} /><Trans>Replace these pages and reset their Storyboard</Trans></label>
       </div>)}
   </CascadeResetDialog>
   return { requestRun, disabledReason, notice, dialog, busy }

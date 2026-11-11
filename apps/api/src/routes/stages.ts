@@ -11,7 +11,7 @@ import type { Storage } from "@adt/storage"
 import { AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
-  loadBookConfig,
+  loadBookConfig, AuthoredReplacementError,
   getSourceGenerationUpdates,
   keepSourceGeneration,
   withSourceGenerationTracking,
@@ -498,7 +498,18 @@ export function createStageRoutes(
       const storage = createBookStorage(safeLabel, booksDir)
       try {
         const numbers = new Map(activeSectioningPages(storage, loadBookConfig(safeLabel, booksDir, configPath), path.dirname(dbPath)).map((p) => [p.pageId, p.pageNumber]))
-        protectedWork = protectedAuthoredRecords(storage, sectioningReplacementSignature(storage, safeLabel, booksDir, configPath, promptsDir)).filter((record) => record.node !== "page-sectioning" || numbers.has(record.itemId)).map((record) => ({ ...record, pageNumber: numbers.get(record.itemId) }))
+        const records = protectedAuthoredRecords(storage)
+        let signature: string | undefined
+        if (records.some(record => record.node === "page-sectioning")) {
+          try { signature = sectioningReplacementSignature(storage, safeLabel, booksDir, configPath, promptsDir) }
+          catch (error) {
+            // An unavailable replacement receipt must not hide usable status or
+            // prevent a genuine no-op. Admission still refuses replacement.
+            if (!(error instanceof AuthoredReplacementError)) throw error
+          }
+        }
+        protectedWork = records.filter(record => record.node !== "page-sectioning" || numbers.has(record.itemId))
+          .map(record => ({ ...record, ...(record.node === "page-sectioning" ? { sectioningInputSignature: signature } : {}), pageNumber: numbers.get(record.itemId) }))
       } finally { storage.close() }
     }
     return c.json({

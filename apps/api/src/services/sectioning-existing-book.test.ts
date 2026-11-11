@@ -968,11 +968,21 @@ it("rejects deterministic Extract prerequisites before a confirmed Storyboard re
 
 
 it("keeps a genuine Sectioning no-op usable without reading an unrelated malformed outline", async () => {
+  const priorConsent = await replacement(["p2"])
   const db = openBookDb(path.join(dir, `${label}.db`))
   try { db.run("UPDATE node_data SET data=? WHERE node='book-outline'", ["{broken"]) }
   finally { db.close() }
   const before = rawHistoryState()
+  const status = await app.request(`/books/${label}/step-status`)
+  expect(status.status).toBe(200)
+  const data = await status.json()
+  expect(data.protectedWork.filter((record: { node: string }) => record.node === "page-sectioning")).toEqual([
+    expect.objectContaining({ itemId: "p2", version: 1 }), expect.objectContaining({ itemId: "p7", version: 1 }),
+  ])
+  expect(data.protectedWork.every((record: { sectioningInputSignature?: string }) => !record.sectioningInputSignature)).toBe(true)
+  expect((await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", ...priorConsent })).status).toBe(409)
   expect((await run({ toStage: "sectioning" })).status).toBe("completed")
+  expect((await app.request(`/books/${label}/step-status`)).status).toBe(200)
   expect(sectionPage).not.toHaveBeenCalled()
   expect(rawHistoryState()).toEqual(before)
 })

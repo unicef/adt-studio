@@ -21,7 +21,7 @@ let client: QueryClient
 beforeEach(() => {
   vi.clearAllMocks(); state.status = "idle"; state.page = null
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [{ node: "page-sectioning", itemId: "pg003", version: 9, pageNumber: 3 }] } as never)
+  vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [{ node: "page-sectioning", itemId: "pg003", version: 9, sectioningInputSignature: "a".repeat(64), pageNumber: 3 }] } as never)
 })
 afterEach(() => { cleanup(); client.clear() })
 it.each(["stage", "missing-page"])("the %s Sectioning run card names protected pages and keeps replacement off", async entry => {
@@ -41,7 +41,7 @@ it.each(["stage", "missing-page"])("the %s Sectioning run card names protected p
   fireEvent.click(button)
   fireEvent.click(await screen.findByRole("checkbox"))
   fireEvent.click(screen.getByRole("button", { name: "Re-run" }))
-  await waitFor(() => expect(state.queue).toHaveBeenCalledExactlyOnceWith({ fromStage: "sectioning", toStage: "sectioning", apiKey: "test-only", replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 9 }] }))
+  await waitFor(() => expect(state.queue).toHaveBeenCalledExactlyOnceWith({ fromStage: "sectioning", toStage: "sectioning", apiKey: "test-only", replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 9, sectioningInputSignature: "a".repeat(64) }] }))
 })
 
 it("keeps an open confirmation reachable when a background update replaces the run card", async () => {
@@ -61,4 +61,18 @@ it("keeps an open confirmation reachable when a background update replaces the r
   fireEvent.click(retry); await screen.findByRole("dialog")
   fireEvent.click(screen.getByRole("button", { name: "Re-run" }))
   await waitFor(() => expect(state.queue).toHaveBeenCalledExactlyOnceWith({ fromStage: "sectioning", toStage: "sectioning", apiKey: "test-only", replaceManual: false, protectedReplacements: [] }))
+})
+
+it("allows an ordinary run but disables replacement when its saved inputs cannot be verified", async () => {
+  vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: [{ node: "page-sectioning", itemId: "pg003", version: 9, pageNumber: 3 }] } as never)
+  render(<QueryClientProvider client={client}><SectioningView bookLabel="book" selectedPageId="pg003" /></QueryClientProvider>)
+  const run = screen.getByRole("button", { name: /Run sectioning/ }) as HTMLButtonElement
+  await waitFor(() => expect(run.disabled).toBe(false))
+  fireEvent.click(run)
+  const toggle = await screen.findByRole("checkbox") as HTMLInputElement
+  expect(toggle.disabled).toBe(true)
+  expect(toggle.checked).toBe(false)
+  expect(screen.getByRole("dialog").textContent).toContain("Existing pages will stay unchanged")
+  fireEvent.click(screen.getByRole("button", { name: "Re-run" }))
+  await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ replaceManual: false, protectedReplacements: [] })))
 })
