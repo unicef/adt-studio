@@ -66,3 +66,15 @@ it.each([false, true])("keeps fixed source current across derived media and dete
   storage.putExtractedPage({ pageId: "p1", pageNumber: 1, text: "Original", pageImage: { imageId: "p1_page", buffer: Buffer.from("page"), hash: "page", width: 100, height: 100, format: "png" }, images: [{ ...sourceImage, buffer: Buffer.from("changed source"), hash: "changed-source", width: legacy ? 21 : 20 }] })
   expect(storyboardSourceWarnings(storage)).toHaveLength(1)
 })
+
+
+it("retains usable owned legacy HTML for an empty source tree without requiring output for a truly empty section", () => {
+  const source = tree(); source.sections[0].nodes = []
+  storage.putNodeData("page-sectioning", "p1", source)
+  expect(storyboardCoverage(storage)).toMatchObject({ complete: true, included: 0, rendered: 0 })
+  storage.putNodeData("web-rendering", "p1", { sections: [{ sectionId: "p1_sec001", sectionIndex: 0, sectionType: "text", reasoning: "retained", html: "<main>Retained manual content</main>" }] })
+  expect(storyboardCoverage(storage)).toMatchObject({ complete: true, included: 1, rendered: 1 })
+  source.sections[0].isPruned = true
+  storage.putNodeData("page-sectioning", "p1", source)
+  expect(storyboardCoverage(storage)).toMatchObject({ complete: true, included: 0, rendered: 0 })
+})

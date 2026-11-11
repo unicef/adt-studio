@@ -31,11 +31,15 @@ function coverageForPages(storage: Storage, pageIds: string[], ambiguous: Readon
     if (!source.success) { missingPages.push(pageId); continue }
     const output = WebRenderingOutput.safeParse(rendering)
     const projected = output.success ? withLegacyRenderingOwnership(storage, pageId, output.data) : undefined
-    for (const section of source.data.sections.filter(section => !section.isPruned &&
-      (section.sectionType === "fixed-layout-page" && !!section.viewport && !!section.placement || hasRenderableContent(section)))) {
-      included++
+    for (const section of source.data.sections.filter(section => !section.isPruned)) {
       const matches = projected ? projected.sections.filter((entry) =>
         entry.html.trim() && resolveRenderedSection(entry, source.data.sections, projected.sections) === section) : []
+      const required = section.sectionType === "fixed-layout-page" && !!section.viewport && !!section.placement || hasRenderableContent(section)
+      // Older/manual sections can have owned HTML with an empty source tree.
+      // Retain that usable output without demanding generation for empty trees
+      // which have no output, or for descendants hidden by pruning.
+      if (!required && !(section.nodes.length === 0 && matches.length === 1)) continue
+      included++
       if (isPublicOutputId(section.sectionId) && !ambiguous.has(section.sectionId) && matches.length === 1 && (!includesOutput || includesOutput(section.sectionId))) rendered++
       else missingSections.push({ pageId, sectionId: section.sectionId })
     }
