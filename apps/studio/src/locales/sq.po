@@ -10983,6 +10983,9 @@ msgstr "Shfaq të gjitha hyrjet"
 msgid "Show all pages"
 msgstr "Shfaq të gjitha faqet"
 
+msgid "Show all quizzes"
+msgstr "Shfaq të gjitha kuizet"
+
 msgid "Show all translations"
 msgstr "Shfaq të gjitha përkthimet"
 

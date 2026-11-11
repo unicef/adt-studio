@@ -128,9 +128,11 @@ function PageThumb({
 export function QuizzesView({
   bookLabel,
   selectedPageId,
+  onSelectPage,
 }: {
   bookLabel: string;
   selectedPageId?: string;
+  onSelectPage?: (pageId: string | null) => void;
 }) {
   const { t } = useLingui();
   const queryClient = useQueryClient();
@@ -535,6 +537,15 @@ export function QuizzesView({
 
   const showPerPageEmpty =
     selectedPageId && displayQuizzes.length === 0 && quizzes.length > 0;
+  const showAllButton = selectedPageId && onSelectPage ? (
+    <button
+      type="button"
+      onClick={() => onSelectPage(null)}
+      className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline transition-colors"
+    >
+      {t`Show all quizzes`}
+    </button>
+  ) : null;
 
   return (
     <EditorBusyBoundary busy={restoring || saving || deleting}>
@@ -554,6 +565,7 @@ export function QuizzesView({
           color="orange"
           title={t`No quizzes for this page`}
           subtitle={t`Quizzes are linked to other pages in this book`}
+          cta={showAllButton}
         />
       ) : (
         <fieldset disabled={saving || restoring || deleting} className="flex min-w-0 flex-1 flex-col border-0 p-0">
@@ -580,6 +592,7 @@ export function QuizzesView({
               )}
             </div>
             <div className="ml-auto flex items-center gap-2">
+              {showAllButton}
               <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
                 {normalizedQuery
                   ? t`${String(filteredQuizzes.length)} of ${String(displayQuizzes.length)}`

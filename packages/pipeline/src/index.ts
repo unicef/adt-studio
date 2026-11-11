@@ -5,7 +5,7 @@ export {
   nullProgress,
   createConsoleProgress,
 } from "./progress.js"
-export { processWithConcurrency } from "./concurrency.js"
+export { processWithConcurrency, createSemaphore, type Semaphore } from "./concurrency.js"
 export { collectSpentQuizIds, assertQuizGenerationCapacity, saveQuizOutput } from "./quiz-ids.js"
 export {
   extractPDF,
@@ -133,6 +133,7 @@ export {
 } from "./visual-review.js"
 export {
   createScreenshotRenderer,
+  resolveScreenshotConcurrency,
   SCREENSHOT_VIEWPORTS,
   getViewportBreakpoints,
   type ScreenshotRenderer,

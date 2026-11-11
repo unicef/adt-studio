@@ -10981,6 +10981,9 @@ msgstr "Mostrar todas as entradas"
 msgid "Show all pages"
 msgstr "Mostrar todas as páginas"
 
+msgid "Show all quizzes"
+msgstr "Ver todos os questionários"
+
 msgid "Show all translations"
 msgstr "Mostrar todas as traduções"
 

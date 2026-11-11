@@ -76,12 +76,14 @@ vi.mock("@tanstack/react-router", () => ({
     title,
     to,
     search,
+    params,
     ...props
   }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
     to?: string
     search?: { tab?: string }
+    params?: { label: string; step: string; pageId?: string }
   }) => (
-    <a href={to} title={title} data-to={to} data-tab={search?.tab} {...props}>{children}</a>
+    <a href={to} title={title} data-to={to} data-tab={search?.tab} data-page-id={params?.pageId} {...props}>{children}</a>
   ),
   useMatchRoute: () => matchRouteMock,
   useNavigate: () => vi.fn(),
@@ -216,6 +218,20 @@ describe("StageSidebar — sharing row", () => {
 })
 
 describe("StageSidebar", () => {
+  it("#863: links to Quizzes without inheriting the selected page from another stage", async () => {
+    matchRouteMock.mockReturnValue(false)
+    stageStateMock.mockReturnValue("idle")
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(<StageSidebar bookLabel="demo-book" activeStep="storyboard" selectedPageId="pg001" />)
+
+    const quizzesLink = screen.getByTitle("Quizzes")
+    expect(quizzesLink.getAttribute("data-to")).toBe("/books/$label/$step")
+    expect(quizzesLink.getAttribute("data-page-id")).toBeNull()
+    const sectioningLink = screen.getByTitle("Sectioning")
+    expect(sectioningLink.getAttribute("data-to")).toBe("/books/$label/$step/$pageId")
+    expect(sectioningLink.getAttribute("data-page-id")).toBe("pg001")
+  })
+
   it.each(["idle", "queued", "running", "done", "error"] as const)("keeps missing-only Speech attention consistent with the %s attempt state", async (state) => {
     outputsMock.mockReturnValue({ data: { summaries: { stages: { speech: { applicable: 3, current: false, updates: 0, warnings: 0, missing: 3 } } } } })
     stageStateMock.mockImplementation((stage) => stage === "speech" ? state : "idle")
