@@ -1,7 +1,7 @@
 import { setImmediate as yieldToEventLoop } from "node:timers/promises"
 import { storyboardSourceWarnings } from "../storyboard-source-state.js"
 import { recordPackagedOwners } from "./bundle-ownership.js"
-import { openPackageWork, publishedAdtDirectory } from "./publication-directory.js"
+import { createPackageStaging, openPackageWork, publishedAdtDirectory, removePackageStaging } from "./publication-directory.js"
 import { isBundleLocale, assertPackageFilesAvailable } from "./bundle-files.js"
 import { isPublicOutputId } from "../public-output-identity.js"
 import { BookConfigError } from "../config.js"
@@ -351,7 +351,7 @@ export async function packageAdtWeb(
     const work = openPackageWork(options.bookDir)
     const output = publishedAdtDirectory(options.bookDir)
     const previous = path.join(work, "previous")
-    const stagingRoot = fs.mkdtempSync(path.join(work, "build-"))
+    const stagingRoot = createPackageStaging(work)
     const staged = path.join(stagingRoot, "adt")
     try {
       const result = await buildWebPackage(storage, options, progress, staged)
@@ -379,7 +379,7 @@ export async function packageAdtWeb(
       if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true })
       progress.emit({ type: "step-complete", step: "package-web" })
       return result
-    } finally { fs.rmSync(stagingRoot, { recursive: true, force: true }) }
+    } finally { removePackageStaging(stagingRoot) }
   })
 }
 

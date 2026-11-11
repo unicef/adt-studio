@@ -454,7 +454,7 @@ describe("Package routes", () => {
     expect(unzipSync(new Uint8Array(await new Response(result.stream).arrayBuffer()))[member]).toBeDefined()
   })
 
-  it.each(["previous", "published"])("reopens a complete package on first read after writer death at %s rename", { timeout: 30_000 }, async boundary => {
+  it.each(["staging", "previous", "published"])("recovers output and cleans only owned staging after SIGKILL at %s", { timeout: 30_000 }, async boundary => {
     const label = "swap-crash"; createRenderedBook(label); createWebAssets()
     const url = `/api/books/${label}/package-adt`, dir = path.join(tmpDir, label)
     expect((await app.request(url, { method: "POST" })).status).toBe(200)
@@ -467,19 +467,34 @@ describe("Package routes", () => {
       const db = createBookStorage(label, path.dirname(bookDir));
       const rename = fs.renameSync; fs.renameSync = (a,b) => {
         rename(a,b);
-        if (b === path.join(bookDir, edge === "previous" ? ".adt-package-work/previous" : "adt")) process.exit(86);
+        if (edge !== "staging" && b === path.join(bookDir, edge === "previous" ? ".adt-package-work/previous" : "adt")) process.kill(process.pid, "SIGKILL");
       };
-      await packageAdtWeb(db, { bookDir, label, webAssetsDir: assets, language:"en", outputLanguages:["en"], title:"Replacement" });
+      await packageAdtWeb(db, { bookDir, label, webAssetsDir: assets, language:"en", outputLanguages:["en"], title:"Replacement",
+        preparePublication: async () => { if (edge === "staging") process.kill(process.pid, "SIGKILL"); }
+      });
     `, dir, webAssetsDir, boundary], { encoding: "utf8", timeout: 20000 })
-    expect(child.status, child.stderr).toBe(86)
-    expect(fs.existsSync(path.join(dir, "adt"))).toBe(boundary === "published")
+    expect(child.signal, child.stderr).toBe("SIGKILL")
+    expect(fs.existsSync(path.join(dir, "adt"))).toBe(boundary !== "previous")
     const status = await app.request(url + "/status")
     expect(status.status, await status.clone().text()).toBe(200)
     expect(await status.json()).toMatchObject({ hasAdt: true, complete: true })
     const result = await exportAdt(label, tmpDir)
     const html = Buffer.from(unzipSync(new Uint8Array(await new Response(result.stream).arrayBuffer()))["pg001_sec001.html"])
-    if (boundary === "previous") expect(html).toEqual(old)
+    if (boundary !== "published") expect(html).toEqual(old)
     else expect(html.toString()).toContain("Replacement")
+    const work = path.join(dir, ".adt-package-work")
+    const abandoned = fs.readdirSync(work).filter(name => name.startsWith("build-"))
+    expect(abandoned).toHaveLength(1)
+    const unknown = path.join(work, "build-manual")
+    fs.mkdirSync(unknown); fs.writeFileSync(path.join(unknown, "notes"), "owner file")
+    const alias = path.join(work, "build-alias")
+    fs.symlinkSync(unknown, alias)
+    const db = createBookStorage(label, tmpDir)
+    try { await packageAdtWeb(db, { bookDir: dir, label, webAssetsDir, language: "en", outputLanguages: ["en"], title: "Next build" }) }
+    finally { db.close() }
+    expect(abandoned.filter(name => fs.existsSync(path.join(work, name)))).toEqual([])
+    expect(fs.readFileSync(path.join(unknown, "notes"), "utf8")).toBe("owner file")
+    expect(fs.lstatSync(alias).isSymbolicLink()).toBe(true)
   })
 
   it("invalid part windows reject both cache paths without changing the previous package", { timeout: 30_000 }, async () => {
