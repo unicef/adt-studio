@@ -1005,7 +1005,6 @@ approval gates a merge.
 | Approach | Why Not |
 |----------|---------|
 | Keep the CI auto-translator, add the glossary and call sites | Still translates a list of keys and can't see whether the result fits |
-| Translate and check in CI with a running app | Needs committed test data and a full-app walk in every PR |
 | Require a native-speaker review per locale | The team has no native fr or sq speakers |
 
 ---

@@ -95,9 +95,8 @@ or what a shorter replacement would be.
   desktop catalogs is filed with this spec's PR.
 - **Full catalog reviews of es, fr and sq.** They apply this spec's guide and
   glossaries, as follow-up fast-lane issues, one PR per locale like #920.
-- **Committed test data for the screen check.** No fixture book and no faked API
-  responses; the check runs against the app the author is already running. A sample
-  project archive for translation-only PRs is a follow-up (Rollout).
+- **Faked API responses.** The screen check runs against a real API: the author's, with
+  the sample book (§4) imported when the author has none.
 - **A full-app walk, in CI or nightly.** The screen check is on demand and targeted.
 - **Electron-only layouts, dark mode and RTL.** The screen check drives the web dev
   server in a fresh browser profile: layouts that depend on `isElectron()` (such as the
@@ -132,7 +131,9 @@ A developer whose change adds or edits strings asks their agent to translate. Th
 4. **Annotate** ambiguous English with a Lingui `comment`, or a `context` when the same
    English needs different translations.
 5. **Check** with `extract`, `i18n:lint` and `i18n:screens` on the changed screens,
-   with `--report` when asked. Fix or explain each finding.
+   with `--report` when asked. A state no click reaches is forced temporarily, and book
+   screens use the sample book when the author has no book (§4). Fix or explain each
+   finding.
 6. **Declare** in the PR's i18n section: locales translated, screens checked, findings,
    and what was not checked with the reason.
 
@@ -196,6 +197,7 @@ entries only; obsolete `#~` entries (176 per locale today) are skipped.
     quotes a `{`)
   - a backslash the msgid doesn't have
   - a term the locale's rules forbid
+  - an `i18n-screens: temporary` marker left in `apps/studio/src/` (§4)
 - **Warnings** (changed entries only):
   - a label of ≤30 characters longer than 1.5× the English
   - a `msgstr` identical to its msgid, unless the msgid is listed as a name in the
@@ -233,13 +235,30 @@ driven by URL. It launches Playwright with a fresh profile at 1280×720, seeds
   such as list rows reordered by translated name, are reported as unmatched, not as
   findings.
 - **State behind an action.** Dialogs, menus, toasts, tooltips and hover states are
-  captured only when the author passes the steps that open them: `--steps <file>`, a
-  short list of `click`, `hover`, `press` and `wait` actions by role and accessible name
-  or by test id, run in every locale before capture. Without steps they are declared not
-  checked.
-- **Data.** Whatever the author's API serves. Home, library, settings, the wizard and
-  onboarding work on an empty library. Book screens are reachable whenever the author
-  tested their change there. A screen they can't reach is declared not checked.
+  captured when the author passes the steps that open them: `--steps <file>`, a short
+  list of `click`, `hover`, `press` and `wait` actions by role and accessible name or by
+  test id, run in every locale before capture.
+- **State no action reaches.** An error, a loading or empty state, a stage mid-run: the
+  skill may force it with a temporary source edit (an `open` set to `true`, a hook
+  returning a fixed value), captured through the dev server's hot reload and then
+  reverted. Before the first edit it stops and asks the author to commit or stash
+  their pending changes, and refuses while the files it would touch are modified.
+  Every forced line carries an `i18n-screens: temporary` comment; the skill restores the
+  files with `git restore`, confirms `git status` matches what it was before, and
+  `i18n:lint` errors on the marker anywhere under `apps/studio/src/`, so a forced state
+  can't be committed.
+- **Data.** The author's API, as it is. Home, library, settings, the wizard and
+  onboarding work on an empty library, and book screens work on any book the author
+  has. When a changed string renders on a screen that needs a book (a book page, a
+  pipeline stage, the editor, export) and the author has none in a usable state,
+  `i18n:screens --sample-book` imports the sample book through `POST /books/import`
+  under a reserved label and opens its screens; `--remove-sample-book` deletes it
+  afterwards. The sample book is a short project archive committed under
+  `apps/studio/i18n/sample-book/`, made from redistributable content and run through
+  every stage, so each stage's screens have data. A CI test imports it with the current
+  code, so a change to the book format that breaks it fails the PR that makes the
+  change, not the next translator. Only PRs whose strings render on book screens need
+  it. A screen still out of reach is declared not checked.
 - **Exit code.** Non-zero when a locale has a finding English doesn't.
 
 Playwright is already used in the workspace (`packages/pipeline`); `@adt/studio` adds it
@@ -301,8 +320,10 @@ under `apps/studio/scripts/` would be skipped silently. The studio project adds
 | Option | Cost (rough) | Why not / why |
 |---|---|---|
 | **A. Keep `translate:missing`, feed it the glossary and call sites** | ~150 lines in the script, plus an origins map | Still batch-translates a list of keys: a file path isn't the rendered component, and it still can't see whether the result fits. Rejected. |
-| **B. Translate and check in CI with a running app** | A CI job that boots API and Studio with a book and a browser, ~10+ min per PR | Needs committed test data and a full walk, both non-goals. Rejected. |
-| **C. Translate from context in the author's session, check on the author's running app** (chosen) | Removes ~300 lines; adds the lint (~300), screen check and report (~650, ported from #900), guide, skill, 4 glossaries | Contributors already translate locally with an agent; this changes what it starts from and adds the check that the result fits. |
+| **B. Translate from context in the author's session, check on the author's running app** (chosen) | Removes ~300 lines; adds the lint (~300), screen check and report (~650, ported from #900), the sample book, guide, skill, 4 glossaries | Contributors already translate locally with an agent; this changes what it starts from and adds the check that the result fits. |
+
+Translating in CI is not an option under either: CI never writes to a PR. A missing
+translation fails the `i18n` job, and the author translates it in their session.
 
 Two sub-choices:
 
@@ -311,10 +332,11 @@ Two sub-choices:
   causes conflicts between parallel PRs. A file path says where a string is defined,
   not what it means or where a `msg` descriptor renders; `i18n:origins` gives the first
   on demand and `comment`/`context` keep the second.
-- **Data for the screen check.** A committed sample book drifts with the book format
-  (#900's copies needed `layout_type` patched), and faked API responses drift silently
-  with the API. The author's running app needs neither; the cost is that unreachable
-  screens are declared, not checked.
+- **Data for the screen check.** Faked API responses drift silently with the API and
+  were rejected. The author's running app is the default and needs no data of its own.
+  A sample book covers book screens when the author has none; it can drift with the book
+  format (#900's copies needed `layout_type` patched), so it is imported by the real
+  import in a CI test, which turns drift into a failing test.
 
 ## Impact map
 
@@ -323,14 +345,15 @@ Two sub-choices:
   the job's write permission.
 - **Added:** `apps/studio/i18n/glossary/{pt-BR,es,fr,sq}.{md,rules.json}`,
   `apps/studio/scripts/i18n/` (lint, origins, screens, report) with tests,
-  `apps/studio/scripts/tsconfig.json`, `docs/I18N_TRANSLATION_QUALITY.md`,
+  `apps/studio/scripts/tsconfig.json`, the sample book under
+  `apps/studio/i18n/sample-book/`, `docs/I18N_TRANSLATION_QUALITY.md`,
   `.claude/skills/translate/SKILL.md`. ADR 029 (`docs/DECISIONS.md`) lands as `proposed` with
   this spec's PR.
 - **Changed:**
   - `.github/workflows/ci.yml` (steps, permission, `fetch-depth: 0`)
   - `vitest.config.ts` (studio project includes `scripts/`) and the root typecheck
   - `apps/studio/package.json` (scripts, devDependencies)
-  - all 5 catalogs (D7; adding `context: "theme"` creates a new entry in each and
+  - all 5 catalogs (§7; adding `context: "theme"` creates a new entry in each and
     retires the old one as `#~`), the `THEME_OPTIONS` call site
   - `apps/studio/src/i18n/locales.ts`
   - `AGENTS.md`, `.github/pull_request_template.md`, `README.md`,
@@ -382,6 +405,11 @@ Two sub-choices:
 - [ ] AC-16: The guide, the `translate` skill, the `AGENTS.md` pointer, the PR template
   i18n section exist, ADR 029 is `accepted`; no doc still describes `translate:missing`, and none
   says Lingui v5 for Studio.
+- [ ] AC-17: The sample book imports with the current code and reaches every stage's
+  screens, `--sample-book` imports it and `--remove-sample-book` deletes it.
+- [ ] AC-18: `i18n:lint` errors on an `i18n-screens: temporary` marker under
+  `apps/studio/src/`, and the skill refuses to force a state while the files it would
+  edit have uncommitted changes.
 
 ## Test plan
 
@@ -401,36 +429,41 @@ the implementing PR, plus a manual run against Studio.
 | AC-13, AC-14 | integration (local) + manual | `apps/studio/scripts/i18n/screens.test.ts`; running Studio | `AC-13: …`, `AC-14: …` |
 | AC-15 | CI | a deliberately failing test under `scripts/` fails `pnpm test` (checked once in the PR) | — |
 | AC-16 | review | the docs listed in the Impact map | — |
+| AC-17 | integration | `apps/api/src/services/import-service.sample-book.test.ts` (import); `screens.test.ts` (flags) | `AC-17: …` |
+| AC-18 | unit + review | `lint.test.ts` (marker); the skill's dirty-tree rule in review | `AC-18: …` |
 
 ## Rollout
 
-Four PRs, each within the §9 review budget and reverting on its own:
+Five PRs, each within the §9 review budget and reverting on its own:
 
 1. **Catalog fixes (AC-9).** 5 `.po` files and the `THEME_OPTIONS` call site, ~80
    lines. Ships value alone: no blank buttons in es and no stray backslashes on screen.
-2. **Lint, glossaries and test wiring (AC-3 – AC-8, AC-10, AC-15).** ~300 lines of lint,
+2. **Lint, glossaries and test wiring (AC-3 – AC-8, AC-10, AC-15, AC-18's marker).** ~300 lines of lint,
    ~300 of tests, ~500 of glossary text. The script still exists at this point, but the
    lint catches what it breaks. If review finds it too large, the fr and sq glossaries
    move to their own PR.
 3. **Tooling (AC-11 – AC-14).** `i18n:origins`, `i18n:screens` with steps and the
    report, and their tests, ~900 lines. Nothing changes for contributors yet.
-4. **Switch to the context-based workflow (AC-1, AC-2, AC-16).** Removes the key-based
+4. **Sample book (AC-17).** The archive, the `--sample-book` flags and the import test.
+   Whether one archive keeps importing as the schema moves (migrations run on open,
+   `packages/storage/src/db.ts`) is answered here first; if it can't, the sample book is
+   regenerated by the PR that changes the format, and the failing test says so.
+5. **Switch to the context-based workflow (AC-1, AC-2, AC-16, AC-18's skill rule).** Removes the key-based
    translator, makes empty translations fail, and adds the guide, the skill and the doc
    updates, and marks ADR 029 accepted, ~400 lines added and ~300 removed. Reverting it restores the old
    script.
 
 Follow-ups, each a fast-lane issue citing this spec: the es, fr and sq catalog reviews
-(one PR per locale, a second agent checking every change), and a small sample project
-archive, imported through the existing import (`apps/api/src/services/import-service.ts`)
-so translation-only PRs can reach book screens, with a CI test that imports it. Whether
-an archive imports across schema versions is that issue's first question.
+(one PR per locale, a second agent checking every change).
 
 ### Risks
 
 - **Contributors without an agent** now translate four locales by hand, or ask a
   maintainer to. The project's contributors all work with agents today; the guide and
   glossaries are written so a person can follow them too. ADR 029 records the decision.
-- **Open PRs with empty translations** start failing after PR 4. The PR 4 description
+- **A forced state left in the code.** The marker makes `i18n:lint` fail, and the skill
+  only edits files with no pending changes, so a revert can't lose the author's work.
+- **Open PRs with empty translations** start failing after PR 5. The PR 5 description
   lists them, and the failure message points to the guide.
 - **A missed screen.** The screen check only covers what the author reaches. The PR's
   i18n section makes the gap visible, and the follow-up locale reviews walk the app as
