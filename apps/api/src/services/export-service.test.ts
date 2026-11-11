@@ -827,3 +827,70 @@ it.each(["webpub", "epub", "pnld"] as const)("refuses retained %s pages after th
   await prepareExport(label, format, tmpDir, webAssetsDir)
   expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
 })
+
+it.each(["webpub", "epub", "pnld"] as const)("requires complete declared files in real %s downloads", async format => {
+  const label = "declared-files"
+  createBookWithMetadata(label, label)
+  addPagesAndRenderings(label, 1)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  const download = { webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  const directory = path.join(tmpDir, label, format)
+  const content = format === "epub" ? path.join(directory, "OEBPS") : directory
+  const page = format === "epub" ? `${label}_p1_sec001.xhtml` : format === "pnld" ? `content/${label}_p1_sec001.html` : `${label}_p1_sec001.html`
+  const manifest = format === "webpub" ? "manifest.json" : "content.opf"
+  const refused = async () => {
+    const outcome = await download(label, tmpDir).then(async result => { await streamToBuffer(result.stream); return "accepted" }, error => error.code)
+    expect(outcome).toBe("PACKAGE_FILES_INCOMPLETE")
+  }
+  expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+  const manifestText = fs.readFileSync(path.join(content, manifest), "utf8")
+  const stylesheet = format === "webpub"
+    ? JSON.parse(manifestText).resources.find((entry: { href: string }) => entry.href.endsWith(".css"))?.href
+    : manifestText.match(/href="([^"]+\.css)"/)?.[1]
+  expect(stylesheet).toBeTruthy()
+  for (const member of [page, manifest, stylesheet]) {
+    const file = path.join(content, member), bytes = fs.readFileSync(file)
+    fs.unlinkSync(file)
+    await refused()
+    expect(fs.existsSync(file)).toBe(false)
+    fs.mkdirSync(file)
+    await refused()
+    fs.rmdirSync(file)
+    fs.writeFileSync(file, "")
+    await refused()
+    fs.writeFileSync(file, bytes)
+    expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+  }
+  const file = path.join(content, manifest), original = fs.readFileSync(file, "utf8")
+  // Keep the page file, but remove its declaration: filenames alone do not
+  // establish a usable reading order or spine.
+  if (format === "webpub") {
+    const value = JSON.parse(original)
+    value.readingOrder = []
+    fs.writeFileSync(file, JSON.stringify(value))
+  } else fs.writeFileSync(file, original.replace(/<itemref\b[^>]*\/>/g, ""))
+  await refused()
+  fs.writeFileSync(file, original)
+  const outsideHref = format === "epub" ? "../../outside-canary" : "../outside-canary"
+  fs.writeFileSync(path.join(tmpDir, label, "outside-canary"), "PRIVATE")
+  if (format === "webpub") {
+    const value = JSON.parse(original)
+    value.resources.push({ href: outsideHref })
+    fs.writeFileSync(file, JSON.stringify(value))
+  } else fs.writeFileSync(file, original.replace("</manifest>", `<item id="outside" href="${outsideHref}"/></manifest>`))
+  await refused()
+  fs.writeFileSync(file, original)
+  const target = path.join(content, page), aliasTarget = target + ".original"
+  fs.renameSync(target, aliasTarget)
+  try {
+    fs.symlinkSync(aliasTarget, target)
+    await refused()
+    fs.unlinkSync(target)
+  } catch (error) {
+    if (process.platform !== "win32" || (error as NodeJS.ErrnoException).code !== "EPERM") throw error
+  }
+  fs.renameSync(aliasTarget, target)
+  fs.unlinkSync(target)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+})

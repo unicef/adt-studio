@@ -8,3 +8,9 @@ export const PackageOwnershipReceipt = z.object({
   preloader: z.string().regex(/^[a-f0-9]{64}$/),
 })
 export type PackageOwnershipReceipt = z.infer<typeof PackageOwnershipReceipt>
+
+/** Local files declared by the generated Webpub reader. */
+export const DerivedWebpubFiles = z.object({
+  readingOrder: z.array(z.object({ href: z.string().min(1) })).nonempty(),
+  resources: z.array(z.object({ href: z.string().min(1) })),
+})

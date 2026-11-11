@@ -6,7 +6,7 @@ import type { PackagingWarning } from "@adt/types"
 import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { readRetainedPackageOwnership } from "./retained-package-reader.js"
-import { publishedAdtDirectory, requiredPartRange, resolveReadingOrder, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import { publishedAdtDirectory, requiredPartRange, resolveReadingOrder, assertDerivedPackageFilesAvailable, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream, type ZipStreamOptions } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 
@@ -305,7 +305,7 @@ export async function exportWebpub(
   const webpubDir = path.join(bookDir, "webpub")
 
   return {
-    stream: readableDerivedPackageZip(bookDir, webpubDir),
+    stream: readableDerivedPackageZip(bookDir, webpubDir, "webpub"),
     filename: `${title}.webpub`,
     safeFilename: `${safeLabel}.webpub`,
   }
@@ -313,7 +313,7 @@ export async function exportWebpub(
 
 /** Derived reader formats keep the source package's owner membership even
  * after relocating/rewriting HTML. An old export cannot broaden a saved part. */
-function readableDerivedPackageZip(bookDir: string, directory: string, contentRoot = directory) {
+function readableDerivedPackageZip(bookDir: string, directory: string, format: "webpub" | "epub" | "pnld", contentRoot = directory) {
   return withBookWriter(bookDir, () => {
     requiredPartRange(bookDir)
     const storage = createBookStorage(path.basename(bookDir), path.dirname(bookDir))
@@ -326,6 +326,7 @@ function readableDerivedPackageZip(bookDir: string, directory: string, contentRo
           receipt.entries.some(([id, pageOwner]) => !allowed.has(id) || allowed.get(id) !== pageOwner)) {
         throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from this book's current owned content.")
       }
+      assertDerivedPackageFilesAvailable(directory, format, receipt.entries.map(row => row[0]))
     } finally { storage.close() }
     return createAdmittedZipStream(bookDir, directory)
   })
@@ -432,7 +433,7 @@ export async function exportEpub(
   }
 
   return {
-    stream: readableDerivedPackageZip(bookDir, epubDir, path.join(epubDir, "OEBPS")),
+    stream: readableDerivedPackageZip(bookDir, epubDir, "epub", path.join(epubDir, "OEBPS")),
     filename: `${title}.epub`,
     safeFilename: `${safeLabel}.epub`,
   }
@@ -457,7 +458,7 @@ export async function exportPnld(
   }
 
   return {
-    stream: readableDerivedPackageZip(bookDir, pnldDir, path.join(pnldDir, "resources/data")),
+    stream: readableDerivedPackageZip(bookDir, pnldDir, "pnld", path.join(pnldDir, "resources/data")),
     filename: `${title}.zip`,
     safeFilename: `${safeLabel}-pnld.zip`,
   }

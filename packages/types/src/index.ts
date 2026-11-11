@@ -749,4 +749,4 @@ export * from "./extraction.js"
 
 export * from "./history-recovery.js"
 
-export { PackageOwnershipReceipt } from "./package-ownership.js"
+export { PackageOwnershipReceipt, DerivedWebpubFiles } from "./package-ownership.js"

@@ -537,3 +537,5 @@ export { packageFilesAvailable, assertPackageFilesAvailable } from "./packaging/
 export { isPublicOutputId, ambiguousPublicOutputIds, invalidPublicOutputIdentity } from "./public-output-identity.js"
 
 export { storyboardSourceWarnings, captureStoryboardSource, publishSynchronizedStoryboardText } from "./storyboard-source-state.js"
+
+export { assertDerivedPackageFilesAvailable } from "./packaging/derived-bundle-files.js"
