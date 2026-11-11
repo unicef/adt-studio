@@ -15,7 +15,7 @@
  */
 
 import { setImmediate as yieldEventLoop } from "node:timers/promises"
-import type { Storage } from "@adt/storage"
+import { bookAssetExists, type Storage } from "@adt/storage"
 import type {
   AppConfig,
   ContentNodeData,
@@ -531,18 +531,23 @@ export async function processFixedLayoutPages(
     const availableImageIds = new Set(classParsed.data.images.filter(image => !image.isPruned).map(image => image.imageId))
     const drawItems = positionedText.drawItems
     const positionedImages = new Set(drawItems.filter(item => item.kind === "image").map(item => item.imageId))
-    // Included images without positions are incomplete extraction, even if a
-    // pruned image or a paragraph makes drawItems nonempty. Preserve old output.
     const classified = new Set(classParsed.data.images.map(image => image.imageId))
-    // Derived translations/uploads and the page raster are not illustrations
-    // from extraction. An original illustration still needs a decision even
-    // when a damaged positioned input also dropped its draw item.
-    const extracted = storage.getPageImages(page.pageId, true).filter(image =>
+    const images = new Map(storage.getPageImages(page.pageId, true).map(image => [image.imageId, image]))
+    // A shared PDF resource dictionary also contains images this page never
+    // draws. Crops/segments are separate derived assets. Neither requires a
+    // position. An extracted image with recorded bounds WAS drawn, however;
+    // dropping that kept draw item must not turn damaged input into a blank page.
+    const placedExtracted = [...images.values()].filter(image => image.bounds &&
       image.storedAsset?.source === "extract" && image.imageId !== `${page.pageId}_page`)
-    if (extracted.some(image => !classified.has(image.imageId)) ||
+    if (placedExtracted.some(image => !classified.has(image.imageId) ||
+          (availableImageIds.has(image.imageId) && !positionedImages.has(image.imageId))) ||
         classified.size !== classParsed.data.images.length ||
-        [...availableImageIds].some(id => !positionedImages.has(id)) ||
-        [...positionedImages].some(id => !classified.has(id))) {
+        [...availableImageIds].some(id => !images.has(id)) ||
+        [...positionedImages].some(id => {
+          const image = images.get(id)
+          return !classified.has(id) || !image || (availableImageIds.has(id) && !!storage.bookDir &&
+            (!image.storedAsset || !bookAssetExists(storage.bookDir, image.storedAsset.relativePath)))
+        })) {
       unavailable()
       continue
     }
