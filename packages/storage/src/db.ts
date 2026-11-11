@@ -501,7 +501,8 @@ function upsertSchemaVersion(db: sqlite.Database, version: number): void {
 /**
  * On server startup, scan all book DBs and mark any steps left in 'running'
  * state as 'error' with an 'Interrupted' message. This handles the case where
- * the server was killed mid-run.
+ * the server was killed mid-run. This is telemetry housekeeping only: it must
+ * not migrate content/history for every book before the server can listen.
  */
 export function cleanupInterruptedSteps(booksDir: string): void {
   const resolvedDir = path.resolve(booksDir)
@@ -529,7 +530,8 @@ export function cleanupInterruptedSteps(booksDir: string): void {
         // proven-dead mutex recovery. Startup never removes a mutex separately.
         let db: sqlite.Database | null = null
         try {
-          db = openBookDb(dbPath)
+          db = openCoordinatedDatabase(dbPath, { fileMustExist: true })
+          db.exec("PRAGMA busy_timeout = 1000")
           // Check if step_runs table exists (handles pre-v8 DBs gracefully)
           const tables = db.all(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='step_runs'"

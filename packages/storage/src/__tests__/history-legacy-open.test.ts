@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import sqlite from "node-sqlite3-wasm"
 import { createBookStorage, resolveBookPaths } from "../book-storage.js"
-import { openBookDb } from "../db.js"
+import { cleanupInterruptedSteps, openBookDb } from "../db.js"
 import { HISTORY_EVIDENCE_SQL, decodeWitness } from "../history-evidence.js"
 import { inspectHistoryRecovery } from "../history-recovery.js"
 
@@ -131,4 +131,24 @@ it.each(["lost-slot", "lost-trigger"])("does not bootstrap over %s from an earli
   expect(() => reopened.readIdentityHistory!(["page-sectioning"])).toThrow("HISTORY_REPAIR_REQUIRED")
   reopened.close()
   expect(b.raw(db => db.all("SELECT * FROM history_witnesses ORDER BY rowid"))).toEqual(before)
+})
+
+
+it("startup only marks interrupted steps and leaves legacy capture for ordinary book access", () => {
+  const b = legacy()
+  for (let page = 0; page < 12; page++) b.insert(`p${page}`, 1, JSON.stringify({ id: `p${page}_sec077`, text: "large legacy payload ".repeat(10000) }))
+  b.raw(db => db.exec("INSERT INTO step_runs(step,status) VALUES ('tts','running')"))
+  const before = b.content()
+  const schemaBefore = b.raw(db => db.all("SELECT name,sql FROM sqlite_master ORDER BY name"))
+  cleanupInterruptedSteps(b.root)
+  expect(b.content()).toEqual(before)
+  expect(b.raw(db => db.all("SELECT name,sql FROM sqlite_master ORDER BY name"))).toEqual(schemaBefore)
+  expect(b.raw(db => db.get("SELECT status,error FROM step_runs WHERE step='tts'"))).toEqual({ status: "error", error: "Interrupted" })
+  // Startup has not installed tracking or issued a capture-completion marker.
+  // First ordinary access must still capture every readable legacy row.
+  const storage = createBookStorage("book", b.root)
+  try { expect(storage.readIdentityHistory!(["page-sectioning"])).toHaveLength(12) }
+  finally { storage.close() }
+  expect(b.raw(db => db.get("SELECT history_legacy_capture AS captured FROM schema_version"))).toEqual({ captured: 1 })
+  expect(b.content()).toEqual(before)
 })

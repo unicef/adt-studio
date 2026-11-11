@@ -170,8 +170,9 @@ retirements still reserve their identities through the existing factories.
 Healthy unrelated Storyboard work and genuine no-op Sectioning retain access.
 On 2026-11-04 the owner delegated the outstanding older-build compatibility
 decision; the selected amendment automatically checkpoints readable, previously
-untracked identity history once when this runtime first opens the book. Tracking
-installation, exact-byte witnesses and the completion marker commit together.
+untracked identity history once on the first ordinary book access. Startup
+interrupted-step housekeeping only updates existing telemetry; it neither installs
+history tracking nor marks legacy capture complete. Tracking installation, exact-byte witnesses and the completion marker commit together.
 Capture does not change entities, current selections, assets, freshness, or
 regeneration consent. Malformed rows remain unverified without preventing capture
 of readable siblings. Existing proof is never replaced; tracked changes and later
