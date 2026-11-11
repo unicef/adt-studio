@@ -208,6 +208,23 @@ PDF file
 
 ---
 
+## Screenshot Capture
+
+HTML screenshots come from `createScreenshotRenderer()` (`packages/pipeline/src/screenshot.ts`). It is used by the Storyboard visual-refinement loop, the page-list section thumbnails, and AI page edits. The backend depends on where the API runs:
+
+- **Web / Docker / CLI** — headless Chromium via Playwright. Each renderer launches its own browser: a stage run creates one for the run, the thumbnail route keeps one shared browser for the API process lifetime, and a page edit launches one per call. Every capture opens its own browser context.
+- **Desktop** — the API runs in an Electron utility process, which has no Electron APIs. It asks the main process over IPC, and the main process captures with an offscreen `BrowserWindow` (`apps/desktop/src/main/services/screenshot.ts`).
+
+**Timeout budget.** `timeoutMs` (default `DEFAULT_SCREENSHOT_TIMEOUT_MS`, 30s; visual review passes 60s) is one deadline for the whole capture — context creation, page load, fonts, the screenshot and cleanup share it. On desktop the main process enforces the same budget, and the utility process adds a short reply backstop on top.
+
+**Concurrency cap.** Visual refinement runs up to `config.concurrency` pages at once (default 32), each capturing the three `SCREENSHOT_VIEWPORTS` — about 96 captures in flight. Uncapped, they contend for CPU and each one slows to roughly the 30s budget. So `createScreenshotRenderer()` wraps every renderer in one process-wide FIFO semaphore: at most `ADT_SCREENSHOT_CONCURRENCY` captures run at once (default `min(8, max(2, cores − 1))`), and the rest wait in line. The cap is shared across renderer instances on purpose, because the contention is for the machine, not for one browser — a stage run, thumbnails and page edits all queue together. A queued capture whose `signal` aborts leaves the queue immediately.
+
+The capture's deadline starts only once it holds a slot, so queue time is never charged against `timeoutMs`. Keep it that way: an outer timeout added around a capture belongs **inside** the semaphore, since wrapping the whole `screenshot()` call would count the wait in line.
+
+Set `ADT_SCREENSHOT_DEBUG=1` to log each capture's queue wait, capture duration and semaphore occupancy when tuning the limit for a machine.
+
+---
+
 ## Book Directory Structure
 
 All data for a book lives in a single directory. No book data is stored outside it.
@@ -257,6 +274,7 @@ API ──── step-start ────► mark step + stage as "running"
 | Storage interface | `packages/storage/src/storage.ts` |
 | Pipeline step implementations | `packages/pipeline/src/` |
 | DAG runner | `packages/pipeline/src/dag.ts` |
+| Screenshot renderer + capture cap | `packages/pipeline/src/screenshot.ts` |
 | API entry point (Hono app) | `apps/api/src/app.ts` |
 | API routes | `apps/api/src/routes/` |
 | API stage runners | `apps/api/src/services/step-runner.ts` |
