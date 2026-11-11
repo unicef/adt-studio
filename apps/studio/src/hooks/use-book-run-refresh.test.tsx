@@ -113,7 +113,8 @@ it.each([
   } finally { stop(); stopOther(); close() }
 })
 
-it("keeps the newest page publication when successive reads resolve out of order", async () => {
+it("keeps the newest publication after a slow populated read and an obsolete initial response", async () => {
+  vi.useFakeTimers()
   const { client, hook, close } = setup({ settle: false })
   const key = ["books", "book", "pages"]
   let publishedPages = 0
@@ -129,10 +130,11 @@ it("keeps the newest page publication when successive reads resolve out of order
       await act(async () => Events.current.emit("progress", {
         type: "step-progress", step: "web-rendering", publishedPageId: `pg00${page}`, page, totalPages: 3,
       }))
-      expect(readPages).toHaveBeenCalledTimes(page + 1)
     }
-    await act(async () => responses[2]())
-    await act(async () => { responses[1](); responses[0]() })
+    expect(readPages).toHaveBeenCalledTimes(2)
+    await act(async () => { responses[1](); await vi.advanceTimersByTimeAsync(2000) })
+    expect(readPages).toHaveBeenCalledTimes(3)
+    await act(async () => { responses[2](); responses[0]() })
     expect(client.getQueryData(key)).toEqual([
       { pageId: "pg001", hasRendering: true }, { pageId: "pg002", hasRendering: true }, { pageId: "pg003", hasRendering: false },
     ])
@@ -270,4 +272,89 @@ it('first settled receipt recovers a run that completed during initial reads bef
   await act(async()=>{releaseOld();Events.current.emit('open')});
   await waitFor(()=>expect(client.getQueryData(key)).toBe('after'));
  }finally{hook.unmount();stop();client.clear()}
+})
+
+it.each([false, true])("coalesces a publication burst and delivers its final page without starving slow reads (slow=%s)", async slow => {
+  vi.useFakeTimers()
+  const { client, close } = setup({ settle: false })
+  const key = ["books", "book", "pages"]
+  client.setQueryData(key, 0)
+  let published = 1, release!: () => void
+  const readPages = vi.fn(async () => {
+    const captured = published
+    if (slow && captured === 1) await new Promise<void>(resolve => { release = resolve })
+    return captured
+  })
+  const stop = new QueryObserver(client, { queryKey: key, queryFn: readPages }).subscribe(() => {})
+  const publish = () => Events.current.emit("progress", { type: "step-progress", step: "web-rendering", publishedPageId: `pg${published}`, page: published, totalPages: 100 })
+  try {
+    await act(async () => publish())
+    expect(readPages).toHaveBeenCalledTimes(1)
+    for (published = 2; published <= 100; published++) await act(async () => publish())
+    published = 100
+    expect(readPages).toHaveBeenCalledTimes(1)
+    await act(async () => { await vi.advanceTimersByTimeAsync(slow ? 6000 : 2000) })
+    if (slow) {
+      expect(readPages).toHaveBeenCalledTimes(1)
+      await act(async () => { release(); await vi.advanceTimersByTimeAsync(2000) })
+    }
+    expect(readPages.mock.calls.length).toBeLessThanOrEqual(3)
+    expect(client.getQueryData(key)).toBe(100)
+  } finally { stop(); close() }
+})
+
+
+it("cancels a pending trailing refresh on unmount and leads immediately in a new run", async () => {
+  vi.useFakeTimers()
+  const { client, hook, close } = setup({ settle: false })
+  const key = ["books", "book", "pages"]
+  client.setQueryData(key, 0)
+  let published = 1
+  const readPages = vi.fn(async () => published)
+  const stop = new QueryObserver(client, { queryKey: key, queryFn: readPages }).subscribe(() => {})
+  const publish = () => Events.current.emit("progress", { type: "step-progress", step: "web-rendering", publishedPageId: `pg${published}` })
+  try {
+    await act(async () => publish())
+    published = 2
+    await act(async () => publish())
+    expect(readPages).toHaveBeenCalledTimes(1)
+    await act(async () => Events.current.emit("progress", { type: "step-start", step: "web-rendering" }))
+    const readsAfterStart = readPages.mock.calls.length
+    published = 3
+    await act(async () => publish())
+    expect(readPages).toHaveBeenCalledTimes(readsAfterStart + 1)
+    expect(client.getQueryData(key)).toBe(3)
+    published = 4
+    await act(async () => publish())
+    hook.unmount()
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
+    expect(readPages).toHaveBeenCalledTimes(readsAfterStart + 1)
+    expect(client.getQueryState(key)?.isInvalidated).toBe(true)
+  } finally { stop(); close() }
+})
+
+it("follows an already-running populated read with a fresh read for the final publication", async () => {
+  vi.useFakeTimers()
+  const { client, close } = setup({ settle: false })
+  const key = ["books", "book", "pages"]
+  client.setQueryData(key, 0)
+  let published = 1, release!: () => void
+  const readPages = vi.fn(async () => {
+    const captured = published
+    if (captured === 2) await new Promise<void>(resolve => { release = resolve })
+    return captured
+  })
+  const stop = new QueryObserver(client, { queryKey: key, queryFn: readPages }).subscribe(() => {})
+  const publish = () => Events.current.emit("progress", { type: "step-progress", step: "web-rendering", publishedPageId: `pg${published}` })
+  try {
+    await act(async () => publish())
+    published = 2
+    void client.refetchQueries({ queryKey: key })
+    published = 3
+    await act(async () => { publish(); await vi.advanceTimersByTimeAsync(2000) })
+    expect(readPages).toHaveBeenCalledTimes(2)
+    await act(async () => { release(); await vi.advanceTimersByTimeAsync(2000) })
+    expect(readPages).toHaveBeenCalledTimes(3)
+    expect(client.getQueryData(key)).toBe(3)
+  } finally { stop(); close() }
 })

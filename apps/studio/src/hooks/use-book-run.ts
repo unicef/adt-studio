@@ -1,3 +1,4 @@
+import { createPagePublicationRefresh } from "./page-publication-refresh"
 import { refreshRunStatus, reconcileRunPublication } from "./run-query-invalidation"
 import { sectioningErrorMessage, needsHistoryRecovery } from "@/lib/sectioning-error"
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
@@ -156,7 +157,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // Primary source of truth: enriched step-status from the server
   const { data, isPending } = useQuery<StepStatusResponse>({
     queryKey: stepStatusKey(label),
-    queryFn: () => api.getStepStatus(label),
+    queryFn: ({ signal }) => api.getStepStatus(label, signal),
     enabled: !!label,
     refetchInterval: (query) => {
       if (["running", "cancelling"].includes(query.state.data?.runStatus ?? "")) return 2000
@@ -216,6 +217,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
     const url = `${BASE_URL}/books/${label}/stages/status`
     const es = new EventSource(url)
+    const pagePublications = createPagePublicationRefresh(queryClient, label)
 
     // The server emits ready after registering this listener, including on an
     // otherwise idle stream. Catch up page availability as well as run status.
@@ -248,6 +250,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       }
 
       if (d.type === "step-start") {
+        if (pipelineStep === "web-rendering") pagePublications.reset()
         // Fresh attempt at this step — reset its error toast/beep dedup so a new
         // failure notifies again, and clear any stale error state in the cache.
         errorCountByStepRef.current.delete(pipelineStep)
@@ -313,10 +316,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         // can show sections/renderings as they complete (throttled to ~2s).
         // Invalidates both the page list (sidebar) and individual page details.
         if (pipelineStep === "web-rendering" && typeof d.publishedPageId === "string") {
-          // An initial read may predate this publication. Invalidation alone
-          // reuses that pending request when the query has no cached data yet.
-          const pages = { queryKey: ["books", label, "pages"] }
-          void queryClient.cancelQueries(pages).then(() => queryClient.invalidateQueries(pages))
+          pagePublications.request()
         } else if ((PAGE_PROGRESS_STEPS as ReadonlySet<string>).has(pipelineStep) && (totalPages ?? 0) > 0) {
           const now = Date.now()
           if (now - lastPageInvalidateRef.current > 2000) {
@@ -448,6 +448,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
     // A queued run has started executing — full refetch to reconcile
     es.addEventListener("queue-next", () => {
+      pagePublications.reset()
       progressRef.current.clear()
       lastPageInvalidateRef.current = 0
       errorCountByStepRef.current.clear()
@@ -457,6 +458,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
     // Run completed — full refetch to reconcile with DB
     es.addEventListener("complete", () => {
+      pagePublications.reset()
       progressRef.current.clear()
       errorCountByStepRef.current.clear()
       runErrorNotifiedRef.current = false
@@ -469,6 +471,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     // Cancellation finished unwinding — reset in-flight steps to idle and clear
     // the "cancelling…" state. No error toast/beep: this was deliberate.
     es.addEventListener("cancelled", () => {
+      pagePublications.reset()
       progressRef.current.clear()
       errorCountByStepRef.current.clear()
       runErrorNotifiedRef.current = false
@@ -514,6 +517,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // carry no `data`. Only treat events WITH data as a real run error, so a
       // network blip never toasts or beeps.
       if (me.data) {
+        pagePublications.reset()
         try {
           const d = JSON.parse(me.data)
           const runError = sectioningErrorMessage(d.error, d.code) ?? i18n._(msg`Step run failed`)
@@ -672,6 +676,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     })
 
     return () => {
+      pagePublications.dispose()
       es.close()
     }
   }, [label, queryClient])
