@@ -45,10 +45,14 @@ export function decodeHistoryBytes(bytes: HistoryBytes): unknown {
 export function historySlot(db: sqlite.Database, row: HistoryTuple): { incarnation: string; present: number } | undefined {
   return db.get("SELECT incarnation,present FROM history_slots WHERE node=? AND item_id=? AND version=?", [row.node, row.itemId, row.version]) as { incarnation: string; present: number } | undefined
 }
-export function verifyWitness(raw: unknown, bookId: string | null): HistoryWitness {
+function verifyWitnessProof(raw: unknown, bookId: string | null): HistoryWitness {
   const witness = HistoryWitness.parse(raw)
   const { digest, ...proof } = witness
   if (!bookId || witness.bookId !== bookId || digest !== historyHash(proof)) throw new Error("Invalid historical witness")
+  return witness
+}
+export function verifyWitness(raw: unknown, bookId: string | null): HistoryWitness {
+  const witness = verifyWitnessProof(raw, bookId)
   decodeHistoryBytes(witness.bytes)
   return witness
 }
@@ -140,23 +144,70 @@ export function importHistoryReservations(db: sqlite.Database, records: Identity
   }
 }
 
-/** Proof input to the existing allocation factories only. A retired witness
- * reserves IDs; it never supplies current content, ownership or freshness. */
+type DecodedIdentity = { hash: string; record: IdentityHistoryRecord }
+type IdentityProjection = (record: IdentityHistoryRecord) => readonly string[]
+type ProjectedIdentity = { hash: string; values: readonly string[]; size: number }
+const projections = new WeakMap<IdentityProjection, { rows: Map<string, ProjectedIdentity>; size: number }>()
+const projectionBudget = 8 * 1024 * 1024
+
+/** Only compact identity strings are cached, never decoded history payloads.
+ * Exact book/tuple/incarnation/evidence keys avoid treating a known identity as
+ * proof of unchanged bytes. The scan still validates schema, slots and extant
+ * payload hashes even when this projection is warm. */
+export function readIdentityHistoryIds(db: sqlite.Database, nodes: readonly string[], bookKey: string, project: IdentityProjection, itemId?: string): string[] {
+  let cache = projections.get(project)
+  if (!cache) { cache = { rows: new Map(), size: 0 }; projections.set(project, cache) }
+  return scanIdentityHistory(db, nodes, itemId, (identity, decode) => {
+    const key = JSON.stringify([bookKey, identity])
+    const hit = cache.rows.get(key)
+    if (hit) { cache.rows.delete(key); cache.rows.set(key, hit); return hit }
+    const decoded = decode()
+    const values = [...new Set(project(decoded.record))]
+    const size = 2 * (key.length + values.reduce((sum, value) => sum + value.length, 0)) + 128
+    const result = { hash: decoded.hash, values, size }
+    if (size <= projectionBudget) {
+      while (cache.rows.size && (cache.size + size > projectionBudget || cache.rows.size >= 10000)) {
+        const oldest = cache.rows.keys().next().value!
+        cache.size -= cache.rows.get(oldest)!.size
+        cache.rows.delete(oldest)
+      }
+      cache.rows.set(key, result); cache.size += size
+    }
+    return result
+  })
+}
+
+/** Full exact records remain available to transfer/recovery callers. */
 export function readIdentityHistory(db: sqlite.Database, nodes: readonly string[], itemId?: string): IdentityHistoryRecord[] {
+  return scanIdentityHistory(db, nodes, itemId, (_identity, decode) => {
+    const decoded = decode()
+    return { hash: decoded.hash, values: [decoded.record] }
+  })
+}
+
+/** Proof input to allocation only. Retired witnesses reserve IDs; they never
+ * supply current content, ownership or freshness. Stream one payload at a time
+ * so ID projections need not retain every decoded version simultaneously. */
+function scanIdentityHistory<T>(db: sqlite.Database, nodes: readonly string[], itemId: string | undefined,
+  read: (identity: string, decode: () => DecodedIdentity) => { hash: string; values: readonly T[] }): T[] {
   assertHistoryEvidence(db)
   if (!nodes.length) return []
   const where = `node IN (${nodes.map(() => "?").join(",")})${itemId === undefined ? "" : " AND item_id=?"}`
   const values = [...nodes, ...(itemId === undefined ? [] : [itemId])]
-  const result: IdentityHistoryRecord[] = []
+  const result: T[] = []
   const witnessed = new Map<string, string>()
   const bookId = historyBookId(db)
   for (const entry of historyRows<HistoryTuple & { incarnation: string; evidence: string }>(db, `SELECT node,item_id AS itemId,version,incarnation,evidence FROM history_witnesses WHERE ${where} ORDER BY node,item_id,version,incarnation`, values)) {
     try {
       if (!historySlot(db, entry)) throw new Error("Missing insertion continuity")
-      const witness = verifyWitness(decodeWitness(entry.evidence), bookId)
-      if (tupleKey(witness) !== tupleKey(entry) || witness.incarnation !== entry.incarnation) throw new Error("Witness tuple changed")
-      witnessed.set(`${tupleKey(entry)}:${entry.incarnation}`, historyHash(witness.bytes))
-      result.push({ node: entry.node, itemId: entry.itemId, version: entry.version, data: decodeHistoryBytes(witness.bytes) })
+      const identity = JSON.stringify([bookId, tupleKey(entry), entry.incarnation, createHash("sha256").update(entry.evidence).digest("hex")])
+      const projected = read(identity, () => {
+        const witness = verifyWitnessProof(decodeWitness(entry.evidence), bookId)
+        if (tupleKey(witness) !== tupleKey(entry) || witness.incarnation !== entry.incarnation) throw new Error("Witness tuple changed")
+        return { hash: historyHash(witness.bytes), record: { node: entry.node, itemId: entry.itemId, version: entry.version, data: decodeHistoryBytes(witness.bytes) } }
+      })
+      witnessed.set(`${tupleKey(entry)}:${entry.incarnation}`, projected.hash)
+      for (const value of projected.values) result.push(value)
     } catch { throw new HistoryIntegrityError(entry.node, entry.itemId, entry.version) }
   }
   const extant = new Set<string>()
@@ -167,8 +218,12 @@ export function readIdentityHistory(db: sqlite.Database, nodes: readonly string[
       const slot = historySlot(db, row)
       if (slot?.present === 0) throw new Error("Lost insertion continuity")
       const proof = slot && witnessed.get(`${tupleKey(row)}:${slot.incarnation}`)
-      if (proof && proof !== historyHash(bytes)) throw new Error("Changed payload")
-      if (!proof) result.push({ ...row, data: decodeHistoryBytes(bytes) })
+      const hash = historyHash(bytes)
+      if (proof && proof !== hash) throw new Error("Changed payload")
+      if (!proof) {
+        const projected = read(JSON.stringify([bookId, tupleKey(row), slot?.incarnation, "unwitnessed", hash]), () => ({ hash, record: { ...row, data: decodeHistoryBytes(bytes) } }))
+        for (const value of projected.values) result.push(value)
+      }
     } catch { throw new HistoryIntegrityError(row.node, row.itemId, row.version) }
   }
   for (const row of historyRows<HistoryTuple & { incarnation: string; present: number }>(db, `SELECT node,item_id AS itemId,version,incarnation,present FROM history_slots WHERE ${where}`, values)) {

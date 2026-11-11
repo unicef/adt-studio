@@ -121,6 +121,8 @@ export interface Storage {
   getAllNodeVersions(node: string, itemId: string): NodeDataRow[]
   /** Extant history plus verified retired evidence, for existing ID allocators. */
   readIdentityHistory?(nodes: readonly string[], itemId?: string): IdentityHistoryRecord[]
+  /** Stream verified evidence into a pure, compact identity projection. */
+  readIdentityHistoryIds?(nodes: readonly string[], project: (record: IdentityHistoryRecord) => readonly string[], itemId?: string): string[]
   /**
    * Every item id this node holds data for, in id order.
    *

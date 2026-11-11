@@ -10,7 +10,7 @@ import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPU
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
-import { insertNodeVersion, checkpointBeforeRetirement, readIdentityHistory } from "./history-evidence.js"
+import { insertNodeVersion, checkpointBeforeRetirement, readIdentityHistory, readIdentityHistoryIds } from "./history-evidence.js"
 import { parseHistoricalPayload } from "./history-integrity.js"
 import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
 
@@ -83,6 +83,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     bookDir: paths.bookDir,
     transaction,
     readIdentityHistory: (nodes, itemId) => transaction(() => readIdentityHistory(db, nodes, itemId), "DEFERRED"),
+    readIdentityHistoryIds: (nodes, project, itemId) => transaction(() => readIdentityHistoryIds(db, nodes, paths.dbPath, project, itemId), "DEFERRED"),
     readSnapshot: (operation) => transaction(() => {
       const result = operation()
       if (result && typeof (result as { then?: unknown }).then === "function") throw new Error("Read snapshots must be synchronous")

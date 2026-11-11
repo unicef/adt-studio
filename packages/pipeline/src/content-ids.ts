@@ -1,6 +1,6 @@
 import { parseDocument, DomUtils } from "htmlparser2"
 import type { Storage } from "@adt/storage"
-import { IDENTITY_HISTORY_NODES, answerTextId, formatQuizId, resolveQuizOptionId, type GlossaryItem, type QuizOption } from "@adt/types"
+import { IDENTITY_HISTORY_NODES, answerTextId, formatQuizId, resolveQuizOptionId, type GlossaryItem, type QuizOption, type IdentityHistoryRecord } from "@adt/types"
 
 export function getGlossaryItemTextId(item: Pick<GlossaryItem, "id">, index: number): string {
   return item.id?.trim() || `gl${String(index + 1).padStart(3, "0")}`
@@ -34,20 +34,19 @@ export function sourceTextIds(value: unknown): Set<string> {
   return ids
 }
 
-/** Book-wide reservation, including retired pages and source-less retained
- * outputs. Read leniently so an old schema cannot give away an identity.
- * This reads JSON/HTML only, never media files or provider responses. */
-export function collectSpentContentIds(storage: Storage): Set<string> {
+/** Reserve both a source ID and its derived Easy Read namespace. */
+function addReservation(spent: Set<string>, value: unknown): void {
+  if (typeof value !== "string") return
+  spent.add(value)
+  if (value.endsWith("_easy_read")) spent.add(value.slice(0, -"_easy_read".length))
+  spent.add(`${value}_easy_read`)
+}
+
+// Stable pure projector: storage caches only these compact strings, keyed by
+// exact evidence. Keep lenient legacy extraction identical on cold/warm reads.
+function historyContentIds(row: Pick<IdentityHistoryRecord, "node" | "data">): string[] {
   const spent = new Set<string>()
-  const add = (value: unknown) => {
-    if (typeof value !== "string") return
-    spent.add(value)
-    // The derived slot belongs to its source even before Easy Read exists.
-    // Reserve the reverse as well: a fresh source must not claim an already
-    // occupied derived slot when Easy Read is requested later.
-    if (value.endsWith("_easy_read")) spent.add(value.slice(0, -"_easy_read".length))
-    spent.add(`${value}_easy_read`)
-  }
+  const add = (value: unknown) => addReservation(spent, value)
   const collect = (value: unknown): void => {
     if (!value || typeof value !== "object") return
     for (const [key, child] of Object.entries(value)) {
@@ -55,46 +54,57 @@ export function collectSpentContentIds(storage: Storage): Set<string> {
       collect(child)
     }
   }
-  for (const page of storage.getPages()) for (const image of storage.getPageImages(page.pageId)) add(image.imageId)
-  const rows = storage.readIdentityHistory?.(IDENTITY_HISTORY_NODES) ?? IDENTITY_HISTORY_NODES.flatMap(node =>
-    storage.getNodeItemIds(node).flatMap(itemId => storage.getAllNodeVersions(node, itemId).map(row => ({ ...row, node }))))
-  for (const row of rows) {
-      const node = row.node
-      collect(row.data)
-      if (!row.data || typeof row.data !== "object") continue
-      const data = row.data as Record<string, unknown>
-      if (node === "glossary" && Array.isArray(data.items)) data.items.forEach((item, index) => {
-        if (!item || typeof item !== "object") return
-        const id = getGlossaryItemTextId({ id: typeof item.id === "string" ? item.id : undefined }, index)
-        add(id); add(`${id}_def`)
-      })
-      if (node === "quiz-generation" && Array.isArray(data.quizzes)) data.quizzes.forEach((quiz, index) => {
-        if (!quiz || typeof quiz !== "object") return
-        const id = typeof quiz.quizId === "string" ? quiz.quizId : formatQuizId(index + 1)
-        add(`${id}_que`)
-        if (Array.isArray(quiz.options)) (quiz.options as unknown[]).forEach((option, i) => {
-          if (!option || typeof option !== "object") return
-          const optionId = "optionId" in option && typeof option.optionId === "string" ? option.optionId : resolveQuizOptionId(option as QuizOption, id, i)
-          add(optionId); add(`${optionId}_exp`)
-        })
-      })
-      if (node === "web-rendering" && Array.isArray(data.sections)) for (const section of data.sections) {
-        if (!section || typeof section !== "object") continue
-        const doc = parseDocument(typeof section.html === "string" ? section.html : "")
-        const elements = DomUtils.findAll(element => element.type === "tag", doc.children)
-        const owners = new Set<string>(elements.flatMap(element => element.attribs["data-section-id"] ? [element.attribs["data-section-id"]] : []))
-        if (typeof section.sectionId === "string") owners.add(section.sectionId)
-        for (const element of elements) {
-          const id = element.attribs["data-id"]
-          add(id)
-          if (id?.startsWith("activity_gen_")) for (const owner of owners) add(`${owner}__${id}`)
-        }
-        if (section.activityAnswers && typeof section.activityAnswers === "object") {
-          for (const key of Object.keys(section.activityAnswers)) for (const owner of owners) {
-            add(answerTextId(owner, key.startsWith("activity_gen_") ? `${owner}__${key}` : key))
-          }
-        }
+  const node = row.node
+  collect(row.data)
+  if (!row.data || typeof row.data !== "object") return [...spent]
+  const data = row.data as Record<string, unknown>
+  if (node === "glossary" && Array.isArray(data.items)) data.items.forEach((item, index) => {
+    if (!item || typeof item !== "object") return
+    const id = getGlossaryItemTextId({ id: typeof item.id === "string" ? item.id : undefined }, index)
+    add(id); add(`${id}_def`)
+  })
+  if (node === "quiz-generation" && Array.isArray(data.quizzes)) data.quizzes.forEach((quiz, index) => {
+    if (!quiz || typeof quiz !== "object") return
+    const id = typeof quiz.quizId === "string" ? quiz.quizId : formatQuizId(index + 1)
+    add(`${id}_que`)
+    if (Array.isArray(quiz.options)) (quiz.options as unknown[]).forEach((option, i) => {
+      if (!option || typeof option !== "object") return
+      const optionId = "optionId" in option && typeof option.optionId === "string" ? option.optionId : resolveQuizOptionId(option as QuizOption, id, i)
+      add(optionId); add(`${optionId}_exp`)
+    })
+  })
+  if (node === "web-rendering" && Array.isArray(data.sections)) for (const section of data.sections) {
+    if (!section || typeof section !== "object") continue
+    const doc = parseDocument(typeof section.html === "string" ? section.html : "")
+    const elements = DomUtils.findAll(element => element.type === "tag", doc.children)
+    const owners = new Set<string>(elements.flatMap(element => element.attribs["data-section-id"] ? [element.attribs["data-section-id"]] : []))
+    if (typeof section.sectionId === "string") owners.add(section.sectionId)
+    for (const element of elements) {
+      const id = element.attribs["data-id"]
+      add(id)
+      if (id?.startsWith("activity_gen_")) for (const owner of owners) add(`${owner}__${id}`)
+    }
+    if (section.activityAnswers && typeof section.activityAnswers === "object") {
+      for (const key of Object.keys(section.activityAnswers)) for (const owner of owners) {
+        add(answerTextId(owner, key.startsWith("activity_gen_") ? `${owner}__${key}` : key))
       }
+    }
+  }
+  return [...spent]
+}
+
+/** Book-wide reservation, including retired pages and source-less retained
+ * outputs. Read leniently so an old schema cannot give away an identity.
+ * This reads JSON/HTML only, never media files or provider responses. */
+export function collectSpentContentIds(storage: Storage): Set<string> {
+  const spent = new Set<string>()
+  for (const page of storage.getPages()) for (const image of storage.getPageImages(page.pageId)) addReservation(spent, image.imageId)
+  if (storage.readIdentityHistoryIds) {
+    for (const id of storage.readIdentityHistoryIds(IDENTITY_HISTORY_NODES, historyContentIds)) spent.add(id)
+  } else {
+    const rows = storage.readIdentityHistory?.(IDENTITY_HISTORY_NODES) ?? IDENTITY_HISTORY_NODES.flatMap(node =>
+      storage.getNodeItemIds(node).flatMap(itemId => storage.getAllNodeVersions(node, itemId).map(row => ({ ...row, node }))))
+    for (const row of rows) for (const id of historyContentIds(row)) spent.add(id)
   }
   return spent
 }
