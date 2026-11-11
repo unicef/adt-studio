@@ -14,21 +14,30 @@ updated: 2026-11-11
 ## Problem (with evidence)
 
 Studio's UI catalogs (`apps/studio/src/locales/*.po`, 4,303 entries per locale) are
-filled by a CI job that translates each key on its own, with no idea where the string
-appears. #900/#920 brought pt-BR up to a reviewed standard by hand. Nothing keeps any
-locale at that standard, and the CI step works against it.
+translated **key by key**: each English string on its own, with no idea where it
+appears or how much room it has. #900/#920 brought pt-BR up to a reviewed standard by
+hand. Nothing keeps any locale at that standard, and the way strings get translated
+works against it.
 
-- **CI translates blind and nobody reviews the result.** When a PR leaves `msgstr`
-  empty, the `i18n` job in `.github/workflows/ci.yml` runs
-  `pnpm --filter @adt/studio translate:missing`
-  (`apps/studio/scripts/translate-missing.ts`, 203 lines). The model receives a JSON
-  array of bare English strings: no glossary, no call site, no length limit. The job
-  then commits as `github-actions[bot]` and pushes to the PR branch, which is why it
-  needs `permissions: contents: write`. A string translated alone can't tell a button
-  from a heading, or "Light" (the theme) from "Light" (the review depth).
+- **Every way strings get translated today is key-based.** In practice contributors
+  translate locally, either by running `pnpm --filter @adt/studio translate:missing`
+  (`apps/studio/scripts/translate-missing.ts`, 203 lines) or by asking their agent to
+  fill the empty `msgstr` entries. The CI `i18n` job runs the same script as a fallback,
+  but rarely gets there. In all three cases the input is the list of empty keys:
+  - The script sends the model a JSON array of bare English strings: no glossary, no
+    call site, no length limit.
+  - An agent asked to "translate the missing strings" works from the `.po` file, which
+    has no file references (`origins: false`), so it sees the same bare keys.
+  - Nobody looks at the result on screen.
+
+  A string translated alone can't tell a button from a heading, a verb from a noun
+  ("Review details"), or "Light" the theme from "Light" the review depth. It also can't
+  know whether the translation fits the space the English had.
 - **Missing translations don't fail PRs.** `compile --strict` runs with
-  `continue-on-error: ${{ github.event_name == 'pull_request' }}`, so an empty
-  `msgstr` only triggers the auto-translator.
+  `continue-on-error: ${{ github.event_name == 'pull_request' }}`. An empty `msgstr`
+  triggers the CI fallback, which translates the same key-based way, then commits as
+  `github-actions[bot]` and pushes to the PR branch (hence
+  `permissions: contents: write`).
 - **The script corrupts quotes.** `findMissingEntries` takes the msgid still escaped
   (`line.slice(7, -1)`), and `applyTranslations` escapes the model's answer again
   (`.replace(/"/g, '\\"')`). The result is a literal `\"` on screen.
@@ -62,16 +71,17 @@ locale at that standard, and the CI step works against it.
 
 ## Goals
 
-1. Strings are translated where they are written, in the PR author's agent session,
-   **from their context**: the call site, the component it renders in, and a note for
-   translators where the meaning is ambiguous.
+1. Translation moves from **key-based to context-based**: strings are translated in the
+   PR author's agent session from where they are used (the call site, the component it
+   renders in, and a note for translators where the meaning is ambiguous), never from a
+   list of empty keys.
 2. Every locale has a glossary, so one concept gets one word.
 3. A translated string is checked **on the screen where it appears**, against English:
    no unexpected line breaks, no cut-off or clipped words.
 4. The check can produce an **HTML report** with the translations and screenshots of
    each changed screen in every locale.
 5. Mechanical errors (placeholders, tags, escapes, forbidden terms) fail CI.
-6. CI stops writing translations.
+6. No key-based translation path remains: not the script, not the CI fallback.
 
 ## Non-goals
 
@@ -99,14 +109,16 @@ locale at that standard, and the CI step works against it.
 
 | Option | Cost (rough) | Why not / why |
 |---|---|---|
-| **A. Keep the CI translator, give it the glossary and call sites** | ~150 lines in `translate-missing.ts`, plus an origins map | Still can't see the UI, still pushes unreviewed bot commits to PRs, and still needs an API key secret in CI. Rejected. |
+| **A. Keep `translate:missing`, feed it the glossary and call sites** | ~150 lines in `translate-missing.ts`, plus an origins map | Still batch-translates a list of keys: a file path isn't the rendered component, and it still can't see whether the result fits. The CI fallback would keep pushing unreviewed bot commits. Rejected. |
 | **B. Translate in CI with a running app** | A CI job that boots API and Studio with a book, plus browser install, ~10+ min per PR | Needs committed test data and a full walk, both non-goals. Rejected. |
-| **C. Translate in the author's session, check on the author's running app** | Removes ~250 lines (script + CI steps). Adds a lint (~250 lines), a screen check and report (~600 lines, ported from #900), a guide, a skill and 4 glossaries | **Chosen.** Every contributor works with an agent, and the author is already looking at the screen they changed. |
+| **C. Translate from context in the author's session, check on the author's running app** | Removes ~250 lines (script + CI steps). Adds a lint (~250 lines), a screen check and report (~600 lines, ported from #900), a guide, a skill and 4 glossaries | **Chosen.** Contributors already translate locally with an agent; this changes what the agent starts from (call sites, not keys) and adds the check that it fits. |
 
 ### Decisions a reviewer must ratify
 
-**D1. CI no longer translates; missing translations fail.**
-Delete `apps/studio/scripts/translate-missing.ts` and the `translate:missing` script.
+**D1. The key-based translator is removed everywhere; missing translations fail.**
+Delete `apps/studio/scripts/translate-missing.ts` and the `translate:missing` script,
+so neither contributors nor CI can translate a list of keys with it. Asking an agent to
+fill empty keys is replaced by the `translate` skill (D7), which starts from call sites.
 Remove the "Warn about missing translations", "Auto-translate missing strings" and
 "Verify translations after auto-translate" steps. Drop `continue-on-error` from
 `compile --strict`, and drop `permissions: contents: write` from the `i18n` job,
