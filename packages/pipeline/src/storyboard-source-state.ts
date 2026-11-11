@@ -1,5 +1,5 @@
 import type { Storage } from "@adt/storage"
-import { PageSectioningOutput, StoryboardSourceState, WebRenderingOutput, type ContentNodeData, type PageSectioningSection } from "@adt/types"
+import { PageSectioningOutput, PositionedTextOutput, StoryboardSourceState, WebRenderingOutput, type ContentNodeData, type PageSectioningSection } from "@adt/types"
 import { DomUtils, parseDocument } from "htmlparser2"
 import { inputSignature } from "./output-freshness.js"
 import { getRenderSectioning, resolveRenderedSection, withLegacyRenderingOwnership } from "./render-sectioning.js"
@@ -83,6 +83,12 @@ function writeState(storage: Storage, pageId: string, version: number, sections:
   storage.putNodeData(SOURCE_GENERATION_STATE_NODE, stateKey(pageId, version), { version: 1, sections: [...sections.values()] } satisfies StoryboardSourceState)
 }
 
+function positionedImages(storage: Storage, pageId: string) {
+  const positioned = PositionedTextOutput.safeParse(storage.getLatestNodeData("positioned-text", pageId)?.data)
+  const ids = new Set(positioned.success ? positioned.data.drawItems.filter(item => item.kind === "image").map(item => item.imageId) : [])
+  return storage.getPageImages(pageId, true).filter(image => ids.has(image.imageId))
+}
+
 /** Source evidence is independent of attempts, config preference and HTML
  * styling. Fixed output consumes the positioned page, never semantic indices. */
 export function captureStoryboardSource(storage: Storage, pageId: string) {
@@ -102,12 +108,14 @@ export function captureStoryboardSource(storage: Storage, pageId: string) {
       sections.set(owner.sectionId, {
         sectionId: owner.sectionId,
         layout: fixed ? "fixed" : "reflowable",
-        signature: inputSignature(fixed ? {
+        signature: fixed ? "fixed-inputs-v2:" + inputSignature({
           tree: sourceGenerationBasis("fixed-layout-sectioning", tree),
           positioned: storage.getLatestNodeData("positioned-text", pageId)?.data,
-          images: storage.getPageImages(pageId),
+          // Only positioned image inputs contribute; later translation/crop
+          // products are separate outputs unless the draw sequence uses them.
+          images: positionedImages(storage, pageId),
           filtering: storage.getLatestNodeData("image-filtering", pageId)?.data,
-        } : sourceGenerationBasis("page-sectioning", tree)),
+        }) : inputSignature(sourceGenerationBasis("page-sectioning", tree)),
       })
     }
     return { version: row.version, sections, baseline: readState(storage, pageId, row.version) }
@@ -140,13 +148,31 @@ export function publishStoryboardSource(storage: Storage, pageId: string, prior:
   writeState(storage, pageId, current.version, sections)
 }
 
+/** Old proofs hashed the whole image inventory without byte identities. Keep
+ * their original comparison until publication records the stronger signature.
+ * Removing only known derived products also supports a translation added after
+ * that old proof. Never upgrade the stored proof merely because it was read. */
+function matchesLegacyFixedSource(storage: Storage, pageId: string, signature: string): boolean {
+  if (!/^[a-f0-9]{64}$/.test(signature)) return false
+  const images = storage.getPageImages(pageId, true)
+  const legacyImage = ({ storedAsset: _storedAsset, ...image }: (typeof images)[number]) => image
+  const inputs = {
+    tree: sourceGenerationBasis("fixed-layout-sectioning", getRenderSectioning(storage, pageId)),
+    positioned: storage.getLatestNodeData("positioned-text", pageId)?.data,
+    filtering: storage.getLatestNodeData("image-filtering", pageId)?.data,
+  }
+  return [images, images.filter(image => image.storedAsset?.source === "extract")]
+    .some(inventory => inputSignature({ ...inputs, images: inventory.map(legacyImage) }) === signature)
+}
+
 /** Warning-only projection; missing/ambiguous output is handled by coverage. */
 export function storyboardSourceWarnings(storage: Storage, pageIds = storage.getPages().map(page => page.pageId)) {
   return pageIds.flatMap(pageId => {
     const current = captureStoryboardSource(storage, pageId)
     return current && [...current.sections].some(([id, input]) => {
       const prior = current.baseline?.get(id)
-      return prior && (prior.layout !== input.layout || prior.signature !== input.signature)
+      return prior && (prior.layout !== input.layout || (prior.signature !== input.signature &&
+        !(input.layout === "fixed" && matchesLegacyFixedSource(storage, pageId, prior.signature))))
     }) ? [{ kind: "storyboard-source-changed" as const, pageId }] : []
   })
 }

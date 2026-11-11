@@ -1,3 +1,4 @@
+import { hasRenderableContent } from "./renderable-content.js"
 import { PageSectioningOutput, WebRenderingOutput, type StoryboardCoverage } from "@adt/types"
 import type { Storage } from "@adt/storage"
 import { ambiguousPublicOutputIds, isPublicOutputId } from "./public-output-identity.js"
@@ -30,7 +31,8 @@ function coverageForPages(storage: Storage, pageIds: string[], ambiguous: Readon
     if (!source.success) { missingPages.push(pageId); continue }
     const output = WebRenderingOutput.safeParse(rendering)
     const projected = output.success ? withLegacyRenderingOwnership(storage, pageId, output.data) : undefined
-    for (const section of source.data.sections.filter((section) => !section.isPruned)) {
+    for (const section of source.data.sections.filter(section => !section.isPruned &&
+      (section.sectionType === "fixed-layout-page" && !!section.viewport && !!section.placement || hasRenderableContent(section)))) {
       included++
       const matches = projected ? projected.sections.filter((entry) =>
         entry.html.trim() && resolveRenderedSection(entry, source.data.sections, projected.sections) === section) : []
