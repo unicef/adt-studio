@@ -699,6 +699,7 @@ export function StoryboardSectionDetail({
   )
   const [activityEditorKind, setActivityEditorKind] = useState<"stepper" | "classic" | null>(null)
   const editActivityPanelOpen = activityEditorKind !== null
+  const activityDraftActions = useRef<{ captureDiscard: () => () => boolean } | null>(null)
   const floatingDirtyEntries = useFloatingSaveDirtyEntries()
   const activityDraftDirty = floatingDirtyEntries.some(
     (entry) => entry.id === `editable-activity:${bookLabel}:${pageId}:${sectionIndex}`,
@@ -2536,12 +2537,16 @@ export function StoryboardSectionDetail({
     ) {
       return
     }
+    const discardConfirmed = activityDraftActions.current?.captureDiscard()
     if (editableEntry) {
       const enabling = !editableEntry.enabled
-      if (!enabling) setActivityEditorKind(null)
       setEditablePresentation.mutate(
         { sectionIndex, enabled: enabling },
         {
+          onSuccess: () => {
+            if (latestDraftRef.current.scope !== draftScope) return
+            if (discardConfirmed?.() !== false) setActivityEditorKind(enabling ? "stepper" : null)
+          },
           onError: (err) =>
             toast.error(err instanceof Error ? err.message : t`Switching presentation failed`),
         },
@@ -2549,9 +2554,11 @@ export function StoryboardSectionDetail({
     } else {
       convertEditableActivity.mutate(sectionIndex, {
         onSuccess: (result) => {
+          if (latestDraftRef.current.scope !== draftScope) return
+          const discarded = discardConfirmed?.() !== false
           toast.success(t`Converted to a step-by-step activity`)
           if (result.warnings.length > 0) toast.warning(result.warnings.join(" "))
-          setActivityEditorKind("stepper")
+          if (discarded) setActivityEditorKind("stepper")
         },
         onError: (err) =>
           toast.error(err instanceof Error ? err.message : t`Conversion failed`),
@@ -2573,11 +2580,14 @@ export function StoryboardSectionDetail({
     ) {
       return
     }
+    const discardConfirmed = activityDraftActions.current?.captureDiscard()
     convertEditableActivity.mutate(sectionIndex, {
       onSuccess: (result) => {
+        if (latestDraftRef.current.scope !== draftScope) return
+        const discarded = discardConfirmed?.() !== false
         toast.success(t`Rebuilt from the page`)
         if (result.warnings.length > 0) toast.warning(result.warnings.join(" "))
-        setActivityEditorKind("stepper")
+        if (discarded) setActivityEditorKind("stepper")
       },
       onError: (err) =>
         toast.error(err instanceof Error ? err.message : t`Rebuild failed`),
@@ -3253,6 +3263,7 @@ export function StoryboardSectionDetail({
           colliding key would keep another page's draft alive — saving it
           would corrupt this page's activity. */}
       <EditableActivityPanel
+          draftActionsRef={activityDraftActions}
           key={`${bookLabel}-${pageId}-${sectionIndex}`}
           open={activityEditorKind === "stepper"}
           onClose={() => setActivityEditorKind(null)}

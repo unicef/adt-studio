@@ -19,6 +19,8 @@ const state = vi.hoisted(() => ({
   editableQuery: {} as { data?: { activities: Record<string, EditableActivity>; version: number; paletteAccent: string } },
   realActivityPanel: false,
   activitySave: vi.fn().mockResolvedValue({ version: 3 }),
+  presentation: vi.fn(),
+  convert: vi.fn(),
   headerSlot: null as HTMLElement | null,
   pickers: {} as Record<string, {onRestoringChange: (busy: boolean) => void; onRestored: () => void}>,
   frame: {} as {editable: boolean; onTextChanged?: (dataId: string, text: string) => void},
@@ -71,8 +73,8 @@ vi.mock("@/hooks/use-editable-activities", () => ({
   useEditableActivities: () => state.editableQuery,
   useSaveEditableActivities: () => ({ mutateAsync: state.activitySave, isPending: false }),
   useGenerateActivityFeedback: () => ({ mutate: vi.fn(), isPending: false }),
-  useConvertEditableActivity: () => ({}),
-  useSetEditableActivityPresentation: () => ({}),
+  useConvertEditableActivity: () => ({ mutate: state.convert, isPending: false }),
+  useSetEditableActivityPresentation: () => ({ mutate: state.presentation, isPending: false }),
 }))
 vi.mock("./SectionEditPanel", () => ({
   SectionEditPanel: (props: ComponentProps<typeof SectionEditPanel>) => {
@@ -642,4 +644,62 @@ it("AI edit submits the captured rendering version and retains its instruction a
     expect(screen.getByRole("button", { name: "Save", exact: true })).toBeTruthy()
     expect(state.save).not.toHaveBeenCalled()
   } finally { header.remove() }
+})
+
+it.each(["Back to classic activity", "Rebuild from page"])("clears only the confirmed draft after successful %s", async action => {
+  state.realActivityPanel = true
+  state.editableQuery = { data: { activities: { "0": savedStepper }, version: 1, paletteAccent: "#2563EB" } }
+  const page = activityPage(), mounted = render(parentView(page))
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true)
+  try {
+    fireEvent.click(screen.getByRole("button", { name: "Edit activity" }))
+    fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "Discard this confirmed draft" } })
+    await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("true"))
+    fireEvent.click(screen.getByRole("button", { name: action }))
+    const mutation = action === "Rebuild from page" ? state.convert : state.presentation
+    expect(mutation).toHaveBeenCalledTimes(1)
+    const next = { ...savedStepper, enabled: action !== "Back to classic activity", title: { text: "New saved activity" } }
+    state.editableQuery = { data: { activities: { "0": next }, version: 2, paletteAccent: "#2563EB" } }
+    await act(async () => { mounted.rerender(parentView(page)); mutation.mock.calls[0][1].onSuccess?.({ warnings: [] }) })
+    await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("false"))
+    if (action === "Rebuild from page") expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe("New saved activity")
+    expect(state.activitySave).not.toHaveBeenCalled()
+  } finally { confirm.mockRestore() }
+})
+
+it.each(["cancel", "failure", "successor"])("retains an activity draft on replacement %s", async outcome => {
+  state.realActivityPanel = true
+  state.editableQuery = { data: { activities: { "0": savedStepper }, version: 1, paletteAccent: "#2563EB" } }
+  const page = activityPage(), mounted = render(parentView(page))
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(outcome !== "cancel")
+  try {
+    fireEvent.click(screen.getByRole("button", { name: "Edit activity" }))
+    fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "Keep my draft" } })
+    fireEvent.click(screen.getByRole("button", { name: "Rebuild from page" }))
+    if (outcome === "cancel") expect(state.convert).not.toHaveBeenCalled()
+    else if (outcome === "failure") await act(async () => state.convert.mock.calls[0][1].onError(new Error("Conversion failed")))
+    else {
+      fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "Successor after confirmation" } })
+      state.editableQuery = { data: { activities: { "0": { ...savedStepper, title: { text: "Rebuilt" } } }, version: 2, paletteAccent: "#2563EB" } }
+      await act(async () => { mounted.rerender(parentView(page)); state.convert.mock.calls[0][1].onSuccess({ warnings: [] }) })
+    }
+    expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe(outcome === "successor" ? "Successor after confirmation" : "Keep my draft")
+    await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("true"))
+  } finally { confirm.mockRestore() }
+})
+
+it("does not open another book's stepper when an earlier rebuild completes", async () => {
+  state.realActivityPanel = true
+  state.editableQuery = { data: { activities: { "0": savedStepper }, version: 1, paletteAccent: "#2563EB" } }
+  const page = activityPage(), mounted = render(parentView(page))
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true)
+  try {
+    fireEvent.click(screen.getByRole("button", { name: "Rebuild from page" }))
+    state.editableQuery = { data: { activities: { "0": { ...savedStepper, enabled: false } }, version: 1, paletteAccent: "#2563EB" } }
+    mounted.rerender(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="another-book" pageId="pg001" sectionIndex={0} page={page}/><UnsavedProbe/></FloatingSaveProvider>)
+    fireEvent.click(screen.getByRole("button", { name: "Edit activity" }))
+    await act(async () => state.convert.mock.calls[0][1].onSuccess({ warnings: [] }))
+    expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("true")
+    expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("false")
+  } finally { confirm.mockRestore() }
 })

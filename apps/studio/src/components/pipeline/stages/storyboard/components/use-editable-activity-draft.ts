@@ -80,7 +80,17 @@ export function useEditableActivityDraft(props: {
       failed: () => { if (!existing && guarded.getPending() === captured) guarded.setPending(null) },
     }
   }
+  // A replacement confirms this exact draft, not whatever the editor contains
+  // when the response arrives. Later edits and save acknowledgements survive.
+  const captureDiscard = () => {
+    const pending = guarded.getPending(), submitted = submittedRef.current
+    return () => {
+      if (guarded.getPending() !== pending || submittedRef.current !== submitted) return false
+      guarded.setPending(null)
+      return true
+    }
+  }
   const dirty = save.isPending || submittedRef.current !== null || guarded.pending !== null && (version !== guarded.baseVersion || JSON.stringify(guarded.pending) !== JSON.stringify(guarded.baseValue))
   return { draft, setDraft, dirty, saveDraft, saveBeforeLeave, beginFeedback,
-    saving: save.isPending, discardDraft: () => guarded.setPending(null) }
+    saving: save.isPending, captureDiscard, discardDraft: () => guarded.setPending(null) }
 }

@@ -7,7 +7,7 @@
  * storyboard's web-rendering data is never touched, so switching back to the
  * classic presentation is lossless.
  */
-import { useState, type Dispatch, type SetStateAction } from "react"
+import { useState, useImperativeHandle, type Ref, type Dispatch, type SetStateAction } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { toast } from "sonner"
 import {
@@ -50,6 +50,7 @@ import {
 } from "./style-editor/tailwind-palette"
 
 interface EditableActivityPanelProps {
+  draftActionsRef?: Ref<{ captureDiscard: () => () => boolean }>
   open: boolean
   onClose: () => void
   bookLabel: string
@@ -112,6 +113,7 @@ function moveItem<T>(list: T[], from: number, to: number): T[] {
 
 export function EditableActivityPanel(props: EditableActivityPanelProps) {
   const editor = useEditableActivityDraft(props)
+  useImperativeHandle(props.draftActionsRef, () => ({ captureDiscard: editor.captureDiscard }), [editor.captureDiscard])
   if (!editor.draft) return null
   return <EditableActivityEditor {...props} {...editor} activity={props.activity ?? editor.draft} draft={editor.draft} />
 }
