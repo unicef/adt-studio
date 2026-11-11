@@ -940,3 +940,30 @@ it("aggregate page failures expose at most twenty IDs while retaining every page
   expect(renderPage).toHaveBeenCalledTimes(27)
   expect([history("web-rendering", "p2"), history("web-rendering", "p7")]).toEqual(before)
 })
+
+
+it("rejects deterministic Extract prerequisites before a confirmed Storyboard reset", async () => {
+  const storage = store()
+  try {
+    storage.clearStepRuns(["book-outline", "image-filtering"])
+    storage.putNodeData("editable-activity", "p2", { retained: "activity source" })
+  } finally { storage.close() }
+  const consent = await replacement(["p2"])
+  const before = rawHistoryState()
+  const result = await run({ ...consent, toStage: "sectioning" })
+  expect(result.status).toBe("failed")
+  expect(result.error).toContain("Extract prerequisites complete")
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(rawHistoryState()).toEqual(before)
+})
+
+
+it("keeps a genuine Sectioning no-op usable without reading an unrelated malformed outline", async () => {
+  const db = openBookDb(path.join(dir, `${label}.db`))
+  try { db.run("UPDATE node_data SET data=? WHERE node='book-outline'", ["{broken"]) }
+  finally { db.close() }
+  const before = rawHistoryState()
+  expect((await run({ toStage: "sectioning" })).status).toBe("completed")
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(rawHistoryState()).toEqual(before)
+})

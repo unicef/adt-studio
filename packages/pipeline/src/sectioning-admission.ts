@@ -16,8 +16,12 @@ export function admitSectioningRun(
   const { bookDir } = resolveBookPaths(label, booksRoot)
   const config = loadBookConfig(label, booksRoot, configPath)
   const allPages = activeSectioningPages(storage, config, bookDir)
-  const inputSignature = sectioningReplacementSignature(storage, label, booksRoot, configPath, promptsDir)
+  // A genuine ordinary no-op neither replaces output nor consumes generation
+  // inputs. Do not read an unrelated outline/prompt just to invent a receipt.
+  const needsConsent = options.protectedReplacements?.some(record => record.node === "page-sectioning")
+  let inputSignature = needsConsent ? sectioningReplacementSignature(storage, label, booksRoot, configPath, promptsDir) : undefined
   const pages = selectSectioningPages(storage, allPages, options, inputSignature)
+  if (pages.length && !inputSignature) inputSignature = sectioningReplacementSignature(storage, label, booksRoot, configPath, promptsDir)
   assertSectioningIdentityHistory(storage, options, pages)
   return { config, allPages, pages, inputSignature }
 }

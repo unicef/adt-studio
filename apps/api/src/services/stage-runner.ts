@@ -1436,6 +1436,34 @@ async function runSectioningStep(
     const selectedIds = new Set(pages.map(page => page.pageId))
     const retainedUnreadable = [...unreadable].filter(pageId => !selectedIds.has(pageId))
     const retainedWarning = retainedUnreadable.length ? `SECTIONING_INPUT_UNREADABLE: ${retainedUnreadable.slice(0, 20).join(", ")}; total=${retainedUnreadable.length}` : undefined
+    if (!pages.length) {
+      options.signal?.throwIfAborted()
+      progress.emit({ type: "step-skip", step: "page-sectioning", message: retainedWarning })
+      progress.emit({ type: "step-skip", step: "translation" })
+      return
+    }
+    const stepStatus = new Map(storage.getStepRuns().map((run) => [run.step, run.status]))
+    const outlineStepStatus = stepStatus.get("book-outline")
+    const outlineStepComplete = outlineStepStatus === "done" || outlineStepStatus === "skipped"
+    let bookOutline = outlineStepComplete ? readBookOutline(storage) : null
+    // Deterministic prerequisite refusal must precede the confirmed reset.
+    // A later provider failure still retains a valid committed reset.
+    if (!bookOutline) {
+      const extractStage = PIPELINE.find((stage) => stage.name === "extract")
+      const incompletePrerequisites = (extractStage?.steps ?? [])
+        .filter((step) => step.name !== "book-outline")
+        .filter((step) => {
+          const status = stepStatus.get(step.name)
+          return status !== "done" && status !== "skipped"
+        })
+        .map((step) => step.name)
+      if (incompletePrerequisites.length > 0) {
+        throw new Error(
+          "Cannot rebuild the book outline before Extract prerequisites complete: " +
+          incompletePrerequisites.join(", "),
+        )
+      }
+    }
     const previousVersions = new Map(pages.map((page) => [page.pageId, storage.getSelectedNodeVersion("page-sectioning", page.pageId)]))
     options.signal?.throwIfAborted()
     resetSectioningStoryboard(storage, options, sectioningReplacementSignature(storage, label, booksDir, configPath, promptsDir))
@@ -1443,12 +1471,6 @@ async function runSectioningStep(
       storage.getSelectedNodeVersion("web-rendering", pageId),
       storage.getSelectedNodeVersion("fixed-layout-sectioning", pageId),
     ]]))
-    if (!pages.length) {
-      options.signal?.throwIfAborted()
-      progress.emit({ type: "step-skip", step: "page-sectioning", message: retainedWarning })
-      progress.emit({ type: "step-skip", step: "translation" })
-      return
-    }
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
     const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
@@ -1503,28 +1525,7 @@ async function runSectioningStep(
         })
       : null
 
-    const stepStatus = new Map(storage.getStepRuns().map((run) => [run.step, run.status]))
-    const outlineStepStatus = stepStatus.get("book-outline")
-    const outlineStepComplete = outlineStepStatus === "done" || outlineStepStatus === "skipped"
-    let bookOutline = outlineStepComplete ? readBookOutline(storage) : null
-    // Split/merge projects deliberately discard part-local outlines. Rebuild
-    // the authoritative hierarchy from the assembled stored pages here so a
-    // Sectioning run never has to invoke (and clear data through) Extract.
     if (!bookOutline) {
-      const extractStage = PIPELINE.find((stage) => stage.name === "extract")
-      const incompletePrerequisites = (extractStage?.steps ?? [])
-        .filter((step) => step.name !== "book-outline")
-        .filter((step) => {
-          const status = stepStatus.get(step.name)
-          return status !== "done" && status !== "skipped"
-        })
-        .map((step) => step.name)
-      if (incompletePrerequisites.length > 0) {
-        throw new Error(
-          "Cannot rebuild the book outline before Extract prerequisites complete: " +
-          incompletePrerequisites.join(", "),
-        )
-      }
       const outlineConfig = buildBookOutlineConfig(config)
       const outlineModel = createLLMModel({
         modelId: outlineConfig.modelId,
