@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from "node:timers/promises"
 import { collectQuizPages } from "./quiz-generation.js"
 import { putSourceNodeData, withSourceGenerationTracking, captureSourceGeneration, publishSourceGeneration } from "./source-generation-state.js"
 import { reconcileSectioningIdentities } from "./sectioning-identity.js"
@@ -226,6 +227,15 @@ async function runAdmittedFullPipeline(
   }
 
   const storage = createBookStorage(label, booksRoot)
+  // All entity publications share this final cancellation check, including
+  // helpers and providers that finish after abort. Telemetry can still record
+  // the interrupted step; owned in-flight work drains before close below.
+  // Preserve the book-backed storage identity used by extraction admission.
+  const putNodeData = storage.putNodeData
+  storage.putNodeData = (...args) => {
+    options.signal?.throwIfAborted()
+    return putNodeData(...args)
+  }
 
   // SPEC-0010 extraction snapshots source bytes only after admission. Scoped
   // reruns never copy an external PDF over the retained source.
@@ -240,6 +250,8 @@ async function runAdmittedFullPipeline(
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
     const effectiveConcurrency = options.concurrency ?? config.concurrency ?? 32
+    const processItems = <T>(items: T[], concurrency: number, run: (item: T) => Promise<void>) =>
+      processWithConcurrency(items, concurrency, run, options.signal)
 
     // LLM log handler: write to storage and emit event
     const onLlmLog = (entry: LlmLogEntry) => {
@@ -361,7 +373,7 @@ async function runAdmittedFullPipeline(
         getImageBytes: (imageId: string) =>
           Buffer.from(storage.getImageBase64(imageId), "base64"),
       }
-      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
+      await processItems(pages, effectiveConcurrency, async (page) => {
         const images = storage.getPageImages(page.pageId)
         const result = classifyPageImages(page.pageId, images, classifyConfig)
         storage.putNodeData("image-filtering", page.pageId, result)
@@ -380,7 +392,7 @@ async function runAdmittedFullPipeline(
       const model = getModel(segmentationConfig.modelId)
       const pages = storage.getPages()
       const totalPages = pages.length
-      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
+      await processItems(pages, effectiveConcurrency, async (page) => {
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
         const imageClassification = classRow.data as ImageClassificationOutput
@@ -480,7 +492,7 @@ async function runAdmittedFullPipeline(
         return
       }
       const model = getModel(meaningfulnessConfig.modelId)
-      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
+      await processItems(pages, effectiveConcurrency, async (page) => {
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
         let imageResult = classRow.data as ImageClassificationOutput
@@ -515,7 +527,7 @@ async function runAdmittedFullPipeline(
       const model = getModel(croppingConfig.modelId)
       const pages = storage.getPages()
       const totalPages = pages.length
-      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
+      await processItems(pages, effectiveConcurrency, async (page) => {
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
         const imageClassification = classRow.data as ImageClassificationOutput
@@ -591,7 +603,7 @@ async function runAdmittedFullPipeline(
       const bookOutline = readBookOutline(storage)
       const metadata = storage.getLatestNodeData("metadata", "book")?.data as BookMetadata | null
       const translationConfig = buildTranslationConfig(config, metadata?.language_code ?? null)
-      await processWithConcurrency(selected, effectiveConcurrency, async (page) => {
+      await processItems(selected, effectiveConcurrency, async (page) => {
         options.signal?.throwIfAborted()
         const row = storage.getLatestNodeData("image-filtering", page.pageId)
         const classification = row?.data as ImageClassificationOutput | undefined
@@ -678,7 +690,7 @@ async function runAdmittedFullPipeline(
       // Resolve once per book — every page shares the same typography.
       const typography = readTypography(renderingStorage)
       const unavailable: string[] = []
-      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
+      await processItems(pages, effectiveConcurrency, async (page) => {
         options.signal?.throwIfAborted()
         let sectioning: PageSectioningOutput
         let imageClassification: ImageClassificationOutput
@@ -808,7 +820,7 @@ async function runAdmittedFullPipeline(
       const pages = storage.getPages()
       const totalPages = pages.length
       let completed = 0
-      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
+      await processItems(pages, effectiveConcurrency, async (page) => {
         const imageIds = inventory.filter((image) => image.pageId === page.pageId && image.available).map((image) => image.id)
         if (imageIds.length === 0) {
           storage.putNodeData("image-captioning", page.pageId, { captions: [] })
@@ -948,7 +960,7 @@ async function runAdmittedFullPipeline(
       const translationConfig = buildCatalogTranslationConfig(config, language)
       const model = getModel(translationConfig.modelId)
       translationConfig.promptSignature = promptEngine.fingerprint(translationConfig.promptName, { modelId: translationConfig.modelId })
-      await processWithConcurrency(targetLanguages, effectiveConcurrency, async (lang) => {
+      await processItems(targetLanguages, effectiveConcurrency, async (lang) => {
         const previous = storage.getLatestNodeData("text-catalog-translation", lang)?.data as TextCatalogOutput | undefined
         const output = await translateCatalog({ entries: translationEntries, language: lang, config: translationConfig, llmModel: model, previous, references: captureOutputReferences(storage, "translation", lang) })
         if (output !== previous) storage.putNodeData("text-catalog-translation", lang, output)
@@ -1218,7 +1230,9 @@ async function runAdmittedFullPipeline(
         const generate = () => {
           attemptCount++
           const ttsSynthesizer = getSynthesizer(provider)
+          options.signal?.throwIfAborted()
           return generateSpeechFile({
+            signal: options.signal,
           sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate,
             textId: item.textId,
             text: item.text,
@@ -1253,6 +1267,7 @@ async function runAdmittedFullPipeline(
                 entry = await generate()
                 break
               } catch (err) {
+                options.signal?.throwIfAborted()
                 const message = err instanceof Error ? err.message : String(err)
                 if (
                   classifyElevenLabsTtsError(message) === "permanent" ||
@@ -1262,7 +1277,7 @@ async function runAdmittedFullPipeline(
                 console.warn(
                   `[pipeline] ElevenLabs TTS failed for ${item.textId} (${item.language}); retrying ${retryCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${delayMs}ms: ${message}`
                 )
-                await new Promise((resolve) => setTimeout(resolve, delayMs))
+                await sleep(delayMs, undefined, { signal: options.signal })
               }
             }
           } else {
@@ -1286,6 +1301,7 @@ async function runAdmittedFullPipeline(
           // "—" entry) and never called the provider.
           ...(entry ? {} : { skippedReason: NO_SPEAKABLE_TEXT_REASON }),
         }))
+        options.signal?.throwIfAborted()
         if (entry) {
           resultsByLang.get(item.language)!.push(entry)
         }
@@ -1310,14 +1326,15 @@ async function runAdmittedFullPipeline(
         (item) => item.provider !== "elevenlabs"
       )
       await Promise.all([
-        processWithConcurrency(otherItems, effectiveConcurrency, runTtsItem),
-        processWithConcurrency(
+        processItems(otherItems, effectiveConcurrency, runTtsItem),
+        processItems(
           elevenLabsItems,
           Math.min(ELEVENLABS_TTS_MAX_CONCURRENCY, effectiveConcurrency),
           runTtsItem
         ),
       ])
 
+      options.signal?.throwIfAborted()
       for (const lang of outputLanguages) {
         const entries = resultsByLang.get(lang)!
         const output: TTSOutput = { entries, generatedAt: new Date().toISOString() }
@@ -1335,6 +1352,7 @@ async function runAdmittedFullPipeline(
       const bookMetadata = metadataRow?.data as { title?: string | null } | null
       const bookTitle = bookMetadata?.title ?? label
       await packageAdtWeb(storage, {
+        signal: options.signal,
         promptsDir, configDir: options.configDir ?? path.resolve("config"),
         bookDir: path.join(path.resolve(booksRoot), label),
         label,
@@ -1354,9 +1372,11 @@ async function runAdmittedFullPipeline(
     executors.set("accessibility-assessment", async (p) => {
       if (!options.webAssetsDir) return
       const output = await runAccessibilityAssessment({
+        signal: options.signal,
         bookDir: path.join(path.resolve(booksRoot), label),
         config: config.accessibility_assessment,
       }, progressOnly(p))
+      options.signal?.throwIfAborted()
       storage.putNodeData("accessibility-assessment", "book", output)
     })
 
@@ -1366,7 +1386,7 @@ async function runAdmittedFullPipeline(
       if (event.type === "step-error") storage.recordStepError(event.step, event.error)
       progress.emit(event)
     } }
-    return await runPipelineDAG(executors, persistedProgress)
+    return await runPipelineDAG(executors, persistedProgress, undefined, options.signal)
   } finally {
     storage.close()
   }

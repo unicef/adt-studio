@@ -42,6 +42,23 @@ function bytes(directory: string): Record<string, string> {
 }
 
 describe("SPEC-0010 extraction admission", { timeout: 30_000 }, () => {
+  it("fresh CLI DAG extraction retains book admission and stops before providers after cancellation", async () => {
+    const f = fixture()
+    f.storage.close()
+    const abort = new AbortController()
+    const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Unexpected provider request"))
+    const result = await runFullPipeline({ label: "book", booksRoot: f.booksRoot, ...f.options,
+      configPath: path.join(root, "config.yaml"), promptsDir: path.join(root, "prompts"),
+      templatesDir: path.join(root, "templates"), signal: abort.signal }, { emit(event) {
+      if (event.type === "step-complete" && event.step === "extract") abort.abort()
+    } })
+    expect(result.stages.statuses.get("extract")).toBe("failed")
+    expect(result.steps.statuses.get("metadata")).toBe("skipped")
+    expect(readExtractionManifest(f.bookDir)?.status).toBe("complete")
+    expect(fetch).not.toHaveBeenCalled()
+    expect(fs.existsSync(path.join(f.bookDir, ".book-writer.json"))).toBe(false)
+  })
+
   it("publishes complete durable provenance and reuses without changing histories, identities, manual content, media or caches", async () => {
     const f = fixture()
     try {

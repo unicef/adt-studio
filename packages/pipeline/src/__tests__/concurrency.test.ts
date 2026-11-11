@@ -20,3 +20,22 @@ it("stops admission after a failure and drains an in-flight writer before reject
   expect(drained).toBe(true)
   expect(called).toEqual([1, 2])
 })
+
+
+it("cancellation stops queued work and drains active work before returning", async () => {
+  const abort = new AbortController()
+  let release!: () => void
+  const called: number[] = []
+  const running = processWithConcurrency([1, 2, 3], 1, async item => {
+    called.push(item)
+    if (item === 1) await new Promise<void>(resolve => { release = resolve })
+  }, abort.signal)
+  let settled = false
+  const checked = running.then(() => { settled = true; return "complete" }, () => { settled = true; return "aborted" })
+  abort.abort()
+  await Promise.resolve()
+  expect(settled).toBe(false)
+  release()
+  expect(await checked).toBe("aborted")
+  expect(called).toEqual([1])
+})

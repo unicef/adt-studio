@@ -22,6 +22,7 @@ import {
 } from "./accessibility-assessment-shared.js"
 
 export interface RunAccessibilityAssessmentOptions {
+  signal?: AbortSignal
   bookDir: string
   config?: AccessibilityAssessmentConfig
 }
@@ -211,6 +212,7 @@ export async function runAccessibilityAssessment(
   options: RunAccessibilityAssessmentOptions,
   progress: Progress = nullProgress,
 ): Promise<AccessibilityAssessmentOutputType> {
+  options.signal?.throwIfAborted()
   progress.emit({ type: "step-start", step: STEP })
   progress.emit({ type: "step-progress", step: STEP, message: "Loading packaged pages..." })
 
@@ -236,9 +238,11 @@ export async function runAccessibilityAssessment(
       page: index + 1,
       totalPages: pageEntries.length,
     })
+    options.signal?.throwIfAborted()
     pages.push(await auditPackagedPage(adtDir, entry, axeSource, { runOnlyTags, disabledRules }))
   }
 
+  options.signal?.throwIfAborted()
   const output: AccessibilityAssessmentOutputType = {
     generatedAt: new Date().toISOString(),
     tool: "axe-core",

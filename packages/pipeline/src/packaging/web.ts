@@ -1,3 +1,4 @@
+import { setImmediate as yieldToEventLoop } from "node:timers/promises"
 import { storyboardSourceWarnings } from "../storyboard-source-state.js"
 import { recordPackagedOwners } from "./bundle-ownership.js"
 import { openPackageWork, publishedAdtDirectory } from "./publication-directory.js"
@@ -80,6 +81,7 @@ import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.j
 import { buildTailwindCss } from "../tailwind.js"
 
 export interface PackageAdtWebOptions {
+  signal?: AbortSignal
   config?: AppConfig
   /** The caller may also bind publication to its live configuration/source snapshot. */
   validatePublication?: () => void
@@ -339,6 +341,7 @@ export async function packageAdtWeb(
   options: PackageAdtWebOptions,
   progress: Progress = nullProgress,
 ): Promise<PackageAdtWebResult> {
+  options.signal?.throwIfAborted()
   const locales = [options.language, ...options.outputLanguages].map(normalizeLocale)
   if (!options.outputLanguages.length || !locales.every(isBundleLocale)) {
     throw new BookConfigError(options.label, "Invalid package language identifier.")
@@ -352,7 +355,9 @@ export async function packageAdtWeb(
     const staged = path.join(stagingRoot, "adt")
     try {
       const result = await buildWebPackage(storage, options, progress, staged)
+      options.signal?.throwIfAborted()
       const commit = await options.preparePublication?.(stagingRoot, result)
+      options.signal?.throwIfAborted()
       if (!packageFilesAvailable(staged, { format: "scorm", expectedLanguages: options.outputLanguages.map(normalizeLocale) })) {
         throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "The staged package is missing required files. The previous package is retained.")
       }
@@ -360,6 +365,7 @@ export async function packageAdtWeb(
         throw new SectioningSafetyError("SECTIONING_WINDOW_INVALID", "The part window changed while packaging. Retry using the current window.")
       }
       options.validatePublication?.()
+      options.signal?.throwIfAborted()
       // The stage is complete. Readers in this process cannot interleave these
       // renames, and the shared writer already excludes other supported writers.
       if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true })
@@ -507,6 +513,8 @@ async function buildWebPackage(
   }
 
   for (const item of readingOrder.items) {
+    await yieldToEventLoop()
+    options.signal?.throwIfAborted()
     if (!isPublicOutputId(item.id)) throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Unsafe public section identity. Saved content is retained.")
     // Every page is named by its stable id. Nothing is named for its position,
     // so a page keeps its URL no matter where it sits in the reading order —
@@ -1066,13 +1074,16 @@ async function buildWebPackage(
   // Build JS bundle (base.js → base.bundle.min.js)
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Building JS bundle..." })
+  options.signal?.throwIfAborted()
   await buildJsBundle(webAssetsDir, assetsDir)
+  options.signal?.throwIfAborted()
 
   // ------------------------------------------------------------------
   // Build Tailwind CSS
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Building Tailwind CSS..." })
   await buildTailwindCss(adtDir, webAssetsDir, typographyCss)
+  options.signal?.throwIfAborted()
 
   // ------------------------------------------------------------------
   // SCORM + Offline support
@@ -1097,6 +1108,7 @@ async function buildWebPackage(
       bookFontsDir: path.join(bookDir, "fonts"),
       googleCacheDir: fontsCacheDir,
     })
+    options.signal?.throwIfAborted()
     if (bundledBookFonts.length > 0) {
       progress.emit({
         type: "step-progress",
@@ -1110,6 +1122,7 @@ async function buildWebPackage(
     cacheDir: fontsCacheDir,
     excludeFamilies: bundledBookFonts,
   })
+  options.signal?.throwIfAborted()
   if (bundledFonts.length > 0) {
     progress.emit({ type: "step-progress", step, message: `Bundled fonts: ${bundledFonts.join(", ")}` })
   }

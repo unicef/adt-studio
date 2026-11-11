@@ -172,6 +172,7 @@ async function main(): Promise<void> {
       },
       progress,
     )
+    controller.signal.throwIfAborted()
     progress.stop()
 
     if (result.stages.errors.size > 0) {

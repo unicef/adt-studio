@@ -3334,6 +3334,21 @@ describe("packageWebpub", () => {
     return { bookDir, webAssetsDir, storage }
   }
 
+  it("cancellation at package publication retains the previous bundle and removes only its staging", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage, "Prior book")
+    const prior = fs.readFileSync(path.join(bookDir, "adt/index.html"))
+    const abort = new AbortController()
+    let committed = false
+    await expect(packageAdtWeb(storage, {
+      bookDir, webAssetsDir, label: "book", language: "en", outputLanguages: ["en"], title: "Cancelled book", signal: abort.signal,
+      preparePublication: async () => { abort.abort(); return () => { committed = true } },
+    })).rejects.toThrow()
+    expect(committed).toBe(false)
+    expect(fs.readFileSync(path.join(bookDir, "adt/index.html"))).toEqual(prior)
+    expect(fs.readdirSync(path.join(bookDir, ".adt-package-work")).filter(name => name.startsWith("build-"))).toEqual([])
+  })
+
   it("disables showNavigationControls and showTutorial in config", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage)

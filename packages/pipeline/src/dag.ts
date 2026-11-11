@@ -27,6 +27,7 @@ export async function runDAG<T extends string>(
   nodes: DAGNode<T>[],
   execute: (id: T) => Promise<void>,
   onSkip?: (id: T) => void,
+  signal?: AbortSignal,
 ): Promise<DAGResult<T>> {
   const statuses = new Map<T, NodeStatus>(nodes.map((n) => [n.id, "pending"]))
   const errors = new Map<T, Error>()
@@ -42,7 +43,7 @@ export async function runDAG<T extends string>(
       const s = statuses.get(node.id)!
       if (s !== "pending") continue
 
-      if (node.dependsOn.some(isFailed)) {
+      if (signal?.aborted || node.dependsOn.some(isFailed)) {
         statuses.set(node.id, "skipped")
         onSkip?.(node.id)
         continue
@@ -53,6 +54,7 @@ export async function runDAG<T extends string>(
       statuses.set(node.id, "running")
       const p = execute(node.id)
         .then(() => {
+          signal?.throwIfAborted()
           statuses.set(node.id, "complete")
         })
         .catch((err) => {
@@ -100,6 +102,7 @@ export async function runPipelineDAG(
   executors: Map<StepName, StepExecutor>,
   progress: Progress,
   selectedStages?: readonly StageName[],
+  signal?: AbortSignal,
 ): Promise<PipelineDAGResult> {
   const allStepStatuses = new Map<StepName, NodeStatus>()
   const allStepErrors = new Map<StepName, Error>()
@@ -123,12 +126,14 @@ export async function runPipelineDAG(
       const stepResult = await runDAG(
         stepNodes,
         async (stepName) => {
+          signal?.throwIfAborted()
           progress.emit({ type: "step-start", step: stepName })
           try {
             const executor = executors.get(stepName)
             if (executor) {
               await executor(progress)
             }
+            signal?.throwIfAborted()
             progress.emit({ type: "step-complete", step: stepName })
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -139,6 +144,7 @@ export async function runPipelineDAG(
         (stepName) => {
           progress.emit({ type: "step-skip", step: stepName })
         },
+        signal,
       )
 
       // Merge step results into the combined map
@@ -164,6 +170,7 @@ export async function runPipelineDAG(
         progress.emit({ type: "step-skip", step: step.name })
       }
     },
+    signal,
   )
 
   return {

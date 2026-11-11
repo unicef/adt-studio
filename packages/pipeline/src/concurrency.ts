@@ -4,16 +4,18 @@
 export async function processWithConcurrency<T>(
   items: T[],
   concurrency: number,
-  fn: (item: T) => Promise<void>
+  fn: (item: T) => Promise<void>,
+  signal?: AbortSignal,
 ): Promise<void> {
   if (!Number.isInteger(concurrency) || concurrency < 1) throw new Error("Concurrency must be a positive integer")
+  signal?.throwIfAborted()
   let cursor = 0
   let failed = false
   let failure: unknown
   async function worker() {
     while (!failed && cursor < items.length) {
       const item = items[cursor++]
-      try { await fn(item) }
+      try { signal?.throwIfAborted(); await fn(item); signal?.throwIfAborted() }
       catch (error) { if (!failed) { failed = true; failure = error } }
     }
   }

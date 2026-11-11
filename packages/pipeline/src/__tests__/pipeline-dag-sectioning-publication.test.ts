@@ -20,7 +20,7 @@ vi.mock("../extraction-admission.ts", async (original) => ({
 }))
 vi.mock("../dag.ts", async (original) => {
   const real = await original<typeof import("../dag.js")>()
-  return { ...real, runPipelineDAG: (executors: Parameters<typeof real.runPipelineDAG>[0], progress: Parameters<typeof real.runPipelineDAG>[1]) => real.runPipelineDAG(executors, progress, ["sectioning"]) }
+  return { ...real, runPipelineDAG: (executors: Parameters<typeof real.runPipelineDAG>[0], progress: Parameters<typeof real.runPipelineDAG>[1], _stages: unknown, signal?: AbortSignal) => real.runPipelineDAG(executors, progress, ["sectioning"], signal) }
 })
 vi.mock("@adt/llm", async (original) => {
   const real = await original<typeof import("@adt/llm")>()
