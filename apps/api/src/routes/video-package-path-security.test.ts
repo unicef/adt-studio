@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import { createHash } from "node:crypto"
 import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
@@ -28,16 +29,26 @@ beforeEach(() => {
   outside = path.join(root, "outside")
   fs.mkdirSync(outside, { recursive: true })
   const storage = createBookStorage(label, books)
+  let bookId: string | null = null
   try {
     storage.putExtractedPage({ pageId: "pg001", pageNumber: 1, text: "", images: [], pageImage: { pageId: "pg001", imageId: "pg001_page", buffer: Buffer.from("PNG"), format: "png", hash: "hash", width: 8, height: 10 } })
     storage.putNodeData("page-sectioning", "pg001", { reasoning: "", sections: [{ sectionId: "page", sectionType: "text_only", pageNumber: 1, backgroundColor: "white", textColor: "black", isPruned: false, nodes: [] }] })
     storage.putNodeData("web-rendering", "pg001", { sections: [{ sectionId: "page", sectionIndex: 0, sectionType: "text_only", reasoning: "", html: "<main>PAGE</main>" }] })
     storage.putSignLanguageVideo(videoId, Buffer.from("VIDEO"), "sample.mp4", "video/mp4")
     storage.assignSignLanguageVideo(videoId, "pg001_sec001")
+    bookId = storage.getBookIdentity!()
   } finally { storage.close() }
   fs.mkdirSync(path.join(book, "adt", "content"), { recursive: true })
   fs.writeFileSync(path.join(book, "adt", "content", "pages.json"), JSON.stringify([{ href: "page.html", section_id: "page" }]))
   fs.writeFileSync(path.join(book, "adt", "page.html"), "PAGE")
+  fs.mkdirSync(path.join(book, "adt", "assets"))
+  const preloader = "window.__pages = ['PAGE'];"
+  fs.writeFileSync(path.join(book, "adt", "assets", "offline-preloader.js"), preloader)
+  const hash = (text: string) => createHash("sha256").update(text).digest("hex")
+  fs.writeFileSync(path.join(book, "adt", ".build-owners"), JSON.stringify({
+    format: "adt-package-owners-v2", bookId,
+    entries: [["page", "pg001", hash("PAGE")]], preloader: hash(preloader),
+  }))
   fs.writeFileSync(path.join(outside, `${videoId}.mp4`), "OUTSIDE CANARY")
   fs.writeFileSync(path.join(outside, "page.html"), "OUTSIDE CANARY")
   fs.writeFileSync(path.join(outside, "pages.json"), JSON.stringify([{ href: "outside-canary.html" }]))
