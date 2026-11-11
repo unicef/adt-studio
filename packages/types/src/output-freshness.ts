@@ -156,6 +156,17 @@ export const BookWriterOwner = z.object({
 }).strict()
 export type BookWriterOwner = z.infer<typeof BookWriterOwner>
 
+/** Immutable admission reservation, published as a nonempty directory. A dead
+ * reservation has one exclusive successor, named by its predecessor's token. */
+export const BookWriterReservation = z.object({
+  format: z.literal("adt-book-admission-v1"),
+  rootToken: z.string().uuid(),
+  owner: BookWriterOwner,
+  previous: BookWriterOwner.optional(),
+  predecessorToken: z.string().uuid().optional(),
+}).strict()
+export type BookWriterReservation = z.infer<typeof BookWriterReservation>
+
 /** Explicit replacement is bound to the content and inputs shown during review. */
 export const OutputReplacement = z.object({
   identity: OutputIdentity,

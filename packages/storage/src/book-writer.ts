@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { BookWriterOwner } from "@adt/types"
+import { BookWriterOwner, BookWriterReservation } from "@adt/types"
 
 export class BookBusyError extends Error {
   readonly code = "BOOK_BUSY"
@@ -86,8 +86,7 @@ function readOwner(lock: string): BookWriterOwner {
   return BookWriterOwner.parse(JSON.parse(fs.readFileSync(lock, "utf8")))
 }
 
-function deadOwner(lock: string): boolean {
-  const owner = readOwner(lock)
+function provenDead(owner: BookWriterOwner): boolean {
   if (owner.host !== os.hostname()) return false
   const recorded = owner.linuxProcess
   if (!recorded && process.platform === "linux") {
@@ -135,6 +134,120 @@ function entryExists(file: string): boolean {
   catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return false; throw error }
 }
 
+function readReservation(file: string): BookWriterReservation {
+  const stat = fs.lstatSync(file)
+  if (!stat.isDirectory() || stat.isSymbolicLink() || fs.readdirSync(file).join() !== "owner.json") throw new BookBusyError()
+  const record = path.join(file, "owner.json")
+  const recordStat = fs.lstatSync(record)
+  if (!recordStat.isFile() || recordStat.isSymbolicLink() || recordStat.nlink !== 1) throw new BookBusyError()
+  return BookWriterReservation.parse(JSON.parse(fs.readFileSync(record, "utf8")))
+}
+
+/** The canonical reservation is never empty or partly written. rename of a
+ * prepared nonempty directory cannot replace another nonempty reservation. */
+function publishReservation(file: string, record: BookWriterReservation): void {
+  const prepared = `${file}.preparing-${record.owner.token}`
+  fs.mkdirSync(prepared, { mode: 0o700 })
+  try {
+    const fd = fs.openSync(path.join(prepared, "owner.json"), "wx", 0o600)
+    try { fs.writeFileSync(fd, JSON.stringify(record)); fs.fsyncSync(fd) }
+    finally { fs.closeSync(fd) }
+    syncLeaseDirectory(prepared)
+    if (entryExists(file)) throw new BookBusyError()
+    fs.renameSync(prepared, file)
+    syncLeaseDirectory(path.dirname(file))
+  } finally { if (entryExists(prepared)) fs.rmSync(prepared, { recursive: true }) }
+}
+
+/** A dead reservation is extended, never unlinked by competing reapers. Its
+ * token names one exclusive successor. After claiming a successor, revalidate
+ * the root: a delayed contender cannot act on a completed/replaced chain.
+ * Only the live leaf can change ownership. Completion atomically retires the
+ * root FIRST, so death during cleanup cannot strand anonymous evidence. */
+function reserveAdmission(dir: string, owner: BookWriterOwner) {
+  const recovery = path.join(dir, `${lockName}.recovery`)
+  const lock = path.join(dir, lockName)
+  let root: BookWriterReservation
+  const chain: Array<{ file: string; record: BookWriterReservation }> = []
+  if (!entryExists(recovery)) {
+    const previous = entryExists(lock) ? readOwner(lock) : undefined
+    if (previous && !provenDead(previous)) throw new BookBusyError()
+    root = { format: "adt-book-admission-v1", rootToken: owner.token, owner, ...(previous ? { previous } : {}) }
+    publishReservation(recovery, root)
+    chain.push({ file: recovery, record: root })
+  } else {
+    root = readReservation(recovery)
+    if (root.rootToken !== root.owner.token || root.predecessorToken) throw new BookBusyError()
+    let file = recovery, record = root
+    const seen = new Set<string>()
+    for (;;) {
+      if (seen.has(record.owner.token) || !provenDead(record.owner)) throw new BookBusyError()
+      seen.add(record.owner.token)
+      chain.push({ file, record })
+      file = `${recovery}.${record.owner.token}`
+      const predecessorToken = record.owner.token
+      if (entryExists(file)) {
+        record = readReservation(file)
+        if (record.rootToken !== root.rootToken || record.predecessorToken !== predecessorToken || record.previous) throw new BookBusyError()
+      } else {
+        record = { format: "adt-book-admission-v1", rootToken: root.rootToken, predecessorToken, owner }
+        publishReservation(file, record)
+        chain.push({ file, record })
+        try {
+          if (readReservation(recovery).rootToken !== root.rootToken) throw new BookBusyError()
+        } catch (error) { fs.rmSync(file, { recursive: true }); throw error }
+        break
+      }
+    }
+  }
+  return {
+    previous: root.previous,
+    ownerTokens: new Set(chain.map(item => item.record.owner.token)),
+    release(completed: boolean) {
+      if (readReservation(recovery).rootToken !== root.rootToken) throw new BookBusyError()
+      if (!completed && chain.length > 1) {
+        // Refusal must preserve the predecessor's recovery evidence. Retire
+        // only our unused successor; no database or owner changes occurred.
+        const own = chain.at(-1)!
+        const retired = `${own.file}.completed-${owner.token}`
+        fs.renameSync(own.file, retired)
+        syncLeaseDirectory(dir)
+        fs.rmSync(retired, { recursive: true })
+        return
+      }
+      const retired = `${recovery}.completed-${owner.token}`
+      fs.renameSync(recovery, retired)
+      syncLeaseDirectory(dir)
+      fs.rmSync(retired, { recursive: true })
+      for (const item of chain.slice(1)) fs.rmSync(item.file, { recursive: true })
+    },
+  }
+}
+
+/** Replace complete lease bytes, including capability registration. A killed
+ * process leaves either the prior valid lease or the next valid lease. */
+function publishOwner(lock: string, owner: BookWriterOwner): void {
+  const prepared = `${lock}.preparing-${randomUUID()}`
+  const fd = fs.openSync(prepared, "wx", 0o600)
+  let open = true
+  try {
+    const bytes = Buffer.from(JSON.stringify(owner))
+    let offset = 0
+    while (offset < bytes.length) {
+      const written = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset)
+      if (written <= 0) throw new BookBusyError("Database ownership evidence could not be saved.")
+      offset += written
+    }
+    fs.fsyncSync(fd)
+    fs.closeSync(fd); open = false
+    fs.renameSync(prepared, lock)
+    syncLeaseDirectory(path.dirname(lock))
+  } finally {
+    if (open) fs.closeSync(fd)
+    if (entryExists(prepared)) fs.unlinkSync(prepared)
+  }
+}
+
 function databaseMutexes(dir: string, databases: readonly string[] = []): string[] {
   return [...new Set([
     `${path.basename(dir)}.db.lock`,
@@ -159,45 +272,25 @@ function verifyLocalLease(dir: string, lease: Lease): void {
 
 function acquire(dir: string, databaseFile?: string): Lease {
   const lock = path.join(dir, lockName)
-  const recovery = `${lock}.recovery`
   const token = randomUUID()
-  if (entryExists(recovery)) throw new BookBusyError()
-  let observed: BookWriterOwner | undefined
-  try {
-    if (entryExists(lock)) {
-      observed = readOwner(lock)
-      if (!deadOwner(lock)) throw new BookBusyError()
-    }
-  } catch (error) {
-    if (error instanceof BookBusyError) throw error
-    throw new BookBusyError("Book ownership could not be verified. Recovery evidence has been preserved.")
-  }
+  const owner: BookWriterOwner = { token, pid: process.pid, host: os.hostname(), linuxProcess: linuxProcess(process.pid), coordinatedDatabases: [] }
   const removeOwn = () => {
     if (readOwner(lock).token !== token) throw new BookBusyError("Book ownership changed during admission.")
     fs.unlinkSync(lock)
   }
-  let fd: number | undefined
+  let reservation: ReturnType<typeof reserveAdmission> | undefined
   let changed = false
   let published = false
   try {
-    // The existing reservation covers BOTH fresh owner publication and dead
-    // owner recovery. There is no unreserved gap in which another process can
-    // publish an owner while a reaper is removing its predecessor.
-    fd = fs.openSync(recovery, "wx", 0o600)
-    fs.fsyncSync(fd)
-    syncLeaseDirectory(dir)
-    let previous: BookWriterOwner | undefined
-    if (entryExists(lock)) {
-      previous = readOwner(lock)
-      if (!observed || previous.token !== observed.token || !deadOwner(lock)) throw new BookBusyError()
-    } else if (observed) {
-      // Another owner/reservation changed after the initial observation.
-      throw new BookBusyError()
-    }
+    reservation = reserveAdmission(dir, owner)
+    const previous = entryExists(lock) ? readOwner(lock) : undefined
+    if (previous) {
+      if (!provenDead(previous) || (previous.token !== reservation.previous?.token &&
+        !reservation.ownerTokens.has(previous.token))) throw new BookBusyError()
+    } else if (reservation.previous) throw new BookBusyError()
     const registered = new Set(previous?.coordinatedDatabases ?? [])
     const mutexes = databaseMutexes(dir, [...registered, ...(databaseFile ? [databaseFile] : [])])
-    // Preflight every candidate before removing any evidence. Only exact paths
-    // opened by the proven-dead coordinated owner have recoverable provenance.
+    // Validate all candidates before changing any. No age-based lock deletion.
     for (const name of mutexes) {
       const stat = fs.lstatSync(path.join(dir, name))
       if (!registered.has(name.slice(0, -5)) || !stat.isDirectory() || stat.isSymbolicLink() || fs.readdirSync(path.join(dir, name)).length) {
@@ -205,29 +298,16 @@ function acquire(dir: string, databaseFile?: string): Lease {
       }
     }
     for (const name of mutexes) { changed = true; fs.rmdirSync(path.join(dir, name)) }
-    // SQLite itself recovers WAL/journal files. Never delete those files.
-    if (previous) { changed = true; fs.unlinkSync(lock) }
-    const ownerFd = fs.openSync(lock, "wx", 0o600)
+    // SQLite recovers its own WAL/journals. Keep the prior valid lease until
+    // its complete successor is ready, with no empty owner-file crash window.
     changed = true
-    try {
-      // No filename capability yet. Register clean exact paths durably before
-      // constructing SQLite; an anonymous legacy mutex can never be laundered.
-      fs.writeFileSync(ownerFd, JSON.stringify({ token, pid: process.pid, host: os.hostname(), linuxProcess: linuxProcess(process.pid), coordinatedDatabases: [] }))
-      fs.fsyncSync(ownerFd)
-    } finally { fs.closeSync(ownerFd) }
-    syncLeaseDirectory(dir)
+    publishOwner(lock, owner)
     published = true
   } catch (error) {
     if (error instanceof BookBusyError) throw error
     throw new BookBusyError("Book ownership could not be recovered. Recovery evidence has been preserved.")
   } finally {
-    if (fd !== undefined) {
-      fs.closeSync(fd)
-      // A failed/partial publication keeps its reservation, including caught
-      // filesystem failures. Only unchanged refusal or completed publication
-      // can release the recovery boundary.
-      if (published || !changed) { fs.unlinkSync(recovery); syncLeaseDirectory(dir) }
-    }
+    if (reservation && (published || !changed)) reservation.release(published)
   }
   const lease: Lease = {
     token, references: 0, writers: 0, databases: new Set(),
@@ -264,20 +344,9 @@ export function retainBookDatabase(dbPath: string): () => void {
     if (!lease.databases.has(filename)) {
       if (entryExists(`${file}.lock`)) throw new BookBusyError("Database mutex ownership could not be verified. Recovery evidence has been preserved.")
       const lock = path.join(dir, lockName)
-      const fd = fs.openSync(lock, "r+")
-      try {
-        const owner = BookWriterOwner.parse(JSON.parse(fs.readFileSync(fd, "utf8")))
-        if (owner.token !== lease.token) throw new BookBusyError("Book ownership changed before opening the database.")
-        const bytes = Buffer.from(JSON.stringify({ ...owner, coordinatedDatabases: [...lease.databases, filename] }))
-        let offset = 0
-        while (offset < bytes.length) {
-          const written = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset)
-          if (written <= 0) throw new BookBusyError("Database ownership evidence could not be saved.")
-          offset += written
-        }
-        fs.ftruncateSync(fd, bytes.length)
-        fs.fsyncSync(fd)
-      } finally { fs.closeSync(fd) }
+      const owner = readOwner(lock)
+      if (owner.token !== lease.token) throw new BookBusyError("Book ownership changed before opening the database.")
+      publishOwner(lock, { ...owner, coordinatedDatabases: [...lease.databases, filename] })
       lease.databases.add(filename)
     }
   } catch (error) { lease.release(); throw error }

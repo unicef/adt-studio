@@ -334,9 +334,9 @@ it("a delayed reaper cannot displace a newly published live owner", async () => 
   const contender = spawn(process.execPath, ["--input-type=module", "-e", `
     import fs from 'node:fs';
     import {withBookWriter} from ${JSON.stringify(path.resolve(import.meta.dirname, "../../dist/book-writer.js"))};
-    const open=fs.openSync; let stopped=false;
-    fs.openSync=function(file,...args) {
-      if (!stopped && String(file)===${JSON.stringify(path.join(fs.realpathSync(f.bookDir), ".book-writer.json.recovery"))} && args[0]==='wx') {
+    const rename=fs.renameSync; let stopped=false;
+    fs.renameSync=function(from,to) {
+      if (!stopped && String(to)===${JSON.stringify(path.join(fs.realpathSync(f.bookDir), ".book-writer.json.recovery"))}) {
         stopped=true; fs.writeFileSync(${JSON.stringify(paused)}, 'paused before reservation');
         const deadline=Date.now()+10000;
         while (!fs.existsSync(${JSON.stringify(resume)})) {
@@ -344,7 +344,7 @@ it("a delayed reaper cannot displace a newly published live owner", async () => 
           Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,5);
         }
       }
-      return open.call(fs,file,...args);
+      return rename.call(fs,from,to);
     };
     try { withBookWriter(${JSON.stringify(f.bookDir)},()=>process.send('incorrectly acquired')); }
     catch(error) { process.send(error.code); }
@@ -362,7 +362,7 @@ it("a delayed reaper cannot displace a newly published live owner", async () => 
   expect(withBookWriter(f.bookDir, () => "next operation")).toBe("next operation")
 })
 
-it("preserves a reaper killed in the owner-file gap and excludes fresh contenders", async () => {
+it("excludes contenders during owner publication and recovers a killed reaper", async () => {
   const f = fixture()
   const dead = await owner(f.bookDir)
   const died = once(dead, "exit"); dead.kill("SIGKILL"); await died
@@ -370,23 +370,22 @@ it("preserves a reaper killed in the owner-file gap and excludes fresh contender
   const reaper = spawn(process.execPath, ["--input-type=module", "-e", `
     import fs from 'node:fs';
     import {withBookWriter} from ${JSON.stringify(path.resolve(import.meta.dirname, "../../dist/book-writer.js"))};
-    const unlink=fs.unlinkSync;
-    fs.unlinkSync=function(file) {
-      const result=unlink.call(fs,file);
-      if(String(file)===${JSON.stringify(path.join(fs.realpathSync(f.bookDir), ".book-writer.json"))}) {
-        fs.writeFileSync(${JSON.stringify(paused)},'old owner removed');
+    const rename=fs.renameSync;
+    fs.renameSync=function(from,to) {
+      if(String(to)===${JSON.stringify(path.join(fs.realpathSync(f.bookDir), ".book-writer.json"))}) {
+        fs.writeFileSync(${JSON.stringify(paused)},'before owner replacement');
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,10000);
         throw new Error('test barrier timeout');
       }
-      return result;
+      return rename.call(fs,from,to);
     };
     withBookWriter(${JSON.stringify(f.bookDir)},()=>{throw new Error('must not enter')});
   `], { stdio: ["ignore", "pipe", "pipe"] })
   children.push(reaper)
   await vi.waitFor(() => expect(fs.existsSync(paused)).toBe(true))
-  expect(fs.existsSync(path.join(f.bookDir, ".book-writer.json"))).toBe(false)
+  expect(fs.existsSync(path.join(f.bookDir, ".book-writer.json"))).toBe(true)
   expect(() => withBookWriter(f.bookDir, () => "bypass")).toThrow("BOOK_BUSY")
   const exited = once(reaper, "exit"); reaper.kill("SIGKILL"); await exited
-  expect(() => withBookWriter(f.bookDir, () => "bypass orphan")).toThrow("BOOK_BUSY")
-  expect(fs.existsSync(path.join(f.bookDir, ".book-writer.json.recovery"))).toBe(true)
+  expect(withBookWriter(f.bookDir, () => "recovered orphan")).toBe("recovered orphan")
+  expect(fs.existsSync(path.join(f.bookDir, ".book-writer.json.recovery"))).toBe(false)
 })

@@ -195,11 +195,10 @@ it("retains admission when a statement cannot be finalized on close", () => {
 it("writes a complete filename capability even when the filesystem accepts short writes", () => {
   withBookWriter(dir, () => {
     const ownerFile = path.join(dir, ".book-writer.json")
-    const inode = fs.statSync(ownerFile).ino
     const write = fs.writeSync.bind(fs)
     let partialCalls = 0
     const spy = vi.spyOn(fs, "writeSync").mockImplementation(((fd: number, buffer: Buffer, offset: number, length: number, position: number) => {
-      if (fs.fstatSync(fd).ino === inode && Buffer.isBuffer(buffer)) { partialCalls++; return write(fd, buffer, offset, Math.min(length, 7), position) }
+      if (Buffer.isBuffer(buffer) && buffer.includes('"coordinatedDatabases"')) { partialCalls++; return write(fd, buffer, offset, Math.min(length, 7), position) }
       return write(fd, buffer, offset, length, position)
     }) as typeof fs.writeSync)
     let db: ReturnType<typeof openBookDb> | undefined

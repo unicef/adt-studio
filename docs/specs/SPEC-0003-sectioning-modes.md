@@ -243,6 +243,15 @@ ambiguous process identity, unregistered paths and interrupted recovery retain
 evidence and fail closed. Never delete locks by timeout, delete WAL/journals, or
 claim a successful close while outstanding statements can still use SQLite.
 
+**November 11 crash correction:** publish complete reservation and lease records
+atomically. A reservation with a proven-dead creator can have one exclusively
+claimed successor; competing reapers must not unlink and recreate its admission
+boundary. Revalidate the original reservation before changing any owner or mutex,
+and atomically retire that boundary before cleaning completed records. Interrupted
+capability registration retains a complete prior or next lease. Anonymous legacy
+reservations and unverified records remain preserved and refused. This extends
+the same admission protocol; it grants no content or freshness authority.
+
 This guarantee requires cooperating updated runtimes. A concurrently running older
 build or raw SQLite client that ignores shared admission is unsupported; bounded
 old-build readability on isolated copies is unchanged. A capability record does

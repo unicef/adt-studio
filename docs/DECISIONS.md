@@ -1009,6 +1009,10 @@ connection and statement lifetime after a live-reader/startup recovery race was
 reproduced. Same-process database borrowing grants no writer authority; registered
 database paths plus proven owner death bound mutex recovery. Uncoordinated older
 processes are outside this concurrency guarantee. SPEC-0003 approval stays pending.
+The November 11 correction makes reservation and capability publication atomic.
+Verified dead reservations use an exclusive successor chain and root revalidation;
+completion retires the root atomically before cleanup. Anonymous legacy evidence
+remains fail-closed. This closes process-death windows within the same shared gate.
 Sectioning ordinary-AI replacement and fixed-pair active retention from SPEC-0002
 are refined only as documented in the amended spec. Full CLI resume belongs to
 SPEC-0010; B2 remains deferred. Reconcile onto merged SPEC-0001/0002 on develop,
