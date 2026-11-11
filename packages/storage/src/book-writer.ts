@@ -301,6 +301,10 @@ function acquire(dir: string, databaseFile?: string): Lease {
     // SQLite recovers its own WAL/journals. Keep the prior valid lease until
     // its complete successor is ready, with no empty owner-file crash window.
     changed = true
+    // All existing mutexes were validated above. A reader's first database
+    // capability can travel in the initial complete owner publication, before
+    // SQLite opens, rather than rewriting the same owner a second time.
+    if (databaseFile) owner.coordinatedDatabases = [databaseFile]
     publishOwner(lock, owner)
     published = true
   } catch (error) {
@@ -310,7 +314,7 @@ function acquire(dir: string, databaseFile?: string): Lease {
     if (reservation && (published || !changed)) reservation.release(published)
   }
   const lease: Lease = {
-    token, references: 0, writers: 0, databases: new Set(),
+    token, references: 0, writers: 0, databases: new Set(owner.coordinatedDatabases),
     release() {
       lease.references--
       if (lease.references !== 0) return

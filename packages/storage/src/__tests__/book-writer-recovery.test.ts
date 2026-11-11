@@ -57,7 +57,7 @@ async function pausedAdmission(boundary: string, resume?: string) {
   const marker = path.join(dir, `paused-${children.length}`)
   const child = spawn(process.execPath, ["--input-type=module", "-e", `
     import fs from 'node:fs';
-    import {retainBookDatabase} from ${JSON.stringify(path.resolve("packages/storage/dist/book-writer.js"))};
+    import {retainBookDatabase,withBookWriter} from ${JSON.stringify(path.resolve("packages/storage/dist/book-writer.js"))};
     const lock=${JSON.stringify(path.join(dir, ".book-writer.json"))};
     const recovery=lock+'.recovery'; let owners=0;
     function stop() {
@@ -84,7 +84,13 @@ async function pausedAdmission(boundary: string, resume?: string) {
       if('after-'+event===${JSON.stringify(boundary)}) stop();
       return result;
     };
-    try { retainBookDatabase(${JSON.stringify(path.join(dir, "book.db"))})(); }
+    try {
+      const open=()=>retainBookDatabase(${JSON.stringify(path.join(dir, "book.db"))})();
+      // Additional registration remains a distinct boundary when a writer
+      // opens its first database after acquiring a general-purpose lease.
+      if (${JSON.stringify(boundary.includes("capability"))}) withBookWriter(${JSON.stringify(dir)},open);
+      else open();
+    }
     catch(error) { process.stderr.write(String(error.code)); process.exitCode=23; }
   `], { stdio: ["ignore", "pipe", "pipe"] })
   children.push(child)

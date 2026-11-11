@@ -209,3 +209,22 @@ it("writes a complete filename capability even when the filesystem accepts short
     } finally { spy.mockRestore(); db?.close() }
   })
 })
+
+
+it("admits an ordinary reader with one durable owner publication including its database capability", () => {
+  const sync = vi.spyOn(fs, "fsyncSync")
+  const started = performance.now()
+  const db = openBookDb(file)
+  try {
+    const owner = JSON.parse(fs.readFileSync(path.join(dir, ".book-writer.json"), "utf8"))
+    expect(owner.coordinatedDatabases).toEqual(["book.db"])
+    // Reservation file/directory/publication, owner file/publication, and
+    // reservation retirement remain durable. Avoid a second owner rewrite.
+    expect(sync.mock.calls.length).toBeLessThanOrEqual(6)
+    expect(db.get("SELECT status FROM step_runs")).toEqual({ status: "running" })
+  } finally {
+    db.close()
+    console.info(JSON.stringify({ readerOpenCloseMs: performance.now() - started, metadataSyncs: sync.mock.calls.length }))
+    sync.mockRestore()
+  }
+})
