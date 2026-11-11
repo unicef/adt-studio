@@ -1004,8 +1004,7 @@ function createAdmittedStageRunner(): StageRunner {
               completionStorage.markStepCompleted(event.step, event.message)
             } else if (event.type === "step-skip") {
               runningSteps.delete(event.step)
-              completionStorage.markStepSkipped(event.step)
-              if (event.message) completionStorage.updateStepMessage(event.step, event.message)
+              completionStorage.markStepSkipped(event.step, event.message)
             } else if (event.type === "step-error") {
               runningSteps.delete(event.step)
               completionStorage.recordStepError(event.step, event.error)

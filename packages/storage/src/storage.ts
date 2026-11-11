@@ -147,7 +147,7 @@ export interface Storage {
    *  completion message (e.g. "Completed — 2 page(s) skipped"). */
   markStepCompleted(step: string, message?: string): void
   /** Mark a pipeline step as skipped. */
-  markStepSkipped(step: string): void
+  markStepSkipped(step: string, message?: string): void
   /** Record a step error. Can be called multiple times (last error wins). */
   recordStepError(step: string, error: string): void
   /** Update the progress message for a running step (e.g., "5/120"). */

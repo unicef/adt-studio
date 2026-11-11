@@ -482,11 +482,11 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       )
     },
 
-    markStepSkipped(step: string): void {
+    markStepSkipped(step: string, message?: string): void {
       telemetryRun("step_runs",
-        `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'skipped', ?)
-         ON CONFLICT (step) DO UPDATE SET status='skipped', completed_at=excluded.completed_at`,
-        [step, new Date().toISOString()]
+        `INSERT INTO step_runs (step, status, completed_at, message) VALUES (?, 'skipped', ?, ?)
+         ON CONFLICT (step) DO UPDATE SET status='skipped', completed_at=excluded.completed_at, message=excluded.message`,
+        [step, new Date().toISOString(), message ?? null]
       )
     },
 

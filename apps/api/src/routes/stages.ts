@@ -433,9 +433,9 @@ export function createStageRoutes(
         if (row?.status === "error" && row.error) {
           stepErrors[step.name] = row.error
         }
-        // Surface the message for running steps (page X/Y) and for done steps
+        // Surface the message for running steps (page X/Y) and terminal steps
         // (e.g. "Completed — 2 page(s) skipped") so a skip note survives refetch.
-        if ((status === "running" || status === "done") && row?.message) {
+        if ((status === "running" || status === "done" || status === "skipped") && row?.message) {
           stepMessages[step.name] = row.message
         }
       }

@@ -882,11 +882,13 @@ it("explicit scoped Sectioning replacement cannot attach an old enabled stepper 
   expect(fs.readFileSync(path.join(dir, "images/p2_page.png")).equals(pixels)).toBe(true)
 })
 
-it("ordinary Sectioning reports unreadable retained pages while publishing unrelated missing work", async () => {
+it.each([false, true])("ordinary Sectioning persists unreadable-page warnings; unrelated new work=%s", async newWork => {
   const s = store()
   s.putNodeData("page-sectioning", "p2", null)
-  s.putExtractedPage({ pageId: "p9", pageNumber: 9, text: "New source", images: [], pageImage: { imageId: "p9_page", buffer: Buffer.from("new pixels"), format: "png", hash: "new", width: 4, height: 6 } })
-  s.putNodeData("image-filtering", "p9", { images: [] })
+  if (newWork) {
+    s.putExtractedPage({ pageId: "p9", pageNumber: 9, text: "New source", images: [], pageImage: { imageId: "p9_page", buffer: Buffer.from("new pixels"), format: "png", hash: "new", width: 4, height: 6 } })
+    s.putNodeData("image-filtering", "p9", { images: [] })
+  }
   s.close()
   const before = history("page-sectioning", "p2")
   const neighbor = history("page-sectioning", "p7")
@@ -900,8 +902,15 @@ it("ordinary Sectioning reports unreadable retained pages while publishing unrel
   expect(savedStatus.stepMessages["page-sectioning"]).toBe("SECTIONING_INPUT_UNREADABLE: p2; total=1")
   expect(history("page-sectioning", "p2")).toEqual(before)
   expect(history("page-sectioning", "p7")).toEqual(neighbor)
-  expect(history("page-sectioning", "p9")).toHaveLength(1)
-  expect(sectionPage).toHaveBeenCalledTimes(1)
+  expect(history("page-sectioning", "p9")).toHaveLength(newWork ? 1 : 0)
+  expect(sectionPage).toHaveBeenCalledTimes(newWork ? 1 : 0)
+  // A later healthy no-op replaces, rather than retains, the earlier warning.
+  const repaired = store()
+  repaired.putNodeData("page-sectioning", "p2", tree("p2"))
+  repaired.close()
+  expect((await run({ toStage: "sectioning" })).status).toBe("completed")
+  const refreshed = await (await app.request(`/books/${label}/step-status`)).json()
+  expect(refreshed.stepMessages?.["page-sectioning"]).toBeUndefined()
 })
 it.each(["{invalid", "{}"])("invalid required part window is localized and never broadened: %s", async content => {
   const file = path.join(dir, "part.json")
