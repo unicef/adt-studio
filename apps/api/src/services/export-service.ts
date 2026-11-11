@@ -318,11 +318,12 @@ function readableDerivedPackageZip(bookDir: string, directory: string, contentRo
     requiredPartRange(bookDir)
     const storage = createBookStorage(path.basename(bookDir), path.dirname(bookDir))
     try {
-      const allowed = resolveReadingOrder(storage).positionById
+      const allowed = new Map(resolveReadingOrder(storage).items.map(item => [item.id, item.kind === "quiz" ? null : item.pageId]))
       let receipt: ReturnType<typeof PackageOwnershipReceipt.parse> | undefined
       try { receipt = PackageOwnershipReceipt.parse(JSON.parse(fs.readFileSync(path.join(contentRoot, ".build-owners"), "utf8"))) }
       catch { /* Unproven retained membership/origin requires explicit preparation. */ }
-      if (!receipt || receipt.bookId !== storage.getBookIdentity?.() || !receipt.entries.length || receipt.entries.some(row => !allowed.has(row[0]))) {
+      if (!receipt || receipt.bookId !== storage.getBookIdentity?.() || !receipt.entries.length || new Set(receipt.entries.map(row => row[0])).size !== receipt.entries.length ||
+          receipt.entries.some(([id, pageOwner]) => !allowed.has(id) || allowed.get(id) !== pageOwner)) {
         throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from this book's current owned content.")
       }
     } finally { storage.close() }

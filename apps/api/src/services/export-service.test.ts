@@ -800,3 +800,30 @@ it.each(["webpub", "epub", "pnld"] as const)("binds real %s exports to their ori
   await prepareExport("owned-a", format, tmpDir, webAssetsDir)
   expect((await streamToBuffer((await download("owned-a", tmpDir)).stream)).length).toBeGreaterThan(0)
 })
+
+it.each(["webpub", "epub", "pnld"] as const)("refuses retained %s pages after their explicit owner changes", async format => {
+  const label = "changed-owner"
+  createBookWithMetadata(label, label)
+  addPagesAndRenderings(label, 2)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  const download = { webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+  const directory = path.join(tmpDir, label)
+  const receiptPath = path.join(directory, format, format === "epub" ? "OEBPS/.build-owners" : format === "pnld" ? "resources/data/.build-owners" : ".build-owners")
+  const receipt = fs.readFileSync(receiptPath)
+  // Contradictory imported state: the same section ID now names another page.
+  // This must not authorize an intact artifact from its retired owner.
+  const db = openBookDb(path.join(directory, label + ".db"))
+  try {
+    const source = (id: string) => JSON.parse((db.get("SELECT data FROM node_data WHERE node='page-sectioning' AND item_id=?", [id]) as { data: string }).data)
+    const one = source(label + "_p1"), two = source(label + "_p2")
+    const rendering = JSON.parse((db.get("SELECT data FROM node_data WHERE node='web-rendering' AND item_id=?", [label + "_p2"]) as { data: string }).data)
+    db.run("UPDATE node_data SET data=? WHERE node='page-sectioning' AND item_id=?", [JSON.stringify({ ...one, sections: [] }), label + "_p1"])
+    db.run("UPDATE node_data SET data=? WHERE node='page-sectioning' AND item_id=?", [JSON.stringify({ ...two, sections: [...two.sections, { ...one.sections[0], pageNumber: 2 }] }), label + "_p2"])
+    db.run("UPDATE node_data SET data=? WHERE node='web-rendering' AND item_id=?", [JSON.stringify({ sections: [...rendering.sections, { sectionId: one.sections[0].sectionId, sectionIndex: 1, sectionType: "content", reasoning: "Imported owner", html: "<main>New owner</main>" }] }), label + "_p2"])
+  } finally { db.close() }
+  await expect(download(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+  expect(fs.readFileSync(receiptPath)).toEqual(receipt)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+})
