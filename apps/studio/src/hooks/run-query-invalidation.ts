@@ -1,3 +1,4 @@
+import { isRunConfirmationQuery } from "./run-confirmation-query"
 import type { QueryClient } from "@tanstack/react-query"
 
 /** Refresh the completed book and the list without overlapping prefixes.
@@ -5,7 +6,7 @@ import type { QueryClient } from "@tanstack/react-query"
  * reads may have captured an older state before final publication. */
 export async function invalidateBookQueries(client: QueryClient, label: string) {
   const filters = [
-    { queryKey: ["books", label] },
+    { queryKey: ["books", label], predicate: (query: Parameters<typeof isRunConfirmationQuery>[0]) => !isRunConfirmationQuery(query) },
     { queryKey: ["books"], exact: true },
     { queryKey: ["package-adt-status", label] },
     { queryKey: ["debug"] },

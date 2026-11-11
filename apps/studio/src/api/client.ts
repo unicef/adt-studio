@@ -2144,7 +2144,7 @@ export const api = {
       { method: "POST" },
     ),
 
-  getStepStatus: (label: string) =>
+  getStepStatus: (label: string, signal?: AbortSignal) =>
     request<{
       sourceUpdateStages: string[]
       stages: Record<string, string>
@@ -2158,7 +2158,7 @@ export const api = {
       pendingDecisions: PendingDecision[]
       coverage?: import("@adt/types").StoryboardCoverage
       protectedWork?: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }>
-    }>(`/books/${label}/step-status`),
+    }>(`/books/${label}/step-status`, { signal }),
 
   getTTS: (label: string) =>
     request<TTSResponse>(`/books/${label}/tts`),

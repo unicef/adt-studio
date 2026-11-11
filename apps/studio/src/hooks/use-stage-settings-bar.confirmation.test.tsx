@@ -3,7 +3,7 @@ import React from "react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { refreshRunStatus } from "./run-query-invalidation"
+import { refreshRunStatus, invalidateBookQueries } from "./run-query-invalidation"
 
 const state = vi.hoisted(() => ({
   config: { config: {} }, active: { merged: {} }, save: vi.fn(), queue: vi.fn(), navigate: vi.fn(), proceed: vi.fn(), reset: vi.fn(),
@@ -315,4 +315,18 @@ it("Sectioning Save keeps frozen versions when only another writer's content cha
   await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ replaceManual: true,
     protectedReplacements: [expect.objectContaining({ version: 7, sectioningInputSignature: "a".repeat(64) })] })))
   expect(screen.queryByText(/Settings were saved. Review replacement again/)).toBeNull()
+})
+
+it.each(["toc", "sectioning"] as const)("%s confirmation survives a concurrent background publication refresh", async stage => {
+  await mount(stage)
+  const fresh = deferred<never>()
+  vi.mocked(api.getStepStatus).mockReturnValueOnce(fresh.promise)
+  fireEvent.click(screen.getByRole("button", { name: "Save & Re-run" }))
+  await act(async () => { await invalidateBookQueries(client, "a") })
+  expect(state.queue).not.toHaveBeenCalled()
+  await act(async () => fresh.resolve({ protectedWork: [record(stage, 11)] } as never))
+  await screen.findByRole("dialog", { name: /Re-run/ })
+  if (stage === "sectioning") fireEvent.click(screen.getByRole("checkbox"))
+  await confirm()
+  await waitFor(() => expect(state.queue).toHaveBeenCalledWith(expect.objectContaining({ protectedReplacements: [expect.objectContaining({ version: 11 })] })))
 })

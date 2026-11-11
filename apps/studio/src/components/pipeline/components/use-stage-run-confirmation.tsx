@@ -1,3 +1,4 @@
+import { runConfirmationQueryKey } from "@/hooks/run-confirmation-query"
 import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -34,6 +35,7 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
     refetchOnMount: "always",
   })
   const scope = useMemo(() => ({ active: true }), [bookLabel, stage])
+  const protectionQuery = useRef<{ scope: typeof scope; key: ReturnType<typeof runConfirmationQueryKey> } | null>(null)
   const currentScope = useRef(scope)
   currentScope.current = scope
   const availableRef = useRef(available)
@@ -52,12 +54,13 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
     setError(null)
     return () => {
       scope.active = false
+      if (protectionQuery.current?.scope === scope) void queryClient.cancelQueries({ queryKey: protectionQuery.current.key, exact: true })
       if (pending.current?.scope === scope) {
         pending.current.resolve(null)
         pending.current = null
       }
     }
-  }, [scope])
+  }, [scope, queryClient])
   const isCurrent = () => scope.active && currentScope.current === scope && availableRef.current
   const finish = (value: RunConsent | null) => {
     if (pending.current?.scope !== scope) return
@@ -70,14 +73,15 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
     // Only this request's completed, non-aborted read can define consent;
     // cancelled/deduplicated queries cannot authorize warm cached records.
     let completed: { data: Awaited<ReturnType<typeof api.getStepStatus>>; signal: AbortSignal } | undefined
-    const queryKey = ["books", bookLabel, "step-status", "confirmation", stage, instanceId, ++protectionRead.current]
+    const queryKey = runConfirmationQueryKey(bookLabel, stage, instanceId, ++protectionRead.current)
+    protectionQuery.current = { scope, key: queryKey }
     try {
       // Background status reads may already be running. A request-owned key
       // guarantees this explicit action gets its own fresh, cancellable read.
       await queryClient.fetchQuery({
         queryKey, staleTime: 0, gcTime: 0,
         queryFn: async ({ signal }) => {
-          const data = await api.getStepStatus(bookLabel)
+          const data = await api.getStepStatus(bookLabel, signal)
           completed = { data, signal }
           return data
         },
@@ -88,6 +92,7 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
         .map(record => ({ ...record }))
     } finally {
       queryClient.removeQueries({ queryKey, exact: true })
+      if (protectionQuery.current?.key === queryKey) protectionQuery.current = null
     }
   }
   const confirm = (work: ProtectedWork, settingsSaved = false): Promise<RunConsent | null> => new Promise(resolve => {
