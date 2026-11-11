@@ -69,13 +69,13 @@ describe("Sectioning mode confirmation", () => {
     expect(screen.getByTestId("persisted").textContent).toBe("dynamic")
   })
   it("persists after confirmation and refreshes config, effective config, pages and status", async () => {
-    const { invalidate } = mount(); await select()
+    const { client } = mount(); await select()
+    const keys = [["book-config", "book"], ["debug", "config", "book"], ["books", "book", "pages"], ["books", "book", "step-status"]]
+    for (const key of keys) client.setQueryData(key, "old")
     fireEvent.click(screen.getByRole("button", { name: "Change mode" }))
     await waitFor(() => expect(screen.getByTestId("persisted").textContent).toBe("page"))
     expect(mocks.update).toHaveBeenCalledTimes(1)
-    for (const key of [["book-config", "book"], ["debug"], ["books"]]) {
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: key })
-    }
+    for (const key of keys) expect(client.getQueryState(key)?.isInvalidated).toBe(true)
   })
   it("keeps/refetches persisted mode and surfaces a rejected save", async () => {
     mocks.update.mockRejectedValue(new Error("Book is busy"))

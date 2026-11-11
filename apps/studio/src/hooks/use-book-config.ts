@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, useIsMutating } from "@tanstack/react-query"
 import { api } from "@/api/client"
+import { isRunConfirmationQuery } from "./run-confirmation-query"
 
 const configMutationKey = ["book-config-update"]
 
@@ -41,29 +42,26 @@ export function useUpdateBookConfig({ withReceipt = false } = {}) {
         queryClient.setQueryData(["book-config", label], { config: data.config })
         queryClient.setQueryData(["debug", "config", label], data.activeConfig)
       }
-      queryClient.invalidateQueries({ queryKey: ["book-config", label] })
-      queryClient.invalidateQueries({ queryKey: ["validation", "catalog", label] })
-      queryClient.invalidateQueries({ queryKey: ["debug", "config", label] })
-      queryClient.invalidateQueries({ queryKey: ["debug"] })
-      // Settings (read-aloud content, languages, voices, prompts, models) change
-      // which outputs apply and their inputs; refresh the sidebar's attention.
-      queryClient.invalidateQueries({ queryKey: ["books", label, "outputs"] })
     },
-    // Keep all config controls pending until authoritative state has returned.
-    // Otherwise a neighboring control can submit the previous override map and
-    // silently undo a just-confirmed mode transition.
     onSettled: (data, _error, { label }) => {
-      const refresh = Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["books"] }),
-      queryClient.invalidateQueries({ queryKey: ["book", label] }),
-      queryClient.invalidateQueries({ queryKey: ["book-config", label] }),
-      queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] }),
-      queryClient.invalidateQueries({ queryKey: ["validation", "catalog", label] }),
-      queryClient.invalidateQueries({ queryKey: ["debug"] }),
+      // These two projections seed subsequent config writes. Without a receipt,
+      // keep neighboring controls pending until the authoritative reads settle.
+      const authoritative = Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["book-config", label], exact: true }),
+        queryClient.invalidateQueries({ queryKey: ["debug", "config", label], exact: true }),
       ])
-      // A validated receipt already is authoritative. Background reads may be
-      // delayed or fail; they must not hold an acknowledged Settings draft.
-      return data && "activeConfig" in data ? undefined : refresh
+      // Derived summaries may be slow. Refresh only this book and the Library;
+      // request-owned confirmation reads are independent of these projections.
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["books"], exact: true }),
+        queryClient.invalidateQueries({ queryKey: ["books", label], predicate: query => !isRunConfirmationQuery(query) }),
+        queryClient.invalidateQueries({ queryKey: ["book", label] }),
+        queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] }),
+        queryClient.invalidateQueries({ queryKey: ["validation", "catalog", label] }),
+        queryClient.invalidateQueries({ queryKey: ["debug"], predicate: query => query.queryKey[2] === label && query.queryKey[1] !== "config" }),
+      ])
+      // The validated receipt already supplies both authoritative projections.
+      return data && "activeConfig" in data ? undefined : authoritative
     },
   })
 }
