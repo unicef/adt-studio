@@ -3,6 +3,7 @@ import { LayoutGrid, type LucideIcon } from "lucide-react"
 import { Drawer, DrawerContent, DrawerTitle } from "@/shared/ui/drawer"
 import { DockIconButton } from "@/features/dock/components/DockIconButton"
 import { getChromePortalContainer } from "@/shared/lib/chrome-portal"
+import { useTranslation } from "@/features/language/hooks/useTranslation"
 import { cn } from "@/shared/lib/utils"
 
 export interface DockTool {
@@ -22,6 +23,7 @@ export function DockMobileTools({
   label: string
 }) {
   const [open, setOpen] = useState(false)
+  const { t } = useTranslation()
   const tileWidth =
     tools.length === 3 ? "w-[calc(33.333%-0.4rem)]" : "w-[calc(50%-0.25rem)]"
 
@@ -40,6 +42,7 @@ export function DockMobileTools({
           container={getChromePortalContainer() ?? undefined}
           overlayClassName="z-[60] bg-transparent supports-backdrop-filter:backdrop-blur-none"
           viewportClassName="z-[60]"
+          closeLabel={t("close") || "Close"}
           className="rounded-t-2xl shadow-lg"
         >
           <div className="flex flex-col gap-3 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">

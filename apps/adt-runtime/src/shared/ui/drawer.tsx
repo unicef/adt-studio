@@ -103,11 +103,13 @@ function DrawerContent({
   container,
   overlayClassName,
   viewportClassName,
+  closeLabel,
   ...props
 }: DrawerPrimitive.Popup.Props & {
   container?: DrawerPrimitive.Portal.Props["container"]
   overlayClassName?: string
   viewportClassName?: string
+  closeLabel?: string
 }) {
   const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer()
   const swipeAxis =
@@ -150,6 +152,11 @@ function DrawerContent({
           )}
           {...props}
         >
+          {closeLabel && (
+            <DrawerClose className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:right-2 focus-visible:z-20 focus-visible:rounded-md focus-visible:bg-popover focus-visible:px-3 focus-visible:py-1.5 focus-visible:text-sm focus-visible:font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+              {closeLabel}
+            </DrawerClose>
+          )}
           {showSwipeHandle && <DrawerSwipeHandle />}
           <DrawerPrimitive.Content
             data-slot="drawer-content"

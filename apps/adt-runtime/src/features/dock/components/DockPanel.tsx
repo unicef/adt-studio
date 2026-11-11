@@ -4,6 +4,7 @@ import type { Drawer as DrawerPrimitive } from "@base-ui/react/drawer"
 import { Popover, PopoverContent } from "@/shared/ui/popover"
 import { Drawer, DrawerContent } from "@/shared/ui/drawer"
 import { useIsMobile } from "@/shared/hooks/use-is-mobile"
+import { useTranslation } from "@/features/language/hooks/useTranslation"
 import { useDockContext } from "@/features/dock/context/dock-context"
 import { getChromePortalContainer } from "@/shared/lib/chrome-portal"
 import { cn } from "@/shared/lib/utils"
@@ -44,6 +45,7 @@ function MobileDrawer({
 }: Pick<DockPanelProps, "open" | "onClose" | "children">) {
   const [snapPoint, setSnapPoint] = useState<DrawerPrimitive.Root.SnapPoint | null>(SNAP_DEFAULT)
   const [wasOpen, setWasOpen] = useState(open)
+  const { t } = useTranslation()
 
   if (open !== wasOpen) {
     setWasOpen(open)
@@ -67,6 +69,7 @@ function MobileDrawer({
         container={getChromePortalContainer() ?? undefined}
         overlayClassName="z-[60] bg-transparent supports-backdrop-filter:backdrop-blur-none"
         viewportClassName="z-[60]"
+        closeLabel={t("close") || "Close"}
         className="h-[90dvh] max-h-[90dvh] rounded-t-2xl shadow-lg"
       >
         <div
