@@ -72,6 +72,9 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
   const fontFiles = new Set<string>()
   for (const entry of fs.readdirSync(bookDir, { withFileTypes: true })) {
     if (entry.isSymbolicLink()) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+    // Finder metadata is neither content nor extraction history. Preserve the
+    // exact regular file; the name does not exempt directories or symlinks.
+    if (entry.isFile() && entry.name === ".DS_Store") continue
     // Changing a generation preference before Extract creates bookkeeping,
     // not generated content. Still validate the sidecar and every DB row below.
     if (entry.isFile() && entry.name === SECTIONING_LIFECYCLE && readSectioningLifecycle(bookDir)) continue

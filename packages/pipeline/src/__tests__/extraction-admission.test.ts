@@ -42,6 +42,27 @@ function bytes(directory: string): Record<string, string> {
 }
 
 describe("SPEC-0010 extraction admission", { timeout: 30_000 }, () => {
+  it.each(["file", "directory", "symlink", "unknown"])("initial extraction preserves Finder metadata without admitting unknown artifacts: %s", async kind => {
+    const f = fixture()
+    const metadata = Buffer.from("000000014275643100000000000010000000080000001000", "hex")
+    const sidecar = path.join(f.bookDir, kind === "unknown" ? "owner-notes" : ".DS_Store")
+    const target = path.join(f.booksRoot, "owner-file")
+    if (kind === "directory") fs.mkdirSync(sidecar)
+    else if (kind === "symlink") { fs.writeFileSync(target, metadata); fs.symlinkSync(target, sidecar) }
+    else fs.writeFileSync(sidecar, metadata)
+    try {
+      if (kind === "file") {
+        expect(await extractPDF(f.options, f.storage, quiet)).toBe("extracted")
+        expect(fs.readFileSync(sidecar)).toEqual(metadata)
+        expect(readExtractionManifest(f.bookDir)?.status).toBe("complete")
+      } else {
+        expect(() => withBookWriter(f.bookDir, () => prepareExtractionAdmission(f.bookDir, f.options))).toThrow("EXTRACTION_LEGACY")
+        expect(fs.lstatSync(sidecar)).toBeDefined()
+        if (kind === "symlink") expect(fs.readFileSync(target)).toEqual(metadata)
+      }
+    } finally { f.storage.close() }
+  })
+
   it("fresh CLI DAG extraction retains book admission and stops before providers after cancellation", async () => {
     const f = fixture()
     f.storage.close()
