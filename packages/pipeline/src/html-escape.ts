@@ -5,10 +5,12 @@ import { DomUtils } from "htmlparser2"
  * entity-encoded by the serializer: comments, directives, tag and attribute
  * names, and the contents of raw-text elements are written verbatim. In that
  * output a literal `>` never appears inside an attribute value, so `[^>]*`
- * spans a whole tag.
+ * spans a whole tag. Self-closed raw-text tags (`<style/>` inside SVG) have
+ * no contents. Noscript, iframe, noembed and noframes are copied whole, so
+ * any markup htmlparser2 parsed inside them stays entity-encoded.
  */
 const TOKEN =
-  /<!--[\s\S]*?-->|<[!?][^>]*>|(<(script|style|xmp|iframe|noembed|noframes|noscript)(?=[\s/>])[^>]*>)([\s\S]*?)(<\/\2\s*>)|(<plaintext(?=[\s/>])[^>]*>)([\s\S]*)$|<[^>]*>/gi
+  /<!--[\s\S]*?-->|<[!?][^>]*>|(<(script|style|xmp|iframe|noembed|noframes|noscript)(?=[\s/>])[^>]*(?<!\/)>)([\s\S]*?)(<\/\2\s*>)|(<plaintext(?=[\s/>])[^>]*(?<!\/)>)([\s\S]*)$|<[^>]*>/gi
 
 /** Apply `fn` to every part of serialized HTML that the serializer encodes. */
 function mapEncodedParts(html: string, fn: (part: string) => string): string {
@@ -27,6 +29,8 @@ function mapEncodedParts(html: string, fn: (part: string) => string): string {
 }
 
 const VISIBLE = /^[\p{L}\p{M}\p{N}\p{P}\p{S}]$/u
+/** Zero-width non-joiner and joiner: parts of words (Persian) and emoji sequences. */
+const JOINERS = new Set([0x200c, 0x200d])
 
 /**
  * Serialize a parsed HTML DOM (or one node) with visible non-ASCII characters
@@ -48,8 +52,10 @@ export function serializeHtml(node: Parameters<typeof DomUtils.getOuterHTML>[0])
   return mapEncodedParts(DomUtils.getOuterHTML(node), (part) =>
     part.replace(/&#x([0-9a-f]+);/g, (entity, hex: string) => {
       const cp = parseInt(hex, 16)
+      if (cp < 0xa0 || cp > 0x10ffff) return entity
+      if (JOINERS.has(cp)) return String.fromCodePoint(cp)
       const ch = String.fromCodePoint(cp)
-      return cp >= 0xa0 && VISIBLE.test(ch) ? ch : entity
+      return VISIBLE.test(ch) ? ch : entity
     }),
   )
 }

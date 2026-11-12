@@ -131,7 +131,6 @@ export {
   type VisualReviewResult,
   type VisualReviewValidation,
 } from "./visual-review.js"
-export { encodeLegacyEntities } from "./html-escape.js"
 export {
   createScreenshotRenderer,
   resolveScreenshotConcurrency,

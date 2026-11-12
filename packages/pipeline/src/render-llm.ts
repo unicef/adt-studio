@@ -179,7 +179,8 @@ export async function renderSectionLlm(
   }
   // The answers prompt (an LLM cache key) and the activity-ID hash see the
   // pre-#907 entity encoding, so existing books keep their IDs and cache hits.
-  const legacyHtml = encodeLegacyEntities(generatedHtml)
+  let legacyHtmlCache: string | undefined
+  const legacyHtml = () => (legacyHtmlCache ??= encodeLegacyEntities(generatedHtml))
 
   // Ordering has one inspectable source of truth in the validated HTML. Derive
   // its rank map deterministically so initial render, rerender, Studio editing,
@@ -213,7 +214,7 @@ export async function renderSectionLlm(
       prompt: config.answerPromptName,
       context: {
         ...promptContext,
-        activity_html: legacyHtml,
+        activity_html: legacyHtml(),
       },
       maxRetries: config.maxRetries,
       maxTokens: 4096,
@@ -241,7 +242,7 @@ export async function renderSectionLlm(
     html: generatedHtml,
     ...(activityReasoning !== undefined && { activityReasoning }),
     ...(activityAnswers !== undefined && { activityAnswers }),
-  }, (id) => `${section.sectionId}_activity_${inputSignature({ id, html: legacyHtml }).slice(0, 24)}`)
+  }, (id) => `${section.sectionId}_activity_${inputSignature({ id, html: legacyHtml() }).slice(0, 24)}`)
 }
 
 function validateWebRendering(
