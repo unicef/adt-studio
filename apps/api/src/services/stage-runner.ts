@@ -50,6 +50,7 @@ import {
   getBaseLanguage,
   normalizeLocale,
   resolveBookLanguage,
+  resolvePageDirection,
   loadBookConfig,
   renderPage,
   buildRenderStrategyResolver,
@@ -1640,6 +1641,7 @@ async function runStoryboardStep(
 
     // Render config is always needed
     const resolveRenderConfig = buildRenderStrategyResolver(config)
+    const pageDirection = resolvePageDirection(resolveBookLanguage(storage, config), config.output_languages)
 
     // Shared infrastructure for LLM calls
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
@@ -1846,6 +1848,7 @@ async function runStoryboardStep(
               styleguide: styleguideContent,
               bookFonts: buildBookFontsPromptContext(storage),
               typography,
+              pageDirection,
             },
             resolveRenderConfig,
             resolveRenderModel,
