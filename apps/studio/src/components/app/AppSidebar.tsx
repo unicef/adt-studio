@@ -33,7 +33,7 @@ import type { AppView } from "./types"
 import { useUpdateDialog } from "@/components/updates"
 import { SidebarLogo } from "./SidebarLogo"
 import { useSharingUpdate } from "@/hooks/use-sharing-update"
-import { useRejectedTextProvider } from "@/hooks/use-api-key"
+import { useNeedsTextProvider, useRejectedTextProvider } from "@/hooks/use-api-key"
 import { providerAnchor } from "./screens/settings/provider-anchor"
 import { cardKeyForProvider } from "./screens/settings/providers/cards"
 
@@ -99,6 +99,8 @@ export function AppSidebar({
   const rejectedName = rejectedProvider?.displayName ?? ""
   // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
   const providerKey = providerSelectKey(rejectedProvider?.providerId ?? "")
+  // No provider can run the text steps at all: same link, amber instead of red.
+  const needsProvider = useNeedsTextProvider()
 
   const items: { view: AppView; label: string; icon: LucideIcon; count?: number }[] = [
     { view: "home", label: t`Home`, icon: House },
@@ -170,13 +172,21 @@ export function AppSidebar({
                 search: { auth: "api-key" as const },
                 hash: providerAnchor(cardKeyForProvider(rejectedProvider.providerId)),
               }
-            : { to: sharingUpdate ? SETTINGS_PATHS.publishing : APP_PATHS.settings })}
+            : needsProvider
+              ? {
+                  to: SETTINGS_PATHS.providers,
+                  search: { auth: "api-key" as const },
+                  hash: providerAnchor(cardKeyForProvider("openai")),
+                }
+              : { to: sharingUpdate ? SETTINGS_PATHS.publishing : APP_PATHS.settings })}
           aria-label={
             rejectedProvider
               ? t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Settings — the ${rejectedName} key was rejected` })}` })
-              : sharingUpdate
-                ? t`Settings — a sharing update is ready`
-                : undefined
+              : needsProvider
+                ? t`Settings — no AI provider is connected`
+                : sharingUpdate
+                  ? t`Settings — a sharing update is ready`
+                  : undefined
           }
           className="flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
         >
@@ -187,6 +197,11 @@ export function AppSidebar({
               <span
                 aria-hidden
                 className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-red-500 ring-2 ring-sidebar motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-300"
+              />
+            ) : needsProvider ? (
+              <span
+                aria-hidden
+                className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-amber-500 ring-2 ring-sidebar motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-300"
               />
             ) : sharingUpdate ? (
               <span

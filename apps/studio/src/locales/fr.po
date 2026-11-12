@@ -7889,6 +7889,9 @@ msgstr "Incompatible avec la mise en page fixe"
 msgid "Not configured"
 msgstr "Non configuré"
 
+msgid "Not connected"
+msgstr "Non connecté"
+
 msgid "Not created"
 msgstr "Non créé"
 
@@ -10935,6 +10938,9 @@ msgstr "Paramètres"
 
 msgid "Settings — a sharing update is ready"
 msgstr "Réglages — une mise à jour du partage est prête"
+
+msgid "Settings — no AI provider is connected"
+msgstr "Paramètres — aucun fournisseur IA n'est connecté"
 
 msgid "Settings for this step are not yet available."
 msgstr "Les paramètres pour cette étape ne sont pas encore disponibles."
