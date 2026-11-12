@@ -71,7 +71,8 @@ or what a shorter replacement would be.
 
 - Strings are translated **from where they are used** (where the text renders, a note
   for translators where the English is ambiguous), never from a list of empty keys.
-- Each locale has a glossary, so one concept always gets the same word.
+- One shared glossary says what each product term means, so one concept always gets the
+  same word in every locale.
 - A translated string is checked **on the screen where it appears**, against English,
   for unexpected line breaks and cut-off or clipped words.
 - The author can get an HTML report of the changed strings and screenshots in every
@@ -119,7 +120,7 @@ A developer whose change adds or edits strings asks their agent to translate. Th
    need different words get their own `context`. At the render site: is it a button,
    heading, badge, aria-label, tooltip, toast? What is next to it, and how much room
    does it have?
-3. **Translate** into every locale by meaning, using that locale's glossary.
+3. **Translate** into every locale by meaning, using the glossary.
 4. **Annotate** ambiguous English with a Lingui `comment`, or a `context` when the same
    English needs different translations.
 5. **Check** with `extract`, `i18n:lint` and `i18n:screens` on the changed screens,
@@ -139,7 +140,7 @@ with English. Nothing wraps, so the PR lists the screen as checked with no findi
 
 ### 1. Translation starts from where the string renders
 
-The catalogs keep `origins: false` (see Options). `pnpm --filter @adt/studio i18n:origins
+The catalogs keep `origins: false`. `pnpm --filter @adt/studio i18n:origins
 "<msgid>" [--context <ctx>]` prints a string's call sites by running `lingui extract` with
 a generated config; it never writes to `src/locales/`. Meaning that has to last goes on
 the string as a Lingui `comment` or `context`, so the next translator gets it from the
@@ -155,14 +156,19 @@ ignores all of `.claude/` today, so it becomes `.claude/*` with `!.claude/skills
 **Adding a locale** uses the same workflow in batches by screen area, glossary first.
 `docs/I18N_ADD_LANGUAGE.md` describes it in place of the script.
 
-### 2. Each locale has a glossary
+### 2. One shared glossary
 
-`apps/studio/i18n/glossary/<locale>.md` (English, translation, reason) and
-`<locale>.rules.json` (names kept in English, and forbidden terms scoped by `msgctxt` or
-an English pattern) for pt-BR, es, fr and sq. pt-BR starts from #900's glossary; the
-others cover the same concepts (Stage vs Step, source vs font, template vs model,
-activity types, tone) following each locale's established UI terminology. Example rule:
-*fonte* is forbidden in pt-BR where the English says "source".
+The hard part of a glossary is the same in every language: what the English means in
+this product (Stage vs Step, source vs font, template vs model, activity types, tone).
+So there is one file, `apps/studio/i18n/glossary.md`: one row per product term, with its
+English meaning, what it must not be confused with, and one column per locale for the
+chosen word. pt-BR's column starts from #900's glossary; the others follow each locale's
+established UI terminology. Adding a locale adds a column.
+
+`apps/studio/i18n/glossary.rules.json` holds the rules the lint enforces: names kept in
+English, and forbidden terms per locale, scoped by `msgctxt` or an English pattern. A
+forbidden term is added only after it was seen going wrong, not in advance; today that is
+pt-BR *fonte* where the English says "source".
 
 ### 3. Mechanical errors are caught before the PR
 
@@ -242,36 +248,12 @@ how meaning was settled, the lint result, the screens checked with findings and 
 mocked captures, what wasn't checked and why, and the report if one was made. Nothing
 enforces it; a PR that changes strings without it is a reason to ask.
 
-## Options
-
-| Option | Cost (rough) | Why not / why |
-|---|---|---|
-| **A. Keep `translate:missing`, feed it the glossary and call sites** | ~150 lines in the script, plus an origins map | Still batch-translates a list of keys: a file path isn't the rendered component, and it still can't see whether the result fits. Rejected. |
-| **B. Translate from context in the author's session, check on the author's running app** (chosen) | Removes ~300 lines; adds the lint (~300), screen check and report (~650, ported from #900), mocking (~150), guide, skill, 4 glossaries | Contributors already translate locally with an agent; this changes what it starts from and adds the check that the result fits. |
-
-Translating in CI, even from context and posted as a suggestion instead of a push, is
-not an option under either: CI can't see the app running with real data, so it can't
-check whether a translation fits, and all checking is the author's job on their own
-machine. CI never writes to a PR; a missing translation fails the `i18n` job, and the
-author translates it in their session.
-
-Two sub-choices:
-
-- **Call sites in the catalogs (`origins: true`)** was rejected: catalogs grow about
-  80%, and moving a component rewrites all 5 files and causes conflicts between parallel
-  PRs. `i18n:origins` gives call sites on demand, and `comment`/`context` keep meaning.
-- **Data for the screen check.** A committed sample book drifts with the book format
-  (#900's copies needed `layout_type` patched), costs a pipeline run to regenerate, and
-  can't reserve its label on import (`resolveUniqueLabel` renames on collision), so
-  removing it could delete an author's own book. Committed mocks drift silently with the
-  API. Mocks written per session can't go stale, because they aren't kept.
-
 ## Impact map
 
 - **Removed:** `apps/studio/scripts/translate-missing.ts`, the `translate:missing`
   script, the `ai` and `@ai-sdk/openai` devDependencies, `LOCALE_NAMES`, 3 CI steps and
   the job's write permission.
-- **Added:** `apps/studio/i18n/glossary/{pt-BR,es,fr,sq}.{md,rules.json}`,
+- **Added:** `apps/studio/i18n/glossary.md`, `apps/studio/i18n/glossary.rules.json`,
   `apps/studio/scripts/i18n/` (lint, origins, screens, mocks, report, and their tests on
   fixture data), `apps/studio/scripts/tsconfig.json`, `docs/I18N_TRANSLATION_QUALITY.md`,
   `.claude/skills/translate/SKILL.md`. ADR 029 lands as `proposed` with this spec's PR.
@@ -312,8 +294,8 @@ Two sub-choices:
   in `pnpm test` reads `apps/studio/src/locales/`.
 - [ ] AC-9: The 11 es placeholders, 12 stray-backslash strings and the theme "Light" are
   fixed; the theme option has its own `context` and translation in every locale.
-- [ ] AC-10: Glossaries and rules files exist for pt-BR, es, fr and sq, every term in a
-  glossary states its reason, every rules file validates against its schema, and
+- [ ] AC-10: The glossary has a column for pt-BR, es, fr and sq, every term states its
+  English meaning, the rules file validates against its schema, and
   `i18n:lint` passes on every catalog with them.
 - [ ] AC-11: `i18n:origins "<msgid>"` prints every call site of the msgid, plurals and
   multi-line entries included, and leaves `src/locales/` unchanged.
@@ -370,7 +352,7 @@ the translator without the workflow that replaces it leaves no way to translate.
    check with steps, mocks and report, the guide, the skill and the PR template section;
    fixes §7's bugs, since the lint fails on them; marks ADR 029 accepted. Reverting it
    restores the old script and CI steps.
-2. **Languages (AC-10).** The four glossaries and rules files, then a review of the es,
+2. **Languages (AC-10).** The glossary and rules file, then a review of the es,
    fr and sq catalogs with the skill, as #920 did for pt-BR, with the HTML report
    attached since reviewers don't speak most of the locales. Catalogs don't count toward
    the budget (SDD §3); the rest is about 600 lines.
@@ -379,7 +361,7 @@ the translator without the workflow that replaces it leaves no way to translate.
 
 - **Contributors without an agent** now translate four locales by hand, or ask a
   maintainer to. The project's contributors all work with agents today; the guide and
-  glossaries are written so a person can follow them too. ADR 029 records the decision.
+  glossary are written so a person can follow them too. ADR 029 records the decision.
 - **Translations nobody checked.** CI only proves every string has a translation, so a
   contributor who skips the skill can still merge a bad one. The missing Translations
   section is what shows it, and the reviewer asks for it.

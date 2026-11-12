@@ -987,7 +987,7 @@ and mistranslations that the other locales still carry.
 ### Decision
 
 The PR author's agent session translates every locale from where each string renders,
-using a per-locale glossary, and checks the result on screen against English, on the
+using a shared glossary, and checks the result on screen against English, on the
 author's machine. The PR carries a section the skill writes about that work. CI never
 translates and doesn't judge translations: it fails only when a string is unextracted or
 untranslated. No native-speaker approval gates a merge.
@@ -998,7 +998,7 @@ untranslated. No native-speaker approval gates a merge.
   affects.
 - CI no longer needs write access to PR branches for i18n.
 - A contributor without an agent has to translate four locales by hand or ask for help.
-- Quality rests on reading each string where it renders, the glossaries and the screen
+- Quality rests on reading each string where it renders, the glossary and the screen
   check rather than on native speakers; native feedback is welcome but not required.
 
 ### Alternatives Considered
