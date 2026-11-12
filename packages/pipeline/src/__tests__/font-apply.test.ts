@@ -11,8 +11,13 @@ describe("applyFontToHtml", () => {
     expect(applyFontToHtml(html, { family: "Lora", scope: "heading" })).toBe(html)
   })
 
+  it("still moves font-family last when a later font shorthand would override it", () => {
+    const out = applyFontToHtml('<h2 style="font-family: Lora; font: bold 2rem serif">T</h2>', { family: "Lora", scope: "heading" })
+    expect(out).toBe('<h2 style="font: bold 2rem serif; font-family: Lora">T</h2>')
+  })
+
   it("counts only a font-family change as a change, not other style formatting (#907)", () => {
-    const html = '<section><p style="color:red;">&#xa1;Hola!</p><h2 style="font-family: Lora; color: red">T&#xed;tulo</h2></section>'
+    const html = '<section><p style="color:red;">&#xa1;Hola!</p><h2 style="color: red; font-family: Lora">T&#xed;tulo</h2></section>'
     expect(applyFontToHtml(html, { family: null, scope: "whole" })).not.toBe(html) // the h2 loses its font-family
     expect(applyFontToHtml(html, { family: null, scope: "paragraph" })).toBe(html)
     expect(applyFontToHtml(html, { family: "Lora", scope: "heading" })).toBe(html)

@@ -6,7 +6,7 @@ type TextLike = { type: string; data: string }
 
 /** Tokens htmlparser2 writes without entity encoding. */
 const TOKEN =
-  /<!--[\s\S]*?-->|<[!?][^>]*>|(<(script|style|xmp|iframe|noembed|noframes|noscript)(?=[\s/>])[^>]*>)([\s\S]*?)(<\/\2\s*>)|(<plaintext(?=[\s/>])[^>]*>)([\s\S]*)$|<[^>]*>/gi
+  /<!--[\s\S]*?-->|<[!?][^>]*>|(<(script|style|xmp|iframe|noembed|noframes|noscript)(?=[\s/>])[^>]*(?<!\/)>)([\s\S]*?)(<\/\2\s*>)|(<plaintext(?=[\s/>])[^>]*(?<!\/)>)([\s\S]*)$|<[^>]*>/gi
 
 function mapEncodedParts(html: string, fn: (part: string) => string): string {
   const attributeValues = (tag: string) => tag.replace(/="([^"]*)"/g, (_m, value: string) => `="${fn(value)}"`)
@@ -24,6 +24,7 @@ function mapEncodedParts(html: string, fn: (part: string) => string): string {
 }
 
 const VISIBLE = /^[\p{L}\p{M}\p{N}\p{P}\p{S}]$/u
+const JOINERS = new Set([0x200c, 0x200d])
 function isReadable(cp: number): boolean {
   return cp >= 0xa0 && VISIBLE.test(String.fromCodePoint(cp))
 }
@@ -32,6 +33,8 @@ function makeReadable(html: string): string {
   return mapEncodedParts(html, (part) =>
     part.replace(/&#x([0-9a-f]+);/g, (entity, hex: string) => {
       const cp = parseInt(hex, 16)
+      if (cp > 0x10ffff) return entity
+      if (JOINERS.has(cp)) return String.fromCodePoint(cp)
       return isReadable(cp) ? String.fromCodePoint(cp) : entity
     }),
   )

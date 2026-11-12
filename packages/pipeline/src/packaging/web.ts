@@ -2300,8 +2300,7 @@ const MATH_INDICATORS = [
   "\\[",
   "<math",
   "\\begin{",
-  // HTML-encoded form. serializeHtml writes $ literally since #907; kept as a
-  // defensive fallback for HTML that reaches math detection by another path.
+  // HTML-encoded forms (htmlparser2's getOuterHTML encodes $ as &#x24;)
   "&#x24;",
 ]
 
@@ -2410,8 +2409,7 @@ function renderLatexWithFallback(latex: string): string | null {
 }
 
 /**
- * Decode HTML entities for $ (pipeline serialization wrote $ as &#x24; before
- * #907; kept as a defensive fallback),
+ * Decode HTML entities for $ that htmlparser2 serialization may produce,
  * so that LaTeX delimiters can be matched by the regex patterns below.
  */
 function decodeDollarEntities(s: string): string {

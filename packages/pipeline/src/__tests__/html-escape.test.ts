@@ -10,6 +10,22 @@ describe("serializeHtml (#907)", () => {
     expect(serializeHtml(doc)).toBe('<p title="Año “x”">Niño á ¿Qué? ¡Brrr! — 😀 &#x24;5</p>')
   })
 
+  it("does not throw on an out-of-range entity in raw text it cannot classify", () => {
+    // Nested noscript: the serializer writes the outer element's text raw.
+    const doc = parseDocument("<noscript><noscript></noscript>&amp;#x110000;</noscript>")
+    expect(() => serializeHtml(doc)).not.toThrow()
+  })
+
+  it("decodes text after a self-closed SVG style or script element", () => {
+    const doc = parseDocument("<svg><style></style><script></script></svg><p>é</p><style>a{}</style>")
+    expect(serializeHtml(doc)).toContain("<p>é</p>")
+  })
+
+  it("decodes zero-width joiners and non-joiners, which belong to emoji sequences and words", () => {
+    const doc = parseDocument("<p>👨‍👩 می‌خواهم</p>")
+    expect(serializeHtml(doc)).toBe("<p>👨‍👩 می‌خواهم</p>")
+  })
+
   it("decodes text in hyphenated custom elements, which are not raw-text elements", () => {
     const doc = parseDocument("<style-guide>ó</style-guide><p>é</p><style>x</style>")
     expect(serializeHtml(doc)).toBe("<style-guide>ó</style-guide><p>é</p><style>x</style>")
@@ -54,6 +70,7 @@ describe("encodeLegacyEntities (#907)", () => {
     '<style>p::before{content:"ó &#xf3;"}</style><script>var s = "ó &#xf3; $";</script>',
     "<!-- ó &#xf3; --><noscript><p title=\"&lt;/noscript&gt;\">é</p></noscript>",
     '<p data-título="á">ü</p><style-guide>ó</style-guide><?xml-ish ó?>',
+    "<svg><style></style></svg><p>é 👨‍👩</p>",
     "<iframe title=\"Vídeo\">ó &#xf3;</iframe><p>Don't &amp; &lt;tag&gt;</p></div>",
   ].join("")
 
@@ -88,12 +105,19 @@ describe("HTML serialization call sites (#907)", () => {
           continue
         }
         if (!name.endsWith(".ts") || name.endsWith(".test.ts") || name === "html-escape.ts") continue
-        readFileSync(file, "utf8").split("\n").forEach((line, i) => {
-          if (/get(Outer|Inner)HTML\(/.test(line) && !/xmlMode:\s*true/.test(line)) offenders.push(`${path.relative(repoRoot, file)}:${i + 1}`)
-        })
+        const source = readFileSync(file, "utf8")
+        const where = (index: number) => `${path.relative(repoRoot, file)}:${source.slice(0, index).split("\n").length}`
+        for (const call of source.matchAll(/get(?:Outer|Inner)HTML\s*\(([^)]*)\)/g)) {
+          if (!/xmlMode:\s*true/.test(call[1])) offenders.push(where(call.index))
+        }
+        for (const imp of source.matchAll(/from\s+["']dom-serializer["']/g)) offenders.push(where(imp.index))
       }
     }
-    for (const dir of ["packages/pipeline/src", "packages/agents/src", "apps/api/src"]) walk(path.join(repoRoot, dir))
+    const dirs = ["apps/api/src", ...readdirSync(path.join(repoRoot, "packages")).map((pkg) => `packages/${pkg}/src`)]
+    for (const dir of dirs) {
+      const full = path.join(repoRoot, dir)
+      try { if (statSync(full).isDirectory()) walk(full) } catch { /* package without src */ }
+    }
     expect(offenders).toEqual([])
   })
 })
