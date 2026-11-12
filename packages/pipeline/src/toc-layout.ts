@@ -1,6 +1,7 @@
 import { serializeHtml } from "./html-serialize.js"
 import type { LeafText } from "./web-rendering.js"
 import { DomUtils, parseDocument } from "htmlparser2"
+import { serializeHtml } from "./html-escape.js"
 
 // htmlparser2 does not expose a convenient common element type through its
 // public helpers. Keep the untyped boundary here instead of throughout the

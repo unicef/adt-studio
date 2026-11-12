@@ -1,5 +1,6 @@
 import { serializeHtml } from "./html-serialize.js"
 import { parseDocument, DomUtils } from "htmlparser2"
+import { serializeHtml } from "./html-escape.js"
 
 // htmlparser2/domhandler node construction is loose enough here that a small
 // local shape is simpler than pulling in more types.
