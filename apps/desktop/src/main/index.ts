@@ -61,7 +61,7 @@ app.whenReady().then(async () => {
 
   const splashWindow = createSplashWindow();
 
-  registerStudioAppProtocol(join(__dirname, "../renderer"), () => apiPort);
+  registerStudioAppProtocol(join(__dirname, "../renderer"));
   registerHtmlRenderProtocol();
   registerTitleBarIpc();
   registerWindowCloseIpc();

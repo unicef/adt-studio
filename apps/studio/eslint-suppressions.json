@@ -21,7 +21,7 @@
   },
   "src/components/pipeline/stages/PreviewView.tsx": {
     "lingui/no-unlocalized-strings": {
-      "count": 3
+      "count": 2
     }
   },
   "src/components/pipeline/stages/storyboard/components/BookPreviewFrame.tsx": {

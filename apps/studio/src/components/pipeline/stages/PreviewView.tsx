@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { usePreviewPageSync } from "@/hooks/use-preview-page-sync"
-import type { AccessibilityFinding } from "@adt/types"
+import { usePreviewBridge } from "@/hooks/use-preview-bridge"
+import {
+  PREVIEW_HIGHLIGHT_SEVERITIES,
+  type AccessibilityFinding,
+  type PreviewBridgePage,
+  type PreviewHighlightSeverity,
+} from "@adt/types"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
 import { toastPackagingWarnings } from "@/lib/packaging-warnings"
@@ -30,11 +35,6 @@ import { getDeviceFrame, getTargetVisibleWidth } from "./storyboard/components/s
 import { ViewportToggle } from "./storyboard/components/style-editor/ViewportToggle"
 import { IPhoneFrame } from "./storyboard/components/style-editor/device-frames/iphone-frame"
 import { IPadFrame } from "./storyboard/components/style-editor/device-frames/ipad-frame"
-
-const HIGHLIGHT_STYLE_ID = "adt-preview-a11y-highlights"
-const HIGHLIGHT_ATTR = "data-adt-a11y-hover"
-const HIGHLIGHT_SEVERITY_ATTR = "data-adt-a11y-hover-severity"
-const HIGHLIGHT_PAGE_ATTR = "data-adt-a11y-hover-page"
 
 export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const { i18n } = useLingui()
@@ -99,52 +99,21 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     }
   }, [currentPreviewPage, matchedPage])
 
-  const highlightFindingTargets = useCallback((finding: AccessibilityFinding | null) => {
-    const doc = iframeRef.current?.contentDocument
-    if (!doc) return
-    clearHighlight(doc)
-    if (!finding) return
-    const targets = finding.nodes.flatMap((node) => node.target)
-    if (targets.length === 0) return
-    ensureHighlightStyles(doc)
-    const severity = getHighlightSeverity(finding.impact)
-    for (const selector of targets) {
-      const elements = querySelectorAllSafe(doc, selector)
-      const hasRootMatch = selector.trim().toLowerCase() === "html" || elements.some((el) => el === doc.documentElement)
-      if (hasRootMatch) {
-        setPageHighlight(doc, severity)
-      }
-      for (const el of elements) {
-        el.setAttribute(HIGHLIGHT_ATTR, "true")
-        el.setAttribute(HIGHLIGHT_SEVERITY_ATTR, severity)
-      }
-    }
+  const handlePreviewPage = useCallback((page: PreviewBridgePage) => {
+    setCurrentPreviewPage({ ...page, href: normalizeAccessibilityHref(page.href) })
   }, [])
 
-  const syncCurrentPreviewPage = useCallback(() => {
-    const iframe = iframeRef.current
-    if (!iframe?.contentWindow || !iframe.contentDocument) {
+  const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/`
+  const { highlight: highlightPreview, navigate: navigatePreviewToHref } =
+    usePreviewBridge(iframeRef, previewSrc, handlePreviewPage)
+
+  const highlightFindingTargets = useCallback((finding: AccessibilityFinding | null) => {
+    if (!finding) {
+      highlightPreview([], "unknown")
       return
     }
-
-    try {
-      const sectionId = iframe.contentDocument
-        .querySelector('meta[name="title-id"]')
-        ?.getAttribute("content") ?? null
-      const href = normalizeAccessibilityHref(iframe.contentWindow.location.pathname)
-      const title = iframe.contentDocument.title || null
-      const hasImages = iframe.contentDocument.querySelectorAll("img").length > 0
-      const hasActivity = iframe.contentDocument.querySelector('[data-section-type^="activity_"]') !== null
-      const signLanguageEnabled =
-        iframe.contentDocument.querySelector("#sl-quick-toggle-button, #sign-language-video") !== null
-
-      setCurrentPreviewPage({ sectionId, href, title, hasImages, hasActivity, signLanguageEnabled })
-    } catch {
-      setCurrentPreviewPage({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
-    }
-  }, [])
-
-  const handlePreviewLoad = usePreviewPageSync(iframeRef, syncCurrentPreviewPage)
+    highlightPreview(finding.nodes.flatMap((node) => node.target), getHighlightSeverity(finding.impact))
+  }, [highlightPreview])
 
   const packaging = !ready && (isSubmittingPackage || isTaskRunning("package-adt"))
   const assessmentPending = awaitingAssessment || isTaskRunning("package-adt")
@@ -242,29 +211,16 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     return () => window.removeEventListener("adt:repackage", handler)
   }, [runPackage, storyboardDone])
 
-  const navigatePreviewToHref = useCallback((href: string) => {
-    const iframe = iframeRef.current
-    const iframeWindow = iframe?.contentWindow
-    if (!iframeWindow) {
-      return
-    }
-
-    const normalizedHref = href.replace(/^\/+/, "")
-    const currentHref = iframeWindow.location.href
-    const fallbackBase = typeof window === "undefined"
-      ? `${getAdtUrl(bookLabel)}/v-${version}/`
-      : new URL(`${getAdtUrl(bookLabel)}/v-${version}/`, window.location.origin).toString()
-    const baseHref = currentHref && currentHref !== "about:blank" ? currentHref : fallbackBase
-    const nextUrl = new URL(normalizedHref, baseHref)
-    iframeWindow.location.href = nextUrl.toString()
-  }, [bookLabel, version])
-
   useEffect(() => {
     if (!ready || !search.previewHref) {
       return
     }
 
     const currentHref = currentPreviewPage.href
+    if (!currentHref) {
+      return
+    }
+
     const normalizedTarget = normalizeAccessibilityHref(search.previewHref)
     if (currentHref !== normalizedTarget) {
       navigatePreviewToHref(search.previewHref)
@@ -316,7 +272,6 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }
 
   if (ready) {
-    const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/`
     const isDesktop = deviceView === "desktop"
     const frame = getDeviceFrame(deviceView, DEVICE_WIDTHS[deviceView])
     const cap = getTargetVisibleWidth(deviceView) / frame.chromeWidth
@@ -332,7 +287,6 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         ref={iframeRef}
         src={previewSrc}
         title="ADT Preview"
-        onLoad={handlePreviewLoad}
         className="block border-0 bg-white"
         style={{ width: frame.screenWidth, height: frame.screenHeight }}
       />
@@ -347,7 +301,6 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
               src={previewSrc}
               className="h-full w-full border-0"
               title="ADT Preview"
-              onLoad={handlePreviewLoad}
             />
           ) : (
             <div
@@ -465,107 +418,7 @@ function deriveReviewPageNumber(pageId: string | null): number | null {
   return Number.isFinite(value) && value > 0 ? value : null
 }
 
-function clearHighlight(doc: Document): void {
-  for (const el of doc.querySelectorAll(`[${HIGHLIGHT_ATTR}]`)) {
-    el.removeAttribute(HIGHLIGHT_ATTR)
-    el.removeAttribute(HIGHLIGHT_SEVERITY_ATTR)
-  }
-  doc.documentElement.removeAttribute(HIGHLIGHT_PAGE_ATTR)
-  doc.body?.removeAttribute(HIGHLIGHT_PAGE_ATTR)
+function getHighlightSeverity(impact: string | null | undefined): PreviewHighlightSeverity {
+  return PREVIEW_HIGHLIGHT_SEVERITIES.find((severity) => severity === impact) ?? "unknown"
 }
 
-function ensureHighlightStyles(doc: Document): void {
-  if (doc.getElementById(HIGHLIGHT_STYLE_ID)) return
-  const style = doc.createElement("style")
-  style.id = HIGHLIGHT_STYLE_ID
-  style.textContent = `
-    [${HIGHLIGHT_ATTR}="true"] {
-      outline-width: 2px !important;
-      outline-style: solid !important;
-      outline-offset: 2px !important;
-      transition: outline-color 120ms ease, box-shadow 120ms ease;
-    }
-
-    [${HIGHLIGHT_ATTR}="true"][${HIGHLIGHT_SEVERITY_ATTR}="critical"] {
-      outline-color: rgba(239, 68, 68, 0.98) !important;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.98), 0 0 0 6px rgba(239, 68, 68, 0.28) !important;
-    }
-
-    [${HIGHLIGHT_ATTR}="true"][${HIGHLIGHT_SEVERITY_ATTR}="serious"] {
-      outline-color: rgba(249, 115, 22, 0.98) !important;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.98), 0 0 0 6px rgba(249, 115, 22, 0.28) !important;
-    }
-
-    [${HIGHLIGHT_ATTR}="true"][${HIGHLIGHT_SEVERITY_ATTR}="moderate"] {
-      outline-color: rgba(234, 179, 8, 0.98) !important;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.98), 0 0 0 6px rgba(234, 179, 8, 0.3) !important;
-    }
-
-    [${HIGHLIGHT_ATTR}="true"][${HIGHLIGHT_SEVERITY_ATTR}="minor"] {
-      outline-color: rgba(96, 165, 250, 0.98) !important;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.98), 0 0 0 6px rgba(96, 165, 250, 0.28) !important;
-    }
-
-    [${HIGHLIGHT_ATTR}="true"][${HIGHLIGHT_SEVERITY_ATTR}="unknown"] {
-      outline-color: rgba(107, 114, 128, 0.98) !important;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.98), 0 0 0 6px rgba(107, 114, 128, 0.24) !important;
-    }
-
-    body[${HIGHLIGHT_PAGE_ATTR}]::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      border: 4px solid transparent;
-      box-sizing: border-box;
-      z-index: 2147483647;
-    }
-
-    body[${HIGHLIGHT_PAGE_ATTR}="critical"]::before {
-      border-color: rgba(239, 68, 68, 0.95);
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.92), 0 0 0 6px rgba(239, 68, 68, 0.24);
-    }
-
-    body[${HIGHLIGHT_PAGE_ATTR}="serious"]::before {
-      border-color: rgba(249, 115, 22, 0.95);
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.92), 0 0 0 6px rgba(249, 115, 22, 0.22);
-    }
-
-    body[${HIGHLIGHT_PAGE_ATTR}="moderate"]::before {
-      border-color: rgba(234, 179, 8, 0.95);
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.92), 0 0 0 6px rgba(234, 179, 8, 0.22);
-    }
-
-    body[${HIGHLIGHT_PAGE_ATTR}="minor"]::before {
-      border-color: rgba(96, 165, 250, 0.95);
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.92), 0 0 0 6px rgba(96, 165, 250, 0.22);
-    }
-
-    body[${HIGHLIGHT_PAGE_ATTR}="unknown"]::before {
-      border-color: rgba(107, 114, 128, 0.95);
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.92), 0 0 0 6px rgba(107, 114, 128, 0.2);
-    }
-  `
-  doc.head.appendChild(style)
-}
-
-function setPageHighlight(doc: Document, severity: "critical" | "serious" | "moderate" | "minor" | "unknown"): void {
-  doc.documentElement.setAttribute(HIGHLIGHT_PAGE_ATTR, severity)
-  doc.body?.setAttribute(HIGHLIGHT_PAGE_ATTR, severity)
-}
-
-function getHighlightSeverity(impact: string | null | undefined): "critical" | "serious" | "moderate" | "minor" | "unknown" {
-  if (impact === "critical" || impact === "serious" || impact === "moderate" || impact === "minor") {
-    return impact
-  }
-
-  return "unknown"
-}
-
-function querySelectorAllSafe(doc: Document, selector: string): Element[] {
-  try {
-    return Array.from(doc.querySelectorAll(selector))
-  } catch {
-    return []
-  }
-}

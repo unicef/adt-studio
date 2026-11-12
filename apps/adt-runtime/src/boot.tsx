@@ -12,6 +12,7 @@ import {
   subscribeLanguageChanges,
   subscribePreviewSettings,
 } from "@/app/lifecycle"
+import { subscribePreviewBridge } from "@/app/preview-bridge"
 import { subscribeSoftNavHistory } from "@/features/navigation/lib/page-swap"
 import { describeInitError, showErrorToast, showMainContent } from "@/shared/lib/errors"
 
@@ -65,7 +66,8 @@ function mount(): void {
     </React.StrictMode>,
   )
 
-  window.__adtRuntime = { booted: true, chromeRoot, navRoot }
+  const unsubPreviewBridge = subscribePreviewBridge()
+  window.__adtRuntime = { booted: true, chromeRoot, navRoot, unsubscribe: unsubPreviewBridge }
 
   // Async boot — load config + translations + manifests, then signal
   // language-change subscription so the sidebar selector triggers reloads.
@@ -75,6 +77,7 @@ function mount(): void {
       const unsubPreview = subscribePreviewSettings()
       const unsubSoftNav = subscribeSoftNavHistory()
       window.__adtRuntime!.unsubscribe = () => {
+        unsubPreviewBridge()
         unsubLanguage()
         unsubPreview()
         unsubSoftNav()
