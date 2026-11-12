@@ -238,6 +238,25 @@ Exports are only partly covered. WebPub and PNLD reuse the packaged pages, so th
 
 ---
 
+## Watermark Removal
+
+With `remove_watermarks` on, PDF extraction (`packages/pdf`) looks for a watermark repeated across the document and removes it before anything downstream sees the page. It is off by default. Two encodings are covered, and both are detected from pages sampled across the **whole** document, so a partial extraction agrees with a full one.
+
+| Encoding | How it is found | How it is removed | Code |
+|----------|-----------------|-------------------|------|
+| **Text stamp** — the watermark is a text object | Same text at the same position on most sampled pages, and either diagonal or spanning a large share of the page | The text op is dropped from the page render; matching lines are dropped from the book text and positioned text | `watermarks.ts` |
+| **Baked into page images** — a flattened ("printed to PDF") or scanned document, where each page is a picture and the stamp is part of its pixels | Median darkness, at each pixel, over the pages where that pixel would otherwise be blank paper: page content differs from page to page, the stamp does not | The darkening is divided back out of each affected image, on that image's own pixel grid | `raster-watermarks.ts` |
+
+**Image stamps: what is cleaned.** The cleaned image is used twice — swapped into the page render (`<pageId>_page`), and emitted in place of the stamped embedded image (`<pageId>_imNNN`, same id, size and format). So Image Segmentation and Cropping work from clean pixels, and the page image a user re-crops from is clean too. An image the stamp does not touch, and a page where the stamp is absent (a cover, for example), are left byte-identical.
+
+**Image stamps: guards.** The detector only runs on documents with page images (image ops cover most of the page on at least 8 sampled pages of the most common page size). A document with no such page among 16 sampled pages is ruled out at once; one that has them spends a few seconds learning, whether or not a stamp is found. The result is remembered per PDF, so re-extracting a page or two (a spread merge or split) does not repeat it. It accepts one large, grey or black mark at a fixed page position, and passes over marks made of long straight runs (rules, page frames, table grids) so repeated page furniture is not taken for a watermark. Before an image is touched, the stamp's strength in it is measured, and the image is skipped if the stamp is not there. Colour is handled by measurement, not assumption: a true multiply fades colour along with brightness, while flattened pages usually keep the colour, and guessing wrong leaves a tinted ghost on coloured backgrounds.
+
+**Limits.** A stamp that is coloured, tiled, placed differently on each page, or drawn *under* the page content is not removed. Neither is one in a document with too few image pages or too little blank paper under the mark. Page images above roughly 130 DPI (for a letter-size page) are learned on a coarser grid, which can leave a faint outline; this path has not been tried on a real book. CMYK page images and images with transparency are skipped. Paper is measured rather than assumed white, but it must be light (about 246 of 255 or brighter) for blank areas to be recognised.
+
+**Inspecting it.** Each page's `extraction-debug` node data records what was detected: `watermarks` (text signatures) and `rasterWatermark` (stamp box in points, peak opacity, pages it was learned from, and the measured strength for every image cleaned on that page).
+
+---
+
 ## Book Directory Structure
 
 All data for a book lives in a single directory. No book data is stored outside it.

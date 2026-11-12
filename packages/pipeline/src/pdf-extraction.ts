@@ -40,8 +40,9 @@ export interface ExtractOptions {
   /** Keep standalone rasters whose artwork a composite figure absorbed
    *  (figure-extraction "auto"); meaningfulness dedups downstream. */
   keepCoveredRasters?: boolean
-  /** Detect and remove repeated identical text stamps (watermarks) from
-   *  page renders, figure crops, and extracted text. */
+  /** Detect and remove a watermark repeated across the document: a text
+   *  stamp (from page renders, figure crops, and extracted text) or a stamp
+   *  baked into page images (from page renders and extracted images). */
   removeWatermarks?: boolean
   /** Whether the book renders fixed-layout. Gates the entire positioned-text
    *  extraction pipeline (stream-order recorder + paragraph parsing), which is

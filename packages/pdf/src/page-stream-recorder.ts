@@ -387,7 +387,7 @@ function ctmScale(ctm: number[]): number {
 /** Compute the AABB of an image after applying its CTM. The image's natural
  *  domain is [0,1]×[0,1]; the CTM maps that to page coordinates (post-CTM
  *  the rect can be rotated/skewed, hence we take the AABB of the corners). */
-function unitImageBbox(ctm: number[]): BBox {
+export function unitImageBbox(ctm: number[]): BBox {
   const corners = [
     [0, 0],
     [1, 0],
