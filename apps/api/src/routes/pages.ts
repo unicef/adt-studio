@@ -82,6 +82,7 @@ import {
   getSegmentedImageId,
   segmentBoundsOnPage,
   loadBookConfig,
+  resolveBookLanguage,
   applyCrop,
   generateStyleguide,
   buildBookFontsPromptContext,
@@ -1550,6 +1551,7 @@ export function createPageRoutes(
       const storage = createBookStorage(safeLabel, booksDir)
       const images = new Map<string, { base64: string }>()
       let typographyCss = ""
+      let language: string
       try {
         for (const id of referencedImageIds) {
           try {
@@ -1559,6 +1561,7 @@ export function createPageRoutes(
           }
         }
         typographyCss = resolveTypographyCss(storage)
+        language = resolveBookLanguage(storage, loadBookConfig(safeLabel, booksDir, configPath))
       } finally {
         storage.close()
       }
@@ -1569,6 +1572,7 @@ export function createPageRoutes(
         images,
         webAssetsDir,
         typographyCss,
+        language,
       })
 
       // Cache key incorporates HTML + viewport so cache invalidates whenever

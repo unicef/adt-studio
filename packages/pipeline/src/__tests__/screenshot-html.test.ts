@@ -46,6 +46,25 @@ describe("buildScreenshotHtml", () => {
     expect(html).toContain('<div id="content">')
   })
 
+  // The reviewer compares this screenshot with the original page, so it has
+  // to lay the section out the way the reader will.
+  it("renders a right-to-left book right to left", async () => {
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    createWebAssets(webAssetsDir)
+    const build = (language?: string) =>
+      buildScreenshotHtml({
+        sectionHtml: '<section data-section-id="s1"><p>متن</p></section>',
+        label: "book",
+        images: new Map(),
+        webAssetsDir,
+        language,
+      })
+
+    expect(await build("ur")).toContain('<html lang="ur" dir="rtl">')
+    expect(await build("en")).toContain('<html lang="en">')
+    expect(await build()).toContain('<html lang="en">')
+  })
+
   it("preserves an existing #content wrapper and inlines matching image sources", async () => {
     const webAssetsDir = path.join(tmpDir, "assets-web")
     createWebAssets(webAssetsDir)

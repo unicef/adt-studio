@@ -11,9 +11,17 @@
  * a given key came from.
  */
 import { atom } from "jotai"
+import { getTextDirection } from "@adt/types/text-direction"
 import { ephemeralAtom, persistedStringAtom } from "@/shared/state/persist"
 
 export const currentLanguageAtom = persistedStringAtom("currentLanguage", "en")
+
+/**
+ * Writing direction of the reading language. The document's `dir` follows it
+ * (see `applyDocumentLanguage`), which mirrors the page and the chrome; the
+ * few controls whose meaning is directional read this atom to stay correct.
+ */
+export const textDirectionAtom = atom((get) => getTextDirection(get(currentLanguageAtom) as string))
 
 export const translationsAtom = ephemeralAtom<Record<string, string>>({})
 /** Prepared provider wording; kept separate so display text never changes. */

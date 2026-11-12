@@ -6,7 +6,9 @@
  * focus owns its own arrow-key behavior.
  *
  * Direction follows reading order: ArrowRight / PageDown → next, ArrowLeft /
- * PageUp → previous. Home / End jump to the first / last page.
+ * PageUp → previous. In a right-to-left book the next page lies to the left,
+ * so the two arrow keys swap (matching the dock's mirrored prev/next buttons).
+ * Home / End jump to the first / last page.
  *
  * In embed mode (`?embed=1`, the Studio storyboard preview) the host owns
  * navigation, so page keys are left alone (#1092).
@@ -18,6 +20,7 @@
 import { useAtomValue, useSetAtom } from "jotai"
 import { useEffect } from "react"
 import { appConfigAtom } from "@/shared/state/config.atoms"
+import { textDirectionAtom } from "@/features/language/state/language.atoms"
 import {
   currentSectionIdAtom,
   pagesAtom,
@@ -41,6 +44,7 @@ export function useKeyboardPageNav(): void {
   const sidebarOpen = useAtomValue(sidebarOpenAtom)
   const features = useAtomValue(appConfigAtom).features
   const embed = useAtomValue(embedModeAtom)
+  const rtl = useAtomValue(textDirectionAtom) === "rtl"
 
   useEffect(() => {
     if (embed) return
@@ -62,12 +66,14 @@ export function useKeyboardPageNav(): void {
       const idx = findIndex(pages, currentSectionId)
       let target: PageEntry | undefined
 
+      const forwardArrow = rtl ? "ArrowLeft" : "ArrowRight"
+      const backArrow = rtl ? "ArrowRight" : "ArrowLeft"
       switch (event.key) {
-        case "ArrowRight":
+        case forwardArrow:
         case "PageDown":
           if (idx >= 0 && idx < pages.length - 1) target = pages[idx + 1]
           break
-        case "ArrowLeft":
+        case backArrow:
         case "PageUp":
           if (idx > 0) target = pages[idx - 1]
           break
@@ -93,5 +99,5 @@ export function useKeyboardPageNav(): void {
 
     document.addEventListener("keydown", onKeyDown)
     return () => document.removeEventListener("keydown", onKeyDown)
-  }, [pages, currentSectionId, dockMenuValue, setDockMenuValue, sidebarOpen, features.showNavigationControls, embed])
+  }, [pages, currentSectionId, dockMenuValue, setDockMenuValue, sidebarOpen, features.showNavigationControls, embed, rtl])
 }

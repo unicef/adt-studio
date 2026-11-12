@@ -28,6 +28,8 @@ export interface VisualRefinementDeps {
   llmModel: LLMModel
   /** Persist a screenshot (base64 PNG) so it can be resolved in the LLM log UI. */
   storeScreenshot?: (base64: string) => void
+  /** Book language — review screenshots follow its writing direction. */
+  language?: string
 }
 
 /**
@@ -128,6 +130,7 @@ export async function renderSectionLlm(
         webAssetsDir: visualRefinement.webAssetsDir,
         storeScreenshot: visualRefinement.storeScreenshot,
         typographyCss: buildTypographyCss(input.typography ?? DEFAULT_TYPOGRAPHY),
+        language: visualRefinement.language,
       },
       promptName: reviewPromptName,
       maxIterations: vr.maxIterations,
