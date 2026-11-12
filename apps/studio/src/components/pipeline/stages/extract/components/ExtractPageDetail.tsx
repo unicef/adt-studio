@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { EditorBusyBoundary, useVersionRestoreBusy } from "../../../components/version-restore"
-import { AlertTriangle, Check, Crop, Eye, EyeOff, FileText, Image, ImageOff, Layers, Loader2, ChevronDown, Scissors, Square, Type, X } from "lucide-react"
+import { AlertTriangle, Check, Crop, Eye, EyeOff, FileText, Image, ImageOff, ImagePlus, Layers, Loader2, ChevronDown, Scissors, Square, Type, X } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { usePage, usePageImage } from "@/hooks/use-pages"
 import { api, BASE_URL } from "@/api/client"
@@ -11,6 +11,7 @@ import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { ImageCropDialog, pageBoundsToCropRect } from "@/components/pipeline/stages/storyboard/components/ImageCropDialog"
 import { SegmentPreviewDialog, type SegmentRegion } from "@/components/pipeline/stages/storyboard/components/SegmentPreviewDialog"
+import { AddImageDialog } from "@/components/pipeline/stages/storyboard/components/AddImageDialog"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { usePendingChanges } from "@/components/pipeline/components/change-summary"
 import { resolveReflowableFont } from "@adt/types"
@@ -128,6 +129,8 @@ export function ExtractPageDetail({
   const { stageState, stepState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
   const storyboardDone = stageState("storyboard") === "done"
+  // Extract re-writes this page's image-filtering record while it runs.
+  const extractRunning = stageState("extract") === "running" || stageState("extract") === "queued"
   const metadataRunning = stepState("metadata") === "running"
   const imageFilterRunning = stepState("image-filtering") === "running"
   const { restoring, restoringRef, onRestoringChange, isCurrent } = useVersionRestoreBusy(JSON.stringify([bookLabel, pageId]))
@@ -147,7 +150,11 @@ export function ExtractPageDetail({
     imageHeight: number
     regions: SegmentRegion[]
   } | null>(null)
-  const [segmentError, setSegmentError] = useState<string | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
+  // Add image: the method dialog, and the page render open for a new crop.
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [addCropSrc, setAddCropSrc] = useState<string | null>(null)
+  const [addingImage, setAddingImage] = useState(false)
   const queryClient = useQueryClient()
 
   // Clear pending state when page changes
@@ -160,7 +167,10 @@ export function ExtractPageDetail({
     setCropPageSrc(null)
     setSegmentingId(null)
     setSegmentPreview(null)
-    setSegmentError(null)
+    setImageError(null)
+    setAddDialogOpen(false)
+    setAddCropSrc(null)
+    setAddingImage(false)
   }, [bookLabel, pageId])
 
   const handleRecropFromPage = useCallback(async (imageId: string) => {
@@ -205,14 +215,14 @@ export function ExtractPageDetail({
   const handleSegment = useCallback(async (imageId: string) => {
     if (restoringRef.current || savingImagesRef.current) return
     if (!hasStructuredTextProvider || segmentingId) return
-    setSegmentError(null)
+    setImageError(null)
     setSegmentingId(imageId)
     try {
       const result = await api.segmentImage(bookLabel, imageId, pageId, apiKey)
       const width = result.imageWidth
       const height = result.imageHeight
       if (!width || !height) {
-        setSegmentError(t`Could not read image dimensions`)
+        setImageError(t`Could not read image dimensions`)
         return
       }
       const regions: SegmentRegion[] =
@@ -227,7 +237,7 @@ export function ExtractPageDetail({
         regions,
       })
     } catch (err) {
-      setSegmentError(err instanceof Error ? err.message : t`Segmentation failed`)
+      setImageError(err instanceof Error ? err.message : t`Segmentation failed`)
     } finally {
       setSegmentingId(null)
     }
@@ -240,7 +250,7 @@ export function ExtractPageDetail({
     if (restoringRef.current || savingImagesRef.current) return
     if (!segmentPreview) return
     const { imageId } = segmentPreview
-    setSegmentError(null)
+    setImageError(null)
     try {
       const result = await api.applySegmentation(bookLabel, imageId, pageId, confirmedRegions)
       if (!result.segments || result.segments.length === 0) {
@@ -269,12 +279,66 @@ export function ExtractPageDetail({
       // for retry if the apply fails.
       setSegmentPreview(null)
     } catch (err) {
-      setSegmentError(err instanceof Error ? err.message : t`Segmentation apply failed`)
+      setImageError(err instanceof Error ? err.message : t`Segmentation apply failed`)
       // Rethrow so SegmentPreviewDialog resets its applying state and the user
       // can retry without re-running the (paid) LLM analysis.
       throw err
     }
   }, [segmentPreview, bookLabel, pageId, queryClient, pendingImageData, page?.imageClassification, t])
+
+  // Add images to this page's extraction: `create` resolves the image ids
+  // (uploading or cropping first when needed), which are appended unpruned
+  // and saved as a new image-filtering version — the same record Recrop and
+  // Segment write, so Sectioning/Storyboard pick them up on their next run.
+  // Rethrows so the crop dialog stays open for a retry.
+  const addImagesToPage = useCallback(async (create: () => Promise<string[]>) => {
+    if (restoringRef.current || savingImagesRef.current) throw new Error(t`Please wait for the current operation to finish`)
+    const base = pendingImageData ?? page?.imageClassification
+    if (!base) return
+    savingImagesRef.current = true
+    setSavingImages(true)
+    setAddingImage(true)
+    setImageError(null)
+    try {
+      const imageIds = await create()
+      const present = new Set(base.images.map((img) => img.imageId))
+      const added = imageIds.filter((id) => !present.has(id))
+      if (added.length > 0) {
+        await api.updateImageClassification(bookLabel, pageId, {
+          ...base,
+          images: [...base.images, ...added.map((imageId) => ({ imageId, isPruned: false }))],
+        })
+      }
+      if (isCurrent()) setPendingImageData(null)
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+      void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "images"] })
+    } catch (err) {
+      if (isCurrent()) setImageError(err instanceof Error ? err.message : t`Image upload failed`)
+      throw err
+    } finally {
+      if (isCurrent()) {
+        savingImagesRef.current = false
+        setSavingImages(false)
+        setAddingImage(false)
+      }
+    }
+  }, [bookLabel, pageId, queryClient, pendingImageData, page?.imageClassification, isCurrent, t])
+
+  const handleAddExisting = useCallback((imageIds: string[]) => {
+    setAddDialogOpen(false)
+    addImagesToPage(async () => imageIds).catch(() => {})
+  }, [addImagesToPage])
+
+  const handleAddUpload = useCallback((file: File) => {
+    setAddDialogOpen(false)
+    addImagesToPage(async () => [(await api.uploadNewImage(bookLabel, pageId, file)).imageId]).catch(() => {})
+  }, [addImagesToPage, bookLabel, pageId])
+
+  const handleAddCropApply = useCallback(async (blob: Blob) => {
+    // The page id is the crop's source: stored as `{pageId}_crop{N}`.
+    await addImagesToPage(async () => [(await api.uploadCroppedImage(bookLabel, pageId, pageId, blob)).imageId])
+    if (isCurrent()) setAddCropSrc(null)
+  }, [addImagesToPage, bookLabel, pageId, isCurrent])
 
   // Effective data: pending if dirty, otherwise server
   const imageClassData = pendingImageData ?? page?.imageClassification ?? null
@@ -302,6 +366,13 @@ export function ExtractPageDetail({
     }
     return map
   }, [page?.imagesMeta])
+
+  // Already on this page (pruned or not) — hidden from "Pick from book";
+  // a pruned one is brought back with its eye toggle instead.
+  const pageImageIds = useMemo(
+    () => new Set(imageClassData?.images.map((img) => img.imageId) ?? []),
+    [imageClassData],
+  )
 
   const toggleImagePrune = (imageId: string) => {
     if (restoringRef.current || savingImagesRef.current) return
@@ -430,14 +501,14 @@ export function ExtractPageDetail({
           )
         })()}
 
-        {/* Segmentation error notice */}
-        {segmentError && (
+        {/* Segment / add-image error notice */}
+        {imageError && (
           <div className="flex items-center gap-2 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            <span className="flex-1">{segmentError}</span>
+            <span className="flex-1">{imageError}</span>
             <button
               type="button"
-              onClick={() => setSegmentError(null)}
+              onClick={() => setImageError(null)}
               className="shrink-0 rounded p-0.5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
               title={t`Close`}
             >
@@ -485,8 +556,8 @@ export function ExtractPageDetail({
           const extractedImages = (imageClassData?.images.filter(
             (img) => img.imageId !== pageImageId
           ) ?? []).sort((a, b) => Number(a.isPruned) - Number(b.isPruned))
-          if (extractedImages.length === 0) {
-            if (imageFilterRunning && !imageClassData) {
+          if (!imageClassData) {
+            if (imageFilterRunning) {
               return (
                 <div className="flex items-center gap-2 rounded border border-dashed p-3 text-xs text-muted-foreground">
                   <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
@@ -514,6 +585,18 @@ export function ExtractPageDetail({
                   />
                 </div>
               ))}
+              <button
+                type="button"
+                onClick={() => setAddDialogOpen(true)}
+                disabled={storyboardRunning || extractRunning || addingImage}
+                className="flex min-h-[80px] flex-col items-center justify-center gap-1 rounded border border-dashed text-xs text-muted-foreground transition-colors cursor-pointer hover:border-foreground/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {addingImage
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <ImagePlus className="h-4 w-4" />
+                }
+                <Trans>Add image</Trans>
+              </button>
             </div>
           )
         })()}
@@ -638,6 +721,28 @@ export function ExtractPageDetail({
           regions={segmentPreview.regions}
           onApply={handleSegmentApply}
           onClose={() => setSegmentPreview(null)}
+        />
+      )}
+      {addDialogOpen && (
+        <AddImageDialog
+          bookLabel={bookLabel}
+          excludeImageIds={pageImageIds}
+          onSelectExisting={handleAddExisting}
+          onUpload={handleAddUpload}
+          onCropFromPage={imageData
+            ? () => {
+                setAddDialogOpen(false)
+                setAddCropSrc(`data:image/png;base64,${imageData.imageBase64}`)
+              }
+            : undefined}
+          onClose={() => setAddDialogOpen(false)}
+        />
+      )}
+      {addCropSrc && (
+        <ImageCropDialog
+          imageSrc={addCropSrc}
+          onApply={handleAddCropApply}
+          onClose={() => setAddCropSrc(null)}
         />
       )}
     </div>
