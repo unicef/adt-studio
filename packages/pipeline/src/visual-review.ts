@@ -2,6 +2,7 @@ import { visualReviewLLMSchema } from "@adt/types"
 import type { LLMModel, Message, ContentPart } from "@adt/llm"
 import { buildScreenshotHtml } from "./screenshot-html.js"
 import { SCREENSHOT_VIEWPORTS, getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
+import { encodeLegacyEntities } from "./html-escape.js"
 
 export const DEFAULT_VISUAL_REVIEW_MODEL_ID = "openai:gpt-5.4"
 
@@ -248,7 +249,8 @@ export async function runVisualReviewLoop(
     userParts.push(...screenshotParts)
     userParts.push({
       type: "text",
-      text: `\n${trailingContextText}\n\nCurrent HTML:\n\`\`\`html\n${html}\n\`\`\``,
+      // Prompt text is the LLM cache key: keep the pre-#907 encoding.
+      text: `\n${trailingContextText}\n\nCurrent HTML:\n\`\`\`html\n${encodeLegacyEntities(html)}\n\`\`\``,
     })
     if (pendingValidationFeedback) {
       userParts.push({ type: "text", text: pendingValidationFeedback })

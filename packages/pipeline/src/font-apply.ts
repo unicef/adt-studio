@@ -18,14 +18,20 @@ function withoutFontFamily(style: string): string {
     .join("; ")
 }
 
-/** Returns whether the element's style attribute changed. */
+/** Returns whether the element's font-family changed (other style formatting does not count). */
 function rewriteStyle(node: { attribs: Record<string, string> }, family: string | null): boolean {
-  const current = node.attribs.style
-  const base = withoutFontFamily(current ?? "")
+  const current = node.attribs.style ?? ""
+  const families = current
+    .split(";")
+    .map((decl) => decl.trim())
+    .filter((decl) => /^font-family\s*:/i.test(decl))
+    .map((decl) => decl.replace(/^font-family\s*:\s*/i, ""))
+  const unchanged = family ? families.length === 1 && families[0] === family : families.length === 0
+  const base = withoutFontFamily(current)
   const next = family ? (base ? `${base}; font-family: ${family}` : `font-family: ${family}`) : base
   if (next) node.attribs.style = next
   else delete node.attribs.style
-  return (next || undefined) !== current
+  return !unchanged
 }
 
 export function applyFontToHtml(html: string, opts: { family: string | null; scope: FontScope }): string {

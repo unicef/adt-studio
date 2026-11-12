@@ -66,6 +66,44 @@ describe("runVisualReviewLoop", () => {
     expect(screenshotCalls).toBe(6)
   })
 
+  it("shows the reviewer the current HTML in the previous entity encoding (#907)", async () => {
+    // Validated HTML is now readable UTF-8; the review prompt (an LLM cache key)
+    // keeps the previous encoding so cached review iterations still hit.
+    const prompts: string[] = []
+    const fakeModel: LLMModel = {
+      renderPrompt: async () => [{ role: "system", content: "You are a reviewer." }],
+      generateObject: async <T>(opts: unknown) => {
+        const messages = (opts as { messages?: Array<{ content: unknown }> }).messages ?? []
+        for (const m of messages) {
+          const parts = Array.isArray(m.content) ? m.content as Array<{ type: string; text?: string }> : []
+          for (const part of parts) if (part.type === "text" && part.text?.includes("Current HTML")) prompts.push(part.text)
+        }
+        return { object: { approved: true, reasoning: "ok", content: "" } as T } as GenerateObjectResult<T>
+      },
+    }
+    await runVisualReviewLoop({
+      initialHtml: '<section data-section-id="s1">Canción ¡Hola!</section>',
+      label: "book",
+      pageId: "pg001",
+      images: new Map(),
+      deps: {
+        llmModel: fakeModel,
+        screenshotRenderer: { screenshot: async () => "aGVsbG8=", close: async () => {} },
+        webAssetsDir: "/tmp/nonexistent",
+      },
+      promptName: "visual_review",
+      maxIterations: 1,
+      timeoutMs: 1000,
+      firstIterationScreenshotsText: "first set",
+      nextIterationScreenshotsText: "next set",
+      trailingContextText: "Section type: text_only",
+      validateHtml: () => ({ valid: true, errors: [] }),
+    })
+    expect(prompts).toHaveLength(1)
+    expect(prompts[0]).toContain("Canci&#xf3;n &#xa1;Hola!")
+    expect(prompts[0]).not.toContain("Canción")
+  })
+
   it("keeps current html when revision fails validation", async () => {
     let call = 0
     const fakeModel: LLMModel = {
