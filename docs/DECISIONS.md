@@ -998,8 +998,8 @@ untranslated. No native-speaker approval gates a merge.
   affects.
 - CI no longer needs write access to PR branches for i18n.
 - A contributor without an agent has to translate four locales by hand or ask for help.
-- Quality rests on the glossaries, the screen check and an independent agent review
-  rather than on native speakers; native feedback is welcome but not required.
+- Quality rests on reading each string where it renders, the glossaries and the screen
+  check rather than on native speakers; native feedback is welcome but not required.
 
 ### Alternatives Considered
 
