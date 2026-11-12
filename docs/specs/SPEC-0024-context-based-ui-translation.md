@@ -243,8 +243,10 @@ catalogs, and the browser test skips without Chromium.
 ### 9. The PR shows what the skill did
 
 The PR template gets a **Translations** section. The skill's last step writes it,
-opening with "Translated with the `translate` skill.", then: the strings and locales,
-how meaning was settled, the lint result, the screens checked with findings and fixes,
+opening with "Translated with the `translate` skill.", then: the strings and locales;
+for each string that is ambiguous or has a `context` or `comment`, the meaning chosen, in
+English ("Light: colour theme, not weight"), so a reviewer who doesn't speak the locale
+can check it; the lint result, the screens checked with findings and fixes,
 mocked captures, what wasn't checked and why, and the report if one was made. Nothing
 enforces it; a PR that changes strings without it is a reason to ask.
 
