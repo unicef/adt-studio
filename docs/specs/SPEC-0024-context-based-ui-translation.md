@@ -219,11 +219,14 @@ It runs in the CI `i18n` job and in `pnpm test` through a catalog test.
 
 `pnpm --filter @adt/studio i18n:screens --url <url> [--url <url> …]` targets the web dev
 server (`pnpm dev`); the desktop renderer reaches its API through Electron and can't be
-driven by URL. It launches Playwright with a fresh profile at 1280×720, seeds
-`adt-studio-onboarding-completed` (otherwise `routes/_app.tsx` redirects every route to
-`/onboarding`), and loads each URL once per locale with `?lang=<locale>`, replacing any
-`lang` already in the URL, because `?lang` outranks the stored locale
-(`apps/studio/src/main.tsx`).
+driven by URL. It launches Playwright with a fresh profile at 1280×720 and loads each
+URL once per locale with `?lang=<locale>`, replacing any `lang` already in the URL,
+because `?lang` outranks the stored locale (`apps/studio/src/main.tsx`).
+
+- **Landing where it asked.** After loading, and after any steps, it compares the page's
+  path with the requested one. A redirect (to onboarding, to the library when a book is
+  missing, or one added later) fails that capture with the URL it landed on, instead of
+  checking the wrong screen and reporting no findings.
 
 - **Detection.** It flags text that wraps, is cut off, is clipped or spills out of its
   box in a locale **but not in English on the same screen**, so data such as a long book
@@ -393,8 +396,8 @@ Two sub-choices:
 - [ ] AC-12: The detector flags a locale element that wraps, clips or is cut off when the
   matched English element doesn't, doesn't flag one that behaves like English, and
   reports elements with no English match as unmatched.
-- [ ] AC-13: `i18n:screens --url` reaches the URL past onboarding in a fresh profile,
-  captures English and every other locale at 1280×720 even when the URL already has a
+- [ ] AC-13: `i18n:screens --url` fails a capture whose page path differs from the
+  requested one and reports where it landed, captures English and every other locale at 1280×720 even when the URL already has a
   `lang`, runs `--steps` before each capture, and exits non-zero on a finding English
   doesn't have.
 - [ ] AC-14: `i18n:screens --report` writes a self-contained `index.html` (no network
