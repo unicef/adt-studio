@@ -370,6 +370,83 @@ describe("renderPage", () => {
     expect(seen).toEqual(["rtl", "ltr", ""])
   })
 
+  describe("direction-neutral generation (SPEC-0024)", () => {
+    const section = {
+      sectionId: "pg001_sec001",
+      sectionType: "text_only",
+      nodes: [
+        leafNode("pg001_tx001", "heading", "عنوان"),
+        groupNode("pg001_gp001", "paragraph", [leafNode("pg001_tx002", "section_text", "متن")]),
+      ],
+      backgroundColor: "#ffffff",
+      textColor: "#000000",
+      pageNumber: 1,
+      isPruned: false,
+    }
+    // What the model actually wrote for a real Urdu page: its own dir, a
+    // right-aligned paragraph and a left-aligned heading.
+    const generated = {
+      reasoning: "test",
+      content:
+        '<div id="content" class="container"><section dir="rtl" data-section-type="text_only" data-section-id="pg001_sec001">' +
+        '<h2 class="adt-h2 text-left" data-id="pg001_tx001">عنوان</h2>' +
+        '<p class="text-right" data-id="pg001_tx002">متن</p></section></div>',
+    }
+    const render = async (pageDirection: "rtl" | "ltr" | undefined, content = generated.content) => {
+      const written = { ...generated, content }
+      const fakeLlm: LLMModel = {
+        generateObject: async <T>(opts: GenerateObjectOptions) => {
+          const checked = opts.validate?.(written, opts.context ?? {})
+          expect(checked?.errors ?? []).toEqual([])
+          return { object: (checked?.cleaned ?? written) as T } as GenerateObjectResult<T>
+        },
+      }
+      const result = await renderPage(
+        {
+          label: "test-book", pageId: "pg001", pageImageBase64: "base64img",
+          sectioning: { reasoning: "test", sections: [section] },
+          images: new Map(), pageDirection,
+        },
+        defaultResolveConfig,
+        fakeLlm,
+      )
+      return result.sections[0].html
+    }
+
+    it("stores a right-to-left page without its own dir or left/right alignment, and starts the left-aligned text", async () => {
+      const html = await render("rtl")
+      expect(html).not.toMatch(/\sdir=/)
+      expect(html).not.toMatch(/text-(left|right)/)
+      expect(html).toContain('class="adt-h2 text-start" data-id="pg001_tx001"')
+      expect(html).toContain('class="text-start" data-id="pg001_tx002"')
+    })
+
+    it("stores a left-to-right page of a book with a right-to-left translation with start/end alignment", async () => {
+      // A left-to-right page has no `dir` of its own.
+      const html = await render("ltr", generated.content.replace(' dir="rtl"', ""))
+      expect(html).not.toMatch(/text-(left|right)/)
+      expect(html).toContain('class="adt-h2 text-start" data-id="pg001_tx001"')
+      expect(html).toContain('class="text-end" data-id="pg001_tx002"')
+    })
+
+    // `start` and `end` are resolved against the element's own direction, so a
+    // right-to-left section of a left-to-right page keeps its `dir` and has its
+    // classes mapped for it: the text stays on the side the model put it.
+    it("maps a section whose dir differs from the page's for its own direction", async () => {
+      const html = await render("ltr")
+      expect(html).toContain('<section dir="rtl"')
+      expect(html).toContain('class="adt-h2 text-end" data-id="pg001_tx001"')
+      expect(html).toContain('class="text-start" data-id="pg001_tx002"')
+    })
+
+    it("leaves every other book's generated HTML exactly as the model wrote it", async () => {
+      const html = await render(undefined)
+      expect(html).toContain('dir="rtl"')
+      expect(html).toContain('class="adt-h2 text-left" data-id="pg001_tx001"')
+      expect(html).toContain('class="text-right" data-id="pg001_tx002"')
+    })
+  })
+
   it("skips pruned sections", async () => {
     const calls: string[] = []
     const fakeLlm: LLMModel = {

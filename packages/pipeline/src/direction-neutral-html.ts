@@ -36,6 +36,7 @@ const PHYSICAL_TOKEN_RE = /^((?:[^\s:]+:)*)(text|float|clear)-(left|right)$/
 const FLOAT_TOKEN_RE = /^(?:[^\s:]+:)*float-(?:left|right|start|end)$/
 // A physical side margin (`ml-8`, `lg:-mr-2`): the gap beside a floated box.
 const PHYSICAL_MARGIN_RE = /^((?:[^\s:]+:)*-?m)([lr])(-.+)$/
+const LOGICAL_MARGIN_RE = /^((?:[^\s:]+:)*-?m)([se])(-.+)$/
 
 type Side = "left" | "right"
 
@@ -51,9 +52,17 @@ interface Directions {
 
 export interface NeutralizeOptions {
   /**
-   * In a right-to-left page, treat `text-left` on right-to-left text as a
-   * mistake and align it to the start instead of preserving it at the end.
-   * Changes how the page looks, so it is for newly generated HTML only —
+   * For a right-to-left page, also correct three things the model gets wrong,
+   * instead of preserving them:
+   * - `text-left` on right-to-left text is aligned to the start, not kept at
+   *   the far side;
+   * - a table-of-contents page number, which the TOC repair right-aligns for a
+   *   left-to-right row, is aligned to the end of its cell;
+   * - a floated box whose only side margin is on its outer side (`float-right`
+   *   copied from a left-to-right example, next to `ms-8`) gets that gap on
+   *   the text side, so the wrapped text does not touch the box.
+   *
+   * These change how the page looks, so this is for newly generated HTML only —
    * never for pages a person has already seen and edited.
    */
   correctMisalignedText?: boolean
@@ -69,6 +78,19 @@ interface Element {
 
 function classTokens(el: Element): string[] {
   return (el.attribs?.class ?? "").split(/\s+/).filter(Boolean)
+}
+
+/**
+ * The side (`s` or `e`) of a floated box's margin when it is on the outer side
+ * only: the box sits against that edge and nothing separates it from the text.
+ */
+function outerOnlyGap(tokens: string[]): "s" | "e" | null {
+  const float = tokens.find((token) => token === "float-start" || token === "float-end")
+  if (!float) return null
+  const outer = float === "float-start" ? "s" : "e"
+  const sides = new Set(tokens.flatMap((token) => LOGICAL_MARGIN_RE.exec(token)?.[2] ?? []))
+  const bothSides = tokens.some((token) => /^(?:[^\s:]+:)*-?mx-/.test(token))
+  return sides.size === 1 && sides.has(outer) && !bothSides ? outer : null
 }
 
 /** Index of the `>` that closes the opening tag starting at `start`. */
@@ -103,7 +125,10 @@ export function neutralizeDirectionMarkup(
   // below), or a left-to-right block of a right-to-left page would change side.
   const logicalFor = (side: Side, el: Element, direction: TextDirection): "start" | "end" => {
     if (direction === "ltr") return side === "left" ? "start" : "end"
-    if (side === "right") return "start"
+    if (side === "right") {
+      const tocPageNumber = el.attribs?.["data-toc-page-number"] === "true"
+      return correcting && tocPageNumber ? "end" : "start"
+    }
     const rtlText = RTL_LETTER_RE.test(DomUtils.textContent(el as never))
     return correcting && rtlText ? "start" : "end"
   }
@@ -152,7 +177,19 @@ export function neutralizeDirectionMarkup(
 
     const directions: Directions = { own: dir, container: inheritedDir }
     const floated = tokens.some((token) => FLOAT_TOKEN_RE.test(token))
-    const physical = tokens.some((token) => logicalToken(token, node, floated, directions) !== null)
+    // The gap correction reads the float and its margin as one pair, so it is
+    // left alone where the two are resolved against different directions.
+    const gapToMove =
+      correcting && floated && directions.own === directions.container
+        ? outerOnlyGap(tokens.map((token) => logicalToken(token, node, floated, directions) ?? token))
+        : null
+    /** The class token as it should be stored. */
+    const rewritten = (token: string): string => {
+      const logical = logicalToken(token, node, floated, directions) ?? token
+      const margin = gapToMove ? LOGICAL_MARGIN_RE.exec(logical) : null
+      return margin && margin[2] === gapToMove ? `${margin[1]}${gapToMove === "s" ? "e" : "s"}${margin[3]}` : logical
+    }
+    const physical = tokens.some((token) => rewritten(token) !== token)
     // A table header centres itself unless an ancestor sets alignment
     // explicitly, and `start`/`end` do not count as explicit. So a header that
     // was inheriting left/right has to carry the logical class itself.
@@ -164,11 +201,27 @@ export function neutralizeDirectionMarkup(
       if (end > start) {
         let tag = html.slice(start, end + 1)
         if (physical) {
-          tag = tag.replace(/(\sclass\s*=\s*)(["'])([\s\S]*?)\2/, (_match, prefix: string, quote: string, value: string) =>
-            `${prefix}${quote}${value
-              .split(/(\s+)/)
-              .map((token) => logicalToken(token, node, floated, directions) ?? token)
-              .join("")}${quote}`)
+          tag = tag.replace(/(\sclass\s*=\s*)(["'])([\s\S]*?)\2/, (_match, prefix: string, quote: string, value: string) => {
+            const parts = value.split(/(\s+)/)
+            const present = new Set(parts.filter((part) => part.trim() && rewritten(part) === part))
+            const kept: string[] = []
+            for (const part of parts) {
+              const logical = rewritten(part)
+              if (logical === part) {
+                kept.push(part)
+                continue
+              }
+              // Already there (a repair step re-added the physical class to an
+              // element converted earlier): drop it with the space before it.
+              if (present.has(logical)) {
+                if (kept.length > 0 && /^\s+$/.test(kept[kept.length - 1])) kept.pop()
+                continue
+              }
+              present.add(logical)
+              kept.push(logical)
+            }
+            return `${prefix}${quote}${kept.join("")}${quote}`
+          })
         }
         if (headerNeedsClass) {
           const added = `text-${logicalFor(inheritedSide as Side, node, dir)}`

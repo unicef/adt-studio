@@ -173,6 +173,53 @@ describe("neutralizeDirectionMarkup", () => {
       ).toBe('<h1 class="text-start">عنوان</h1><p class="text-end">English only</p>')
     })
 
+    // The TOC repair right-aligns page numbers in a fixed-width cell, which is
+    // right for a left-to-right row. In a right-to-left row that cell is at the
+    // far left, and the numbers share its left edge.
+    it("aligns a table-of-contents page number to the end of its cell", () => {
+      const cell = '<span data-toc-page-number="true" class="w-8 shrink-0 text-right tabular-nums">12</span>'
+      expect(neutralizeDirectionMarkup(cell, "rtl", { correctMisalignedText: true })).toBe(
+        '<span data-toc-page-number="true" class="w-8 shrink-0 text-end tabular-nums">12</span>',
+      )
+      // Without the correction it is preserved where it was.
+      expect(neutralizeDirectionMarkup(cell, "rtl")).toBe(
+        '<span data-toc-page-number="true" class="w-8 shrink-0 text-start tabular-nums">12</span>',
+      )
+    })
+
+    it("does not duplicate a class when a repair step re-added the physical one", () => {
+      expect(
+        neutralizeDirectionMarkup(
+          '<span data-toc-page-number="true" class="w-8 shrink-0 text-end tabular-nums text-right">12</span>',
+          "rtl",
+          { correctMisalignedText: true },
+        ),
+      ).toBe('<span data-toc-page-number="true" class="w-8 shrink-0 text-end tabular-nums">12</span>')
+    })
+
+    // Seen on every floated box of the first real run: `float-right` copied
+    // from the left-to-right example, next to a start-side (right) gap.
+    it("moves a floated box's gap to the text side when it is only on the outer side", () => {
+      expect(
+        neutralizeDirectionMarkup(
+          '<aside class="float-right mb-6 ms-8 w-[34%] max-lg:float-none max-lg:ms-0">نوٹ</aside>',
+          "rtl",
+          { correctMisalignedText: true },
+        ),
+      ).toBe('<aside class="float-start mb-6 me-8 w-[34%] max-lg:float-none max-lg:me-0">نوٹ</aside>')
+    })
+
+    it("leaves a floated box's gap alone on the text side, on both sides, and when packaging", () => {
+      const textSide = '<aside class="float-start me-8">نوٹ</aside>'
+      expect(neutralizeDirectionMarkup(textSide, "rtl", { correctMisalignedText: true })).toBe(textSide)
+      const bothSides = '<aside class="float-end ms-8 me-2">نوٹ</aside>'
+      expect(neutralizeDirectionMarkup(bothSides, "rtl", { correctMisalignedText: true })).toBe(bothSides)
+      // Packaging keeps a page a person has already seen exactly as it looks.
+      expect(neutralizeDirectionMarkup('<aside class="float-right ms-8">نوٹ</aside>', "rtl")).toBe(
+        '<aside class="float-start ms-8">نوٹ</aside>',
+      )
+    })
+
     it("changes nothing in a page written left to right", () => {
       for (const html of ['<p class="text-right">Signed</p>', '<p dir="rtl" class="text-left">متن</p>']) {
         expect(neutralizeDirectionMarkup(html, "ltr", { correctMisalignedText: true })).toBe(
