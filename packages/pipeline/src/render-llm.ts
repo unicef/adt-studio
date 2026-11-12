@@ -1,4 +1,5 @@
 import { assignActivitySectionIds } from "./catalog-reconciliation.js"
+import { neutralizeDirectionMarkup } from "./direction-neutral-html.js"
 import { inputSignature } from "./output-freshness.js"
 import type { SectionRendering } from "@adt/types"
 import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
@@ -302,10 +303,20 @@ function validateWebRendering(
     { allowNonHeadingFontSizes },
   )
   if (check.valid && typographyErrors.length === 0 && check.sectionHtml) {
+    // A book with a right-to-left language keeps one layout for both reading
+    // directions, so its pages are stored direction-neutral. Repaired here
+    // rather than rejected: the rewrite is deterministic, so it cannot cost a
+    // retry or fail a page (SPEC-0024). Last, so the checks above see the HTML
+    // the repairs before them produced.
+    const pageDirection = context.page_direction
+    const content =
+      pageDirection === "rtl" || pageDirection === "ltr"
+        ? neutralizeDirectionMarkup(check.sectionHtml, pageDirection, { correctMisalignedText: true })
+        : check.sectionHtml
     return {
       valid: true,
       errors: [],
-      cleaned: { reasoning: r.reasoning, content: check.sectionHtml },
+      cleaned: { reasoning: r.reasoning, content },
     }
   }
 
