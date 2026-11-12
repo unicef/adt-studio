@@ -19,6 +19,7 @@ vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({ data: state.pages, isLo
 vi.mock("@/hooks/use-api-key", () => ({
   useApiKey: () => ({ apiKey: "fixture" }),
   useBookStructuredTextStatus: () => ({ available: state.available, ready: state.ready }),
+  useBookRejectedTextProvider: () => null,
 }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({
   stageState: () => state.stage, stepState: () => "idle", stepProgress: () => undefined,

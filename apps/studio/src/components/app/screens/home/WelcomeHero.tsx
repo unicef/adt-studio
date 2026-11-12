@@ -1,8 +1,8 @@
 import { useNavigate } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
-import { WelcomeKeyPrompt } from "@/components/key-prompt/KeyPrompt"
+import { WelcomeKeyPrompt, WelcomeRejectedKeyPrompt } from "@/components/key-prompt/KeyPrompt"
 import { useConnectProvider } from "@/hooks/use-connect-provider"
-import { useNeedsTextProvider } from "@/hooks/use-api-key"
+import { useNeedsTextProvider, useRejectedTextProvider } from "@/hooks/use-api-key"
 import { FileText, Sparkles, Package, ArrowRight, Plus, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -16,9 +16,13 @@ export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
   const navigate = useNavigate()
   const connect = useConnectProvider()
   const needsKey = useNeedsTextProvider()
+  // Null while no key is set, so the missing-key prompt keeps precedence.
+  const rejected = useRejectedTextProvider()
+  const update = useConnectProvider(rejected ? { providerId: rejected.providerId } : {})
+  const keyBlocked = needsKey || rejected !== null
   const ctas = (
     <>
-      <Button variant={needsKey ? "outline" : "default"} onClick={onOpenAdd}>
+      <Button variant={keyBlocked ? "outline" : "default"} onClick={onOpenAdd}>
         <Plus className="size-3.5" />
         <Trans>Add your first book</Trans>
       </Button>
@@ -67,6 +71,8 @@ export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
               onConnect={connect}
               ctas={ctas}
             />
+          ) : rejected ? (
+            <WelcomeRejectedKeyPrompt providerId={rejected.providerId} name={rejected.displayName} onUpdate={update} ctas={ctas} />
           ) : (
             <div className="flex flex-wrap gap-3">{ctas}</div>
           )}

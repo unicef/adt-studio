@@ -628,6 +628,39 @@ msgstr "{pdfFilename} · {pageCount} faqe"
 msgid "{position} of {total}"
 msgstr "{position} nga {total}"
 
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} key rejected}}"
+msgstr "{providerKey, select, other {Çelësi i {name} u refuzua}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+msgstr "{providerKey, select, other {{name} refuzoi çelësin e ruajtur të API-së, prandaj nxjerrja dhe hapat e tjerë të AI-së do të dështojnë. Përditësoni çelësin, ose konfiguroni librin tani dhe rregullojeni më vonë.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+msgstr "{providerKey, select, other {{selectedProviderLabel} refuzoi çelësin e ruajtur të API-së, prandaj leximi me zë do të dështojë. Përditësojeni te Cilësime → Ofruesit e AI.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
+msgstr "{providerKey, select, other {U ruajt, por {name} e refuzoi këtë çelës API. Kontrolloni që e keni kopjuar të gjithë çelësin.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Settings — the {rejectedName} key was rejected}}"
+msgstr "{providerKey, select, other {Cilësime — çelësi i {rejectedName} u refuzua}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
+msgstr "{providerKey, select, other {Çelësi i {name} u refuzua. Përditësoni çelësin.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua, prandaj librat nuk mund të përpunohen ende.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected}}"
+msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua}}"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
 
@@ -1635,6 +1668,9 @@ msgstr "Renderim me AI"
 
 msgid "AI sees the current image and modifies it"
 msgstr "AI sheh imazhin aktual dhe e modifikon atë"
+
+msgid "AI steps will fail until the key is updated."
+msgstr "Hapat e AI-së do të dështojnë derisa të përditësohet çelësi."
 
 msgid "AI-powered"
 msgstr "I fuqizuar nga AI"
@@ -3264,6 +3300,9 @@ msgstr "Vazhdo"
 msgid "Continue adding your book"
 msgstr "Vazhdo shtimin e librit"
 
+msgid "Continue anyway"
+msgstr "Vazhdo gjithsesi"
+
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"
 msgstr "Vazhdo në faqen {0}"
@@ -3450,6 +3489,9 @@ msgstr "Nuk mund të lexohej ky PDF"
 
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Nuk u rikthye dot v{version}. Ju lutemi provoni përsëri."
+
+msgid "Couldn't save the credentials in this browser. Check that site storage is allowed, then try again."
+msgstr "Kredencialet nuk u ruajtën në këtë shfletues. Kontrolloni që ruajtja e sajtit të jetë e lejuar dhe provoni sërish."
 
 msgid "Couldn't save the glossary. Your draft is kept; check for newer changes before trying again."
 msgstr "Fjalorthi nuk mund të ruhej. Drafti juaj është ruajtur; kontrolloni nëse ka ndryshime më të reja përpara se të provoni përsëri."
@@ -6117,6 +6159,9 @@ msgstr "Mbajtur"
 
 #~ msgid "Key must start with \"sk-\""
 #~ msgstr "Çelësi duhet të fillojë me \"sk-\""
+
+msgid "Key rejected"
+msgstr "Çelësi u refuzua"
 
 msgid "Key terms"
 msgstr "Termat kyç"
@@ -12898,6 +12943,9 @@ msgstr "Përditësim i disponueshëm"
 
 msgid "Update filtered items"
 msgstr "Përditëso elementet e filtruara"
+
+msgid "Update key"
+msgstr "Përditëso çelësin"
 
 msgid "Update link"
 msgstr "Përditëso lidhjen"
