@@ -987,9 +987,10 @@ and mistranslations that the other locales still carry.
 ### Decision
 
 The PR author's agent session translates every locale from where each string renders,
-using a per-locale glossary, and checks the result on screen against English. CI never
-translates: it fails on missing translations and on mechanical errors. No native-speaker
-approval gates a merge.
+using a per-locale glossary, and checks the result on screen against English, on the
+author's machine. The PR carries a section the skill writes about that work. CI never
+translates and doesn't judge translations: it fails only when a string is unextracted or
+untranslated. No native-speaker approval gates a merge.
 
 ### Consequences
 
