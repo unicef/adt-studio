@@ -1,4 +1,5 @@
 import { parseDocument, DomUtils } from "htmlparser2"
+import { serializeHtml } from "./html-escape.js"
 
 export type FontScope = "whole" | "heading" | "paragraph" | "body" | "caption"
 
@@ -17,12 +18,14 @@ function withoutFontFamily(style: string): string {
     .join("; ")
 }
 
-function rewriteStyle(node: { attribs: Record<string, string> }, family: string | null): void {
-  const current = node.attribs.style ?? ""
-  const base = withoutFontFamily(current)
+/** Returns whether the element's style attribute changed. */
+function rewriteStyle(node: { attribs: Record<string, string> }, family: string | null): boolean {
+  const current = node.attribs.style
+  const base = withoutFontFamily(current ?? "")
   const next = family ? (base ? `${base}; font-family: ${family}` : `font-family: ${family}`) : base
   if (next) node.attribs.style = next
   else delete node.attribs.style
+  return (next || undefined) !== current
 }
 
 export function applyFontToHtml(html: string, opts: { family: string | null; scope: FontScope }): string {
@@ -33,8 +36,12 @@ export function applyFontToHtml(html: string, opts: { family: string | null; sco
     if (isWhole) return true
     return SCOPE_TAGS[opts.scope as Exclude<FontScope, "whole">].has(el.name)
   }, doc.children)
+  let changed = false
   for (const node of nodes) {
-    rewriteStyle(node, isWhole ? null : opts.family)
+    if (rewriteStyle(node, isWhole ? null : opts.family)) changed = true
   }
-  return DomUtils.getOuterHTML(doc)
+  // Unchanged input is returned as-is: re-serializing older stored HTML would
+  // differ only in entity encoding (#907), and callers save a new rendering
+  // version whenever the string differs.
+  return changed ? serializeHtml(doc) : html
 }

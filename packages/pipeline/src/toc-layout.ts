@@ -1,5 +1,6 @@
 import type { LeafText } from "./web-rendering.js"
 import { DomUtils, parseDocument } from "htmlparser2"
+import { serializeHtml } from "./html-escape.js"
 
 // htmlparser2 does not expose a convenient common element type through its
 // public helpers. Keep the untyped boundary here instead of throughout the
@@ -268,7 +269,7 @@ export function repairTableOfContentsLayout(html: string, leafTexts: LeafText[])
   }
 
   changed = removeDuplicateDecorations(doc, pageNumbers) || changed
-  return changed ? DomUtils.getOuterHTML(doc) : html
+  return changed ? serializeHtml(doc) : html
 }
 
 /** Rendering calls repair first, so a second pass must be a no-op. */

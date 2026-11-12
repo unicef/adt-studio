@@ -67,7 +67,7 @@ import { renderingOwnershipWarnings } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
 import { orderTocEntries } from "../toc-reading-order.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
-import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
+import { escapeHtml, escapeAttr, escapeInlineScriptJson, serializeHtml } from "../html-escape.js"
 import { buildTailwindCss } from "../tailwind.js"
 
 export interface PackageAdtWebOptions {
@@ -1956,7 +1956,7 @@ export function rewriteImageUrls(
     }
   }
 
-  const normalizedHtml = DomUtils.getOuterHTML(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
+  const normalizedHtml = serializeHtml(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
   return { html: normalizedHtml, referencedImages }
 }
 
@@ -2066,7 +2066,8 @@ const MATH_INDICATORS = [
   "\\[",
   "<math",
   "\\begin{",
-  // HTML-encoded forms (htmlparser2's getOuterHTML encodes $ as &#x24;)
+  // HTML-encoded form. serializeHtml (#907) writes $ literally, but HTML
+  // stored before that fix, or written by other tools, can still hold &#x24;.
   "&#x24;",
 ]
 
@@ -2175,7 +2176,8 @@ function renderLatexWithFallback(latex: string): string | null {
 }
 
 /**
- * Decode HTML entities for $ that htmlparser2 serialization may produce,
+ * Decode HTML entities for $ that older stored HTML may still contain (before
+ * #907, htmlparser2 serialization wrote $ as &#x24;),
  * so that LaTeX delimiters can be matched by the regex patterns below.
  */
 function decodeDollarEntities(s: string): string {

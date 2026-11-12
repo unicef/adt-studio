@@ -1,4 +1,5 @@
 import { parseDocument, DomUtils } from "htmlparser2"
+import { serializeHtml } from "./html-escape.js"
 
 // htmlparser2/domhandler node construction is loose enough here that a small
 // local shape is simpler than pulling in more types.
@@ -337,7 +338,7 @@ export function autoRepairUnderlineActivityHtml(html: string, sectionType: strin
   // groups so EVERY word of those sentences is selectable, not just the
   // LLM's curated candidates.
   if (hasUnderlineOptions(section)) {
-    return completeWordLevelGroups(section) ? DomUtils.getOuterHTML(doc) : html
+    return completeWordLevelGroups(section) ? serializeHtml(doc) : html
   }
 
   const dataIdElements = findDataIdElements(section)
@@ -369,5 +370,5 @@ export function autoRepairUnderlineActivityHtml(html: string, sectionType: strin
     questionIndex += 1
   }
 
-  return DomUtils.getOuterHTML(doc)
+  return serializeHtml(doc)
 }

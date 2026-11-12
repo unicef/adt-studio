@@ -2,6 +2,20 @@ import { describe, it, expect } from "vitest"
 import { applyFontToHtml } from "../font-apply.js"
 
 describe("applyFontToHtml", () => {
+  it("returns the input unchanged when no style changes, so older HTML is not rewritten just to re-encode it (#907)", () => {
+    // Before #907, stored HTML wrote non-ASCII as numeric entities. Re-serializing
+    // it now would differ only in encoding, and the font route would save a new
+    // rendering version for a page whose fonts did not change.
+    const html = '<section><p>La explicaci&#xf3;n</p><h1 style="font-family: Lora">&#xa1;Brrr!</h1></section>'
+    expect(applyFontToHtml(html, { family: null, scope: "paragraph" })).toBe(html)
+    expect(applyFontToHtml(html, { family: "Lora", scope: "heading" })).toBe(html)
+  })
+
+  it("writes literal UTF-8 when a style does change (#907)", () => {
+    const out = applyFontToHtml("<p>La explicaci&#xf3;n</p>", { family: "Lora", scope: "paragraph" })
+    expect(out).toBe('<p style="font-family: Lora">La explicación</p>')
+  })
+
   it("removes every inline font-family for whole-book scope", () => {
     const html = `<section><h1 style="font-family:'Nabla',serif;color:red">T</h1><p style="font-family:'Lora',serif">b</p></section>`
     const out = applyFontToHtml(html, { family: "'Ignored',serif", scope: "whole" })
