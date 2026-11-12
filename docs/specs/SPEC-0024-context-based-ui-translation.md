@@ -86,6 +86,7 @@ or what a shorter replacement would be.
 - Mechanical errors (placeholders, tags, stray escapes, invalid ICU, forbidden terms)
   fail CI.
 - No key-based translation path remains for the Studio catalogs.
+- The es, fr and sq catalogs are reviewed with the new workflow, as pt-BR was in #920.
 
 ## Non-goals
 
@@ -93,8 +94,6 @@ or what a shorter replacement would be.
   (`apps/desktop/src/renderer/src/locales/`, 12 strings, Lingui 5, no `sq`, not checked
   in CI) and the reader's strings (`apps/adt-runtime`) are out of scope. An issue for the
   desktop catalogs is filed with this spec's PR.
-- **Full catalog reviews of es, fr and sq.** They apply this spec's guide and
-  glossaries, as follow-up fast-lane issues, one PR per locale like #920.
 - **Committed test data for the screen check.** No fixture book and no committed mocks.
   The check runs on the author's app, and any mocked responses are written for that
   session under `.context/` (§4).
@@ -312,7 +311,7 @@ warn, auto-translate and re-verify steps, drop `continue-on-error` from
 `compile --strict` and drop `contents: write`. An empty `msgstr` now fails the PR. The
 `i18n` job stops reading `OPENAI_API_KEY` and `TRANSLATE_MODEL`. `OPENAI_API_KEY` stays
 (`release.yml` uses it); `TRANSLATE_MODEL` is used nowhere else (`ci.yml:85` only) and
-can be deleted from the repository secrets after PR 4 merges. `README.md`
+can be deleted from the repository secrets after PR 1 merges. `README.md`
 and `docs/I18N_ADD_LANGUAGE.md`, which document the script, are updated, and they and
 `AGENTS.md` are corrected from "Lingui v5" to v6 (`@lingui/*` is `^6.4.0`).
 
@@ -453,24 +452,22 @@ the implementing PR, plus a manual run against Studio.
 
 ## Rollout
 
-Four PRs, each within the §9 review budget and reverting on its own:
+Two PRs. The first is above the ~1000-line review budget (SDD §9), about 2,000 changed
+lines; the owner accepted that, because its parts only make sense together: removing
+the translator without the workflow that replaces it leaves no way to translate.
 
-1. **Catalog fixes (AC-9).** 5 `.po` files and the `THEME_OPTIONS` call site, ~80
-   lines. Ships value alone: no blank buttons in es and no stray backslashes on screen.
-2. **Lint, glossaries and test wiring (AC-3 – AC-8, AC-10, AC-15, AC-18's marker).** ~300 lines of lint,
-   ~300 of tests, ~500 of glossary text. The script still exists at this point, but the
-   lint catches what it breaks. If review finds it too large, the fr and sq glossaries
-   move to their own PR.
-3. **Tooling (AC-11 – AC-14, AC-17).** `i18n:origins`, `i18n:screens` with steps,
-   mocks and the report, and their tests, ~1050 lines. Nothing changes for contributors
-   yet.
-4. **Switch to the context-based workflow (AC-1, AC-2, AC-16, AC-18's skill rule).** Removes the key-based
-   translator, makes empty translations fail, and adds the guide, the skill and the doc
-   updates, and marks ADR 029 accepted, ~400 lines added and ~300 removed. Reverting it restores the old
-   script.
-
-Follow-ups, each a fast-lane issue citing this spec: the es, fr and sq catalog reviews
-(one PR per locale, a second agent checking every change).
+1. **Tooling and the switch (AC-1 – AC-9, AC-11 – AC-18).** Removes the key-based
+   translator and makes empty translations fail; adds `i18n:lint` with the test wiring,
+   `i18n:origins`, `i18n:screens` with steps, mocks and the report, the guide, the
+   `translate` skill, the `AGENTS.md` pointer, the PR template section and the doc
+   updates; fixes the existing bugs (§7), since the lint fails on them; and marks ADR
+   029 accepted. Reverting it restores the old script and CI steps.
+2. **Languages (AC-10, and a review of every locale).** The pt-BR, es, fr and sq
+   glossaries and rules files, then a review of the es, fr and sq catalogs using the
+   skill, the way #920 reviewed pt-BR, with a second agent checking every change. The
+   PR description attaches the HTML report, since reviewers don't speak most of the
+   locales. Catalogs don't count toward the review budget (SDD §3); the glossaries and
+   rules are about 600 lines.
 
 ### Risks
 
@@ -483,8 +480,7 @@ Follow-ups, each a fast-lane issue citing this spec: the es, fr and sq catalog r
   fit problem. Mocks are written from the components' own types and checked against
   `@adt/types` schemas where they exist, and the report and the PR's i18n section say
   which captures were mocked.
-- **Open PRs with empty translations** start failing after PR 4. The PR 4 description
+- **Open PRs with empty translations** start failing after PR 1. The PR 1 description
   lists them, and the failure message points to the guide.
 - **A missed screen.** The screen check only covers what the author reaches. The PR's
-  i18n section makes the gap visible, and the follow-up locale reviews walk the app as
-  #900 did.
+  i18n section makes the gap visible, and the languages PR walks the app as #900 did.
