@@ -7714,6 +7714,9 @@ msgstr "Not compatible with Fixed Layout"
 msgid "Not configured"
 msgstr "Not configured"
 
+msgid "Not connected"
+msgstr "Not connected"
+
 msgid "Not detected"
 msgstr "Not detected"
 
@@ -10698,6 +10701,9 @@ msgstr "Settings"
 
 msgid "Settings — a sharing update is ready"
 msgstr "Settings — a sharing update is ready"
+
+msgid "Settings — no AI provider is connected"
+msgstr "Settings — no AI provider is connected"
 
 msgid "Settings for this step are not yet available."
 msgstr "Settings for this step are not yet available."
