@@ -11,6 +11,13 @@ describe("applyFontToHtml", () => {
     expect(applyFontToHtml(html, { family: "Lora", scope: "heading" })).toBe(html)
   })
 
+  it("counts only a font-family change as a change, not other style formatting (#907)", () => {
+    const html = '<section><p style="color:red;">&#xa1;Hola!</p><h2 style="font-family: Lora; color: red">T&#xed;tulo</h2></section>'
+    expect(applyFontToHtml(html, { family: null, scope: "whole" })).not.toBe(html) // the h2 loses its font-family
+    expect(applyFontToHtml(html, { family: null, scope: "paragraph" })).toBe(html)
+    expect(applyFontToHtml(html, { family: "Lora", scope: "heading" })).toBe(html)
+  })
+
   it("writes literal UTF-8 when a style does change (#907)", () => {
     const out = applyFontToHtml("<p>La explicaci&#xf3;n</p>", { family: "Lora", scope: "paragraph" })
     expect(out).toBe('<p style="font-family: Lora">La explicación</p>')

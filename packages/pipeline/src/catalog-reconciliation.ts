@@ -8,7 +8,6 @@ import { inputSignature } from "./output-freshness.js"
 import { rewriteRenderedIdentityReferences } from "./rendered-identity.js"
 import { extractImageIds } from "./image-captioning.js"
 import { withLegacyRenderingOwnership, getRenderSectioning, renderedSectionId, resolveRenderedSection } from "./render-sectioning.js"
-import { serializeHtml } from "./html-escape.js"
 
 /** Assign newly generated activity leaves real stored identities once. Reading
  * order is never used as identity. Existing authored data IDs are untouched. */

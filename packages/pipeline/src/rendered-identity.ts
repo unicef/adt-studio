@@ -1,6 +1,5 @@
 import { serializeHtml } from "./html-serialize.js"
 import { parseDocument, DomUtils } from "htmlparser2"
-import { serializeHtml } from "./html-escape.js"
 
 // Each rendered section is a separate document. Its DOM IDs, script selectors,
 // ARIA references and activity keys are local; coincidentally equal tokens do

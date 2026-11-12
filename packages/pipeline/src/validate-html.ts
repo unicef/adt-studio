@@ -2,7 +2,6 @@ import { serializeHtml } from "./html-serialize.js"
 import { parseDocument, DomUtils } from "htmlparser2"
 import { normalizeSectionSemantics } from "./html-semantics.js"
 import { validateActivityStructure } from "./validate-activity-structure.js"
-import { serializeHtml } from "./html-escape.js"
 
 /** Minimum similarity (0–1) for auto-fixing text vs treating as a validation error */
 const TEXT_SIMILARITY_THRESHOLD = 0.7
