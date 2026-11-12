@@ -48,6 +48,10 @@ function mount(): void {
   interfaceContainer.style.zIndex = "60"
   navContainer.style.zIndex = "50"
 
+  // Opt in before React mounts: the prefetcher must know this reader owns
+  // navigation even while boot is still fetching its manifests.
+  const unsubSoftNav = subscribeSoftNavHistory()
+
   const chromeRoot = createRoot(interfaceContainer)
   chromeRoot.render(
     <React.StrictMode>
@@ -67,16 +71,25 @@ function mount(): void {
   )
 
   const unsubPreviewBridge = subscribePreviewBridge()
-  window.__adtRuntime = { booted: true, chromeRoot, navRoot, unsubscribe: unsubPreviewBridge }
+  const runtime = {
+    booted: true,
+    chromeRoot,
+    navRoot,
+    unsubscribe: () => {
+      unsubPreviewBridge()
+      unsubSoftNav()
+    },
+  }
+  window.__adtRuntime = runtime
 
   // Async boot — load config + translations + manifests, then signal
   // language-change subscription so the sidebar selector triggers reloads.
   void bootRuntime()
     .then(() => {
+      if (window.__adtRuntime !== runtime) return
       const unsubLanguage = subscribeLanguageChanges()
       const unsubPreview = subscribePreviewSettings()
-      const unsubSoftNav = subscribeSoftNavHistory()
-      window.__adtRuntime!.unsubscribe = () => {
+      runtime.unsubscribe = () => {
         unsubPreviewBridge()
         unsubLanguage()
         unsubPreview()

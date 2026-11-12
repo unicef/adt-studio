@@ -1,3 +1,6 @@
+import { assertAuthoredIdle } from "../services/authored-output-service.js"
+import { assertEditVersion } from "../services/catalog-output-service.js"
+import { AuthoredSaveGuard } from "@adt/types"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -5,7 +8,7 @@ import { HTTPException } from "hono/http-exception"
 import { TocGenerationOutput, isHeadingRole, parseBookLabel } from "@adt/types"
 import type { ContentNodeData } from "@adt/types"
 import { openBookDb, createBookStorage, readCurrentNodeRow } from "@adt/storage"
-import { resolveReadingOrder, readingOrderHref } from "@adt/pipeline"
+import { indexPreservedEntries, stampManualEdits, inputSignature, resolveReadingOrder, readingOrderHref } from "@adt/pipeline"
 
 function safeParseLabel(label: string): string {
   try {
@@ -78,7 +81,8 @@ export function createTocRoutes(booksDir: string): Hono {
     } catch {
       throw new HTTPException(400, { message: "Invalid JSON body" })
     }
-    const parsed = TocGenerationOutput.safeParse(body)
+    // Ignore client authorship; the guarded save stamps the document on the server.
+    const parsed = TocGenerationOutput.omit({ source: true }).extend(AuthoredSaveGuard.shape).safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid TOC data: ${parsed.error.message}`,
@@ -87,7 +91,18 @@ export function createTocRoutes(booksDir: string): Hono {
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const version = storage.putNodeData("toc-generation", "book", parsed.data)
+      assertAuthoredIdle(storage)
+      const previous = storage.getLatestNodeData("toc-generation", "book")
+      assertEditVersion(previous?.version, parsed.data.baseVersion)
+      const { baseVersion: _base, ...content } = parsed.data
+      const prior = TocGenerationOutput.safeParse(previous?.data)
+      try { if (prior.success) indexPreservedEntries(prior.data.entries, (entry) => entry.id) }
+      catch { throw new HTTPException(409, { message: "Saved table of contents has ambiguous chapter identities. Keep the draft and restore an unambiguous version before saving." }) }
+      try { indexPreservedEntries(content.entries, (entry) => entry.id) }
+      catch { throw new HTTPException(400, { message: "Table of contents entries need distinct, non-empty identities." }) }
+      const [stamped] = stampManualEdits<TocGenerationOutput>(prior.success ? [prior.data] : [], [content], () => "book",
+        (before, after) => inputSignature({ entries: before.entries, pageCount: before.pageCount }) === inputSignature({ entries: after.entries, pageCount: after.pageCount }))
+      const version = storage.putNodeData("toc-generation", "book", stamped)
       return c.json({ version })
     } finally {
       storage.close()

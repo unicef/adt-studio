@@ -1,0 +1,186 @@
+{
+  "runtimeSource": "285f3d82a2ad27b35346cdcba5bcdcfcf470bf1a",
+  "startingHead": "618153d399d1c6fbf4a0f2bff9be88856df734d3",
+  "base": "0b18602f8b42f4b52b4d2ccf2927635d5a4db572",
+  "date": "2026-10-13",
+  "checks": {
+    "fullSuite": {
+      "files": 331,
+      "tests": 4098,
+      "status": "passed"
+    },
+    "typecheck": "passed",
+    "runtimeTypecheck": "passed",
+    "build": "passed",
+    "productionServerBundle": "passed",
+    "lint": {
+      "errors": 0,
+      "warnings": 8
+    },
+    "lingui": {
+      "locales": [
+        "en",
+        "es",
+        "fr",
+        "pt-BR",
+        "sq"
+      ],
+      "messagesPerLocale": 3717,
+      "missingTargetTranslations": 0,
+      "checkpoint": "03e02752; Studio and locale sources unchanged since"
+    },
+    "separateInvariantCommand": "unavailable",
+    "unpackedMacArm64Desktop": "passed, ad-hoc signing only",
+    "cleanDockerAppBuild": {
+      "status": "blocked",
+      "attemptedSource": "d91973ec",
+      "reason": "Debian repository-signature failure during Playwright dependency installation; Docker VM had 26 MB free",
+      "securityBypass": false
+    },
+    "dockerRuntime": "current production bundles mounted into existing image; not a clean build"
+  },
+  "independentReview": {
+    "status": "qualified technical acceptance; no remaining actionable finding in changed scope",
+    "head": "285f3d82a2ad27b35346cdcba5bcdcfcf470bf1a",
+    "finalEntryChecks": {
+      "repositoryTests": 8,
+      "repositoryFiles": 3,
+      "independentCases": 3
+    },
+    "backendCheckpoint": "b0ac67e6f1e2d2a2c6a0d9ebf73184344ae9ce4a",
+    "backendChecks": {
+      "repositoryTests": 31,
+      "repositoryFiles": 4,
+      "independentCases": 7,
+      "paletteHttpProbe": "passed"
+    },
+    "earlierCheckpoint": "86857cbb",
+    "earlierChecks": {
+      "repositoryTests": 139,
+      "repositoryFiles": 8,
+      "independentCases": 5
+    },
+    "finalEntryCheckpoint": "03e02752",
+    "finalAdmissionChecks": {
+      "repositoryAdmissionTests": 6,
+      "independentCases": 5,
+      "actualCrossBookWriteRejected": true
+    },
+    "implementationPassAdmissionChecks": {
+      "repositoryTests": 131,
+      "repositoryFiles": 3
+    }
+  },
+  "limits": [
+    "AC7/12 full legacy compatibility qualified by retained-but-omitted unprovable owners with disclosure",
+    "Divergent legacy Easy Read authority assumption awaits human ratification",
+    "No live paid-provider quality or billing verification",
+    "No signed/notarized release installer, Desktop GUI or release certification"
+  ],
+  "acceptance": {
+    "api": {
+      "health": true,
+      "bookCount": 2,
+      "outputCount": 230,
+      "cosmeticSavePreservesOutputs": true,
+      "concurrentSourceEditRejectsStaleSave": true,
+      "retainedFrenchUnchanged": true,
+      "invalidatedAccessibilityAbsent": true
+    },
+    "workedExamples": {
+      "evidence": [
+        "Example 1: cosmetic Save preserves all output signatures and status",
+        "Example 2: changed source appears beside protected French; unrelated caption unchanged",
+        "Example 3: glossary save discovers new image-caption work without changing Storyboard or inventing caption text consumers",
+        "Example 4: new and retired IDs render correctly; restoring original source reactivates retained French correction",
+        "Preview and Export show disclosure without changing freshness or review evidence"
+      ],
+      "errors": []
+    },
+    "review": {
+      "sourceSave": true,
+      "stageBadgeMatchesProjection": true,
+      "inlineKeep": true,
+      "manualTextPreserved": true,
+      "unrelatedTranslationsUnchanged": true,
+      "reloadKeepsCounts": true,
+      "before": {
+        "updates": 0,
+        "reviews": 16,
+        "warnings": 0,
+        "missing": 14,
+        "applicable": 30,
+        "current": false
+      },
+      "after": {
+        "updates": 0,
+        "reviews": 15,
+        "warnings": 0,
+        "missing": 14,
+        "applicable": 30,
+        "current": false
+      },
+      "generation": [],
+      "errors": []
+    },
+    "preview": {
+      "previewRendered": true,
+      "errors": []
+    },
+    "export": {
+      "exportDownloaded": true,
+      "suggestedFilename": "Catalog acceptance_ plant science-adt.zip",
+      "disclosures": [
+        "http://127.0.0.1:4208/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Afalse%2C%22quizzes%22%3Afalse%2C%22readAloud%22%3Atrue%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D",
+        "http://127.0.0.1:4208/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Afalse%2C%22quizzes%22%3Afalse%2C%22readAloud%22%3Afalse%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D"
+      ],
+      "errors": []
+    },
+    "retainedEditorsAndRepresentative": {
+      "retainedTocEditableAfterReset": true,
+      "retainedGlossaryVisibleAfterReset": true,
+      "versionedSave": true,
+      "noGenerationRequests": true,
+      "representativePreview": true,
+      "representativeTextLength": 59,
+      "errors": []
+    },
+    "restart": {
+      "restartPreservesCatalogAndReviews": true
+    },
+    "zip": {
+      "validZip": true,
+      "entries": 76,
+      "sectionHtml": [
+        "pg001_sec001.html",
+        "pg002_sec001.html",
+        "pg003_sec001.html",
+        "pg004_sec001.html"
+      ],
+      "speechAudioFiles": 0,
+      "speechManifests": {
+        "content/i18n/en/audios.json": {},
+        "content/i18n/fr/audios.json": {}
+      },
+      "runtimeUiSoundFiles": 6,
+      "retainedFrenchFiles": [
+        "content/i18n/fr/speech_texts.json",
+        "content/i18n/fr/texts.json"
+      ]
+    },
+    "packagedApi": {
+      "status": 200,
+      "books": 1,
+      "outputs": 230,
+      "runRevisionAvailable": true
+    },
+    "freshBookAdmission": {
+      "createdBeforeExtraction": true,
+      "settingsSavedBeforeExtraction": true,
+      "deletedBeforeExtraction": true,
+      "staleRunRejected404": true,
+      "bookNotRecreated": true
+    }
+  },
+  "concurrentReviewerCommit": "b627a755cad5c2c492fbff08dd16011f39c52fe0"
+}

@@ -12,7 +12,7 @@
     "typecheck": "tsc --build",
     "lint": "pnpm --filter @adt/studio lint",
     "clean": "tsc --build --clean",
-    "build": "pnpm tsc --build && pnpm --filter @adt/runtime build",
+    "build": "pnpm tsc --build && pnpm --filter @adt/runtime build && pnpm --filter @adt/publish-service build:artifact",
     "dev": "node scripts/dev.mjs",
     "dev:api": "pnpm --filter @adt/api dev",
     "dev:studio": "pnpm --filter @adt/studio dev",
@@ -38,15 +38,18 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
-      "electron"
+      "electron",
+      "workerd"
     ],
     "overrides": {
       "form-data": "^4.0.6",
       "@xmldom/xmldom": "0.9.10",
-      "plist>@xmldom/xmldom": "^0.8.13"
+      "plist>@xmldom/xmldom": "^0.8.13",
+      "tar": "7.5.19"
     },
     "patchedDependencies": {
-      "app-builder-lib@26.8.1": "patches/app-builder-lib@26.8.1.patch"
+      "app-builder-lib@26.8.1": "patches/app-builder-lib@26.8.1.patch",
+      "@tanstack/history@1.154.14": "patches/@tanstack__history@1.154.14.patch"
     }
   },
   "license": "AGPL-3.0-or-later"

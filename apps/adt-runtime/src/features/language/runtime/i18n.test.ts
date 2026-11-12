@@ -3,6 +3,32 @@ import { describe, expect, it } from "vitest"
 import { applyTranslationsToDOM } from "./i18n"
 
 describe("applyTranslationsToDOM", () => {
+  it("renders catalog values as text instead of interpreting HTML", () => {
+    document.body.innerHTML = `<p data-id="text-1">Original</p>`
+
+    applyTranslationsToDOM({
+      "text-1": `<img src="x" onerror="alert('ADT-XSS')">`,
+    })
+
+    const element = document.querySelector<HTMLElement>('[data-id="text-1"]')!
+    expect(element.querySelector("img")).toBeNull()
+    expect(element.textContent).toBe(`<img src="x" onerror="alert('ADT-XSS')">`)
+  })
+
+  it("preserves line breaks and fixed-layout segment styling", () => {
+    document.body.innerHTML = `
+      <p data-id="text-1" data-segments='[{"text":"Original","style":{"font-weight":"700"}}]'>Original</p>
+    `
+
+    applyTranslationsToDOM({ "text-1": "Line one\nLine two" })
+
+    const element = document.querySelector<HTMLElement>('[data-id="text-1"]')!
+    expect(element.querySelector("img")).toBeNull()
+    expect(element.textContent).toBe("Line oneLine two")
+    expect(element.querySelector("br")).not.toBeNull()
+    expect(element.querySelector("span")?.style.fontWeight).toBe("700")
+  })
+
   it("preserves translated TOC title, leader, and page-number spans", () => {
     document.body.innerHTML = `
       <section data-section-type="table_of_contents">

@@ -3,7 +3,7 @@ import {
   credentialValue,
   extractCredentialsFromHeaders,
   getDefaultProviderRegistry,
-  mergeWithServerCredentials,
+  resolveCredentialValues,
   type ProviderRegistry,
   type ResolvedCredentials,
 } from "@adt/llm"
@@ -24,8 +24,9 @@ export function serverAwareCredentialValue(
   registry: ProviderRegistry = getDefaultProviderRegistry(),
 ): string | undefined {
   if (!registry.has(providerId)) return credentialValue(credentials, providerId, fieldKey)
-  const merged = mergeWithServerCredentials(registry.get(providerId), credentials[providerId])
-  const value = merged[fieldKey]?.trim()
+  const value = resolveCredentialValues(registry.get(providerId), credentials, registry.tryGet)[
+    fieldKey
+  ]?.trim()
   return value ? value : undefined
 }
 

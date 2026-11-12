@@ -121,6 +121,8 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 | `FONTS_CACHE_DIR` | `<BOOKS_DIR>/.fonts-cache` | Global Google Fonts cache shared across books (persists in the books volume by default) |
 | `STYLEGUIDES_DIR` | `<BOOKS_DIR>/.styleguides` | User-uploaded global style guides. LLM-generated guides live under each book's `styleguides/` directory so project exports remain self-contained. Bundled presets remain read-only. |
 | `PORT` | `3001` | Internal only — nginx proxies to this |
+| `ADT_SCREENSHOT_CONCURRENCY` | `min(8, max(2, cores - 1))` | Max simultaneous screenshot captures per API process (see [docs/ARCHITECTURE.md#screenshot-capture](docs/ARCHITECTURE.md#screenshot-capture)) |
+| `ADT_SCREENSHOT_DEBUG` | unset | Set to any value to log per-capture queue wait, capture duration, and semaphore occupancy |
 
 **`TEMPLATES_DIR` trap:** The Dockerfile and `docker-compose.yml` set `TEMPLATES_DIR=/app/templates` but the application **never reads this env var**. Templates dir is always derived from `path.join(path.dirname(PROMPTS_DIR), "templates")`. To use a custom templates directory, mount it as a sibling of `prompts/` — i.e. override `PROMPTS_DIR` and keep `templates/` next to it.
 
@@ -149,6 +151,7 @@ pnpm test          # Run tests (builds first via pretest)
 pnpm typecheck     # TypeScript strict check (tsc --build; excludes apps/adt-runtime)
 pnpm lint          # Lint apps/studio — the only package with an eslint config
 pnpm build         # Build all packages
+pnpm pipeline doctor [books-dir]   # Read-only compatibility check of existing books (schema, locks, ownership, duplicate ids, re-keyed catalog ids)
 ```
 
 ESLint is configured for `apps/studio` only (`apps/studio/eslint.config.js`), so

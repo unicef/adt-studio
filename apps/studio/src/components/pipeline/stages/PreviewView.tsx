@@ -19,7 +19,7 @@ import { useDebugPanelState } from "@/components/debug/debug-panel-state"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useReviewerValidationCatalog } from "@/hooks/use-reviewer-validation"
-import { useBookRun } from "@/hooks/use-book-run"
+import { usePages } from "@/hooks/use-pages"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import {
   findAccessibilityPage,
@@ -41,9 +41,9 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { previewHref?: string }
-  const { stageState, isStatusLoading } = useBookRun()
+  const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
   const { isTaskRunning, getTask } = useBookTasks(bookLabel)
-  const storyboardDone = stageState("storyboard") === "done"
+  const hasRendering = (pages ?? []).some((page) => page.hasRendering)
   const { allPruned, isLoading: prunedLoading } = useAllPagesPruned(bookLabel)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -59,6 +59,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [version, setVersion] = useState("0")
+  const [resumeHref, setResumeHref] = useState<string | null>(null)
   const [currentPreviewPage, setCurrentPreviewPage] = useState<{
     sectionId: string | null
     href: string | null
@@ -103,7 +104,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     setCurrentPreviewPage({ ...page, href: normalizeAccessibilityHref(page.href) })
   }, [])
 
-  const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/`
+  const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/${resumeHref ?? ""}`
   const { highlight: highlightPreview, navigate: navigatePreviewToHref } =
     usePreviewBridge(iframeRef, previewSrc, handlePreviewPage)
 
@@ -167,6 +168,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     setReady(false)
     setAwaitingAssessment(true)
     setCurrentPreviewPage({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
+    setResumeHref(null)
     let taskId: string | undefined
     try {
       const result = await api.packageAdt(bookLabel)
@@ -199,17 +201,17 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
 
   // Only trigger packaging when storyboard is done
   useEffect(() => {
-    if (!storyboardDone || ranRef.current) return
+    if (!hasRendering || ranRef.current) return
     ranRef.current = true
     runPackage()
-  }, [runPackage, storyboardDone])
+  }, [runPackage, hasRendering])
 
   useEffect(() => {
-    if (!storyboardDone) return
+    if (!hasRendering) return
     const handler = () => { runPackage() }
     window.addEventListener("adt:repackage", handler)
     return () => window.removeEventListener("adt:repackage", handler)
-  }, [runPackage, storyboardDone])
+  }, [runPackage, hasRendering])
 
   useEffect(() => {
     if (!ready || !search.previewHref) {
@@ -245,11 +247,17 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     return () => ro.disconnect()
   }, [ready, deviceView])
 
-  if (isStatusLoading || prunedLoading) {
+  const changeDeviceView = (next: typeof deviceView) => {
+    if (next === deviceView) return
+    setResumeHref(currentPreviewPage.href)
+    setDeviceView(next)
+  }
+
+  if (pagesLoading || prunedLoading) {
     return <LoadingState stageSlug="preview" label={<Trans>Loading preview...</Trans>} />
   }
 
-  if (!storyboardDone) {
+  if (!hasRendering) {
     return <StageBlockedState bookLabel={bookLabel} reason="storyboard-missing" stageLabel={<Trans>Preview</Trans>} />
   }
 
@@ -326,7 +334,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
           createPortal(
             <ViewportToggle
               value={deviceView}
-              onChange={setDeviceView}
+              onChange={changeDeviceView}
               currentWidth={isDesktop ? undefined : Math.round(frame.screenWidth * scale)}
             />,
             headerSlotEl,

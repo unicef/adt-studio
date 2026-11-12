@@ -31,7 +31,7 @@ export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   languages: msg`Languages`,
   "translation-prompt": msg`Translation Prompt`,
   "translation-review": msg`Translation Review`,
-  "core-tts-profiles": msg`TTS Normalization`,
+  "core-tts-profiles": msg`Speech Preparation`,
   "image-translation": msg`Image Translation`,
   speech: msg`Speech Settings`,
   "speech-prompts": msg`Speech Prompts`,

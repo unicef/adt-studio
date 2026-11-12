@@ -1,8 +1,10 @@
 import { useCallback } from "react"
 import { safeParseModelId } from "@adt/types"
 import { useProviderCredentials } from "./use-provider-credentials"
-import { useEffectiveDefaultModel } from "./use-effective-default-model"
+import { resolveEffectiveDefaultModel, useEffectiveDefaultModel } from "./use-effective-default-model"
 import { useActiveConfig } from "./use-debug"
+import { useBook } from "./use-books"
+import { bookSpeechProviders } from "@/lib/speech-routing"
 
 /**
  * Structured-text availability resolved against the book's effective default
@@ -14,6 +16,66 @@ export function useBookStructuredTextAvailability(bookLabel: string): boolean {
   const { isAvailable } = useProviderCredentials()
   const effectiveModel = useEffectiveDefaultModel(bookLabel)
   return isAvailable("structured-text", effectiveModel)
+}
+
+/**
+ * Same check, plus whether it can be trusted yet. `ready` is false while the
+ * provider list or the book's config is still loading, and when either failed
+ * to load (a failed config would fall back to the global default model and
+ * misjudge a book set to another provider); UI that announces a missing
+ * provider should wait for it so users with a key never see a false "no
+ * provider".
+ */
+export function useBookStructuredTextStatus(bookLabel: string): { available: boolean; ready: boolean } {
+  const { isAvailable, isLoading, error } = useProviderCredentials()
+  const config = useActiveConfig(bookLabel)
+  const effectiveModel = resolveEffectiveDefaultModel(config.data)
+  return {
+    available: isAvailable("structured-text", effectiveModel),
+    ready: !isLoading && !error && !config.isLoading && !config.error,
+  }
+}
+
+/**
+ * True once the provider list has loaded and no provider can run text steps
+ * on the global default model. False while loading or on a failed load, so
+ * prompts asking the user to connect a provider never flash.
+ */
+export function useNeedsTextProvider(): boolean {
+  const { isAvailable, isLoading, error } = useProviderCredentials()
+  return !isLoading && !error && !isAvailable("structured-text")
+}
+
+/**
+ * True when per-word highlighting cannot run: word timestamps come from OpenAI
+ * Whisper, so the speech run skips them without an OpenAI key. False while
+ * `/providers` is loading or after it failed — neither says anything about
+ * the key, so the toggle is not shown as unavailable.
+ */
+export function useWordHighlightingUnavailable(): boolean {
+  const { isAvailable, isLoading, error } = useProviderCredentials()
+  return !isLoading && !error && !isAvailable("stt")
+}
+
+/**
+ * Speech availability resolved against the providers a Speech run of this book
+ * actually routes to — `speech.default_provider`, per-language overrides and
+ * secondary narrators — instead of the global default the bare
+ * `hasSpeechProvider` flag checks. Same rule as the Speech view's Run button
+ * (`bookSpeechProviders`). Prefer this in any component with a book in scope.
+ */
+export function useBookSpeechAvailability(bookLabel: string): boolean {
+  const { isAvailable } = useProviderCredentials()
+  const config = useActiveConfig(bookLabel).data
+  const book = useBook(bookLabel).data
+  const bookLanguage = book?.languageCode ?? book?.metadata?.language_code ?? null
+  return (
+    !!config &&
+    bookSpeechProviders(config.merged, bookLanguage).some(
+      // eslint-disable-next-line lingui/no-unlocalized-strings -- qualified model identifier, never rendered
+      (provider) => isAvailable("tts", `${provider}:default`),
+    )
+  )
 }
 
 /**
@@ -55,7 +117,14 @@ function agentModelForDefaultModel(
  */
 export function useApiKey() {
   const providerState = useProviderCredentials()
-  const value = providerState.credentialValue
+  // The key aliases are each provider's own stored value — callers forward
+  // them as request credentials, and the API applies shared fallbacks
+  // (manifest `sharedWith`) itself, so a key the server holds is never
+  // overridden by one borrowed from another provider. The `has*Key` flags
+  // answer "can this provider run", so they do see the fallbacks.
+  const value = providerState.ownCredentialValue
+  const has = (providerId: string, fieldKey: string) =>
+    providerState.credentialValue(providerId, fieldKey).length > 0
   const set = providerState.setCredential
 
   /* eslint-disable lingui/no-unlocalized-strings -- compatibility aliases use canonical provider/field identifiers */
@@ -68,6 +137,13 @@ export function useApiKey() {
   const azureRegion = value("azure", "region")
   const geminiKey = value("gemini", "apiKey")
   const elevenLabsKey = value("elevenlabs", "apiKey")
+  const hasApiKey = has("openai", "apiKey")
+  const hasAnthropicKey = has("anthropic", "apiKey")
+  const hasGoogleKey = has("google", "apiKey")
+  const hasCustomProvider = has("custom", "baseUrl")
+  const hasAzureKey = has("azure", "apiKey")
+  const hasGeminiKey = has("gemini", "apiKey")
+  const hasElevenLabsKey = has("elevenlabs", "apiKey")
 
   const setApiKey = useCallback((next: string) => set("openai", "apiKey", next), [set])
   const setAnthropicKey = useCallback((next: string) => set("anthropic", "apiKey", next), [set])
@@ -93,7 +169,7 @@ export function useApiKey() {
     ...providerState,
     apiKey,
     setApiKey,
-    hasApiKey: apiKey.length > 0,
+    hasApiKey,
     /** @deprecated Prefer the modality-specific availability flags. */
     hasStructuredTextProvider,
     hasAgentProvider,
@@ -102,25 +178,25 @@ export function useApiKey() {
     hasTranscriber,
     anthropicKey,
     setAnthropicKey,
-    hasAnthropicKey: anthropicKey.length > 0,
+    hasAnthropicKey,
     googleKey,
     setGoogleKey,
-    hasGoogleKey: googleKey.length > 0,
+    hasGoogleKey,
     customBaseUrl,
     setCustomBaseUrl,
     customApiKey,
     setCustomApiKey,
-    hasCustomProvider: customBaseUrl.length > 0,
+    hasCustomProvider,
     azureKey,
     setAzureKey,
-    hasAzureKey: azureKey.length > 0,
+    hasAzureKey,
     azureRegion,
     setAzureRegion,
     geminiKey,
     setGeminiKey,
-    hasGeminiKey: geminiKey.length > 0,
+    hasGeminiKey,
     elevenLabsKey,
     setElevenLabsKey,
-    hasElevenLabsKey: elevenLabsKey.length > 0,
+    hasElevenLabsKey,
   }
 }

@@ -6,6 +6,7 @@ import { PIPELINE, STAGE_BY_NAME, STEP_TO_STAGE } from "@adt/types"
 import type { StepName, StageName, ProgressEvent } from "@adt/types"
 import { parseCliArgs, USAGE } from "./cli-args.js"
 import { runFullPipeline } from "./pipeline-dag.js"
+import { diagnoseBook, diagnoseBooks, formatDiagnosis, hasFindings } from "./book-doctor.js"
 import type { Progress } from "./progress.js"
 
 function log(msg: string): void {
@@ -109,12 +110,36 @@ function createCliProgress(): Progress & { stop(): void } {
   }
 }
 
+/** `pipeline doctor [books-dir] [--label <label>] [--json]`: read-only. */
+function runDoctor(args: string[]): void {
+  let booksDir = "books"
+  let label: string | undefined
+  let json = false
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]
+    if (arg === "--json") json = true
+    else if (arg === "--label") label = args[++index]
+    else if (arg.startsWith("--")) throw new Error(`Unknown doctor option: ${arg}`)
+    else booksDir = arg
+  }
+  const reports = label ? [diagnoseBook(booksDir, label)] : diagnoseBooks(booksDir)
+  if (json) process.stdout.write(JSON.stringify(reports, null, 2) + "\n")
+  else if (reports.length === 0) process.stdout.write(`No books found under ${path.resolve(booksDir)}\n`)
+  else process.stdout.write(reports.map(formatDiagnosis).join("\n") + "\n")
+  process.exitCode = reports.some((report) => report.error) ? 2 : reports.some(hasFindings) ? 1 : 0
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
 
   if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
     process.stderr.write(USAGE + "\n")
     process.exit(args.length === 0 ? 1 : 0)
+  }
+
+  if (args[0] === "doctor") {
+    runDoctor(args.slice(1))
+    return
   }
 
   const { label, pdfPath, startPage, endPage, booksRoot, concurrency } =

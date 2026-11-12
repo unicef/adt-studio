@@ -374,6 +374,121 @@ describe("two_column_render.liquid", () => {
     )
   })
 
+  describe("heading containers", () => {
+    const render = async (children: ContentNodeData[], templateName = "two_column_render") => {
+      const engine = createTemplateEngine(templatesDir)
+      const input = makeInput({ nodes: [groupNode("pg001_hd001", "heading", children)] })
+      const result = await renderSectionTemplate(input, { ...templateConfig, templateName }, engine)
+      return result.html
+    }
+
+    it("splits a title and subtitle into their own heading levels (#812)", async () => {
+      for (const templateName of ["one_column_render", "two_column_render", "two_column_story"]) {
+        const html = await render(
+          [
+            leafNode("pg001_tx001", "chapter_title", "Book title"),
+            leafNode("pg001_tx002", "subheading", "Book subtitle"),
+          ],
+          templateName,
+        )
+        expect(html).toContain('<h1 class="adt-h1"><span data-id="pg001_tx001">Book title</span></h1>')
+        expect(html).toContain('<h3 class="adt-h3"><span data-id="pg001_tx002">Book subtitle</span></h3>')
+      }
+    })
+
+    it("keeps consecutive same-level lines in one heading and splits where the level changes", async () => {
+      const html = await render([
+        leafNode("pg001_tx001", "chapter_title", "Unit 3"),
+        leafNode("pg001_tx002", "chapter_title", "Our planet"),
+        leafNode("pg001_tx003", "section_heading", "Lesson 1"),
+      ])
+      expect(html).toContain(
+        '<h1 class="adt-h1"><span data-id="pg001_tx001">Unit 3</span> <span data-id="pg001_tx002">Our planet</span></h1>',
+      )
+      expect(html).toContain('<h2 class="adt-h2"><span data-id="pg001_tx003">Lesson 1</span></h2>')
+    })
+
+    it("renders a plain leaf in a split container as a paragraph", async () => {
+      const html = await render([
+        leafNode("pg001_tx001", "text", "Grade 4"),
+        leafNode("pg001_tx002", "chapter_title", "Society and Environment"),
+      ])
+      expect(html).toContain('<p data-id="pg001_tx001">Grade 4</p>')
+      expect(html).toContain('<h1 class="adt-h1"><span data-id="pg001_tx002">Society and Environment</span></h1>')
+    })
+
+    it("leaves containers the template already renders correctly unchanged", async () => {
+      // Same role on every line: one heading holding all lines.
+      expect(
+        await render([
+          leafNode("pg001_tx001", "chapter_title", "Line one"),
+          leafNode("pg001_tx002", "chapter_title", "Line two"),
+        ]),
+      ).toContain('<h1 class="adt-h1"><span data-id="pg001_tx001">Line one</span> <span data-id="pg001_tx002">Line two</span></h1>')
+      // No heading child: the <h2> fallback.
+      expect(
+        await render([
+          leafNode("pg001_tx001", "text", "First"),
+          leafNode("pg001_tx002", "text", "Second"),
+        ]),
+      ).toContain('<h2 class="adt-h2"><span data-id="pg001_tx001">First</span> <span data-id="pg001_tx002">Second</span></h2>')
+      // A plain leaf before an h2-level heading already validates inside the fallback <h2>.
+      expect(
+        await render([
+          leafNode("pg001_tx001", "text", "Unit 1"),
+          leafNode("pg001_tx002", "section_heading", "Lesson 1"),
+        ]),
+      ).toContain('<h2 class="adt-h2"><span data-id="pg001_tx001">Unit 1</span> <span data-id="pg001_tx002">Lesson 1</span></h2>')
+    })
+
+    it("routes an image child of a split container to the image column once (#812, pg054)", async () => {
+      const engine = createTemplateEngine(templatesDir)
+      const input = makeInput({
+        nodes: [
+          groupNode("pg001_hd001", "heading", [
+            { nodeId: "pg001_im001", isPruned: false, role: "image" },
+            leafNode("pg001_tx001", "subheading", "Unit 5"),
+            leafNode("pg001_tx002", "section_heading", "Our community"),
+          ]),
+          groupNode("pg001_gp001", "paragraph", [leafNode("pg001_tx003", "text", "Body")]),
+        ],
+        images: new Map([["pg001_im001", { base64: "base64data" }]]),
+      })
+      const config = { ...templateConfig, templateName: "two_column_render" }
+      const { html } = await renderSectionTemplate(input, config, engine)
+      expect(html.match(/data-id="pg001_im001"/g)).toHaveLength(1)
+      expect(html).toContain('<h3 class="adt-h3"><span data-id="pg001_tx001">Unit 5</span></h3>')
+      expect(html).toContain('<h2 class="adt-h2"><span data-id="pg001_tx002">Our community</span></h2>')
+      // The image column follows the text column, so the icon is not inside a heading.
+      expect(html.indexOf('data-id="pg001_im001"')).toBeGreaterThan(html.indexOf('data-id="pg001_tx003"'))
+    })
+
+    it("keeps a heading leaf without heading_level inside a heading tag when a nested container is split", async () => {
+      for (const templateName of ["one_column_render", "two_column_render", "two_column_story"]) {
+        const engine = createTemplateEngine(templatesDir)
+        const input = makeInput({
+          nodes: [
+            groupNode("pg001_tb001", "table", [
+              groupNode("pg001_tr001", "table_row", [
+                groupNode("pg001_td001", "table_cell", [
+                  groupNode("pg001_hd001", "heading", [
+                    leafNode("pg001_tx001", "heading", "Unit 2"),
+                    leafNode("pg001_tx002", "subheading", "Lesson 1"),
+                  ]),
+                ]),
+              ]),
+            ]),
+          ],
+        })
+        const { html } = await renderSectionTemplate(input, { ...templateConfig, templateName }, engine)
+        // Lifted out of the container on its own, the leaf would render as a
+        // <span> directly in the <td>, outside any heading, and fail validation.
+        expect(html).toContain('<h2 class="adt-h2" data-id="pg001_tx001">Unit 2</h2>')
+        expect(html).toContain('<h3 class="adt-h3" data-id="pg001_tx002">Lesson 1</h3>')
+      }
+    })
+  })
+
   it("routes a non-image_group container holding an image leaf into the image column", async () => {
     const engine = createTemplateEngine(templatesDir)
     const input = makeInput({
@@ -437,6 +552,123 @@ describe("two_column_render.liquid", () => {
     expect(result.html).toContain('data-id="pg001_gp001_tx001"')
     expect(result.html).toContain('data-id="pg001_gp001_tx002"')
     expect(result.html).toContain("lg:basis-1/2")
+  })
+})
+
+describe("heading leaves nested in inline containers", () => {
+  const templatesDir = path.resolve(__dirname, "../../../../templates")
+  const templates = ["one_column_render", "two_column_render", "two_column_story"]
+
+  async function render(templateName: string, nodes: ContentNodeData[]) {
+    const engine = createTemplateEngine(templatesDir)
+    return renderSectionTemplate(makeInput({ nodes }), { ...templateConfig, templateName }, engine)
+  }
+
+  it.each(templates)("%s hoists a heading out of a paragraph", async (templateName) => {
+    const result = await render(templateName, [
+      groupNode("pg017_gp001", "paragraph", [
+        leafNode("pg017_n0058", "text", "Before"),
+        leafNode("pg017_n0059", "section_heading", "Volcanoes"),
+        leafNode("pg017_n0060", "text", "Lava is molten rock."),
+      ]),
+    ])
+
+    expect(result.html).toContain(
+      '<p><span data-id="pg017_n0058">Before</span></p>' +
+        '<h2 class="adt-h2" data-id="pg017_n0059">Volcanoes</h2>' +
+        '<p><span data-id="pg017_n0060">Lava is molten rock.</span></p>',
+    )
+  })
+
+  it.each(templates)("%s hoists a heading out of preformatted text", async (templateName) => {
+    const result = await render(templateName, [
+      groupNode("pg001_gp001", "preformatted", [
+        { nodeId: "pg001_tx001", isPruned: false, role: "heading", text: "Deep", headingLevel: 4 },
+        leafNode("pg001_tx002", "text", "code"),
+      ]),
+    ])
+
+    expect(result.html).toContain(
+      '<h4 class="adt-h4" data-id="pg001_tx001">Deep</h4>' +
+        '<pre class="whitespace-pre-wrap"><span data-id="pg001_tx002">code</span></pre>',
+    )
+  })
+
+  it.each(templates)("%s renders a heading inside a list item semantically", async (templateName) => {
+    const result = await render(templateName, [
+      groupNode("pg001_ls001", "list", [
+        groupNode("pg001_li001", "list_item", [
+          leafNode("pg001_tx001", "subheading", "Step one"),
+          leafNode("pg001_tx002", "text", "Mix the paint."),
+        ]),
+      ]),
+    ])
+
+    expect(result.html).toContain(
+      '<li><h3 class="adt-h3" data-id="pg001_tx001">Step one</h3> <span data-id="pg001_tx002">Mix the paint.</span></li>',
+    )
+  })
+
+  it.each(templates)("%s renders a heading inside a table cell semantically", async (templateName) => {
+    const result = await render(templateName, [
+      groupNode("pg001_tb001", "table", [
+        groupNode("pg001_tr001", "table_row", [
+          groupNode("pg001_td001", "table_cell", [
+            leafNode("pg001_tx001", "section_heading", "Column"),
+          ]),
+        ]),
+      ]),
+    ])
+
+    expect(result.html).toContain('<h2 class="adt-h2" data-id="pg001_tx001">Column</h2></td>')
+  })
+
+  it.each(templates)("%s renders a heading inside an activity option semantically", async (templateName) => {
+    const result = await render(templateName, [
+      groupNode("pg001_ac001", "activity", [
+        groupNode("pg001_op001", "activity_option", [
+          leafNode("pg001_tx001", "subheading", "Option A"),
+          leafNode("pg001_tx002", "text", "Lava"),
+        ]),
+      ]),
+    ])
+
+    expect(result.html).toContain(
+      '<li><h3 class="adt-h3" data-id="pg001_tx001">Option A</h3> <span data-id="pg001_tx002">Lava</span></li>',
+    )
+  })
+
+  it.each(templates)("%s hoists a heading without heading_level out of a paragraph (#1073, pg006007)", async (templateName) => {
+    const result = await render(templateName, [
+      groupNode("pg006007_gp001", "paragraph", [
+        leafNode("pg006007_n0053", "heading", "C O P E Signs"),
+        leafNode("pg006007_n0054", "text", "Since Eddy is hearing impaired, COPE sometimes chat using LSB."),
+        leafNode("pg006007_n0055", "text", "Can you spot the signs for volcano, ready and champion?"),
+      ]),
+    ])
+
+    // A level-less `heading` leaf gets the template's <h2> fallback.
+    expect(result.html).toContain(
+      '<h2 class="adt-h2" data-id="pg006007_n0053">C O P E Signs</h2>' +
+        '<p><span data-id="pg006007_n0054">Since Eddy is hearing impaired, COPE sometimes chat using LSB.</span> ' +
+        '<span data-id="pg006007_n0055">Can you spot the signs for volcano, ready and champion?</span></p>',
+    )
+  })
+
+  it.each(templates)("%s hoists a nested heading before splitting its heading container (#847)", async (templateName) => {
+    const result = await render(templateName, [
+      groupNode("pg001_hd001", "heading", [
+        leafNode("pg001_tx001", "chapter_title", "Unit 3"),
+        groupNode("pg001_gp001", "paragraph", [leafNode("pg001_tx002", "subheading", "Our planet")]),
+      ]),
+    ])
+
+    // normalizeHeadingPlacement must run first: splitting first leaves the
+    // hoisted subheading inside the <h1>, and validation fails.
+    expect(result.html).toContain(
+      '<h1 class="adt-h1"><span data-id="pg001_tx001">Unit 3</span></h1>' +
+        '<h3 class="adt-h3"><span data-id="pg001_tx002">Our planet</span></h3>',
+    )
   })
 })
 

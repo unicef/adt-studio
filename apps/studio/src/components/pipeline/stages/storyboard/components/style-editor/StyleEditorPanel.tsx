@@ -140,21 +140,44 @@ export function StyleEditorPanel({
           ) : null}
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
-          {displayElementProps?.onTogglePrune && displayDataId ? (
-            <button
-              type="button"
-              onClick={() => displayElementProps.onTogglePrune?.(displayDataId)}
-              className="p-1.5 rounded hover:bg-accent transition-colors cursor-pointer"
-              aria-label={displayElementProps.isPruned ? t`Restore element` : t`Prune element`}
-              title={displayElementProps.isPruned ? t`Restore element` : t`Prune element`}
-              tabIndex={open ? 0 : -1}
+          {(displayElementProps?.onTogglePrune || displayElementProps?.ancestorPruned) && displayDataId ? (
+            <span
+              title={
+                displayElementProps.ancestorPruned
+                  ? t`Hidden because its group is hidden`
+                  : displayElementProps.isPruned
+                    ? t`Restore element`
+                    : t`Prune element`
+              }
             >
-              {displayElementProps.isPruned ? (
-                <EyeOff className="h-3.5 w-3.5 text-destructive" />
-              ) : (
-                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-              )}
-            </button>
+              <button
+                type="button"
+                onClick={() => displayElementProps.onTogglePrune?.(displayDataId)}
+                disabled={displayElementProps.ancestorPruned}
+                className="p-1.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
+                aria-label={
+                  displayElementProps.ancestorPruned
+                    ? t`Hidden because its group is hidden`
+                    : displayElementProps.isPruned
+                      ? t`Restore element`
+                      : t`Prune element`
+                }
+                tabIndex={open ? 0 : -1}
+              >
+                {displayElementProps.isPruned ? (
+                  <EyeOff
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      displayElementProps.ancestorPruned
+                        ? "text-muted-foreground"
+                        : "text-destructive"
+                    )}
+                  />
+                ) : (
+                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+              </button>
+            </span>
           ) : null}
           {displayElementProps?.onDelete && displayDataId ? (
             <button

@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react"
 import type { I18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
-import type { AccessibilityCategoryKey, AccessibilitySeverity } from "@/lib/accessibility-summary"
+import type {
+  AccessibilityCategoryKey,
+  AccessibilityFindingPageSummary,
+  AccessibilitySeverity,
+} from "@/lib/accessibility-summary"
 import { ExternalLink } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { Badge } from "@/components/ui/badge"
@@ -135,21 +139,15 @@ function EmptyState({ message }: { message: React.ReactNode }) {
 }
 
 
-function formatFindingPageLabel(i18n: I18n, page: { pageNumber: number | null; title: string | null; href: string }): string {
-  if (page.pageNumber != null) {
-    return i18n._(msg`Page ${page.pageNumber}`)
-  }
-  if (page.title) {
-    return page.title
-  }
-  return page.href
+function formatFindingPageLabel(i18n: I18n, page: AccessibilityFindingPageSummary): string {
+  return i18n._(msg`Page ${page.position}`)
 }
 
 function FindingPageLinks({
   pages,
   onOpenPage,
 }: {
-  pages: Array<{ sectionId: string; href: string; title: string | null; pageNumber: number | null; count: number }>
+  pages: AccessibilityFindingPageSummary[]
   onOpenPage: (href: string) => void
 }) {
   const { t, i18n } = useLingui()

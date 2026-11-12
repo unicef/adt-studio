@@ -1,3 +1,4 @@
+import { requireExistingBook } from "../utils/book-exists.js"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -6,10 +7,13 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
+import { AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
+  getSourceGenerationUpdates,
+  keepSourceGeneration,
+  withSourceGenerationTracking,
   collectSpentSectionIds,
   retireSectionIds,
   NOTHING_RETIRED,
@@ -20,14 +24,17 @@ import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
+import { assertAuthoredReplacement, protectedAuthoredRecords } from "../services/authored-output-service.js"
 import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
 
 const StageRunBody = z
   .object({
+    ...AuthoredRunOptions.shape,
     fromStage: StageName,
     toStage: StageName,
     renderOnly: z.boolean().optional(),
     pageErrorPolicy: PageErrorPolicy.optional(),
+    outputScope: OutputRunScope.optional(),
   })
   .strict()
 
@@ -86,50 +93,10 @@ function hasAnswerSpeechEntries(storage: Storage): boolean {
   return false
 }
 
-/**
- * Retire every sectionId a rerun is about to invalidate, and report what that
- * reconciled.
- *
- * Clearing a stage deletes *every* version of the nodes it clears. When
- * `page-sectioning` is among them the section-id high-water mark goes with it,
- * so the re-section re-mints densely from `_sec001` and hands out ids that named
- * different content a moment ago.
- *
- * That is only harmful while something still points at the old ids, and the
- * clear does not reach everything:
- *
- * - `sign_language_videos.section_id` lives in a table, not `node_data`, so a
- *   pinned video would reappear on whatever unrelated section inherits its id.
- * - The speech manifests are keyed by *language*, not by page. `tts` is
- *   deliberately preserved by `getStageRerunClearNodes` whenever Speech is in
- *   the rerun range, and `tts-timestamps` is in no clear list at all — the node
- *   name differs from the `word-timestamps` step name that
- *   `STAGE_OUTPUT_NODES` is derived from. Generated audio still heals itself on
- *   `computeSpeechCacheKey`, but `canReuseSpeechEntry` accepts a
- *   `provider: "manual"` entry on file existence alone, so a re-minted id would
- *   inherit a recording of the old content.
- *
- * Retiring here is what makes the dense re-mint safe. Everything else keyed by
- * sectionId (`toc-generation`, `text-catalog`, `editable-activity`) is deleted
- * by the same clear.
- *
- * Nothing the user uploaded is deleted, as in the structural edit routes: a
- * video is unassigned in place, and a recording is backed up by the caller (see
- * `retireWithPreservedRecordings`, which is needed because audio filenames — unlike
- * video paths — are derived from the very id being reissued). Same shape as the
- * `spreads/apply` reconcile, which retires ids before `deletePage` drops the
- * history for the identical reason — and it goes through the same
- * `retireSectionIds`, because the two paths previously reconciled different
- * reference sets and that divergence is how the speech manifests were missed.
- *
- * Must run *before* the clear: it reads the sectioning history the ids come
- * from, and the `pages` table itself, both of which the extract branch deletes.
- * The pruned `tts` version it writes has to survive that clear, which it does
- * precisely because neither speech node is in `getStageRerunClearNodes`. On the
- * extract branch `clearExtractedData` does delete them, making the write moot —
- * but not special-cased, because "the clear will get it anyway" is the reasoning
- * that produced the stale claim this doc comment replaces.
- */
+/** Legacy extraction-reset reconciliation. Ordinary reruns now retain sectioning
+ * history and return immediately here; their worker retires only the successfully
+ * replaced page, inside its publication transaction. Existing-book extraction is
+ * refused by makeBeforeRun until its preservation prerequisite is available. */
 export function retireSectionIdsForClearedSectioning(
   storage: Storage,
   fromStage: StageName,
@@ -158,15 +125,21 @@ export function retireSectionIdsForClearedSectioning(
   return retireSectionIds(storage, retired)
 }
 
-/** Build a beforeRun callback that clears downstream data for a stage.
+/** Invalidate downstream execution status while retaining authored output.
  *  The returned function is idempotent — only runs once even if called multiple times.
  *  Exported so tests can pin the preserve-retirement-clear boundary. */
-export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
+export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string, outputScope?: OutputRunScope): () => void {
   let ran = false
   return () => {
     if (ran) return
+    requireExistingBook(label, booksDir)
     const storage = createBookStorage(label, booksDir)
     try {
+      if (fromStage === "extract" && storage.getPages().length) {
+        // Interim mapping until SPEC-0010 (#886) lands its typed admission error:
+        // a plain Error became an opaque 500 in Studio.
+        throw new HTTPException(409, { message: "UNSAFE_RESUME_UNAVAILABLE: Re-extracting an existing book is not available in this version. Create a new book to extract it again; this book's content has been preserved." })
+      }
       const { retired, preserved } = retireWithPreservedRecordings(
         storage,
         path.join(path.resolve(booksDir), label),
@@ -191,7 +164,7 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
       } else {
         const nodes = getStageRerunClearNodes(fromStage, toStage)
         if (nodes.length > 0) {
-          storage.clearNodesByType(nodes)
+          withSourceGenerationTracking(storage, () => storage.clearNodesByType(nodes))
         }
         if (fromStage === "storyboard" && typeof storage.clearDebugImages === "function") {
           storage.clearDebugImages()
@@ -201,7 +174,10 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
         const stepsToClear = PIPELINE
           .filter((s) => stagesToClear.includes(s.name))
           .flatMap((s) => s.steps.map((step) => step.name))
-        storage.clearStepRuns(stepsToClear)
+        const selectedStages = new Set(STAGE_ORDER.slice(STAGE_ORDER.indexOf(fromStage), STAGE_ORDER.indexOf(toStage) + 1)
+          .filter(stage => !outputScope?.selection?.identities || outputScope.selection.identities.some(identity => OUTPUT_KIND_TO_STAGE[identity.kind] === stage)))
+        storage.clearStepRuns(stepsToClear.filter(step => selectedStages.has(STEP_TO_STAGE[step]) ||
+          (!outputScope?.selection?.identities && !SourceGeneratorStep.safeParse(step).success)))
       }
     } finally {
       storage.close()
@@ -229,6 +205,7 @@ export function createStageRoutes(
   // POST /books/:label/stages/run — Start or queue a stage-scoped run
   app.post("/books/:label/stages/run", async (c) => {
     const { label } = c.req.param()
+    requireExistingBook(label, booksDir)
 
     let body: unknown
     try {
@@ -244,7 +221,7 @@ export function createStageRoutes(
       })
     }
 
-    const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
+    const { fromStage, toStage, renderOnly, pageErrorPolicy, outputScope, replaceManual, protectedReplacements } = parsed.data
     const credentials = readProviderCredentials(c)
 
     // Fail before beforeRun clears any stage data: a run that cannot make a
@@ -256,7 +233,8 @@ export function createStageRoutes(
     const toIndex = STAGE_ORDER.indexOf(toStage)
     assertStageRunModelCredentials(
       loadBookConfig(label, booksDir, configPath),
-      fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER,
+      (fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER)
+        .filter(stage => !outputScope?.selection?.identities || outputScope.selection.identities.some(identity => OUTPUT_KIND_TO_STAGE[identity.kind] === stage)),
       credentials,
     )
 
@@ -265,7 +243,14 @@ export function createStageRoutes(
       `credentialProviders=${Object.keys(credentials).join(",") || "(none)"}`,
     )
 
-    const clearData = makeBeforeRun(label, fromStage, toStage, booksDir)
+    const prepare = makeBeforeRun(label, fromStage, toStage, booksDir, outputScope)
+    const clearData = () => {
+      const storage = createBookStorage(label, booksDir)
+      try {
+        assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
+      } finally { storage.close() }
+      prepare()
+    }
 
     const result = stageService.startStageRun(label, {
       booksDir,
@@ -275,19 +260,44 @@ export function createStageRoutes(
       configPath,
       fromStage,
       toStage,
+      outputScope,
+      replaceManual,
+      protectedReplacements,
       renderOnly,
       pageErrorPolicy,
       // Queued jobs clear data when they start executing
       beforeRun: clearData,
     })
 
-    // For immediately started jobs, clear data synchronously so the
-    // frontend can refetch and see the cleared state right away.
-    if (result.status === "started") {
-      clearData()
-    }
+    return c.json({ id: result.id, status: result.status, label, fromStage, toStage })
+  })
 
-    return c.json({ status: result.status, label, fromStage, toStage })
+  // Accept retained Quiz, Glossary or TOC content as current for today's
+  // inputs (SPEC-0001 Keep). The book writer middleware admits this route, so
+  // an active run or task answers 409 instead of racing a publication.
+  app.post("/books/:label/source-generation/:stage/keep", (c) => {
+    const safeLabel = parseBookLabel(c.req.param("label"))
+    const stage = c.req.param("stage")
+    const step = SourceGeneratorStep.options.find((candidate) => STEP_TO_STAGE[candidate] === stage)
+    if (!step) throw new HTTPException(400, { message: "Keep applies to Quizzes, Glossary and Table of Contents." })
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      if (!storage.getLatestNodeData(step, "book")) {
+        throw new HTTPException(409, { message: "No retained content to keep. Run this stage to generate it." })
+      }
+      const kept = keepSourceGeneration(storage, step)
+      return c.json({ stage, step, inputSignature: kept.inputSignature })
+    } finally {
+      storage.close()
+    }
+  })
+
+  app.post("/books/:label/stages/skip-outputs", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    const parsed = OutputSkipRequest.safeParse(await c.req.json())
+    if (!parsed.success) throw new HTTPException(400, { message: "Invalid output selection" })
+    if (!stageService.skipStageOutputs(label, parsed.data.identities)) throw new HTTPException(409, { message: "No active run to skip" })
+    return c.json({ skipped: parsed.data.identities })
   })
 
   // POST /books/:label/stages/cancel — Cancel the active run. Queued runs remain queued.
@@ -341,7 +351,7 @@ export function createStageRoutes(
     const resolvedDir = path.resolve(booksDir)
     const dbPath = path.join(resolvedDir, safeLabel, `${safeLabel}.db`)
 
-    const { active } = stageService.getStatus(label)
+    const { active, runRevision, publicationAgeMs } = stageService.getStatus(label)
     // Explicitly queued stages (waiting behind the active run) — always
     // override "done" so re-runs show as queued before data is cleared.
     const queuedStages = new Set(stageService.getQueuedStages(label))
@@ -375,12 +385,14 @@ export function createStageRoutes(
 
     // Read step_runs from DB (or empty if no DB)
     let stepRunRows: Array<{ step: string; status: string; error: string | null; message: string | null }> = []
+    let sourceUpdateStages: string[] = []
     if (fs.existsSync(dbPath)) {
-      const db = openBookDb(dbPath)
+      const storage = createBookStorage(safeLabel, booksDir)
       try {
-        stepRunRows = db.all("SELECT step, status, error, message FROM step_runs") as typeof stepRunRows
+        stepRunRows = storage.getStepRuns()
+        sourceUpdateStages = getSourceGenerationUpdates(storage).map(step => STEP_TO_STAGE[step])
       } finally {
-        db.close()
+        storage.close()
       }
     }
 
@@ -449,13 +461,25 @@ export function createStageRoutes(
     const runStatus = active?.status ?? "idle"
     const pendingDecisions = decisions.getPendingDecisions(label)
 
+    let protectedWork: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }> = []
+    if (fs.existsSync(dbPath)) {
+      const storage = createBookStorage(safeLabel, booksDir)
+      try {
+        const numbers = new Map(storage.getPages().map((p) => [p.pageId, p.pageNumber]))
+        protectedWork = protectedAuthoredRecords(storage).map((record) => ({ ...record, pageNumber: numbers.get(record.itemId) }))
+      } finally { storage.close() }
+    }
     return c.json({
+      protectedWork,
       stages,
       steps,
+      sourceUpdateStages,
       error,
       stepErrors: hasStepErrors ? stepErrors : null,
       stepMessages: hasStepMessages ? stepMessages : null,
       runStatus,
+      runRevision,
+      publicationAgeMs,
       pendingDecisions,
     })
   })

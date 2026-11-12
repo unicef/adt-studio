@@ -1,0 +1,449 @@
+{
+  "runtimeCommit": "ed0a1be11800a4b2d86f684889dee59839f35fe0",
+  "dockerRuntime": "existing task image with current API/Studio/assets bind-mounted read-only; NOT a clean new app image build",
+  "cosmeticSaveAndSixProjections": {
+    "fixture": "120 pages / 360 images / 1200 phrases in two languages / 5280 retained media",
+    "scope": "real cosmetic Save plus six commonly refreshed active data projections, in-process HTTP; excludes browser rendering and other metadata endpoints",
+    "elapsedMs": 1114,
+    "mediaReads": 0,
+    "binaryHashUpdates": 0,
+    "providerCalls": 0,
+    "outputsUnchanged": true,
+    "calls": [
+      {
+        "method": "PUT",
+        "path": "/pages/pg001/rendering",
+        "status": 200,
+        "ms": 125,
+        "bytes": 13
+      },
+      {
+        "method": "GET",
+        "path": "/pages/pg001",
+        "status": 200,
+        "ms": 974,
+        "bytes": 1278
+      },
+      {
+        "method": "GET",
+        "path": "/easy-read",
+        "status": 200,
+        "ms": 787,
+        "bytes": 4
+      },
+      {
+        "method": "GET",
+        "path": "/tts",
+        "status": 200,
+        "ms": 784,
+        "bytes": 414555
+      },
+      {
+        "method": "GET",
+        "path": "/outputs/summary",
+        "status": 200,
+        "ms": 635,
+        "bytes": 662
+      },
+      {
+        "method": "GET",
+        "path": "/outputs",
+        "status": 200,
+        "ms": 351,
+        "bytes": 4578024
+      },
+      {
+        "method": "GET",
+        "path": "/text-catalog",
+        "status": 200,
+        "ms": 948,
+        "bytes": 187896
+      }
+    ]
+  },
+  "browserSave": {
+    "fixture": "120-page media-rich fixture",
+    "flow": "mounted Captions edit / Done / saved Manual edit pill and refreshed active views",
+    "elapsedMs": 3054,
+    "errors": [],
+    "requests": [
+      {
+        "url": "/api/books/media-book/pages/pg001/image-captioning",
+        "method": "PUT",
+        "startMs": 263,
+        "endMs": 593
+      },
+      {
+        "url": "/api/books/media-book/pages/pg001",
+        "method": "GET",
+        "startMs": 593,
+        "endMs": 890
+      },
+      {
+        "url": "/api/books/media-book/pages/pg001/image",
+        "method": "GET",
+        "startMs": 593,
+        "endMs": 999
+      },
+      {
+        "url": "/api/books/media-book/outputs/summary",
+        "method": "GET",
+        "startMs": 1000,
+        "endMs": 1469
+      },
+      {
+        "url": "/api/books/media-book/outputs",
+        "method": "GET",
+        "startMs": 1000,
+        "endMs": 3013
+      },
+      {
+        "url": "/api/books/media-book/step-status",
+        "method": "GET",
+        "startMs": 1000,
+        "endMs": 2983
+      },
+      {
+        "url": "/api/books/media-book/package-adt/status",
+        "method": "GET",
+        "startMs": 1000,
+        "endMs": 2916
+      },
+      {
+        "url": "/api/books/media-book/debug/accessibility",
+        "method": "GET",
+        "startMs": 1000,
+        "endMs": 3047
+      },
+      {
+        "url": "/api/books/media-book/tasks",
+        "method": "GET",
+        "startMs": 1078,
+        "endMs": 3054
+      }
+    ],
+    "runtimeCommit": "ed0a1be11800a4b2d86f684889dee59839f35fe0",
+    "elapsedMsMeaning": "last measured API request completed after Save click; includes browser and request queueing, not a latency guarantee"
+  },
+  "browserUpdate": {
+    "flow": "actual Studio Update all through API, worker, counted stub transport, persisted result and final refreshed UI",
+    "elapsedMs": 3441,
+    "lastRequestEndMs": 2269,
+    "aggregateCounts": {
+      "/outputs": 1,
+      "/outputs/summary": 1,
+      "/text-catalog": 1
+    },
+    "manualPreserved": true,
+    "generatedCurrent": 2,
+    "calls": [
+      {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "count": 2
+      }
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "url": "/api/providers",
+        "method": "GET",
+        "startMs": 56,
+        "endMs": 223
+      },
+      {
+        "url": "/api/books/catalog-acceptance/images/pg001_im001",
+        "method": "GET",
+        "startMs": 91,
+        "endMs": 282
+      },
+      {
+        "url": "/api/books/catalog-acceptance/images/pg002_im001",
+        "method": "GET",
+        "startMs": 91,
+        "endMs": 340
+      },
+      {
+        "url": "/api/books/catalog-acceptance/images/pg003_im001",
+        "method": "GET",
+        "startMs": 91,
+        "endMs": 255
+      },
+      {
+        "url": "/api/books/catalog-acceptance/images/pg004_im001",
+        "method": "GET",
+        "startMs": 91,
+        "endMs": 315
+      },
+      {
+        "url": "/api/books/catalog-acceptance/pages/pg001/image",
+        "method": "GET",
+        "startMs": 201,
+        "endMs": 353
+      },
+      {
+        "url": "/api/books/catalog-acceptance/pages/pg002/image",
+        "method": "GET",
+        "startMs": 201,
+        "endMs": 378
+      },
+      {
+        "url": "/api/books/catalog-acceptance/pages/pg003/image",
+        "method": "GET",
+        "startMs": 201,
+        "endMs": 408
+      },
+      {
+        "url": "/api/books/catalog-acceptance/pages/pg004/image",
+        "method": "GET",
+        "startMs": 201,
+        "endMs": 478
+      },
+      {
+        "url": "/api/books/catalog-acceptance/stages/run",
+        "method": "POST",
+        "startMs": 226,
+        "endMs": 582
+      },
+      {
+        "url": "/api/books/catalog-acceptance/step-status",
+        "method": "GET",
+        "startMs": 583,
+        "endMs": 1430
+      },
+      {
+        "url": "/api/books/catalog-acceptance/stages/status",
+        "method": "GET",
+        "startMs": 583,
+        "endMs": 1430
+      },
+      {
+        "url": "/api/books/catalog-acceptance/step-status",
+        "method": "GET",
+        "startMs": 1421,
+        "endMs": 1483
+      },
+      {
+        "url": "/api/books/catalog-acceptance/step-status",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 1539
+      },
+      {
+        "url": "/api/books/catalog-acceptance/tasks",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 1540
+      },
+      {
+        "url": "/api/books/catalog-acceptance/sign-language-videos",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 1563
+      },
+      {
+        "url": "/api/books/catalog-acceptance/outputs/summary",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 1598
+      },
+      {
+        "url": "/api/books/catalog-acceptance/pages",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 1665
+      },
+      {
+        "url": "/api/books/catalog-acceptance/outputs",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 1810
+      },
+      {
+        "url": "/api/books/catalog-acceptance",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 1880
+      },
+      {
+        "url": "/api/books/catalog-acceptance/text-catalog",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2009
+      },
+      {
+        "url": "/api/books/catalog-acceptance/easy-read",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2105
+      },
+      {
+        "url": "/api/books/catalog-acceptance/tts",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2129
+      },
+      {
+        "url": "/api/books/catalog-acceptance/translated-images",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2154
+      },
+      {
+        "url": "/api/books/catalog-acceptance/pages/pg001/image",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2181
+      },
+      {
+        "url": "/api/books/catalog-acceptance/pages/pg002/image",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2206
+      },
+      {
+        "url": "/api/books/catalog-acceptance/pages/pg003/image",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2232
+      },
+      {
+        "url": "/api/books/catalog-acceptance/pages/pg004/image",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2254
+      },
+      {
+        "url": "/api/books/catalog-acceptance/stages/status",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2255
+      },
+      {
+        "url": "/api/books/catalog-acceptance/package-adt/status",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2255
+      },
+      {
+        "url": "/api/books/catalog-acceptance/debug/accessibility",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2267
+      },
+      {
+        "url": "/api/books/catalog-acceptance/debug/config",
+        "method": "GET",
+        "startMs": 1490,
+        "endMs": 2269
+      }
+    ],
+    "transportRequests": 1,
+    "runtimeCommit": "ed0a1be11800a4b2d86f684889dee59839f35fe0"
+  },
+  "earlierUnchangedRuntimeChecks": {
+    "runtimeCommit": "adab72ea4dc14528043b0cb5cf5a0f043a3bcefc",
+    "api": {
+      "health": true,
+      "bookCount": 4,
+      "outputCount": 230,
+      "cosmeticSavePreservesOutputs": true,
+      "concurrentSourceEditRejectsStaleSave": true,
+      "retainedFrenchUnchanged": true,
+      "invalidatedAccessibilityAbsent": true
+    },
+    "examples": {
+      "evidence": [
+        "Example 1: cosmetic Save preserves all output signatures and status",
+        "Example 2: changed source appears beside protected French; unrelated caption unchanged",
+        "Example 3: glossary save discovers new image-caption work without changing Storyboard or inventing caption text consumers",
+        "Example 4: new and retired IDs render correctly; restoring original source reactivates retained French correction",
+        "Preview and Export show disclosure without changing freshness or review evidence"
+      ],
+      "errors": []
+    },
+    "previewAndRepresentative": {
+      "representativePages": 20,
+      "previewTextLength": 88,
+      "unknownOwnerDisclosure": true,
+      "errors": []
+    },
+    "export": {
+      "exportDownloaded": true,
+      "suggestedFilename": "Catalog acceptance_ plant science-adt.zip",
+      "disclosures": [
+        "http://127.0.0.1:4206/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Atrue%2C%22quizzes%22%3Atrue%2C%22readAloud%22%3Atrue%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D",
+        "http://127.0.0.1:4206/api/books/catalog-acceptance/outputs/disclosure?features=%7B%22glossary%22%3Atrue%2C%22quizzes%22%3Atrue%2C%22readAloud%22%3Afalse%2C%22languages%22%3A%5B%22en%22%2C%22fr%22%5D%7D"
+      ],
+      "errors": []
+    },
+    "keep": {
+      "sourceSave": true,
+      "stageBadgeMatchesProjection": true,
+      "inlineKeep": true,
+      "manualTextPreserved": true,
+      "unrelatedTranslationsUnchanged": true,
+      "reloadKeepsCounts": true,
+      "before": {
+        "updates": 0,
+        "reviews": 16,
+        "warnings": 0,
+        "missing": 14,
+        "applicable": 30,
+        "current": false
+      },
+      "after": {
+        "updates": 0,
+        "reviews": 15,
+        "warnings": 0,
+        "missing": 14,
+        "applicable": 30,
+        "current": false
+      },
+      "generation": [],
+      "errors": []
+    },
+    "restart": {
+      "restartPreservesCatalogAndReviews": true
+    }
+  },
+  "limits": [
+    "Local clean Docker app image build blocked by Docker VM disk exhaustion",
+    "Paid provider quality and live billing not tested",
+    "Desktop unpacked macOS arm64 build only; no GUI/signing/notarization certification",
+    "Two product policy decisions and legacy compatibility ratification remain pending"
+  ],
+  "independentFinalReview": {
+    "commit": "ed0a1be11800a4b2d86f684889dee59839f35fe0",
+    "repositoryTests": 67,
+    "testFiles": 6,
+    "additionalMountedProbes": [
+      "cold initial output read superseded",
+      "queued A/B publication responses cannot regress committed state",
+      "accepted run from idle with every SSE event missed"
+    ],
+    "realServiceHttpQueueOutcomes": [
+      "completed",
+      "cancelled",
+      "failed"
+    ],
+    "verdict": "qualified acceptance; no actionable defect in corrections; product dispositions remain open"
+  },
+  "checks": {
+    "fullRepository": {
+      "command": "DEVELOPER_DIR=/Library/Developer/CommandLineTools pnpm test --maxWorkers=2",
+      "files": 324,
+      "tests": 4052,
+      "result": "passed"
+    },
+    "typecheck": "passed",
+    "runtimeTypecheck": "passed",
+    "lint": {
+      "errors": 0,
+      "warnings": 8
+    },
+    "lingui": "extraction and strict compilation passed for all five locales",
+    "studioAndApiBundles": "passed",
+    "desktopUnpack": "macOS arm64 ad-hoc build passed",
+    "localCleanDockerAppBuild": "blocked: Docker VM disk exhaustion"
+  }
+}

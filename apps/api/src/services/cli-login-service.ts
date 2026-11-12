@@ -65,7 +65,7 @@ export function createCliLoginService(registry: ProviderRegistry): CliLoginServi
 
   const contextFor = (module: AnyProviderModule, credentials: Credentials) => ({
     providerId: module.manifest.id,
-    credentials: resolveProviderCredentials(module, credentials),
+    credentials: resolveProviderCredentials(module, credentials, registry.tryGet),
   })
 
   const settle = (providerId: string, record: LoginRecord, outcome: "done" | Error): void => {

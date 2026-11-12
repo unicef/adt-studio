@@ -176,6 +176,8 @@ export interface Draft {
   canSave: boolean
   hasStored: boolean
   errors: Map<string, string>
+  /** Per field: whose key a shared field is using, or who else reads this one. */
+  sharedNotes: Map<string, string>
   save: () => void
   remove: () => void
 }
@@ -230,7 +232,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSav
   const stored = useMemo(
     () =>
       Object.fromEntries(
-        descriptor.manifest.credentialFields.map((f) => [f.key, store.credentialValue(id, f.key)]),
+        descriptor.manifest.credentialFields.map((f) => [f.key, store.ownCredentialValue(id, f.key)]),
       ),
     [descriptor, store, id],
   )
@@ -253,6 +255,38 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSav
   dirtyRef.current = dirty
   const hasStored = Object.values(stored).some((v) => v.length > 0)
 
+  // Shared credentials (manifest `sharedWith`): a field with no value of its
+  // own says whose key it is using; the source field says who else reads it.
+  const sharedNotes = useMemo(() => {
+    const notes = new Map<string, string>()
+    for (const field of descriptor.manifest.credentialFields) {
+      const share = field.sharedWith
+      const source = share ? store.descriptorById(share.providerId) : undefined
+      if (share && source && !(stored[field.key] ?? "").trim()) {
+        const sourceName = source.manifest.displayName
+        if (store.credentialValue(share.providerId, share.fieldKey).trim()) {
+          notes.set(
+            field.key,
+            t`Using the ${sourceName} API key. Enter a key here only to use a different one.`,
+          )
+          continue
+        }
+      }
+      const readerNames = store.descriptors
+        .filter((other) =>
+          other.manifest.credentialFields.some(
+            (f) => f.sharedWith?.providerId === id && f.sharedWith.fieldKey === field.key,
+          ),
+        )
+        .map((other) => other.manifest.displayName)
+        .join(", ")
+      if (readerNames) {
+        notes.set(field.key, t`Also used by ${readerNames} unless that provider has its own key.`)
+      }
+    }
+    return notes
+  }, [descriptor, store, stored, id, t])
+
   return {
     descriptor,
     values,
@@ -263,6 +297,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSav
     canSave: dirty && errors.size === 0,
     hasStored,
     errors,
+    sharedNotes,
     save: () => {
       for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, (values[field.key] ?? "").trim())
       toast.success(t`Provider credentials saved.`)
@@ -326,11 +361,18 @@ export function CredentialFields({ draft, onSubmit }: { draft: Draft; onSubmit?:
                 {draft.errors.get(field.key)}
               </p>
             ) : (
-              field.help && (
-                <p className="text-[11.5px] leading-normal text-muted-foreground">
-                  {localize(field.help, i18n.locale)}
-                </p>
-              )
+              <>
+                {field.help && (
+                  <p className="text-[11.5px] leading-normal text-muted-foreground">
+                    {localize(field.help, i18n.locale)}
+                  </p>
+                )}
+                {draft.sharedNotes.has(field.key) && (
+                  <p className="text-[11.5px] leading-normal text-muted-foreground">
+                    {draft.sharedNotes.get(field.key)}
+                  </p>
+                )}
+              </>
             )}
           </div>
         )

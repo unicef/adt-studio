@@ -19,7 +19,7 @@ export function EasyReadLandingPage({ bookLabel }: { bookLabel: string }) {
   const isFixedLayout = useIsFixedLayout(bookLabel)
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to generate Easy Read content.</Trans>
+    <Trans>Connect an AI provider to generate Easy Read content.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — Easy Read simplifies the text it places on each page.</Trans>
   ) : undefined
@@ -27,6 +27,7 @@ export function EasyReadLandingPage({ bookLabel }: { bookLabel: string }) {
   return (
     <LandingPageShell
       bookLabel={bookLabel}
+      requiresProvider
       stageSlug="easy-read"
       settingsTab="general"
       colorClass="bg-fuchsia-600 hover:bg-fuchsia-700"

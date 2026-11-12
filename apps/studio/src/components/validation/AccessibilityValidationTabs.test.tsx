@@ -107,7 +107,7 @@ const assessment: AccessibilityAssessmentOutput = {
       pageId: "pg002",
       sectionId: "pg002_sec001",
       href: "chapter.html",
-      pageNumber: 2,
+      pageNumber: 10,
       title: "Chapter",
       violationCount: 2,
       incompleteCount: 0,
@@ -181,6 +181,20 @@ describe("AccessibilityOverviewTab", () => {
       to: "/books/$label/$step",
       params: { label: "demo-book", step: "preview" },
       search: { previewHref: "index.html" },
+    })
+  })
+
+  it("labels affected pages by reading position, not the printed page number", async () => {
+    const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
+    render(<AccessibilityOverviewTab label="demo-book" />)
+
+    expect(screen.queryByRole("button", { name: /Page 10/i })).toBeNull()
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Page 2/i })[0])
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/books/$label/$step",
+      params: { label: "demo-book", step: "preview" },
+      search: { previewHref: "chapter.html" },
     })
   })
 
