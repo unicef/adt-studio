@@ -43,6 +43,8 @@ export const geminiManifest: ProviderManifest = {
       legacyHeaders: [],
       storageKey: "adt-studio-gemini-key",
       legacyStorageKeys: [],
+      placeholder: "AIza… / AQ.…",
+      pattern: "^(AIza[A-Za-z0-9_-]+|AQ\\.[A-Za-z0-9._-]+)$",
       // The same Google AI Studio key as the text/image provider. Falls back
       // to it wherever credentials are read, so the key is entered once; a
       // key saved for this provider still wins.

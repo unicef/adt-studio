@@ -32,6 +32,7 @@ export const anthropicManifest: ProviderManifest = {
       storageKey: "adt-studio-anthropic-key",
       legacyStorageKeys: [],
       placeholder: "sk-ant-...",
+      pattern: "^sk-ant-[A-Za-z0-9_-]+$",
     },
   ],
   capabilities: {

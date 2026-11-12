@@ -37,6 +37,11 @@ export const googleManifest: ProviderManifest = {
       legacyHeaders: [],
       storageKey: "adt-studio-google-key",
       legacyStorageKeys: [],
+      placeholder: "AIza… / AQ.…",
+      // Google AI Studio keys; loose shape check only. AI Studio issues both
+      // the classic `AIza…` keys and the newer `AQ.…` ones (some accounts can
+      // only create the latter), so both must pass.
+      pattern: "^(AIza[A-Za-z0-9_-]+|AQ\\.[A-Za-z0-9._-]+)$",
     },
   ],
   capabilities: {
