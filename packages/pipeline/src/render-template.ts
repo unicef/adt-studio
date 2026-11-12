@@ -84,14 +84,17 @@ function splitNode(node: RenderNode): RenderNode[] {
   }
   for (const child of children) {
     const level = headingChildLevel(child)
-    if (level === null) {
+    // A `heading` leaf without a level fits any tag, so it stays in the current
+    // run. Lifted out of a container nested in a list item or table cell, it
+    // would render as a <span>, outside any heading, and fail validation.
+    if (level === null && child.role !== "heading") {
       flush()
       out.push(child)
       continue
     }
-    if (level !== runLevel) flush()
+    if (level !== null && level !== runLevel) flush()
     run.push(child)
-    runLevel = level
+    if (level !== null) runLevel = level
   }
   flush()
   return out

@@ -462,6 +462,31 @@ describe("two_column_render.liquid", () => {
       // The image column follows the text column, so the icon is not inside a heading.
       expect(html.indexOf('data-id="pg001_im001"')).toBeGreaterThan(html.indexOf('data-id="pg001_tx003"'))
     })
+
+    it("keeps a heading leaf without heading_level inside a heading tag when a nested container is split", async () => {
+      for (const templateName of ["one_column_render", "two_column_render", "two_column_story"]) {
+        const engine = createTemplateEngine(templatesDir)
+        const input = makeInput({
+          nodes: [
+            groupNode("pg001_tb001", "table", [
+              groupNode("pg001_tr001", "table_row", [
+                groupNode("pg001_td001", "table_cell", [
+                  groupNode("pg001_hd001", "heading", [
+                    leafNode("pg001_tx001", "heading", "Unit 2"),
+                    leafNode("pg001_tx002", "subheading", "Lesson 1"),
+                  ]),
+                ]),
+              ]),
+            ]),
+          ],
+        })
+        const { html } = await renderSectionTemplate(input, { ...templateConfig, templateName }, engine)
+        // Lifted out of the container on its own, the leaf would render as a
+        // <span> directly in the <td>, outside any heading, and fail validation.
+        expect(html).toContain('<h2 class="adt-h2" data-id="pg001_tx001">Unit 2</h2>')
+        expect(html).toContain('<h3 class="adt-h3" data-id="pg001_tx002">Lesson 1</h3>')
+      }
+    })
   })
 
   it("routes a non-image_group container holding an image leaf into the image column", async () => {

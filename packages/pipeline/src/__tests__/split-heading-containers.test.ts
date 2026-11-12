@@ -27,6 +27,22 @@ describe("splitMixedHeadingContainers", () => {
     expect(splitMixedHeadingContainers(nodes)).toEqual(nodes)
   })
 
+  it("keeps a heading leaf without heading_level in the current run, since it fits any tag", () => {
+    const out = splitMixedHeadingContainers([
+      heading("hd", [leaf("a", "chapter_title"), leaf("b", "heading"), leaf("c", "subheading")]),
+      heading("he", [leaf("d", "heading"), leaf("e", "subheading")]),
+      heading("hf", [leaf("f", "chapter_title"), leaf("g", "heading"), leaf("h", "chapter_title"), leaf("i", "subheading")]),
+    ])
+    expect(out).toEqual([
+      heading("hd_part1", [leaf("a", "chapter_title"), leaf("b", "heading")]),
+      heading("hd_part2", [leaf("c", "subheading")]),
+      heading("he_part1", [leaf("d", "heading")]),
+      heading("he_part2", [leaf("e", "subheading")]),
+      heading("hf_part1", [leaf("f", "chapter_title"), leaf("g", "heading"), leaf("h", "chapter_title")]),
+      heading("hf_part2", [leaf("i", "subheading")]),
+    ])
+  })
+
   it("splits into one container per run of the same level, keeping leaf order and ids", () => {
     const out = splitMixedHeadingContainers([
       heading("hd", [
