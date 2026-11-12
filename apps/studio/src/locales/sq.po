@@ -649,6 +649,14 @@ msgid "{providerKey, select, other {The {name} key was rejected. Update the key.
 msgstr "{providerKey, select, other {Çelësi i {name} u refuzua. Përditësoni çelësin.}}"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{providerKey, select, other {Kjo nuk duket si një çelës API për {name}. Çelësat e {name} zakonisht fillojnë me {example}}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{providerKey, select, other {Kjo nuk duket si një çelës API për {name}.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
 msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua, prandaj librat nuk mund të përpunohen ende.}}"
 

@@ -377,6 +377,54 @@ describe("ProvidersList — live manifests", () => {
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["provider-health"] })
   })
 
+  it("warns about a key of an unexpected shape but still lets it be saved", async () => {
+    // The pattern is a hint: providers issue new key formats, and the live
+    // check after saving is what says whether a key works.
+    const openai = descriptor("openai", { displayName: "OpenAI" })
+    openai.manifest.credentialFields[0] = {
+      ...openai.manifest.credentialFields[0],
+      placeholder: "sk-...",
+      pattern: "^sk-(?!ant-)[A-Za-z0-9_-]+$",
+    }
+    providers = [openai, OLLAMA]
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    fireEvent.change(input, { target: { value: "sk-ant-api03-abc" } })
+
+    expect(
+      within(panel).getByText("This doesn't look like an API key for OpenAI. OpenAI keys usually start with sk-..."),
+    ).toBeTruthy()
+    expect(within(panel).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(false)
+
+    fireEvent.change(input, { target: { value: "sk-proj-abc123" } })
+    expect(within(panel).queryByText(/doesn't look like/)).toBeNull()
+    expect(within(panel).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(false)
+  })
+
+  it("doesn't warn about a saved key the user hasn't changed", async () => {
+    // Only edited fields are validated: a key saved before the pattern existed
+    // must not show a warning every time the card is opened.
+    const openai = descriptor("openai", { displayName: "OpenAI" })
+    openai.manifest.credentialFields[0] = {
+      ...openai.manifest.credentialFields[0],
+      placeholder: "sk-...",
+      pattern: "^sk-(?!ant-)[A-Za-z0-9_-]+$",
+    }
+    providers = [openai, OLLAMA]
+    credentials = { openai: { apiKey: "legacy-key" } }
+    ownCredentials = { openai: { apiKey: "legacy-key" } }
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    expect(within(panel).queryByText(/doesn't look like/)).toBeNull()
+
+    fireEvent.change(input, { target: { value: "legacy-key-2" } })
+    expect(within(panel).getByText(/doesn't look like an API key for OpenAI/)).toBeTruthy()
+  })
+
   it("blocks the save when a url field fails client validation", async () => {
     render(<ProvidersList />)
 
