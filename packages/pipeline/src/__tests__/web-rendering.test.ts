@@ -327,7 +327,7 @@ describe("renderPage", () => {
     expect(seenSignals).toEqual([controller.signal])
   })
 
-  it("tells the prompts the page direction of a book with a right-to-left language, and nothing otherwise", async () => {
+  it("AC-11: tells the prompts the page direction of a book with a right-to-left language, and nothing otherwise", async () => {
     const seen: unknown[] = []
     const fakeLlm: LLMModel = {
       generateObject: async <T>(opts: GenerateObjectOptions) => {
@@ -413,7 +413,7 @@ describe("renderPage", () => {
       return result.sections[0].html
     }
 
-    it("stores a right-to-left page without its own dir or left/right alignment, and starts the left-aligned text", async () => {
+    it("AC-9: stores a right-to-left page without its own dir or left/right alignment, and starts the left-aligned text", async () => {
       const html = await render("rtl")
       expect(html).not.toMatch(/\sdir=/)
       expect(html).not.toMatch(/text-(left|right)/)
@@ -421,7 +421,7 @@ describe("renderPage", () => {
       expect(html).toContain('class="text-start" data-id="pg001_tx002"')
     })
 
-    it("stores a left-to-right page of a book with a right-to-left translation with start/end alignment", async () => {
+    it("AC-9: stores a left-to-right page of a book with a right-to-left translation with start/end alignment", async () => {
       // A left-to-right page has no `dir` of its own.
       const html = await render("ltr", generated.content.replace(' dir="rtl"', ""))
       expect(html).not.toMatch(/text-(left|right)/)
@@ -432,14 +432,14 @@ describe("renderPage", () => {
     // `start` and `end` are resolved against the element's own direction, so a
     // right-to-left section of a left-to-right page keeps its `dir` and has its
     // classes mapped for it: the text stays on the side the model put it.
-    it("maps a section whose dir differs from the page's for its own direction", async () => {
+    it("AC-9: maps a section whose dir differs from the page's for its own direction", async () => {
       const html = await render("ltr")
       expect(html).toContain('<section dir="rtl"')
       expect(html).toContain('class="adt-h2 text-end" data-id="pg001_tx001"')
       expect(html).toContain('class="text-start" data-id="pg001_tx002"')
     })
 
-    it("leaves every other book's generated HTML exactly as the model wrote it", async () => {
+    it("AC-9: leaves every other book's generated HTML exactly as the model wrote it", async () => {
       const html = await render(undefined)
       expect(html).toContain('dir="rtl"')
       expect(html).toContain('class="adt-h2 text-left" data-id="pg001_tx001"')

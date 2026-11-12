@@ -203,7 +203,7 @@ describe("renderPageHtml", () => {
       })
     const english = '<section><p class="text-left" data-id="t1">Hello</p><p class="text-right" data-id="t2">Signed</p></section>'
 
-    it("leaves a book with no right-to-left language exactly as it was", () => {
+    it("AC-8: leaves a book with no right-to-left language exactly as it was", () => {
       const single = page("en", ["en"], english)
       expect(single).toContain('class="text-left"')
       expect(single).toContain('class="text-right"')
@@ -211,7 +211,7 @@ describe("renderPageHtml", () => {
       expect(page("en", undefined, english)).toBe(single)
     })
 
-    it("converts alignment when a left-to-right book has a right-to-left translation", () => {
+    it("AC-8: converts alignment when a left-to-right book has a right-to-left translation", () => {
       const html = page("en", ["en", "ur"], english)
       expect(html).toContain('class="text-start" data-id="t1"')
       expect(html).toContain('class="text-end" data-id="t2"')
@@ -220,7 +220,7 @@ describe("renderPageHtml", () => {
       expect(html).toContain('<html lang="en">')
     })
 
-    it("converts a right-to-left book's pages and drops their redundant dir", () => {
+    it("AC-8: converts a right-to-left book's pages and drops their redundant dir", () => {
       const html = page("ur", ["ur", "en"], '<section dir="rtl"><p class="text-right" data-id="t1">متن</p></section>')
       expect(html).toContain('<html lang="ur" dir="rtl">')
       expect(html).toContain('class="text-start" data-id="t1"')
