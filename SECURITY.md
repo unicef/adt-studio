@@ -19,9 +19,6 @@ Report them privately through GitHub instead:
 Only the maintainers can see your report. We can discuss it with you privately there,
 work on a fix in a private fork, and publish an advisory when it's fixed.
 
-<!-- TO CONFIRM: add an official UNICEF security contact or vulnerability disclosure
-     program here, if one exists and must be listed. -->
-
 ### What to include
 
 The more of this you can give us, the faster we can act:
@@ -32,8 +29,6 @@ The more of this you can give us, the faster we can act:
 - any suggested fix or mitigation.
 
 ## Supported versions
-
-<!-- TO CONFIRM: which releases receive security fixes. -->
 
 | Version | Supported |
 |---------|-----------|
@@ -65,8 +60,6 @@ Out of scope:
 If you're unsure whether something is in scope, report it privately anyway.
 
 ## What to expect
-
-<!-- TO CONFIRM: response times the team can reliably meet. -->
 
 - We aim to acknowledge your report within **5 business days**.
 - We aim to send an initial assessment (whether we can reproduce it, and how severe
