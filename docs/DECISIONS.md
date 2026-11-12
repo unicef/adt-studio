@@ -971,7 +971,7 @@ separate action after saving. #619 and #626 remain background/deferred.
 
 **Date**: 2026-11-11
 
-**Spec**: [SPEC-0024](specs/SPEC-0024-context-based-ui-translation.md)
+**Spec**: [SPEC-0025](specs/SPEC-0025-context-based-ui-translation.md)
 
 **Issues**: #937, #900
 

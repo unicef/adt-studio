@@ -1,5 +1,5 @@
 ---
-id: SPEC-0024
+id: SPEC-0025
 title: Context-based UI translation with an on-screen fit check
 status: in-review
 owner: "@Eliezir"
@@ -8,7 +8,7 @@ issues: ["#937"]
 prs: []
 adr: "docs/DECISIONS.md#029-ui-strings-are-translated-from-context-in-the-authors-session-not-by-ci"
 created: 2026-11-11
-updated: 2026-11-11
+updated: 2026-11-12
 ---
 
 <!--
