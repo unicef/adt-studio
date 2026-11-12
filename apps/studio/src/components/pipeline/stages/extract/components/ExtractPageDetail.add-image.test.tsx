@@ -85,8 +85,8 @@ it("adds an image picked from the book, offering only images not already on the 
   ]})
 })
 
-it("uploads a file and adds it to the page's images", async () => {
-  vi.mocked(api.uploadNewImage).mockResolvedValue({imageId: "pg001_upload1", width: 40, height: 30})
+it("uploads a file and adds it to the page in one request", async () => {
+  vi.mocked(api.uploadNewImage).mockResolvedValue({imageId: "pg001_upload1", width: 40, height: 30, imageFilteringVersion: 3})
   const createObjectURL = vi.fn(() => "blob:preview")
   Object.assign(URL, {createObjectURL, revokeObjectURL: vi.fn()})
   const {container} = setup()
@@ -95,45 +95,53 @@ it("uploads a file and adds it to the page's images", async () => {
   const file = new File(["png"], "figure.png", {type: "image/png"})
   fireEvent.change(container.querySelector("input[type=file]")!, {target: {files: [file]}})
   await act(async () => { fireEvent.click(screen.getByRole("button", {name: "Add Image"})) })
-  expect(api.uploadNewImage).toHaveBeenCalledWith("book", "pg001", file)
-  expect(api.updateImageClassification).toHaveBeenCalledWith("book", "pg001", {images: [
-    ...page.imageClassification.images,
-    {imageId: "pg001_upload1", isPruned: false},
-  ]})
+  expect(api.uploadNewImage).toHaveBeenCalledWith("book", "pg001", file, {addToPage: true})
+  // The server adds it to the page's image list; no second save to fail.
+  expect(api.updateImageClassification).not.toHaveBeenCalled()
 })
 
-it("crops a new image from this page, keeping the crop open to retry when saving fails", async () => {
+// The server creates the crop and adds it to the page atomically, so a failed
+// request leaves nothing behind and the retry is the only image created.
+it("crops a new image from this page in one request, keeping the crop open to retry when it fails", async () => {
   vi.mocked(api.uploadCroppedImage)
-    .mockResolvedValueOnce({imageId: "pg001_crop1", width: 50, height: 50})
-    .mockResolvedValueOnce({imageId: "pg001_crop2", width: 50, height: 50})
-  vi.mocked(api.updateImageClassification).mockRejectedValueOnce(new Error("Save failed"))
+    .mockRejectedValueOnce(new Error("Add failed"))
+    .mockResolvedValueOnce({imageId: "pg001_crop1", width: 50, height: 50, imageFilteringVersion: 3})
   setup()
   openAddDialog()
   fireEvent.click(screen.getByRole("button", {name: /Crop from page/}))
   expect(screen.getByTestId("crop-dialog").getAttribute("data-src")).toBe("data:image/png;base64,PAGE")
 
   await act(async () => { fireEvent.click(screen.getByRole("button", {name: "Apply crop"})) })
-  expect(api.uploadCroppedImage).toHaveBeenCalledWith("book", "pg001", "pg001", expect.any(Blob))
-  expect(screen.getByText("Save failed")).toBeTruthy()
+  expect(screen.getByText("Add failed")).toBeTruthy()
   expect(screen.getByTestId("crop-dialog")).toBeTruthy()
 
   await act(async () => { fireEvent.click(screen.getByRole("button", {name: "Apply crop"})) })
-  expect(api.updateImageClassification).toHaveBeenLastCalledWith("book", "pg001", {images: [
-    ...page.imageClassification.images,
-    {imageId: "pg001_crop2", isPruned: false},
-  ]})
+  expect(api.uploadCroppedImage).toHaveBeenCalledTimes(2)
+  expect(api.uploadCroppedImage).toHaveBeenLastCalledWith("book", "pg001", "pg001", expect.any(Blob), {addToPage: true})
+  expect(api.updateImageClassification).not.toHaveBeenCalled()
   await waitFor(() => expect(screen.queryByTestId("crop-dialog")).toBeNull())
+})
+
+it("keeps unsaved prune choices unsaved, with the added image joined to them", async () => {
+  vi.mocked(api.uploadCroppedImage).mockResolvedValue({imageId: "pg001_crop1", width: 50, height: 50, imageFilteringVersion: 3})
+  setup()
+  fireEvent.click(screen.getByTitle("Prune image"))
+  openAddDialog()
+  fireEvent.click(screen.getByRole("button", {name: /Crop from page/}))
+  await act(async () => { fireEvent.click(screen.getByRole("button", {name: "Apply crop"})) })
+  expect(api.updateImageClassification).not.toHaveBeenCalled()
+  // Still pending: pg001_im001 shows as pruned, and the new crop is listed.
+  expect(screen.getAllByTitle("Unprune image")).toHaveLength(2)
+  expect(screen.getByAltText("pg001_crop1")).toBeTruthy()
 })
 
 it("offers cropping on a scanned page with no extracted images", async () => {
   currentPage = scannedPage
-  vi.mocked(api.uploadCroppedImage).mockResolvedValue({imageId: "pg001_crop1", width: 50, height: 50})
+  vi.mocked(api.uploadCroppedImage).mockResolvedValue({imageId: "pg001_crop1", width: 50, height: 50, imageFilteringVersion: 2})
   setup()
   openAddDialog()
   fireEvent.click(screen.getByRole("button", {name: /Crop from page/}))
   await act(async () => { fireEvent.click(screen.getByRole("button", {name: "Apply crop"})) })
-  expect(api.updateImageClassification).toHaveBeenCalledWith("book", "pg001", {images: [
-    ...scannedPage.imageClassification.images,
-    {imageId: "pg001_crop1", isPruned: false},
-  ]})
+  expect(api.uploadCroppedImage).toHaveBeenCalledWith("book", "pg001", "pg001", expect.any(Blob), {addToPage: true})
+  await waitFor(() => expect(screen.queryByTestId("crop-dialog")).toBeNull())
 })

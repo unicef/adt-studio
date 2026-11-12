@@ -112,6 +112,14 @@ function ImageCard({ imageId, bookLabel, isPruned, reason, bounds, onTogglePrune
 
 type ImageClassData = NonNullable<import("@/api/client").PageDetail["imageClassification"]>
 
+/** Append ids not already listed, unpruned. Returns `data` itself when none are new. */
+function appendImages(data: ImageClassData, imageIds: string[]): ImageClassData {
+  const present = new Set(data.images.map((img) => img.imageId))
+  const added = imageIds.filter((id) => !present.has(id))
+  if (added.length === 0) return data
+  return { ...data, images: [...data.images, ...added.map((imageId) => ({ imageId, isPruned: false }))] }
+}
+
 export function ExtractPageDetail({
   bookLabel,
   pageId,
@@ -286,30 +294,20 @@ export function ExtractPageDetail({
     }
   }, [segmentPreview, bookLabel, pageId, queryClient, pendingImageData, page?.imageClassification, t])
 
-  // Add images to this page's extraction: `create` resolves the image ids
-  // (uploading or cropping first when needed), which are appended unpruned
-  // and saved as a new image-filtering version — the same record Recrop and
-  // Segment write, so Sectioning/Storyboard pick them up on their next run.
-  // Rethrows so the crop dialog stays open for a retry.
-  const addImagesToPage = useCallback(async (create: () => Promise<string[]>) => {
+  // Add images to this page's extraction. `add` saves them as a new
+  // image-filtering version — the record Recrop and Segment write, so
+  // Sectioning/Storyboard pick them up on their next run — and resolves their
+  // ids. Unsaved prune toggles stay unsaved; the new ids join them so a later
+  // Save keeps them. Rethrows so the crop dialog stays open for a retry.
+  const addImagesToPage = useCallback(async (add: () => Promise<string[]>) => {
     if (restoringRef.current || savingImagesRef.current) throw new Error(t`Please wait for the current operation to finish`)
-    const base = pendingImageData ?? page?.imageClassification
-    if (!base) return
     savingImagesRef.current = true
     setSavingImages(true)
     setAddingImage(true)
     setImageError(null)
     try {
-      const imageIds = await create()
-      const present = new Set(base.images.map((img) => img.imageId))
-      const added = imageIds.filter((id) => !present.has(id))
-      if (added.length > 0) {
-        await api.updateImageClassification(bookLabel, pageId, {
-          ...base,
-          images: [...base.images, ...added.map((imageId) => ({ imageId, isPruned: false }))],
-        })
-      }
-      if (isCurrent()) setPendingImageData(null)
+      const imageIds = await add()
+      if (isCurrent()) setPendingImageData((pending) => pending && appendImages(pending, imageIds))
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "images"] })
     } catch (err) {
@@ -322,21 +320,35 @@ export function ExtractPageDetail({
         setAddingImage(false)
       }
     }
-  }, [bookLabel, pageId, queryClient, pendingImageData, page?.imageClassification, isCurrent, t])
+  }, [bookLabel, pageId, queryClient, isCurrent, t])
 
+  // Existing images: only the list changes, so a retry just saves it again.
   const handleAddExisting = useCallback((imageIds: string[]) => {
     setAddDialogOpen(false)
-    addImagesToPage(async () => imageIds).catch(() => {})
-  }, [addImagesToPage])
+    addImagesToPage(async () => {
+      const saved = page?.imageClassification
+      if (!saved) return []
+      const next = appendImages(saved, imageIds)
+      if (next !== saved) await api.updateImageClassification(bookLabel, pageId, next)
+      return imageIds
+    }).catch(() => {})
+  }, [addImagesToPage, bookLabel, pageId, page?.imageClassification])
 
+  // Uploads and crops are created and added to the page in one request
+  // (`addToPage`): a failure leaves nothing behind, so a retry never
+  // duplicates the image.
   const handleAddUpload = useCallback((file: File) => {
     setAddDialogOpen(false)
-    addImagesToPage(async () => [(await api.uploadNewImage(bookLabel, pageId, file)).imageId]).catch(() => {})
+    addImagesToPage(async () => [
+      (await api.uploadNewImage(bookLabel, pageId, file, { addToPage: true })).imageId,
+    ]).catch(() => {})
   }, [addImagesToPage, bookLabel, pageId])
 
   const handleAddCropApply = useCallback(async (blob: Blob) => {
     // The page id is the crop's source: stored as `{pageId}_crop{N}`.
-    await addImagesToPage(async () => [(await api.uploadCroppedImage(bookLabel, pageId, pageId, blob)).imageId])
+    await addImagesToPage(async () => [
+      (await api.uploadCroppedImage(bookLabel, pageId, pageId, blob, { addToPage: true })).imageId,
+    ])
     if (isCurrent()) setAddCropSrc(null)
   }, [addImagesToPage, bookLabel, pageId, isCurrent])
 
