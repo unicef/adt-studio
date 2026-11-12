@@ -234,6 +234,8 @@ Books in a right-to-left language (Urdu, Arabic, Hebrew, Persian, Pashto, …) a
 - **Storyboard preview** — `BookPreviewFrame` sets `dir` on its iframe document from `useBookTextDirection()`.
 - **Screenshots** — `buildScreenshotHtml()` takes the book language, so visual review, section thumbnails and AI page edits see the layout the reader shows.
 
+**Direction-neutral pages (SPEC-0024).** A book has one page layout for all of its languages: a translation is swapped into the same HTML. So for a book where any language, source or translation, is right-to-left, `renderPageHtml()` rewrites the page as it is packaged or previewed (`neutralizeDirectionMarkup()`, `packages/pipeline/src/direction-neutral-html.ts`): `text-left`/`text-right` become `text-start`/`text-end`, mapped for the direction the page was written in, and a `dir` that only repeats the element's inherited direction is removed. The page looks the same in its own language and mirrors correctly in the other. Stored pages are not changed, and `resolvePageDirection()` returns `undefined` for a book with no right-to-left language, which leaves its output byte-identical.
+
 Exports are only partly covered. WebPub and PNLD reuse the packaged pages, so their content pages keep `dir`; EPUB rebuilds each page's root element (`convertPageToXhtml()`) and drops it. No export declares a right-to-left page progression yet (EPUB `page-progression-direction`, WebPub `readingProgression`), and the navigation documents the packagers generate themselves carry no `dir`.
 
 ---

@@ -58,7 +58,8 @@ import {
 import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
-import { dirAttr, getBaseLanguage, normalizeLocale } from "../language-context.js"
+import { dirAttr, getBaseLanguage, normalizeLocale, resolvePageDirection } from "../language-context.js"
+import { neutralizeDirectionMarkup } from "../direction-neutral-html.js"
 import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries, buildEasyReadSourceBlocks } from "../easy-read.js"
 import { activeEasyRead } from "../retained-catalog.js"
@@ -453,6 +454,7 @@ export async function packageAdtWeb(
       const quizPageHtml = renderPageHtml({
         content: quizHtmlContent,
         language,
+        outputLanguages,
         sectionId: item.id,
         pageTitle: title,
         pageHeading: item.quiz.question,
@@ -550,6 +552,7 @@ export async function packageAdtWeb(
     const pageHtml = renderPageHtml({
       content: rewrittenHtml,
       language,
+      outputLanguages,
       sectionId,
       pageTitle: title,
       pageHeading: headingText?.text ?? title,
@@ -1323,6 +1326,12 @@ export function injectWebpubStyles(dir: string, options?: InjectWebpubStylesOpti
 export interface RenderPageOptions {
   content: string
   language: string
+  /**
+   * The book's output languages. When any of them, or `language`, is written
+   * right to left, the page is made direction-neutral so its one layout reads
+   * correctly in each of them (SPEC-0024). Omit for a single-language render.
+   */
+  outputLanguages?: readonly string[]
   sectionId: string
   pageTitle: string
   pageIndex: number
@@ -1420,7 +1429,14 @@ export function renderPageHtml(opts: RenderPageOptions): string {
   // scan, heading probes) must not match inside the embedded activity JSON.
   const { masked: maskedContent, restore: restoreStepperPayloads } =
     maskStepperPayloads(opts.content)
-  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(maskedContent))
+  const cleanedContent = stripContentEditable(promoteFirstHeadingToH1(maskedContent))
+  // A book with a right-to-left language shares this one layout between both
+  // directions. Rewriting here, not in storage, converts pages that already
+  // exist without touching them: the page looks the same in its own language.
+  const pageDirection = resolvePageDirection(opts.language, opts.outputLanguages)
+  const normalizedContent = pageDirection
+    ? neutralizeDirectionMarkup(cleanedContent, pageDirection)
+    : cleanedContent
 
   // Custom activities (`activity_custom_*`) ship an inline <script> that calls
   // window.adtRegisterCustomActivity(section, {validate, reset}) during parse —

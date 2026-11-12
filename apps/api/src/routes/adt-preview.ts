@@ -1074,6 +1074,7 @@ export function createAdtPreviewRoutes(
       const html = renderPageHtml({
         content: quizHtmlContent,
         language,
+        outputLanguages: config.output_languages,
         sectionId: pageId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
@@ -1155,6 +1156,7 @@ export function createAdtPreviewRoutes(
       const html = renderPageHtml({
         content: stepperActivity ? previewSectionHtml : convertLatexToMathml(previewSectionHtml),
         language,
+        outputLanguages: config.output_languages,
         sectionId: pageId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
