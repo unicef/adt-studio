@@ -3,6 +3,7 @@ import mupdf from "mupdf";
 import { extractPages } from "../extract.js";
 import {
   detectRasterWatermark,
+  removeStampFromPixels,
   renderPageWithoutRasterWatermark,
 } from "../raster-watermarks.js";
 import { decodePng } from "../png-utils.js";
@@ -17,7 +18,7 @@ const IMG_H = 550;
 const PAGE_COUNT = 16;
 const STAMP_OPACITY = 0.3;
 
-type Blend = "multiply" | "keep-colour";
+type Blend = "multiply" | "keep-colour" | "opaque";
 
 /** Opacity of the synthetic stamp: three thin diagonal bars, soft-edged. */
 function stampOpacity(x: number, y: number, peak: number = STAMP_OPACITY): number {
@@ -96,6 +97,12 @@ function stamp(rgb: Uint8Array, blend: Blend, peak: number = STAMP_OPACITY): Uin
       const i = (y * IMG_W + x) * 3;
       if (blend === "multiply") {
         for (let ch = 0; ch < 3; ch++) out[i + ch] = Math.round(rgb[i + ch] * (1 - a));
+      } else if (blend === "opaque") {
+        // A solid grey letter drawn over the page: whatever was under it is
+        // gone. On white it looks exactly like the multiply.
+        const cover = a / peak;
+        const grey = 254 * (1 - peak);
+        for (let ch = 0; ch < 3; ch++) out[i + ch] = Math.round(rgb[i + ch] * (1 - cover) + grey * cover);
       } else {
         // Brightness darkened by the same share, colour differences kept.
         const luma = 0.299 * rgb[i] + 0.587 * rgb[i + 1] + 0.114 * rgb[i + 2];
@@ -131,6 +138,46 @@ function stampInColour(rgb: Uint8Array): Uint8Array {
   return out;
 }
 
+/**
+ * Opaque page objects drawn on top of the stamp, hiding it: a pink filled
+ * box and a white one, at a different place on every page. With `mostly`,
+ * one box covers nearly the whole stamp.
+ */
+function paintObjectsOver(rgb: Uint8Array, pageIndex: number, mostly: boolean): Uint8Array {
+  const out = new Uint8Array(rgb);
+  const boxes: Array<{ x: number; y: number; w: number; h: number; colour: [number, number, number] }> = mostly
+    ? [{ x: 60, y: 120, w: 310, h: 200, colour: [251, 215, 232] }]
+    : [
+        { x: 110 + ((pageIndex * 37) % 120), y: 170 + ((pageIndex * 53) % 130), w: 110, h: 90, colour: [251, 215, 232] },
+        { x: 100 + ((pageIndex * 71) % 150), y: 180 + ((pageIndex * 29) % 150), w: 70, h: 60, colour: [254, 254, 254] },
+      ];
+  for (const box of boxes) {
+    for (let y = box.y; y < Math.min(IMG_H, box.y + box.h); y++) {
+      for (let x = box.x; x < Math.min(IMG_W, box.x + box.w); x++) {
+        const i = (y * IMG_W + x) * 3;
+        for (let ch = 0; ch < 3; ch++) {
+          out[i + ch] = Math.min(255, Math.max(0, box.colour[ch] + noiseAt(i + ch + pageIndex * 104729)));
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/** Each pixel repeated `factor` times in both directions: a sharper scan. */
+function enlarge(rgb: Uint8Array, factor: number): Uint8Array {
+  if (factor === 1) return rgb;
+  const w = IMG_W * factor;
+  const out = new Uint8Array(w * IMG_H * factor * 3);
+  for (let y = 0; y < IMG_H * factor; y++) {
+    for (let x = 0; x < w; x++) {
+      const from = (Math.floor(y / factor) * IMG_W + Math.floor(x / factor)) * 3;
+      out.set(rgb.subarray(from, from + 3), (y * w + x) * 3);
+    }
+  }
+  return out;
+}
+
 function buildPdf(options: {
   blend?: Blend;
   /** Pages (0-based) left without the stamp. */
@@ -148,6 +195,10 @@ function buildPdf(options: {
   softMask?: boolean;
   /** Stamp in a pale colour instead of grey. */
   colouredStamp?: boolean;
+  /** Draw opaque objects over the stamp, as a page that hides it would. */
+  objectsOver?: "some" | "mostly";
+  /** Pixels per page pixel: 3 makes the pictures 300 DPI instead of 100. */
+  enlarge?: number;
 }): Buffer {
   const {
     blend = "multiply",
@@ -160,13 +211,18 @@ function buildPdf(options: {
     firstPageWidth,
     softMask = false,
     colouredStamp = false,
+    objectsOver,
+    enlarge: factor = 1,
   } = options;
   const doc = new mupdf.PDFDocument();
   for (let p = 0; p < pageCount; p++) {
     const clean = pagePixels(p, paper, furniture);
     const stamped = colouredStamp ? stampInColour(clean) : stamp(clean, blend, peak);
-    const pixels = unstamped.includes(p) ? clean : stamped;
-    const pixmap = new mupdf.Pixmap(mupdf.ColorSpace.DeviceRGB, [0, 0, IMG_W, IMG_H], false);
+    const marked = unstamped.includes(p) ? clean : stamped;
+    // Every third page, so the stamp still shows on enough pages to be learned.
+    const covered = objectsOver && p % 3 === 0 ? paintObjectsOver(marked, p, objectsOver === "mostly") : marked;
+    const pixels = enlarge(covered, factor);
+    const pixmap = new mupdf.Pixmap(mupdf.ColorSpace.DeviceRGB, [0, 0, IMG_W * factor, IMG_H * factor], false);
     pixmap.getPixels().set(pixels);
     let image: InstanceType<typeof mupdf.Image>;
     if (softMask) {
@@ -208,19 +264,24 @@ function openDoc(buffer: Buffer): InstanceType<typeof mupdf.PDFDocument> {
   >;
 }
 
-/** Mean and worst-case error against the unstamped page, over stamp pixels. */
+/**
+ * Mean and worst-case error against the unstamped page, over stamp pixels.
+ * `factor` is the enlargement of both pictures over the 100 DPI layout.
+ */
 function stampAreaError(
   actual: Uint8Array | Buffer,
   stride: number,
   expected: Uint8Array,
+  factor: number = 1,
 ): { mean: number; badShare: number } {
   let sum = 0;
   let count = 0;
   let bad = 0;
-  for (let y = 0; y < IMG_H; y++) {
-    for (let x = 0; x < IMG_W; x++) {
-      if (stampOpacity(x, y) < 0.05) continue;
-      const p = y * IMG_W + x;
+  const width = IMG_W * factor;
+  for (let y = 0; y < IMG_H * factor; y++) {
+    for (let x = 0; x < width; x++) {
+      if (stampOpacity(Math.floor(x / factor), Math.floor(y / factor)) < 0.05) continue;
+      const p = y * width + x;
       let worst = 0;
       for (let ch = 0; ch < 3; ch++) {
         const diff = Math.abs(actual[p * stride + ch] - expected[p * 3 + ch]);
@@ -335,6 +396,139 @@ describe("renderPageWithoutRasterWatermark", () => {
       }
     });
   }
+
+  it("leaves objects drawn over the stamp alone, and cleans around them", () => {
+    // The stamp was put down first; on every third page a pink box and a
+    // white box cover part of it. Undoing the whole stamp shape would leave
+    // bright letters on the pink box.
+    const doc = openDoc(buildPdf({ objectsOver: "some" }));
+    const model = detectRasterWatermark(doc);
+    expect(model).not.toBeNull();
+    if (!model) return;
+
+    for (const pageIndex of [0, 3, 6, 9]) {
+      const result = renderPageWithoutRasterWatermark(doc.loadPage(pageIndex), 2, model);
+      expect(result?.cleaned).toHaveLength(1);
+      if (!result) return;
+      const truth = paintObjectsOver(pagePixels(pageIndex), pageIndex, false);
+      const before = stampAreaError(paintObjectsOver(stamp(pagePixels(pageIndex), "multiply"), pageIndex, false), 3, truth);
+      const after = stampAreaError(result.cleaned[0].pixels, 3, truth);
+      expect(before.mean).toBeGreaterThan(10);
+      expect(after.mean).toBeLessThan(3);
+      expect(after.badShare).toBeLessThan(0.03);
+    }
+  });
+
+  it("fills in an opaque stamp where it covers coloured content", () => {
+    // Dividing a solid grey letter that sits on a tinted block would turn
+    // it white. It is filled in with the block's colour instead.
+    const doc = openDoc(buildPdf({ blend: "opaque" }));
+    const model = detectRasterWatermark(doc);
+    expect(model).not.toBeNull();
+    if (!model) return;
+
+    // Pages 1 and 2 put a cream and a blue block under the stamp.
+    for (const pageIndex of [1, 2]) {
+      const result = renderPageWithoutRasterWatermark(doc.loadPage(pageIndex), 2, model);
+      expect(result?.cleaned).toHaveLength(1);
+      if (!result) return;
+      const truth = pagePixels(pageIndex);
+      const seen = stamp(truth, "opaque");
+      const cleaned = result.cleaned[0].pixels;
+      const blockX = 40 + ((pageIndex * 61) % 200);
+      const blockY = 60 + ((pageIndex * 131) % 330);
+      // Judged well inside the block and on plain paper. Within a few pixels
+      // of the block's edge a stroke may be left or only partly filled, and
+      // text the opaque stamp covered is gone for good.
+      const errors = { block: { before: 0, after: 0, bad: 0, count: 0 }, paper: { before: 0, after: 0, bad: 0, count: 0 } };
+      for (let y = 0; y < IMG_H; y++) {
+        for (let x = 0; x < IMG_W; x++) {
+          if (stampOpacity(x, y) < 0.05) continue;
+          const p = (y * IMG_W + x) * 3;
+          const tinted = Math.max(truth[p], truth[p + 1], truth[p + 2]) - Math.min(truth[p], truth[p + 1], truth[p + 2]) > 12;
+          const inside = x >= blockX + 16 && x < blockX + 104 && y >= blockY + 16 && y < blockY + 74;
+          if (truth[p] < 100 || (tinted && !inside)) continue;
+          const bucket = tinted ? errors.block : errors.paper;
+          let before = 0;
+          let after = 0;
+          for (let ch = 0; ch < 3; ch++) {
+            before += Math.abs(seen[p + ch] - truth[p + ch]) / 3;
+            after += Math.abs(cleaned[p + ch] - truth[p + ch]) / 3;
+          }
+          bucket.before += before;
+          bucket.after += after;
+          bucket.count++;
+          if (after > 16) bucket.bad++;
+        }
+      }
+      for (const bucket of [errors.block, errors.paper]) {
+        expect(bucket.count).toBeGreaterThan(40);
+        expect(bucket.before / bucket.count).toBeGreaterThan(30);
+        expect(bucket.after / bucket.count).toBeLessThan(3);
+        expect(bucket.bad / bucket.count).toBeLessThan(0.03);
+      }
+    }
+  });
+
+  it("still cleans a page where most of the stamp is hidden", () => {
+    // One page of an ordinary stamped book has a big box over the stamp.
+    // The little that shows around it must still be removed.
+    const pdf = buildPdf({});
+    const doc = openDoc(pdf);
+    const model = detectRasterWatermark(doc);
+    expect(model).not.toBeNull();
+    if (!model) return;
+
+    const truth = paintObjectsOver(pagePixels(5), 5, true);
+    const seen = paintObjectsOver(stamp(pagePixels(5), "multiply"), 5, true);
+    const pixels = new Uint8Array(seen);
+    const strength = removeStampFromPixels(pixels, IMG_W, IMG_H, 3, [IMG_W, 0, 0, IMG_H, 0, 0], model);
+    expect(strength).not.toBeNull();
+    expect(stampAreaError(seen, 3, truth).badShare).toBeGreaterThan(0.1);
+    const after = stampAreaError(pixels, 3, truth);
+    expect(after.mean).toBeLessThan(3);
+    expect(after.badShare).toBeLessThan(0.03);
+  });
+
+  it("removes a stamp as dark as mid-grey", () => {
+    const opacity = 0.5;
+    const doc = openDoc(buildPdf({ stampOpacity: opacity }));
+    const model = detectRasterWatermark(doc);
+    expect(model).not.toBeNull();
+    if (!model) return;
+    expect(model.peakOpacity).toBeGreaterThan(opacity - 0.05);
+    expect(model.peakOpacity).toBeLessThan(opacity + 0.05);
+
+    const result = renderPageWithoutRasterWatermark(doc.loadPage(7), 2, model);
+    expect(result?.cleaned).toHaveLength(1);
+    if (!result) return;
+    const truth = pagePixels(7);
+    expect(stampAreaError(stamp(truth, "multiply", opacity), 3, truth).mean).toBeGreaterThan(40);
+    const after = stampAreaError(result.cleaned[0].pixels, 3, truth);
+    expect(after.mean).toBeLessThan(4);
+    expect(after.badShare).toBeLessThan(0.03);
+  });
+
+  it("learns sharp scans on their own pixel grid", () => {
+    // 300 DPI pictures: too many pixels to learn whole pages, so the stamp
+    // is located on a coarser grid and then learned at full resolution.
+    const factor = 3;
+    const doc = openDoc(buildPdf({ enlarge: factor, pageCount: 12 }));
+    const model = detectRasterWatermark(doc);
+    expect(model).not.toBeNull();
+    if (!model) return;
+    expect(model.scale).toBeCloseTo(300 / 72, 2);
+    const [x0, y0, x1, y1] = stampBox();
+    expect(Math.abs(model.box[0] - x0 * factor)).toBeLessThanOrEqual(4 * factor);
+    expect(Math.abs(model.box[3] - y1 * factor)).toBeLessThanOrEqual(4 * factor);
+
+    const result = renderPageWithoutRasterWatermark(doc.loadPage(7), 2, model);
+    expect(result?.cleaned).toHaveLength(1);
+    if (!result) return;
+    const after = stampAreaError(result.cleaned[0].pixels, 3, enlarge(pagePixels(7), factor), factor);
+    expect(after.mean).toBeLessThan(3);
+    expect(after.badShare).toBeLessThan(0.03);
+  }, 60_000);
 
   it("measures the paper instead of assuming it is white", () => {
     const paper = 249;
