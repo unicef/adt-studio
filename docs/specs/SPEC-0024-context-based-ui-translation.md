@@ -29,18 +29,11 @@ nobody can tell when a translation is wrong or no longer fits.
 
 ### How strings get translated today
 
-Every path starts from a list of empty `msgstr` entries:
-
-- **Locally, with the script.** `pnpm --filter @adt/studio translate:missing`
-  (`apps/studio/scripts/translate-missing.ts`, 203 lines) sends the model a JSON array of
-  bare English strings: no glossary, no call site, no length limit.
-- **Locally, with an agent.** Asked to "translate the missing strings", an agent works
-  from the `.po` file. The catalogs carry no file references (`origins: false` in
-  `apps/studio/lingui.config.ts`), so it sees the same bare keys.
-- **In CI, as a rarely used fallback.** `compile --strict` runs with
-  `continue-on-error` on pull requests. An empty `msgstr` makes the `i18n` job run the
-  same script, commit as `github-actions[bot]` and push to the PR branch (hence
-  `permissions: contents: write`).
+Every path starts from a list of empty `msgstr` entries: the
+`pnpm --filter @adt/studio translate:missing` script (a JSON array of bare English
+strings, with no glossary, call site or length limit), an agent asked to "translate the
+missing strings" (the catalogs carry no file references, `origins: false`), or, rarely,
+the CI `i18n` job, which runs the same script and pushes the result to the PR branch.
 
 A string translated alone can't tell a button from a heading, a verb from a noun, or
 "Light" the theme from "Light" the review depth. After translating, it is hard to keep
@@ -91,23 +84,17 @@ or what a shorter replacement would be.
 
 ## Non-goals
 
-- **Other catalogs.** The desktop shell's own catalogs
-  (`apps/desktop/src/renderer/src/locales/`, 12 strings, Lingui 5, no `sq`, not checked
-  in CI) and the reader's strings (`apps/adt-runtime`) are out of scope. An issue for the
-  desktop catalogs is filed with this spec's PR.
-- **Committed test data for the screen check.** No fixture book and no committed mocks.
-  The check runs on the author's app, and any mocked responses are written for that
-  session in a gitignored folder (§4).
+- **Other catalogs.** The desktop shell's (`apps/desktop/src/renderer/src/locales/`,
+  12 strings, no `sq`) and the reader's (`apps/adt-runtime`). An issue for the desktop
+  catalogs is filed with this spec's PR.
 - **Checking translations in CI.** CI keeps today's checks: strings are extracted, the
-  catalogs compile and nothing is left untranslated. The lint, the screen check and the
-  report run on the author's machine, through the skill. No test in `pnpm test` reads
-  the real catalogs.
-- **A full-app walk, in CI or nightly.** The screen check is on demand and targeted.
+  catalogs compile, nothing is left untranslated. Everything else runs on the author's
+  machine, and no test reads the real catalogs.
+- **Committed test data.** No fixture book and no committed mocks (§4).
+- **A full-app walk.** The screen check is on demand and targeted.
 - **Electron-only layouts, dark mode and RTL.** The screen check drives the web dev
-  server in a fresh browser profile: layouts that depend on `isElectron()` (such as the
-  4-column Notifications grid) and the dark theme are not captured, and no supported
-  locale is right-to-left. A change to those surfaces is checked by hand in
-  `pnpm dev:desktop` and declared in the PR.
+  server, so `isElectron()` layouts (the 4-column Notifications grid) and the dark theme
+  are checked by hand in `pnpm dev:desktop` when changed. No locale is right-to-left.
 - **Redesigning layouts that are too tight in every locale**: the segmented control,
   the export descriptions' `line-clamp-2` and the Notifications tiles from #920. Issues
   for them are filed with this spec's PR.
@@ -122,8 +109,8 @@ or what a shorter replacement would be.
 A developer whose change adds or edits strings asks their agent to translate. The
 `translate` skill runs this, following `docs/I18N_TRANSLATION_QUALITY.md`:
 
-1. **List** the entries changed since the PR's base branch (see §3 for "changed"), and
-   find each one's call sites.
+1. **List** the entries changed since the PR's base branch, and find each one's call
+   sites.
 2. **Follow each string to where it renders.** A `t` or `<Trans>` call site is the
    render site. A `msg` or `defineMessage` descriptor (844 uses in 70 files) is defined
    in one place, often a constant like `THEME_OPTIONS`, and rendered elsewhere; the agent
@@ -136,11 +123,9 @@ A developer whose change adds or edits strings asks their agent to translate. Th
 4. **Annotate** ambiguous English with a Lingui `comment`, or a `context` when the same
    English needs different translations.
 5. **Check** with `extract`, `i18n:lint` and `i18n:screens` on the changed screens,
-   with `--report` when asked. A screen or state the author's data doesn't reach (a book
-   screen with no book, an error, a stage mid-run) gets mocked API responses (§4). Fix
-   or explain each finding.
-6. **Declare.** The skill writes the PR's Translations section (§9), a short account of
-   what it did, so the reviewer can see the skill was used and what it checked.
+   mocking what the author's data doesn't reach (§4), with `--report` when asked. Fix or
+   explain each finding.
+6. **Declare** the work in the PR's Translations section (§9).
 
 Worked example, the theme option "Light". The call site is `THEME_OPTIONS`
 (`apps/studio/src/components/app/screens/settings/options.ts`), a `msg` descriptor
@@ -152,219 +137,110 @@ pt-BR keeps "Claro", and es, fr and sq change from "Ligero", "Léger" and "I leh
 screen check opens Settings → Appearance in each locale and compares the theme cards
 with English. Nothing wraps, so the PR lists the screen as checked with no findings.
 
-### 1. Translation starts from where the string renders, not the key
+### 1. Translation starts from where the string renders
 
-The catalogs keep `origins: false`. A new `pnpm --filter @adt/studio i18n:origins
-"<msgid>" [--context <ctx>]` runs `lingui extract --config` with a generated config
-written under `apps/studio/node_modules/.cache/i18n-origins/`, so it resolves the same
-packages under pnpm (origins on, absolute `include` paths, `en` only, catalogs written
-in that folder), and
-prints the call sites, plurals and multi-line entries
-included. It never writes to `src/locales/`. Meaning that has to last goes on the
-string itself, as a Lingui `comment` or `context`, so the next translator gets it from
-the catalog.
+The catalogs keep `origins: false` (see Options). `pnpm --filter @adt/studio i18n:origins
+"<msgid>" [--context <ctx>]` prints a string's call sites by running `lingui extract` with
+a generated config; it never writes to `src/locales/`. Meaning that has to last goes on
+the string as a Lingui `comment` or `context`, so the next translator gets it from the
+catalog.
 
 `docs/I18N_TRANSLATION_QUALITY.md` is the single source of truth: a translation is done
 when it is right in **meaning**, right in **mechanics** and **fits** where the English
-fits. `.claude/skills/translate/SKILL.md` runs the workflow (`.gitignore` ignores all of
-`.claude/` today, so it becomes `.claude/*` with `!.claude/skills/`) and links to the guide
-instead of copying it. `AGENTS.md` points to the guide, so agents that don't load skills
-follow the same rules, and `.github/pull_request_template.md` replaces its i18n checkbox
-with the Translations section (§9).
+fits. It also defines the glossary, rules, steps and mock file formats.
+`.claude/skills/translate/SKILL.md` runs the workflow and links to the guide (`.gitignore`
+ignores all of `.claude/` today, so it becomes `.claude/*` with `!.claude/skills/`).
+`AGENTS.md` points to the guide for agents that don't load skills.
 
-**Adding a locale** (about 4,300 empty entries) uses the same workflow in batches by
-screen area: the agent groups msgids by the file that renders them, translates one area
-at a time with the glossary it writes first, and runs `i18n:lint` and `i18n:screens` on
-that area. `docs/I18N_ADD_LANGUAGE.md` describes this in place of the script.
+**Adding a locale** uses the same workflow in batches by screen area, glossary first.
+`docs/I18N_ADD_LANGUAGE.md` describes it in place of the script.
 
 ### 2. Each locale has a glossary
 
-`apps/studio/i18n/glossary/<locale>.md` for pt-BR, es, fr and sq, each with a
-`<locale>.rules.json`. pt-BR is #900's glossary with its validation amendments merged.
-The others cover the same concepts: Stage vs Step, preview, table of contents, findings,
-source vs font, template vs model, activity types, sentence case, voice and mood. Each
-term follows the locale's established UI terminology and the catalog's majority usage,
-with the reason recorded.
-
-The `.md` file holds one table, `| English | <locale> | Reason |`, followed by free notes
-on tone and grammar. Names kept in English (ADT, Studio, provider and model names) are
-listed in the rules file under `"names": string[]`, so the lint can read them.
-
-A rules file is `{ "names": string[], "forbidden": Rule[] }`, where a rule is
-`{ "term": string, "use": string, "msgctxt"?: string[], "msgid"?: string }`. `term` is
-matched case-insensitively on word boundaries in the decoded `msgstr`. With no scope
-fields the rule applies to every entry; `msgctxt` limits it to those contexts and
-`msgid` (a regular expression) to matching English. So "*fonte* is forbidden where the
-English says source" is `{ "term": "fonte", "use": "origem", "msgid": "\\bsources?\\b" }`.
+`apps/studio/i18n/glossary/<locale>.md` (English, translation, reason) and
+`<locale>.rules.json` (names kept in English, and forbidden terms scoped by `msgctxt` or
+an English pattern) for pt-BR, es, fr and sq. pt-BR starts from #900's glossary; the
+others cover the same concepts (Stage vs Step, source vs font, template vs model,
+activity types, tone) following each locale's established UI terminology. Example rule:
+*fonte* is forbidden in pt-BR where the English says "source".
 
 ### 3. Mechanical errors are caught before the PR
 
-`pnpm --filter @adt/studio i18n:lint`, with no network and no browser. It parses the
-catalogs with `@lingui/format-po` (already a Studio dependency) and messages with
-`@messageformat/parser`, the ICU parser Lingui itself uses (5.1.1, already in the
-lockfile through `@lingui/message-utils`; Studio declares it at that version), so
-"valid" means what `lingui compile` means. It reads active
-entries only; obsolete `#~` entries (176 per locale today) are skipped.
-
-- **Errors** (whole catalog, every locale), on decoded strings:
-  - placeholder names or rich-text tags that differ from the msgid, plural and select
-    branches included (#900's check)
-  - a `msgstr` that doesn't parse as ICU MessageFormat (for example an apostrophe that
-    quotes a `{`)
-  - a backslash the msgid doesn't have
-  - a term the locale's rules forbid
-  - an `i18n-screens: temporary` marker left anywhere under `apps/` (§4)
-- **Warnings** (changed entries only):
-  - a label of ≤30 characters longer than 1.5× the English
-  - a `msgstr` identical to its msgid, unless the msgid is in the rules file's `names`
-    (English left in)
-
-  Whole-catalog warnings would be hundreds of strings that fit, so a warning only says
-  "check this one on screen".
-
-An entry is **changed** when its `(msgctxt, msgid)` pair is not in the base branch's
-catalog for that locale, or its `msgstr` differs. The base is `--base <ref>`, defaulting
-to `origin/develop`; a PR to `main` passes `--base origin/main`. When the base can't be
-resolved the lint prints that warnings were skipped and still runs every error.
-
-It runs on the author's machine, from the skill, and its result goes in the PR's
-Translations section. CI doesn't run it (§6). Its own code is unit-tested in
-`pnpm test` on fixture catalogs (§8).
+`pnpm --filter @adt/studio i18n:lint` runs offline on active entries. It parses with
+`@lingui/format-po` and with the ICU parser Lingui itself uses (`@messageformat/parser`,
+declared at the version already in the lockfile), so "valid" means what `lingui compile`
+means. It **errors** across every catalog on what breaks at runtime or on screen, and
+**warns** only on entries changed since `--base` (default `origin/develop`) on what
+deserves a look on screen. AC-3 to AC-7 list the rules. The skill runs it; CI doesn't.
 
 ### 4. The fit is checked on the author's running app
 
-`pnpm --filter @adt/studio i18n:screens --url <url> [--url <url> …]` targets the web dev
-server (`pnpm dev`); the desktop renderer reaches its API through Electron and can't be
-driven by URL. It launches Playwright with a fresh profile at 1280×720 and loads each
-URL once per locale with `?lang=<locale>`, replacing any `lang` already in the URL,
-because `?lang` outranks the stored locale (`apps/studio/src/main.tsx`).
+`pnpm --filter @adt/studio i18n:screens --url <url> [--url <url> …]` drives the web dev
+server (`pnpm dev`) with Playwright (already in the workspace; Studio adds it at the same
+version) in a fresh profile at 1280×720. It loads each URL once per locale with
+`?lang=<locale>`, which outranks the stored locale (`apps/studio/src/main.tsx`).
 
-- **Landing where it asked.** After loading, and after any steps, it compares the page's
-  path with the requested one. A redirect (to onboarding, to the library when a book is
-  missing, or one added later) fails that capture with the URL it landed on, instead of
-  checking the wrong screen and reporting no findings.
-
-- **Detection.** It flags text that wraps, is cut off, is clipped or spills out of its
-  box in a locale **but not in English on the same screen**, so data such as a long book
-  title doesn't flag. The detector is #900's, split into an in-page measurement and a
-  pure classification step.
-- **Matching.** An element in a locale is compared with the English element at the same
-  structural path (the chain of tag names and sibling indexes from `body`), or with the
-  same `data-testid` or `data-id` when present. Elements with no English counterpart,
-  such as list rows reordered by translated name, are reported as unmatched, not as
-  findings.
-- **State behind an action.** Dialogs, menus, toasts, tooltips and hover states are
-  captured when the author passes the steps that open them: `--steps <file>`, a short
-  list of `click`, `hover`, `press` and `wait` actions by role and accessible name or by
-  test id, run in every locale before capture.
-- **Data.** The author's API, as it is, by default. Home, library, settings, the wizard
-  and onboarding work on an empty library, and book screens work on any book the author
-  has.
-- **Mocked responses, for what the author's data doesn't reach.** Book content is never
-  translated; only the UI around it is, and any well-formed data renders that UI. So
-  when a changed string renders on a book screen and the author has no book in that
-  state, or on a state the API only produces sometimes (an error, a slow load, an empty
-  list, a stage mid-run), `--mock <file>` answers those requests in the browser
-  (Playwright `page.route`); Studio fetches everything through `apps/studio/src/api/
-  client.ts` and its event streams, so the app can't tell. The file is a list of
-  `{ "method"?, "path", "status"?, "body"? | "events"? | "image"?, "delayMs"?,
-  "schema"? }`: `path` matches the request path with `:param` segments, `events` is
-  served as an event stream, `image` returns a placeholder image, and requests no entry
-  matches go to the author's API. When `schema` names a Zod schema exported by
-  `@adt/types`, the body is parsed with it first and a mismatch stops the run, so a
-  malformed mock fails loudly instead of rendering a half-empty screen. The agent writes
-  the file for the session from the components and types it is already reading, under
-  `apps/studio/.i18n-screens/mocks/`; nothing is committed, so nothing goes stale. The
-  report marks every capture that used mocked data.
-- **Browser-only state.** State no request and no step reaches (a local toggle, a
-  component's internal flag) may be forced with a temporary source edit. The skill
-  edits only component files under `apps/studio/src/`, never route files (the router
-  plugin regenerates `routeTree.gen.ts`) or the API. Before the first edit it stops and
-  asks the author to commit or stash pending changes, and refuses while
-  `git status --porcelain` isn't clean. Every forced line carries an
-  `i18n-screens: temporary` comment. A hook or constants edit reloads the page, so
-  `--steps` run again before capture. Afterwards the skill restores every file
-  `git status` lists as changed and confirms the tree is clean, and `i18n:lint` errors on
-  the marker anywhere under `apps/`, so a forced state can't be committed.
-- **Not checked.** A screen or state none of these reach is declared not checked.
-- **Exit code.** Non-zero when a locale has a finding English doesn't.
-
-Playwright is already used in the workspace (`packages/pipeline`); `@adt/studio` adds it
-as a devDependency at the same version, so no new package version enters the lockfile.
+- **Detection.** It flags text that wraps, is cut off, clipped or spills out in a locale
+  **but not in English on the same screen**, so long data doesn't flag. It is #900's
+  detector, split into an in-page measurement and a pure classification. Elements are
+  matched to English by structural path or test id; unmatched ones are reported, not
+  flagged.
+- **Wrong page.** A capture whose path differs from the requested one fails and says
+  where it landed, instead of checking the wrong screen.
+- **State behind an action.** `--steps <file>` (click, hover, press, wait) opens dialogs,
+  menus and tooltips before each capture.
+- **Data.** The author's API by default. Where it doesn't reach (a book screen with no
+  book, an error, a slow load, a stage mid-run), `--mock <file>` answers those requests
+  in the browser. Book content is never translated, so any well-formed data renders the
+  UI that is. The agent writes the mocks for the session and can check a body against an
+  `@adt/types` schema; nothing is committed, so nothing goes stale. Mocked captures are
+  marked.
+- **Browser-only state** (a local toggle) may be forced with a temporary, marked edit to
+  a component file, only on a clean working tree. The skill reverts it, and `i18n:lint`
+  fails on a leftover marker.
+- **Not checked.** What none of these reach is declared not checked. The exit code is
+  non-zero when a locale has a finding English doesn't.
 
 ### 5. An optional HTML report
 
-`i18n:screens --report` writes a self-contained `index.html`, with its images in the
-same folder, to `apps/studio/.i18n-screens/report/` (gitignored), or to `--out <dir>`. It has a summary
-(screens × locales checked, findings per locale, unmatched elements, what was not
-checked), then one section per screen: English and every locale side by side, outlined
-crops of flagged elements, and a table of the changed strings with their
-`comment`/`context` and each locale's translation.
+`--report` writes a self-contained HTML page to `apps/studio/.i18n-screens/report/`
+(gitignored) or `--out <dir>`: per screen, English and every locale side by side, crops
+of the findings, and the changed strings with each locale's translation.
 
-A script writes the report, so it costs no LLM tokens. Tokens are spent only when an
-agent looks at images; the skill has it view flagged crops and open a full screenshot
-only when it can't tell otherwise.
-
-| | Typical PR (3 screens × 5 locales) | Large PR (10 screens × 5) |
-|---|---|---|
-| Captures | 15 | 50 |
-| Time (#900 measured ~4.5 s per screen per locale) | ~1 min | ~4 min |
-| Tokens viewing every full screenshot (~1.2k each at 1280×720) | ~18k | ~60k |
-| Tokens viewing only flagged crops | ~1–3k | ~3–8k |
-| Tokens writing mocks, only for screens that need them (~2–5k per screen) | ~0–15k | ~0–50k |
-
-Translating from context also costs more than today's single batched call: reading the
-render sites is roughly 1–3k tokens per changed string, so the low tens of thousands
-for a typical PR of 5–20 strings, in a session the author is already running. Costs are
-in tokens because the price depends on the author's model.
+A script writes it, so the report costs no tokens. Tokens go to the agent's own work:
+reading render sites (~1–3k per changed string), writing mocks (~2–5k per mocked screen)
+and viewing images (~1.2k per full screenshot, so ~18k to look at all of 3 screens × 5
+locales, ~1–3k for flagged crops only). Capturing 3 screens takes about a minute (#900
+measured ~4.5 s per screen per locale).
 
 ### 6. The key-based translator is removed
 
-Delete `translate-missing.ts`, the `translate:missing` script, the `ai` and
-`@ai-sdk/openai` devDependencies (only the script uses them) and `LOCALE_NAMES` with its
-comment in `apps/studio/src/i18n/locales.ts` (same). In the CI `i18n` job, remove the
-warn, auto-translate and re-verify steps, drop `continue-on-error` from
-`compile --strict` and drop `contents: write`. An empty `msgstr` now fails the PR. The
-job keeps its other checks as they are (strings extracted, stale-key warnings, ESLint)
-and adds none: it checks that every string is translated, not how. The
-`i18n` job stops reading `OPENAI_API_KEY` and `TRANSLATE_MODEL`. `OPENAI_API_KEY` stays
-(`release.yml` uses it); `TRANSLATE_MODEL` is used nowhere else (`ci.yml:85` only) and
-can be deleted from the repository secrets after PR 1 merges. `README.md`
-and `docs/I18N_ADD_LANGUAGE.md`, which document the script, are updated, and they and
-`AGENTS.md` are corrected from "Lingui v5" to v6 (`@lingui/*` is `^6.4.0`).
+Delete `translate-missing.ts`, its package script, the `ai` and `@ai-sdk/openai`
+devDependencies and `LOCALE_NAMES` (only the script uses them). In the CI `i18n` job,
+remove the warn, auto-translate and re-verify steps, `continue-on-error` and
+`contents: write`, so an empty `msgstr` fails the PR; its other checks stay as they are.
+`TRANSLATE_MODEL` becomes unused (`ci.yml:85` only) and can be deleted; `OPENAI_API_KEY`
+stays for `release.yml`. Docs that describe the script are updated, and "Lingui v5"
+becomes v6.
 
-### 7. Existing bugs are fixed first
+### 7. Existing bugs are fixed
 
-The 11 es placeholders, the 12 strings with a stray backslash in es/fr/sq, and the theme
-"Light" (its own `context`, translated in every locale). Each is translated from where
-it renders, not patched.
+The 11 es placeholders, the 12 stray backslashes and the theme "Light", each translated
+from where it renders.
 
-### 8. The new scripts are tested and typechecked
+### 8. The tools are tested
 
-Today the studio Vitest project collects only `apps/studio/src/**/*.test.ts(x)`
-(`vitest.config.ts`), and `apps/studio/tsconfig.json` includes only `src`, so tests
-under `apps/studio/scripts/` would be skipped silently. The studio project adds
-`apps/studio/scripts/**/*.test.ts`, and an `apps/studio/scripts/tsconfig.json` joins
-`pnpm typecheck`. These tests cover the tools' code, on fixture catalogs and a static
-HTML page; none reads the real catalogs. The browser test skips with a message when
-Chromium is missing, which it is in CI.
+The studio Vitest project and `pnpm typecheck` don't cover `apps/studio/scripts/` today;
+both are extended. Tests use fixture catalogs and a static HTML page, never the real
+catalogs, and the browser test skips without Chromium.
 
 ### 9. The PR shows what the skill did
 
-`.github/pull_request_template.md` gets a **Translations** section, and the skill's last
-step writes it for the author to paste. It opens with the line "Translated with the
-`translate` skill." and then gives, briefly:
-
-- the strings added or changed, and the locales translated
-- how meaning was settled: the render sites read, `context` or `comment` added, glossary
-  terms used or added
-- the `i18n:lint` result
-- the screens checked per locale, the findings and how each was fixed or why it stays,
-  which captures used mocked data, and what was not checked with the reason
-- the HTML report, when one was made, attached or linked
-
-Nothing enforces it. It tells the reviewer the workflow was followed and what to look
-at, and a PR that changes strings without it is a reason to ask.
+The PR template gets a **Translations** section. The skill's last step writes it,
+opening with "Translated with the `translate` skill.", then: the strings and locales,
+how meaning was settled, the lint result, the screens checked with findings and fixes,
+mocked captures, what wasn't checked and why, and the report if one was made. Nothing
+enforces it; a PR that changes strings without it is a reason to ask.
 
 ## Options
 
@@ -381,20 +257,14 @@ author translates it in their session.
 
 Two sub-choices:
 
-- **Call sites in the catalogs (`origins: true, lineNumbers: false`)** was rejected:
-  catalogs grow about 80%, and moving or renaming a component rewrites all 5 files and
-  causes conflicts between parallel PRs. A file path says where a string is defined,
-  not what it means or where a `msg` descriptor renders; `i18n:origins` gives the first
-  on demand and `comment`/`context` keep the second.
+- **Call sites in the catalogs (`origins: true`)** was rejected: catalogs grow about
+  80%, and moving a component rewrites all 5 files and causes conflicts between parallel
+  PRs. `i18n:origins` gives call sites on demand, and `comment`/`context` keep meaning.
 - **Data for the screen check.** A committed sample book drifts with the book format
-  (#900's copies needed `layout_type` patched) and needs a paid pipeline run to
-  regenerate, and an import can't reserve its label (`resolveUniqueLabel` in
-  `import-service.ts` renames on collision), so cleaning it up could delete an author's
-  own book. Committed mock responses drift silently with the API. Both were rejected.
-  The author's running app is the default; mocks written per session, from the current
-  components and checked against `@adt/types` schemas where one exists, cover the rest
-  and can't go stale because they aren't kept. A temporary source edit is the last
-  resort, for browser-only state.
+  (#900's copies needed `layout_type` patched), costs a pipeline run to regenerate, and
+  can't reserve its label on import (`resolveUniqueLabel` renames on collision), so
+  removing it could delete an author's own book. Committed mocks drift silently with the
+  API. Mocks written per session can't go stale, because they aren't kept.
 
 ## Impact map
 
@@ -402,24 +272,16 @@ Two sub-choices:
   script, the `ai` and `@ai-sdk/openai` devDependencies, `LOCALE_NAMES`, 3 CI steps and
   the job's write permission.
 - **Added:** `apps/studio/i18n/glossary/{pt-BR,es,fr,sq}.{md,rules.json}`,
-  `apps/studio/scripts/i18n/` (lint, origins, screens, mocks, report) with tests,
-  `apps/studio/scripts/tsconfig.json`, `docs/I18N_TRANSLATION_QUALITY.md`,
-  `.claude/skills/translate/SKILL.md`. Tests: `ci-config`, `lint`, `glossary`,
-  `origins`, `detector`, `screens`, `mocks` and `docs` under `apps/studio/scripts/i18n/`,
-  with fixture catalogs and a static HTML page. ADR 029 (`docs/DECISIONS.md`) lands as `proposed` with
-  this spec's PR.
+  `apps/studio/scripts/i18n/` (lint, origins, screens, mocks, report, and their tests on
+  fixture data), `apps/studio/scripts/tsconfig.json`, `docs/I18N_TRANSLATION_QUALITY.md`,
+  `.claude/skills/translate/SKILL.md`. ADR 029 lands as `proposed` with this spec's PR.
 - **Changed:**
   - `.github/workflows/ci.yml` (translate steps and write permission removed)
-  - `vitest.config.ts` (studio project includes `scripts/`) and the root `tsconfig.json`
-    (references `apps/studio/scripts/tsconfig.json`, which is `composite` with
-    `rootDir: ".."` since the scripts import from `src/`)
-  - `.gitignore` (`.claude/skills/` tracked; `apps/studio/.i18n-screens/` ignored)
-  - `apps/studio/package.json` (scripts; `playwright` devDependency at the range
-    `packages/pipeline` uses and `@messageformat/parser` at 5.1.1, so `pnpm-lock.yaml`
-    gains no new version; `ai` and
-    `@ai-sdk/openai` removed)
-  - all 5 catalogs (§7; adding `context: "theme"` creates a new entry in each and
-    retires the old one as `#~`), the `THEME_OPTIONS` call site
+  - `vitest.config.ts` and the root `tsconfig.json` (cover `apps/studio/scripts/`)
+  - `.gitignore` (track `.claude/skills/`, ignore `apps/studio/.i18n-screens/`)
+  - `apps/studio/package.json`: scripts; `playwright` and `@messageformat/parser` at
+    the versions already in `pnpm-lock.yaml`; `ai` and `@ai-sdk/openai` removed
+  - all 5 catalogs (§7) and the `THEME_OPTIONS` call site
   - `apps/studio/src/i18n/locales.ts`
   - `AGENTS.md`, `.github/pull_request_template.md`, `README.md`,
     `docs/I18N_ADD_LANGUAGE.md`
@@ -442,8 +304,8 @@ Two sub-choices:
   doesn't have, and accepts a correctly escaped quote.
 - [ ] AC-5: `i18n:lint` errors on a forbidden term only within the rule's `msgctxt` and
   `msgid` scope, matching on word boundaries.
-- [ ] AC-6: `i18n:lint` warns about a label of ≤30 characters longer than 1.5× the English, or a `msgstr`
-  identical to a non-name msgid, only for changed entries, and never fails on them.
+- [ ] AC-6: `i18n:lint` warns, only for changed entries and never failing, on a label of
+  ≤30 characters longer than 1.5× the English or a `msgstr` identical to a non-name msgid.
 - [ ] AC-7: Without a resolvable base, `i18n:lint` reports that warnings were skipped and
   still runs every error check. Obsolete `#~` entries are ignored.
 - [ ] AC-8: No workflow runs `i18n:lint`, `i18n:screens` or `i18n:origins`, and no test
@@ -458,10 +320,9 @@ Two sub-choices:
 - [ ] AC-12: The detector flags a locale element that wraps, clips or is cut off when the
   matched English element doesn't, doesn't flag one that behaves like English, and
   reports elements with no English match as unmatched.
-- [ ] AC-13: `i18n:screens --url` fails a capture whose page path differs from the
-  requested one and reports where it landed, captures English and every other locale at 1280×720 even when the URL already has a
-  `lang`, runs `--steps` before each capture, and exits non-zero on a finding English
-  doesn't have.
+- [ ] AC-13: `i18n:screens --url` captures English and every locale at 1280×720, even
+  when the URL already has a `lang`; fails a capture that lands on another path; runs
+  `--steps` before each capture; and exits non-zero on a finding English doesn't have.
 - [ ] AC-14: `i18n:screens --report` writes a self-contained `index.html` (no network
   requests) with, per screen, side-by-side screenshots, outlined crops of findings,
   unmatched elements and the changed strings per locale.
@@ -480,28 +341,23 @@ Two sub-choices:
 
 ## Test plan
 
-Tests cover the tools' code; translations themselves are checked on the author's machine
-and shown in the PR (§9). Classification is pure, so the detector is unit-tested on
-recorded measurements. The browser parts are one integration test over a static HTML
-page, which skips without Chromium (as in CI), so the implementing PR records a local
-run, plus a manual run against Studio. Criteria about catalogs and the skill's behaviour
-are shown by that PR's own Translations section.
+Tests cover the tools' code on fixture data; translations are checked on the author's
+machine and shown in the PR (§9). The detector's classification is pure and unit-tested
+on recorded measurements. The browser test skips without Chromium (as in CI), so PR 1
+records a local run and a manual run against Studio. Tests live in
+`apps/studio/scripts/i18n/`.
 
-| AC | Level | Location | Test title |
-|----|-------|----------|------------|
-| AC-1, AC-2 | config | `apps/studio/scripts/i18n/ci-config.test.ts` (parses `ci.yml` and `package.json`) | `AC-1: …`, `AC-2: …` |
-| AC-3 – AC-7 | unit | `apps/studio/scripts/i18n/lint.test.ts` | `AC-3: …` to `AC-7: …` |
-| AC-8 | config | `ci-config.test.ts`, plus a check that no test imports from `src/locales/` | `AC-8: …` |
-| AC-9 | local | `i18n:lint` and the Settings → Appearance screen check, in PR 1's Translations section | — |
-| AC-10 | unit + local | `apps/studio/scripts/i18n/glossary.test.ts` (files, reasons, schema); the lint run in PR 2's Translations section | `AC-10: …` |
-| AC-11 | unit | `apps/studio/scripts/i18n/origins.test.ts` | `AC-11: lists call sites without touching catalogs` |
-| AC-12 | unit | `apps/studio/scripts/i18n/detector.test.ts` | `AC-12: flags only what differs from English` |
-| AC-13, AC-14 | integration (local) + manual | `apps/studio/scripts/i18n/screens.test.ts`; running Studio | `AC-13: …`, `AC-14: …` |
-| AC-15 | config | `ci-config.test.ts` (reads `vitest.config.ts` and the root `tsconfig.json`) | `AC-15: …` |
-| AC-16 | unit | `apps/studio/scripts/i18n/docs.test.ts` (files exist, link present, no stale text) | `AC-16: …` |
-| AC-17 | unit + integration (local) | `apps/studio/scripts/i18n/mocks.test.ts` (matching, schema check); `screens.test.ts` (served in the browser) | `AC-17: …` |
-| AC-18 | unit + local | `lint.test.ts` (marker); the dirty-tree refusal in PR 1's Translations section | `AC-18: …` |
-| AC-19 | config + local | `docs.test.ts` (template section); PR 1 and PR 2 carry one written by the skill | `AC-19: …` |
+| AC | Level | Test file, or where it's shown |
+|----|-------|------|
+| AC-1, AC-2, AC-8, AC-15 | config | `ci-config.test.ts` (reads `ci.yml`, `package.json`, `vitest.config.ts`, `tsconfig.json`) |
+| AC-3 – AC-7, AC-18 (marker) | unit | `lint.test.ts` |
+| AC-9 | local | PR 1's Translations section (lint and Settings → Appearance) |
+| AC-10 | unit + local | `glossary.test.ts`; PR 2's Translations section |
+| AC-11 | unit | `origins.test.ts` |
+| AC-12 | unit | `detector.test.ts` |
+| AC-13, AC-14, AC-17 | unit + integration (local) | `screens.test.ts`, `mocks.test.ts` |
+| AC-16, AC-19 (template) | unit | `docs.test.ts` |
+| AC-18 (refusal), AC-19 (skill) | local | PR 1's and PR 2's Translations sections |
 
 ## Rollout
 
@@ -510,17 +366,14 @@ lines; the owner accepted that, because its parts only make sense together: remo
 the translator without the workflow that replaces it leaves no way to translate.
 
 1. **Tooling and the switch (AC-1 – AC-9, AC-11 – AC-19).** Removes the key-based
-   translator and makes empty translations fail; adds `i18n:lint` with the test wiring,
-   `i18n:origins`, `i18n:screens` with steps, mocks and the report, the guide, the
-   `translate` skill, the `AGENTS.md` pointer, the PR template section and the doc
-   updates and the PR template's Translations section; fixes the existing bugs (§7),
-   since the lint fails on them; and marks ADR 029 accepted. Reverting it restores the old script and CI steps.
-2. **Languages (AC-10, and a review of every locale).** The pt-BR, es, fr and sq
-   glossaries and rules files, then a review of the es, fr and sq catalogs using the
-   skill, the way #920 reviewed pt-BR. The
-   PR description attaches the HTML report, since reviewers don't speak most of the
-   locales. Catalogs don't count toward the review budget (SDD §3); the glossaries and
-   rules are about 600 lines.
+   translator and makes empty translations fail; adds the lint, origins, the screen
+   check with steps, mocks and report, the guide, the skill and the PR template section;
+   fixes §7's bugs, since the lint fails on them; marks ADR 029 accepted. Reverting it
+   restores the old script and CI steps.
+2. **Languages (AC-10).** The four glossaries and rules files, then a review of the es,
+   fr and sq catalogs with the skill, as #920 did for pt-BR, with the HTML report
+   attached since reviewers don't speak most of the locales. Catalogs don't count toward
+   the budget (SDD §3); the rest is about 600 lines.
 
 ### Risks
 
@@ -530,14 +383,11 @@ the translator without the workflow that replaces it leaves no way to translate.
 - **Translations nobody checked.** CI only proves every string has a translation, so a
   contributor who skips the skill can still merge a bad one. The missing Translations
   section is what shows it, and the reviewer asks for it.
-- **A forced state left in the code.** The marker makes `i18n:lint` fail, which the
-  skill runs before writing the PR section, and the skill
-  only edits with a clean working tree, so a revert can't lose the author's work.
-- **A mock that renders something the real app never would.** It can hide or invent a
-  fit problem. Mocks are written from the components' own types and checked against
-  `@adt/types` schemas where they exist, and the report and the PR's i18n section say
-  which captures were mocked.
+- **A forced state left in the code.** The skill only forces state on a clean tree and
+  reverts it, and the lint fails on a leftover marker.
+- **A mock that renders what the real app never would** can hide or invent a fit
+  problem. Mocked captures are marked in the report and the PR.
 - **Open PRs with empty translations** start failing after PR 1. The PR 1 description
   lists them, and the failure message points to the guide.
-- **A missed screen.** The screen check only covers what the author reaches. The PR's
-  i18n section makes the gap visible, and the languages PR walks the app as #900 did.
+- **A missed screen.** The Translations section lists what wasn't checked, and the
+  languages PR walks the app as #900 did.
