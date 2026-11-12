@@ -502,9 +502,9 @@ describe("page-edit-service", () => {
     })
   })
 
-  it("sends the section HTML to the edit prompt in the previous entity encoding (#907)", async () => {
-    // Stored HTML is now readable UTF-8. The prompt (an LLM cache key) keeps
-    // the previous encoding, so a repeated edit still hits the cache.
+  it("sends stored section HTML to the edit prompt as stored (#907)", async () => {
+    // Stored HTML may come from the pipeline or from a browser save (literal
+    // UTF-8), so the prompt gets it unchanged rather than re-encoded.
     const pageId = `${label}_p1`
     const storage = createBookStorage(label, tmpDir)
     try {
@@ -525,8 +525,7 @@ describe("page-edit-service", () => {
       return { object: { reasoning: "ok", content: `<section data-id="first">Canción ¡Hola!</section>` } } as never
     })
     await aiEditSection({ label, pageId, sectionIndex: 0, instruction: "Keep it", booksDir: tmpDir, promptsDir: tmpDir, configPath, apiKey: "test-key" })
-    expect(promptHtml).toContain("Canci&#xf3;n &#xa1;Hola!")
-    expect(promptHtml).not.toContain("Canción")
+    expect(promptHtml).toContain("Canción ¡Hola!")
   })
 })
 

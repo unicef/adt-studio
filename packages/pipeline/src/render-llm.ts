@@ -177,6 +177,9 @@ export async function renderSectionLlm(
   if (section.sectionType === "table_of_contents") {
     generatedHtml = repairTableOfContentsLayout(generatedHtml, renderContext.leaf_texts)
   }
+  // The answers prompt (an LLM cache key) and the activity-ID hash see the
+  // pre-#907 entity encoding, so existing books keep their IDs and cache hits.
+  const legacyHtml = encodeLegacyEntities(generatedHtml)
 
   // Ordering has one inspectable source of truth in the validated HTML. Derive
   // its rank map deterministically so initial render, rerender, Studio editing,
@@ -210,7 +213,7 @@ export async function renderSectionLlm(
       prompt: config.answerPromptName,
       context: {
         ...promptContext,
-        activity_html: encodeLegacyEntities(generatedHtml),
+        activity_html: legacyHtml,
       },
       maxRetries: config.maxRetries,
       maxTokens: 4096,
@@ -238,11 +241,7 @@ export async function renderSectionLlm(
     html: generatedHtml,
     ...(activityReasoning !== undefined && { activityReasoning }),
     ...(activityAnswers !== undefined && { activityAnswers }),
-  }, (id) => {
-    // Hash the pre-#907 encoding so existing activity IDs stay stable.
-    const legacyHtml = encodeLegacyEntities(generatedHtml)
-    return `${section.sectionId}_activity_${inputSignature({ id, html: legacyHtml }).slice(0, 24)}`
-  })
+  }, (id) => `${section.sectionId}_activity_${inputSignature({ id, html: legacyHtml }).slice(0, 24)}`)
 }
 
 function validateWebRendering(

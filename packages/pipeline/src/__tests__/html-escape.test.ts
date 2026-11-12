@@ -5,9 +5,14 @@ import { DomUtils, parseDocument } from "htmlparser2"
 import { encodeLegacyEntities, serializeHtml } from "../html-escape.js"
 
 describe("serializeHtml (#907)", () => {
-  it("writes visible non-ASCII characters and $ literally in text and attributes", () => {
+  it("writes visible non-ASCII characters literally in text and attributes; $ stays encoded", () => {
     const doc = parseDocument('<p title="Año “x”">Niño á ¿Qué? ¡Brrr! — 😀 $5</p>')
-    expect(serializeHtml(doc)).toBe('<p title="Año “x”">Niño á ¿Qué? ¡Brrr! — 😀 $5</p>')
+    expect(serializeHtml(doc)).toBe('<p title="Año “x”">Niño á ¿Qué? ¡Brrr! — 😀 &#x24;5</p>')
+  })
+
+  it("decodes text in hyphenated custom elements, which are not raw-text elements", () => {
+    const doc = parseDocument("<style-guide>ó</style-guide><p>é</p><style>x</style>")
+    expect(serializeHtml(doc)).toBe("<style-guide>ó</style-guide><p>é</p><style>x</style>")
   })
 
   it("decodes existing numeric entities for visible characters", () => {
@@ -48,6 +53,7 @@ describe("encodeLegacyEntities (#907)", () => {
     '<img alt="Ni&#xf1;o &quot;feliz&quot;" src="images/x.png">',
     '<style>p::before{content:"ó &#xf3;"}</style><script>var s = "ó &#xf3; $";</script>',
     "<!-- ó &#xf3; --><noscript><p title=\"&lt;/noscript&gt;\">é</p></noscript>",
+    '<p data-título="á">ü</p><style-guide>ó</style-guide><?xml-ish ó?>',
     "<iframe title=\"Vídeo\">ó &#xf3;</iframe><p>Don't &amp; &lt;tag&gt;</p></div>",
   ].join("")
 
@@ -55,6 +61,12 @@ describe("encodeLegacyEntities (#907)", () => {
     // Activity IDs and LLM cache keys hash this form, so existing books keep them.
     const doc = parseDocument(rich)
     expect(encodeLegacyEntities(serializeHtml(doc))).toBe(DomUtils.getOuterHTML(doc))
+  })
+
+  it("encodes every non-ASCII character, including literal invisible ones, as the old serializer did", () => {
+    expect(encodeLegacyEntities('<p title="ó ">🫨‍ a b $</p>')).toBe(
+      '<p title="&#xf3;&#xa0;">&#x1fae8;&#x200d; a&#xa0;b $</p>',
+    )
   })
 
   it("is the inverse of the readable decoding", () => {
@@ -65,23 +77,23 @@ describe("encodeLegacyEntities (#907)", () => {
 })
 
 describe("HTML serialization call sites (#907)", () => {
-  it("serializes HTML only through serializeHtml (htmlToXhtml keeps xmlMode)", () => {
-    const srcDir = path.resolve(import.meta.dirname, "..")
+  it("serializes HTML only through serializeHtml in pipeline, agents and API (htmlToXhtml keeps xmlMode)", () => {
+    const repoRoot = path.resolve(import.meta.dirname, "../../../..")
     const offenders: string[] = []
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {
         const file = path.join(dir, name)
         if (statSync(file).isDirectory()) {
-          if (name !== "__tests__") walk(file)
+          if (name !== "__tests__" && name !== "node_modules") walk(file)
           continue
         }
-        if (!name.endsWith(".ts") || name === "html-escape.ts") continue
+        if (!name.endsWith(".ts") || name.endsWith(".test.ts") || name === "html-escape.ts") continue
         readFileSync(file, "utf8").split("\n").forEach((line, i) => {
-          if (/getOuterHTML\(/.test(line) && !/xmlMode:\s*true/.test(line)) offenders.push(`${path.relative(srcDir, file)}:${i + 1}`)
+          if (/get(Outer|Inner)HTML\(/.test(line) && !/xmlMode:\s*true/.test(line)) offenders.push(`${path.relative(repoRoot, file)}:${i + 1}`)
         })
       }
     }
-    walk(srcDir)
+    for (const dir of ["packages/pipeline/src", "packages/agents/src", "apps/api/src"]) walk(path.join(repoRoot, dir))
     expect(offenders).toEqual([])
   })
 })

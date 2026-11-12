@@ -1,4 +1,4 @@
-import { putSourceNodeData, putReflowableRendering, isFixedLayoutBook, encodeLegacyEntities } from "@adt/pipeline"
+import { putSourceNodeData, putReflowableRendering, isFixedLayoutBook } from "@adt/pipeline"
 import { HTTPException } from "hono/http-exception"
 import { renderedSectionId, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
 import crypto from "node:crypto"
@@ -372,8 +372,7 @@ export async function aiEditSection(
         schema: webRenderingLLMSchema,
         prompt: "html_edit",
         context: {
-          // Prompt text is the LLM cache key: keep the pre-#907 encoding.
-          current_html: encodeLegacyEntities(currentHtml),
+          current_html: currentHtml,
           instruction,
           screenshots,
           previous_attempt_failure: previousAttemptFailure,
