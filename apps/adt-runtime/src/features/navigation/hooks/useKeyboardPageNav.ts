@@ -8,6 +8,9 @@
  * Direction follows reading order: ArrowRight / PageDown → next, ArrowLeft /
  * PageUp → previous. Home / End jump to the first / last page.
  *
+ * In embed mode (`?embed=1`, the Studio storyboard preview) the host owns
+ * navigation, so page keys are left alone (#1092).
+ *
  * WCAG: provides keyboard equivalents for the dock's prev/next buttons
  * (SC 2.1.1) without trapping focus (SC 2.1.2) — the listener is only
  * active outside text-input contexts and modal surfaces.
@@ -20,7 +23,7 @@ import {
   pagesAtom,
   type PageEntry,
 } from "@/features/navigation/state/nav.atoms"
-import { dockMenuValueAtom, sidebarOpenAtom } from "@/shared/state/ui.atoms"
+import { dockMenuValueAtom, embedModeAtom, sidebarOpenAtom } from "@/shared/state/ui.atoms"
 import { isTypingTarget } from "@/features/navigation/lib/typing-target"
 import { isAnyModalOpen } from "@/features/navigation/lib/modal-state"
 import { navigateToPage } from "@/features/navigation/lib/page-swap"
@@ -37,8 +40,10 @@ export function useKeyboardPageNav(): void {
   const setDockMenuValue = useSetAtom(dockMenuValueAtom)
   const sidebarOpen = useAtomValue(sidebarOpenAtom)
   const features = useAtomValue(appConfigAtom).features
+  const embed = useAtomValue(embedModeAtom)
 
   useEffect(() => {
+    if (embed) return
     if (!features.showNavigationControls) return
     if (pages.length === 0) return
 
@@ -88,5 +93,5 @@ export function useKeyboardPageNav(): void {
 
     document.addEventListener("keydown", onKeyDown)
     return () => document.removeEventListener("keydown", onKeyDown)
-  }, [pages, currentSectionId, dockMenuValue, setDockMenuValue, sidebarOpen, features.showNavigationControls])
+  }, [pages, currentSectionId, dockMenuValue, setDockMenuValue, sidebarOpen, features.showNavigationControls, embed])
 }
