@@ -195,13 +195,15 @@ describe("resolveCodexExecutable", () => {
   })
 
   it("falls back to the common install locations a GUI app's PATH misses", () => {
+    // The platform probe selects install locations; node:path uses the host OS.
+    const homebrewExecutable = join("/opt/homebrew/bin", "codex")
     const executable = findCodexExecutable({
       env: { PATH: join("fake", "empty") },
       platform: "darwin",
       homeDir: join("fake", "home"),
-      fileExists: (path) => path === "/opt/homebrew/bin/codex",
+      fileExists: (path) => path === homebrewExecutable,
     })
-    expect(executable).toBe("/opt/homebrew/bin/codex")
+    expect(executable).toBe(homebrewExecutable)
   })
 
   it("uses the CLI bundled in the ChatGPT desktop app on macOS as a last resort", () => {

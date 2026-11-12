@@ -1,5 +1,6 @@
 import path from "node:path"
 import { describe, expect, it } from "vitest"
+import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import type { AppConfig } from "@adt/types"
 import { createPromptEngine } from "@adt/llm"
 import type {
@@ -176,7 +177,7 @@ describe("buildPageSectioningConfig", () => {
     expect(config.prunedSectionTypes).toEqual(["credits"])
   })
 
-  it("applies defaults when page_sectioning is not specified", () => {
+  it("AC-1: applies defaults when page_sectioning is not specified", () => {
     const appConfig: AppConfig = {
       role_types: { text: "Body" },
       structure_types: { paragraph: "Paragraph" },
@@ -184,7 +185,7 @@ describe("buildPageSectioningConfig", () => {
 
     const config = buildPageSectioningConfig(appConfig)
     expect(config.promptName).toBe("page_sectioning")
-    expect(config.modelId).toBe("openai:gpt-5.4")
+    expect(config.modelId).toBe(DEFAULT_LLM_MODEL_ID)
     expect(config.maxRetries).toBe(5)
     expect(config.maxRefinements).toBe(0)
   })
@@ -1471,6 +1472,89 @@ describe("applyAutoRepairs", () => {
     }>
     expect(nodes[0].structure).toBe("panel")
     expect(nodes[1].children[0].structure).toBe("panel")
+  })
+})
+
+describe("applyAutoRepairs vocabulary and outline repairs", () => {
+  const ctx = makeCtx({
+    structureKeys: ["group", "paragraph", "heading", "image_group", "activity_option"],
+    roleKeys: ["chapter_title", "section_heading", "subheading", "heading", "text", "math", "image", "footer", "page_number"],
+    availableImageIds: ["pg001_im001"],
+    outlineEntries: new Map([
+      ["outline-002", { outlineId: "outline-002", level: 2, styleClusterId: "sc_h2", title: "EXERCÍCIOS RESOLVIDOS" }],
+      ["outline-003", { outlineId: "outline-003", level: 3, styleClusterId: "sc_h3", title: "CONECTIVOS" }],
+    ]),
+    mode: "dynamic",
+  })
+  const vocabularyCtx = { ...ctx, outlineEntries: undefined }
+  const result = (nodes: unknown[]) => ({
+    reasoning: "",
+    sections: [{ section_type: "text_only", background_color: "#fff", text_color: "#000", page_number: 1, nodes }],
+  })
+
+  it("turns a structure key used as a role into a container", () => {
+    const raw = result([
+      { role: "group", children: [{ role: "footer", text: "Coleção Estudo" }, { role: "page_number", text: "4" }] },
+      { role: "heading", children: [{ role: "subheading", text: "Exemplos" }] },
+    ])
+    applyAutoRepairs(raw, vocabularyCtx)
+    expect(raw.sections[0].nodes).toMatchObject([
+      { structure: "group", role: null },
+      { structure: "heading", role: null, children: [{ role: "subheading", text: "Exemplos" }] },
+    ])
+    expect(runValidator(raw, vocabularyCtx)).toEqual({ valid: true, errors: [] })
+  })
+
+  it("wraps a text-bearing leaf whose role exists only as a structure", () => {
+    const raw = result([{ role: "activity_option", text: "C) 4" }])
+    applyAutoRepairs(raw, ctx)
+    expect(raw.sections[0].nodes).toEqual([{ structure: "activity_option", children: [{ role: "text", text: "C) 4" }] }])
+  })
+
+  it("turns a role key used as a structure into a leaf", () => {
+    const raw = result([
+      { structure: "subheading", text: "Exemplos" },
+      { structure: "image", image_id: "pg001_im001" },
+      { structure: "subheading", children: [{ role: "text", text: "Definição" }] },
+    ])
+    applyAutoRepairs(raw, vocabularyCtx)
+    expect(raw.sections[0].nodes).toMatchObject([
+      { role: "subheading", structure: null, text: "Exemplos" },
+      { role: "image", structure: null, image_id: "pg001_im001" },
+      { role: "subheading", text: "Definição", children: null },
+    ])
+    expect(runValidator(raw, vocabularyCtx)).toEqual({ valid: true, errors: [] })
+  })
+
+  it("takes role, level and style cluster from the linked outline entry", () => {
+    const raw = result([
+      { role: "chapter_title", text: "EXERCÍCIOS RESOLVIDOS", heading_level: 2, outline_entry_id: "outline-002", heading_style_cluster_id: "sc_other" },
+      { role: "section_heading", text: "CONECTIVOS", heading_level: 3, outline_entry_id: "outline-003" },
+    ])
+    applyAutoRepairs(raw, ctx)
+    expect(raw.sections[0].nodes).toMatchObject([
+      { role: "section_heading", heading_level: 2, heading_style_cluster_id: "sc_h2" },
+      { role: "subheading", heading_level: 3, heading_style_cluster_id: "sc_h3" },
+    ])
+    expect(runValidator(raw, ctx)).toEqual({ valid: true, errors: [] })
+  })
+
+  it("leaves an outline link on a non-heading role for the model to resolve", () => {
+    const raw = result([{ role: "text", text: "CONECTIVOS", heading_level: 1, outline_entry_id: "outline-003" }])
+    applyAutoRepairs(raw, ctx)
+    expect(raw.sections[0].nodes[0]).toMatchObject({ role: "text", heading_level: 1, outline_entry_id: "outline-003" })
+  })
+
+  it("drops an outline id the page outline does not list", () => {
+    const raw = result([{ role: "chapter_title", text: "MATEMÁTICA", heading_level: 1, outline_entry_id: "outline-019" }])
+    applyAutoRepairs(raw, ctx)
+    expect(raw.sections[0].nodes[0]).toMatchObject({ role: "chapter_title", heading_level: 1, outline_entry_id: null })
+  })
+
+  it("keeps vocabulary untouched without a repair context", () => {
+    const raw = result([{ role: "group", children: [{ role: "text", text: "a" }] }])
+    applyAutoRepairs(raw)
+    expect(raw.sections[0].nodes[0]).toEqual({ role: "group", children: [{ role: "text", text: "a" }] })
   })
 })
 

@@ -125,6 +125,7 @@ export {
 } from "./ordering-contract.js"
 export {
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
+  resolveVisualReviewModelId,
   runVisualReviewLoop,
   type VisualReviewDeps,
   type RunVisualReviewLoopOptions,

@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query"
-import { safeParseModelId } from "@adt/types"
+import { safeParseModelId, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import type { PromptResponse } from "@/api/client"
 import type { ModelGroup } from "@/components/pipeline/components/ModelSelect"
 import { LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect"
@@ -8,7 +8,7 @@ import {
   promptNameForSelectedModel,
 } from "@/components/pipeline/components/PromptViewer/promptModel"
 
-export const DEFAULT_MODEL = "openai:gpt-5.4"
+export const DEFAULT_MODEL = DEFAULT_LLM_MODEL_ID
 
 export const KNOWN_PROMPT_MODEL_IDS = LLM_MODEL_GROUPS.flatMap((group) =>
   group.models.map((model) => `${group.provider}:${model}`),

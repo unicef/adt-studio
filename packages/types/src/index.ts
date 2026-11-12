@@ -1,4 +1,5 @@
 export { SectionSyncStatus, SectionSyncResult, SectioningSynchronization } from "./sectioning-sync.js"
+export { InferenceOptions, ProviderContinuation, ReasoningEffort, SolReasoningEffort, LunaReasoningEffort, OpenAiResponse } from "./llm-inference.js"
 export { AuthoredContent, AuthoredSaveGuard, AuthoredReplacement, AuthoredRunOptions } from "./content-authorship.js"
 
 export {
@@ -718,6 +719,25 @@ export {
 } from "./ai-provider.js"
 export { GOOGLE_IMAGE_MODELS, GoogleImageModelId, DEFAULT_GOOGLE_IMAGE_MODEL, GoogleImageResponse } from "./google-image.js"
 export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedGeneratedImage } from "./image.js"
+export {
+  STEP_TASK_MODEL_TARGETS,
+  type StepTaskModelTarget,
+  TaskModelKind,
+  TaskModelEntry,
+  TaskModelsResponse,
+  UpdateTaskModelRequest,
+  UpdateDefaultReasoningEffortRequest,
+  resolveInheritedTaskModel,
+  type InheritedModelSource,
+} from "./task-models.js"
+
+export {
+  REASONING_EFFORT_ORDER,
+  SELECTABLE_REASONING_EFFORTS,
+  ReasoningEffortSupport,
+  findReasoningEffortSupport,
+  fitReasoningEffort,
+} from "./reasoning-effort.js"
 
 export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, OutputMetadata, OutputKind, OutputIdentity, OutputWarning, OutputLocation, OutputStatus, OutputSelection, OutputReviewRequest, OutputSummary, OutputScopeSummary, OutputSummaries, OutputStageSummaryResponse, BookWriterOwner } from "./output-freshness.js"
 

@@ -81,7 +81,7 @@ export function computeCacheKeyV2(input: CacheKeyV2Input): string {
  * different server — correctness beats an unsafe hit, so those skip the v1 read.
  */
 export function isLegacyCacheReadable(fingerprint: CacheFingerprint): boolean {
-  return fingerprint.configurableOrigin !== true
+  return fingerprint.configurableOrigin !== true && fingerprint.legacyCacheReadable !== false
 }
 
 export function readCache<T>(cacheDir: string, hash: string): T | null {

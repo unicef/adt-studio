@@ -5,7 +5,7 @@ import {
   minimumLearnerResponseCount,
   renderSectionLlm,
 } from "../render-llm.js"
-import type { RenderConfig, RenderSectionInput } from "../web-rendering.js"
+import type { RenderConfig, RenderNode, RenderSectionInput } from "../web-rendering.js"
 
 describe("collectOptionalTextIds", () => {
   it("marks single-underscore blank-cell leaves as optional (crossword cells)", () => {
@@ -97,6 +97,28 @@ describe("collectOptionalTextIds", () => {
 })
 
 describe("minimumLearnerResponseCount", () => {
+  it("does not require controls for rhetorical prose, captions or framing questions", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "intro", role: "text", text: "But where does this information come from?" },
+      { node_id: "answer", role: "text", text: "Meteorologists collect data about weather." },
+      { node_id: "caption", role: "caption", text: "What makes turbines spin? The wind pushes their blades." },
+      { node_id: "sidebar", structure: "sidebar", children: [
+        { node_id: "heading", role: "subheading", text: "Big Question" },
+        { node_id: "question", role: "text", text: "What do meteorologists do?" },
+      ] },
+    ])).toBe(0)
+  })
+
+  it("counts the explicit exercise but not nearby rhetorical questions on a mixed page", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "rhetorical", role: "text", text: "Why does it rain? Water condenses in clouds." },
+      { node_id: "exercise", structure: "activity", children: [
+        { node_id: "instruction", role: "activity_instruction", text: "Explain your answer to a partner." },
+        { node_id: "question", role: "activity_question", text: "How does the diagram show condensation?" },
+      ] },
+    ])).toBe(1)
+  })
+
   it("does not double-count a question and its response blank", () => {
     expect(minimumLearnerResponseCount([
       {
@@ -108,6 +130,87 @@ describe("minimumLearnerResponseCount", () => {
         ],
       },
     ])).toBe(1)
+  })
+
+  it("counts extra writing lines under one answer once, so they can share a textarea", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "a", structure: "activity", children: [
+        { node_id: "q1", role: "activity_question", text: "Write about life in the village." },
+        { node_id: "l1", role: "activity_fill_in_the_blank", text: "___" },
+        { node_id: "l2", role: "activity_fill_in_the_blank", text: "___" },
+        { node_id: "l3", role: "activity_fill_in_the_blank", text: "___" },
+        { node_id: "i2", role: "activity_instruction", text: "Continue the sentence." },
+        { node_id: "s1", role: "activity_fill_in_the_blank", text: "Many people prefer the village because ___" },
+        { node_id: "s2", role: "activity_fill_in_the_blank", text: "___" },
+      ] },
+    ])).toBe(2)
+  })
+
+  it("still counts per-letter cells and separately labelled fields one by one", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "grid", structure: "activity", children: [
+        { node_id: "c1", role: "activity_fill_in_the_blank", text: "_" },
+        { node_id: "c2", role: "activity_fill_in_the_blank", text: "_" },
+        { node_id: "c3", role: "activity_fill_in_the_blank", text: "_" },
+      ] },
+      { node_id: "venn", structure: "image_group", children: [
+        { node_id: "label1", role: "label", text: "Another village" },
+        { node_id: "f1", role: "activity_fill_in_the_blank", text: "___" },
+        { node_id: "label2", role: "label", text: "In common" },
+        { node_id: "f2", role: "activity_fill_in_the_blank", text: "___" },
+      ] },
+    ])).toBe(5)
+  })
+
+  it("requires one response per question even when the questions share one writing area", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "a", structure: "activity", children: [
+        { node_id: "q1", role: "activity_question", text: "What are children's rights?" },
+        { node_id: "q2", role: "activity_question", text: "What is the fairest way?" },
+        { node_id: "q3", role: "activity_question", text: "How do you understand the saying?" },
+        { node_id: "shared", role: "activity_fill_in_the_blank", text: "___" },
+      ] },
+    ])).toBe(3)
+  })
+
+  it("counts the true and false cells of one true/false row as one statement", () => {
+    const row = (n: number): RenderNode => ({ node_id: `r${n}`, structure: "table_row", children: [
+      { node_id: `r${n}t`, structure: "table_cell", children: [{ node_id: `r${n}s`, role: "text", text: `Statement ${n}` }] },
+      { node_id: `r${n}v`, structure: "table_cell", children: [{ node_id: `r${n}vb`, role: "activity_fill_in_the_blank", text: "___" }] },
+      { node_id: `r${n}g`, structure: "table_cell", children: [{ node_id: `r${n}gb`, role: "activity_fill_in_the_blank", text: "___" }] },
+    ] })
+    const table: RenderNode[] = [{ node_id: "t", structure: "table", children: [row(1), row(2), row(3)] }]
+    expect(minimumLearnerResponseCount(table, "activity_true_false")).toBe(3)
+    expect(minimumLearnerResponseCount(table, "activity_fill_in_a_table")).toBe(6)
+  })
+
+  it("counts only the empty cells of a letter-cell word, not the given letters", () => {
+    const cells = ["A", "_", "A", "R", "_", "-", "_", "A"].map((text, i): RenderNode => ({ node_id: `c${i}`, role: "activity_fill_in_the_blank", text }))
+    expect(minimumLearnerResponseCount([{ node_id: "a", structure: "activity", children: cells }], "activity_fill_in_the_blank")).toBe(3)
+  })
+
+  it("still counts word prompts that sit apart from the section's placeholder blanks", () => {
+    // "Make one sentence per word" items, each in its own list item, next to a
+    // separate exercise whose blanks show `___`: every word needs an answer.
+    const item = (id: string, text: string): RenderNode => ({ node_id: id, structure: "list_item", children: [{ node_id: `${id}t`, role: "activity_fill_in_the_blank", text }] })
+    const nodes: RenderNode[] = [{ node_id: "a", structure: "activity", children: [
+      { node_id: "l1", structure: "list", children: [item("w1", "1. bingwa"), item("w2", "2. heshimu"), item("w3", "3. azimia")] },
+      { node_id: "l2", structure: "list", children: [item("p1", "1. ___ kwamba ___"), item("p2", "2. ___ kuwa ___")] },
+    ] }]
+    expect(minimumLearnerResponseCount(nodes, "activity_fill_in_the_blank")).toBe(5)
+  })
+
+  it("treats a passage split into consecutive question sentences as one choice question", () => {
+    const option = (id: string): RenderNode => ({ node_id: id, structure: "activity_option", children: [{ node_id: `${id}t`, role: "text", text: id }] })
+    const nodes: RenderNode[] = [{ node_id: "a", structure: "activity", children: [
+      { node_id: "q1", role: "activity_question", text: "Episode one." }, option("o1"), option("o2"),
+      { node_id: "q2a", role: "activity_question", text: "The grandfather challenged her." },
+      { node_id: "q2b", role: "activity_question", text: "Elena accepted." },
+      { node_id: "q2c", role: "activity_question", text: "Sometimes she lost." }, option("o3"), option("o4"),
+    ] }]
+    expect(minimumLearnerResponseCount(nodes, "activity_multiple_choice")).toBe(2)
+    // Open-ended questions listed together are still separate answers.
+    expect(minimumLearnerResponseCount(nodes, "activity_open_ended_answer")).toBe(4)
   })
 
   it("requires one response for non-English activity instructions", () => {

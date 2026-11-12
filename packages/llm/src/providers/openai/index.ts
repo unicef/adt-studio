@@ -11,6 +11,7 @@ import {
 import { listOpenAiCompatibleModels } from "../shared/openai-rest/models.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
 import { createOpenAI } from "@ai-sdk/openai"
+import { createGpt6ResponsesBackends, gpt6AdapterVersion, gpt6InferenceOptions, usesGpt6Responses } from "./sol.js"
 
 export const OPENAI_PROVIDER_ID = "openai"
 export const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
@@ -45,6 +46,12 @@ export const openaiManifest: ProviderManifest = {
       recursiveSchemas: false,
       imageInput: true,
       temperature: true,
+      reasoningEfforts: [
+        { models: "gpt-6\\.1-sol(?:-\\d{4}-\\d{2}-\\d{2})?", efforts: ["low", "medium", "high", "xhigh", "max"], default: "low" },
+        { models: "gpt-6-luna(?:-\\d{4}-\\d{2}-\\d{2})?", efforts: ["none", "low", "medium", "high", "xhigh", "max"], default: "medium" },
+        { models: "gpt-6\\.1-terra(?:-\\d{4}-\\d{2}-\\d{2})?", efforts: ["none", "low", "medium", "high", "xhigh", "max"], default: "medium" },
+        { models: "(?:gpt-5|o[1-9]).*", efforts: ["low", "medium", "high"], default: "medium" },
+      ],
     },
     agent: { tools: true, streaming: true },
     image: {
@@ -79,24 +86,29 @@ export const openaiManifest: ProviderManifest = {
     },
   },
   defaultModels: {
-    "structured-text": "gpt-5.4",
-    agent: "gpt-5.4",
+    "structured-text": "gpt-6-luna",
+    agent: "gpt-6.1-sol",
     image: "gpt-image-2",
     tts: "gpt-4o-mini-tts",
     stt: "whisper-1",
   },
   docsUrl: "https://platform.openai.com/api-keys",
+  // Steps without a configured timeout (captioning, metadata, sectioning…)
+  // otherwise hit the GPT-6 Responses adapter's internal fallback, which the
+  // client can't see and so never retries. A declared floor makes every call's
+  // timeout explicit, so a timeout gets one retry with a doubled budget.
+  minimumRequestTimeoutMs: 180_000,
 }
 
 type OpenAiCredentials = z.infer<typeof credentialSchema>
 
 /**
- * Reasoning models (gpt-5.x, o-series) reject a `temperature` other than the
+ * Reasoning models (gpt-5.x, gpt-6.x, o-series) reject a `temperature` other than the
  * default, so the capability is reported per model rather than per provider.
  */
 function structuredTextCapabilitiesFor(modelId: string): StructuredTextCapabilities {
   const base = openaiManifest.capabilities["structured-text"]!
-  const isReasoning = /^(gpt-5|o[1-9])/i.test(modelId)
+  const isReasoning = /^(gpt-[56]|o[1-9])/i.test(modelId)
   return isReasoning ? { ...base, temperature: false } : base
 }
 
@@ -111,10 +123,14 @@ export const openaiProvider: ProviderModule<OpenAiCredentials> = {
       ? (structuredTextCapabilitiesFor(modelId) as never)
       : undefined,
 
-  cacheFingerprint: () => ({
-    adapterVersion: ADAPTER_VERSION,
+  cacheFingerprint: (context) => ({
+    adapterVersion: usesGpt6Responses(context.modelId) ? gpt6AdapterVersion(context.modelId) : ADAPTER_VERSION,
     origin: "https://api.openai.com",
+    ...(usesGpt6Responses(context.modelId) ? { extra: { endpoint: "responses" }, legacyCacheReadable: false } : {}),
   }),
+
+  inferenceOptionsFor: (_modality, modelId, providerOptions) =>
+    usesGpt6Responses(modelId) ? gpt6InferenceOptions(modelId, providerOptions) : { providerOptions },
 
   listModels: (context) =>
     listOpenAiCompatibleModels({
@@ -124,6 +140,7 @@ export const openaiProvider: ProviderModule<OpenAiCredentials> = {
     }),
 
   createStructuredTextBackend: (context) => {
+    if (usesGpt6Responses(context.modelId)) return createGpt6ResponsesBackends(context).structured
     const client = createOpenAI({ apiKey: context.credentials.apiKey })
     return createAiSdkStructuredTextBackend((options) =>
       client(
@@ -136,7 +153,7 @@ export const openaiProvider: ProviderModule<OpenAiCredentials> = {
   },
 
   createAgentBackend: (context) =>
-    createAiSdkAgentBackend(
+    usesGpt6Responses(context.modelId) ? createGpt6ResponsesBackends(context).agent : createAiSdkAgentBackend(
       createOpenAI({ apiKey: context.credentials.apiKey })(context.modelId),
     ),
 

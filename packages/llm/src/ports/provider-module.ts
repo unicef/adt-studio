@@ -7,6 +7,7 @@ import type {
   SttCapabilities,
   StructuredTextCapabilities,
   TtsCapabilities,
+  InferenceOptions,
 } from "@adt/types"
 import type {
   BackendContext,
@@ -67,6 +68,14 @@ export interface ProviderModule<
 
   /** Non-secret identity of the concrete backend; must never contain a secret. */
   cacheFingerprint: (context: BackendContext<C>) => CacheFingerprint
+
+  /** Effective non-secret options, normalized before inference and cache lookup. */
+  inferenceOptionsFor?: (
+    modality: "structured-text" | "agent",
+    modelId: string,
+    providerOptions?: Record<string, unknown>,
+    strategy?: string,
+  ) => InferenceOptions
 
   /**
    * Optional live model catalogue. Advisory only — the result powers UI

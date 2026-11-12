@@ -81,7 +81,7 @@ describe("collectStageRunModelChecks", () => {
     ])
   })
 
-  it("falls back to the platform default model when the config sets none", () => {
+  it("AC-1: falls back to the default model when the config sets no model", () => {
     expect(collectStageRunModelChecks(config({}), ["storyboard"])).toEqual([
       { field: "default_model", modelId: DEFAULT_LLM_MODEL_ID, modality: "structured-text" },
     ])
