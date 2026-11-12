@@ -10,28 +10,25 @@ const SCOPE_TAGS: Record<Exclude<FontScope, "whole">, ReadonlySet<string>> = {
   caption: new Set(["figcaption"]),
 }
 
-function withoutFontFamily(style: string): string {
-  return style
-    .split(";")
-    .map((decl) => decl.trim())
-    .filter((decl) => decl.length > 0 && !/^font-family\s*:/i.test(decl))
-    .join("; ")
+/** Split a style attribute into its other declarations and its font-family values. */
+function partitionStyle(style: string): { base: string; families: string[] } {
+  const decls = style.split(";").map((decl) => decl.trim()).filter((decl) => decl.length > 0)
+  const isFamily = (decl: string) => /^font-family\s*:/i.test(decl)
+  return {
+    base: decls.filter((decl) => !isFamily(decl)).join("; "),
+    families: decls.filter(isFamily).map((decl) => decl.replace(/^font-family\s*:\s*/i, "")),
+  }
 }
 
 /** Returns whether the element's font-family changed (other style formatting does not count). */
 function rewriteStyle(node: { attribs: Record<string, string> }, family: string | null): boolean {
-  const current = node.attribs.style ?? ""
-  const families = current
-    .split(";")
-    .map((decl) => decl.trim())
-    .filter((decl) => /^font-family\s*:/i.test(decl))
-    .map((decl) => decl.replace(/^font-family\s*:\s*/i, ""))
+  const { base, families } = partitionStyle(node.attribs.style ?? "")
   const unchanged = family ? families.length === 1 && families[0] === family : families.length === 0
-  const base = withoutFontFamily(current)
+  if (unchanged) return false
   const next = family ? (base ? `${base}; font-family: ${family}` : `font-family: ${family}`) : base
   if (next) node.attribs.style = next
   else delete node.attribs.style
-  return !unchanged
+  return true
 }
 
 export function applyFontToHtml(html: string, opts: { family: string | null; scope: FontScope }): string {

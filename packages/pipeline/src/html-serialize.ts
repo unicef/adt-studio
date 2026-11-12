@@ -4,19 +4,20 @@ type SerializeOptions = Parameters<typeof DomUtils.getOuterHTML>[1]
 type AnyNode = Parameters<typeof DomUtils.getOuterHTML>[0]
 type TextLike = { type: string; data: string }
 
-/** Content dom-serializer writes without entity encoding: comments and the
- * contents of raw-text elements. Their opening tags are encoded normally. */
-const VERBATIM =
-  /(<!--[\s\S]*?-->)|(<(script|style|xmp|iframe|noembed|noframes|noscript)\b[^>]*>)([\s\S]*?)(<\/\3\s*>)|(<plaintext\b[^>]*>)([\s\S]*)$/gi
+/** Tokens htmlparser2 writes without entity encoding. */
+const TOKEN =
+  /<!--[\s\S]*?-->|<[!?][^>]*>|(<(script|style|xmp|iframe|noembed|noframes|noscript)(?=[\s/>])[^>]*>)([\s\S]*?)(<\/\2\s*>)|(<plaintext(?=[\s/>])[^>]*>)([\s\S]*)$|<[^>]*>/gi
 
 function mapEncodedParts(html: string, fn: (part: string) => string): string {
+  const attributeValues = (tag: string) => tag.replace(/="([^"]*)"/g, (_m, value: string) => `="${fn(value)}"`)
   let out = ""
   let last = 0
-  for (const m of html.matchAll(VERBATIM)) {
+  for (const m of html.matchAll(TOKEN)) {
     out += fn(html.slice(last, m.index))
-    if (m[1] !== undefined) out += m[1]
-    else if (m[2] !== undefined) out += fn(m[2]) + m[4] + m[5]
-    else out += fn(m[6]) + m[7]
+    if (m[1] !== undefined) out += attributeValues(m[1]) + m[3] + m[4]
+    else if (m[5] !== undefined) out += attributeValues(m[5]) + m[6]
+    else if (m[0].startsWith("<!") || m[0].startsWith("<?")) out += m[0]
+    else out += attributeValues(m[0])
     last = m.index + m[0].length
   }
   return out + fn(html.slice(last))
@@ -24,16 +25,13 @@ function mapEncodedParts(html: string, fn: (part: string) => string): string {
 
 const VISIBLE = /^[\p{L}\p{M}\p{N}\p{P}\p{S}]$/u
 function isReadable(cp: number): boolean {
-  return (cp === 0x24 || cp >= 0xa0) && VISIBLE.test(String.fromCodePoint(cp))
+  return cp >= 0xa0 && VISIBLE.test(String.fromCodePoint(cp))
 }
-
-const DOLLAR_ENCODED = DomUtils.getOuterHTML(parseDocument("<p>$</p>")).includes("&#x24;")
 
 function makeReadable(html: string): string {
   return mapEncodedParts(html, (part) =>
     part.replace(/&#x([0-9a-f]+);/g, (entity, hex: string) => {
       const cp = parseInt(hex, 16)
-      if (cp === 0x24 && !DOLLAR_ENCODED) return entity
       return isReadable(cp) ? String.fromCodePoint(cp) : entity
     }),
   )
@@ -96,10 +94,6 @@ export function serializeInnerHtml(node: Parameters<typeof DomUtils.getInnerHTML
 /** Restore the entity encoding used before readable HTML serialization. */
 export function encodeLegacyEntities(html: string): string {
   return mapEncodedParts(html, (part) =>
-    part.replace(/[$\u00a0-\u{10ffff}]/gu, (ch) => {
-      const cp = ch.codePointAt(0)!
-      if (cp === 0x24 && !DOLLAR_ENCODED) return ch
-      return isReadable(cp) ? `&#x${cp.toString(16)};` : ch
-    }),
+    part.replace(/[\u0080-\u{10ffff}]/gu, (ch) => `&#x${ch.codePointAt(0)!.toString(16)};`),
   )
 }
