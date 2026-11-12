@@ -1611,6 +1611,9 @@ speech:
 
       expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
       expect(events.some((event) => event.type === "step-complete" && event.step === "tts")).toBe(true)
+      // A recovered attempt is invisible: Studio raises its "pages failed in
+      // Speech" toast, error sound and failed-stage state off `step-error`.
+      expect(events.filter((event) => event.type === "step-error")).toEqual([])
       const storage = createBookStorage("openai-tts-dropped", dirs.booksDir)
       try {
         const ttsOutput = storage.getLatestNodeData("tts", "en")?.data as { failed?: unknown[] } | undefined

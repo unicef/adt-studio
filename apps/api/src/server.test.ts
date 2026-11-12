@@ -1,4 +1,6 @@
+import net from "node:net"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { CONNECTION_ATTEMPT_TIMEOUT_MS } from "@adt/llm"
 import { startServer } from "./server.js"
 
 const baseOptions = {
@@ -29,6 +31,25 @@ describe("startServer", () => {
     startServer({ ...baseOptions, serveFn, port: 3001 })
 
     expect(serveFn.mock.calls[0]?.[0]).not.toHaveProperty("hostname")
+  })
+
+  // Node, Docker and the desktop utility process all start the API here, so
+  // this is the one place the connection defaults have to be applied (#1067).
+  it("applies the outbound connection defaults before serving", () => {
+    const nodeDefault = net.getDefaultAutoSelectFamilyAttemptTimeout()
+    let appliedBeforeServe: number | undefined
+    const serveFn = vi.fn(() => {
+      appliedBeforeServe = net.getDefaultAutoSelectFamilyAttemptTimeout()
+      return {}
+    })
+
+    try {
+      net.setDefaultAutoSelectFamilyAttemptTimeout(250)
+      startServer({ ...baseOptions, serveFn, port: 3001 })
+      expect(appliedBeforeServe).toBe(CONNECTION_ATTEMPT_TIMEOUT_MS)
+    } finally {
+      net.setDefaultAutoSelectFamilyAttemptTimeout(nodeDefault)
+    }
   })
 
   it("runs cleanup once before starting the server", () => {

@@ -200,3 +200,5 @@ export {
   redactUrl,
   validateEndpointUrl,
 } from "./providers/shared/endpoint.js"
+
+export { CONNECTION_ATTEMPT_TIMEOUT_MS, configureOutboundConnections } from "./network.js"

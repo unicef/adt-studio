@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server"
+import { configureOutboundConnections } from "@adt/llm"
 import { cleanupInterruptedSteps } from "@adt/storage"
 import app, { booksDir } from "./app.js"
 
@@ -38,6 +39,9 @@ export function startServer(options: StartServerOptions = {}): unknown {
   const booksDirPath = options.booksDirPath ?? booksDir
   const fetchHandler = options.fetchHandler ?? app.fetch
   const log = options.log ?? console.log
+
+  // Before anything can call a provider: connections opened later inherit it.
+  configureOutboundConnections()
 
   // Startup-only cleanup: run once before the server accepts requests.
   cleanupFn(booksDirPath)
