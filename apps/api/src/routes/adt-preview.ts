@@ -61,6 +61,8 @@ import {
   isFixedLayoutBook,
   resolveReflowableFontChain,
   getRenderSectioning,
+  FIXED_LAYOUT_SECTIONING_NODE,
+  PAGE_SECTIONING_NODE,
   readEditableActivities,
   enabledEditableActivity,
   renderEditableActivityHtml,
@@ -152,10 +154,20 @@ function getPreviewContentVersion(storage: Storage, webAssetsDir: string): strin
   }
   const fingerprint = storage.getNodeVersionFingerprint(["accessibility-assessment"])
     .map((entry) => {
-      const row = storage.getLatestNodeData(entry.node, entry.itemId)
+      let data: unknown
+      try { data = storage.getLatestNodeData(entry.node, entry.itemId)?.data ?? null }
+      catch (error) {
+        // Render selection already omits unreadable Sectioning without falling
+        // back to another tree. Its cache token must preserve that selected
+        // identity/version without making healthy sibling pages unreadable.
+        if (error instanceof SyntaxError && (entry.node === PAGE_SECTIONING_NODE || entry.node === FIXED_LAYOUT_SECTIONING_NODE)) {
+          return { ...entry, dataHash: "unreadable-sectioning" }
+        }
+        throw error
+      }
       return {
         ...entry,
-        dataHash: hashValue(row?.data ?? null),
+        dataHash: hashValue(data),
       }
     })
   const hash = createHash("sha256")

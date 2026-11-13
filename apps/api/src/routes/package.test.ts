@@ -216,7 +216,12 @@ describe("Package routes", () => {
     expect(await (await app.request(`/api/books/${label}/package-adt/status`)).json()).toMatchObject({ complete: true })
   })
 
-  it.each([false, true])("keeps healthy live fallback readable when a sibling rendering is unreadable, fixed=%s", async fixed => {
+  it.each([
+    { fixed: false, damagedNode: "web-rendering" },
+    { fixed: true, damagedNode: "web-rendering" },
+    { fixed: false, damagedNode: "page-sectioning" },
+    { fixed: true, damagedNode: "fixed-layout-sectioning" },
+  ])("keeps healthy live fallback readable when sibling $damagedNode is unreadable, fixed=$fixed", async ({ fixed, damagedNode }) => {
     const label = "unreadable-sibling"
     createRenderedBook(label); createWebAssets()
     const storage = createBookStorage(label, tmpDir)
@@ -252,11 +257,11 @@ describe("Package routes", () => {
       const db = openBookDb(path.join(dir, label + ".db"))
       try { return fn(db) } finally { db.close() }
     })
-    const original = raw(db => db.get("SELECT version,data FROM node_data WHERE node='web-rendering' AND item_id='pg002' ORDER BY version DESC LIMIT 1") as { version: number; data: string })
+    const original = raw(db => db.get("SELECT version,data FROM node_data WHERE node=? AND item_id='pg002' ORDER BY version DESC LIMIT 1", [damagedNode]) as { version: number; data: string })
     const damage = (data: string, itemId = "pg002", version = original.version) => raw(db => {
       const trigger = db.get("SELECT sql FROM sqlite_master WHERE name='history_track_update'") as { sql: string }
       db.run("DROP TRIGGER history_track_update")
-      try { db.run("UPDATE node_data SET data=? WHERE node='web-rendering' AND item_id=? AND version=?", [data, itemId, version]) }
+      try { db.run("UPDATE node_data SET data=? WHERE node=? AND item_id=? AND version=?", [data, damagedNode, itemId, version]) }
       finally { db.run(trigger.sql) }
     })
     damage(original.data.slice(0, 40))
@@ -277,7 +282,10 @@ describe("Package routes", () => {
     const css = await readers.request(cssUrl)
     expect(css.status, await css.clone().text()).toBe(200)
     expect(css.headers.get("Cache-Control")).toContain("no-store")
-    expect(await css.text()).not.toContain("913px")
+    // An unreadable rendering cannot supply CSS. A readable rendering whose
+    // Sectioning is unprovable may still contribute unused utility classes.
+    if (damagedNode === "web-rendering") expect(await css.text()).not.toContain("913px")
+    else expect(await css.text()).toContain("913px")
     const unsavedCss = await readers.request(cssUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extraHtml: '<p class="w-[777px]">Draft</p>' }) })
     expect(unsavedCss.status).toBe(200)
     expect(await unsavedCss.text()).toContain("777px")
@@ -291,7 +299,7 @@ describe("Package routes", () => {
     expect(raw(db => db.all("SELECT * FROM node_data ORDER BY node,item_id,version"))).toEqual(history)
     expect(bytes(path.join(dir, "adt"))).toEqual(retained)
     expect(bytes(path.join(dir, "images"))).toEqual(media)
-    const first = raw(db => db.get("SELECT version,data FROM node_data WHERE node='web-rendering' AND item_id='pg001' ORDER BY version DESC LIMIT 1") as { version: number; data: string })
+    const first = raw(db => db.get("SELECT version,data FROM node_data WHERE node=? AND item_id='pg001' ORDER BY version DESC LIMIT 1", [damagedNode]) as { version: number; data: string })
     damage(first.data.slice(0, 40), "pg001", first.version)
     for (const file of ["texts.json", "speech_texts.json", "audios.json"]) {
       const response = await readers.request(prefix + "/adt-preview/content/i18n/en/" + file)
@@ -310,10 +318,18 @@ describe("Package routes", () => {
     await restoredExport.arrayBuffer()
     // Valid same-version raw changes must still invalidate the live cache token.
     const changed = JSON.parse(original.data)
-    changed.sections[0].html += '<p class="w-[917px]">Valid changed source</p>'
+    if (damagedNode === "web-rendering") changed.sections[0].html += '<p class="w-[917px]">Valid changed source</p>'
+    else changed.reasoning = "Valid changed Sectioning source"
     damage(JSON.stringify(changed))
     expect((await (await config()).json()).bundleVersion).not.toBe(originalVersion)
-    expect(await (await readers.request(cssUrl)).text()).toContain("917px")
+    if (damagedNode === "web-rendering") expect(await (await readers.request(cssUrl)).text()).toContain("917px")
+    damage(original.data)
+    // The cache token must not silently swallow malformed unrelated nodes.
+    const unrelated = createBookStorage(label, tmpDir)
+    unrelated.putNodeData("unrelated-cache-input", "book", { retained: true })
+    unrelated.close()
+    raw(db => db.run("UPDATE node_data SET data=? WHERE node=?", ["{broken", "unrelated-cache-input"]))
+    expect((await config()).status).toBe(500)
   })
 
   it.each([false, true])("refreshes live CSS and reader tokens after a part-only window change, fixed=%s", async fixed => {
