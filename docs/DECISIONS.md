@@ -30,6 +30,8 @@ This document records all significant technology and architecture decisions made
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
 24. [Catalog-Based Freshness from Saved Input Signatures (proposed)](#adr-024)
+
+<!-- ADR-025–027 are claimed by the open #884/#886/#887 stack; ADR-028 follows. -->
 28. [Per-element authored fields with no catalog home live in their own versioned node](#028-per-element-authored-fields-with-no-catalog-home-live-in-their-own-versioned-node)
 
 ---
