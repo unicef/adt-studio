@@ -587,19 +587,67 @@ describe("Package routes", () => {
     const etag = first.headers.get("ETag")
     expect(etag).toMatch(/^"[a-f0-9]{64}"$/)
     expect(first.headers.get("Cache-Control")).toBe("private, no-cache")
+    const canonicalAsset = fs.realpathSync(path.join(tmpDir, label, "adt/assets/config.json"))
     const conditional = () => routes.request(url, { headers: { "If-None-Match": etag! } })
-    const repeated = await conditional()
-    expect(repeated.status).toBe(304)
-    expect(await repeated.text()).toBe("")
+    const reads = vi.spyOn(fs, "readFileSync")
+    try {
+      const repeated = await conditional()
+      expect(repeated.status).toBe(304)
+      expect(await repeated.text()).toBe("")
+      expect(reads.mock.calls.filter(([file]) => file === canonicalAsset || file === path.join(tmpDir, label, "adt/assets/config.json"))).toHaveLength(0)
+    } finally { reads.mockRestore() }
+    const restarted = spawnSync(process.execPath, ["--input-type=module", "-e", `
+      import fs from "node:fs"; import path from "node:path"; import { createRequire } from "node:module";
+      import { createBookRoutes } from ${JSON.stringify(pathToFileURL(path.resolve("apps/api/dist/routes/books.js")).href)};
+      const require=createRequire(${JSON.stringify(path.resolve("apps/api/package.json"))}); const { Hono }=require("hono");
+      const [root,label,etag]=process.argv.slice(1), asset=fs.realpathSync(path.join(root,label,"adt/assets/config.json"));
+      let reads=0; const read=fs.readFileSync; fs.readFileSync=function(file,...args){if(file===asset)reads++;return read.call(this,file,...args)};
+      const response=await new Hono().route("/",createBookRoutes(root)).request('/books/'+label+'/adt/assets/config.json',{headers:{'If-None-Match':etag}});
+      await response.arrayBuffer(); console.log(JSON.stringify({status:response.status,reads}));
+    `, tmpDir, label, etag!], { encoding: "utf8", timeout: 20_000 })
+    expect(restarted.status, restarted.stderr).toBe(0)
+    expect(JSON.parse(restarted.stdout.trim())).toMatchObject({ status: 304, reads: expect.any(Number) })
+    expect(JSON.parse(restarted.stdout.trim()).reads).toBeGreaterThan(0)
     fs.appendFileSync(path.join(tmpDir, label, "adt/assets/config.json"), " ")
     const changed = await conditional()
     expect(changed.status).toBe(200)
     expect(changed.headers.get("ETag")).not.toBe(etag)
+    const asset = path.join(tmpDir, label, "adt/assets/config.json")
+    const original = Buffer.from(await first.arrayBuffer())
+    const priorStat = fs.statSync(asset)
+    fs.writeFileSync(asset + ".new", Buffer.from("replacement"))
+    fs.utimesSync(asset + ".new", priorStat.atime, priorStat.mtime)
+    fs.renameSync(asset + ".new", asset)
+    expect((await conditional()).status).toBe(200)
+    fs.unlinkSync(asset)
+    expect((await conditional()).status).toBe(404)
+    const outside = path.join(tmpDir, "outside-asset.json")
+    fs.writeFileSync(outside, original)
+    fs.symlinkSync(outside, asset)
+    expect((await conditional()).status).not.toBe(304)
+    fs.unlinkSync(asset); fs.writeFileSync(asset, original)
+    expect((await conditional()).status).toBe(304)
+    const receiptFile = path.join(tmpDir, label, "adt/.build-owners")
+    const receipt = fs.readFileSync(receiptFile)
+    fs.writeFileSync(receiptFile, JSON.stringify({ ...JSON.parse(receipt.toString()), bookId: "foreign-book" }))
+    expect((await conditional()).status).not.toBe(304)
+    fs.writeFileSync(receiptFile, receipt)
+    expect((await conditional()).status).toBe(304)
+    const partFile = path.join(tmpDir, label, "part.json")
+    fs.writeFileSync(partFile, JSON.stringify({ adtPart: 1, sourceLabel: label, title: null, range: { startPage: 2, endPage: 2 }, pageCount: 2, fingerprint: {}, identityHash: "id", semanticsHash: "sem", createdAt: "test", partLabelSuggestion: "part" }))
+    expect((await conditional()).status).not.toBe(304)
+    fs.unlinkSync(partFile)
+    expect((await conditional()).status).toBe(304)
     for (const member of ["pg001_sec001.html", "assets/offline-preloader.js"]) {
       const sensitive = await routes.request(`/books/${label}/adt/v-old/${member}`, { headers: { "If-None-Match": etag! } })
       expect(sensitive.status).toBe(200)
       expect(sensitive.headers.get("Cache-Control")).toBe("no-store")
     }
+    fs.symlinkSync(path.join(tmpDir, label, "adt/pg001_sec001.html"), path.join(tmpDir, label, "adt/page-alias.js"))
+    const alias = await routes.request(`/books/${label}/adt/page-alias.js`, { headers: { "If-None-Match": etag! } })
+    expect(alias.status).toBe(200)
+    expect(alias.headers.get("Cache-Control")).toBe("no-store")
+    expect(alias.headers.get("ETag")).toBeNull()
     const storage = createBookStorage(label, tmpDir)
     try { storage.putNodeData("web-rendering", "pg001", null) } finally { storage.close() }
     const retired = await conditional()

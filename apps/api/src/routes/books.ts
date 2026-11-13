@@ -6,6 +6,7 @@ import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import fs from "node:fs"
 import { createHash } from "node:crypto"
 import { readRetainedPackageOwnership } from "../services/retained-package-reader.js"
+import { readPreviewAsset } from "../services/preview-asset-validator.js"
 import { BookBusyError } from "@adt/storage"
 import path from "node:path"
 import { z } from "zod"
@@ -1024,21 +1025,21 @@ export function createBookRoutes(
       throw new HTTPException(404, { message: `Not found: ${filePath}` })
     }
 
-    const fileBuffer = fs.readFileSync(resolvedPath)
-    const memberDigest = ownership.memberDigests.get(filePath)
-    if (memberDigest && createHash("sha256").update(fileBuffer).digest("hex") !== memberDigest) {
-      return c.redirect(`/api/books/${safeLabel}/adt-preview/${filePath}${new URL(c.req.url).search}`, 307)
-    }
     const ext = path.extname(resolvedPath).toLowerCase()
+    const memberDigest = ownership.memberDigests.get(filePath)
     c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
-    if (ext !== ".html" && filePath !== "assets/offline-preloader.js") {
+    if (ext !== ".html" && !filePath.toLowerCase().endsWith(".html") && !memberDigest) {
       // Revalidate every use after database admission and current ownership.
       // The URL's version segment is not proof; the validator names actual
       // bytes, including edits made without changing the package version.
-      const etag = `"${createHash("sha256").update(fileBuffer).digest("hex")}"`
+      const asset = readPreviewAsset(resolvedPath, c.req.header("If-None-Match"))
       c.header("Cache-Control", "private, no-cache")
-      c.header("ETag", etag)
-      if (c.req.header("If-None-Match")?.split(",").some(value => value.trim().replace(/^W\//, "") === etag)) return c.body(null, 304)
+      c.header("ETag", asset.etag)
+      return asset.bytes ? c.body(asset.bytes) : c.body(null, 304)
+    }
+    const fileBuffer = fs.readFileSync(resolvedPath)
+    if (memberDigest && createHash("sha256").update(fileBuffer).digest("hex") !== memberDigest) {
+      return c.redirect(`/api/books/${safeLabel}/adt-preview/${filePath}${new URL(c.req.url).search}`, 307)
     }
     return c.body(fileBuffer)
   })
