@@ -240,6 +240,8 @@ A book whose pages are written right to left gets two more things at generation 
 
 A left-to-right page is stored as the model wrote it, even when the book has a right-to-left translation. The stored page goes into the messages of the calls that follow the render (the visual review, the activity answers), and the LLM cache key hashes those messages: rewriting it would make a book that gains or loses a translation run those calls again, for a page that looks the same in its own language. Such a page is made neutral only where it is read in the translation, by the packaging rewrite above.
 
+Sectioning is told too, because it saves the order a page is read in. The two sectioning prompts include `prompts/_reading_direction.liquid`, which renders only for a right-to-left page and says that reading starts at the right: the rightmost column, block or table cell comes first. Without it a right-to-left table is saved left to right and renders mirrored, and read-aloud follows the wrong order. `sectionPage()` receives the direction as `pageDirection` from the same `resolvePageDirection()` gate.
+
 Exports are only partly covered. WebPub and PNLD reuse the packaged pages, so their content pages keep `dir`; EPUB rebuilds each page's root element (`convertPageToXhtml()`) and carries `dir` over, which a direction-neutral page depends on because it no longer sets a direction of its own. No export declares a right-to-left page progression yet (EPUB `page-progression-direction`, WebPub `readingProgression`), and the navigation documents the packagers generate themselves carry no `dir`.
 
 ---
