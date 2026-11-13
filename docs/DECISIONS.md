@@ -983,9 +983,9 @@ present after `prepareCoreTtsCatalog` and `generateSpeechFile`, then **deleted**
 [`docs/experiments/890-element-audio-survival.md`](experiments/890-element-audio-survival.md).
 
 That reason — the catalog is *derived*, not authoritative — holds on **every** branch. SPEC-0001
-(#879) changes *how* invalidation works (`clearNodesByType` stops deleting and skips
-`CATALOG_OUTPUT_NODES`), but it keeps the catalog derived. It also introduces
-`OutputMetadata { source: "ai" | "manual" }` for **generated outputs** (`text-catalog`,
+(#879, merged 2026-10-22) changed *how* invalidation works (`clearNodesByType` no longer deletes
+non-catalog rows and skips `CATALOG_OUTPUT_NODES`), but it kept the catalog derived. It also
+introduced `OutputMetadata { source: "ai" | "manual" }` for **generated outputs** (`text-catalog`,
 `core-tts-catalog`, `tts`, `word-timestamps`), which is a different thing from an authored *input*
 that has no generated home.
 

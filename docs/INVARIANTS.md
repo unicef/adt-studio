@@ -8,8 +8,8 @@ Each spec that establishes an invariant adds its checker in the same change.
 > then the checks that do exist run under `pnpm typecheck`, `pnpm test` and `pnpm lint`. Treat a
 > row whose check is not yet implemented as a debt marker, not as enforcement.
 >
-> Rows 8–10 are reserved by the SPEC-0002 / SPEC-0003 B1 / SPEC-0010 stack (#880, #884, #886) and
-> land with it; SPEC-0014 adds row 11.
+> Row 8 landed with SPEC-0002 (#880); rows 9–10 are reserved by the SPEC-0003 B1 / SPEC-0010
+> stack (#884, #886) and land with it. SPEC-0014 adds row 11.
 
 | # | Invariant | Check | Runs | Established by |
 |---|-----------|-------|------|----------------|
