@@ -38,4 +38,19 @@ export interface StructuredTextBackend {
   generateStructured<T>(
     request: StructuredTextRequest,
   ): Promise<StructuredTextResult<T>>
+  /**
+   * The instructions this backend appends to `request.system` on the wire, in
+   * order, so the caller can log the prompt the model actually sees. Absent or
+   * empty when the backend sends the system prompt unchanged.
+   */
+  systemAdditions?(request: StructuredTextRequest): string[]
+}
+
+/** The system prompt as the model sees it: the caller's, then each addition. */
+export function appendSystemAdditions(
+  system: string | undefined,
+  additions: readonly string[],
+): string | undefined {
+  const parts = [...(system ? [system] : []), ...additions]
+  return parts.length > 0 ? parts.join("\n\n") : undefined
 }
