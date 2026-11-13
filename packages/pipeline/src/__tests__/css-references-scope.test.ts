@@ -70,3 +70,15 @@ it.each([".child { color: blue }", "@media screen { color: blue }"])("retains ne
     .hero { background-image:image-set(var(--hero) 1x) }`
   expect([...new Set(urls(css, '<div class="hero"></div><div class="other"></div>'))]).toEqual(["required.png"])
 })
+
+it.each([false, true, "stylesheet"] as const)("refuses raw newlines in CSS strings but preserves escaped continuations, mode=%s", mode => {
+  const wrap = (value: string) => mode === true ? value : `.hero { ${value} }`
+  for (const newline of ["\n", "\r", "\f", "\r\n"]) {
+    for (const quote of ['"', "'"]) {
+      expect(() => parseCssSource(wrap(`content:${quote}prose${newline}; background:url(missing.png);${quote}`), mode)).toThrow()
+      expect(() => parseCssSource(wrap(`background-image:image-set(${quote}missing${newline}.png${quote} 1x)`), mode)).toThrow()
+      const continued = wrap(`content:${quote}url(prose${"\\"}${newline}.png)${quote};background-image:image-set(${quote}required${"\\"}${newline}.png${quote} 1x)`)
+      expect(cssReferences([{ parsed: parseCssSource(continued, mode), from: "content/style.css" }]).map(reference => reference.url)).toEqual(["required.png"])
+    }
+  }
+})

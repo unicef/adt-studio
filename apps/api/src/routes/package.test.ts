@@ -559,6 +559,33 @@ describe("Package routes", () => {
     expect((await run()).status).toBe(200)
   })
 
+  it.each([
+    '<style>.a { content: "abc\n} .yy { background:url(images/missing.png) } .c { content: "x }</style><p class="yy">Text</p>',
+    '<style>.typo { color red } .a { content: "abc\n} .yy { background:url(images/missing.png) } .c { content: "x }</style><p class="yy">Text</p>',
+    "<p style=\"font-family:'abc\n; background:url(images/missing.png); quotes:'\">Text</p>",
+  ])("refuses ambiguous CSS strings without replacing the publication: %s", async html => {
+    const label = "ambiguous-css"
+    createRenderedBook(label); createWebAssets()
+    const run = () => app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+    expect((await run()).status).toBe(200)
+    const readZip = async () => unzipSync(new Uint8Array(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer()))
+    const original = await readZip()
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      const rendering = storage.getLatestNodeData("web-rendering", "pg001")!.data as { sections: Array<{ html: string }> }
+      rendering.sections[0].html += html
+      storage.putNodeData("web-rendering", "pg001", rendering)
+    } finally { storage.close() }
+    const result = await run()
+    expect(result.status).toBe(409)
+    const failure = await result.json()
+    expect(failure).toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(failure.error).toContain('"document":"pg001_sec001.html"')
+    expect(failure.error).not.toContain('"member":')
+    expect(failure.error).not.toContain(tmpDir)
+    expect(await readZip()).toEqual(original)
+  })
+
   it("never writes an unsafe imported section into another book or the prior publication", async () => {
     const label = "contained-package"
     createRenderedBook(label)

@@ -49,6 +49,9 @@ function valueReferences(
     const quote = value[position++]
     let result = ""
     while (position < value.length && value[position] !== quote) {
+      // CSS ends a bad string at a raw newline. Continuing to the next quote
+      // could hide a later resource token; escaped continuations remain valid.
+      if (/[\n\r\f]/.test(value[position])) throw new Error("Unescaped newline in CSS string")
       result += value[position] === "\\" ? escape() : value[position++]
     }
     if (value[position++] !== quote && requiredClose) throw new Error("Unclosed CSS string")
