@@ -57,3 +57,16 @@ it.each([false, true, "stylesheet"] as const)("retains image-set resources after
     expect(cssReferences([source], html).map(reference => reference.url).sort(), css).toEqual(expected)
   }
 })
+
+it.each([".child { color: blue }", "@media screen { color: blue }"])("keeps nested-block variable scopes fail-closed during stylesheet recovery: %s", block => {
+  for (const name of ["--hero", String.raw`\2d \2d hero/*comment*/`]) {
+    expect(() => parseCssSource(`.typo { color red } .hero { ${block} ${name}:"missing.png" }`, "stylesheet")).toThrow()
+  }
+})
+
+it.each([".child { color: blue }", "@media screen { color: blue }"])("retains nested-block variable candidates only for matching consumers: %s", block => {
+  const css = `.hero { ${block} --hero:"required.png" }
+    .other { ${block} --hero:"unrelated.png" }
+    .hero { background-image:image-set(var(--hero) 1x) }`
+  expect([...new Set(urls(css, '<div class="hero"></div><div class="other"></div>'))]).toEqual(["required.png"])
+})

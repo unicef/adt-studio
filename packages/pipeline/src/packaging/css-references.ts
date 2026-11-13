@@ -28,6 +28,7 @@ function valueReferences(
 ): Array<{ url: string; stylesheet: boolean }> {
   const references: Array<{ url: string; stylesheet: boolean }> = []
   let position = 0
+  let blockDepth = 0
   const escape = (): string => {
     position++ // backslash
     const hex = /^[0-9a-f]{1,6}/i.exec(value.slice(position))?.[0]
@@ -152,7 +153,9 @@ function valueReferences(
         continue
       }
       position++
-      declarationStart = char === ";" || char === "{"
+      if (stylesheet && char === "{") blockDepth++
+      if (stylesheet && char === "}") blockDepth = Math.max(0, blockDepth - 1)
+      declarationStart = char === ";" || char === "{" || (char === "}" && blockDepth > 0)
       if (char === ";" || char === "{" || char === "}") importPending = false
       if (char === "(") walk("", true)
     }
@@ -204,7 +207,11 @@ export function parseCssSource(css: string, inline: boolean | "stylesheet" = fal
   }
   const conditional = (node: postcss.Node): boolean => {
     const parent = node.parent
-    return parent?.type === "atrule" || (!!parent && conditional(parent))
+    // CSSOM does not reliably expose declarations around nested blocks. Keep
+    // their possible values under the same selector-scoped proof as at-rules.
+    const nestedRule = parent?.type === "rule" && (parent.parent?.type === "rule"
+      || parent.nodes?.some(child => child.type === "rule" || child.type === "atrule"))
+    return parent?.type === "atrule" || nestedRule || (!!parent && conditional(parent))
   }
   const declarations: Array<{ property: string; value: string; selector?: string; variables: boolean; conditional: boolean }> = []
   const imports: string[] = []
@@ -282,7 +289,7 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
       if (!lookup) {
         const style = dom!.window.getComputedStyle(element)
         // JSDOM has no viewport/layout engine. Keep the possible values from
-        // media/support/container/layer rules for this element, rather than
+        // media/support/container/layer and nested rules for this element, rather than
         // incorrectly proving only the default viewport's asset set complete.
         const alternatives = conditionalDefinitions.filter(declaration => {
           if (!declaration.selector) return true

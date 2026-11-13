@@ -103,6 +103,20 @@ it("validates shared runtime files once per read and notices their deletion on t
     fs.writeFileSync(page, `<style>${selector} { color red }</style><main class="--reader" id="--reader">Harmless selector</main>`)
     expect(packageFilesAvailable(root), selector).toBe(true)
   }
+  for (const nested of [".child { color: blue }", "@media screen { color: blue }"]) {
+    const css = `.hero { ${nested} --hero:"assets/style-resource.png" }`
+    const consumer = '<main class="hero" style="background-image:image-set(var(--hero) 1x)">Nested variable</main>'
+    fs.writeFileSync(page, `<style>${css}</style>${consumer}`)
+    const saved = fs.readFileSync(page)
+    expect(packageFilesAvailable(root), css).toBe(false)
+    fs.writeFileSync(resource, "required image bytes")
+    expect(packageFilesAvailable(root), css).toBe(true)
+    expect(fs.readFileSync(page)).toEqual(saved)
+    // Recovery must refuse unknown variable scope even with the asset present.
+    fs.writeFileSync(page, `<style>.typo { color red } ${css}</style>${consumer}`)
+    expect(packageFilesAvailable(root), css).toBe(false)
+    fs.unlinkSync(resource)
+  }
   for (const definition of ["--hero", String.raw`/*before*/\2d \2d hero/*after*/`]) {
     fs.writeFileSync(resource, "required image bytes")
     fs.writeFileSync(page, `<style>.zz { color red; ${definition}:"assets/style-resource.png" }</style><style>.zz { background-image:image-set(var(--hero) 1x) }</style><main class="zz">Ambiguous scope</main>`)
