@@ -694,8 +694,7 @@ export function createAdtPreviewRoutes(
 
   /** Collect all rendered HTML from the DB + optional extra HTML for Tailwind scanning. */
   async function generateTailwindCss(safeLabel: string, extraHtml?: string): Promise<string> {
-    const storage = createBookStorage(safeLabel, booksDir)
-    try {
+    return withStorage(safeLabel, async (storage) => {
       const fingerprint = storage.getNodeVersionFingerprint()
       const cacheKey = createHash("sha256")
         .update(safeLabel)
@@ -749,9 +748,7 @@ export function createAdtPreviewRoutes(
       } finally {
         tailwindCssInFlight.delete(cacheKey)
       }
-    } finally {
-      storage.close()
-    }
+    })
   }
 
   app.get("/books/:label/adt-preview/content/tailwind_output.css", async (c) => {

@@ -267,6 +267,14 @@ describe("Package routes", () => {
       expect(response.status, file + ": " + await response.clone().text()).toBe(200)
       expect(await response.text()).not.toContain("pg002_n0001")
     }
+    const cssUrl = prefix + "/adt-preview/content/tailwind_output.css"
+    const css = await readers.request(cssUrl)
+    expect(css.status, await css.clone().text()).toBe(200)
+    expect(css.headers.get("Cache-Control")).toContain("no-store")
+    const unsavedCss = await readers.request(cssUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extraHtml: '<p class="w-[777px]">Draft</p>' }) })
+    expect(unsavedCss.status).toBe(200)
+    expect(await unsavedCss.text()).toContain("777px")
+    expect(await (await readers.request(cssUrl)).text()).not.toContain("777px")
     const damagedConfig = await config()
     expect(damagedConfig.status).toBe(200)
     const damagedVersion = (await damagedConfig.json()).bundleVersion
