@@ -1803,7 +1803,7 @@ export function createPageRoutes(
         }
         clearRestoredNodeDependents(storage, node, itemId, previousVersion)
         return c.json({ node, itemId, version: storage.getCurrentNodeVersion(node, itemId) ?? version })
-      })
+      }, ["page-sectioning", "web-rendering", "image-filtering", "image-captioning"].includes(node) ? [itemId] : undefined)
     } finally {
       storage.close()
     }
