@@ -445,6 +445,76 @@ describe("renderPage", () => {
       expect(html).toContain('class="adt-h2 text-left" data-id="pg001_tx001"')
       expect(html).toContain('class="text-right" data-id="pg001_tx002"')
     })
+
+    // The table-of-contents repair runs once more after validation and writes
+    // `text-right` on the page number; for a merged row it builds the row there,
+    // so the validated HTML never contains it. The stored page has to be
+    // rewritten after that repair, not only before it.
+    describe("table of contents", () => {
+      const renderContents = async (pageDirection: "rtl" | "ltr" | undefined) => {
+        const written = {
+          reasoning: "test",
+          content:
+            '<div id="content" class="container"><section data-section-type="table_of_contents" data-section-id="pg003_sec001">' +
+            '<div class="flex items-baseline" data-id="toc-merged">پہلا باب ........ 5</div>' +
+            '<div class="flex items-baseline"><span data-id="toc-title">دوسرا باب</span><span data-id="toc-page">12</span></div>' +
+            "</section></div>",
+        }
+        const fakeLlm: LLMModel = {
+          generateObject: async <T>(opts: GenerateObjectOptions) => {
+            const checked = opts.validate?.(written, opts.context ?? {})
+            expect(checked?.errors ?? []).toEqual([])
+            return { object: (checked?.cleaned ?? written) as T } as GenerateObjectResult<T>
+          },
+        }
+        const result = await renderPage(
+          {
+            label: "test-book", pageId: "pg003", pageImageBase64: "base64img",
+            sectioning: {
+              reasoning: "test",
+              sections: [{
+                sectionId: "pg003_sec001",
+                sectionType: "table_of_contents",
+                nodes: [
+                  leafNode("toc-merged", "text", "پہلا باب ........ 5"),
+                  groupNode("toc-row", "list_item", [
+                    leafNode("toc-title", "text", "دوسرا باب"),
+                    leafNode("toc-page", "text", "12"),
+                  ]),
+                ],
+                backgroundColor: "#ffffff",
+                textColor: "#000000",
+                pageNumber: 3,
+                isPruned: false,
+              }],
+            },
+            images: new Map(), pageDirection,
+          },
+          defaultResolveConfig,
+          fakeLlm,
+        )
+        return result.sections[0].html
+      }
+
+      it("AC-10: stores a right-to-left contents page with its page numbers at the end and no left/right alignment", async () => {
+        const html = await renderContents("rtl")
+        expect(html).toContain('data-toc-page-number="true" class="w-8 sm:w-10 shrink-0 text-end tabular-nums"')
+        expect(html).not.toMatch(/text-(left|right)/)
+      })
+
+      it("AC-9: stores a left-to-right contents page of a book with a right-to-left translation without left/right alignment", async () => {
+        const html = await renderContents("ltr")
+        expect(html).toContain('data-toc-page-number="true" class="w-8 sm:w-10 shrink-0 text-end tabular-nums"')
+        expect(html).toContain('data-id="toc-page" class="shrink-0 text-end tabular-nums"')
+        expect(html).not.toMatch(/text-(left|right)/)
+      })
+
+      it("AC-9: leaves every other book's contents page as the repair wrote it", async () => {
+        const html = await renderContents(undefined)
+        expect(html).toContain('data-toc-page-number="true" class="w-8 sm:w-10 shrink-0 text-right tabular-nums"')
+        expect(html).toContain('data-id="toc-page" class="shrink-0 text-right tabular-nums"')
+      })
+    })
   })
 
   it("skips pruned sections", async () => {

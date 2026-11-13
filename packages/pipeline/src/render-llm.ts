@@ -183,6 +183,11 @@ export async function renderSectionLlm(
   if (section.sectionType === "table_of_contents") {
     generatedHtml = repairTableOfContentsLayout(generatedHtml, renderContext.leaf_texts)
   }
+  // These repairs run after validation, and the table-of-contents one writes
+  // `text-right` on each page number (for a merged row it builds the whole row
+  // here). Rewrite once more so the page is stored direction-neutral; it
+  // changes nothing when the repairs did not.
+  generatedHtml = directionNeutral(generatedHtml, input.pageDirection)
 
   // Ordering has one inspectable source of truth in the validated HTML. Derive
   // its rank map deterministically so initial render, rerender, Studio editing,
@@ -247,6 +252,17 @@ export async function renderSectionLlm(
   }, (id) => `${section.sectionId}_activity_${inputSignature({ id, html: generatedHtml }).slice(0, 24)}`)
 }
 
+/**
+ * Newly generated HTML as it is stored for a book with a right-to-left
+ * language: rewritten direction-neutral, with the generation-only corrections
+ * (SPEC-0024). Any other book's HTML is returned as it is.
+ */
+function directionNeutral(html: string, pageDirection: unknown): string {
+  return pageDirection === "rtl" || pageDirection === "ltr"
+    ? neutralizeDirectionMarkup(html, pageDirection, { correctMisalignedText: true })
+    : html
+}
+
 function validateWebRendering(
   result: unknown,
   context: Record<string, unknown>
@@ -308,15 +324,10 @@ function validateWebRendering(
     // rather than rejected: the rewrite is deterministic, so it cannot cost a
     // retry or fail a page (SPEC-0024). Last, so the checks above see the HTML
     // the repairs before them produced.
-    const pageDirection = context.page_direction
-    const content =
-      pageDirection === "rtl" || pageDirection === "ltr"
-        ? neutralizeDirectionMarkup(check.sectionHtml, pageDirection, { correctMisalignedText: true })
-        : check.sectionHtml
     return {
       valid: true,
       errors: [],
-      cleaned: { reasoning: r.reasoning, content },
+      cleaned: { reasoning: r.reasoning, content: directionNeutral(check.sectionHtml, context.page_direction) },
     }
   }
 
