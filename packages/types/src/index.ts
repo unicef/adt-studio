@@ -738,3 +738,5 @@ export { OutputDisclosureOptions } from "./output-freshness.js"
 export { SOURCE_GENERATION_RESET_STEPS } from "./pipeline.js"
 export { SourceGeneratorStep, SourceGenerationPolicy, SourceGenerationState, SourceGenerationReceipt } from "./source-generation-state.js"
 export { BookConfigSaveReceipt } from "./book-config-save.js"
+
+export { type TextDirection, getTextDirection } from "./text-direction.js"

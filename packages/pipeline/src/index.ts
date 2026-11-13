@@ -151,6 +151,7 @@ export {
 export {
   getBaseLanguage,
   normalizeLocale,
+  resolveBookLanguage,
   buildLanguageContext,
   buildTranslationLanguageContext,
   type LanguageContext,

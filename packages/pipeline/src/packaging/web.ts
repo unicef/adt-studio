@@ -58,7 +58,7 @@ import {
 import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
-import { getBaseLanguage, normalizeLocale } from "../language-context.js"
+import { dirAttr, getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries, buildEasyReadSourceBlocks } from "../easy-read.js"
 import { activeEasyRead } from "../retained-catalog.js"
@@ -1521,7 +1521,7 @@ ${fallbackHeadingHtml}${contentBlock}
   const flFit = opts.fixedViewport ? fixedLayoutWebFit(opts.embed ? 0 : 96) : null
 
   return restoreStepperPayloads(`<!DOCTYPE html>
-<html lang="${escapeAttr(opts.language)}">
+<html lang="${escapeAttr(opts.language)}"${dirAttr(opts.language)}>
 
 <head>
     <meta charset="utf-8" />
@@ -2912,7 +2912,7 @@ function renderEntryRedirectHtml(
   // phrase: this file ships in every language and has no interface catalogue.
   const label = escapeHtml(title)
   return `<!DOCTYPE html>
-<html lang="${escapeAttr(language)}">
+<html lang="${escapeAttr(language)}"${dirAttr(language)}>
 <head>
 <meta charset="utf-8" />
 <noscript><meta http-equiv="refresh" content="0; url=${href}" /></noscript>

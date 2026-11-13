@@ -49,6 +49,7 @@ import {
   buildTranslationConfig,
   getBaseLanguage,
   normalizeLocale,
+  resolveBookLanguage,
   loadBookConfig,
   renderPage,
   buildRenderStrategyResolver,
@@ -1705,6 +1706,7 @@ async function runStoryboardStep(
             const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
             storage.putDebugImage(hash, Buffer.from(base64, "base64"))
           },
+          language: resolveBookLanguage(storage, config),
         }
       }
     }
