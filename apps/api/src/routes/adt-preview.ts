@@ -144,6 +144,12 @@ function getPreviewBundleVersion(webAssetsDir: string): string {
 
 function getPreviewContentVersion(storage: Storage, webAssetsDir: string): string {
   const assetVersion = getPreviewBundleVersion(webAssetsDir)
+  // Page membership and imported-part scope live outside node_data. Include
+  // both so the reader refreshes even when all selected node bytes are equal.
+  const pageScope = {
+    range: storage.bookDir ? requiredPartRange(storage.bookDir) : null,
+    pages: storage.getPages().map(({ pageId, pageNumber }) => ({ pageId, pageNumber })),
+  }
   const fingerprint = storage.getNodeVersionFingerprint(["accessibility-assessment"])
     .map((entry) => {
       const row = storage.getLatestNodeData(entry.node, entry.itemId)
@@ -154,6 +160,7 @@ function getPreviewContentVersion(storage: Storage, webAssetsDir: string): strin
     })
   const hash = createHash("sha256")
     .update(assetVersion)
+    .update(JSON.stringify(pageScope))
     .update(JSON.stringify(fingerprint))
     .digest("hex")
     .slice(0, 12)
@@ -179,12 +186,6 @@ function safePreviewLanguage(rawLanguage: string): string {
     throw new HTTPException(400, { message: "Invalid language" })
   }
 }
-
-// ---------------------------------------------------------------------------
-// Caches (built lazily per book)
-// ---------------------------------------------------------------------------
-
-// No Tailwind cache — preview is a dev tool; staleness causes more pain than rebuild cost
 
 // ---------------------------------------------------------------------------
 // Helpers to read book data from storage
@@ -214,11 +215,11 @@ function getGlossary(storage: Storage): GlossaryOutput | undefined {
   return row?.data as GlossaryOutput | undefined
 }
 
-function getQuizData(storage: Storage): QuizGenerationOutput | undefined {
+function getQuizData(storage: Storage, scopedPages = partScopedPages(storage)): QuizGenerationOutput | undefined {
   const row = storage.getLatestNodeData("quiz-generation", "book")
   if (!row) return undefined
   const data = withResolvedQuizIds(row.data as QuizGenerationOutput)
-  const pages = new Set(partScopedPages(storage).map(page => page.pageId))
+  const pages = new Set(scopedPages.map(page => page.pageId))
   return { ...data, quizzes: data.quizzes.filter(quiz => pages.has(quiz.afterPageId)) }
 }
 
@@ -676,7 +677,7 @@ export function createAdtPreviewRoutes(
     return c.body(NAV_HTML)
   })
 
-  // /content/tailwind_output.css — generated from the current book fingerprint.
+  // /content/tailwind_output.css — cached by the actual scoped compiler inputs.
   // GET: generates CSS from DB content only.
   // POST: accepts { extraHtml } to include unsaved content (e.g., AI edits) in the scan.
 
@@ -695,15 +696,37 @@ export function createAdtPreviewRoutes(
   /** Collect all rendered HTML from the DB + optional extra HTML for Tailwind scanning. */
   async function generateTailwindCss(safeLabel: string, extraHtml?: string): Promise<string> {
     return withStorage(safeLabel, async (storage) => {
-      const cacheKey = createHash("sha256")
-        .update(safeLabel)
-        .update("\0")
-        // Match the HTML/config token, including selected content bytes: raw
-        // damage or an older writer can change data without a new version.
-        .update(getPreviewContentVersion(storage, webAssetsDir))
-        .update("\0")
-        .update(extraHtml ?? "")
-        .digest("hex")
+      const pages = partScopedPages(storage)
+      let allHtml = ""
+      for (const page of pages) {
+        const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+        if (renderRow) {
+          const parsed = WebRenderingOutput.safeParse(renderRow.data)
+          if (parsed.success) {
+            for (const section of parsed.data.sections) {
+              allHtml += section.html + "\n"
+            }
+          }
+        }
+      }
+
+      // Include quiz HTML so Tailwind scans quiz classes, using the same pages
+      // as the rendering scan. The catalog timestamp is not a compiler input.
+      const quizData = getQuizData(storage, pages)
+      const catalog = buildTextCatalogSnapshot(storage, pages)
+      if (quizData?.quizzes) {
+        for (let i = 0; i < quizData.quizzes.length; i++) {
+          const quizId = resolveQuizId(quizData.quizzes[i], i)
+          allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
+        }
+      }
+
+      // Unsaved edits participate only in this request's input snapshot.
+      if (extraHtml) allHtml += "\n" + extraHtml
+      const typographyCss = resolveTypographyCss(storage)
+      // Hash exactly the derived book inputs passed to the compiler, rather
+      // than guessing which node versions, page rows or part metadata matter.
+      const cacheKey = hashValue([safeLabel, getPreviewBundleVersion(webAssetsDir), allHtml, typographyCss])
       const cached = tailwindCssCache.get(cacheKey)
       if (cached != null) return cached
 
@@ -711,35 +734,7 @@ export function createAdtPreviewRoutes(
       if (pending) return await pending
 
       const build = (async () => {
-        const pages = partScopedPages(storage)
-        let allHtml = ""
-        for (const page of pages) {
-          const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-          if (renderRow) {
-            const parsed = WebRenderingOutput.safeParse(renderRow.data)
-            if (parsed.success) {
-              for (const section of parsed.data.sections) {
-                allHtml += section.html + "\n"
-              }
-            }
-          }
-        }
-
-        // Include quiz HTML so Tailwind scans quiz classes
-        const quizData = getQuizData(storage)
-        const catalog = await getTextCatalog(storage)
-        if (quizData?.quizzes) {
-          for (let i = 0; i < quizData.quizzes.length; i++) {
-            const quizId = resolveQuizId(quizData.quizzes[i], i)
-            allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
-          }
-        }
-
-        // Include unsaved content (e.g., AI-edited section HTML) so new Tailwind classes
-        // are picked up before the edit is persisted to the DB.
-        if (extraHtml) allHtml += "\n" + extraHtml
-
-        const css = await buildPreviewTailwindCss(allHtml, webAssetsDir, resolveTypographyCss(storage))
+        const css = await buildPreviewTailwindCss(allHtml, webAssetsDir, typographyCss)
         rememberTailwindCss(cacheKey, css)
         return css
       })()

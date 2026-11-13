@@ -316,6 +316,86 @@ describe("Package routes", () => {
     expect(await (await readers.request(cssUrl)).text()).toContain("917px")
   })
 
+  it.each([false, true])("refreshes live CSS and reader tokens after a part-only window change, fixed=%s", async fixed => {
+    const label = "preview-part-window"
+    createRenderedBook(label); createWebAssets()
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putExtractedPage({ pageId: "pg002", pageNumber: 2, text: "Page two", images: [], pageImage: { imageId: "pg002_page", buffer: Buffer.from("second-image"), hash: "second", format: "png", width: 800, height: 1200 } })
+      for (const node of ["page-sectioning", "web-rendering"]) storage.putNodeData(node, "pg002", JSON.parse(JSON.stringify(storage.getLatestNodeData(node, "pg001")!.data).replaceAll("pg001", "pg002")))
+      if (fixed) {
+        for (const pageId of ["pg001", "pg002"]) {
+          storage.putNodeData("positioned-text", pageId, { drawItems: [], pageWidth: 800, pageHeight: 1200, renderWidth: 800, renderHeight: 1200 })
+          storage.putNodeData("image-filtering", pageId, { images: [] })
+        }
+        await processFixedLayoutPages(storage, `/api/books/${label}/images`)
+      }
+      for (const [pageId, width] of [["pg001", 411], ["pg002", 422]] as const) {
+        const row = storage.getLatestNodeData("web-rendering", pageId)!.data as { sections: Array<{ html: string }> }
+        row.sections[0].html += `<p class="w-[${width}px]">Page styling</p>`
+        storage.putNodeData("web-rendering", pageId, row)
+      }
+    } finally { storage.close() }
+    const dir = path.join(tmpDir, label), prefix = `/api/books/${label}`
+    const partFile = path.join(dir, "part.json")
+    const part = { adtPart: 1, sourceLabel: label, title: null, range: { startPage: 1, endPage: 1 }, pageCount: 2, fingerprint: {}, identityHash: "fixture", semanticsHash: "fixture", createdAt: "2026-11-13", partLabelSuggestion: label }
+    fs.writeFileSync(partFile, JSON.stringify(part))
+    expect((await app.request(prefix + "/package-adt", { method: "POST" })).status).toBe(200)
+    const bytes = (root: string): Record<string, Buffer> => Object.fromEntries(fs.readdirSync(root, { recursive: true }).filter(file => fs.statSync(path.join(root, String(file))).isFile()).map(file => [String(file), fs.readFileSync(path.join(root, String(file)))]))
+    const retained = bytes(path.join(dir, "adt")), media = bytes(path.join(dir, "images"))
+    const history = () => withBookWriter(dir, () => {
+      const db = openBookDb(path.join(dir, label + ".db"))
+      try { return db.all("SELECT * FROM node_data ORDER BY node,item_id,version") } finally { db.close() }
+    })
+    const before = history()
+    const makeReaders = () => new Hono().onError(errorHandler).route("/api", createBookRoutes(tmpDir))
+      .route("/api", createAdtPreviewRoutes(tmpDir, webAssetsDir))
+    const readers = makeReaders()
+    const cssUrl = prefix + "/adt-preview/content/tailwind_output.css"
+    const version = async () => (await (await readers.request(prefix + "/adt-preview/assets/config.json")).json()).bundleVersion
+    const css = async (routes = readers) => {
+      const response = await routes.request(cssUrl)
+      expect(response.status, await response.clone().text()).toBe(200)
+      return response.text()
+    }
+    const firstVersion = await version(), firstCss = await css()
+    expect(firstCss).toContain("411px")
+    expect(firstCss).not.toContain("422px")
+
+    // Only the valid imported-part metadata changes: node bytes/versions stay put.
+    fs.writeFileSync(partFile, JSON.stringify({ ...part, range: { startPage: 2, endPage: 2 } }))
+    expect(await (await readers.request(prefix + "/adt-preview/content/pages.json")).json()).toEqual([expect.objectContaining({ section_id: "pg002_sec001" })])
+    expect(await (await readers.request(prefix + "/adt-preview/pg002_sec001.html")).text()).toContain("422px")
+    const changedCss = await css()
+    expect.soft(changedCss).toContain("422px")
+    expect.soft(changedCss).not.toContain("411px")
+    expect.soft(await version()).not.toBe(firstVersion)
+    const coldCss = await css(makeReaders())
+    expect(coldCss).toContain("422px")
+    expect(coldCss).not.toContain("411px")
+    const draft = await readers.request(cssUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extraHtml: '<p class="w-[777px]">Draft</p>' }) })
+    expect(draft.status).toBe(200)
+    expect(await draft.text()).toContain("777px")
+    expect(await css()).not.toContain("777px")
+    expect((await readers.request(prefix + "/export-adt")).status).toBe(409)
+
+    fs.writeFileSync(partFile, JSON.stringify(part))
+    expect(await version()).toBe(firstVersion)
+    expect(await css()).toBe(firstCss)
+    fs.unlinkSync(partFile)
+    const wholeCss = await css()
+    expect(wholeCss).toContain("411px")
+    expect(wholeCss).toContain("422px")
+    expect(await version()).not.toBe(firstVersion)
+    fs.writeFileSync(partFile, "{invalid")
+    expect((await readers.request(cssUrl)).status).toBe(409)
+    fs.writeFileSync(partFile, JSON.stringify(part))
+    expect(await css()).toBe(firstCss)
+    expect(history()).toEqual(before)
+    expect(bytes(path.join(dir, "adt"))).toEqual(retained)
+    expect(bytes(path.join(dir, "images"))).toEqual(media)
+  })
+
   it("returns a typed recovery refusal and retains unknown journal and prior package bytes", async () => {
     createRenderedBook("journal-refusal")
     const routes = new Hono().onError(errorHandler).route("/api", createPackageRoutes(tmpDir, path.resolve("assets/adt")))
