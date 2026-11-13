@@ -622,6 +622,128 @@ describe("book outline generation", () => {
     ])
   })
 
+  it("restores page order when the model groups entries by level", async () => {
+    const twoPageEvidence = buildBookOutlineEvidence(
+      [1, 2].map((pageNumber) => ({
+        pageId: `pg00${pageNumber}`,
+        pageNumber,
+        text: `Chapter ${pageNumber}\nSection ${pageNumber}`,
+        imageBase64: pngBase64(),
+      })),
+      null,
+    )
+    // Level-grouped, as gpt-5.4-mini returned it for a 20-page textbook.
+    const compact: BookOutlineProposalOutput = {
+      reasoning: "Chapters first, then their sections.",
+      styleClusters: [
+        { styleClusterId: "h1", description: "Chapter", level: 1 },
+        { styleClusterId: "h2", description: "Section", level: 2 },
+      ],
+      entries: ["pg001_hc001", "pg002_hc001", "pg001_hc002", "pg002_hc002"].map(
+        (candidateId, index) => ({
+          sourceCandidateIds: [candidateId],
+          level: index < 2 ? 1 : 2,
+          kind: index < 2 ? "chapter" as const : "section" as const,
+          styleClusterId: index < 2 ? "h1" : "h2",
+          confidence: 0.9,
+        }),
+      ),
+    }
+    const llm: LLMModel = {
+      generateObject: async <T>(options: GenerateObjectOptions) => {
+        expect(options.validate?.(compact, options.context ?? {})).toEqual({
+          valid: true,
+          errors: [],
+        })
+        return { object: compact as T }
+      },
+    }
+
+    const result = await generateBookOutline(
+      twoPageEvidence,
+      buildBookOutlineConfig({ structure_types: {}, role_types: {} }),
+      llm,
+    )
+
+    expect(result.entries.map((entry) => entry.title)).toEqual([
+      "Chapter 1",
+      "Section 1",
+      "Chapter 2",
+      "Section 2",
+    ])
+    expect(result.entries.map((entry) => entry.parentId)).toEqual([
+      null,
+      "outline-001",
+      null,
+      "outline-003",
+    ])
+    expect(result.reasoning).toContain("Restored page order")
+  })
+
+  it("keeps the model's order within a page when restoring page order", async () => {
+    // A chapter opener whose extracted reading order puts a sidebar prompt
+    // before the chapter title (as on the #1035 book). The model lists the
+    // title first, so the sidebar belongs to the new chapter. Raw candidate
+    // order would file it under the previous chapter. The accepted trade-off:
+    // a page that really ends one unit before starting the next keeps the
+    // model's level-grouped order too, so its trailing heading files under
+    // the new unit (#1036 review).
+    const openerEvidence = buildBookOutlineEvidence(
+      [
+        { pageId: "pg001", pageNumber: 1, text: "Chapter 1\nSection 1.1", imageBase64: pngBase64() },
+        { pageId: "pg002", pageNumber: 2, text: "Share your opinion\nChapter 2", imageBase64: pngBase64() },
+      ],
+      null,
+    )
+    const compact: BookOutlineProposalOutput = {
+      reasoning: "Chapters first, then their sections.",
+      styleClusters: [
+        { styleClusterId: "h1", description: "Chapter", level: 1 },
+        { styleClusterId: "h2", description: "Section", level: 2 },
+      ],
+      entries: [
+        { candidateId: "pg001_hc001", level: 1 },
+        { candidateId: "pg002_hc002", level: 1 },
+        { candidateId: "pg001_hc002", level: 2 },
+        { candidateId: "pg002_hc001", level: 2 },
+      ].map(({ candidateId, level }) => ({
+        sourceCandidateIds: [candidateId],
+        level,
+        kind: level === 1 ? "chapter" as const : "section" as const,
+        styleClusterId: `h${level}`,
+        confidence: 0.9,
+      })),
+    }
+    const llm: LLMModel = {
+      generateObject: async <T>(options: GenerateObjectOptions) => {
+        expect(options.validate?.(compact, options.context ?? {})).toEqual({
+          valid: true,
+          errors: [],
+        })
+        return { object: compact as T }
+      },
+    }
+
+    const result = await generateBookOutline(
+      openerEvidence,
+      buildBookOutlineConfig({ structure_types: {}, role_types: {} }),
+      llm,
+    )
+
+    expect(result.entries.map((entry) => entry.title)).toEqual([
+      "Chapter 1",
+      "Section 1.1",
+      "Chapter 2",
+      "Share your opinion",
+    ])
+    expect(result.entries.map((entry) => entry.parentId)).toEqual([
+      null,
+      "outline-001",
+      null,
+      "outline-003",
+    ])
+  })
+
   it("anchors matching in-book headings to the TOC hierarchy before deriving parents", async () => {
     const bookEvidence = tocGuidedEvidence()
     const compact: BookOutlineProposalOutput = {
