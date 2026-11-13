@@ -14,6 +14,8 @@ function possibleSelector(selector: string): string {
     .replace(interactionState, "") || "*"
 }
 
+const quotedValue = (value: string) => /^(?:"(?:[^"\\\r\n\f]|\\[\s\S])*"|'(?:[^'\\\r\n\f]|\\[\s\S])*')$/.test(value)
+
 /** Only this small selector grammar supplies a cascade proof. Other selectors
  * still contribute conservative candidates; CSSOM is not a specificity oracle.
  * In particular, do not expand arbitrary selector lists or replace arbitrary &.
@@ -303,9 +305,16 @@ export function parseCssSource(css: string, inline: boolean | "stylesheet" = fal
   custom.walkAtRules("import", rule => { rule.remove() })
   // Registration can change a custom property's validity/inheritance. It must
   // not make unrelated length/colour animations disable every resource proof.
-  const registeredVariables: string[] = []
+  const registeredVariables: Array<{ name: string; initialValue?: string; inherits: boolean; acceptsQuoted: boolean }> = []
   root.walkAtRules(rule => {
-    if (rule.name.toLowerCase() === "property") registeredVariables.push(valueReferences(`url(${rule.params})`)[0]?.url ?? rule.params)
+    if (rule.name.toLowerCase() !== "property") return
+    const descriptors = new Map<string, string>()
+    rule.each(node => { if (node.type === "decl") descriptors.set(node.prop.toLowerCase(), node.value) })
+    const syntax = descriptors.get("syntax") ?? ""
+    const decodedSyntax = quotedValue(syntax) ? valueReferences(`url(${syntax})`)[0]?.url : undefined
+    registeredVariables.push({ name: valueReferences(`url(${rule.params})`)[0]?.url ?? rule.params,
+      initialValue: descriptors.get("initial-value"), inherits: descriptors.get("inherits")?.toLowerCase() === "true",
+      acceptsQuoted: decodedSyntax === "*" || decodedSyntax === "<string>" })
   })
   return { declarations, imports, customCss: custom.toString(), directReferences, variableUrls, recoveredReferences, registeredVariables }
 }
@@ -349,7 +358,8 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
       ? source.parsed.declarations.filter(declaration => declaration.property.startsWith("--"))
         .map((declaration, order) => ({ ...declaration, sourceIndex, order, inline: false })) : [])
     const nestedVariables = definitions.some(declaration => declaration.nested)
-    const registeredVariables = new Set(sources.flatMap(source => source.parsed.registeredVariables))
+    const registrations = sources.flatMap(source => source.parsed.registeredVariables)
+    const registeredVariables = new Set(registrations.map(registration => registration.name))
     const inlineDefinitions = new Map<string, typeof definitions>()
     const getInlineDefinitions = (element: Element) => {
       const value = element.getAttribute("style") ?? ""
@@ -377,13 +387,15 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
             return { ...declaration, matches }
           }).filter(declaration => declaration.matches !== false)
           lookup = name => {
+            const registered = registrations.filter(registration => registration.name === name)
+            const canInherit = !registered.length || registered.some(registration => registration.inherits)
             const local = candidates.filter(declaration => declaration.property === name)
             const selected = local.filter(candidate => !local.some(winner => {
               if (winner === candidate || registeredVariables.has(name) || winner.conditional || candidate.conditional
                 || winner.matches !== true || candidate.matches !== true) return false
               // A complete quoted value is valid for an unregistered custom
               // property. Do not infer dominance from var()/rollback values.
-              if (!/^(?:"(?:[^"\\\r\n\f]|\\[\s\S])*"|'(?:[^'\\\r\n\f]|\\[\s\S])*')$/.test(winner.value)) return false
+              if (!quotedValue(winner.value)) return false
               if ((!winner.inline && !winner.proof) || (!candidate.inline && !candidate.proof)) return false
               if (winner.important !== candidate.important) return winner.important
               if (winner.inline !== candidate.inline) return winner.inline
@@ -397,12 +409,26 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
             const inherited = () => element.parentElement ? forElement(element.parentElement)(name) : []
             const values = selected.flatMap(declaration => {
               if (declaration.value === "initial") return []
+              if (declaration.value === "unset" && !canInherit) return []
               if (/^(?:inherit|unset|revert|revert-layer)$/.test(declaration.value)) return inherited()
               return [{ value: declaration.value, lookup: lookup! }]
             })
             // A conditional/unknown rule may not apply at all. In that case
             // inheritance resolves aliases at the element that defined them.
-            if (!selected.some(declaration => declaration.matches === true && !declaration.conditional)) values.push(...inherited())
+            const certain = selected.some(declaration => declaration.matches === true && !declaration.conditional)
+            if (!certain && canInherit) values.push(...inherited())
+            // Registration supplies a value even when no selector defines it.
+            // Exclude defaults only when every possible local value is a known
+            // valid string (or explicit inheritance), with a certain assignment
+            // or inherited fallback. Other registration syntax stays conservative.
+            const knownValues = selected.every(declaration => declaration.value === "inherit"
+              || (declaration.value === "unset" && registered.every(registration => registration.inherits))
+              || (quotedValue(declaration.value) && registered.every(registration => registration.acceptsQuoted)))
+            if (!knownValues || (!certain && (!element.parentElement || registered.some(registration => !registration.inherits)))) {
+              for (const registration of registered) if (registration.initialValue !== undefined) {
+                values.push({ value: registration.initialValue, lookup: lookup! })
+              }
+            }
             return values
           }
           lookups.set(element, lookup)

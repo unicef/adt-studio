@@ -119,6 +119,23 @@ it("does not infer priority from non-CSS whitespace or registered property valid
   expect(new Set(urls(registered, '<main class="hero"></main>'))).toEqual(new Set(["possible.png", "required.png"]))
 })
 
+it.each(["*", "<string>"])("retains a registered resource default after excluding an unrelated nested rule: %s", syntax => {
+  const css = `@property --hero{syntax:"${syntax}";inherits:false;initial-value:"required.png"}
+    .other{.hero{--hero:"required.png"}}.hero{background-image:image-set(var(--hero) 1x)}`
+  expect(urls(css, '<main class="hero"></main><aside class="other"></aside>')).toContain("required.png")
+})
+
+it("does not require an unused registered default when a valid literal is guaranteed", () => {
+  for (const inherits of [true, false]) {
+    const registration = `@property --hero{syntax:"<string>";inherits:${inherits};initial-value:"unused.png"}`
+    const consumer = '.hero{background-image:image-set(var(--hero) 1x)}'
+    expect(new Set(urls(`${registration}.hero{.child{color:blue}--hero:"required.png"}${consumer}`, '<main class="hero"></main>'))).toEqual(new Set(["required.png"]))
+    if (inherits) expect(new Set(urls(`${registration}.parent{.child{color:blue}--hero:"required.png"}${consumer}`, '<aside class="parent"><main class="hero"></main></aside>'))).toEqual(new Set(["required.png"]))
+  }
+  const unrelated = '@property --color{syntax:"*";inherits:false;initial-value:"unused.png"}'
+  expect(new Set(urls(`${unrelated}.hero{.child{color:blue}--hero:"required.png";background-image:image-set(var(--hero) 1x)}`, '<main class="hero"></main>'))).toEqual(new Set(["required.png"]))
+})
+
 it.each([
   ['.other{.hero{--hero:"required.png"}}.hero{--hero:"unused.png";background-image:image-set(var(--hero) 1x)}', '<aside class="other"><main class="hero"></main></aside>'],
   ['#winner{--hero:"required.png";.child{color:blue}}.hero{--hero:"unused.png";background-image:image-set(var(--hero) 1x)}', '<main id="winner" class="hero"></main>'],

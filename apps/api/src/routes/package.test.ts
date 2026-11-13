@@ -545,6 +545,7 @@ describe("Package routes", () => {
     '<div style="background-image: image-set(linear-gradient(calc((1 + 1) * 45deg), red, blue) 1x, &quot;images/missing.png&quot; 2x)"></div>',
     '<style>:root { --hero: "images/missing.png" } .hero { background-image: image-set(var(--hero) 1x) }</style>',
     '<style>.hero { background-image: image-set(var(--missing, "images/missing.png") 1x) }</style>',
+    '<style>@property --hero{syntax:"*";inherits:false;initial-value:"images/missing.png"}.other{.hero{--hero:"images/missing.png"}}.hero{background-image:image-set(var(--hero) 1x)}</style><main class="hero"></main><aside class="other"></aside>',
   ])("validates staged dependencies before replacing a downloadable publication: %s", async missing => {
     const label = "staged-validation"
     createRenderedBook(label)
@@ -612,6 +613,7 @@ describe("Package routes", () => {
     '<style>.hero{.child{color:blue}--hero:"images/unused.png"}.hero{--hero:"images/pg001_page.png";background-image:image-set(var(--hero) 1x)}</style><main class="hero"></main>',
     '<style>.hero{--hero:"images/unused.png";.child{color:blue}}#winner{--hero:"images/pg001_page.png"}.hero{background-image:image-set(var(--hero) 1x)}</style><main id="winner" class="hero"></main>',
     '<style>.other{.hero{--hero:"images/unused.png"}}.hero{--hero:"images/pg001_page.png";background-image:image-set(var(--hero) 1x)}</style><main class="hero"></main><aside class="other"></aside>',
+    '<style>@property --hero{syntax:"*";inherits:false;initial-value:"images/pg001_page.png"}.other{.hero{--hero:"images/unused.png"}}.hero{background-image:image-set(var(--hero) 1x)}</style><main class="hero"></main><aside class="other"></aside>',
   ])("packages proven nested CSS overrides and still refuses a missing selected asset: %s", async html => {
     const label = "nested-css"
     createRenderedBook(label); createWebAssets()
