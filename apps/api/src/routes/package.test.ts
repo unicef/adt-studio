@@ -216,6 +216,89 @@ describe("Package routes", () => {
     expect(await (await app.request(`/api/books/${label}/package-adt/status`)).json()).toMatchObject({ complete: true })
   })
 
+  it.each([false, true])("keeps healthy live fallback readable when a sibling rendering is unreadable, fixed=%s", async fixed => {
+    const label = "unreadable-sibling"
+    createRenderedBook(label); createWebAssets()
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putExtractedPage({ pageId: "pg002", pageNumber: 2, text: "Page two", images: [], pageImage: { imageId: "pg002_page", buffer: Buffer.from("second-image"), hash: "second", format: "png", width: 800, height: 1200 } })
+      for (const node of ["page-sectioning", "web-rendering"]) storage.putNodeData(node, "pg002", JSON.parse(JSON.stringify(storage.getLatestNodeData(node, "pg001")!.data).replaceAll("pg001", "pg002")))
+      storage.putNodeData("text-catalog", "book", { entries: [{ id: "legacy-stale", text: "must not return" }], generatedAt: "then" })
+      if (fixed) {
+        for (const pageId of ["pg001", "pg002"]) {
+          storage.putNodeData("positioned-text", pageId, { drawItems: [], pageWidth: 800, pageHeight: 1200, renderWidth: 800, renderHeight: 1200 })
+          storage.putNodeData("image-filtering", pageId, { images: [] })
+        }
+        await processFixedLayoutPages(storage, `/api/books/${label}/images`)
+      }
+    } finally { storage.close() }
+    const prefix = `/api/books/${label}`
+    expect((await app.request(prefix + "/package-adt", { method: "POST" })).status).toBe(200)
+    const readers = new Hono().onError(errorHandler).route("/api", createBookRoutes(tmpDir))
+      .route("/api", createAdtPreviewRoutes(tmpDir, webAssetsDir))
+    const config = () => readers.request(prefix + "/adt-preview/assets/config.json")
+    const originalVersion = (await (await config()).json()).bundleVersion
+    const dir = path.join(tmpDir, label)
+    const bytes = (root: string): Record<string, Buffer> => Object.fromEntries(fs.readdirSync(root, { recursive: true }).filter(file => fs.statSync(path.join(root, String(file))).isFile()).map(file => [String(file), fs.readFileSync(path.join(root, String(file)))]))
+    const retained = bytes(path.join(dir, "adt")), media = bytes(path.join(dir, "images"))
+    const raw = <T,>(fn: (db: ReturnType<typeof openBookDb>) => T): T => withBookWriter(dir, () => {
+      const db = openBookDb(path.join(dir, label + ".db"))
+      try { return fn(db) } finally { db.close() }
+    })
+    const original = raw(db => db.get("SELECT version,data FROM node_data WHERE node='web-rendering' AND item_id='pg002' ORDER BY version DESC LIMIT 1") as { version: number; data: string })
+    const damage = (data: string, itemId = "pg002", version = original.version) => raw(db => {
+      const trigger = db.get("SELECT sql FROM sqlite_master WHERE name='history_track_update'") as { sql: string }
+      db.run("DROP TRIGGER history_track_update")
+      try { db.run("UPDATE node_data SET data=? WHERE node='web-rendering' AND item_id=? AND version=?", [data, itemId, version]) }
+      finally { db.run(trigger.sql) }
+    })
+    damage(original.data.slice(0, 40))
+    const history = raw(db => db.all("SELECT * FROM node_data ORDER BY node,item_id,version"))
+    const redirect = await readers.request(prefix + "/adt/pg001_sec001.html")
+    expect(redirect.status).toBe(307)
+    const live = await readers.request(redirect.headers.get("Location")!)
+    expect(live.status, await live.clone().text()).toBe(200)
+    expect(live.headers.get("Cache-Control")).toContain("no-store")
+    expect(await live.text()).toContain("pg001_sec001")
+    expect((await readers.request(prefix + "/adt-preview/pg002_sec001.html")).status).toBe(404)
+    expect(await (await readers.request(prefix + "/adt-preview/content/pages.json")).json()).toEqual([expect.objectContaining({ section_id: "pg001_sec001" })])
+    for (const file of ["texts.json", "speech_texts.json", "audios.json", "timecode/timecode_output.json"]) {
+      const response = await readers.request(prefix + "/adt-preview/content/i18n/en/" + file)
+      expect(response.status, file + ": " + await response.clone().text()).toBe(200)
+      expect(await response.text()).not.toContain("pg002_n0001")
+    }
+    const damagedConfig = await config()
+    expect(damagedConfig.status).toBe(200)
+    const damagedVersion = (await damagedConfig.json()).bundleVersion
+    expect(damagedVersion).not.toBe(originalVersion)
+    expect((await readers.request(prefix + "/export-adt")).status).toBe(409)
+    expect((await readers.request(prefix + "/adt/assets/offline-preloader.js")).status).not.toBe(200)
+    expect(raw(db => db.all("SELECT * FROM node_data ORDER BY node,item_id,version"))).toEqual(history)
+    expect(bytes(path.join(dir, "adt"))).toEqual(retained)
+    expect(bytes(path.join(dir, "images"))).toEqual(media)
+    const first = raw(db => db.get("SELECT version,data FROM node_data WHERE node='web-rendering' AND item_id='pg001' ORDER BY version DESC LIMIT 1") as { version: number; data: string })
+    damage(first.data.slice(0, 40), "pg001", first.version)
+    for (const file of ["texts.json", "speech_texts.json", "audios.json"]) {
+      const response = await readers.request(prefix + "/adt-preview/content/i18n/en/" + file)
+      expect(response.status).toBe(200)
+      expect(await response.text()).not.toContain("legacy-stale")
+    }
+    expect(await (await readers.request(prefix + "/adt-preview/content/pages.json")).json()).toEqual([])
+    damage(first.data, "pg001", first.version)
+    damage(original.data)
+    expect((await (await config()).json()).bundleVersion).toBe(originalVersion)
+    expect((await readers.request(prefix + "/adt-preview/pg002_sec001.html")).status).toBe(200)
+    expect((await readers.request(prefix + "/adt/pg001_sec001.html")).status).toBe(200)
+    const restoredExport = await readers.request(prefix + "/export-adt")
+    expect(restoredExport.status).toBe(200)
+    await restoredExport.arrayBuffer()
+    // Valid same-version raw changes must still invalidate the live cache token.
+    const changed = JSON.parse(original.data)
+    changed.sections[0].html += "<p>Valid changed source</p>"
+    damage(JSON.stringify(changed))
+    expect((await (await config()).json()).bundleVersion).not.toBe(originalVersion)
+  })
+
   it("returns a typed recovery refusal and retains unknown journal and prior package bytes", async () => {
     createRenderedBook("journal-refusal")
     const routes = new Hono().onError(errorHandler).route("/api", createPackageRoutes(tmpDir, path.resolve("assets/adt")))

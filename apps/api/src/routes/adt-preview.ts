@@ -528,7 +528,24 @@ export function createAdtPreviewRoutes(
     const storage = createBookStorage(safeLabel, booksDir)
     let result: T
     try {
-      result = fn(storage, safeLabel, bookDir)
+      // Live Preview can show readable siblings when a selected rendering is
+      // corrupt. Limit this projection to these read-only routes: packaging,
+      // reconciliation writers and retained-origin checks keep strict storage.
+      const readable: Storage = {
+        ...storage,
+        getLatestNodeData(node, itemId) {
+          try { return storage.getLatestNodeData(node, itemId) }
+          catch (error) {
+            if (node !== "web-rendering" || !(error instanceof SyntaxError)) throw error
+            const selected = storage.getNodeVersionFingerprint().find(entry => entry.node === node && entry.itemId === itemId)
+            if (!selected) throw error
+            // Preserve presence/version with invalid data. Returning no row
+            // could revive a stale legacy text catalog when every page is bad.
+            return { version: selected.version, data: null }
+          }
+        },
+      }
+      result = fn(readable, safeLabel, bookDir)
     } catch (err) {
       storage.close()
       throw err
