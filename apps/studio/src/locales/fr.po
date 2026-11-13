@@ -9846,6 +9846,9 @@ msgstr "Résolu"
 msgid "Resolving source language..."
 msgstr "Résolution de la langue source..."
 
+msgid "Resources in the package document {document} could not be verified. Existing output is retained. Correct the saved content, then prepare the export again."
+msgstr "Les ressources du document du paquet {document} n’ont pas pu être vérifiées. La sortie existante est conservée. Corrigez le contenu enregistré, puis préparez à nouveau l’exportation."
+
 msgid "Respiration"
 msgstr "Respiration"
 
@@ -11579,6 +11582,9 @@ msgstr "Scénarimage"
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Le scénarimage a déjà été exécuté. Les modifications effectuées ici ne prendront effet que lorsque le scénarimage sera relancé."
 
+msgid "Storyboard inputs changed on {total} page(s) (showing up to 20): {pages}. Refresh the saved content before retrying. Previous output is retained."
+msgstr "Les données d’entrée du Storyboard ont changé sur {total} page(s) (20 affichées au maximum) : {pages}. Actualisez le contenu enregistré avant de réessayer. La sortie précédente est conservée."
+
 msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
 msgstr "Les données d’entrée du Storyboard ont changé ou le périmètre demandé est incompatible avec cette mise en page. Actualisez le contenu enregistré et rendez à nouveau les pages concernées."
 
@@ -12114,6 +12120,9 @@ msgstr "La dernière date connue de cet ordinateur. Elle pourra être modifiée 
 
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "La dernière révision de traduction a échoué avant de produire des résultats fiables par élément. Relancez Réviser pour les traductions visibles."
+
+msgid "The layout switch has {total} unfinished page(s) (showing up to 20): {pages}. Inspect their inputs and page errors, then retry the whole Storyboard stage. Previous output is retained."
+msgstr "Le changement de mise en page comporte {total} page(s) inachevée(s) (20 affichées au maximum) : {pages}. Vérifiez leurs données d’entrée et les erreurs de page, puis relancez toute l’étape Storyboard. La sortie précédente est conservée."
 
 msgid "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
 msgstr "Le lien ne s’ouvre pas pour le moment. Reprendre réactive le même lien, avec tous les commentaires conservés."

@@ -1690,6 +1690,16 @@ async function runStoryboardStep(
   const baseStorage = createBookStorage(label, booksDir)
   let publication: ReturnType<typeof createStoryboardPublication>
   try { publication = createStoryboardPublication(baseStorage, label, booksDir, configPath) } catch (err) { baseStorage.close(); throw err }
+  const finishPublication = () => {
+    try { publication.publish() }
+    catch (error) {
+      // A prior page error may already have removed this step from the outer
+      // running set. Persist the final publication refusal for reload as well
+      // as the live stream, without replacing provider diagnostics generally.
+      if (error instanceof SectioningSafetyError) progress.emit({ type: "step-error", step: "web-rendering", error: error.message })
+      throw error
+    }
+  }
   const storage = publication.storage
   let visualRefinement: VisualRefinementDeps | undefined
 
@@ -1724,7 +1734,7 @@ async function runStoryboardStep(
         },
       })
       if (options.signal?.aborted) throw new RunCancelledError()
-      publication.publish()
+      finishPublication()
       if (unavailable.length) throw new StepError("web-rendering", missingStoryboardInputMessage(unavailable))
       progress.emit({ type: "step-complete", step: "web-rendering" })
       console.log(`[stage-run] ${label}: fixed-layout rendering complete`)
@@ -1957,12 +1967,10 @@ async function runStoryboardStep(
       throw new StepError("web-rendering", "Stopped by a page-error decision")
     }
 
-    // Only a layout switch requires whole-window success.
-    if (publication.layoutSwitch && (failedPages.length || (skippedByStep.get("web-rendering")?.size ?? 0) > 0)) {
-      throw new StepError("web-rendering", "STORYBOARD_PUBLICATION_INCOMPLETE: One or more pages did not finish. Previous output is kept.")
-    }
     if (options.signal?.aborted) throw new RunCancelledError()
-    publication.publish()
+    // The publisher names the actual unfinished pages and keeps a layout
+    // switch atomic, including failed, skipped and missing-input pages.
+    finishPublication()
     finishPageStep(progress, "web-rendering", pageFailureDeps)
     console.log(`[stage-run] ${label}: storyboard complete`)
   } finally {

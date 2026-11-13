@@ -9844,6 +9844,9 @@ msgstr "Resolvido"
 msgid "Resolving source language..."
 msgstr "Resolvendo idioma de origem..."
 
+msgid "Resources in the package document {document} could not be verified. Existing output is retained. Correct the saved content, then prepare the export again."
+msgstr "Não foi possível verificar os recursos do documento do pacote {document}. A saída existente é mantida. Corrija o conteúdo salvo e prepare a exportação novamente."
+
 msgid "Respiration"
 msgstr "Respiração"
 
@@ -11577,6 +11580,9 @@ msgstr "Storyboard"
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "O Storyboard já foi executado. As alterações feitas aqui só terão efeito quando o Storyboard for reexecutado."
 
+msgid "Storyboard inputs changed on {total} page(s) (showing up to 20): {pages}. Refresh the saved content before retrying. Previous output is retained."
+msgstr "As entradas do Storyboard mudaram em {total} página(s) (mostrando até 20): {pages}. Atualize o conteúdo salvo antes de tentar novamente. A saída anterior é mantida."
+
 msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
 msgstr "Os dados de entrada do Storyboard mudaram ou o escopo solicitado é incompatível com este layout. Atualize o conteúdo salvo e renderize novamente as páginas afetadas."
 
@@ -12112,6 +12118,9 @@ msgstr "A última data que este computador conhece. Ela pode ser alterada quando
 
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "A última revisão de tradução falhou antes de produzir resultados confiáveis por item. Execute a revisão novamente para as traduções visíveis."
+
+msgid "The layout switch has {total} unfinished page(s) (showing up to 20): {pages}. Inspect their inputs and page errors, then retry the whole Storyboard stage. Previous output is retained."
+msgstr "A mudança de layout tem {total} página(s) não concluída(s) (mostrando até 20): {pages}. Verifique as entradas e os erros dessas páginas e execute toda a etapa Storyboard novamente. A saída anterior é mantida."
 
 msgid "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
 msgstr "O link não abre agora. Retomar reativa o mesmo link, mantendo todos os comentários."

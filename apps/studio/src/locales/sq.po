@@ -9846,6 +9846,9 @@ msgstr "Zgjidhur"
 msgid "Resolving source language..."
 msgstr "Duke zgjidhur gjuhën burimore..."
 
+msgid "Resources in the package document {document} could not be verified. Existing output is retained. Correct the saved content, then prepare the export again."
+msgstr "Burimet në dokumentin e paketës {document} nuk mund të verifikoheshin. Rezultati ekzistues ruhet. Korrigjoni përmbajtjen e ruajtur dhe përgatiteni sërish eksportin."
+
 msgid "Respiration"
 msgstr "Frymëmarrja"
 
@@ -11579,6 +11582,9 @@ msgstr "Storyboard"
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Storyboard-i është ekzekutuar tashmë. Ndryshimet e bëra këtu nuk do të hyjnë në fuqi derisa storyboard-i të ri-ekzekutohet."
 
+msgid "Storyboard inputs changed on {total} page(s) (showing up to 20): {pages}. Refresh the saved content before retrying. Previous output is retained."
+msgstr "Të dhënat hyrëse të Storyboard kanë ndryshuar në {total} faqe (shfaqen deri në 20): {pages}. Rifreskoni përmbajtjen e ruajtur përpara se të provoni sërish. Rezultati i mëparshëm ruhet."
+
 msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
 msgstr "Të dhënat hyrëse të Storyboard-it kanë ndryshuar ose shtrirja e kërkuar nuk përputhet me këtë paraqitje. Rifreskoni përmbajtjen e ruajtur dhe renderoni sërish faqet e prekura."
 
@@ -12114,6 +12120,9 @@ msgstr "Data e fundit që njeh ky kompjuter. Mund të ndryshohet sapo shërbimi 
 
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "Rishikimi i fundit i përkthimit dështoi para se të prodhonte rezultate të besueshme në nivel artikulli. Ekzekutoni Rishikimin përsëri për përkthimet e dukshme."
+
+msgid "The layout switch has {total} unfinished page(s) (showing up to 20): {pages}. Inspect their inputs and page errors, then retry the whole Storyboard stage. Previous output is retained."
+msgstr "Ndryshimi i paraqitjes ka {total} faqe të papërfunduara (shfaqen deri në 20): {pages}. Kontrolloni të dhënat hyrëse dhe gabimet e këtyre faqeve, pastaj përsëritni të gjithë fazën Storyboard. Rezultati i mëparshëm ruhet."
 
 msgid "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
 msgstr "Lidhja nuk hapet tani. Rifillimi e ndez përsëri të njëjtën lidhje, me të gjitha komentet e ruajtura."

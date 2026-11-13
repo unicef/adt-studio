@@ -302,7 +302,7 @@ describe("Storyboard layout publication", () => {
       finally { concurrent.close() }
       return { sections: [] }
     })
-    await expect(run()).rejects.toThrow(/changed during rendering/)
+    await expect(run()).rejects.toThrow("STORYBOARD_INPUT_CHANGED: p2; total=1")
     const after = store()
     try {
       expect(after.getAllNodeVersions("web-rendering", "p2")).toEqual(oldRendering)
@@ -513,10 +513,63 @@ it("a reflowable-to-fixed switch cannot replace readable output with absent extr
   const before = [2, 7].map((n) => s.getAllNodeVersions("web-rendering", `p${n}`))
   s.putNodeData("positioned-text", "p2", null)
   s.close()
-  await expect(run()).rejects.toThrow("STORYBOARD_PUBLICATION_INCOMPLETE")
+  const events: Array<{ type: string; error?: string }> = []
+  await expect(createStageRunner().run(label, options(), { emit(event) { events.push(event) } })).rejects.toThrow("STORYBOARD_PUBLICATION_INCOMPLETE: p2; total=1")
+  expect(events.some(event => event.type === "step-error" && event.error?.includes("STORYBOARD_PUBLICATION_INCOMPLETE: p2; total=1"))).toBe(true)
   const after = store()
   try {
     expect([2, 7].map((n) => after.getAllNodeVersions("web-rendering", `p${n}`))).toEqual(before)
     expect(after.getLatestNodeData("fixed-layout-sectioning", "p7")).toBeNull()
   } finally { after.close() }
+})
+
+it("names the failed page in a fixed-to-reflowable switch and keeps the diagnostic after reopen", async () => {
+  await run()
+  const s = store()
+  const prior = ["p2", "p7"].map(id => s.getLatestNodeData("web-rendering", id))
+  s.close()
+  fs.writeFileSync(configPath, config)
+  render.mockImplementation(async (...args: unknown[]) => {
+    if ((args[0] as { pageId: string }).pageId === "p7") throw new Error("controlled page failure")
+    return { sections: [] }
+  })
+  await expect(run()).rejects.toThrow("STORYBOARD_PUBLICATION_INCOMPLETE: p7; total=1")
+  const reopened = store()
+  try {
+    expect(reopened.getStepRuns().find(step => step.step === "web-rendering")?.error).toContain("STORYBOARD_PUBLICATION_INCOMPLETE: p7; total=1")
+    expect(["p2", "p7"].map(id => reopened.getLatestNodeData("web-rendering", id))).toEqual(prior)
+  } finally { reopened.close() }
+  const bus = createBookEventBus(), decisions = createPageErrorDecisions(bus)
+  const service = createStageService(createStageRunner(), bus, decisions)
+  const app = new Hono().onError(errorHandler).route("/", createStageRoutes(service, bus, decisions, root, root, root, configPath))
+  const status = await app.request(`/books/${label}/step-status`)
+  expect(status.status).toBe(200)
+  expect(await status.json()).toMatchObject({ stepErrors: { "web-rendering": expect.stringContaining("STORYBOARD_PUBLICATION_INCOMPLETE: p7; total=1") } })
+})
+
+it("bounds missing layout-switch identities to the active window", async () => {
+  const s = store()
+  try {
+    for (let n = 20; n < 45; n++) {
+      s.putExtractedPage({ pageId: `p${n}`, pageNumber: n, text: "source", images: [], pageImage: { imageId: `p${n}_page`, buffer: Buffer.from("image"), hash: "fixture", format: "png", width: 4, height: 6 } })
+      s.putNodeData("page-sectioning", `p${n}`, semantic(n))
+      s.putNodeData("web-rendering", `p${n}`, { sections: [{ sectionIndex: 0, sectionId: `p${n}_sec009`, sectionType: "text", reasoning: "", html: "<p>Retained</p>" }] })
+    }
+    fs.writeFileSync(path.join(root, label, "part.json"), JSON.stringify({
+      adtPart: 1, sourceLabel: label, title: null, range: { startPage: 20, endPage: 44 },
+      pageCount: 100, fingerprint: {}, identityHash: "id", semanticsHash: "sem",
+      createdAt: "2026-01-01T00:00:00.000Z", partLabelSuggestion: "book-p020-044",
+    }))
+    const publication = createStoryboardPublication(s, label, root, configPath)
+    for (const action of [() => publication.assertScope(["p20"]), () => publication.publish()]) {
+      try { action(); expect.fail("must refuse incomplete switch") }
+      catch (error) {
+        const text = (error as Error).message
+        expect(text).toContain("STORYBOARD_PUBLICATION_INCOMPLETE: p")
+        expect(text).toMatch(/total=2[45]/)
+        expect(text).not.toContain("p44")
+        expect(text).not.toContain("p2,")
+      }
+    }
+  } finally { s.close() }
 })

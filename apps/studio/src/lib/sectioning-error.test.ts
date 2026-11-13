@@ -22,6 +22,7 @@ it("keeps safe package document and member diagnostics for HTTP and SSE", () => 
   expect(message).toContain("pg001_sec001.html")
   expect(message).toContain("assets/missing.png")
   expect(message).toBe(sectioningErrorMessage(raw, "PACKAGE_FILES_INCOMPLETE"))
+  expect(sectioningErrorMessage('PACKAGE_FILES_INCOMPLETE: {"document":"pg001_sec001.html"}')).toContain("pg001_sec001.html")
   for (const member of ["/private/secret", "../secret", "a\\\\secret", "a".repeat(241)]) {
     expect(sectioningErrorMessage(`PACKAGE_FILES_INCOMPLETE: ${JSON.stringify({ document: "page.html", member })}`)).not.toContain(member)
   }
@@ -37,7 +38,7 @@ it("distinguishes lost tracking evidence from a recoverable damaged history row"
   expect(sectioningErrorMessage("HISTORY_REPAIR_REQUIRED: page-sectioning/p2@1")).not.toBe(message)
 })
 
-it.each(["PIPELINE_PAGES_FAILED", "SECTIONING_INPUT_UNREADABLE", "STORYBOARD_PAGE_OUTSIDE_WINDOW"])("keeps bounded page IDs and full counts for %s in HTTP/SSE messages", code => {
+it.each(["PIPELINE_PAGES_FAILED", "SECTIONING_INPUT_UNREADABLE", "STORYBOARD_PAGE_OUTSIDE_WINDOW", "STORYBOARD_PUBLICATION_INCOMPLETE", "STORYBOARD_INPUT_CHANGED"])("keeps bounded page IDs and full counts for %s in HTTP/SSE messages", code => {
   const message = `${code}: p2, p7; total=27; causes=INTERNAL_DETAIL`
   const translated = sectioningErrorMessage(message)
   expect(translated).toContain("27")

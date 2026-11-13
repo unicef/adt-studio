@@ -10,6 +10,11 @@ import { FIXED_LAYOUT_SECTIONING_NODE, publishedPageLayouts } from "./render-sec
 import { activeSectioningPages } from "./sectioning-window.js"
 import { SectioningSafetyError } from "./sectioning-errors.js"
 
+const pageDiagnostic = (pageIds: readonly string[]) => `${pageIds.slice(0, 20).join(", ")}; total=${pageIds.length}`
+const incompletePublication = (pageIds: readonly string[]) => new SectioningSafetyError(
+  "STORYBOARD_PUBLICATION_INCOMPLETE", `${pageDiagnostic(pageIds)}; A layout switch requires every active page to finish. Previous output is retained.`,
+)
+
 /** Buffer one page until its HTML/tree pair is ready. Only a real layout switch
  * buffers the full active window; ordinary publication is incremental. */
 export function createStoryboardPublication(storage: Storage, label: string, booksRoot: string, configPath?: string) {
@@ -67,13 +72,16 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
   }
   function commit(pageIds: readonly string[]) {
     withSourceGenerationTracking(storage, () => {
-      if (inputs() !== captured || pageIds.some((id) => outputVersion(id) !== outputs.get(id))) {
-        throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Storyboard inputs changed during rendering. Retry using the current saved content.")
+      const changed = inputs() !== captured ? pageIds : pageIds.filter((id) => outputVersion(id) !== outputs.get(id))
+      if (changed.length) {
+        throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", `${pageDiagnostic(changed)}; Storyboard inputs changed during rendering. Retry using the current saved content.`)
       }
+      const missing = pageIds.filter(pageId => !pending.get(pageId)?.has("web-rendering"))
+      if (missing.length) throw incompletePublication(missing)
       for (const pageId of pageIds) {
         const priorSource = captureStoryboardSource(storage, pageId)
         const writes = pending.get(pageId)
-        if (!writes?.has("web-rendering")) throw new SectioningSafetyError("STORYBOARD_PUBLICATION_INCOMPLETE", "Storyboard did not produce every requested page. Previous output is kept.")
+        if (!writes) throw incompletePublication([pageId])
         if (!writes.has(FIXED_LAYOUT_SECTIONING_NODE) && storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)?.data != null) {
           storage.putNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId, null)
         }
@@ -96,7 +104,7 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
     layoutSwitch,
     assertScope(pageIds: readonly string[]) {
       if (layoutSwitch && (pageIds.length !== pages.length || pages.some((page) => !pageIds.includes(page.pageId)))) {
-        throw new SectioningSafetyError("STORYBOARD_PUBLICATION_INCOMPLETE", "A layout switch requires rendering every active page. Run the whole Storyboard stage.")
+        throw incompletePublication(pages.filter(page => !pageIds.includes(page.pageId)).map(page => page.pageId))
       }
     },
     discardPage(pageId: string) { pending.delete(pageId) },
@@ -106,9 +114,8 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
     },
     publish(expectedPageIds: readonly string[] = [...pending.keys()]) {
       if (layoutSwitch) {
-        if (pages.some((page) => !pending.get(page.pageId)?.has("web-rendering"))) {
-          throw new SectioningSafetyError("STORYBOARD_PUBLICATION_INCOMPLETE", "The layout switch did not finish every active page. Previous output and render trees are kept.")
-        }
+        const missing = pages.filter(page => !pending.get(page.pageId)?.has("web-rendering")).map(page => page.pageId)
+        if (missing.length) throw incompletePublication(missing)
         commit(pages.map((page) => page.pageId))
       } else {
         const remaining = expectedPageIds.filter((id) => !published.has(id))

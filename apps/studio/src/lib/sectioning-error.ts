@@ -52,6 +52,10 @@ export function sectioningErrorMessage(error?: string, code?: string): string | 
           const { document, member } = detail
           return i18n._(msg`The package document ${document} requires a missing or invalid file: ${member}. Existing output is retained. Correct the saved content or restore the file, then prepare the export again.`)
         }
+        if (detail && typeof detail === "object" && "document" in detail && safe(detail.document)) {
+          const { document } = detail
+          return i18n._(msg`Resources in the package document ${document} could not be verified. Existing output is retained. Correct the saved content, then prepare the export again.`)
+        }
       } catch { /* use the translated fallback */ }
       return i18n._(msg`The package is missing required files. Prepare the export again before downloading it.`)
     }
@@ -64,8 +68,18 @@ export function sectioningErrorMessage(error?: string, code?: string): string | 
       return i18n._(msg`Generation failed on ${total} page(s) (showing up to 20): ${pages}. Successful pages are retained. Inspect the page errors before retrying.`)
     }
     case "BOOK_BUSY": return i18n._(msg`This book is being changed by another operation. Wait for it to finish, then retry.`)
-    case "STORYBOARD_INPUT_CHANGED": return i18n._(msg`Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again.`)
-    case "STORYBOARD_PUBLICATION_INCOMPLETE": return i18n._(msg`Changing layout requires every active page to render successfully. Run the whole Storyboard stage. Previous output is retained.`)
+    case "STORYBOARD_INPUT_CHANGED": {
+      const pages = error?.match(/STORYBOARD_INPUT_CHANGED:\s*([^;]*)/)?.[1]?.trim() ?? ""
+      const total = error?.match(/; total=(\d+)/)?.[1]
+      if (total) return i18n._(msg`Storyboard inputs changed on ${total} page(s) (showing up to 20): ${pages}. Refresh the saved content before retrying. Previous output is retained.`)
+      return i18n._(msg`Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again.`)
+    }
+    case "STORYBOARD_PUBLICATION_INCOMPLETE": {
+      const pages = error?.match(/STORYBOARD_PUBLICATION_INCOMPLETE:\s*([^;]*)/)?.[1]?.trim() ?? ""
+      const total = error?.match(/; total=(\d+)/)?.[1]
+      if (total) return i18n._(msg`The layout switch has ${total} unfinished page(s) (showing up to 20): ${pages}. Inspect their inputs and page errors, then retry the whole Storyboard stage. Previous output is retained.`)
+      return i18n._(msg`Changing layout requires every active page to render successfully. Run the whole Storyboard stage. Previous output is retained.`)
+    }
     case "STORYBOARD_PAGE_INPUT_MISSING": {
       const pages = error?.match(/STORYBOARD_PAGE_INPUT_MISSING:\s*([^;]*)/)?.[1]?.trim() ?? ""
       const total = error?.match(/; total=(\d+)/)?.[1]
