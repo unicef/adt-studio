@@ -128,8 +128,10 @@ translation* is written right to left.
   before this change stay until those pages are rendered again or fixed by hand.
 - **Per-page direction.** The page is rendered in the direction of the book's source
   language.
-- **Exports, fonts, reader interface strings.** EPUB direction, a Nastaliq typeface and
-  the incomplete Urdu interface catalogue are separate work.
+- **Exports, fonts, reader interface strings.** A right-to-left page progression in
+  EPUB and WebPub, direction in the navigation documents the packagers generate, a
+  Nastaliq typeface and the incomplete Urdu interface catalogue are separate work. EPUB
+  content pages do keep the page's `dir` (D3): the rewrite makes that necessary.
 
 ## Proposed design
 
@@ -156,7 +158,12 @@ translation* is written right to left.
     the logical class itself. A table header centres itself unless an ancestor sets
     alignment explicitly, and `start` does not count as explicit;
   - a `dir` that only repeats the direction the element already inherits is removed. A
-    `dir` that changes the direction is kept;
+    `dir` that changes the direction is kept, and the classes on and inside that
+    element are mapped for its direction, not the page's: `start` and `end` are
+    resolved against the element they are on, so a block marked `dir="ltr"` in a
+    right-to-left page would otherwise change side in the page's own language. An
+    alignment inherited across such a `dir` (the class on an ancestor) is not
+    re-anchored;
   - `float-left` / `float-right`, and the `clear-left` / `clear-right` that go with
     them, become `float-start` / `float-end` and `clear-start` / `clear-end`, mapped
     the same way, so a box the text wraps around changes side with the text. The side
@@ -173,12 +180,17 @@ translation* is written right to left.
   `apps/api/src/routes/adt-preview.ts`) is built from the stored HTML and from its
   rewritten form, and its cache is keyed on the page direction: the rewrite introduces
   classes the stored HTML does not contain, and adding a right-to-left language changes
-  what is served without changing any stored node.
+  what is served without changing any stored node. The EPUB packager rebuilds each
+  page's root element from the packaged page (`convertPageToXhtml()`,
+  `packages/pipeline/src/packaging/epub.ts`) and carries its `dir` over: a rewritten
+  page no longer sets a direction of its own.
 - **D4 — new pages: at generation.** `validateWebRendering()` applies D2 to HTML that
   has passed validation, so the stored page is neutral. The review loop re-validates
   revised HTML with the same function (`render-llm.ts:152`), so reviewer corrections
-  are covered. Here, and only here, it also corrects three things in a right-to-left
-  page instead of preserving them:
+  are covered. `renderSectionLlm()` applies it once more after its last repairs: the
+  table-of-contents repair runs there and writes `text-right` on each page number. At
+  generation, and only there, it also corrects three things in a right-to-left page
+  instead of preserving them:
   - right-to-left text the model pushed to the left is aligned to the start;
   - a table-of-contents page number, which the TOC repair right-aligns for a
     left-to-right row, is aligned to the end of its cell;
@@ -190,13 +202,16 @@ translation* is written right to left.
   `visual_review_edit`, `html_edit`, `html_edit_verify` directly. It says the page is
   already rendered right-to-left, which side the first child of a row sits on, how to
   read "left" and "right" in the existing instructions (including the table of
-  contents), and that the page must not set `dir` or left/right alignment. It asks for
+  contents), and that the page must not set `dir` or left/right alignment (a block
+  wholly in a left-to-right script may carry `dir="ltr"`, and then takes no alignment
+  class to sit at the left). It asks for
   the alignment of the original page image, with no class for text that starts at the
   right and `text-center` only for text that is centred there, and it names the float
   classes and the side their gap goes on. It renders only when the page direction is
   `rtl`. A left-to-right book with a right-to-left
   translation is made neutral by D3 and D4, not by the model, so adding a translation
-  does not change its prompts.
+  does not change its prompts. Every caller of the renderer passes the direction,
+  including the section an agent creates (`packages/agents/src/tools/render-section.ts`).
 - **D6 — caching.** The cache key hashes the rendered system and user messages
   (`packages/llm/src/cache.ts:56`). The partial renders nothing unless the page is
   right-to-left, so every other prompt and its cache key are unchanged.
@@ -231,8 +246,9 @@ translation* is written right to left.
 
 - **Files:**
   - `packages/pipeline/src/direction-neutral-html.ts` (new), `language-context.ts`,
-    `packaging/web.ts`, `render-llm.ts`, `web-rendering.ts`, `page-sectioning.ts`,
-    `pipeline-dag.ts`
+    `packaging/web.ts`, `packaging/epub.ts`, `render-llm.ts`, `web-rendering.ts`,
+    `page-sectioning.ts`, `pipeline-dag.ts`
+  - `packages/agents/src/tools/render-section.ts`
   - `prompts/_text_direction.liquid` (new), `_render_fidelity.liquid`, and the five
     review and edit prompts
   - `prompts/_reading_direction.liquid` (new), `page_sectioning.liquid`,
@@ -252,7 +268,7 @@ translation* is written right to left.
     second re-adds the include lines.
   - **#887 / SPEC-0011** (prompt persistence): a book with its own copy of a prompt
     does not pick up the include. Documented, not solved here.
-  - **#1114** must merge first: it provides `getTextDirection` and
+  - **#1114** (merged 2026-11-13) provides `getTextDirection` and
     `resolveBookLanguage`.
 
 ## Acceptance criteria
@@ -265,7 +281,8 @@ translation* is written right to left.
       returns the source language's direction.
 - [ ] AC-4: The rewrite maps `text-left`/`text-right` to `text-start`/`text-end` for a
       left-to-right page and the mirror for a right-to-left page, keeping variant
-      prefixes.
+      prefixes, and maps a block whose `dir` differs from the page's for its own
+      direction.
 - [ ] AC-5: A `<th>` that was inheriting left or right gets the logical class itself;
       one whose nearest explicit alignment is neither is not touched.
 - [ ] AC-6: A `dir` that repeats the inherited direction is removed; one that changes
@@ -275,13 +292,15 @@ translation* is written right to left.
 - [ ] AC-8: Packaging rewrites the page for a book with a right-to-left language and
       leaves every other book's page byte-identical.
 - [ ] AC-9: A newly generated page is stored rewritten for a book with a right-to-left
-      language, and exactly as the model wrote it for every other book.
+      language, and exactly as the model wrote it for every other book. That includes
+      what the repairs after validation write (a table-of-contents page number).
 - [ ] AC-10: At generation, in a right-to-left page, right-to-left text aligned left is
       started, a block wholly in a left-to-right script is kept at the end, a
       table-of-contents page number is aligned to the end, a class re-added by a
       repair step is not duplicated, and a floated box whose only side margin is on its
       outer side gets it on the text side.
-- [ ] AC-11: The prompts receive the page direction from the book's languages.
+- [ ] AC-11: The prompts receive the page direction from the book's languages, from the
+      Storyboard render and from the section an agent creates.
 - [x] AC-12 (measured through the real packager, on scratch copies): *English Grade 2*
       with an Urdu translation is pixel-identical in English on 34 of 34 pages, with
       text blocks against the left edge in Urdu 137 → 0. *GK-2* with an English
@@ -294,7 +313,8 @@ translation* is written right to left.
 - [ ] AC-14: The rewrite maps `float-left`/`float-right` and `clear-left`/`clear-right`
       to their logical forms for the direction the page was written in, moves the side
       margin of the floated element with it and no other margin, and is unchanged when
-      applied twice.
+      applied twice. A float inside a block whose `dir` differs from the page's is
+      mapped for that block's direction.
 - [ ] AC-15: The Studio preview stylesheet has rules for the classes the rewrite
       introduces, and is rebuilt when a book gains a right-to-left language.
 - [ ] AC-16: For a page that is not right-to-left, the two sectioning prompts render
@@ -306,6 +326,8 @@ translation* is written right to left.
       from scratch has its contents table in the order of the original (serial number
       at the right), contents titles aligned to the start, and each floated box on the
       mirrored side in English with its gap on the text side.
+- [ ] AC-19: The EPUB page of a book whose source language is right-to-left carries
+      `dir="rtl"` on its root element; a left-to-right page's EPUB root is unchanged.
 
 ## Test plan
 
@@ -314,21 +336,24 @@ translation* is written right to left.
 | AC-1 | unit | `packages/pipeline/src/__tests__/text-direction-prompts.test.ts` | `AC-1: <prompt> renders unchanged for a book that is not right-to-left` |
 | AC-2 | unit | same | `AC-2: <prompt> carries the block once, in the system message, for a right-to-left book` |
 | AC-3 | unit | `packages/pipeline/src/__tests__/direction-neutral-html.test.ts` | `AC-3: …` (2 tests) |
-| AC-4 | unit | same | `AC-4: …` (2 tests) |
+| AC-4 | unit | same | `AC-4: …` (3 tests) |
 | AC-5 | unit | same | `AC-5: …` (2 tests) |
 | AC-6 | unit | same | `AC-6: …` (2 tests) |
 | AC-7 | unit | same | `AC-7: …` (3 tests) |
 | AC-8 | unit | `packages/pipeline/src/__tests__/package-web.test.ts` | `AC-8: …` (3 tests) |
-| AC-9 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-9: …` (3 tests) |
+| AC-9 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-9: …` (6 tests) |
 | AC-10 | unit | `packages/pipeline/src/__tests__/direction-neutral-html.test.ts` | `AC-10: …` (6 tests) |
+| AC-10 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-10: stores a right-to-left contents page with its page numbers at the end and no left/right alignment` |
 | AC-11 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-11: …` |
+| AC-11 | unit | `packages/agents/src/__tests__/render-section.test.ts` | `AC-11: …` (2 tests) |
 | AC-12 | measured | recorded in the implementation PRs | two-book browser audit |
 | AC-13 | acceptance | recorded in the implementation PRs | *GK-2-2* from-scratch audit |
-| AC-14 | unit | `packages/pipeline/src/__tests__/direction-neutral-html.test.ts` | `AC-14: …` (4 tests) |
+| AC-14 | unit | `packages/pipeline/src/__tests__/direction-neutral-html.test.ts` | `AC-14: …` (5 tests) |
 | AC-15 | unit | `apps/api/src/routes/adt-preview.test.ts` | `AC-15: the preview stylesheet covers the classes the direction-neutral rewrite introduces` |
 | AC-16 | unit | `packages/pipeline/src/__tests__/text-direction-prompts.test.ts` | `AC-16: <prompt> …` (2 tests per prompt) |
 | AC-17 | unit | `packages/pipeline/src/__tests__/page-sectioning.test.ts` | `AC-17: …` |
 | AC-18 | acceptance | recorded in the implementation PRs | *GK-2-2* from-scratch re-run |
+| AC-19 | unit | `packages/pipeline/src/__tests__/package-epub.test.ts` | `AC-19: …` (2 tests) |
 
 ## Rollout
 
