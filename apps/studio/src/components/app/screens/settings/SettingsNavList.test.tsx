@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 let rejected: { providerId: string; displayName: string } | null = null
+let needsProvider = false
 let sharingUpdate: object | null = null
 
 vi.mock("@tanstack/react-router", () => ({
@@ -18,7 +19,10 @@ vi.mock("@lingui/react/macro", () => ({
     t: (strings: TemplateStringsArray) => strings.join(""),
   }),
 }))
-vi.mock("@/hooks/use-api-key", () => ({ useRejectedTextProvider: () => rejected }))
+vi.mock("@/hooks/use-api-key", () => ({
+  useRejectedTextProvider: () => rejected,
+  useNeedsTextProvider: () => needsProvider,
+}))
 vi.mock("@/hooks/use-sharing-update", () => ({ useSharingUpdate: () => sharingUpdate }))
 
 const { SettingsNavList } = await import("./SettingsNavList")
@@ -29,7 +33,15 @@ describe("SettingsNavList", () => {
   afterEach(() => {
     cleanup()
     rejected = null
+    needsProvider = false
     sharingUpdate = null
+  })
+
+  it("flags the AI providers tab while no provider is connected", () => {
+    needsProvider = true
+    render(<SettingsNavList activeKey="language" />)
+    expect(within(tab("AI providers")).getByText("Not connected")).toBeTruthy()
+    expect(screen.queryByText("Key rejected")).toBeNull()
   })
 
   it("flags the AI providers tab while a provider refuses its key", () => {
@@ -41,6 +53,7 @@ describe("SettingsNavList", () => {
   it("shows no flag when every key is accepted", () => {
     render(<SettingsNavList activeKey="language" />)
     expect(screen.queryByText("Key rejected")).toBeNull()
+    expect(screen.queryByText("Not connected")).toBeNull()
   })
 
   it("keeps the sharing update badge independent of the key flag", () => {
