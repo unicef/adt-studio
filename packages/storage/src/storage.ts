@@ -12,6 +12,8 @@ export interface ImageData {
   imageId: string
   width: number
   height: number
+  /** Content hash of the stored bytes; identical values mean identical pixels. */
+  hash?: string
   /** How this image was produced: vector SVG render, page crop, or direct raster extraction */
   renderMethod?: RenderMethodValue
   /** Placement on the page in PDF points (top-left origin), when known. */
