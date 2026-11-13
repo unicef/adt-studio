@@ -1285,7 +1285,7 @@ function wrapTextNodes(
  * - Mirrors `data-id` to `id` so SMIL fragment refs resolve in EPUB readers
  * - Wraps words in `<span id="…_wNNN">` so SMIL word-level fragments resolve
  */
-function convertPageToXhtml(html: string): string {
+export function convertPageToXhtml(html: string): string {
   // Wrap words first on raw HTML (JSDOM is forgiving there); subsequent
   // htmlToXhtml normalises void-tag closing and entity references for the
   // EPUB consumer. Then mirror data-id → id for paragraph-level fragments.
@@ -1296,6 +1296,12 @@ function convertPageToXhtml(html: string): string {
   // Extract lang attribute from original
   const langMatch = html.match(/lang="([^"]*)"/)
   const lang = langMatch ? langMatch[1] : "en"
+  // Carry the page's direction over as well. A page of a book with a
+  // right-to-left language is direction-neutral (SPEC-0024): it no longer says
+  // `dir="rtl"` or `text-right` itself, so without the root's `dir` it would be
+  // laid out left to right.
+  const dirMatch = html.match(/<html\b[^>]*\sdir="(rtl|ltr)"/i)
+  const dir = dirMatch ? ` dir="${dirMatch[1].toLowerCase()}"` : ""
 
   // Extract <head> content (between <head> and </head>)
   const headMatch = xhtmlBody.match(/<head[^>]*>([\s\S]*?)<\/head>/)
@@ -1308,7 +1314,7 @@ function convertPageToXhtml(html: string): string {
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="${escapeXml(lang)}">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="${escapeXml(lang)}"${dir}>
 <head>
 ${headContent}
 </head>
