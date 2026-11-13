@@ -99,6 +99,16 @@ it("validates shared runtime files once per read and notices their deletion on t
     expect(fs.readFileSync(page)).toEqual(saved)
     fs.unlinkSync(resource)
   }
+  for (const selector of [".--reader", "#--reader", ".--reader:hover", ".label:not(.--reader)", String.raw`.\2d \2d reader`]) {
+    fs.writeFileSync(page, `<style>${selector} { color red }</style><main class="--reader" id="--reader">Harmless selector</main>`)
+    expect(packageFilesAvailable(root), selector).toBe(true)
+  }
+  for (const definition of ["--hero", String.raw`/*before*/\2d \2d hero/*after*/`]) {
+    fs.writeFileSync(resource, "required image bytes")
+    fs.writeFileSync(page, `<style>.zz { color red; ${definition}:"assets/style-resource.png" }</style><style>.zz { background-image:image-set(var(--hero) 1x) }</style><main class="zz">Ambiguous scope</main>`)
+    expect(packageFilesAvailable(root), definition).toBe(false)
+    fs.unlinkSync(resource)
+  }
   fs.writeFileSync(page, '<main style="background:url(assets/style-resource.png">Ambiguous resource</main>')
   fs.writeFileSync(resource, "required image bytes")
   failure.mockClear()

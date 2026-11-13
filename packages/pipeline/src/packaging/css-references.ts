@@ -85,6 +85,7 @@ function valueReferences(
   }
   const walk = (parent = "") => {
     let importPending = false
+    let declarationStart = false
     while (position < value.length) {
       skip()
       const char = value[position]
@@ -96,6 +97,7 @@ function valueReferences(
         continue
       }
       if (char === '"' || char === "'") {
+        declarationStart = false
         const url = string(!recoverNonResourceStrings || parent === "image-set" || parent === "-webkit-image-set" || importRule || importPending)
         if (parent === "image-set" || parent === "-webkit-image-set" || (!parent && (importRule || importPending))) {
           references.push({ url, stylesheet: !parent && (importRule || importPending) })
@@ -104,6 +106,8 @@ function valueReferences(
         continue
       }
       if (/[\w-]/.test(char) || char === "\\" || char.charCodeAt(0) >= 128) {
+        const property = declarationStart
+        declarationStart = false
         let name = ""
         while (position < value.length) {
           const next = value[position]
@@ -111,7 +115,12 @@ function valueReferences(
           else if (/[\w-]/.test(next) || next.charCodeAt(0) >= 128) name += value[position++]
           else break
         }
-        if (stylesheet && name.startsWith("--")) variables(name)
+        // A dashed selector identifier is not a custom property. Definitions
+        // start a declaration and have a colon (possibly after comments).
+        if (stylesheet && property && name.startsWith("--")) {
+          skip()
+          if (value[position] === ":") variables(name)
+        }
         if (value[position] !== "(") continue
         position++
         if (name.toLowerCase() === "var") {
@@ -141,6 +150,7 @@ function valueReferences(
         continue
       }
       position++
+      declarationStart = char === ";" || char === "{"
       if (char === ";" || char === "{" || char === "}") importPending = false
       if (char === "(") walk()
     }
