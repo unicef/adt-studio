@@ -357,6 +357,51 @@ describe("Package routes", () => {
     expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
   })
 
+  it.each([false, true])("validates complete SCORM XML without affecting web downloads, fixed=%s", async fixed => {
+    const label = "scorm-xml"
+    createRenderedBook(label); createWebAssets()
+    if (fixed) {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("positioned-text", "pg001", { drawItems: [], pageWidth: 800, pageHeight: 1200, renderWidth: 800, renderHeight: 1200 })
+        storage.putNodeData("image-filtering", "pg001", { images: [] })
+        await processFixedLayoutPages(storage, `/api/books/${label}/images`)
+      } finally { storage.close() }
+    }
+    expect((await app.request(`/api/books/${label}/package-adt`, { method: "POST" })).status).toBe(200)
+    const adt = path.join(tmpDir, label, "adt"), manifest = path.join(adt, "imsmanifest.xml")
+    const original = fs.readFileSync(manifest, "utf8")
+    const readers = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
+    const download = () => readers.request(`/books/${label}/export-scorm`)
+    const good = await download()
+    expect(good.status).toBe(200)
+    const archive = unzipSync(new Uint8Array(await good.arrayBuffer()))
+    for (const damaged of [
+      original.replace("</manifest>", ""),
+      original.replace("</resource>", "</resources>"),
+      original.replace('href="index.html"', "href=index.html"),
+      original.replace('adlcp:scormtype', 'missing:scormtype'),
+      original.replace("</metadata>", "<metadata>"),
+    ]) {
+      fs.writeFileSync(manifest, damaged)
+      const refused = await download()
+      expect(refused.status).toBe(409)
+      expect(await refused.json()).toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+      expect(fs.readFileSync(manifest, "utf8")).toBe(damaged)
+      const web = await readers.request(`/books/${label}/export-adt`)
+      expect(web.status).toBe(200)
+      await web.arrayBuffer()
+    }
+    fs.writeFileSync(manifest, "\uFEFF" + original.replaceAll("adlcp:", "sc:").replace("xmlns:adlcp", "xmlns:sc"))
+    const prefixed = await download()
+    expect(prefixed.status).toBe(200)
+    await prefixed.arrayBuffer()
+    fs.writeFileSync(manifest, original)
+    const restored = await download()
+    expect(restored.status).toBe(200)
+    expect(unzipSync(new Uint8Array(await restored.arrayBuffer()))).toEqual(archive)
+  })
+
   it("rejects another book's intact package while retaining same-book relocation", { timeout: 30_000 }, async () => {
     createWebAssets()
     for (const label of ["origin-a", "origin-b"]) {

@@ -4,6 +4,7 @@ import { Parser } from "htmlparser2"
 import { cssReferences, parseCssSource } from "./css-references.js"
 import { PackageFileDiagnostic, PublicationPageEntry, PackagedAudioVoices } from "@adt/types"
 import { SectioningSafetyError } from "../sectioning-errors.js"
+import { inspectReaderXml } from "./reader-xml.js"
 
 /** A normalized locale becomes one directory name in a generated bundle. */
 export const isBundleLocale = (value: unknown): value is string =>
@@ -193,10 +194,18 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
     if (options.format === "scorm") {
       const members = new Set<string>()
       let launch = false
-      new Parser({ onopentag(name, attrs) {
-        if (name === "resource" && attrs.href === "index.html" && attrs["adlcp:scormtype"] === "sco") launch = true
-        if (name === "file" && attrs.href) { member(attrs.href); members.add(attrs.href) }
-      } }, { xmlMode: true }).end(read("imsmanifest.xml"))
+      inspectReaderXml(read("imsmanifest.xml"), root => {
+        const namespace = "http://www.imsproject.org/xsd/imscp_rootv1p1p2"
+        if (root.localName !== "manifest" || root.namespaceURI !== namespace) throw new Error("Invalid SCORM manifest")
+        const children = (parent: Element, name: string) => Array.from(parent.children).filter(child => child.localName === name && child.namespaceURI === namespace)
+        for (const resources of children(root, "resources")) for (const resource of children(resources, "resource")) {
+          if (resource.getAttribute("href") === "index.html" && resource.getAttributeNS("http://www.adlnet.org/xsd/adlcp_rootv1p2", "scormtype") === "sco") launch = true
+          for (const file of children(resource, "file")) {
+            const href = file.getAttribute("href")
+            if (href) { member(href); members.add(href) }
+          }
+        }
+      })
       if (!launch || !members.has("index.html") || pages.some(page => !members.has(page.href))) return fail()
     }
     if (!fs.readdirSync(root).every(name => !name.toLowerCase().endsWith(".html") || name === "index.html" || seen.has(name))) return fail()
