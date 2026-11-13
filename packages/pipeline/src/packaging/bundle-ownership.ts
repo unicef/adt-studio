@@ -32,9 +32,10 @@ export function recordPackagedOwners(storage: Storage, root: string, items: read
   fs.writeFileSync(path.join(root, receipt), JSON.stringify({ format: "adt-package-owners-v2", bookId, entries, preloader }))
 }
 
-export function retainedPackageOwnership(storage: Storage, root: string) {
-  const order = resolveReadingOrder(storage)
-  const current = new Map(order.items.map(item => [item.id, item]))
+/** Callers may share freshly resolved owner membership from this admitted
+ * book read. Receipts, book UUID and retained file bytes are still checked here. */
+export function retainedPackageOwnership(storage: Storage, root: string,
+  current: ReadonlyMap<string, string | null> = new Map(resolveReadingOrder(storage).items.map(item => [item.id, owner(item)]))) {
   // Do not hide admission/storage errors. An unreadable package manifest cannot
   // authorize serving files. The live reader still has its own source proof.
   const result = { allOwned: false, entries: [] as { href: string; section_id: string }[],
@@ -58,10 +59,9 @@ export function retainedPackageOwnership(storage: Storage, root: string) {
   } catch { return result }
 
   for (const entry of manifest) {
-    const item = current.get(entry.section_id)
-    if (!item || path.basename(entry.href) !== entry.href || entry.href !== item.id + ".html") continue
-    const proof = receipts.get(item.id)
-    if (!proof || proof[0] !== owner(item)) continue
+    if (!current.has(entry.section_id) || path.basename(entry.href) !== entry.href || entry.href !== entry.section_id + ".html") continue
+    const proof = receipts.get(entry.section_id)
+    if (!proof || proof[0] !== current.get(entry.section_id)) continue
     try {
       const hash = digest(fs.readFileSync(regularMember(root, entry.href)))
       if (hash !== proof[1]) continue

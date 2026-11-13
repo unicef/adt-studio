@@ -55,6 +55,45 @@ beforeEach(() => {
 })
 afterEach(() => { vi.unstubAllGlobals(); fs.rmSync(root, { recursive: true, force: true }) })
 
+it("checks only the publishing page's inputs in a 150-page incremental run", () => {
+  fs.writeFileSync(configPath, config)
+  const s = store()
+  try {
+    s.transaction(() => {
+      for (let n = 10; n < 158; n++) {
+        s.putExtractedPage({ pageId: `p${n}`, pageNumber: n, text: "source", images: [], pageImage: { imageId: `p${n}_page`, buffer: Buffer.from("image"), hash: "fixture", format: "png", width: 4, height: 6 } })
+        s.putNodeData("page-sectioning", `p${n}`, semantic(n))
+      }
+    })
+    let unrelated = 0
+    const observed = { ...s, getPageImages: (...args: Parameters<typeof s.getPageImages>) => { if (args[0] !== "p2") unrelated++; return s.getPageImages(...args) } }
+    const publication = createStoryboardPublication(observed, label, root, configPath)
+    expect(publication.layoutSwitch).toBe(false)
+    publication.storage.putNodeData("web-rendering", "p2", { sections: [{ sectionId: "p2_sec009", sectionIndex: 0, sectionType: "text", reasoning: "", html: "<p>Fresh page 2</p>" }] })
+    unrelated = 0
+    const started = performance.now()
+    publication.publishPage("p2")
+    process.stdout.write(JSON.stringify({ pages: 150, publishOneMs: performance.now() - started, unrelatedImageReads: unrelated }) + "\n")
+    expect(unrelated).toBe(0)
+    expect(s.getLatestNodeData("web-rendering", "p2")).toBeTruthy()
+    expect(s.getLatestNodeData("web-rendering", "p7")).toBeNull()
+  } finally { s.close() }
+})
+
+it("allows a completed independent page but refuses the page changed during rendering", () => {
+  fs.writeFileSync(configPath, config)
+  const s = store()
+  try {
+    const publication = createStoryboardPublication(s, label, root, configPath)
+    for (const id of ["p2", "p7"]) publication.storage.putNodeData("web-rendering", id, { sections: [{ sectionId: `${id}_sec009`, sectionIndex: 0, sectionType: "text", reasoning: "", html: "<p>Fresh</p>" }] })
+    s.putNodeData("page-sectioning", "p7", { ...semantic(7), reasoning: "changed while rendering" })
+    expect(() => publication.publishPage("p2")).not.toThrow()
+    expect(() => publication.publishPage("p7")).toThrow("STORYBOARD_INPUT_CHANGED: p7; total=1")
+    expect(s.getLatestNodeData("web-rendering", "p2")).toBeTruthy()
+    expect(s.getLatestNodeData("web-rendering", "p7")).toBeNull()
+  } finally { s.close() }
+})
+
 it.each(["direct", "targeted", "http"])("refuses lost history objects before %s renderer calls", async entry => {
   fs.writeFileSync(configPath, config)
   const snapshot = () => {

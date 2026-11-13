@@ -2,31 +2,18 @@ import fs from "node:fs"
 import path from "node:path"
 import type { AppConfig, BookSummary, StoryboardCoverage } from "@adt/types"
 import { HistoryIntegrityError, type Storage } from "@adt/storage"
-import { publishedAdtDirectory, storyboardCoverage, storyboardSourceWarnings, packageFilesAvailable, normalizeLocale } from "@adt/pipeline"
+import { publishedAdtDirectory, packageFilesAvailable, normalizeLocale } from "@adt/pipeline"
 import { readRetainedPackageOwnership } from "./retained-package-reader.js"
-import { bookStateKey, createBookStateMemo } from "./book-state-memo.js"
-
-const coverageMemo = createBookStateMemo<{ coverage: StoryboardCoverage; renderable: readonly string[] }>()
-const sourceWarningMemo = createBookStateMemo<ReturnType<typeof storyboardSourceWarnings>>()
-
-/** Coverage plus the sections that satisfy every coverage rule except package
- * membership. Derived only from saved state, so it is reused until that changes. */
-function coverageState(storage: Storage, bookDir: string, pageIds: string[]) {
-  return coverageMemo(bookDir, bookStateKey(storage, bookDir), JSON.stringify(pageIds), () => {
-    const renderable: string[] = []
-    const coverage = storyboardCoverage(storage, pageIds, (sectionId) => { renderable.push(sectionId); return true })
-    return { coverage, renderable }
-  })
-}
+import { readStoryboardModel } from "./storyboard-read-model.js"
 
 /** `storyboardCoverage` for polled read models, reused while the saved book is unchanged. */
 export function currentStoryboardCoverage(storage: Storage, bookDir: string, pageIds: string[]): StoryboardCoverage {
-  return coverageState(storage, bookDir, pageIds).coverage
+  return readStoryboardModel(storage, bookDir, pageIds).coverage
 }
 
 /** `storyboardSourceWarnings` for polled read models, reused while the saved book is unchanged. */
 export function currentStoryboardSourceWarnings(storage: Storage, bookDir: string, pageIds: string[]) {
-  return sourceWarningMemo(bookDir, bookStateKey(storage, bookDir), JSON.stringify(pageIds), () => storyboardSourceWarnings(storage, pageIds))
+  return readStoryboardModel(storage, bookDir, pageIds).warnings
 }
 
 /** A retained partial bundle remains usable, but newly rendered source HTML
@@ -35,7 +22,7 @@ export function currentStoryboardSourceWarnings(storage: Storage, bookDir: strin
 export function storyboardPackageStatus(storage: Storage, bookDir: string, pageIds: string[], config: AppConfig, cachedOnly = false): NonNullable<BookSummary["previewStatus"]> {
   const adtDir = publishedAdtDirectory(bookDir)
   if (!fs.existsSync(adtDir)) return "incomplete"
-  const { coverage, renderable } = coverageState(storage, bookDir, pageIds)
+  const { coverage, renderable } = readStoryboardModel(storage, bookDir, pageIds)
   if (!coverage.complete || !coverage.rendered) return "incomplete"
   const expectedLanguages = [...(config.output_languages ?? []), ...(config.editing_language ? [config.editing_language] : [])].map(normalizeLocale)
   const readOwnership = cachedOnly ? readRetainedPackageOwnership.peek : readRetainedPackageOwnership

@@ -37,14 +37,17 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
       return false
     }
   })
-  const inputs = () => configHash(JSON.stringify({
-    config: loadBookConfig(label, booksRoot, configPath),
-    pages: activeSectioningPages(storage, loadBookConfig(label, booksRoot, configPath), bookDir),
-    sectioning: pages.map((page) => [page.pageId, storage.getSelectedNodeVersion("page-sectioning", page.pageId)]),
-    positionedText: pages.map((page) => [page.pageId, storage.getSelectedNodeVersion("positioned-text", page.pageId)]),
-    images: pages.map((page) => [page.pageId, storage.getSelectedNodeVersion("image-filtering", page.pageId), storage.getPageImages(page.pageId)]),
-  }))
-  const captured = inputs()
+  const sharedInputs = () => {
+    const currentConfig = loadBookConfig(label, booksRoot, configPath)
+    return configHash(JSON.stringify({ config: currentConfig, pages: activeSectioningPages(storage, currentConfig, bookDir) }))
+  }
+  const pageInputs = (pageId: string) => configHash(JSON.stringify([
+    storage.getSelectedNodeVersion("page-sectioning", pageId),
+    storage.getSelectedNodeVersion("positioned-text", pageId),
+    storage.getSelectedNodeVersion("image-filtering", pageId), storage.getPageImages(pageId),
+  ]))
+  const capturedShared = sharedInputs()
+  const capturedPages = new Map(pages.map(page => [page.pageId, pageInputs(page.pageId)]))
   const outputVersion = (pageId: string) => configHash(JSON.stringify([
     storage.getSelectedNodeVersion("web-rendering", pageId),
     storage.getSelectedNodeVersion(FIXED_LAYOUT_SECTIONING_NODE, pageId),
@@ -72,7 +75,11 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
   }
   function commit(pageIds: readonly string[]) {
     withSourceGenerationTracking(storage, () => {
-      const changed = inputs() !== captured ? pageIds : pageIds.filter((id) => outputVersion(id) !== outputs.get(id))
+      // Every publication checks shared configuration/window plus its own page
+      // inputs and output version. A layout switch still checks all pages in
+      // one transaction; an incremental run does not rescan unrelated images.
+      const changed = sharedInputs() !== capturedShared ? pageIds : pageIds.filter((id) =>
+        pageInputs(id) !== capturedPages.get(id) || outputVersion(id) !== outputs.get(id))
       if (changed.length) {
         throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", `${pageDiagnostic(changed)}; Storyboard inputs changed during rendering. Retry using the current saved content.`)
       }

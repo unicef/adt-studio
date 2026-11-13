@@ -16,14 +16,14 @@ export const publicOutputMemberKey = (id: string) => id.normalize("NFC").toLower
 
 /** Reserve both active source representations. The same page can own an ID in
  * its semantic and positioned trees, but two pages (or a quiz) cannot. */
-export function publicOutputOwners(storage: Storage): Map<string, Set<string>> {
+export function publicOutputOwners(storage: Storage, pageIds = storage.getPages().map(page => page.pageId), includeQuizzes = true): Map<string, Set<string>> {
   const owners = new Map<string, Set<string>>()
   const reserve = (id: string, owner: string) => {
     const set = owners.get(id) ?? new Set<string>()
     set.add(owner)
     owners.set(id, set)
   }
-  for (const { pageId } of storage.getPages()) {
+  for (const pageId of pageIds) {
     for (const node of ["page-sectioning", "fixed-layout-sectioning"]) {
       let data: unknown
       try { data = storage.getLatestNodeData(node, pageId)?.data }
@@ -38,7 +38,7 @@ export function publicOutputOwners(storage: Storage): Map<string, Set<string>> {
       }
     }
   }
-  try {
+  if (includeQuizzes) try {
     // Identity readers do not require document timestamps, reasoning or the
     // deprecated quizIndex. Reserve their public IDs independently of those
     // unused fields, including a valid entry beside an unreadable one. Corrupt quiz
@@ -56,7 +56,11 @@ export function publicOutputOwners(storage: Storage): Map<string, Set<string>> {
 }
 
 export function ambiguousPublicOutputIds(storage: Storage): Set<string> {
-  const owners = publicOutputOwners(storage)
+  return ambiguousPublicOutputIdsFromOwners(publicOutputOwners(storage))
+}
+
+/** Merge page-local contributions before applying the same global collision rule. */
+export function ambiguousPublicOutputIdsFromOwners(owners: ReadonlyMap<string, ReadonlySet<string>>): Set<string> {
   const members = new Map<string, string[]>()
   for (const id of owners.keys()) members.set(publicOutputMemberKey(id), [...(members.get(publicOutputMemberKey(id)) ?? []), id])
   return new Set([...owners].filter(([id, pages]) => !isPublicOutputId(id) || pages.size !== 1 || members.get(publicOutputMemberKey(id))!.length !== 1).map(([id]) => id))

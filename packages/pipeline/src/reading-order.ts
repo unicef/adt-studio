@@ -66,6 +66,8 @@ export interface ResolvedReadingOrder {
 export interface ResolveReadingOrderOptions {
   /** Drop quiz pages entirely (packaging with the quizzes feature disabled). */
   includeQuizzes?: boolean
+  /** Resolve quiz ownership without reparsing every page's HTML. */
+  includeSections?: boolean
   /** Additional caller scope; never broadens a mandatory part range. */
   pageIds?: readonly string[]
 }
@@ -98,9 +100,10 @@ interface PageContext {
   rendering: SectionRendering[]
 }
 
-function readPageContexts(storage: Storage, pageIds?: readonly string[]): PageContext[] {
+function readPageContexts(storage: Storage, pageIds?: readonly string[], includeSections = true): PageContext[] {
   const selected = pageIds && new Set(pageIds)
   return partScopedPages(storage).filter(page => !selected || selected.has(page.pageId)).map((page) => {
+    if (!includeSections) return { pageId: page.pageId, sections: [], rendering: [] }
     try {
       const sectioning = getRenderSectioning(storage, page.pageId)
       const row = storage.getLatestNodeData("web-rendering", page.pageId)
@@ -185,10 +188,11 @@ export function readReadingOrderQuizzes(storage: Storage): Quiz[] {
  */
 export function resolveReadingOrder(
   storage: Storage,
-  options: ResolveReadingOrderOptions = {}
+  options: ResolveReadingOrderOptions = {},
+  // Callers sharing one admitted read can reuse its complete namespace scan.
+  ambiguous = ambiguousPublicOutputIds(storage)
 ): ResolvedReadingOrder {
-  const pageContexts = readPageContexts(storage, options.pageIds)
-  const ambiguous = ambiguousPublicOutputIds(storage)
+  const pageContexts = readPageContexts(storage, options.pageIds, options.includeSections)
 
   const quizzes = options.includeQuizzes === false ? [] : readReadingOrderQuizzes(storage)
 

@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { readBookContentIdentity, type Storage } from "@adt/storage"
 import { retainedPackageOwnership, requiredPartRange } from "@adt/pipeline"
+import { currentReadingOwners } from "./storyboard-read-model.js"
 
 function stamp(file: string): string {
   const s = fs.statSync(file, { bigint: true, throwIfNoEntry: false })
@@ -27,7 +28,7 @@ export function createRetainedPackageReader() {
     if (hit?.key === key && [...hit.members].every(([file, identity]) => stamp(file) === identity)) return hit.value
     proofs.delete(root)
     if (cachedOnly) return undefined
-    const value = retainedPackageOwnership(db, root)
+    const value = retainedPackageOwnership(db, root, currentReadingOwners(db, path.dirname(bookDb)))
     // Bound retained metadata; the book's source HTML and media are never cached.
     proofs.delete(root)
     if (proofs.size >= 8) proofs.delete(proofs.keys().next().value!)

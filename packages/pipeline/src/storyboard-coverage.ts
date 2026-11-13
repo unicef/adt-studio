@@ -6,8 +6,8 @@ import { getRenderSectioningRow, resolveRenderedSection, withLegacyRenderingOwne
 
 /** Coverage uses current records and stable owners, never attempts or historical
  * HTML. Empty/pruned trees need no output; unreadable trees remain missing. */
-export function storyboardCoverage(storage: Storage, pageIds = storage.getPages().map((page) => page.pageId), includesOutput?: (sectionId: string) => boolean): StoryboardCoverage {
-  return coverageForPages(storage, pageIds, ambiguousPublicOutputIds(storage), includesOutput)
+export function storyboardCoverage(storage: Storage, pageIds = storage.getPages().map((page) => page.pageId), includesOutput?: (sectionId: string) => boolean, ambiguous = ambiguousPublicOutputIds(storage)): StoryboardCoverage {
+  return coverageForPages(storage, pageIds, ambiguous, includesOutput)
 }
 
 /** One immutable namespace snapshot per request, with page-local results. The

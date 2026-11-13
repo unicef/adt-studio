@@ -11,7 +11,7 @@ import { exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld } from "..
 import { spawnSync } from "node:child_process"
 import { pathToFileURL } from "node:url"
 import { unzipSync } from "fflate"
-import { packageAdtWeb, packageWebpub, loadBookConfig, processFixedLayoutPages } from "@adt/pipeline"
+import { packageAdtWeb, packageWebpub, packageFilesAvailable, loadBookConfig, processFixedLayoutPages } from "@adt/pipeline"
 import { createBookRoutes } from "./books.js"
 import { listBooks, getBook } from "../services/book-service.js"
 import type { TaskService } from "../services/task-service.js"
@@ -100,6 +100,74 @@ describe("Package routes", () => {
       "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",
     )
   }
+
+  it("prepares and downloads 120 documents with bounded dependency reads and invalidation", { timeout: 90_000 }, async () => {
+    const label = "large-bundle"
+    createRenderedBook(label); createWebAssets()
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      const source = storage.getLatestNodeData("page-sectioning", "pg001")!.data
+      const rendering = storage.getLatestNodeData("web-rendering", "pg001")!.data
+      storage.transaction(() => {
+        for (let n = 2; n <= 120; n++) {
+          const id = `pg${String(n).padStart(3, "0")}`
+          storage.putExtractedPage({ pageId: id, pageNumber: n, text: "Retained", images: [], pageImage: { imageId: `${id}_page`, buffer: Buffer.from("image"), format: "png", width: 800, height: 1200, hash: `image-${n}` } })
+          for (const [node, data] of [["page-sectioning", source], ["web-rendering", rendering]] as const) storage.putNodeData(node, id, JSON.parse(JSON.stringify(data).replaceAll("pg001", id)))
+        }
+      })
+    } finally { storage.close() }
+    const prepared = await app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+    expect(prepared.status, await prepared.clone().text()).toBe(200)
+    const adt = path.join(tmpDir, label, "adt")
+    const zip = unzipSync(new Uint8Array(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer()))
+    expect(Object.keys(zip).filter(name => /^pg\d+_sec001\.html$/.test(name))).toHaveLength(120)
+    const proofRoot = path.join(tmpDir, "uncached-proof")
+    fs.cpSync(adt, proofRoot, { recursive: true })
+    const reads = vi.spyOn(fs, "readFileSync")
+    try {
+      expect(packageFilesAvailable(proofRoot)).toBe(true)
+      const htmlReads = reads.mock.calls.filter(([file]) => typeof file === "string" && file.endsWith(".html"))
+      expect(htmlReads).toHaveLength(122) // each page, launch and generated navigation exactly once
+      expect(new Set(htmlReads.map(([file]) => file)).size).toBe(122)
+      reads.mockClear()
+      expect(packageFilesAvailable(proofRoot)).toBe(true)
+      expect(reads).not.toHaveBeenCalled()
+      const last = path.join(proofRoot, "pg120_sec001.html"), original = fs.readFileSync(last)
+      fs.appendFileSync(last, '<img src="images/missing-last-page.png">')
+      expect(packageFilesAvailable(proofRoot)).toBe(false)
+      fs.writeFileSync(last, original)
+      expect(packageFilesAvailable(proofRoot)).toBe(true)
+    } finally { reads.mockRestore() }
+    // A missing dependency introduced on the last source page cannot replace
+    // the previously published large reader or authorize a partial new ZIP.
+    const before = fs.readFileSync(path.join(adt, "pg120_sec001.html"))
+    const edited = createBookStorage(label, tmpDir)
+    try {
+      const row = edited.getLatestNodeData("web-rendering", "pg120")!.data as { sections: Array<{ html: string }> }
+      row.sections[0].html += '<img src="images/not-present.png">'
+      edited.putNodeData("web-rendering", "pg120", row)
+    } finally { edited.close() }
+    expect((await app.request(`/api/books/${label}/package-adt`, { method: "POST" })).status).toBe(409)
+    expect(fs.readFileSync(path.join(adt, "pg120_sec001.html"))).toEqual(before)
+  })
+
+  it("keeps evicted freshly prepared independent packages unverified until rechecked", { timeout: 60_000 }, async () => {
+    createWebAssets()
+    const identities = new Set<string>()
+    for (let n = 0; n < 10; n++) {
+      const label = `fresh-${n}`
+      createRenderedBook(label)
+      expect((await app.request(`/api/books/${label}/package-adt`, { method: "POST" })).status).toBe(200)
+      identities.add(JSON.parse(fs.readFileSync(path.join(tmpDir, label, "adt/.build-owners"), "utf8")).bookId)
+      expect(getBook(label, tmpDir).previewStatus).toBe("complete")
+    }
+    expect(identities.size).toBe(10)
+    const listed = listBooks(tmpDir).filter(book => book.label.startsWith("fresh-"))
+    expect(listed).toHaveLength(10)
+    expect(listed.every(book => ["complete", "unverified"].includes(book.previewStatus!))).toBe(true)
+    expect(listed.some(book => book.previewStatus === "unverified")).toBe(true)
+    expect(getBook("fresh-0", tmpDir).previewStatus).toBe("complete")
+  })
 
   it("uses the configured prompts directory for both admission and publication", async () => {
     createRenderedBook("custom-prompts")
