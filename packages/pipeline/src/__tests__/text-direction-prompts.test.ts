@@ -13,6 +13,10 @@ import type { Message } from "@adt/llm"
 const promptsDir = path.join(process.cwd(), "prompts")
 const INCLUDE_LINE = '{% include "_text_direction" -%}\n'
 const HEADING = "## WRITING DIRECTION: RIGHT TO LEFT"
+// The sectioning prompts save the order a page is read in: they get their own block.
+const READING_INCLUDE_LINE = '{% include "_reading_direction" -%}\n'
+const READING_HEADING = "## READING DIRECTION: RIGHT TO LEFT"
+const SECTIONING_PROMPTS = ["page_sectioning", "page_sectioning_refinement"]
 
 const RENDER_PROMPTS = [
   "web_generation_html",
@@ -57,13 +61,30 @@ const context: Record<string, unknown> = {
   screenshots: [],
 }
 
+const sectioningContext: Record<string, unknown> = {
+  page: { pageNumber: 4, text: "Page text", imageBase64: "page-image" },
+  images: [],
+  structure_types: [{ key: "table", description: "Table" }],
+  role_types: [{ key: "text", description: "Body text" }],
+  section_types: [{ key: "table_of_contents", description: "Contents" }],
+  mode: "dynamic",
+  book_outline: null,
+  max_refinements: 1,
+  iteration: 1,
+  prior_notes: [],
+  candidate: { reasoning: "ok", sections_json: "[]" },
+}
+
 /** The prompts as they were before the block existed: same files, include lines removed. */
 const withoutBlockDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-prompts-no-direction-"))
 for (const file of fs.readdirSync(promptsDir)) {
-  if (file === "_text_direction.liquid") continue
+  if (file === "_text_direction.liquid" || file === "_reading_direction.liquid") continue
   const source = path.join(promptsDir, file)
   if (!fs.statSync(source).isFile()) continue
-  fs.writeFileSync(path.join(withoutBlockDir, file), fs.readFileSync(source, "utf8").split(INCLUDE_LINE).join(""))
+  fs.writeFileSync(
+    path.join(withoutBlockDir, file),
+    fs.readFileSync(source, "utf8").split(INCLUDE_LINE).join("").split(READING_INCLUDE_LINE).join(""),
+  )
 }
 afterAll(() => fs.rmSync(withoutBlockDir, { recursive: true, force: true }))
 
@@ -108,6 +129,34 @@ describe("writing-direction prompt block (SPEC-0024)", () => {
       expect(system.split(HEADING)).toHaveLength(2)
       expect(system).toContain('Do NOT use `text-left` or `text-right`')
       // Nothing but the system message changes, and nothing is removed from it.
+      expect(rendered.filter((message) => message.role !== "system")).toEqual(
+        original.filter((message) => message.role !== "system"),
+      )
+      expect(system.length).toBeGreaterThan(text(original.filter((message) => message.role === "system")).length)
+    })
+  }
+})
+
+
+describe("reading-direction prompt block for sectioning (SPEC-0024)", () => {
+  for (const name of SECTIONING_PROMPTS) {
+    it(`AC-16: ${name} includes the block and renders unchanged for a book that is not right-to-left`, async () => {
+      expect(fs.readFileSync(path.join(promptsDir, `${name}.liquid`), "utf8")).toContain(READING_INCLUDE_LINE)
+      const original = await before.renderPrompt(name, sectioningContext)
+      for (const pageDirection of [undefined, "", "ltr"]) {
+        const rendered = await current.renderPrompt(name, { ...sectioningContext, page_direction: pageDirection })
+        expect(rendered, `page_direction=${String(pageDirection)}`).toEqual(original)
+      }
+    })
+
+    it(`AC-16: ${name} carries the block once, in the system message, for a right-to-left book`, async () => {
+      const original = await before.renderPrompt(name, sectioningContext)
+      const rendered = await current.renderPrompt(name, { ...sectioningContext, page_direction: "rtl" })
+      const system = text(rendered.filter((message) => message.role === "system"))
+      expect(system.split(READING_HEADING)).toHaveLength(2)
+      expect(system).toContain("the first `table_cell` is the RIGHTMOST cell")
+      // The page-HTML block is not for sectioning.
+      expect(system).not.toContain(HEADING)
       expect(rendered.filter((message) => message.role !== "system")).toEqual(
         original.filter((message) => message.role !== "system"),
       )

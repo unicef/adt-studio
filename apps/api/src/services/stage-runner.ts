@@ -1435,6 +1435,7 @@ async function runSectioningStep(
     const sourceLanguage = metadata?.language_code ?? null
 
     const pageSectioningConfig = buildPageSectioningConfig(config)
+    const pageDirection = resolvePageDirection(resolveBookLanguage(storage, config), config.output_languages)
     const translationConfig = buildTranslationConfig(config, sourceLanguage)
 
     const structuringModel = createLLMModel({
@@ -1543,6 +1544,7 @@ async function runSectioningStep(
               imageBase64: storage.getPageImageBase64(page.pageId),
               availableImages,
               outline: outlineContextForPage(bookOutline, page.pageId),
+              pageDirection,
             },
             pageSectioningConfig,
             structuringModel,

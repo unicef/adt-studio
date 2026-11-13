@@ -612,6 +612,7 @@ export async function runFullPipeline(
             imageBase64,
             availableImages,
             outline: outlineContextForPage(bookOutline, page.pageId),
+            pageDirection: resolvePageDirection(getLanguage(storage, config), config.output_languages),
           },
           pageSectioningConfig,
           model,

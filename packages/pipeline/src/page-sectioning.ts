@@ -3,6 +3,7 @@ import {
   type ContentNodeData,
   type PageSectioningOutput,
   type PageSectioningSection,
+  type TextDirection,
   type TypeDef,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
@@ -39,6 +40,12 @@ export interface PageSectioningInput {
   availableImages: Array<{ imageId: string; imageBase64: string }>
   /** Authoritative book-level hierarchy slice for this page, when available. */
   outline?: PageOutlineContext | null
+  /**
+   * Direction the page is written in, for a book with a right-to-left language
+   * (`resolvePageDirection`). The prompts say so only when it is `"rtl"`:
+   * the saved order is the order the page is read in.
+   */
+  pageDirection?: TextDirection
 }
 
 // ── LLM-facing shape (snake_case matching the prompt + schema) ──
@@ -163,6 +170,7 @@ async function generateInitial(
       section_types: config.sectionTypes,
       mode: config.mode,
       book_outline: input.outline ?? null,
+      page_direction: input.pageDirection ?? "",
     },
     validate: (raw) => {
       applyAutoRepairs(raw as LLMStructuringResult | null)
@@ -206,6 +214,7 @@ async function generateReview(
       section_types: config.sectionTypes,
       mode: config.mode,
       book_outline: input.outline ?? null,
+      page_direction: input.pageDirection ?? "",
       max_refinements: config.maxRefinements,
       iteration,
       prior_notes: priorNotes,
