@@ -1,4 +1,4 @@
-import type { Storage } from "@adt/storage"
+import { HistoryIntegrityError, type Storage } from "@adt/storage"
 import { STAGE_ORDER, PIPELINE, getStageDependents, EDITABLE_ACTIVITY_NODE, PageSectioningOutput, type AuthoredReplacement, type StageName, type OutputRunScope } from "@adt/types"
 import { isProtectedContent } from "./manual-edits.js"
 import { withSourceGenerationTracking } from "./source-generation-state.js"
@@ -21,7 +21,14 @@ export function protectedAuthoredRecords(storage: Storage, sectioningInputSignat
     for (const itemId of ids) {
       const version = storage.getSelectedNodeVersion(node, itemId)
       let row: ReturnType<Storage["getLatestNodeData"]> = null
-      if (node !== "page-sectioning") row = storage.getLatestNodeData(node, itemId)
+      if (node !== "page-sectioning") {
+        try { row = storage.getLatestNodeData(node, itemId) }
+        catch (error) {
+          if (!(error instanceof SyntaxError)) throw error
+          // Unknown authorship cannot become an empty replacement list.
+          throw new HistoryIntegrityError(node, itemId, version ?? 0)
+        }
+      }
       if (version && (node === "page-sectioning" || row && isProtectedContent(row.data as { source?: "ai" | "manual" }))) records.push({
         node, itemId, version,
         ...(node === "page-sectioning" ? {

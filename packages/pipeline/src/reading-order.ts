@@ -154,7 +154,12 @@ export function defaultReadingOrder(
 
 /** Validate selected quiz identities without scanning page output or bundle files. */
 export function readReadingOrderQuizzes(storage: Storage): Quiz[] {
-  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
+  let quizRow: ReturnType<Storage["getLatestNodeData"]>
+  try { quizRow = storage.getLatestNodeData("quiz-generation", "book") }
+  catch (error) {
+    if (!(error instanceof SyntaxError)) throw error
+    throw new HistoryIntegrityError("quiz-generation", "book", storage.getSelectedNodeVersion("quiz-generation", "book") ?? 0)
+  }
   let quizzes: Quiz[] = []
   if (quizRow) {
     try { quizzes = withResolvedQuizIds(quizRow.data as QuizGenerationOutput).quizzes }

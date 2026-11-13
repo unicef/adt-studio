@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import type { AppConfig, BookSummary, StoryboardCoverage } from "@adt/types"
-import type { Storage } from "@adt/storage"
+import { HistoryIntegrityError, type Storage } from "@adt/storage"
 import { publishedAdtDirectory, storyboardCoverage, storyboardSourceWarnings, packageFilesAvailable, normalizeLocale } from "@adt/pipeline"
 import { readRetainedPackageOwnership } from "./retained-package-reader.js"
 import { bookStateKey, createBookStateMemo } from "./book-state-memo.js"
@@ -39,7 +39,15 @@ export function storyboardPackageStatus(storage: Storage, bookDir: string, pageI
   if (!coverage.complete || !coverage.rendered) return "incomplete"
   const expectedLanguages = [...(config.output_languages ?? []), ...(config.editing_language ? [config.editing_language] : [])].map(normalizeLocale)
   const readOwnership = cachedOnly ? readRetainedPackageOwnership.peek : readRetainedPackageOwnership
-  const ownership = readOwnership(storage, path.join(bookDir, path.basename(bookDir) + ".db"), adtDir)
+  let ownership: ReturnType<typeof readOwnership>
+  try { ownership = readOwnership(storage, path.join(bookDir, path.basename(bookDir) + ".db"), adtDir) }
+  catch (error) {
+    // Unreadable reading-order evidence cannot prove an owned package. Keep
+    // independent metadata/coverage usable; explicit downloads retain the
+    // typed recovery refusal instead of omitting the damaged dependency.
+    if (!(error instanceof HistoryIntegrityError)) throw error
+    return "unverified"
+  }
   if (!ownership) return "unverified"
   if (!ownership.allOwned) return "incomplete"
   // A cold or invalidated bounded proof says nothing about actual completeness.
