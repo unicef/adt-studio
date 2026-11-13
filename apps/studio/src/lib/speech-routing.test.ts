@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  hasSpeechProviderCredentials,
   bookSpeechProviders,
   languageUsesSpeechProvider,
   resolveLocaleMapping,
@@ -48,6 +49,17 @@ describe("speech-routing", () => {
     expect(languageUsesSpeechProvider("fr", "gemini", speechConfig)).toBe(
       false
     )
+  })
+
+  it("requires the complete credential set for each speech provider", () => {
+    expect(hasSpeechProviderCredentials("openai", { openaiKey: "key" })).toBe(true)
+    expect(hasSpeechProviderCredentials("gemini", { geminiKey: "key" })).toBe(true)
+    expect(hasSpeechProviderCredentials("azure", { azureKey: "key" })).toBe(false)
+    expect(hasSpeechProviderCredentials("azure", {
+      azureKey: "key",
+      azureRegion: "eastus",
+    })).toBe(true)
+    expect(hasSpeechProviderCredentials("unknown", { openaiKey: "key" })).toBe(false)
   })
 
   it("resolves ElevenLabs-routed languages", () => {

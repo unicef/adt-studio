@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto"
+
 import { OutputPublicationConflict } from "@adt/pipeline"
 import { EditConflictError } from "../services/edit-conflict.js"
 import type { ErrorHandler } from "hono"
@@ -34,6 +36,14 @@ export const errorHandler: ErrorHandler = (err, c) => {
       PROVIDER_ERROR_STATUS[err.code],
     )
   }
-  console.error(err)
-  return c.json({ error: "Internal server error" }, 500)
+  // The response stays generic so internals never reach the client, but it
+  // carries a reference to the full error logged here, so a bug report can be
+  // matched to it. It doesn't send people to "the server log": the desktop app
+  // has none they can open.
+  const reference = randomBytes(4).toString("hex")
+  console.error(`[error ${reference}]`, err)
+  return c.json({
+    error: `Internal server error (reference ${reference}). Include this reference when you report the problem.`,
+    reference,
+  }, 500)
 }

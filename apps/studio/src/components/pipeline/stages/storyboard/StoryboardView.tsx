@@ -1,11 +1,13 @@
 import { useEffect, useRef, useCallback, useState, useMemo, type ReactNode } from "react"
 import { useSearch, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, ArrowRight, LayoutGrid, ListTree, RotateCcw, Table2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, DownloadCloud, LayoutGrid, ListTree, RotateCcw, Table2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import { useBook } from "@/hooks/use-books"
+import { isImportedAdtStageRerunnable } from "../../stage-config"
 import { StageRunCard } from "../../components/StageRunCard"
 import { LoadingState } from "../../components/LoadingState"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -34,6 +36,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const { stageState, queueRun } = useBookRun()
   const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
+  const { data: book } = useBook(bookLabel)
   const storyboardState = stageState("storyboard")
   const storyboardDone = storyboardState === "done"
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
@@ -54,10 +57,13 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     ? !hasPageData
     : !storyboardDone && !hasRenderingData
 
+  // Regenerating would overwrite the imported HTML this project is built on.
+  const canRegenerate = isImportedAdtStageRerunnable("storyboard")
+    || book?.workingSource !== "imported-adt"
   const handleRunStoryboard = useCallback(() => {
-    if (!hasStructuredTextProvider || !sectioningReady || storyboardRunning) return
+    if (!canRegenerate || !hasStructuredTextProvider || !sectioningReady || storyboardRunning) return
     queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey })
-  }, [hasStructuredTextProvider, sectioningReady, storyboardRunning, apiKey, queueRun])
+  }, [canRegenerate, hasStructuredTextProvider, sectioningReady, storyboardRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
   const { sectionIndex, setSectionIndex, skipNextResetRef } = useSectionNav()
@@ -396,8 +402,26 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   // restructuring session in Sectioning costs one render rather than one per
   // edit.
   const storyboardStale = !storyboardDone && !storyboardRunning && hasRenderingData
+  // An imported ADT has no regenerate button here, which reads as broken unless
+  // something says why. Neutral, not a warning: editing is the expected path.
+  const importedNote = !canRegenerate ? (
+    <div className="flex shrink-0 items-center gap-2 border-b bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
+      <DownloadCloud className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span className="min-w-0 truncate">
+        <Trans>
+          These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it
+          can’t overwrite them.
+        </Trans>
+      </span>
+    </div>
+  ) : null
   const withStaleBanner = (content: ReactNode) =>
-    storyboardStale ? (
+    importedNote ? (
+      <div className="flex flex-col h-full min-h-0">
+        {importedNote}
+        <div className="flex-1 min-h-0">{content}</div>
+      </div>
+    ) : storyboardStale ? (
       <div className="flex flex-col h-full min-h-0">
         <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-3 py-2">
           <div className="text-xs text-amber-900">
@@ -412,7 +436,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
             variant="outline"
             className="h-7 shrink-0 border-amber-300 bg-white px-3 text-xs text-amber-900 hover:bg-amber-100"
             onClick={handleRunStoryboard}
-            disabled={!hasStructuredTextProvider || !sectioningReady || storyboardRunning}
+            disabled={!canRegenerate || !hasStructuredTextProvider || !sectioningReady || storyboardRunning}
           >
             <RotateCcw className="mr-1 h-3 w-3" />
             <Trans>Re-run Storyboard</Trans>
@@ -432,7 +456,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={storyboardRunning}
           completed={storyboardDone}
           onRun={handleRunStoryboard}
-          disabled={!hasStructuredTextProvider || !sectioningReady || storyboardRunning}
+          disabled={!canRegenerate || !hasStructuredTextProvider || !sectioningReady || storyboardRunning}
         />
       </div>
     )
@@ -524,7 +548,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={storyboardRunning}
           completed={storyboardDone}
           onRun={handleRunStoryboard}
-          disabled={!hasStructuredTextProvider || !sectioningReady || storyboardRunning}
+          disabled={!canRegenerate || !hasStructuredTextProvider || !sectioningReady || storyboardRunning}
         />
       </div>
     )

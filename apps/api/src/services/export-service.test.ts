@@ -107,6 +107,11 @@ describe("exportProject", () => {
     const zipBuffer = await streamToBuffer(result.stream)
     const files = unzipSync(zipBuffer)
     expect(files["export-test.db"]).toBeDefined()
+    expect(files[".adt-project.json"]).toBeDefined()
+    expect(JSON.parse(new TextDecoder().decode(files[".adt-project.json"]))).toMatchObject({
+      version: 1,
+      sourceKind: "unknown",
+    })
   })
 
   it("includes PDF in the ZIP", async () => {

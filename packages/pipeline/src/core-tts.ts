@@ -462,3 +462,66 @@ export function buildCoreTtsSourceContext(
     ]),
   )
 }
+
+/**
+ * Provider-text catalog for a book projected from a published ADT. The
+ * archive's `speech_texts.json` is the exporter's own `speechText`; it is never
+ * recorded as a manual override, but it carries no input evidence either, so
+ * SPEC-0001 treats it as content of unknown authorship (kept, and flagged when
+ * its source changes). An id in `staleIds` names text that changed after
+ * export: it is recorded as a failed non-manual preparation with no speech,
+ * which SPEC-0001 prepares again on the next Speech run.
+ */
+export function createImportedCoreTtsCatalog(options: {
+  language: string
+  entries: TextCatalogEntry[]
+  speechTexts: Record<string, string>
+  staleIds?: ReadonlySet<string>
+  generatedAt: string
+}): CoreTtsCatalogOutput {
+  const language = normalizeLocale(options.language)
+  return {
+    language,
+    generatedAt: options.generatedAt,
+    entries: options.entries.map((entry): CoreTtsCatalogEntry => {
+      if (options.staleIds?.has(entry.id)) {
+        return {
+          id: entry.id,
+          displayText: entry.text,
+          speechText: null,
+          changed: false,
+          transformations: [],
+          status: "failed",
+          failureReason: "Text changed after this ADT was exported; prepare speech again.",
+          generation: {
+            mode: "unchanged",
+            generatedAt: options.generatedAt,
+            enabledTransformations: [],
+            sourceTextHash: hash(entry.text),
+            contextHash: hash({ language, displayText: entry.text, imported: true, stale: true }),
+          },
+        }
+      }
+      const archived = options.speechTexts[entry.id]
+      const speechText = typeof archived === "string" && archived.trim().length > 0
+        ? archived
+        : entry.text
+      const changed = speechText !== entry.text
+      return {
+        id: entry.id,
+        displayText: entry.text,
+        speechText,
+        changed,
+        transformations: [],
+        status: "ready",
+        generation: {
+          mode: changed ? "generated" : "unchanged",
+          generatedAt: options.generatedAt,
+          enabledTransformations: [],
+          sourceTextHash: hash(entry.text),
+          contextHash: hash({ language, displayText: entry.text, speechText, imported: true }),
+        },
+      }
+    }),
+  }
+}

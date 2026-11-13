@@ -7,6 +7,7 @@ import {
   buildScreenshotHtml,
   FITB_HYDRATION_SCRIPT,
   SCREENSHOT_CONTENT_SECURITY_POLICY,
+  importedPresentationContentSecurityPolicy,
 } from "../screenshot-html.js"
 
 function createWebAssets(webAssetsDir: string): void {
@@ -79,6 +80,32 @@ describe("buildScreenshotHtml", () => {
 
     expect(html).toContain('<h1 data-id="tx001">Lesson heading</h1>')
     expect(html).not.toContain('<h2 data-id="tx001">Lesson heading</h2>')
+  })
+
+  it("loads imported presentation assets and recovers images projected under a temporary label", async () => {
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    createWebAssets(webAssetsDir)
+
+    const html = await buildScreenshotHtml({
+      sectionHtml: '<section><img src="/api/books/adt-recovery-temp/images/pg001_im001"></section>',
+      label: "final-book",
+      images: new Map([["pg001_im001", { base64: "YWJjMTIz" }]]),
+      webAssetsDir,
+      baseHref: "http://127.0.0.1:3001/api/books/final-book/adt/",
+      stylesheets: ["assets/fonts.css", "assets/book.css"],
+      contentClassName: "container storybook-root",
+    })
+
+    expect(html).toContain('<base href="http://127.0.0.1:3001/api/books/final-book/adt/" />')
+    expect(html).toContain('<link rel="stylesheet" href="assets/book.css" />')
+    expect(html).toContain('<div id="content" class="container storybook-root">')
+    expect(html).toContain('src="data:image/jpeg;base64,YWJjMTIz"')
+    expect(html).not.toContain("adt-recovery-temp")
+    expect(html).toContain(
+      `<meta http-equiv="Content-Security-Policy" content="${importedPresentationContentSecurityPolicy("http://127.0.0.1:3001/api/books/final-book/adt/")}" />`,
+    )
+    expect(importedPresentationContentSecurityPolicy("http://127.0.0.1:3001/api/books/final-book/adt/"))
+      .toContain("style-src 'unsafe-inline' http://127.0.0.1:3001")
   })
 
   it("emits a CSP that permits only the generated FITB hydration script", async () => {
