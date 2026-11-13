@@ -69,7 +69,7 @@ afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 it("sends each distinct image once, keeps figure candidates per page, and persists the owner verdicts onto duplicates", async () => {
   const storage = createBookStorage("book", root)
   try {
-    storage.putExtractedPage(page("pg001", 1, [image("pg001_im001", "pg001", "logo"), image("pg001_im002", "pg001", "figure-a")]))
+    storage.putExtractedPage(page("pg001", 1, [image("pg001_im001", "pg001", "logo"), image("pg001_im002", "pg001", "art")]))
     storage.putExtractedPage(page("pg002", 2, [image("pg002_im001", "pg002", "logo"), image("pg002_im002", "pg002", "art")]))
     storage.putExtractedPage(page("pg003", 3, [image("pg003_im001", "pg003", "logo"), image("pg003_im002", "pg003", "art")]))
     // On pg003 the "art" raster is covered by a composite candidate, so it must be judged there, not deduplicated.
@@ -80,7 +80,8 @@ it("sends each distinct image once, keeps figure candidates per page, and persis
     await runPass(storage, recordingModel(sent))
     const classificationOf = classificationIn(storage)
 
-    // The logo is judged once (pg001); "art" is judged on pg002 and again on pg003 where it is figure-involved.
+    // The logo is judged once (pg001). "art" is on 3 pages, but its pg003 copy is figure-involved and stays out of
+    // the plan, which leaves 2 sharing pages: below the 3-page rule, so "art" is judged on every page.
     expect(sent).toEqual({ pg001: [["pg001_im001", "pg001_im002"]], pg002: [["pg002_im002"]], pg003: [["pg003_im002"]] })
     const reasons = (pageId: string) => classificationOf(pageId)!.images.map((img) => [img.imageId, img.isPruned, img.reason ?? ""])
     expect(reasons("pg002")).toEqual([["pg002_page", true, "full-page render"], ["pg002_im001", true, "duplicate of pg001_im001: not meaningful: fixture"], ["pg002_im002", false, ""]])

@@ -930,6 +930,16 @@ describe("cross-page hash dedup", () => {
     expect(plan.ownerByImageId.size).toBe(0)
   })
 
+  it("leaves figure-involved and pruned copies out even when they are on 3+ pages", () => {
+    const plan = planHashDedup(["pg001", "pg002", "pg003"].map((pageId) => ({
+      pageId,
+      images: [image(`${pageId}_im001`, "framed"), image(`${pageId}_im002`, "tiny")],
+      classification: { images: [kept(`${pageId}_im001`), pruned(`${pageId}_im002`, "shortest side 20px < min_side 100px")] },
+      figureInvolvedIds: pageId === "pg002" ? [`${pageId}_im001`] : [],
+    })))
+    expect(plan.ownerByImageId.size).toBe(0)
+  })
+
   it("collects the ids a page's figure extraction groups or covers", () => {
     const ids = figureInvolvedImageIds({ groups: [{ imageId: "pg001_fig001", coveredRasterImageIds: ["pg001_im004"] }] } as never)
     expect([...ids].sort()).toEqual(["pg001_fig001", "pg001_im004"])

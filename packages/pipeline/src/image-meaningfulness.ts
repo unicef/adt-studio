@@ -532,8 +532,10 @@ export function applyHashDedupVerdicts(
  * call per page, through `judgeOrphans`, which persists the result and
  * resolves true when the call completed), so one failed page cannot leave an
  * image unjudged book-wide. Then every remaining duplicate takes its owner's
- * verdict. Callers run this only when the pass finished: a stopped or failed
- * pass settles nothing, in both runners alike. Returns the pages whose
+ * verdict. A stopped pass settles nothing. Under the `stop` page-error
+ * policy a failed page doesn't stop the pass, so the API runner settles it
+ * like any other page before the stage fails; the CLI fails the step on the
+ * first page error, so it never settles. Returns the pages whose
  * classification changed, for the caller to persist.
  */
 export async function settleHashDedup(
