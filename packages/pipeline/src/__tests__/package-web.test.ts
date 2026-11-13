@@ -20,6 +20,7 @@ import {
   containsMathContent,
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
+import { packageFilesAvailable } from "../packaging/bundle-files.js"
 import { resolveReadingOrder } from "../reading-order.js"
 
 /**
@@ -1182,6 +1183,27 @@ describe("packageAdtWeb", () => {
       label: "Mateo",
       audios: { pg001_t001: "pg001_t001--secondary.mp3" },
     })
+    const packaged = path.join(bookDir, "adt")
+    const second = path.join(packaged, "content/i18n/en/audio/pg001_t001--secondary.mp3")
+    const voiceFile = path.join(packaged, "content/i18n/en/audio_voices.json")
+    const voiceBytes = fs.readFileSync(voiceFile), secondBytes = fs.readFileSync(second)
+    expect(packageFilesAvailable(packaged)).toBe(true)
+    for (const fault of ["missing", "empty", "symlink", "unsafe"] as const) {
+      fs.unlinkSync(second)
+      if (fault === "empty") fs.writeFileSync(second, "")
+      if (fault === "symlink") fs.symlinkSync(path.join(audioDir, "pg001_t001--secondary.mp3"), second)
+      if (fault === "unsafe") {
+        fs.writeFileSync(second, secondBytes)
+        fs.writeFileSync(voiceFile, JSON.stringify({ ...audioVoices, voices: { ...audioVoices.voices,
+          secondary: { ...audioVoices.voices.secondary, audios: { pg001_t001: "../../../../../outside.mp3" } } } }))
+      }
+      expect(packageFilesAvailable(packaged), fault).toBe(false)
+      fs.rmSync(second, { force: true }); fs.writeFileSync(second, secondBytes); fs.writeFileSync(voiceFile, voiceBytes)
+      expect(packageFilesAvailable(packaged), `restored ${fault}`).toBe(true)
+    }
+    fs.unlinkSync(voiceFile)
+    expect(packageFilesAvailable(packaged)).toBe(true)
+    fs.writeFileSync(voiceFile, voiceBytes)
     const voiceTimecodes = JSON.parse(
       fs.readFileSync(
         path.join(bookDir, "adt", "content", "i18n", "en", "timecode", "timecode_voices.json"),

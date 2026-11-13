@@ -32,6 +32,7 @@ import type {
   SpeechConfig,
   SpeechFileEntry,
   TTSOutput,
+  PackagedAudioVoices,
   WordTimestampOutput,
   TocGenerationOutput,
   Quiz,
@@ -880,7 +881,7 @@ async function buildWebPackage(
       writeJson(path.join(localeDir, "audio_voices.json"), {
         defaultVoice: "primary",
         voices: audioVoices,
-      })
+      } satisfies PackagedAudioVoices)
     }
 
     // timecode/timecode_output.json — word timings consumed by the reader runtime

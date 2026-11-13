@@ -382,6 +382,7 @@ export {
   WordTimestampSaveResponse,
   VOICE_SLOTS,
   VoiceSlot,
+  PackagedAudioVoices,
   DEFAULT_VOICE_SLOT,
   SECONDARY_VOICE_SLOT_SUFFIX,
   voiceSlotEntryId,

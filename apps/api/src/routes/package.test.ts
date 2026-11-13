@@ -11,7 +11,7 @@ import { exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld } from "..
 import { spawnSync } from "node:child_process"
 import { pathToFileURL } from "node:url"
 import { unzipSync } from "fflate"
-import { packageAdtWeb, packageWebpub, loadBookConfig } from "@adt/pipeline"
+import { packageAdtWeb, packageWebpub, loadBookConfig, processFixedLayoutPages } from "@adt/pipeline"
 import { createBookRoutes } from "./books.js"
 import { listBooks, getBook } from "../services/book-service.js"
 import type { TaskService } from "../services/task-service.js"
@@ -182,6 +182,50 @@ describe("Package routes", () => {
     expect(response.status).toBe(409)
     expect(await response.json()).toMatchObject({ code: "HISTORY_RECOVERY_UNVERIFIED" })
     expect(fs.readFileSync(page)).toEqual(before)
+  })
+
+  it.each([false, true])("refuses missing secondary narration in warm and cold public reads, fixed=%s", async fixed => {
+    const label = "secondary-voice"
+    createRenderedBook(label); createWebAssets()
+    if (fixed) {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("positioned-text", "pg001", { drawItems: [], pageWidth: 800, pageHeight: 1200, renderWidth: 800, renderHeight: 1200 })
+        storage.putNodeData("image-filtering", "pg001", { images: [] })
+        await processFixedLayoutPages(storage, `/api/books/${label}/images`)
+      } finally { storage.close() }
+    }
+    const url = `/api/books/${label}/package-adt`
+    expect((await app.request(url, { method: "POST" })).status).toBe(200)
+    const adt = path.join(tmpDir, label, "adt"), locale = path.join(adt, "content/i18n/en")
+    const primary = "primary.wav", secondary = "secondary.wav"
+    fs.mkdirSync(path.join(locale, "audio"), { recursive: true })
+    fs.writeFileSync(path.join(locale, "audio", primary), "primary audio")
+    fs.writeFileSync(path.join(locale, "audio", secondary), "secondary audio")
+    fs.writeFileSync(path.join(locale, "audios.json"), JSON.stringify({ narration: primary }))
+    fs.writeFileSync(path.join(locale, "audio_voices.json"), JSON.stringify({ defaultVoice: "primary", voices: {
+      primary: { label: "Primary", audios: { narration: primary } }, secondary: { label: "Secondary", audios: { narration: secondary } },
+    } }))
+    const readers = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
+    expect(listBooks(tmpDir).find(book => book.label === label)?.previewStatus).toBe("complete")
+    fs.unlinkSync(path.join(locale, "audio", secondary))
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: false })
+    expect(listBooks(tmpDir).find(book => book.label === label)?.completedStages).not.toContain("preview")
+    expect((await readers.request(`/books/${label}/export-adt`)).status).toBe(409)
+    const cold = spawnSync(process.execPath, ["--input-type=module", "-e", `
+      import { packageFilesAvailable } from ${JSON.stringify(pathToFileURL(path.resolve("packages/pipeline/dist/packaging/bundle-files.js")).href)};
+      console.log(JSON.stringify({ available: packageFilesAvailable(process.argv[1]) }));
+    `, adt], { encoding: "utf8", timeout: 10000 })
+    expect(cold.status, cold.stderr).toBe(0)
+    expect(JSON.parse(cold.stdout)).toEqual({ available: false })
+    fs.writeFileSync(path.join(locale, "audio", secondary), "secondary audio")
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
+    const download = await readers.request(`/books/${label}/export-adt`)
+    expect(download.status).toBe(200)
+    const members = unzipSync(new Uint8Array(await download.arrayBuffer()))
+    expect(Buffer.from(members[`content/i18n/en/audio/${secondary}`]).toString()).toBe("secondary audio")
+    expect(Buffer.from(members[`content/i18n/en/audio/${primary}`]).toString()).toBe("primary audio")
   })
 
   // Independent Codex C3: unchanged source hashes cannot prove a usable bundle.

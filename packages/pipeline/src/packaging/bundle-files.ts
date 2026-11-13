@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { Parser } from "htmlparser2"
 import { cssReferences, parseCssSource } from "./css-references.js"
-import { PackageFileDiagnostic, PublicationPageEntry } from "@adt/types"
+import { PackageFileDiagnostic, PublicationPageEntry, PackagedAudioVoices } from "@adt/types"
 import { SectioningSafetyError } from "../sectioning-errors.js"
 
 /** A normalized locale becomes one directory name in a generated bundle. */
@@ -161,10 +161,9 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
       }
       const voices = `content/i18n/${language}/audio_voices.json`
       if (fs.existsSync(path.join(root, voices))) {
-        const data = JSON.parse(read(voices))
-        for (const slot of [data.primary, data.secondary]) for (const file of Object.values(slot?.audios ?? {})) {
-          if (typeof file !== "string") return fail()
-          relativeMember(file, `content/i18n/${language}/audio/manifest.json`)
+        const data = PackagedAudioVoices.parse(JSON.parse(read(voices)))
+        for (const slot of Object.values(data.voices)) for (const file of Object.values(slot.audios)) {
+          if (!relativeMember(file, `content/i18n/${language}/audio/manifest.json`)) return fail()
         }
       }
       const glossary = `content/i18n/${language}/glossary.json`
