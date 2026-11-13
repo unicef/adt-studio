@@ -62,6 +62,43 @@ it("validates shared runtime files once per read and notices their deletion on t
     expect(packageFilesAvailable(root), style).toBe(true)
     fs.unlinkSync(resource)
   }
+  for (const css of [
+    ".zz { color red }",
+    ".zz { color red; background:url(assets/style-resource.png) }",
+    ".zz { background:url(assets/style-resource.png); color red }",
+    String.raw`.zz { color red; background:u\72l(assets/style-resource.png) }`,
+    "@media print { .zz { color red; background:url(assets/style-resource.png) } }",
+    '@import "assets/recovered.css"; .zz { color red }',
+  ]) {
+    const stylesheet = path.join(root, "assets/recovered.css")
+    fs.writeFileSync(stylesheet, ".zz { background:url(style-resource.png) }")
+    fs.writeFileSync(page, `<style>${css}</style><main class="zz">Readable saved page</main>`)
+    const saved = fs.readFileSync(page)
+    const usesResource = css !== ".zz { color red }"
+    expect(packageFilesAvailable(root), css).toBe(!usesResource)
+    fs.writeFileSync(resource, "required image bytes")
+    expect(packageFilesAvailable(root), css).toBe(true)
+    expect(fs.readFileSync(page)).toEqual(saved)
+    fs.unlinkSync(resource)
+    expect(packageFilesAvailable(root), css).toBe(!usesResource)
+    fs.unlinkSync(stylesheet)
+  }
+  for (const css of [
+    ".zz { color red; background:url(assets/style-resource.png }",
+    '.zz { color red; background:url("assets/style-resource.png) }',
+    ".zz { color red; background:url(/private/secret) }",
+    ".zz { color red; background:url(../../secret) }",
+    '@import "assets/missing.css"; .zz { color red }',
+    ":root { --hero:'assets/style-resource.png' } .zz { color red; background-image:image-set(var(--hero) 1x) }",
+    String.raw`.zz { color red; \2d \2d hero:'assets/style-resource.png'; background-image:image-set(var(--hero) 1x) }`,
+  ]) {
+    fs.writeFileSync(resource, "required image bytes")
+    fs.writeFileSync(page, `<style>${css}</style><main class="zz">Ambiguous resource</main>`)
+    const saved = fs.readFileSync(page)
+    expect(packageFilesAvailable(root), css).toBe(false)
+    expect(fs.readFileSync(page)).toEqual(saved)
+    fs.unlinkSync(resource)
+  }
   fs.writeFileSync(page, '<main style="background:url(assets/style-resource.png">Ambiguous resource</main>')
   fs.writeFileSync(resource, "required image bytes")
   failure.mockClear()

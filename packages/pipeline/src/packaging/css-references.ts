@@ -24,6 +24,7 @@ function valueReferences(
   context = "",
   visited: Map<VariableLookup, Set<string>> = new Map(),
   recoverNonResourceStrings = false,
+  stylesheet = false,
 ): Array<{ url: string; stylesheet: boolean }> {
   const references: Array<{ url: string; stylesheet: boolean }> = []
   let position = 0
@@ -83,16 +84,23 @@ function valueReferences(
     throw new Error("Unclosed CSS variable")
   }
   const walk = (parent = "") => {
+    let importPending = false
     while (position < value.length) {
       skip()
       const char = value[position]
       if (!char) break
-      if (char === ")") { position++; return }
+      if (char === ")") { position++; if (parent) return; continue }
+      if (stylesheet && !parent && /^@import\b/i.test(value.slice(position))) {
+        position += 7
+        importPending = true
+        continue
+      }
       if (char === '"' || char === "'") {
-        const url = string(!recoverNonResourceStrings || parent === "image-set" || parent === "-webkit-image-set" || importRule)
-        if (parent === "image-set" || parent === "-webkit-image-set" || (!parent && importRule)) {
-          references.push({ url, stylesheet: !parent && importRule })
+        const url = string(!recoverNonResourceStrings || parent === "image-set" || parent === "-webkit-image-set" || importRule || importPending)
+        if (parent === "image-set" || parent === "-webkit-image-set" || (!parent && (importRule || importPending))) {
+          references.push({ url, stylesheet: !parent && (importRule || importPending) })
         }
+        importPending = false
         continue
       }
       if (/[\w-]/.test(char) || char === "\\" || char.charCodeAt(0) >= 128) {
@@ -103,6 +111,7 @@ function valueReferences(
           else if (/[\w-]/.test(next) || next.charCodeAt(0) >= 128) name += value[position++]
           else break
         }
+        if (stylesheet && name.startsWith("--")) variables(name)
         if (value[position] !== "(") continue
         position++
         if (name.toLowerCase() === "var") {
@@ -127,10 +136,12 @@ function valueReferences(
         if (value[position] === '"' || value[position] === "'") { url = string(); skip() }
         else while (position < value.length && value[position] !== ")") url += value[position] === "\\" ? escape() : value[position++]
         if (value[position++] !== ")") throw new Error("Unclosed CSS URL")
-        references.push({ url: url.trim(), stylesheet: !parent && importRule })
+        references.push({ url: url.trim(), stylesheet: !parent && (importRule || importPending) })
+        importPending = false
         continue
       }
       position++
+      if (char === ";" || char === "{" || char === "}") importPending = false
       if (char === "(") walk()
     }
   }
@@ -138,7 +149,7 @@ function valueReferences(
   return references
 }
 
-export function parseCssSource(css: string, inline = false) {
+export function parseCssSource(css: string, inline: boolean | "stylesheet" = false) {
   // PostCSS does not tokenize escaped at-rule names. Normalize only those
   // identifiers (not arbitrary escapes that could turn URL bytes into syntax).
   const normalized = css.replace(/@((?:\\[0-9a-f]{1,6}[\t\n\r\f ]?|\\[^\n\r\f]|[\w-])+)/gi, (raw, identifier: string) => {
@@ -150,15 +161,28 @@ export function parseCssSource(css: string, inline = false) {
   try { root = postcss.parse(normalized) }
   catch (error) {
     if (!inline) throw error
-    // Saved inline styling follows the browser's declaration-list recovery.
+    // Saved styles follow the browser's CSS recovery, without rewriting HTML.
     // Check original resource tokens first: CSSOM must not silently discard an
     // unsafe URL or repair an ambiguous resource string/function into proof.
-    recoveredReferences = valueReferences(normalized, false, () => [], "", new Map(), true)
+    let variableRecovery = false
+    recoveredReferences = valueReferences(normalized, false, () => { variableRecovery = true; return [] }, "", new Map(), inline === true, inline === "stylesheet")
+    // CSSOM can discard a malformed declaration containing a custom property
+    // or its consumer. Without their original scopes it cannot prove the URL
+    // selected by another rule, so keep that ambiguous stylesheet fail-closed.
+    if (inline === "stylesheet" && variableRecovery) throw error
     const dom = new JSDOM("", { virtualConsole: new VirtualConsole() })
     try {
-      const style = dom.window.document.createElement("div").style
-      style.cssText = normalized
-      root = postcss.parse(style.cssText)
+      if (inline === "stylesheet") {
+        const style = dom.window.document.createElement("style")
+        style.textContent = normalized
+        dom.window.document.head.append(style)
+        if (!style.sheet) throw error
+        root = postcss.parse(Array.from(style.sheet.cssRules, rule => rule.cssText).join("\n"))
+      } else {
+        const style = dom.window.document.createElement("div").style
+        style.cssText = normalized
+        root = postcss.parse(style.cssText)
+      }
     } finally { dom.window.close() }
   }
   const selectorFor = (node: postcss.Node): string | undefined => {
@@ -172,6 +196,7 @@ export function parseCssSource(css: string, inline = false) {
   }
   const declarations: Array<{ property: string; value: string; selector?: string; variables: boolean; conditional: boolean }> = []
   const imports: string[] = []
+  imports.push(...recoveredReferences.filter(reference => reference.stylesheet).map(reference => reference.url))
   // References that do not depend on the consuming document: computed once per
   // stylesheet instead of once per page that links it.
   const directReferences: Array<{ url: string; stylesheet: boolean }> = []

@@ -135,7 +135,7 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
         if (attrs.style) includeCss(parseCssSource(attrs.style, true), from, attrs.style)
         if (attrs.srcset) for (const url of srcsetUrls(attrs.srcset)) relativeMember(url, from)
       }, ontext(text) { if (style !== undefined) style += text }, onclosetag(name) {
-        if (name === "style" && style !== undefined) { includeCss(parseCssSource(style), from); style = undefined }
+        if (name === "style" && style !== undefined) { includeCss(parseCssSource(style, "stylesheet"), from); style = undefined }
       } }).end(html)
       for (const reference of cssReferences(sources, html)) relativeMember(reference.url, reference.from)
     }
