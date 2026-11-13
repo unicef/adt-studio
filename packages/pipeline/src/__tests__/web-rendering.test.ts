@@ -327,6 +327,49 @@ describe("renderPage", () => {
     expect(seenSignals).toEqual([controller.signal])
   })
 
+  it("tells the prompts the page direction of a book with a right-to-left language, and nothing otherwise", async () => {
+    const seen: unknown[] = []
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        seen.push(opts.context?.page_direction)
+        return { object: htmlResponse as T } as GenerateObjectResult<T>
+      },
+    }
+    for (const pageDirection of ["rtl", "ltr", undefined] as const) {
+      await renderPage(
+        {
+          label: "test-book",
+          pageId: "pg001",
+          pageImageBase64: "base64img",
+          sectioning: {
+            reasoning: "test",
+            sections: [
+              {
+                sectionId: "pg001_sec001",
+                sectionType: "text_only",
+                nodes: [
+                  groupNode("pg001_gp001", "paragraph", [
+                    leafNode("pg001_gp001_tx001", "section_text", "Hello"),
+                  ]),
+                ],
+                backgroundColor: "#ffffff",
+                textColor: "#000000",
+                pageNumber: 1,
+                isPruned: false,
+              },
+            ],
+          },
+          images: new Map(),
+          pageDirection,
+        },
+        defaultResolveConfig,
+        fakeLlm,
+      )
+    }
+    // Only "rtl" switches the prompt block on; "ltr" and "" both render nothing.
+    expect(seen).toEqual(["rtl", "ltr", ""])
+  })
+
   it("skips pruned sections", async () => {
     const calls: string[] = []
     const fakeLlm: LLMModel = {

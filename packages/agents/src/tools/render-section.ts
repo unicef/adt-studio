@@ -4,6 +4,8 @@ import {
   buildRenderStrategyResolver,
   buildRenderContext,
   renderSectionLlm,
+  resolveBookLanguage,
+  resolvePageDirection,
   type RenderConfig,
 } from "@adt/pipeline"
 import type { SectionRendering } from "@adt/types"
@@ -154,6 +156,12 @@ export async function renderSyntheticActivity(
       section,
       context: renderContext,
       styleguide: input.styleguide,
+      // Same gate as the Storyboard render: a book with a right-to-left
+      // language tells the prompt its direction (SPEC-0024).
+      pageDirection: resolvePageDirection(
+        resolveBookLanguage(input.storage, config),
+        config.output_languages,
+      ),
       userPrompt: input.userInstructions,
     },
     renderConfig,
