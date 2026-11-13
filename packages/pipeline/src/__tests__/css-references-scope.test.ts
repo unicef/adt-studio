@@ -125,6 +125,41 @@ it.each(["*", "<string>"])("retains a registered resource default after excludin
   expect(urls(css, '<main class="hero"></main><aside class="other"></aside>')).toContain("required.png")
 })
 
+it.each(["INHERIT", String.raw`inhe\72it`, "UNSET", String.raw`un\73 et`])("decodes CSS-wide keywords before resolving inherited resources: %s", keyword => {
+  for (const nested of ["", ".unused{color:blue}"]) {
+    for (const inline of [false, true]) {
+      const css = `.parent{${nested}--hero:"required.png"}.hero{${inline ? "" : `--hero:${keyword};`}background-image:image-set(var(--hero) 1x)}`
+      const html = `<aside class="parent"><main class="hero"${inline ? ` style="--hero:${keyword}"` : ""}></main></aside>`
+      expect(new Set(urls(css, html))).toEqual(new Set(["required.png"]))
+    }
+  }
+})
+
+it("keeps quoted keyword filenames and token boundaries distinct from CSS-wide keywords", () => {
+  for (const value of ['"INHERIT"', String.raw`"inhe\72it"`]) {
+    expect(urls(`.hero{.unused{color:blue}--hero:${value};background-image:image-set(var(--hero) 1x)}`, '<main class="hero"></main>')).toEqual([value === '"INHERIT"' ? "INHERIT" : "inherit"])
+  }
+  for (const value of ["INITIAL", String.raw`in\69tial`, "in/**/herit"]) {
+    expect(urls(`.parent{.unused{color:blue}--hero:"unused.png"}.hero{--hero:${value};background-image:image-set(var(--hero) 1x)}`, '<aside class="parent"><main class="hero"></main></aside>')).toEqual([])
+  }
+})
+
+it.each([
+  'syntax:"*"',
+  'inherits:false',
+  'syntax:"*";inherits:no',
+  'syntax:"<string>";inherits:false',
+  'syntax:"<length>";inherits:false;initial-value:invalid',
+])("does not suppress inheritance on the strength of an invalid registration: %s", descriptors => {
+  const css = `@property --hero{${descriptors}}.parent{.unused{color:blue}--hero:"required.png"}.hero{background-image:image-set(var(--hero) 1x)}`
+  expect(urls(css, '<aside class="parent"><main class="hero"></main></aside>')).toContain("required.png")
+})
+
+it.each(["false", "FALSE", String.raw`fal\73 e`])("respects a valid non-inheriting string registration: %s", inherits => {
+  const css = `@property --hero{syntax:"<string>";inherits:${inherits};initial-value:"required.png"}.parent{.unused{color:blue}--hero:"unused.png"}.hero{background-image:image-set(var(--hero) 1x)}`
+  expect(urls(css, '<aside class="parent"><main class="hero"></main></aside>')).toEqual(["required.png"])
+})
+
 it("does not require an unused registered default when a valid literal is guaranteed", () => {
   for (const inherits of [true, false]) {
     const registration = `@property --hero{syntax:"<string>";inherits:${inherits};initial-value:"unused.png"}`

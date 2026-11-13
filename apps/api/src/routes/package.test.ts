@@ -546,6 +546,8 @@ describe("Package routes", () => {
     '<style>:root { --hero: "images/missing.png" } .hero { background-image: image-set(var(--hero) 1x) }</style>',
     '<style>.hero { background-image: image-set(var(--missing, "images/missing.png") 1x) }</style>',
     '<style>@property --hero{syntax:"*";inherits:false;initial-value:"images/missing.png"}.other{.hero{--hero:"images/missing.png"}}.hero{background-image:image-set(var(--hero) 1x)}</style><main class="hero"></main><aside class="other"></aside>',
+    ...["INHERIT", String.raw`inhe\72it`].map(keyword => `<style>.parent{.unused{color:blue}--hero:"images/missing.png"}.hero{--hero:${keyword};background-image:image-set(var(--hero) 1x)}</style><aside class="parent"><main class="hero"></main></aside>`),
+    ...['syntax:"*"', 'syntax:"<length>";inherits:false;initial-value:invalid'].map(descriptors => `<style>@property --hero{${descriptors}}.parent{.unused{color:blue}--hero:"images/missing.png"}.hero{background-image:image-set(var(--hero) 1x)}</style><aside class="parent"><main class="hero"></main></aside>`),
   ])("validates staged dependencies before replacing a downloadable publication: %s", async missing => {
     const label = "staged-validation"
     createRenderedBook(label)
