@@ -1,9 +1,12 @@
+import path from "node:path"
 import { describe, expect, it } from "vitest"
 import type { AppConfig, ImageClassificationOutput } from "@adt/types"
+import { createPromptEngine } from "@adt/llm"
 import type {
   GenerateObjectOptions,
   GenerateObjectResult,
   LLMModel,
+  Message,
 } from "@adt/llm"
 import {
   addFigureExtractionContext,
@@ -878,5 +881,114 @@ describe("filterPageImageMeaningfulness", () => {
     )
     expect(validation?.valid).toBe(true)
     expect(validation?.errors).toEqual([])
+  })
+})
+
+describe("image_meaningfulness prompt", () => {
+  // 1x1 PNG; the prompt only needs a valid image payload to render.
+  const png =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+
+  async function systemText(
+    mode: "off" | "all" | "auto",
+    pageText = "Selectable page text.",
+  ): Promise<string> {
+    const engine = createPromptEngine(path.join(process.cwd(), "prompts"))
+    const messages: Message[] = await engine.renderPrompt("image_meaningfulness", {
+      page_image_base64: png,
+      page_text: pageText,
+      figure_extraction_mode: mode,
+      images: [{ imageId: "pg001_im001", imageBase64: png, width: 40, height: 40 }],
+    })
+    const system = messages.find((message) => message.role === "system")!
+    return typeof system.content === "string"
+      ? system.content
+      : system.content.map((part) => (part.type === "text" ? part.text : "")).join("")
+  }
+
+  it.each(["off", "all", "auto"] as const)(
+    "keeps section-marker icons but not logos or layout in %s mode (#1037)",
+    async (mode) => {
+      const text = await systemText(mode)
+      expect(text).toContain("Section-marker icons are meaningful.")
+      expect(text).toContain("keep them even when they are small or appear on many pages")
+      expect(text).toContain("empty boxes, tabs, banners, and panels behind a heading or callout are layout")
+      expect(text).toContain(
+        "Logos, publisher or series marks, art beside the page number, and running header or footer art that repeats beside the same text on every page are not section markers.",
+      )
+    },
+  )
+
+  it.each(["off", "all", "auto"] as const)(
+    "does not keep a heading or callout crop because it contains a marker icon in %s mode (#1038 review)",
+    async (mode) => {
+      const text = await systemText(mode)
+      // In off/all mode a header banner crop that includes the icon is judged on its
+      // own; without this rule the model keeps it "because of the icon", freezing
+      // heading and question text into an image.
+      expect(text).toContain(
+        "An image that combines a section-marker icon with heading text, body text, or a box, banner, or panel is not meaningful because of the icon: judge it as if the icon were absent.",
+      )
+      // Live runs showed the model keeping the crop as "the only available
+      // representation" of the icon when no standalone copy was supplied.
+      expect(text).toContain(
+        "This applies even when that image is the only supplied copy of the icon: losing the icon is acceptable, but freezing heading or body text into an image is not.",
+      )
+      // ...but the model then generalized "don't freeze text" to picture labels and
+      // hid the only copy of an illustrated alphabet's picture cards.
+      expect(text).toContain(
+        "A word or label that belongs to a picture, such as the word printed under each picture of a vocabulary card, is part of that figure, not heading or body text.",
+      )
+    },
+  )
+
+  const NO_TEXT_NOTICE =
+    "This page has no selectable PDF text, so any text it shows exists only inside the supplied images."
+
+  it.each(["off", "all", "auto"] as const)(
+    "lets text crops be kept on a page with no selectable text in %s mode",
+    async (mode) => {
+      // A book whose text is drawn as vector outlines (no selectable text at all)
+      // only has its text inside the grouped crops; hiding them deletes the text.
+      const empty = await systemText(mode, "")
+      expect(empty).toContain(NO_TEXT_NOTICE)
+      expect(empty).toContain(
+        "Do not hide an image because it contains heading or body text: on this page that would remove the text from the book.",
+      )
+      expect(await systemText(mode, "  \n ")).toContain(NO_TEXT_NOTICE)
+      expect(await systemText(mode)).not.toContain(NO_TEXT_NOTICE)
+    },
+  )
+
+  it.each(["off", "all", "auto"] as const)(
+    "treats a section-banner mascot as heading art, not page furniture, in %s mode",
+    async (mode) => {
+      const text = await systemText(mode)
+      expect(text).toContain(
+        "A recurring mascot or character drawn in a section-title banner is heading art, not page furniture: keep the character as its own image, but not the banner around it.",
+      )
+      expect(text).not.toContain("running header/footer decorations")
+    },
+  )
+
+  it.each(["off", "all"] as const)(
+    "limits the %s-mode decoration rule to ornaments with no recognizable subject",
+    async (mode) => {
+      const text = await systemText(mode)
+      expect(text).toContain("tiny ornaments with no recognizable subject")
+      expect(text).not.toContain("tiny decorative elements")
+      expect(text).not.toContain("section-marker icon that also has its own standalone copy")
+    },
+  )
+
+  it("lets auto mode keep a standalone marker icon instead of its callout crop", async () => {
+    const text = await systemText("auto")
+    expect(text).toContain("A section-marker icon (see below) is not decorative")
+    // The raster safeguard must not favor a callout crop over the icon's own copy,
+    // or auto dedup keeps the crop and prunes the standalone icon.
+    expect(text).toContain(
+      "unless the raster is only a tiny decorative icon, a section-marker icon that also has its own standalone copy,",
+    )
+    expect(text).not.toContain("tiny ornaments with no recognizable subject")
   })
 })

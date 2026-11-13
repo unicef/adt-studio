@@ -27,8 +27,8 @@ Important safeguards:
 - Evaluate the supplied images as a set, not independently. Cross-references are provided: a composite candidate lists the standalone image(s) whose artwork it contains, and a standalone notes which composite it appears in. For each cross-referenced pair keep the one best representation and reject the other. Reject both only when the artwork itself is purely decorative.
 - Prefer the larger composite only when the surrounding text/vectors are intrinsic labels, arrows, connectors, annotations, or other spatially meaningful parts of the figure.
 - Prefer the standalone artwork when the larger crop merely adds a heading, caption, exercise instruction, speech/thought prompt, callout background, or other text that should remain semantic HTML.
-- A tiny decorative icon does not make a heading or text-first callout into a figure. Reject both the decorative icon and duplicate callout crop when neither carries independent educational or narrative meaning.
-- If `hasRasterContent` is true, strongly favor keeping the candidate unless the raster is only a tiny decorative icon or another supplied candidate is the better canonical version.
+- A tiny decorative icon does not make a heading or text-first callout into a figure. Reject both the decorative icon and duplicate callout crop when neither carries independent educational or narrative meaning. A section-marker icon (see below) is not decorative: keep it as a standalone image even when the callout crop is rejected.
+- If `hasRasterContent` is true, strongly favor keeping the candidate unless the raster is only a tiny decorative icon, a section-marker icon that also has its own standalone copy, or another supplied candidate is the better canonical version.
 - If `hasSelectableText` is false or figure extraction evidence is absent, do not reject content merely for being text-heavy; it may be scanned content with no HTML-safe copy.
 - Decorative fragments with no educational or narrative value may still be rejected.
 {% else %}
@@ -36,7 +36,7 @@ Determine whether each extracted image contributes meaningful educational, narra
 
 NOT meaningful:
 1. Awkward fragments with no coherent content
-2. Background shadows, empty shapes, or tiny decorative elements
+2. Background shadows, empty shapes, or tiny ornaments with no recognizable subject (dots, sparkles, flourishes, corner marks)
 3. Pure decoration with no educational or narrative purpose
 4. Empty table backgrounds
 5. Duplicate word shadows or visual artifacts
@@ -49,6 +49,13 @@ Meaningful:
 5. Scanned or pixel-only content that may not have a selectable-text copy
 
 When uncertain, keep the image.
+{% endif %}
+
+Section-marker icons are meaningful. A section-marker icon is a small pictogram placed beside a heading or prompt to signal a kind of section or activity, for example question marks for questions, a thought cloud for "share your opinion", or a magnifying glass for research. Readers learn to recognize these icons across the book, so keep them even when they are small or appear on many pages. This covers the pictogram only: the empty boxes, tabs, banners, and panels behind a heading or callout are layout, not meaningful content. An image that combines a section-marker icon with heading text, body text, or a box, banner, or panel is not meaningful because of the icon: judge it as if the icon were absent. This applies even when that image is the only supplied copy of the icon: losing the icon is acceptable, but freezing heading or body text into an image is not. A word or label that belongs to a picture, such as the word printed under each picture of a vocabulary card, is part of that figure, not heading or body text. A recurring mascot or character drawn in a section-title banner is heading art, not page furniture: keep the character as its own image, but not the banner around it. Logos, publisher or series marks, art beside the page number, and running header or footer art that repeats beside the same text on every page are not section markers.
+{% assign trimmed_page_text = page_text | strip %}
+{% if trimmed_page_text == "" %}
+
+This page has no selectable PDF text, so any text it shows exists only inside the supplied images. Do not hide an image because it contains heading or body text: on this page that would remove the text from the book. The rules above about not freezing heading or body text into an image do not apply here.
 {% endif %}
 
 IMPORTANT:
