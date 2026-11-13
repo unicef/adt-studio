@@ -64,6 +64,12 @@ it.each([".child { color: blue }", "@media screen { color: blue }"])("keeps nest
   }
 })
 
+it.each(["width:calc(1px } );", "grid-area:[a } b];", "grid-area:[a [b } c] d];", "width:calc((1px { }) + 1px);"])("ignores protected block delimiters during recovery: %s", prefix => {
+  for (const block of [".child{color:blue}", "@media screen{color:blue}"]) {
+    expect(() => parseCssSource(`.typo{color red}.hero{${prefix}${block} --hero:"missing.png"}`, "stylesheet")).toThrow()
+  }
+})
+
 it.each([".child { color: blue }", "@media screen { color: blue }"])("retains nested-block variable candidates only for matching consumers: %s", block => {
   const css = `.hero { ${block} --hero:"required.png" }
     .other { ${block} --hero:"unrelated.png" }

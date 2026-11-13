@@ -579,7 +579,9 @@ describe("Package routes", () => {
     '<style>.a { content: "abc\n} .yy { background:url(images/missing.png) } .c { content: "x }</style><p class="yy">Text</p>',
     '<style>.typo { color red } .a { content: "abc\n} .yy { background:url(images/missing.png) } .c { content: "x }</style><p class="yy">Text</p>',
     "<p style=\"font-family:'abc\n; background:url(images/missing.png); quotes:'\">Text</p>",
-  ])("refuses ambiguous CSS strings without replacing the publication: %s", async html => {
+    '<style>.typo{color red}.hero{width:calc(1px } );.child{color:blue} --hero:"images/missing.png"}</style><p class="hero" style="background-image:image-set(var(--hero) 1x)">Text</p>',
+    '<style>.typo{color red}.hero{grid-area:[a } b];.child{color:blue} --hero:"images/missing.png"}</style><p class="hero" style="background-image:image-set(var(--hero) 1x)">Text</p>',
+  ])("refuses ambiguous CSS source without replacing the publication: %s", async html => {
     const label = "ambiguous-css"
     createRenderedBook(label); createWebAssets()
     const run = () => app.request(`/api/books/${label}/package-adt`, { method: "POST" })

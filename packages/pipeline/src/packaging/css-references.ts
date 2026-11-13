@@ -90,6 +90,7 @@ function valueReferences(
   const walk = (parent = "", nested = false) => {
     let importPending = false
     let declarationStart = false
+    let bracketDepth = 0
     while (position < value.length) {
       skip()
       const char = value[position]
@@ -156,9 +157,13 @@ function valueReferences(
         continue
       }
       position++
-      if (stylesheet && char === "{") blockDepth++
-      if (stylesheet && char === "}") blockDepth = Math.max(0, blockDepth - 1)
-      declarationStart = char === ";" || char === "{" || (char === "}" && blockDepth > 0)
+      if (char === "[") bracketDepth++
+      if (char === "]") bracketDepth = Math.max(0, bracketDepth - 1)
+      // Curly delimiters inside component values cannot close a rule block.
+      const boundary = !nested && bracketDepth === 0
+      if (stylesheet && boundary && char === "{") blockDepth++
+      if (stylesheet && boundary && char === "}") blockDepth = Math.max(0, blockDepth - 1)
+      declarationStart = boundary && (char === ";" || char === "{" || (char === "}" && blockDepth > 0))
       if (char === ";" || char === "{" || char === "}") importPending = false
       if (char === "(") walk("", true)
     }
