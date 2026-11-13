@@ -18,6 +18,9 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
   assertExtractionReadable(bookDir)
   const config = loadBookConfig(label, booksRoot, configPath)
   const pages = activeSectioningPages(storage, config, bookDir)
+  // Also covers targeted rendering and the fresh CLI DAG. Publication retains
+  // its transactional witness validation if damage occurs after admission.
+  if (pages.length) storage.assertHistoryEvidence?.()
   const fixed = isFixedLayoutBook(config)
   const layoutSwitch = pages.some(({ pageId }) => {
     try {

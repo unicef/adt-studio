@@ -12,6 +12,7 @@ import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
 import { historyBookId, insertNodeVersion, checkpointBeforeRetirement, readIdentityHistory, readIdentityHistoryIds } from "./history-evidence.js"
 import { parseHistoricalPayload } from "./history-integrity.js"
+import { assertHistoryEvidence } from "./history-schema.js"
 import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
 
 const storageDirectories = new WeakMap<Storage, string>()
@@ -84,6 +85,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     getBookIdentity: () => db.get("SELECT 1 FROM sqlite_master WHERE type='table' AND name='history_identity'") ? historyBookId(db) : null,
     transaction,
     readIdentityHistory: (nodes, itemId) => transaction(() => readIdentityHistory(db, nodes, itemId), "DEFERRED"),
+    assertHistoryEvidence: () => transaction(() => assertHistoryEvidence(db), "DEFERRED"),
     readIdentityHistoryIds: (nodes, project, itemId) => transaction(() => readIdentityHistoryIds(db, nodes, paths.dbPath, project, itemId), "DEFERRED"),
     readSnapshot: (operation) => transaction(() => {
       const result = operation()

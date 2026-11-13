@@ -55,6 +55,56 @@ beforeEach(() => {
 })
 afterEach(() => { vi.unstubAllGlobals(); fs.rmSync(root, { recursive: true, force: true }) })
 
+it.each(["direct", "targeted", "http"])("refuses lost history objects before %s renderer calls", async entry => {
+  fs.writeFileSync(configPath, config)
+  const snapshot = () => {
+    const s = store()
+    try { return ["p2", "p7"].map(id => [s.getAllNodeVersions("page-sectioning", id), s.getAllNodeVersions("web-rendering", id)]) }
+    finally { s.close() }
+  }
+  const before = snapshot()
+  const db = openBookDb(path.join(root, label, `${label}.db`))
+  try { db.exec("DROP TRIGGER history_track_update") } finally { db.close() }
+  if (entry === "http") {
+    const bus = createBookEventBus(), decisions = createPageErrorDecisions(bus)
+    const service = createStageService(createStageRunner(), bus, decisions)
+    const app = new Hono().onError(errorHandler).route("/", createStageRoutes(service, bus, decisions, root, root, root, configPath))
+    const response = await app.request(`/books/${label}/stages/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fromStage: "storyboard", toStage: "storyboard", pageErrorPolicy: "stop" }) })
+    // Let the negative baseline settle before fixture disposal.
+    if (response.status === 200) await vi.waitFor(() => expect(service.getStatus(label).active?.status).toBe("failed"), { timeout: 10_000 })
+    expect.soft(response.status).toBe(409)
+    expect.soft(await response.json()).toMatchObject({ code: "HISTORY_REPAIR_REQUIRED" })
+  } else {
+    const attempt = entry === "direct" ? run() : reRenderPages([{ ...options(), label, pageId: "p2" }])
+    await expect(attempt).rejects.toThrow("HISTORY_REPAIR_REQUIRED")
+  }
+  expect.soft(render).not.toHaveBeenCalled()
+  expect(snapshot()).toEqual(before)
+})
+
+it("rechecks lost history objects when queued Storyboard work reaches admission", async () => {
+  fs.writeFileSync(configPath, config)
+  const bus = createBookEventBus(), decisions = createPageErrorDecisions(bus)
+  let release!: () => void
+  const runner = { run: vi.fn(async () => { await new Promise<void>(resolve => { release = resolve }) }) }
+  const service = createStageService(runner, bus, decisions)
+  const app = new Hono().onError(errorHandler).route("/", createStageRoutes(service, bus, decisions, root, root, root, configPath))
+  const request = () => app.request(`/books/${label}/stages/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fromStage: "storyboard", toStage: "storyboard" }) })
+  const errors: string[] = []
+  bus.addListener(label, event => { if (event.type === "stage-run-error") errors.push(event.error) })
+  expect((await request()).status).toBe(200)
+  await vi.waitFor(() => expect(release).toBeDefined())
+  expect(await (await request()).json()).toMatchObject({ status: "queued" })
+  const db = openBookDb(path.join(root, label, `${label}.db`))
+  try { db.exec("DROP TRIGGER history_track_update") } finally { db.close() }
+  // A baseline second invocation must not hang after revealing the defect.
+  runner.run.mockImplementation(async () => undefined)
+  release()
+  await vi.waitFor(() => expect(service.getStatus(label).queue).toHaveLength(0))
+  await vi.waitFor(() => expect(errors.some(error => error.includes("HISTORY_REPAIR_REQUIRED"))).toBe(true))
+  expect(runner.run).toHaveBeenCalledTimes(1)
+})
+
 describe("Storyboard font-cache maintenance", () => {
   beforeEach(() => vi.stubEnv("FONTS_CACHE_DIR", path.join(root, ".fonts-cache")))
   afterEach(() => vi.unstubAllEnvs())

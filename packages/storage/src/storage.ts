@@ -123,6 +123,9 @@ export interface Storage {
   getAllNodeVersions(node: string, itemId: string): NodeDataRow[]
   /** Extant history plus verified retired evidence, for existing ID allocators. */
   readIdentityHistory?(nodes: readonly string[], itemId?: string): IdentityHistoryRecord[]
+  /** Validate the tracking schema before work that must append witnessed output.
+   * This does not scan historical payloads or require unrelated rows to decode. */
+  assertHistoryEvidence?(): void
   /** Stream verified evidence into a pure, compact identity projection. */
   readIdentityHistoryIds?(nodes: readonly string[], project: (record: IdentityHistoryRecord) => readonly string[], itemId?: string): string[]
   /**

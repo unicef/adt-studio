@@ -1,5 +1,5 @@
 import { resolveBookPaths, type Storage } from "@adt/storage"
-import { STAGE_ORDER, type StageName } from "@adt/types"
+import { OUTPUT_KIND_TO_STAGE, STAGE_ORDER, type StageName } from "@adt/types"
 import { assertAuthoredReplacement, assertSectioningIdentityHistory, selectSectioningPages } from "./authored-output.js"
 import { loadBookConfig } from "./config.js"
 import { sectioningReplacementSignature } from "./sectioning-replacement-signature.js"
@@ -18,6 +18,10 @@ export function admitSectioningRun(
   const config = loadBookConfig(label, booksRoot, configPath)
   const allPages = activeSectioningPages(storage, config, bookDir)
   const stages = STAGE_ORDER.slice(STAGE_ORDER.indexOf(options.fromStage as StageName), STAGE_ORDER.indexOf(options.toStage as StageName) + 1)
+    .filter(stage => !options.outputScope?.selection?.identities || options.outputScope.selection.identities.some(identity => OUTPUT_KIND_TO_STAGE[identity.kind] === stage))
+  // Storyboard publication appends witnessed versions. Reject known schema
+  // loss before provider work, without scanning unrelated historical payloads.
+  if (stages.includes("storyboard") && allPages.length) storage.assertHistoryEvidence?.()
   // Filtered output work and ranges outside Sectioning do not consume its
   // outline or prompt inputs. General replacement consent was checked above.
   if (!stages.includes("sectioning") || options.outputScope?.selection?.identities) {

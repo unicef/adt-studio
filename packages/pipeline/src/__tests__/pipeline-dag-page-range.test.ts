@@ -5,12 +5,12 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
-import { createBookStorage, readExtractionManifest } from "@adt/storage"
+import { createBookStorage, readExtractionManifest, openBookDb } from "@adt/storage"
 import { countPdfPages } from "@adt/pdf"
 import type { StepName } from "@adt/types"
 import type { StepExecutor } from "../dag.js"
 
-const state = vi.hoisted(() => ({ root: "", selected: [] as string[], rendered: [] as string[], changeConfig: false }))
+const state = vi.hoisted(() => ({ root: "", selected: [] as string[], rendered: [] as string[], changeConfig: false, loseHistoryBeforeRender: false }))
 vi.mock("@adt/llm", async original => ({ ...await original<typeof import("@adt/llm")>(), createLLMModel: () => ({}) }))
 vi.mock("../page-sectioning.js", async original => ({
   ...await original<typeof import("../page-sectioning.js")>(),
@@ -38,7 +38,13 @@ vi.mock("../dag.js", async original => ({
       storage.putNodeData("metadata", "book", { language_code: "en" })
       storage.putNodeData("book-outline", "book", { entries: [], styleClusters: [], reasoning: "fixture" })
     } finally { storage.close() }
-    for (const name of ["page-sectioning", "translation", "web-rendering"] as const) await executors.get(name)!(progress)
+    for (const name of ["page-sectioning", "translation", "web-rendering"] as const) {
+      if (name === "web-rendering" && state.loseHistoryBeforeRender) {
+        const db = openBookDb(path.join(state.root, "range/range.db"))
+        try { db.exec("DROP TRIGGER history_track_update") } finally { db.close() }
+      }
+      await executors.get(name)!(progress)
+    }
     return { statuses: new Map(), errors: new Map() }
   },
 }))
@@ -51,11 +57,23 @@ const source = path.resolve("tests/fixtures/raven.pdf")
 beforeEach(() => {
   state.root = fs.mkdtempSync(path.join(os.tmpdir(), "dag-effective-range-"))
   state.selected = []; state.rendered = []; state.changeConfig = false
+  state.loseHistoryBeforeRender = false
   configPath = path.join(state.root, "global.yaml")
   fs.writeFileSync(configPath, "structure_types: {}\nrole_types: {}\ndefault_model: ollama:tinyllama\nstart_page: 1\nend_page: 1\n")
 })
 afterEach(() => fs.rmSync(state.root, { recursive: true, force: true }))
 const options = () => ({ label: "range", booksRoot: state.root, pdfPath: source, configPath, promptsDir: path.resolve("prompts"), templatesDir: path.resolve("templates") })
+it("fresh DAG refuses lost history objects before Storyboard renderer work", async () => {
+  state.loseHistoryBeforeRender = true
+  await expect(runFullPipeline(options())).rejects.toThrow("HISTORY_REPAIR_REQUIRED")
+  expect(state.selected).toEqual(["pg001"])
+  expect(state.rendered).toEqual([])
+  const storage = createBookStorage("range", state.root)
+  try {
+    expect(storage.getLatestNodeData("page-sectioning", "pg001")).not.toBeNull()
+    expect(storage.getLatestNodeData("web-rendering", "pg001")).toBeNull()
+  } finally { storage.close() }
+}, 30_000)
 function part() {
   const dir = path.join(state.root, "range")
   fs.mkdirSync(dir, { recursive: true })
