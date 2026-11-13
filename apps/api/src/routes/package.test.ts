@@ -101,8 +101,8 @@ describe("Package routes", () => {
     )
   }
 
-  // Two real 120-page builds take about 86s even in a focused local run. Keep
-  // room for suite contention; read-count assertions below enforce bounded work.
+  // Includes two real 120-page builds and their accessibility audits. Leave
+  // room for suite contention; deterministic read counts enforce bounded work.
   it("prepares and downloads 120 documents with bounded dependency reads and invalidation", { timeout: 180_000 }, async () => {
     const label = "large-bundle"
     createRenderedBook(label); createWebAssets()

@@ -454,7 +454,10 @@ async function buildWebPackage(
   const freshness = options.config ? readOutputCatalog({ storage, config: options.config, bookDir,
     promptsDir: options.promptsDir ?? path.resolve("prompts"), configDir: options.configDir ?? path.resolve("config") }) : []
   const included = new Set<string>()
-  const captionConsumers = new Set(buildImageInventory(storage).filter((image) => image.catalogLocations.length > 0).map((image) => image.id))
+  // Keep the complete inventory: a shared image can belong to a page outside
+  // this part. Reuse it only within this build, never across saved changes.
+  const imageInventory = buildImageInventory(storage)
+  const captionConsumers = new Set(imageInventory.filter((image) => image.catalogLocations.length > 0).map((image) => image.id))
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
   const glossary = glossaryRow?.data as GlossaryOutput | undefined
@@ -498,11 +501,20 @@ async function buildWebPackage(
   // Reading order revisits a page once per section, so per-page reads are
   // memoized instead of hoisted out of a page-grouped loop.
   const decorativeImageIdsByPage = new Map<string, Set<string>>()
+  const captionsByPage = new Map<string, ImageCaptioningOutput["captions"]>()
+  const captionsFor = (pageId: string) => {
+    let captions = captionsByPage.get(pageId)
+    if (!captions) {
+      captions = pageCaptions(storage, pageId, imageInventory)
+      captionsByPage.set(pageId, captions)
+    }
+    return captions
+  }
   const editableActivitiesByPage = new Map<string, ReturnType<typeof readEditableActivities>>()
   const decorativeImageIdsFor = (pageId: string) => {
     let ids = decorativeImageIdsByPage.get(pageId)
     if (!ids) {
-      ids = buildDecorativeImageIdSet(storage, pageId)
+      ids = decorativeIds(captionsFor(pageId))
       decorativeImageIdsByPage.set(pageId, ids)
     }
     return ids
@@ -569,7 +581,7 @@ async function buildWebPackage(
     )
 
     // Rewrite image URLs and copy referenced images
-    const preferredImageAltMap = buildPreferredImageAltMap(storage, pageId, sectionMeta)
+    const preferredImageAltMap = applyDuplicateImageAltPolicy(sectionMeta, captionAltMap(captionsFor(pageId)))
     let rewrittenHtml: string
     let referencedImages: string[]
     if (stepperActivity) {
@@ -1914,10 +1926,10 @@ export function buildImageMap(imagesDir: string, storage?: Storage): Map<string,
   return map
 }
 
-function pageCaptions(storage: Storage, pageId: string): ImageCaptioningOutput["captions"] {
+function pageCaptions(storage: Storage, pageId: string, inventory = buildImageInventory(storage)): ImageCaptioningOutput["captions"] {
   const local = (storage.getLatestNodeData("image-captioning", pageId)?.data as ImageCaptioningOutput | undefined)?.captions ?? []
   const captions = new Map(local.map((entry) => [entry.imageId, entry]))
-  for (const image of buildImageInventory(storage)) {
+  for (const image of inventory) {
     if (!image.pageIds.includes(pageId) || !image.pageId || image.pageId === pageId) continue
     const owner = storage.getLatestNodeData("image-captioning", image.pageId)?.data as ImageCaptioningOutput | undefined
     const caption = owner?.captions.find((entry) => entry.imageId === image.id)
@@ -1925,11 +1937,14 @@ function pageCaptions(storage: Storage, pageId: string): ImageCaptioningOutput["
   }
   return [...captions.values()]
 }
-function loadImageCaptionMap(storage: Storage, pageId: string): Map<string, string> {
-  return new Map(pageCaptions(storage, pageId).filter((entry) => entry.caption?.trim()).map((entry) => [entry.imageId, entry.caption.trim()]))
+function captionAltMap(captions: ImageCaptioningOutput["captions"]): Map<string, string> {
+  return new Map(captions.filter((entry) => entry.caption?.trim()).map((entry) => [entry.imageId, entry.caption.trim()]))
+}
+function decorativeIds(captions: ImageCaptioningOutput["captions"]): Set<string> {
+  return new Set(captions.filter((entry) => entry.decorative).map((entry) => entry.imageId))
 }
 export function buildDecorativeImageIdSet(storage: Storage, pageId: string): Set<string> {
-  return new Set(pageCaptions(storage, pageId).filter((entry) => entry.decorative).map((entry) => entry.imageId))
+  return decorativeIds(pageCaptions(storage, pageId))
 }
 
 /** Collect every non-pruned image_group node in a section along with its image id. */
@@ -1981,7 +1996,7 @@ export function buildPreferredImageAltMap(
 ): Map<string, string> {
   // Source caption-role text and renderer alt attributes are retained authoring
   // data, but are not image descriptions. Only the caption store supplies alt.
-  const captions = loadImageCaptionMap(storage, pageId)
+  const captions = captionAltMap(pageCaptions(storage, pageId))
   return section ? applyDuplicateImageAltPolicy(section, captions) : captions
 }
 

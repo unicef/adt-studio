@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -569,6 +569,55 @@ describe("packageAdtWeb", () => {
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it.each([false, true])("bounds caption inventory reads and refreshes shared image owners (fixed=%s)", async (fixedLayout) => {
+    const bookDir = path.join(tmpDir, "caption-book")
+    const webAssetsDir = path.join(tmpDir, "web-assets")
+    fs.mkdirSync(path.join(bookDir, "images"), { recursive: true })
+    createWebAssets(webAssetsDir)
+    const imageIds = ["shared", "decoration", "fallback"]
+    for (const id of imageIds) fs.writeFileSync(path.join(bookDir, "images", `${id}.png`), `image-${id}`)
+    const pages = Array.from({ length: 24 }, (_, index) => ({ pageId: `pg${String(index + 1).padStart(3, "0")}`, pageNumber: index + 1, text: "Page" }))
+    const sourceNode = fixedLayout ? "fixed-layout-sectioning" : "page-sectioning"
+    const nodeData: Record<string, Record<string, unknown>> = { [sourceNode]: {}, "web-rendering": {}, "image-captioning": {
+      pg001: { captions: [{ imageId: "shared", caption: "Owner description" }, { imageId: "decoration", caption: "Decorative owner", decorative: true }] },
+      pg024: { captions: [{ imageId: "shared", caption: "Obsolete local description" }, { imageId: "fallback", caption: "Local fallback" }] },
+    } }
+    for (const page of pages) {
+      nodeData[sourceNode][page.pageId] = { reasoning: "source", sections: [{ sectionId: `${page.pageId}_sec001`, sectionType: "content", nodes: [], backgroundColor: "#fff", textColor: "#000", pageNumber: page.pageNumber, isPruned: false }] }
+      nodeData["web-rendering"][page.pageId] = { sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "rendered", html: imageIds.map(id => `<img data-id="${id}" src="/api/books/caption-book/images/${id}">`).join("") }] }
+    }
+    const storage = createMockStorage(pages, nodeData)
+    storage.getImageMeta = id => imageIds.includes(id) ? { pageId: "pg001", relativePath: `images/${id}.png` } : null
+    const reads = vi.spyOn(storage, "getLatestNodeData")
+    const options = { bookDir, label: "caption-book", language: "en", outputLanguages: ["en"], title: "Book", webAssetsDir, fixedLayout }
+    try {
+      await packageAdtWeb(storage, options)
+      // Bound full-book storage work, independently of device speed or page HTML.
+      expect(reads.mock.calls.filter(([node]) => node === "web-rendering").length).toBeLessThan(pages.length * 16)
+      const lastPage = path.join(bookDir, "adt/pg024_sec001.html")
+      const first = fs.readFileSync(lastPage, "utf8")
+      expect(first).toContain('alt="Owner description"')
+      expect(first).not.toContain("Obsolete local description")
+      expect(first).toContain('alt="Local fallback"')
+      expect(first).toContain('aria-hidden="true"')
+
+      // A new build must read current captions, including an owner outside the
+      // mandatory part window. No snapshot can survive into the next build.
+      nodeData["image-captioning"].pg001 = { captions: [{ imageId: "shared", caption: "Updated owner" }, { imageId: "decoration", caption: "Now informative", decorative: false }] }
+      fs.writeFileSync(path.join(bookDir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: "caption-book", title: null, range: { startPage: 24, endPage: 24 }, pageCount: 24, fingerprint: {}, identityHash: "identity", semanticsHash: "semantics", createdAt: "2026-11-13T00:00:00Z", partLabelSuggestion: "part" }))
+      reads.mockClear()
+      await packageAdtWeb(storage, options)
+      expect(reads.mock.calls.filter(([node]) => node === "web-rendering").length).toBeLessThan(pages.length * 16)
+      const next = fs.readFileSync(lastPage, "utf8")
+      expect(next).toContain('alt="Updated owner"')
+      expect(next).toContain('alt="Now informative"')
+      expect(next).not.toContain('aria-hidden="true"')
+      expect(next).toContain('alt="Local fallback"')
+      expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/pages.json"), "utf8"))).toHaveLength(1)
+      for (const id of imageIds) expect(fs.readFileSync(path.join(bookDir, "images", `${id}.png`), "utf8")).toBe(`image-${id}`)
+    } finally { reads.mockRestore() }
   })
 
   it("uses a safe default locale, avoids page-number carryover, and escapes inline answer JSON", async () => {
