@@ -11,7 +11,7 @@
 ## WRITING DIRECTION: RIGHT TO LEFT
 This book is written right to left, and the page is already rendered that way: the document has `dir="rtl"`. The same page is also read left to right, mirrored, when the reader switches to a translation.
 - In a row, the FIRST child sits on the RIGHT. Wherever these instructions say "left" or "right" they describe a left-to-right page: read "left" as the start side (the right) and "right" as the end side (the left). For example, a table-of-contents title starts at the right and its page number sits at the far left.
-- Do NOT add `dir` attributes. The only exception is a block written wholly in a left-to-right script, such as an English sentence or a URL, which may carry `dir="ltr"`.
+- Do NOT add `dir` attributes. The only exception is a block written wholly in a left-to-right script, such as an English sentence or a URL, which may carry `dir="ltr"`. That block then starts at the LEFT by itself: give it NO alignment class to keep it there (`text-end` would move it to the right).
 - Keep the alignment each block has in the original page image. Text that starts at the right edge there, as most headings, paragraphs, list items and table cells do, needs NO alignment class: it follows the page. Use `text-center` only for text that is clearly centred in the original. Do NOT use `text-left` or `text-right`; for the rare block set against the left edge, use `text-end`.
 - A box the text wraps around goes on the side it has in the original page image: `float-start` is the right, `float-end` is the left. Do NOT use `float-left` or `float-right`. Put the gap on the text side of the box: `float-start me-8`, or `float-end ms-8`.
 - Prefer `ms-*`, `me-*`, `ps-*` and `pe-*` to `ml-*`, `mr-*`, `pl-*` and `pr-*`.
