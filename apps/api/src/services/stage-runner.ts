@@ -1801,7 +1801,9 @@ async function runStoryboardStep(
           const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
           for (const imageId of unprunedImageIds) {
             if (options.signal?.aborted) throw new RunCancelledError()
-            const dims = pageDims.get(imageId)
+            // Images added to this page in Extract from another page keep
+            // their own page_id, so they are not in pageDims.
+            const dims = pageDims.get(imageId) ?? storage.getImageDimensions(imageId)
             renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
           }
           // Sections can reference images extracted on other pages (cross-page

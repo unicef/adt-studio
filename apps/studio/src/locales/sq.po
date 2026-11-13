@@ -3641,6 +3641,9 @@ msgstr "Seksion i personalizuar {index}"
 msgid "Cut a region out of any page"
 msgstr "Prit një zonë nga çdo faqe"
 
+msgid "Cut a region out of this page"
+msgstr "Prit një zonë nga kjo faqe"
+
 msgid "D1"
 msgstr "D1"
 

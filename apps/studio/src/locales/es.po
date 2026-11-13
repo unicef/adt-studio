@@ -3639,6 +3639,9 @@ msgstr "Sección personalizada {index}"
 msgid "Cut a region out of any page"
 msgstr "Recorta una región de cualquier página"
 
+msgid "Cut a region out of this page"
+msgstr "Recorta una región de esta página"
+
 msgid "D1"
 msgstr "D1"
 

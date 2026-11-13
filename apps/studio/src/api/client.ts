@@ -1735,22 +1735,27 @@ export const api = {
       }>
     }>(`/books/${label}/translated-images`),
 
-  uploadNewImage: (label: string, pageId: string, imageBlob: Blob) => {
+  /** `addToPage` also adds the image to the page's image-filtering list in the
+   *  same request — nothing is left behind if that fails. */
+  uploadNewImage: (label: string, pageId: string, imageBlob: Blob, options?: { addToPage?: boolean }) => {
     const formData = new FormData()
     formData.append("image", imageBlob, "upload.png")
     formData.append("pageId", pageId)
-    return request<{ imageId: string; width: number; height: number }>(
+    if (options?.addToPage) formData.append("addToPage", "true")
+    return request<{ imageId: string; width: number; height: number; imageFilteringVersion?: number }>(
       `/books/${label}/images/upload`,
       { method: "POST", body: formData }
     )
   },
 
-  uploadCroppedImage: (label: string, pageId: string, sourceImageId: string, imageBlob: Blob) => {
+  /** `addToPage`: see uploadNewImage. */
+  uploadCroppedImage: (label: string, pageId: string, sourceImageId: string, imageBlob: Blob, options?: { addToPage?: boolean }) => {
     const formData = new FormData()
     formData.append("image", imageBlob, "crop.png")
     formData.append("pageId", pageId)
     formData.append("sourceImageId", sourceImageId)
-    return request<{ imageId: string; width: number; height: number }>(
+    if (options?.addToPage) formData.append("addToPage", "true")
+    return request<{ imageId: string; width: number; height: number; imageFilteringVersion?: number }>(
       `/books/${label}/images`,
       { method: "POST", body: formData }
     )
