@@ -331,7 +331,7 @@ export {
   type FontAssignmentInput,
 } from "./font-assignment.js"
 export { applyFontToHtml, type FontScope } from "./font-apply.js"
-export { loadConfig, loadBookConfig, loadBookConfigOverrides, BookConfigError, deepMerge } from "./config.js"
+export { loadConfig, loadBookConfig, loadBookConfigOverrides, normalizePersistedSectioningMode, BookConfigError, deepMerge } from "./config.js"
 export { runFullPipeline, type FullPipelineOptions } from "./pipeline-dag.js"
 export {
   runDAG,

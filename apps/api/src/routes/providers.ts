@@ -1,10 +1,10 @@
 import fs from "node:fs"
 import { Hono } from "hono"
-import yaml from "js-yaml"
+import { loadConfig } from "@adt/pipeline"
 import { z } from "zod"
 import {
   AI_MODALITIES,
-  AppConfig,
+  type AppConfig,
   DEFAULT_IMAGE_GENERATION_MODEL_ID,
   DEFAULT_LLM_MODEL_ID,
   DEFAULT_OPENAI_TTS_MODEL_ID,
@@ -67,7 +67,7 @@ function safeNormalize(rawModelId: string | undefined): string | undefined {
  * declare no model id and fall through to the literal "default".
  */
 function resolveTtsDefault(
-  config: ReturnType<typeof AppConfig.parse> | undefined,
+  config: AppConfig | undefined,
   registry: ProviderRegistry,
 ): string {
   const provider = config?.speech?.default_provider?.trim() || "openai"
@@ -83,10 +83,10 @@ function resolveDefaults(
   configPath: string,
   registry: ProviderRegistry,
 ): Partial<Record<AiModality, string>> {
-  let config: ReturnType<typeof AppConfig.parse> | undefined
+  let config: AppConfig | undefined
   if (fs.existsSync(configPath)) {
     try {
-      config = AppConfig.parse(yaml.load(fs.readFileSync(configPath, "utf-8")))
+      config = loadConfig(configPath)
     } catch {
       config = undefined
     }

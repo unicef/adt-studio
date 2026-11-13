@@ -2,6 +2,7 @@ import fs from "node:fs"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import yaml from "js-yaml"
+import { loadConfig, normalizePersistedSectioningMode } from "@adt/pipeline"
 import {
   AppConfig,
   BookLabel,
@@ -171,7 +172,7 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
 
     const content = fs.readFileSync(configPath, "utf-8")
     const parsed = yaml.load(content) as Record<string, unknown>
-    return c.json({ config: parsed })
+    return c.json({ config: normalizePersistedSectioningMode(parsed) })
   })
 
   // Return the global fallback text-generation model.
@@ -180,8 +181,7 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
       throw new HTTPException(404, { message: "Global config not found" })
     }
 
-    const content = fs.readFileSync(configPath, "utf-8")
-    const parsed = AppConfig.parse(yaml.load(content))
+    const parsed = loadConfig(configPath)
     return c.json({ model: parsed.default_model ?? DEFAULT_LLM_MODEL_ID })
   })
 
@@ -200,7 +200,7 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
 
     const content = fs.readFileSync(configPath, "utf-8")
     const parsed = yaml.load(content) as Record<string, unknown>
-    AppConfig.parse({ ...parsed, default_model: result.data.model })
+    AppConfig.parse(normalizePersistedSectioningMode({ ...parsed, default_model: result.data.model }))
 
     const updated = setTopLevelYamlValue(
       content,
@@ -218,8 +218,7 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
       throw new HTTPException(404, { message: "Global config not found" })
     }
 
-    const content = fs.readFileSync(configPath, "utf-8")
-    const parsed = AppConfig.parse(yaml.load(content))
+    const parsed = loadConfig(configPath)
     return c.json({
       imageGeneration:
         parsed.default_image_generation_model ??
@@ -247,11 +246,11 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
 
     const content = fs.readFileSync(configPath, "utf-8")
     const parsed = yaml.load(content) as Record<string, unknown>
-    AppConfig.parse({
+    AppConfig.parse(normalizePersistedSectioningMode({
       ...parsed,
       default_image_generation_model: result.data.imageGeneration,
       default_speech_generation_model: result.data.speechGeneration,
-    })
+    }))
 
     const withImageModel = setTopLevelYamlValue(
       content,

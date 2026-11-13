@@ -43,13 +43,13 @@ export function loadConfig(configPath?: string): AppConfig {
     throw new Error(`Config file not found: ${resolved}`)
   }
   const raw = yaml.load(fs.readFileSync(resolved, "utf-8"))
-  return AppConfig.parse(normalizePersistedMode(raw))
+  return AppConfig.parse(normalizePersistedSectioningMode(raw))
 }
 
 /** The old settings UI wrote "section" for dynamic sectioning. Normalize that
  * known alias only while reading persisted YAML, including settings responses.
  * Modern request validation stays strict, and merely opening never rewrites it. */
-function normalizePersistedMode(raw: unknown): unknown {
+export function normalizePersistedSectioningMode(raw: unknown): unknown {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw
   const config = raw as Record<string, unknown>
   const sectioning = config.page_sectioning
@@ -85,7 +85,7 @@ export function loadBookConfigOverrides(label: string, booksRoot: string): Recor
   if (typeof overrides !== "object" || Array.isArray(overrides)) {
     throw new BookConfigError(label, "Expected a configuration mapping.")
   }
-  return Object.keys(overrides).length ? normalizePersistedMode(overrides) as Record<string, unknown> : null
+  return Object.keys(overrides).length ? normalizePersistedSectioningMode(overrides) as Record<string, unknown> : null
 }
 
 export function loadBookConfig(
