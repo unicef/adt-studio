@@ -581,6 +581,9 @@ describe("Package routes", () => {
     "<p style=\"font-family:'abc\n; background:url(images/missing.png); quotes:'\">Text</p>",
     '<style>.typo{color red}.hero{width:calc(1px } );.child{color:blue} --hero:"images/missing.png"}</style><p class="hero" style="background-image:image-set(var(--hero) 1x)">Text</p>',
     '<style>.typo{color red}.hero{grid-area:[a } b];.child{color:blue} --hero:"images/missing.png"}</style><p class="hero" style="background-image:image-set(var(--hero) 1x)">Text</p>',
+    '<style>a[title="x\n] {} .yy{background:url(images/missing.png)} b[title="]{color:red}</style><p class="yy">Text</p>',
+    '<style>@media "x\n{} .yy{background:url(images/missing.png)} @media "{.q{color:red}}</style><p class="yy">Text</p>',
+    '<style>@foo "x\n; .yy{background:url(images/missing.png)} @foo ";</style><p class="yy">Text</p>',
   ])("refuses ambiguous CSS source without replacing the publication: %s", async html => {
     const label = "ambiguous-css"
     createRenderedBook(label); createWebAssets()

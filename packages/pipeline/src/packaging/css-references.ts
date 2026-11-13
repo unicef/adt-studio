@@ -172,7 +172,30 @@ function valueReferences(
   return references
 }
 
+/** PostCSS accepts bad strings in selectors and at-rule headers too. Check the
+ * original token stream so browser newline recovery cannot hide a later rule.
+ * This checks only newlines; existing parsing owns other malformed syntax. */
+function checkCssStringNewlines(css: string): void {
+  let quote = ""
+  for (let position = 0; position < css.length; position++) {
+    const char = css[position]
+    if (!quote && css.slice(position, position + 2) === "/*") {
+      const end = css.indexOf("*/", position + 2)
+      if (end < 0) return
+      position = end + 1
+    } else if (char === "\\") {
+      // A hex escape may consume one whitespace character (CRLF is one).
+      const hex = /^[0-9a-f]{1,6}(?:\r\n|[\t\n\r\f ])?/i.exec(css.slice(position + 1))?.[0]
+      position += hex?.length ?? (css[position + 1] === "\r" && css[position + 2] === "\n" ? 2 : 1)
+    } else if (quote) {
+      if (/[\n\r\f]/.test(char)) throw new Error("Unescaped newline in CSS string")
+      if (char === quote) quote = ""
+    } else if (char === '"' || char === "'") quote = char
+  }
+}
+
 export function parseCssSource(css: string, inline: boolean | "stylesheet" = false) {
+  checkCssStringNewlines(css)
   // PostCSS does not tokenize escaped at-rule names. Normalize only those
   // identifiers (not arbitrary escapes that could turn URL bytes into syntax).
   const normalized = css.replace(/@((?:\\[0-9a-f]{1,6}[\t\n\r\f ]?|\\[^\n\r\f]|[\w-])+)/gi, (raw, identifier: string) => {

@@ -136,6 +136,19 @@ it("validates shared runtime files once per read and notices their deletion on t
     expect(fs.readFileSync(page)).toEqual(saved)
     fs.unlinkSync(resource)
   }
+  const linked = path.join(root, "assets/linked.css")
+  fs.writeFileSync(page, '<link rel="stylesheet" href="assets/linked.css"><p class="yy">Text</p>')
+  for (const css of [
+    'a[title="x\n] {} .yy{background:url(style-resource.png)} b[title="]{color:red}',
+    '@media "x\n{} .yy{background:url(style-resource.png)} @media "{.q{color:red}}',
+  ]) {
+    fs.writeFileSync(linked, css)
+    expect(packageFilesAvailable(root)).toBe(false)
+    expect(fs.readFileSync(linked, "utf8")).toBe(css)
+  }
+  fs.writeFileSync(linked, ".yy{color:blue}")
+  expect(packageFilesAvailable(root)).toBe(true)
+  fs.unlinkSync(linked)
   fs.writeFileSync(page, '<main style="background:url(assets/style-resource.png">Ambiguous resource</main>')
   fs.writeFileSync(resource, "required image bytes")
   failure.mockClear()

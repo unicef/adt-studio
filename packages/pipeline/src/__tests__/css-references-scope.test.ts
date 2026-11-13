@@ -88,3 +88,19 @@ it.each([false, true, "stylesheet"] as const)("refuses raw newlines in CSS strin
     }
   }
 })
+
+it.each([false, "stylesheet"] as const)("checks bad strings outside declaration values, mode=%s", mode => {
+  for (const newline of ["\n", "\r", "\r\n", "\f"]) {
+    for (const css of [
+      `a[title="x${newline}] {} .yy{background:url(missing.png)} b[title="]{color:red}`,
+      `@media "x${newline}{} .yy{background:url(missing.png)} @media "{.q{color:red}}`,
+      `@foo "x${newline}; .yy{background:url(missing.png)} @foo ";`,
+    ]) expect(() => parseCssSource(css, mode)).toThrow()
+    for (const css of [
+      `/* quotes " ' ${newline} aren't strings in a comment */ .yy{background:url(required.png)}`,
+      `a[title="a\\A${newline}b"]{background:url(required.png)}`,
+      `a[title="a\\${newline}b"]{background:url(required.png)}`,
+      String.raw`a[title="a\"b"]{background:url(required.png)}`,
+    ]) expect(cssReferences([{ parsed: parseCssSource(css, mode), from: "style.css" }]).map(reference => reference.url)).toEqual(["required.png"])
+  }
+})
