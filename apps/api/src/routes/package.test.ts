@@ -607,6 +607,37 @@ describe("Package routes", () => {
     expect(await readZip()).toEqual(original)
   })
 
+  it.each([
+    '<style>.hero{.child{color:blue}--hero:"images/unused.png"}</style><main class="hero" style=\'--hero:"images/pg001_page.png";background-image:image-set(var(--hero) 1x)\'></main>',
+    '<style>.hero{.child{color:blue}--hero:"images/unused.png"}.hero{--hero:"images/pg001_page.png";background-image:image-set(var(--hero) 1x)}</style><main class="hero"></main>',
+    '<style>.hero{--hero:"images/unused.png";.child{color:blue}}#winner{--hero:"images/pg001_page.png"}.hero{background-image:image-set(var(--hero) 1x)}</style><main id="winner" class="hero"></main>',
+    '<style>.other{.hero{--hero:"images/unused.png"}}.hero{--hero:"images/pg001_page.png";background-image:image-set(var(--hero) 1x)}</style><main class="hero"></main><aside class="other"></aside>',
+  ])("packages proven nested CSS overrides and still refuses a missing selected asset: %s", async html => {
+    const label = "nested-css"
+    createRenderedBook(label); createWebAssets()
+    const run = () => app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+    expect((await run()).status).toBe(200)
+    expect(fs.existsSync(path.join(tmpDir, label, "adt/images/pg001_page.png"))).toBe(true)
+    const save = (addition: string) => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const rendering = storage.getLatestNodeData("web-rendering", "pg001")!.data as { sections: Array<{ html: string }> }
+        rendering.sections[0].html = '<img data-id="pg001_page" src="cover.png">' + addition
+        storage.putNodeData("web-rendering", "pg001", rendering)
+      } finally { storage.close() }
+    }
+    save(html)
+    const prepared = await run()
+    expect(prepared.status, await prepared.clone().text()).toBe(200)
+    const readZip = async () => unzipSync(new Uint8Array(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer()))
+    const original = await readZip()
+    save(html.replaceAll('"images/pg001_page.png"', '"images/missing.png"'))
+    const refused = await run()
+    expect(refused.status, await refused.clone().text()).toBe(409)
+    expect(await refused.json()).toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(await readZip()).toEqual(original)
+  })
+
   it("never writes an unsafe imported section into another book or the prior publication", async () => {
     const label = "contained-package"
     createRenderedBook(label)

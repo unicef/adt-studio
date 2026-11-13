@@ -89,6 +89,48 @@ it.each([false, true, "stylesheet"] as const)("refuses raw newlines in CSS strin
   }
 })
 
+it.each([
+  ["inline override", '.hero{.child{color:blue}--hero:"unused.png"}', '<main class="hero" style=\'--hero:"required.png";background-image:image-set(var(--hero) 1x)\'></main>'],
+  ["later rule", '.hero{.child{color:blue}--hero:"unused.png"}.hero{--hero:"required.png";background-image:image-set(var(--hero) 1x)}', '<main class="hero"></main>'],
+  ["specificity", '.hero{--hero:"unused.png";.child{color:blue}}#winner{--hero:"required.png"}.hero{background-image:image-set(var(--hero) 1x)}', '<main id="winner" class="hero"></main>'],
+  ["unmatched ancestor", '.other{.hero{--hero:"unused.png"}}.hero{--hero:"required.png";background-image:image-set(var(--hero) 1x)}', '<main class="hero"></main><aside class="other"></aside>'],
+] as const)("proves nested variable scope and override: %s", (_label, css, html) => {
+  const sources = [{ parsed: parseCssSource(css), from: "style.css", inlineStyle: undefined as string | undefined }]
+  if (html.includes("style=")) sources.push({ parsed: parseCssSource('--hero:"required.png";background-image:image-set(var(--hero) 1x)', true), from: "index.html", inlineStyle: '--hero:"required.png";background-image:image-set(var(--hero) 1x)' })
+  expect([...new Set(cssReferences(sources, html).map(reference => reference.url))]).toEqual(["required.png"])
+})
+
+it.each([
+  '.hero{&:is(.hero,.other){--hero:"possible.png"}}',
+  '@media (min-width:1px){.hero{--hero:"possible.png"}}',
+  '@supports (display:grid){.hero{--hero:"possible.png"}}',
+  '@layer theme{.hero{--hero:"possible.png"!important}}',
+  '.hero:hover{--hero:"possible.png"}',
+  '@keyframes change{from{--hero:"possible.png"}}',
+])("retains uncertain nested/conditional values independently of CSSOM: %s", conditional => {
+  const css = `.hero{.child{color:blue}--hero:"base.png"}${conditional}.hero{background-image:image-set(var(--hero,"fallback.png") 1x)}`
+  expect(new Set(urls(css, '<main class="hero"></main>'))).toEqual(new Set(["base.png", "possible.png", "fallback.png"]))
+})
+
+it("does not infer priority from non-CSS whitespace or registered property validity", () => {
+  const css = '.hero\u00a0tag{--hero:"possible.png";.child{color:blue}}.other{--hero:"required.png";background-image:image-set(var(--hero) 1x)}'
+  expect(urls(css, '<main class="hero\u00a0tag other"></main>')).toContain("required.png")
+  const registered = '@PROPERTY --hero{syntax:"*";inherits:true}.hero{--hero:"possible.png";.child{color:blue}}.hero{--hero:"required.png";background-image:image-set(var(--hero) 1x)}'
+  expect(new Set(urls(registered, '<main class="hero"></main>'))).toEqual(new Set(["possible.png", "required.png"]))
+})
+
+it.each([
+  ['.other{.hero{--hero:"required.png"}}.hero{--hero:"unused.png";background-image:image-set(var(--hero) 1x)}', '<aside class="other"><main class="hero"></main></aside>'],
+  ['#winner{--hero:"required.png";.child{color:blue}}.hero{--hero:"unused.png";background-image:image-set(var(--hero) 1x)}', '<main id="winner" class="hero"></main>'],
+  ['.hero{--hero:"required.png"!important;.child{color:blue}}', '<main class="hero" style=\'--hero:"unused.png";background-image:image-set(var(--hero) 1x)\'></main>'],
+  ['.parent{--base:"required.png";--alias:var(--base);.child{color:blue}}.hero{--base:"unused.png";background-image:image-set(var(--alias) 1x)}', '<aside class="parent"><main class="hero"></main></aside>'],
+] as const)("retains the selected nested resource despite misleading CSSOM order: %s", (css, html) => {
+  const inlineStyle = '--hero:"unused.png";background-image:image-set(var(--hero) 1x)'
+  const sources = [{ parsed: parseCssSource(css), from: "style.css", inlineStyle: undefined as string | undefined }]
+  if (html.includes("style=")) sources.push({ parsed: parseCssSource(inlineStyle, true), from: "index.html", inlineStyle })
+  expect([...new Set(cssReferences(sources, html).map(reference => reference.url))]).toEqual(["required.png"])
+})
+
 it.each([false, "stylesheet"] as const)("checks bad strings outside declaration values, mode=%s", mode => {
   for (const newline of ["\n", "\r", "\r\n", "\f"]) {
     for (const css of [

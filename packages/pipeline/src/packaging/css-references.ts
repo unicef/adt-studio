@@ -14,6 +14,23 @@ function possibleSelector(selector: string): string {
     .replace(interactionState, "") || "*"
 }
 
+/** Only this small selector grammar supplies a cascade proof. Other selectors
+ * still contribute conservative candidates; CSSOM is not a specificity oracle.
+ * In particular, do not expand arbitrary selector lists or replace arbitrary &.
+ */
+function simpleSelector(selector: string) {
+  const parts = selector.replace(/^[\t\n\r\f ]+|[\t\n\r\f ]+$/g, "").split(/[\t\n\r\f ]+/)
+  const specificity = [0, 0, 0]
+  for (const part of parts) {
+    if (part === ":root") { specificity[1]++; continue }
+    if (!/^(?:\*|[a-zA-Z_][\w-]*)?(?:[.#][a-zA-Z_][\w-]*)*$/.test(part) || !part) return undefined
+    specificity[0] += (part.match(/#/g) ?? []).length
+    specificity[1] += (part.match(/\./g) ?? []).length
+    if (/^[a-zA-Z_]/.test(part)) specificity[2]++
+  }
+  return { selector: parts.join(" "), specificity }
+}
+
 /** CSS values need token boundaries: strings in image-set() are URLs, while
  * strings in content/type() are not. Decode CSS escapes before resolving paths
  * and never discover dependencies inside comments or quoted prose. */
@@ -231,20 +248,28 @@ export function parseCssSource(css: string, inline: boolean | "stylesheet" = fal
       }
     } finally { dom.window.close() }
   }
-  const selectorFor = (node: postcss.Node): string | undefined => {
-    const parent = node.parent
-    if (parent?.type === "rule" && "selector" in parent && typeof parent.selector === "string") return parent.selector
-    return parent ? selectorFor(parent) : undefined
+  const scopeFor = (node: postcss.Node) => {
+    const rules: postcss.Rule[] = []
+    let conditional = false, nested = false, animation = false
+    for (let parent = node.parent; parent; parent = parent.parent) {
+      if (parent.type === "atrule") conditional = true
+      if (parent.type === "atrule" && /^(?:-\w+-)?keyframes$/i.test((parent as postcss.AtRule).name)) animation = true
+      if (parent.type === "rule") {
+        const rule = parent as postcss.Rule
+        rules.unshift(rule)
+        nested ||= rule.nodes.some(child => child.type === "rule" || child.type === "atrule")
+      }
+    }
+    nested ||= rules.length > 1
+    // Implicit descendant nesting has the sum of its single selectors'
+    // specificity. Complex nesting remains unknown, never nearest-rule-only.
+    const selectors = rules.map(rule => rule.selector)
+    const selector = animation ? undefined : selectors.length < 2 ? selectors[0]
+      : selectors.every(value => simpleSelector(value)) ? selectors.join(" ") : undefined
+    return { selector, nested, conditional: conditional || selectors.some(value => possibleSelector(value) !== value),
+      proof: selector === undefined ? undefined : simpleSelector(selector) }
   }
-  const conditional = (node: postcss.Node): boolean => {
-    const parent = node.parent
-    // CSSOM does not reliably expose declarations around nested blocks. Keep
-    // their possible values under the same selector-scoped proof as at-rules.
-    const nestedRule = parent?.type === "rule" && (parent.parent?.type === "rule"
-      || parent.nodes?.some(child => child.type === "rule" || child.type === "atrule"))
-    return parent?.type === "atrule" || nestedRule || (!!parent && conditional(parent))
-  }
-  const declarations: Array<{ property: string; value: string; selector?: string; variables: boolean; conditional: boolean }> = []
+  const declarations: Array<{ property: string; value: string; variables: boolean; important: boolean } & ReturnType<typeof scopeFor>> = []
   const imports: string[] = []
   imports.push(...recoveredReferences.filter(reference => reference.stylesheet).map(reference => reference.url))
   // References that do not depend on the consuming document: computed once per
@@ -265,9 +290,8 @@ export function parseCssSource(css: string, inline: boolean | "stylesheet" = fal
     if (direct.length !== references.length) variableUrls = true
     if (declaration.prop.startsWith("--")) { if (direct.length) variableUrls = true }
     else directReferences.push(...direct)
-    const selector = selectorFor(declaration)
-    declarations.push({ property: declaration.prop, value: declaration.value, selector, variables,
-      conditional: conditional(declaration) || (selector !== undefined && possibleSelector(selector) !== selector) })
+    declarations.push({ property: declaration.prop, value: declaration.value, variables,
+      important: !!declaration.important, ...scopeFor(declaration) })
   })
   root.walkAtRules(rule => {
     // Reuse CSS escape decoding for at-rule identifiers as well as values.
@@ -277,7 +301,13 @@ export function parseCssSource(css: string, inline: boolean | "stylesheet" = fal
   const custom = root.clone()
   custom.walkDecls(declaration => { if (!declaration.prop.startsWith("--")) declaration.remove() })
   custom.walkAtRules("import", rule => { rule.remove() })
-  return { declarations, imports, customCss: custom.toString(), directReferences, variableUrls, recoveredReferences }
+  // Registration can change a custom property's validity/inheritance. It must
+  // not make unrelated length/colour animations disable every resource proof.
+  const registeredVariables: string[] = []
+  root.walkAtRules(rule => {
+    if (rule.name.toLowerCase() === "property") registeredVariables.push(valueReferences(`url(${rule.params})`)[0]?.url ?? rule.params)
+  })
+  return { declarations, imports, customCss: custom.toString(), directReferences, variableUrls, recoveredReferences, registeredVariables }
 }
 
 /** Resolve possible variable values in one document's linked/imported/inline
@@ -299,8 +329,8 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
   const possible: VariableLookup = name => (variables.get(name) ?? []).map(value => ({ value, lookup: possible }))
   const conditionalDefinitions = sources.flatMap(source => source.parsed.declarations)
     .filter(declaration => declaration.conditional && declaration.property.startsWith("--"))
-  // Use the existing DOM/CSS implementation for selector specificity, inline
-  // overrides and element scope. Scripts/resources are never enabled. Only
+  // Use the existing DOM/CSS implementation for ordinary element scope.
+  // Scripts/resources are never enabled. Only
   // custom-property rules are installed, avoiding a full layout/style pass.
   const needsScope = sources.some(source => source.parsed.declarations.some(declaration => declaration.variables && !declaration.property.startsWith("--")))
   const dom = html === undefined || !needsScope ? undefined : new JSDOM(html, { virtualConsole: new VirtualConsole() })
@@ -315,9 +345,69 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
       }
     }
     const lookups = new Map<Element, VariableLookup>()
+    const definitions = sources.flatMap((source, sourceIndex) => source.inlineStyle === undefined
+      ? source.parsed.declarations.filter(declaration => declaration.property.startsWith("--"))
+        .map((declaration, order) => ({ ...declaration, sourceIndex, order, inline: false })) : [])
+    const nestedVariables = definitions.some(declaration => declaration.nested)
+    const registeredVariables = new Set(sources.flatMap(source => source.parsed.registeredVariables))
+    const inlineDefinitions = new Map<string, typeof definitions>()
+    const getInlineDefinitions = (element: Element) => {
+      const value = element.getAttribute("style") ?? ""
+      let result = inlineDefinitions.get(value)
+      if (!result) {
+        result = parseCssSource(value, true).declarations.filter(declaration => declaration.property.startsWith("--"))
+          .map((declaration, order) => ({ ...declaration, sourceIndex: -1, order, inline: true }))
+        inlineDefinitions.set(value, result)
+      }
+      return result
+    }
     const forElement = (element: Element): VariableLookup => {
       let lookup = lookups.get(element)
       if (!lookup) {
+        if (nestedVariables) {
+          // Nested rules are not reliably represented by CSSOM. Keep all local
+          // definitions (including flat/inline peers), removing one only with
+          // an independent nonmatching-scope or unconditional override proof.
+          const candidates = [...definitions, ...getInlineDefinitions(element)].map(declaration => {
+            let matches: boolean | undefined
+            if (declaration.inline) matches = true
+            else if (declaration.selector) {
+              try { matches = element.matches(possibleSelector(declaration.selector)) } catch { /* Unknown scope stays possible. */ }
+            }
+            return { ...declaration, matches }
+          }).filter(declaration => declaration.matches !== false)
+          lookup = name => {
+            const local = candidates.filter(declaration => declaration.property === name)
+            const selected = local.filter(candidate => !local.some(winner => {
+              if (winner === candidate || registeredVariables.has(name) || winner.conditional || candidate.conditional
+                || winner.matches !== true || candidate.matches !== true) return false
+              // A complete quoted value is valid for an unregistered custom
+              // property. Do not infer dominance from var()/rollback values.
+              if (!/^(?:"(?:[^"\\\r\n\f]|\\[\s\S])*"|'(?:[^'\\\r\n\f]|\\[\s\S])*')$/.test(winner.value)) return false
+              if ((!winner.inline && !winner.proof) || (!candidate.inline && !candidate.proof)) return false
+              if (winner.important !== candidate.important) return winner.important
+              if (winner.inline !== candidate.inline) return winner.inline
+              const priority = winner.inline ? 0 : winner.proof!.specificity.reduce((comparison, count, index) =>
+                comparison || count - candidate.proof!.specificity[index], 0)
+              if (priority) return priority > 0
+              // Source order is only proven within the same stylesheet (or
+              // one inline declaration list), not an inferred import order.
+              return winner.sourceIndex === candidate.sourceIndex && winner.order > candidate.order
+            }))
+            const inherited = () => element.parentElement ? forElement(element.parentElement)(name) : []
+            const values = selected.flatMap(declaration => {
+              if (declaration.value === "initial") return []
+              if (/^(?:inherit|unset|revert|revert-layer)$/.test(declaration.value)) return inherited()
+              return [{ value: declaration.value, lookup: lookup! }]
+            })
+            // A conditional/unknown rule may not apply at all. In that case
+            // inheritance resolves aliases at the element that defined them.
+            if (!selected.some(declaration => declaration.matches === true && !declaration.conditional)) values.push(...inherited())
+            return values
+          }
+          lookups.set(element, lookup)
+          return lookup
+        }
         const style = dom!.window.getComputedStyle(element)
         // JSDOM has no viewport/layout engine. Keep the possible values from
         // media/support/container/layer and nested rules for this element, rather than
