@@ -662,6 +662,21 @@ export {
 } from "./accessibility-audit-ipc.js"
 
 export {
+  previewBridgePageSchema,
+  previewBridgePageMessageSchema,
+  previewBridgeHighlightClearedMessageSchema,
+  previewBridgeReaderMessageSchema,
+  PREVIEW_HIGHLIGHT_SEVERITIES,
+  previewBridgeHighlightMessageSchema,
+  previewBridgeNavigateMessageSchema,
+  previewBridgeStudioMessageSchema,
+  type PreviewBridgePage,
+  type PreviewBridgeReaderMessage,
+  type PreviewHighlightSeverity,
+  type PreviewBridgeStudioMessage,
+} from "./preview-bridge.js"
+
+export {
   PROVIDER_ID_PATTERN,
   MODEL_PART_PATTERN,
   LEGACY_UNPREFIXED_PROVIDER_ID,

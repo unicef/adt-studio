@@ -12,6 +12,7 @@ import {
   subscribeLanguageChanges,
   subscribePreviewSettings,
 } from "@/app/lifecycle"
+import { subscribePreviewBridge } from "@/app/preview-bridge"
 import { subscribeSoftNavHistory } from "@/features/navigation/lib/page-swap"
 import { describeInitError, showErrorToast, showMainContent } from "@/shared/lib/errors"
 
@@ -69,7 +70,16 @@ function mount(): void {
     </React.StrictMode>,
   )
 
-  const runtime = { booted: true, chromeRoot, navRoot, unsubscribe: unsubSoftNav }
+  const unsubPreviewBridge = subscribePreviewBridge()
+  const runtime = {
+    booted: true,
+    chromeRoot,
+    navRoot,
+    unsubscribe: () => {
+      unsubPreviewBridge()
+      unsubSoftNav()
+    },
+  }
   window.__adtRuntime = runtime
 
   // Async boot — load config + translations + manifests, then signal
@@ -80,6 +90,7 @@ function mount(): void {
       const unsubLanguage = subscribeLanguageChanges()
       const unsubPreview = subscribePreviewSettings()
       runtime.unsubscribe = () => {
+        unsubPreviewBridge()
         unsubLanguage()
         unsubPreview()
         unsubSoftNav()

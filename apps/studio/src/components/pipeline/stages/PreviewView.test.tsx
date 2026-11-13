@@ -71,10 +71,21 @@ function previewFrame(): HTMLIFrameElement {
   return screen.getByTitle("ADT Preview") as HTMLIFrameElement
 }
 
+/** Announces a page turn the way the reader in the iframe does. */
 function turnPreviewTo(path: string) {
-  const frame = previewFrame()
-  frame.contentWindow!.history.pushState({}, "", path)
-  fireEvent.load(frame)
+  const page = {
+    sectionId: null,
+    href: path,
+    title: null,
+    hasImages: false,
+    hasActivity: false,
+    signLanguageEnabled: false,
+  }
+  window.dispatchEvent(new MessageEvent("message", {
+    data: { type: "adt-preview/page", page },
+    source: previewFrame().contentWindow,
+    origin: window.location.origin,
+  }))
 }
 
 describe("PreviewView", () => {
