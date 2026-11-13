@@ -12,7 +12,9 @@
  * The order is derived from source data today. Phase 5 slots a stored,
  * user-editable order in at the marked point without moving any consumer.
  */
-import type { Storage } from "@adt/storage"
+import { partScopedPages } from "./sectioning-window.js"
+import { HistoryIntegrityError, type Storage } from "@adt/storage"
+import { ambiguousPublicOutputIds, isPublicOutputId } from "./public-output-identity.js"
 import type {
   PageSectioningSection,
   Quiz,
@@ -64,6 +66,10 @@ export interface ResolvedReadingOrder {
 export interface ResolveReadingOrderOptions {
   /** Drop quiz pages entirely (packaging with the quizzes feature disabled). */
   includeQuizzes?: boolean
+  /** Resolve quiz ownership without reparsing every page's HTML. */
+  includeSections?: boolean
+  /** Additional caller scope; never broadens a mandatory part range. */
+  pageIds?: readonly string[]
 }
 
 /** The `content/pages.json` entry shape, built in exactly one place. */
@@ -94,14 +100,24 @@ interface PageContext {
   rendering: SectionRendering[]
 }
 
-function readPageContexts(storage: Storage): PageContext[] {
-  return storage.getPages().map((page) => {
-    const sectioning = getRenderSectioning(storage, page.pageId)
-    const row = storage.getLatestNodeData("web-rendering", page.pageId)
-    const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
-    const rendering = parsed?.success ? [...withLegacyRenderingOwnership(storage, page.pageId, parsed.data).sections] : []
-    rendering.sort((a, b) => a.sectionIndex - b.sectionIndex)
-    return { pageId: page.pageId, sections: sectioning?.sections ?? [], rendering }
+function readPageContexts(storage: Storage, pageIds?: readonly string[], includeSections = true): PageContext[] {
+  const selected = pageIds && new Set(pageIds)
+  return partScopedPages(storage).filter(page => !selected || selected.has(page.pageId)).map((page) => {
+    if (!includeSections) return { pageId: page.pageId, sections: [], rendering: [] }
+    try {
+      const sectioning = getRenderSectioning(storage, page.pageId)
+      const row = storage.getLatestNodeData("web-rendering", page.pageId)
+      const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
+      const rendering = parsed?.success ? [...withLegacyRenderingOwnership(storage, page.pageId, parsed.data).sections] : []
+      rendering.sort((a, b) => a.sectionIndex - b.sectionIndex)
+      return { pageId: page.pageId, sections: sectioning?.sections ?? [], rendering }
+    } catch (error) {
+      // JSON corruption is page-local. Its sections have no provable owner;
+      // the coverage read model reports this page as missing. Keep its slot
+      // for separately owned quizzes and never suppress storage/admission errors.
+      if (!(error instanceof SyntaxError)) throw error
+      return { pageId: page.pageId, sections: [], rendering: [] }
+    }
   })
 }
 
@@ -139,6 +155,30 @@ export function defaultReadingOrder(
   return items
 }
 
+/** Validate selected quiz identities without scanning page output or bundle files. */
+export function readReadingOrderQuizzes(storage: Storage): Quiz[] {
+  let quizRow: ReturnType<Storage["getLatestNodeData"]>
+  try { quizRow = storage.getLatestNodeData("quiz-generation", "book") }
+  catch (error) {
+    if (!(error instanceof SyntaxError)) throw error
+    throw new HistoryIntegrityError("quiz-generation", "book", storage.getSelectedNodeVersion("quiz-generation", "book") ?? 0)
+  }
+  let quizzes: Quiz[] = []
+  if (quizRow) {
+    try { quizzes = withResolvedQuizIds(quizRow.data as QuizGenerationOutput).quizzes }
+    catch (error) {
+      // Invalid stored shape is unavailable evidence, never an empty
+      // quiz set that could falsely establish package completeness.
+      if (error instanceof TypeError) {
+        throw new HistoryIntegrityError("quiz-generation", "book", quizRow.version)
+      }
+      throw error
+    }
+  }
+
+  return quizzes
+}
+
 /**
  * Resolve the book's output sequence.
  *
@@ -148,15 +188,13 @@ export function defaultReadingOrder(
  */
 export function resolveReadingOrder(
   storage: Storage,
-  options: ResolveReadingOrderOptions = {}
+  options: ResolveReadingOrderOptions = {},
+  // Callers sharing one admitted read can reuse its complete namespace scan.
+  ambiguous = ambiguousPublicOutputIds(storage)
 ): ResolvedReadingOrder {
-  const pageContexts = readPageContexts(storage)
+  const pageContexts = readPageContexts(storage, options.pageIds, options.includeSections)
 
-  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
-  const quizzes =
-    options.includeQuizzes === false || !quizRow
-      ? []
-      : withResolvedQuizIds(quizRow.data as QuizGenerationOutput).quizzes
+  const quizzes = options.includeQuizzes === false ? [] : readReadingOrderQuizzes(storage)
 
   // Phase 5 inserts the stored, user-editable order here, reconciled against
   // this default. Until then the source-derived order is the only order.
@@ -184,6 +222,7 @@ export function resolveReadingOrder(
 
   const items: ResolvedItem[] = []
   for (const entry of order) {
+    if (!isPublicOutputId(entry.id) || ambiguous.has(entry.id)) continue
     if (entry.kind === "quiz") {
       const hit = quizzesById.get(entry.id)
       if (!hit) continue

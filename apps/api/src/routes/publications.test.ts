@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Hono } from "hono"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, withBookWriter } from "@adt/storage"
 import { PUBLISH_WORKER_VERSION, type PublishProgressEvent } from "@adt/types"
 import type { PublishRunSnapshot } from "../services/publish-run-progress.js"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
@@ -805,20 +805,45 @@ describe("sharing under the book's writer lease", () => {
     })
     const app = guarded(routes({ clientOverrides: { createComment, roomTicket } }).app)
     await drain(await app.request(`/books/${LABEL}/publication`, { method: "POST" }))
-    fs.writeFileSync(lockFile(), "{}")
+    let release!: () => void
+    const held = withBookWriter(path.join(tmpDir, LABEL), () => new Promise<void>(resolve => { release = resolve }))
+    try {
+      const comment = await app.request(`/books/${LABEL}/publication/comments`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ page_section_id: "pg001_sec001", body: "Looks good" }),
+      })
+      const ticket = await app.request(`/books/${LABEL}/publication/room-ticket`, { method: "POST" })
+      const update = await app.request(`/books/${LABEL}/publication/versions`, { method: "POST" })
 
-    const comment = await app.request(`/books/${LABEL}/publication/comments`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
+      expect(comment.status).toBe(201)
+      expect(ticket.status).toBe(200)
+      expect(update.status).toBe(409)
+      expect(await update.json()).toMatchObject({ code: "BOOK_BUSY" })
+    } finally { release(); await held }
+  })
+
+  it("retains an unverifiable owner while refusing feedback reads, then succeeds after that test owner releases", async () => {
+    const createComment = vi.fn().mockResolvedValue({ comment: { id: "comment-1" } })
+    const app = guarded(routes({ clientOverrides: { createComment } }).app)
+    await drain(await app.request(`/books/${LABEL}/publication`, { method: "POST" }))
+    const database = path.join(tmpDir, LABEL, `${LABEL}.db`)
+    const before = fs.readFileSync(database)
+    fs.writeFileSync(lockFile(), "{}")
+    const send = () => app.request(`/books/${LABEL}/publication/comments`, {
+      method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ page_section_id: "pg001_sec001", body: "Looks good" }),
     })
-    const ticket = await app.request(`/books/${LABEL}/publication/room-ticket`, { method: "POST" })
-    const update = await app.request(`/books/${LABEL}/publication/versions`, { method: "POST" })
-
-    expect(comment.status).toBe(201)
-    expect(ticket.status).toBe(200)
-    expect(update.status).toBe(409)
-    expect(await update.json()).toMatchObject({ code: "BOOK_BUSY" })
+    const refused = await send()
+    expect(refused.status).toBe(409)
+    expect(await refused.json()).toMatchObject({ code: "BOOK_BUSY" })
+    expect(createComment).not.toHaveBeenCalled()
+    expect(fs.readFileSync(lockFile(), "utf8")).toBe("{}")
+    expect(fs.readFileSync(database)).toEqual(before)
+    // This is the fixture's own sentinel, not recovery of an unknown real lock.
+    fs.unlinkSync(lockFile())
+    expect((await send()).status).toBe(201)
+    expect(createComment).toHaveBeenCalledTimes(1)
   })
 })
 

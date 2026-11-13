@@ -30,14 +30,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useBookConfig } from "@/hooks/use-book-config"
 import { usePages } from "@/hooks/use-pages"
+import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import {
+  isFixedLayoutConfig,
   listDefaultRenderStrategies,
   normalizeDefaultRenderStrategy,
 } from "@/lib/render-strategy"
@@ -146,18 +147,18 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   const status = useStageStatus("storyboard")
   const sectioningStatus = useStageStatus("sectioning")
   const extractStatus = useStageStatus("extract")
-  const sectioningReady = sectioningStatus.isCompleted
+  const { data: pages, isLoading: pagesLoading, isPending: pagesPending, isFetching: pagesFetching, isError: pagesError } = usePages(bookLabel)
+  const sectioningReady = pages?.length
+    ? pages.every((page) => page.sectioningVersion != null)
+    : sectioningStatus.isCompleted
   // "Covered" = already done, running, or queued — it will produce its output
   // without us starting it, so we can queue Storyboard behind it instead of
   // pulling it into the run.
-  const extractCovered = extractStatus.isCompleted || extractStatus.isRunning
-  // A book that already has pages cannot be re-extracted in this version
-  // (SPEC-0010 owns safe re-extraction), so never pull Extract into the run.
-  const { data: storyboardPages, isPending: pagesPending, isFetching: pagesFetching, isError: pagesError } = usePages(bookLabel)
-  const hasExtractedPages = (storyboardPages?.length ?? 0) > 0
-  const resolvingStoredState = !extractCovered && !hasExtractedPages && (pagesPending || pagesFetching || pagesError)
+  const extractCovered = extractStatus.isCompleted || extractStatus.isRunning || (pages?.length ?? 0) > 0
+  const hasExtractedPages = (pages?.length ?? 0) > 0
+  const resolvingStoredState = pagesLoading || (!hasExtractedPages && (pagesPending || pagesFetching || pagesError))
   const sectioningCovered =
-    sectioningStatus.isCompleted || sectioningStatus.isRunning
+    sectioningReady || sectioningStatus.isRunning
   const upstreamCovered = extractCovered && sectioningCovered
 
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
@@ -245,8 +246,10 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
       : !sectioningCovered
         ? "sectioning"
         : "storyboard"
+  const needsProvider = fromStage !== "storyboard" || !isFixedLayoutConfig(activeConfigData?.merged)
+  const missingProvider = needsProvider && !hasStructuredTextProvider
   const handleRun = (options?: Pick<RunStagesOptions, "replaceManual" | "protectedReplacements">) => {
-    if (!hasStructuredTextProvider || status.isRunning || resolvingStoredState) return
+    if (missingProvider || status.isRunning || resolvingStoredState) return
     queueRun({ fromStage, toStage: "storyboard", apiKey, viewAfter: true, ...options })
   }
 
@@ -265,7 +268,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
     (option) => option.id === activityMode,
   )
 
-  const disabledReason = !hasStructuredTextProvider ? (
+  const disabledReason = missingProvider ? (
     <Trans>Connect an AI provider to run storyboard.</Trans>
   ) : !hasExtractedPages && pagesError ? (
     <Trans>Unable to load pages. Refresh and try again.</Trans>
@@ -275,7 +278,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
     <LandingPageShell
       key={fromStage}
       bookLabel={bookLabel}
-      requiresProvider
+      requiresProvider={needsProvider}
       stageSlug="storyboard"
       confirmationStageSlug={fromStage === "storyboard" ? "storyboard" : "sectioning"}
       settingsTab="general"
@@ -286,7 +289,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasStructuredTextProvider || resolvingStoredState}
+      extraDisabled={missingProvider || resolvingStoredState}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Storyboard</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

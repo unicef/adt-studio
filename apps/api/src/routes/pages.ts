@@ -1,17 +1,21 @@
 import { SourceGeneratorStep } from "@adt/types"
 import { putSourceNodeData, preserveRenderedOwnership, withSourceGenerationTracking, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
+import { captureStoryboardSource, publishSynchronizedStoryboardText } from "@adt/pipeline"
 import { cloneRenderedIdentities, stampRenderedOwner } from "@adt/pipeline"
 import { stampManualEdits } from "@adt/pipeline"
 import { AuthoredSaveGuard } from "@adt/types"
+import { RenderingSave, StoryboardSave, StoryboardSaveResult, AiSectionEdit } from "@adt/types"
+import { invalidPublicOutputIdentity } from "@adt/pipeline"
 import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
-import { scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
+import { storyboardCoverageByPage, scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
 import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
 import { OutputEditGuard } from "@adt/types"
 import { outputEvidence } from "@adt/pipeline"
 import { restoreSpeechOutput } from "@adt/storage"
 import { reconcileTextCatalog, assignActivityIds, buildTextCatalogSnapshot, findIntroducedCatalogConflict, buildImageInventory, inputSignature } from "@adt/pipeline"
 import { randomUUID } from "node:crypto"
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
@@ -69,7 +73,7 @@ import {
   SectionIdExhaustedError,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
-import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
+import { reRenderPage, reRenderPages, aiEditSection } from "../services/page-edit-service.js"
 import {
   getBookStyleguidesDir,
   getGeneratedStyleguideName,
@@ -663,6 +667,11 @@ function saveStoryboardNode(
       [PageSectioningOutput.parse(data)], () => itemId,
       (before, after) => !renderingChanged && inputSignature(before.sections) === inputSignature(after.sections),
     )[0] : data
+    const identities = node === "page-sectioning" ? PageSectioningOutput.parse(saved).sections.map(section => section.sectionId)
+      : WebRenderingOutput.parse(saved).sections.flatMap(section => renderedSectionId(section) ?? section.sectionId ?? [])
+    if (invalidPublicOutputIdentity(storage, itemId, identities) !== undefined) {
+      throw new HTTPException(409, { message: "STORYBOARD_INPUT_CHANGED: Section identities must be safe, unique and owned by this page." })
+    }
     if (node === "page-sectioning") {
       const before = PageSectioningOutput.safeParse(storage.getLatestNodeData(node, itemId)?.data)
       const after = PageSectioningOutput.parse(saved)
@@ -701,7 +710,7 @@ function saveStoryboardNode(
     // HTML it has already mirrored, or has queued a targeted re-render for. The
     // storyboard is current (or seconds from it) and only its dependents are
     // behind, so resetting the stage would take the editor away for nothing.
-    if (node === "page-sectioning") {
+    if (node === "page-sectioning" && inputSignature(priorSectioning?.success ? priorSectioning.data.sections : undefined) !== inputSignature(PageSectioningOutput.parse(saved).sections)) {
       markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
     }
     return nextVersion
@@ -843,9 +852,20 @@ function cloneNodesWithFreshContainerIds(
  * Indices address the current source order; they never establish ownership. */
 function loadEditableRendering(storage: Storage, pageId: string, sectioning: PageSectioningOutput): WebRenderingOutput | null {
   const row = storage.getLatestNodeData("web-rendering", pageId)
-  if (!row) return null
+  if (row?.data == null) return null
   const parsed = WebRenderingOutput.safeParse(row.data)
   if (!parsed.success) throw new HTTPException(409, { message: "Rendering is invalid. Restore matching versions before editing sections." })
+  const fixed = storage.getLatestNodeData("fixed-layout-sectioning", pageId)
+  if (fixed?.data != null) {
+    const positioned = PageSectioningOutput.safeParse(fixed.data)
+    const projected = withLegacyRenderingOwnership(storage, pageId, parsed.data)
+    if (!positioned.success || projected.sections.some(entry => !resolveRenderedSection(entry, positioned.data.sections, projected.sections))) {
+      throw new HTTPException(409, { message: "Section ownership is ambiguous. The existing content has been preserved." })
+    }
+    // Fixed HTML belongs to the independently published positioned tree.
+    // Semantic edits cannot clone/remap/drop that pair by semantic array index.
+    return null
+  }
   const seen = new Set<string>()
   const sections = withLegacyRenderingOwnership(storage, pageId, parsed.data).sections.map(entry => {
     const owner = renderedSectionId(entry)
@@ -867,6 +887,8 @@ export function createPageRoutes(
   taskService?: TaskService
 ): Hono {
   const app = new Hono()
+  app.use("/books/:label/*", bookWriterMiddleware(booksDir))
+  app.use("/books/:label", bookWriterMiddleware(booksDir))
 
   // GET /books/:label/pages — List pages with pipeline status
   app.get("/books/:label/pages", (c) => {
@@ -1069,6 +1091,13 @@ export function createPageRoutes(
         }
       }
 
+      const coverageStorage = createBookStorage(safeLabel, booksDir)
+      try {
+        const coverage = storyboardCoverageByPage(coverageStorage, pages.map(page => page.page_id))
+        for (const page of pages) {
+          if (coverage.get(page.page_id)!.rendered === 0) rendered.delete(page.page_id)
+        }
+      } finally { coverageStorage.close() }
       const result: PageSummary[] = pages.map((p) => ({
         pageId: p.page_id,
         pageNumber: p.page_number,
@@ -1632,7 +1661,7 @@ export function createPageRoutes(
         const remap = sectionReorderMap(previous.success ? previous.data : undefined, parsed.data)
         if (remap) migrateEditableActivities(storage, pageId, { mapIndex: remap })
         return saved
-      })
+      }, [pageId])
       return c.json({ version })
     } finally {
       storage.close()
@@ -1674,11 +1703,9 @@ export function createPageRoutes(
     const safeLabel = parseBookLabel(label)
 
     const body = await c.req.json()
-    const parsed = WebRenderingOutput.safeParse(body)
+    const parsed = RenderingSave.safeParse(body)
     if (!parsed.success) {
-      throw new HTTPException(400, {
-        message: `Invalid web-rendering data: ${parsed.error.message}`,
-      })
+      return c.json({ code: "STORYBOARD_REQUEST_INVALID", error: "STORYBOARD_REQUEST_INVALID: Invalid edit request" }, 400)
     }
 
     const storage = createBookStorage(safeLabel, booksDir)
@@ -1689,7 +1716,11 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
-      const version = storage.transaction(() => saveStoryboardNode(storage, "web-rendering", pageId, parsed.data))
+      const version = storage.transaction(() => {
+        assertNoActivePipelineRun(storage)
+        assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, parsed.data.baseVersion)
+        return saveStoryboardNode(storage, "web-rendering", pageId, WebRenderingOutput.parse(parsed.data))
+      })
       return c.json({ version })
     } finally {
       storage.close()
@@ -1718,18 +1749,9 @@ export function createPageRoutes(
     const safeLabel = parseBookLabel(label)
 
     const body = await c.req.json()
-    const parsed = z
-      .object({
-        sectioning: PageSectioningOutput.omit({ source: true }).optional(),
-        baseVersion: AuthoredSaveGuard.shape.baseVersion.optional(),
-        rendering: WebRenderingOutput.optional(),
-        renderingInSync: z.boolean().default(false),
-      })
-      .safeParse(body)
+    const parsed = StoryboardSave.safeParse(body)
     if (!parsed.success) {
-      throw new HTTPException(400, {
-        message: `Invalid storyboard save: ${parsed.error.message}`,
-      })
+      return c.json({ code: "STORYBOARD_REQUEST_INVALID", error: "STORYBOARD_REQUEST_INVALID: Invalid edit request" }, 400)
     }
     const { sectioning, rendering, renderingInSync } = parsed.data
     if (!sectioning && !rendering) {
@@ -1764,23 +1786,34 @@ export function createPageRoutes(
       // Rendering, sectioning, downstream invalidations, and step status are a
       // single editor save. If any statement fails, none of them may survive.
       const previousSectioning = sectioning ? PageSectioningOutput.safeParse(storage.getLatestNodeData("page-sectioning", pageId)?.data) : null
-      const { renderingVersion, sectioningVersion } = withSourceGenerationTracking(storage, () => {
-        const saved = {
-          renderingVersion: rendering
-            ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
-            : null,
-          sectioningVersion: sectioning
-            ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
-            : null,
-        }
+      const saved = withSourceGenerationTracking(storage, () => {
+        assertNoActivePipelineRun(storage)
+        if (rendering) assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, parsed.data.renderingBaseVersion!)
+        const synchronized = sectioning && rendering && renderingInSync
+        const priorSource = synchronized ? captureStoryboardSource(storage, pageId) : undefined
+        const oldRendering = synchronized ? WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", pageId)?.data) : undefined
+        const priorRendering = oldRendering?.success ? withLegacyRenderingOwnership(storage, pageId, oldRendering.data) : undefined
+        if (rendering) saveStoryboardNode(storage, "web-rendering", pageId, rendering)
+        if (sectioning) saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
         if (sectioning) {
           const remap = sectionReorderMap(previousSectioning?.success ? previousSectioning.data : undefined, sectioning)
           if (remap) migrateEditableActivities(storage, pageId, { mapIndex: remap })
         }
-        return saved
-      })
+        if (synchronized) publishSynchronizedStoryboardText(storage, pageId, priorSource,
+          previousSectioning?.success ? previousSectioning.data : undefined, priorRendering)
+        const sourceRow = storage.getLatestNodeData("page-sectioning", pageId)
+        const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+        const canonicalSource = PageSectioningOutput.safeParse(sourceRow?.data)
+        const canonicalRendering = WebRenderingOutput.safeParse(renderingRow?.data)
+        return StoryboardSaveResult.parse({
+          sectioningVersion: sourceRow?.version ?? null,
+          renderingVersion: renderingRow?.version ?? null,
+          sectioning: canonicalSource.success ? canonicalSource.data : null,
+          rendering: canonicalRendering.success ? canonicalRendering.data : null,
+        })
+      }, [pageId])
 
-      return c.json({ sectioningVersion, renderingVersion })
+      return c.json(saved)
     } finally {
       storage.close()
     }
@@ -1832,7 +1865,7 @@ export function createPageRoutes(
         }
         clearRestoredNodeDependents(storage, node, itemId, previousVersion)
         return c.json({ node, itemId, version: storage.getCurrentNodeVersion(node, itemId) ?? version })
-      })
+      }, ["page-sectioning", "web-rendering", "image-filtering", "image-captioning"].includes(node) ? [itemId] : undefined)
     } finally {
       storage.close()
     }
@@ -1887,18 +1920,16 @@ export function createPageRoutes(
 
   // POST /books/:label/pages/re-render — Re-render a set of pages as one task.
   // This is used by cross-page edits: the Storyboard step stays running until
-  // every affected page succeeds, and any failure makes the whole stage stale.
+  // requested pages settle; successful ordinary pages remain published on failure.
   app.post("/books/:label/pages/re-render", async (c) => {
     const safeLabel = parseBookLabel(c.req.param("label"))
     const credentials = readProviderCredentials(c)
-    // Fail before the batch starts: a partially re-rendered book is worse than
-    // a rejected request, and the model decides which credential is required.
-    assertModelCredentials(
-      "structured-text",
-      loadBookConfig(safeLabel, booksDir, configPath).default_model
-        ?? DEFAULT_LLM_MODEL_ID,
-      credentials,
-    )
+    // Validate credentials once, before submitting work. Per-page missing input
+    // is isolated by the admitted renderer so runnable neighbors can publish.
+    const config = loadBookConfig(safeLabel, booksDir, configPath)
+    if (!isFixedLayoutBook(config)) {
+      assertModelCredentials("structured-text", config.default_model ?? DEFAULT_LLM_MODEL_ID, credentials)
+    }
 
     const parsed = z
       .object({ pageIds: z.array(z.string().min(1)).min(1).max(100) })
@@ -1917,17 +1948,7 @@ export function createPageRoutes(
         if (!existingPageIds.has(pageId)) {
           throw new HTTPException(404, { message: `Page not found: ${pageId}` })
         }
-        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
-        if (!sectioningRow) {
-          throw new HTTPException(400, {
-            message: `Page must have page-sectioning data before re-rendering: ${pageId}`,
-          })
-        }
-        if (!PageSectioningOutput.safeParse(sectioningRow.data).success) {
-          throw new HTTPException(400, {
-            message: `Invalid page-sectioning data: ${pageId}`,
-          })
-        }
+
       }
 
       assertNoActivePipelineRun(storage)
@@ -1947,20 +1968,9 @@ export function createPageRoutes(
 
     const runReRenders = async () => {
       try {
-        const results = []
-        for (const pageId of pageIds) {
-          results.push(
-            await reRenderPage({
-              label: safeLabel,
-              pageId,
-              booksDir,
-              promptsDir,
-              webAssetsDir,
-              configPath,
-              credentials,
-            })
-          )
-        }
+        const results = await reRenderPages(pageIds.map((pageId) => ({
+          label: safeLabel, pageId, booksDir, promptsDir, webAssetsDir, configPath, credentials,
+        })))
 
         const completedStorage = createBookStorage(safeLabel, booksDir)
         try {
@@ -2114,20 +2124,18 @@ export function createPageRoutes(
     const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
-    const guard = AuthoredSaveGuard.safeParse(body)
-    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for AI edits" })
+    const guard = AiSectionEdit.safeParse(body)
+    if (!guard.success) return c.json({ code: "STORYBOARD_REQUEST_INVALID", error: "STORYBOARD_REQUEST_INVALID: Invalid edit request" }, 400)
     const checkBase = () => {
       const storage = createBookStorage(safeLabel, booksDir)
       try {
         assertAuthoredIdle(storage)
         assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+        assertEditVersion(storage.getSelectedNodeVersion("web-rendering", pageId) ?? undefined, guard.data.renderingBaseVersion)
       } finally { storage.close() }
     }
     checkBase()
-    const instruction = body?.instruction
-    if (!instruction || typeof instruction !== "string") {
-      throw new HTTPException(400, { message: "Missing instruction in request body" })
-    }
+    const { instruction, currentHtml } = guard.data
 
     // Submit as task if TaskService is available
     if (taskService) {
@@ -2156,7 +2164,7 @@ export function createPageRoutes(
             pageId,
             sectionIndex: idx,
             instruction,
-            currentHtml: typeof body.currentHtml === "string" ? body.currentHtml : undefined,
+            currentHtml,
             booksDir,
             promptsDir,
             webAssetsDir,
@@ -2202,7 +2210,7 @@ export function createPageRoutes(
       pageId,
       sectionIndex: idx,
       instruction,
-      currentHtml: typeof body.currentHtml === "string" ? body.currentHtml : undefined,
+      currentHtml,
       booksDir,
       promptsDir,
       webAssetsDir,
@@ -2210,6 +2218,7 @@ export function createPageRoutes(
       credentials,
     })
 
+    checkBase()
     return c.json(result)
   })
 

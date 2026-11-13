@@ -151,7 +151,7 @@ pnpm test          # Run tests (builds first via pretest)
 pnpm typecheck     # TypeScript strict check (tsc --build; excludes apps/adt-runtime)
 pnpm lint          # Lint apps/studio — the only package with an eslint config
 pnpm build         # Build all packages
-pnpm pipeline doctor [books-dir]   # Read-only compatibility check of existing books (schema, locks, ownership, duplicate ids, re-keyed catalog ids)
+pnpm pipeline doctor [books-dir]   # Read-only compatibility check (schema, locks, ownership, duplicate or re-keyed IDs). A connection held by another process returns BOOK_BUSY; retry after it closes.
 ```
 
 ESLint is configured for `apps/studio` only (`apps/studio/eslint.config.js`), so

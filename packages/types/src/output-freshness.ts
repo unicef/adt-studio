@@ -142,6 +142,9 @@ export const BookWriterOwner = z.object({
   token: z.string().uuid(),
   pid: z.number().int().positive(),
   host: z.string().min(1),
+  // Filenames registered durably before every coordinated SQLite open. Absence
+  // supplies no mutex ownership proof, even when the recorded process is dead.
+  coordinatedDatabases: z.array(z.string().min(1).regex(/^(?!\.{1,2}$)[^/\\\0]+$/)).optional(),
   // Optional so leases written by older builds remain readable. This is
   // process ownership evidence, never content authorship or freshness.
   linuxProcess: z.object({
@@ -152,6 +155,17 @@ export const BookWriterOwner = z.object({
   }).strict().optional(),
 }).strict()
 export type BookWriterOwner = z.infer<typeof BookWriterOwner>
+
+/** Immutable admission reservation, published as a nonempty directory. A dead
+ * reservation has one exclusive successor, named by its predecessor's token. */
+export const BookWriterReservation = z.object({
+  format: z.literal("adt-book-admission-v1"),
+  rootToken: z.string().uuid(),
+  owner: BookWriterOwner,
+  previous: BookWriterOwner.optional(),
+  predecessorToken: z.string().uuid().optional(),
+}).strict()
+export type BookWriterReservation = z.infer<typeof BookWriterReservation>
 
 /** Explicit replacement is bound to the content and inputs shown during review. */
 export const OutputReplacement = z.object({

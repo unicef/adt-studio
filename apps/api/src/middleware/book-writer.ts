@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from "hono"
-import { withBookWriter } from "@adt/storage"
+import { withBookWriter, recoverSectioningTransition } from "@adt/storage"
 import { requireExistingBook } from "../utils/book-exists.js"
 
 const PUBLISH_WITHOUT_WRITES = ["/publication/comments", "/publication/room-ticket", "/publication/run/cancel"]
@@ -15,6 +15,14 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     const suffix = c.req.path.split(`/books/${encodeURIComponent(label)}`)[1] ?? ""
     if (suffix === "" && c.req.method === "POST" && ["import", "preview-import"].includes(label)) return next()
     const bookDir = requireExistingBook(label, booksDir)
+    // These POSTs are preview reads. Math transforms supplied HTML; CSS reads
+    // through shared database admission and compiles temporary/in-memory output,
+    // just like its GET counterpart. Neither grants the caller writer authority.
+    // Keep committed pages readable while another page is still rendering.
+    if (c.req.method === "POST" && [
+      "/adt-preview/convert-math",
+      "/adt-preview/content/tailwind_output.css",
+    ].includes(suffix)) return next()
     // Match #886: admission must not recreate a book after its deletion.
     if (suffix.startsWith("/stages") || suffix.startsWith("/tasks")) return next()
     // Shared-link feedback only reaches the publish Worker, and Stop only flags the run that
@@ -22,6 +30,9 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     if (PUBLISH_WITHOUT_WRITES.some((prefix) => suffix.startsWith(prefix))) return next()
     // A share takes the lease itself, after telling a second share about the running one.
     if (c.req.method === "POST" && PUBLISH_RUNS.includes(suffix)) return next()
-    return withBookWriter(bookDir, next)
+    return withBookWriter(bookDir, () => {
+      recoverSectioningTransition(bookDir)
+      return next()
+    })
   }
 }

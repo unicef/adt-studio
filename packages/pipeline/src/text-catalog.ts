@@ -1,3 +1,4 @@
+import { partScopedPages, requiredPartRange } from "./sectioning-window.js"
 import { resolveQuizOptionId } from "@adt/types"
 import { extractImageIds } from "./image-captioning.js"
 import { parseDocument, DomUtils } from "htmlparser2"
@@ -199,7 +200,7 @@ function buildGlossaryEntries(storage: Storage): TextCatalogEntry[] {
 /**
  * Build quiz entries from the quiz-generation node.
  */
-function buildQuizEntries(storage: Storage): TextCatalogEntry[] {
+function buildQuizEntries(storage: Storage, pageIds?: ReadonlySet<string>): TextCatalogEntry[] {
   const row = storage.getLatestNodeData("quiz-generation", "book")
   if (!row) return []
 
@@ -210,6 +211,7 @@ function buildQuizEntries(storage: Storage): TextCatalogEntry[] {
   const entries: TextCatalogEntry[] = []
   for (let i = 0; i < data.quizzes.length; i++) {
     const quiz = data.quizzes[i]
+    if (pageIds && !pageIds.has(quiz.afterPageId)) continue
     const qid = resolveQuizId(quiz, i)
     entries.push({ id: `${qid}_que`, text: quiz.question, locations: [{ group: "quizzes", role: "question" }] })
 
@@ -245,6 +247,8 @@ export function findIntroducedCatalogConflict(
 
 /** Synchronous snapshot for atomic authored-save/catalog reconciliation. */
 export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): TextCatalogOutput {
+  const partPageIds = storage.bookDir && requiredPartRange(storage.bookDir) ? new Set(partScopedPages(storage).map(page => page.pageId)) : undefined
+  if (partPageIds) pages = pages.filter(page => partPageIds.has(page.pageId))
   const entries: TextCatalogEntry[] = []
 
   // Page text + image captions
@@ -274,7 +278,7 @@ export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): T
   entries.push(...buildGlossaryEntries(storage))
 
   // Quizzes
-  entries.push(...buildQuizEntries(storage))
+  entries.push(...buildQuizEntries(storage, partPageIds))
 
   const byId = new Map<string, TextCatalogEntry>()
   for (const entry of entries) {

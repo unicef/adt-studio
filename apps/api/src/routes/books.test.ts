@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, writeSectioningLifecycle } from "@adt/storage"
 import { zipSync } from "fflate"
 import { SCHEMA_VERSION } from "@adt/types"
 import { getSourceGenerationUpdates, keepSourceGeneration } from "@adt/pipeline"
@@ -15,6 +15,7 @@ import type {
 import { createBookEventBus } from "../services/book-event-bus.js"
 import { createPageErrorDecisions } from "../services/page-error-decisions.js"
 import { createBookRoutes } from "./books.js"
+import { createDebugRoutes } from "./debug.js"
 import { createStageRoutes } from "./stages.js"
 import { errorHandler } from "../middleware/error-handler.js"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
@@ -291,7 +292,7 @@ describe("PUT /books/:label/config", () => {
   it("acknowledges effective settings before the next save, including inherited clears and map deletions", async () => {
     createTestBook("receipt")
     fs.writeFileSync(globalConfigPath, "toc_generation:\n  model: openai:gpt-4o-mini\n  max_retries: 3\nsection_types:\n  keep: Keep\n  remove: Remove\nstructure_types: {}\nrole_types: {}\n")
-    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath).route("/", createDebugRoutes(tmpDir, tmpDir, globalConfigPath))
     const save = (config: Record<string, unknown>) => app.request("/books/receipt/config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config, includeEffectiveConfig: true }) })
     const first = await save({ toc_generation: { max_retries: 4 }, section_types: { remove: null, added: "New" } })
     expect(first.status).toBe(200)
@@ -310,6 +311,8 @@ describe("PUT /books/:label/config", () => {
     const cleared = await save({})
     expect(cleared.status).toBe(200)
     expect((await cleared.json()).activeConfig).toMatchObject({ hasBookOverride: false, merged: { toc_generation: { max_retries: 3 } } })
+    expect((await (await app.request("/books/receipt/debug/config")).json()).hasBookOverride).toBe(false)
+    expect((await (await app.request("/books/receipt/config")).json()).config).toEqual({})
   })
 
   it("writes config overrides and returns them", async () => {
@@ -764,8 +767,12 @@ function addPagesAndRenderings(label: string, count: number): void {
         },
         images: [],
       })
+      storage.putNodeData("page-sectioning", pageId, { reasoning: "fixture", sections: [{
+        sectionId: `${pageId}_sec001`, sectionType: "text", pageNumber: i,
+        backgroundColor: "white", textColor: "black", isPruned: false, nodes: [],
+      }] })
       storage.putNodeData("web-rendering", pageId, {
-        sections: [{ html: `<p>Rendered page ${i}</p>` }],
+        sections: [{ sectionId: `${pageId}_sec001`, sectionIndex: 0, sectionType: "text", reasoning: "fixture", html: `<section data-section-id="${pageId}_sec001"><p>Rendered page ${i}</p></section>` }],
       })
     }
   } finally {
@@ -848,6 +855,7 @@ describe("POST /books/:label/stages/run", () => {
       },
     }
 
+    writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true)
     const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
     const res = await app.request(`/books/${label}/stages/run`, {
       method: "POST",
@@ -871,7 +879,7 @@ describe("POST /books/:label/stages/run", () => {
       expect(verifyStorage.getLatestNodeData("web-rendering", "pg001")).not.toBeNull()
       const runs = new Map(verifyStorage.getStepRuns().map((r) => [r.step, r.status]))
       expect(runs.get("page-sectioning")).toBe("done")
-      expect(runs.has("web-rendering")).toBe(false)
+      expect(runs.get("web-rendering")).toBe("done")
     } finally {
       verifyStorage.close()
     }
@@ -1417,7 +1425,7 @@ describe("GET /books/:label/step-status", () => {
     expect(body.stages.extract).toBe("done")
   })
 
-  it("marks preview done when adt directory exists", async () => {
+  it("does not claim preview completion from an empty adt directory", async () => {
     createTestBook("preview-done")
     fs.mkdirSync(path.join(tmpDir, "preview-done", "adt"), { recursive: true })
 
@@ -1425,7 +1433,7 @@ describe("GET /books/:label/step-status", () => {
     const res = await app.request("/books/preview-done/step-status")
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.stages.preview).toBe("done")
+    expect(body.stages.preview).toBeUndefined()
   })
 
   it("returns 400 for invalid book labels", async () => {
@@ -1464,11 +1472,11 @@ describe("GET /books/:label/export-project", () => {
     expect(res.status).toBe(404)
   })
 
-  it("returns 500 when web assets directory is missing (prepare-export)", async () => {
+  it("returns 500 when a generated ADT export is missing web assets", async () => {
     createTestBook("missing-assets-export")
     addPagesAndRenderings("missing-assets-export", 1)
     const app = createBookRoutes(tmpDir, path.join(tmpDir, "no-web-assets"))
-    const res = await app.request("/books/missing-assets-export/prepare-export", { method: "POST" })
+    const res = await app.request("/books/missing-assets-export/prepare-export?format=adt", { method: "POST" })
     expect(res.status).toBe(500)
   })
 })
@@ -1701,19 +1709,15 @@ describe("POST /books/import", () => {
 })
 
 describe("GET /books/:label/export-adt", () => {
-  it("returns ZIP of the adt/ directory", async () => {
+  it("rejects an index-only bundle instead of downloading an incomplete ZIP", async () => {
     createTestBook("adt-export")
     addPagesAndRenderings("adt-export", 1)
     const adtDir = path.join(tmpDir, "adt-export", "adt")
     fs.mkdirSync(adtDir, { recursive: true })
     fs.writeFileSync(path.join(adtDir, "index.html"), "<html></html>")
-    const app = createBookRoutes(tmpDir)
+    const app = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
     const res = await app.request("/books/adt-export/export-adt")
-    expect(res.status).toBe(200)
-    expect(res.headers.get("Content-Type")).toBe("application/zip")
-    const disposition = res.headers.get("Content-Disposition") ?? ""
-    expect(disposition).toContain('filename="adt-export-adt.zip"')
-    expect(disposition).toContain("filename*=UTF-8''")
+    expect(res.status).toBe(409)
   })
 
   it("returns 404 for missing book", async () => {
@@ -2105,4 +2109,15 @@ describe("book admission before the first extraction", () => {
     try { expect(retained.getLatestNodeData("metadata", "book")).toEqual(before) }
     finally { retained.close() }
   })
+})
+
+it.each(["[broken", "- a\n- b", "not a mapping"])("config GET returns the shared localizable error for malformed overrides: %s", async raw => {
+  createTestBook("bad-config")
+  const file = path.join(tmpDir, "bad-config", "config.yaml")
+  fs.writeFileSync(file, raw)
+  const app = new Hono().onError(errorHandler).route("/", createBookRoutes(tmpDir))
+  const response = await app.request("/books/bad-config/config")
+  expect(response.status).toBe(409)
+  expect(await response.json()).toMatchObject({ code: "BOOK_CONFIG_INVALID" })
+  expect(fs.readFileSync(file, "utf8")).toBe(raw)
 })

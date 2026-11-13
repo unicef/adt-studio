@@ -1,3 +1,4 @@
+import { preserveContentIdentityAcrossTelemetry } from "./book-content-identity.js"
 import { storeImmutableAsset } from "./immutable-assets.js"
 import { createHash } from "node:crypto"
 import fs from "node:fs"
@@ -5,10 +6,16 @@ import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES } from "@adt/types"
+import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES, STAGE_OUTPUT_NODES, PIPELINE } from "@adt/types"
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
+import { historyBookId, insertNodeVersion, checkpointBeforeRetirement, readIdentityHistory, readIdentityHistoryIds } from "./history-evidence.js"
+import { parseHistoricalPayload } from "./history-integrity.js"
+import { assertHistoryEvidence } from "./history-schema.js"
+import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
+
+const storageDirectories = new WeakMap<Storage, string>()
 
 export interface BookPaths {
   bookDir: string
@@ -65,9 +72,21 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     }
   }
 
-  return {
+  const telemetryRun = (table: "step_runs" | "llm_log", sql: string, values: Parameters<sqlite.Database["run"]>[1]) => {
+    const write = () => { db.run(sql, values) }
+    // An outer transaction may contain content writes. Custom triggers also
+    // make a nominal telemetry statement untrustworthy for proof reuse.
+    if (transactionDepth || db.all("SELECT 1 FROM sqlite_master WHERE type='trigger' AND tbl_name=? LIMIT 1", [table]).length) write()
+    else preserveContentIdentityAcrossTelemetry(paths.dbPath, write)
+  }
+
+  const storage: Storage = {
     bookDir: paths.bookDir,
+    getBookIdentity: () => db.get("SELECT 1 FROM sqlite_master WHERE type='table' AND name='history_identity'") ? historyBookId(db) : null,
     transaction,
+    readIdentityHistory: (nodes, itemId) => transaction(() => readIdentityHistory(db, nodes, itemId), "DEFERRED"),
+    assertHistoryEvidence: () => transaction(() => assertHistoryEvidence(db), "DEFERRED"),
+    readIdentityHistoryIds: (nodes, project, itemId) => transaction(() => readIdentityHistoryIds(db, nodes, paths.dbPath, project, itemId), "DEFERRED"),
     readSnapshot: (operation) => transaction(() => {
       const result = operation()
       if (result && typeof (result as { then?: unknown }).then === "function") throw new Error("Read snapshots must be synchronous")
@@ -75,6 +94,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     }, "DEFERRED"),
 
     clearExtractedData(): void {
+      transaction(() => checkpointBeforeRetirement(db))
       clearImageFiles(paths.imagesDir)
       clearImageFiles(paths.debugImagesDir)
       clearExtractedRows(db)
@@ -82,6 +102,9 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     clearNodesByType(nodes: string[], itemId?: string): void {
       if (nodes.length === 0) return
+      if (STAGE_OUTPUT_NODES.sectioning.some((node) => nodes.includes(node))) {
+        invalidateSectioningLifecycle(paths.bookDir, PIPELINE.find((stage) => stage.name === "sectioning")!.steps.map((step) => step.name))
+      }
       transaction(() => {
         // Quiz history is also the permanent record of spent catalog/audio
         // identities. Invalidate its current output, never erase that record.
@@ -93,7 +116,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         const items = db.all(`SELECT node, item_id, MAX(version) AS version FROM node_data WHERE node IN (${placeholders})${itemId === undefined ? "" : " AND item_id = ?"} GROUP BY node, item_id`, itemId === undefined ? deletable : [...deletable, itemId]) as Array<{ node: string; item_id: string; version: number }>
         for (const item of items) {
           if (!readCurrentNodeRow(db, item.node, item.item_id)) continue
-          db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, NULL)", [item.node, item.item_id, item.version + 1])
+          insertNodeVersion(db, item.node, item.item_id, item.version + 1, null)
           db.run("INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?) ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version", [item.node, item.item_id, item.version + 1])
         }
       })
@@ -117,6 +140,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     deletePage(pageId: string): void {
+      transaction(() => checkpointBeforeRetirement(db, pageId))
       const rows = db.all("SELECT path FROM images WHERE page_id = ?", [pageId]) as Array<{
         path: string
       }>
@@ -190,13 +214,15 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       return { pageId: rows[0].page_id, relativePath: rows[0].path, hash: rows[0].hash, width: rows[0].width, height: rows[0].height }
     },
 
-    getPageImages(pageId: string): ImageData[] {
+    getPageImages(pageId: string, includeStoredAsset = false): ImageData[] {
       const rows = db.all(
-        "SELECT image_id, hash, width, height, render_method, bounds_x, bounds_y, bounds_w, bounds_h FROM images WHERE page_id = ? ORDER BY image_id",
+        "SELECT image_id, width, height, path, hash, source, render_method, bounds_x, bounds_y, bounds_w, bounds_h FROM images WHERE page_id = ? ORDER BY image_id",
         [pageId]
       ) as Array<{
         image_id: string
+        path: string
         hash: string
+        source: string
         width: number
         height: number
         render_method: string | null
@@ -208,6 +234,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       return rows.map((r) => {
         const image: ImageData = {
           imageId: r.image_id,
+          ...(includeStoredAsset && { storedAsset: { relativePath: r.path, hash: r.hash, source: r.source } }),
           width: r.width,
           height: r.height,
           renderMethod: r.render_method as ImageData["renderMethod"],
@@ -378,10 +405,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         [node, itemId]
       ) as Array<{ max_version: number | null }>
       const nextVersion = (rows[0]?.max_version ?? 0) + 1
-      db.run(
-        "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
-        [node, itemId, nextVersion, JSON.stringify(data)]
-      )
+      insertNodeVersion(db, node, itemId, nextVersion, JSON.stringify(data))
       // A new write becomes the current version.
       db.run(
         `INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)
@@ -426,6 +450,10 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     /** The active version pointer for (node, itemId), or null when unset
      *  (in which case current == MAX(version)). */
+    getSelectedNodeVersion(node: string, itemId: string): number | null {
+      return readCurrentNodeRow(db, node, itemId, { includeInvalidated: true })?.version ?? null
+    },
+
     getCurrentNodeVersion(node: string, itemId: string): number | null {
       const rows = db.all(
         "SELECT version FROM node_current WHERE node = ? AND item_id = ?",
@@ -435,7 +463,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     markStepStarted(step: string): void {
-      db.run(
+      telemetryRun("step_runs",
         `INSERT INTO step_runs (step, status, started_at) VALUES (?, 'running', ?)
          ON CONFLICT (step) DO UPDATE SET status='running', started_at=excluded.started_at, completed_at=NULL, error=NULL, message=NULL`,
         [step, new Date().toISOString()]
@@ -444,30 +472,30 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     markStepCompleted(step: string, message?: string): void {
       if (message !== undefined) {
-        db.run(
+        telemetryRun("step_runs",
           `INSERT INTO step_runs (step, status, completed_at, message) VALUES (?, 'done', ?, ?)
            ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at, message=excluded.message`,
           [step, new Date().toISOString(), message]
         )
         return
       }
-      db.run(
+      telemetryRun("step_runs",
         `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'done', ?)
          ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at`,
         [step, new Date().toISOString()]
       )
     },
 
-    markStepSkipped(step: string): void {
-      db.run(
-        `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'skipped', ?)
-         ON CONFLICT (step) DO UPDATE SET status='skipped', completed_at=excluded.completed_at`,
-        [step, new Date().toISOString()]
+    markStepSkipped(step: string, message?: string): void {
+      telemetryRun("step_runs",
+        `INSERT INTO step_runs (step, status, completed_at, message) VALUES (?, 'skipped', ?, ?)
+         ON CONFLICT (step) DO UPDATE SET status='skipped', completed_at=excluded.completed_at, message=excluded.message`,
+        [step, new Date().toISOString(), message ?? null]
       )
     },
 
     recordStepError(step: string, error: string): void {
-      db.run(
+      telemetryRun("step_runs",
         `INSERT INTO step_runs (step, status, error) VALUES (?, 'error', ?)
          ON CONFLICT (step) DO UPDATE SET status='error', error=excluded.error`,
         [step, error]
@@ -475,7 +503,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     updateStepMessage(step: string, message: string): void {
-      db.run(
+      telemetryRun("step_runs",
         `INSERT INTO step_runs (step, status, message) VALUES (?, 'running', ?)
          ON CONFLICT (step) DO UPDATE SET message=excluded.message`,
         [step, message]
@@ -490,6 +518,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     clearStepRuns(steps: string[]): void {
       if (steps.length === 0) return
+      invalidateSectioningLifecycle(paths.bookDir, steps)
       const placeholders = steps.map(() => "?").join(", ")
       db.run(`DELETE FROM step_runs WHERE step IN (${placeholders})`, steps)
     },
@@ -525,7 +554,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         "SELECT version, data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version",
         [node, itemId]
       ) as Array<{ version: number; data: string | null }>
-      return rows.map((row) => ({ version: row.version, data: row.data === null ? null : JSON.parse(row.data) }))
+      return rows.map((row) => ({ version: row.version, data: parseHistoricalPayload(node, itemId, row.version, row.data) }))
     },
 
     getNodeItemIds(node: string): string[] {
@@ -556,7 +585,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     appendLlmLog(entry: LlmLogEntry): void {
-      db.run(
+      telemetryRun("llm_log",
         "INSERT INTO llm_log (request_id, timestamp, step, item_id, success, error_count, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
           entry.requestId,
@@ -642,6 +671,8 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       db.close()
     },
   }
+  storageDirectories.set(storage, paths.bookDir)
+  return storage
 }
 
 function clearImageFiles(imagesDir: string): void {
@@ -657,6 +688,7 @@ function clearImageFiles(imagesDir: string): void {
 function clearExtractedRows(db: sqlite.Database): void {
   db.exec("BEGIN IMMEDIATE")
   try {
+    checkpointBeforeRetirement(db)
     invalidateQuizOutput(db)
     db.run("DELETE FROM node_data WHERE node NOT IN ('font-registry', 'font-assignment', 'quiz-generation')")
     db.run("DELETE FROM node_current WHERE node NOT IN ('font-registry', 'font-assignment', 'quiz-generation')")
@@ -683,7 +715,7 @@ function invalidateQuizOutput(db: sqlite.Database, selectedItemId?: string): voi
       "SELECT MAX(version) + 1 AS version FROM node_data WHERE node = ? AND item_id = ?",
       [node, itemId]
     ) as Array<{ version: number }>
-    db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", [node, itemId, version, "null"])
+    insertNodeVersion(db, node, itemId, version, "null")
     db.run(
       `INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)
        ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version`,
@@ -744,4 +776,10 @@ function ensureWithinRoot(target: string, root: string): void {
   if (target !== root && !target.startsWith(root + path.sep)) {
     throw new Error("Resolved path escapes books root")
   }
+}
+
+export function getStorageBookDir(storage: Storage): string {
+  const directory = storageDirectories.get(storage)
+  if (!directory) throw new Error("Extraction requires book-backed storage")
+  return directory
 }

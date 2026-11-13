@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, withBookWriter } from "@adt/storage"
 import { createGlossaryRoutes } from "./glossary.js"
 
 let tmpDir: string
@@ -175,22 +175,25 @@ describe("GET /books/:label/glossary", () => {
     createTestBook("busy-legacy")
     addGlossaryData("busy-legacy")
     const bookDir = path.join(tmpDir, "busy-legacy")
-    const lease = path.join(bookDir, ".book-writer.json")
-    // A live process (this one) holds the writer: a read must not answer 409.
-    fs.writeFileSync(lease, JSON.stringify({ token: "other-run", pid: process.pid, host: os.hostname() }))
+    // Hold actual admission in another async scope; never forge a lease that
+    // updated readers must treat as uncoordinated/unsafe.
+    let release!: () => void
+    const held = withBookWriter(bookDir, () => new Promise<void>(resolve => { release = resolve }))
     const versions = () => {
       const db = openBookDb(path.join(bookDir, "busy-legacy.db"))
       try { return (db.all("SELECT count(*) AS n FROM node_data WHERE node = 'glossary'") as Array<{ n: number }>)[0].n } finally { db.close() }
     }
     const app = createGlossaryRoutes(tmpDir)
-    const busy = await app.request("/books/busy-legacy/glossary")
-    expect(busy.status).toBe(200)
-    const projected = await busy.json() as { version: number; items: Array<{ id?: string }> }
-    expect(projected.items.every((item) => !!item.id)).toBe(true)
-    expect(projected.version).toBe(1)
-    expect(versions()).toBe(1)
+    let projected!: { version: number; items: Array<{ id?: string }> }
+    try {
+      const busy = await app.request("/books/busy-legacy/glossary")
+      expect(busy.status).toBe(200)
+      projected = await busy.json()
+      expect(projected.items.every((item) => !!item.id)).toBe(true)
+      expect(projected.version).toBe(1)
+      expect(versions()).toBe(1)
+    } finally { release(); await held }
 
-    fs.unlinkSync(lease)
     const free = await app.request("/books/busy-legacy/glossary")
     expect(free.status).toBe(200)
     const persisted = await free.json() as { version: number; items: Array<{ id?: string }> }

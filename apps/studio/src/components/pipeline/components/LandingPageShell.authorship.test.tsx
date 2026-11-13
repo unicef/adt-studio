@@ -25,7 +25,9 @@ it.each(["loading", "failed"])("does not bypass TOC consent when protection stat
   view.unmount()
   client.clear()
 })
-async function mount(stageSlug: string, protectedWork: unknown[]) {
+const signature = "a".repeat(64)
+async function mount(stageSlug: string, records: Record<string, unknown>[]) {
+  const protectedWork = records.map(record => record.node === "page-sectioning" ? { sectioningInputSignature: signature, ...record } : record)
   vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork } as never)
   const onRun = vi.fn()
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -34,12 +36,12 @@ async function mount(stageSlug: string, protectedWork: unknown[]) {
   return { onRun, client }
 }
 it("lists protected page numbers, defaults replacement off on every open and sends only the named versions", async () => {
-  const { onRun } = await mount("sectioning", [{ node: "page-sectioning", itemId: "pg003", pageNumber: 3, version: 7 }])
+  const { onRun } = await mount("sectioning", [{ node: "page-sectioning", itemId: "pg003", pageNumber: 3, version: 7, renderingVersion: 9, renderTreeVersion: 2 }])
   await waitFor(() => expect(api.getStepStatus).toHaveBeenCalled())
   await waitFor(() => expect((screen.getByRole("button", { name: "Rerun" }) as HTMLButtonElement).disabled).toBe(false))
   fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
   await screen.findByRole("dialog")
-  expect(await screen.findByText(/Pages with manual edits or unknown authorship:/)).toBeTruthy()
+  expect(await screen.findByText(/Saved pages:/)).toBeTruthy()
   expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false)
   fireEvent.click(screen.getByRole("checkbox"))
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
@@ -50,7 +52,7 @@ it("lists protected page numbers, defaults replacement off on every open and sen
   expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false)
   fireEvent.click(screen.getByRole("checkbox"))
   fireEvent.click(screen.getAllByRole("button", { name: "Rerun" }).at(-1)!)
-  await waitFor(() => expect(onRun).toHaveBeenCalledWith({ replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 7 }] }))
+  await waitFor(() => expect(onRun).toHaveBeenCalledWith({ replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 7, renderingVersion: 9, renderTreeVersion: 2, sectioningInputSignature: signature }] }))
 })
 it("requires the TOC replacement notice to be confirmed and cancellation makes no request", async () => {
   const { onRun } = await mount("toc", [{ node: "toc-generation", itemId: "book", version: 2 }])
@@ -69,14 +71,19 @@ it("requires the TOC replacement notice to be confirmed and cancellation makes n
 })
 
 it.each(["sectioning", "toc"])("keeps the %s replacement confirmation bound to the version shown when opened", async (stage) => {
-  const record = { node: stage === "toc" ? "toc-generation" : "page-sectioning", itemId: stage === "toc" ? "book" : "pg003", version: 2 }
+  const record = { node: stage === "toc" ? "toc-generation" : "page-sectioning", itemId: stage === "toc" ? "book" : "pg003", version: 2, ...(stage === "sectioning" ? { sectioningInputSignature: signature } : {}) }
   const { onRun, client } = await mount(stage, [record])
   await waitFor(() => expect((screen.getByRole("button", { name: "Rerun" }) as HTMLButtonElement).disabled).toBe(false))
   fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
   await screen.findByRole("dialog")
-  if (stage === "sectioning") fireEvent.click(screen.getByRole("checkbox"))
+  if (stage === "sectioning") {
+    const checkbox = screen.getByRole("checkbox") as HTMLInputElement
+    expect(checkbox.disabled).toBe(false)
+    fireEvent.click(checkbox)
+    expect(checkbox.checked).toBe(true)
+  }
   await act(async () => {
-    client.setQueryData(["books", "book", "step-status"], { protectedWork: [{ ...record, version: 3 }] })
+    client.setQueryData(["books", "book", "step-status"], { protectedWork: [{ ...record, version: 3, ...(stage === "sectioning" ? { sectioningInputSignature: "b".repeat(64) } : {}) }] })
     // Let TanStack Query deliver its scheduled cache notification to React.
     await new Promise((resolve) => setTimeout(resolve, 10))
   })
@@ -85,7 +92,7 @@ it.each(["sectioning", "toc"])("keeps the %s replacement confirmation bound to t
 })
 
 async function scopeView(book = "a", stage = "toc") {
-  const records = [{ node: "toc-generation", itemId: "book", version: 12 }, { node: "page-sectioning", itemId: "pg003", pageNumber: 3, version: 12 }]
+  const records = [{ node: "toc-generation", itemId: "book", version: 12 }, { node: "page-sectioning", itemId: "pg003", pageNumber: 3, version: 12, sectioningInputSignature: signature }]
   vi.mocked(api.getStepStatus).mockResolvedValue({ protectedWork: records } as never)
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
   for (const label of ["a", "b"]) client.setQueryData(["books", label, "step-status"], { protectedWork: records })
@@ -101,7 +108,12 @@ it.each(["toc", "sectioning"])("invalidates %s consent on book change, including
   await waitFor(() => expect((screen.getByRole("button", { name: "Rerun" }) as HTMLButtonElement).disabled).toBe(false))
   fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
   await screen.findByRole("dialog")
-  if (stage === "sectioning") fireEvent.click(screen.getByRole("checkbox"))
+  if (stage === "sectioning") {
+    const checkbox = screen.getByRole("checkbox") as HTMLInputElement
+    expect(checkbox.disabled).toBe(false)
+    fireEvent.click(checkbox)
+    expect(checkbox.checked).toBe(true)
+  }
   show("b", stage)
   expect(screen.queryByRole("dialog")).toBeNull()
   show("a", stage)

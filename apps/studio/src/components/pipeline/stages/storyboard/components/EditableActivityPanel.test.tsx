@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import type { EditableActivity } from "@adt/types"
 
 const mocks = vi.hoisted(() => ({
-  save: vi.fn().mockResolvedValue(undefined),
+  save: vi.fn().mockResolvedValue({ version: 2 }),
 }))
 
 vi.mock("@lingui/react/macro", () => ({
@@ -78,6 +78,7 @@ describe("EditableActivityPanel", () => {
           pageId="page-1"
           sectionIndex={0}
           activity={activity}
+          version={1}
           activities={{ "0": activity }}
           paletteAccent="#2563EB"
         />
@@ -95,7 +96,8 @@ describe("EditableActivityPanel", () => {
 
     await waitFor(() => {
       expect(mocks.save).toHaveBeenCalledWith({
-        "0": expect.objectContaining({ title: { text: "Unsaved title" } }),
+        activities: { "0": expect.objectContaining({ title: { text: "Unsaved title" } }) },
+        baseVersion: 1,
       })
     })
   })

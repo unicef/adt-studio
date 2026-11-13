@@ -1,3 +1,4 @@
+import { StoryboardSourceNotice } from "../../components/StoryboardSourceNotice"
 import { useEffect, useRef, useCallback, useState, useMemo, type ReactNode } from "react"
 import { useSearch, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, ArrowRight, LayoutGrid, ListTree, RotateCcw, Table2 } from "lucide-react"
@@ -31,28 +32,28 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const [outlineMode, setOutlineMode] = useState(false)
   const hasUnsavedChanges = useHasUnsavedChanges()
   const { setExtra, setOnLabelClick } = useStepHeader()
-  const { stageState, queueRun } = useBookRun()
+  const { stageState, queueRun, storyboardCoverage, sourceUpdateStages = [] } = useBookRun()
   const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const storyboardState = stageState("storyboard")
   const storyboardDone = storyboardState === "done"
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
-  const sectioningReady = stageState("sectioning") === "done"
-  // Show page content during a run (or after an error) once pages have data.
-  // Keyed on sectioning (which a render-only re-run preserves) so the view drops
-  // into the per-page storyboard view during a re-run — there each section shows
-  // its own "Rendering this section…" loading state while web-rendering
-  // regenerates (the page's stale rendering is cleared optimistically on re-run,
-  // see queueRun). Only show the run card when idle or no data exists yet.
+  const sectioningReady = stageState("sectioning") === "done" || (pages ?? []).some((page) => page.sectioningVersion != null)
+  // Saved pages stay available during attempts; starting or cancelling a run
+  // does not remove the current rendering from the query cache.
   const hasPageData = (pages ?? []).some((p) => p.sectionCount > 0)
   // When idle, existing renderings outrank a stale stage status: a sectioning
   // edit marks storyboard for re-run without touching the HTML, and pushing the
   // run card in front of intact renderings would hide the very sections the user
   // came back to re-render. Matches the gate in StoryboardIndex.
   const hasRenderingData = (pages ?? []).some((p) => p.hasRendering)
-  const showRunCard = storyboardRunning || storyboardState === "error"
-    ? !hasPageData
-    : !storyboardDone && !hasRenderingData
+  // A reset may remove all active HTML while a saved-tree editor holds a
+  // local draft. Keep that editor until the user saves/discards or navigates.
+  const showRunCard = !(hasUnsavedChanges && hasPageData) && (
+    storyboardRunning || storyboardState === "error"
+      ? !hasPageData
+      : !storyboardDone && !hasRenderingData
+  )
 
   const handleRunStoryboard = useCallback(() => {
     if (!hasStructuredTextProvider || !sectioningReady || storyboardRunning) return
@@ -108,10 +109,25 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const prevPageId = currentPageIndex > 0 ? pageList[currentPageIndex - 1].pageId : null
   const nextPageId = currentPageIndex < pageList.length - 1 ? pageList[currentPageIndex + 1].pageId : null
 
-  const { data: page, isLoading: pageLoading } = usePage(
+  const { data: latestPage, isLoading: pageLoading } = usePage(
     bookLabel,
     !isQuizRoute && selectedPageId ? selectedPageId : "",
   )
+
+  // A successful regeneration can remove the selected section while its
+  // editor still owns a draft. Retain that editor's original identity/version
+  // context; never assign the draft to the new section at the same ordinal.
+  // Same-identity refreshes and our own Save acknowledgements stay live.
+  const editorScope = JSON.stringify([bookLabel, selectedPageId, sectionIndex])
+  const editorPageRef = useRef<{ scope: string; page: NonNullable<typeof latestPage> } | null>(null)
+  const previousEditor = editorPageRef.current
+  const previousSection = previousEditor?.page.sectioningTree?.sections[sectionIndex]
+  const latestSection = latestPage?.sectioningTree?.sections[sectionIndex]
+  const retainDraftContext = hasUnsavedChanges && previousEditor?.scope === editorScope && !!previousSection && (
+    !latestSection || latestSection.sectionId !== previousSection.sectionId
+  )
+  if (!retainDraftContext && latestPage) editorPageRef.current = { scope: editorScope, page: latestPage }
+  const page = retainDraftContext ? previousEditor?.page : latestPage
 
   const sectionCount = page?.sectioningTree?.sections.length ?? 0
 
@@ -389,22 +405,18 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [selectedPageId, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId, showRunCard])
 
-  // Sectioning edits mark the storyboard stale without touching the renderings,
-  // so the editor stays open on pages that are still perfectly editable — but
-  // nothing said they were now behind the sections they came from. This is that
-  // reminder, and the one place to regenerate the lot in a single pass, so a
-  // restructuring session in Sectioning costs one render rather than one per
-  // edit.
-  const storyboardStale = !storyboardDone && !storyboardRunning && hasRenderingData
-  const withStaleBanner = (content: ReactNode) =>
-    storyboardStale ? (
+  // Attempt state is not evidence that Sectioning changed. Only the shared
+  // saved-output read model can identify genuinely missing output here.
+  const storyboardStale = storyboardCoverage?.complete === false && !storyboardRunning && hasRenderingData
+  // Keep the editor subtree mounted when coverage or attempt state changes.
+  // Adding/removing its wrapper would silently discard local editor drafts.
+  const withStaleBanner = (content: ReactNode) => (
       <div className="flex flex-col h-full min-h-0">
-        <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-3 py-2">
+        {sourceUpdateStages.includes("storyboard") && <StoryboardSourceNotice />}
+        {storyboardStale && <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-3 py-2">
           <div className="text-xs text-amber-900">
             <Trans>
-              Sectioning has changed since some sections were rendered. Open a section and
-              use “Re-render this section” to update it, or re-run Storyboard to regenerate
-              every page.
+              Some pages or sections are missing Storyboard output. Existing pages remain available.
             </Trans>
           </div>
           <Button
@@ -417,14 +429,15 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
             <RotateCcw className="mr-1 h-3 w-3" />
             <Trans>Re-run Storyboard</Trans>
           </Button>
-        </div>
+        </div>}
+        {retainDraftContext && <div role="status" className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <Trans>Saved sections changed. Your unsaved editor is retained against its original version. Discard your edits to load the current section.</Trans>
+        </div>}
         <div className="flex-1 min-h-0">{content}</div>
       </div>
-    ) : (
-      content
     )
 
-  if (showRunCard) {
+  if (showRunCard && !retainDraftContext) {
     return (
       <div className="p-4">
         <StageRunCard
@@ -438,7 +451,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     )
   }
 
-  if (pagesLoading) {
+  if (pagesLoading && !retainDraftContext) {
     return <LoadingState stageSlug="storyboard" label={<Trans>Loading pages...</Trans>} />
   }
 
@@ -493,7 +506,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     )
   }
 
-  if (pageLoading || !page) {
+  if ((pageLoading && !retainDraftContext) || !page) {
     return <LoadingState stageSlug="storyboard" label={<Trans>Loading page...</Trans>} />
   }
 

@@ -1,4 +1,13 @@
+import { createHistoryRecoveryRoutes } from "./history-recovery.js"
+import { readSectioningLifecycle, recoverSectioningTransition } from "@adt/storage"
+import { BookConfigError, effectiveSectioningMode, publishedAdtDirectory } from "@adt/pipeline"
+import { getStageClearNodes, getStageClearOrder } from "@adt/types"
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import fs from "node:fs"
+import { createHash } from "node:crypto"
+import { readRetainedPackageOwnership } from "../services/retained-package-reader.js"
+import { readPreviewAsset } from "../services/preview-asset-validator.js"
+import { BookBusyError } from "@adt/storage"
 import path from "node:path"
 import { z } from "zod"
 import { Hono } from "hono"
@@ -24,7 +33,7 @@ import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/stora
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
 import { normalizeLocale, getBaseLanguage, loadBookConfig, loadConfig, deepMerge, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
 import {
-  listBooks,
+  listBooksAsync,
   getBook,
   createBook,
   deleteBook,
@@ -111,18 +120,23 @@ export function createBookRoutes(
   promptsDir = path.resolve("prompts"),
 ): Hono {
   const app = new Hono()
+  const readPackageOwners = readRetainedPackageOwnership
+  app.use("/books/:label/*", bookWriterMiddleware(booksDir))
+  app.use("/books/:label", bookWriterMiddleware(booksDir))
+  app.route("/", createHistoryRecoveryRoutes(booksDir))
 
-  app.get("/books", (c) => {
-    const books = listBooks(booksDir)
+  app.get("/books", async (c) => {
+    const books = await listBooksAsync(booksDir, configPath)
     return c.json(books)
   })
 
   app.get("/books/:label", (c) => {
     const { label } = c.req.param()
     try {
-      const book = getBook(label, booksDir)
+      const book = getBook(label, booksDir, configPath)
       return c.json(book)
     } catch (err) {
+      if (err instanceof BookBusyError) throw err
       const message = err instanceof Error ? err.message : String(err)
       if (message.includes("not found")) {
         throw new HTTPException(404, { message })
@@ -314,12 +328,31 @@ export function createBookRoutes(
       const config = getBookConfig(label, booksDir)
       return c.json({ config: config ?? {} })
     } catch (err) {
+      if (err instanceof BookBusyError || err instanceof BookConfigError) throw err
       const message = err instanceof Error ? err.message : String(err)
       if (message.includes("not found")) {
         throw new HTTPException(404, { message })
       }
       throw new HTTPException(400, { message })
     }
+  })
+
+  app.get("/books/:label/sectioning-state", (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    const bookDir = path.join(path.resolve(booksDir), label)
+    if (!fs.existsSync(bookDir)) throw new HTTPException(404, { message: "Book not found" })
+    recoverSectioningTransition(bookDir)
+    const effectiveMode = effectiveSectioningMode(loadBookConfig(label, booksDir, configPath))
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const stages = getStageClearOrder("sectioning")
+      const steps = PIPELINE.filter((stage) => stages.includes(stage.name)).flatMap((stage) => stage.steps.map((step) => step.name))
+      const nodes = [...getStageClearNodes("sectioning"), "tts-timestamps"]
+      const hasOutput = nodes.some((node) => storage.getNodeItemIds(node).length > 0)
+        || storage.getStepRuns().some((row) => steps.includes(row.step as never) && ["done", "skipped"].includes(row.status))
+      const lifecycle = readSectioningLifecycle(bookDir)
+      return c.json({ effectiveMode, hasOutput, preferenceChanged: hasOutput && (!lifecycle?.sectioningReady || lifecycle.mode !== effectiveMode) })
+    } finally { storage.close() }
   })
 
   // PUT /books/:label/config — Update book-level config overrides
@@ -346,13 +379,14 @@ export function createBookRoutes(
       const merged = body.includeEffectiveConfig
         ? AppConfig.parse(deepMerge(loadConfig(configPath), config))
         : undefined
-      updateBookConfig(label, booksDir, config)
+      updateBookConfig(label, booksDir, config, configPath)
       const updated = getBookConfig(label, booksDir)
       if (merged) return c.json({
         config: updated ?? {}, activeConfig: { merged, hasBookOverride: updated !== null },
       } satisfies BookConfigSaveReceipt)
       return c.json({ config: updated ?? {} })
     } catch (err) {
+      if (err instanceof BookBusyError) throw err
       const message = err instanceof Error ? err.message : String(err)
       if (message.includes("not found")) {
         throw new HTTPException(404, { message })
@@ -930,6 +964,7 @@ export function createBookRoutes(
     }
     const adtDir = resolvePathWithin(booksDir, safeLabel, "adt")
     if (!adtDir) throw new HTTPException(400, { message: "Invalid path" })
+    publishedAdtDirectory(path.dirname(adtDir))
     if (!fs.existsSync(adtDir)) {
       throw new HTTPException(404, {
         message: `ADT not packaged for book: ${safeLabel}`,
@@ -945,29 +980,40 @@ export function createBookRoutes(
     // Strip optional cache-bust version segment (e.g. "v-1708300000000/" or "v-1708300000000")
     filePath = filePath.replace(/^v-[^/]+\/?/, "")
 
-    if (!filePath) {
-      // Root request — redirect to first page
-      const pagesPath = resolvePathWithin(adtDir, "content", "pages.json")
-      if (!pagesPath) throw new HTTPException(400, { message: "Invalid path" })
-      if (!fs.existsSync(pagesPath)) {
-        throw new HTTPException(404, {
-          message: `ADT not packaged for book: ${safeLabel}`,
-        })
-      }
-      const pages = JSON.parse(fs.readFileSync(pagesPath, "utf-8")) as Array<{ href: string }>
-      if (pages.length === 0) {
-        throw new HTTPException(404, { message: "ADT has no pages" })
-      }
-      // Preserve the version segment in the redirect
-      const versionMatch = reqPath.match(/\/adt\/(v-[^/]+)/)
-      const versionPrefix = versionMatch ? `${versionMatch[1]}/` : ""
-      return c.redirect(`/api/books/${safeLabel}/adt/${versionPrefix}${pages[0].href}`)
-    }
-
     const resolvedPath = resolvePathWithin(adtDir, filePath)
-    if (!resolvedPath) {
-      throw new HTTPException(400, { message: "Invalid path" })
+    const pagesPath = resolvePathWithin(adtDir, "content", "pages.json")
+    if (!resolvedPath || !pagesPath) throw new HTTPException(400, { message: "Invalid path" })
+    if (!fs.existsSync(pagesPath) || !fs.existsSync(resolvedPath)) throw new HTTPException(404, { message: "Not found" })
+    // Authorize the member whose bytes will be read, including a contained
+    // symlink or a trailing slash that resolves to a regular file.
+    filePath = path.relative(fs.realpathSync(adtDir), fs.realpathSync(resolvedPath)).split(path.sep).join("/")
+    const dbPath = resolvePathWithin(booksDir, safeLabel, safeLabel + ".db")
+    if (!dbPath) throw new HTTPException(400, { message: "Invalid path" })
+    if (!fs.existsSync(dbPath)) throw new HTTPException(404, { message: "Book not found" })
+    const storage = createBookStorage(safeLabel, booksDir)
+    let ownership
+    try { ownership = readPackageOwners(storage, dbPath, adtDir) }
+    finally { storage.close() }
+    // A version segment busts caches; it does not establish current ownership.
+    // In particular the offline preloader contains copies of *all* page HTML.
+    // If any member lost its owner, serve healthy pages via the live reader and
+    // never provide that old package's shared content, script or entry redirect.
+    c.header("Cache-Control", "no-store")
+    if (!ownership.allOwned) {
+      const target = !filePath || filePath === "index.html"
+        ? ownership.entries[0]?.href ?? (ownership.current.size ? ownership.current.keys().next().value + ".html" : undefined)
+        : filePath
+      if (!target || (target.endsWith(".html") && !ownership.current.has(target.slice(0, -5)))) {
+        throw new HTTPException(404, { message: "Not found" })
+      }
+      return c.redirect(`/api/books/${safeLabel}/adt-preview/${target}${new URL(c.req.url).search}`, 307)
     }
+    if (!filePath) {
+      const version = reqPath.match(/\/adt\/(v-[^/]+)/)?.[1]
+      return c.redirect(`/api/books/${safeLabel}/adt/${version ? version + "/" : ""}${ownership.entries[0].href}`)
+    }
+    if (filePath.toLowerCase().endsWith(".html") && filePath !== "index.html" && filePath !== "content/navigation/nav.html" &&
+        !ownership.entries.some(entry => entry.href === filePath)) throw new HTTPException(404, { message: "Not found" })
 
     let stat: fs.Stats
     try {
@@ -979,12 +1025,22 @@ export function createBookRoutes(
       throw new HTTPException(404, { message: `Not found: ${filePath}` })
     }
 
-    const fileBuffer = fs.readFileSync(resolvedPath)
     const ext = path.extname(resolvedPath).toLowerCase()
+    const memberDigest = ownership.memberDigests.get(filePath)
     c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
-    // Cache indefinitely — the iframe URL includes a cache-busting version
-    // segment (v-{timestamp}) that changes on every repackage.
-    c.header("Cache-Control", "public, max-age=31536000, immutable")
+    if (ext !== ".html" && !filePath.toLowerCase().endsWith(".html") && !memberDigest) {
+      // Revalidate every use after database admission and current ownership.
+      // The URL's version segment is not proof; the validator names actual
+      // bytes, including edits made without changing the package version.
+      const asset = readPreviewAsset(resolvedPath, c.req.header("If-None-Match"))
+      c.header("Cache-Control", "private, no-cache")
+      c.header("ETag", asset.etag)
+      return asset.bytes ? c.body(asset.bytes) : c.body(null, 304)
+    }
+    const fileBuffer = fs.readFileSync(resolvedPath)
+    if (memberDigest && createHash("sha256").update(fileBuffer).digest("hex") !== memberDigest) {
+      return c.redirect(`/api/books/${safeLabel}/adt-preview/${filePath}${new URL(c.req.url).search}`, 307)
+    }
     return c.body(fileBuffer)
   })
 

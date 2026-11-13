@@ -1,3 +1,4 @@
+import { captureStoryboardSource, rememberStoryboardSource, inheritStoryboardSource } from "./storyboard-source-state.js"
 import { DomUtils, parseDocument } from "htmlparser2"
 import { PageSectioningOutput, WebRenderingOutput } from "@adt/types"
 import type { Storage } from "@adt/storage"
@@ -49,7 +50,8 @@ export function sourceGenerationBasis(node: string, data: unknown): unknown {
   })
 }
 
-const STATE_NODE = "source-generation-state"
+export const SOURCE_GENERATION_STATE_NODE = "source-generation-state"
+const STATE_NODE = SOURCE_GENERATION_STATE_NODE
 
 function state(storage: Storage, step: SourceGeneratorStep): SourceGenerationState {
   const parsed = SourceGenerationState.safeParse(storage.getLatestNodeData(STATE_NODE, step)?.data)
@@ -114,11 +116,19 @@ export function publishSourceGeneration<T>(storage: Storage, receipt: SourceGene
 export function currentSourceInputSignature(storage: Storage, step: SourceGeneratorStep, policy: SourceGenerationPolicy): string {
   try { return captureSourceGeneration(storage, step, policy).inputSignature }
   catch (error) {
-    if (error instanceof Error && error.message.startsWith("Invalid web-rendering output")) {
+    if (error instanceof SyntaxError || (error instanceof Error && error.message.startsWith("Invalid web-rendering output"))) {
       return inputSignature({ unprovable: true, pages: storage.getPages().map(page => ({
         pageId: page.pageId, pageNumber: page.pageNumber,
-        source: ["page-sectioning", "fixed-layout-sectioning", "web-rendering"].map(node =>
-          sourceGenerationBasis(node, storage.getLatestNodeData(node, page.pageId)?.data)),
+        source: ["page-sectioning", "fixed-layout-sectioning", "web-rendering"].map(node => {
+          try { return sourceGenerationBasis(node, storage.getLatestNodeData(node, page.pageId)?.data) }
+          catch (cause) {
+            if (!(cause instanceof SyntaxError)) throw cause
+            // A corrupt neighboring record cannot supply source inputs, but
+            // must not block a valid page commit. Keep its selected identity
+            // in the same conservative signature; do not read media or repair it.
+            return { unreadableVersion: storage.getSelectedNodeVersion(node, page.pageId) }
+          }
+        }),
       })) })
     }
     throw error
@@ -151,17 +161,22 @@ export function markSourceGenerationNeedsUpdate(storage: Storage, step: SourceGe
 
 // Coalesce paired sectioning/rendering writes and page membership mutations.
 // This only scopes input comparison, and is not a writer lock.
-const tracking = new WeakSet<Storage>()
-export function withSourceGenerationTracking<T>(storage: Storage, mutate: () => T): T {
+const tracking = new WeakMap<Storage, Map<string, ReturnType<typeof captureStoryboardSource>>>()
+export function withSourceGenerationTracking<T>(storage: Storage, mutate: () => T, pageIds = storage.getPages().map(page => page.pageId)): T {
   if (tracking.has(storage)) return mutate()
   return storage.transaction(() => {
     const attempted = new Set(storage.getStepRuns().map(run => run.step))
     const steps = SourceGeneratorStep.options.filter(step => attempted.has(step) || storage.getLatestNodeData(step, "book"))
     const read = (step: SourceGeneratorStep) => currentSourceInputSignature(storage, step, state(storage, step).policy)
     const before = new Map(steps.map(step => [step, read(step)]))
-    tracking.add(storage)
+    const storyboard = new Map(pageIds.map(id => [id, captureStoryboardSource(storage, id)]))
+    tracking.set(storage, storyboard)
     try {
       const result = mutate()
+      for (const [pageId, prior] of storyboard) {
+        const after = captureStoryboardSource(storage, pageId)
+        if (prior && inputSignature([...prior.sections]) !== inputSignature(after && [...after.sections])) rememberStoryboardSource(storage, pageId, prior)
+      }
       for (const step of steps) {
         const after = read(step)
         if (before.get(step) !== after) markSourceGenerationNeedsUpdate(storage, step)
@@ -180,7 +195,10 @@ export function preserveRenderedOwnership(storage: Storage, itemId: string): voi
   if (!retained.success) return
   const resolved = withLegacyRenderingOwnership(storage, itemId, retained.data)
   if (resolved.sections.some((entry, index) => entry.sectionId !== retained.data.sections[index].sectionId)) {
-    storage.putNodeData("web-rendering", itemId, resolved)
+    const observed = captureStoryboardSource(storage, itemId)
+    rememberStoryboardSource(storage, itemId, observed)
+    const version = storage.putNodeData("web-rendering", itemId, resolved)
+    inheritStoryboardSource(storage, itemId, observed?.version, version)
   }
 }
 
@@ -192,12 +210,17 @@ export function putSourceNodeData(storage: Storage, node: string, itemId: string
       // the next read infers. This metadata-only version stays in this transaction.
       preserveRenderedOwnership(storage, itemId)
     }
-    return storage.putNodeData(node, itemId, data)
+    const observed = node === "web-rendering" ? tracking.get(storage)?.get(itemId) : undefined
+    if (observed) rememberStoryboardSource(storage, itemId, observed)
+    const priorVersion = node === "web-rendering" ? storage.getSelectedNodeVersion(node, itemId) ?? undefined : undefined
+    const version = storage.putNodeData(node, itemId, data)
+    if (node === "web-rendering") inheritStoryboardSource(storage, itemId, priorVersion, version)
+    return version
   }
   const previous = storage.getLatestNodeData(node, itemId)?.data
   // Fast path also protects cosmetic saves in malformed legacy books.
   return inputSignature(sourceGenerationBasis(node, previous)) === inputSignature(sourceGenerationBasis(node, data))
-    ? storage.transaction(write) : withSourceGenerationTracking(storage, write)
+    ? storage.transaction(write) : withSourceGenerationTracking(storage, write, [itemId])
 }
 
 /** A successful strategy switch replaces the old positioned/read-model pair

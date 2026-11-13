@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -20,6 +20,7 @@ import {
   containsMathContent,
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
+import { packageFilesAvailable } from "../packaging/bundle-files.js"
 import { resolveReadingOrder } from "../reading-order.js"
 
 /**
@@ -99,6 +100,8 @@ function readyCoreTtsCatalog(...ids: string[]) {
 
 function createWebAssets(webAssetsDir: string): void {
   fs.mkdirSync(webAssetsDir, { recursive: true })
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), ".icon { display: inline; }")
   // Pre-built runtime bundles. In production these come from
   // apps/adt-runtime/build.config.mjs; in tests we write them directly so
   // buildJsBundle's "copy from webAssetsDir" path is exercised without
@@ -581,6 +584,55 @@ describe("packageAdtWeb", () => {
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it.each([false, true])("bounds caption inventory reads and refreshes shared image owners (fixed=%s)", async (fixedLayout) => {
+    const bookDir = path.join(tmpDir, "caption-book")
+    const webAssetsDir = path.join(tmpDir, "web-assets")
+    fs.mkdirSync(path.join(bookDir, "images"), { recursive: true })
+    createWebAssets(webAssetsDir)
+    const imageIds = ["shared", "decoration", "fallback"]
+    for (const id of imageIds) fs.writeFileSync(path.join(bookDir, "images", `${id}.png`), `image-${id}`)
+    const pages = Array.from({ length: 24 }, (_, index) => ({ pageId: `pg${String(index + 1).padStart(3, "0")}`, pageNumber: index + 1, text: "Page" }))
+    const sourceNode = fixedLayout ? "fixed-layout-sectioning" : "page-sectioning"
+    const nodeData: Record<string, Record<string, unknown>> = { [sourceNode]: {}, "web-rendering": {}, "image-captioning": {
+      pg001: { captions: [{ imageId: "shared", caption: "Owner description" }, { imageId: "decoration", caption: "Decorative owner", decorative: true }] },
+      pg024: { captions: [{ imageId: "shared", caption: "Obsolete local description" }, { imageId: "fallback", caption: "Local fallback" }] },
+    } }
+    for (const page of pages) {
+      nodeData[sourceNode][page.pageId] = { reasoning: "source", sections: [{ sectionId: `${page.pageId}_sec001`, sectionType: "content", nodes: [], backgroundColor: "#fff", textColor: "#000", pageNumber: page.pageNumber, isPruned: false }] }
+      nodeData["web-rendering"][page.pageId] = { sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "rendered", html: imageIds.map(id => `<img data-id="${id}" src="/api/books/caption-book/images/${id}">`).join("") }] }
+    }
+    const storage = createMockStorage(pages, nodeData)
+    storage.getImageMeta = id => imageIds.includes(id) ? { pageId: "pg001", relativePath: `images/${id}.png` } : null
+    const reads = vi.spyOn(storage, "getLatestNodeData")
+    const options = { bookDir, label: "caption-book", language: "en", outputLanguages: ["en"], title: "Book", webAssetsDir, fixedLayout }
+    try {
+      await packageAdtWeb(storage, options)
+      // Bound full-book storage work, independently of device speed or page HTML.
+      expect(reads.mock.calls.filter(([node]) => node === "web-rendering").length).toBeLessThan(pages.length * 16)
+      const lastPage = path.join(bookDir, "adt/pg024_sec001.html")
+      const first = fs.readFileSync(lastPage, "utf8")
+      expect(first).toContain('alt="Owner description"')
+      expect(first).not.toContain("Obsolete local description")
+      expect(first).toContain('alt="Local fallback"')
+      expect(first).toContain('aria-hidden="true"')
+
+      // A new build must read current captions, including an owner outside the
+      // mandatory part window. No snapshot can survive into the next build.
+      nodeData["image-captioning"].pg001 = { captions: [{ imageId: "shared", caption: "Updated owner" }, { imageId: "decoration", caption: "Now informative", decorative: false }] }
+      fs.writeFileSync(path.join(bookDir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: "caption-book", title: null, range: { startPage: 24, endPage: 24 }, pageCount: 24, fingerprint: {}, identityHash: "identity", semanticsHash: "semantics", createdAt: "2026-11-13T00:00:00Z", partLabelSuggestion: "part" }))
+      reads.mockClear()
+      await packageAdtWeb(storage, options)
+      expect(reads.mock.calls.filter(([node]) => node === "web-rendering").length).toBeLessThan(pages.length * 16)
+      const next = fs.readFileSync(lastPage, "utf8")
+      expect(next).toContain('alt="Updated owner"')
+      expect(next).toContain('alt="Now informative"')
+      expect(next).not.toContain('aria-hidden="true"')
+      expect(next).toContain('alt="Local fallback"')
+      expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/pages.json"), "utf8"))).toHaveLength(1)
+      for (const id of imageIds) expect(fs.readFileSync(path.join(bookDir, "images", `${id}.png`), "utf8")).toBe(`image-${id}`)
+    } finally { reads.mockRestore() }
   })
 
   it("uses a safe default locale, avoids page-number carryover, and escapes inline answer JSON", async () => {
@@ -1195,6 +1247,27 @@ describe("packageAdtWeb", () => {
       label: "Mateo",
       audios: { pg001_t001: "pg001_t001--secondary.mp3" },
     })
+    const packaged = path.join(bookDir, "adt")
+    const second = path.join(packaged, "content/i18n/en/audio/pg001_t001--secondary.mp3")
+    const voiceFile = path.join(packaged, "content/i18n/en/audio_voices.json")
+    const voiceBytes = fs.readFileSync(voiceFile), secondBytes = fs.readFileSync(second)
+    expect(packageFilesAvailable(packaged)).toBe(true)
+    for (const fault of ["missing", "empty", "symlink", "unsafe"] as const) {
+      fs.unlinkSync(second)
+      if (fault === "empty") fs.writeFileSync(second, "")
+      if (fault === "symlink") fs.symlinkSync(path.join(audioDir, "pg001_t001--secondary.mp3"), second)
+      if (fault === "unsafe") {
+        fs.writeFileSync(second, secondBytes)
+        fs.writeFileSync(voiceFile, JSON.stringify({ ...audioVoices, voices: { ...audioVoices.voices,
+          secondary: { ...audioVoices.voices.secondary, audios: { pg001_t001: "../../../../../outside.mp3" } } } }))
+      }
+      expect(packageFilesAvailable(packaged), fault).toBe(false)
+      fs.rmSync(second, { force: true }); fs.writeFileSync(second, secondBytes); fs.writeFileSync(voiceFile, voiceBytes)
+      expect(packageFilesAvailable(packaged), `restored ${fault}`).toBe(true)
+    }
+    fs.unlinkSync(voiceFile)
+    expect(packageFilesAvailable(packaged)).toBe(true)
+    fs.writeFileSync(voiceFile, voiceBytes)
     const voiceTimecodes = JSON.parse(
       fs.readFileSync(
         path.join(bookDir, "adt", "content", "i18n", "en", "timecode", "timecode_voices.json"),
@@ -2050,6 +2123,7 @@ describe("packageAdtWeb", () => {
     expect(result.warnings).toEqual([
       { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 0 },
       { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 1 },
+      { kind: "missing-storyboard", pageId: "pg002" },
     ])
   })
 
@@ -2578,6 +2652,8 @@ describe("packageAdtWeb", () => {
     const runtimeDir = path.join(monorepoTmp, "apps", "adt-runtime")
     fs.mkdirSync(bookDir, { recursive: true })
     fs.mkdirSync(webAssetsDir, { recursive: true })
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), ".icon { display: inline; }")
     fs.mkdirSync(runtimeDir, { recursive: true })
 
     // Required non-bundle assets
@@ -2637,6 +2713,8 @@ describe("packageAdtWeb", () => {
     const runtimeDir = path.join(monorepoTmp, "apps", "adt-runtime")
     fs.mkdirSync(bookDir, { recursive: true })
     fs.mkdirSync(webAssetsDir, { recursive: true })
+  fs.mkdirSync(path.join(webAssetsDir, "libs/fontawesome/css"), { recursive: true })
+  fs.writeFileSync(path.join(webAssetsDir, "libs/fontawesome/css/all.min.css"), ".icon { display: inline; }")
     fs.mkdirSync(runtimeDir, { recursive: true })
 
     fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")
@@ -3341,6 +3419,47 @@ describe("packageWebpub", () => {
 
     return { bookDir, webAssetsDir, storage }
   }
+
+  it.each(["html", "image", "css"])("reports a bounded originating document and missing %s member while retaining the prior package", async kind => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage, "Prior book")
+    const prior = fs.readFileSync(path.join(bookDir, "adt/index.html"))
+    let document = "", member = ""
+    const promise = packageAdtWeb(storage, {
+      bookDir, webAssetsDir, label: "book", language: "en", outputLanguages: ["en"], title: "Damaged book",
+      preparePublication: async stagingRoot => {
+        const staged = path.join(stagingRoot, "adt")
+        document = JSON.parse(fs.readFileSync(path.join(staged, "content/pages.json"), "utf8"))[0].href
+        member = kind === "html" ? document : "assets/missing.png"
+        if (kind === "html") fs.unlinkSync(path.join(staged, document))
+        if (kind === "image") fs.appendFileSync(path.join(staged, document), '<img src="assets/missing.png">')
+        if (kind === "css") {
+          fs.appendFileSync(path.join(staged, document), '<link rel="stylesheet" href="assets/broken.css">')
+          fs.writeFileSync(path.join(staged, "assets/broken.css"), 'body { background: url(missing.png) }')
+        }
+      },
+    })
+    await expect(promise).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    const error = await promise.catch(error => error as Error)
+    expect(error.message).toBe(`PACKAGE_FILES_INCOMPLETE: ${JSON.stringify({ document, member })}`)
+    expect(error.message).not.toContain(bookDir)
+    expect(fs.readFileSync(path.join(bookDir, "adt/index.html"))).toEqual(prior)
+  })
+
+  it("cancellation at package publication retains the previous bundle and removes only its staging", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage, "Prior book")
+    const prior = fs.readFileSync(path.join(bookDir, "adt/index.html"))
+    const abort = new AbortController()
+    let committed = false
+    await expect(packageAdtWeb(storage, {
+      bookDir, webAssetsDir, label: "book", language: "en", outputLanguages: ["en"], title: "Cancelled book", signal: abort.signal,
+      preparePublication: async () => { abort.abort(); return () => { committed = true } },
+    })).rejects.toThrow()
+    expect(committed).toBe(false)
+    expect(fs.readFileSync(path.join(bookDir, "adt/index.html"))).toEqual(prior)
+    expect(fs.readdirSync(path.join(bookDir, ".adt-package-work")).filter(name => name.startsWith("build-"))).toEqual([])
+  })
 
   it("disables showNavigationControls and showTutorial in config", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()

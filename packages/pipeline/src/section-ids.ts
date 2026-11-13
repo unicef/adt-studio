@@ -2,6 +2,7 @@ import { collectSpentContentIds } from "./content-ids.js"
 import type { Storage } from "@adt/storage"
 import {
   formatSectionId,
+  type IdentityHistoryRecord,
   parseAnySectionId,
   MAX_SECTION_SEQ,
   TocGenerationOutput,
@@ -53,19 +54,17 @@ export function collectSpentSectionIds(
   pageId: string,
   nodes: readonly string[] = [PAGE_SECTIONING_NODE, FIXED_LAYOUT_SECTIONING_NODE]
 ): Set<string> {
-  const spent = new Set<string>()
+  if (storage.readIdentityHistoryIds) return new Set(storage.readIdentityHistoryIds(nodes, historySectionIds, pageId))
+  const rows = storage.readIdentityHistory?.(nodes, pageId) ?? nodes.flatMap(node => storage.getAllNodeVersions(node, pageId))
+  return new Set(rows.flatMap(row => historySectionIds({ itemId: pageId, data: row.data })))
+}
+
+function historySectionIds(row: Pick<IdentityHistoryRecord, "itemId" | "data">): string[] {
   const pattern = new RegExp(
-    `${pageId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_s(?:ec)?\\d+`,
+    `${row.itemId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_s(?:ec)?\\d+`,
     "g"
   )
-  for (const node of nodes) {
-    for (const row of storage.getAllNodeVersions(node, pageId)) {
-      for (const match of JSON.stringify(row.data).matchAll(pattern)) {
-        spent.add(match[0])
-      }
-    }
-  }
-  return spent
+  return Array.from(JSON.stringify(row.data).matchAll(pattern), match => match[0])
 }
 
 /**

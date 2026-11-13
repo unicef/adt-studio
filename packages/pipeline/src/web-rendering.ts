@@ -1,3 +1,4 @@
+import { hasRenderableContent } from "./renderable-content.js"
 import {
   type AppConfig,
   type ContentNodeData,
@@ -339,8 +340,9 @@ export async function renderPage(
 
     const section = input.sectioning.sections[i]
 
-    // Skip pruned sections
-    if (section.isPruned) continue
+    // Match coverage for structurally empty/pruned content. Missing images
+    // remain required by coverage even if no bytes can be sent to the renderer.
+    if (!hasRenderableContent(section)) continue
 
     const context = buildRenderContext(section, input.images, input.label)
 

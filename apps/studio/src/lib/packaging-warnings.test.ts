@@ -16,10 +16,24 @@ vi.mock("@lingui/core/macro", () => ({
 const { warningToast } = vi.hoisted(() => ({ warningToast: vi.fn() }))
 vi.mock("sonner", () => ({ toast: { warning: warningToast } }))
 
-const { readPackagingWarnings, toastPackagingWarnings } = await import("./packaging-warnings")
+const { readPackagingWarnings, toastPackagingWarnings, describePackagingWarnings } = await import("./packaging-warnings")
 
 const i18n = { _: (d: { id?: string }) => d.id ?? "" } as never
 const orphan = { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 1 }
+
+it.each(["missing-storyboard", "orphaned-rendering"] as const)("bounds %s page identities without losing total counts or raw warnings", kind => {
+  const warnings = Array.from({ length: 27 }, (_, index) => ({ kind, pageId: `pg${String(index + 1).padStart(3, "0")}`, sectionIndex: 0 }))
+  const duplicate = { ...warnings[0], sectionIndex: 1 }
+  const raw = [...warnings, duplicate]
+  const message = describePackagingWarnings(raw, i18n)!
+  expect(message).toContain("27 page")
+  expect(message).toContain("showing up to 20")
+  expect(message).toContain("pg001")
+  expect(message).toContain("pg020")
+  expect(message).not.toContain("pg021")
+  if (kind === "orphaned-rendering") expect(message).toContain("28 rendered section")
+  expect(readPackagingWarnings({ warnings: raw })).toHaveLength(28)
+})
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -56,4 +70,26 @@ describe("toastPackagingWarnings", () => {
 
     expect(warningToast).not.toHaveBeenCalled()
   })
+})
+
+it("shares the twenty-page display budget across combined warning categories", () => {
+  const warnings = Array.from({ length: 21 }, (_, i) => ({ kind: "missing-storyboard" as const, pageId: `missing${i}`, sectionIndex: 0 }))
+  const orphaned = Array.from({ length: 21 }, (_, i) => ({ kind: "orphaned-rendering" as const, pageId: `orphan${i}`, sectionIndex: 0 }))
+  const text = describePackagingWarnings([...warnings, ...orphaned], i18n)!
+  expect(text.match(/(?:missing|orphan)\d+/g)).toHaveLength(20)
+  expect(text).toContain("21 rendered section")
+  expect(text).toContain("21 page")
+})
+
+it("does not repeat page IDs across overlapping missing-output and ownership categories", () => {
+  const warnings = Array.from({ length: 27 }, (_, index) => `pg${String(index + 1).padStart(3, "0")}`)
+    .flatMap(pageId => [
+      { kind: "missing-storyboard" as const, pageId, sectionIndex: 0 },
+      { kind: "orphaned-rendering" as const, pageId, sectionIndex: 1 },
+    ])
+  const message = describePackagingWarnings(warnings, i18n)!
+  expect(message.match(/pg\d+/g)).toHaveLength(20)
+  expect(message.match(/27 page\(s\)/g)).toHaveLength(2)
+  expect(message).toContain("27 rendered section")
+  expect(readPackagingWarnings({ warnings })).toEqual(warnings)
 })

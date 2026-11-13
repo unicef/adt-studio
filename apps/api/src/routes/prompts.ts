@@ -1,8 +1,8 @@
 import path from "node:path"
 import fs from "node:fs"
 import { Hono } from "hono"
-import yaml from "js-yaml"
-import { AppConfig, DEFAULT_BASE_PROMPT_MODEL_ID, parseBookLabel, safeParseModelId } from "@adt/types"
+import { loadConfig } from "@adt/pipeline"
+import { DEFAULT_BASE_PROMPT_MODEL_ID, parseBookLabel, safeParseModelId } from "@adt/types"
 import { resolvePromptModelId } from "@adt/llm"
 
 const VALID_NAME = /^[a-zA-Z0-9_]+$/
@@ -38,7 +38,7 @@ export function createPromptRoutes(
   const basePromptModelId = (): string => {
     if (!configPath || !fs.existsSync(configPath)) return DEFAULT_BASE_PROMPT_MODEL_ID
     try {
-      const parsed = AppConfig.parse(yaml.load(fs.readFileSync(configPath, "utf-8")))
+      const parsed = loadConfig(configPath)
       return parsed.base_prompt_model ?? DEFAULT_BASE_PROMPT_MODEL_ID
     } catch {
       return DEFAULT_BASE_PROMPT_MODEL_ID

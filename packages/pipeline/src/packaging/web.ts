@@ -1,3 +1,10 @@
+import { setImmediate as yieldToEventLoop } from "node:timers/promises"
+import { storyboardSourceWarnings } from "../storyboard-source-state.js"
+import { recordPackagedOwners } from "./bundle-ownership.js"
+import { createPackageStaging, openPackageWork, publishedAdtDirectory, removePackageStaging } from "./publication-directory.js"
+import { isBundleLocale, assertPackageFilesAvailable } from "./bundle-files.js"
+import { isPublicOutputId } from "../public-output-identity.js"
+import { BookConfigError } from "../config.js"
 import { buildImageInventory } from "../catalog-reconciliation.js"
 import { answerTextId, resolveQuizOptionId } from "@adt/types"
 import { scopeLegacyActivityIds } from "../catalog-reconciliation.js"
@@ -12,7 +19,7 @@ import { pathToFileURL } from "node:url"
 import { parseDocument, DomUtils } from "htmlparser2"
 import temml from "temml"
 import type { Storage } from "@adt/storage"
-import { bookAssetExists } from "@adt/storage"
+import { bookAssetExists, withBookWriter } from "@adt/storage"
 import type {
   ContentNodeData,
   PageSectioningSection,
@@ -25,6 +32,7 @@ import type {
   SpeechConfig,
   SpeechFileEntry,
   TTSOutput,
+  PackagedAudioVoices,
   WordTimestampOutput,
   TocGenerationOutput,
   Quiz,
@@ -63,6 +71,9 @@ import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries, buildEasyReadSourceBlocks } from "../easy-read.js"
 import { activeEasyRead } from "../retained-catalog.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
+import { storyboardCoverage } from "../storyboard-coverage.js"
+import { activeSectioningPages, requiredPartRange, partScopedPages } from "../sectioning-window.js"
+import { SectioningSafetyError } from "../sectioning-errors.js"
 import { renderingOwnershipWarnings } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
 import { orderTocEntries } from "../toc-reading-order.js"
@@ -71,7 +82,12 @@ import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.j
 import { buildTailwindCss } from "../tailwind.js"
 
 export interface PackageAdtWebOptions {
+  signal?: AbortSignal
   config?: AppConfig
+  /** The caller may also bind publication to its live configuration/source snapshot. */
+  validatePublication?: () => void
+  /** Finish the unpublished artifact; its optional synchronous DB write commits with the directory swap. */
+  preparePublication?: (stagingRoot: string, result: PackageAdtWebResult) => Promise<() => void>
   promptsDir?: string
   configDir?: string
   bookDir: string
@@ -191,7 +207,8 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 16
+// Existing bundles may contain fixed HTML whose explicit owner was misread.
+const PACKAGING_FORMAT_VERSION = 18
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -214,10 +231,21 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   // 1. Storage entity versions and content (exclude outputs like accessibility-assessment)
   const fingerprint = options.storage.getNodeVersionFingerprint(["accessibility-assessment"])
     .map((entry) => {
-      const row = options.storage.getLatestNodeData(entry.node, entry.itemId)
+      let dataHash: string
+      try {
+        const row = options.storage.getLatestNodeData(entry.node, entry.itemId)
+        dataHash = hashValue(row?.data ?? null)
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error
+        // An unreadable selected value supplies no usable content. Retain its
+        // exact node/item/version in the proof while readers omit that unit.
+        // Repair to readable content (even at the same version) changes this
+        // marker to a content hash; IO/admission failures still abort.
+        dataHash = "unreadable-json"
+      }
       return {
         ...entry,
-        dataHash: hashValue(row?.data ?? null),
+        dataHash,
       }
     })
   hash.update(JSON.stringify(fingerprint))
@@ -235,6 +263,7 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
 
   // 3. Book config (affects rendering, accessibility, etc.)
   hash.update(JSON.stringify(options.config))
+  hash.update(JSON.stringify(requiredPartRange(options.bookDir)))
 
   // Effective prompt/profile content changes disclosure even when output bytes
   // are deliberately retained. Include these files in the package cache basis.
@@ -313,6 +342,51 @@ export async function packageAdtWeb(
   options: PackageAdtWebOptions,
   progress: Progress = nullProgress,
 ): Promise<PackageAdtWebResult> {
+  options.signal?.throwIfAborted()
+  const locales = [options.language, ...options.outputLanguages].map(normalizeLocale)
+  if (!options.outputLanguages.length || !locales.every(isBundleLocale)) {
+    throw new BookConfigError(options.label, "Invalid package language identifier.")
+  }
+  return withBookWriter(options.bookDir, async () => {
+    const window = JSON.stringify(requiredPartRange(options.bookDir))
+    const work = openPackageWork(options.bookDir)
+    const output = publishedAdtDirectory(options.bookDir)
+    const previous = path.join(work, "previous")
+    const stagingRoot = createPackageStaging(work)
+    const staged = path.join(stagingRoot, "adt")
+    try {
+      const result = await buildWebPackage(storage, options, progress, staged)
+      options.signal?.throwIfAborted()
+      const commit = await options.preparePublication?.(stagingRoot, result)
+      options.signal?.throwIfAborted()
+      assertPackageFilesAvailable(staged, { format: "scorm", expectedLanguages: options.outputLanguages.map(normalizeLocale) })
+      if (JSON.stringify(requiredPartRange(options.bookDir)) !== window) {
+        throw new SectioningSafetyError("SECTIONING_WINDOW_INVALID", "The part window changed while packaging. Retry using the current window.")
+      }
+      options.validatePublication?.()
+      options.signal?.throwIfAborted()
+      // The stage is complete. Readers in this process cannot interleave these
+      // renames, and the shared writer already excludes other supported writers.
+      if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true })
+      if (fs.existsSync(output)) fs.renameSync(output, previous)
+      try {
+        fs.renameSync(staged, output)
+        commit?.()
+      } catch (error) {
+        if (fs.existsSync(output)) fs.renameSync(output, staged)
+        if (fs.existsSync(previous)) fs.renameSync(previous, output)
+        throw error
+      }
+      if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true })
+      progress.emit({ type: "step-complete", step: "package-web" })
+      return result
+    } finally { removePackageStaging(stagingRoot) }
+  })
+}
+
+async function buildWebPackage(
+  storage: Storage, options: PackageAdtWebOptions, progress: Progress, adtDir: string,
+): Promise<PackageAdtWebResult> {
   const {
     bookDir,
     label,
@@ -349,24 +423,23 @@ export async function packageAdtWeb(
   const step = "package-web" as const
   // Validate stored/imported quiz identities before deleting or writing any
   // bundle files. API validation alone cannot protect imported book databases.
+  const pages = partScopedPages(storage, bookDir)
+  const pageIdsInPart = new Set(pages.map(page => page.pageId))
   const quizRow = storage.getLatestNodeData("quiz-generation", "book")
   const quizData = quizRow ? withResolvedQuizIds(quizRow.data as QuizGenerationOutput) : undefined
+  if (quizData) quizData.quizzes = quizData.quizzes.filter(quiz => pageIdsInPart.has(quiz.afterPageId))
   progress.emit({ type: "step-start", step })
   progress.emit({ type: "step-progress", step, message: "Setting up directories..." })
 
-  const adtDir = path.join(bookDir, "adt")
   const imageDir = path.join(adtDir, "images")
   const contentDir = path.join(adtDir, "content")
 
-  // Clear & create directory structure
-  if (fs.existsSync(adtDir)) fs.rmSync(adtDir, { recursive: true })
   fs.mkdirSync(imageDir, { recursive: true })
   fs.mkdirSync(contentDir, { recursive: true })
 
   // ------------------------------------------------------------------
   // Collect data from storage
   // ------------------------------------------------------------------
-  const pages = storage.getPages()
   const imageMap = buildImageMap(path.join(bookDir, "images"), storage)
 
   // Always rebuild the text catalog to avoid staleness; only persist if changed
@@ -377,11 +450,14 @@ export async function packageAdtWeb(
   const resolvedSpeech = options.config ? reconcileSpeechInputs({ storage, config: options.config, sourceLanguage: language,
     languages: outputLanguages, profiles: loadCoreTtsProfiles(options.configDir ?? path.resolve("config")),
     promptsDir: options.promptsDir ?? path.resolve("prompts"), bookDir, persist: false }) : undefined
-  const speechEntries = (lang: string) => ((resolvedSpeech?.find((item) => item.language === lang) ?? getCoreTtsCatalog(storage, lang))?.entries ?? []).filter((entry) => !options.config || eligibleIds.has(entry.id))
+  const speechEntries = (lang: string) => ((resolvedSpeech?.find((item) => item.language === lang) ?? getCoreTtsCatalog(storage, lang))?.entries ?? []).filter((entry) => eligibleIds.has(entry.id))
   const freshness = options.config ? readOutputCatalog({ storage, config: options.config, bookDir,
     promptsDir: options.promptsDir ?? path.resolve("prompts"), configDir: options.configDir ?? path.resolve("config") }) : []
   const included = new Set<string>()
-  const captionConsumers = new Set(buildImageInventory(storage).filter((image) => image.catalogLocations.length > 0).map((image) => image.id))
+  // Keep the complete inventory: a shared image can belong to a page outside
+  // this part. Reuse it only within this build, never across saved changes.
+  const imageInventory = buildImageInventory(storage)
+  const captionConsumers = new Set(imageInventory.filter((image) => image.catalogLocations.length > 0).map((image) => image.id))
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
   const glossary = glossaryRow?.data as GlossaryOutput | undefined
@@ -413,22 +489,32 @@ export async function packageAdtWeb(
   const copiedImages = new Set<string>()
   // Keep reporting orphaned renderings even though the shared order resolver
   // correctly omits entries without a real sectionId.
-  const orphanedRenderings = renderingOwnershipWarnings(storage)
+  const orphanedRenderings = renderingOwnershipWarnings(storage).filter(warning => pageIdsInPart.has(warning.pageId))
 
   // The book's output sequence — the same resolver the live preview uses, so
   // the two cannot drift.
   const readingOrder = resolveReadingOrder(storage, {
     includeQuizzes: features?.quizzes !== false,
+    pageIds: pages.map(page => page.pageId),
   })
 
   // Reading order revisits a page once per section, so per-page reads are
   // memoized instead of hoisted out of a page-grouped loop.
   const decorativeImageIdsByPage = new Map<string, Set<string>>()
+  const captionsByPage = new Map<string, ImageCaptioningOutput["captions"]>()
+  const captionsFor = (pageId: string) => {
+    let captions = captionsByPage.get(pageId)
+    if (!captions) {
+      captions = pageCaptions(storage, pageId, imageInventory)
+      captionsByPage.set(pageId, captions)
+    }
+    return captions
+  }
   const editableActivitiesByPage = new Map<string, ReturnType<typeof readEditableActivities>>()
   const decorativeImageIdsFor = (pageId: string) => {
     let ids = decorativeImageIdsByPage.get(pageId)
     if (!ids) {
-      ids = buildDecorativeImageIdSet(storage, pageId)
+      ids = decorativeIds(captionsFor(pageId))
       decorativeImageIdsByPage.set(pageId, ids)
     }
     return ids
@@ -441,6 +527,9 @@ export async function packageAdtWeb(
   }
 
   for (const item of readingOrder.items) {
+    await yieldToEventLoop()
+    options.signal?.throwIfAborted()
+    if (!isPublicOutputId(item.id)) throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Unsafe public section identity. Saved content is retained.")
     // Every page is named by its stable id. Nothing is named for its position,
     // so a page keeps its URL no matter where it sits in the reading order —
     // `index.html` is written separately below as a redirect to whatever page
@@ -492,7 +581,7 @@ export async function packageAdtWeb(
     )
 
     // Rewrite image URLs and copy referenced images
-    const preferredImageAltMap = buildPreferredImageAltMap(storage, pageId, sectionMeta)
+    const preferredImageAltMap = applyDuplicateImageAltPolicy(sectionMeta, captionAltMap(captionsFor(pageId)))
     let rewrittenHtml: string
     let referencedImages: string[]
     if (stepperActivity) {
@@ -804,7 +893,7 @@ export async function packageAdtWeb(
       writeJson(path.join(localeDir, "audio_voices.json"), {
         defaultVoice: "primary",
         voices: audioVoices,
-      })
+      } satisfies PackagedAudioVoices)
     }
 
     // timecode/timecode_output.json — word timings consumed by the reader runtime
@@ -999,13 +1088,16 @@ export async function packageAdtWeb(
   // Build JS bundle (base.js → base.bundle.min.js)
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Building JS bundle..." })
+  options.signal?.throwIfAborted()
   await buildJsBundle(webAssetsDir, assetsDir)
+  options.signal?.throwIfAborted()
 
   // ------------------------------------------------------------------
   // Build Tailwind CSS
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Building Tailwind CSS..." })
   await buildTailwindCss(adtDir, webAssetsDir, typographyCss)
+  options.signal?.throwIfAborted()
 
   // ------------------------------------------------------------------
   // SCORM + Offline support
@@ -1030,6 +1122,7 @@ export async function packageAdtWeb(
       bookFontsDir: path.join(bookDir, "fonts"),
       googleCacheDir: fontsCacheDir,
     })
+    options.signal?.throwIfAborted()
     if (bundledBookFonts.length > 0) {
       progress.emit({
         type: "step-progress",
@@ -1043,6 +1136,7 @@ export async function packageAdtWeb(
     cacheDir: fontsCacheDir,
     excludeFamilies: bundledBookFonts,
   })
+  options.signal?.throwIfAborted()
   if (bundledFonts.length > 0) {
     progress.emit({ type: "step-progress", step, message: `Bundled fonts: ${bundledFonts.join(", ")}` })
   }
@@ -1052,6 +1146,7 @@ export async function packageAdtWeb(
   generateOfflinePreloader(adtDir, outputLanguages)
 
   generateImsManifest(adtDir, title, label, pageList)
+  recordPackagedOwners(storage, adtDir, readingOrder.items)
 
   // Render AGENTS.md from Liquid template with book-specific data
   const agentsMdTemplate = path.join(path.dirname(webAssetsDir), "AGENTS.md.liquid")
@@ -1074,9 +1169,10 @@ export async function packageAdtWeb(
     fs.writeFileSync(path.join(adtDir, "AGENTS.md"), agentsMd)
   }
 
-  progress.emit({ type: "step-complete", step })
-
-  return { warnings: orphanedRenderings }
+  const pageIds = (options.config ? activeSectioningPages(storage, options.config, bookDir) : pages).map(page => page.pageId)
+  const coverage = storyboardCoverage(storage, pageIds)
+  const missing = [...new Set([...coverage.missingPages, ...coverage.missingSections.map((section) => section.pageId)])]
+  return { warnings: [...orphanedRenderings, ...storyboardSourceWarnings(storage, pageIds), ...missing.map((pageId) => ({ kind: "missing-storyboard" as const, pageId }))] }
 }
 
 // ---------------------------------------------------------------------------
@@ -1830,10 +1926,10 @@ export function buildImageMap(imagesDir: string, storage?: Storage): Map<string,
   return map
 }
 
-function pageCaptions(storage: Storage, pageId: string): ImageCaptioningOutput["captions"] {
+function pageCaptions(storage: Storage, pageId: string, inventory = buildImageInventory(storage)): ImageCaptioningOutput["captions"] {
   const local = (storage.getLatestNodeData("image-captioning", pageId)?.data as ImageCaptioningOutput | undefined)?.captions ?? []
   const captions = new Map(local.map((entry) => [entry.imageId, entry]))
-  for (const image of buildImageInventory(storage)) {
+  for (const image of inventory) {
     if (!image.pageIds.includes(pageId) || !image.pageId || image.pageId === pageId) continue
     const owner = storage.getLatestNodeData("image-captioning", image.pageId)?.data as ImageCaptioningOutput | undefined
     const caption = owner?.captions.find((entry) => entry.imageId === image.id)
@@ -1841,11 +1937,14 @@ function pageCaptions(storage: Storage, pageId: string): ImageCaptioningOutput["
   }
   return [...captions.values()]
 }
-function loadImageCaptionMap(storage: Storage, pageId: string): Map<string, string> {
-  return new Map(pageCaptions(storage, pageId).filter((entry) => entry.caption?.trim()).map((entry) => [entry.imageId, entry.caption.trim()]))
+function captionAltMap(captions: ImageCaptioningOutput["captions"]): Map<string, string> {
+  return new Map(captions.filter((entry) => entry.caption?.trim()).map((entry) => [entry.imageId, entry.caption.trim()]))
+}
+function decorativeIds(captions: ImageCaptioningOutput["captions"]): Set<string> {
+  return new Set(captions.filter((entry) => entry.decorative).map((entry) => entry.imageId))
 }
 export function buildDecorativeImageIdSet(storage: Storage, pageId: string): Set<string> {
-  return new Set(pageCaptions(storage, pageId).filter((entry) => entry.decorative).map((entry) => entry.imageId))
+  return decorativeIds(pageCaptions(storage, pageId))
 }
 
 /** Collect every non-pruned image_group node in a section along with its image id. */
@@ -1897,7 +1996,7 @@ export function buildPreferredImageAltMap(
 ): Map<string, string> {
   // Source caption-role text and renderer alt attributes are retained authoring
   // data, but are not image descriptions. Only the caption store supplies alt.
-  const captions = loadImageCaptionMap(storage, pageId)
+  const captions = captionAltMap(pageCaptions(storage, pageId))
   return section ? applyDuplicateImageAltPolicy(section, captions) : captions
 }
 

@@ -1,8 +1,8 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { afterEach, beforeEach, expect, it } from "vitest"
-import { createBookStorage } from "@adt/storage"
+import { afterEach, beforeEach, expect, it, vi } from "vitest"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import { collectSpentContentIds } from "../content-ids.js"
 import { reconcileGlossaryEditIds } from "../glossary.js"
 import { saveQuizOutput } from "../quiz-ids.js"
@@ -66,4 +66,72 @@ it("fresh sectioning IDs cannot reuse an ID retained only by downstream output",
 it("new sections cannot claim retained answer namespaces without sectioning history", () => {
   storage.putNodeData("text-catalog-translation", "fr", { entries: [{ id: "pg001_sec001_ans_input", text: "Retained answer", source: "manual" }] })
   expect(createSectionIdFactory(storage, "pg001")()).toBe("pg001_sec002")
+})
+
+// Round four: public filenames share a case-insensitive namespace with quizzes.
+it.each(["edit", "insert", "replace"] as const)("%s quiz allocation skips a case-alias held by a section", mode => {
+  storage.putNodeData("page-sectioning", "retired-page", { sections: [{ sectionId: "QZ001", nodes: [] }] })
+  const before = storage.getAllNodeVersions("page-sectioning", "retired-page")
+  const result = saveQuizOutput(storage, { quizzes: [{ quizIndex: 0, afterPageId: "pg001", pageIds: ["pg001"], question: "Question", options: [{ text: "Answer", explanation: "Why" }], answerIndex: 0, reasoning: "" }], generatedAt: "now" }, mode)
+  expect(result.output.quizzes[0].quizId).toBe("qz002")
+  expect(storage.getAllNodeVersions("page-sectioning", "retired-page")).toEqual(before)
+})
+
+
+it("does not decode unchanged history again when allocating for the next page", () => {
+  const payload = { entries: [{ textId: "retired-text", speechText: "immutable-marker".repeat(5000) }] }
+  storage.putNodeData("tts", "fr", payload)
+  expect(collectSpentContentIds(storage).has("retired-text")).toBe(true)
+  const parse = vi.spyOn(JSON, "parse")
+  try {
+    storage.putNodeData("page-sectioning", "pg002", { sections: [{ sectionId: "pg002_sec001", nodes: [] }] })
+    expect(collectSpentContentIds(storage).has("retired-text")).toBe(true)
+    expect(parse.mock.calls.filter(([text]) => text.includes("immutable-marker"))).toHaveLength(0)
+  } finally { parse.mockRestore() }
+})
+
+it.each(["schema", "slot", "payload", "retired witness"])("does not let a warmed identity projection hide damaged %s evidence", damage => {
+  storage.putNodeData("page-sectioning", "pg001", { sections: [{ sectionId: "pg001_sec077", nodes: [] }] })
+  expect(collectSpentContentIds(storage).has("pg001_sec077")).toBe(true)
+  const db = openBookDb(path.join(root, "book/book.db"))
+  try {
+    if (damage === "schema") db.exec("DROP TABLE history_witnesses")
+    if (damage === "slot") db.exec("DELETE FROM history_slots WHERE node='page-sectioning'")
+    if (damage === "payload") db.run("UPDATE node_data SET data=? WHERE node='page-sectioning'", ['{broken'])
+    if (damage === "retired witness") {
+      db.exec("DELETE FROM node_data WHERE node='page-sectioning'")
+      const trigger = db.get("SELECT sql FROM sqlite_master WHERE name='history_witnesses_delete'") as { sql: string }
+      db.exec("DROP TRIGGER history_witnesses_delete")
+      db.exec("DELETE FROM history_witnesses WHERE node='page-sectioning'")
+      db.exec(trigger.sql)
+    }
+    expect(() => collectSpentContentIds(storage)).toThrow("HISTORY_REPAIR_REQUIRED")
+  } finally { db.close() }
+})
+
+
+it("keeps old and changed incarnations reserved after warming and retirement", () => {
+  storage.putNodeData("page-sectioning", "pg001", { sections: [{ sectionId: "pg001_sec077", nodes: [] }] })
+  expect(createSectionIdFactory(storage, "pg001")()).toBe("pg001_sec078")
+  const db = openBookDb(path.join(root, "book/book.db"))
+  try {
+    db.run("UPDATE node_data SET data=? WHERE node='page-sectioning'", [JSON.stringify({ sections: [{ sectionId: "pg001_sec088", nodes: [] }] })])
+    expect(createSectionIdFactory(storage, "pg001")()).toBe("pg001_sec089")
+    // Supported retirement checkpoints the readable new incarnation first.
+    storage.clearExtractedData()
+    const ids = collectSpentContentIds(storage)
+    expect(ids.has("pg001_sec077")).toBe(true)
+    expect(ids.has("pg001_sec088")).toBe(true)
+    expect(createSectionIdFactory(storage, "pg001")()).toBe("pg001_sec089")
+  } finally { db.close() }
+})
+
+it("does not reuse a warm projection from another book's same tuple", () => {
+  storage.putNodeData("page-sectioning", "pg001", { sections: [{ sectionId: "pg001_sec077", nodes: [] }] })
+  expect(createSectionIdFactory(storage, "pg001")()).toBe("pg001_sec078")
+  const other = createBookStorage("other", root)
+  try {
+    other.putNodeData("page-sectioning", "pg001", { sections: [{ sectionId: "pg001_sec003", nodes: [] }] })
+    expect(createSectionIdFactory(other, "pg001")()).toBe("pg001_sec004")
+  } finally { other.close() }
 })

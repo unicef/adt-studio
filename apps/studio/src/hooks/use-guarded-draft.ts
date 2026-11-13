@@ -57,5 +57,8 @@ export function useGuardedDraft<T>(current: T | null | undefined, version: numbe
     setError(null)
   }, [conflict])
   const baseVersion = base.current?.version ?? version ?? 0
-  return useMemo(() => ({ pending, setPending, baseVersion, acknowledge, handleError, conflict, resolve, error }), [pending, setPending, baseVersion, acknowledge, handleError, conflict, resolve, error])
+  const baseValue = base.current?.value ?? current
+  const getPending = useCallback(() => pendingRef.current, [])
+  const getBaseVersion = useCallback(() => base.current?.version ?? currentRef.current.version ?? 0, [])
+  return useMemo(() => ({ pending, setPending, baseVersion, baseValue, getPending, getBaseVersion, acknowledge, handleError, conflict, resolve, error }), [pending, setPending, baseVersion, baseValue, getPending, getBaseVersion, acknowledge, handleError, conflict, resolve, error])
 }

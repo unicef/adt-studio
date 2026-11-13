@@ -267,6 +267,11 @@ msgstr "{0} flagged findings in this review"
 msgid "{0} fonts"
 msgstr "{0} fonts"
 
+#. placeholder {0}: state.data.issueCount
+#. placeholder {1}: state.data.checkpointable
+msgid "{0} history issue(s); {1} readable record(s) without a checkpoint. Showing up to 20 affected versions."
+msgstr "{0} history issue(s); {1} readable record(s) without a checkpoint. Showing up to 20 affected versions."
+
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
 #~ msgid "{0} image{1} selected"
@@ -882,6 +887,9 @@ msgstr "A fill-in-the-blank activity."
 
 msgid "A glossary term with this word already exists."
 msgstr "A glossary term with this word already exists."
+
+msgid "A historical record is missing; it cannot be reconstructed safely"
+msgstr "A historical record is missing; it cannot be reconstructed safely"
 
 msgid "A language is required so downstream stages can localize the book."
 msgstr "A language is required so downstream stages can localize the book."
@@ -1746,8 +1754,8 @@ msgstr "already there"
 msgid "Also delete the sharing service and every shared book from my Cloudflare account"
 msgstr "Also delete the sharing service and every shared book from my Cloudflare account"
 
-msgid "Also regenerate these pages and replace their saved content"
-msgstr "Also regenerate these pages and replace their saved content"
+#~ msgid "Also regenerate these pages and replace their saved content"
+#~ msgstr "Also regenerate these pages and replace their saved content"
 
 msgid "Also used by {readerNames} unless that provider has its own key."
 msgstr "Also used by {readerNames} unless that provider has its own key."
@@ -2623,8 +2631,14 @@ msgstr "Change how you share"
 msgid "Change language"
 msgstr "Change language"
 
+msgid "Change mode"
+msgstr "Change mode"
+
 msgid "Change Preset"
 msgstr "Change Preset"
+
+msgid "Change Sectioning mode?"
+msgstr "Change Sectioning mode?"
 
 msgid "Change the book language?"
 msgstr "Change the book language?"
@@ -2641,11 +2655,17 @@ msgstr "Changes not saved"
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 
+msgid "Changing layout requires every active page to render successfully. Run the whole Storyboard stage. Previous output is retained."
+msgstr "Changing layout requires every active page to render successfully. Run the whole Storyboard stage. Previous output is retained."
+
 msgid "Changing the language may affect saved work."
 msgstr "Changing the language may affect saved work."
 
 #~ msgid "Changing the language resets downstream work."
 #~ msgstr "Changing the language resets downstream work."
+
+#~ msgid "Changing the type regenerates the activity when you save."
+#~ msgstr "Changing the type regenerates the activity when you save."
 
 msgid "Changing this sends a fresh copy, so readers also get the edits you haven't shared yet."
 msgstr "Changing this sends a fresh copy, so readers also get the edits you haven't shared yet."
@@ -3104,6 +3124,9 @@ msgstr "Confirm merge"
 msgid "Conflicting changes detected"
 msgstr "Conflicting changes detected"
 
+#~ msgid "Conflicting fields:"
+#~ msgstr "Conflicting fields:"
+
 msgid "Conflicting source text uses this ID. Resolve the source conflict before accepting dependent output."
 msgstr "Conflicting source text uses this ID. Resolve the source conflict before accepting dependent output."
 
@@ -3401,6 +3424,9 @@ msgstr "Could not remove {failed} of {total} videos. Please try again."
 
 msgid "Could not revert this page. Your edits were kept. Try again."
 msgstr "Could not revert this page. Your edits were kept. Try again."
+
+msgid "Could not save Sectioning mode."
+msgstr "Could not save Sectioning mode."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -4582,8 +4608,14 @@ msgstr "Existing output is included."
 #~ msgid "Existing output may be included."
 #~ msgstr "Existing output may be included."
 
+msgid "Existing pages stay unchanged. This run fills missing Sectioning only unless you explicitly choose replacement."
+msgstr "Existing pages stay unchanged. This run fills missing Sectioning only unless you explicitly choose replacement."
+
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
+
+msgid "Existing-book extraction and CLI resume are unavailable here. Use Sectioning in Studio to review and confirm any replacement."
+msgstr "Existing-book extraction and CLI resume are unavailable here. Use Sectioning in Studio to review and confirm any replacement."
 
 msgid "Expand"
 msgstr "Expand"
@@ -4719,6 +4751,9 @@ msgstr "Extracting..."
 msgid "Extraction and the other AI steps run on your own AI provider."
 msgstr "Extraction and the other AI steps run on your own AI provider."
 
+msgid "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+msgstr "Extraction did not finish. Partial data is retained. Start extraction in a new book."
+
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Extraction is running — you can review spreads once it finishes."
 
@@ -4730,6 +4765,9 @@ msgstr "Extraction notes"
 
 msgid "Extraction Prompt"
 msgstr "Extraction Prompt"
+
+msgid "Extraction settings have changed. Existing content is retained. Start extraction in a new book."
+msgstr "Extraction settings have changed. Existing content is retained. Start extraction in a new book."
 
 msgid "Extracts text and image data from each page of the PDF."
 msgstr "Extracts text and image data from each page of the PDF."
@@ -5077,6 +5115,9 @@ msgstr "Gathering the evidence"
 msgid "Gemini"
 msgstr "Gemini"
 
+#~ msgid "Gemini — LLM and TTS voices."
+#~ msgstr "Gemini — LLM and TTS voices."
+
 msgid "Gemini API key is required to generate audio."
 msgstr "Gemini API key is required to generate audio."
 
@@ -5262,8 +5303,14 @@ msgstr "Generating…"
 msgid "Generation failed"
 msgstr "Generation failed"
 
+msgid "Generation failed on {total} page(s) (showing up to 20): {pages}. Successful pages are retained. Inspect the page errors before retrying."
+msgstr "Generation failed on {total} page(s) (showing up to 20): {pages}. Successful pages are retained. Inspect the page errors before retrying."
+
 msgid "Generation failed. Please try again."
 msgstr "Generation failed. Please try again."
+
+msgid "Generation preferences changed or their history is unknown. Saved content remains usable. Existing pages are kept unless you explicitly replace them."
+msgstr "Generation preferences changed or their history is unknown. Saved content remains usable. Existing pages are kept unless you explicitly replace them."
 
 msgid "Generation Prompt"
 msgstr "Generation Prompt"
@@ -5517,6 +5564,12 @@ msgstr "Hint when wrong (don't reveal the answer)"
 msgid "História e Sociedade - Vol. 1"
 msgstr "História e Sociedade - Vol. 1"
 
+msgid "History recovery"
+msgstr "History recovery"
+
+msgid "History tracking is incomplete. Existing content is retained, but edits and generation that need verified history are unavailable. Restore a verified book backup; recovery cannot reconstruct missing tracking evidence."
+msgstr "History tracking is incomplete. Existing content is retained, but edits and generation that need verified history are unavailable. Restore a verified book backup; recovery cannot reconstruct missing tracking evidence."
+
 msgid "Hit"
 msgstr "Hit"
 
@@ -5594,6 +5647,9 @@ msgstr "HTML"
 
 msgid "HTML5 + EPUB"
 msgstr "HTML5 + EPUB"
+
+msgid "I reviewed this book and the affected versions, and explicitly confirm this operation."
+msgstr "I reviewed this book and the affected versions, and explicitly confirm this operation."
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "I understand the part was processed with different prompts/models and want to merge it anyway."
@@ -5867,8 +5923,17 @@ msgstr "Inside Cover"
 msgid "Inside the school, no internet needed"
 msgstr "Inside the school, no internet needed"
 
+msgid "Inspect history"
+msgstr "Inspect history"
+
+msgid "Inspect identity history before recovery. Only verified original bytes can be restored. Recovery keeps damaged evidence and assets, and does not regenerate content."
+msgstr "Inspect identity history before recovery. Only verified original bytes can be restored. Recovery keeps damaged evidence and assets, and does not regenerate content."
+
 #~ msgid "Inspect original HTML and answers"
 #~ msgstr "Inspect original HTML and answers"
+
+msgid "Inspecting history…"
+msgstr "Inspecting history…"
 
 msgid "Install"
 msgstr "Install"
@@ -6067,6 +6132,9 @@ msgstr "Keep going"
 
 msgid "Keep my changes"
 msgstr "Keep my changes"
+
+#~ msgid "Keep my conflicting edits"
+#~ msgstr "Keep my conflicting edits"
 
 msgid "Keep my connection"
 msgstr "Keep my connection"
@@ -6554,6 +6622,9 @@ msgstr "Loading the comments…"
 
 msgid "Loading the shared link"
 msgstr "Loading the shared link"
+
+#~ msgid "Loading TTS normalization..."
+#~ msgstr "Loading TTS normalization..."
 
 msgid "Loading validation..."
 msgstr "Loading validation..."
@@ -7203,6 +7274,9 @@ msgstr "No accessibility assessment has been generated yet. Package the ADT outp
 msgid "No accessibility findings were reported for this page."
 msgstr "No accessibility findings were reported for this page."
 
+msgid "No additional page IDs shown"
+msgstr "No additional page IDs shown"
+
 msgid "No AI edits yet for this section."
 msgstr "No AI edits yet for this section."
 
@@ -7444,6 +7518,9 @@ msgstr "No open comments. New ones land here first."
 
 msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
 msgstr "No open-source license detected. Make sure you have the right to embed and distribute this font."
+
+msgid "No original evidence was saved before damage"
+msgstr "No original evidence was saved before damage"
 
 msgid "No other images in this book"
 msgstr "No other images in this book"
@@ -8019,6 +8096,9 @@ msgstr "Open sharing settings"
 msgid "Open source PDF in a new tab"
 msgstr "Open source PDF in a new tab"
 
+msgid "Open the book to verify Preview"
+msgstr "Open the book to verify Preview"
+
 msgid "Open the Cloudflare page again"
 msgstr "Open the Cloudflare page again"
 
@@ -8089,6 +8169,10 @@ msgstr "Opening the quiz…"
 msgid "Operation failed"
 msgstr "Operation failed"
 
+#. placeholder {0}: mutation.data.count
+msgid "Operation recorded for {0} version(s). Review the current inspection before continuing. Generation has not been started."
+msgstr "Operation recorded for {0} version(s). Review the current inspection before continuing. Generation has not been started."
+
 msgid "Option columns"
 msgstr "Option columns"
 
@@ -8158,6 +8242,12 @@ msgstr "Or share on a new link with the choices above"
 msgid "Original"
 msgstr "Original"
 
+msgid "Original evidence or record continuity cannot be verified"
+msgstr "Original evidence or record continuity cannot be verified"
+
+msgid "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
+msgstr "Original extraction data is missing or unreadable. Existing data is retained. Restore a verified book copy or import the PDF as a new book."
+
 msgid "Original language"
 msgstr "Original language"
 
@@ -8200,6 +8290,9 @@ msgstr "Out of sync"
 
 msgid "Outline ID:"
 msgstr "Outline ID:"
+
+msgid "output available"
+msgstr "output available"
 
 msgid "Output languages"
 msgstr "Output languages"
@@ -8306,6 +8399,23 @@ msgstr "Page {0} — Section {1}"
 #. placeholder {1}: at.sectionNumber
 #~ msgid "Page {0} · Section {1}"
 #~ msgstr "Page {0} · Section {1}"
+
+#. placeholder {0}: r.pageNumber ?? r.itemId
+#. placeholder {1}: r.itemId
+#. placeholder {2}: r.version
+#. placeholder {3}: r.renderingVersion ?? 0
+#. placeholder {4}: r.renderTreeVersion ?? 0
+#~ msgid "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}"
+#~ msgstr "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}"
+
+#. placeholder {0}: r.pageNumber ?? r.itemId
+#. placeholder {1}: r.itemId
+#. placeholder {2}: r.version
+#. placeholder {3}: r.renderingVersion ?? 0
+#. placeholder {4}: r.renderTreeVersion ?? 0
+#. placeholder {5}: r.editableActivityVersion ?? 0
+msgid "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}, activities v{5}"
+msgstr "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}, activities v{5}"
 
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
@@ -8439,8 +8549,8 @@ msgstr "pages {shownStr}"
 msgid "Pages in the selected range"
 msgstr "Pages in the selected range"
 
-msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
-msgstr "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+#~ msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+#~ msgstr "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
 
 msgid "pages per quiz"
 msgstr "pages per quiz"
@@ -8451,8 +8561,8 @@ msgstr "Pages per Quiz"
 msgid "Pages reviewed"
 msgstr "Pages reviewed"
 
-msgid "Pages with manual edits or unknown authorship:"
-msgstr "Pages with manual edits or unknown authorship:"
+#~ msgid "Pages with manual edits or unknown authorship:"
+#~ msgstr "Pages with manual edits or unknown authorship:"
 
 msgid "Paper Collage"
 msgstr "Paper Collage"
@@ -8740,8 +8850,14 @@ msgstr "Prefer terms central to the book's subject matter. Skip generic vocabula
 msgid "Preferences"
 msgstr "Preferences"
 
+#~ msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+#~ msgstr "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+
 msgid "Prepare numbers, dates, and abbreviations for natural speech."
 msgstr "Prepare numbers, dates, and abbreviations for natural speech."
+
+#~ msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+#~ msgstr "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
 
 msgid "Prepared speech text"
 msgstr "Prepared speech text"
@@ -8880,6 +8996,9 @@ msgstr "prompts templates instructions"
 
 #~ msgid "Protected content"
 #~ msgstr "Protected content"
+
+#~ msgid "Protected pages:"
+#~ msgstr "Protected pages:"
 
 msgid "Protected quizzes to replace:"
 msgstr "Protected quizzes to replace:"
@@ -9200,6 +9319,9 @@ msgstr "Read-Aloud Content"
 
 msgid "Read-only"
 msgstr "Read-only"
+
+msgid "Readable versions included in this checkpoint"
+msgstr "Readable versions included in this checkpoint"
 
 msgid "Reader"
 msgstr "Reader"
@@ -9610,11 +9732,23 @@ msgstr "Replace quiz"
 msgid "Replace quizzes"
 msgstr "Replace quizzes"
 
+#~ msgid "Replace the protected pages listed above"
+#~ msgstr "Replace the protected pages listed above"
+
+msgid "Replace these pages and reset their Storyboard"
+msgstr "Replace these pages and reset their Storyboard"
+
 msgid "Replace this audio file"
 msgstr "Replace this audio file"
 
 msgid "Replace your overlapping changes with the latest saved values."
 msgstr "Replace your overlapping changes with the latest saved values."
+
+msgid "Replacement inputs could not be verified. Existing pages will stay unchanged."
+msgstr "Replacement inputs could not be verified. Existing pages will stay unchanged."
+
+msgid "Replacing these pages resets their current Storyboard, including manual edits. Saved versions and media stay in history; Storyboard must be rebuilt even if generation is cancelled or fails."
+msgstr "Replacing these pages resets their current Storyboard, including manual edits. Saved versions and media stay in history; Storyboard must be rebuilt even if generation is cancelled or fails."
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Replay the guided introduction to ADT Studio."
@@ -9716,6 +9850,9 @@ msgstr "Resolved"
 msgid "Resolving source language..."
 msgstr "Resolving source language..."
 
+msgid "Resources in the package document {document} could not be verified. Existing output is retained. Correct the saved content, then prepare the export again."
+msgstr "Resources in the package document {document} could not be verified. Existing output is retained. Correct the saved content, then prepare the export again."
+
 msgid "Respiration"
 msgstr "Respiration"
 
@@ -9737,8 +9874,14 @@ msgstr "Restore element"
 msgid "Restore section to flow"
 msgstr "Restore section to flow"
 
+msgid "Restore the listed recoverable versions exactly. A selected version receives a new version number so old edit drafts cannot overwrite it. Review new replacement consent before running Sectioning."
+msgstr "Restore the listed recoverable versions exactly. A selected version receives a new version number so old edit drafts cannot overwrite it. Review new replacement consent before running Sectioning."
+
 msgid "Restore this term — it will be eligible again on the next regeneration."
 msgstr "Restore this term — it will be eligible again on the next regeneration."
+
+msgid "Restore verified history"
+msgstr "Restore verified history"
 
 msgid "restored"
 msgstr "restored"
@@ -9873,6 +10016,9 @@ msgstr "Review strictness"
 
 msgid "Review style"
 msgstr "Review style"
+
+msgid "Review the affected pages and their current versions, then explicitly confirm replacement and the Storyboard reset."
+msgstr "Review the affected pages and their current versions, then explicitly confirm replacement and the Storyboard reset."
 
 msgid "Review the affected stages after this change."
 msgstr "Review the affected stages after this change."
@@ -10134,8 +10280,14 @@ msgstr "Save checklist"
 msgid "Save failed"
 msgstr "Save failed"
 
+msgid "Save history checkpoint"
+msgstr "Save history checkpoint"
+
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Save or cancel your draft before reviewing outputs."
+
+#~ msgid "Save or discard changes before restoring a version."
+#~ msgstr "Save or discard changes before restoring a version."
 
 msgid "Save or discard your changes before re-running."
 msgstr "Save or discard your changes before re-running."
@@ -10145,6 +10297,9 @@ msgstr "Save or discard your edits first"
 
 msgid "Save page review"
 msgstr "Save page review"
+
+msgid "Save recovery evidence for currently readable history. A checkpoint cannot recover records that were already damaged."
+msgstr "Save recovery evidence for currently readable history. A checkpoint cannot recover records that were already damaged."
 
 msgid "Save section changes?"
 msgstr "Save section changes?"
@@ -10167,6 +10322,9 @@ msgstr "Save the new type, then choose Regenerate to update the activity."
 msgid "Save your work first if you want to keep these changes."
 msgstr "Save your work first if you want to keep these changes."
 
+msgid "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
+msgstr "Saved book history is unreadable. Existing content has been retained. Verified history recovery is required before generating new content."
+
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 
@@ -10178,6 +10336,18 @@ msgstr "Saved content is kept. Review language-dependent outputs after saving. N
 
 msgid "Saved content is unavailable; your draft is retained"
 msgstr "Saved content is unavailable; your draft is retained"
+
+#~ msgid "Saved output is retained, but Sectioning and later stages are not current."
+#~ msgstr "Saved output is retained, but Sectioning and later stages are not current."
+
+msgid "Saved pages:"
+msgstr "Saved pages:"
+
+msgid "Saved Sectioning is unreadable on {total} page(s) (showing up to 20): {pages}. Those records were retained. Restore valid historical versions before replacing them. Other successful pages remain available."
+msgstr "Saved Sectioning is unreadable on {total} page(s) (showing up to 20): {pages}. Those records were retained. Restore valid historical versions before replacing them. Other successful pages remain available."
+
+msgid "Saved sections changed. Your unsaved editor is retained against its original version. Discard your edits to load the current section."
+msgstr "Saved sections changed. Your unsaved editor is retained against its original version. Discard your edits to load the current section."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -10396,8 +10566,11 @@ msgstr "Section Types"
 msgid "Sectioning"
 msgstr "Sectioning"
 
-msgid "Sectioning has changed since some sections were rendered. Open a section and use “Re-render this section” to update it, or re-run Storyboard to regenerate every page."
-msgstr "Sectioning has changed since some sections were rendered. Open a section and use “Re-render this section” to update it, or re-run Storyboard to regenerate every page."
+#~ msgid "Sectioning and later stages will need to run again. Saved versions are kept."
+#~ msgstr "Sectioning and later stages will need to run again. Saved versions are kept."
+
+#~ msgid "Sectioning has changed since some sections were rendered. Open a section and use “Re-render this section” to update it, or re-run Storyboard to regenerate every page."
+#~ msgstr "Sectioning has changed since some sections were rendered. Open a section and use “Re-render this section” to update it, or re-run Storyboard to regenerate every page."
 
 #~ msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 #~ msgstr "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
@@ -10685,6 +10858,9 @@ msgstr "Settings for this step are not yet available."
 
 msgid "Settings guide"
 msgstr "Settings guide"
+
+msgid "Settings were saved. Review replacement again using the updated configuration and page window."
+msgstr "Settings were saved. Review replacement again using the updated configuration and page window."
 
 msgid "Setup couldn't finish"
 msgstr "Setup couldn't finish"
@@ -11039,15 +11215,31 @@ msgstr "Software update status"
 #~ msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no sectioning row, so they could not be included. Re-run the storyboard render for those pages, then package again."
 #~ msgstr "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no sectioning row, so they could not be included. Re-run the storyboard render for those pages, then package again."
 
-#. placeholder {0}: warnings.length
-msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
-msgstr "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
+#. placeholder {0}: ownership.length
+#~ msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
+#~ msgstr "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
+
+#. placeholder {0}: ownership.length
+msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
+msgstr "Some content was left out of the bundle: {0} rendered section(s) on {pageTotal} page(s) (showing up to 20): {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
+
+msgid "Some history cannot be recovered from the available evidence. Existing content stays retained. A verified book backup may be needed; choosing an older selected version does not repair missing history."
+msgstr "Some history cannot be recovered from the available evidence. Existing content stays retained. A verified book backup may be needed; choosing an older selected version does not repair missing history."
 
 msgid "Some items could not be updated. The list has been refreshed; completed changes are kept."
 msgstr "Some items could not be updated. The list has been refreshed; completed changes are kept."
 
+msgid "Some pages have missing or unreadable input ({total} total; showing up to 20): {pages}. Other runnable pages remain available."
+msgstr "Some pages have missing or unreadable input ({total} total; showing up to 20): {pages}. Other runnable pages remain available."
+
+msgid "Some pages have missing or unreadable input: {pages}. Other runnable pages remain available."
+msgstr "Some pages have missing or unreadable input: {pages}. Other runnable pages remain available."
+
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
+
+msgid "Some pages or sections are missing Storyboard output. Existing pages remain available."
+msgstr "Some pages or sections are missing Storyboard output. Existing pages remain available."
 
 msgid "Some permissions are missing"
 msgstr "Some permissions are missing"
@@ -11094,6 +11286,9 @@ msgstr "Source candidates:"
 
 msgid "Source changed. Your edit has been kept."
 msgstr "Source changed. Your edit has been kept."
+
+msgid "Source content changed after some Storyboard output was saved. The saved output remains available."
+msgstr "Source content changed after some Storyboard output was saved. The saved output remains available."
 
 msgid "Source file"
 msgstr "Source file"
@@ -11382,8 +11577,23 @@ msgstr "Stored locally on this computer"
 msgid "Storyboard"
 msgstr "Storyboard"
 
+#~ msgid "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Affected pages: {pages}."
+#~ msgstr "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Affected pages: {pages}."
+
+#~ msgid "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Incompatible manual or unknown-origin pages require explicit replacement confirmation. Affected pages: {pages}."
+#~ msgstr "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Incompatible manual or unknown-origin pages require explicit replacement confirmation. Affected pages: {pages}."
+
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
+
+msgid "Storyboard inputs changed on {total} page(s) (showing up to 20): {pages}. Refresh the saved content before retrying. Previous output is retained."
+msgstr "Storyboard inputs changed on {total} page(s) (showing up to 20): {pages}. Refresh the saved content before retrying. Previous output is retained."
+
+msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
+msgstr "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
+
+msgid "Storyboard needs review"
+msgstr "Storyboard needs review"
 
 msgid "Storyboard nodes:"
 msgstr "Storyboard nodes:"
@@ -11599,8 +11809,11 @@ msgid "Task failed"
 msgstr "Task failed"
 
 #. placeholder {0}: d.error
-msgid "Task failed: {0}"
-msgstr "Task failed: {0}"
+#~ msgid "Task failed: {0}"
+#~ msgstr "Task failed: {0}"
+
+msgid "Task failed: {taskError}"
+msgstr "Task failed: {taskError}"
 
 msgid "Task Running"
 msgstr "Task Running"
@@ -11646,6 +11859,9 @@ msgstr "Template-based"
 
 msgid "Templated"
 msgstr "Templated"
+
+msgid "Temporarily unavailable"
+msgstr "Temporarily unavailable"
 
 msgid "term"
 msgstr "term"
@@ -11765,6 +11981,9 @@ msgstr "That didn't resolve. Try again."
 msgid "That reply didn't send. Try again."
 msgstr "That reply didn't send. Try again."
 
+msgid "The activity changed while feedback was being generated. Review your draft and try again."
+msgstr "The activity changed while feedback was being generated. Review your draft and try again."
+
 msgid "The address every share link will start with."
 msgstr "The address every share link will start with."
 
@@ -11782,6 +12001,15 @@ msgstr "The archive must contain a project database and its PDF. Re-export it fr
 
 msgid "The back cover of the book."
 msgstr "The back cover of the book."
+
+msgid "The book changed after inspection. Inspect its history again and review the affected versions before confirming recovery."
+msgstr "The book changed after inspection. Inspect its history again and review the affected versions before confirming recovery."
+
+msgid "The book changed while preparing the package. Prepare the export again using the current book."
+msgstr "The book changed while preparing the package. Prepare the export again using the current book."
+
+msgid "The book could not be found. Return to the Library and open it again."
+msgstr "The book could not be found. Return to the Library and open it again."
 
 msgid "The book couldn't be exported"
 msgstr "The book couldn't be exported"
@@ -11849,6 +12077,9 @@ msgstr "The database couldn't be prepared"
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 
+msgid "The edit request is invalid. Refresh the saved content and try again."
+msgstr "The edit request is invalid. Refresh the saved content and try again."
+
 msgid "The end date can be changed once the sharing service answers"
 msgstr "The end date can be changed once the sharing service answers"
 
@@ -11893,6 +12124,9 @@ msgstr "The last date this computer knows. It can be changed once the service is
 
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
+
+msgid "The layout switch has {total} unfinished page(s) (showing up to 20): {pages}. Inspect their inputs and page errors, then retry the whole Storyboard stage. Previous output is retained."
+msgstr "The layout switch has {total} unfinished page(s) (showing up to 20): {pages}. Inspect their inputs and page errors, then retry the whole Storyboard stage. Previous output is retained."
 
 msgid "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
 msgstr "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
@@ -11962,8 +12196,23 @@ msgstr "The message carries the title, the link and the code."
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
 
+msgid "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
+msgstr "The original history could not be verified. Existing records and assets have been retained. Recovery requires trustworthy evidence for these exact versions."
+
+msgid "The package document {document} requires a missing or invalid file: {member}. Existing output is retained. Correct the saved content or restore the file, then prepare the export again."
+msgstr "The package document {document} requires a missing or invalid file: {member}. Existing output is retained. Correct the saved content or restore the file, then prepare the export again."
+
+msgid "The package is missing required files. Prepare the export again before downloading it."
+msgstr "The package is missing required files. Prepare the export again before downloading it."
+
+msgid "The package recovery folder is unrecognized. Existing files have been retained. Check the book folder before preparing another export."
+msgstr "The package recovery folder is unrecognized. Existing files have been retained. Check the book folder before preparing another export."
+
 msgid "The page"
 msgstr "The page"
+
+msgid "The PDF or extraction settings are invalid. Check the file and settings before trying again."
+msgstr "The PDF or extraction settings are invalid. Check the file and settings before trying again."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "The process plants use to turn sunlight, water, and carbon dioxide into food."
@@ -12025,14 +12274,23 @@ msgstr "The quick brown fox jumps over the lazy dog."
 msgid "The reader experience"
 msgstr "The reader experience"
 
+msgid "The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions."
+msgstr "The recovery request is invalid. Inspect the book again and explicitly confirm the affected versions."
+
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "The rendering strategy used for sections without an explicit mapping."
 
 msgid "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which ADT Studio signs in through. This is expected."
 msgstr "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which ADT Studio signs in through. This is expected."
 
+msgid "The requested pages are outside the active page window ({total} total; showing up to 20): {pages}. Select pages within the current window. Saved content is retained."
+msgstr "The requested pages are outside the active page window ({total} total; showing up to 20): {pages}. Select pages within the current window. Saved content is retained."
+
 msgid "The same edition in every language."
 msgstr "The same edition in every language."
+
+msgid "The saved content changed. Your draft is retained. Refresh and review the current versions before retrying."
+msgstr "The saved content changed. Your draft is retained. Refresh and review the current versions before retrying."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "The saved translation review is stale. Run Review again for the visible translations."
@@ -12060,6 +12318,9 @@ msgstr "The sharing service isn't answering. Every comment is safe and comes bac
 
 msgid "The small program that shows your books."
 msgstr "The small program that shows your books."
+
+msgid "The source PDF has changed. Existing content is retained. Import the changed PDF as a new book."
+msgstr "The source PDF has changed. Existing content is retained. Import the changed PDF as a new book."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
@@ -12111,6 +12372,9 @@ msgstr "theme appearance dark light mode"
 
 msgid "theme appearance system automatic"
 msgstr "theme appearance system automatic"
+
+msgid "There is no readable history that needs a recovery checkpoint."
+msgstr "There is no readable history that needs a recovery checkpoint."
 
 #~ msgid "These actions also resolve the linked source items in: {sources}."
 #~ msgstr "These actions also resolve the linked source items in: {sources}."
@@ -12178,17 +12442,26 @@ msgstr "This book has no images to caption"
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 
+msgid "This book has no verified extraction record. Saved content is retained. Start extraction in a new book."
+msgstr "This book has no verified extraction record. Saved content is retained. Start extraction in a new book."
+
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 
 msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 msgstr "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 
+msgid "This book is being changed by another operation. Wait for it to finish, then retry."
+msgstr "This book is being changed by another operation. Wait for it to finish, then retry."
+
 msgid "This book is fully assembled"
 msgstr "This book is fully assembled"
 
 msgid "This book is not on this computer."
 msgstr "This book is not on this computer."
+
+msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
+msgstr "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."
@@ -12210,8 +12483,23 @@ msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Atta
 msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 msgstr "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
 
+msgid "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
+msgstr "This book's configuration is invalid or unreadable. Check its config.yaml file, then open the book again."
+
+msgid "This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained."
+msgstr "This book's saved part window is invalid or unreadable. Restore a valid part manifest before running it. Saved content is retained."
+
+msgid "This bundle is incomplete. Storyboard output is missing on {missingTotal} page(s) (showing up to 20): {missingList}. Render those pages to complete it."
+msgstr "This bundle is incomplete. Storyboard output is missing on {missingTotal} page(s) (showing up to 20): {missingList}. Render those pages to complete it."
+
+#~ msgid "This bundle is incomplete. Storyboard output is missing on pages {missing}. Render those pages to complete it."
+#~ msgstr "This bundle is incomplete. Storyboard output is missing on pages {missing}. Render those pages to complete it."
+
 msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "This cannot be undone. Every link you have shared will stop working."
+
+msgid "This changes how new Sectioning is generated. Saved content and Storyboard stay available. Replacing existing pages requires a separate confirmation."
+msgstr "This changes how new Sectioning is generated. Saved content and Storyboard stay available. Replacing existing pages requires a separate confirmation."
 
 msgid "This code still works. A new one can wait until the service is back."
 msgstr "This code still works. A new one can wait until the service is back."
@@ -12360,6 +12648,9 @@ msgstr "This page was changed after you started editing, so some values are now 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 
+msgid "This page's saved Sectioning is unreadable. Restore a valid historical version before replacing it. History and media are retained."
+msgstr "This page's saved Sectioning is unreadable. Restore a valid historical version before replacing it. History and media are retained."
+
 msgid "This part cannot be merged"
 msgstr "This part cannot be merged"
 
@@ -12396,6 +12687,15 @@ msgstr "This quiz isn't in the book anymore — it may have been removed since t
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "This quiz will be removed from the book. You can still restore it from the version history."
 
+msgid "This record was changed or recreated; older evidence cannot restore it"
+msgstr "This record was changed or recreated; older evidence cannot restore it"
+
+msgid "This recovery record could not be found. Inspect the book history again."
+msgstr "This recovery record could not be found. Inspect the book history again."
+
+msgid "This recovery request was already used with different details. Inspect the book again before making a new request."
+msgstr "This recovery request was already used with different details. Inspect the book again before making a new request."
+
 msgid "This release includes general improvements and fixes."
 msgstr "This release includes general improvements and fixes."
 
@@ -12414,8 +12714,11 @@ msgstr "This replaces the manually edited or legacy table of contents. Its saved
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 
-msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
-msgstr "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. Replacing this page later requires a separate confirmation."
+msgstr "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. Replacing this page later requires a separate confirmation."
+
+#~ msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+#~ msgstr "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
 
 msgid "This screen couldn’t load"
 msgstr "This screen couldn’t load"
@@ -12686,6 +12989,9 @@ msgstr "Try the practice problem"
 
 msgid "Try this screen again"
 msgstr "Try this screen again"
+
+#~ msgid "TTS Normalization"
+#~ msgstr "TTS Normalization"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
@@ -13061,6 +13367,9 @@ msgstr "Use as current"
 msgid "Use as template"
 msgstr "Use as template"
 
+#~ msgid "Use latest conflicting values"
+#~ msgstr "Use latest conflicting values"
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 
@@ -13119,8 +13428,14 @@ msgstr "Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)"
 msgid "Used for ElevenLabs text-to-speech."
 msgstr "Used for ElevenLabs text-to-speech."
 
+#~ msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
+#~ msgstr "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
+
 msgid "Used for Gemini text and image models (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). Gemini Speech uses this key too unless it has one of its own."
 msgstr "Used for Gemini text and image models (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). Gemini Speech uses this key too unless it has one of its own."
+
+#~ msgid "Used for Gemini text-to-speech."
+#~ msgstr "Used for Gemini text-to-speech."
 
 msgid "Used for Gemini text-to-speech. Uses your Google AI key unless you enter a different one here."
 msgstr "Used for Gemini text-to-speech. Uses your Google AI key unless you enter a different one here."
@@ -13187,6 +13502,9 @@ msgstr "Variations"
 
 msgid "Verified applied"
 msgstr "Verified applied"
+
+msgid "Verified original available"
+msgstr "Verified original available"
 
 #. placeholder {0}: String(data.version)
 #. placeholder {0}: String(version)
@@ -13270,6 +13588,9 @@ msgstr "View page"
 msgid "View page {pageNum} larger"
 msgstr "View page {pageNum} larger"
 
+msgid "View recovery evidence"
+msgstr "View recovery evidence"
+
 msgid "Visible page entries"
 msgstr "Visible page entries"
 
@@ -13320,6 +13641,9 @@ msgstr "Wait for glossary generation to finish"
 
 msgid "Wait for storyboard to complete"
 msgstr "Wait for storyboard to complete"
+
+msgid "Wait for the current operation to finish."
+msgstr "Wait for the current operation to finish."
 
 msgid "Waiting"
 msgstr "Waiting"
@@ -13727,6 +14051,9 @@ msgstr "Your connection is still here, so nothing is half-forgotten. You can try
 
 msgid "Your content is retained. Re-run this stage to update it from the edited book."
 msgstr "Your content is retained. Re-run this stage to update it from the edited book."
+
+#~ msgid "Your draft is retained. Review the refreshed content before saving again."
+#~ msgstr "Your draft is retained. Review the refreshed content before saving again."
 
 #~ msgid "Your finished books will live in your own Cloudflare account."
 #~ msgstr "Your finished books will live in your own Cloudflare account."

@@ -1,4 +1,3 @@
-import { withSourceGenerationTracking, putSourceNodeData } from "./source-generation-state.js"
 /**
  * Fixed-Layout Rendering
  *
@@ -15,20 +14,19 @@ import { withSourceGenerationTracking, putSourceNodeData } from "./source-genera
  * and ignore placement.
  */
 
-import type { Storage } from "@adt/storage"
+import { setImmediate as yieldEventLoop } from "node:timers/promises"
+import { bookAssetExists, type Storage } from "@adt/storage"
 import type {
   AppConfig,
   ContentNodeData,
   DrawItem,
-  ImageClassificationOutput,
   NodePlacement,
   PageSectioningOutput,
   PageSectioningSection,
   SectionTextSegment,
   WebRenderingOutput,
-  PositionedTextOutput,
 } from "@adt/types"
-import { AUTO_FIT_SCRIPT_SRC } from "@adt/types"
+import { ImageClassificationOutput as ImageClassificationSchema, PositionedTextOutput as PositionedTextSchema, AUTO_FIT_SCRIPT_SRC } from "@adt/types"
 import { escapeHtml } from "./html-escape.js"
 
 /**
@@ -482,12 +480,15 @@ ${elements.join("\n")}${fitScript}
  * Run fixed-layout sectioning + rendering for all pages.
  * Stores results using the same node names as the reflowable pipeline.
  */
-export function processFixedLayoutPages(
+export async function processFixedLayoutPages(
   storage: Storage,
   imageUrlPrefix: string,
-): void {
+  targetPageIds?: readonly string[],
+  events?: { onPage?: (pageId: string) => void | Promise<void>; onUnavailable?: (pageId: string) => void; signal?: AbortSignal },
+): Promise<void> {
   const pages = storage.getPages()
-  let totalDrawItems = 0
+  const targets = targetPageIds ? new Set(targetPageIds) : undefined
+  let referenceWidth = 0
 
   // Pass 1: resolve each page's viewport + inputs. We collect these up front
   // so we can compute the book-wide reference (spread) width before rendering
@@ -500,37 +501,56 @@ export function processFixedLayoutPages(
   }> = []
 
   for (const page of pages) {
+    await yieldEventLoop()
+    events?.signal?.throwIfAborted()
     // Render whatever image-filtering left unpruned. The wizard writes
     // `image_filters` values for fixed-layout books that disable size /
     // complexity / LLM-meaningfulness pruning, so in practice every
     // extracted image survives except the full-page render itself (which
     // image-filtering always prunes — using it as a background would
     // double-draw the page).
-    const allImages = storage.getPageImages(page.pageId)
-    const pageRender = allImages.find((img) => img.imageId.endsWith("_page"))
-    const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
-    const classification = classRow ? (classRow.data as ImageClassificationOutput) : null
-    const availableImageIds = new Set(
-      classification
-        ? classification.images.filter((c) => !c.isPruned).map((c) => c.imageId)
-        : []
-    )
-
-    const posTextRow = storage.getLatestNodeData("positioned-text", page.pageId)
-    const positionedText = posTextRow ? (posTextRow.data as PositionedTextOutput) : null
-
-    // Viewport comes from the positioned-text extraction (authoritative PDF
-    // page dimensions). Fall back to the page render's pixel size only when
-    // no positioned text was extracted at all.
-    const viewport = positionedText
-      ? { width: Math.round(positionedText.pageWidth), height: Math.round(positionedText.pageHeight) }
-      : pageRender
-        ? { width: pageRender.width, height: pageRender.height }
-        : null
-    if (!viewport) continue
-
-    const drawItems: DrawItem[] = positionedText?.drawItems ?? []
-    totalDrawItems += drawItems.length
+    const unavailable = () => { if (!targets || targets.has(page.pageId)) events?.onUnavailable?.(page.pageId) }
+    let posTextRow
+    try { posTextRow = storage.getLatestNodeData("positioned-text", page.pageId) }
+    catch (error) { if (!(error instanceof SyntaxError)) throw error; unavailable(); continue }
+    const posParsed = PositionedTextSchema.safeParse(posTextRow?.data)
+    if (!posParsed.success) { unavailable(); continue }
+    const positionedText = posParsed.data
+    const viewport = { width: Math.round(positionedText.pageWidth), height: Math.round(positionedText.pageHeight) }
+    if (!Number.isFinite(viewport.width) || !Number.isFinite(viewport.height) || viewport.width <= 0 || viewport.height <= 0) {
+      unavailable(); continue
+    }
+    // A neighbor's valid width remains part of the common scale even when its
+    // classification cannot authorize rendering. Never shrink targeted pages.
+    referenceWidth = Math.max(referenceWidth, viewport.width)
+    let classRow
+    try { classRow = storage.getLatestNodeData("image-filtering", page.pageId) }
+    catch (error) { if (!(error instanceof SyntaxError)) throw error; unavailable(); continue }
+    const classParsed = ImageClassificationSchema.safeParse(classRow?.data)
+    if (!classParsed.success) { unavailable(); continue }
+    const availableImageIds = new Set(classParsed.data.images.filter(image => !image.isPruned).map(image => image.imageId))
+    const drawItems = positionedText.drawItems
+    const positionedImages = new Set(drawItems.filter(item => item.kind === "image").map(item => item.imageId))
+    const classified = new Set(classParsed.data.images.map(image => image.imageId))
+    const images = new Map(storage.getPageImages(page.pageId, true).map(image => [image.imageId, image]))
+    // A shared PDF resource dictionary also contains images this page never
+    // draws. Crops/segments are separate derived assets. Neither requires a
+    // position. An extracted image with recorded bounds WAS drawn, however;
+    // dropping that kept draw item must not turn damaged input into a blank page.
+    const placedExtracted = [...images.values()].filter(image => image.bounds &&
+      image.storedAsset?.source === "extract" && image.imageId !== `${page.pageId}_page`)
+    if (placedExtracted.some(image => !classified.has(image.imageId) ||
+          (availableImageIds.has(image.imageId) && !positionedImages.has(image.imageId))) ||
+        classified.size !== classParsed.data.images.length ||
+        [...availableImageIds].some(id => !images.has(id)) ||
+        [...positionedImages].some(id => {
+          const image = images.get(id)
+          return !classified.has(id) || !image || (availableImageIds.has(id) && !!storage.bookDir &&
+            (!image.storedAsset || !bookAssetExists(storage.bookDir, image.storedAsset.relativePath)))
+        })) {
+      unavailable()
+      continue
+    }
     prepared.push({ page, viewport, drawItems, availableImageIds })
   }
 
@@ -538,10 +558,13 @@ export function processFixedLayoutPages(
   // mode, or just the common page width otherwise. Stamped onto every page so
   // viewers scale uniformly and single (cover/end) pages render centered at
   // their natural fraction of the panel instead of being upscaled to fill it.
-  const referenceWidth = prepared.reduce((max, p) => Math.max(max, p.viewport.width), 0)
 
   // Pass 2: section + render each page with the shared reference width.
   for (const { page, viewport, drawItems, availableImageIds } of prepared) {
+    // Targeted rerenders still measure the complete active window above, so a
+    // single page keeps the same spread scale as its untouched neighbours.
+    if (targets && !targets.has(page.pageId)) continue
+    events?.signal?.throwIfAborted()
     const sectioning = sectionFixedLayoutPage({
       pageId: page.pageId,
       pageNumber: page.pageNumber,
@@ -557,26 +580,17 @@ export function processFixedLayoutPages(
       imageUrlPrefix,
       referenceWidth,
     )
-    withSourceGenerationTracking(storage, () => {
-      putSourceNodeData(storage, "fixed-layout-sectioning", page.pageId, sectioning)
-      putSourceNodeData(storage, "web-rendering", page.pageId, rendering)
+    storage.transaction(() => {
+      storage.putNodeData("fixed-layout-sectioning", page.pageId, sectioning)
+      storage.putNodeData("web-rendering", page.pageId, rendering)
     })
+    await events?.onPage?.(page.pageId)
+    // Flush publication events and serve page reads/cancellation before the
+    // next synchronous page computation. First generation is incremental too.
+    await yieldEventLoop()
   }
 
-  // Positioned text is produced by the Extract stage only when the book is
-  // configured fixed-layout. A fixed-layout book with no positioned text on
-  // ANY page almost always means extraction ran under a reflowable config
-  // (e.g. the render strategy was switched after extracting). Re-running the
-  // Extract stage regenerates it; warn loudly so the empty overlays aren't
-  // mistaken for a rendering bug.
-  if (pages.length > 0 && totalDrawItems === 0) {
-    console.warn(
-      "[fixed-layout] No positioned text found on any page — fixed-layout " +
-        "pages will render without text overlays. Re-run the Extract stage " +
-        "for this book (positioned text is only generated when the book is " +
-        "configured for fixed-layout rendering)."
-    )
-  }
+
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────

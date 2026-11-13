@@ -10,11 +10,21 @@ import {
 } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { i18n } from "@lingui/core"
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query"
+import { applyStoryboardSave } from "./use-storyboard-save-receipt"
+import type { StoryboardSaveResult } from "@adt/types"
+import type { EditableActivity } from "@adt/types"
 import type { PageDetail } from "@/api/client"
 import type { SectionEditPanel } from "./SectionEditPanel"
 import type { StyleEditorPanel } from "./style-editor"
 
 const state = vi.hoisted(() => ({
+  editableQuery: {} as { data?: { activities: Record<string, EditableActivity>; version: number; paletteAccent: string } },
+  realActivityPanel: false,
+  realQuery: false,
+  activitySave: vi.fn().mockResolvedValue({ version: 3 }),
+  presentation: vi.fn(),
+  convert: vi.fn(),
   headerSlot: null as HTMLElement | null,
   pickers: {} as Record<string, {onRestoringChange: (busy: boolean) => void; onRestored: () => void}>,
   frame: {} as {editable: boolean; onTextChanged?: (dataId: string, text: string) => void},
@@ -22,7 +32,10 @@ const state = vi.hoisted(() => ({
   style: null as unknown as ComponentProps<typeof StyleEditorPanel>,
   save: vi.fn().mockResolvedValue({}),
   generate: vi.fn(),
+  aiEdit: vi.fn(),
   invalidate: vi.fn().mockResolvedValue(undefined),
+  cancel: vi.fn().mockResolvedValue(undefined),
+  setQueryData: vi.fn(),
 }))
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -36,12 +49,15 @@ vi.mock("@lingui/core/macro", () => ({
 }))
 vi.mock("@/api/client", () => ({
   BASE_URL: "/api",
-  api: { saveStoryboard: state.save, reRenderPage: state.generate },
+  api: { getActiveConfig: async () => ({}), saveStoryboard: state.save, reRenderPage: state.generate, aiEditSection: state.aiEdit },
 }))
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({}),
-  useQueryClient: () => ({ invalidateQueries: state.invalidate }),
-}))
+vi.mock("@tanstack/react-query", async importOriginal => {
+  const actual = await importOriginal<typeof import("@tanstack/react-query")>()
+  return { ...actual,
+    useQuery: (...args: Parameters<typeof actual.useQuery>) => state.realQuery ? actual.useQuery(...args) : {},
+    useQueryClient: () => state.realQuery ? actual.useQueryClient() : { invalidateQueries: state.invalidate, cancelQueries: state.cancel, setQueryData: state.setQueryData },
+  }
+})
 vi.mock("@/hooks/use-api-key", () => ({
   useApiKey: () => ({}),
   useBookStructuredTextAvailability: () => true,
@@ -63,9 +79,11 @@ vi.mock("../../../components/StepViewRouter", () => ({
 }))
 vi.mock("@/hooks/use-editable-activities", () => ({
   useActivityStructure: () => ({}),
-  useEditableActivities: () => ({}),
-  useConvertEditableActivity: () => ({}),
-  useSetEditableActivityPresentation: () => ({}),
+  useEditableActivities: () => state.editableQuery,
+  useSaveEditableActivities: () => ({ mutateAsync: state.activitySave, isPending: false }),
+  useGenerateActivityFeedback: () => ({ mutate: vi.fn(), isPending: false }),
+  useConvertEditableActivity: () => ({ mutate: state.convert, isPending: false }),
+  useSetEditableActivityPresentation: () => ({ mutate: state.presentation, isPending: false }),
 }))
 vi.mock("./SectionEditPanel", () => ({
   SectionEditPanel: (props: ComponentProps<typeof SectionEditPanel>) => {
@@ -119,10 +137,15 @@ vi.mock("./AddImageDialog", () => ({
   ),
 }))
 vi.mock("./AiEditHistoryDrawer", () => ({ AiEditHistoryDrawer: () => null }))
-vi.mock("./EditableActivityPanel", () => ({
-  EditableActivityPanel: () => null,
-}))
-vi.mock("./ClassicActivityPanel", () => ({ ClassicActivityPanel: () => null }))
+vi.mock("./EditableActivityPanel", async (original) => {
+  const actual = await original<typeof import("./EditableActivityPanel")>()
+  return { EditableActivityPanel: (props: ComponentProps<typeof actual.EditableActivityPanel>) => state.realActivityPanel
+    ? <div data-testid="stepper-panel-host" data-open={String(props.open)}><actual.EditableActivityPanel {...props} /></div>
+    : null }
+})
+vi.mock("./ClassicActivityPanel", () => ({ ClassicActivityPanel: ({ open }: { open: boolean }) => <div data-testid="classic-panel-host" data-open={String(open)} /> }))
+vi.mock("./style-editor/controls/ColorPicker", () => ({ ColorPicker: () => null }))
+vi.mock("./style-editor/controls/Select", () => ({ Select: () => null }))
 vi.mock("@tanstack/react-router", async () => ({
   ...(await vi.importActual<object>("@tanstack/react-router")),
   useSearch: () => ({}),
@@ -149,7 +172,7 @@ vi.mock("./GenerateActivityDialog", () => ({
   GenerateActivityDialog: () => null,
 }))
 
-import { FloatingSaveProvider, useFloatingSaveLeaveAction } from "../../../components/floating-save"
+import { FloatingSaveProvider, useFloatingSaveLeaveAction, useHasUnsavedChanges } from "../../../components/floating-save"
 import { StoryboardSectionDetail } from "./StoryboardSectionDetail"
 
 let leaveAction: ReturnType<typeof useFloatingSaveLeaveAction>
@@ -203,6 +226,8 @@ function fixture(): PageDetail {
   } as PageDetail
 }
 beforeEach(() => {
+  state.editableQuery = {}; state.realActivityPanel = false; state.realQuery = false
+  state.activitySave.mockReset().mockResolvedValue({ version: 3 })
   HTMLElement.prototype.scrollTo = vi.fn()
   i18n.load("en", {})
   i18n.activate("en")
@@ -210,6 +235,8 @@ beforeEach(() => {
   state.headerSlot = null
   state.pickers = {}
   state.save.mockResolvedValue({})
+  state.invalidate.mockReset().mockResolvedValue(undefined)
+  state.aiEdit.mockReset().mockResolvedValue({ taskId: "ai-edit" })
 })
 afterEach(cleanup)
 
@@ -265,6 +292,7 @@ it.each([false, true])("preserves successor source and inspector drafts after an
   await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2))
   const payload = state.save.mock.calls[1][2]
   expect(payload.baseVersion).toBe(2)
+  expect(payload.renderingBaseVersion).toBe(2)
   expect(payload.sectioning.sections[0].nodes).toContainEqual(expect.objectContaining({ nodeId: "keep", text: "Second source draft" }))
   const doc = new DOMParser().parseFromString(payload.rendering.sections[0].html, "text/html")
   expect(doc.querySelector('[data-id="keep"]')?.className).toBe("text-red-600")
@@ -273,6 +301,24 @@ it.each([false, true])("preserves successor source and inspector drafts after an
   expect(payload.renderingInSync).toBe(false)
   expect(state.generate).not.toHaveBeenCalled()
   await waitFor(() => expect(screen.queryByRole("button", { name: "Save", exact: true })).toBeNull())
+})
+
+it("keeps the captured rendering version and cosmetic draft when a reset arrives through refetch", async () => {
+  const page = fixture()
+  state.save.mockRejectedValue(new Error("VERSION_CONFLICT: rendering changed"))
+  const editor = (value: PageDetail) => <FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={value} /><LeaveProbe /></FloatingSaveProvider>
+  const view = render(editor(page))
+  act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
+  view.rerender(editor({ ...page, versions: { ...page.versions, rendering: 2 }, rendering: null }))
+  await act(async () => { await leaveAction.saveAndStay().catch(() => {}) })
+  expect(state.save).toHaveBeenCalledTimes(1)
+  const payload = state.save.mock.calls[0][2]
+  expect(payload.renderingBaseVersion).toBe(1)
+  expect(payload.rendering.sections[0].html).toContain("text-blue-600")
+  expect(payload.rendering.sections[1]).toEqual(page.rendering!.sections[1])
+  expect(leaveAction.canSave).toBe(true)
+  await act(async () => { await leaveAction.saveAndStay().catch(() => {}) })
+  expect(state.save.mock.calls[1][2]).toEqual(payload)
 })
 
 it("Save & leave rejects if a successor inspector draft is created during the request", async () => {
@@ -510,4 +556,274 @@ it.each(["page-sectioning", "web-rendering"])("blocks iframe and inspector mutat
   expect(payload).toContain("Retained source draft")
   expect(payload).not.toContain("blocked-class")
   expect(payload).not.toContain("Blocked iframe edit")
+})
+
+const savedStepper: EditableActivity = {
+  kind: "open-ended", sectionType: "activity_open_ended_answer", enabled: true,
+  title: {text: "Original stepper title"},
+  steps: [{id: "step-1", prompt: {text: "Question"}, multiline: true}],
+}
+function activityPage(): PageDetail {
+  const page = fixture()
+  page.sectioningTree!.sections[0].sectionType = savedStepper.sectionType
+  page.rendering!.sections[0].sectionType = savedStepper.sectionType
+  return page
+}
+
+it.each([true, false])("waits for saved activity presentation before opening the editor (stepper=%s)", async enabled => {
+  state.realActivityPanel = true
+  state.editableQuery = {}
+  const page = activityPage()
+  const mounted = render(parentView(page))
+  const edit = screen.getByRole("button", { name: "Edit activity" }) as HTMLButtonElement
+  expect(edit.disabled).toBe(true)
+  fireEvent.click(edit)
+  expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("false")
+  state.editableQuery = { data: { activities: { "0": { ...savedStepper, enabled } }, version: 1, paletteAccent: "#2563EB" } }
+  mounted.rerender(parentView(page))
+  const ready = screen.getByRole("button", { name: "Edit activity" }) as HTMLButtonElement
+  expect(ready.disabled).toBe(false)
+  fireEvent.click(ready)
+  expect(screen.getByTestId(enabled ? "stepper-panel-host" : "classic-panel-host").getAttribute("data-open")).toBe("true")
+  if (enabled) {
+    fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "Typed after the saved presentation loaded" } })
+    expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe("Typed after the saved presentation loaded")
+    await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("true"))
+  }
+  expect(state.activitySave).not.toHaveBeenCalled()
+})
+function UnsavedProbe() {
+  return <output data-testid="unsaved-activity">{String(useHasUnsavedChanges())}</output>
+}
+const parentView = (page: PageDetail) => <FloatingSaveProvider>
+  <StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page}/>
+  <UnsavedProbe/>
+</FloatingSaveProvider>
+
+it("a saved disabled stepper opens only the classic editor", () => {
+  state.realActivityPanel = true
+  state.editableQuery = {data: {activities: {"0": {...savedStepper, enabled:false}}, version:1, paletteAccent:"#2563EB"}}
+  render(parentView(activityPage()))
+  fireEvent.click(screen.getByRole("button", {name:"Edit activity"}))
+  expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("true")
+  expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("false")
+  expect(screen.getByTestId("unsaved-activity").textContent).toBe("false")
+})
+
+it("a dirty stepper session stays the sole open editor after current output is reset", async () => {
+  state.realActivityPanel = true
+  state.editableQuery = {data: {activities: {"0":savedStepper}, version:1, paletteAccent:"#2563EB"}}
+  const page = activityPage()
+  const mounted = render(parentView(page))
+  fireEvent.click(screen.getByRole("button", {name:"Edit activity"}))
+  expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("true")
+  fireEvent.change(screen.getByPlaceholderText("Title"), {target:{value:"Retained dirty stepper"}})
+  await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("true"))
+  state.editableQuery = {data: {activities:{}, version:2, paletteAccent:"#2563EB"}}
+  mounted.rerender(parentView({...page, rendering:undefined, versions:{...page.versions, rendering:2}}))
+  expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("true")
+  expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("false")
+  expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe("Retained dirty stepper")
+  expect(screen.getByTestId("unsaved-activity").textContent).toBe("true")
+  expect(state.activitySave).not.toHaveBeenCalled()
+})
+
+it("AI edit submits the captured rendering version and retains its instruction and cosmetic draft on conflict", async () => {
+  const header = document.createElement("div")
+  document.body.appendChild(header)
+  state.headerSlot = header
+  state.aiEdit.mockRejectedValueOnce(new Error("Content changed"))
+  const page = fixture()
+  const view = render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page} /></FloatingSaveProvider>)
+  try {
+    act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
+    const newer = structuredClone(page)
+    newer.versions.rendering = 2
+    newer.rendering!.sections[0].html = newer.rendering!.sections[0].html.replace("Keep me", "Newer saved text")
+    view.rerender(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={newer} /></FloatingSaveProvider>)
+    const instruction = screen.getByPlaceholderText("Ask AI to edit...") as HTMLInputElement
+    fireEvent.change(instruction, { target: { value: "Make this clearer" } })
+    fireEvent.keyDown(instruction, { key: "Enter" })
+    await waitFor(() => expect(state.aiEdit).toHaveBeenCalledOnce())
+    const sent = state.aiEdit.mock.calls[0]
+    expect(sent[5]).toContain("text-blue-600")
+    expect(sent[5]).toContain("Keep me")
+    expect(sent[6]).toBe(1)
+    expect(sent[7]).toBe(1)
+    await waitFor(() => expect(instruction.value).toBe("Make this clearer"))
+    expect(screen.getByRole("button", { name: "Save", exact: true })).toBeTruthy()
+    expect(state.save).not.toHaveBeenCalled()
+  } finally { header.remove() }
+})
+
+it.each(["Back to classic activity", "Rebuild from page"])("clears only the confirmed draft after successful %s", async action => {
+  state.realActivityPanel = true
+  state.editableQuery = { data: { activities: { "0": savedStepper }, version: 1, paletteAccent: "#2563EB" } }
+  const page = activityPage(), mounted = render(parentView(page))
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true)
+  try {
+    fireEvent.click(screen.getByRole("button", { name: "Edit activity" }))
+    fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "Discard this confirmed draft" } })
+    await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("true"))
+    fireEvent.click(screen.getByRole("button", { name: action }))
+    const mutation = action === "Rebuild from page" ? state.convert : state.presentation
+    expect(mutation).toHaveBeenCalledTimes(1)
+    const next = { ...savedStepper, enabled: action !== "Back to classic activity", title: { text: "New saved activity" } }
+    state.editableQuery = { data: { activities: { "0": next }, version: 2, paletteAccent: "#2563EB" } }
+    await act(async () => { mounted.rerender(parentView(page)); mutation.mock.calls[0][1].onSuccess?.({ warnings: [] }) })
+    await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("false"))
+    if (action === "Rebuild from page") expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe("New saved activity")
+    expect(state.activitySave).not.toHaveBeenCalled()
+  } finally { confirm.mockRestore() }
+})
+
+it.each(["cancel", "failure", "successor"])("retains an activity draft on replacement %s", async outcome => {
+  state.realActivityPanel = true
+  state.editableQuery = { data: { activities: { "0": savedStepper }, version: 1, paletteAccent: "#2563EB" } }
+  const page = activityPage(), mounted = render(parentView(page))
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(outcome !== "cancel")
+  try {
+    fireEvent.click(screen.getByRole("button", { name: "Edit activity" }))
+    fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "Keep my draft" } })
+    fireEvent.click(screen.getByRole("button", { name: "Rebuild from page" }))
+    if (outcome === "cancel") expect(state.convert).not.toHaveBeenCalled()
+    else if (outcome === "failure") await act(async () => state.convert.mock.calls[0][1].onError(new Error("Conversion failed")))
+    else {
+      fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "Successor after confirmation" } })
+      state.editableQuery = { data: { activities: { "0": { ...savedStepper, title: { text: "Rebuilt" } } }, version: 2, paletteAccent: "#2563EB" } }
+      await act(async () => { mounted.rerender(parentView(page)); state.convert.mock.calls[0][1].onSuccess({ warnings: [] }) })
+    }
+    expect((screen.getByPlaceholderText("Title") as HTMLInputElement).value).toBe(outcome === "successor" ? "Successor after confirmation" : "Keep my draft")
+    await waitFor(() => expect(screen.getByTestId("unsaved-activity").textContent).toBe("true"))
+  } finally { confirm.mockRestore() }
+})
+
+it("does not open another book's stepper when an earlier rebuild completes", async () => {
+  state.realActivityPanel = true
+  state.editableQuery = { data: { activities: { "0": savedStepper }, version: 1, paletteAccent: "#2563EB" } }
+  const page = activityPage(), mounted = render(parentView(page))
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true)
+  try {
+    fireEvent.click(screen.getByRole("button", { name: "Rebuild from page" }))
+    state.editableQuery = { data: { activities: { "0": { ...savedStepper, enabled: false } }, version: 1, paletteAccent: "#2563EB" } }
+    mounted.rerender(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="another-book" pageId="pg001" sectionIndex={0} page={page}/><UnsavedProbe/></FloatingSaveProvider>)
+    fireEvent.click(screen.getByRole("button", { name: "Edit activity" }))
+    await act(async () => state.convert.mock.calls[0][1].onSuccess({ warnings: [] }))
+    expect(screen.getByTestId("classic-panel-host").getAttribute("data-open")).toBe("true")
+    expect(screen.getByTestId("stepper-panel-host").getAttribute("data-open")).toBe("false")
+  } finally { confirm.mockRestore() }
+})
+
+it.each([[false, 7], [true, 7], [false, 1], [true, 1]] as const)("uses acknowledged canonical edits before refetch and accepts a fresh query (source=%s, next version=%s)", async (sourceEdit, nextVersion) => {
+  const page = fixture()
+  let finishRefetch!: () => void
+  state.invalidate.mockImplementationOnce(() => new Promise<void>(resolve => { finishRefetch = resolve }))
+  state.save.mockImplementationOnce(async (_book, _page, payload) => ({ sectioningVersion: sourceEdit ? 2 : 1, renderingVersion: sourceEdit ? 1 : 2,
+    sectioning: { ...(payload.sectioning ?? page.sectioningTree), source: "manual" },
+    rendering: { ...(payload.rendering ?? page.rendering), sections: (payload.rendering ?? page.rendering).sections.map((section: object) => ({ ...section, reasoning: "Canonical saved reasoning" })) },
+  }))
+  const view = (shown = page) => <FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={shown}/><LeaveProbe/></FloatingSaveProvider>
+  const mounted = render(view())
+  if (sourceEdit) act(() => state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map(node => node.nodeId === "keep" ? { ...node, text: "First saved text" } : node) }))
+  else act(() => state.style.onClassesChange("keep", ["text-red-600"]))
+  let first!: Promise<unknown>
+  await act(async () => { first = leaveAction.saveAndStay().catch(error => error); await Promise.resolve() })
+  await waitFor(() => expect(state.invalidate).toHaveBeenCalled())
+  // The acknowledgement landed, but GET remains delayed and props still carry v1.
+  if (sourceEdit) act(() => state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map(node => node.nodeId === "retire" ? { ...node, text: "Second edit" } : node) }))
+  else act(() => state.style.onClassesChange("retire", ["font-bold"]))
+  await act(async () => { finishRefetch(); await first })
+  await act(async () => { await leaveAction.saveAndStay() })
+  expect(state.save).toHaveBeenCalledTimes(2)
+  const second = state.save.mock.calls[1][2]
+  if (sourceEdit) {
+    expect(second.baseVersion).toBe(2)
+    expect(second.sectioning.source).toBe("manual")
+    expect(second.sectioning.sections[0].nodes.map((node: { text: string }) => node.text)).toEqual(["First saved text", "Second edit"])
+  } else {
+    expect(second.renderingBaseVersion).toBe(2)
+    expect(second.rendering.sections[0].reasoning).toBe("Canonical saved reasoning")
+    expect(second.rendering.sections[0].html).toContain("text-red-600")
+    expect(second.rendering.sections[0].html).toContain("font-bold")
+  }
+  const fresh = structuredClone(page)
+  fresh.versions = { ...fresh.versions, sectioning: nextVersion, rendering: nextVersion }
+  mounted.rerender(view(fresh))
+  if (sourceEdit) act(() => state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map(node => node.nodeId === "retire" ? { ...node, text: "Edit from fresh query" } : node) }))
+  else act(() => state.style.onClassesChange("retire", ["font-light"]))
+  await act(async () => { await leaveAction.saveAndStay() })
+  const third = state.save.mock.calls[2][2]
+  expect(sourceEdit ? third.baseVersion : third.renderingBaseVersion).toBe(nextVersion)
+})
+
+
+it.each([[false, 7], [true, 7], [false, 1], [true, 1]] as const)("reconciles actual QueryClient receipts, cancelled reads and successor guards (source=%s, restore=%s)", async (sourceEdit, restoredVersion) => {
+  state.realQuery = true
+  const initial = fixture()
+  let server = initial
+  const key = ["books", "fixture", "pages", "pg001"]
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  const reads: { resolve: (page: PageDetail) => void; signal: AbortSignal }[] = []
+  let readCount = 0
+  function ConnectedEditor() {
+    const query = useQuery({ queryKey: key, initialData: initial, queryFn: ({ signal }) => {
+      if (readCount++ < 2) return new Promise<PageDetail>(resolve => reads.push({ resolve, signal }))
+      return Promise.resolve(server)
+    } })
+    return <FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={query.data}/><LeaveProbe/></FloatingSaveProvider>
+  }
+  let releaseAck!: () => void
+  const ack = new Promise<void>(resolve => { releaseAck = resolve })
+  state.save.mockImplementation(async (_book, _page, payload) => {
+    const saved: StoryboardSaveResult = {
+      ...(payload.sectioning ? { sectioningVersion: (server.versions.sectioning ?? 0) + 1, sectioning: { ...payload.sectioning, source: "manual" } } : {}),
+      ...(payload.rendering ? { renderingVersion: (server.versions.rendering ?? 0) + 1, rendering: { ...payload.rendering, sections: payload.rendering.sections.map((section: object) => ({ ...section, reasoning: "Canonical response" })) } } : {}),
+    }
+    server = applyStoryboardSave(server, saved)
+    if (state.save.mock.calls.length === 1) await ack
+    return saved
+  })
+  const mounted = render(<QueryClientProvider client={client}><ConnectedEditor/></QueryClientProvider>)
+  const edit = (id: string, value: string) => act(() => {
+    if (sourceEdit) state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map(node => node.nodeId === id ? { ...node, text: value } : node) })
+    else state.style.onClassesChange(id, [value])
+  })
+  try {
+    // An older GET is still in flight when the write acknowledgement arrives.
+    void client.refetchQueries({ queryKey: key, exact: true })
+    await waitFor(() => expect(reads).toHaveLength(1))
+    edit("keep", sourceEdit ? "First saved text" : "text-red-600")
+    let first!: Promise<unknown>
+    await act(async () => { first = leaveAction.saveAndStay().catch(error => error); await Promise.resolve() })
+    await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1))
+    edit("retire", sourceEdit ? "Successor before acknowledgement" : "font-bold")
+    await act(async () => { releaseAck(); await Promise.resolve() })
+    await waitFor(() => expect(reads).toHaveLength(2))
+    expect(reads[0].signal.aborted).toBe(true)
+    const acknowledged = client.getQueryData<PageDetail>(key)!
+    expect(sourceEdit ? acknowledged.versions.sectioning : acknowledged.versions.rendering).toBe(2)
+    await act(async () => { reads[0].resolve(initial); await Promise.resolve() })
+    expect(client.getQueryData<PageDetail>(key)).toBe(acknowledged)
+    await act(async () => { reads[1].resolve(server); expect(await first).toEqual(new Error("Newer edits are still unsaved. Save them before leaving.")) })
+    expect(leaveAction.canSave).toBe(true)
+    await act(async () => { await leaveAction.saveAndStay() })
+    const second = state.save.mock.calls[1][2]
+    expect(sourceEdit ? second.baseVersion : second.renderingBaseVersion).toBe(2)
+    if (sourceEdit) {
+      expect(second.sectioning.source).toBe("manual")
+      expect(second.sectioning.sections[0].nodes.map((node: { text: string }) => node.text)).toEqual(["First saved text", "Successor before acknowledgement"])
+    } else {
+      expect(second.rendering.sections[0].reasoning).toBe("Canonical response")
+      expect(second.rendering.sections[0].html).toContain("text-red-600")
+      expect(second.rendering.sections[0].html).toContain("font-bold")
+    }
+    // A fresh query can legitimately restore an older version; cached receipt
+    // guards must clear after the actual observer receives that new snapshot.
+    server = { ...structuredClone(initial), versions: { sectioning: restoredVersion, rendering: restoredVersion } }
+    await act(async () => { client.setQueryData(key, server); await new Promise(resolve => setTimeout(resolve, 0)) })
+    edit("retire", sourceEdit ? "Edit after restore" : "font-light")
+    await act(async () => { await leaveAction.saveAndStay() })
+    const third = state.save.mock.calls[2][2]
+    expect(sourceEdit ? third.baseVersion : third.renderingBaseVersion).toBe(restoredVersion)
+  } finally { mounted.unmount(); client.clear() }
 })

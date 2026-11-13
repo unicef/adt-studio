@@ -1,11 +1,15 @@
+import { storyboardPackageComplete, currentStoryboardCoverage } from "../services/storyboard-package-coverage.js"
+import { readRetainedPackageOwnership } from "../services/retained-package-reader.js"
+import { publishedAdtDirectory, activeSectioningPages, SectioningSafetyError } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, PackagingWarning } from "@adt/types"
-import { createBookStorage } from "@adt/storage"
+import { parseBookLabel, PackagingWarning, type PackagingStatus } from "@adt/types"
+import { createBookStorage, HistoryRecoveryError } from "@adt/storage"
 import {
   packageAdtWeb,
+  packageFilesAvailable,
   computePackagingInputHash,
   loadBookConfig,
   normalizeLocale,
@@ -13,6 +17,8 @@ import {
   runBrowserAccessibilityAssessment,
   mergeAccessibilityResults,
   isFixedLayoutBook,
+  prepareSectioningRun,
+
 } from "@adt/pipeline"
 import type { Storage } from "@adt/storage"
 import type { TaskService } from "../services/task-service.js"
@@ -22,12 +28,6 @@ const PACKAGE_VERSION_LENGTH = 16
 interface PackagingCacheState {
   cached: boolean
   version: string
-}
-
-interface PackagingStatus {
-  label: string
-  hasAdt: boolean
-  version?: string
 }
 
 interface PackagingResult {
@@ -84,10 +84,14 @@ function readBuildWarnings(bookDir: string): PackagingWarning[] {
  * clean run while the bundle on disk is still missing pages. Treating those as
  * stale costs one rebuild per book on upgrade, once.
  */
-function isBuildCacheValid(bookDir: string, hash: string): boolean {
-  const hashPath = getBuildHashPath(bookDir)
-  if (!fs.existsSync(hashPath) || fs.readFileSync(hashPath, "utf-8").trim() !== hash) return false
-  return fs.existsSync(getBuildWarningsPath(bookDir))
+function isBuildCacheValid(storage: Storage, bookDir: string, hash: string, expectedLanguages: string[]): boolean {
+  try {
+    if (fs.readFileSync(getBuildHashPath(bookDir), "utf8").trim() !== hash) return false
+    PackagingWarning.array().parse(JSON.parse(fs.readFileSync(getBuildWarningsPath(bookDir), "utf8")))
+    const root = publishedAdtDirectory(bookDir)
+    return packageFilesAvailable(root, { expectedLanguages }) &&
+      readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), root).allOwned
+  } catch { return false }
 }
 
 function readBuildVersion(bookDir: string, fallbackHash: string): string {
@@ -124,7 +128,7 @@ function getPackagingCacheState(
     config: config as unknown as Record<string, unknown>,
     promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
   })
-  const cached = isBuildCacheValid(bookDir, hash)
+  const cached = isBuildCacheValid(storage, bookDir, hash, outputLanguages)
   return {
     cached,
     version: cached ? readBuildVersion(bookDir, hash) : packageVersionFromHash(hash),
@@ -137,6 +141,9 @@ function resolvePackagingParams(
   booksDir: string,
   configPath?: string,
 ) {
+  // Cached builds and direct preview tasks obey the same stale-state boundary
+  // as the Package stage; retained files alone do not authorize a rebuild.
+  prepareSectioningRun(safeLabel, booksDir, "package", "package", configPath)
   const config = loadBookConfig(safeLabel, booksDir, configPath)
   const metadataRow = storage.getLatestNodeData("metadata", "book")
   const metadata = metadataRow?.data as {
@@ -193,10 +200,7 @@ export function createPackageRoutes(
     let cacheState: PackagingCacheState
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const pages = storage.getPages()
-      const hasRendering = pages.some(
-        (p) => storage.getLatestNodeData("web-rendering", p.pageId) !== null,
-      )
+      const hasRendering = currentStoryboardCoverage(storage, bookDir, storage.getPages().map(page => page.pageId)).rendered > 0
       if (!hasRendering) {
         throw new HTTPException(409, {
           message: "At least one page must have a web rendering before packaging",
@@ -206,7 +210,7 @@ export function createPackageRoutes(
       // Fast path: skip task submission entirely when build cache is valid.
       // The bundle on disk is whatever the cached build produced, omissions
       // included, so replay that build's warnings rather than reporting none.
-      cacheState = getPackagingCacheState(storage, safeLabel, booksDir, bookDir, webAssetsDir, configPath)
+      cacheState = getPackagingCacheState(storage, safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir)
       if (cacheState.cached) {
         return c.json({
           status: "completed",
@@ -237,7 +241,7 @@ export function createPackageRoutes(
         "package-adt",
         "Packaging ADT preview",
         async () => {
-          return await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir)
+          return await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir, cacheState.version)
         },
         { url: `/books/${safeLabel}/preview` },
       )
@@ -245,7 +249,7 @@ export function createPackageRoutes(
     }
 
     try {
-      const result = await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir)
+      const result = await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir, cacheState.version)
       return c.json({
         status: "completed",
         label: safeLabel,
@@ -255,7 +259,7 @@ export function createPackageRoutes(
         warnings: result.warnings,
       })
     } catch (err) {
-      if (err instanceof HTTPException) throw err
+      if (err instanceof HTTPException || err instanceof SectioningSafetyError || err instanceof HistoryRecoveryError) throw err
       const message = err instanceof Error ? err.message : String(err)
       throw new HTTPException(500, { message: `Packaging failed: ${message}` })
     }
@@ -272,12 +276,24 @@ export function createPackageRoutes(
     }
 
     const bookDir = path.join(path.resolve(booksDir), safeLabel)
-    const pagesPath = path.join(bookDir, "adt", "content", "pages.json")
+    const pagesPath = path.join(publishedAdtDirectory(bookDir), "content", "pages.json")
     const hasAdt = hasPackagedAdtPages(pagesPath)
     const version = hasAdt ? readStoredBuildVersion(bookDir) : null
 
     const status: PackagingStatus = { label: safeLabel, hasAdt }
     if (version) status.version = version
+    if (fs.existsSync(path.join(bookDir, `${safeLabel}.db`))) {
+      const storage = createBookStorage(safeLabel, booksDir)
+      try {
+        const config = loadBookConfig(safeLabel, booksDir, configPath)
+        const pageIds = activeSectioningPages(storage, config, bookDir).map(page => page.pageId)
+        const coverage = currentStoryboardCoverage(storage, bookDir, pageIds)
+        status.complete = storyboardPackageComplete(storage, bookDir, pageIds, config)
+        status.hasAdt = status.hasAdt && coverage.rendered > 0
+      }
+      finally { storage.close() }
+
+    }
     return c.json(status)
   })
 
@@ -291,6 +307,7 @@ async function runPackaging(
   webAssetsDir: string,
   configPath?: string,
   promptsDir = path.resolve("prompts"),
+  expectedVersion?: string,
 ): Promise<PackagingResult> {
   const storage = createBookStorage(safeLabel, booksDir)
   try {
@@ -311,11 +328,10 @@ async function runPackaging(
       config: config as unknown as Record<string, unknown>,
     promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
     }
-    const hashPath = getBuildHashPath(bookDir)
-    const versionPath = getBuildVersionPath(bookDir)
     const preHash = computePackagingInputHash(hashOptions)
     const bundleVersion = packageVersionFromHash(preHash)
-    if (isBuildCacheValid(bookDir, preHash)) {
+    if (expectedVersion && bundleVersion !== expectedVersion) throw new SectioningSafetyError("PACKAGE_INPUTS_CHANGED", "Package inputs changed after admission. Retry with the current book.")
+    if (isBuildCacheValid(storage, bookDir, preHash, outputLanguages)) {
       return {
         version: readBuildVersion(bookDir, preHash),
         warnings: readBuildWarnings(bookDir),
@@ -323,6 +339,24 @@ async function runPackaging(
     }
 
     const { warnings } = await packageAdtWeb(storage, {
+      preparePublication: async (stagingRoot, result) => {
+        fs.writeFileSync(getBuildVersionPath(stagingRoot), bundleVersion, "utf8")
+        fs.writeFileSync(getBuildHashPath(stagingRoot), preHash, "utf8")
+        writeBuildWarnings(stagingRoot, result.warnings)
+        const base = await runAccessibilityAssessment({ bookDir: stagingRoot, config: config.accessibility_assessment })
+        let assessment = base
+        try {
+          const browser = await runBrowserAccessibilityAssessment({ bookDir: stagingRoot, baseAssessment: base })
+          assessment = mergeAccessibilityResults(base, browser)
+        } catch { /* Chromium is optional; retain the JSDOM assessment. */ }
+        return () => { storage.putNodeData("accessibility-assessment", "book", assessment) }
+      },
+      validatePublication: () => {
+        const currentConfig = loadBookConfig(safeLabel, booksDir, configPath)
+        if (computePackagingInputHash({ ...hashOptions, config: currentConfig }) !== preHash) {
+          throw new SectioningSafetyError("PACKAGE_INPUTS_CHANGED", "Package inputs changed before publication. The previous package is retained.")
+        }
+      },
       promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
       bookDir,
       label: safeLabel,
@@ -338,33 +372,9 @@ async function runPackaging(
       reflowableFont: config.reflowable_font,
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
     })
-    fs.writeFileSync(versionPath, bundleVersion, "utf-8")
-    writeBuildWarnings(bookDir, warnings)
-
-    const baseAccessibility = await runAccessibilityAssessment({
-      bookDir,
-      config: config.accessibility_assessment,
-    })
-
-    // Recheck JSDOM incompletes with a real browser (Playwright) when available.
-    // Falls back to the JSDOM-only result if Chromium is not installed.
-    let accessibilityOutput = baseAccessibility
-    try {
-      const browserAccessibility = await runBrowserAccessibilityAssessment({
-        bookDir,
-        baseAssessment: baseAccessibility,
-      })
-      accessibilityOutput = mergeAccessibilityResults(baseAccessibility, browserAccessibility)
-    } catch {
-      // Playwright/Chromium not available — use JSDOM results as-is
-    }
-
-    storage.putNodeData("accessibility-assessment", "book", accessibilityOutput)
-
-    // Recompute hash after build — packageAdtWeb may update storage (e.g. text-catalog)
-    const postHash = computePackagingInputHash(hashOptions)
-    fs.writeFileSync(hashPath, postHash, "utf-8")
-    fs.writeFileSync(versionPath, bundleVersion, "utf-8")
+    // Record the new bundle's status proofs while the build is still running,
+    // so the first status poll after it does not repeat them. Warming only.
+    try { storyboardPackageComplete(storage, bookDir, activeSectioningPages(storage, config, bookDir).map(page => page.pageId), config) } catch { /* status re-checks */ }
     return { version: bundleVersion, warnings }
   } finally {
     storage.close()

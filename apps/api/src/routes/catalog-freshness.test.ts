@@ -19,7 +19,15 @@ const prompts = path.resolve("prompts")
 const rendering = (text = "Hello", css = "") => ({ sections: [{ sectionIndex: 0, sectionType: "text", reasoning: "", html: `<section data-section-id="pg001_sec001" class="${css}"><p data-id="pg001_t001">${text}</p><p data-id="pg001_t002">Neighbor</p><img data-id="pg001_im001" /></section>` }] })
 function storage() { return createBookStorage(label, root) }
 async function outputs(): Promise<OutputStatus[]> { const response = await app.request(`/books/${label}/outputs`); expect(response.status).toBe(200); return (await response.json()).outputs }
-async function send(url: string, body: unknown, method = "PUT") { return app.request(`/books/${label}/${url}`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }) }
+async function send(url: string, body: unknown, method = "PUT") {
+  const page = /^pages\/([^/]+)\/rendering$/.exec(url)
+  if (page && method === "PUT" && fs.existsSync(path.join(root, label, `${label}.db`))) {
+    const db = storage()
+    try { body = { baseVersion: db.getSelectedNodeVersion("web-rendering", page[1]) ?? 0, ...(body as object) } }
+    finally { db.close() }
+  }
+  return app.request(`/books/${label}/${url}`, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+}
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-catalog-freshness-"))

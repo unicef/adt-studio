@@ -66,12 +66,43 @@ function addTestMetadata(
   db.close()
 }
 
+it.each(["page_sectioning:\n  mode: imported-invalid\n", "page_sectioning: ["])("isolates invalid book settings without marking its database for rebuild", malformed => {
+  for (const label of ["bad", "good"]) { createTestDb(label); addTestPages(label, 1) }
+  const config = path.join(tmpDir, "bad/config.yaml")
+  const healthy = listBooks(tmpDir).find(b => b.label === "good")!
+  fs.writeFileSync(config, malformed)
+  const listed = listBooks(tmpDir)
+  expect(listed.find(b => b.label === "bad")).toMatchObject({ readUnavailable: true, needsRebuild: false })
+  expect(listed.find(b => b.label === "good")).toMatchObject({ pageCount: healthy.pageCount, completedStages: healthy.completedStages })
+  expect(fs.readFileSync(config, "utf8")).toBe(malformed)
+  fs.writeFileSync(config, "page_sectioning:\n  mode: page\n")
+  expect(listBooks(tmpDir).find(b => b.label === "bad")?.readUnavailable).toBeUndefined()
+  const global = path.join(tmpDir, "global.yaml")
+  fs.writeFileSync(global, malformed)
+  expect(() => listBooks(tmpDir, global)).toThrow()
+})
+
 function createTestPdf(label: string): void {
   fs.writeFileSync(
     path.join(tmpDir, label, `${label}.pdf`),
     Buffer.from("%PDF-1.0 fake")
   )
 }
+
+it("isolates a corrupt database, preserves its bytes and healthy books, and recovers after repair", () => {
+  for (const label of ["bad", "good"]) { createTestDb(label); addTestPages(label, 2) }
+  const db = path.join(tmpDir, "bad/bad.db")
+  const original = fs.readFileSync(db)
+  const healthy = listBooks(tmpDir).find(book => book.label === "good")!
+  const truncated = original.subarray(0, 15)
+  fs.writeFileSync(db, truncated)
+  expect(listBooks(tmpDir).find(book => book.label === "bad")).toMatchObject({ readUnavailable: true, needsRebuild: false, completedStages: [] })
+  expect(listBooks(tmpDir).find(book => book.label === "good")).toEqual(healthy)
+  expect(fs.readFileSync(db)).toEqual(truncated)
+  fs.writeFileSync(db, original)
+  expect(listBooks(tmpDir).find(book => book.label === "bad")).toMatchObject({ pageCount: 2, needsRebuild: false })
+  expect(listBooks(tmpDir).find(book => book.label === "bad")?.readUnavailable).toBeUndefined()
+})
 
 function addTestRenderings(label: string, count: number): void {
   const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
@@ -138,6 +169,7 @@ describe("listBooks", () => {
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
+      previewStatus: "incomplete",
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
@@ -161,6 +193,7 @@ describe("listBooks", () => {
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
+      previewStatus: "incomplete",
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
@@ -186,6 +219,7 @@ describe("listBooks", () => {
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
+      previewStatus: "incomplete",
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
@@ -304,12 +338,12 @@ describe("listBooks", () => {
     expect(books[0].completedStages).toEqual([])
   })
 
-  it("includes preview when the adt directory exists", () => {
+  it("does not claim preview completion from an empty adt directory", () => {
     createTestDb("previewable")
     fs.mkdirSync(path.join(tmpDir, "previewable", "adt"))
 
     const books = listBooks(tmpDir)
-    expect(books[0].completedStages).toContain("preview")
+    expect(books[0].completedStages).not.toContain("preview")
   })
 
   it("treats skipped steps as completing the stage", () => {
@@ -511,21 +545,25 @@ describe("updateBookConfig", () => {
     expect(content).toContain("concurrency: 8")
   })
 
-  it("removes config.yaml when overrides are empty", () => {
+  it("atomically removes all overrides when the proposed mapping is empty", () => {
     const fakePdf = Buffer.from("%PDF-1.0 fake")
     createBook("remove-config", fakePdf, tmpDir, { concurrency: 4 })
     const configPath = path.join(tmpDir, "remove-config", "config.yaml")
     expect(fs.existsSync(configPath)).toBe(true)
 
+    // The public no-overrides value remains null; the journal uses an atomic
+    // empty mapping on disk instead of deleting the file.
     updateBookConfig("remove-config", tmpDir, {})
-    expect(fs.existsSync(configPath)).toBe(false)
+    expect(getBookConfig("remove-config", tmpDir)).toBeNull()
+    expect(fs.readFileSync(configPath, "utf8").trim()).toBe("{}")
   })
 
-  it("is a no-op when overrides are empty and no config exists", () => {
+  it("persists an empty override mapping when no config exists", () => {
     const bookDir = path.join(tmpDir, "empty-update")
     fs.mkdirSync(bookDir)
     updateBookConfig("empty-update", tmpDir, {})
-    expect(fs.existsSync(path.join(bookDir, "config.yaml"))).toBe(false)
+    expect(getBookConfig("empty-update", tmpDir)).toBeNull()
+    expect(fs.readFileSync(path.join(bookDir, "config.yaml"), "utf8").trim()).toBe("{}")
   })
 
   it("throws for non-existent book", () => {

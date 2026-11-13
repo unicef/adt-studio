@@ -7,7 +7,7 @@
  * storyboard's web-rendering data is never touched, so switching back to the
  * classic presentation is lossless.
  */
-import { useMemo, useState } from "react"
+import { useState, useImperativeHandle, type Ref, type Dispatch, type SetStateAction } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { toast } from "sonner"
 import {
@@ -31,9 +31,9 @@ import type {
 } from "@adt/types"
 import { blankItemIdsInText } from "@adt/types"
 import { BASE_URL } from "@/api/client"
+import { useEditableActivityDraft } from "./use-editable-activity-draft"
 import {
   useGenerateActivityFeedback,
-  useSaveEditableActivities,
 } from "@/hooks/use-editable-activities"
 import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { Input } from "@/components/ui/input"
@@ -50,12 +50,14 @@ import {
 } from "./style-editor/tailwind-palette"
 
 interface EditableActivityPanelProps {
+  draftActionsRef?: Ref<{ captureDiscard: () => () => boolean }>
   open: boolean
   onClose: () => void
   bookLabel: string
   pageId: string
   sectionIndex: number
-  activity: EditableActivity
+  activity?: EditableActivity
+  version: number
   /** Full per-page map — saving writes the whole entity. */
   activities: Record<string, EditableActivity>
   /** Book-derived accent the activity renders with when no override is set. */
@@ -109,30 +111,31 @@ function moveItem<T>(list: T[], from: number, to: number): T[] {
   return next
 }
 
-export function EditableActivityPanel({
+export function EditableActivityPanel(props: EditableActivityPanelProps) {
+  const editor = useEditableActivityDraft(props)
+  useImperativeHandle(props.draftActionsRef, () => ({ captureDiscard: editor.captureDiscard }), [editor.captureDiscard])
+  if (!editor.draft) return null
+  return <EditableActivityEditor {...props} {...editor} activity={props.activity ?? editor.draft} draft={editor.draft} />
+}
+
+function EditableActivityEditor({
   open,
   onClose,
   bookLabel,
   pageId,
   sectionIndex,
   activity,
-  activities,
   paletteAccent,
-}: EditableActivityPanelProps) {
+  draft, setDraft, dirty, saveDraft, saveBeforeLeave, saving, discardDraft, beginFeedback,
+}: EditableActivityPanelProps & { activity: EditableActivity; draft: EditableActivity; setDraft: Dispatch<SetStateAction<EditableActivity>>; dirty: boolean; saveDraft: () => Promise<void>; saveBeforeLeave: () => Promise<void>; saving: boolean; discardDraft: () => void; beginFeedback: () => { accepts: () => boolean; failed: () => void } }) {
   const { t } = useLingui()
-  const [draft, setDraft] = useState<EditableActivity>(activity)
-  const save = useSaveEditableActivities(bookLabel, pageId)
   const generateFeedback = useGenerateActivityFeedback(bookLabel, pageId)
   const { apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, geminiKey } =
     useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
 
-  const dirty = useMemo(
-    () => JSON.stringify(draft) !== JSON.stringify(activity),
-    [draft, activity],
-  )
-
   const handleGenerateFeedback = () => {
+    const request = beginFeedback()
     generateFeedback.mutate(
       {
         sectionIndex,
@@ -150,6 +153,7 @@ export function EditableActivityPanel({
       },
       {
         onSuccess: ({ feedback }) => {
+          if (!request.accepts()) { toast.error(t`The activity changed while feedback was being generated. Review your draft and try again.`); return }
           setDraft((d) => ({
             ...d,
             steps: d.steps.map((s) =>
@@ -158,8 +162,10 @@ export function EditableActivityPanel({
           }) as EditableActivity)
           toast.success(t`Feedback generated — review it and save`)
         },
-        onError: (err) =>
-          toast.error(err instanceof Error ? err.message : t`Feedback generation failed`),
+        onError: (err) => {
+          request.failed()
+          toast.error(err instanceof Error ? err.message : t`Feedback generation failed`)
+        },
       },
     )
   }
@@ -183,28 +189,6 @@ export function EditableActivityPanel({
     }) as EditableActivity)
   }
 
-  const saveDraft = async () => {
-    // Sentences cleared to empty in the editor are dropped on save (kept while
-    // editing so the textarea doesn't vanish mid-edit).
-    const cleaned: EditableActivity =
-      draft.kind === "fill-in-the-blank"
-        ? {
-            ...draft,
-            steps: draft.steps.map((s) => ({
-              ...s,
-              sentences: s.sentences.filter((x) => x.text.trim() !== ""),
-            })),
-          }
-        : draft
-    try {
-      await save.mutateAsync({ ...activities, [String(sectionIndex)]: cleaned })
-      toast.success(t`Activity saved`)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t`Save failed`)
-      throw err
-    }
-  }
-
   const handleSave = () => {
     void saveDraft().catch(() => {})
   }
@@ -213,10 +197,11 @@ export function EditableActivityPanel({
     id: `editable-activity:${bookLabel}:${pageId}:${sectionIndex}`,
     stage: "storyboard",
     dirty,
-    saving: save.isPending,
+    saving,
     label: <PendingChip icon={ListChecks}>{t`Activity`}</PendingChip>,
     onSave: saveDraft,
-    onDiscard: () => setDraft(activity),
+    onSaveStay: saveBeforeLeave,
+    onDiscard: discardDraft,
   })
 
   const setTheme = (patch: Partial<NonNullable<EditableActivity["theme"]>>) => {
@@ -947,8 +932,8 @@ export function EditableActivityPanel({
       <div className="border-t bg-background p-3 flex items-center justify-end gap-2">
         <button
           type="button"
-          onClick={() => setDraft(activity)}
-          disabled={!dirty || save.isPending}
+          onClick={discardDraft}
+          disabled={!dirty || saving}
           className="h-8 px-3 rounded text-xs font-medium bg-muted hover:bg-accent disabled:opacity-40 transition-colors cursor-pointer"
         >
           {t`Discard`}
@@ -956,10 +941,10 @@ export function EditableActivityPanel({
         <button
           type="button"
           onClick={handleSave}
-          disabled={!dirty || save.isPending}
+          disabled={!dirty || saving}
           className="h-8 px-4 rounded text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 transition-colors cursor-pointer"
         >
-          {save.isPending ? t`Saving…` : t`Save activity`}
+          {saving ? t`Saving…` : t`Save activity`}
         </button>
       </div>
 

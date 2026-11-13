@@ -4,6 +4,8 @@ This document records all significant technology and architecture decisions made
 
 ---
 
+ADR 024 belongs to merged [SPEC-0001 / PR #879](https://github.com/unicef/adt-studio/pull/879). The later proposals retain their numbering from 025 onward.
+
 ## Table of Contents
 
 1. [Guiding Principle: Pure JS/TS Over Native](#001-pure-jsts-over-native-bindings)
@@ -30,6 +32,7 @@ This document records all significant technology and architecture decisions made
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
 24. [Catalog-Based Freshness from Saved Input Signatures (proposed)](#adr-024)
+25. [Sectioning generation preferences, scoped reset and per-page publication](#025-sectioning-mode-changes-preserve-content-and-gate-rendering)
 
 ---
 
@@ -964,6 +967,94 @@ separate action after saving. #619 and #626 remain background/deferred.
 
 ---
 
+<a id="025-sectioning-mode-changes-preserve-content-and-gate-rendering"></a>
+
+## 025: Sectioning generation preferences, scoped reset and per-page publication
+
+**Status**: proposed
+**Date**: 2026-09-22
+**Spec**: [SPEC-0003](specs/SPEC-0003-sectioning-modes.md)
+**Issues**: #708
+
+### Context
+
+By Page generation was fixed by #692. The previous B1 proposal imposed persisted
+cardinality/lifecycle gates, blocking manual editing and older books; it also
+withheld ordinary Storyboard pages until a whole run completed. The September 30
+and October 12 product reviews supersede those policies. The owner authorized
+amendment and implementation, not specification approval.
+
+### Decision
+
+By Page constrains generation/cache validation only. Preferences are informational;
+ordinary Sectioning fills missing pages. Explicit exact-version replacement also
+confirms a scoped, version-preserving active Storyboard reset before generation.
+That scope includes editable step-by-step activities: their exact version appears
+in consent, reset deactivates it with history retained, and an editor saves against
+its draft-captured version. Shared source tracking marks retained generator output
+for review when reset changes its actual input.
+The reset is a database transaction; failed generation retains prior authored
+Sectioning and history while reset Storyboard remains missing. Ordinary rendering
+publishes each page's HTML/tree transaction immediately. Only a real layout switch
+requires whole-window all-success publication. Shared ownership/coverage, not
+mode bookkeeping, governs output usability and completeness.
+
+### Consequences
+
+Reuse SPEC-0001/0002 admission, versioning, ownership and freshness. Retain shared
+cross-process protection instead of adding/replacing it with a second lock; retain
+necessary journal/crash recovery and fail closed on ambiguous SQLite ownership.
+The November 2 owner-authorized correction extends that same lease to every SQLite
+connection and statement lifetime after a live-reader/startup recovery race was
+reproduced. Same-process database borrowing grants no writer authority; registered
+database paths plus proven owner death bound mutex recovery. Uncoordinated older
+processes are outside this concurrency guarantee. SPEC-0003 approval stays pending.
+The November 11 correction makes reservation and capability publication atomic.
+Verified dead reservations use an exclusive successor chain and root revalidation;
+completion retires the root atomically before cleanup. Anonymous legacy evidence
+remains fail-closed. This closes process-death windows within the same shared gate.
+Sectioning ordinary-AI replacement and fixed-pair active retention from SPEC-0002
+are refined only as documented in the amended spec. Full CLI resume belongs to
+SPEC-0010; B2 remains deferred. Reconcile onto merged SPEC-0001/0002 on develop,
+retaining the ratified mutually unique leaf/fixed-layout compatibility projection,
+pre-edit owner snapshots, current writer recovery and validated configuration
+receipts. Unknown rendered-owner omission stays qualified. SPEC-0002 approval
+does not approve this ADR or SPEC-0003.
+
+See [the amended contract](specs/SPEC-0003-sectioning-modes.md) and its
+[original acceptance-criteria mapping](specs/SPEC-0003-sectioning-modes.md#original-acceptance-criteria-mapping).
+The owner authorized verified exact-byte restoration with an immutable damage
+audit as a narrow physical-recovery exception; arbitrary historical editing is
+still forbidden. Recovery is not generation approval. Missing integrity objects are not
+recreated as proof of uninterrupted history; a durable schema-14 marker records
+detectable continuity loss. Part merge validates source proof before mutation
+and carries retired identities as non-current reservations with source provenance.
+Exact witness payloads are compressed with the existing Node runtime; scoped SQL
+and incremental snapshot hashing bound inspection overhead. On 2026-11-04 the
+owner delegated the sequential older-build compatibility decision. The selected
+amendment captures readable, previously untracked identity rows once on first
+open, atomically with tracking installation and a durable completion marker.
+It changes no content, current selection, assets or freshness. Malformed rows
+remain unverified; existing proof and tracked changed incarnations are never
+automatically blessed. Later older-writer records still need explicit checkpoints,
+and repair/regeneration remain explicit. Captured identity reservations survive
+sequential old delete/clear without a SQL refusal after file deletion. This does
+not undo intentional asset removal or recover records created and removed wholly
+by an older runtime; existing noncooperating-concurrency limits remain unchanged.
+The specification defines byte witnesses, tuple continuity, transactional audit,
+stale editor protection and the explicitly authorized exception; schema-14
+readers remain compatible. Verification does not grant human or release acceptance.
+This decision remains proposed, with human review pending.
+
+### Alternatives Considered
+
+| Approach | Why not |
+|---|---|
+| Persisted By Page cardinality/lifecycle gates | Invalidates intentional editing and blocks usable older books. |
+| Retain incompatible HTML actively after confirmed Sectioning regeneration | Reassigns historical ownership/indexes and makes incomplete work appear current. |
+| Whole-book publication for every Storyboard run | Withholds successful pages and discards work after unrelated failure. |
+| Replace shared writer gate with in-process-only serialization | Does not coordinate supported prerequisite writers. |
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -992,6 +1083,7 @@ separate action after saving. #619 and #626 remain background/deferred.
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
 | 024 (proposed) | Downstream freshness | Catalog-based input signatures and scoped regeneration with existing caching | Whole-stage clearing, universal section flags, general dependency graph |
+| 025 (proposed) | Sectioning generation preferences and publication | Scoped versioned reset; ordinary per-page publication; shared ownership and coverage | Persisted mode gates, automatic replacement, all-run buffering |
 
 ---
 
@@ -1006,7 +1098,7 @@ This file has **two** hand-maintained indexes, and a new ADR must appear in both
 2. The **Decision Log Summary** table at the bottom.
 
 The heading continues the existing numbering in this file's own style — `## NNN: Title`,
-matching all 23 entries above. Retrospective ADRs use the same shape, dated when the
+matching the existing numbered entries above. Retrospective ADRs use the same shape, dated when the
 decision was actually taken, with a note that it is recorded after the fact.
 
 See [SPEC_DRIVEN_DEVELOPMENT.md §6](SPEC_DRIVEN_DEVELOPMENT.md#6-adrs) for when an ADR is
