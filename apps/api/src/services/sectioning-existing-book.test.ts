@@ -986,3 +986,47 @@ it("keeps a genuine Sectioning no-op usable without reading an unrelated malform
   expect(sectionPage).not.toHaveBeenCalled()
   expect(rawHistoryState()).toEqual(before)
 })
+
+it.each(["captions", "glossary"] as const)("admits immediate and queued %s work without reading Sectioning-only inputs", async stage => {
+  let release!: () => void
+  const missingPageAndOutline = () => {
+    const storage = store()
+    try {
+      storage.putExtractedPage({ pageId: "p9", pageNumber: 9, text: "Missing Sectioning", images: [],
+        pageImage: { imageId: "p9_page", buffer: Buffer.from("pixels"), format: "png", hash: "pixels", width: 4, height: 6 } })
+    } finally { storage.close() }
+    const db = openBookDb(path.join(dir, `${label}.db`))
+    try { db.run("UPDATE node_data SET data=? WHERE node='book-outline'", ["{broken"]) }
+    finally { db.close() }
+  }
+  // Keep generation out of this admission test: both real HTTP admission and
+  // the real service's queued beforeRun callback still execute on actual SQLite.
+  const runner = { run: vi.fn(async () => undefined) }
+  const staged = createStageService(runner, bus, createPageErrorDecisions(bus))
+  const routes = new Hono().onError(errorHandler).route("/", createStageRoutes(staged, bus, createPageErrorDecisions(bus), root, root, undefined, configPath))
+  const request = (fromStage: typeof stage | "storyboard") => routes.request(`/books/${label}/stages/run`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fromStage, toStage: fromStage }),
+  })
+  runner.run.mockImplementationOnce(async () => {
+    missingPageAndOutline()
+    await new Promise<void>(resolve => { release = resolve })
+  })
+  expect((await request("storyboard")).status).toBe(200)
+  await vi.waitFor(() => expect(release).toBeDefined())
+  try {
+    const queued = await request(stage)
+    expect(queued.status, await queued.clone().text()).toBe(200)
+  } finally { release() }
+  await vi.waitFor(() => expect(runner.run).toHaveBeenCalledTimes(2))
+  await vi.waitFor(() => expect(staged.getStatus(label).active).toBeNull())
+  const before = rawHistoryState()
+  const immediate = await request(stage)
+  expect(immediate.status, await immediate.clone().text()).toBe(200)
+  await vi.waitFor(() => expect(runner.run).toHaveBeenCalledTimes(3))
+  await vi.waitFor(() => expect(staged.getStatus(label).active).toBeNull())
+  expect(rawHistoryState()).toEqual(before)
+  const refused = await send("stages/run", { fromStage: "sectioning", toStage: "sectioning" })
+  expect(refused.status).toBe(409)
+  expect(await refused.text()).toContain("REPLACEMENT_CONFIRMATION_INVALID")
+  expect(sectionPage).not.toHaveBeenCalled()
+})

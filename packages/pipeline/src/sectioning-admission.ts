@@ -1,4 +1,5 @@
 import { resolveBookPaths, type Storage } from "@adt/storage"
+import { STAGE_ORDER, type StageName } from "@adt/types"
 import { assertAuthoredReplacement, assertSectioningIdentityHistory, selectSectioningPages } from "./authored-output.js"
 import { loadBookConfig } from "./config.js"
 import { sectioningReplacementSignature } from "./sectioning-replacement-signature.js"
@@ -16,6 +17,12 @@ export function admitSectioningRun(
   const { bookDir } = resolveBookPaths(label, booksRoot)
   const config = loadBookConfig(label, booksRoot, configPath)
   const allPages = activeSectioningPages(storage, config, bookDir)
+  const stages = STAGE_ORDER.slice(STAGE_ORDER.indexOf(options.fromStage as StageName), STAGE_ORDER.indexOf(options.toStage as StageName) + 1)
+  // Filtered output work and ranges outside Sectioning do not consume its
+  // outline or prompt inputs. General replacement consent was checked above.
+  if (!stages.includes("sectioning") || options.outputScope?.selection?.identities) {
+    return { config, allPages, pages: [], inputSignature: undefined }
+  }
   // A genuine ordinary no-op neither replaces output nor consumes generation
   // inputs. Do not read an unrelated outline/prompt just to invent a receipt.
   const needsConsent = options.protectedReplacements?.some(record => record.node === "page-sectioning")
