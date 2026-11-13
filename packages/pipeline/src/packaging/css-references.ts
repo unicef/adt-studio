@@ -83,14 +83,16 @@ function valueReferences(
     }
     throw new Error("Unclosed CSS variable")
   }
-  const walk = (parent = "") => {
+  const walk = (parent = "", nested = false) => {
     let importPending = false
     let declarationStart = false
     while (position < value.length) {
       skip()
       const char = value[position]
       if (!char) break
-      if (char === ")") { position++; if (parent) return; continue }
+      // An anonymous (...) group has no resource context, but still owns its
+      // closing delimiter. Only the outer frame can recover a stray ')'.
+      if (char === ")") { position++; if (nested) return; continue }
       if (stylesheet && !parent && /^@import\b/i.test(value.slice(position))) {
         position += 7
         importPending = true
@@ -139,7 +141,7 @@ function valueReferences(
           if (fallback !== undefined) references.push(...valueReferences(fallback, importRule, variables, parent, visited))
           continue
         }
-        if (name.toLowerCase() !== "url") { walk(name.toLowerCase()); continue }
+        if (name.toLowerCase() !== "url") { walk(name.toLowerCase(), true); continue }
         skip()
         let url = ""
         if (value[position] === '"' || value[position] === "'") { url = string(); skip() }
@@ -152,7 +154,7 @@ function valueReferences(
       position++
       declarationStart = char === ";" || char === "{"
       if (char === ";" || char === "{" || char === "}") importPending = false
-      if (char === "(") walk()
+      if (char === "(") walk("", true)
     }
   }
   walk(context)

@@ -525,6 +525,8 @@ describe("Package routes", () => {
     '<img srcset="images/pg001_page.png 1x,images/missing.png 2x">',
     '<img src="/images/pg001_page.png">',
     '<style>.hero { background-image: image-set("images/missing.png" 1x) }</style>',
+    '<style>.hero { background-image: image-set(linear-gradient(calc((1 + 1) * 45deg), red, blue) 1x, "images/missing.png" 2x) }</style>',
+    '<div style="background-image: image-set(linear-gradient(calc((1 + 1) * 45deg), red, blue) 1x, &quot;images/missing.png&quot; 2x)"></div>',
     '<style>:root { --hero: "images/missing.png" } .hero { background-image: image-set(var(--hero) 1x) }</style>',
     '<style>.hero { background-image: image-set(var(--missing, "images/missing.png") 1x) }</style>',
   ])("validates staged dependencies before replacing a downloadable publication: %s", async missing => {

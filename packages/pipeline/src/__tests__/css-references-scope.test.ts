@@ -42,3 +42,18 @@ it("still scopes variables to their consumers when a variable can resolve to a U
   expect(urls(definedUrl, '<div class="panel"></div>')).toEqual(["backdrop.png"])
   expect(dom.created).toBe(2)
 })
+
+it.each([false, true, "stylesheet"] as const)("retains image-set resources after anonymous nested groups, mode=%s", mode => {
+  const gradient = "linear-gradient(calc((1 + 1) * 45deg), red, blue)"
+  for (const [declaration, expected] of [
+    [`background-image:image-set(${gradient} 1x, "second.png" 2x)`, ["second.png"]],
+    ['background-image:image-set("first.png" calc((1 + 1) * 1x), "second.png" 3x)', ["first.png", "second.png"]],
+    [`--hero:"variable.png";background-image:image-set(${gradient} 1x, var(--hero) 2x)`, ["variable.png"]],
+    ['width:calc((100% - 2rem) / 2);background:url(after.png)', ["after.png"]],
+  ] as const) {
+    const css = mode === true ? declaration : `.hero{${declaration}}`
+    const source = { parsed: parseCssSource(css, mode), from: "content/styles.css", inlineStyle: mode === true ? declaration : undefined }
+    const html = mode === true ? `<div style='${declaration}'></div>` : '<div class="hero"></div>'
+    expect(cssReferences([source], html).map(reference => reference.url).sort(), css).toEqual(expected)
+  }
+})
