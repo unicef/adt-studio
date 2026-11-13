@@ -6,11 +6,13 @@ import {
   Brain,
   ScrollText,
   Info,
+  History,
   Globe,
   type LucideIcon,
 } from "lucide-react"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
+import { isBetaBuild } from "@/components/updates/release-banner-utils"
 
 export const SETTINGS_PATHS = {
   language: "/settings/language",
@@ -21,6 +23,7 @@ export const SETTINGS_PATHS = {
   prompts: "/settings/prompts",
   about: "/settings/about",
   publishing: "/settings/publishing",
+  versions: "/settings/versions",
 } as const
 
 export type SettingsSection = keyof typeof SETTINGS_PATHS
@@ -30,6 +33,7 @@ export interface SettingsTab {
   label: MessageDescriptor
   icon: LucideIcon
   fullWidth?: boolean
+  betaOnly?: boolean
 }
 
 export interface SettingsGroup {
@@ -63,6 +67,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     tabs: [
       { key: "publishing", label: msg`Sharing`, icon: Globe, fullWidth: true },
       { key: "about", label: msg`About`, icon: Info },
+      { key: "versions", label: msg`Versions`, icon: History, betaOnly: true },
     ],
   },
 ]
@@ -92,6 +97,17 @@ export const SETTINGS_ANCHORS = {
 export const localeAnchor = (locale: string) => `settings-locale-${locale}`
 
 export { providerAnchor, providerFromAnchor, type ProvidersSearch } from "./provider-anchor"
+
+export function isSettingsSectionAvailable(section: SettingsSection): boolean {
+  return !SETTINGS_TAB_BY_KEY[section].betaOnly || isBetaBuild()
+}
+
+export function visibleSettingsGroups(): SettingsGroup[] {
+  return SETTINGS_GROUPS.map((group) => ({
+    ...group,
+    tabs: group.tabs.filter((tab) => isSettingsSectionAvailable(tab.key)),
+  })).filter((group) => group.tabs.length > 0)
+}
 
 export function activeSettingsTab(pathname: string): SettingsTab {
   return (

@@ -2253,8 +2253,14 @@ msgstr "Beta release"
 msgid "Beta release library"
 msgstr "Beta release library"
 
-msgid "Beta versions"
-msgstr "Beta versions"
+msgid "Beta releases"
+msgstr "Beta releases"
+
+#~ msgid "Beta versions"
+#~ msgstr "Beta versions"
+
+msgid "Beta<0/>Build"
+msgstr "Beta<0/>Build"
 
 msgid "Bit Rate"
 msgstr "Bit Rate"
@@ -2415,6 +2421,9 @@ msgstr "Browse and edit Liquid templates used for template-based rendering strat
 msgid "Browse documentation"
 msgstr "Browse documentation"
 
+msgid "Browse every beta release, read what changed, and switch to any of them — including an earlier one."
+msgstr "Browse every beta release, read what changed, and switch to any of them — including an earlier one."
+
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 
@@ -2456,6 +2465,9 @@ msgstr "Builds the table of contents from the book's sections."
 
 msgid "Built for every reader"
 msgstr "Built for every reader"
+
+msgid "Built from a pull request to try a change before it ships in a beta."
+msgstr "Built from a pull request to try a change before it ships in a beta."
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Bundles the rendered book into a deployable web package."
@@ -2743,8 +2755,8 @@ msgstr "Checklist item"
 msgid "choice"
 msgstr "choice"
 
-msgid "Choose a beta release to install."
-msgstr "Choose a beta release to install."
+#~ msgid "Choose a beta release to install."
+#~ msgstr "Choose a beta release to install."
 
 msgid "Choose a PDF"
 msgstr "Choose a PDF"
@@ -5873,6 +5885,9 @@ msgstr "Inside the school, no internet needed"
 msgid "Install"
 msgstr "Install"
 
+msgid "Install a preview build?"
+msgstr "Install a preview build?"
+
 msgid "Install an older beta?"
 msgstr "Install an older beta?"
 
@@ -5978,6 +5993,12 @@ msgstr "It was cancelled for safety. Try again — it usually takes a few second
 
 msgid "It was created from a different PDF or settings, so it can't be merged here."
 msgstr "It was created from a different PDF or settings, so it can't be merged here."
+
+msgid "It will arrive in the next beta."
+msgstr "It will arrive in the next beta."
+
+msgid "It won't get new builds. Switch back to the latest beta to keep getting updates."
+msgstr "It won't get new builds. Switch back to the latest beta to keep getting updates."
 
 msgid "italic"
 msgstr "italic"
@@ -8046,6 +8067,9 @@ msgstr "Open to readers"
 msgid "Open Validation"
 msgstr "Open Validation"
 
+msgid "Open Versions"
+msgstr "Open Versions"
+
 msgid "Open Workers & Pages"
 msgstr "Open Workers & Pages"
 
@@ -8725,6 +8749,15 @@ msgstr "position corner toast placement"
 msgid "PR #{0}"
 msgstr "PR #{0}"
 
+msgid "PR #{pr} shipped in {shippedIn}"
+msgstr "PR #{pr} shipped in {shippedIn}"
+
+msgid "PR #{pr} was closed without merging"
+msgstr "PR #{pr} was closed without merging"
+
+msgid "PR #{pr} was merged"
+msgstr "PR #{pr} was merged"
+
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
 
@@ -8775,6 +8808,27 @@ msgstr "Prev"
 
 msgid "Preview"
 msgstr "Preview"
+
+msgid "Preview · {branch}"
+msgstr "Preview · {branch}"
+
+msgid "Preview · #{prNumber}"
+msgstr "Preview · #{prNumber}"
+
+msgid "Preview build"
+msgstr "Preview build"
+
+msgid "Preview build of PR #{prNumber}"
+msgstr "Preview build of PR #{prNumber}"
+
+msgid "Preview build of PR #{prNumber} from {branch}"
+msgstr "Preview build of PR #{prNumber} from {branch}"
+
+msgid "Preview builds"
+msgstr "Preview builds"
+
+#~ msgid "Preview builds don't get update notices. This page tells you when the PR merges or closes."
+#~ msgstr "Preview builds don't get update notices. This page tells you when the PR merges or closes."
 
 msgid "Preview each real publishing loader without changing this book."
 msgstr "Preview each real publishing loader without changing this book."
@@ -10233,8 +10287,14 @@ msgstr "Search by title"
 msgid "Search by title or author…"
 msgstr "Search by title or author…"
 
-msgid "Search by title, version, or description…"
-msgstr "Search by title, version, or description…"
+#~ msgid "Search by title, version, contributor, or PR…"
+#~ msgstr "Search by title, version, contributor, or PR…"
+
+msgid "Search by title, version, contributor, PR, or branch…"
+msgstr "Search by title, version, contributor, PR, or branch…"
+
+#~ msgid "Search by title, version, or description…"
+#~ msgstr "Search by title, version, or description…"
 
 msgid "Search captions or image IDs…"
 msgstr "Search captions or image IDs…"
@@ -11523,14 +11583,24 @@ msgstr "Summary Prompt"
 msgid "Sun"
 msgstr "Sun"
 
+msgid "Switch back to the latest beta to keep getting updates."
+msgstr "Switch back to the latest beta to keep getting updates."
+
 msgid "Switch languages in a tap."
 msgstr "Switch languages in a tap."
+
+#. placeholder {0}: formatVersion(target)
+msgid "Switch to {0}"
+msgstr "Switch to {0}"
 
 msgid "Switch to dark theme"
 msgstr "Switch to dark theme"
 
 msgid "Switch to light theme"
 msgstr "Switch to light theme"
+
+msgid "Switch to the beta to keep getting updates."
+msgstr "Switch to the beta to keep getting updates."
 
 msgid "Switching presentation failed"
 msgstr "Switching presentation failed"
@@ -11965,6 +12035,9 @@ msgstr "The model detects bounding boxes so each visual element can be stored an
 msgid "The page"
 msgstr "The page"
 
+msgid "The preview of PR #{pr} was removed"
+msgstr "The preview of PR #{pr} was removed"
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "The process plants use to turn sunlight, water, and carbon dioxide into food."
 
@@ -12269,6 +12342,9 @@ msgstr "This image is decorative. Screen readers will skip it and no caption is 
 
 msgid "This image is marked decorative — click to un-mark"
 msgstr "This image is marked decorative — click to un-mark"
+
+msgid "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
+msgstr "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
@@ -12669,8 +12745,11 @@ msgstr "Try again"
 msgid "Try another file"
 msgstr "Try another file"
 
-msgid "Try another title, version, or description."
-msgstr "Try another title, version, or description."
+msgid "Try another title, version, contributor, PR, or branch."
+msgstr "Try another title, version, contributor, PR, or branch."
+
+#~ msgid "Try another title, version, or description."
+#~ msgstr "Try another title, version, or description."
 
 msgid "Try another word, or look in All."
 msgstr "Try another word, or look in All."
@@ -13234,6 +13313,9 @@ msgstr "Versioned"
 msgid "Versions"
 msgstr "Versions"
 
+msgid "versions beta release downgrade rollback install changelog"
+msgstr "versions beta release downgrade rollback install changelog"
+
 msgid "video"
 msgstr "video"
 
@@ -13269,6 +13351,9 @@ msgstr "View page"
 
 msgid "View page {pageNum} larger"
 msgstr "View page {pageNum} larger"
+
+msgid "View PR"
+msgstr "View PR"
 
 msgid "Visible page entries"
 msgstr "Visible page entries"
@@ -13649,11 +13734,17 @@ msgstr "You only had to do that once. To share a book, open it and go to its Sha
 msgid "You stopped this before it finished. Nothing was sent, and sharing again starts a fresh copy — it does not resume this one."
 msgstr "You stopped this before it finished. Nothing was sent, and sharing again starts a fresh copy — it does not resume this one."
 
+msgid "You'll get new builds of this PR as updates. This page tells you when the PR merges or closes."
+msgstr "You'll get new builds of this PR as updates. This page tells you when the PR merges or closes."
+
 msgid "You're all set"
 msgstr "You're all set"
 
 msgid "You're now running ADT Studio {label}"
 msgstr "You're now running ADT Studio {label}"
+
+msgid "You're on a preview of PR #{pr}"
+msgstr "You're on a preview of PR #{pr}"
 
 #. placeholder {0}: connection.latest_version
 msgid "You're on version {0}."

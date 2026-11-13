@@ -8,10 +8,11 @@ import {
 } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import type { AvailableRelease } from "@/hooks/use-update-status"
-import { formatVersion } from "../release-banner-utils"
+import { formatVersion, previewPullRequestNumber } from "../release-banner-utils"
 
 interface BetaReleaseInstallButtonProps {
   release: AvailableRelease
+  currentVersion?: string | null
   preparing: boolean
   checking: boolean
   onInstall: () => void
@@ -19,6 +20,7 @@ interface BetaReleaseInstallButtonProps {
 
 export function BetaReleaseInstallButton({
   release,
+  currentVersion,
   preparing,
   checking,
   onInstall,
@@ -34,11 +36,17 @@ export function BetaReleaseInstallButton({
     )
   }
 
+  const downgrade = release.direction === "downgrade"
+  const previewPr = previewPullRequestNumber(release.version)
+  const leavesBetaTrack =
+    previewPr != null && previewPullRequestNumber(currentVersion ?? "") == null
+  const confirm = downgrade || leavesBetaTrack
+
   const button = (
     <Button
-      variant={release.direction === "downgrade" ? "outline" : "default"}
+      variant={confirm ? "outline" : "default"}
       disabled={preparing || checking}
-      onClick={release.direction === "downgrade" ? undefined : onInstall}
+      onClick={confirm ? undefined : onInstall}
       aria-live="polite"
     >
       {preparing ? (
@@ -48,7 +56,7 @@ export function BetaReleaseInstallButton({
       )}
       {preparing ? (
         <Trans>Preparing…</Trans>
-      ) : release.direction === "downgrade" ? (
+      ) : downgrade ? (
         <Trans>Install older version</Trans>
       ) : (
         <Trans>Install update</Trans>
@@ -56,7 +64,7 @@ export function BetaReleaseInstallButton({
     </Button>
   )
 
-  if (release.direction !== "downgrade") {
+  if (!confirm) {
     return button
   }
 
@@ -73,15 +81,30 @@ export function BetaReleaseInstallButton({
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold">
-              <Trans>Install an older beta?</Trans>
+              {leavesBetaTrack ? (
+                <Trans>Install a preview build?</Trans>
+              ) : (
+                <Trans>Install an older beta?</Trans>
+              )}
             </p>
-            <p className="mt-1 text-pretty text-xs leading-5 text-muted-foreground">
-              <Trans>
-                You are about to install {formatVersion(release.version)}.
-                Books or settings edited with a newer version may not work as
-                expected. Back up your books before continuing.
-              </Trans>
-            </p>
+            {leavesBetaTrack && (
+              <p className="mt-1 text-pretty text-xs leading-5 text-muted-foreground">
+                <Trans>
+                  This is a preview of PR #{previewPr}. Preview builds don't get
+                  update notices; Versions tells you when the PR merges or
+                  closes.
+                </Trans>
+              </p>
+            )}
+            {downgrade && (
+              <p className="mt-1 text-pretty text-xs leading-5 text-muted-foreground">
+                <Trans>
+                  You are about to install {formatVersion(release.version)}.
+                  Books or settings edited with a newer version may not work as
+                  expected. Back up your books before continuing.
+                </Trans>
+              </p>
+            )}
           </div>
         </div>
         <div className="mt-4 flex justify-end gap-2">
@@ -95,7 +118,11 @@ export function BetaReleaseInstallButton({
               onInstall()
             }}
           >
-            <Trans>Install older version</Trans>
+            {downgrade ? (
+              <Trans>Install older version</Trans>
+            ) : (
+              <Trans>Install update</Trans>
+            )}
           </Button>
         </div>
       </PopoverContent>

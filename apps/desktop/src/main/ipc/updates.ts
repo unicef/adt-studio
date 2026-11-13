@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import {
   cancelUpdate,
   checkForUpdates,
@@ -11,6 +11,7 @@ import {
   selectVersion,
   type UpdateStatus,
 } from "../services/auto-updater";
+import { getPreviewBuildStatus } from "../services/preview-build";
 import { consumePostUpdateInfo } from "../services/update-state";
 
 const UPDATE_STATUS_CHANNEL = "updates:status";
@@ -36,6 +37,9 @@ export function registerUpdatesIpc(): () => void {
     return selectVersion(version);
   });
   ipcMain.handle("updates:get-post-update", () => consumePostUpdateInfo());
+  ipcMain.handle("updates:preview-build", () =>
+    getPreviewBuildStatus(app.getVersion()),
+  );
 
   return onUpdateStatus((status: UpdateStatus) => {
     for (const win of BrowserWindow.getAllWindows()) {

@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 import type { AvailableRelease, UpdateStatus } from "./use-update-status"
 
-const UPDATE_VERSIONS_QUERY_KEY = ["desktop-updates", "beta-versions"] as const
+export const UPDATE_VERSIONS_QUERY_KEY = ["desktop-updates", "beta-versions"] as const
 
 export function useBetaUpdateVersions(currentVersion?: string | null) {
   return useQuery({
@@ -12,6 +12,8 @@ export function useBetaUpdateVersions(currentVersion?: string | null) {
       return updates.listVersions(true)
     },
     enabled: Boolean(currentVersion && window.api?.updates),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 }
 

@@ -198,7 +198,7 @@ function requireValue(value, name) {
 
 function assertTag(tag) {
   const stableOrBeta = /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
-  const staging = /^\d+\.\d+\.\d+-beta-pr-\d+$/;
+  const staging = /^\d+\.\d+\.\d+-beta-pr-\d+(?:\.\d+)?$/;
   if (!stableOrBeta.test(tag) && !staging.test(tag)) {
     throw new Error("tag must be a v-prefixed release or beta-pr staging version");
   }

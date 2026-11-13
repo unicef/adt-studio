@@ -29,7 +29,8 @@ import { Kbd, MOD_KEY } from "./ui/Kbd"
 import { APP_PATHS, activeAppView } from "./nav"
 import { SETTINGS_PATHS } from "./screens/settings/nav"
 import type { AppView } from "./types"
-import { useUpdateDialog } from "@/components/updates"
+import { AttentionDot, useUpdateDialog } from "@/components/updates"
+import { usePreviewBuild } from "@/hooks/use-preview-build"
 import { SidebarLogo } from "./SidebarLogo"
 import { useSharingUpdate } from "@/hooks/use-sharing-update"
 
@@ -88,6 +89,7 @@ export function AppSidebar({
   const activeView = activeAppView(pathname)
   const [helpOpen, setHelpOpen] = useState(false)
   const { showWhatsNew } = useUpdateDialog()
+  const { needsAttention: previewNews } = usePreviewBuild()
   const sharingUpdate = useSharingUpdate()
 
   const items: { view: AppView; label: string; icon: LucideIcon; count?: number }[] = [
@@ -171,6 +173,7 @@ export function AppSidebar({
           <span className="flex-1 text-left">
             <Trans>Settings</Trans>
           </span>
+          {previewNews && <AttentionDot />}
         </Link>
 
         <Popover open={helpOpen} onOpenChange={setHelpOpen}>

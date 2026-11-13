@@ -6,6 +6,8 @@ import { useAppVersion } from "@/hooks/use-app-version"
 import { useAppLogo } from "@/hooks/use-app-logo"
 import { usePlatform } from "@/hooks/use-platform"
 import { useUpdateDialog } from "@/components/updates"
+import { ReleaseKindBadge } from "@/components/updates/beta/ReleaseKindBadge"
+import { previewPullRequestNumber } from "@/components/updates/release-banner-utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -83,6 +85,8 @@ export function AboutSection() {
                   <Download className="size-3" />
                   <Trans>Update available</Trans>
                 </Badge>
+              ) : version && previewPullRequestNumber(version) != null ? (
+                <ReleaseKindBadge version={version} className="px-2 text-[10.5px]" />
               ) : (
                 <Badge variant="success" className="gap-1 px-2 text-[10.5px]">
                   <Check className="size-3" />

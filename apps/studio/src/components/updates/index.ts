@@ -8,3 +8,4 @@ export {
   releaseNotesHaveImage,
 } from "./release-banner-utils"
 export { UpdateDialogProvider, useUpdateDialog } from "./UpdateDialogProvider"
+export { AttentionDot } from "./AttentionDot"
