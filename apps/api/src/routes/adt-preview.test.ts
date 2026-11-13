@@ -191,6 +191,41 @@ describe("ADT preview routes", () => {
     expect(html).not.toContain("First section body")
   })
 
+  // The page route serves a book with a right-to-left language through the
+  // direction-neutral rewrite (SPEC-0024); the stylesheet has to cover the
+  // classes that rewrite introduces, or the page loses its alignment and floats.
+  it("AC-15: the preview stylesheet covers the classes the direction-neutral rewrite introduces", async () => {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("web-rendering", `${label}_p1`, {
+        sections: [
+          {
+            sectionIndex: 0,
+            sectionType: "content",
+            reasoning: "ok",
+            html: `<section data-section-id="${label}_p1_sec001"><aside class="float-right ml-8">Note</aside><p class="text-right">Body</p></section>`,
+          },
+        ],
+      })
+    } finally {
+      storage.close()
+    }
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+    const cssUrl = `/books/${label}/adt-preview/content/tailwind_output.css`
+
+    // No right-to-left language: the page is served as stored.
+    const leftToRightOnly = await (await app.request(cssUrl)).text()
+    expect(leftToRightOnly).toContain(".text-right")
+    expect(leftToRightOnly).not.toContain(".text-end")
+
+    // Adding one changes what is served without changing any stored node.
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages:\n  - en\n  - ur\n")
+    const withRightToLeft = await (await app.request(cssUrl)).text()
+    for (const rule of [".text-end", ".float-end", ".ms-8"]) expect(withRightToLeft).toContain(rule)
+    // The Storyboard still shows the stored HTML.
+    for (const rule of [".text-right", ".float-right", ".ml-8"]) expect(withRightToLeft).toContain(rule)
+  }, 30_000)
+
   it("returns 404 for unknown section ids on an existing page", async () => {
     const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
     const res = await app.request(`/books/${label}/adt-preview/${label}_p1_sec999.html`)

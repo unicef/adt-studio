@@ -158,6 +158,7 @@ export {
   type LanguageContext,
   type TranslationLanguageContext,
 } from "./language-context.js"
+export { neutralizeDirectionMarkup, type NeutralizeOptions } from "./direction-neutral-html.js"
 export {
   translatePageTree,
   buildTranslationConfig,

@@ -86,6 +86,48 @@ describe("neutralizeDirectionMarkup", () => {
     expect(neutralizeDirectionMarkup(once, "ltr")).toBe(once)
   })
 
+  describe("floated boxes", () => {
+    // The box a model floats beside the text has to change side with the text.
+    it("AC-14: maps a float, and the clear that goes with it, for the direction the page was written in", () => {
+      expect(
+        neutralizeDirectionMarkup(
+          '<aside class="float-right w-[34%] ms-8 max-lg:float-none">نوٹ</aside><p class="clear-right">متن</p>',
+          "rtl",
+        ),
+      ).toBe('<aside class="float-start w-[34%] ms-8 max-lg:float-none">نوٹ</aside><p class="clear-start">متن</p>')
+      expect(
+        neutralizeDirectionMarkup('<img class="float-right lg:float-left clear-left" src="a.png">', "ltr"),
+      ).toBe('<img class="float-end lg:float-start clear-start" src="a.png">')
+    })
+
+    it("AC-14: moves the gap beside a floated box with it, and no other margin", () => {
+      expect(
+        neutralizeDirectionMarkup(
+          '<aside class="float-right w-[34%] ml-8 mb-6 max-lg:float-none max-lg:ml-0">Note</aside><p class="ml-4">Text</p>',
+          "ltr",
+        ),
+      ).toBe('<aside class="float-end w-[34%] ms-8 mb-6 max-lg:float-none max-lg:ms-0">Note</aside><p class="ml-4">Text</p>')
+      // Already logical float, physical gap: the gap still has to follow it.
+      expect(neutralizeDirectionMarkup('<aside class="float-start -ml-2">نوٹ</aside>', "rtl")).toBe(
+        '<aside class="float-start -me-2">نوٹ</aside>',
+      )
+    })
+
+    it("AC-14: keeps a float on the side it was given, whatever script is inside it", () => {
+      const html = '<aside class="float-left">نوٹ</aside>'
+      expect(neutralizeDirectionMarkup(html, "rtl")).toBe('<aside class="float-end">نوٹ</aside>')
+      expect(neutralizeDirectionMarkup(html, "rtl", { correctMisalignedText: true })).toBe(
+        '<aside class="float-end">نوٹ</aside>',
+      )
+    })
+
+    it("AC-14: is stable when applied twice", () => {
+      const once = neutralizeDirectionMarkup('<aside class="float-right text-left">A</aside>', "rtl")
+      expect(once).toBe('<aside class="float-start text-end">A</aside>')
+      expect(neutralizeDirectionMarkup(once, "rtl")).toBe(once)
+    })
+  })
+
   describe("correctMisalignedText (newly generated right-to-left pages only)", () => {
     it("starts right-to-left text that was pushed to the left, and leaves a left-to-right block at the end", () => {
       expect(
