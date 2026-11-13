@@ -628,6 +628,39 @@ msgstr "{pdfFilename} · {pageCount} pages"
 msgid "{position} of {total}"
 msgstr "{position} sur {total}"
 
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} key rejected}}"
+msgstr "{providerKey, select, other {Clé {name} refusée}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+msgstr "{providerKey, select, other {{name} a refusé la clé d'API enregistrée : l'extraction et les autres étapes d'IA échoueront. Mettez la clé à jour, ou configurez le livre maintenant et corrigez-la plus tard.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+msgstr "{providerKey, select, other {{selectedProviderLabel} a refusé la clé d'API enregistrée : la narration échouera. Mettez-la à jour dans Paramètres → Fournisseurs IA.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
+msgstr "{providerKey, select, other {Enregistrée, mais {name} a refusé cette clé d'API. Vérifiez que vous avez copié la clé entière.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Settings — the {rejectedName} key was rejected}}"
+msgstr "{providerKey, select, other {Paramètres — la clé {rejectedName} a été refusée}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
+msgstr "{providerKey, select, other {La clé {name} a été refusée. Mettez la clé à jour.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+msgstr "{providerKey, select, other {Votre clé {name} a été refusée, les livres ne peuvent donc pas encore être traités.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected}}"
+msgstr "{providerKey, select, other {Votre clé {name} a été refusée}}"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} détectée(s)"
 
@@ -1635,6 +1668,9 @@ msgstr "Rendu IA"
 
 msgid "AI sees the current image and modifies it"
 msgstr "L'IA voit l'image actuelle et la modifie"
+
+msgid "AI steps will fail until the key is updated."
+msgstr "Les étapes d'IA échoueront tant que la clé n'est pas mise à jour."
 
 msgid "AI-powered"
 msgstr "Assisté par IA"
@@ -3264,6 +3300,9 @@ msgstr "Continuer"
 msgid "Continue adding your book"
 msgstr "Continuer l'ajout de votre livre"
 
+msgid "Continue anyway"
+msgstr "Continuer quand même"
+
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"
 msgstr "Continuer à la page {0}"
@@ -3450,6 +3489,9 @@ msgstr "Impossible de lire ce PDF"
 
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Impossible de restaurer la v{version}. Veuillez réessayer."
+
+msgid "Couldn't save the credentials in this browser. Check that site storage is allowed, then try again."
+msgstr "Impossible d'enregistrer les identifiants dans ce navigateur. Vérifiez que le stockage du site est autorisé, puis réessayez."
 
 msgid "Couldn't save the glossary. Your draft is kept; check for newer changes before trying again."
 msgstr "Impossible d’enregistrer le glossaire. Votre brouillon est conservé ; vérifiez si des modifications plus récentes existent avant de réessayer."
@@ -6120,6 +6162,9 @@ msgstr "Conservé"
 
 #~ msgid "Key must start with \"sk-\""
 #~ msgstr "La clé doit commencer par \"sk-\""
+
+msgid "Key rejected"
+msgstr "Clé refusée"
 
 msgid "Key terms"
 msgstr "Termes clés"
@@ -12901,6 +12946,9 @@ msgstr "Mise à jour disponible"
 
 msgid "Update filtered items"
 msgstr "Mettre à jour les éléments filtrés"
+
+msgid "Update key"
+msgstr "Mettre à jour la clé"
 
 msgid "Update link"
 msgstr "Mettre à jour le lien"
