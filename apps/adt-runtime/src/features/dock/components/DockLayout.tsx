@@ -8,7 +8,7 @@ interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> { }
 function Container({ children, className, ...props }: ContainerProps) {
   const isMobile = useIsMobile()
   const base = isMobile
-    ? "w-full max-w-none p-4 h-[72dvh] flex flex-col gap-2"
+    ? "w-full max-w-none p-4 flex-1 min-h-0 flex flex-col gap-2"
     : "w-[var(--dock-width,30rem)] max-w-xl p-4 h-[clamp(20rem,calc(100vh-7rem),600px)] flex flex-col gap-2"
   return (
     <div className={cn(base, className)} {...props}>
