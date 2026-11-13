@@ -35,6 +35,9 @@ export const openaiManifest: ProviderManifest = {
       storageKey: "adt-studio-openai-key",
       legacyStorageKeys: [],
       placeholder: "sk-...",
+      // Loose shape check (covers sk-, sk-proj-, sk-svcacct-…): catches typos,
+      // stray quotes/spaces and keys pasted into the wrong provider (sk-ant-).
+      pattern: "^sk-(?!ant-)[A-Za-z0-9_-]+$",
     },
   ],
   capabilities: {

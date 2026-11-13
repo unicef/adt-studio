@@ -179,6 +179,8 @@ export interface Draft {
   canSave: boolean
   hasStored: boolean
   errors: Map<string, string>
+  /** Per field: a key whose shape looks wrong. Advisory only — Save stays enabled. */
+  warnings: Map<string, string>
   /** Per field: whose key a shared field is using, or who else reads this one. */
   sharedNotes: Map<string, string>
   /** Saves, then waits for the live check so the toast reports the real result. */
@@ -190,17 +192,30 @@ export interface Draft {
  * Client-side echo of the provider's Zod schema, so a malformed endpoint or an
  * over-long region is caught before it reaches a request header. The server
  * schema stays the authority.
+ *
+ * Only fields the user changed are checked: a value saved before a rule
+ * existed must not block saving an edit to a different field.
+ *
+ * A key that doesn't match its provider's usual shape is only a warning: the
+ * pattern is a client-side hint, providers do issue new key formats, and the
+ * live check after saving is what says whether a key works.
  */
 function useFieldErrors(
   descriptor: ProviderDescriptor,
   values: Record<string, string>,
-): Map<string, string> {
+  stored: Record<string, string>,
+): { errors: Map<string, string>; warnings: Map<string, string> } {
   const { t } = useLingui()
   return useMemo(() => {
     const errors = new Map<string, string>()
+    const warnings = new Map<string, string>()
+    const name = descriptor.manifest.displayName
+    // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
+    const providerKey = providerSelectKey(descriptor.manifest.id)
     for (const field of descriptor.manifest.credentialFields) {
       const value = (values[field.key] ?? "").trim()
       if (!value) continue
+      if (value === (stored[field.key] ?? "").trim()) continue
       if (field.maxLength && value.length > field.maxLength) {
         errors.set(field.key, t`Maximum length is ${field.maxLength} characters.`)
         continue
@@ -219,15 +234,25 @@ function useFieldErrors(
       }
       if (field.pattern) {
         try {
-          if (!new RegExp(field.pattern).test(value)) errors.set(field.key, t`Invalid value.`)
+          if (!new RegExp(field.pattern).test(value)) {
+            const example = field.placeholder
+            if (field.kind !== "secret") errors.set(field.key, t`Invalid value.`)
+            else
+              warnings.set(
+                field.key,
+                example
+                  ? t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `This doesn't look like an API key for ${name}. ${name} keys usually start with ${example}` })}` })
+                  : t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `This doesn't look like an API key for ${name}.` })}` }),
+              )
+          }
         } catch {
           // The manifest was already server-validated; ignore an unsupported
           // client RegExp feature and let the server schema decide.
         }
       }
     }
-    return errors
-  }, [descriptor, values, t])
+    return { errors, warnings }
+  }, [descriptor, values, stored, t])
 }
 
 export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draft {
@@ -253,7 +278,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
     setValues(JSON.parse(storedSignature) as Record<string, string>)
   }, [storedSignature])
 
-  const errors = useFieldErrors(descriptor, values)
+  const { errors, warnings } = useFieldErrors(descriptor, values, stored)
   const dirty = descriptor.manifest.credentialFields.some(
     (f) => (values[f.key] ?? "").trim() !== (stored[f.key] ?? "").trim(),
   )
@@ -302,6 +327,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
     canSave: dirty && errors.size === 0,
     hasStored,
     errors,
+    warnings,
     sharedNotes,
     save: async () => {
       // `save` is async, so a storage failure would otherwise vanish into the
@@ -386,6 +412,10 @@ export function CredentialFields({ draft, onSubmit }: { draft: Draft; onSubmit?:
             {draft.errors.has(field.key) ? (
               <p role="alert" className="text-[11.5px] leading-normal text-destructive">
                 {draft.errors.get(field.key)}
+              </p>
+            ) : draft.warnings.has(field.key) ? (
+              <p role="status" className="text-[11.5px] leading-normal text-amber-700 dark:text-amber-400">
+                {draft.warnings.get(field.key)}
               </p>
             ) : (
               <>
