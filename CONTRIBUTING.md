@@ -127,6 +127,11 @@ over HTTP and never imports from `packages/` (except `@adt/types`), and stage/st
 ordering comes only from `PIPELINE` in `packages/types/src/pipeline.ts`. The
 non-negotiable list is in [AGENTS.md](AGENTS.md).
 
+## Reporting a security issue
+
+Don't open a public issue or PR for a vulnerability. Report it privately as described
+in [SECURITY.md](SECURITY.md).
+
 ## Licence
 
 ADT Studio is AGPL-3.0-or-later. By contributing you agree your contributions are

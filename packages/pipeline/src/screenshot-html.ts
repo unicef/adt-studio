@@ -10,6 +10,7 @@ import path from "node:path"
 import { createHash } from "node:crypto"
 import { buildPreviewTailwindCss } from "./tailwind.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "./html-semantics.js"
+import { dirAttr } from "./language-context.js"
 
 export interface BuildScreenshotHtmlOptions {
   /** The section HTML fragment (content inside <body>). */
@@ -72,7 +73,7 @@ export async function buildScreenshotHtml(
   </div>`
 
   return `<!DOCTYPE html>
-<html lang="${escapeAttr(language)}">
+<html lang="${escapeAttr(language)}"${dirAttr(language)}>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />

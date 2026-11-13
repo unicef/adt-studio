@@ -86,6 +86,7 @@ import {
   getSegmentedImageId,
   segmentBoundsOnPage,
   loadBookConfig,
+  resolveBookLanguage,
   applyCrop,
   generateStyleguide,
   buildBookFontsPromptContext,
@@ -512,6 +513,64 @@ function clearCaptionData(storage: Storage): void {
   // Catalog outputs and attempt history survive edits. Their current input
   // signatures, not cleared completion rows, determine freshness.
   storage.clearNodesByType(["accessibility-assessment"])
+}
+
+/** The page's current image-filtering list; 409 when Extract hasn't made one. */
+function readPageImageList(storage: Storage, pageId: string): { version: number; data: ImageClassificationOutput } {
+  const row = storage.getLatestNodeData("image-filtering", pageId)
+  const parsed = ImageClassificationOutput.safeParse(row?.data)
+  if (!row || !parsed.success) {
+    throw new HTTPException(409, { message: `Page ${pageId} has no extracted image list yet. Run Extract first.` })
+  }
+  return { version: row.version, data: parsed.data }
+}
+
+/** Append an image, unpruned, to the page's current image-filtering list as a
+ *  new version. Returns that version (or the current one if already listed). */
+function addImageToPageList(storage: Storage, pageId: string, imageId: string): number {
+  return storage.transaction(() => {
+    const current = readPageImageList(storage, pageId)
+    if (current.data.images.some((img) => img.imageId === imageId)) return current.version
+    return storage.putNodeData("image-filtering", pageId, {
+      ...current.data,
+      images: [...current.data.images, { imageId, isPruned: false }],
+    })
+  })
+}
+
+/** `addToPage` on the crop/upload routes is checked before anything is
+ *  written, so a refused add leaves no image behind. */
+function assertPageImageList(safeLabel: string, booksDir: string, pageId: string): void {
+  const storage = createBookStorage(safeLabel, booksDir)
+  try {
+    readPageImageList(storage, pageId)
+  } finally {
+    storage.close()
+  }
+}
+
+/** Add an image created earlier in this request to its page's image list. If
+ *  that fails, remove the image again (row + file) so the failed add leaves
+ *  nothing unreferenced behind and a retry starts clean. */
+function addCreatedImageToPage(
+  storage: Storage,
+  db: ReturnType<typeof openBookDb>,
+  bookDir: string,
+  image: { imageId: string; pageId: string; relativePath: string; createdHere: boolean },
+): number {
+  try {
+    return addImageToPageList(storage, image.pageId, image.imageId)
+  } catch (err) {
+    if (image.createdHere) {
+      try {
+        db.run("DELETE FROM images WHERE image_id = ?", [image.imageId])
+        fs.rmSync(path.join(bookDir, image.relativePath), { force: true })
+      } catch {
+        // Best effort — report the original failure.
+      }
+    }
+    throw err
+  }
 }
 
 const RestorableNode = z.enum([
@@ -1521,6 +1580,7 @@ export function createPageRoutes(
       const storage = createBookStorage(safeLabel, booksDir)
       const images = new Map<string, { base64: string }>()
       let typographyCss = ""
+      let language: string
       try {
         for (const id of referencedImageIds) {
           try {
@@ -1530,6 +1590,7 @@ export function createPageRoutes(
           }
         }
         typographyCss = resolveTypographyCss(storage)
+        language = resolveBookLanguage(storage, loadBookConfig(safeLabel, booksDir, configPath))
       } finally {
         storage.close()
       }
@@ -1540,6 +1601,7 @@ export function createPageRoutes(
         images,
         webAssetsDir,
         typographyCss,
+        language,
       })
 
       // Cache key incorporates HTML + viewport so cache invalidates whenever
@@ -3152,6 +3214,9 @@ export function createPageRoutes(
     }
     validateImageId(pageId)
     validateImageId(sourceImageId)
+    // `addToPage`: also add the crop to the page's image list in this request.
+    const addToPage = formData.get("addToPage") === "true"
+    if (addToPage) assertPageImageList(safeLabel, booksDir, pageId)
 
     const buffer = Buffer.from(await imageFile.arrayBuffer())
     const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
@@ -3191,6 +3256,9 @@ export function createPageRoutes(
         height = buffer.readUInt32BE(20)
       }
 
+      // A failed add only removes a row this request created, never one the
+      // upsert below overwrote.
+      const createdHere = db.all("SELECT 1 FROM images WHERE image_id = ?", [newImageId]).length === 0
       db.run(
         `INSERT INTO images (image_id, page_id, path, hash, width, height, source)
          VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -3206,13 +3274,19 @@ export function createPageRoutes(
 
       // Clear caption data since the image content changed
       const storage = createBookStorage(safeLabel, booksDir)
+      let imageFilteringVersion: number | undefined
       try {
+        if (addToPage) {
+          imageFilteringVersion = addCreatedImageToPage(storage, db, bookDir, {
+            imageId: newImageId, pageId, relativePath: `images/${filename}`, createdHere,
+          })
+        }
         clearCaptionData(storage)
       } finally {
         storage.close()
       }
 
-      return c.json({ imageId: newImageId, width, height })
+      return c.json({ imageId: newImageId, width, height, ...(imageFilteringVersion !== undefined && { imageFilteringVersion }) })
     } finally {
       db.close()
     }
@@ -3241,6 +3315,9 @@ export function createPageRoutes(
       throw new HTTPException(400, { message: "Missing pageId" })
     }
     validateImageId(pageId)
+    // `addToPage`: also add the upload to the page's image list in this request.
+    const addToPage = formData.get("addToPage") === "true"
+    if (addToPage) assertPageImageList(safeLabel, booksDir, pageId)
 
     const buffer = Buffer.from(await imageFile.arrayBuffer())
     const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
@@ -3292,13 +3369,20 @@ export function createPageRoutes(
 
       // Clear caption data since a new image was added
       const storage = createBookStorage(safeLabel, booksDir)
+      let imageFilteringVersion: number | undefined
       try {
+        if (addToPage) {
+          // Plain INSERT above: the row is always this request's own.
+          imageFilteringVersion = addCreatedImageToPage(storage, db, bookDir, {
+            imageId: newImageId, pageId, relativePath: `images/${filename}`, createdHere: true,
+          })
+        }
         clearCaptionData(storage)
       } finally {
         storage.close()
       }
 
-      return c.json({ imageId: newImageId, width, height })
+      return c.json({ imageId: newImageId, width, height, ...(imageFilteringVersion !== undefined && { imageFilteringVersion }) })
     } finally {
       db.close()
     }

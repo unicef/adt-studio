@@ -183,6 +183,21 @@ describe("renderPageHtml", () => {
     plain.window.close()
   })
 
+  it("marks a right-to-left book on the root element and leaves other books untouched", () => {
+    const rootTag = (language: string) =>
+      renderPageHtml({
+        content: "<p>متن</p>", language, sectionId: "pg001",
+        pageTitle: "Test", pageIndex: 1, hasMath: false, bundleVersion: "1",
+      }).match(/<html[^>]*>/)?.[0]
+
+    expect(rootTag("ur")).toBe('<html lang="ur" dir="rtl">')
+    expect(rootTag("ur-PK")).toBe('<html lang="ur-PK" dir="rtl">')
+    expect(rootTag("ar")).toBe('<html lang="ar" dir="rtl">')
+    // Left-to-right pages are emitted exactly as before.
+    expect(rootTag("en")).toBe('<html lang="en">')
+    expect(rootTag("hi")).toBe('<html lang="hi">')
+  })
+
   it("does not emit font preload links (fonts are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",

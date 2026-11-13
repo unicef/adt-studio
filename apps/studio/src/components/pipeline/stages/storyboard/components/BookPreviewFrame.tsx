@@ -2,6 +2,7 @@ import { useRef, useMemo, useEffect, useState, useCallback, forwardRef, useImper
 import DOMPurify from "dompurify"
 import { BASE_URL, getBookFontFileUrl } from "@/api/client"
 import { useBookFonts } from "@/hooks/use-book-fonts"
+import { useBookTextDirection } from "@/hooks/use-book-text-direction"
 import type { DeviceView } from "./style-editor/device-breakpoint"
 import {
   getDeviceFrame,
@@ -34,7 +35,7 @@ import {
   resolveVisibleTarget,
   type ActivityAnchor,
 } from "./activity-link"
-import { primaryFontFamily, googleFontsCss2Url, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { primaryFontFamily, googleFontsCss2Url, FIXED_LAYOUT_MAX_SCALE, type TextDirection } from "@adt/types"
 
 export type { ComputedTypographyStyles }
 
@@ -109,6 +110,14 @@ export interface BookPreviewFrameHandle {
    *  book's comment anchors are `#content`-rooted selectors and land here unchanged, because
    *  this preview renders the same structure the export does. */
   getDocument: () => Document | null
+}
+
+/** Set, or clear, the writing direction on a preview document's root element. */
+function applyTextDirection(doc: Document | null | undefined, direction: TextDirection): void {
+  const root = doc?.documentElement
+  if (!root) return
+  if (direction === "rtl") root.dir = "rtl"
+  else root.removeAttribute("dir")
 }
 
 export interface BookPreviewFrameProps {
@@ -441,6 +450,10 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   // eslint-disable-next-line lingui/no-unlocalized-strings
   const autoFitScript = `<script src="${assetsPrefix}/assets/auto-fit.js"></script>`
   const { data: bookFontsData } = useBookFonts(bookLabel)
+  const textDirection = useBookTextDirection(bookLabel)
+  // Read by the iframe's load handler, which is attached once and outlives renders.
+  const textDirectionRef = useRef(textDirection)
+  textDirectionRef.current = textDirection
   // Attached book fonts are injected into the live iframe head by an effect
   // below — NOT baked into `srcdoc` — so attaching a font (which refetches this
   // data) doesn't change `srcdoc` and reload the iframe. A reload would discard
@@ -731,6 +744,16 @@ ${autoFitScript}
     if (doc.body) doc.body.style.overflow = value
   }, [deviceView, iframeReady, viewportSizedContent])
 
+  // Lay the page out in the book's writing direction, as the packaged reader
+  // does (`<html dir="rtl">` for Urdu, Arabic, …), so alignment, lists, tables
+  // and side-by-side blocks preview the way they will be read. Set on the live
+  // document rather than in `srcdoc` so it never reloads the iframe. This
+  // effect covers a direction that resolves or changes after the document
+  // loaded; the load handler in `initIframe` covers every (re)load.
+  useEffect(() => {
+    applyTextDirection(iframeRef.current?.contentDocument, textDirection)
+  }, [textDirection, iframeReady])
+
   // Inject/update the attached book fonts (Google <link> + uploaded @font-face)
   // into the live iframe head. Done here rather than in `srcdoc` so attaching a
   // font doesn't reload the iframe and wipe unsaved inline edits (see the
@@ -919,6 +942,10 @@ ${selectors}:hover {
     const onLoad = () => {
       const doc = iframe.contentDocument
       if (!doc) return
+      // Every load starts from a bare `<html>`. The shell is re-read whenever
+      // `srcdoc` changes (a book font change, say) while `iframeReady` stays
+      // true, so no effect re-runs to restore the direction.
+      applyTextDirection(doc, textDirectionRef.current)
       const start = () => {
         readyRef.current = true
         setIframeReady(true)

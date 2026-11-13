@@ -13,6 +13,9 @@ export interface VisualReviewDeps {
   /** Book typography CSS so review screenshots use the same pinned sizes the
    *  packaged book does (avoids the reviewer fighting the shared scale). */
   typographyCss?: string
+  /** Book language, so review screenshots lay out in the direction the reader
+   *  uses (right-to-left for Urdu, Arabic, …) instead of always left-to-right. */
+  language?: string
 }
 
 export interface VisualReviewValidation {
@@ -203,6 +206,7 @@ export async function runVisualReviewLoop(
       images,
       webAssetsDir: deps.webAssetsDir,
       typographyCss: deps.typographyCss,
+      language: deps.language,
     })
 
     const screenshots = await captureViewportScreenshots(deps, screenshotHtml, pageId, signal)

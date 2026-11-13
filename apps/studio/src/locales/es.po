@@ -3665,6 +3665,9 @@ msgstr "Sección personalizada {index}"
 msgid "Cut a region out of any page"
 msgstr "Recorta una región de cualquier página"
 
+msgid "Cut a region out of this page"
+msgstr "Recorta una región de esta página"
+
 msgid "D1"
 msgstr "D1"
 
@@ -5491,6 +5494,9 @@ msgstr "Altura"
 
 msgid "Help"
 msgstr "Ayuda"
+
+msgid "Hidden because its group is hidden"
+msgstr "Oculto porque su grupo está oculto"
 
 msgid "Hidden from screen readers, no caption needed."
 msgstr "Oculto para lectores de pantalla, no se necesita leyenda."

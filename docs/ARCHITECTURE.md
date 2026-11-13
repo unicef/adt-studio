@@ -237,6 +237,19 @@ Set `ADT_SCREENSHOT_DEBUG=1` to log each capture's queue wait, capture duration 
 
 ---
 
+## Text Direction
+
+Books in a right-to-left language (Urdu, Arabic, Hebrew, Persian, Pashto, …) are laid out right to left. One lookup decides the direction — `getTextDirection()` in `packages/types/src/text-direction.ts`, a static table keyed by language code — and every surface that renders book HTML applies it as `dir="rtl"` on the document root, so alignment, punctuation, lists, tables and side-by-side blocks all mirror from that single attribute. Left-to-right documents carry no `dir` and are emitted unchanged.
+
+- **Packaged pages** — `renderPageHtml()` (`packages/pipeline/src/packaging/web.ts`) writes `<html lang="…" dir="rtl">` from the book's source language.
+- **Reader** — `applyDocumentLanguage()` (`apps/adt-runtime/src/app/lifecycle.ts`) re-applies `lang` and `dir` at boot and on every language switch, because the language a reader picks can differ from the one the page shipped with. The chrome mirrors with the document; the dock's prev/next buttons and the arrow keys read `textDirectionAtom` so "next" always points the way the page turns.
+- **Storyboard preview** — `BookPreviewFrame` sets `dir` on its iframe document from `useBookTextDirection()`.
+- **Screenshots** — `buildScreenshotHtml()` takes the book language, so visual review, section thumbnails and AI page edits see the layout the reader shows.
+
+Exports are only partly covered. WebPub and PNLD reuse the packaged pages, so their content pages keep `dir`; EPUB rebuilds each page's root element (`convertPageToXhtml()`) and drops it. No export declares a right-to-left page progression yet (EPUB `page-progression-direction`, WebPub `readingProgression`), and the navigation documents the packagers generate themselves carry no `dir`.
+
+---
+
 ## Book Directory Structure
 
 All data for a book lives in a single directory. No book data is stored outside it.

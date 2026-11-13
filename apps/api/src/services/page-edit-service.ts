@@ -11,7 +11,7 @@ import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel, ResolvedCredentials } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
+import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, resolveBookLanguage, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -230,6 +230,7 @@ async function reRenderAdmittedPage(
             const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
             storage.putDebugImage(hash, Buffer.from(base64, "base64"))
           },
+          language: resolveBookLanguage(storage, config),
         }
       }
     }
@@ -334,6 +335,8 @@ export async function aiEditSection(
     const config = loadBookConfig(label, booksDir, configPath)
     const modelId =
       config.page_sectioning?.model ?? config.default_model ?? DEFAULT_LLM_MODEL_ID
+    // Screenshots follow the book's writing direction, as the reader does.
+    const language = resolveBookLanguage(storage, config)
 
     // Build LLM model
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
@@ -378,6 +381,7 @@ export async function aiEditSection(
         images: imagesForScreenshot,
         webAssetsDir,
         typographyCss,
+        language,
       })
       const renderer = await createScreenshotRenderer()
       try {
@@ -499,6 +503,7 @@ export async function aiEditSection(
           images: afterImages,
           webAssetsDir: assetsDir,
           typographyCss,
+          language,
         })
         const renderer = await createScreenshotRenderer()
         let desktopAfter: string

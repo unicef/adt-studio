@@ -239,6 +239,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
           height: r.height,
           renderMethod: r.render_method as ImageData["renderMethod"],
         }
+        if (r.hash) image.hash = r.hash
         if (r.bounds_x !== null && r.bounds_y !== null && r.bounds_w !== null && r.bounds_h !== null) {
           image.bounds = { x: r.bounds_x, y: r.bounds_y, width: r.bounds_w, height: r.bounds_h }
         }
