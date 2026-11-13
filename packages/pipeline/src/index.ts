@@ -531,7 +531,7 @@ export { extractionOptionsFromConfig, prepareExtractionAdmission, assertSafeExtr
 export { protectedAuthoredRecords, assertAuthoredReplacement, replacementConfirmed, selectSectioningPages, assertSectioningIdentityHistory, resetSectioningStoryboard, AuthoredReplacementError } from "./authored-output.js"
 
 export { storyboardCoverage, storyboardCoverageByPage, missingStoryboardInputMessage } from "./storyboard-coverage.js"
-export { retainedPackageOwnership } from "./packaging/bundle-ownership.js"
+export { retainedPackageOwnership, PACKAGE_OWNERS_FILE } from "./packaging/bundle-ownership.js"
 export { publishedAdtDirectory } from "./packaging/publication-directory.js"
 export { packageFilesAvailable, assertPackageFilesAvailable } from "./packaging/bundle-files.js"
 export { isPublicOutputId, publicOutputOwners, ambiguousPublicOutputIds, ambiguousPublicOutputIdsFromOwners, invalidPublicOutputIdentity } from "./public-output-identity.js"

@@ -5,6 +5,7 @@ import { cssReferences, parseCssSource } from "./css-references.js"
 import { PackageFileDiagnostic, PublicationPageEntry, PackagedAudioVoices } from "@adt/types"
 import { SectioningSafetyError } from "../sectioning-errors.js"
 import { inspectReaderXml } from "./reader-xml.js"
+import { PACKAGE_OWNERS_FILE } from "./bundle-ownership.js"
 
 /** A normalized locale becomes one directory name in a generated bundle. */
 export const isBundleLocale = (value: unknown): value is string =>
@@ -72,6 +73,7 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
     const member = (relative: string): string => {
       lastMember = relative
       const requested = path.resolve(root, relative)
+      if (path.basename(requested) === PACKAGE_OWNERS_FILE) throw new Error("Internal reader member")
       if (!requested.startsWith(root + path.sep)) throw new Error("Bundle path escapes root")
       const resolved = fs.realpathSync(requested)
       // The ZIP enumerator does not materialize symbolic links, even when

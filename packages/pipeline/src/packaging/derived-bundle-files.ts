@@ -3,6 +3,7 @@ import path from "node:path"
 import { inspectReaderXml } from "./reader-xml.js"
 import { DerivedWebpubFiles, PackageFileDiagnostic } from "@adt/types"
 import { SectioningSafetyError } from "../sectioning-errors.js"
+import { PACKAGE_OWNERS_FILE } from "./bundle-ownership.js"
 
 /** Derived formats rewrite HTML and relocate resources. Validate their own
  * manifest and spine, rather than comparing converted bytes with ADT hashes. */
@@ -17,6 +18,9 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
       const local = decodeURIComponent(href.split(/[?#]/)[0])
       if (!local || local.startsWith("/") || local.includes("\\")) throw new Error("Nonportable reader member")
       const file = path.resolve(root, base, local)
+      // Internal proof is excluded from reader ZIPs. A retained manifest that
+      // declares it needs explicit preparation, never a dangling delivered href.
+      if (path.basename(file) === PACKAGE_OWNERS_FILE) throw new Error("Internal reader member")
       // ZIP traversal omits symlinks; even an internal alias cannot prove a
       // downloadable member. Reject missing, empty and directory substitutes.
       if (!file.startsWith(root + path.sep) || fs.realpathSync(file) !== file ||

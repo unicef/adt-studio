@@ -816,6 +816,58 @@ describe("exportEpub — fixed-layout", () => {
 })
 
 
+it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("keeps origin receipts internal to %s and preserves project reopen", async format => {
+  const label = "internal-receipt"
+  createBookWithMetadata(label, label); addPagesAndRenderings(label, 2); addPdf(label)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  const download = { adt: exportAdt, scorm: exportScorm, webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  const directory = format === "adt" || format === "scorm" ? "adt" : format
+  const relative = format === "epub" ? "OEBPS/.build-owners" : format === "pnld" ? "resources/data/.build-owners" : ".build-owners"
+  const receiptFile = path.join(tmpDir, label, directory, relative), receipt = fs.readFileSync(receiptFile)
+  const files = unzipSync(await streamToBuffer((await download(label, tmpDir)).stream))
+  expect.soft(Object.keys(files).some(file => path.basename(file) === ".build-owners")).toBe(false)
+  for (const [file, bytes] of Object.entries(files)) {
+    if (!["manifest.json", "content.opf", "imsmanifest.xml"].includes(path.basename(file))) continue
+    const text = new TextDecoder().decode(bytes)
+    expect.soft(text).not.toContain(".build-owners")
+    const hrefs: string[] = file.endsWith("manifest.json")
+      ? [...JSON.parse(text).readingOrder, ...JSON.parse(text).resources].map(entry => entry.href)
+      : [...text.matchAll(/href="([^"]+)"/g)].map(match => match[1])
+    for (const href of hrefs) if (!/^(?:[a-z]+:|\/\/|#)/i.test(href)) expect(files[path.posix.join(path.posix.dirname(file), decodeURIComponent(href.split("#")[0]))], `${file}: ${href}`).toBeDefined()
+  }
+  expect(fs.readFileSync(receiptFile)).toEqual(receipt)
+  if (format === "webpub" || format === "epub" || format === "pnld" || format === "scorm") {
+    const manifestFile = path.join(tmpDir, label, directory, format === "webpub" ? "manifest.json" : format === "epub" ? "OEBPS/content.opf" : format === "pnld" ? "content.opf" : "imsmanifest.xml")
+    const original = fs.readFileSync(manifestFile, "utf8")
+    const declaredReceipt = format === "pnld" ? "resources/data/.build-owners" : ".build-owners"
+    const legacy = format === "webpub"
+      ? JSON.stringify({ ...JSON.parse(original), resources: [...JSON.parse(original).resources, { href: declaredReceipt, type: "application/octet-stream" }] })
+      : format === "scorm" ? original.replace("</resource>", `<file href="${declaredReceipt}"/></resource>`)
+      : original.replace("</manifest>", `<item id="internal-proof" href="${declaredReceipt}" media-type="application/octet-stream"/></manifest>`)
+    fs.writeFileSync(manifestFile, legacy)
+    await expect(download(label, tmpDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(fs.readFileSync(manifestFile, "utf8")).toBe(legacy)
+    await prepareExport(label, format, tmpDir, webAssetsDir)
+    expect(fs.readFileSync(manifestFile, "utf8")).not.toContain(".build-owners")
+    await streamToBuffer((await download(label, tmpDir)).stream)
+  }
+  const project = unzipSync(await streamToBuffer((await exportProject(label, tmpDir)).stream))
+  // Project policy is unchanged: generated EPUB/PNLD directories were already
+  // preserved, and must not lose their internal proof due to reader filtering.
+  if (format === "epub" || format === "pnld") expect(Buffer.from(project[`${format}/${relative}`])).toEqual(receipt)
+  const reopenedRoot = path.join(tmpDir, "reopened"), reopenedDir = path.join(reopenedRoot, label)
+  for (const [name, bytes] of Object.entries(project)) {
+    const file = path.join(reopenedDir, name)
+    fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, bytes)
+  }
+  const reopened = createBookStorage(label, reopenedRoot)
+  try {
+    expect(reopened.getBookIdentity()).toBe(JSON.parse(receipt.toString()).bookId)
+    expect(reopened.getPages()).toHaveLength(2)
+    expect(reopened.getAllNodeVersions("web-rendering", label + "_p1")).toHaveLength(1)
+  } finally { reopened.close() }
+})
+
 it.each(["webpub", "epub", "pnld"] as const)("binds real %s exports to their originating book and keeps relocated copies usable", async format => {
   for (const label of ["owned-a", "foreign-b"]) {
     createBookWithMetadata(label, label)

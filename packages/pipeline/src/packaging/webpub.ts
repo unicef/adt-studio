@@ -3,6 +3,7 @@ import path from "node:path"
 import type { Storage } from "@adt/storage"
 import type { BookMetadata } from "@adt/types"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
+import { PACKAGE_OWNERS_FILE } from "./bundle-ownership.js"
 import {
   type PackageAdtWebOptions,
   type PageEntry,
@@ -278,6 +279,7 @@ function collectWebpubResources(
   out: Array<{ href: string; type: string }>,
 ): void {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === PACKAGE_OWNERS_FILE) continue
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
       collectWebpubResources(baseDir, fullPath, out)

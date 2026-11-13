@@ -6,7 +6,7 @@ import type { PackagingWarning } from "@adt/types"
 import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { readRetainedPackageOwnership } from "./retained-package-reader.js"
-import { publishedAdtDirectory, requiredPartRange, resolveReadingOrder, assertDerivedPackageFilesAvailable, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import { publishedAdtDirectory, requiredPartRange, resolveReadingOrder, assertDerivedPackageFilesAvailable, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook, PACKAGE_OWNERS_FILE } from "@adt/pipeline"
 import { createZipStream, type ZipStreamOptions } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 
@@ -328,7 +328,9 @@ function readableDerivedPackageZip(bookDir: string, directory: string, format: "
       }
       assertDerivedPackageFilesAvailable(directory, format, receipt.entries.map(row => row[0]))
     } finally { storage.close() }
-    return createAdmittedZipStream(bookDir, directory)
+    return createAdmittedZipStream(bookDir, directory, {
+      excludeFiles: new Set([path.relative(directory, path.join(contentRoot, PACKAGE_OWNERS_FILE)).split(path.sep).join("/")]),
+    })
   })
 }
 
@@ -345,7 +347,7 @@ function readablePackageZip(bookDir: string, directory: string, format: "scorm" 
       assertPackageFilesAvailable(directory, { format })
     } finally { storage.close() }
     // The ZIP producer may yield between files; keep shared admission until it finishes.
-    return createAdmittedZipStream(bookDir, directory)
+    return createAdmittedZipStream(bookDir, directory, { excludeFiles: new Set([PACKAGE_OWNERS_FILE]) })
   })
 }
 

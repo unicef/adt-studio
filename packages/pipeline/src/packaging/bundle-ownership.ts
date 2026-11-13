@@ -5,7 +5,8 @@ import { HistoryRecoveryError, type Storage } from "@adt/storage"
 import { PackageOwnershipReceipt, PublicationPageEntry } from "@adt/types"
 import { resolveReadingOrder, type ResolvedItem } from "../reading-order.js"
 
-const receipt = ".build-owners"
+/** Local origin proof, retained on disk but never a learner archive member. */
+export const PACKAGE_OWNERS_FILE = ".build-owners"
 const digest = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex")
 const owner = (item: ResolvedItem) => item.kind === "quiz" ? null : item.pageId
 
@@ -29,7 +30,7 @@ export function recordPackagedOwners(storage: Storage, root: string, items: read
   // preloader retained from a different package.
   const offline = "assets/offline-preloader.js"
   const preloader = digest(fs.readFileSync(regularMember(root, offline)))
-  fs.writeFileSync(path.join(root, receipt), JSON.stringify({ format: "adt-package-owners-v2", bookId, entries, preloader }))
+  fs.writeFileSync(path.join(root, PACKAGE_OWNERS_FILE), JSON.stringify({ format: "adt-package-owners-v2", bookId, entries, preloader }))
 }
 
 /** Callers may share freshly resolved owner membership from this admitted
@@ -47,7 +48,7 @@ export function retainedPackageOwnership(storage: Storage, root: string,
     // An older receipt cannot prove which book supplied its intact bytes.
     // Keep the artifact, use the owned live reader, and require explicit
     // preparation for downloads. Same-book moves keep the persisted UUID.
-    const record = PackageOwnershipReceipt.parse(JSON.parse(fs.readFileSync(regularMember(root, receipt), "utf8")))
+    const record = PackageOwnershipReceipt.parse(JSON.parse(fs.readFileSync(regularMember(root, PACKAGE_OWNERS_FILE), "utf8")))
     if (record.bookId !== storage.getBookIdentity?.()) return result
     const offline = "assets/offline-preloader.js"
     if (digest(fs.readFileSync(regularMember(root, offline))) !== record.preloader) return result

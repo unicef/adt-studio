@@ -13,6 +13,7 @@ import {
   injectWebpubStyles,
 } from "./web.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
+import { PACKAGE_OWNERS_FILE } from "./bundle-ownership.js"
 
 export type PackagePnldOptions = PackageAdtWebOptions
 
@@ -736,6 +737,7 @@ function collectFiles(
   out: Array<{ href: string; mediaType: string }>,
 ): void {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === PACKAGE_OWNERS_FILE) continue
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
       collectFiles(baseDir, fullPath, out)
