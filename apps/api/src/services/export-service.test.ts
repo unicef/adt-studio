@@ -4,6 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { openBookDb, createBookStorage, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
 import { unzipSync } from "fflate"
+import { packageEpub } from "@adt/pipeline"
 import { prepareExport, exportProject, exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld } from "./export-service.js"
 
 let tmpDir: string
@@ -954,6 +955,15 @@ it.each(["epub", "pnld"] as const)("rejects malformed XML in real %s reader stru
     expect(fs.readFileSync(opf, "utf8")).toBe(malformed)
   }
   fs.writeFileSync(opf, original)
+  for (const relative of format === "epub" ? ["OEBPS/xml-structure_p1_sec001.xhtml", "OEBPS/toc.xhtml", "OEBPS/toc.ncx"] : ["toc.ncx"]) {
+    const file = path.join(directory, relative), bytes = fs.readFileSync(file, "utf8")
+    const damaged = bytes.replace(/<\/(html|ncx)>\s*$/, "")
+    expect(damaged).not.toBe(bytes)
+    fs.writeFileSync(file, damaged)
+    await refused()
+    expect(fs.readFileSync(file, "utf8")).toBe(damaged)
+    fs.writeFileSync(file, bytes)
+  }
   if (format === "epub") {
     const container = path.join(directory, "META-INF/container.xml")
     const xml = fs.readFileSync(container, "utf8")
@@ -965,4 +975,39 @@ it.each(["epub", "pnld"] as const)("rejects malformed XML in real %s reader stru
     fs.writeFileSync(container, xml)
   }
   expect((await streamToBuffer((await download(label, tmpDir)).stream)).length).toBeGreaterThan(0)
+})
+
+it("validates the actual EPUB converter's narration overlay and restored target bytes", async () => {
+  const label = "reader-overlay", id = `${label}_p1`, textId = "narration"
+  createBookWithMetadata(label, label); addPagesAndRenderings(label, 1)
+  const source = createBookStorage(label, tmpDir)
+  try {
+    const row = source.getLatestNodeData("web-rendering", id)!.data as { sections: { html: string }[] }
+    row.sections[0].html = `<p data-id="${textId}">Hello world</p>`
+    source.putNodeData("web-rendering", id, row)
+    source.putNodeData("tts-timestamps", "en", { entries: { [textId]: { textId, language: "en", duration: 1,
+      words: [{ word: "Hello", start: 0, end: 0.5 }, { word: "world", start: 0.5, end: 1 }] } }, generatedAt: "2026-01-01T00:00:00.000Z" })
+  } finally { source.close() }
+  await prepareExport(label, "adt", tmpDir, webAssetsDir)
+  const bookDir = path.join(tmpDir, label), adt = path.join(bookDir, "adt")
+  // Isolate converter input from speech generation; real saved timestamps and
+  // the actual converter produce the OPF association, SMIL and XHTML targets.
+  fs.mkdirSync(path.join(adt, "content/i18n/en/audio"), { recursive: true })
+  fs.writeFileSync(path.join(adt, "content/i18n/en/audio/narration.wav"), "original audio bytes")
+  fs.writeFileSync(path.join(adt, "content/i18n/en/audios.json"), JSON.stringify({ [textId]: "narration.wav" }))
+  const storage = createBookStorage(label, tmpDir)
+  try { await packageEpub(storage, { bookDir, label, title: label, language: "en", outputLanguages: ["en"], webAssetsDir }) }
+  finally { storage.close() }
+  const dir = path.join(bookDir, "epub/OEBPS"), smil = path.join(dir, `smil/${id}_sec001.smil`)
+  const original = fs.readFileSync(smil, "utf8")
+  expect(original).toContain("narration.wav")
+  const download = async () => unzipSync(await streamToBuffer((await exportEpub(label, tmpDir)).stream))
+  const valid = await download()
+  for (const damaged of [original.replace("</smil>", ""), original.replace("narration.wav", "missing.wav"), original.replace(`${id}_sec001.xhtml`, "missing.xhtml")]) {
+    fs.writeFileSync(smil, damaged)
+    await expect(download()).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+    expect(fs.readFileSync(smil, "utf8")).toBe(damaged)
+  }
+  fs.writeFileSync(smil, original)
+  expect(await download()).toEqual(valid)
 })

@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { JSDOM } from "jsdom"
+import { inspectReaderXml } from "./reader-xml.js"
 import { DerivedWebpubFiles, PackageFileDiagnostic } from "@adt/types"
 import { SectioningSafetyError } from "../sectioning-errors.js"
 
@@ -31,12 +31,10 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
     const xml = <T>(href: string, name: string, namespace: string, inspect: (root: Element) => T): T => {
       // HTML tokenizers repair mismatched/truncated XML, including at EOF.
       // Use the existing strict XML parser; implied closures are not proof.
-      const dom = new JSDOM(read(href), { contentType: "application/xml" })
-      try {
-        const element = dom.window.document.documentElement
+      return inspectReaderXml(read(href), element => {
         if (element.localName !== name || element.namespaceURI !== namespace) throw new Error("Invalid reader XML root")
         return inspect(element)
-      } finally { dom.window.close() }
+      })
     }
     const expected = sectionIds.map(id => format === "epub" ? `OEBPS/${id}.xhtml` : format === "pnld" ? `content/${id}.html` : `${id}.html`)
     let readingOrder: string[]
@@ -59,17 +57,72 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
           element.localName === name && element.namespaceURI === publication.namespaceURI)
         const manifests = children("manifest"), spines = children("spine")
         if (manifests.length !== 1 || spines.length !== 1 || !spines[0].children.length) throw new Error("Incomplete reader structure")
-        const files = new Map<string, string>()
+        const files = new Map<string, { href: string; mediaType: string; overlay: string | null }>()
         for (const item of manifests[0].children) {
           const id = item.getAttribute("id"), href = item.getAttribute("href")
           if (item.localName !== "item" || item.namespaceURI !== publication.namespaceURI ||
               !id || !href || files.has(id)) throw new Error("Invalid manifest item")
-          files.set(id, member(href, prefix))
+          files.set(id, { href: member(href, prefix), mediaType: item.getAttribute("media-type") ?? "", overlay: item.getAttribute("media-overlay") })
         }
+        const byHref = new Map([...files.values()].map(item => [item.href, item]))
+        const documents = new Map<string, { ids: Set<string>; links: { href: string; kind: "text" | "audio" | "navigation" }[] }>()
+        for (const item of files.values()) {
+          const kind = item.mediaType === "application/xhtml+xml" || item.href.endsWith(".xhtml") ? "xhtml"
+            : item.mediaType === "application/x-dtbncx+xml" || item.href.endsWith(".ncx") ? "ncx"
+            : item.mediaType === "application/smil+xml" || item.href.endsWith(".smil") ? "smil" : undefined
+          if (!kind || documents.has(item.href)) continue
+          const [name, namespace] = kind === "xhtml" ? ["html", "http://www.w3.org/1999/xhtml"]
+            : kind === "ncx" ? ["ncx", "http://www.daisy.org/z3986/2005/ncx/"] : ["smil", "http://www.w3.org/ns/SMIL"]
+          documents.set(item.href, xml(item.href, name, namespace, root => {
+            const elements = [root, ...root.getElementsByTagName("*")]
+            const ids = new Set(elements.flatMap(element => element.hasAttribute("id") ? [element.getAttribute("id")!] : []))
+            const links: { href: string; kind: "text" | "audio" | "navigation" }[] = []
+            if (kind === "ncx") for (const content of root.getElementsByTagNameNS(namespace, "content")) {
+              links.push({ href: content.getAttribute("src") ?? "", kind: "navigation" })
+            }
+            if (kind === "smil") for (const element of elements) {
+              if (element.namespaceURI !== namespace) continue
+              if (element.localName === "text" || element.localName === "audio") links.push({ href: element.getAttribute("src") ?? "", kind: element.localName })
+              const textref = element.getAttributeNS("http://www.idpf.org/2007/ops", "textref")
+              if (textref !== null) links.push({ href: textref, kind: "text" })
+            }
+            return { ids, links }
+          }))
+        }
+        const overlayOwners = new Map<string, Set<string>>()
+        document = path.join(prefix, "content.opf")
+        for (const item of files.values()) if (item.overlay !== null) {
+          const overlay = files.get(item.overlay)
+          if (item.mediaType !== "application/xhtml+xml" || !overlay || overlay.mediaType !== "application/smil+xml") throw new Error("Undeclared media overlay")
+          const links = documents.get(overlay.href)?.links ?? []
+          if (!links.some(link => link.kind === "text") || !links.some(link => link.kind === "audio")) throw new Error("Empty media overlay")
+          const owners = overlayOwners.get(overlay.href) ?? new Set<string>()
+          owners.add(item.href); overlayOwners.set(overlay.href, owners)
+        }
+        for (const [href, parsed] of documents) for (const link of parsed.links) {
+          document = href
+          const target = member(link.href, path.dirname(href))
+          const declared = byHref.get(target)
+          if (!declared || (link.kind === "audio" ? !declared.mediaType.startsWith("audio/")
+            : !["application/xhtml+xml", ...(format === "pnld" ? ["text/html"] : [])].includes(declared.mediaType))) {
+            lastMember = link.href; throw new Error("Undeclared media/navigation target")
+          }
+          if (link.kind === "text" && overlayOwners.has(href) && !overlayOwners.get(href)!.has(target)) {
+            lastMember = link.href; throw new Error("Media overlay belongs to another page")
+          }
+          const fragment = link.href.includes("#") ? decodeURIComponent(link.href.slice(link.href.indexOf("#") + 1)) : ""
+          if (fragment && documents.has(target) && !documents.get(target)!.ids.has(fragment)) {
+            lastMember = link.href; throw new Error("Missing reader fragment")
+          }
+        }
+        document = path.join(prefix, "content.opf")
+        const toc = spines[0].getAttribute("toc")
+        if (toc !== null && files.get(toc)?.mediaType !== "application/x-dtbncx+xml") throw new Error("Undeclared NCX")
         return [...spines[0].children].map(item => {
-          const id = item.getAttribute("idref"), href = id && files.get(id)
-          if (item.localName !== "itemref" || item.namespaceURI !== publication.namespaceURI || !href) throw new Error("Undeclared spine member")
-          return href
+          const id = item.getAttribute("idref"), file = id && files.get(id)
+          if (item.localName !== "itemref" || item.namespaceURI !== publication.namespaceURI || !file ||
+              !["application/xhtml+xml", ...(format === "pnld" ? ["text/html"] : [])].includes(file.mediaType)) throw new Error("Undeclared spine member")
+          return file.href
         })
       })
     }
