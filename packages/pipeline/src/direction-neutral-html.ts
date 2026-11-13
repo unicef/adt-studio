@@ -19,6 +19,10 @@ import type { TextDirection } from "@adt/types"
  * - a `dir` attribute that only repeats the direction the element already
  *   has is removed. Left in, it pins the block to that direction when the
  *   reader switches language.
+ *
+ * A `dir` that changes the direction is kept, and the classes on and inside
+ * that element are mapped for its direction, not the page's: an English block
+ * marked `dir="ltr"` in an Urdu page stays where it was, in both languages.
  */
 
 // Hebrew, Arabic (incl. supplement and extended-A), Syriac, Thaana, N'Ko, and
@@ -34,6 +38,16 @@ const FLOAT_TOKEN_RE = /^(?:[^\s:]+:)*float-(?:left|right|start|end)$/
 const PHYSICAL_MARGIN_RE = /^((?:[^\s:]+:)*-?m)([lr])(-.+)$/
 
 type Side = "left" | "right"
+
+/**
+ * The directions an element's logical classes are resolved against. Text
+ * alignment and margins follow the element's own direction; a float and its
+ * `clear` follow the direction of the box the element sits in.
+ */
+interface Directions {
+  own: TextDirection
+  container: TextDirection
+}
 
 export interface NeutralizeOptions {
   /**
@@ -80,29 +94,39 @@ export function neutralizeDirectionMarkup(
 ): string {
   if (!/\b(?:text|clear)-(?:left|right)\b|\bfloat-(?:left|right|start|end)\b|\bdir\s*=/.test(html)) return html
 
-  const logicalFor = (side: Side, el: Element): "start" | "end" => {
-    if (pageDirection === "ltr") return side === "left" ? "start" : "end"
+  // The corrections are for a page written right to left, and only there.
+  const correcting = options.correctMisalignedText === true && pageDirection === "rtl"
+
+  // `start` and `end` mean a side only relative to a direction, and a `dir` on
+  // the element or on an ancestor can set that apart from the page's. So each
+  // class is mapped for the direction it will be resolved against (`Directions`
+  // below), or a left-to-right block of a right-to-left page would change side.
+  const logicalFor = (side: Side, el: Element, direction: TextDirection): "start" | "end" => {
+    if (direction === "ltr") return side === "left" ? "start" : "end"
     if (side === "right") return "start"
     const rtlText = RTL_LETTER_RE.test(DomUtils.textContent(el as never))
-    return options.correctMisalignedText && rtlText ? "start" : "end"
+    return correcting && rtlText ? "start" : "end"
   }
 
-  // A float is layout, not text: it keeps the side it was given in the page's
-  // own direction, whatever script is inside it.
-  const layoutSide = (side: Side): "start" | "end" =>
-    (side === "left") === (pageDirection === "ltr") ? "start" : "end"
+  // A float is layout, not text: it keeps the side it was given, whatever
+  // script is inside it.
+  const layoutSide = (side: Side, direction: TextDirection): "start" | "end" =>
+    (side === "left") === (direction === "ltr") ? "start" : "end"
 
   /** The logical form of a physical class token, or null if it is not one. */
-  const logicalToken = (token: string, el: Element, floated: boolean): string | null => {
+  const logicalToken = (token: string, el: Element, floated: boolean, directions: Directions): string | null => {
     const match = PHYSICAL_TOKEN_RE.exec(token)
     if (match) {
       const [, variants, utility, side] = match
-      const logical = utility === "text" ? logicalFor(side as Side, el) : layoutSide(side as Side)
+      const logical =
+        utility === "text"
+          ? logicalFor(side as Side, el, directions.own)
+          : layoutSide(side as Side, directions.container)
       return `${variants}${utility}-${logical}`
     }
     const margin = floated ? PHYSICAL_MARGIN_RE.exec(token) : null
     if (!margin) return null
-    return `${margin[1]}${layoutSide(margin[2] === "l" ? "left" : "right") === "start" ? "s" : "e"}${margin[3]}`
+    return `${margin[1]}${layoutSide(margin[2] === "l" ? "left" : "right", directions.own) === "start" ? "s" : "e"}${margin[3]}`
   }
 
   // Decide per element, then patch only the opening tags that change. The
@@ -126,8 +150,9 @@ export function neutralizeDirectionMarkup(
     const redundantDir = ownDir !== null && ownDir === inheritedDir
     const dir = ownDir ?? inheritedDir
 
+    const directions: Directions = { own: dir, container: inheritedDir }
     const floated = tokens.some((token) => FLOAT_TOKEN_RE.test(token))
-    const physical = tokens.some((token) => logicalToken(token, node, floated) !== null)
+    const physical = tokens.some((token) => logicalToken(token, node, floated, directions) !== null)
     // A table header centres itself unless an ancestor sets alignment
     // explicitly, and `start`/`end` do not count as explicit. So a header that
     // was inheriting left/right has to carry the logical class itself.
@@ -142,11 +167,11 @@ export function neutralizeDirectionMarkup(
           tag = tag.replace(/(\sclass\s*=\s*)(["'])([\s\S]*?)\2/, (_match, prefix: string, quote: string, value: string) =>
             `${prefix}${quote}${value
               .split(/(\s+)/)
-              .map((token) => logicalToken(token, node, floated) ?? token)
+              .map((token) => logicalToken(token, node, floated, directions) ?? token)
               .join("")}${quote}`)
         }
         if (headerNeedsClass) {
-          const added = `text-${logicalFor(inheritedSide as Side, node)}`
+          const added = `text-${logicalFor(inheritedSide as Side, node, dir)}`
           tag = /\sclass\s*=\s*(["'])/.test(tag)
             ? tag.replace(/(\sclass\s*=\s*)(["'])([\s\S]*?)\2/, (_match, prefix: string, quote: string, value: string) =>
                 `${prefix}${quote}${value ? `${value} ` : ""}${added}${quote}`)

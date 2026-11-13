@@ -71,6 +71,25 @@ describe("neutralizeDirectionMarkup", () => {
     expect(neutralizeDirectionMarkup(nested, "rtl")).toBe(nested)
   })
 
+  // `start` and `end` are resolved against the element's own direction. Mapped
+  // for the page's instead, a block pinned the other way changes side in the
+  // page's own language (measured in Chromium: left before, right after).
+  it("AC-4: maps a block whose dir differs from the page's for its own direction", () => {
+    expect(
+      neutralizeDirectionMarkup(
+        '<p dir="ltr" class="text-left">Hello</p><div dir="ltr"><p class="text-left">A</p><p class="text-right">B</p></div>',
+        "rtl",
+      ),
+    ).toBe('<p dir="ltr" class="text-start">Hello</p><div dir="ltr"><p class="text-start">A</p><p class="text-end">B</p></div>')
+    expect(neutralizeDirectionMarkup('<p dir="rtl" class="text-right">متن</p>', "ltr")).toBe(
+      '<p dir="rtl" class="text-start">متن</p>',
+    )
+    // A header that has to carry the class itself gets it for its own direction too.
+    expect(
+      neutralizeDirectionMarkup('<div class="text-left"><table dir="ltr"><tr><th>A</th></tr></table></div>', "rtl"),
+    ).toBe('<div class="text-end"><table dir="ltr"><tr><th class="text-start">A</th></tr></table></div>')
+  })
+
   it("only rewrites opening tags: text, other attributes and quoting are byte-identical", () => {
     const html = `<p class='text-left' data-note="a > b" title='x "y"'>1 &lt; 2 &amp; text-left stays in text</p>`
     expect(neutralizeDirectionMarkup(html, "ltr")).toBe(
@@ -121,6 +140,21 @@ describe("neutralizeDirectionMarkup", () => {
       )
     })
 
+    // A float and its `clear` are resolved against the direction of the box
+    // they sit in; the gap beside the float against the element's own.
+    it("AC-14: maps a float inside a block whose dir differs from the page's for that block's direction", () => {
+      expect(
+        neutralizeDirectionMarkup(
+          '<div dir="ltr"><img class="float-left mr-4" src="a.png"><p class="clear-left">Text</p></div>',
+          "rtl",
+        ),
+      ).toBe('<div dir="ltr"><img class="float-start me-4" src="a.png"><p class="clear-start">Text</p></div>')
+      // The float follows the box it sits in (the page); its own dir only turns its gap.
+      expect(neutralizeDirectionMarkup('<aside dir="ltr" class="float-left mr-4">Note</aside>', "rtl")).toBe(
+        '<aside dir="ltr" class="float-end me-4">Note</aside>',
+      )
+    })
+
     it("AC-14: is stable when applied twice", () => {
       const once = neutralizeDirectionMarkup('<aside class="float-right text-left">A</aside>', "rtl")
       expect(once).toBe('<aside class="float-start text-end">A</aside>')
@@ -140,10 +174,11 @@ describe("neutralizeDirectionMarkup", () => {
     })
 
     it("changes nothing in a page written left to right", () => {
-      const html = '<p class="text-right">Signed</p>'
-      expect(neutralizeDirectionMarkup(html, "ltr", { correctMisalignedText: true })).toBe(
-        neutralizeDirectionMarkup(html, "ltr"),
-      )
+      for (const html of ['<p class="text-right">Signed</p>', '<p dir="rtl" class="text-left">متن</p>']) {
+        expect(neutralizeDirectionMarkup(html, "ltr", { correctMisalignedText: true })).toBe(
+          neutralizeDirectionMarkup(html, "ltr"),
+        )
+      }
     })
   })
 })
