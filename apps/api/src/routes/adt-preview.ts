@@ -695,11 +695,12 @@ export function createAdtPreviewRoutes(
   /** Collect all rendered HTML from the DB + optional extra HTML for Tailwind scanning. */
   async function generateTailwindCss(safeLabel: string, extraHtml?: string): Promise<string> {
     return withStorage(safeLabel, async (storage) => {
-      const fingerprint = storage.getNodeVersionFingerprint()
       const cacheKey = createHash("sha256")
         .update(safeLabel)
         .update("\0")
-        .update(JSON.stringify(fingerprint))
+        // Match the HTML/config token, including selected content bytes: raw
+        // damage or an older writer can change data without a new version.
+        .update(getPreviewContentVersion(storage, webAssetsDir))
         .update("\0")
         .update(extraHtml ?? "")
         .digest("hex")

@@ -231,6 +231,9 @@ describe("Package routes", () => {
         }
         await processFixedLayoutPages(storage, `/api/books/${label}/images`)
       }
+      const styled = storage.getLatestNodeData("web-rendering", "pg002")!.data as { sections: Array<{ html: string }> }
+      styled.sections[0].html += '<p class="w-[913px]">Sibling styling</p>'
+      storage.putNodeData("web-rendering", "pg002", styled)
     } finally { storage.close() }
     const prefix = `/api/books/${label}`
     expect((await app.request(prefix + "/package-adt", { method: "POST" })).status).toBe(200)
@@ -238,6 +241,10 @@ describe("Package routes", () => {
       .route("/api", createAdtPreviewRoutes(tmpDir, webAssetsDir))
     const config = () => readers.request(prefix + "/adt-preview/assets/config.json")
     const originalVersion = (await (await config()).json()).bundleVersion
+    const cssUrl = prefix + "/adt-preview/content/tailwind_output.css"
+    const initialCss = await readers.request(cssUrl)
+    expect(initialCss.status).toBe(200)
+    expect(await initialCss.text()).toContain("913px")
     const dir = path.join(tmpDir, label)
     const bytes = (root: string): Record<string, Buffer> => Object.fromEntries(fs.readdirSync(root, { recursive: true }).filter(file => fs.statSync(path.join(root, String(file))).isFile()).map(file => [String(file), fs.readFileSync(path.join(root, String(file)))]))
     const retained = bytes(path.join(dir, "adt")), media = bytes(path.join(dir, "images"))
@@ -267,10 +274,10 @@ describe("Package routes", () => {
       expect(response.status, file + ": " + await response.clone().text()).toBe(200)
       expect(await response.text()).not.toContain("pg002_n0001")
     }
-    const cssUrl = prefix + "/adt-preview/content/tailwind_output.css"
     const css = await readers.request(cssUrl)
     expect(css.status, await css.clone().text()).toBe(200)
     expect(css.headers.get("Cache-Control")).toContain("no-store")
+    expect(await css.text()).not.toContain("913px")
     const unsavedCss = await readers.request(cssUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extraHtml: '<p class="w-[777px]">Draft</p>' }) })
     expect(unsavedCss.status).toBe(200)
     expect(await unsavedCss.text()).toContain("777px")
@@ -295,6 +302,7 @@ describe("Package routes", () => {
     damage(first.data, "pg001", first.version)
     damage(original.data)
     expect((await (await config()).json()).bundleVersion).toBe(originalVersion)
+    expect(await (await readers.request(cssUrl)).text()).toContain("913px")
     expect((await readers.request(prefix + "/adt-preview/pg002_sec001.html")).status).toBe(200)
     expect((await readers.request(prefix + "/adt/pg001_sec001.html")).status).toBe(200)
     const restoredExport = await readers.request(prefix + "/export-adt")
@@ -302,9 +310,10 @@ describe("Package routes", () => {
     await restoredExport.arrayBuffer()
     // Valid same-version raw changes must still invalidate the live cache token.
     const changed = JSON.parse(original.data)
-    changed.sections[0].html += "<p>Valid changed source</p>"
+    changed.sections[0].html += '<p class="w-[917px]">Valid changed source</p>'
     damage(JSON.stringify(changed))
     expect((await (await config()).json()).bundleVersion).not.toBe(originalVersion)
+    expect(await (await readers.request(cssUrl)).text()).toContain("917px")
   })
 
   it("returns a typed recovery refusal and retains unknown journal and prior package bytes", async () => {
