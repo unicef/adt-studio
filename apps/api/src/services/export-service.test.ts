@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { openBookDb, createBookStorage, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
 import { unzipSync } from "fflate"
-import { prepareExport, exportProject, exportAdt, exportWebpub, exportEpub, exportPnld } from "./export-service.js"
+import { prepareExport, exportProject, exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld } from "./export-service.js"
 
 let tmpDir: string
 let webAssetsDir: string
@@ -349,6 +349,41 @@ function addPagesAndRenderings(label: string, count: number): void {
     storage.close()
   }
 }
+
+it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("exports saved harmless inline CSS through %s without rewriting history or accepting a missing resource", async format => {
+  const label = "saved-inline-css"
+  createBookWithMetadata(label, "Readable styling")
+  addPagesAndRenderings(label, 3)
+  const styles = ["color red", "font-family: 'Open Sans", "color:red; }"]
+  const s = createBookStorage(label, tmpDir)
+  let before: unknown
+  try {
+    for (let i = 0; i < styles.length; i++) {
+      const id = `${label}_p${i + 1}`
+      const row = s.getLatestNodeData("web-rendering", id)!.data as { sections: { html: string }[] }
+      row.sections[0].html += `<p style="${styles[i]}">Saved styling</p>`
+      s.putNodeData("web-rendering", id, row)
+    }
+    before = s.getPages().map(page => s.getAllNodeVersions("web-rendering", page.pageId))
+  } finally { s.close() }
+  const image = path.join(tmpDir, label, `images/${label}_p1_page.png`)
+  const imageBytes = fs.readFileSync(image)
+  await prepareExport(label, format, tmpDir, webAssetsDir)
+  const download = { adt: exportAdt, scorm: exportScorm, webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  const members = unzipSync(await streamToBuffer((await download(label, tmpDir)).stream))
+  expect(Object.keys(members).length).toBeGreaterThan(0)
+  const after = createBookStorage(label, tmpDir)
+  try {
+    expect(after.getPages().map(page => after.getAllNodeVersions("web-rendering", page.pageId))).toEqual(before)
+    const row = after.getLatestNodeData("web-rendering", `${label}_p1`)!.data as { sections: { html: string }[] }
+    row.sections[0].html += '<img src="images/required-but-missing.png">'
+    after.putNodeData("web-rendering", `${label}_p1`, row)
+  } finally { after.close() }
+  await expect(prepareExport(label, format, tmpDir, webAssetsDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+  // Failure-atomic preparation retains the preceding downloadable artifact.
+  expect(unzipSync(await streamToBuffer((await download(label, tmpDir)).stream))).toEqual(members)
+  expect(fs.readFileSync(image)).toEqual(imageBytes)
+}, 30_000)
 
 describe("exportWebpub", () => {
   it("produces a valid ZIP of the webpub directory", async () => {

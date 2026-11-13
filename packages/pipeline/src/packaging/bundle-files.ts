@@ -48,8 +48,11 @@ function stamp(file: string): string {
 export function packageFilesAvailable(adtDir: string, options: { format?: "web" | "scorm"; expectedLanguages?: readonly string[]; cachedOnly?: boolean; onFailure?: (diagnostic: PackageFileDiagnostic) => void } = {}): boolean {
   let document: string | undefined, lastMember: string | undefined
   const fail = () => {
-    const diagnostic = PackageFileDiagnostic.safeParse({ document, member: lastMember })
-    options.onFailure?.(diagnostic.success ? diagnostic.data : {})
+    // A nonportable member must not erase a valid originating document.
+    const source = PackageFileDiagnostic.shape.document.safeParse(document)
+    const member = PackageFileDiagnostic.shape.member.safeParse(lastMember)
+    options.onFailure?.({ ...(source.success && source.data ? { document: source.data } : {}),
+      ...(member.success && member.data ? { member: member.data } : {}) })
     return false
   }
   try {
@@ -75,6 +78,7 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
       if (requested !== resolved) throw new Error("Bundle path absent from ZIP")
       if (!resolved.startsWith(root + path.sep) || !fs.statSync(resolved).isFile() || !fs.statSync(resolved).size) throw new Error("Invalid bundle file")
       for (let file = resolved; file !== root; file = path.dirname(file)) dependencies.set(file, stamp(file))
+      lastMember = undefined
       return resolved
     }
     const read = (relative: string, preserveDocument = false): string => {
@@ -125,7 +129,7 @@ export function packageFilesAvailable(adtDir: string, options: { format?: "web" 
         if (name === "object" && attrs.data) relativeMember(attrs.data, from)
         if (["image", "use"].includes(name) && (attrs.href || attrs["xlink:href"])) relativeMember(attrs.href ?? attrs["xlink:href"], from)
         if (name === "link" && attrs.rel?.toLowerCase().split(/\s+/).includes("stylesheet") && attrs.href) includeStylesheet(attrs.href, from)
-        if (attrs.style) includeCss(parseCssSource(attrs.style), from, attrs.style)
+        if (attrs.style) includeCss(parseCssSource(attrs.style, true), from, attrs.style)
         if (attrs.srcset) for (const url of srcsetUrls(attrs.srcset)) relativeMember(url, from)
       }, ontext(text) { if (style !== undefined) style += text }, onclosetag(name) {
         if (name === "style" && style !== undefined) { includeCss(parseCssSource(style), from); style = undefined }

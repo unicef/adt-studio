@@ -34,8 +34,40 @@ it("validates shared runtime files once per read and notices their deletion on t
     failure.mockClear()
     fs.writeFileSync(page, `<img src="${unsafe}">`)
     expect(packageFilesAvailable(root, { onFailure: failure })).toBe(false)
-    expect(failure).toHaveBeenCalledWith({})
+    expect(failure).toHaveBeenCalledWith({ document: "p1.html" })
   }
+  const resource = path.join(root, "assets/style-resource.png")
+  for (const style of ["color red", "font-family: 'Open Sans", "color:red; }"]) {
+    fs.writeFileSync(page, `<main style="${style}">Readable saved page</main>`)
+    const saved = fs.readFileSync(page)
+    expect(packageFilesAvailable(root), style).toBe(true)
+    expect(fs.readFileSync(page)).toEqual(saved)
+    fs.appendFileSync(page, '<div style="background:url(assets/style-resource.png)"></div>')
+    failure.mockClear()
+    expect(packageFilesAvailable(root, { onFailure: failure }), style).toBe(false)
+    expect(failure).toHaveBeenCalledWith({ document: "p1.html", member: "assets/style-resource.png" })
+    fs.writeFileSync(resource, "required image bytes")
+    expect(packageFilesAvailable(root), style).toBe(true)
+    fs.unlinkSync(resource)
+  }
+  for (const style of [
+    "color red; background:url(assets/style-resource.png)",
+    "background:url(assets/style-resource.png); color red",
+    String.raw`color red; background:u\72l(assets/style-resource.png)`,
+    "--hero:'assets/style-resource.png'; color red; background-image:image-set(var(--hero) 1x)",
+  ]) {
+    fs.writeFileSync(page, `<main style="${style}">Readable saved page</main>`)
+    expect(packageFilesAvailable(root), style).toBe(false)
+    fs.writeFileSync(resource, "required image bytes")
+    expect(packageFilesAvailable(root), style).toBe(true)
+    fs.unlinkSync(resource)
+  }
+  fs.writeFileSync(page, '<main style="background:url(assets/style-resource.png">Ambiguous resource</main>')
+  fs.writeFileSync(resource, "required image bytes")
+  failure.mockClear()
+  expect(packageFilesAvailable(root, { onFailure: failure })).toBe(false)
+  expect(failure).toHaveBeenCalledWith({ document: "p1.html" })
+  fs.unlinkSync(resource)
   fs.writeFileSync(page, '<main><img src="assets/picture.png"></main>')
   expect(packageFilesAvailable(root)).toBe(false)
   const picture = path.join(root, "assets/picture.png")

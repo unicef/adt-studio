@@ -21,6 +21,7 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
       // downloadable member. Reject missing, empty and directory substitutes.
       if (!file.startsWith(root + path.sep) || fs.realpathSync(file) !== file ||
           !fs.statSync(file).isFile() || !fs.statSync(file).size) throw new Error("Unavailable reader member")
+      lastMember = undefined
       return path.relative(root, file)
     }
     const read = (href: string) => {
@@ -77,7 +78,11 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
       throw new Error("Missing declared reader document")
     }
   } catch {
-    const diagnostic = PackageFileDiagnostic.safeParse({ document, member: lastMember })
-    throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", JSON.stringify(diagnostic.success ? diagnostic.data : {}))
+    const source = PackageFileDiagnostic.shape.document.safeParse(document)
+    const member = PackageFileDiagnostic.shape.member.safeParse(lastMember)
+    throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", JSON.stringify({
+      ...(source.success && source.data ? { document: source.data } : {}),
+      ...(member.success && member.data ? { member: member.data } : {}),
+    }))
   }
 }

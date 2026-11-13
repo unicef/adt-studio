@@ -23,6 +23,7 @@ function valueReferences(
   variables: VariableLookup = () => [],
   context = "",
   visited: Map<VariableLookup, Set<string>> = new Map(),
+  recoverNonResourceStrings = false,
 ): Array<{ url: string; stylesheet: boolean }> {
   const references: Array<{ url: string; stylesheet: boolean }> = []
   let position = 0
@@ -42,13 +43,13 @@ function valueReferences(
     const char = value[position++] ?? ""
     return /[\n\r\f]/.test(char) ? "" : char
   }
-  const string = (): string => {
+  const string = (requiredClose = true): string => {
     const quote = value[position++]
     let result = ""
     while (position < value.length && value[position] !== quote) {
       result += value[position] === "\\" ? escape() : value[position++]
     }
-    if (value[position++] !== quote) throw new Error("Unclosed CSS string")
+    if (value[position++] !== quote && requiredClose) throw new Error("Unclosed CSS string")
     return result
   }
   const skip = () => {
@@ -88,7 +89,7 @@ function valueReferences(
       if (!char) break
       if (char === ")") { position++; return }
       if (char === '"' || char === "'") {
-        const url = string()
+        const url = string(!recoverNonResourceStrings || parent === "image-set" || parent === "-webkit-image-set" || importRule)
         if (parent === "image-set" || parent === "-webkit-image-set" || (!parent && importRule)) {
           references.push({ url, stylesheet: !parent && importRule })
         }
@@ -137,14 +138,29 @@ function valueReferences(
   return references
 }
 
-export function parseCssSource(css: string) {
+export function parseCssSource(css: string, inline = false) {
   // PostCSS does not tokenize escaped at-rule names. Normalize only those
   // identifiers (not arbitrary escapes that could turn URL bytes into syntax).
   const normalized = css.replace(/@((?:\\[0-9a-f]{1,6}[\t\n\r\f ]?|\\[^\n\r\f]|[\w-])+)/gi, (raw, identifier: string) => {
     const decoded = valueReferences(`url(${identifier})`)[0]?.url
     return decoded && /^[a-z-]+$/i.test(decoded) ? `@${decoded}` : raw
   })
-  const root = postcss.parse(normalized)
+  let root: postcss.Root
+  let recoveredReferences: ReturnType<typeof valueReferences> = []
+  try { root = postcss.parse(normalized) }
+  catch (error) {
+    if (!inline) throw error
+    // Saved inline styling follows the browser's declaration-list recovery.
+    // Check original resource tokens first: CSSOM must not silently discard an
+    // unsafe URL or repair an ambiguous resource string/function into proof.
+    recoveredReferences = valueReferences(normalized, false, () => [], "", new Map(), true)
+    const dom = new JSDOM("", { virtualConsole: new VirtualConsole() })
+    try {
+      const style = dom.window.document.createElement("div").style
+      style.cssText = normalized
+      root = postcss.parse(style.cssText)
+    } finally { dom.window.close() }
+  }
   const selectorFor = (node: postcss.Node): string | undefined => {
     const parent = node.parent
     if (parent?.type === "rule" && "selector" in parent && typeof parent.selector === "string") return parent.selector
@@ -186,18 +202,19 @@ export function parseCssSource(css: string) {
   const custom = root.clone()
   custom.walkDecls(declaration => { if (!declaration.prop.startsWith("--")) declaration.remove() })
   custom.walkAtRules("import", rule => { rule.remove() })
-  return { declarations, imports, customCss: custom.toString(), directReferences, variableUrls }
+  return { declarations, imports, customCss: custom.toString(), directReferences, variableUrls, recoveredReferences }
 }
 
 /** Resolve possible variable values in one document's linked/imported/inline
  * CSS, never across independent pages. URLs use the consumer declaration's
  * base path, including when the quoted value came from another stylesheet. */
 export function cssReferences(sources: readonly { parsed: ReturnType<typeof parseCssSource>; from: string; inlineStyle?: string }[], html?: string) {
+  const recovered = sources.flatMap(({ parsed, from }) => parsed.recoveredReferences.map(reference => ({ ...reference, from })))
   // No variable in this document can resolve to a URL (true for the generated
   // Tailwind/Font Awesome/fonts stylesheets): the per-stylesheet references are
   // complete, and building a DOM per page to scope variables would find nothing.
   if (!sources.some(source => source.parsed.variableUrls)) {
-    return sources.flatMap(({ parsed, from }) => parsed.directReferences.map(reference => ({ ...reference, from })))
+    return [...recovered, ...sources.flatMap(({ parsed, from }) => parsed.directReferences.map(reference => ({ ...reference, from })))]
   }
   const variables = new Map<string, string[]>()
   for (const { parsed } of sources) for (const declaration of parsed.declarations) {
@@ -252,7 +269,7 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
       return lookup
     }
     const targets = new Map<string, Element[]>()
-    return sources.flatMap(({ parsed, from, inlineStyle }) => parsed.declarations.flatMap(declaration => {
+    return [...recovered, ...sources.flatMap(({ parsed, from, inlineStyle }) => parsed.declarations.flatMap(declaration => {
       // Definitions are expanded at their consumer, with that consumer's URL
       // base. Prose/custom-property declarations alone are not image consumers.
       if (declaration.property.startsWith("--")) return []
@@ -272,6 +289,6 @@ export function cssReferences(sources: readonly { parsed: ReturnType<typeof pars
       const contexts = elements.length ? elements.map(forElement) : [possible]
       return contexts.flatMap(lookup => valueReferences(declaration.value, false, lookup)
         .map(reference => ({ ...reference, from })))
-    }))
+    }))]
   } finally { dom?.window.close() }
 }
