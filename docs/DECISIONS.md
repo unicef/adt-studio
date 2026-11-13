@@ -989,8 +989,9 @@ and mistranslations that the other locales still carry.
 The PR author's agent session translates every locale from where each string renders,
 using a shared glossary, and checks the result on screen against English, on the
 author's machine. The PR carries a section the skill writes about that work. CI never
-translates and doesn't judge translations: it fails only when a string is unextracted or
-untranslated. No native-speaker approval gates a merge.
+translates and doesn't judge meaning or fit: it fails when a string is unextracted or
+untranslated, or when `i18n:lint` finds a mechanical error (placeholders, escapes,
+invalid ICU, forbidden terms), since those need only the catalogs. No native-speaker approval gates a merge.
 
 ### Consequences
 

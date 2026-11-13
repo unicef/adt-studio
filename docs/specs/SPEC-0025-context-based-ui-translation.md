@@ -8,7 +8,7 @@ issues: ["#937"]
 prs: []
 adr: "docs/DECISIONS.md#029-ui-strings-are-translated-from-context-in-the-authors-session-not-by-ci"
 created: 2026-11-11
-updated: 2026-11-12
+updated: 2026-11-13
 ---
 
 <!--
@@ -78,7 +78,8 @@ or what a shorter replacement would be.
 - The author can get an HTML report of the changed strings and screenshots in every
   locale.
 - Mechanical errors (placeholders, tags, stray escapes, invalid ICU, forbidden terms)
-  are caught on the author's machine, before the PR.
+  are caught on the author's machine before the PR, and CI fails on them so they can't
+  come back.
 - The PR shows how its translations were made, in a section the skill writes.
 - No key-based translation path remains for the Studio catalogs.
 - The es, fr and sq catalogs are reviewed with the new workflow, as pt-BR was in #920.
@@ -88,9 +89,11 @@ or what a shorter replacement would be.
 - **Other catalogs.** The desktop shell's (`apps/desktop/src/renderer/src/locales/`,
   12 strings, no `sq`) and the reader's (`apps/adt-runtime`). An issue for the desktop
   catalogs is filed with this spec's PR.
-- **Checking translations in CI.** CI keeps today's checks: strings are extracted, the
-  catalogs compile, nothing is left untranslated. Everything else runs on the author's
-  machine, and no test reads the real catalogs.
+- **Judging translations in CI.** CI keeps today's checks (strings are extracted, the
+  catalogs compile, nothing is left untranslated) and adds only `i18n:lint`'s error
+  checks, which need nothing but the catalogs. Meaning and fit need the running app, so
+  they stay on the author's machine. CI never translates, and no test reads the real
+  catalogs.
 - **Committed test data.** No fixture book and no committed mocks (§4).
 - **A full-app walk.** The screen check is on demand and targeted.
 - **Electron-only layouts, dark mode and RTL.** The screen check drives the web dev
@@ -163,7 +166,10 @@ this product (Stage vs Step, source vs font, template vs model, activity types, 
 So there is one file, `apps/studio/i18n/glossary.md`: one row per product term, with its
 English meaning, what it must not be confused with, and one column per locale for the
 chosen word. pt-BR's column starts from #900's glossary; the others follow each locale's
-established UI terminology. Adding a locale adds a column.
+established UI terminology. Adding a locale adds a column. PR 1 ships it with the core
+terms (Stage vs Step, source vs font, template vs model, the theme "Light", the stage
+names), so the workflow is usable from the first PR; PR 2 adds the rows its review
+finds.
 
 `apps/studio/i18n/glossary.rules.json` holds the rules the lint enforces: names kept in
 English, and forbidden terms per locale, scoped by `msgctxt` or an English pattern. A
@@ -177,7 +183,9 @@ pt-BR *fonte* where the English says "source".
 declared at the version already in the lockfile), so "valid" means what `lingui compile`
 means. It **errors** across every catalog on what breaks at runtime or on screen, and
 **warns** only on entries changed since `--base` (default `origin/develop`) on what
-deserves a look on screen. AC-3 to AC-7 list the rules. The skill runs it; CI doesn't.
+deserves a look on screen. AC-3 to AC-7 list the rules. The skill runs it, and the CI
+`i18n` job runs it too, where only errors fail: they are deterministic, need only the
+`.po` files, and `compile --strict` passes with every one of today's bugs (§7).
 
 ### 4. The fit is checked on the author's running app
 
@@ -224,7 +232,8 @@ measured ~4.5 s per screen per locale).
 Delete `translate-missing.ts`, its package script, the `ai` and `@ai-sdk/openai`
 devDependencies and `LOCALE_NAMES` (only the script uses them). In the CI `i18n` job,
 remove the warn, auto-translate and re-verify steps, `continue-on-error` and
-`contents: write`, so an empty `msgstr` fails the PR; its other checks stay as they are.
+`contents: write`, so an empty `msgstr` fails the PR, and add an `i18n:lint` step; its
+other checks stay as they are.
 `TRANSLATE_MODEL` becomes unused (`ci.yml:85` only) and can be deleted; `OPENAI_API_KEY`
 stays for `release.yml`. Docs that describe the script are updated, and "Lingui v5"
 becomes v6.
@@ -260,7 +269,8 @@ enforces it; a PR that changes strings without it is a reason to ask.
   fixture data), `apps/studio/scripts/tsconfig.json`, `docs/I18N_TRANSLATION_QUALITY.md`,
   `.claude/skills/translate/SKILL.md`. ADR 029 lands as `proposed` with this spec's PR.
 - **Changed:**
-  - `.github/workflows/ci.yml` (translate steps and write permission removed)
+  - `.github/workflows/ci.yml` (translate steps and write permission removed,
+    `i18n:lint` step added)
   - `vitest.config.ts` and the root `tsconfig.json` (cover `apps/studio/scripts/`)
   - `.gitignore` (track `.claude/skills/`, ignore `apps/studio/.i18n-screens/`)
   - `apps/studio/package.json`: scripts; `playwright` and `@messageformat/parser` at
@@ -292,8 +302,9 @@ enforces it; a PR that changes strings without it is a reason to ask.
   ≤30 characters longer than 1.5× the English or a `msgstr` identical to a non-name msgid.
 - [ ] AC-7: Without a resolvable base, `i18n:lint` reports that warnings were skipped and
   still runs every error check. Obsolete `#~` entries are ignored.
-- [ ] AC-8: No workflow runs `i18n:lint`, `i18n:screens` or `i18n:origins`, and no test
-  in `pnpm test` reads `apps/studio/src/locales/`.
+- [ ] AC-8: The CI `i18n` job runs `i18n:lint` and fails on its errors, not its
+  warnings; no workflow runs `i18n:screens` or `i18n:origins`; and no test in
+  `pnpm test` reads `apps/studio/src/locales/`.
 - [ ] AC-9: The 11 es placeholders, 12 stray-backslash strings and the theme "Light" are
   fixed; the theme option has its own `context` and translation in every locale.
 - [ ] AC-10: The glossary has a column for pt-BR, es, fr and sq, every term states its
@@ -322,6 +333,9 @@ enforces it; a PR that changes strings without it is a reason to ask.
   and the skill refuses to force a state while `git status --porcelain` isn't clean.
 - [ ] AC-19: The PR template has a Translations section, and the skill ends by writing
   it with every item in §9.
+- [ ] AC-20: The es, fr and sq catalogs are reviewed with the skill: every active entry
+  is checked against the glossary, PR 2's Translations section lists the screens walked
+  per locale with the HTML report attached, and each finding is fixed or explained.
 
 ## Test plan
 
@@ -336,12 +350,13 @@ records a local run and a manual run against Studio. Tests live in
 | AC-1, AC-2, AC-8, AC-15 | config | `ci-config.test.ts` (reads `ci.yml`, `package.json`, `vitest.config.ts`, `tsconfig.json`) |
 | AC-3 – AC-7, AC-18 (marker) | unit | `lint.test.ts` |
 | AC-9 | local | PR 1's Translations section (lint and Settings → Appearance) |
-| AC-10 | unit + local | `glossary.test.ts`; PR 2's Translations section |
+| AC-10 | unit | `glossary.test.ts` |
 | AC-11 | unit | `origins.test.ts` |
 | AC-12 | unit | `detector.test.ts` |
 | AC-13, AC-14, AC-17 | unit + integration (local) | `screens.test.ts`, `mocks.test.ts` |
 | AC-16, AC-19 (template) | unit | `docs.test.ts` |
 | AC-18 (refusal), AC-19 (skill) | local | PR 1's and PR 2's Translations sections |
+| AC-20 | local | PR 2's Translations section and report |
 
 ## Rollout
 
@@ -349,23 +364,25 @@ Two PRs. The first is above the ~1000-line review budget (SDD §9), about 2,000 
 lines; the owner accepted that, because its parts only make sense together: removing
 the translator without the workflow that replaces it leaves no way to translate.
 
-1. **Tooling and the switch (AC-1 – AC-9, AC-11 – AC-19).** Removes the key-based
-   translator and makes empty translations fail; adds the lint, origins, the screen
-   check with steps, mocks and report, the guide, the skill and the PR template section;
+1. **Tooling and the switch (AC-1 – AC-19).** Removes the key-based translator and
+   makes empty translations and lint errors fail; adds the lint, origins, the screen
+   check with steps, mocks and report, the starter glossary and rules file, the guide,
+   the skill and the PR template section;
    fixes §7's bugs, since the lint fails on them; marks ADR 029 accepted. Reverting it
    restores the old script and CI steps.
-2. **Languages (AC-10).** The glossary and rules file, then a review of the es,
-   fr and sq catalogs with the skill, as #920 did for pt-BR, with the HTML report
+2. **Languages (AC-20).** A review of the es, fr and sq catalogs with the skill,
+   adding glossary rows as it finds them, as #920 did for pt-BR, with the HTML report
    attached since reviewers don't speak most of the locales. Catalogs don't count toward
-   the budget (SDD §3); the rest is about 600 lines.
+   the budget (SDD §3); the rest is the new glossary rows.
 
 ### Risks
 
 - **Contributors without an agent** now translate four locales by hand, or ask a
   maintainer to. The project's contributors all work with agents today; the guide and
   glossary are written so a person can follow them too. ADR 029 records the decision.
-- **Translations nobody checked.** CI only proves every string has a translation, so a
-  contributor who skips the skill can still merge a bad one. The missing Translations
+- **Translations nobody checked.** CI proves every string has a translation and passes
+  the lint, but not that it means the right thing or fits, so a contributor who skips
+  the skill can still merge a bad one. The missing Translations
   section is what shows it, and the reviewer asks for it.
 - **A forced state left in the code.** The skill only forces state on a clean tree and
   reverts it, and the lint fails on a leftover marker.
