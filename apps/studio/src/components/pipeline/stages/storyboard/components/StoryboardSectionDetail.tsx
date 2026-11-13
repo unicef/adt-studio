@@ -93,6 +93,8 @@ import {
 } from "@/hooks/use-editable-activities"
 import { toast } from "sonner"
 import { Puzzle, ListChecks, MessagesSquare } from "lucide-react"
+import { MissingRenderedLeavesNotice } from "./MissingRenderedLeavesNotice"
+import { useAwaitingRerender } from "../lib/use-awaiting-rerender"
 import { StyleEditorPanel } from "./style-editor"
 import { FitScaleIndicator } from "./FitScaleIndicator"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
@@ -579,6 +581,14 @@ export function StoryboardSectionDetail({
 
   // Section data panel state
   const [panelOpen, setPanelOpen] = useState(false)
+  // Tree row the missing-elements notice pointed at; cleared after a moment so
+  // pointing at the same row again re-scrolls it.
+  const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null)
+  useEffect(() => {
+    if (!highlightedNodeId) return
+    const timer = setTimeout(() => setHighlightedNodeId(null), 3000)
+    return () => clearTimeout(timer)
+  }, [highlightedNodeId])
   const openSectionPanel = useCallback(() => {
     setPanelOpen((v) => !v)
   }, [])
@@ -644,6 +654,9 @@ export function StoryboardSectionDetail({
     () => bookTasks.some((t) => t.kind === "re-render" && t.pageId === pageId && t.status === "running"),
     [bookTasks, pageId]
   )
+  // Covers the gaps `rerendering` misses (request in flight, task queued, page
+  // not yet refetched) so the missing-elements notice doesn't flash (#596).
+  const awaitingRerender = useAwaitingRerender(bookTasks, page.versions.rendering)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const replaceTargetRef = useRef<string | null>(null)
@@ -1305,8 +1318,11 @@ export function StoryboardSectionDetail({
       setPendingRendering(null)
     }
 
+    awaitingRerender.markSubmitted()
     api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex, combinedPrompt)
+      .then((res) => awaitingRerender.trackTask(res.taskId))
       .catch((err) => {
+        awaitingRerender.clear()
         // Restore pending edits so the user doesn't lose their work
         if (savedPending) setPendingRendering(savedPending)
         setAiError(err instanceof Error ? err.message : t`Re-render failed`)
@@ -2806,6 +2822,23 @@ export function StoryboardSectionDetail({
         </div>
       )}
 
+      {/* Visible tree text the saved HTML leaves out (#596). Computed from saved
+          data, so hidden while edits are pending or a task may change the HTML. */}
+      {!dirty && !renderingDirty && !saving && !hasActiveTask && !storyboardRunning && !awaitingRerender.awaiting && (
+        <MissingRenderedLeavesNotice
+          leaves={(page.missingRenderedLeaves ?? []).filter((l) => l.sectionIndex === sectionIndex)}
+          onSelectLeaf={(nodeId) => {
+            setPanelOpen(true)
+            setHighlightedNodeId(nodeId)
+          }}
+          onRerender={
+            hasStructuredTextProvider && !section?.sectionType?.startsWith("activity_custom")
+              ? () => handleRerender()
+              : undefined
+          }
+        />
+      )}
+
       {/* Agent completion banner */}
       {completionBanner && (
         <div className="px-4 py-2 border-b shrink-0 bg-emerald-50 dark:bg-emerald-950/40 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -3290,6 +3323,7 @@ export function StoryboardSectionDetail({
       {section && (
       <SectionEditPanel
         open={panelOpen}
+        highlightNodeId={highlightedNodeId}
         onClose={() => setPanelOpen(false)}
         section={section}
         sectionIndex={sectionIndex}
