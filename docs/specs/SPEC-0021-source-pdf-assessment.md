@@ -8,7 +8,7 @@ issues: ["#1016", "#1008", "#1012", "#901", "#676", "#985", "#326", "#749", "#95
 prs: ["#1009", "#1013"] # PR 0 adopted 2026-10-29; #1013 implements §Step warnings
 adr: ""
 created: 2026-10-27
-updated: 2026-11-04
+updated: 2026-11-13
 ---
 
 **After the `extract` step, every book gets one persisted, deterministic, LLM-free
@@ -44,6 +44,14 @@ by one, the column is stamped with its completion, and the `source-assessment` w
 derived from the node (§Step warnings). The snapshot is now distinct from current settings,
 with refresh triggers (§Snapshot and current settings). The geometry passes have an explicit
 work budget, and a truncated pass is reported as incomplete (§Work budget).
+Amended on 2026-11-13 after @ksokolovic's re-review, to close three remaining gaps. Preserved
+assessment history now names its prerequisite: an extraction rerun must be refused at the
+common extraction boundary, either by SPEC-0010 or by an interim guard this spec adds
+(§Lifecycle). Coverage is reported apart from severity on every compact surface, so a book
+whose checks were cut short never shows a plain green pill (§Work budget). A completion
+written by an older app is read through a bounded adapter for the one warning those apps
+record, a page skip, and otherwise as "completed by an older version", never as a clean
+completion (§Step warnings).
 
 ## Problem (with evidence)
 
@@ -74,8 +82,8 @@ layered, can obtain a better source or change one setting before paying for the 
   them in all five locales; the API and the CLI print English.
 - G3. The Extract stage shows a Source quality panel, page badges, a sidebar count and the
   amber "Completed with a warning" pill (a typed `source-assessment` step warning, §Step
-  warnings) when warnings exist.
-  A clean book stays plain green.
+  warnings) when warnings exist or coverage is partial (§Work budget).
+  A clean, fully assessed book stays plain green.
 - G4. Every finding carries an actionable recommendation **as data**: either a named
   extraction setting with the value to set (`figure_extraction_mode: auto`,
   `remove_watermarks: true`, `image_filters.segmentation: true`, `editing_language`) or an
@@ -133,7 +141,8 @@ Binding. Each has an owner elsewhere so adjacent work is not blocked.
 | C — computed on read, like `extractionWarning` today | Nothing stored | ~150 lines in the API | Loses history, repeats O(pages) work per request, no CLI parity, no step note. |
 
 Decisions a reviewer must ratify: (1) option A; (2) the finding-kind list and severity
-rules below; (3) the note on the `extract` step only when warnings or criticals exist;
+rules below; (3) the note on the `extract` step only when warnings or criticals exist or
+coverage is partial (18);
 (4) `text-layer-missing` stays as the after-Sectioning confirmation, not folded in; (5) no
 "Mark checked" in v1; (6) recommendations as structured data (setting + value, or action)
 rather than a flat hint enum; (7) pipeline rules ship before the `packages/pdf` signals, so
@@ -150,7 +159,15 @@ inventory and not part of it, every write appends a version, and a new version i
 the extract step, the spreads re-apply route, a change to a downstream setting the rules read,
 and an explicit Reassess (§Lifecycle, §Snapshot and current settings); (16) every per-page
 pass whose cost grows faster than the page's op count has a fixed work budget, and an exceeded
-budget is reported as incomplete, never as "no findings" (§Work budget).
+budget is reported as incomplete, never as "no findings" (§Work budget); (17) preserved
+assessment history requires that an extraction rerun is refused at the common extraction
+boundary, by SPEC-0010 or by this spec's interim guard in PR 2d (§Lifecycle); (18) coverage is
+independent of severity: a partial assessment turns the `extract` pill amber and is carried
+on the sidebar, `BookSummary` and the CLI, while `extract-report` still exits 0 when no
+evaluated check found a warning or critical (§Work budget, §CLI); (19) a completion written by
+an app that does not know `step_runs.warnings` is read through a bounded adapter for the
+legacy skip message and is otherwise marked as completed by an older version, never as
+completed cleanly (§Step warnings).
 
 ### Data contract
 
@@ -265,6 +282,9 @@ export const SourceAssessment = z.object({
     // its work budget (`reason: "budget"`, §Work budget) or signal-fed kinds on pages whose
     // `signals` are null (`reason: "no-signals"`: a book extracted before PR 3a/3b, reassessed).
     incomplete: z.array(z.object({ kind: SourceFindingKind, reason: z.enum(["budget", "no-signals"]), pageIds: z.array(z.string()) })),
+    // "partial" exactly when `incomplete` is nonempty; independent of readiness (§Work budget).
+    coverage: z.enum(["complete", "partial"]),
+    incompletePages: z.number().int(),   // distinct pages across `incomplete[].pageIds`
   }),
   findings: z.array(SourceFinding),
   pages: z.array(SourcePageRollup),
@@ -316,7 +336,9 @@ Rejected mapping: `image_filters.min_side` for pages with many tiny rasters. The
 filter already prunes them before any model call (`image-filtering.ts:31-35`), so the saving
 is negligible and the advice can hide small real figures.
 
-Readiness: any critical → `poor`; any warning → `degraded`; otherwise `ready`.
+Readiness: any critical → `poor`; any warning → `degraded`; otherwise `ready`. Readiness
+grades the evaluated findings only. Coverage (`summary.coverage`) is reported beside it and
+never changes the grade (§Work budget).
 
 Heuristic kinds are reserved, not shipped, until their experiment freezes a threshold:
 `text-like-structure` (row-projection line bands on a page with 0 chars: the strong "needs
@@ -366,7 +388,8 @@ holds) travel in the node. A test proves both builders agree on a raven page.
 **`assessSource(input): SourceAssessment`** is pure (no provider import, no clock: `generatedAt`
 is part of the input; deep-equal on identical input): one rule function per kind, `SOURCE_THRESHOLDS`, aggregation, readiness.
 `sourceAssessmentWarning(a)` returns the step warning `{ kind: "source-assessment", warning: N,
-critical: M }` only when `counts.warning + counts.critical > 0` (§Step warnings).
+critical: M, incompletePages: P }` only when `counts.warning + counts.critical > 0` or
+`summary.coverage` is `"partial"` (§Step warnings, §Work budget).
 `pdf-extraction.ts` writes the node after `font-profile` with `putNodeData` (`trigger:
 "extract"`; every write appends a version, §Lifecycle), then emits `step-complete` for
 `extract` with that warning. The warning is not persisted: `GET step-status` derives it from
@@ -446,6 +469,23 @@ silently read as "no findings".
   same line. Readiness is graded from the findings that were evaluated, and the panel always
   shows the incomplete line next to the grade, so `ready` with an incomplete line never reads
   as a clean bill.
+- **Coverage on every compact surface.** `summary.coverage` is `"partial"` exactly when
+  `incomplete` is nonempty, whatever the reason (`budget` or `no-signals`), and
+  `summary.incompletePages` counts the distinct pages. It is independent of severity: a book
+  with zero warnings and criticals can be partial. Each surface that summarizes the
+  assessment carries it, so the panel's qualification is never lost:
+  - the `extract` pill is amber when coverage is partial, even with no findings. The
+    `source-assessment` step warning carries `incompletePages`, and the popover adds "Not fully
+    assessed on N pages" (§Step warnings);
+  - the StageSidebar Extract badge keeps counting warnings and criticals, adds a partial marker
+    and gets the tooltip "Not fully assessed on N pages";
+  - page cards list a page's `unevaluated` kinds in their tooltip;
+  - `BookSummary.sourceReadiness` carries `{ readiness, coverage }`, not the grade alone;
+  - `extract-report` prints the line, and `--json` carries `summary.coverage` (§CLI).
+
+  This stays advisory: nothing is blocked. A pre-spec book stays partial after a Reassess
+  (`no-signals` on every page) until it is re-extracted as a new book, which is what the
+  amber pill then says.
 
 ### Cost
 
@@ -487,10 +527,7 @@ never invalidates reuse. It is listed in `EXTRA_STAGE_OUTPUT_NODES.extract` only
 and the cache registry treat it as an Extract output.
 
 Every write appends a version with `putNodeData`; no version is ever overwritten, and the
-latest version is the current assessment. This spec does not rely on `clearExtractedData`:
-on develop that call still deletes the node together with the pages it describes; under
-SPEC-0010, where ordinary reruns no longer clear, nothing deletes it and the versions
-accumulate. Each version records `rulesVersion` (`SOURCE_RULES_VERSION`, exported beside
+latest version is the current assessment. Each version records `rulesVersion` (`SOURCE_RULES_VERSION`, exported beside
 `SOURCE_THRESHOLDS` and bumped by any rule, threshold or recommendation change), `trigger`, and
 `assessedExtraction` (the SPEC-0010 manifest fingerprint, or null before SPEC-0010).
 
@@ -503,6 +540,27 @@ accumulate. Each version records `rulesVersion` (`SOURCE_RULES_VERSION`, exporte
 | Spreads re-apply (`pages.ts:1284`), an in-place operation on develop | a version with `trigger: "spreads-reapply"` (§API) | the new assessment |
 | A downstream setting the rules read changes | a version with `trigger: "settings-change"` (§Snapshot and current settings) | the new assessment |
 | Reassess | a version with `trigger: "reassess"`, built from storage | the new assessment |
+| An attempted extraction rerun on a book with pages or a node | nothing: the rerun is refused before anything is cleared (below) | the existing versions, unchanged |
+
+**What the history guarantee requires.** Versions survive only while nothing clears the
+node. `clearExtractedData` deletes every `source-assessment` version together with the pages
+(`clearExtractedRows`, `book-storage.ts:655-660`), and `extractPDF` still calls it
+unconditionally (`pdf-extraction.ts:104`). Since v0.9.0-beta.2 (#879), both orchestrators on
+develop refuse to extract over a book that has pages, before anything is cleared: the API's
+`makeBeforeRun` (409 `UNSAFE_RESUME_UNAVAILABLE`, `apps/api/src/routes/stages.ts:138-141`)
+and the CLI DAG (`pipeline-dag.ts:184`). A direct `extractPDF` call still bypasses both, and
+both test pages only, so on a book with a node but no pages `makeBeforeRun` still clears
+(`stages.ts:161-163`) before `extractPDF` runs. The
+guarantee therefore requires the refusal at the common extraction boundary. SPEC-0010 owns
+that boundary ("a direct `extractPDF` call must not bypass it", §Writer coordination), and
+this spec requires its safe extraction admission and refusal, not the rest of SPEC-0010. If
+that boundary has not landed when PR 2d ships, PR 2d adds an equivalent interim guard with one
+condition, "the book has pages or a `source-assessment` node", shared by all three entry
+points: `extractPDF` throws the same `UNSAFE_RESUME_UNAVAILABLE` error before
+`clearExtractedData`, and the `makeBeforeRun` and CLI DAG checks use the same condition
+instead of pages alone. SPEC-0010's admission later replaces all three. Until PR 2d ships the guard, the spec does not claim preserved history. Even
+with it, an app older than v0.9.0-beta.2 has neither guard and can still clear the node,
+which a newer app cannot detect afterwards. AC-31 covers the guard.
 
 **Reassess** builds the input with `pageInputFromStorage`, reusing each page's `signals` from
 the latest version when one exists, and appends a version. A book that has no node, or whose
@@ -561,9 +619,11 @@ export const StepWarning = z.discriminatedUnion("kind", [
   }),
   // Book Summary: the model call failed and no summary was stored (#1014, PR #1015).
   z.object({ kind: z.literal("summary-missing"), error: z.string() }),
-  // Extract: the source assessment found warnings or criticals (this spec, PR 2c). Derived from
+  // Extract: the source assessment found warnings or criticals, or could not evaluate every
+  // check (this spec, PR 2c). Derived from
   // the latest source-assessment node on read; never written to step_runs.
-  z.object({ kind: z.literal("source-assessment"), warning: z.number().int(), critical: z.number().int() }),
+  // Present when warnings or criticals exist or coverage is partial; incompletePages > 0 marks partial coverage.
+  z.object({ kind: z.literal("source-assessment"), warning: z.number().int(), critical: z.number().int(), incompletePages: z.number().int() }),
 ])
 // Read model only, never written: elements of a stored array that this app cannot parse
 // (a kind from a newer app, or a malformed element).
@@ -577,18 +637,45 @@ Adding a kind is a change to this contract and goes through this spec.
 
 - **Event.** `step-complete` in `ProgressEvent` (`packages/types/src/progress.ts`) gains
   `warnings?: StepWarning[]`. `message` stays, and for a step with warnings it is their English
-  rendering, `formatStepWarnings(warnings)` in `packages/pipeline`. The CLI, the server log and
-  an older Studio read only `message`.
+  rendering, `formatStepWarnings(warnings)` in `packages/pipeline`. That rendering never
+  equals the frozen legacy skip literal (below). For example, it reads "Completed with 3
+  page(s) skipped.", so only text an older app wrote can be adapted. The CLI, the server log
+  and an older Studio read only `message`.
 - **Storage.** `step_runs` gains `warnings TEXT`, holding a `StoredStepWarnings` envelope.
   `markStepCompleted(step, message?, warnings?)` writes `completed_at` and the envelope in the
-  same statement, with `envelope.completedAt` equal to that `completed_at`. This app's
+  same statement, with `envelope.completedAt` equal to that `completed_at`. It always writes
+  an envelope, with `items: []` for a clean completion, so this app's clean completion is
+  recorded evidence rather than an absence. It also always sets `message`, to NULL for a clean
+  completion: develop's `markStepCompleted` without a message keeps the previous one
+  (`book-storage.ts:452-455`), and steps that routes complete directly, without a start, would
+  otherwise carry a stale message forward. The part merge (`part-service.ts:868`), which today
+  copies only `status`, copies `completed_at`, `message` and the envelope together from the
+  part row, so a recorded part stays recorded in the assembled book. When parts disagree, it
+  writes a fresh `completed_at` with an envelope stamped to it that holds the parts' warnings
+  combined, and a part that reads as legacy makes the merged row legacy. This app's
   `markStepStarted`, `markStepSkipped` and `recordStepError` also clear the column. An older
   app does not know the column, so its writes leave the envelope in place. The stamp is what
   keeps such an envelope from being read as current: an older start sets `completed_at = NULL`,
   an older complete or skip writes a new timestamp, and an older error sets `status = 'error'`.
-  The reader therefore returns warnings only when `status = 'done'` **and** `envelope.completedAt`
-  equals the row's `completed_at`; anything else reads as no warnings (the old app's run
-  completed without this app's warnings, which is what happened). New books get the column from `SCHEMA_SQL`. On opening a book for writing, an
+  For a done step the reader tells two cases apart:
+  - **Recorded**: `envelope.completedAt` equals the row's `completed_at`. The warnings are the
+    envelope's items.
+  - **Legacy completion**: there is no envelope, or its stamp does not match. The step was
+    last completed by an app that does not write the column, so there is no current
+    structured evidence. A stale envelope is never revived. A bounded adapter reads the one
+    warning-bearing outcome a released writer records, the skip message from
+    `skipMessage` (`apps/api/src/services/stage-runner.ts:373-378`). A `message` that matches
+    exactly `^Completed — ([1-9]\d*) page\(s\) skipped$` reads as `{ kind: "pages-skipped", count }`.
+    The adapter is frozen to that literal and gains no new patterns: newer outcomes are typed
+    from the start. Any other message gives no warnings, and the step is marked as a legacy
+    completion (`stepWarningSources`, §API). Studio shows "Completed by an older version of
+    ADT Studio; it may not have recorded every warning" in the popover. Among a legacy
+    completion's stored outcomes, only the skip adapts and turns the pill amber. A legacy
+    `extract` step still gets the derived `source-assessment` warning, which comes from the
+    node, not from `step_runs` (§API). Every step of a pre-spec book is a legacy completion
+    until it is rerun.
+
+  A step that is not `done` returns no warnings. New books get the column from `SCHEMA_SQL`. On opening a book for writing, an
   existing book gains it through `ALTER TABLE step_runs ADD COLUMN warnings TEXT` when
   `PRAGMA table_info` lacks it, **without bumping `SCHEMA_VERSION`**. A bump would make every
   older app refuse the book ("Schema version mismatch", `db.ts`). An older app names its
@@ -600,18 +687,25 @@ Adding a kind is a change to this contract and goes through this spec.
   reads as `[{ kind: "unrecognized", count: 1 }]`, not as no warnings. A future read-only open (PR 0's
   `openBookDbReadOnly`) must tolerate the column's absence.
 - **API.** `GET /books/:label/step-status` adds `stepWarnings: Record<string, StepWarningView[]> |
-  null` for done steps, as storage parsed them. For a done `extract` step it appends
+  null` for done steps, as storage parsed them (adapted for a legacy completion), and
+  `stepWarningSources: Record<string, "recorded" | "legacy">` for the same steps. For a done `extract` step it appends
   `sourceAssessmentWarning(latest node)`, computed on read, so the pill, the panel, the page
   badges, the sidebar, `GET source-assessment` and `extract-report` all count from one node,
-  whichever trigger wrote it (§Lifecycle). `stepMessages` is unchanged. The live stream forwards the event, so it carries the same
-  array.
+  whichever trigger wrote it (§Lifecycle). `stepMessages` is unchanged. The live stream
+  forwards the event. Persisted warnings in the event equal those from `GET step-status`. The
+  derived `source-assessment` warning is computed from the version the step wrote, so the
+  event and `GET` agree while that version is the latest. After a later version (a settings
+  change, a spreads re-apply or a Reassess), `GET` follows the latest version, and the
+  historical event intentionally differs.
 - **Studio.** `apps/studio/src/lib/step-warnings.ts` (beside `packaging-warnings.ts`) maps each
   kind to Lingui `msg` descriptors with plurals. A unit test proves every kind has an entry, and
   the strings go into all five catalogs. `useBookRun()` exposes `stepWarnings(step)`. A done
   pill is amber with a warning triangle exactly when its step has warnings, and its popover
   header says so. The popover lists each warning translated. An `unrecognized` entry reads
   "N warning(s) this version of ADT Studio can't show; open the book in a newer version" and
-  keeps the pill amber. For `pages-skipped` it shows the count and links to the skipped pages in
+  keeps the pill amber. A `source-assessment` warning shows the translated counts and, when
+  `incompletePages > 0`, "Not fully assessed on N pages". With zero findings, that line alone
+  is why the pill is amber. For `pages-skipped` it shows the count and links to the skipped pages in
   OutputReview: SPEC-0013's per-page recovery records stay the source of truth, and the count
   never replaces them. For `pages-unchanged` it shows up to five page ids and "and N more",
   each with a translated "the model call failed" line. Once SPEC-0017 lands, its classified,
@@ -649,7 +743,9 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   the tooltip, distinct from the existing amber triangle (which now reads "confirmed").
 - `ExtractPageDetail`: a "Source findings" list beside the pruned-image list, so a pruned
   overlay finally shows "drawn over `pgNNN_imMMM`" next to its prune reason.
-- `StageSidebar`: the Extract badge becomes `counts.warning + counts.critical`.
+- `StageSidebar`: the Extract badge becomes `counts.warning + counts.critical`. When
+  `summary.coverage` is `"partial"`, it adds a partial marker with the tooltip "Not fully
+  assessed on N pages", including when the count is zero (§Work budget).
 - Panel states besides the assessment itself: "Not assessed" (no node) with Reassess;
   "Assessed with older rules" or "Assessed with different settings" with Reassess (§Lifecycle,
   §Snapshot and current settings); "Not fully assessed on N pages" listing the kinds from
@@ -674,8 +770,9 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   GET. `PUT /books/:label/config` appends a `settings-change` version when `editing_language`
   or `image_filters.segmentation` changes on a book that has a node (§Snapshot and current
   settings).
-- `BookSummary` (`packages/types/src/book.ts`) gains optional `sourceReadiness`, dropped if
-  the books-list benchmark (#996) regresses.
+- `BookSummary` (`packages/types/src/book.ts`) gains optional `sourceReadiness: { readiness,
+  coverage }`, dropped if the books-list benchmark (#996) regresses. It never carries the
+  grade without the coverage.
 
 ### CLI
 
@@ -686,6 +783,11 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   English formatter in `packages/pipeline`; `--json` embeds the node; `--compare` diffs
   `summary.counts` and `settings`; a pre-spec book falls back to the recomputed profile.
   Exit code 1 when `counts.warning + counts.critical > 0`, consistent with PR 0's findings exit.
+  Exit code 0 means "no warning or critical among the evaluated checks", not "fully
+  assessed". A partial assessment with no findings exits 0, prints "Not fully assessed on N
+  pages" with the kinds and reasons, and `--json` carries `summary.coverage`. A script that
+  needs full coverage checks that field. A pre-spec book, which can only be assessed without
+  signals, does not fail a CI check because of that.
 
 ## Impact map
 
@@ -766,7 +868,8 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   and restricted permissions extracts normally and yields `pdf-encrypted` info with
   `params.copy`, `params.accessibility`, `params.print`.
 - [ ] AC-11: The `extract` step completes with a `source-assessment` step warning iff
-  `counts.warning + counts.critical > 0`: `prac_math_vol2` produces none and a plain green
+  `counts.warning + counts.critical > 0` or `summary.coverage` is `"partial"` (AC-32):
+  `prac_math_vol2` produces none and a plain green
   pill; cuaderno4 produces the amber "Completed with a warning" pill whose popover carries the
   translated counts.
 - [ ] AC-12: `GET /books/:label/source-assessment` returns the latest version, returns
@@ -781,11 +884,13 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   `SourceFindingKind` has a message entry, and all five catalogs contain the ids with no
   empty `msgstr`.
 - [ ] AC-15: Page cards show a severity badge for every page listed in `pages[].kinds`, and
-  the StageSidebar Extract badge equals `counts.warning + counts.critical` (cuaderno4).
+  the StageSidebar Extract badge equals `counts.warning + counts.critical` (cuaderno4), with
+  the partial marker exactly when `summary.coverage` is `"partial"`.
 - [ ] AC-16: With readiness `poor` (qa784), Sectioning runs and export prepares; no control is
   disabled because of the assessment.
 - [ ] AC-17: `extract-report` prints the persisted findings, exits 1 when warnings or
-  criticals exist, embeds the node in `--json`, and falls back to its recomputed profile for a
+  criticals exist and 0 otherwise, including for a partial assessment with no findings
+  (AC-32), embeds the node in `--json`, and falls back to its recomputed profile for a
   book without the node.
 - [ ] AC-18: False-positive and cost bounds: `prac_math_vol2` has zero critical and ≤ 2
   warning findings; extract wall time on `prac_math_vol2` and qa784 is within +5 % of the
@@ -825,10 +930,15 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   `layered-artwork` (blend, opacity, clip, stencil, soft mask), `watermark-detected` (only
   while `remove_watermarks` is off), `book-scale` (300 pages / 500 Mpx) and `shape-flood`
   (1,500 shapes / 60 rasters).
-- [ ] AC-25: A step that completes with warnings persists them typed. `GET step-status`
-  returns them under `stepWarnings` for the done step, the live `step-complete` event carries
-  the same array, `message` is their English rendering, and starting, skipping or failing the
-  step again clears them. A step without warnings has no `stepWarnings` entry.
+- [ ] AC-25: A step that completes with warnings persists them typed, except the derived
+  `source-assessment` warning, which is never persisted. `GET step-status` returns them under
+  `stepWarnings` for the done step, with `stepWarningSources` set to `"recorded"`. The live
+  `step-complete` event carries the same persisted warnings, and `message` is their English
+  rendering. For `extract`, the event's `source-assessment` entry equals the one from `GET`
+  while the version the step wrote is still the latest. After a Reassess, `GET` follows the
+  new version and the event does not. Starting, skipping or failing the step again clears the
+  warnings. A step this app completes without warnings has an empty envelope and no
+  `stepWarnings` entry.
 - [ ] AC-26: Studio renders every `StepWarning` kind through Lingui in all five locales. A done
   pill is amber exactly when its step has warnings, and its popover header agrees. A finished
   step's free-text `message` is not shown. With the Studio locale set to `es`, a
@@ -838,10 +948,20 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 - [ ] AC-27: Compatibility, as semantic round trips through an older writer. The older
   writer's statements are copied verbatim from develop's `markStepStarted`,
   `markStepCompleted`, `markStepSkipped` and `recordStepError` into the test.
-  (a) A book whose `step_runs` lacks the column opens, reads its rows with no warnings, and
-  gains the column with `SCHEMA_VERSION` unchanged.
-  (b) After this app completes a step with warnings, the older start then complete leave the
-  column in place, but the step reads with **no** warnings, because the stamp no longer matches.
+  (a) A book whose `step_runs` lacks the column opens and gains the column with
+  `SCHEMA_VERSION` unchanged. Its done rows read as `"legacy"`, with no warnings, except a row
+  whose message is the skip literal, which reads as `pages-skipped`.
+  (b) After this app completes a step with warnings, an older start then a clean older
+  complete leave the column in place. The step reads with **no** warnings because the stamp no
+  longer matches, and `stepWarningSources` is `"legacy"`. When the older complete records a
+  **new** skip instead (`"Completed — 3 page(s) skipped"`), the step reads as
+  `[{ kind: "pages-skipped", count: 3 }]`, `"legacy"`, with an amber pill. The stale envelope's
+  warnings appear in neither case. A message that merely contains the skip text, or any other
+  message, adapts to no warnings, and so does `"Completed — 0 page(s) skipped"`. After this
+  app records a skip (its own rendering, not the literal), an older direct complete without a
+  message reads as `"legacy"` with **no** warnings: neither the stale envelope nor this app's
+  message revives the skip. A book assembled from parts this app completed reads as
+  `"recorded"`.
   (c) After this app's warnings, an older error leaves the step `error` with no warnings
   returned, and an older skip leaves it `skipped` with none.
   (d) A stored `[known, unknown kind, malformed]` reads as the known warning plus
@@ -866,6 +986,25 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 - [ ] AC-30: Skipped pages stay discoverable. After a run that skips pages (SPEC-0013) and a
   reload, the `pages-skipped` popover links to them, and OutputReview lists the same pages from
   SPEC-0013's recovery records.
+- [ ] AC-31: History survives an attempted rerun. A book with assessment v1 (`extract`) and v2
+  (`reassess`) gets an ordinary extraction rerun through each of the API
+  (`fromStage: "extract"`), the CLI DAG and a direct `extractPDF` call. Each is refused with
+  `UNSAFE_RESUME_UNAVAILABLE` before anything is cleared, and v1, v2, the pages and the
+  images are all still present. The same holds for a book that has a node but no pages, through
+  each of the three entry points. This holds with SPEC-0010's boundary or with PR 2d's interim
+  guard.
+- [ ] AC-32: Partial coverage with zero findings. A synthetic book with no warning or critical
+  finding of any kind, reassessed without `signals` (so `incomplete` lists the signal-fed
+  kinds with `no-signals`) gives:
+  - readiness `ready`, `coverage: "partial"` and the right `incompletePages`;
+  - an amber `extract` pill whose popover says "Not fully assessed on N pages";
+  - a sidebar badge of 0 with the partial marker;
+  - if the field ships (OQ5), `BookSummary.sourceReadiness` equal to `{ readiness: "ready",
+    coverage: "partial" }`;
+  - `extract-report` printing the line, exiting 0, with `summary.coverage` in `--json`.
+
+  The same book with `signals` present gives `coverage: "complete"`, a green pill, no marker
+  and exit 0.
 
 ## Test plan
 
@@ -885,7 +1024,7 @@ findings are asserted in `packages/pipeline` tests.
 | AC-8 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-8: reports spreads-unmarked only with suggestions and spread mode off` |
 | AC-9 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` (counters), `packages/pipeline/src/__tests__/source-assessment.test.ts` (finding) | `AC-9: counts image decode failures without aborting extraction` |
 | AC-10 | integration | `packages/pdf/src/__tests__/source-signals.test.ts` (typed error, permissions read), `packages/pipeline/src/__tests__/source-assessment.test.ts` (`pdf-encrypted` finding) | `AC-10: fails clearly on a password-required PDF and reports pdf-encrypted on restricted permissions` |
-| AC-11 | unit + integration + browser | `packages/pipeline/src/__tests__/source-assessment.test.ts` (`sourceAssessmentWarning`, PR 2c), `apps/api/src/services/stage-runner.test.ts` (PR 4), `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (PR 5b, after #1013) | `AC-11: extract step warning appears only with warning or critical findings` |
+| AC-11 | unit + integration + browser | `packages/pipeline/src/__tests__/source-assessment.test.ts` (`sourceAssessmentWarning`, PR 2c), `apps/api/src/services/stage-runner.test.ts` (PR 4), `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (PR 5b, after #1013) | `AC-11: extract step warning appears only with warning or critical findings or partial coverage` |
 | AC-12 | integration | `apps/api/src/routes/source-assessment.test.ts`, `apps/api/src/routes/pages.test.ts` | `AC-12: returns the latest assessment, nulls when absent, and page rollups` |
 | AC-13 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-13: assessment is deterministic and provider-free` |
 | AC-14 | unit + browser | `apps/studio/src/lib/source-assessment-messages.test.ts`, `apps/studio/src/components/pipeline/stages/extract/components/SourceQualityPanel.test.tsx` | `AC-14: every finding kind has a translated title, description and recommendation` |
@@ -899,12 +1038,14 @@ findings are asserted in `packages/pipeline` tests.
 | AC-22 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts` (rule, PR 2c), `packages/pdf/src/__tests__/source-signals.test.ts` (`occludedRasters`, PR 3b) | `AC-22: reports raster-occluded for opaque content painted over a raster` |
 | AC-23 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-23: reports mixed-page-types only when digital and scanned pages coexist` |
 | AC-24 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-24: every remaining kind fires at its threshold and not below` |
-| AC-25 | unit + integration | `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/api/src/routes/stages.test.ts`, `apps/api/src/services/stage-runner.test.ts` (#1013) | `AC-25: step warnings are persisted typed, returned for done steps and cleared on restart` |
+| AC-25 | unit + integration | `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/api/src/routes/stages.test.ts`, `apps/api/src/services/stage-runner.test.ts` (#1013); the `extract` event-versus-GET equality and its divergence after a Reassess in `apps/api/src/routes/stages.test.ts` (PR 4) | `AC-25: step warnings are persisted typed, returned for done steps and cleared on restart` |
 | AC-26 | unit + component + browser | `apps/studio/src/lib/step-warnings.test.ts`, `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (#1013); the `es` rendering is checked in a browser, because Studio unit tests stub the Lingui macros, and the CI i18n job enforces complete catalogs | `AC-26: every step warning kind renders a translated summary`; `AC-26: a done pill is amber with a warning only when its step has warnings` |
-| AC-27 | integration | `packages/storage/src/__tests__/step-warnings.test.ts` (#1013) | `AC-27: warnings survive no older-writer round trip and unknown kinds stay visible` |
+| AC-27 | integration + component | `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/api/src/services/part-service.test.ts` (part merge), `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (amber pill and legacy line) (#1013) | `AC-27: older-writer round trips never revive stale warnings, adapt only the legacy skip literal, and unknown kinds stay visible` |
 | AC-28 | integration + browser | `apps/api/src/routes/source-assessment.test.ts` (PR 4), `apps/studio/src/components/pipeline/stages/extract/ExtractView.source-assessment.test.tsx` (PR 5b) | `AC-28: every surface counts from the latest assessment after each trigger` |
 | AC-29 | unit + integration | `packages/pdf/src/__tests__/source-signals.test.ts` (occlusion budget, PR 3b), `packages/pipeline/src/__tests__/source-assessment.test.ts` (pairwise cap and `incomplete`, PR 2b) | `AC-29: geometry passes stay within budget and report truncation` |
 | AC-30 | browser | `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (#1013) | `AC-30: skipped pages stay discoverable after reload` |
+| AC-31 | integration | `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (direct `extractPDF`), `apps/api/src/routes/stages.test.ts` and `packages/pipeline/src/__tests__/pipeline-dag.test.ts` (orchestrators), all PR 2d | `AC-31: an attempted extraction rerun keeps every assessment version` |
+| AC-32 | unit + integration + browser | `packages/pipeline/src/__tests__/source-assessment.test.ts` (coverage, PR 2b; `sourceAssessmentWarning`, PR 2c), `apps/api/src/routes/source-assessment.test.ts` (`BookSummary`, PR 4), `packages/pipeline/src/__tests__/extract-report.test.ts` (exit code, PR 6), `apps/studio/src/components/pipeline/components/StageSidebar.test.tsx` and `SubStepPillRow.test.tsx` (PR 5b) | `AC-32: partial coverage with zero findings is amber everywhere and exits 0` |
 
 Fixtures: cuaderno4 pages 1, 6 and 12 and cuaderno3 page 9 extracted in the test (the
 PDFs are local corpus files, listed in `docs/verification/spec-0021.md`, not committed);
@@ -954,7 +1095,8 @@ rules PR; every PR is opened as a draft until this spec is `approved` on develop
    `shape-flood`, `book-scale`; AC-2, AC-5, AC-6, AC-8, AC-13, AC-23 (≈ 320);
    b) figure-geometry rules: `raster-overlay-split`, `raster-tiles`, `figure-render-holes`,
    `low-resolution-raster`, `layered-artwork`; the 200-raster pairwise cap and
-   `summary.incomplete`; AC-3, AC-4, AC-19 and the rule half of AC-29 on synthetic inputs (≈ 320);
+   `summary.incomplete`, `coverage` and `incompletePages`; AC-3, AC-4, AC-19, the rule half of
+   AC-29 and the coverage half of AC-32 on synthetic inputs (≈ 330);
    c) signal-fed and document rules, all skipped while `signals` or `source.structure` is
    null: `ink-without-text`, `blank-page`, `text-unmapped-glyphs`, `hidden-text-layer`,
    `raster-occluded`, `image-decode-failed`, `needs-convert-colorspace`, `page-geometry`,
@@ -962,8 +1104,10 @@ rules PR; every PR is opened as a draft until this spec is `approved` on develop
    readiness, rollups, `sourceAssessmentWarning`; the rule halves of AC-7, AC-9, AC-10, AC-11,
    AC-20, AC-21, AC-22, and AC-24 (≈ 360);
    d) the write: `pdf-extraction.ts`, `assessmentSettings` from both callers (the CLI DAG and
-   `apps/api/src/services/stage-runner.ts`), `pageInputFromStorage`; AC-1, the corpus halves
-   of AC-3 and AC-4 (≈ 260).
+   `apps/api/src/services/stage-runner.ts`), `pageInputFromStorage`, and the interim
+   extraction guard (one "pages or node" condition in `extractPDF`, `makeBeforeRun` and the
+   CLI DAG) unless SPEC-0010's boundary has landed (§Lifecycle); AC-1, the corpus halves of
+   AC-3 and AC-4, AC-31 (≈ 300).
 3. `packages/pdf` (signals only; reverting any of these degrades — its kinds vanish, the
    pngjs call returns — rather than removing the node):
    a) the pixmap pass: render restructure on the single-page, spread and watermark paths,
@@ -977,22 +1121,32 @@ rules PR; every PR is opened as a draft until this spec is `approved` on develop
    AC-21 (≈ 220).
 4. `apps/api`: route, payload fields, spreads re-apply recompute, the reassess route, the
    `PUT config` settings-change hook, the derived `source-assessment` entry in `GET
-   step-status`; AC-12, AC-16, the API halves of AC-11 and AC-28 (≈ 350; split the reassess
+   step-status`, `BookSummary.sourceReadiness` with coverage; AC-12, AC-16, the API halves of
+   AC-11, AC-28 and AC-32 (≈ 360; split the reassess
    route and the config hook into 4b if it runs over).
 5. `apps/studio` a) shared validation components, messages map, hook, catalogs (≈ 320);
    b) panel (with the not-assessed, outdated and incomplete states and the Reassess button),
-   page badges, page detail, sidebar; AC-14, AC-15, the pill half of AC-11, the browser half
-   of AC-28 (≈ 400; split the page-detail list out if it runs over). Needs #1013.
+   page badges, page detail, sidebar with the partial marker; AC-14, AC-15, the pill half of
+   AC-11, the browser halves of AC-28 and AC-32 (≈ 400; split the page-detail list out if it runs over). Needs #1013.
 
 **#1013 implements §Step warnings** next to its original fix (#1012, the image passes naming
 the pages left unchanged): `StepWarning`, the event field, the column, the API field, the
 Studio rendering, AC-25 to AC-27 and AC-30 (≈ 600 lines with tests and catalogs). The
 2026-11-04 revision changes what it implements: the completion-stamped envelope, parsing each
 element on its own with `unrecognized`, the `source-assessment` kind never persisted, and the
-SPEC-0017 disclosure for provider text. #1013 adopts these before it leaves draft. It is a
+SPEC-0017 disclosure for provider text. The 2026-11-13 revision adds:
+- an envelope on every completion (`items: []` when clean);
+- the legacy-completion adapter for the skip message, with `stepWarningSources`;
+- `message` always set (NULL when clean), an English rendering that differs from the legacy
+  literal, and a part merge that carries `completed_at`, `message` and the envelope;
+- `incompletePages` on the `source-assessment` kind;
+- the narrowed AC-25 equality and the new-skip case of AC-27(b).
+
+#1013 adopts these before it leaves draft. It is a
 draft until this spec is `approved`. #1015, stacked on it, then emits `summary-missing`.
 6. CLI: `extract-report` source section on top of PR 0 (still read-only) with the incomplete
-   line; the `assess-source` subcommand; AC-17 and the CLI half of AC-28 (≈ 200).
+   line, the documented exit code and `summary.coverage` in `--json`; the `assess-source`
+   subcommand; AC-17 and the CLI halves of AC-28 and AC-32 (≈ 210).
 
 Independent fast-lane fix, before AC-18 is measured: keep the `extract` row in `step_runs`
 when `clearExtractedRows` runs (`book-storage.ts:663`), with a test that `started_at`
@@ -1004,7 +1158,7 @@ survives a re-extract.
 |---|---|---|
 | #1009 `extract-report` CLI (#1008) | **Adopted as PR 0**, owned by this spec | The baseline report, `MIN_TEXT_LAYER_CHARS`, `TextProfile`, the exit-code convention, the `--compare` / `--json` surfaces PR 6 extends |
 | #1013 image-pass failures (#1012) | **Implements §Step warnings**; hard prerequisite of PR 2c, PR 5b and AC-11 | The typed step-warning channel: `StepWarning`, the `step-complete` field, `step_runs.warnings`, `stepWarnings` in `GET step-status`, the translated amber pill, and the console sink printing `event.message` |
-| SPEC-0010 safe reruns (#886, in review) | Reconciled, not a dependency | §Lifecycle: the node is derived and stays out of the manifest inventory; reuse writes nothing; the spec no longer relies on `clearExtractedData` |
+| SPEC-0010 safe reruns (#886, in review) | **Prerequisite of the history guarantee only**: its safe extraction admission and refusal at the common boundary, or PR 2d's interim guard until then (§Lifecycle, AC-31). The rest of SPEC-0010 is not a dependency | §Lifecycle: the node is derived and stays out of the manifest inventory; reuse writes nothing; an extraction rerun is refused before `clearExtractedData` runs |
 | SPEC-0013 page-failure recovery (#889, in review) | Owner of skipped-page records | `pages-skipped` is a count that links to SPEC-0013's per-page recovery records and OutputReview; it never replaces them (AC-30) |
 | SPEC-0017 connectivity handling (#950, in review) | Owner of error disclosure | Provider error text in `pages-unchanged` and `summary-missing` is shown through its technical-details disclosure; its classified wording replaces the generic line once it lands |
 | SPEC-0020 figure cleanup (#993, in review) | Recommendation target | `figure-cleanup` opens its entry point; R-h is a proposed extension that needs its owner's agreement |
