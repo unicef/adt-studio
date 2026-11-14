@@ -19,6 +19,7 @@ already holds its number — check both before taking one
 | SPEC-0007 | Accessibility harness as a blocking CI gate                     | draft  | TBD         | 0.9.0     |
 | SPEC-0008 | Stable identifiers and reading order (retrospective)            | draft  | TBD         | Block 1   |
 | [SPEC-0015](SPEC-0015-nano-banana-image-models.md) | Nano Banana image models | in-review | @elasticsounds | #579 / #904 |
+| [SPEC-0024](SPEC-0024-rtl-direction-neutral-pages.md) | Right-to-left books — direction-neutral page generation | in-review | @elasticsounds | — |
 
 SPEC-0002 was approved by @elasticsounds on 2026-11-01 within its agreed scope and
 explicit deferrals; see its [approval and follow-up record](SPEC-0002-manual-edit-preservation.md#approval-and-follow-up--2026-11-01).
