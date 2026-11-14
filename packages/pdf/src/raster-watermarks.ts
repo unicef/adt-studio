@@ -594,6 +594,15 @@ function straightRunShare(
   return straight / total;
 }
 
+/**
+ * Let whatever else is waiting on the event loop run. Learning reads dozens
+ * of pages and takes seconds; without this, every other request to the
+ * process (and the progress events of this one) would wait until it is done.
+ */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 /** Stamps already learned, by PDF content (see `detectRasterWatermark`). */
 const learnedStamps = new Map<string, RasterWatermark | null>();
 const LEARNED_STAMPS_KEPT = 4;
@@ -603,14 +612,18 @@ const LEARNED_STAMPS_KEPT = 4;
  *
  * Samples pages evenly over the whole document (independent of any
  * extraction page range, so partial extractions of the same PDF agree).
- * Returns null when the document has too few image pages or no qualifying
- * mark — never throws.
+ * Resolves to null when the document has too few image pages or no
+ * qualifying mark — never rejects.
  *
- * Learning reads up to a hundred pages, so pass `cacheKey` (something that
- * identifies the PDF's content) when the same document may be extracted
- * again — re-extracting two pages for a spread merge must not repeat it.
+ * Learning reads up to a hundred pages and takes seconds, so it yields to
+ * the event loop between pages. Pass `cacheKey` (something that identifies
+ * the PDF's content) when the same document may be extracted again —
+ * re-extracting two pages for a spread merge must not repeat it.
  */
-export function detectRasterWatermark(doc: MupdfDocument, cacheKey?: string): RasterWatermark | null {
+export async function detectRasterWatermark(
+  doc: MupdfDocument,
+  cacheKey?: string,
+): Promise<RasterWatermark | null> {
   if (cacheKey !== undefined) {
     const known = learnedStamps.get(cacheKey);
     if (known !== undefined) {
@@ -622,7 +635,7 @@ export function detectRasterWatermark(doc: MupdfDocument, cacheKey?: string): Ra
   }
   let model: RasterWatermark | null;
   try {
-    model = learnRasterWatermark(doc);
+    model = await learnRasterWatermark(doc);
   } catch (err) {
     // Not remembered: a failure says nothing about the document.
     console.warn(
@@ -662,7 +675,7 @@ interface LearnedMarks {
  * paper. `pageSize` is the page's size on this grid; pages that round to a
  * different size are skipped, since the stamp would sit a pixel off.
  */
-function learnMarks(
+async function learnMarks(
   doc: MupdfDocument,
   pages: number[],
   scale: number,
@@ -671,7 +684,7 @@ function learnMarks(
   /** Paper brightness from an earlier whole-page pass. A region cropped to
    *  the stamp may be mostly stamp, and cannot measure its own paper. */
   knownPaperLevel?: number,
-): LearnedMarks | null {
+): Promise<LearnedMarks | null> {
   const rect: GridRect = region ?? [0, 0, pageSize.width, pageSize.height];
   const width = rect[2] - rect[0];
   const height = rect[3] - rect[1];
@@ -681,6 +694,7 @@ function learnMarks(
   const planes: PaperPlane[] = [];
   const used: number[] = [];
   for (const index of pages) {
+    await yieldToEventLoop();
     try {
       const page = doc.loadPage(index);
       const bounds = page.getBounds();
@@ -827,7 +841,7 @@ function chooseStamp(
   return null;
 }
 
-function learnRasterWatermark(doc: MupdfDocument): RasterWatermark | null {
+async function learnRasterWatermark(doc: MupdfDocument): Promise<RasterWatermark | null> {
   const totalPages = doc.countPages();
   if (totalPages < MIN_IMAGE_PAGES) return null;
 
@@ -848,13 +862,20 @@ function learnRasterWatermark(doc: MupdfDocument): RasterWatermark | null {
   // At least two of them: one stray picture page in a long vector document
   // would otherwise send every candidate page through the same check, and
   // interpreting a heavy vector page is slow.
-  if (spreadPageIndices(totalPages, PRECHECK_PAGES).filter(isImagePage).length < 2) return null;
+  let pictured = 0;
+  for (const index of spreadPageIndices(totalPages, PRECHECK_PAGES)) {
+    if (isImagePage(index)) pictured++;
+    await yieldToEventLoop();
+  }
+  if (pictured < 2) return null;
 
   // A stamp sits at one position on one page size, so learn from the pages
   // of the most common size. Covers and inserts are often a different size
   // and must not decide (or sink) the grid.
   const bySize = new Map<string, number[]>();
-  for (const index of spreadPageIndices(totalPages, MAX_CANDIDATE_PAGES).filter(isImagePage)) {
+  for (const index of spreadPageIndices(totalPages, MAX_CANDIDATE_PAGES)) {
+    if (!measured.has(index)) await yieldToEventLoop();
+    if (!isImagePage(index)) continue;
     const info = measured.get(index) as PageImageCoverage;
     const key = `${Math.round(info.widthPt * 2)}x${Math.round(info.heightPt * 2)}`;
     const group = bySize.get(key);
@@ -899,7 +920,7 @@ function learnRasterWatermark(doc: MupdfDocument): RasterWatermark | null {
 
   let scale = locateScale;
   let pageSize = pageSizeAt(scale);
-  let learned = learnMarks(doc, pagesFor(pageSize.width * pageSize.height), scale, pageSize, undefined);
+  let learned = await learnMarks(doc, pagesFor(pageSize.width * pageSize.height), scale, pageSize, undefined);
   if (!learned) return null;
   let stamp = chooseStamp(learned, pageSize, (scale * 72) / REFERENCE_DPI);
   if (!stamp) return null;
@@ -920,7 +941,7 @@ function learnRasterWatermark(doc: MupdfDocument): RasterWatermark | null {
       Math.min(fineSize.height, Math.ceil(stamp.box[3] * grow) + margin),
     ];
     const regionPixels = (region[2] - region[0]) * (region[3] - region[1]);
-    const fine = learnMarks(doc, pagesFor(regionPixels), nativeScale, fineSize, region, learned.paperLevel);
+    const fine = await learnMarks(doc, pagesFor(regionPixels), nativeScale, fineSize, region, learned.paperLevel);
     const fineStamp = fine ? chooseStamp(fine, fineSize, (nativeScale * 72) / REFERENCE_DPI) : null;
     // The fine pass reads fewer pages, so it can come up empty or with holes
     // where too few of them show blank paper. A sharper stamp that is missing
@@ -959,6 +980,7 @@ function learnRasterWatermark(doc: MupdfDocument): RasterWatermark | null {
   let darkensEvidence = 0;
   const usedPages = learned.pages;
   for (const index of spreadPageIndices(usedPages.length, COLOUR_FIT_PAGES).map((i) => usedPages[i])) {
+    await yieldToEventLoop();
     try {
       const rendered = renderImagesOnly(doc.loadPage(index), scale, around);
       const fit = fitStamp(rendered.rgb, aroundW, aroundH, 3, [aroundW, 0, 0, aroundH, around[0], around[1]], draft, 1, true);

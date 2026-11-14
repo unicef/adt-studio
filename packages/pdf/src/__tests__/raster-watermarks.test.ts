@@ -143,9 +143,11 @@ function stampInColour(rgb: Uint8Array): Uint8Array {
  * box and a white one, at a different place on every page. With `mostly`,
  * one box covers nearly the whole stamp.
  */
-function paintObjectsOver(rgb: Uint8Array, pageIndex: number, mostly: boolean): Uint8Array {
+function paintObjectsOver(rgb: Uint8Array, pageIndex: number, how: "some" | "mostly" | "white"): Uint8Array {
   const out = new Uint8Array(rgb);
-  const boxes: Array<{ x: number; y: number; w: number; h: number; colour: [number, number, number] }> = mostly
+  const boxes: Array<{ x: number; y: number; w: number; h: number; colour: [number, number, number] }> = how === "white"
+    ? [{ x: 70, y: 135, w: 290, h: 285, colour: [254, 254, 254] }]
+    : how === "mostly"
     ? [{ x: 60, y: 120, w: 310, h: 200, colour: [251, 215, 232] }]
     : [
         { x: 110 + ((pageIndex * 37) % 120), y: 170 + ((pageIndex * 53) % 130), w: 110, h: 90, colour: [251, 215, 232] },
@@ -195,8 +197,12 @@ function buildPdf(options: {
   softMask?: boolean;
   /** Stamp in a pale colour instead of grey. */
   colouredStamp?: boolean;
-  /** Draw opaque objects over the stamp, as a page that hides it would. */
-  objectsOver?: "some" | "mostly";
+  /**
+   * Draw opaque objects over the stamp, as a page that hides it would:
+   * "some" and "mostly" on every third page, "white" (one white box over
+   * the whole stamp) on the other two of every three.
+   */
+  objectsOver?: "some" | "mostly" | "white";
   /** Pixels per page pixel: 3 makes the pictures 300 DPI instead of 100. */
   enlarge?: number;
 }): Buffer {
@@ -219,8 +225,9 @@ function buildPdf(options: {
     const clean = pagePixels(p, paper, furniture);
     const stamped = colouredStamp ? stampInColour(clean) : stamp(clean, blend, peak);
     const marked = unstamped.includes(p) ? clean : stamped;
-    // Every third page, so the stamp still shows on enough pages to be learned.
-    const covered = objectsOver && p % 3 === 0 ? paintObjectsOver(marked, p, objectsOver === "mostly") : marked;
+    // On some pages only, so the stamp still shows on enough of them to be learned.
+    const hidesIt = objectsOver === "white" ? p % 3 !== 0 : p % 3 === 0;
+    const covered = objectsOver && hidesIt ? paintObjectsOver(marked, p, objectsOver) : marked;
     const pixels = enlarge(covered, factor);
     const pixmap = new mupdf.Pixmap(mupdf.ColorSpace.DeviceRGB, [0, 0, IMG_W * factor, IMG_H * factor], false);
     pixmap.getPixels().set(pixels);
@@ -296,9 +303,9 @@ function stampAreaError(
 }
 
 describe("detectRasterWatermark", () => {
-  it("learns a stamp baked into full-page images", () => {
+  it("learns a stamp baked into full-page images", async () => {
     const doc = openDoc(buildPdf({}));
-    const model = detectRasterWatermark(doc);
+    const model = await detectRasterWatermark(doc);
     expect(model).not.toBeNull();
     if (!model) return;
     // Learned on the images' own 100 DPI grid.
@@ -314,29 +321,29 @@ describe("detectRasterWatermark", () => {
     expect(Math.abs(model.box[3] - y1)).toBeLessThanOrEqual(4);
   });
 
-  it("finds nothing when the page images carry no stamp", () => {
+  it("finds nothing when the page images carry no stamp", async () => {
     const everyPage = Array.from({ length: PAGE_COUNT }, (_, i) => i);
-    expect(detectRasterWatermark(openDoc(buildPdf({ unstamped: everyPage })))).toBeNull();
+    expect(await detectRasterWatermark(openDoc(buildPdf({ unstamped: everyPage })))).toBeNull();
   });
 
-  it("ignores documents that are not made of page images", () => {
+  it("ignores documents that are not made of page images", async () => {
     // Text-stamp fixture: vector/text pages, handled by the text detector.
-    expect(detectRasterWatermark(openDoc(createWatermarkedTestPdf(12)))).toBeNull();
+    expect(await detectRasterWatermark(openDoc(createWatermarkedTestPdf(12)))).toBeNull();
   });
 
-  it("does not guess from too few pages", () => {
-    expect(detectRasterWatermark(openDoc(buildPdf({ pageCount: 5 })))).toBeNull();
+  it("does not guess from too few pages", async () => {
+    expect(await detectRasterWatermark(openDoc(buildPdf({ pageCount: 5 })))).toBeNull();
   });
 
-  it("does not take a repeated grey page frame or rule for a watermark", () => {
+  it("does not take a repeated grey page frame or rule for a watermark", async () => {
     const everyPage = Array.from({ length: PAGE_COUNT }, (_, i) => i);
     const furniture = { frame: true, rule: true };
-    expect(detectRasterWatermark(openDoc(buildPdf({ unstamped: everyPage, furniture })))).toBeNull();
+    expect(await detectRasterWatermark(openDoc(buildPdf({ unstamped: everyPage, furniture })))).toBeNull();
   });
 
-  it("finds a faint stamp even when page furniture outweighs it", () => {
+  it("finds a faint stamp even when page furniture outweighs it", async () => {
     const pdf = buildPdf({ stampOpacity: 0.1, furniture: { frame: true, rule: true } });
-    const model = detectRasterWatermark(openDoc(pdf));
+    const model = await detectRasterWatermark(openDoc(pdf));
     expect(model).not.toBeNull();
     if (!model) return;
     // The stamp, not the frame (which would span the whole page).
@@ -347,31 +354,67 @@ describe("detectRasterWatermark", () => {
     expect(Math.abs(model.box[3] - y1)).toBeLessThanOrEqual(6);
   });
 
-  it("does not mistake the soft edge of a coloured stamp for a grey one", () => {
+  it("does not mistake the soft edge of a coloured stamp for a grey one", async () => {
     // Coloured stamps are out of scope; half-removing one would be worse.
-    expect(detectRasterWatermark(openDoc(buildPdf({ colouredStamp: true })))).toBeNull();
+    expect(await detectRasterWatermark(openDoc(buildPdf({ colouredStamp: true })))).toBeNull();
   });
 
-  it("learns from the common page size when the cover is a different size", () => {
-    const model = detectRasterWatermark(openDoc(buildPdf({ firstPageWidth: 320 })));
+  it("learns most of a stamp that is hidden on two pages in three", async () => {
+    // A white box covers the whole stamp on two of every three pages. Those
+    // pages are blank paper there and outvote the rest, so a plain median
+    // sees no stamp at all. It is found as the darker group of samples that
+    // agree with each other — where enough of the remaining pages show it.
+    const doc = openDoc(buildPdf({ objectsOver: "white", pageCount: 48 }));
+    const model = await detectRasterWatermark(doc);
+    expect(model).not.toBeNull();
+    if (!model) return;
+    expect(model.box).toEqual(stampBox());
+    expect(model.peakOpacity).toBeGreaterThan(STAMP_OPACITY - 0.04);
+
+    // Not all of it: text and tinted blocks hide more of the stamp on the
+    // pages that are left, and a spot seen on too few of them stays unlearned.
+    const boxW = model.box[2] - model.box[0];
+    let stampPixels = 0;
+    let learned = 0;
+    for (let y = model.box[1]; y < model.box[3]; y++) {
+      for (let x = model.box[0]; x < model.box[2]; x++) {
+        if (stampOpacity(x, y) < 0.05) continue;
+        stampPixels++;
+        if (model.opacity[(y - model.box[1]) * boxW + x - model.box[0]] > 0) learned++;
+      }
+    }
+    expect(learned / stampPixels).toBeGreaterThan(0.7);
+
+    // Page 3 shows the stamp; what was learned is removed from it.
+    const result = renderPageWithoutRasterWatermark(doc.loadPage(3), 2, model);
+    expect(result?.cleaned).toHaveLength(1);
+    if (!result) return;
+    const truth = pagePixels(3);
+    const before = stampAreaError(stamp(truth, "multiply"), 3, truth);
+    const after = stampAreaError(result.cleaned[0].pixels, 3, truth);
+    expect(after.mean).toBeLessThan(before.mean * 0.4);
+  }, 60_000);
+
+  it("learns from the common page size when the cover is a different size", async () => {
+    const model = await detectRasterWatermark(openDoc(buildPdf({ firstPageWidth: 320 })));
     expect(model).not.toBeNull();
     expect(model?.pagesSampled).toBe(PAGE_COUNT - 1);
   });
 
-  it("remembers the result for a document when given a key", () => {
+  it("remembers the result for a document when given a key", async () => {
     const doc = openDoc(buildPdf({}));
-    const first = detectRasterWatermark(doc, "raster-watermark-test-key");
+    const first = await detectRasterWatermark(doc, "raster-watermark-test-key");
     expect(first).not.toBeNull();
-    expect(detectRasterWatermark(doc, "raster-watermark-test-key")).toBe(first);
-    expect(detectRasterWatermark(doc)).not.toBe(first);
+    expect(await detectRasterWatermark(doc, "raster-watermark-test-key")).toBe(first);
+    expect(await detectRasterWatermark(doc)).not.toBe(first);
   });
 });
 
 describe("renderPageWithoutRasterWatermark", () => {
   for (const blend of ["multiply", "keep-colour"] as const) {
-    it(`restores what the stamp covered (${blend} blend)`, () => {
+    it(`restores what the stamp covered (${blend} blend)`, async () => {
       const doc = openDoc(buildPdf({ blend }));
-      const model = detectRasterWatermark(doc);
+      const model = await detectRasterWatermark(doc);
       expect(model).not.toBeNull();
       if (!model) return;
 
@@ -397,12 +440,12 @@ describe("renderPageWithoutRasterWatermark", () => {
     });
   }
 
-  it("leaves objects drawn over the stamp alone, and cleans around them", () => {
+  it("leaves objects drawn over the stamp alone, and cleans around them", async () => {
     // The stamp was put down first; on every third page a pink box and a
     // white box cover part of it. Undoing the whole stamp shape would leave
     // bright letters on the pink box.
     const doc = openDoc(buildPdf({ objectsOver: "some" }));
-    const model = detectRasterWatermark(doc);
+    const model = await detectRasterWatermark(doc);
     expect(model).not.toBeNull();
     if (!model) return;
 
@@ -410,8 +453,8 @@ describe("renderPageWithoutRasterWatermark", () => {
       const result = renderPageWithoutRasterWatermark(doc.loadPage(pageIndex), 2, model);
       expect(result?.cleaned).toHaveLength(1);
       if (!result) return;
-      const truth = paintObjectsOver(pagePixels(pageIndex), pageIndex, false);
-      const before = stampAreaError(paintObjectsOver(stamp(pagePixels(pageIndex), "multiply"), pageIndex, false), 3, truth);
+      const truth = paintObjectsOver(pagePixels(pageIndex), pageIndex, "some");
+      const before = stampAreaError(paintObjectsOver(stamp(pagePixels(pageIndex), "multiply"), pageIndex, "some"), 3, truth);
       const after = stampAreaError(result.cleaned[0].pixels, 3, truth);
       expect(before.mean).toBeGreaterThan(10);
       expect(after.mean).toBeLessThan(3);
@@ -419,11 +462,11 @@ describe("renderPageWithoutRasterWatermark", () => {
     }
   });
 
-  it("fills in an opaque stamp where it covers coloured content", () => {
+  it("fills in an opaque stamp where it covers coloured content", async () => {
     // Dividing a solid grey letter that sits on a tinted block would turn
     // it white. It is filled in with the block's colour instead.
     const doc = openDoc(buildPdf({ blend: "opaque" }));
-    const model = detectRasterWatermark(doc);
+    const model = await detectRasterWatermark(doc);
     expect(model).not.toBeNull();
     if (!model) return;
 
@@ -470,17 +513,17 @@ describe("renderPageWithoutRasterWatermark", () => {
     }
   });
 
-  it("still cleans a page where most of the stamp is hidden", () => {
+  it("still cleans a page where most of the stamp is hidden", async () => {
     // One page of an ordinary stamped book has a big box over the stamp.
     // The little that shows around it must still be removed.
     const pdf = buildPdf({});
     const doc = openDoc(pdf);
-    const model = detectRasterWatermark(doc);
+    const model = await detectRasterWatermark(doc);
     expect(model).not.toBeNull();
     if (!model) return;
 
-    const truth = paintObjectsOver(pagePixels(5), 5, true);
-    const seen = paintObjectsOver(stamp(pagePixels(5), "multiply"), 5, true);
+    const truth = paintObjectsOver(pagePixels(5), 5, "mostly");
+    const seen = paintObjectsOver(stamp(pagePixels(5), "multiply"), 5, "mostly");
     const pixels = new Uint8Array(seen);
     const strength = removeStampFromPixels(pixels, IMG_W, IMG_H, 3, [IMG_W, 0, 0, IMG_H, 0, 0], model);
     expect(strength).not.toBeNull();
@@ -490,10 +533,10 @@ describe("renderPageWithoutRasterWatermark", () => {
     expect(after.badShare).toBeLessThan(0.03);
   });
 
-  it("removes a stamp as dark as mid-grey", () => {
+  it("removes a stamp as dark as mid-grey", async () => {
     const opacity = 0.5;
     const doc = openDoc(buildPdf({ stampOpacity: opacity }));
-    const model = detectRasterWatermark(doc);
+    const model = await detectRasterWatermark(doc);
     expect(model).not.toBeNull();
     if (!model) return;
     expect(model.peakOpacity).toBeGreaterThan(opacity - 0.05);
@@ -509,12 +552,12 @@ describe("renderPageWithoutRasterWatermark", () => {
     expect(after.badShare).toBeLessThan(0.03);
   });
 
-  it("learns sharp scans on their own pixel grid", () => {
+  it("learns sharp scans on their own pixel grid", async () => {
     // 300 DPI pictures: too many pixels to learn whole pages, so the stamp
     // is located on a coarser grid and then learned at full resolution.
     const factor = 3;
     const doc = openDoc(buildPdf({ enlarge: factor, pageCount: 12 }));
-    const model = detectRasterWatermark(doc);
+    const model = await detectRasterWatermark(doc);
     expect(model).not.toBeNull();
     if (!model) return;
     expect(model.scale).toBeCloseTo(300 / 72, 2);
@@ -530,10 +573,10 @@ describe("renderPageWithoutRasterWatermark", () => {
     expect(after.badShare).toBeLessThan(0.03);
   }, 60_000);
 
-  it("measures the paper instead of assuming it is white", () => {
+  it("measures the paper instead of assuming it is white", async () => {
     const paper = 249;
     const doc = openDoc(buildPdf({ paper }));
-    const model = detectRasterWatermark(doc);
+    const model = await detectRasterWatermark(doc);
     expect(model).not.toBeNull();
     if (!model) return;
     // Plain paper is not part of the stamp.
@@ -562,9 +605,9 @@ describe("renderPageWithoutRasterWatermark", () => {
     expect(Math.abs(drift / count)).toBeLessThan(1);
   });
 
-  it("leaves a page without the stamp alone", () => {
+  it("leaves a page without the stamp alone", async () => {
     const doc = openDoc(buildPdf({ unstamped: [4] }));
-    const model = detectRasterWatermark(doc);
+    const model = await detectRasterWatermark(doc);
     expect(model).not.toBeNull();
     if (!model) return;
     const page = doc.loadPage(4);
@@ -576,9 +619,9 @@ describe("renderPageWithoutRasterWatermark", () => {
     expect(result?.png.equals(standard)).toBe(true);
   });
 
-  it("does not alter the image mupdf keeps cached for later renders", () => {
+  it("does not alter the image mupdf keeps cached for later renders", async () => {
     const doc = openDoc(buildPdf({}));
-    const model = detectRasterWatermark(doc);
+    const model = await detectRasterWatermark(doc);
     expect(model).not.toBeNull();
     if (!model) return;
     const page = doc.loadPage(3);
@@ -653,6 +696,8 @@ describe("extraction with removeWatermarks on image pages", () => {
     const rasterOn = on.images.find((img) => img.renderMethod === "raster");
     expect(rasterOff?.format).toBe("jpeg");
     expect(rasterOn?.format).toBe("jpeg");
+    // The bytes too, not just the label: a JPEG starts FF D8.
+    expect(rasterOn?.buffer.subarray(0, 2).toString("hex")).toBe("ffd8");
     expect(rasterOn?.hash).not.toBe(rasterOff?.hash);
     expect(rasterOn?.width).toBe(IMG_W);
     expect(rasterOn?.height).toBe(IMG_H);

@@ -333,18 +333,19 @@ interface PageExtractOptions {
 
 /** Resolve the shared per-page switches (running watermark detection when
  *  enabled) so the three extraction entry points can't drift apart. */
-function buildPageExtractOptions(
+async function buildPageExtractOptions(
   doc: MupdfDocument,
   input: Pick<
     ExtractInput,
     "pdfBuffer" | "vectorTextGrouping" | "keepCoveredRasters" | "removeWatermarks" | "fixedLayout"
   >,
-): PageExtractOptions {
+): Promise<PageExtractOptions> {
   // The image-stamp model is remembered per PDF content: learning it reads
   // much of the document, and `extractPages` re-extracts a page or two at a
-  // time (spread merge/split) from the same file.
+  // time (spread merge/split) from the same file. Learning takes seconds, so
+  // it yields to the event loop as it goes, like the page loop below.
   const rasterWatermark = input.removeWatermarks
-    ? detectRasterWatermark(doc, `${input.pdfBuffer.length}:${hashBuffer(input.pdfBuffer)}`)
+    ? await detectRasterWatermark(doc, `${input.pdfBuffer.length}:${hashBuffer(input.pdfBuffer)}`)
     : null;
   return {
     vectorTextGrouping: input.vectorTextGrouping ?? true,
@@ -381,7 +382,7 @@ export async function extractPdf(
   const end = Math.min(endPage ?? totalPagesInPdf, totalPagesInPdf);
 
   const pages: ExtractedPage[] = [];
-  const pageOpts = buildPageExtractOptions(doc, input);
+  const pageOpts = await buildPageExtractOptions(doc, input);
 
   const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
   const totalLogical = logicalGroups.length;
@@ -427,7 +428,7 @@ export function extractPdfStream(
 
   async function* generatePages(): AsyncGenerator<ExtractedPage, void, unknown> {
     try {
-      const pageOpts = buildPageExtractOptions(doc, input);
+      const pageOpts = await buildPageExtractOptions(doc, input);
       const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
       const totalLogical = logicalGroups.length;
 
@@ -474,7 +475,7 @@ export async function extractPages(input: {
     const pages: ExtractedPage[] = [];
     // Watermark detection samples the whole document (not just the requested
     // groups) so re-extracted pages agree with the original full extraction.
-    const pageOpts = buildPageExtractOptions(doc, input);
+    const pageOpts = await buildPageExtractOptions(doc, input);
     for (const group of groups) {
       const page =
         group.length === 2
