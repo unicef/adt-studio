@@ -686,7 +686,7 @@ it("guards the queued AI edit at admission and publication and stamps its owning
     if (event.data.type === "task-complete") complete = true
     if (event.data.type === "task-error") errors.push(event.data.error)
   })
-  generateObject.mockResolvedValueOnce({ object: { content: '<section><p data-id="pg001_t001">User requested edit</p></section>', reasoning: "Edited" } })
+  generateObject.mockResolvedValueOnce({ object: { content: '<section><p data-id="pg001_t001">User requested edit</p></section>', reasoning: "Edited", feasible: true, unsupported_reason: "" } })
   expect((await request(0)).status).toBe(409)
   expect((await request(1)).status).toBe(200)
   await vi.waitFor(() => expect(complete).toBe(true))
@@ -700,7 +700,7 @@ it("guards the queued AI edit at admission and publication and stamps its owning
   await vi.waitFor(() => expect(finish).toBeDefined())
   // A writer outside this process is detected by the publication version check.
   const external = book(); external.putNodeData("page-sectioning", "pg001", read("page-sectioning", "pg001")!.data); external.close()
-  finish({ object: { content: '<section><p>Stale model result</p></section>', reasoning: "" } })
+  finish({ object: { content: '<section><p>Stale model result</p></section>', reasoning: "", feasible: true, unsupported_reason: "" } })
   await vi.waitFor(() => expect(errors.join(" ")).toContain("Content changed"))
   expect(read("web-rendering", "pg001")).toEqual(before)
   dispose()

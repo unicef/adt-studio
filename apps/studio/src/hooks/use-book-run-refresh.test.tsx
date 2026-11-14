@@ -9,15 +9,17 @@ vi.mock("@/api/client", () => ({ BASE_URL: "", api: { getStepStatus: vi.fn(), ge
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }))
 vi.mock("./use-api-key", () => ({ useApiKey: () => ({ ownCredentials: {} }) }))
 vi.mock("./use-page-mutations", () => ({ invalidateStoryboardDependents: vi.fn() }))
-vi.mock("@/components/a11y/LiveRegionAnnouncer", () => ({ useAnnouncer: () => ({ announce: vi.fn() }) }))
+const announce = vi.hoisted(() => vi.fn())
+vi.mock("@/components/a11y/LiveRegionAnnouncer", () => ({ useAnnouncer: () => ({ announce }) }))
 vi.mock("@/lib/completion-sound", () => ({ playCompletionSound: vi.fn(), playErrorSound: vi.fn() }))
 vi.mock("sonner", () => ({ toast: { info: vi.fn(), error: vi.fn() } }))
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray, ...values: unknown[]) => strings.reduce((text, part, index) => text + part + (values[index] ?? ""), "") }))
-vi.mock("@lingui/core", () => ({ i18n: { _: () => "event" } }))
+vi.mock("@lingui/core", () => ({ i18n: { _: (message: string) => message } }))
 vi.mock("@/components/pipeline/pipeline-i18n", () => ({ getStageLabelI18n: (stage: string) => stage, getStageRunningLabelI18n: (stage: string) => stage }))
 const { useBookRunStatus } = await import("./use-book-run")
 const { api } = await import("@/api/client")
 const { useOutputReviewRun } = await import("./use-output-review-run")
+const { playCompletionSound } = await import("@/lib/completion-sound")
 
 // Invoke listeners directly so handler exceptions fail the test instead of
 // disappearing into jsdom's EventTarget exception reporting.
@@ -163,4 +165,19 @@ it('first settled receipt recovers a run that completed during initial reads bef
   await act(async()=>{releaseOld();Events.current.emit('open')});
   await waitFor(()=>expect(client.getQueryData(key)).toBe('after'));
  }finally{hook.unmount();stop();client.clear()}
+})
+
+it.each([
+  [{ status: "applied", verification: { applied: true } }, "AI edit complete", 1],
+  [{ status: "unsupported", reason: "Needs a new photo" }, "AI editing can't do this", 0],
+  [{ status: "applied", verification: { applied: false, reason: "Title unchanged" } }, "This AI edit may not have been fully applied", 0],
+])("announces an AI edit from its result status (%o)", async (result, message, sounds) => {
+  const { close } = setup()
+  try {
+    await act(async () => Events.current.emit("task", { type: "task-complete", taskId: "t1", kind: "ai-edit", pageId: "p1", result }))
+    expect(announce).toHaveBeenCalledWith(message)
+    expect(playCompletionSound).toHaveBeenCalledTimes(sounds)
+  } finally {
+    close()
+  }
 })
