@@ -1,4 +1,5 @@
 import { parseDocument, DomUtils } from "htmlparser2"
+import { serializeHtml } from "./html-escape.js"
 
 // Each rendered section is a separate document. Its DOM IDs, script selectors,
 // ARIA references and activity keys are local; coincidentally equal tokens do
@@ -14,7 +15,7 @@ export function rewriteRenderedIdentityReferences(html: string, ids: Map<string,
     }
     if (element.name !== "img" && oldId !== undefined && ids.has(oldId)) element.attribs["data-id"] = ids.get(oldId)!
   }
-  return DomUtils.getOuterHTML(doc)
+  return serializeHtml(doc)
 }
 
 /** Rewrite structured identity attributes, independent of HTML quote style.
@@ -42,5 +43,5 @@ export function stampRenderedOwner(html: string, sectionId: string): string {
   if (owners.length > 1) throw new Error("Rendering has multiple section owners")
   if (!owners.length) return `<section data-section-id="${sectionId}">${html}</section>`
   owners[0].attribs["data-section-id"] = sectionId
-  return DomUtils.getOuterHTML(doc)
+  return serializeHtml(doc)
 }

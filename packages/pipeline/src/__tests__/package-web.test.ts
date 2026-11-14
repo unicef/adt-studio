@@ -2723,6 +2723,16 @@ describe("packageAdtWeb", () => {
 })
 
 describe("rewriteImageUrls", () => {
+  it("keeps non-ASCII text and alt/title literal and escapes only what HTML requires (#907)", () => {
+    const html = `<p title="Año “x”">Niño á ¿Qué? &amp; &lt;b&gt;</p><img src="/api/books/mybook/images/abc123">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const altText = new Map([["abc123", 'Niño "feliz"']])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap, altText)
+    expect(out).toContain('<p title="Año “x”">Niño á ¿Qué? &amp; &lt;b&gt;</p>')
+    expect(out).toContain('alt="Niño &quot;feliz&quot;"')
+    expect(out).not.toMatch(/&#x/)
+  })
+
   it("rewrites src URL from API path to local images/ path", () => {
     const html = `<img src="/api/books/mybook/images/abc123">`
     const imageMap = new Map([["abc123", "photo.jpg"]])

@@ -1,4 +1,5 @@
 import { parseDocument, DomUtils } from "htmlparser2"
+import { serializeHtml } from "./html-escape.js"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function hasClass(node: any, className: string): boolean {
@@ -272,7 +273,7 @@ export function normalizeHtmlSectionSemantics(html: string): string {
     normalizeSectionSemantics(section)
   }
 
-  return DomUtils.getOuterHTML(doc)
+  return serializeHtml(doc)
 }
 
 export function promoteFirstHeadingToH1(html: string): string {

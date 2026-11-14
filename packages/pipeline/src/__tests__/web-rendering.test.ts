@@ -3,6 +3,7 @@ import type { AppConfig, ContentNodeData } from "@adt/types"
 import type { LLMModel, GenerateObjectResult, GenerateObjectOptions } from "@adt/llm"
 import { buildRenderStrategyResolver, collectReferencedImageIds, renderPage, type RenderConfig } from "../web-rendering.js"
 import type { TemplateEngine } from "../render-template.js"
+import { inputSignature } from "../output-freshness.js"
 
 const defaultResolveConfig = (): RenderConfig => ({
   renderType: "llm",
@@ -1047,6 +1048,62 @@ describe("renderPage", () => {
     expect(result.sections[0].html).toContain('data-activity-item="activity_gen_opt1"')
     expect(result.sections[0].html).toMatch(/data-id="pg001_sec001_activity_[a-f0-9]+"/)
     expect(result.sections[0].html).not.toContain('data-id="activity_gen_opt1"')
+  })
+
+  it("keeps activity IDs and the answers prompt in the previous HTML encoding (#907)", async () => {
+    // The LLM client hands back the validator's re-serialized HTML, now readable
+    // UTF-8. Activity IDs and the answers prompt (an LLM cache key) must still
+    // see the previous entity-encoded form, so existing books keep their IDs
+    // and cached answers.
+    const readable =
+      '<div id="content" class="container"><section data-section-type="activity_multiple_choice" data-section-id="pg001_sec001"><div data-id="pg001_gp001_tx001">¿Qué?</div><label data-id="activity_gen_opt1"><input type="radio" data-activity-item="activity_gen_opt1">Opción A</label></section></div>'
+    const legacy =
+      '<div id="content" class="container"><section data-section-type="activity_multiple_choice" data-section-id="pg001_sec001"><div data-id="pg001_gp001_tx001">&#xbf;Qu&#xe9;?</div><label data-id="activity_gen_opt1"><input type="radio" data-activity-item="activity_gen_opt1">Opci&#xf3;n A</label></section></div>'
+    let answersHtml: unknown
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        if (opts.log?.taskType === "activity-answers") {
+          answersHtml = (opts.context as { activity_html?: unknown } | undefined)?.activity_html
+          return { object: { reasoning: "r", answers: [{ id: "activity_gen_opt1", value: "A" }] } as T } as GenerateObjectResult<T>
+        }
+        return { object: { reasoning: "r", content: readable } as T } as GenerateObjectResult<T>
+      },
+    }
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [{
+            sectionId: "pg001_sec001",
+            sectionType: "activity_multiple_choice",
+            nodes: [groupNode("pg001_gp001", "paragraph", [leafNode("pg001_gp001_tx001", "instruction_text", "¿Qué?")])],
+            backgroundColor: "#ffffff",
+            textColor: "#000000",
+            pageNumber: 1,
+            isPruned: false,
+          }],
+        },
+        images: new Map(),
+      },
+      () => ({
+        renderType: "activity",
+        promptName: "activity_multiple_choice",
+        modelId: "openai:gpt-5.4",
+        maxRetries: 5,
+        timeoutMs: 180000,
+        answerPromptName: "activity_multiple_choice_answers",
+        templateName: "",
+      }),
+      fakeLlm,
+    )
+    expect(answersHtml).toBe(legacy)
+    const expectedId = `pg001_sec001_activity_${inputSignature({ id: "activity_gen_opt1", html: legacy }).slice(0, 24)}`
+    expect(result.sections[0].html).toContain(`data-id="${expectedId}"`)
+    // The stored HTML itself stays readable.
+    expect(result.sections[0].html).toContain("Opción A")
   })
 
   it("derives ordering ranks deterministically without a second LLM call", async () => {

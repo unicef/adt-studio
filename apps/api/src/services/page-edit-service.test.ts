@@ -501,6 +501,32 @@ describe("page-edit-service", () => {
       )
     })
   })
+
+  it("sends stored section HTML to the edit prompt as stored (#907)", async () => {
+    // Stored HTML may come from the pipeline or from a browser save (literal
+    // UTF-8), so the prompt gets it unchanged rather than re-encoded.
+    const pageId = `${label}_p1`
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("page-sectioning", pageId, { reasoning: "source", sections: [{
+        sectionId: "first", sectionType: "content", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: [],
+      }] })
+      storage.putNodeData("web-rendering", pageId, {
+        sections: [{ sectionIndex: 0, sectionId: "first", sectionType: "content", reasoning: "ok", html: `<section data-id="first">Canción ¡Hola!</section>` }],
+      })
+    } finally {
+      storage.close()
+    }
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.writeFileSync(configPath, ["structure_types: {}", "role_types: {}", "page_sectioning:", "  prompt: page_sectioning", "  max_refinements: 0"].join("\n"))
+    let promptHtml = ""
+    llmMocks.generateObject.mockImplementation(async (opts: unknown) => {
+      promptHtml = (opts as { context: { current_html: string } }).context.current_html
+      return { object: { reasoning: "ok", content: `<section data-id="first">Canción ¡Hola!</section>` } } as never
+    })
+    await aiEditSection({ label, pageId, sectionIndex: 0, instruction: "Keep it", booksDir: tmpDir, promptsDir: tmpDir, configPath, apiKey: "test-key" })
+    expect(promptHtml).toContain("Canción ¡Hola!")
+  })
 })
 
 

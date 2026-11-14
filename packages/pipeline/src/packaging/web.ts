@@ -67,7 +67,7 @@ import { renderingOwnershipWarnings } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
 import { orderTocEntries } from "../toc-reading-order.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
-import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
+import { escapeHtml, escapeAttr, escapeInlineScriptJson, serializeHtml } from "../html-escape.js"
 import { buildTailwindCss } from "../tailwind.js"
 
 export interface PackageAdtWebOptions {
@@ -1956,7 +1956,7 @@ export function rewriteImageUrls(
     }
   }
 
-  const normalizedHtml = DomUtils.getOuterHTML(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
+  const normalizedHtml = serializeHtml(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
   return { html: normalizedHtml, referencedImages }
 }
 
