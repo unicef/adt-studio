@@ -111,9 +111,11 @@ export interface RenderSectionInput {
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
   /**
-   * Set only for a book with a right-to-left language (source or translation):
-   * the direction its pages are rendered in. `undefined` for every other book,
-   * which leaves its prompts and output untouched (SPEC-0024).
+   * The direction the book's pages are written in, from `resolvePageDirection()`.
+   * Only `"rtl"` (the source language is right-to-left) changes anything here:
+   * it switches on the prompt block and the stored rewrite. `"ltr"` (a
+   * left-to-right book with a right-to-left translation) and `undefined` leave
+   * the prompts and the generated HTML untouched (SPEC-0024).
    */
   pageDirection?: TextDirection
   /** Optional user instructions appended to the LLM prompt during re-render */
@@ -136,9 +138,11 @@ export interface RenderPageInput {
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
   /**
-   * Set only for a book with a right-to-left language (source or translation):
-   * the direction its pages are rendered in. `undefined` for every other book,
-   * which leaves its prompts and output untouched (SPEC-0024).
+   * The direction the book's pages are written in, from `resolvePageDirection()`.
+   * Only `"rtl"` (the source language is right-to-left) changes anything here:
+   * it switches on the prompt block and the stored rewrite. `"ltr"` (a
+   * left-to-right book with a right-to-left translation) and `undefined` leave
+   * the prompts and the generated HTML untouched (SPEC-0024).
    */
   pageDirection?: TextDirection
   /** Optional user instructions appended to the LLM prompt during re-render */

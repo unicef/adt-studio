@@ -327,7 +327,7 @@ describe("renderPage", () => {
     expect(seenSignals).toEqual([controller.signal])
   })
 
-  it("tells the prompts the page direction of a book with a right-to-left language, and nothing otherwise", async () => {
+  it("AC-11: tells the prompts the page direction of a book with a right-to-left language, and nothing otherwise", async () => {
     const seen: unknown[] = []
     const fakeLlm: LLMModel = {
       generateObject: async <T>(opts: GenerateObjectOptions) => {
@@ -368,6 +368,155 @@ describe("renderPage", () => {
     }
     // Only "rtl" switches the prompt block on; "ltr" and "" both render nothing.
     expect(seen).toEqual(["rtl", "ltr", ""])
+  })
+
+  describe("direction-neutral generation (SPEC-0024)", () => {
+    const section = {
+      sectionId: "pg001_sec001",
+      sectionType: "text_only",
+      nodes: [
+        leafNode("pg001_tx001", "heading", "عنوان"),
+        groupNode("pg001_gp001", "paragraph", [leafNode("pg001_tx002", "section_text", "متن")]),
+      ],
+      backgroundColor: "#ffffff",
+      textColor: "#000000",
+      pageNumber: 1,
+      isPruned: false,
+    }
+    // What the model actually wrote for a real Urdu page: its own dir, a
+    // right-aligned paragraph and a left-aligned heading.
+    const generated = {
+      reasoning: "test",
+      content:
+        '<div id="content" class="container"><section dir="rtl" data-section-type="text_only" data-section-id="pg001_sec001">' +
+        '<h2 class="adt-h2 text-left" data-id="pg001_tx001">عنوان</h2>' +
+        '<p class="text-right" data-id="pg001_tx002">متن</p></section></div>',
+    }
+    const render = async (pageDirection: "rtl" | "ltr" | undefined, content = generated.content) => {
+      const written = { ...generated, content }
+      const fakeLlm: LLMModel = {
+        generateObject: async <T>(opts: GenerateObjectOptions) => {
+          const checked = opts.validate?.(written, opts.context ?? {})
+          expect(checked?.errors ?? []).toEqual([])
+          return { object: (checked?.cleaned ?? written) as T } as GenerateObjectResult<T>
+        },
+      }
+      const result = await renderPage(
+        {
+          label: "test-book", pageId: "pg001", pageImageBase64: "base64img",
+          sectioning: { reasoning: "test", sections: [section] },
+          images: new Map(), pageDirection,
+        },
+        defaultResolveConfig,
+        fakeLlm,
+      )
+      return result.sections[0].html
+    }
+
+    it("AC-9: stores a right-to-left page without its own dir or left/right alignment, and starts the left-aligned text", async () => {
+      const html = await render("rtl")
+      expect(html).not.toMatch(/\sdir=/)
+      expect(html).not.toMatch(/text-(left|right)/)
+      expect(html).toContain('class="adt-h2 text-start" data-id="pg001_tx001"')
+      expect(html).toContain('class="text-start" data-id="pg001_tx002"')
+    })
+
+    // The stored page feeds the calls that follow (the visual review, the
+    // activity answers), whose cache keys hash their messages. A left-to-right
+    // page is therefore stored as written, so a book that gains or loses a
+    // right-to-left translation does not run those calls again. Packaging and
+    // Preview make it neutral where it is read in the translation.
+    it("AC-9: stores a left-to-right page of a book with a right-to-left translation exactly as the model wrote it", async () => {
+      // A left-to-right page has no `dir` of its own.
+      const written = generated.content.replace(' dir="rtl"', "")
+      const html = await render("ltr", written)
+      expect(html).toBe(await render(undefined, written))
+      expect(html).toContain('class="adt-h2 text-left" data-id="pg001_tx001"')
+      expect(html).toContain('class="text-right" data-id="pg001_tx002"')
+    })
+
+    // `start` and `end` are resolved against the element's own direction, so a
+    // left-to-right block of a right-to-left page keeps its `dir` and has its
+    // class mapped for it: the text stays on the side the model put it.
+    it("AC-9: maps a block whose dir differs from a right-to-left page's for its own direction", async () => {
+      const html = await render(
+        "rtl",
+        generated.content.replace('<p class="text-right"', '<p dir="ltr" class="text-right"'),
+      )
+      expect(html).toContain('<p dir="ltr" class="text-end" data-id="pg001_tx002"')
+      expect(html).not.toMatch(/text-(left|right)/)
+    })
+
+    it("AC-9: leaves every other book's generated HTML exactly as the model wrote it", async () => {
+      const html = await render(undefined)
+      expect(html).toContain('dir="rtl"')
+      expect(html).toContain('class="adt-h2 text-left" data-id="pg001_tx001"')
+      expect(html).toContain('class="text-right" data-id="pg001_tx002"')
+    })
+
+    // The table-of-contents repair runs once more after validation and writes
+    // `text-right` on the page number; for a merged row it builds the row there,
+    // so the validated HTML never contains it. The stored page has to be
+    // rewritten after that repair, not only before it.
+    describe("table of contents", () => {
+      const renderContents = async (pageDirection: "rtl" | "ltr" | undefined) => {
+        const written = {
+          reasoning: "test",
+          content:
+            '<div id="content" class="container"><section data-section-type="table_of_contents" data-section-id="pg003_sec001">' +
+            '<div class="flex items-baseline" data-id="toc-merged">پہلا باب ........ 5</div>' +
+            '<div class="flex items-baseline"><span data-id="toc-title">دوسرا باب</span><span data-id="toc-page">12</span></div>' +
+            "</section></div>",
+        }
+        const fakeLlm: LLMModel = {
+          generateObject: async <T>(opts: GenerateObjectOptions) => {
+            const checked = opts.validate?.(written, opts.context ?? {})
+            expect(checked?.errors ?? []).toEqual([])
+            return { object: (checked?.cleaned ?? written) as T } as GenerateObjectResult<T>
+          },
+        }
+        const result = await renderPage(
+          {
+            label: "test-book", pageId: "pg003", pageImageBase64: "base64img",
+            sectioning: {
+              reasoning: "test",
+              sections: [{
+                sectionId: "pg003_sec001",
+                sectionType: "table_of_contents",
+                nodes: [
+                  leafNode("toc-merged", "text", "پہلا باب ........ 5"),
+                  groupNode("toc-row", "list_item", [
+                    leafNode("toc-title", "text", "دوسرا باب"),
+                    leafNode("toc-page", "text", "12"),
+                  ]),
+                ],
+                backgroundColor: "#ffffff",
+                textColor: "#000000",
+                pageNumber: 3,
+                isPruned: false,
+              }],
+            },
+            images: new Map(), pageDirection,
+          },
+          defaultResolveConfig,
+          fakeLlm,
+        )
+        return result.sections[0].html
+      }
+
+      it("AC-10: stores a right-to-left contents page with its page numbers at the end and no left/right alignment", async () => {
+        const html = await renderContents("rtl")
+        expect(html).toContain('data-toc-page-number="true" class="w-8 sm:w-10 shrink-0 text-end tabular-nums"')
+        expect(html).not.toMatch(/text-(left|right)/)
+      })
+
+      it("AC-9: leaves every other book's contents page as the repair wrote it, with or without a right-to-left translation", async () => {
+        const html = await renderContents(undefined)
+        expect(html).toContain('data-toc-page-number="true" class="w-8 sm:w-10 shrink-0 text-right tabular-nums"')
+        expect(html).toContain('data-id="toc-page" class="shrink-0 text-right tabular-nums"')
+        expect(await renderContents("ltr")).toBe(html)
+      })
+    })
   })
 
   it("skips pruned sections", async () => {
