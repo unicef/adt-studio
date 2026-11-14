@@ -185,8 +185,8 @@ export async function renderSectionLlm(
   }
   // These repairs run after validation, and the table-of-contents one writes
   // `text-right` on each page number (for a merged row it builds the whole row
-  // here). Rewrite once more so the page is stored direction-neutral; it
-  // changes nothing when the repairs did not.
+  // here). Rewrite once more so a right-to-left page is stored
+  // direction-neutral; it changes nothing when the repairs did not.
   generatedHtml = directionNeutral(generatedHtml, input.pageDirection)
 
   // Ordering has one inspectable source of truth in the validated HTML. Derive
@@ -253,13 +253,22 @@ export async function renderSectionLlm(
 }
 
 /**
- * Newly generated HTML as it is stored for a book with a right-to-left
- * language: rewritten direction-neutral, with the generation-only corrections
- * (SPEC-0024). Any other book's HTML is returned as it is.
+ * Newly generated HTML as it is stored for a right-to-left page: rewritten
+ * direction-neutral, with the generation-only corrections (SPEC-0024). Any
+ * other page's HTML is returned as it is.
+ *
+ * That includes a left-to-right page of a book with a right-to-left
+ * translation. The HTML returned here goes into the messages of the calls
+ * that follow (the visual review, the activity answers), and the cache key
+ * hashes those messages. Rewriting such a page would make a book that gains
+ * or loses a translation run those calls again, for a page that looks the
+ * same in its own language. It is made neutral where it is read in the
+ * translation instead: `renderPageHtml()` rewrites it as it is packaged or
+ * previewed.
  */
 function directionNeutral(html: string, pageDirection: unknown): string {
-  return pageDirection === "rtl" || pageDirection === "ltr"
-    ? neutralizeDirectionMarkup(html, pageDirection, { correctMisalignedText: true })
+  return pageDirection === "rtl"
+    ? neutralizeDirectionMarkup(html, "rtl", { correctMisalignedText: true })
     : html
 }
 
@@ -319,11 +328,10 @@ function validateWebRendering(
     { allowNonHeadingFontSizes },
   )
   if (check.valid && typographyErrors.length === 0 && check.sectionHtml) {
-    // A book with a right-to-left language keeps one layout for both reading
-    // directions, so its pages are stored direction-neutral. Repaired here
-    // rather than rejected: the rewrite is deterministic, so it cannot cost a
-    // retry or fail a page (SPEC-0024). Last, so the checks above see the HTML
-    // the repairs before them produced.
+    // A right-to-left page is read mirrored in a translation, so it is stored
+    // direction-neutral. Repaired here rather than rejected: the rewrite is
+    // deterministic, so it cannot cost a retry or fail a page (SPEC-0024).
+    // Last, so the checks above see the HTML the repairs before them produced.
     return {
       valid: true,
       errors: [],
