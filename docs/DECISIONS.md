@@ -31,6 +31,9 @@ This document records all significant technology and architecture decisions made
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
 24. [Catalog-Based Freshness from Saved Input Signatures (proposed)](#adr-024)
 
+<!-- ADR-025–027 are claimed by the open #884/#886/#887 stack; ADR-028 follows. -->
+28. [Per-element authored fields with no catalog home live in their own versioned node](#028-per-element-authored-fields-with-no-catalog-home-live-in-their-own-versioned-node)
+
 ---
 
 ## 001: Pure JS/TS Over Native Bindings
@@ -964,6 +967,62 @@ separate action after saving. #619 and #626 remain background/deferred.
 
 ---
 
+## 028: Per-element authored fields with no catalog home live in their own versioned node
+
+**Status**: proposed
+**Date**: 2026-09-23
+**Spec**: [SPEC-0014](specs/SPEC-0014-per-element-audio.md)
+**Issues**: #890
+
+### Context
+
+SPEC-0014 needs content the *user* authors per element — a spoken script. The obvious home is the
+text catalog, because that is the node every downstream speech step already reads. The catalog,
+however, is **derived from the rendered HTML**: `buildTextCatalog` rebuilds it on every run, so any
+entry that did not come from the HTML is dropped. Measured on a seeded book, an injected entry was
+present after `prepareCoreTtsCatalog` and `generateSpeechFile`, then **deleted** by the next
+`buildTextCatalog`. Full measurements:
+[`docs/experiments/890-element-audio-survival.md`](experiments/890-element-audio-survival.md).
+
+That reason — the catalog is *derived*, not authoritative — holds on **every** branch. SPEC-0001
+(#879, merged 2026-10-22) changed *how* invalidation works (`clearNodesByType` no longer deletes
+non-catalog rows and skips `CATALOG_OUTPUT_NODES`), but it kept the catalog derived. It also
+introduced `OutputMetadata { source: "ai" | "manual" }` for **generated outputs** (`text-catalog`,
+`core-tts-catalog`, `tts`, `word-timestamps`), which is a different thing from an authored *input*
+that has no generated home.
+
+### Decision
+
+**A per-element field the user authors, which has no home in the derived catalog, lives in its own
+versioned `node_data` artifact and is kept out of every clear/delete list.** The artifact is the
+authoritative store for that input; it is not a generated output, so it does not carry the
+`source: "ai" | "manual"` provenance that describes generated outputs.
+
+### Consequences
+
+- **Easier.** Authored work is not lost to catalog rebuilds; rollback comes free from `putNodeData`
+  versioning (Core Principle 2), and no schema migration is needed because `node_data.node` is free
+  `TEXT`.
+- **Harder.** Authored content is decoupled from the tree it describes, so it needs an explicit
+  lifecycle: orphans are kept by default (SPEC-0014), and the artifact must be registered wherever
+  node names are enumerated (`RestorableNode`, `VersionedStep`, `PipelineNodeName`,
+  `NODE_CACHE_RESOURCES`).
+- **Invariant created.** Every new authored artifact must be *deliberately* kept out of the clear
+  lists and the destructive storage primitives. SPEC-0014 adds the registry row in
+  `docs/INVARIANTS.md` together with its checker.
+- **Constrains future design.** "Put it in the catalog and let the pipeline carry it" is not an
+  available shortcut for user input the catalog does not derive.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|----------|---------|
+| Store the script in `text-catalog` / `text-catalog-translation` | Measured: deleted by the next `buildTextCatalog`, which rebuilds from the rendered HTML |
+| Add a field to `ContentNodeData` in the sectioning tree | `page-sectioning` is itself rebuilt/cleared, and text ids renumber by position (SPEC-0014 Non-goals) |
+| Rely on `source: "manual"` provenance inside a catalog output | That marks a *generated* output as manually edited; the catalog still does not derive a script that is not in the HTML |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -992,6 +1051,7 @@ separate action after saving. #619 and #626 remain background/deferred.
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
 | 024 (proposed) | Downstream freshness | Catalog-based input signatures and scoped regeneration with existing caching | Whole-stage clearing, universal section flags, general dependency graph |
+| 028 | Per-element authored fields with no catalog home | Dedicated versioned artifact, never a catalog output | Store in the derived text catalog |
 
 ---
 
