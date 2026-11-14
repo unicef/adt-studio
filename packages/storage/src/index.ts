@@ -4,7 +4,7 @@ export {
   resolveBookPaths,
   type BookPaths,
 } from "./book-storage.js"
-export { openBookDb, cleanupInterruptedSteps, readBookSchemaVersion } from "./db.js"
+export { openBookDb, openBookDbReadOnly, cleanupInterruptedSteps, readBookSchemaVersion } from "./db.js"
 export { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "./node-current.js"
 
 export { storeImmutableAsset, readBookAsset, UnsafeAssetPathError } from "./immutable-assets.js"

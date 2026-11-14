@@ -40,6 +40,8 @@ export {
   type RunAgentLoopOptions,
 } from "./agent-loop.js"
 
+export { MODEL_PRICES, estimateCost, type ModelPrice } from "./pricing.js"
+
 export {
   sanitizeMessages,
   imageDimensions,

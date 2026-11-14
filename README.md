@@ -307,6 +307,12 @@ pnpm a11y:regression:json  # Same regression with JSON output to stdout
 pnpm a11y:browser-recheck  # Recheck manual-review items + contrast in Playwright
 pnpm a11y:browser-recheck:json  # Same browser recheck with JSON output to stdout
 
+# Book inspection (read-only: writes nothing, calls no model)
+pnpm pipeline doctor [books-dir] [--label <l>] [--json]   # Compatibility check: schema, stale locks, unowned renderings, duplicate ids, re-keyed catalog ids
+pnpm pipeline extract-report [books-dir] [--label <l>] [--compare <l2>] [--json] [--csv pages|tasks]
+                                   # Extract metrics per book: text layer, images and duplicates, pruning, per-task calls/cache/tokens/cost;
+                                   # --compare diffs two books of the same PDF (metric deltas and meaningfulness verdict flips)
+
 # i18n
 pnpm --filter @adt/studio lint     # Lint Studio only (includes lingui/no-unlocalized-strings)
 pnpm --filter @adt/studio extract  # Extract strings and update .po catalogs
