@@ -369,7 +369,8 @@ export const AppConfig = z
      * removed from page renders, figure crops, reflowable text, and
      * positioned text; a stamp baked into the pixels of flattened or scanned
      * page images is removed from page renders and from the extracted
-     * images, which are re-encoded. Off by default.
+     * images, which are re-encoded. Off unless set; the book wizard sets it
+     * on for new books.
      */
     remove_watermarks: z.boolean().optional(),
     apply_body_background: z.boolean().optional(),
