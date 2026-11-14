@@ -276,10 +276,11 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
         title={<Trans>Remove Watermarks</Trans>}
         description={
           <Trans>
-            Detects text stamped identically across pages — like a diagonal
-            &ldquo;for online reading only&rdquo; notice — and removes it from
-            page renders, extracted figures, and the book text. Turn off to
-            keep pages exactly as printed.
+            Detects a watermark repeated across pages — like a diagonal
+            &ldquo;for online reading only&rdquo; notice — whether it is
+            stamped as text or baked into scanned page images, and removes it
+            from page renders, extracted images, and the book text. Turn off
+            to keep pages exactly as printed.
           </Trans>
         }
         checked={removeWatermarks}

@@ -364,9 +364,13 @@ export const AppConfig = z
      */
     vector_text_grouping: z.boolean().optional(),
     /**
-     * Detect repeated identical text stamps (e.g. a diagonal "FOR ONLINE
-     * READING ONLY" on every page) and remove them from page renders,
-     * figure crops, reflowable text, and positioned text. Off by default.
+     * Detect a watermark repeated across the document (e.g. a diagonal "FOR
+     * ONLINE READING ONLY" on every page) and remove it. A text stamp is
+     * removed from page renders, figure crops, reflowable text, and
+     * positioned text; a stamp baked into the pixels of flattened or scanned
+     * page images is removed from page renders and from the extracted
+     * images, which are re-encoded. Off unless set; the book wizard sets it
+     * on for new books.
      */
     remove_watermarks: z.boolean().optional(),
     apply_body_background: z.boolean().optional(),
