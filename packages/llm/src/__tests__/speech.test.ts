@@ -103,6 +103,56 @@ describe("createTTSSynthesizer", () => {
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://proxy.example.com/v1/audio/speech")
   })
+
+  const request = { model: "gpt-4o-mini-tts", voice: "alloy", input: "Hello", responseFormat: "mp3" }
+  const hangUntilAborted = (_url: unknown, init?: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new DOMException("This operation was aborted", "AbortError")))
+    })
+
+  it("keeps 'fetch failed' first and appends the network cause", async () => {
+    const cause = Object.assign(new Error("other side closed"), { code: "UND_ERR_SOCKET" })
+    fetchMock.mockRejectedValue(Object.assign(new TypeError("fetch failed"), { cause }))
+
+    await expect(createTTSSynthesizer("sk-test").synthesize(request)).rejects.toThrow(
+      "fetch failed (UND_ERR_SOCKET: other side closed)",
+    )
+  })
+
+  it("times out a request that gets no response, instead of holding its slot", async () => {
+    fetchMock.mockImplementation(hangUntilAborted)
+
+    await expect(
+      createTTSSynthesizer("sk-test", undefined, { responseTimeoutMs: 20 }).synthesize(request),
+    ).rejects.toThrow(/^TTS request timed out: no response within/)
+  })
+
+  it("reports a run cancel as the cancel, not as a retryable timeout", async () => {
+    fetchMock.mockImplementation(hangUntilAborted)
+    const run = new AbortController()
+
+    const pending = createTTSSynthesizer("sk-test", undefined, { responseTimeoutMs: 5_000 })
+      .synthesize({ ...request, signal: run.signal })
+    run.abort()
+
+    await expect(pending).rejects.not.toThrow(/timed out/)
+  })
+
+  it("never times out the audio stream once the response has started", async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(stream) {
+        setTimeout(() => {
+          stream.enqueue(new Uint8Array([1, 2, 3]))
+          stream.close()
+        }, 60)
+      },
+    })
+    fetchMock.mockResolvedValue(new Response(body, { status: 200 }))
+
+    const audio = await createTTSSynthesizer("sk-test", undefined, { responseTimeoutMs: 20 }).synthesize(request)
+
+    expect(Array.from(audio)).toEqual([1, 2, 3])
+  })
 })
 
 describe("createGeminiTTSSynthesizer", () => {

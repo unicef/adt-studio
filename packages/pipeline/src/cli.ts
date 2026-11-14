@@ -4,6 +4,7 @@ import path from "node:path"
 import cliProgress from "cli-progress"
 import { PIPELINE, STAGE_BY_NAME, STEP_TO_STAGE } from "@adt/types"
 import type { StepName, StageName, ProgressEvent } from "@adt/types"
+import { configureOutboundConnections } from "@adt/llm"
 import { parseCliArgs, USAGE } from "./cli-args.js"
 import { runFullPipeline } from "./pipeline-dag.js"
 import { diagnoseBook, diagnoseBooks, formatDiagnosis, hasFindings } from "./book-doctor.js"
@@ -130,6 +131,7 @@ function runDoctor(args: string[]): void {
 }
 
 async function main(): Promise<void> {
+  configureOutboundConnections()
   const args = process.argv.slice(2)
 
   if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
