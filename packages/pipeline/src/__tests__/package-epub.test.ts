@@ -3,10 +3,12 @@ import os from "node:os"
 import path from "node:path"
 import { describe, it, expect } from "vitest"
 import {
+  convertPageToXhtml,
   mirrorDataIdToId,
   stripSecondaryNarratorAssets,
   wrapWordSpans,
 } from "../packaging/epub.js"
+import { renderPageHtml } from "../packaging/web.js"
 
 describe("stripSecondaryNarratorAssets", () => {
   it("keeps primary audio and removes secondary-only reader payloads", () => {
@@ -35,6 +37,34 @@ describe("stripSecondaryNarratorAssets", () => {
     } finally {
       fs.rmSync(oebpsDir, { recursive: true, force: true })
     }
+  })
+})
+
+// EPUB pages are built from the packaged web pages. A page of a book with a
+// right-to-left language is direction-neutral (SPEC-0024): it no longer carries
+// its own `dir="rtl"` or `text-right`, so the direction has to survive on the
+// root element the EPUB page is rebuilt with.
+describe("convertPageToXhtml", () => {
+  const page = (language: string, outputLanguages: string[], content: string) =>
+    convertPageToXhtml(
+      renderPageHtml({
+        content, language, outputLanguages, sectionId: "pg001",
+        pageTitle: "Test", pageIndex: 1, hasMath: false, bundleVersion: "1",
+      }),
+    )
+
+  it("AC-19: keeps a right-to-left page right-to-left once its own dir and alignment are rewritten", () => {
+    const xhtml = page("ur", ["ur"], '<section dir="rtl"><p class="text-right" data-id="t1">متن</p></section>')
+    expect(xhtml).toContain('<html xmlns="http://www.w3.org/1999/xhtml" lang="ur" dir="rtl">')
+    expect(xhtml).toMatch(/<p class="text-start"[^>]*data-id="t1"/)
+    expect(xhtml).not.toMatch(/<section[^>]*\bdir=/)
+  })
+
+  it("AC-19: adds no dir to a left-to-right page", () => {
+    const content = '<section><p class="text-left" data-id="t1">Hello</p></section>'
+    expect(page("en", ["en"], content)).toContain('<html xmlns="http://www.w3.org/1999/xhtml" lang="en">')
+    // A left-to-right book with a right-to-left translation is still read left to right.
+    expect(page("en", ["en", "ur"], content)).toContain('<html xmlns="http://www.w3.org/1999/xhtml" lang="en">')
   })
 })
 

@@ -195,6 +195,39 @@ describe("renderPageHtml", () => {
     expect(rootTag("hi")).toBe('<html lang="hi">')
   })
 
+  describe("direction-neutral pages (SPEC-0024)", () => {
+    const page = (language: string, outputLanguages: string[] | undefined, content: string) =>
+      renderPageHtml({
+        content, language, outputLanguages, sectionId: "pg001",
+        pageTitle: "Test", pageIndex: 1, hasMath: false, bundleVersion: "1",
+      })
+    const english = '<section><p class="text-left" data-id="t1">Hello</p><p class="text-right" data-id="t2">Signed</p></section>'
+
+    it("leaves a book with no right-to-left language exactly as it was", () => {
+      const single = page("en", ["en"], english)
+      expect(single).toContain('class="text-left"')
+      expect(single).toContain('class="text-right"')
+      expect(page("en", ["en", "fr"], english)).toBe(single)
+      expect(page("en", undefined, english)).toBe(single)
+    })
+
+    it("converts alignment when a left-to-right book has a right-to-left translation", () => {
+      const html = page("en", ["en", "ur"], english)
+      expect(html).toContain('class="text-start" data-id="t1"')
+      expect(html).toContain('class="text-end" data-id="t2"')
+      expect(html).not.toMatch(/text-(left|right)/)
+      // The page itself is still rendered left to right.
+      expect(html).toContain('<html lang="en">')
+    })
+
+    it("converts a right-to-left book's pages and drops their redundant dir", () => {
+      const html = page("ur", ["ur", "en"], '<section dir="rtl"><p class="text-right" data-id="t1">متن</p></section>')
+      expect(html).toContain('<html lang="ur" dir="rtl">')
+      expect(html).toContain('class="text-start" data-id="t1"')
+      expect(html).not.toMatch(/<section[^>]*\bdir=/)
+    })
+  })
+
   it("does not emit font preload links (fonts are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
