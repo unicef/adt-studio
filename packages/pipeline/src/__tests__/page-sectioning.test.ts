@@ -1093,6 +1093,40 @@ describe("sectionPage", () => {
     expect(output.sections).toHaveLength(1)
   })
 
+  it("AC-17: tells both sectioning prompts the page direction of a book with a right-to-left language, and nothing otherwise", async () => {
+    const tree = {
+      reasoning: "ok",
+      sections: [
+        {
+          section_type: "text_only",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 1,
+          nodes: [{ structure: "paragraph", children: [{ role: "text", text: "متن" }] }],
+        },
+      ],
+    }
+    const seen: Array<[string, unknown]> = []
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        seen.push([opts.prompt, opts.context?.page_direction])
+        const object = opts.prompt === "page_sectioning" ? tree : { approved: true, reasoning: "ok", nodes_and_sections: null }
+        return { object: object as T } as GenerateObjectResult<T>
+      },
+    }
+    for (const pageDirection of ["rtl", "ltr", undefined] as const) {
+      await sectionPage(makeInput({ pageDirection }), makeConfig({ maxRefinements: 1 }), fakeLlm)
+    }
+    expect(seen).toEqual([
+      ["page_sectioning", "rtl"],
+      ["page_sectioning_refinement", "rtl"],
+      ["page_sectioning", "ltr"],
+      ["page_sectioning_refinement", "ltr"],
+      ["page_sectioning", ""],
+      ["page_sectioning_refinement", ""],
+    ])
+  })
+
   it("adopts reviewer's replacement tree when reviewer rejects then proposes valid replacement", async () => {
     const initialTree = {
       reasoning: "Initial draft",
