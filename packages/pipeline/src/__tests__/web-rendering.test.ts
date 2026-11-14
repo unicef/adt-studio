@@ -421,22 +421,30 @@ describe("renderPage", () => {
       expect(html).toContain('class="text-start" data-id="pg001_tx002"')
     })
 
-    it("AC-9: stores a left-to-right page of a book with a right-to-left translation with start/end alignment", async () => {
+    // The stored page feeds the calls that follow (the visual review, the
+    // activity answers), whose cache keys hash their messages. A left-to-right
+    // page is therefore stored as written, so a book that gains or loses a
+    // right-to-left translation does not run those calls again. Packaging and
+    // Preview make it neutral where it is read in the translation.
+    it("AC-9: stores a left-to-right page of a book with a right-to-left translation exactly as the model wrote it", async () => {
       // A left-to-right page has no `dir` of its own.
-      const html = await render("ltr", generated.content.replace(' dir="rtl"', ""))
-      expect(html).not.toMatch(/text-(left|right)/)
-      expect(html).toContain('class="adt-h2 text-start" data-id="pg001_tx001"')
-      expect(html).toContain('class="text-end" data-id="pg001_tx002"')
+      const written = generated.content.replace(' dir="rtl"', "")
+      const html = await render("ltr", written)
+      expect(html).toBe(await render(undefined, written))
+      expect(html).toContain('class="adt-h2 text-left" data-id="pg001_tx001"')
+      expect(html).toContain('class="text-right" data-id="pg001_tx002"')
     })
 
     // `start` and `end` are resolved against the element's own direction, so a
-    // right-to-left section of a left-to-right page keeps its `dir` and has its
-    // classes mapped for it: the text stays on the side the model put it.
-    it("AC-9: maps a section whose dir differs from the page's for its own direction", async () => {
-      const html = await render("ltr")
-      expect(html).toContain('<section dir="rtl"')
-      expect(html).toContain('class="adt-h2 text-end" data-id="pg001_tx001"')
-      expect(html).toContain('class="text-start" data-id="pg001_tx002"')
+    // left-to-right block of a right-to-left page keeps its `dir` and has its
+    // class mapped for it: the text stays on the side the model put it.
+    it("AC-9: maps a block whose dir differs from a right-to-left page's for its own direction", async () => {
+      const html = await render(
+        "rtl",
+        generated.content.replace('<p class="text-right"', '<p dir="ltr" class="text-right"'),
+      )
+      expect(html).toContain('<p dir="ltr" class="text-end" data-id="pg001_tx002"')
+      expect(html).not.toMatch(/text-(left|right)/)
     })
 
     it("AC-9: leaves every other book's generated HTML exactly as the model wrote it", async () => {
@@ -502,17 +510,11 @@ describe("renderPage", () => {
         expect(html).not.toMatch(/text-(left|right)/)
       })
 
-      it("AC-9: stores a left-to-right contents page of a book with a right-to-left translation without left/right alignment", async () => {
-        const html = await renderContents("ltr")
-        expect(html).toContain('data-toc-page-number="true" class="w-8 sm:w-10 shrink-0 text-end tabular-nums"')
-        expect(html).toContain('data-id="toc-page" class="shrink-0 text-end tabular-nums"')
-        expect(html).not.toMatch(/text-(left|right)/)
-      })
-
-      it("AC-9: leaves every other book's contents page as the repair wrote it", async () => {
+      it("AC-9: leaves every other book's contents page as the repair wrote it, with or without a right-to-left translation", async () => {
         const html = await renderContents(undefined)
         expect(html).toContain('data-toc-page-number="true" class="w-8 sm:w-10 shrink-0 text-right tabular-nums"')
         expect(html).toContain('data-id="toc-page" class="shrink-0 text-right tabular-nums"')
+        expect(await renderContents("ltr")).toBe(html)
       })
     })
   })
