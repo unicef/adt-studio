@@ -74,14 +74,14 @@ still wrong, and are in scope since:
 **Why:**
 
 - No prompt carries the direction. The generation context has no language or direction
-  field (`packages/pipeline/src/render-llm.ts:64-81`), and none of the prompts that
+  field (`packages/pipeline/src/render-llm.ts:66-83`), and none of the prompts that
   write or review page HTML mention it.
 - Prompt rules assume left to right: the table-of-contents rules require the title
   "on the left" and the page number "flush right" on a shared "right edge"
   (`prompts/web_generation_html.liquid:15,21,22`,
   `prompts/web_generation_html_overlay.liquid:19,23`, `prompts/visual_review.liquid:25`),
   and the deterministic TOC repair adds `text-right` (`packages/pipeline/src/toc-layout.ts:29`).
-- Nothing normalises it. `validateWebRendering` (`render-llm.ts:242`) enforces
+- Nothing normalises it. `validateWebRendering` (`render-llm.ts:245`) enforces
   structure, ids, reading order and typography, and has no rule about direction or
   alignment.
 
@@ -94,13 +94,15 @@ translation* is written right to left.
   the one layout reads correctly in each of the book's languages.
 - **G2** That holds for pages that already exist, with no model call and no change to
   how they look in the language they were written in.
-- **G3** That holds for newly generated pages as they are stored, so the Storyboard
-  shows what the reader shows.
+- **G3** That holds for newly generated right-to-left pages as they are stored, so the
+  Storyboard shows what the reader shows.
 - **G4** The model is told when the page it sections, writes or reviews is
   right-to-left, and the saved reading order of such a page starts at the right.
 - **G5** None of this can fail a page or cost a retry.
 - **G6** A book with no right-to-left language is untouched: same rendered prompts,
   same cache keys, same generated and packaged HTML.
+- **G7** For a left-to-right book, adding or removing a right-to-left translation
+  changes no message sent to a model, so no model call runs again.
 
 ## Non-goals
 
@@ -114,7 +116,10 @@ translation* is written right to left.
 - **Spacing and side utilities.** Margins, padding and borders (`ml-`, `pr-`,
   `border-l`) are guided by the prompt but not rewritten: the Storyboard's spacing
   controls only understand the physical forms. The one exception is a floated box,
-  whose float and side margin are rewritten together (D2).
+  whose float and side margin are rewritten together (D2). The Storyboard's margin
+  control does not read the result (`style-editor/class-maps/spacing.ts:71` matches
+  `m`, `mx`, `my`, `mt`, `mr`, `mb` and `ml` only), so on a newly generated
+  right-to-left page the side margin of a floated box (`ms-8`) shows there as 0.
 - **Layout mirroring.** Which side a picture sits on stays a judgement for the
   reviewer; no rule about `flex-row-reverse`. Nothing reviews the mirrored page in a
   translation's direction.
@@ -184,9 +189,10 @@ translation* is written right to left.
   page's root element from the packaged page (`convertPageToXhtml()`,
   `packages/pipeline/src/packaging/epub.ts`) and carries its `dir` over: a rewritten
   page no longer sets a direction of its own.
-- **D4 — new pages: at generation.** `validateWebRendering()` applies D2 to HTML that
-  has passed validation, so the stored page is neutral. The review loop re-validates
-  revised HTML with the same function (`render-llm.ts:152`), so reviewer corrections
+- **D4 — new right-to-left pages: at generation.** For a right-to-left page,
+  `validateWebRendering()` applies D2 to HTML that has passed validation, so the stored
+  page is neutral. The review loop re-validates
+  revised HTML with the same function (`render-llm.ts:156`), so reviewer corrections
   are covered. `renderSectionLlm()` applies it once more after its last repairs: the
   table-of-contents repair runs there and writes `text-right` on each page number. At
   generation, and only there, it also corrects three things in a right-to-left page
@@ -196,6 +202,22 @@ translation* is written right to left.
     left-to-right row, is aligned to the end of its cell;
   - a floated box whose only side margin is on its outer side gets that gap on the
     text side.
+
+  A left-to-right page is stored exactly as the model wrote it, even when the book has
+  a right-to-left translation. The page `validateWebRendering()` returns goes into the
+  messages of the calls that follow the render: the visual review, as "Current HTML"
+  (`visual-review.ts:255`; on by default, `config.yaml:213`), and the activity answers,
+  as `activity_html` (`render-llm.ts:214`). The cache key hashes those messages (D6).
+  Rewriting a left-to-right page would make a book that gains or loses such a
+  translation run both calls again on every page the rewrite changes (the model wrote
+  `text-left` on 12 of the 20 pages of *English Grade 2*), and a fresh review can
+  revise a page that was approved before. D3 already makes that page neutral where it
+  is read in the translation, and it is pixel-identical in its own language (AC-12).
+
+  The LLM log records the validator's cleaned result (`packages/llm/src/client.ts:332`,
+  logged at `:368`), as it does for the validator's other repairs. So for a
+  right-to-left page the log shows the rewritten page as the response; what the model
+  wrote is in the cache file, which is written before validation (`client.ts:273`).
 - **D5 — the prompts.** One shared partial, `prompts/_text_direction.liquid`, included
   by the seventeen prompts that write or review page HTML: the twelve render prompts
   through `_render_fidelity`, and `visual_review`, `visual_review_flexible`,
@@ -209,12 +231,15 @@ translation* is written right to left.
   right and `text-center` only for text that is centred there, and it names the float
   classes and the side their gap goes on. It renders only when the page direction is
   `rtl`. A left-to-right book with a right-to-left
-  translation is made neutral by D3 and D4, not by the model, so adding a translation
-  does not change its prompts. Every caller of the renderer passes the direction,
+  translation is made neutral by D3, not by the model and not at generation, so adding
+  a translation changes neither its prompts nor any message built from its pages. Every caller of the renderer passes the direction,
   including the section an agent creates (`packages/agents/src/tools/render-section.ts`).
 - **D6 — caching.** The cache key hashes the rendered system and user messages
   (`packages/llm/src/cache.ts:56`). The partial renders nothing unless the page is
-  right-to-left, so every other prompt and its cache key are unchanged.
+  right-to-left, so every other prompt and its cache key are unchanged. The same holds
+  for the calls that read a generated page: D4 leaves a left-to-right page as the model
+  wrote it, so the review and answers messages of a left-to-right book are the same
+  with and without a right-to-left translation.
 - **D7 — sectioning.** A second partial, `prompts/_reading_direction.liquid`, included
   by `page_sectioning` and `page_sectioning_refinement`. It says reading starts at the
   right: of side-by-side blocks or columns the rightmost comes first, the first
@@ -227,8 +252,10 @@ translation* is written right to left.
 
 ### Decisions to ratify
 
-1. The gate for the rewrite is "any of the book's languages is right-to-left", not "the
-   source language is".
+1. The gate for the packaging rewrite (D3) is "any of the book's languages is
+   right-to-left", not "the source language is". Generation follows the source
+   language: only a right-to-left page is rewritten as it is stored (D4), as only its
+   prompts are told (D5, D7).
 2. Option C: rewrite, never reject.
 3. D4's three corrections change how a newly generated right-to-left page looks. They
    are not applied to pages that already exist.
@@ -291,9 +318,10 @@ translation* is written right to left.
       rewrite byte-identical, and is unchanged when applied twice.
 - [ ] AC-8: Packaging rewrites the page for a book with a right-to-left language and
       leaves every other book's page byte-identical.
-- [ ] AC-9: A newly generated page is stored rewritten for a book with a right-to-left
-      language, and exactly as the model wrote it for every other book. That includes
-      what the repairs after validation write (a table-of-contents page number).
+- [ ] AC-9: A newly generated right-to-left page is stored rewritten, including what
+      the repairs after validation write (a table-of-contents page number). Every other
+      page is stored exactly as the model wrote it, including a left-to-right page of a
+      book with a right-to-left translation.
 - [ ] AC-10: At generation, in a right-to-left page, right-to-left text aligned left is
       started, a block wholly in a left-to-right script is kept at the end, a
       table-of-contents page number is aligned to the end, a class re-added by a
@@ -328,6 +356,9 @@ translation* is written right to left.
       mirrored side in English with its gap on the text side.
 - [ ] AC-19: The EPUB page of a book whose source language is right-to-left carries
       `dir="rtl"` on its root element; a left-to-right page's EPUB root is unchanged.
+- [ ] AC-20: The visual review of a left-to-right page is sent the same messages with
+      and without a right-to-left translation, and the page is stored the same; for a
+      right-to-left page it is sent the rewritten page, which is what is stored.
 
 ## Test plan
 
@@ -341,7 +372,7 @@ translation* is written right to left.
 | AC-6 | unit | same | `AC-6: …` (2 tests) |
 | AC-7 | unit | same | `AC-7: …` (3 tests) |
 | AC-8 | unit | `packages/pipeline/src/__tests__/package-web.test.ts` | `AC-8: …` (3 tests) |
-| AC-9 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-9: …` (6 tests) |
+| AC-9 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-9: …` (5 tests) |
 | AC-10 | unit | `packages/pipeline/src/__tests__/direction-neutral-html.test.ts` | `AC-10: …` (6 tests) |
 | AC-10 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-10: stores a right-to-left contents page with its page numbers at the end and no left/right alignment` |
 | AC-11 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-11: …` |
@@ -354,6 +385,7 @@ translation* is written right to left.
 | AC-17 | unit | `packages/pipeline/src/__tests__/page-sectioning.test.ts` | `AC-17: …` |
 | AC-18 | acceptance | recorded in the implementation PRs | *GK-2-2* from-scratch re-run |
 | AC-19 | unit | `packages/pipeline/src/__tests__/package-epub.test.ts` | `AC-19: …` (2 tests) |
+| AC-20 | unit | `packages/pipeline/src/__tests__/render-llm.test.ts` | `AC-20: …` (2 tests) |
 
 ## Rollout
 
@@ -366,6 +398,12 @@ Four stacked, independently revertable PRs on top of #1114:
 4. **Sectioning** (D7). Reverting removes two include lines.
 
 No flag: every part is inert for a book with no right-to-left language.
+
+Merge from the bottom up once this spec is approved. PRs are squash-merged and merged
+branches are not deleted automatically, so after each merge the next PR still targets
+its parent's branch: retarget it to `develop` and rebase it before merging, or delete
+the merged branch (which retargets the next PR) and then rebase. Merged into the
+parent's branch instead, it puts nothing into `develop`.
 
 ## Open questions
 
