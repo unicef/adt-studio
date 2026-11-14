@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import mupdf from "mupdf";
 import { extractPages } from "../extract.js";
 import {
@@ -8,6 +8,11 @@ import {
 } from "../raster-watermarks.js";
 import { decodePng } from "../png-utils.js";
 import { createWatermarkedTestPdf } from "./create-test-pdf.js";
+
+// Every test here builds a book and learns its stamp, some of them twice.
+// That is about a second on a laptop and several on a loaded CI runner,
+// where the default five would cut the slower ones off.
+vi.setConfig({ testTimeout: 60_000 });
 
 // Each page is a single full-page picture at exactly 100 DPI, like a PDF
 // that was printed to PDF or scanned: there is no text or vector op at all.
