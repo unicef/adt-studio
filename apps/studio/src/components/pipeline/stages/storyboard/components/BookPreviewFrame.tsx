@@ -27,7 +27,7 @@ import {
   weightToToken,
 } from "./iframe-computed-styles"
 import { INTERACTIVE_SCRIPT, INTERACTIVE_STYLES } from "./iframe-interactive"
-import { applyStoryboardImageCachePolicy } from "./storyboard-image-cache"
+import { applyStoryboardImageCachePolicy, toStoredImageSources } from "./storyboard-image-cache"
 import {
   anchorKey,
   anchorSelector,
@@ -288,7 +288,8 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       // edits in a session. They're stripped only at API persist time.
       stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
-      const html = wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML
+      // The preview shows images through display-only links; save the stored form.
+      const html = toStoredImageSources(wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML)
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
@@ -301,7 +302,8 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       else el.style.removeProperty(property)
       stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
-      const html = wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML
+      // The preview shows images through display-only links; save the stored form.
+      const html = toStoredImageSources(wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML)
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
@@ -638,7 +640,8 @@ ${autoFitScript}
     // structure consistent with what the shell expects.
     const scriptEls = Array.from(doc.body.querySelectorAll("script"))
     const currentBookImagePrefix = `${BASE_URL}/books/${encodeURIComponent(bookLabel)}/images/`
-    const normalizedHtml = promoteFirstHeadingToH1(newHtml).replace(
+    // Normalize first so sections saved with an old session's port still load.
+    const normalizedHtml = promoteFirstHeadingToH1(toStoredImageSources(newHtml)).replace(
       /src=(["'])\/api\/books\/[^/"']+\/images\//g,
       `src=$1${currentBookImagePrefix}`,
     )
