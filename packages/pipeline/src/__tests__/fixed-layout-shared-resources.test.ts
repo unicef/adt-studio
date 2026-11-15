@@ -50,6 +50,24 @@ it.each([1, 4])("renders each actual draw from a %i-page shared-resource PDF and
   expect(new Set(renderedIds.map(id => id.match(/_im\d+/)?.[0])).size).toBe(count)
 }, 20000)
 
+it("renders a page that keeps another page's image, and still refuses an image the book does not contain", async () => {
+  const [first, second] = await extracted(2)
+  const other = second.positionedText.drawItems.find(item => item.kind === "image")!.imageId
+  const list = storage.getLatestNodeData("image-filtering", first.pageId)!.data as { images: Array<{ imageId: string; isPruned: boolean }> }
+  expect(list.images.some(image => image.imageId === other)).toBe(false)
+  // Extract > Add image > pick from the book saves the other page's image here.
+  storage.putNodeData("image-filtering", first.pageId, { images: [...list.images, { imageId: other, isPruned: false }] })
+  const unavailable: string[] = []
+  await processFixedLayoutPages(storage, "/images", undefined, { onUnavailable: id => { unavailable.push(id) } })
+  expect(unavailable).toEqual([])
+  const data = storage.getLatestNodeData("web-rendering", first.pageId)?.data as { sections: Array<{ html: string }> }
+  // A fixed page draws only positioned items, so the added image is not drawn.
+  expect(data.sections[0].html).not.toContain(`data-id="${other}"`)
+  storage.putNodeData("image-filtering", first.pageId, { images: [...list.images, { imageId: "pg999_im001", isPruned: false }] })
+  await processFixedLayoutPages(storage, "/images", undefined, { onUnavailable: id => { unavailable.push(id) } })
+  expect(unavailable).toEqual([first.pageId])
+}, 20000)
+
 it.each(["missing classification", "missing drawn file", "missing position", "duplicate classification", "invalid viewport"])(
   "retains output with %s", async damage => {
     const [page] = await extracted(1)

@@ -534,15 +534,18 @@ export async function processFixedLayoutPages(
     const classified = new Set(classParsed.data.images.map(image => image.imageId))
     const images = new Map(storage.getPageImages(page.pageId, true).map(image => [image.imageId, image]))
     // A shared PDF resource dictionary also contains images this page never
-    // draws. Crops/segments are separate derived assets. Neither requires a
-    // position. An extracted image with recorded bounds WAS drawn, however;
-    // dropping that kept draw item must not turn damaged input into a blank page.
+    // draws. Crops/segments are separate derived assets, and Extract can add
+    // another page's image to this page's list. None requires a position: a
+    // fixed page draws only its positioned items. An extracted image with
+    // recorded bounds WAS drawn, however; dropping that kept draw item must
+    // not turn damaged input into a blank page.
     const placedExtracted = [...images.values()].filter(image => image.bounds &&
       image.storedAsset?.source === "extract" && image.imageId !== `${page.pageId}_page`)
     if (placedExtracted.some(image => !classified.has(image.imageId) ||
           (availableImageIds.has(image.imageId) && !positionedImages.has(image.imageId))) ||
         classified.size !== classParsed.data.images.length ||
-        [...availableImageIds].some(id => !images.has(id)) ||
+        // A kept image must exist in the book, on this page or another one.
+        [...availableImageIds].some(id => !images.has(id) && !storage.getImageMeta(id)) ||
         [...positionedImages].some(id => {
           const image = images.get(id)
           return !classified.has(id) || !image || (availableImageIds.has(id) && !!storage.bookDir &&
