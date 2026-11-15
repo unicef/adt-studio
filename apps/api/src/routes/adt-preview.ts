@@ -1,4 +1,5 @@
 import { catalogOutputs } from "../services/catalog-output-service.js"
+import { bookStateKey } from "../services/book-state-memo.js"
 import { partScopedPages, requiredPartRange, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
@@ -696,6 +697,19 @@ export function createAdtPreviewRoutes(
   const tailwindCssCache = new Map<string, string>()
   const tailwindCssInFlight = new Map<string, Promise<string>>()
   const TAILWIND_CACHE_CAP = 4
+  // Saved-state token -> exact compiler-input key. An unchanged book answers
+  // from here without re-reading every page; any change falls through to the
+  // exact-input hash below, so the stylesheet served is never for other inputs.
+  const tailwindInputKeys = new Map<string, string>()
+  const TAILWIND_STATE_CAP = 16
+
+  function rememberTailwindInputs(stateKey: string, cacheKey: string): void {
+    tailwindInputKeys.delete(stateKey)
+    tailwindInputKeys.set(stateKey, cacheKey)
+    if (tailwindInputKeys.size > TAILWIND_STATE_CAP) {
+      tailwindInputKeys.delete(tailwindInputKeys.keys().next().value as string)
+    }
+  }
 
   function rememberTailwindCss(key: string, css: string): void {
     tailwindCssCache.delete(key)
@@ -707,8 +721,25 @@ export function createAdtPreviewRoutes(
 
   /** Collect all rendered HTML from the DB + optional extra HTML for Tailwind scanning. */
   async function generateTailwindCss(safeLabel: string, extraHtml?: string): Promise<string> {
-    return withStorage(safeLabel, async (storage) => {
+    return withStorage(safeLabel, async (storage, _label, bookDir) => {
       const pages = partScopedPages(storage)
+      const typographyCss = resolveTypographyCss(storage)
+      const bundleVersion = getPreviewBundleVersion(webAssetsDir)
+      // Everything the compiler reads comes from saved book content, page
+      // membership, the imported-part window, the runtime assets, typography
+      // and this request's unsaved HTML. The saved-state key changes on any
+      // content write or unexplained database change (same-version rewrites
+      // included), so an equal token means equal compiler inputs.
+      const stateKey = hashValue([
+        safeLabel, bundleVersion, bookStateKey(storage, bookDir),
+        storage.bookDir ? requiredPartRange(storage.bookDir) : null,
+        storage.getPages().map(({ pageId, pageNumber }) => [pageId, pageNumber]),
+        typographyCss, extraHtml ?? "",
+      ])
+      const knownInputs = tailwindInputKeys.get(stateKey)
+      const reused = knownInputs === undefined ? undefined : tailwindCssCache.get(knownInputs)
+      if (reused != null) return reused
+
       let allHtml = ""
       for (const page of pages) {
         const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
@@ -735,10 +766,11 @@ export function createAdtPreviewRoutes(
 
       // Unsaved edits participate only in this request's input snapshot.
       if (extraHtml) allHtml += "\n" + extraHtml
-      const typographyCss = resolveTypographyCss(storage)
       // Hash exactly the derived book inputs passed to the compiler, rather
       // than guessing which node versions, page rows or part metadata matter.
-      const cacheKey = hashValue([safeLabel, getPreviewBundleVersion(webAssetsDir), allHtml, typographyCss])
+      // A save that leaves these inputs equal reuses the compiled stylesheet.
+      const cacheKey = hashValue([safeLabel, bundleVersion, allHtml, typographyCss])
+      rememberTailwindInputs(stateKey, cacheKey)
       const cached = tailwindCssCache.get(cacheKey)
       if (cached != null) return cached
 
