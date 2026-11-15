@@ -12097,6 +12097,9 @@ msgstr "I gjithë faqja trajtohet si një seksion i vetëm — i gjithë teksti 
 msgid "The export couldn't be packed up"
 msgstr "Eksporti nuk mund të paketohej"
 
+msgid "The export was built, but {unreadableTotal} page(s) may not open in an EPUB reader. Documents affected (showing up to 20): {unreadableList}. Review those pages before sharing."
+msgstr "Eksporti u krijua, por {unreadableTotal} faqe mund të mos hapen në një lexues EPUB. Dokumentet e prekura (shfaqen deri në 20): {unreadableList}. Kontrolloni ato faqe përpara se ta ndani eksportin."
+
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "Skedari mund të jetë i dëmtuar ose i paplotë. Provo ta shkarkosh sërish nga burimi."
 

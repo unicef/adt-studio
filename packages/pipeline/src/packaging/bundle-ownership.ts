@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { createHash } from "node:crypto"
 import type { Storage } from "@adt/storage"
+import { HistoryRecoveryError } from "@adt/storage"
 import { PackageOwnershipReceipt, PublicationPageEntry } from "@adt/types"
 import { resolveReadingOrder, type ResolvedItem } from "../reading-order.js"
 
@@ -22,9 +23,10 @@ function regularMember(root: string, name: string): string {
  * declaration while packaging. A filename or wrapper in that artifact does not
  * prove its author. Bind new files to the resolver's source and final bytes. */
 export function recordPackagedOwners(storage: Storage, root: string, items: readonly ResolvedItem[]): void {
-  // A book whose identity record is unavailable keeps its usable output: the
-  // receipt records "no identity" and matches only while that is still true.
   const bookId = storage.getBookIdentity?.() ?? null
+  // D2: preserve the live reader and project backup, but never publish an
+  // identity-less receipt that another identity-less book could accept.
+  if (storage.bookDir && !bookId) throw new HistoryRecoveryError("HISTORY_RECOVERY_UNVERIFIED")
   const entries = items.map(item => [item.id, owner(item), digest(fs.readFileSync(regularMember(root, item.id + ".html")))])
   // The offline runtime embeds every page in one script. Check those bytes
   // independently; a correct set of standalone HTML files cannot vouch for a

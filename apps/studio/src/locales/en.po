@@ -12095,6 +12095,9 @@ msgstr "The entire page is treated as a single section - all text and images sta
 msgid "The export couldn't be packed up"
 msgstr "The export couldn't be packed up"
 
+msgid "The export was built, but {unreadableTotal} page(s) may not open in an EPUB reader. Documents affected (showing up to 20): {unreadableList}. Review those pages before sharing."
+msgstr "The export was built, but {unreadableTotal} page(s) may not open in an EPUB reader. Documents affected (showing up to 20): {unreadableList}. Review those pages before sharing."
+
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "The file may be damaged or incomplete. Try downloading it again from the source."
 

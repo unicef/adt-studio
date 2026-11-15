@@ -19,6 +19,28 @@ const context = new AsyncLocalStorage<ReadonlyMap<string, WriterScope>>()
 // Database handles in this JS isolate may borrow the same process lease while
 // an admitted writer awaits I/O. Borrowing does not install writer authority.
 const localLeases = new Map<string, Lease>()
+// Only failed, fully unwound admissions/releases from this module instance
+// may be reclaimed while their PID is alive. Bind tokens to the canonical book;
+// neither a copied token nor an active database handle supplies this authority.
+const abandoned = new Map<string, Set<string>>()
+const admitting = new Set<string>()
+function rememberAbandoned(dir: string, token: string): void {
+  const tokens = abandoned.get(dir) ?? new Set<string>()
+  tokens.add(token)
+  abandoned.set(dir, tokens)
+}
+
+/** Rare sharing violations can outlive one syscall, especially on Windows.
+ * The healthy path never waits; a persistent failure remains a typed refusal. */
+function changeLease(operation: () => void): void {
+  for (let attempt = 0; ; attempt++) {
+    try { operation(); return } catch (error) {
+      if (!["EPERM", "EBUSY", "EACCES"].includes((error as NodeJS.ErrnoException).code ?? "")) throw error
+      if (attempt === 4) throw new BookBusyError("Book ownership files are temporarily unavailable. Retry after the filesystem operation finishes.")
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10 * 2 ** attempt)
+    }
+  }
+}
 // Resolving a path must not create a book: admission for a deleted or
 // mistyped label is refused upstream, and new books reserve their directory
 // explicitly through withNewBookWriter.
@@ -123,6 +145,11 @@ function provenDead(owner: BookWriterOwner): boolean {
     current.startTicks !== recorded.startTicks
 }
 
+function recoverableOwner(dir: string, owner: BookWriterOwner): boolean {
+  return (!localLeases.has(dir) && owner.pid === process.pid && owner.host === os.hostname() &&
+    abandoned.get(dir)?.has(owner.token) === true) || provenDead(owner)
+}
+
 function syncLeaseDirectory(dir: string): void {
   if (process.platform === "win32") return
   const fd = fs.openSync(dir, "r")
@@ -143,6 +170,42 @@ function readReservation(file: string): BookWriterReservation {
   return BookWriterReservation.parse(JSON.parse(fs.readFileSync(record, "utf8")))
 }
 
+/** Recognize only complete, inert protocol artifacts, never arbitrary files
+ * sharing a prefix, symlinks, SQLite mutexes or canonical active reservations. */
+function artifactOwner(dir: string, name: string): BookWriterOwner | undefined {
+  if (!name.startsWith(lockName + ".")) return undefined
+  const uuid = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
+  try {
+    if (new RegExp(`^\\.book-writer\\.json\\.preparing-${uuid}$`).test(name)) return readOwner(path.join(dir, name))
+    const match = name.match(new RegExp(`^\\.book-writer\\.json\\.recovery(?:\\.(${uuid}))?\\.(preparing|completed)-(${uuid})$`))
+    if (!match) return undefined
+    const record = readReservation(path.join(dir, name))
+    if (record.predecessorToken) {
+      if (record.rootToken === record.owner.token || record.previous) return undefined
+    } else if (record.rootToken !== record.owner.token) return undefined
+    if (match[1] ? record.predecessorToken !== match[1] : !!record.predecessorToken) return undefined
+    // A completed root may be retired by a later successor. A preparation
+    // or completed successor always bears its own owner's token.
+    if ((match[2] === "preparing" || match[1]) && record.owner.token !== match[3]) return undefined
+    return record.owner
+  } catch { return undefined }
+}
+
+export function isBookWriterArtifact(bookDir: string, name: string): boolean {
+  return artifactOwner(bookDir, name) !== undefined
+}
+
+function cleanAbandonedArtifacts(dir: string): boolean {
+  let complete = true
+  for (const name of fs.readdirSync(dir)) {
+    const owner = artifactOwner(dir, name)
+    if (!owner || !recoverableOwner(dir, owner)) continue
+    try { changeLease(() => fs.rmSync(path.join(dir, name), { recursive: true })) }
+    catch { complete = false /* Inert artifacts do not block a read. */ }
+  }
+  return complete
+}
+
 /** The canonical reservation is never empty or partly written. rename of a
  * prepared nonempty directory cannot replace another nonempty reservation. */
 function publishReservation(file: string, record: BookWriterReservation): void {
@@ -154,9 +217,9 @@ function publishReservation(file: string, record: BookWriterReservation): void {
     finally { fs.closeSync(fd) }
     syncLeaseDirectory(prepared)
     if (entryExists(file)) throw new BookBusyError()
-    fs.renameSync(prepared, file)
+    changeLease(() => fs.renameSync(prepared, file))
     syncLeaseDirectory(path.dirname(file))
-  } finally { if (entryExists(prepared)) fs.rmSync(prepared, { recursive: true }) }
+  } finally { if (entryExists(prepared)) changeLease(() => fs.rmSync(prepared, { recursive: true })) }
 }
 
 /** A dead reservation is extended, never unlinked by competing reapers. Its
@@ -164,15 +227,16 @@ function publishReservation(file: string, record: BookWriterReservation): void {
  * the root: a delayed contender cannot act on a completed/replaced chain.
  * Only the live leaf can change ownership. Completion atomically retires the
  * root FIRST, so death during cleanup cannot strand anonymous evidence. */
-function reserveAdmission(dir: string, owner: BookWriterOwner) {
+function reserveAdmission(dir: string, owner: BookWriterOwner, markIssued: () => void) {
   const recovery = path.join(dir, `${lockName}.recovery`)
   const lock = path.join(dir, lockName)
   let root: BookWriterReservation
   const chain: Array<{ file: string; record: BookWriterReservation }> = []
   if (!entryExists(recovery)) {
     const previous = entryExists(lock) ? readOwner(lock) : undefined
-    if (previous && !provenDead(previous)) throw new BookBusyError()
+    if (previous && !recoverableOwner(dir, previous)) throw new BookBusyError()
     root = { format: "adt-book-admission-v1", rootToken: owner.token, owner, ...(previous ? { previous } : {}) }
+    markIssued()
     publishReservation(recovery, root)
     chain.push({ file: recovery, record: root })
   } else {
@@ -181,7 +245,7 @@ function reserveAdmission(dir: string, owner: BookWriterOwner) {
     let file = recovery, record = root
     const seen = new Set<string>()
     for (;;) {
-      if (seen.has(record.owner.token) || !provenDead(record.owner)) throw new BookBusyError()
+      if (seen.has(record.owner.token) || !recoverableOwner(dir, record.owner)) throw new BookBusyError()
       seen.add(record.owner.token)
       chain.push({ file, record })
       file = `${recovery}.${record.owner.token}`
@@ -191,11 +255,12 @@ function reserveAdmission(dir: string, owner: BookWriterOwner) {
         if (record.rootToken !== root.rootToken || record.predecessorToken !== predecessorToken || record.previous) throw new BookBusyError()
       } else {
         record = { format: "adt-book-admission-v1", rootToken: root.rootToken, predecessorToken, owner }
+        markIssued()
         publishReservation(file, record)
         chain.push({ file, record })
         try {
           if (readReservation(recovery).rootToken !== root.rootToken) throw new BookBusyError()
-        } catch (error) { fs.rmSync(file, { recursive: true }); throw error }
+        } catch (error) { changeLease(() => fs.rmSync(file, { recursive: true })); throw error }
         break
       }
     }
@@ -210,16 +275,16 @@ function reserveAdmission(dir: string, owner: BookWriterOwner) {
         // only our unused successor; no database or owner changes occurred.
         const own = chain.at(-1)!
         const retired = `${own.file}.completed-${owner.token}`
-        fs.renameSync(own.file, retired)
+        changeLease(() => fs.renameSync(own.file, retired))
         syncLeaseDirectory(dir)
-        fs.rmSync(retired, { recursive: true })
+        changeLease(() => fs.rmSync(retired, { recursive: true }))
         return
       }
       const retired = `${recovery}.completed-${owner.token}`
-      fs.renameSync(recovery, retired)
+      changeLease(() => fs.renameSync(recovery, retired))
       syncLeaseDirectory(dir)
-      fs.rmSync(retired, { recursive: true })
-      for (const item of chain.slice(1)) fs.rmSync(item.file, { recursive: true })
+      changeLease(() => fs.rmSync(retired, { recursive: true }))
+      for (const item of chain.slice(1)) changeLease(() => fs.rmSync(item.file, { recursive: true }))
     },
   }
 }
@@ -240,11 +305,11 @@ function publishOwner(lock: string, owner: BookWriterOwner): void {
     }
     fs.fsyncSync(fd)
     fs.closeSync(fd); open = false
-    fs.renameSync(prepared, lock)
+    changeLease(() => fs.renameSync(prepared, lock))
     syncLeaseDirectory(path.dirname(lock))
   } finally {
     if (open) fs.closeSync(fd)
-    if (entryExists(prepared)) fs.unlinkSync(prepared)
+    if (entryExists(prepared)) changeLease(() => fs.unlinkSync(prepared))
   }
 }
 
@@ -271,21 +336,34 @@ function verifyLocalLease(dir: string, lease: Lease): void {
 }
 
 function acquire(dir: string, databaseFile?: string): Lease {
-  const lock = path.join(dir, lockName)
+  if (admitting.has(dir)) throw new BookBusyError()
+  admitting.add(dir)
   const token = randomUUID()
+  let issued = false
+  try { return acquireLease(dir, databaseFile, token, () => { issued = true }) }
+  catch (error) {
+    // Ordinary contention wrote no evidence and must not accumulate tokens.
+    if (issued) rememberAbandoned(dir, token)
+    if (error instanceof BookBusyError) throw error
+    throw new BookBusyError("Book ownership could not be recovered. Recovery evidence has been preserved.")
+  } finally { admitting.delete(dir) }
+}
+
+function acquireLease(dir: string, databaseFile: string | undefined, token: string, markIssued: () => void): Lease {
+  const lock = path.join(dir, lockName)
   const owner: BookWriterOwner = { token, pid: process.pid, host: os.hostname(), linuxProcess: linuxProcess(process.pid), coordinatedDatabases: [] }
   const removeOwn = () => {
     if (readOwner(lock).token !== token) throw new BookBusyError("Book ownership changed during admission.")
-    fs.unlinkSync(lock)
+    changeLease(() => fs.unlinkSync(lock))
   }
   let reservation: ReturnType<typeof reserveAdmission> | undefined
   let changed = false
   let published = false
   try {
-    reservation = reserveAdmission(dir, owner)
+    reservation = reserveAdmission(dir, owner, markIssued)
     const previous = entryExists(lock) ? readOwner(lock) : undefined
     if (previous) {
-      if (!provenDead(previous) || (previous.token !== reservation.previous?.token &&
+      if (!recoverableOwner(dir, previous) || (previous.token !== reservation.previous?.token &&
         !reservation.ownerTokens.has(previous.token))) throw new BookBusyError()
     } else if (reservation.previous) throw new BookBusyError()
     const registered = new Set(previous?.coordinatedDatabases ?? [])
@@ -321,9 +399,15 @@ function acquire(dir: string, databaseFile?: string): Lease {
       localLeases.delete(dir)
       // Explicit book deletion removes its lease along with the directory.
       if (!fs.existsSync(dir)) return
-      removeOwn()
+      try { removeOwn() }
+      catch (error) {
+        rememberAbandoned(dir, token)
+        if (error instanceof BookBusyError) throw error
+        throw new BookBusyError("Book ownership could not be released. Retry after the filesystem operation finishes.")
+      }
     },
   }
+  if (cleanAbandonedArtifacts(dir)) abandoned.delete(dir)
   localLeases.set(dir, lease)
   return lease
 }

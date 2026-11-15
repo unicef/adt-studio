@@ -4,7 +4,7 @@ import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import { openCoordinatedDatabase } from "./database-admission.js"
 import { BookFontRegistry, FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID, ExtractionManifest, type ExtractionInputs } from "@adt/types"
-import { assertBookWriter, BookBusyError } from "./book-writer.js"
+import { assertBookWriter, BookBusyError, isBookWriterArtifact } from "./book-writer.js"
 import { ExtractionAdmissionError } from "./extraction-error.js"
 import { readSectioningLifecycle, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
 
@@ -72,6 +72,7 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
   const fontFiles = new Set<string>()
   for (const entry of fs.readdirSync(bookDir, { withFileTypes: true })) {
     if (entry.isSymbolicLink()) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+    if (isBookWriterArtifact(bookDir, entry.name)) continue
     // Finder metadata is neither content nor extraction history. Preserve the
     // exact regular file; the name does not exempt directories or symlinks.
     if (entry.isFile() && entry.name === ".DS_Store") continue

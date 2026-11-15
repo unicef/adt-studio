@@ -117,3 +117,21 @@ it("says a bundle with missing images was still built, and names the pages", () 
   expect(mixed).toContain("no verified section owner")
   expect(mixed).toContain("4 image or media file(s)")
 })
+
+it("shows unreadable EPUB pages through both completion channels without hiding other warnings", () => {
+  const warnings = Array.from({ length: 23 }, (_, index) => ({ kind: "unreadable-page" as const, pageId: "", document: `OEBPS/pg${String(index + 1).padStart(3, "0")}.xhtml` }))
+  const raw = [...warnings, warnings[0]]
+  expect(readPackagingWarnings({ warnings: raw })).toEqual(raw)
+  const message = describePackagingWarnings(raw, i18n)!
+  expect(message).toContain("23 page(s) may not open")
+  expect(message).toContain("OEBPS/pg020.xhtml")
+  expect(message).not.toContain("OEBPS/pg021.xhtml")
+  expect(message).toContain("Review those pages before sharing")
+  for (const result of [{ warnings: raw }, { status: "completed", warnings: raw }]) {
+    toastPackagingWarnings(result, i18n)
+    expect(warningToast).toHaveBeenLastCalledWith(message)
+  }
+  const mixed = describePackagingWarnings([...raw, { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 1 }], i18n)!
+  expect(mixed).toContain("no verified section owner")
+  expect(mixed).toContain("23 page(s) may not open")
+})

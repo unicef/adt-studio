@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { randomUUID } from "node:crypto"
 import { openBookDb, createBookStorage, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
 import { unzipSync } from "fflate"
 import { packageEpub } from "@adt/pipeline"
@@ -140,10 +141,22 @@ describe("exportProject", () => {
     const bookDir = path.join(tmpDir, label)
     writeSectioningLifecycle(bookDir, "page", false)
     await withBookWriter(bookDir, async () => {
+      const token = randomUUID(), artifact = `.book-writer.json.recovery.completed-${token}`
+      fs.mkdirSync(path.join(bookDir, artifact))
+      const owner = { token, pid: process.pid, host: os.hostname() }
+      fs.writeFileSync(path.join(bookDir, artifact, "owner.json"), JSON.stringify({ format: "adt-book-admission-v1", rootToken: token, owner }))
+      const preparing = `.book-writer.json.preparing-${randomUUID()}`
+      fs.writeFileSync(path.join(bookDir, preparing), JSON.stringify(owner))
+      const unknown = `.book-writer.json.preparing-${randomUUID()}`
+      fs.writeFileSync(path.join(bookDir, unknown), "unknown user data")
       const result = await exportProject(label, tmpDir)
       const files = unzipSync(await streamToBuffer(result.stream))
       expect(files[".book-writer.json"]).toBeUndefined()
       expect(files[".book-writer.json.recovery"]).toBeUndefined()
+      expect(files[artifact + "/owner.json"]).toBeUndefined()
+      expect(files[preparing]).toBeUndefined()
+      expect(Buffer.from(files[unknown]).toString()).toBe("unknown user data")
+      expect(fs.existsSync(path.join(bookDir, artifact, "owner.json"))).toBe(true)
       expect(JSON.parse(new TextDecoder().decode(files[".sectioning-lifecycle.json"])))
         .toEqual({ version: 1, mode: "page", sectioningReady: false, storyboardPending: true })
     })
@@ -419,6 +432,29 @@ it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("exports a book who
     expect(page).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE]/)
     expect(page).toContain('xmlns:xlink="http://www.w3.org/1999/xlink"')
   }
+}, 30_000)
+
+it("reports an unreadable EPUB page to the export caller while retaining saved content", async () => {
+  const label = "epub-page-warning"
+  createBookWithMetadata(label, "Readable book")
+  addPagesAndRenderings(label, 2)
+  const storage = createBookStorage(label, tmpDir)
+  let saved: unknown
+  try {
+    const row = storage.getLatestNodeData("web-rendering", `${label}_p1`)!.data as { sections: { html: string }[] }
+    row.sections[0].html += '<unknown:element>Retain this text</unknown:element>'
+    storage.putNodeData("web-rendering", `${label}_p1`, row)
+    saved = storage.getAllNodeVersions("web-rendering", `${label}_p1`)
+  } finally { storage.close() }
+  const first = await prepareExport(label, "epub", tmpDir, webAssetsDir)
+  expect(first.warnings).toContainEqual({ kind: "unreadable-page", pageId: "", document: `OEBPS/${label}_p1_sec001.xhtml` })
+  const second = await prepareExport(label, "epub", tmpDir, webAssetsDir)
+  expect(second.warnings).toEqual(first.warnings)
+  const zip = unzipSync(await streamToBuffer((await exportEpub(label, tmpDir)).stream))
+  expect(Buffer.from(zip[`OEBPS/${label}_p1_sec001.xhtml`]).toString()).toContain("Retain this text")
+  expect(zip[`OEBPS/${label}_p2_sec001.xhtml`]).toBeDefined()
+  const after = createBookStorage(label, tmpDir)
+  try { expect(after.getAllNodeVersions("web-rendering", `${label}_p1`)).toEqual(saved) } finally { after.close() }
 }, 30_000)
 
 describe("exportWebpub", () => {

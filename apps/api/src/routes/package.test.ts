@@ -7,7 +7,7 @@ import type { ExtractedPage } from "@adt/pdf"
 import { createBookStorage, openBookDb, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
 import { AccessibilityAssessmentOutput, type TaskInfo } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
-import { exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld } from "../services/export-service.js"
+import { exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld, exportProject } from "../services/export-service.js"
 import { spawnSync } from "node:child_process"
 import { pathToFileURL } from "node:url"
 import { unzipSync } from "fflate"
@@ -434,7 +434,7 @@ describe("Package routes", () => {
     expect(fs.readFileSync(path.join(book, "adt", "pg001_sec001.html")).equals(html)).toBe(true)
   })
 
-  it("still packages and downloads a book whose identity record is unavailable", async () => {
+  it("retains D2 after identity loss, including a transplanted identity-less package", async () => {
     const label = "missing-book-identity"
     createRenderedBook(label)
     createWebAssets()
@@ -444,19 +444,41 @@ describe("Package routes", () => {
     const page = path.join(directory, "adt", "pg001_sec001.html")
     const receipt = () => JSON.parse(fs.readFileSync(path.join(directory, "adt", ".build-owners"), "utf8")) as { bookId: string | null }
     expect(receipt().bookId).toEqual(expect.any(String))
+    const savedReceipt = fs.readFileSync(path.join(directory, "adt", ".build-owners"))
+    const savedPage = fs.readFileSync(page)
+    const identity = receipt().bookId!
     const db = openBookDb(path.join(directory, label + ".db"))
     try { db.run("DROP TABLE history_identity") } finally { db.close() }
-    // The retained receipt names an identity the book no longer has, so the
-    // cache is not reused. Usable output is kept: the package is rebuilt from
-    // the saved content and records that the book has no identity.
     const response = await app.request(url, { method: "POST" })
-    expect(response.status, await response.clone().text()).toBe(200)
-    expect(receipt().bookId).toBeNull()
-    expect(fs.readFileSync(page, "utf8")).toContain("Original text")
-    expect(await (await app.request(url + "/status")).json()).toMatchObject({ hasAdt: true, complete: true })
-    const zip = unzipSync(new Uint8Array(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer()))
-    expect(zip["pg001_sec001.html"]).toBeDefined()
-    // A second request is answered from that build.
+    expect(response.status, await response.clone().text()).toBe(409)
+    expect(await response.json()).toMatchObject({ code: "HISTORY_RECOVERY_UNVERIFIED" })
+    expect(fs.readFileSync(page)).toEqual(savedPage)
+    expect(fs.readFileSync(path.join(directory, "adt", ".build-owners"))).toEqual(savedReceipt)
+    await expect(exportAdt(label, tmpDir)).rejects.toThrow("PACKAGE_FILES_INCOMPLETE")
+    const live = new Hono().onError(errorHandler).route("/api", createAdtPreviewRoutes(tmpDir, webAssetsDir))
+    const preview = await live.request(`/api/books/${label}/adt-preview/pg001_sec001.html`)
+    expect(preview.status).toBe(200)
+    expect(await preview.text()).toContain("Original text")
+    const backup = unzipSync(new Uint8Array(await new Response((await exportProject(label, tmpDir)).stream).arrayBuffer()))
+    expect(backup[label + ".db"]).toBeDefined()
+
+    // Null does not identify a book. Even with coincident page IDs and intact
+    // digests, a package made by the intervening tolerant build is unproven.
+    const other = "other-identity-less-book"
+    createRenderedBook(other)
+    const otherDir = path.join(tmpDir, other)
+    const otherDb = openBookDb(path.join(otherDir, other + ".db"))
+    try { otherDb.run("DROP TABLE history_identity") } finally { otherDb.close() }
+    fs.cpSync(path.join(directory, "adt"), path.join(otherDir, "adt"), { recursive: true })
+    fs.writeFileSync(path.join(otherDir, "adt", ".build-owners"), JSON.stringify({ ...JSON.parse(savedReceipt.toString()), bookId: null }))
+    await expect(exportAdt(other, tmpDir)).rejects.toThrow("PACKAGE_FILES_INCOMPLETE")
+
+    // Restoring the original UUID makes the retained receipt verifiable again.
+    const restored = openBookDb(path.join(directory, label + ".db"))
+    try {
+      restored.exec("CREATE TABLE history_identity (id INTEGER PRIMARY KEY CHECK (id=1), book_id TEXT NOT NULL)")
+      restored.run("INSERT INTO history_identity VALUES (1, ?)", [identity])
+    } finally { restored.close() }
     expect((await app.request(url, { method: "POST" })).status).toBe(200)
   })
 

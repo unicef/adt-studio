@@ -51,13 +51,17 @@ export function describePackagingWarnings(
       ? i18n._(msg`The bundle was built, but ${assetTotal} image or media file(s) it refers to were not found and are missing from it. Pages affected (showing up to 20): ${assetPageList}. Check the images on those pages, then build again.`)
       : i18n._(msg`The bundle was built, but ${assetTotal} image or media file(s) it refers to were not found and are missing from it.`)
   const coverageMessage = missingTotal ? i18n._(msg`This bundle is incomplete. Storyboard output is missing on ${missingTotal} page(s) (showing up to 20): ${missingList}. Render those pages to complete it.`) : ""
-  if (!ownership.length) return [coverageMessage, sourceMessage, assetMessage].filter(Boolean).join(" ") || null
+  const unreadable = [...new Set(warnings.filter(warning => warning.kind === "unreadable-page").map(warning => warning.document).filter(Boolean))].sort()
+  const unreadableTotal = unreadable.length
+  const unreadableList = unreadable.slice(0, 20).join(", ")
+  const unreadableMessage = unreadableTotal ? i18n._(msg`The export was built, but ${unreadableTotal} page(s) may not open in an EPUB reader. Documents affected (showing up to 20): ${unreadableList}. Review those pages before sharing.`) : ""
+  if (!ownership.length) return [coverageMessage, sourceMessage, assetMessage, unreadableMessage].filter(Boolean).join(" ") || null
   const pages = [...new Set(ownership.map((w) => w.pageId))].sort()
   const pageTotal = pages.length
   const pageList = pages.filter(page => !shownMissing.includes(page)).slice(0, 20 - shownMissing.length).join(", ") || i18n._(msg`No additional page IDs shown`)
   return [coverageMessage, sourceMessage, i18n._(
     msg`Some content was left out of the bundle: ${ownership.length} rendered section(s) on ${pageTotal} page(s) (showing up to 20): ${pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again.`,
-  ), assetMessage].filter(Boolean).join(" ")
+  ), assetMessage, unreadableMessage].filter(Boolean).join(" ")
 }
 
 /**

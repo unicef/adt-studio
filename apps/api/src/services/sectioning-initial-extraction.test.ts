@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { randomUUID } from "node:crypto"
 import { afterEach, beforeEach, expect, it } from "vitest"
 import { Hono } from "hono"
 import { createBookStorage, readExtractionManifest, readSectioningLifecycle } from "@adt/storage"
@@ -31,13 +32,22 @@ async function changeMode() {
   expect(response.status, await response.text()).toBe(200)
 }
 
-it("allows first extraction after an imported book changes Sectioning mode", async () => {
+it.each([false, true])("allows first extraction after a preference change, with inert admission leftovers: %s", async leftovers => {
   await changeMode()
   const dir = path.join(root, label)
   expect(readSectioningLifecycle(dir)?.mode).toBe("page")
   const sidecar = fs.readFileSync(path.join(dir, ".sectioning-lifecycle.json"))
   const storage = createBookStorage(label, root)
   try {
+    if (leftovers) {
+      const owner = { token: randomUUID(), pid: process.pid, host: os.hostname(), coordinatedDatabases: [] }
+      fs.writeFileSync(path.join(dir, `.book-writer.json.preparing-${randomUUID()}`), JSON.stringify(owner))
+      for (const phase of ["preparing", "completed"]) {
+        const artifact = path.join(dir, `.book-writer.json.recovery.${phase}-${owner.token}`)
+        fs.mkdirSync(artifact)
+        fs.writeFileSync(path.join(artifact, "owner.json"), JSON.stringify({ format: "adt-book-admission-v1", rootToken: owner.token, owner }))
+      }
+    }
     const config = loadBookConfig(label, root, configPath)
     expect(await extractPDF(extractionOptionsFromConfig(path.join(dir, label + ".pdf"), config), storage, { emit() {} })).toBe("extracted")
     expect(storage.getPages().map(page => page.pageId)).toEqual(["pg001"])
@@ -47,7 +57,7 @@ it("allows first extraction after an imported book changes Sectioning mode", asy
   } finally { storage.close() }
 }, 30_000)
 
-it.each(["generated-history", "unknown-file", "malformed-sidecar", "sidecar-directory", "sidecar-symlink"])(
+it.each(["generated-history", "unknown-file", "malformed-sidecar", "sidecar-directory", "sidecar-symlink", "unknown-admission-file", "admission-extra-file", "admission-symlink"])(
   "a preference sidecar does not bypass initial extraction protection for %s", async kind => {
     await changeMode()
     const dir = path.join(root, label), sidecar = path.join(dir, ".sectioning-lifecycle.json")
@@ -58,6 +68,18 @@ it.each(["generated-history", "unknown-file", "malformed-sidecar", "sidecar-dire
       if (kind === "malformed-sidecar") fs.writeFileSync(sidecar, "{invalid")
       if (kind === "sidecar-directory") { fs.unlinkSync(sidecar); fs.mkdirSync(sidecar) }
       if (kind === "sidecar-symlink") { fs.unlinkSync(sidecar); fs.symlinkSync(configPath, sidecar) }
+      if (kind.startsWith("admission-") || kind === "unknown-admission-file") {
+        const token = randomUUID(), artifact = path.join(dir, `.book-writer.json.recovery.preparing-${token}`)
+        fs.mkdirSync(artifact)
+        fs.writeFileSync(path.join(artifact, "owner.json"), kind === "unknown-admission-file" ? "keep unknown data" : JSON.stringify({
+          format: "adt-book-admission-v1", rootToken: token, owner: { token, pid: process.pid, host: os.hostname() },
+        }))
+        if (kind === "admission-extra-file") fs.writeFileSync(path.join(artifact, "user-data"), "preserve")
+        if (kind === "admission-symlink") {
+          fs.unlinkSync(path.join(artifact, "owner.json"))
+          fs.symlinkSync(configPath, path.join(artifact, "owner.json"))
+        }
+      }
       const dbBefore = fs.readFileSync(path.join(dir, label + ".db"))
       const configBefore = fs.readFileSync(path.join(dir, "config.yaml"))
       await expect(extractPDF({ pdfPath: source, startPage: 1, endPage: 1 }, storage, { emit() {} }))

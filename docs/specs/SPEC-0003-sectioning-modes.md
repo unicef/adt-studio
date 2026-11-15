@@ -226,7 +226,8 @@ visible; removing mode/provenance gates must not certify incomplete packages.
 Compatible downstream freshness warnings remain usable under SPEC-0001. Package cache hits and new builds must validate the mandatory part window. A failed build must leave the previous published directory intact. Source coverage alone does not prove that a bundle can be read; the bundle itself is checked.
 
 **November 15 packaging amendment (product-owner decision, review pending):**
-packaging fails gracefully. A build or download is refused only when the bundle
+packaging fails gracefully, subject to retained ownership proof and the accepted
+D2 identity-loss limitation below. A build or download is otherwise refused when the bundle
 could not open at all: a missing or unreadable page document, page list, entry
 file, language dictionary, reader script or page-shell stylesheet, or, in a
 derived format, an unreadable package, navigation or media-overlay document.
@@ -248,10 +249,14 @@ Anything short of that is repaired or reported, never refused:
   cannot be parsed is ignored, as a browser ignores it; it does not refuse the
   page it styles.
 - **One bad page does not withhold a book.** A book page of a derived export that
-  is not well-formed is delivered with the rest of the publication.
-- **A book without an identity record keeps its usable output.** It still
-  packages, previews and downloads; its package receipt records the absent
-  identity and matches only while that remains true. ID-allocating work stays
+  is not well-formed is delivered with the rest of the publication. EPUB
+  preparation reports an `unreadable-page` warning naming each affected document
+  after format repairs; Studio shows it before sharing.
+- **D2: missing persistent book identity remains a narrow export limitation.**
+  Live Preview and project backup remain available, but formatted packaging and
+  downloads refuse when the persisted book UUID is unavailable. Two absent UUIDs
+  do not prove common origin; a receipt with a null identity cannot authorize a
+  retained package. Existing artifacts remain intact. ID-allocating work stays
   refused as specified under verified history recovery.
 
 No reference is followed outside the bundle in any mode. This amendment replaces
@@ -325,7 +330,7 @@ retain pending human acceptance; passing verification does not grant approval.
 - [ ] RAC-16 Remaining UI/HTTP/SSE errors and parameters translate in all five locales; obsolete restrictions/errors are removed.
 - [ ] RAC-17 Fresh CLI/DAG remains safe; expanded existing-book resume is deferred/refused here. No B2 modes, automatic merge, new dependency or competing freshness/lock subsystem.
 - [ ] RAC-18 Inherited authorship, draft, restore, stable ID/audio/TOC-consent, current-read and scoped cache guarantees survive integration, subject to the explicit legacy-owner qualification.
-- [ ] RAC-19 Packaging and downloads refuse only a bundle that could not open. A missing content resource, unreadable content styles or characters the format cannot hold produce a built, downloadable bundle; missing resources are named in a `missing-asset` warning that survives cache hits. A book without an identity record still packages. No reference is followed outside the bundle.
+- [ ] RAC-19 Subject to ownership proof and D2, packaging and downloads refuse only a bundle that could not open. A missing content resource, unreadable content styles or characters the format cannot hold produce a built, downloadable bundle; missing resources are named in a `missing-asset` warning that survives cache hits. EPUB preparation warns about unreadable page documents without dropping their content. Missing persistent book identity refuses formatted export while retaining live Preview, project backup and existing artifacts. No reference is followed outside the bundle.
 
 ## Original acceptance-criteria mapping
 

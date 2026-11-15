@@ -10,7 +10,7 @@ export { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "./node-current.js"
 export { HistoryIntegrityError } from "./history-integrity.js"
 
 export { storeImmutableAsset, readBookAsset, UnsafeAssetPathError } from "./immutable-assets.js"
-export { withBookWriter, withNewBookWriter, ownsBookWriter, assertBookWriter, BookBusyError } from "./book-writer.js"
+export { withBookWriter, withNewBookWriter, ownsBookWriter, assertBookWriter, isBookWriterArtifact, BookBusyError } from "./book-writer.js"
 
 export { publishSpeechOutput, publishSpeechTimings, restoreSpeechOutput, withSpeechAudioIdentity } from "./speech-history.js"
 

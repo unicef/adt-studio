@@ -3,7 +3,7 @@ import path from "node:path"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, PackageOwnershipReceipt } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
-import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
+import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths, isBookWriterArtifact } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { readRetainedPackageOwnership } from "./retained-package-reader.js"
 import { publishedAdtDirectory, requiredPartRange, resolveReadingOrder, assertDerivedPackageFilesAvailable, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook, PACKAGE_OWNERS_FILE } from "@adt/pipeline"
@@ -194,7 +194,7 @@ async function prepareAdmittedExport(
     if (format === "webpub") {
       packageWebpub(storage, opts)
     } else if (format === "epub") {
-      packageEpub(storage, opts)
+      warnings.push(...packageEpub(storage, opts))
     } else if (format === "pnld") {
       packagePnld(storage, opts)
     }
@@ -221,9 +221,10 @@ function warmDownloadProofs(storage: Storage, bookDir: string, format: "scorm" |
  * The existing ZIP producer yields while reading larger books, so admission
  * must last until it has finished reading, not merely until it returns a stream. */
 function createProjectZipStream(bookDir: string) {
+  const artifacts = fs.readdirSync(bookDir).filter(name => isBookWriterArtifact(bookDir, name))
   return createAdmittedZipStream(bookDir, bookDir, {
-    excludeDirs: new Set(["adt", "webpub", ".adt-package-work"]),
-    excludeFiles: new Set([".book-writer.json", ".book-writer.json.recovery"]),
+    excludeDirs: new Set(["adt", "webpub", ".adt-package-work", ".book-writer.json.recovery", ...artifacts]),
+    excludeFiles: new Set([".book-writer.json", ".book-writer.json.recovery", ...artifacts]),
   })
 }
 
