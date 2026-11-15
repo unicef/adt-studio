@@ -19,12 +19,14 @@ import {
   List,
 } from "lucide-react";
 interface BookMetadata {
-  ariaLabel: string;
   tooltip?: string;
   className?: string;
 }
+/**
+ * The dock's table-of-contents toggle. On desktop it shows the current
+ * section title; on mobile it is icon-only.
+ */
 export function BookMetadata({
-  ariaLabel,
   tooltip,
   className,
 }: BookMetadata) {
@@ -44,7 +46,13 @@ export function BookMetadata({
     return entry?.title ?? "";
   }, [toc, currentSectionId]);
 
-  const displayTitle = activeTitle || t("toc-title") || "Contents";
+  const contentsLabel = t("toc-title", {}, "Contents");
+  const displayTitle = activeTitle || contentsLabel;
+  // Say what the button opens, and keep the title the reader can see inside
+  // the name (WCAG 2.5.3) so screen-reader users hear where they are and
+  // voice-control users can say what they see.
+  const ariaLabel =
+    !isMobile && activeTitle ? `${contentsLabel}: ${activeTitle}` : contentsLabel;
   const label = tooltip ?? ariaLabel;
   const pressed = value === "toc";
 

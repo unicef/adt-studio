@@ -275,5 +275,6 @@
     "comments-reading-now-label": "En train de lire",
     "comments-hint-title": "Vous pouvez commenter ce livre",
     "comments-hint-body": "Appuyez sur ce bouton, puis cliquez n’importe où sur une page pour laisser une note.",
-    "comments-hint-dismiss-label": "Fermer"
+    "comments-hint-dismiss-label": "Fermer",
+    "page-n-of-m": "Page ${n} sur ${m}"
 }
