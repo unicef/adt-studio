@@ -30,6 +30,7 @@ This document records all significant technology and architecture decisions made
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
 24. [Catalog-Based Freshness from Saved Input Signatures (proposed)](#adr-024)
+29. [UI Strings Are Translated From Context in the Author's Session, Not by CI (proposed)](#029-ui-strings-are-translated-from-context-in-the-authors-session-not-by-ci)
 
 ---
 
@@ -964,6 +965,52 @@ separate action after saving. #619 and #626 remain background/deferred.
 
 ---
 
+## 029: UI Strings Are Translated From Context in the Author's Session, Not by CI
+
+**Status**: proposed
+
+**Date**: 2026-11-11
+
+**Spec**: [SPEC-0025](specs/SPEC-0025-context-based-ui-translation.md)
+
+**Issues**: #937, #900
+
+### Context
+
+Studio's four translated locales were filled key by key: by `translate:missing`, by an
+agent handed the empty entries, or by the CI `i18n` job, which ran the same script and
+pushed the result to the PR. None of them saw where a string renders or whether the
+translation fits, and the people adding strings don't speak most of the locales. The
+pt-BR review (#920) rewrote 708 strings and found renamed placeholders, stray escapes
+and mistranslations that the other locales still carry.
+
+### Decision
+
+The PR author's agent session translates every locale from where each string renders,
+using a shared glossary, and checks the result on screen against English, on the
+author's machine. The PR carries a section the skill writes about that work. CI never
+translates and doesn't judge meaning or fit: it fails when a string is unextracted or
+untranslated, or when `i18n:lint` finds a mechanical error (placeholders, escapes,
+invalid ICU, forbidden terms), since those need only the catalogs. No native-speaker approval gates a merge.
+
+### Consequences
+
+- Translations are reviewable in the PR that introduces the string, with the screens it
+  affects.
+- CI no longer needs write access to PR branches for i18n.
+- A contributor without an agent has to translate four locales by hand or ask for help.
+- Quality rests on reading each string where it renders, the glossary and the screen
+  check rather than on native speakers; native feedback is welcome but not required.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|----------|---------|
+| Keep the CI auto-translator, add the glossary and call sites | Still translates a list of keys and can't see whether the result fits |
+| Require a native-speaker review per locale | The team has no native fr or sq speakers |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -992,6 +1039,7 @@ separate action after saving. #619 and #626 remain background/deferred.
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
 | 024 (proposed) | Downstream freshness | Catalog-based input signatures and scoped regeneration with existing caching | Whole-stage clearing, universal section flags, general dependency graph |
+| 029 (proposed) | UI translation | In the author's session, from context, checked on screen; CI only validates | CI auto-translation, native-speaker gate |
 
 ---
 
