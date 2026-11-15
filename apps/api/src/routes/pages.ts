@@ -1363,10 +1363,37 @@ export function createPageRoutes(
     return c.json({ suggestions: detectSpreads(samples) })
   })
 
+  // One spread apply per book at a time. Each apply works out what to add and
+  // remove from the pages it reads at the start, and extraction yields to the
+  // event loop while a watermark stamp is learned. Without this a second apply
+  // could run from start to finish in that gap, and the first would then
+  // finish on top of it, leaving pages that match neither request.
+  //
+  // `sent` is the request body, which the route starts reading as the request
+  // arrives. Read only when the apply's turn came, it could no longer be read
+  // if the client had gone away meanwhile, and the apply would take that for
+  // "no spreads" and split every merged spread in the book.
+  const spreadApplies = new Map<string, Promise<unknown>>()
+  const oneSpreadApplyPerBook = <R>(
+    book: string,
+    sent: Promise<unknown>,
+    apply: (body: unknown) => Promise<R>,
+  ): Promise<R> => {
+    // Wait for the apply before this one, whether it succeeded or failed.
+    const start = async () => apply(await sent)
+    const run = (spreadApplies.get(book) ?? Promise.resolve()).then(start, start)
+    spreadApplies.set(book, run)
+    const forget = () => {
+      if (spreadApplies.get(book) === run) spreadApplies.delete(book)
+    }
+    run.then(forget, forget)
+    return run
+  }
+
   // POST /books/:label/spreads/apply — Reconcile the extracted pages to the
   // given spread pairs by (re)extracting only the affected pairs and splicing
   // them in, instead of re-running the whole extraction.
-  app.post("/books/:label/spreads/apply", async (c) => {
+  app.post("/books/:label/spreads/apply", (c) => oneSpreadApplyPerBook(c.req.param("label"), c.req.json().catch(() => ({})), async (body) => {
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
     const dbPath = getDbPath(safeLabel, booksDir)
@@ -1377,7 +1404,6 @@ export function createPageRoutes(
       })
     }
 
-    const body = await c.req.json().catch(() => ({}))
     const parsed = z
       .object({ spreadPairs: z.array(z.number().int().min(1)).default([]) })
       .safeParse(body)
@@ -1486,7 +1512,7 @@ export function createPageRoutes(
       removed: toRemove.length,
       pageCount: storage.getPages().length,
     })
-  })
+  }))
 
   // GET /books/:label/pages/:pageId/sections/:sectionIndex/screenshot — Rendered section as PNG
   // Lazily generates a Playwright screenshot of the section's rendered HTML and

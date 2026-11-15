@@ -3934,6 +3934,9 @@ msgstr "Fuente detectada"
 msgid "Detected in current template"
 msgstr "Detectadas en la plantilla actual"
 
+msgid "Detects a watermark repeated across pages — like a diagonal “for online reading only” notice — whether it is stamped as text or baked into scanned page images, and removes it from page renders, extracted images, and the book text. Turn off to keep pages exactly as printed."
+msgstr "Detecta una marca de agua repetida en todas las páginas — como un aviso diagonal de “solo para lectura en línea” — ya sea estampada como texto o incrustada en las imágenes de páginas escaneadas, y la elimina de las páginas renderizadas, las imágenes extraídas y el texto del libro. Desactívalo para conservar las páginas exactamente como están impresas."
+
 msgid "Detects activities already present in the book and transforms them into interactive HTML elements like radio buttons and text inputs."
 msgstr "Detecta actividades ya presentes en el libro y las transforma en elementos HTML interactivos como botones de opción y campos de texto."
 
@@ -3943,8 +3946,8 @@ msgstr "Detecta y divide ilustraciones compuestas en regiones separadas para que
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Detecta ejercicios y cuestionarios incrustados en el libro y los clasifica como sus propias secciones para que puedan renderizarse como elementos interactivos más adelante."
 
-msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
-msgstr "Detecta texto estampado de forma idéntica en todas las páginas — como un aviso diagonal de “solo para lectura en línea” — y lo elimina de las páginas renderizadas, las figuras extraídas y el texto del libro. Desactívalo para conservar las páginas exactamente como están impresas."
+#~ msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+#~ msgstr "Detecta texto estampado de forma idéntica en todas las páginas — como un aviso diagonal de “solo para lectura en línea” — y lo elimina de las páginas renderizadas, las figuras extraídas y el texto del libro. Desactívalo para conservar las páginas exactamente como están impresas."
 
 msgid "Diagnostics"
 msgstr "Diagnósticos"
