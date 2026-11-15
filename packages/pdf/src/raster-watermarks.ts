@@ -607,6 +607,9 @@ function yieldToEventLoop(): Promise<void> {
 const learnedStamps = new Map<string, RasterWatermark | null>();
 const LEARNED_STAMPS_KEPT = 4;
 
+/** Stamps being learned right now, by the same key. */
+const learningStamps = new Map<string, Promise<RasterWatermark | null>>();
+
 /**
  * Learn a repeated stamp baked into the document's page images.
  *
@@ -618,21 +621,33 @@ const LEARNED_STAMPS_KEPT = 4;
  * Learning reads up to a hundred pages and takes seconds, so it yields to
  * the event loop between pages. Pass `cacheKey` (something that identifies
  * the PDF's content) when the same document may be extracted again —
- * re-extracting two pages for a spread merge must not repeat it.
+ * re-extracting two pages for a spread merge must not repeat it. Calls with
+ * the same key that overlap share one learning.
  */
 export async function detectRasterWatermark(
   doc: MupdfDocument,
   cacheKey?: string,
 ): Promise<RasterWatermark | null> {
-  if (cacheKey !== undefined) {
-    const known = learnedStamps.get(cacheKey);
-    if (known !== undefined) {
-      // Refresh its place so the least recently used entry is the one evicted.
-      learnedStamps.delete(cacheKey);
-      learnedStamps.set(cacheKey, known);
-      return known;
-    }
+  if (cacheKey === undefined) return learnAndRemember(doc);
+  const known = learnedStamps.get(cacheKey);
+  if (known !== undefined) {
+    // Refresh its place so the least recently used entry is the one evicted.
+    learnedStamps.delete(cacheKey);
+    learnedStamps.set(cacheKey, known);
+    return known;
   }
+  // Learning yields, so a second extraction of the same PDF (another book
+  // made from it, say) can arrive while the first is still learning. It waits
+  // for that result instead of doing the same work beside it.
+  const pending = learningStamps.get(cacheKey);
+  if (pending) return pending;
+  const learning = learnAndRemember(doc, cacheKey).finally(() => learningStamps.delete(cacheKey));
+  learningStamps.set(cacheKey, learning);
+  return learning;
+}
+
+/** Learn the stamp and, given a key, remember it. Never rejects. */
+async function learnAndRemember(doc: MupdfDocument, cacheKey?: string): Promise<RasterWatermark | null> {
   let model: RasterWatermark | null;
   try {
     model = await learnRasterWatermark(doc);

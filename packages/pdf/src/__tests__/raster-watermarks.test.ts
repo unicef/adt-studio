@@ -413,6 +413,27 @@ describe("detectRasterWatermark", () => {
     expect(await detectRasterWatermark(doc, "raster-watermark-test-key")).toBe(first);
     expect(await detectRasterWatermark(doc)).not.toBe(first);
   });
+
+  it("learns once when two extractions of the same document overlap", async () => {
+    const pdf = buildPdf({});
+    const [first, second] = await Promise.all([
+      detectRasterWatermark(openDoc(pdf), "raster-watermark-shared-key"),
+      detectRasterWatermark(openDoc(pdf), "raster-watermark-shared-key"),
+    ]);
+    expect(first).not.toBeNull();
+    expect(second).toBe(first);
+  });
+
+  it("lets other work run while it learns", async () => {
+    let ticks = 0;
+    const timer = setInterval(() => ticks++, 0);
+    try {
+      expect(await detectRasterWatermark(openDoc(buildPdf({})))).not.toBeNull();
+    } finally {
+      clearInterval(timer);
+    }
+    expect(ticks).toBeGreaterThan(10);
+  });
 });
 
 describe("renderPageWithoutRasterWatermark", () => {
