@@ -8,7 +8,7 @@ issues: ["#708"]
 prs: ["#884"]
 adr: "docs/DECISIONS.md#025-sectioning-generation-preferences-scoped-reset-and-per-page-publication"
 created: 2026-09-22
-updated: 2026-11-08
+updated: 2026-11-15
 ---
 
 ## Authorized product amendment (review pending)
@@ -223,7 +223,39 @@ A targeted patch must not complete a book with other included output missing.
 Library/sidebar/stages/preview/export distinguish usable partial output from
 complete coverage. Genuinely missing output and inherited ownership safety remain
 visible; removing mode/provenance gates must not certify incomplete packages.
-Compatible downstream freshness warnings remain usable under SPEC-0001. Package cache hits and new builds must validate the mandatory part window. A failed build must leave the previous published directory intact. A complete download contains the files required by its format and declared output languages; source coverage alone does not prove this.
+Compatible downstream freshness warnings remain usable under SPEC-0001. Package cache hits and new builds must validate the mandatory part window. A failed build must leave the previous published directory intact. Source coverage alone does not prove that a bundle can be read; the bundle itself is checked.
+
+**November 15 packaging amendment (product-owner decision, review pending):**
+packaging fails gracefully. A build or download is refused only when the bundle
+could not open at all: a missing or unreadable page document, page list, entry
+file, language dictionary, reader script or page-shell stylesheet, or, in a
+derived format, an unreadable package, navigation or media-overlay document.
+Anything short of that is repaired or reported, never refused:
+
+- **Repair on write.** Writers remove or normalise what the target format cannot
+  hold (characters XML forbids, `xlink:` attributes without a namespace, comments
+  containing `--`) instead of emitting a file a strict reader rejects.
+- **Missing content resources are warnings.** A resource that book content
+  refers to but the bundle lacks (an image, media file, font, narration file, or
+  a stylesheet linked from a page body) leaves a gap on that page only. The build
+  succeeds and replaces the previous package, and a `missing-asset` packaging
+  warning names the page, the document and the reference. The warning is stored
+  with the build and repeated on cache hits. Status and downloads accept such a
+  bundle. A Preview build that reported no such warning is still held to the full
+  check, so a resource that later disappears from the bundle is restored by a
+  rebuild.
+- **Unreadable content styles contribute nothing.** CSS inside book content that
+  cannot be parsed is ignored, as a browser ignores it; it does not refuse the
+  page it styles.
+- **One bad page does not withhold a book.** A book page of a derived export that
+  is not well-formed is delivered with the rest of the publication.
+- **A book without an identity record keeps its usable output.** It still
+  packages, previews and downloads; its package receipt records the absent
+  identity and matches only while that remains true. ID-allocating work stays
+  refused as specified under verified history recovery.
+
+No reference is followed outside the bundle in any mode. This amendment replaces
+the earlier sentence that required every referenced file for a complete download.
 
 Use the existing shared writer gate and per-page input/version revalidation.
 Remove redundant SPEC-0003 locking/lifecycle enforcement; do not introduce a second
@@ -293,6 +325,7 @@ retain pending human acceptance; passing verification does not grant approval.
 - [ ] RAC-16 Remaining UI/HTTP/SSE errors and parameters translate in all five locales; obsolete restrictions/errors are removed.
 - [ ] RAC-17 Fresh CLI/DAG remains safe; expanded existing-book resume is deferred/refused here. No B2 modes, automatic merge, new dependency or competing freshness/lock subsystem.
 - [ ] RAC-18 Inherited authorship, draft, restore, stable ID/audio/TOC-consent, current-read and scoped cache guarantees survive integration, subject to the explicit legacy-owner qualification.
+- [ ] RAC-19 Packaging and downloads refuse only a bundle that could not open. A missing content resource, unreadable content styles or characters the format cannot hold produce a built, downloadable bundle; missing resources are named in a `missing-asset` warning that survives cache hits. A book without an identity record still packages. No reference is followed outside the bundle.
 
 ## Original acceptance-criteria mapping
 
@@ -345,4 +378,4 @@ hosted CI for the published commit. ADR 025 and spec approval remain pending.
 
 ### Fixed-layout input qualification
 
-A fixed-layout rerender requires valid current `positioned-text` and `image-filtering` results for each page, with positive finite viewport dimensions. Missing, SQL/JSON-null or unreadable extraction input is not an explicitly empty page. Report it per page and retain that page's previous output; other ordinary-run pages may publish. An actual layout switch still requires every active page. An omitted classification is not a prune decision: every positioned illustration, and every extracted illustration with recorded placement, needs an explicit keep/prune decision. Kept placed illustrations require their draw items and readable book-owned assets. Unused shared PDF resources and derived crop/segment assets do not require positions and do not invalidate an otherwise valid page. A validated empty positioned result and empty image classification can represent a truly blank source page. Legacy books with missing fixed inputs remain readable through their safely owned retained output; rebuilding those pages requires restoration of valid input or the extraction repair owned by SPEC-0010. Do not synthesize a blank success or recommend the deliberately unavailable existing-book Extract rerun.
+A fixed-layout rerender requires valid current `positioned-text` and `image-filtering` results for each page, with positive finite viewport dimensions. Missing, SQL/JSON-null or unreadable extraction input is not an explicitly empty page. Report it per page and retain that page's previous output; other ordinary-run pages may publish. An actual layout switch still requires every active page. An omitted classification is not a prune decision: every positioned illustration, and every extracted illustration with recorded placement, needs an explicit keep/prune decision. Kept placed illustrations require their draw items and readable book-owned assets. Unused shared PDF resources, derived crop/segment assets and images added to a page from elsewhere in the book do not require positions and do not invalidate an otherwise valid page; a fixed page draws only its positioned items. A validated empty positioned result and empty image classification can represent a truly blank source page. Legacy books with missing fixed inputs remain readable through their safely owned retained output; rebuilding those pages requires restoration of valid input or the extraction repair owned by SPEC-0010. Do not synthesize a blank success or recommend the deliberately unavailable existing-book Extract rerun.
