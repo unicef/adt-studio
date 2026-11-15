@@ -1,11 +1,12 @@
-import { useAtom, useAtomValue } from "jotai";
-import { useMemo, useRef } from "react";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useEffect, useMemo, useRef } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useDockContext } from "@/features/dock/context/dock-context";
 import { cn } from "@/shared/lib/utils";
 import { useIsMobile } from "@/shared/hooks/use-is-mobile";
 import {
   dockMenuValueAtom,
+  tocSearchTermAtom,
   type DockMenuValue,
 } from "@/shared/state/ui.atoms"
 import { DockPanel } from "@/features/dock/components/DockPanel";
@@ -47,6 +48,13 @@ export function BookMetadata({
   const displayTitle = activeTitle || t("toc-title") || "Contents";
   const label = tooltip ?? ariaLabel;
   const pressed = value === "toc";
+
+  // A fresh opening starts with an empty search, as it did when the search
+  // lived inside the panel.
+  const setSearchTerm = useSetAtom(tocSearchTermAtom);
+  useEffect(() => {
+    if (!pressed) setSearchTerm("");
+  }, [pressed, setSearchTerm]);
 
   return (
     <>
