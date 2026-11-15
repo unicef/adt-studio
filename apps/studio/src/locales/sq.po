@@ -3738,6 +3738,9 @@ msgstr "Seksion i personalizuar {index}"
 msgid "Cut a region out of any page"
 msgstr "Prit një zonë nga çdo faqe"
 
+msgid "Cut a region out of this page"
+msgstr "Prit një zonë nga kjo faqe"
+
 msgid "D1"
 msgstr "D1"
 
@@ -4036,6 +4039,9 @@ msgstr "Fonti i zbuluar"
 msgid "Detected in current template"
 msgstr "Të zbuluara në template-in aktual"
 
+msgid "Detects a watermark repeated across pages — like a diagonal “for online reading only” notice — whether it is stamped as text or baked into scanned page images, and removes it from page renders, extracted images, and the book text. Turn off to keep pages exactly as printed."
+msgstr "Zbulon një filigran të përsëritur në të gjitha faqet — si një njoftim diagonal “vetëm për lexim në internet” — qoftë i vulosur si tekst apo i ngulitur në imazhet e faqeve të skanuara, dhe e heq atë nga faqet e renderuara, imazhet e nxjerra dhe teksti i librit. Çaktivizojeni për t’i ruajtur faqet saktësisht siç janë shtypur."
+
 msgid "Detects activities already present in the book and transforms them into interactive HTML elements like radio buttons and text inputs."
 msgstr "Zbulon aktivitetet që gjenden tashmë në libër dhe i transformon ato në elementë HTML interaktivë si butonat radio dhe fushat e tekstit."
 
@@ -4045,8 +4051,8 @@ msgstr "Zbulon dhe ndan ilustrimet e kompozuara në rajone të veçanta që çdo
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Zbulon ushtrimet dhe kuizet e ngulura në libër dhe i klasifikon si seksionet e tyre që të mund të renderohën si elementë interaktivë."
 
-msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
-msgstr "Zbulon tekstin e vulosur në mënyrë identike në të gjitha faqet — si një njoftim diagonal “vetëm për lexim në internet” — dhe e heq atë nga faqet e renderuara, figurat e nxjerra dhe teksti i librit. Çaktivizojeni për t’i ruajtur faqet saktësisht siç janë shtypur."
+#~ msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+#~ msgstr "Zbulon tekstin e vulosur në mënyrë identike në të gjitha faqet — si një njoftim diagonal “vetëm për lexim në internet” — dhe e heq atë nga faqet e renderuara, figurat e nxjerra dhe teksti i librit. Çaktivizojeni për t’i ruajtur faqet saktësisht siç janë shtypur."
 
 msgid "Diagnostics"
 msgstr "Diagnostikime"
@@ -5552,6 +5558,9 @@ msgstr "Lartësia"
 
 msgid "Help"
 msgstr "Ndihmë"
+
+msgid "Hidden because its group is hidden"
+msgstr "I fshehur sepse grupi i tij është i fshehur"
 
 msgid "Hidden from screen readers, no caption needed."
 msgstr "I fshehur nga lexuesit e ekranit, nuk nevojitet titull."
@@ -11005,6 +11014,9 @@ msgstr "Shfaq të gjitha hyrjet"
 
 msgid "Show all pages"
 msgstr "Shfaq të gjitha faqet"
+
+msgid "Show all quizzes"
+msgstr "Shfaq të gjitha kuizet"
 
 msgid "Show all translations"
 msgstr "Shfaq të gjitha përkthimet"

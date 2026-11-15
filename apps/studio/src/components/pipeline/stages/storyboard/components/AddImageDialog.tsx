@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Check, ImagePlus, Upload, Sparkles, X, ArrowLeft, Search, Loader2 } from "lucide-react"
+import { Check, Crop, ImagePlus, Upload, Sparkles, X, ArrowLeft, Search, Loader2 } from "lucide-react"
 import { api, BASE_URL } from "@/api/client"
 import { useLingui } from "@lingui/react/macro"
 
@@ -11,18 +11,25 @@ interface AddImageDialogProps {
   onSelectExisting: (imageIds: string[]) => void
   onUpload: (file: File) => void
   onGenerate?: (prompt: string) => void
+  /** When set, offers "Crop from page"; the caller opens its own crop dialog. */
+  onCropFromPage?: () => void
+  /** Images hidden from "Pick from book" (e.g. ones already on the page). */
+  excludeImageIds?: ReadonlySet<string>
   onClose: () => void
 }
 
 /**
- * Wizard dialog for adding an image to a section.
- * Three modes: pick from existing book images, upload a file, or generate with AI.
+ * Wizard dialog for adding an image to a section or a page extraction.
+ * Modes: pick from existing book images, upload a file, and — when the caller
+ * supports them — crop a region from the page or generate with AI.
  */
 export function AddImageDialog({
   bookLabel,
   onSelectExisting,
   onUpload,
   onGenerate,
+  onCropFromPage,
+  excludeImageIds,
   onClose,
 }: AddImageDialogProps) {
   const { t } = useLingui()
@@ -54,7 +61,9 @@ export function AddImageDialog({
   )
 
   // Exclude page-render images (full page renders) — only show extracted/cropped/generated/uploaded
-  const selectableImages = filteredImages?.filter((img) => img.source !== "page")
+  const selectableImages = filteredImages?.filter(
+    (img) => img.source !== "page" && !excludeImageIds?.has(img.imageId)
+  )
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -133,6 +142,14 @@ export function AddImageDialog({
                 description={t`Upload a new image file from your computer`}
                 onClick={() => setStep("upload")}
               />
+              {onCropFromPage && (
+                <MethodCard
+                  icon={<Crop className="h-4 w-4" />}
+                  title={t`Crop from page`}
+                  description={t`Cut a region out of this page`}
+                  onClick={onCropFromPage}
+                />
+              )}
               {onGenerate && (
                 <MethodCard
                   icon={<Sparkles className="h-4 w-4" />}

@@ -709,6 +709,22 @@ it("keeps standalone HTTP activities on document navigation", async () => {
   expect(fetcher).not.toHaveBeenCalled()
 })
 
+it("keeps ?embed=1 when an embedded page navigates by document load (#1092)", async () => {
+  disposeSoftNav?.()
+  setLocation("http://localhost/adt-preview/pg009_sec002.html?embed=1")
+  const { navigateToPage } = await import("./page-swap")
+  navigateToPage("pg010_sec001.html#item-3")
+  expect(window.location.href).toBe("http://localhost/adt-preview/pg010_sec001.html?embed=1#item-3")
+})
+
+it("does not add embed to a page turn outside embed mode", async () => {
+  disposeSoftNav?.()
+  setLocation("http://localhost/book/pg009_sec002.html")
+  const { navigateToPage } = await import("./page-swap")
+  navigateToPage("http://localhost/book/pg010_sec001.html")
+  expect(window.location.href).toBe("http://localhost/book/pg010_sec001.html")
+})
+
 it("aborts a pending navigation when the full reader is disposed", async () => {
   let finish!: (response: unknown) => void
   vi.stubGlobal("fetch", vi.fn(() => new Promise((resolve) => { finish = resolve })))

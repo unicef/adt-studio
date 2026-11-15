@@ -53,6 +53,15 @@ import {
   type WatermarkSignature,
 } from "./watermarks.js";
 import { loadPdfImage } from "./mupdf-image-refs.js";
+import {
+  describeRasterWatermark,
+  detectRasterWatermark,
+  encodeCleanedRaster,
+  renderPageWithoutRasterWatermark,
+  type CleanedRaster,
+  type RasterWatermark,
+  type RasterWatermarkDebug,
+} from "./raster-watermarks.js";
 
 // ============================================================================
 // Types
@@ -83,11 +92,13 @@ export interface ExtractInput {
    */
   keepCoveredRasters?: boolean;
   /**
-   * When true, detect repeated identical text stamps across the document
-   * (diagonal or page-spanning, e.g. "FOR ONLINE READING ONLY") and remove
-   * them from the page render, reflowable text, and positioned text.
-   * Detected signatures are recorded in the extraction debug output.
-   * Default false.
+   * When true, detect watermarks repeated across the document and remove
+   * them. Two encodings are covered: identical text stamps (diagonal or
+   * page-spanning, e.g. "FOR ONLINE READING ONLY"), removed from the page
+   * render, reflowable text, and positioned text; and a stamp baked into the
+   * pixels of flattened or scanned page images, removed from the page render
+   * and from the extracted images. What was detected is recorded in the
+   * extraction debug output. Default false.
    */
   removeWatermarks?: boolean;
   /**
@@ -292,6 +303,12 @@ export interface ExtractionDebugOutput {
    * removal is off or nothing was detected.
    */
   watermarks?: WatermarkSignature[];
+  /**
+   * The stamp learned from the document's page images and the strength at
+   * which it was removed from each image on this page. Absent when watermark
+   * removal is off or no such stamp was detected.
+   */
+  rasterWatermark?: RasterWatermarkDebug;
 }
 
 /**
@@ -305,6 +322,9 @@ interface PageExtractOptions {
   fixedLayout: boolean;
   /** Doc-wide watermark signatures; undefined when removal is disabled. */
   watermarks?: WatermarkSignature[];
+  /** Doc-wide stamp baked into page images; undefined when removal is
+   *  disabled or none was detected. */
+  rasterWatermark?: RasterWatermark;
 }
 
 // ============================================================================
@@ -313,15 +333,26 @@ interface PageExtractOptions {
 
 /** Resolve the shared per-page switches (running watermark detection when
  *  enabled) so the three extraction entry points can't drift apart. */
-function buildPageExtractOptions(
+async function buildPageExtractOptions(
   doc: MupdfDocument,
-  input: Pick<ExtractInput, "vectorTextGrouping" | "keepCoveredRasters" | "removeWatermarks" | "fixedLayout">,
-): PageExtractOptions {
+  input: Pick<
+    ExtractInput,
+    "pdfBuffer" | "vectorTextGrouping" | "keepCoveredRasters" | "removeWatermarks" | "fixedLayout"
+  >,
+): Promise<PageExtractOptions> {
+  // The image-stamp model is remembered per PDF content: learning it reads
+  // much of the document, and `extractPages` re-extracts a page or two at a
+  // time (spread merge/split) from the same file. Learning takes seconds, so
+  // it yields to the event loop as it goes, like the page loop below.
+  const rasterWatermark = input.removeWatermarks
+    ? await detectRasterWatermark(doc, `${input.pdfBuffer.length}:${hashBuffer(input.pdfBuffer)}`)
+    : null;
   return {
     vectorTextGrouping: input.vectorTextGrouping ?? true,
     keepCoveredRasters: input.keepCoveredRasters ?? false,
     fixedLayout: input.fixedLayout ?? false,
     watermarks: input.removeWatermarks ? detectTextWatermarks(doc) : undefined,
+    rasterWatermark: rasterWatermark ?? undefined,
   };
 }
 
@@ -351,7 +382,7 @@ export async function extractPdf(
   const end = Math.min(endPage ?? totalPagesInPdf, totalPagesInPdf);
 
   const pages: ExtractedPage[] = [];
-  const pageOpts = buildPageExtractOptions(doc, input);
+  const pageOpts = await buildPageExtractOptions(doc, input);
 
   const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
   const totalLogical = logicalGroups.length;
@@ -397,7 +428,7 @@ export function extractPdfStream(
 
   async function* generatePages(): AsyncGenerator<ExtractedPage, void, unknown> {
     try {
-      const pageOpts = buildPageExtractOptions(doc, input);
+      const pageOpts = await buildPageExtractOptions(doc, input);
       const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
       const totalLogical = logicalGroups.length;
 
@@ -444,7 +475,7 @@ export async function extractPages(input: {
     const pages: ExtractedPage[] = [];
     // Watermark detection samples the whole document (not just the requested
     // groups) so re-extracted pages agree with the original full extraction.
-    const pageOpts = buildPageExtractOptions(doc, input);
+    const pageOpts = await buildPageExtractOptions(doc, input);
     for (const group of groups) {
       const page =
         group.length === 2
@@ -905,21 +936,84 @@ function filterWatermarkParagraphs<
   });
 }
 
+/**
+ * Render one page at `scale` with every detected watermark removed: text
+ * stamp ops dropped and the stamp baked into page images undone. `cleaned`
+ * lists the images that were cleaned on the way. A failed filtered render
+ * falls back to the standard one.
+ */
+function renderPageForExtraction(
+  page: AnyPage,
+  scale: number,
+  opts: PageExtractOptions,
+): { png: Buffer; cleaned: CleanedRaster[] } {
+  const { watermarks, rasterWatermark } = opts;
+  if (rasterWatermark) {
+    const result = renderPageWithoutRasterWatermark(page, scale, rasterWatermark, watermarks ?? []);
+    if (result) return result;
+  }
+  const textFiltered = watermarks && watermarks.length > 0
+    ? renderPageWithoutWatermarks(page, scale, watermarks)
+    : null;
+  const png = textFiltered
+    ?? Buffer.from(page.toPixmap(mupdf.Matrix.scale(scale, scale), mupdf.ColorSpace.DeviceRGB, false).asPNG());
+  return { png, cleaned: [] };
+}
+
+/**
+ * Swap each extracted raster for its cleaned copy, so figures cropped from
+ * an embedded page image no longer carry the stamp. Rasters are matched to
+ * cleaned images by native size and page placement, so this needs
+ * `stampRasterPlacementsFromOps` to have run. It must also run after the
+ * covered-raster filter, which compares each raster's hash with hashes of
+ * the ORIGINAL image bytes, and before the orientation transform (cleaned
+ * pixels are in the image's original orientation). `xShift` is the raster's
+ * viewport offset on a spread's right page.
+ */
+function applyCleanedRasters(
+  rasters: ExtractedImage[],
+  cleaned: CleanedRaster[],
+  xShift: number = 0,
+): void {
+  if (cleaned.length === 0) return;
+  const remaining = [...cleaned];
+  for (const raster of rasters) {
+    const bounds = raster.bounds;
+    if (!bounds) continue;
+    const index = remaining.findIndex((candidate) =>
+      candidate.width === raster.width
+      && candidate.height === raster.height
+      && Math.abs(candidate.bbox[0] + xShift - bounds.x) <= 1
+      && Math.abs(candidate.bbox[1] - bounds.y) <= 1
+      && Math.abs(candidate.bbox[2] + xShift - (bounds.x + bounds.width)) <= 1
+      && Math.abs(candidate.bbox[3] - (bounds.y + bounds.height)) <= 1);
+    if (index < 0) continue;
+    const [match] = remaining.splice(index, 1);
+    try {
+      raster.buffer = encodeCleanedRaster(match, raster.format);
+      raster.hash = hashBuffer(raster.buffer);
+    } catch (err) {
+      console.warn(
+        `[pdf] could not encode cleaned image ${raster.imageId}, keeping the original:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+}
+
 async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtractOptions): Promise<ExtractedPage> {
-  const { vectorTextGrouping, keepCoveredRasters, fixedLayout, watermarks } = opts;
+  const { vectorTextGrouping, keepCoveredRasters, fixedLayout, watermarks, rasterWatermark } = opts;
   const pageNum = pageIndex + 1;
   const pageId = "pg" + String(pageNum).padStart(3, "0");
 
   const page = doc.loadPage(pageIndex);
 
   // Render full-page image at 2x scale (~144 DPI). With watermark removal
-  // active, the render drops the detected stamp ops so figure crops and the
-  // stored page image are clean; a failed filtered render falls back.
-  const matrix = mupdf.Matrix.scale(2, 2);
+  // active, the render drops the detected stamp ops and undoes a stamp baked
+  // into page images, so figure crops and the stored page image are clean; a
+  // failed filtered render falls back.
   const hasWatermarks = watermarks !== undefined && watermarks.length > 0;
-  const cleanPng = hasWatermarks ? renderPageWithoutWatermarks(page, 2, watermarks) : null;
-  const pagePngBuf = cleanPng
-    ?? Buffer.from(page.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG());
+  const { png: pagePngBuf, cleaned: cleanedRasters } = renderPageForExtraction(page, 2, opts);
 
   const pageImage: ExtractedImage = {
     imageId: `${pageId}_page`,
@@ -980,6 +1074,7 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtr
   const rasterImages = !keepCoveredRasters && coveredRasterHashes.size > 0
     ? allRasterImages.filter(img => !coveredRasterHashes.has(img.hash))
     : allRasterImages;
+  applyCleanedRasters(rasterImages, cleanedRasters);
 
   // Positioned-text + stream-order extraction (page geometry) is now produced
   // for EVERY book — it's strategy-independent data, and producing it always
@@ -1024,6 +1119,9 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtr
   );
   if (hasWatermarks) {
     extractionDebug.watermarks = watermarks;
+  }
+  if (rasterWatermark) {
+    extractionDebug.rasterWatermark = describeRasterWatermark(rasterWatermark, cleanedRasters);
   }
 
   return {
@@ -1702,7 +1800,7 @@ async function extractSpreadPage(
   rightIndex: number,
   opts: PageExtractOptions,
 ): Promise<ExtractedPage> {
-  const { vectorTextGrouping, keepCoveredRasters, fixedLayout, watermarks } = opts;
+  const { vectorTextGrouping, keepCoveredRasters, fixedLayout, watermarks, rasterWatermark } = opts;
   const leftNum = leftIndex + 1;
   const rightNum = rightIndex + 1;
   const pageId =
@@ -1713,15 +1811,13 @@ async function extractSpreadPage(
   const leftPage = doc.loadPage(leftIndex);
   const rightPage = doc.loadPage(rightIndex);
 
-  // Render both pages and stitch side by side. Watermark ops are dropped per
-  // half (signatures are in single-page coordinates) before stitching.
-  const matrix = mupdf.Matrix.scale(2, 2);
+  // Render both pages and stitch side by side. Watermarks are removed per
+  // half (signatures and the learned stamp are in single-page coordinates)
+  // before stitching.
   const hasWatermarks = watermarks !== undefined && watermarks.length > 0;
-  const leftPng = (hasWatermarks ? renderPageWithoutWatermarks(leftPage, 2, watermarks) : null)
-    ?? Buffer.from(leftPage.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG());
-  const rightPng = (hasWatermarks ? renderPageWithoutWatermarks(rightPage, 2, watermarks) : null)
-    ?? Buffer.from(rightPage.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG());
-  const pagePngBuf = stitchPngsHorizontally(leftPng, rightPng);
+  const leftRender = renderPageForExtraction(leftPage, 2, opts);
+  const rightRender = renderPageForExtraction(rightPage, 2, opts);
+  const pagePngBuf = stitchPngsHorizontally(leftRender.png, rightRender.png);
 
   const pageImage: ExtractedImage = {
     imageId: `${pageId}_page`,
@@ -1803,7 +1899,7 @@ async function extractSpreadPage(
     leftSvg,
     pageId,
     rasterCount,
-    leftPng,
+    leftRender.png,
     vectorTextGrouping ? leftTextShapes : undefined,
     vectorTextGrouping ? allLeftRaster : undefined,
   );
@@ -1811,7 +1907,7 @@ async function extractSpreadPage(
     rightSvg,
     pageId,
     rasterCount + leftResult.images.length,
-    rightPng,
+    rightRender.png,
     vectorTextGrouping ? rightTextShapes : undefined,
     vectorTextGrouping ? allRightRaster : undefined,
     leftPageWidthPt,
@@ -1831,6 +1927,8 @@ async function extractSpreadPage(
   const rightRaster = dropCovered
     ? allRightRaster.filter(img => !coveredRasterHashes.has(img.hash))
     : allRightRaster;
+  applyCleanedRasters(leftRaster, leftRender.cleaned);
+  applyCleanedRasters(rightRaster, rightRender.cleaned, leftPageWidthPt);
 
   // Merge debug from both pages
   const extractionDebug: ExtractionDebugOutput = {
@@ -1890,6 +1988,12 @@ async function extractSpreadPage(
   );
   if (hasWatermarks) {
     extractionDebug.watermarks = watermarks;
+  }
+  if (rasterWatermark) {
+    extractionDebug.rasterWatermark = describeRasterWatermark(
+      rasterWatermark,
+      [...leftRender.cleaned, ...rightRender.cleaned],
+    );
   }
 
   const images: ExtractedImage[] = [...rasterImages, ...figureImages];

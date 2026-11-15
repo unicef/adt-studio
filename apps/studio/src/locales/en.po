@@ -3736,6 +3736,9 @@ msgstr "Custom section {index}"
 msgid "Cut a region out of any page"
 msgstr "Cut a region out of any page"
 
+msgid "Cut a region out of this page"
+msgstr "Cut a region out of this page"
+
 msgid "D1"
 msgstr "D1"
 
@@ -4034,6 +4037,9 @@ msgstr "Detected Font"
 msgid "Detected in current template"
 msgstr "Detected in current template"
 
+msgid "Detects a watermark repeated across pages — like a diagonal “for online reading only” notice — whether it is stamped as text or baked into scanned page images, and removes it from page renders, extracted images, and the book text. Turn off to keep pages exactly as printed."
+msgstr "Detects a watermark repeated across pages — like a diagonal “for online reading only” notice — whether it is stamped as text or baked into scanned page images, and removes it from page renders, extracted images, and the book text. Turn off to keep pages exactly as printed."
+
 msgid "Detects activities already present in the book and transforms them into interactive HTML elements like radio buttons and text inputs."
 msgstr "Detects activities already present in the book and transforms them into interactive HTML elements like radio buttons and text inputs."
 
@@ -4043,8 +4049,8 @@ msgstr "Detects and splits composited illustrations into separate regions so eac
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 
-msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
-msgstr "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+#~ msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+#~ msgstr "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
 
 msgid "Diagnostics"
 msgstr "Diagnostics"
@@ -5550,6 +5556,9 @@ msgstr "Height"
 
 msgid "Help"
 msgstr "Help"
+
+msgid "Hidden because its group is hidden"
+msgstr "Hidden because its group is hidden"
 
 msgid "Hidden from screen readers, no caption needed."
 msgstr "Hidden from screen readers, no caption needed."
@@ -11003,6 +11012,9 @@ msgstr "Show all entries"
 
 msgid "Show all pages"
 msgstr "Show all pages"
+
+msgid "Show all quizzes"
+msgstr "Show all quizzes"
 
 msgid "Show all translations"
 msgstr "Show all translations"
