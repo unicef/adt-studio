@@ -12037,6 +12037,12 @@ msgstr "Titulli dhe të dhënat e librit vijnë me pjesën që përmban faqen 1 
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Prompt-et e integruara janë optimizuar për {DEFAULT_MODEL}. E ndryshuat LLM-në e parazgjedhur në <0>{savedModel}</0>, ndaj rekomandojmë të gjeneroni skedarë të rinj prompt-esh globale të përshtatur për të. Mund të vazhdoni edhe me prompt-et ekzistuese."
 
+msgid "The bundle was built, but {assetTotal} image or media file(s) it refers to were not found and are missing from it."
+msgstr "Paketa u ndërtua, por {assetTotal} skedar(ë) imazhi ose media të cilëve u referohet nuk u gjetën dhe mungojnë në të."
+
+msgid "The bundle was built, but {assetTotal} image or media file(s) it refers to were not found and are missing from it. Pages affected (showing up to 20): {assetPageList}. Check the images on those pages, then build again."
+msgstr "Paketa u ndërtua, por {assetTotal} skedar(ë) imazhi ose media të cilëve u referohet nuk u gjetën dhe mungojnë në të. Faqet e prekura (shfaqen deri në 20): {assetPageList}. Kontrolloni imazhet në ato faqe dhe ndërtojeni përsëri."
+
 #~ msgid "The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
 #~ msgstr "Hyrja në Cloudflare nuk dha gjithçka që nevojitet për publikim. Shkëput, lidhu përsëri, dhe lejo çdo leje që kërkon ADT Studio. Asgjë nuk u krijua në llogarinë tuaj."
 

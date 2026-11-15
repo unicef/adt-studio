@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import { stripXmlInvalid } from "../html-escape.js"
 import path from "node:path"
 import jpeg from "jpeg-js"
 import { PNG } from "pngjs"
@@ -924,7 +925,7 @@ function sumarioHeading(language: string): string {
 }
 
 function escapeXml(str: string): string {
-  return str
+  return stripXmlInvalid(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

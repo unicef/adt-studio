@@ -140,17 +140,20 @@ describe("Package routes", () => {
       fs.writeFileSync(last, original)
       expect(packageFilesAvailable(proofRoot)).toBe(true)
     } finally { reads.mockRestore() }
-    // A missing dependency introduced on the last source page cannot replace
-    // the previously published large reader or authorize a partial new ZIP.
-    const before = fs.readFileSync(path.join(adt, "pg120_sec001.html"))
+    // A resource missing on the last source page leaves a gap on that page
+    // only. The large reader is rebuilt, with a warning naming the page.
     const edited = createBookStorage(label, tmpDir)
     try {
       const row = edited.getLatestNodeData("web-rendering", "pg120")!.data as { sections: Array<{ html: string }> }
       row.sections[0].html += '<img src="images/not-present.png">'
       edited.putNodeData("web-rendering", "pg120", row)
     } finally { edited.close() }
-    expect((await app.request(`/api/books/${label}/package-adt`, { method: "POST" })).status).toBe(409)
-    expect(fs.readFileSync(path.join(adt, "pg120_sec001.html"))).toEqual(before)
+    const rebuilt = await app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+    expect(rebuilt.status, await rebuilt.clone().text()).toBe(200)
+    expect((await rebuilt.json()).warnings).toContainEqual(expect.objectContaining({
+      kind: "missing-asset", pageId: "pg120", document: "pg120_sec001.html", reference: "images/not-present.png",
+    }))
+    expect(fs.readFileSync(path.join(adt, "pg120_sec001.html"), "utf8")).toContain("images/not-present.png")
   })
 
   it("keeps evicted freshly prepared independent packages unverified until rechecked", { timeout: 60_000 }, async () => {
@@ -431,7 +434,7 @@ describe("Package routes", () => {
     expect(fs.readFileSync(path.join(book, "adt", "pg001_sec001.html")).equals(html)).toBe(true)
   })
 
-  it("reports unavailable book identity as unverified history and preserves the prior package", async () => {
+  it("still packages and downloads a book whose identity record is unavailable", async () => {
     const label = "missing-book-identity"
     createRenderedBook(label)
     createWebAssets()
@@ -439,18 +442,25 @@ describe("Package routes", () => {
     expect((await app.request(url, { method: "POST" })).status).toBe(200)
     const directory = path.join(tmpDir, label)
     const page = path.join(directory, "adt", "pg001_sec001.html")
-    const before = fs.readFileSync(page)
+    const receipt = () => JSON.parse(fs.readFileSync(path.join(directory, "adt", ".build-owners"), "utf8")) as { bookId: string | null }
+    expect(receipt().bookId).toEqual(expect.any(String))
     const db = openBookDb(path.join(directory, label + ".db"))
     try { db.run("DROP TABLE history_identity") } finally { db.close() }
-    // The retained receipt no longer has verifiable origin, so a cache hit
-    // cannot bypass the missing identity. No content is edited.
+    // The retained receipt names an identity the book no longer has, so the
+    // cache is not reused. Usable output is kept: the package is rebuilt from
+    // the saved content and records that the book has no identity.
     const response = await app.request(url, { method: "POST" })
-    expect(response.status).toBe(409)
-    expect(await response.json()).toMatchObject({ code: "HISTORY_RECOVERY_UNVERIFIED" })
-    expect(fs.readFileSync(page)).toEqual(before)
+    expect(response.status, await response.clone().text()).toBe(200)
+    expect(receipt().bookId).toBeNull()
+    expect(fs.readFileSync(page, "utf8")).toContain("Original text")
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ hasAdt: true, complete: true })
+    const zip = unzipSync(new Uint8Array(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer()))
+    expect(zip["pg001_sec001.html"]).toBeDefined()
+    // A second request is answered from that build.
+    expect((await app.request(url, { method: "POST" })).status).toBe(200)
   })
 
-  it.each([false, true])("refuses missing secondary narration in warm and cold public reads, fixed=%s", async fixed => {
+  it.each([false, true])("delivers a package whose narration file went missing, while the strict check still detects it, fixed=%s", async fixed => {
     const label = "secondary-voice"
     createRenderedBook(label); createWebAssets()
     if (fixed) {
@@ -476,9 +486,15 @@ describe("Package routes", () => {
     expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
     expect(listBooks(tmpDir).find(book => book.label === label)?.previewStatus).toBe("complete")
     fs.unlinkSync(path.join(locale, "audio", secondary))
-    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: false })
-    expect(listBooks(tmpDir).find(book => book.label === label)?.completedStages).not.toContain("preview")
-    expect((await readers.request(`/books/${label}/export-adt`)).status).toBe(409)
+    // One narration file is a gap in the content, not a bundle that cannot
+    // open: every page is still there, so status and the download hold.
+    expect(await (await app.request(url + "/status")).json()).toMatchObject({ complete: true })
+    const gap = await readers.request(`/books/${label}/export-adt`)
+    expect(gap.status, await gap.clone().text()).toBe(200)
+    const partial = unzipSync(new Uint8Array(await gap.arrayBuffer()))
+    expect(partial[`content/i18n/en/audio/${secondary}`]).toBeUndefined()
+    expect(Buffer.from(partial[`content/i18n/en/audio/${primary}`]).toString()).toBe("primary audio")
+    // The strict check, which a clean Preview build is held to, still sees it.
     const cold = spawnSync(process.execPath, ["--input-type=module", "-e", `
       import { packageFilesAvailable } from ${JSON.stringify(pathToFileURL(path.resolve("packages/pipeline/dist/packaging/bundle-files.js")).href)};
       console.log(JSON.stringify({ available: packageFilesAvailable(process.argv[1]) }));
@@ -513,9 +529,13 @@ describe("Package routes", () => {
       expect(fs.statSync(file).isFile()).toBe(true)
       fs.unlinkSync(file)
       if (kind === "directory") fs.mkdirSync(file)
+      // A file the reader needs makes the package unusable. A content image
+      // is a gap on one page: status and the download hold, and the next
+      // build of this clean package still restores it.
       const status = await routes.request(`${url}/status`)
-      expect(await status.json()).toMatchObject({ complete: false })
-      await expect(exportAdt("damaged-package", tmpDir)).rejects.toThrow("PACKAGE_FILES_INCOMPLETE")
+      expect(await status.json()).toMatchObject({ complete: kind === "image" })
+      if (kind === "image") await new Response((await exportAdt("damaged-package", tmpDir)).stream).arrayBuffer()
+      else await expect(exportAdt("damaged-package", tmpDir)).rejects.toThrow("PACKAGE_FILES_INCOMPLETE")
       // A directory in a required file's place may be refused safely. Missing
       // regular files must be rebuilt, and a later cache hit retains the repair.
       const repaired = await routes.request(url, { method: "POST" })
@@ -548,7 +568,7 @@ describe("Package routes", () => {
     '<style>@property --hero{syntax:"*";inherits:false;initial-value:"images/missing.png"}.other{.hero{--hero:"images/missing.png"}}.hero{background-image:image-set(var(--hero) 1x)}</style><main class="hero"></main><aside class="other"></aside>',
     ...["INHERIT", String.raw`inhe\72it`].map(keyword => `<style>.parent{.unused{color:blue}--hero:"images/missing.png"}.hero{--hero:${keyword};background-image:image-set(var(--hero) 1x)}</style><aside class="parent"><main class="hero"></main></aside>`),
     ...['syntax:"*"', 'syntax:"<length>";inherits:false;initial-value:invalid'].map(descriptors => `<style>@property --hero{${descriptors}}.parent{.unused{color:blue}--hero:"images/missing.png"}.hero{background-image:image-set(var(--hero) 1x)}</style><aside class="parent"><main class="hero"></main></aside>`),
-  ])("validates staged dependencies before replacing a downloadable publication: %s", async missing => {
+  ])("builds and reports a missing content resource instead of refusing the package: %s", async missing => {
     const label = "staged-validation"
     createRenderedBook(label)
     createWebAssets()
@@ -562,20 +582,28 @@ describe("Package routes", () => {
     broken.sections[0].html += missing
     s.putNodeData("web-rendering", "pg001", broken)
     s.close()
+    // The page is published as saved. Only the resource is absent, and the
+    // warning names the page and the document that refers to it.
+    const gap = expect.objectContaining({ kind: "missing-asset", pageId: "pg001", document: "pg001_sec001.html", reference: expect.any(String) })
     const result = await run()
-    expect(result.status).toBe(409)
-    const failure = await result.json()
-    expect(failure).toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
-    if (!missing.includes('src="/')) {
-      expect(failure.error).toContain('"document":"pg001_sec001.html"')
-      expect(failure.error).toContain('"member":')
-    }
-    expect(failure.error).not.toContain(tmpDir)
-    expect(await readZip()).toEqual(original)
+    expect(result.status, await result.clone().text()).toBe(200)
+    const built = await result.json()
+    expect(built.warnings).toContainEqual(gap)
+    expect(JSON.stringify(built)).not.toContain(tmpDir)
+    const delivered = await readZip()
+    expect(delivered["pg001_sec001.html"]).toBeDefined()
+    expect(delivered).not.toEqual(original)
+    expect(await (await app.request(`/api/books/${label}/package-adt/status`)).json()).toMatchObject({ complete: true })
+    // A cache hit answers from that build and repeats its warning.
+    const cached = await run()
+    expect(cached.status).toBe(200)
+    expect((await cached.json()).warnings).toContainEqual(gap)
     const repair = createBookStorage(label, tmpDir)
     repair.putNodeData("web-rendering", "pg001", saved)
     repair.close()
-    expect((await run()).status).toBe(200)
+    const repaired = await run()
+    expect(repaired.status).toBe(200)
+    expect((await repaired.json()).warnings).not.toContainEqual(gap)
   })
 
   it.each([
@@ -587,7 +615,7 @@ describe("Package routes", () => {
     '<style>a[title="x\n] {} .yy{background:url(images/missing.png)} b[title="]{color:red}</style><p class="yy">Text</p>',
     '<style>@media "x\n{} .yy{background:url(images/missing.png)} @media "{.q{color:red}}</style><p class="yy">Text</p>',
     '<style>@foo "x\n; .yy{background:url(images/missing.png)} @foo ";</style><p class="yy">Text</p>',
-  ])("refuses ambiguous CSS source without replacing the publication: %s", async html => {
+  ])("packages a page whose styles cannot be read instead of refusing it: %s", async html => {
     const label = "ambiguous-css"
     createRenderedBook(label); createWebAssets()
     const run = () => app.request(`/api/books/${label}/package-adt`, { method: "POST" })
@@ -600,14 +628,13 @@ describe("Package routes", () => {
       rendering.sections[0].html += html
       storage.putNodeData("web-rendering", "pg001", rendering)
     } finally { storage.close() }
+    // A browser ignores CSS it cannot read. The page is published as saved.
     const result = await run()
-    expect(result.status).toBe(409)
-    const failure = await result.json()
-    expect(failure).toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
-    expect(failure.error).toContain('"document":"pg001_sec001.html"')
-    expect(failure.error).not.toContain('"member":')
-    expect(failure.error).not.toContain(tmpDir)
-    expect(await readZip()).toEqual(original)
+    expect(result.status, await result.clone().text()).toBe(200)
+    expect(JSON.stringify(await result.json())).not.toContain(tmpDir)
+    const delivered = await readZip()
+    expect(Buffer.from(delivered["pg001_sec001.html"]).toString()).toContain("Text")
+    expect(delivered).not.toEqual(original)
   })
 
   it.each([
@@ -616,7 +643,7 @@ describe("Package routes", () => {
     '<style>.hero{--hero:"images/unused.png";.child{color:blue}}#winner{--hero:"images/pg001_page.png"}.hero{background-image:image-set(var(--hero) 1x)}</style><main id="winner" class="hero"></main>',
     '<style>.other{.hero{--hero:"images/unused.png"}}.hero{--hero:"images/pg001_page.png";background-image:image-set(var(--hero) 1x)}</style><main class="hero"></main><aside class="other"></aside>',
     '<style>@property --hero{syntax:"*";inherits:false;initial-value:"images/pg001_page.png"}.other{.hero{--hero:"images/unused.png"}}.hero{background-image:image-set(var(--hero) 1x)}</style><main class="hero"></main><aside class="other"></aside>',
-  ])("packages proven nested CSS overrides and still refuses a missing selected asset: %s", async html => {
+  ])("packages proven nested CSS overrides and reports only a missing selected asset: %s", async html => {
     const label = "nested-css"
     createRenderedBook(label); createWebAssets()
     const run = () => app.request(`/api/books/${label}/package-adt`, { method: "POST" })
@@ -633,13 +660,16 @@ describe("Package routes", () => {
     save(html)
     const prepared = await run()
     expect(prepared.status, await prepared.clone().text()).toBe(200)
-    const readZip = async () => unzipSync(new Uint8Array(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer()))
-    const original = await readZip()
+    // The overridden, unused value is not a dependency, so nothing is reported.
+    expect((await prepared.json()).warnings).toEqual([])
     save(html.replaceAll('"images/pg001_page.png"', '"images/missing.png"'))
-    const refused = await run()
-    expect(refused.status, await refused.clone().text()).toBe(409)
-    expect(await refused.json()).toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
-    expect(await readZip()).toEqual(original)
+    const reported = await run()
+    expect(reported.status, await reported.clone().text()).toBe(200)
+    expect((await reported.json()).warnings).toEqual([
+      { kind: "missing-asset", pageId: "pg001", document: "pg001_sec001.html", reference: "images/missing.png" },
+    ])
+    const zip = unzipSync(new Uint8Array(await new Response((await exportAdt(label, tmpDir)).stream).arrayBuffer()))
+    expect(zip["pg001_sec001.html"]).toBeDefined()
   })
 
   it("never writes an unsafe imported section into another book or the prior publication", async () => {

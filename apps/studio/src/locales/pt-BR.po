@@ -12035,6 +12035,12 @@ msgstr "O título e os metadados do livro chegam com a parte que contém a pági
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Os prompts integrados são otimizados para {DEFAULT_MODEL}. Você alterou o LLM padrão para <0>{savedModel}</0>, então recomendamos gerar novos arquivos de prompts globais ajustados para ele. Você também pode continuar com os prompts existentes."
 
+msgid "The bundle was built, but {assetTotal} image or media file(s) it refers to were not found and are missing from it."
+msgstr "O pacote foi gerado, mas {assetTotal} arquivo(s) de imagem ou mídia aos quais ele faz referência não foram encontrados e estão ausentes dele."
+
+msgid "The bundle was built, but {assetTotal} image or media file(s) it refers to were not found and are missing from it. Pages affected (showing up to 20): {assetPageList}. Check the images on those pages, then build again."
+msgstr "O pacote foi gerado, mas {assetTotal} arquivo(s) de imagem ou mídia aos quais ele faz referência não foram encontrados e estão ausentes dele. Páginas afetadas (mostrando até 20): {assetPageList}. Verifique as imagens dessas páginas e gere-o novamente."
+
 #~ msgid "The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
 #~ msgstr "O login do Cloudflare não concedeu tudo o que a publicação precisa. Desconecte, conecte novamente e permita todas as permissões que o ADT Studio pede. Nada foi criado na sua conta."
 

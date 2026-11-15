@@ -93,3 +93,27 @@ it("does not repeat page IDs across overlapping missing-output and ownership cat
   expect(message).toContain("27 rendered section")
   expect(readPackagingWarnings({ warnings })).toEqual(warnings)
 })
+
+it("says a bundle with missing images was still built, and names the pages", () => {
+  const warnings = [
+    { kind: "missing-asset" as const, pageId: "pg003", document: "pg003_sec001.html", reference: "images/gone.png" },
+    { kind: "missing-asset" as const, pageId: "pg003", document: "pg003_sec002.html", reference: "images/gone-2.png" },
+    { kind: "missing-asset" as const, pageId: "pg001", document: "pg001_sec001.html", reference: "/api/books/book/images/pg001_im009" },
+    // A shared file, such as a narration dictionary, belongs to no single page.
+    { kind: "missing-asset" as const, pageId: "", document: "content/i18n/en/audios.json", reference: "t1.mp3" },
+  ]
+  expect(readPackagingWarnings({ warnings })).toEqual(warnings)
+  const message = describePackagingWarnings(warnings, i18n)!
+  expect(message).toContain("The bundle was built")
+  expect(message).toContain("4 image or media file(s)")
+  expect(message).toContain("pg001, pg003")
+  // Without a page to point at, the message still reports the gap.
+  const shared = describePackagingWarnings([warnings[3]], i18n)!
+  expect(shared).toContain("1 image or media file(s)")
+  expect(shared).not.toContain("Pages affected")
+  // It joins the other categories instead of replacing them.
+  const mixed = describePackagingWarnings([...warnings, { kind: "missing-storyboard" as const, pageId: "pg009" }, orphan], i18n)!
+  expect(mixed).toContain("Storyboard output is missing on 1 page(s)")
+  expect(mixed).toContain("no verified section owner")
+  expect(mixed).toContain("4 image or media file(s)")
+})

@@ -41,6 +41,7 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
       })
     }
     const expected = sectionIds.map(id => format === "epub" ? `OEBPS/${id}.xhtml` : format === "pnld" ? `content/${id}.html` : `${id}.html`)
+    const pages = new Set(expected)
     let readingOrder: string[]
     if (format === "webpub") {
       const manifest = DerivedWebpubFiles.parse(JSON.parse(read("manifest.json")))
@@ -69,7 +70,7 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
           files.set(id, { href: member(href, prefix), mediaType: item.getAttribute("media-type") ?? "", overlay: item.getAttribute("media-overlay") })
         }
         const byHref = new Map([...files.values()].map(item => [item.href, item]))
-        const documents = new Map<string, { ids: Set<string>; links: { href: string; kind: "text" | "audio" | "navigation" }[] }>()
+        const documents = new Map<string, { ids: Set<string>; links: { href: string; kind: "text" | "audio" | "navigation" }[]; unverified?: boolean }>()
         for (const item of files.values()) {
           const kind = item.mediaType === "application/xhtml+xml" || item.href.endsWith(".xhtml") ? "xhtml"
             : item.mediaType === "application/x-dtbncx+xml" || item.href.endsWith(".ncx") ? "ncx"
@@ -77,6 +78,20 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
           if (!kind || documents.has(item.href)) continue
           const [name, namespace] = kind === "xhtml" ? ["html", "http://www.w3.org/1999/xhtml"]
             : kind === "ncx" ? ["ncx", "http://www.daisy.org/z3986/2005/ncx/"] : ["smil", "http://www.w3.org/ns/SMIL"]
+          // The package document, navigation and media overlays must parse, or
+          // the publication cannot open. One book page that is not well-formed
+          // affects that page only: writers already repair the known causes,
+          // and a remaining case is delivered rather than refusing every
+          // other page. The file itself must still exist.
+          if (kind === "xhtml" && pages.has(item.href)) {
+            try { xml(item.href, name, namespace, () => undefined) }
+            catch {
+              member(item.href)
+              console.warn(`[package] ${format}: ${item.href} is not well-formed XML; delivered as written.`)
+              documents.set(item.href, { ids: new Set<string>(), links: [], unverified: true })
+              continue
+            }
+          }
           documents.set(item.href, xml(item.href, name, namespace, root => {
             const elements = [root, ...root.getElementsByTagName("*")]
             const ids = new Set(elements.flatMap(element => element.hasAttribute("id") ? [element.getAttribute("id")!] : []))
@@ -115,7 +130,8 @@ export function assertDerivedPackageFilesAvailable(directory: string, format: "w
             lastMember = link.href; throw new Error("Media overlay belongs to another page")
           }
           const fragment = link.href.includes("#") ? decodeURIComponent(link.href.slice(link.href.indexOf("#") + 1)) : ""
-          if (fragment && documents.has(target) && !documents.get(target)!.ids.has(fragment)) {
+          // Fragments of a page that could not be parsed cannot be checked.
+          if (fragment && documents.has(target) && !documents.get(target)!.unverified && !documents.get(target)!.ids.has(fragment)) {
             lastMember = link.href; throw new Error("Missing reader fragment")
           }
         }

@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { afterEach, expect, it } from "vitest"
+import { afterEach, expect, it, vi } from "vitest"
 import { assertDerivedPackageFilesAvailable } from "../packaging/derived-bundle-files.js"
 
 const roots: string[] = []
@@ -32,10 +32,29 @@ function fixture(format: "epub" | "pnld" = "epub") {
   return { root, files, check: () => assertDerivedPackageFilesAvailable(root, format, ["page"]) }
 }
 
+// One book page that is not well-formed affects that page only. Writers
+// repair the known causes; a remaining case is delivered with the rest of
+// the publication instead of withholding every other page.
 it.each([
-  ["page.xhtml", (s: string) => s.replace("</html>", "")],
-  ["page.xhtml", (s: string) => s.replace("Saved text", "&unbound;")],
-  ["page.xhtml", (s: string) => s.replace("http://www.w3.org/1999/xhtml", "urn:wrong")],
+  (s: string) => s.replace("</html>", ""),
+  (s: string) => s.replace("Saved text", "&unbound;"),
+  (s: string) => s.replace("http://www.w3.org/1999/xhtml", "urn:wrong"),
+])("delivers a publication whose book page is not well-formed (%#), preserving all bytes", damage => {
+  const { root, files, check } = fixture()
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+  try {
+    const file = "OEBPS/page.xhtml", damaged = damage(files[file])
+    fs.writeFileSync(path.join(root, file), damaged)
+    expect(check).not.toThrow()
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("OEBPS/page.xhtml"))
+    expect(fs.readFileSync(path.join(root, file), "utf8")).toBe(damaged)
+    // The page itself is still required.
+    fs.unlinkSync(path.join(root, file))
+    expect(check).toThrow("PACKAGE_FILES_INCOMPLETE")
+  } finally { warn.mockRestore() }
+})
+
+it.each([
   ["toc.ncx", (s: string) => s.replace("</ncx>", "")],
   ["overlay.smil", (s: string) => s.replace("</smil>", "")],
   ["overlay.smil", (s: string) => s.replace("http://www.w3.org/ns/SMIL", "urn:wrong")],

@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { createHash } from "node:crypto"
-import { HistoryRecoveryError, type Storage } from "@adt/storage"
+import type { Storage } from "@adt/storage"
 import { PackageOwnershipReceipt, PublicationPageEntry } from "@adt/types"
 import { resolveReadingOrder, type ResolvedItem } from "../reading-order.js"
 
@@ -22,8 +22,9 @@ function regularMember(root: string, name: string): string {
  * declaration while packaging. A filename or wrapper in that artifact does not
  * prove its author. Bind new files to the resolver's source and final bytes. */
 export function recordPackagedOwners(storage: Storage, root: string, items: readonly ResolvedItem[]): void {
+  // A book whose identity record is unavailable keeps its usable output: the
+  // receipt records "no identity" and matches only while that is still true.
   const bookId = storage.getBookIdentity?.() ?? null
-  if (storage.bookDir && !bookId) throw new HistoryRecoveryError("HISTORY_RECOVERY_UNVERIFIED")
   const entries = items.map(item => [item.id, owner(item), digest(fs.readFileSync(regularMember(root, item.id + ".html")))])
   // The offline runtime embeds every page in one script. Check those bytes
   // independently; a correct set of standalone HTML files cannot vouch for a
@@ -49,7 +50,7 @@ export function retainedPackageOwnership(storage: Storage, root: string,
     // Keep the artifact, use the owned live reader, and require explicit
     // preparation for downloads. Same-book moves keep the persisted UUID.
     const record = PackageOwnershipReceipt.parse(JSON.parse(fs.readFileSync(regularMember(root, PACKAGE_OWNERS_FILE), "utf8")))
-    if (record.bookId !== storage.getBookIdentity?.()) return result
+    if (record.bookId !== (storage.getBookIdentity?.() ?? null)) return result
     const offline = "assets/offline-preloader.js"
     if (digest(fs.readFileSync(regularMember(root, offline))) !== record.preloader) return result
     result.memberDigests.set(offline, record.preloader)

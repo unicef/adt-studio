@@ -38,7 +38,9 @@ export function storyboardPackageStatus(storage: Storage, bookDir: string, pageI
   if (!ownership) return "unverified"
   if (!ownership.allOwned) return "incomplete"
   // A cold or invalidated bounded proof says nothing about actual completeness.
-  if (!packageFilesAvailable(adtDir, { expectedLanguages, cachedOnly })) return cachedOnly ? "unverified" : "incomplete"
+  // Completeness is about pages. A page whose image or media is missing was
+  // reported as a build warning; it does not make the package incomplete.
+  if (!packageFilesAvailable(adtDir, { expectedLanguages, cachedOnly, allowMissingAssets: true })) return cachedOnly ? "unverified" : "incomplete"
   const packaged = new Map<string, number>()
   for (const entry of ownership.entries) {
     if (entry?.href === `${entry?.section_id}.html`) packaged.set(entry.section_id, (packaged.get(entry.section_id) ?? 0) + 1)

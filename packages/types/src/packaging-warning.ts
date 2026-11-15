@@ -16,10 +16,17 @@ import { z } from "zod"
  *   Usually means `web-rendering` is stale relative to `page-sectioning` — most
  *   often after restoring an older sectioning version, which does not resync
  *   the rendering. Re-running the storyboard render for the page fixes it.
+ * - `missing-asset` — a page (or a shared file) refers to an image, media file
+ *   or other resource that is not in the bundle. The bundle is still built and
+ *   opens; only that resource is absent. `document` names the bundle file that
+ *   holds the reference and `reference` the unresolved target. `pageId` is
+ *   empty when the document is not a book page.
  */
 export const PackagingWarning = z.object({
-  kind: z.enum(["orphaned-rendering", "missing-storyboard", "storyboard-source-changed"]),
+  kind: z.enum(["orphaned-rendering", "missing-storyboard", "storyboard-source-changed", "missing-asset"]),
   pageId: z.string(),
   sectionIndex: z.number().int().optional(),
+  document: z.string().max(512).optional(),
+  reference: z.string().max(512).optional(),
 })
 export type PackagingWarning = z.infer<typeof PackagingWarning>

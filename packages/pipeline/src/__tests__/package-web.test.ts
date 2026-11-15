@@ -3368,7 +3368,7 @@ describe("packageWebpub", () => {
     })
   }
 
-  function setupBook() {
+  function setupBook(html = "<div>First page</div>") {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")
     fs.mkdirSync(bookDir, { recursive: true })
@@ -3386,7 +3386,7 @@ describe("packageWebpub", () => {
               sectionIndex: 0,
               sectionType: "content",
               reasoning: "ok",
-              html: "<div>First page</div>",
+              html,
             },
           ],
         },
@@ -3420,30 +3420,40 @@ describe("packageWebpub", () => {
     return { bookDir, webAssetsDir, storage }
   }
 
-  it.each(["html", "image", "css"])("reports a bounded originating document and missing %s member while retaining the prior package", async kind => {
+  it("names a missing page document and retains the prior package", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage, "Prior book")
     const prior = fs.readFileSync(path.join(bookDir, "adt/index.html"))
-    let document = "", member = ""
+    let document = ""
     const promise = packageAdtWeb(storage, {
       bookDir, webAssetsDir, label: "book", language: "en", outputLanguages: ["en"], title: "Damaged book",
       preparePublication: async stagingRoot => {
         const staged = path.join(stagingRoot, "adt")
         document = JSON.parse(fs.readFileSync(path.join(staged, "content/pages.json"), "utf8"))[0].href
-        member = kind === "html" ? document : "assets/missing.png"
-        if (kind === "html") fs.unlinkSync(path.join(staged, document))
-        if (kind === "image") fs.appendFileSync(path.join(staged, document), '<img src="assets/missing.png">')
-        if (kind === "css") {
-          fs.appendFileSync(path.join(staged, document), '<link rel="stylesheet" href="assets/broken.css">')
-          fs.writeFileSync(path.join(staged, "assets/broken.css"), 'body { background: url(missing.png) }')
-        }
+        fs.unlinkSync(path.join(staged, document))
       },
     })
     await expect(promise).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
     const error = await promise.catch(error => error as Error)
-    expect(error.message).toBe(`PACKAGE_FILES_INCOMPLETE: ${JSON.stringify({ document, member })}`)
+    expect(error.message).toBe(`PACKAGE_FILES_INCOMPLETE: ${JSON.stringify({ document, member: document })}`)
     expect(error.message).not.toContain(bookDir)
     expect(fs.readFileSync(path.join(bookDir, "adt/index.html"))).toEqual(prior)
+  })
+
+  it.each([
+    ["image", '<img src="images/missing.png">', "images/missing.png"],
+    ["root-absolute image", '<img src="/api/books/book/images/pg001_im009">', "/api/books/book/images/pg001_im009"],
+    ["stylesheet", '<link rel="stylesheet" href="assets/missing.css">', "assets/missing.css"],
+    ["background image", '<p style="background-image: url(images/missing-bg.png)">Text</p>', "images/missing-bg.png"],
+  ])("builds the package and reports a missing %s in book content instead of refusing", async (_kind, markup, reference) => {
+    const { bookDir, webAssetsDir, storage } = setupBook(`<div>First page${markup}</div>`)
+    const result = await packageAdtWeb(storage, {
+      bookDir, webAssetsDir, label: "book", language: "en", outputLanguages: ["en"], title: "Book with a gap",
+    })
+    // The page is published as written; only that resource is absent.
+    expect(result.warnings).toContainEqual({ kind: "missing-asset", pageId: "pg001", document: "pg001_sec001.html", reference })
+    expect(fs.readFileSync(path.join(bookDir, "adt/pg001_sec001.html"), "utf8")).toContain("First page")
+    expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/pages.json"), "utf8"))).toEqual([expect.objectContaining({ href: "pg001_sec001.html" })])
   })
 
   it("cancellation at package publication retains the previous bundle and removes only its staging", async () => {

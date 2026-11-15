@@ -351,7 +351,7 @@ function addPagesAndRenderings(label: string, count: number): void {
   }
 }
 
-it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("exports saved harmless inline CSS through %s without rewriting history or accepting a missing resource", async format => {
+it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("exports saved harmless inline CSS through %s without rewriting history, and reports a missing resource without refusing the export", async format => {
   const label = "saved-inline-css"
   createBookWithMetadata(label, "Readable styling")
   addPagesAndRenderings(label, 3)
@@ -380,10 +380,45 @@ it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("exports saved harm
     row.sections[0].html += '<img src="images/required-but-missing.png">'
     after.putNodeData("web-rendering", `${label}_p1`, row)
   } finally { after.close() }
-  await expect(prepareExport(label, format, tmpDir, webAssetsDir)).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
-  // Failure-atomic preparation retains the preceding downloadable artifact.
-  expect(unzipSync(await streamToBuffer((await download(label, tmpDir)).stream))).toEqual(members)
+  // A resource the content points at but the book lacks leaves a gap on that
+  // page. The export is prepared with a warning naming it, and still downloads.
+  const prepared = await prepareExport(label, format, tmpDir, webAssetsDir)
+  expect(prepared.warnings).toContainEqual(expect.objectContaining({
+    kind: "missing-asset", pageId: `${label}_p1`, reference: "images/required-but-missing.png",
+  }))
+  const delivered = unzipSync(await streamToBuffer((await download(label, tmpDir)).stream))
+  expect(Object.keys(delivered).length).toBeGreaterThanOrEqual(Object.keys(members).length)
   expect(fs.readFileSync(image)).toEqual(imageBytes)
+}, 30_000)
+
+it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("exports a book whose title and pages contain characters XML forbids through %s", async format => {
+  const label = "xml-characters"
+  // PDF extraction can carry control characters into a title or page text.
+  createBookWithMetadata(label, "Form\u000Cfeed \u0001 title")
+  addPagesAndRenderings(label, 1)
+  const s = createBookStorage(label, tmpDir)
+  try {
+    const row = s.getLatestNodeData("web-rendering", `${label}_p1`)!.data as { sections: { html: string }[] }
+    row.sections[0].html += '<p>Vertical\u000Btab and \uFFFE</p><svg><use xlink:href="#icon"></use></svg><!-- a -- b -->'
+    s.putNodeData("web-rendering", `${label}_p1`, row)
+  } finally { s.close() }
+  // Writers repair what XML cannot hold, so nothing is refused or reported.
+  const prepared = await prepareExport(label, format, tmpDir, webAssetsDir)
+  expect(prepared.warnings.filter(warning => warning.kind === "missing-asset")).toEqual([])
+  const download = { adt: exportAdt, scorm: exportScorm, webpub: exportWebpub, epub: exportEpub, pnld: exportPnld }[format]
+  const members = unzipSync(await streamToBuffer((await download(label, tmpDir)).stream))
+  expect(Object.keys(members).length).toBeGreaterThan(0)
+  if (format === "scorm") {
+    const manifest = Buffer.from(members["imsmanifest.xml"]).toString()
+    expect(manifest).toContain("Formfeed  title")
+    expect(manifest).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/)
+  }
+  if (format === "epub") {
+    const page = Buffer.from(members[`OEBPS/${label}_p1_sec001.xhtml`]).toString()
+    expect(page).toContain("Verticaltab and ")
+    expect(page).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE]/)
+    expect(page).toContain('xmlns:xlink="http://www.w3.org/1999/xlink"')
+  }
 }, 30_000)
 
 describe("exportWebpub", () => {
@@ -1012,7 +1047,11 @@ it.each(["epub", "pnld"] as const)("rejects malformed XML in real %s reader stru
     const damaged = bytes.replace(/<\/(html|ncx)>\s*$/, "")
     expect(damaged).not.toBe(bytes)
     fs.writeFileSync(file, damaged)
-    await refused()
+    // Navigation must parse or the publication cannot open. One book page
+    // that is not well-formed is delivered with the rest of the book.
+    if (relative === "OEBPS/xml-structure_p1_sec001.xhtml") {
+      expect(Object.keys(unzipSync(await streamToBuffer((await download(label, tmpDir)).stream)))).toContain(relative)
+    } else await refused()
     expect(fs.readFileSync(file, "utf8")).toBe(damaged)
     fs.writeFileSync(file, bytes)
   }

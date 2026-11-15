@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import { stripXmlInvalid } from "../html-escape.js"
 import path from "node:path"
 import { JSDOM } from "jsdom"
 import type { Storage } from "@adt/storage"
@@ -971,7 +972,7 @@ function replaceStepperShells(oebpsDir: string): void {
 }
 
 function escapeXml(str: string): string {
-  return str
+  return stripXmlInvalid(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

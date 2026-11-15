@@ -538,7 +538,7 @@ export { protectedAuthoredRecords, assertAuthoredReplacement, replacementConfirm
 export { storyboardCoverage, storyboardCoverageByPage, missingStoryboardInputMessage } from "./storyboard-coverage.js"
 export { retainedPackageOwnership, PACKAGE_OWNERS_FILE } from "./packaging/bundle-ownership.js"
 export { publishedAdtDirectory } from "./packaging/publication-directory.js"
-export { packageFilesAvailable, assertPackageFilesAvailable } from "./packaging/bundle-files.js"
+export { packageFilesAvailable, assertPackageFilesAvailable, type MissingPackageAsset, type PackageFilesOptions } from "./packaging/bundle-files.js"
 export { isPublicOutputId, publicOutputOwners, ambiguousPublicOutputIds, ambiguousPublicOutputIdsFromOwners, invalidPublicOutputIdentity } from "./public-output-identity.js"
 
 export { storyboardSourceWarnings, captureStoryboardSource, publishSynchronizedStoryboardText } from "./storyboard-source-state.js"

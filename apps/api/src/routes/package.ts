@@ -87,9 +87,13 @@ function readBuildWarnings(bookDir: string): PackagingWarning[] {
 function isBuildCacheValid(storage: Storage, bookDir: string, hash: string, expectedLanguages: string[]): boolean {
   try {
     if (fs.readFileSync(getBuildHashPath(bookDir), "utf8").trim() !== hash) return false
-    PackagingWarning.array().parse(JSON.parse(fs.readFileSync(getBuildWarningsPath(bookDir), "utf8")))
+    const warnings = PackagingWarning.array().parse(JSON.parse(fs.readFileSync(getBuildWarningsPath(bookDir), "utf8")))
     const root = publishedAdtDirectory(bookDir)
-    return packageFilesAvailable(root, { expectedLanguages }) &&
+    // A build that reported missing content assets is reused with them. A
+    // build that had none must still have every file, so a resource that
+    // disappears from the bundle afterwards triggers a rebuild that restores it.
+    const allowMissingAssets = warnings.some(warning => warning.kind === "missing-asset")
+    return packageFilesAvailable(root, { expectedLanguages, allowMissingAssets }) &&
       readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), root).allOwned
   } catch { return false }
 }

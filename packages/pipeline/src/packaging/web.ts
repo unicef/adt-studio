@@ -2,7 +2,7 @@ import { setImmediate as yieldToEventLoop } from "node:timers/promises"
 import { storyboardSourceWarnings } from "../storyboard-source-state.js"
 import { recordPackagedOwners } from "./bundle-ownership.js"
 import { createPackageStaging, openPackageWork, publishedAdtDirectory, removePackageStaging } from "./publication-directory.js"
-import { isBundleLocale, assertPackageFilesAvailable } from "./bundle-files.js"
+import { isBundleLocale, assertPackageFilesAvailable, type MissingPackageAsset } from "./bundle-files.js"
 import { isPublicOutputId } from "../public-output-identity.js"
 import { BookConfigError } from "../config.js"
 import { buildImageInventory } from "../catalog-reconciliation.js"
@@ -78,7 +78,7 @@ import { renderingOwnershipWarnings } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
 import { orderTocEntries } from "../toc-reading-order.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
-import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
+import { escapeHtml, escapeAttr, escapeInlineScriptJson, stripXmlInvalid } from "../html-escape.js"
 import { buildTailwindCss } from "../tailwind.js"
 
 export interface PackageAdtWebOptions {
@@ -355,11 +355,24 @@ export async function packageAdtWeb(
     const stagingRoot = createPackageStaging(work)
     const staged = path.join(stagingRoot, "adt")
     try {
-      const result = await buildWebPackage(storage, options, progress, staged)
+      const built = await buildWebPackage(storage, options, progress, staged)
       options.signal?.throwIfAborted()
+      // The staged bundle must open: page documents, manifests, dictionaries
+      // and the reader's own code are required, and their absence keeps the
+      // previous package. A resource that book content points at but the
+      // bundle lacks leaves a gap on that page only, so it is reported as a
+      // warning and the build continues. Checked before the caller persists
+      // this build's warnings, so a cache hit replays them.
+      const missingAssets: MissingPackageAsset[] = []
+      assertPackageFilesAvailable(staged, {
+        format: "scorm", expectedLanguages: options.outputLanguages.map(normalizeLocale),
+        onMissingAsset: asset => { missingAssets.push(asset) },
+      })
+      const result: PackageAdtWebResult = { warnings: [...built.warnings, ...missingAssetWarnings(missingAssets, built.pageOfDocument)] }
       const commit = await options.preparePublication?.(stagingRoot, result)
       options.signal?.throwIfAborted()
-      assertPackageFilesAvailable(staged, { format: "scorm", expectedLanguages: options.outputLanguages.map(normalizeLocale) })
+      // Whatever the caller's preparation did, the bundle must still open.
+      assertPackageFilesAvailable(staged, { format: "scorm", expectedLanguages: options.outputLanguages.map(normalizeLocale), allowMissingAssets: true })
       if (JSON.stringify(requiredPartRange(options.bookDir)) !== window) {
         throw new SectioningSafetyError("SECTIONING_WINDOW_INVALID", "The part window changed while packaging. Retry using the current window.")
       }
@@ -384,9 +397,29 @@ export async function packageAdtWeb(
   })
 }
 
+/** One warning per distinct missing reference, bounded so a damaged book
+ * cannot produce an unbounded response or sidecar. */
+const MAX_MISSING_ASSET_WARNINGS = 200
+function missingAssetWarnings(assets: readonly MissingPackageAsset[], pageOfDocument: ReadonlyMap<string, string>): PackagingWarning[] {
+  const seen = new Set<string>()
+  const warnings: PackagingWarning[] = []
+  for (const asset of assets) {
+    const key = JSON.stringify([asset.document, asset.reference])
+    if (seen.has(key) || warnings.length >= MAX_MISSING_ASSET_WARNINGS) continue
+    seen.add(key)
+    warnings.push({
+      kind: "missing-asset",
+      pageId: (asset.document && pageOfDocument.get(asset.document)) ?? "",
+      ...(asset.document ? { document: asset.document } : {}),
+      reference: asset.reference,
+    })
+  }
+  return warnings
+}
+
 async function buildWebPackage(
   storage: Storage, options: PackageAdtWebOptions, progress: Progress, adtDir: string,
-): Promise<PackageAdtWebResult> {
+): Promise<PackageAdtWebResult & { pageOfDocument: Map<string, string> }> {
   const {
     bookDir,
     label,
@@ -1172,7 +1205,13 @@ async function buildWebPackage(
   const pageIds = (options.config ? activeSectioningPages(storage, options.config, bookDir) : pages).map(page => page.pageId)
   const coverage = storyboardCoverage(storage, pageIds)
   const missing = [...new Set([...coverage.missingPages, ...coverage.missingSections.map((section) => section.pageId)])]
-  return { warnings: [...orphanedRenderings, ...storyboardSourceWarnings(storage, pageIds), ...missing.map((pageId) => ({ kind: "missing-storyboard" as const, pageId }))] }
+  // Which book page each packaged document belongs to, for warnings that
+  // name a document. Quiz pages and shared files belong to no single page.
+  const pageOfDocument = new Map(readingOrder.items.flatMap(item => item.kind === "quiz" ? [] : [[`${item.id}.html`, item.pageId] as const]))
+  return {
+    warnings: [...orphanedRenderings, ...storyboardSourceWarnings(storage, pageIds), ...missing.map((pageId) => ({ kind: "missing-storyboard" as const, pageId }))],
+    pageOfDocument,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2847,7 +2886,9 @@ function generateImsManifest(
   pageList: PageEntry[],
 ): void {
   const identifier = `ADT_${label.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`
-  const escapedTitle = escapeHtml(title)
+  // The manifest is XML: a control character in the title would make it
+  // ill-formed and unusable by an LMS.
+  const escapedTitle = escapeHtml(stripXmlInvalid(title))
 
   // Pages are all id-named; `index.html` is the redirect stub, listed above as
   // the SCO entry point and absent from pageList.

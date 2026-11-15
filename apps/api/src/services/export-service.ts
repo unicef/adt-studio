@@ -213,7 +213,7 @@ function warmDownloadProofs(storage: Storage, bookDir: string, format: "scorm" |
   const directory = publishedAdtDirectory(bookDir)
   try {
     readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), directory)
-    packageFilesAvailable(directory, { format })
+    packageFilesAvailable(directory, { format, allowMissingAssets: true })
   } catch { /* The download re-checks and reports any refusal. */ }
 }
 
@@ -322,7 +322,7 @@ function readableDerivedPackageZip(bookDir: string, directory: string, format: "
       let receipt: ReturnType<typeof PackageOwnershipReceipt.parse> | undefined
       try { receipt = PackageOwnershipReceipt.parse(JSON.parse(fs.readFileSync(path.join(contentRoot, ".build-owners"), "utf8"))) }
       catch { /* Unproven retained membership/origin requires explicit preparation. */ }
-      if (!receipt || receipt.bookId !== storage.getBookIdentity?.() || !receipt.entries.length || new Set(receipt.entries.map(row => row[0])).size !== receipt.entries.length ||
+      if (!receipt || receipt.bookId !== (storage.getBookIdentity?.() ?? null) || !receipt.entries.length || new Set(receipt.entries.map(row => row[0])).size !== receipt.entries.length ||
           receipt.entries.some(([id, pageOwner]) => !allowed.has(id) || allowed.get(id) !== pageOwner)) {
         throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from this book's current owned content.")
       }
@@ -344,7 +344,9 @@ function readablePackageZip(bookDir: string, directory: string, format: "scorm" 
       if (!readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), directory).allOwned) {
         throw new SectioningSafetyError("PACKAGE_FILES_INCOMPLETE", "Prepare the export again from the current saved content.")
       }
-      assertPackageFilesAvailable(directory, { format })
+      // The bundle must open. A resource missing from book content was
+      // reported when the export was prepared and does not stop the download.
+      assertPackageFilesAvailable(directory, { format, allowMissingAssets: true })
     } finally { storage.close() }
     // The ZIP producer may yield between files; keep shared admission until it finishes.
     return createAdmittedZipStream(bookDir, directory, { excludeFiles: new Set([PACKAGE_OWNERS_FILE]) })
