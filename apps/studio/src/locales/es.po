@@ -165,6 +165,10 @@ msgstr "{0, plural, one {# etapa} other {# etapas}}"
 msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
 msgstr "{0, plural, one {# tarea hereda este modelo} other {# tareas heredan este modelo}}"
 
+#. placeholder {0}: warning.count
+msgid "{0, plural, one {# warning this version of ADT Studio can't show; open the book in a newer version.} other {# warnings this version of ADT Studio can't show; open the book in a newer version.}}"
+msgstr "{0, plural, one {# advertencia que esta versión de ADT Studio no puede mostrar; abre el libro en una versión más reciente.} other {# advertencias que esta versión de ADT Studio no puede mostrar; abre el libro en una versión más reciente.}}"
+
 #. placeholder {0}: reader.commentCount
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {comentario} other {comentarios}}"
@@ -184,6 +188,10 @@ msgstr "{0, plural, one {Desconectado. Es posible que # Worker de un libro compa
 #. placeholder {0}: state.hours
 msgid "{0, plural, one {hour} other {hours}}"
 msgstr "{0, plural, one {hora} other {horas}}"
+
+#. placeholder {0}: warning.incompletePages
+msgid "{0, plural, one {Not fully assessed on # page.} other {Not fully assessed on # pages.}}"
+msgstr "{0, plural, one {Evaluación incompleta en # página.} other {Evaluación incompleta en # páginas.}}"
 
 #. placeholder {0}: openComments(resume)
 msgid "{0, plural, one {Review # comment} other {Review # comments}}"
@@ -3132,6 +3140,9 @@ msgstr "Completado"
 
 msgid "Completed book part"
 msgstr "Parte de libro terminada"
+
+msgid "Completed by an older version of ADT Studio; it may not have recorded every warning."
+msgstr "Completado por una versión anterior de ADT Studio; es posible que no haya registrado todas las advertencias."
 
 msgid "Completed Part"
 msgstr "Parte completada"
@@ -11864,6 +11875,9 @@ msgstr "Tareas en Ejecución"
 
 msgid "Teaching the pixels new tricks..."
 msgstr "Enseñando nuevos trucos a los píxeles..."
+
+msgid "Technical details: {technical}"
+msgstr "Detalles técnicos: {technical}"
 
 msgid "Technical documentation"
 msgstr "Documentación técnica"

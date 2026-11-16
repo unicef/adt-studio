@@ -12,8 +12,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { describeStepWarning } from "@/lib/step-warnings"
-import type { StepWarning } from "@adt/types"
+import { describeStepWarning, legacyCompletionNote } from "@/lib/step-warnings"
+import type { StepWarningSource, StepWarningView } from "@adt/types"
 
 export function SubStepPillRow({
   subSteps,
@@ -21,6 +21,7 @@ export function SubStepPillRow({
   stepProgress,
   stepError,
   stepWarnings,
+  stepWarningSource,
 }: {
   subSteps: StageSubStep[]
   stepState: (key: string) => string
@@ -29,7 +30,9 @@ export function SubStepPillRow({
   ) => { page?: number; totalPages?: number } | undefined
   stepError: (key: string) => string | undefined
   /** Warnings a finished step left (SPEC-0021, §Step warnings), shown translated in the popover. */
-  stepWarnings?: (key: string) => StepWarning[]
+  stepWarnings?: (key: string) => StepWarningView[]
+  /** Who recorded a finished step's warnings: this app, or an older one (`legacy`). */
+  stepWarningSource?: (key: string) => StepWarningSource | undefined
 }) {
   return (
     <div className="mt-1 flex flex-wrap gap-1.5">
@@ -63,6 +66,7 @@ export function SubStepPillRow({
                 progress={stepProgress(subStep.key)}
                 errorMessage={stepError(subStep.key)}
                 warnings={warnings}
+                warningSource={stepWarningSource?.(subStep.key)}
               />
             </TooltipContent>
           </Tooltip>
@@ -133,22 +137,27 @@ function SubStepPillButton({
   )
 }
 
-function SubStepPopoverCard({
+/** Exported for tests: the tooltip only renders it on hover. */
+export function SubStepPopoverCard({
   stepKey,
   state,
   progress,
   errorMessage,
   warnings = [],
+  warningSource,
 }: {
   stepKey: string
   state: string
   progress?: { page?: number; totalPages?: number }
   errorMessage?: string
-  warnings?: StepWarning[]
+  warnings?: StepWarningView[]
+  warningSource?: StepWarningSource
 }) {
   const { t, i18n } = useLingui()
   const isDone = state === "done"
   const hasWarning = isDone && warnings.length > 0
+  // Completed by an app that does not record warnings: say so, without turning the pill amber.
+  const isLegacy = isDone && warningSource === "legacy"
   const isSkipped = state === "skipped"
   const isError = state === "error"
   const isRunning = state === "running"
@@ -265,7 +274,7 @@ function SubStepPopoverCard({
           )}
         </div>
       </div>
-      {(hasPages || (isError && errorMessage) || hasWarning || isSkipped) && (
+      {(hasPages || (isError && errorMessage) || hasWarning || isLegacy || isSkipped) && (
         <div className="flex flex-col gap-2 border-t border-border/70 bg-muted/30 px-3.5 py-2.5">
           {hasPages && (
             <div className="flex flex-col gap-1.5">
@@ -300,9 +309,20 @@ function SubStepPopoverCard({
                     ))}
                   </ul>
                 )}
+                {/* Provider text, verbatim; SPEC-0017's technical-details disclosure replaces this line. */}
+                {text.technical.map((technical, technicalIndex) => (
+                  <p key={technicalIndex} className="break-words text-[9.5px] leading-snug text-muted-foreground/80">
+                    {t`Technical details: ${technical}`}
+                  </p>
+                ))}
               </div>
             )
           })}
+          {isLegacy && (
+            <p className="text-[10.5px] italic leading-relaxed text-muted-foreground">
+              {legacyCompletionNote(i18n)}
+            </p>
+          )}
           {isError && errorMessage && (
             <p className="break-words text-[10.5px] leading-snug text-red-700">
               {errorMessage}

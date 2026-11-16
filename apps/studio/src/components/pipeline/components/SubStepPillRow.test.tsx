@@ -2,7 +2,7 @@
 import React from "react"
 import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
-import type { StepWarning } from "@adt/types"
+import type { StepWarningSource, StepWarningView } from "@adt/types"
 
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -20,13 +20,13 @@ vi.mock("../pipeline-i18n", () => ({
   getStepDescriptionI18n: () => "",
 }))
 
-const { SubStepPillRow } = await import("./SubStepPillRow")
+const { SubStepPillRow, SubStepPopoverCard } = await import("./SubStepPillRow")
 const { TooltipProvider } = await import("@/components/ui/tooltip")
 
 afterEach(cleanup)
 
 it("AC-26: a done pill is amber with a warning only when its step has warnings", () => {
-  const warnings: Record<string, StepWarning[]> = {
+  const warnings: Record<string, StepWarningView[]> = {
     "image-segmentation": [{ kind: "pages-unchanged", pages: [{ pageId: "pg002", error: "HTTP 500" }] }],
   }
   render(
@@ -44,4 +44,39 @@ it("AC-26: a done pill is amber with a warning only when its step has warnings",
   expect(warned).toHaveLength(1)
   expect(warned[0].closest("span")?.textContent).toContain("image-segmentation")
   expect(warned[0].closest("span")?.className).toContain("amber")
+})
+
+it("AC-26: warnings this version can't show still turn the pill amber", () => {
+  render(
+    <TooltipProvider>
+      <SubStepPillRow
+        subSteps={[{ key: "glossary", label: "" }]}
+        stepState={() => "done"}
+        stepProgress={() => undefined}
+        stepError={() => undefined}
+        stepWarnings={() => [{ kind: "unrecognized", count: 1 }]}
+      />
+    </TooltipProvider>,
+  )
+  expect(screen.getAllByLabelText("Completed with a warning")).toHaveLength(1)
+})
+
+it("shows provider text as a muted technical-details line under the translated summary", () => {
+  render(
+    <SubStepPopoverCard
+      stepKey="image-segmentation"
+      state="done"
+      warnings={[{ kind: "pages-unchanged", pages: [{ pageId: "pg002", error: "HTTP 500" }] }]}
+    />,
+  )
+  expect(screen.getByText("1 page kept its extracted images unchanged because the model call failed.")).toBeTruthy()
+  expect(screen.getByText("pg002")).toBeTruthy()
+  expect(screen.getByText("Technical details: HTTP 500")).toBeTruthy()
+})
+
+it("AC-27: a step completed by an older version says so in the popover and stays green", () => {
+  const source: StepWarningSource = "legacy"
+  render(<SubStepPopoverCard stepKey="glossary" state="done" warnings={[]} warningSource={source} />)
+  expect(screen.getByText("Completed by an older version of ADT Studio; it may not have recorded every warning.")).toBeTruthy()
+  expect(screen.getByText("Completed")).toBeTruthy()
 })

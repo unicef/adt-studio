@@ -165,6 +165,10 @@ msgstr "{0, plural, one {# stage} other {# stages}}"
 msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
 msgstr "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
 
+#. placeholder {0}: warning.count
+msgid "{0, plural, one {# warning this version of ADT Studio can't show; open the book in a newer version.} other {# warnings this version of ADT Studio can't show; open the book in a newer version.}}"
+msgstr "{0, plural, one {# warning this version of ADT Studio can't show; open the book in a newer version.} other {# warnings this version of ADT Studio can't show; open the book in a newer version.}}"
+
 #. placeholder {0}: reader.commentCount
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {comment} other {comments}}"
@@ -184,6 +188,10 @@ msgstr "{0, plural, one {Disconnected. # shared book Worker may still be in your
 #. placeholder {0}: state.hours
 msgid "{0, plural, one {hour} other {hours}}"
 msgstr "{0, plural, one {hour} other {hours}}"
+
+#. placeholder {0}: warning.incompletePages
+msgid "{0, plural, one {Not fully assessed on # page.} other {Not fully assessed on # pages.}}"
+msgstr "{0, plural, one {Not fully assessed on # page.} other {Not fully assessed on # pages.}}"
 
 #. placeholder {0}: openComments(resume)
 msgid "{0, plural, one {Review # comment} other {Review # comments}}"
@@ -3132,6 +3140,9 @@ msgstr "Completed"
 
 msgid "Completed book part"
 msgstr "Completed book part"
+
+msgid "Completed by an older version of ADT Studio; it may not have recorded every warning."
+msgstr "Completed by an older version of ADT Studio; it may not have recorded every warning."
 
 msgid "Completed Part"
 msgstr "Completed Part"
@@ -11864,6 +11875,9 @@ msgstr "Tasks Running"
 
 msgid "Teaching the pixels new tricks..."
 msgstr "Teaching the pixels new tricks..."
+
+msgid "Technical details: {technical}"
+msgstr "Technical details: {technical}"
 
 msgid "Technical documentation"
 msgstr "Technical documentation"

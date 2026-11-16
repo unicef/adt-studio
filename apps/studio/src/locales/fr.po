@@ -167,6 +167,10 @@ msgstr "{0, plural, one {# étape} other {# étapes}}"
 msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
 msgstr "{0, plural, one {# tâche hérite de ce modèle} other {# tâches héritent de ce modèle}}"
 
+#. placeholder {0}: warning.count
+msgid "{0, plural, one {# warning this version of ADT Studio can't show; open the book in a newer version.} other {# warnings this version of ADT Studio can't show; open the book in a newer version.}}"
+msgstr "{0, plural, one {# avertissement que cette version d’ADT Studio ne peut pas afficher ; ouvrez le livre dans une version plus récente.} other {# avertissements que cette version d’ADT Studio ne peut pas afficher ; ouvrez le livre dans une version plus récente.}}"
+
 #. placeholder {0}: reader.commentCount
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {commentaire} other {commentaires}}"
@@ -186,6 +190,10 @@ msgstr "{0, plural, one {Déconnecté. # Worker d'un livre partagé est peut-êt
 #. placeholder {0}: state.hours
 msgid "{0, plural, one {hour} other {hours}}"
 msgstr "{0, plural, one {heure} other {heures}}"
+
+#. placeholder {0}: warning.incompletePages
+msgid "{0, plural, one {Not fully assessed on # page.} other {Not fully assessed on # pages.}}"
+msgstr "{0, plural, one {Évaluation incomplète sur # page.} other {Évaluation incomplète sur # pages.}}"
 
 #. placeholder {0}: openComments(resume)
 msgid "{0, plural, one {Review # comment} other {Review # comments}}"
@@ -3134,6 +3142,9 @@ msgstr "Terminé"
 
 msgid "Completed book part"
 msgstr "Partie de livre terminée"
+
+msgid "Completed by an older version of ADT Studio; it may not have recorded every warning."
+msgstr "Terminé par une version antérieure d’ADT Studio ; tous les avertissements n’ont peut-être pas été enregistrés."
 
 msgid "Completed Part"
 msgstr "Partie terminée"
@@ -11866,6 +11877,9 @@ msgstr "Tâches En cours"
 
 msgid "Teaching the pixels new tricks..."
 msgstr "On apprend de nouveaux tours aux pixels..."
+
+msgid "Technical details: {technical}"
+msgstr "Détails techniques : {technical}"
 
 msgid "Technical documentation"
 msgstr "Documentation technique"

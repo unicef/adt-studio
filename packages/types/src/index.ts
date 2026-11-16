@@ -290,7 +290,17 @@ export {
 
 export { ExtractionWarning } from "./extraction-warning.js"
 export { PackagingWarning } from "./packaging-warning.js"
-export { StepWarning, StepWarnings, STEP_WARNING_KINDS, type StepWarningKind } from "./step-warning.js"
+export {
+  StepWarning,
+  StepWarnings,
+  STEP_WARNING_KINDS,
+  type StepWarningKind,
+  UnrecognizedStepWarning,
+  StepWarningView,
+  StoredStepWarnings,
+  StepWarningSource,
+  LEGACY_SKIP_MESSAGE,
+} from "./step-warning.js"
 
 export {
   FIXED_LAYOUT_MAX_SCALE,

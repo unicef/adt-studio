@@ -171,22 +171,27 @@ it("exposes a finished step's typed warnings, from a refetch and from the live e
     const warning = { kind: "pages-unchanged", pages: [{ pageId: "pg002", error: "boom" }] }
     const state = client.getQueryData<{ steps: Record<string, string> }>(["books", "book", "step-status"])!
     await act(async () => {
-      client.setQueryData(["books", "book", "step-status"], { ...state, steps: { ...state.steps, "image-cropping": "done", "image-segmentation": "running" }, stepMessages: { "image-cropping": "13 headings", "image-segmentation": "3/12" }, stepWarnings: { "image-cropping": [warning] } })
+      client.setQueryData(["books", "book", "step-status"], { ...state, steps: { ...state.steps, "image-cropping": "done", "image-segmentation": "running" }, stepMessages: { "image-cropping": "13 headings", "image-segmentation": "3/12" }, stepWarnings: { "image-cropping": [warning] }, stepWarningSources: { "image-cropping": "recorded", glossary: "legacy" } })
     })
     await waitFor(() => expect(hook.result.current.stepWarnings("image-cropping")).toEqual([warning]))
     // A running step has progress but no warnings; a done step without warnings has none.
     expect(hook.result.current.stepWarnings("image-segmentation")).toEqual([])
     expect(hook.result.current.stepWarnings("glossary")).toEqual([])
+    expect(hook.result.current.stepWarningSource("image-cropping")).toBe("recorded")
+    expect(hook.result.current.stepWarningSource("image-segmentation")).toBeUndefined()
 
     // Live: step-start clears the step's warnings, step-complete carries the new ones.
     await act(async () => Events.current.emit("progress", { type: "step-start", step: "image-cropping" }))
     await waitFor(() => expect(hook.result.current.stepWarnings("image-cropping")).toEqual([]))
+    expect(hook.result.current.stepWarningSource("image-cropping")).toBeUndefined()
     const skipped = { kind: "pages-skipped", count: 2 }
-    await act(async () => Events.current.emit("progress", { type: "step-complete", step: "image-cropping", message: "Completed — 2 page(s) skipped", warnings: [skipped] }))
+    await act(async () => Events.current.emit("progress", { type: "step-complete", step: "image-cropping", message: "Completed with 2 page(s) skipped.", warnings: [skipped] }))
     await waitFor(() => expect(hook.result.current.stepWarnings("image-cropping")).toEqual([skipped]))
-    // A warning list from a newer app that this one cannot parse is dropped, not shown raw.
-    await act(async () => Events.current.emit("progress", { type: "step-complete", step: "image-cropping", warnings: [{ kind: "from-a-newer-app" }] }))
-    await waitFor(() => expect(hook.result.current.stepWarnings("image-cropping")).toEqual([]))
+    // The live event is this app's own completion.
+    expect(hook.result.current.stepWarningSource("image-cropping")).toBe("recorded")
+    // An element this app cannot parse stays visible as unrecognized, next to the known ones.
+    await act(async () => Events.current.emit("progress", { type: "step-complete", step: "image-cropping", warnings: [skipped, { kind: "from-a-newer-app" }] }))
+    await waitFor(() => expect(hook.result.current.stepWarnings("image-cropping")).toEqual([skipped, { kind: "unrecognized", count: 1 }]))
   } finally {
     close()
   }

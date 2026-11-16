@@ -434,7 +434,7 @@ describe("runPipelineDAG", () => {
     const complete = (step: StepName) => events.find((event) => event.type === "step-complete" && event.step === step) as { message?: string; warnings?: unknown }
     expect(complete("image-cropping")).toMatchObject({
       warnings: [{ kind: "pages-unchanged", pages: [{ pageId: "pg002", error: "boom" }] }],
-      message: "Completed — 1 page(s) kept their extracted images unchanged after a failure: pg002 (boom)",
+      message: "Completed with 1 page(s) kept their extracted images unchanged after a failure: pg002 (boom).",
     })
     expect(complete("image-segmentation").message).toBeUndefined()
     expect(complete("image-segmentation").warnings).toBeUndefined()
