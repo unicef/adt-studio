@@ -28,7 +28,8 @@ const EDGE_SIZE = 8
 /**
  * Box for a region the user adds by hand: a third of the image, centred, and
  * stepped down-right past any box already starting there so repeated adds
- * don't hide under one another.
+ * don't hide under one another. A step that would leave the image wraps round
+ * to the opposite edge, so the cascade carries on instead of piling up there.
  */
 export function newRegionBox(
   regions: SegmentRegion[],
@@ -38,15 +39,16 @@ export function newRegionBox(
   const width = Math.min(imageWidth, Math.max(10, Math.round(imageWidth / 3)))
   const height = Math.min(imageHeight, Math.max(10, Math.round(imageHeight / 3)))
   const step = Math.max(1, Math.round(Math.min(imageWidth, imageHeight) / 20))
-  let left = Math.round((imageWidth - width) / 2)
-  let top = Math.round((imageHeight - height) / 2)
-  while (
-    regions.some((r) => r.cropLeft === left && r.cropTop === top) &&
-    left + step + width <= imageWidth &&
-    top + step + height <= imageHeight
-  ) {
-    left += step
-    top += step
+  const maxLeft = imageWidth - width
+  const maxTop = imageHeight - height
+  let left = Math.round(maxLeft / 2)
+  let top = Math.round(maxTop / 2)
+  // One more spot than there are boxes is enough to find a free one. Only an
+  // image too small to hold that many spots runs out, and then boxes stack.
+  for (let i = 0; i < regions.length; i++) {
+    if (!regions.some((r) => r.cropLeft === left && r.cropTop === top)) break
+    left = (left + step) % (maxLeft + 1)
+    top = (top + step) % (maxTop + 1)
   }
   return { cropLeft: left, cropTop: top, cropRight: left + width, cropBottom: top + height }
 }
@@ -337,7 +339,18 @@ export function SegmentPreviewDialog({
               return (
                 <div
                   key={idx}
-                  className="absolute"
+                  // A toggle button, so the keyboard can select a box too:
+                  // Tab reaches it, Enter or Space selects it (or lets go).
+                  role="button"
+                  tabIndex={0}
+                  aria-label={region.label}
+                  aria-pressed={isSelected}
+                  className="absolute focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" && e.key !== " ") return
+                    e.preventDefault()
+                    setSelectedIdx(isSelected ? null : idx)
+                  }}
                   style={{
                     left: d.left,
                     top: d.top,

@@ -70,6 +70,24 @@ describe("newRegionBox", () => {
     const full = { label: "full", cropLeft: 0, cropTop: 0, cropRight: 10, cropBottom: 10 }
     expect(newRegionBox([full], 10, 10)).toEqual({ cropLeft: 0, cropTop: 0, cropRight: 10, cropBottom: 10 })
   })
+
+  it("keeps finding a free spot once the cascade reaches the image edge", () => {
+    const added: Region[] = []
+    for (let i = 0; i < 40; i++) added.push({ label: `box ${i + 1}`, ...newRegionBox(added, W, H) })
+
+    // The seventh add is the last one that fits before the bottom edge; the
+    // eighth wraps round to the top instead of landing on it.
+    expect(added[6]).toMatchObject({ cropLeft: 290, cropTop: 190, cropBottom: 290 })
+    expect(added[7]).toMatchObject({ cropLeft: 305, cropTop: 4, cropBottom: 104 })
+
+    expect(new Set(added.map((r) => `${r.cropLeft},${r.cropTop}`)).size).toBe(added.length)
+    for (const r of added) {
+      expect(r.cropLeft).toBeGreaterThanOrEqual(0)
+      expect(r.cropTop).toBeGreaterThanOrEqual(0)
+      expect(r.cropRight).toBeLessThanOrEqual(W)
+      expect(r.cropBottom).toBeLessThanOrEqual(H)
+    }
+  })
 })
 
 describe("SegmentPreviewDialog", () => {
@@ -108,6 +126,42 @@ describe("SegmentPreviewDialog", () => {
 
     selectBox("photo")
     fireEvent.keyDown(window, { key: "Delete" })
+
+    expect(applied(onApply)).toEqual([detected[1]])
+  })
+
+  it.each(["Delete", "Backspace"])("removes the selected region with the %s key", (key) => {
+    const onApply = renderDialog()
+
+    selectBox("photo")
+    fireEvent.keyDown(window, { key })
+
+    expect(applied(onApply)).toEqual([detected[1]])
+  })
+
+  it.each([
+    ["Enter", "Enter"],
+    ["Space", " "],
+  ])("selects a region from the keyboard with %s, so it can be removed without a mouse", (_name, key) => {
+    const onApply = renderDialog()
+    // Each box is a focusable toggle button named after its region.
+    const box = button("photo")
+    expect(box.tabIndex).toBe(0)
+    expect(box.getAttribute("aria-pressed")).toBe("false")
+
+    box.focus()
+    fireEvent.keyDown(box, { key })
+    expect(box.getAttribute("aria-pressed")).toBe("true")
+    expect(button("drawing").getAttribute("aria-pressed")).toBe("false")
+    expect(button("Remove region").disabled).toBe(false)
+
+    // The same key lets go of it again.
+    fireEvent.keyDown(box, { key })
+    expect(box.getAttribute("aria-pressed")).toBe("false")
+    expect(button("Remove region").disabled).toBe(true)
+
+    fireEvent.keyDown(box, { key })
+    fireEvent.keyDown(box, { key: "Delete" })
 
     expect(applied(onApply)).toEqual([detected[1]])
   })
