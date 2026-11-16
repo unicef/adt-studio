@@ -13,6 +13,8 @@ import {
   readAdtBundle,
   type ReadAdtBundle,
 } from "./bundle-reader.js"
+import { createBookStorage } from "@adt/storage"
+
 import { assessAdtImportCompatibility } from "./compatibility.js"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./marker.js"
 import { ADT_IMPORT_PROJECTION_VERSION, readReplayedNodeVersions } from "./projection.js"
@@ -92,6 +94,15 @@ function adoptProjectIdentity(
   })
 }
 
+function readSignLanguageVideoIds(label: string, booksDir: string): string[] {
+  const storage = createBookStorage(label, booksDir)
+  try {
+    return storage.getSignLanguageVideos().map((video) => video.videoId)
+  } finally {
+    storage.close()
+  }
+}
+
 export function importAdtProject(
   zipBuffer: Buffer,
   booksDir: string,
@@ -135,6 +146,7 @@ export function importAdtProject(
       projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
       projectedVersions: readReplayedNodeVersions(label, resolvedBooksDir),
       seededFeatures: readSeededImportedAdtFeatures(label, resolvedBooksDir, bundle),
+      signLanguageVideoIds: readSignLanguageVideoIds(label, resolvedBooksDir),
     })
     // Last write: until this marker is gone the directory stays hidden from
     // `listBooks`, so an interrupted import never leaves a usable-looking book.

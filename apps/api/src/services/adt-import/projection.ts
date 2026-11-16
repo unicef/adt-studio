@@ -148,7 +148,10 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
     && current.projectionVersion >= ADT_IMPORT_PROJECTION_VERSION
   ) return false
 
-  if (!replayKeepsLaterWork(current, readReplayedNodeVersions(safeLabel, booksDir))) {
+  // A replay a crash interrupted left its own partial writes behind; finish
+  // it rather than mistaking them for the user's later edits.
+  const resuming = current.projectionInProgress === true
+  if (!resuming && !replayKeepsLaterWork(current, readReplayedNodeVersions(safeLabel, booksDir))) {
     console.warn(
       `[adt-import] ${safeLabel} changed after it was imported; keeping its current content instead of re-projecting the archive.`,
     )
@@ -165,6 +168,7 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
 
   const sourceZip = readCurrentImportedAdtSource(safeLabel, booksDir)
   const bundle = readAdtBundle(sourceZip)
+  writeImportedAdtCurrent(bookDir, { ...current, projectionInProgress: true })
   const files = extractAdtBundleArchiveFiles(sourceZip)
   const legacyRecovery = bundle.sourceFormat === "legacy-studio-export"
   // Re-projecting from the archive would otherwise discard how the user
@@ -199,19 +203,43 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
   seedImportedEasyRead(safeLabel, booksDir, bundle, generatedAt)
   seedImportedCoreTts(safeLabel, booksDir, bundle, files, generatedAt)
   seedImportedImages(safeLabel, booksDir, bundle, files)
-  seedImportedSignLanguage(safeLabel, booksDir, bundle, files)
+  seedImportedSignLanguage(safeLabel, booksDir, bundle, files, {
+    skipVideoIds: removedImportedSignLanguageVideoIds(safeLabel, booksDir, current),
+  })
   seedImportedSpeech(safeLabel, booksDir, bundle, files, generatedAt)
   warnOnUndetectedFixedLayout(bundle, storyboard.fixedLayoutPageCount)
   if (storyboard.fixedLayoutPageCount > 0) {
     applyFixedLayoutBookConfig(bookDir)
   }
 
+  const { projectionInProgress: _done, ...finished } = current
   writeImportedAdtCurrent(bookDir, {
-    ...current,
+    ...finished,
     projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
     projectedVersions: readReplayedNodeVersions(safeLabel, booksDir),
   })
   return true
+}
+
+/** Sign-language videos the import brought in that the user has since deleted:
+ * a replay must not bring them back. Imports recorded before
+ * `signLanguageVideoIds` existed can't tell, and replay as before. */
+function removedImportedSignLanguageVideoIds(
+  label: string,
+  booksDir: string,
+  current: Record<string, unknown>,
+): Set<string> {
+  const recorded = Array.isArray(current.signLanguageVideoIds)
+    ? current.signLanguageVideoIds.filter((id): id is string => typeof id === "string")
+    : []
+  if (recorded.length === 0) return new Set()
+  const storage = createBookStorage(label, booksDir)
+  try {
+    const existing = new Set(storage.getSignLanguageVideos().map((video) => video.videoId))
+    return new Set(recorded.filter((id) => !existing.has(id)))
+  } finally {
+    storage.close()
+  }
 }
 
 export function upgradeImportedAdtProjects(booksDir: string): void {

@@ -29,6 +29,10 @@ export interface ImportedAdtCurrent {
   projectionReplaySkippedFrom?: number | null
   /** Archive features the import brought in (see readSeededImportedAdtFeatures). */
   seededFeatures?: string[]
+  /** Sign-language video ids the import adopted; a replay skips deleted ones. */
+  signLanguageVideoIds?: string[]
+  /** Set while a projection replay runs; a crash leaves it for the next start to resume. */
+  projectionInProgress?: boolean
 }
 
 export function bookDirFor(label: string, booksDir: string): string {

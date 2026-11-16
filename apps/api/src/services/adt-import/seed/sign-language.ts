@@ -14,6 +14,7 @@ export function seedImportedSignLanguage(
   booksDir: string,
   bundle: ReadAdtBundle,
   files: Record<string, Uint8Array>,
+  options: { skipVideoIds?: ReadonlySet<string> } = {},
 ): void {
   const videos = recoverImportedSignLanguageVideos(bundle, files)
   if (videos.length === 0) return
@@ -22,7 +23,7 @@ export function seedImportedSignLanguage(
     const existing = new Set(storage.getSignLanguageVideos().map((video) => video.videoId))
     for (const video of videos) {
       const videoId = importedSignLanguageVideoId(video.sectionId)
-      if (existing.has(videoId)) continue
+      if (existing.has(videoId) || options.skipVideoIds?.has(videoId)) continue
       storage.transaction(() => {
         storage.putSignLanguageVideo(videoId, Buffer.from(video.bytes), video.fileName, video.mimeType)
         storage.assignSignLanguageVideo(videoId, video.sectionId)
