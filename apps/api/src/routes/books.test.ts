@@ -2358,6 +2358,38 @@ describe("POST /books/import", () => {
     expect(text).toContain("Invalid project archive")
   })
 
+  // F6: a book created by ADT import has no source PDF; its backup must restore.
+  it("restores a PDF-less backup of a book created by ADT import, and the preview agrees", async () => {
+    const identity = new TextEncoder().encode(JSON.stringify({
+      version: 1,
+      projectId: "02428003-16c2-4959-b931-a31d1642797c",
+      sourceKind: "imported-adt",
+      sourceFingerprint: "8".repeat(64),
+      createdAt: "2026-11-15T19:52:38.546Z",
+    }))
+    const zip = createProjectZip("imported-book", { omitPdf: true, extraFiles: { ".adt-project.json": identity } })
+    const app = createBookRoutes(tmpDir)
+    const send = (route: string) => {
+      const formData = new FormData()
+      formData.append("zip", new Blob([zip], { type: "application/zip" }), "imported-book.zip")
+      return app.request(route, { method: "POST", body: formData })
+    }
+    const preview = await send("/books/preview-import")
+    expect(await preview.json()).toMatchObject({ hasSourcePdf: false, validationError: null })
+    const imported = await send("/books/import")
+    expect(imported.status).toBe(201)
+    expect(await imported.json()).toMatchObject({ label: "imported-book", sourceKind: "imported-adt" })
+  })
+
+  it("flags a PDF-less backup of an ordinary book in the preview, not only on import", async () => {
+    const zip = createProjectZip("no-pdf-preview", { omitPdf: true })
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zip], { type: "application/zip" }), "no-pdf.zip")
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(await res.json()).toMatchObject({ validationError: expect.stringContaining(".pdf") })
+  })
+
   it("returns 400 for non-ZIP data", async () => {
     const app = createBookRoutes(tmpDir)
     const formData = new FormData()

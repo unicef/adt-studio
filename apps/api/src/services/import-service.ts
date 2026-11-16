@@ -2,10 +2,11 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, BookMetadata, PIPELINE } from "@adt/types"
+import { parseBookLabel, BookMetadata, PIPELINE, ProjectIdentity } from "@adt/types"
 import { renderPdfCover } from "@adt/pdf"
 import { openBookDb } from "@adt/storage"
 import { getBook, type BookSummary } from "./book-service.js"
+import { PROJECT_IDENTITY_FILE } from "./project-identity.js"
 import {
   ArchiveSafetyError,
   extractArchiveToDisk,
@@ -70,6 +71,26 @@ function listArchivePaths(zipBuffer: Buffer): string[] {
 }
 
 const NOT_ADT_PROJECT = "Invalid project archive: expected a .db and .pdf file at the root level"
+
+/**
+ * A backup needs its source PDF, except for a book created by ADT import:
+ * it never had one, and works from its recorded ADT import instead. One rule
+ * for preview and import, so the preview can't promise an import that fails.
+ */
+function missingSourceProblem(
+  zipBuffer: Buffer,
+  filePaths: string[],
+): string | null {
+  if (findEntry(filePaths, ".pdf")) return null
+  if (!filePaths.includes(PROJECT_IDENTITY_FILE)) return NOT_ADT_PROJECT
+  const raw = asInvalidArchive(() => readArchiveEntries(zipBuffer, [PROJECT_IDENTITY_FILE]))[PROJECT_IDENTITY_FILE]
+  try {
+    const identity = ProjectIdentity.parse(JSON.parse(new TextDecoder().decode(raw)))
+    return identity.sourceKind === "imported-adt" ? null : NOT_ADT_PROJECT
+  } catch {
+    return NOT_ADT_PROJECT
+  }
+}
 
 function findEntry(filePaths: string[], ext: string): string | undefined {
   return filePaths.find((p) => p.endsWith(ext) && !p.includes("/"))
@@ -199,6 +220,7 @@ export function previewImport(zipBuffer: Buffer): ImportPreview {
     return {
       label: safeLabel,
       ...meta,
+      validationError: meta.validationError ?? missingSourceProblem(zipBuffer, filePaths),
       hasSourcePdf: !!pdfEntry,
       imageCount,
       videoCount,
@@ -219,7 +241,8 @@ export async function importProject(
   if (!dbEntry) throwInvalidArchive(NOT_ADT_PROJECT)
   const rawLabel = dbEntry.replace(/\.db$/, "")
 
-  if (!findEntry(filePaths, ".pdf")) throwInvalidArchive(NOT_ADT_PROJECT)
+  const sourceProblem = missingSourceProblem(zipBuffer, filePaths)
+  if (sourceProblem) throwInvalidArchive(sourceProblem)
 
   const safeLabel = parseBookLabel(rawLabel)
   const targetLabel = resolveUniqueLabel(safeLabel, booksDir)
