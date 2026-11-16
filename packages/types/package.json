@@ -20,6 +20,10 @@
     "./limits": {
       "types": "./dist/publication-limits.d.ts",
       "default": "./dist/publication-limits.js"
+    },
+    "./text-direction": {
+      "types": "./dist/text-direction.d.ts",
+      "default": "./dist/text-direction.js"
     }
   },
   "dependencies": {

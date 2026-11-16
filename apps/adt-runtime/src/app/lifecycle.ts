@@ -15,6 +15,7 @@
  *   9. installShowContentFallback() — safety net
  */
 import { getDefaultStore, type WritableAtom } from "jotai"
+import { getTextDirection } from "@adt/types/text-direction"
 import { addFavicons } from "@/shared/runtime/favicon"
 import { loadAppConfig, pickLanguage, pickStorageMode } from "@/shared/runtime/config"
 import { applyImageVariants, applyTranslationsToDOM, loadTranslations } from "@/features/language/runtime/i18n"
@@ -231,6 +232,23 @@ export function initializePageContent(): void {
   store.set(pageEpochAtom, store.get(pageEpochAtom) + 1)
 }
 
+/**
+ * Tag the document with the reading language and its writing direction.
+ *
+ * `lang` (WCAG 3.1.1 / 3.1.2) lets screen readers, hyphenation and spellcheck
+ * follow the language. `dir` makes a right-to-left language (Urdu, Arabic, …)
+ * read right to left: text alignment, punctuation, lists, tables and the
+ * reader chrome all mirror from this one attribute. Each page ships with the
+ * book's source direction; this keeps it in step with the language the reader
+ * actually picked, which can differ in a multi-language book.
+ */
+export function applyDocumentLanguage(language: string): void {
+  const root = document.documentElement
+  root.lang = language
+  if (getTextDirection(language) === "rtl") root.dir = "rtl"
+  else root.removeAttribute("dir")
+}
+
 export async function bootRuntime(): Promise<void> {
   installShowContentFallback()
   addFavicons()
@@ -247,9 +265,7 @@ export async function bootRuntime(): Promise<void> {
     const language = pickLanguage(config, persisted, htmlLang)
     store.set(currentLanguageAtom, language)
     store.set(audioLanguageAtom, null)
-    // WCAG 3.1.1: keep `<html lang>` aligned with the resolved language so
-    // screen readers / hyphenation / spellcheck use the right pronunciation.
-    document.documentElement.lang = language
+    applyDocumentLanguage(language)
 
     const [, pages, toc] = await Promise.all([
       loadTranslations(language, config.bundleVersion),
@@ -355,9 +371,9 @@ export function subscribeLanguageChanges(): () => void {
     const requestRevision = ++revision
     const isCurrent = () => !disposed && revision === requestRevision
     store.set(audioLanguageAtom, null)
-    // WCAG 3.1.2: re-tag the document so assistive tech adjusts to the
-    // new language alongside the translated content.
-    if (typeof document !== "undefined") document.documentElement.lang = next
+    // Re-tag the document so assistive tech and layout direction adjust to
+    // the new language alongside the translated content.
+    if (typeof document !== "undefined") applyDocumentLanguage(next)
     const config = store.get(appConfigAtom)
     void Promise.all([
       loadTranslations(next, config.bundleVersion, isCurrent),

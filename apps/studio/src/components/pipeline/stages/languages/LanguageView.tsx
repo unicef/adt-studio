@@ -504,7 +504,9 @@ export function LanguageView({
   }, [easyReadData]);
   const entries = useMemo(() => {
     const base = catalog?.entries ?? [];
-    return easyReadEntries.length > 0 ? [...base, ...easyReadEntries] : base;
+    if (easyReadEntries.length === 0) return base;
+    const easyReadIds = new Set(easyReadEntries.map((entry) => entry.id));
+    return [...base.filter((entry) => !easyReadIds.has(entry.id)), ...easyReadEntries];
   }, [catalog?.entries, easyReadEntries]);
   const sourceEntriesById = useMemo(
     () => new Map([...entries].reverse().map((entry) => [entry.id, entry.text])),

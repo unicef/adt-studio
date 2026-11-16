@@ -20,7 +20,6 @@ export type DetailBook = BookVM & {
   hasError?: boolean
   pendingComments?: number
   comments?: ReviewComment[]
-  imported?: boolean
   publication?: BookPublication | null
 }
 
