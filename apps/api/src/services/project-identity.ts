@@ -71,8 +71,12 @@ export function ensureProjectIdentity(
   })
 
   const filePath = identityPath(bookDir)
+  // Written whole to a temporary file, then linked into place: a crash can't
+  // leave a truncated identity, and linking fails if another writer won.
+  const temporaryPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`
   try {
-    fs.writeFileSync(filePath, `${JSON.stringify(identity, null, 2)}\n`, { flag: "wx" })
+    fs.writeFileSync(temporaryPath, `${JSON.stringify(identity, null, 2)}\n`, { flag: "wx" })
+    fs.linkSync(temporaryPath, filePath)
     return identity
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "EEXIST") {
@@ -80,5 +84,37 @@ export function ensureProjectIdentity(
       if (raced) return raced
     }
     throw error
+  } finally {
+    fs.rmSync(temporaryPath, { force: true })
+  }
+}
+
+/** A stable stand-in project id for a book whose identity can't be read or
+ * written, so it can still be listed. Never saved. */
+function unsavedProjectId(bookDir: string): string {
+  const hex = createHash("sha256").update(`adt-unsaved-identity:${path.resolve(bookDir)}`).digest("hex")
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`
+}
+
+/**
+ * The identity to show for a book in the library. One book with an unreadable
+ * identity (a truncated file, a read-only folder) must not break the whole
+ * listing: it is listed with an unsaved stand-in identity instead, and the
+ * problem is logged.
+ */
+export function projectIdentityForListing(bookDir: string): ProjectIdentity {
+  try {
+    return ensureProjectIdentity(bookDir)
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    console.warn(`[books] ${path.basename(bookDir)}: project identity unavailable (${reason}); listed without one`)
+    const hasPdf = fs.readdirSync(bookDir).some((name) => name.toLowerCase().endsWith(".pdf"))
+    return ProjectIdentity.parse({
+      version: PROJECT_IDENTITY_VERSION,
+      projectId: unsavedProjectId(bookDir),
+      sourceKind: hasPdf ? "pdf" : "unknown",
+      sourceFingerprint: null,
+      createdAt: new Date(0).toISOString(),
+    })
   }
 }

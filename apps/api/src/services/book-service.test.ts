@@ -111,6 +111,38 @@ function markStepsDone(label: string, steps: string[]): void {
 }
 
 describe("listBooks", () => {
+  // F14: one book with an unreadable identity must not break the library.
+  it("still lists every book when one identity file is truncated", () => {
+    createTestDb("healthy")
+    createTestDb("damaged")
+    fs.writeFileSync(path.join(tmpDir, "damaged", ".adt-project.json"), '{"version": 1, "projec')
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      const books = listBooks(tmpDir)
+      expect(books.map((book) => book.label)).toEqual(["damaged", "healthy"])
+      expect(books[0].projectId).toMatch(/^[0-9a-f-]{36}$/)
+      expect(listBooks(tmpDir)[0].projectId).toBe(books[0].projectId)
+      expect(warn).toHaveBeenCalled()
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it("lists a book whose folder can't be written and has no identity yet", () => {
+    if (process.platform === "win32" || process.getuid?.() === 0) return
+    createTestDb("read-only")
+    const bookDir = path.join(tmpDir, "read-only")
+    fs.rmSync(path.join(bookDir, ".adt-project.json"), { force: true })
+    fs.chmodSync(bookDir, 0o555)
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      expect(listBooks(tmpDir).map((book) => book.label)).toEqual(["read-only"])
+    } finally {
+      warn.mockRestore()
+      fs.chmodSync(bookDir, 0o755)
+    }
+  })
+
   it("returns empty array for empty directory", () => {
     expect(listBooks(tmpDir)).toEqual([])
   })

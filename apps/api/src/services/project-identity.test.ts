@@ -22,6 +22,16 @@ afterEach(() => {
 })
 
 describe("project identity", () => {
+  // F14: the identity is never left half-written, and no temp file remains.
+  it("writes the identity atomically and cleans up", () => {
+    const identity = ensureProjectIdentity(tmpDir)
+    expect(fs.readdirSync(tmpDir)).toEqual([PROJECT_IDENTITY_FILE])
+    expect(readProjectIdentity(tmpDir)).toEqual(identity)
+    // A second writer keeps the first identity.
+    expect(ensureProjectIdentity(tmpDir)).toEqual(identity)
+    expect(fs.readdirSync(tmpDir)).toEqual([PROJECT_IDENTITY_FILE])
+  })
+
   it("lazily creates one stable identity and fingerprints the source PDF", () => {
     const bookDir = path.join(tmpDir, "hyena-and-raven")
     const pdf = Buffer.from("%PDF-1.0 stable source")

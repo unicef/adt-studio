@@ -15,7 +15,7 @@ import {
 } from "@adt/types"
 import { openBookDb } from "@adt/storage"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import/marker.js"
-import { ensureProjectIdentity } from "./project-identity.js"
+import { ensureProjectIdentity, projectIdentityForListing } from "./project-identity.js"
 import { isImportedAdtProject } from "./adt-import/source.js"
 
 function workingSource(bookDir: string, fallback: BookSummary["sourceKind"]): BookSummary["workingSource"] {
@@ -155,7 +155,7 @@ export function listBooks(booksDir: string): BookSummary[] {
     if (fs.existsSync(path.join(bookDir, ADT_IMPORT_IN_PROGRESS_MARKER))) continue
     const dbPath = path.join(bookDir, `${label}.db`)
     const pdfPath = path.join(bookDir, `${label}.pdf`)
-    const identity = ensureProjectIdentity(bookDir)
+    const identity = projectIdentityForListing(bookDir)
 
     let title: string | null = null
     let authors: string[] = []
@@ -201,7 +201,10 @@ export function listBooks(booksDir: string): BookSummary[] {
             ? "Book database is temporarily locked. Try again shortly."
             : "Book data uses an older storage schema and must be rebuilt."
         } else {
-          throw err
+          // One unreadable book must not take the whole library down.
+          console.warn(`[books] ${label}: database could not be read (${err instanceof Error ? err.message : String(err)})`)
+          needsRebuild = true
+          rebuildReason = "Book database could not be read. Check the book folder's permissions and disk."
         }
       }
     }
