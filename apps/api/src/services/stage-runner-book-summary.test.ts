@@ -113,7 +113,7 @@ describe("createStageRunner book summary", () => {
         type: "step-complete",
         step: "book-summary",
         warnings: [{ kind: "summary-missing", error: "The model `gpt-nope` does not exist" }],
-        message: "Completed — no book summary after a failure: The model `gpt-nope` does not exist",
+        message: "Completed with no book summary after a failure: The model `gpt-nope` does not exist.",
       }),
       expect.objectContaining({ type: "step-complete", step: "book-outline" }),
       expect.objectContaining({ type: "stage-complete", stage: "extract" }),

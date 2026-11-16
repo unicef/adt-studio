@@ -34,7 +34,7 @@ it("clears the summary-missing warning and its note once a regenerate succeeds",
       images: [],
     })
     // The Extract run's summary call failed.
-    storage.markStepCompleted("book-summary", "Completed — no book summary after a failure: HTTP 404", [
+    storage.markStepCompleted("book-summary", "Completed with no book summary after a failure: HTTP 404.", [
       { kind: "summary-missing", error: "HTTP 404" },
     ])
   } finally {
