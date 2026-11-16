@@ -29,6 +29,8 @@ export interface RejectedProvider {
 export function useRejectedProvider(
   modality: AiModality,
   modelId?: string,
+  /** False while the model is not known yet (a book's config loading): no probe, no warning. */
+  ready = true,
 ): RejectedProvider | null {
   const { providers, defaults, credentials, isAvailable } = useProviderCredentials()
   const effectiveModel = modelId?.trim() || defaults[modality]?.trim()
@@ -50,7 +52,7 @@ export function useRejectedProvider(
           )),
     ),
   )
-  const enabled = usesApiKey && isAvailable(modality, effectiveModel)
+  const enabled = ready && usesApiKey && isAvailable(modality, effectiveModel)
   // No draft values: the request carries the stored keys, and the API falls
   // back to its own when the browser has none.
   const health = useProviderHealth(providerId, undefined, enabled)
@@ -59,13 +61,18 @@ export function useRejectedProvider(
 }
 
 /** {@link useRejectedProvider} for the text steps (extraction and the rest of the pipeline). */
-export function useRejectedTextProvider(modelId?: string): RejectedProvider | null {
-  return useRejectedProvider("structured-text", modelId)
+export function useRejectedTextProvider(modelId?: string, ready = true): RejectedProvider | null {
+  return useRejectedProvider("structured-text", modelId, ready)
 }
 
-/** {@link useRejectedTextProvider} against the model a run of this book actually uses. */
+/**
+ * {@link useRejectedTextProvider} against the model a run of this book
+ * actually uses. Waits for the book's config, so a book on another provider
+ * never flashes the global default's warning while it loads.
+ */
 export function useBookRejectedTextProvider(bookLabel: string): RejectedProvider | null {
-  return useRejectedTextProvider(useEffectiveDefaultModel(bookLabel))
+  const config = useActiveConfig(bookLabel)
+  return useRejectedTextProvider(resolveEffectiveDefaultModel(config.data), config.data !== undefined)
 }
 
 /**

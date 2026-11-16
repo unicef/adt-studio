@@ -67,7 +67,13 @@ vi.mock("@/hooks/use-provider-credentials", () => ({
   }),
 }))
 
-const { useRejectedTextProvider } = await import("./use-api-key")
+/** The book's config: `undefined` while it loads. */
+let bookConfig: { merged: { default_model?: string } } | undefined
+vi.mock("./use-debug", () => ({
+  useActiveConfig: () => ({ data: bookConfig, isLoading: bookConfig === undefined, error: null }),
+}))
+
+const { useRejectedTextProvider, useBookRejectedTextProvider } = await import("./use-api-key")
 const { recheckSavedKeys, useProviderHealth } = await import("./use-provider-health")
 
 let queryClient: QueryClient
@@ -175,6 +181,23 @@ describe("useRejectedTextProvider", () => {
     for (const apiKey of ["", "s", "sk-", "sk-new-key"]) rerender({ apiKey })
     await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
     expect(getProviderHealth).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("useBookRejectedTextProvider", () => {
+  // Until the book's config arrives, the model it runs on is unknown; the
+  // global fallback model must not raise (or probe for) a warning meanwhile.
+  it("waits for the book's config before checking or warning", async () => {
+    storedCode = "invalid-credential"
+    bookConfig = undefined
+    const { result, rerender } = renderHook(() => useBookRejectedTextProvider("book"), { wrapper })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(result.current).toBeNull()
+    expect(getProviderHealth).not.toHaveBeenCalled()
+
+    bookConfig = { merged: { default_model: "openai:gpt-5" } }
+    rerender()
+    await waitFor(() => expect(result.current?.providerId).toBe("openai"))
   })
 })
 

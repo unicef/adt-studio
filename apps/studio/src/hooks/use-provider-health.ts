@@ -32,6 +32,7 @@ export async function recheckSavedKeys(
   void queryClient.invalidateQueries({ queryKey: ["provider-health"] })
   const results = await Promise.all(
     providerIds.map(async (providerId) => {
+      let timedOut = false
       const check = (async function settle(): Promise<boolean> {
         try {
           const health = await queryClient.fetchQuery({
@@ -44,12 +45,16 @@ export async function recheckSavedKeys(
         } catch (error) {
           // Another save re-ran the check and cancelled this fetch: wait for
           // that run's verdict instead of reading the cancel as "not refused".
-          return isCancelledError(error) ? settle() : false
+          // Once the save stopped waiting, a late cancel needs no follow-up.
+          return isCancelledError(error) && !timedOut ? settle() : false
         }
       })()
       let timer: ReturnType<typeof setTimeout> | undefined
       const timeout = new Promise<boolean>((resolve) => {
-        timer = setTimeout(() => resolve(false), SAVE_CHECK_TIMEOUT_MS)
+        timer = setTimeout(() => {
+          timedOut = true
+          resolve(false)
+        }, SAVE_CHECK_TIMEOUT_MS)
       })
       try {
         return (await Promise.race([check, timeout])) ? providerId : null

@@ -304,7 +304,16 @@ export function StageSidebar({
                 <Icon className="w-3.5 h-3.5" />
               </div>
               <StepProgressRing size={28} state={ringState} colorClass={isActive ? "bg-white" : step.color} />
-              {step.slug === "book" && rejectedProvider && railCollapsed ? (
+              {state === "error" ? (
+                <span
+                  role="img"
+                  aria-label={stepAriaLabel}
+                  title={stepAriaLabel}
+                  className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-red-600 ring-2 ring-background"
+                >
+                  <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
+                </span>
+              ) : step.slug === "book" && rejectedProvider && railCollapsed ? (
                 // The settings cog is clipped while the rail is collapsed;
                 // mirror its rejected-key dot on the book icon until hover
                 // expands the rail.
@@ -312,15 +321,6 @@ export function StageSidebar({
                   role="img"
                   aria-label={bookSettingsLabel}
                   title={bookSettingsLabel}
-                  className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-red-600 ring-2 ring-background"
-                >
-                  <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
-                </span>
-              ) : state === "error" ? (
-                <span
-                  role="img"
-                  aria-label={stepAriaLabel}
-                  title={stepAriaLabel}
                   className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-red-600 ring-2 ring-background"
                 >
                   <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
