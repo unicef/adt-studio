@@ -1,14 +1,14 @@
 ---
 id: SPEC-0024
 title: Right-to-left books — direction-neutral page generation
-status: in-review # draft | in-review | approved | in-progress | implemented | verified | superseded
+status: approved # draft | in-review | approved | in-progress | implemented | verified | superseded
 owner: "@elasticsounds" # exactly one human owner
-approvers: [] # ≥1 maintainer; + product sign-off when user-facing scope changes
+approvers: ["@rechkunov"] # ≥1 maintainer; + product sign-off when user-facing scope changes
 issues: ["#1115"]
 prs: ["#1118", "#1119", "#1120", "#1130"]
 adr: ""
 created: 2026-11-12
-updated: 2026-11-14
+updated: 2026-11-16
 ---
 
 ## Problem (with evidence)
@@ -146,7 +146,7 @@ translation* is written right to left.
 |---|---|---|---|
 | A | Tell the prompts only | 1 partial, 6 include lines, ~40 lines of plumbing | Not enough: the model already knew the Urdu page was right-to-left (it wrote `dir="rtl"` itself in 18 sections) and still left-aligned text |
 | B | A, plus a validator rule that rejects the page so the model retries | A + ~150 lines | Every rejection is a model call, and a model that keeps violating the rule fails the page. It could not be run against a model before it was needed |
-| **C** | **A, plus a deterministic rewrite: at generation for new pages, at packaging for existing ones** | **A + ~300 lines, 1 new module** | **Chosen.** Same result as a model that obeys the rule, and it cannot fail a page |
+| **C** | **A, plus a deterministic rewrite: at generation for new right-to-left pages, at packaging for existing ones** | **A + ~300 lines, 1 new module** | **Chosen.** Same result as a model that obeys the rule, and it cannot fail a page |
 
 ### Design
 
@@ -154,7 +154,8 @@ translation* is written right to left.
   (`packages/pipeline/src/language-context.ts`) returns the direction the book's pages
   are rendered in when any of its languages is right-to-left by `getTextDirection()`
   (`@adt/types`, the lookup the reader uses), and `undefined` otherwise. `undefined`
-  switches everything below off.
+  switches everything below off; `"ltr"` (a left-to-right book with a right-to-left
+  translation) switches off everything except D3.
 - **D2 — the rewrite.** `neutralizeDirectionMarkup(html, pageDirection)`
   (`packages/pipeline/src/direction-neutral-html.ts`):
   - `text-left` / `text-right` become `text-start` / `text-end`, mapped for the
@@ -373,16 +374,18 @@ translation* is written right to left.
 | AC-7 | unit | same | `AC-7: …` (3 tests) |
 | AC-8 | unit | `packages/pipeline/src/__tests__/package-web.test.ts` | `AC-8: …` (3 tests) |
 | AC-9 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-9: …` (5 tests) |
-| AC-10 | unit | `packages/pipeline/src/__tests__/direction-neutral-html.test.ts` | `AC-10: …` (6 tests) |
+| AC-10 | unit | `packages/pipeline/src/__tests__/direction-neutral-html.test.ts` | `AC-10: …` (8 tests) |
 | AC-10 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-10: stores a right-to-left contents page with its page numbers at the end and no left/right alignment` |
 | AC-11 | unit | `packages/pipeline/src/__tests__/web-rendering.test.ts` | `AC-11: …` |
 | AC-11 | unit | `packages/agents/src/__tests__/render-section.test.ts` | `AC-11: …` (2 tests) |
+| AC-11 | unit | `apps/api/src/services/stage-runner.test.ts` | `AC-11: …` (3 tests) |
 | AC-12 | measured | recorded in the implementation PRs | two-book browser audit |
 | AC-13 | acceptance | recorded in the implementation PRs | *GK-2-2* from-scratch audit |
 | AC-14 | unit | `packages/pipeline/src/__tests__/direction-neutral-html.test.ts` | `AC-14: …` (5 tests) |
 | AC-15 | unit | `apps/api/src/routes/adt-preview.test.ts` | `AC-15: the preview stylesheet covers the classes the direction-neutral rewrite introduces` |
 | AC-16 | unit | `packages/pipeline/src/__tests__/text-direction-prompts.test.ts` | `AC-16: <prompt> …` (2 tests per prompt) |
 | AC-17 | unit | `packages/pipeline/src/__tests__/page-sectioning.test.ts` | `AC-17: …` |
+| AC-17 | unit | `apps/api/src/services/stage-runner.test.ts` | `AC-17: …` (3 tests) |
 | AC-18 | acceptance | recorded in the implementation PRs | *GK-2-2* from-scratch re-run |
 | AC-19 | unit | `packages/pipeline/src/__tests__/package-epub.test.ts` | `AC-19: …` (2 tests) |
 | AC-20 | unit | `packages/pipeline/src/__tests__/render-llm.test.ts` | `AC-20: …` (2 tests) |
