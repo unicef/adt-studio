@@ -6,6 +6,7 @@ import {
   CircleHelp,
   Link2,
   ListChecks,
+  ListOrdered,
   MessageSquareText,
   Puzzle,
   Table2,
@@ -41,6 +42,7 @@ export function useActivityTypeLabel() {
     if (type === "activity_underline_text") return t`Underline text`
     if (type === "activity_matching") return t`Matching`
     if (type === "activity_sorting") return t`Sorting`
+    if (type === "activity_ordering") return t`Ordering`
     if (type === "activity_other") return t`Other activity`
     const customName = type.startsWith("activity_custom_")
       ? type.slice("activity_custom_".length).replaceAll("_", " ")
@@ -62,7 +64,8 @@ export function useActivityTypeDescription() {
     if (type === "activity_open_ended_answer") return t`Write a free-form response.`
     if (type === "activity_underline_text") return t`Select or underline part of a text.`
     if (type === "activity_matching") return t`Pair related items from two groups.`
-    if (type === "activity_sorting") return t`Arrange items into an order or categories.`
+    if (type === "activity_sorting") return t`Group items into categories.`
+    if (type === "activity_ordering") return t`Arrange all items into one correct sequence.`
     if (type === "activity_other") return t`A Studio activity that fits none of the types.`
     return t`Made outside ADT Studio and kept as it is.`
   }
@@ -158,6 +161,9 @@ export function activityTypeVisual(type: string | null): {
   }
   if (type === "activity_sorting") {
     return { icon: ArrowDownAZ, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
+  }
+  if (type === "activity_ordering") {
+    return { icon: ListOrdered, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
   }
   return { icon: Puzzle, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
 }

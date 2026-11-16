@@ -22,10 +22,29 @@ export interface FriendlyError {
  * English at all; until then keep the match tokens in sync with the throwers in
  * `part-service.ts` / `import-service.ts`.
  */
-export function useFriendlyArchiveError(rawError: string | null): FriendlyError | null {
+export function useFriendlyArchiveError(
+  rawError: string | null,
+  /** The HTTP status, when known. It decides before any message text, which
+   * may be localized or come from a proxy. */
+  status?: number | null,
+): FriendlyError | null {
   const { t } = useLingui()
   if (!rawError) return null
   const e = rawError.toLowerCase()
+
+  if (status === 413) {
+    return {
+      title: t`This archive is too large`,
+      hint: t`ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again.`,
+    }
+  }
+  if (status === 507) {
+    return {
+      title: t`Not enough disk space`,
+      hint: t`Free up space on this computer, then try the import again. The archive itself is fine.`,
+      kind: "server",
+    }
+  }
 
   if (e.includes("compressed size limit") || e.includes("compressed archive size limit")) {
     return {
@@ -153,7 +172,8 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
   }
 
   // An unexpected server failure says nothing about the file, so don't blame it.
-  if (e.includes("internal server error") || /request failed: 5\d\d/.test(e)) {
+  // Decided by status when known (the message may be localized or a proxy's).
+  if ((typeof status === "number" && status >= 500) || e.includes("internal server error") || /request failed: 5\d\d/.test(e)) {
     return {
       kind: "server",
       title: t`ADT Studio couldn't check this archive`,

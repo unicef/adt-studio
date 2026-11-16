@@ -67,7 +67,7 @@ Use these exact Studio activity types:
 {% for activity in activityClassificationGuide %}| `{{ activity.type }}` | {{ activity.description }} |
 {% endfor %}
 
-For an activity made outside Studio that does not fit a known type, use `activity_custom_<descriptive_slug>`, for example `activity_custom_crossword`. Custom activities are preserved during round-trip export, but Studio may not provide a dedicated editor or generator for them.
+For an activity made outside Studio that does not fit a known type, use `activity_custom_<descriptive_slug>`, for example `activity_custom_crossword` or `activity_custom_word_search`. The slug may contain only lowercase letters, digits and underscores (no hyphens or spaces). Custom activities are preserved during round-trip export, but Studio may not provide a dedicated editor or generator for them.
 
 #### Positive classification
 
@@ -84,7 +84,7 @@ Every activity must be represented by the page's canonical `<section>` element:
 
 - Remove `data-adt-non-activity` when classifying the section as an activity.
 - Preserve existing `data-section-type="activity_*"` values unless the learning mechanic itself changes.
-- A new custom activity must use `data-section-type="activity_custom_<descriptive_slug>"`, for example `activity_custom_crossword`.
+- A new custom activity must use `data-section-type="activity_custom_<descriptive_slug>"`, for example `activity_custom_crossword`; the slug uses only lowercase letters, digits and underscores.
 - Keep the existing `data-section-id`; it is the activity's stable identity.
 - Interactive controls must have accessible names and keyboard support. Feedback must be exposed through a status element with `role="status"` and `aria-live="polite"`.
 - Custom behavior must register through an inline call to `window.adtRegisterCustomActivity(section, { validate, reset })`. Do not add an external script file. ADT Studio preserves this documented registration script during export but never executes it inside the editor.

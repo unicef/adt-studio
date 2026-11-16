@@ -13,7 +13,8 @@ export const ACTIVITY_CLASSIFICATION_GUIDE = [
   { type: "activity_open_ended_answer", description: "Write a free-form response." },
   { type: "activity_underline_text", description: "Select or underline part of a text." },
   { type: "activity_matching", description: "Pair related items from two groups." },
-  { type: "activity_sorting", description: "Arrange items into an order or categories." },
+  { type: "activity_sorting", description: "Group items into categories." },
+  { type: "activity_ordering", description: "Arrange all items into one correct sequence." },
   { type: "activity_other", description: "A supported Studio activity that fits none of the specific types." },
 ] as const
 

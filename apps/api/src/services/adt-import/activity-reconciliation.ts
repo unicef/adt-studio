@@ -30,8 +30,17 @@ function activityKind(
   return "custom"
 }
 
+/** A type the user can accept as is: the import route only takes section types
+ * of lowercase letters, digits and underscores, so a hand-written
+ * `activity_custom_word-search` is offered as `activity_custom_word_search`. */
+function acceptableActivityType(type: string): string {
+  if (AdtActivitySectionType.safeParse(type).success) return type
+  const normalized = type.toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "")
+  return AdtActivitySectionType.safeParse(normalized).success ? normalized : "activity_custom_external"
+}
+
 function suggestedType(declaredType: string | null, detectedType: string | null): string {
-  return detectedType ?? declaredType ?? "activity_custom_external"
+  return acceptableActivityType(detectedType ?? declaredType ?? "activity_custom_external")
 }
 
 /** Reconcile the export-time inventory with the edited HTML. HTML markers are
@@ -146,7 +155,7 @@ export function analyzeImportedActivities(
       href: declaration.href,
       declaredType: declaration.type,
       detectedType: null,
-      suggestedType: declaration.type,
+      suggestedType: acceptableActivityType(declaration.type),
       kind: activityKind(declaration.type, true),
       status: "needs-review",
       supportsStudioEditing: declaration.type === "activity_quiz",

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, Loader2, Upload } from "lucide-react"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
 import { ActivityClassificationDialog } from "@/components/import/ActivityClassificationDialog"
 import { ImportReview, type ImportState } from "@/components/import/ImportReview/ImportReview"
@@ -10,7 +10,7 @@ import { FileDropOverlay, useFileDropZone } from "@/components/ui/file-drop-over
 import { cn, isZipFile } from "@/lib/utils"
 import { useImportAdtProject, useImportBook } from "@/hooks/use-books"
 import { useFriendlyArchiveError } from "@/hooks/use-archive-error"
-import { api, isAdtBundleImportPreview, isPartImportPreview, unreadableAdtDetails } from "@/api/client"
+import { api, apiErrorStatus, isAdtBundleImportPreview, isPartImportPreview, unreadableAdtDetails } from "@/api/client"
 import type { AdtImportUnreadableDetails, AnyImportPreview } from "@/api/client"
 import { ArchiveCanvas } from "./ArchiveCanvas"
 import { ImportHeader } from "./ImportHeader"
@@ -36,14 +36,18 @@ export function ImportProject() {
   const [activityDecisions, setActivityDecisions] = useState<Record<string, string | null>>({})
   const [activityDialogOpen, setActivityDialogOpen] = useState(false)
 
-  const friendlyPreviewError = useFriendlyArchiveError(previewError)
+  const [previewErrorStatus, setPreviewErrorStatus] = useState<number | null>(null)
+  const friendlyPreviewError = useFriendlyArchiveError(previewError, previewErrorStatus)
   const rawImportError = adtImportMutation.error?.message
     ?? (importMutation.error
       ? importMutation.error instanceof Error
         ? importMutation.error.message
         : String(importMutation.error)
       : null)
-  const friendlyImportError = useFriendlyArchiveError(rawImportError)
+  const friendlyImportError = useFriendlyArchiveError(
+    rawImportError,
+    apiErrorStatus(adtImportMutation.error ?? importMutation.error),
+  )
   const rawPreviewValidationError = preview
     && !isPartImportPreview(preview)
     && !isAdtBundleImportPreview(preview)
@@ -62,6 +66,7 @@ export function ImportProject() {
     const requestId = ++previewRequestRef.current
     setPreviewLoading(true)
     setPreviewError(null)
+    setPreviewErrorStatus(null)
     setPreviewErrorDetails(null)
     setPreview(null)
     setActivityDecisions({})
@@ -75,6 +80,7 @@ export function ImportProject() {
     } catch (err) {
       if (requestId !== previewRequestRef.current) return
       setPreviewError(err instanceof Error ? err.message : t`Failed to read archive`)
+      setPreviewErrorStatus(apiErrorStatus(err))
       setPreviewErrorDetails(unreadableAdtDetails(err))
     } finally {
       if (requestId === previewRequestRef.current) setPreviewLoading(false)
@@ -284,7 +290,7 @@ export function ImportProject() {
                     ? <Trans>Choose repaired ZIP</Trans>
                     : preview && isAdtBundleImportPreview(preview)
                       ? unresolvedActivityCount > 0
-                        ? <Trans>Review {unresolvedActivityCount} activities</Trans>
+                        ? <Plural value={unresolvedActivityCount} one="Review # activity" other="Review # activities" />
                         : friendlyImportError
                           ? <Trans>Try import again</Trans>
                           : <Trans>Import as new project</Trans>

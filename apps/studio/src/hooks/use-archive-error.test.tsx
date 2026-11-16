@@ -28,6 +28,32 @@ describe("useFriendlyArchiveError", () => {
     })
   })
 
+  // F15: decided by status, whatever language or proxy wrote the message.
+  it("calls a 5xx a server problem in every locale and behind a proxy", () => {
+    for (const [raw, status] of [
+      ["La solicitud falló: 502", 502],
+      ["Échec de la requête : 504", 504],
+      ["A solicitação falhou: 500", 500],
+      ["Request failed: 503", 503],
+    ] as const) {
+      const { result } = renderHook(() => useFriendlyArchiveError(raw, status))
+      expect(result.current?.kind).toBe("server")
+    }
+  })
+
+  it("calls a 413 too large even without the API's message", () => {
+    const { result } = renderHook(() => useFriendlyArchiveError("Request failed: 413", 413))
+    expect(result.current?.title).toBe("This archive is too large")
+  })
+
+  it("still names a corrupt backup database, though the API answers it with 500", () => {
+    const { result } = renderHook(() => useFriendlyArchiveError(
+      "Could not read the project database. The file may be corrupted or not a valid ADT Studio project.",
+      500,
+    ))
+    expect(result.current?.kind).not.toBe("server")
+  })
+
   it("explains a full disk without blaming the archive", () => {
     const { result } = renderHook(() => useFriendlyArchiveError("Not enough disk space to import this archive"))
     expect(result.current).toMatchObject({ title: "Not enough disk space", kind: "server" })

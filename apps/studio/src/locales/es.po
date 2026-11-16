@@ -134,6 +134,10 @@ msgstr "{0, plural, one {# página reemplazada} other {# páginas reemplazadas}}
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# página} other {# páginas}}"
 
+#. placeholder {0}: adt.pageCount
+msgid "{0, plural, one {# page} other {# pages}} and {imageCount, plural, one {# image} other {# images}} read"
+msgstr "{0, plural, one {# página} other {# páginas}} y {imageCount, plural, one {# imagen} other {# imágenes}} leídas"
+
 #. placeholder {0}: thread.replyCount
 msgid "{0, plural, one {# reply} other {# replies}}"
 msgstr "{0, plural, one {# respuesta} other {# respuestas}}"
@@ -368,8 +372,8 @@ msgid "{0} pages · split into {1} parts"
 msgstr "{0} páginas · dividido en {1} partes"
 
 #. placeholder {0}: adt.pageCount
-msgid "{0} pages and {imageCount} images read"
-msgstr "{0} páginas y {imageCount} imágenes leídas"
+#~ msgid "{0} pages and {imageCount} images read"
+#~ msgstr "{0} páginas y {imageCount} imágenes leídas"
 
 #. placeholder {0}: section.criteria.length - reviewed
 msgid "{0} pending"
@@ -772,6 +776,9 @@ msgstr "{totalPages} páginas"
 
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} páginas · {totalSections} secciones"
+
+msgid "{unresolvedActivityCount, plural, one {Review # activity} other {Review # activities}}"
+msgstr "{unresolvedActivityCount, plural, one {Revisar # actividad} other {Revisar # actividades}}"
 
 msgid "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {activity page needs} other {activity pages need}} a type"
 msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {página de actividad necesita} other {páginas de actividad necesitan}} un tipo"
@@ -2028,11 +2035,14 @@ msgstr "¿Estás seguro de que deseas generar marcas de tiempo a nivel de palabr
 msgid "areas"
 msgstr "áreas"
 
+msgid "Arrange all items into one correct sequence."
+msgstr "Coloca todos los elementos en una única secuencia correcta."
+
 msgid "Arrange extracted content into a structured storyboard with pages, sections, and layouts."
 msgstr "Organiza el contenido extraído en un storyboard estructurado con páginas, secciones y diseños."
 
-msgid "Arrange items into an order or categories."
-msgstr "Ordenar elementos o clasificarlos en categorías."
+#~ msgid "Arrange items into an order or categories."
+#~ msgstr "Ordenar elementos o clasificarlos en categorías."
 
 msgid "Article"
 msgstr "Artículo"
@@ -5499,6 +5509,9 @@ msgstr "Agrupar por requiere atención"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Agrupa el texto e imágenes de cada página en secciones escritas con un árbol de contenido estructurado. Las secciones determinan cómo las etapas posteriores renderizan, traducen y leen el libro en voz alta."
 
+msgid "Group items into categories."
+msgstr "Agrupa los elementos en categorías."
+
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Agrupa regiones de imágenes en ilustraciones discretas en cada página."
 
@@ -8353,6 +8366,9 @@ msgstr "o haz clic para explorar tus archivos"
 msgid "Or share on a new link with the choices above"
 msgstr "O comparte en un enlace nuevo con las opciones de arriba"
 
+msgid "Ordering"
+msgstr "Secuencia"
+
 msgid "Original"
 msgstr "Original"
 
@@ -8408,6 +8424,10 @@ msgstr "ID del esquema:"
 #. placeholder {0}: controlsLabel(activeItem.controls)
 msgid "Outlined: {0} found on this page, with no activity type."
 msgstr "Resaltado: {0} en esta página, sin tipo de actividad."
+
+#. placeholder {0}: controlsLabel(activeItem.controls)
+msgid "Outlined: {0} found on this page."
+msgstr "Resaltado: {0} en esta página."
 
 msgid "Output languages"
 msgstr "Idiomas de salida"
@@ -10023,8 +10043,8 @@ msgstr "Revise {formatted} después de esta ejecución."
 msgid "Review {label} outputs"
 msgstr "Revisar los resultados de {label}"
 
-msgid "Review {unresolvedActivityCount} activities"
-msgstr "Revisar {unresolvedActivityCount} actividades"
+#~ msgid "Review {unresolvedActivityCount} activities"
+#~ msgstr "Revisar {unresolvedActivityCount} actividades"
 
 #~ msgid "Review activities"
 #~ msgstr "Revisar actividades"

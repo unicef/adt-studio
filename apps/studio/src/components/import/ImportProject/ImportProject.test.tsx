@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 
 Element.prototype.scrollIntoView = vi.fn()
 const writeClipboard = vi.fn()
@@ -100,6 +100,7 @@ vi.mock("@/api/client", () => ({
   isPartImportPreview: (preview: { isPart?: boolean }) => preview.isPart === true,
   isAdtBundleImportPreview: (preview: { isAdtBundle?: boolean }) => preview.isAdtBundle === true,
   unreadableAdtDetails: (error: unknown) => (error as { details?: unknown }).details ?? null,
+  apiErrorStatus: (error: unknown) => (error as { status?: number } | null)?.status ?? null,
 }))
 
 const { ImportProject } = await import("./ImportProject")
@@ -277,7 +278,11 @@ describe("ImportProject", () => {
       stages: {},
       validationError: null,
     })
-    await Promise.resolve()
+    // Let the stale result settle and React flush, so a missing guard would
+    // have replaced the second preview before the click (F28).
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    })
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 
     expect(importProject).not.toHaveBeenCalled()
@@ -412,7 +417,7 @@ describe("ImportProject", () => {
     const file = new File(["zip"], "external.zip", { type: "application/zip" })
     fireEvent.change(input, { target: { files: [file] } })
 
-    const review = await screen.findByRole("button", { name: "Review 1 activities" })
+    const review = await screen.findByRole("button", { name: "Review 1 activity" })
     expect(review).toHaveProperty("disabled", false)
     // The banner names each page and what was found on it, then one primary action.
     expect(screen.getByText("Choose a type for 1 activity page")).toBeTruthy()

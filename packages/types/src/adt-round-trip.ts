@@ -283,6 +283,8 @@ export type AdtImportCompatibilityIssue = z.infer<typeof AdtImportCompatibilityI
 export const AdtImportCompatibility = z.object({
   supported: z.boolean(),
   issues: z.array(AdtImportCompatibilityIssue),
+  /** Issues left out of a capped report. */
+  omittedIssueCount: z.number().int().positive().optional(),
 })
 export type AdtImportCompatibility = z.infer<typeof AdtImportCompatibility>
 

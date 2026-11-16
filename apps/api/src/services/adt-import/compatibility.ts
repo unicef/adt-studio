@@ -44,6 +44,8 @@ function interleavedReadingOrder(
   return interleaved
 }
 
+const MAX_REPORTED_ISSUES = 50
+
 export function assessAdtImportCompatibility(
   bundle: ReadAdtBundle,
   archiveFiles: Record<string, Uint8Array>,
@@ -51,6 +53,9 @@ export function assessAdtImportCompatibility(
   const archivePaths = new Set(Object.keys(archiveFiles))
   const issues: AdtImportCompatibilityIssue[] = []
   const pageHrefs = new Set(bundle.pages.map((page) => page.href))
+  // One issue per stray top-level entry (a stray folder can hold thousands
+  // of files), so they can't crowd real problems out of the report.
+  const reportedStrayEntries = new Set<string>()
   for (const archivePath of archivePaths) {
     if (!archivePath.startsWith(bundle.root)) continue
     const relativePath = archivePath.slice(bundle.root.length)
@@ -59,7 +64,8 @@ export function assessAdtImportCompatibility(
     const allowedRootHtml = !relativePath.includes("/")
       && relativePath.endsWith(".html")
       && pageHrefs.has(relativePath)
-    if (!allowedRootHtml && !ADT_EDITING_ALLOWED_ROOT_ENTRIES.has(rootEntry)) {
+    if (!allowedRootHtml && !ADT_EDITING_ALLOWED_ROOT_ENTRIES.has(rootEntry) && !reportedStrayEntries.has(rootEntry)) {
+      reportedStrayEntries.add(rootEntry)
       issues.push({
         code: "unexpected-bundle-entry",
         pageHref: relativePath,
@@ -227,6 +233,17 @@ export function assessAdtImportCompatibility(
   const unique = [...new Map(issues.map((issue) => [
     `${issue.code}:${issue.pageHref}:${issue.detail ?? ""}`,
     issue,
-  ])).values()].slice(0, 50)
-  return { supported: unique.length === 0, issues: unique }
+  ])).values()]
+  // Problems with the book's own pages first, stray files last; the report is
+  // capped, and says how many issues it left out.
+  const ordered = [
+    ...unique.filter((issue) => issue.code !== "unexpected-bundle-entry"),
+    ...unique.filter((issue) => issue.code === "unexpected-bundle-entry"),
+  ]
+  const reported = ordered.slice(0, MAX_REPORTED_ISSUES)
+  return {
+    supported: unique.length === 0,
+    issues: reported,
+    ...(ordered.length > reported.length ? { omittedIssueCount: ordered.length - reported.length } : {}),
+  }
 }

@@ -63,6 +63,27 @@ function page(
 }
 
 describe("ADT activity reconciliation", () => {
+  // F23: a suggestion the user accepts must pass the import route.
+  it("suggests a type the import accepts for a hand-written custom type", () => {
+    const review = analyzeImportedActivities(bundle(page(
+      "activity_custom_word-search",
+      `<p data-id="text-1">Find the words</p><input aria-label="word" />`,
+    )))
+    const item = review.items.find((candidate) => candidate.sectionId === "pg001_sec001")
+    expect(item?.suggestedType).toBe("activity_custom_word_search")
+    expect(() => resolveImportedActivityDecisions(review, [{ sectionId: "pg001_sec001", type: item!.suggestedType }]))
+      .not.toThrow()
+  })
+
+  // F21: activity_ordering is a known activity type.
+  it("treats activity_ordering as a known type", () => {
+    const review = analyzeImportedActivities(bundle(page("activity_ordering"), {
+      activities: [{ sectionId: "pg001_sec001", href: "index.html", type: "activity_ordering" }],
+    }))
+    expect(review.typeOptions).toContain("activity_ordering")
+    expect(review.items.find((item) => item.sectionId === "pg001_sec001")?.kind).toBe("known")
+  })
+
   it("confirms an activity when the v2 inventory and HTML agree", () => {
     const review = analyzeImportedActivities(bundle(page("activity_open_ended_answer", `
       <p data-id="text-1">Write a response</p>

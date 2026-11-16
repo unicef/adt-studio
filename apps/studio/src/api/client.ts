@@ -184,7 +184,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       code = typeof parsed.code === "string" ? parsed.code : null
       details = parsed.details
     } catch {
-      message = text || undefined
+      // A proxy error page (nginx 413/502/504) is HTML, not a message to show.
+      message = text && !/^\s*</.test(text) ? text : undefined
     }
     throw new ApiError(message ?? i18n._(msg`Request failed: ${res.status}`), res.status, code, details)
   }
@@ -208,6 +209,10 @@ export class ApiError extends Error {
 
 export function apiErrorCode(error: unknown): string | null {
   return error instanceof ApiError ? error.code : null
+}
+
+export function apiErrorStatus(error: unknown): number | null {
+  return error instanceof ApiError ? error.status : null
 }
 
 async function postEventStream<TEvent>(path: string, body: Record<string, unknown>, options: {

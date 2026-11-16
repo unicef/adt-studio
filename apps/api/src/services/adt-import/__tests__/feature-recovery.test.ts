@@ -199,6 +199,23 @@ describe("TOC entries without a title", () => {
   })
 })
 
+// F24: stray files can't crowd real problems out of the capped report.
+describe("compatibility report", () => {
+  it("lists real problems first, one stray entry per folder, and counts what it left out", () => {
+    const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
+    for (let i = 0; i < 60; i++) files[`node_modules/pkg/file-${i}.js`] = strToU8("x")
+    for (let i = 0; i < 60; i++) files[`stray-${i}.txt`] = strToU8("x")
+    delete files["images/pg001_im001.png"]
+    const { compatibility } = previewAdtRecoveryImport(Buffer.from(zipSync(files)))
+    const codes = compatibility.issues.map((issue) => issue.code)
+    expect(codes).toContain("missing-asset")
+    expect(codes.indexOf("missing-asset")).toBeLessThan(codes.indexOf("unexpected-bundle-entry"))
+    expect(compatibility.issues.filter((issue) => issue.detail === "node_modules")).toHaveLength(1)
+    expect(compatibility.issues).toHaveLength(50)
+    expect(compatibility.omittedIssueCount).toBeGreaterThan(0)
+  })
+})
+
 describe("imported feature recovery", () => {
   it("does not promise features whose editable data the archive cannot carry", () => {
     const files = unzipSync(makeFixedLayoutBundle())

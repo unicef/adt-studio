@@ -18,6 +18,7 @@ import { ActivityTypePanel } from "./ActivityTypePanel"
 import {
   hasDecision,
   pageName,
+  useActivityReasonLabel,
   useActivityTypeLabel,
   useControlsLabel,
   type ActivityReview,
@@ -47,6 +48,7 @@ export function ActivityClassificationDialog({
   const { t } = useLingui()
   const activityTypeLabel = useActivityTypeLabel()
   const controlsLabel = useControlsLabel()
+  const reasonLabel = useActivityReasonLabel()
   const items = useMemo(
     () => review.items.filter((item) => item.status === "needs-review"),
     [review.items],
@@ -191,7 +193,11 @@ export function ActivityClassificationDialog({
                   )}
                 </div>
                 <p className="shrink-0 border-t border-border px-5 py-2.5 text-xs text-muted-foreground">
-                  <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page, with no activity type.</Trans>
+                  {/* Say why this page needs a type; "no activity type" is only
+                      true for controls found without a marker. */}
+                  {activeItem.reasons.length === 0 || activeItem.reasons.includes("interactive-unmarked")
+                    ? <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page, with no activity type.</Trans>
+                    : <>{reasonLabel(activeItem.reasons[0])} <Trans>Outlined: {controlsLabel(activeItem.controls)} found on this page.</Trans></>}
                 </p>
               </section>
               <aside className="flex w-[22rem] shrink-0 flex-col border-l border-border bg-background">

@@ -1,3 +1,4 @@
+import { plural } from "@lingui/core/macro"
 import { useLingui } from "@lingui/react/macro"
 import {
   AlertCircle,
@@ -169,7 +170,7 @@ export function useReviewModel(
     const recovered = FEATURES.filter((feature) => ["recovered", "partial"].includes(featureStatus(adt, feature.slug)))
     const recoveredCount = recovered.length
     return [
-      { title: t`Archive checked`, text: t`${adt.pageCount} pages and ${imageCount} images read`, state: "done", status: t`Done` },
+      { title: t`Archive checked`, text: t`${plural(adt.pageCount, { one: "# page", other: "# pages" })} and ${plural(imageCount, { one: "# image", other: "# images" })} read`, state: "done", status: t`Done` },
       ...(total > 0 ? [{
         title: t`Choose activity types`,
         text: t`Needed before import`,

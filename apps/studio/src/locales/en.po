@@ -134,6 +134,10 @@ msgstr "{0, plural, one {# page replaced} other {# pages replaced}}"
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# page} other {# pages}}"
 
+#. placeholder {0}: adt.pageCount
+msgid "{0, plural, one {# page} other {# pages}} and {imageCount, plural, one {# image} other {# images}} read"
+msgstr "{0, plural, one {# page} other {# pages}} and {imageCount, plural, one {# image} other {# images}} read"
+
 #. placeholder {0}: thread.replyCount
 msgid "{0, plural, one {# reply} other {# replies}}"
 msgstr "{0, plural, one {# reply} other {# replies}}"
@@ -368,8 +372,8 @@ msgid "{0} pages · split into {1} parts"
 msgstr "{0} pages · split into {1} parts"
 
 #. placeholder {0}: adt.pageCount
-msgid "{0} pages and {imageCount} images read"
-msgstr "{0} pages and {imageCount} images read"
+#~ msgid "{0} pages and {imageCount} images read"
+#~ msgstr "{0} pages and {imageCount} images read"
 
 #. placeholder {0}: section.criteria.length - reviewed
 msgid "{0} pending"
@@ -772,6 +776,9 @@ msgstr "{totalPages} pages"
 
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} pages · {totalSections} sections"
+
+msgid "{unresolvedActivityCount, plural, one {Review # activity} other {Review # activities}}"
+msgstr "{unresolvedActivityCount, plural, one {Review # activity} other {Review # activities}}"
 
 msgid "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {activity page needs} other {activity pages need}} a type"
 msgstr "{unresolvedActivityCount} {unresolvedActivityCount, plural, one {activity page needs} other {activity pages need}} a type"
@@ -2028,11 +2035,14 @@ msgstr "Are you sure you want to generate word-level timestamps for {langDisplay
 msgid "areas"
 msgstr "areas"
 
+msgid "Arrange all items into one correct sequence."
+msgstr "Arrange all items into one correct sequence."
+
 msgid "Arrange extracted content into a structured storyboard with pages, sections, and layouts."
 msgstr "Arrange extracted content into a structured storyboard with pages, sections, and layouts."
 
-msgid "Arrange items into an order or categories."
-msgstr "Arrange items into an order or categories."
+#~ msgid "Arrange items into an order or categories."
+#~ msgstr "Arrange items into an order or categories."
 
 msgid "Article"
 msgstr "Article"
@@ -5499,6 +5509,9 @@ msgstr "Group by needs attention"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 
+msgid "Group items into categories."
+msgstr "Group items into categories."
+
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Groups image regions into discrete illustrations on each page."
 
@@ -8353,6 +8366,9 @@ msgstr "or click to browse your files"
 msgid "Or share on a new link with the choices above"
 msgstr "Or share on a new link with the choices above"
 
+msgid "Ordering"
+msgstr "Ordering"
+
 msgid "Original"
 msgstr "Original"
 
@@ -8408,6 +8424,10 @@ msgstr "Outline ID:"
 #. placeholder {0}: controlsLabel(activeItem.controls)
 msgid "Outlined: {0} found on this page, with no activity type."
 msgstr "Outlined: {0} found on this page, with no activity type."
+
+#. placeholder {0}: controlsLabel(activeItem.controls)
+msgid "Outlined: {0} found on this page."
+msgstr "Outlined: {0} found on this page."
 
 msgid "Output languages"
 msgstr "Output languages"
@@ -10023,8 +10043,8 @@ msgstr "Review {formatted} after this run."
 msgid "Review {label} outputs"
 msgstr "Review {label} outputs"
 
-msgid "Review {unresolvedActivityCount} activities"
-msgstr "Review {unresolvedActivityCount} activities"
+#~ msgid "Review {unresolvedActivityCount} activities"
+#~ msgstr "Review {unresolvedActivityCount} activities"
 
 #~ msgid "Review activities"
 #~ msgstr "Review activities"
