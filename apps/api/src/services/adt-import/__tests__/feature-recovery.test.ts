@@ -4,7 +4,16 @@ import path from "node:path"
 
 import { describe, expect, it } from "vitest"
 import { strToU8, unzipSync, zipSync } from "fflate"
-import { getCoreTtsCatalog, getReadyCoreTtsEntries, loadBookConfig, readOutputCatalog } from "@adt/pipeline"
+import {
+  buildCoreTtsPreparationConfig,
+  getCoreTtsCatalog,
+  getReadyCoreTtsEntries,
+  loadBookConfig,
+  loadCoreTtsProfiles,
+  prepareCoreTtsCatalog,
+  readOutputCatalog,
+  resolveCoreTtsProfile,
+} from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 
 import { getBook } from "../../book-service.js"
@@ -462,7 +471,9 @@ describe("imported translation and speech stage completion", () => {
     }
   })
 
-  it("recovers the exporter's speech text and falls back to display text", () => {
+  // F11: a text the archive has no prepared speech for (no speech text, no
+  // audio) was never prepared; Speech must prepare it, not reuse the display text.
+  it("recovers the exporter's speech text and leaves never-prepared texts to Speech", () => {
     const { booksDir, session } = importedProject(makeBundleWithSpeechTexts())
     const storage = createBookStorage(session.label, booksDir)
     try {
@@ -471,11 +482,11 @@ describe("imported translation and speech stage completion", () => {
         id: "pg001_n001",
         text: "Edited outside Studio, spoken plainly",
       })
-      expect(entries).toContainEqual({ id: "gl001", text: "Hyena" })
+      expect(entries.map((entry) => entry.id)).not.toContain("gl001")
       const modes = new Map(getCoreTtsCatalog(storage, "en")!.entries
         .map((entry) => [entry.id, entry.generation.mode]))
       expect(modes.get("pg001_n001")).toBe("generated")
-      expect(modes.get("gl001")).toBe("unchanged")
+      expect(modes.has("gl001")).toBe(false)
       expect([...modes.values()]).not.toContain("manual")
     } finally {
       storage.close()
@@ -537,6 +548,65 @@ describe("imported translation and speech stage completion", () => {
     } finally {
       storage.close()
     }
+  })
+
+  // F11: recovered prepared speech carries input evidence, so editing its
+  // source makes it an ordinary update instead of protected legacy content.
+  it("lets a source edit re-prepare recovered speech", async () => {
+    const { booksDir, session } = importedProject(makeBundleWithSpeechTexts())
+    const promptsDir = path.resolve("prompts")
+    stampImportedSpeechEvidence(session.label, booksDir, { promptsDir })
+    const preparation = () => {
+      const storage = createBookStorage(session.label, booksDir)
+      try {
+        return readOutputCatalog({
+          storage,
+          config: loadBookConfig(session.label, booksDir),
+          bookDir: path.join(booksDir, session.label),
+          promptsDir,
+          configDir: path.resolve("config"),
+          kinds: ["preparation"],
+        }).find((status) => status.identity.kind === "preparation" && status.identity.id === "pg001_n001" && status.identity.language === "en")!
+      } finally {
+        storage.close()
+      }
+    }
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      expect(getCoreTtsCatalog(storage, "en")!.entries.find((entry) => entry.id === "pg001_n001"))
+        .toMatchObject({ input: expect.objectContaining({ signature: expect.any(String) }) })
+    } finally {
+      storage.close()
+    }
+    expect(preparation()).toMatchObject({ protected: false, updateNeeded: false, current: true })
+
+    // Speech re-prepares the edited text and keeps the untouched one.
+    const read = createBookStorage(session.label, booksDir)
+    const imported = (() => {
+      try {
+        return getCoreTtsCatalog(read, "en")!
+      } finally {
+        read.close()
+      }
+    })()
+    const sent: string[] = []
+    const llmModel = {
+      generateObject: async ({ context }: { context: { entries: Array<{ id: string; display_text: string }> } }) => {
+        sent.push(...context.entries.map((e) => e.id))
+        return { object: { entries: context.entries.map((e) => ({ id: e.id, speech_text: e.display_text, transformation_kinds: [] })) }, cached: false }
+      },
+    }
+    const entries = imported.entries.map((e) => ({ id: e.id, text: e.id === "pg001_n001" ? "Edited again in Studio" : e.displayText }))
+    const out = await prepareCoreTtsCatalog({
+      entries,
+      language: "en",
+      config: buildCoreTtsPreparationConfig(loadBookConfig(session.label, booksDir)),
+      profile: resolveCoreTtsProfile("en", loadCoreTtsProfiles(path.resolve("config"))),
+      llmModel: llmModel as never,
+      previous: imported,
+    })
+    expect(sent).toContain("pg001_n001")
+    expect(out.entries.find((e) => e.id === "pg001_n001")?.displayText).toBe("Edited again in Studio")
   })
 
   it("lets a voice change regenerate recovered narration", () => {

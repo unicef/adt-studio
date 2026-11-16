@@ -477,13 +477,17 @@ export function createImportedCoreTtsCatalog(options: {
   entries: TextCatalogEntry[]
   speechTexts: Record<string, string>
   staleIds?: ReadonlySet<string>
+  /** Ids the archive has no prepared speech for (Speech never ran on them, or
+   * preparation failed). Left out, so Speech prepares them instead of treating
+   * the display text as ready speech. */
+  unpreparedIds?: ReadonlySet<string>
   generatedAt: string
 }): CoreTtsCatalogOutput {
   const language = normalizeLocale(options.language)
   return {
     language,
     generatedAt: options.generatedAt,
-    entries: options.entries.map((entry): CoreTtsCatalogEntry => {
+    entries: options.entries.filter((entry) => !options.unpreparedIds?.has(entry.id)).map((entry): CoreTtsCatalogEntry => {
       if (options.staleIds?.has(entry.id)) {
         return {
           id: entry.id,

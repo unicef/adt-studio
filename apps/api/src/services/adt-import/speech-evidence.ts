@@ -3,6 +3,7 @@ import path from "node:path"
 import { loadBookConfig, outputEvidence, readOutputCatalog } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 import {
+  CoreTtsCatalogOutput,
   TTSOutput,
   WordTimestampOutput,
   resolveEntryVoiceSlot,
@@ -49,7 +50,7 @@ export function stampImportedSpeechEvidence(
       configDir: options.configPath
         ? path.join(path.dirname(options.configPath), "config")
         : path.resolve("config"),
-      kinds: ["audio", "timestamps"],
+      kinds: ["audio", "timestamps", "preparation"],
     })
     const byKind = (kind: OutputStatus["identity"]["kind"]) => new Map(outputs
       .filter((status) => status.identity.kind === kind && status.usable && !status.excluded)
@@ -59,9 +60,28 @@ export function stampImportedSpeechEvidence(
       ]))
     const audioStatuses = byKind("audio")
     const timestampStatuses = byKind("timestamps")
+    const preparationStatuses = byKind("preparation")
     const languages = [...new Set(outputs.flatMap((status) => status.identity.language ? [status.identity.language] : []))]
 
     for (const language of languages) {
+      // Prepared speech recovered from the archive: accepted as the output of
+      // the book's speech configuration at import, so editing its source text
+      // makes it an ordinary update instead of protected legacy content.
+      const catalog = CoreTtsCatalogOutput.safeParse(storage.getLatestNodeData("core-tts-catalog", language)?.data)
+      if (catalog.success) {
+        let preparationChanged = false
+        const preparationEntries = catalog.data.entries.map((entry) => {
+          if (entry.input || entry.review || entry.status !== "ready" || !entry.speechText?.trim()) return entry
+          const status = preparationStatuses.get(statusKey(entry.id, language, undefined))
+          if (!status) return entry
+          preparationChanged = true
+          return { ...entry, source: "ai" as const, input: outputEvidence(status.signature, entry.speechText) }
+        })
+        if (preparationChanged) {
+          storage.putNodeData("core-tts-catalog", language, CoreTtsCatalogOutput.parse({ ...catalog.data, entries: preparationEntries }))
+        }
+      }
+
       const ttsRow = storage.getLatestNodeData("tts", language)
       const tts = TTSOutput.safeParse(ttsRow?.data)
       if (!tts.success) continue

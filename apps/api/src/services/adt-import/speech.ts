@@ -156,6 +156,16 @@ function parseJsonObject(bytes: Uint8Array | undefined): Record<string, unknown>
   return parsed as Record<string, unknown>
 }
 
+/** Text ids the archive narrates in a locale (keys of its audios.json). */
+export function readArchivedAudioIds(
+  bundle: ReadAdtBundle,
+  files: Record<string, Uint8Array>,
+  archiveLanguage: string | undefined,
+): Set<string> {
+  if (!archiveLanguage) return new Set()
+  return new Set(Object.keys(parseJsonObject(files[`${bundle.root}content/i18n/${archiveLanguage}/audios.json`]) ?? {}))
+}
+
 /** Narration files the archive carries for current texts, per output locale. */
 export function recoverImportedAudio(
   bundle: ReadAdtBundle,

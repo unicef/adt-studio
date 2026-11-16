@@ -9,7 +9,7 @@ import { createBookStorage } from "@adt/storage"
 import { EasyReadOutput, TextCatalogOutput } from "@adt/types"
 
 import type { ReadAdtBundle } from "../bundle-reader.js"
-import { currentImportedNarration, readArchivedSpeechTexts } from "../speech.js"
+import { currentImportedNarration, readArchivedAudioIds, readArchivedSpeechTexts } from "../speech.js"
 
 /** Give every locale the provider-text catalog the Speech stage reads from,
  * recovering the exporter's own speech texts where they still describe the
@@ -54,10 +54,21 @@ export function seedImportedCoreTts(
       if (entries.length === 0) continue
       const archiveLanguage = archiveLanguages.get(locale.language)
       const speechTexts = readArchivedSpeechTexts(bundle, files, archiveLanguage)
+      const archivedAudioIds = readArchivedAudioIds(bundle, files, archiveLanguage)
       storage.putNodeData("core-tts-catalog", locale.language, createImportedCoreTtsCatalog({
         language: locale.language,
         entries,
         speechTexts: speechTexts ?? {},
+        // The exporter writes every ready entry to speech_texts.json (and only
+        // those get audio), so an id with neither was never prepared. Older
+        // archives without the file keep the display-text fallback.
+        ...(speechTexts
+          ? {
+              unpreparedIds: new Set(entries
+                .filter((entry) => !Object.hasOwn(speechTexts, entry.id) && !archivedAudioIds.has(entry.id))
+                .map((entry) => entry.id)),
+            }
+          : {}),
         staleIds: new Set(entries
           .filter((entry) => archiveLanguage === undefined || !isCurrent(archiveLanguage, entry.id))
           .map((entry) => entry.id)),
