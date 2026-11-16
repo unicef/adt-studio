@@ -662,8 +662,11 @@ msgstr "{pdfFilename} · {pageCount} faqe"
 msgid "{position} of {total}"
 msgstr "{position} nga {total}"
 
-msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
-msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
+msgid "{regionCount} {regionCount, plural, one {region} other {regions}}"
+msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}}"
+
+#~ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
+#~ msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
 
 #. placeholder {0}: section.criteria.length
 msgid "{reviewed}/{0} checked"
@@ -1433,6 +1436,9 @@ msgstr "Shto kuiz"
 
 msgid "Add quiz here"
 msgstr "Shto kuiz këtu"
+
+msgid "Add region"
+msgstr "Shto rajon"
 
 msgid "Add reviewer guidance."
 msgstr "Shto udhëzime për rishikuesin."
@@ -9679,6 +9685,9 @@ msgstr "Rigjeneroni këtë aktivitet me AI (kërkon gjendje të ruajtur dhe një
 msgid "Region"
 msgstr "Rajon"
 
+msgid "Region {n}"
+msgstr "Rajoni {n}"
+
 msgid "Reject renderings that diverge stylistically from the original. More rejections and rerenders, closer match to the source."
 msgstr "Refuzo renderime që devijojnë stilistikisht nga origjinali. Sa më shumë refuzime dhe rirendime, aq më afër origjinalit."
 
@@ -9754,6 +9763,9 @@ msgstr "Hiq figurën"
 
 msgid "Remove placement"
 msgstr "Hiq vendosjen"
+
+msgid "Remove region"
+msgstr "Hiq rajonin"
 
 msgid "Remove second voice"
 msgstr "Hiq zërin e dytë"

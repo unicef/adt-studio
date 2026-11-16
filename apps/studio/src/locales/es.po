@@ -660,8 +660,11 @@ msgstr "{pdfFilename} · {pageCount} páginas"
 msgid "{position} of {total}"
 msgstr "{position} de {total}"
 
-msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
-msgstr "{regionCount} {regionCount, plural, one {región detectada} other {regiones detectadas}}"
+msgid "{regionCount} {regionCount, plural, one {region} other {regions}}"
+msgstr "{regionCount} {regionCount, plural, one {región} other {regiones}}"
+
+#~ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
+#~ msgstr "{regionCount} {regionCount, plural, one {región detectada} other {regiones detectadas}}"
 
 #. placeholder {0}: section.criteria.length
 msgid "{reviewed}/{0} checked"
@@ -1431,6 +1434,9 @@ msgstr "Añadir cuestionario"
 
 msgid "Add quiz here"
 msgstr "Añadir cuestionario aquí"
+
+msgid "Add region"
+msgstr "Añadir región"
 
 msgid "Add reviewer guidance."
 msgstr "Agregue orientación para el revisor."
@@ -9677,6 +9683,9 @@ msgstr "Regenera esta actividad con IA (requiere un estado guardado y una clave 
 msgid "Region"
 msgstr "Región"
 
+msgid "Region {n}"
+msgstr "Región {n}"
+
 msgid "Reject renderings that diverge stylistically from the original. More rejections and rerenders, closer match to the source."
 msgstr "Rechazar representaciones que divergen estilísticamente del original. Más rechazos y re-renderizados, coincidencia más cercana con la fuente."
 
@@ -9752,6 +9761,9 @@ msgstr "Quitar imagen"
 
 msgid "Remove placement"
 msgstr "Quitar ubicación"
+
+msgid "Remove region"
+msgstr "Quitar región"
 
 msgid "Remove second voice"
 msgstr "Eliminar segunda voz"
