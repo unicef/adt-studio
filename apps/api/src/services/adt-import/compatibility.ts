@@ -67,12 +67,10 @@ export function assessAdtImportCompatibility(
       })
     }
   }
-  if (!bundle.manifest.editingContract && bundle.sourceFormat !== "legacy-studio-export") {
-    issues.push({
-      code: "missing-editing-contract",
-      pageHref: "manifest.json",
-    })
-  } else if (
+  // A manifest without an editing contract is read as an older export
+  // (sourceFormat "legacy-studio-export", see readAdtBundle) and recovered on
+  // the tolerant legacy path, so there is no "missing contract" case here.
+  if (
     bundle.manifest.editingContract
     && (
       bundle.manifest.editingContract.version < ADT_EDITING_CONTRACT_MIN_VERSION
