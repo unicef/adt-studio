@@ -258,6 +258,27 @@ describe("recheckSavedKeys", () => {
     expect(await recheckSavedKeys(queryClient, ["custom"])).toEqual([])
   })
 
+  it("stops following the check once the save has given up on it", async () => {
+    vi.useFakeTimers()
+    try {
+      getProviderHealth.mockImplementation(() => new Promise(() => {}))
+      const pending = recheckSavedKeys(queryClient, ["openai"])
+      await vi.advanceTimersByTimeAsync(15_000)
+      expect(await pending).toEqual([])
+      expect(getProviderHealth).toHaveBeenCalledTimes(1)
+      // A cancel arriving after the timeout must not start another check.
+      await queryClient.cancelQueries({ queryKey: ["provider-health"] })
+      await vi.advanceTimersByTimeAsync(10)
+      expect(getProviderHealth).toHaveBeenCalledTimes(1)
+    } finally {
+      getProviderHealth.mockImplementation(async (providerId: string, draft?: Record<string, string>) => {
+        const code = draft ? draftCode : storedCode
+        return { providerId, ok: code === "ok", code }
+      })
+      vi.useRealTimers()
+    }
+  })
+
   it("gives up on a check that never answers instead of holding the save", async () => {
     vi.useFakeTimers()
     try {

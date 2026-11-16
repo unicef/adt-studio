@@ -373,6 +373,19 @@ describe("StageSidebar", () => {
     expect(screen.getAllByTitle(label).some((element) => element.getAttribute("role") === "img")).toBe(true)
   })
 
+  it("keeps the book row's error badge over the rejected-key badge", async () => {
+    matchRouteMock.mockReturnValue(false)
+    stageStateMock.mockImplementation((stage) => stage === "sectioning" ? "done" : stage === "book" ? "error" : "idle")
+    rejectedProviderMock.mockReturnValue({ providerId: "openai", displayName: "OpenAI" })
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(<StageSidebar bookLabel="demo-book" activeStep="sectioning" />)
+    const label = "API Key Settings — the OpenAI key was rejected"
+    expect(screen.getAllByTitle(label).some((element) => element.getAttribute("role") === "img")).toBe(false)
+    // The book row's own badge (titled with its label) is the one shown.
+    const bookRow = screen.getByTitle("API Key Settings — the OpenAI key was rejected").parentElement!
+    expect(bookRow.querySelector("[role=img]")?.getAttribute("title")).not.toContain("key was rejected")
+  })
+
   it.each(["quizzes", "glossary", "toc", "captions"])("keeps the %s Overview (and its Run button) after a reset leaves the stage idle", async (stage) => {
     matchRouteMock.mockReturnValue(true)
     stageStateMock.mockReturnValue("idle")
