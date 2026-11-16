@@ -210,6 +210,31 @@ describe("readAdtBundle", () => {
       .toThrow(/exceeds its size limit/)
   })
 
+  // F8: what a large multi-language export writes must be readable.
+  it("reads a bundle with more than 10,000 entries (7+ language exports)", () => {
+    const files = baseFiles()
+    for (let i = 0; i < 12_000; i++) files[`content/i18n/es/audio/t${i}.mp3`] = new Uint8Array(1)
+    expect(() => readAdtBundle(Buffer.from(zipSync(files)))).not.toThrow()
+  })
+
+  it("reads a manifest over 1 MiB (frozen fingerprints for many texts x languages)", () => {
+    const files = baseFiles()
+    const manifest = JSON.parse(new TextDecoder().decode(files["manifest.json"]))
+    manifest.padding = "x".repeat(1_300_000)
+    files["manifest.json"] = json(manifest)
+    expect(() => readAdtBundle(Buffer.from(zipSync(files)))).not.toThrow(/size limit/)
+  })
+
+  it("leaves an oversized image out of the preview instead of failing", () => {
+    const files = baseFiles()
+    files["images/huge.png"] = new Uint8Array(ADT_BUNDLE_READER_LIMITS.previewImageBytes + 1)
+    files["images/small.png"] = new Uint8Array(4)
+    const bundle = readAdtBundle(Buffer.from(zipSync(files)), { includePreviewImages: true })
+    const names = Object.keys(bundle.previewImages ?? {})
+    expect(names.some((n) => n.includes("huge"))).toBe(false)
+    expect(names.some((n) => n.includes("small"))).toBe(true)
+  })
+
   it("reports invalid ZIPs with a stable error type", () => {
     expect(() => readAdtBundle(Buffer.from("not a zip"))).toThrow(AdtBundleReadError)
   })

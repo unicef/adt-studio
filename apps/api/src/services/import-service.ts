@@ -6,7 +6,12 @@ import { parseBookLabel, BookMetadata, PIPELINE } from "@adt/types"
 import { renderPdfCover } from "@adt/pdf"
 import { openBookDb } from "@adt/storage"
 import { getBook, type BookSummary } from "./book-service.js"
-import { ArchiveSafetyError, unzipArchiveSafely } from "./archive-safety.js"
+import {
+  ArchiveSafetyError,
+  extractArchiveToDisk,
+  inspectArchivePaths,
+  readArchiveEntries,
+} from "./archive-safety.js"
 
 export interface ImportResult extends BookSummary {}
 
@@ -45,12 +50,18 @@ function resolveUniqueLabel(baseLabel: string, booksDir: string): string {
   return `${baseLabel}-${n}`
 }
 
-function unzipBuffer(zipBuffer: Buffer): Record<string, Uint8Array> {
+function asInvalidArchive<T>(read: () => T): T {
   try {
-    return unzipArchiveSafely(zipBuffer)
+    return read()
   } catch (error) {
+    if (error instanceof HTTPException) throw error
     throwInvalidArchive(error instanceof ArchiveSafetyError ? error.message : "Invalid ZIP file")
   }
+}
+
+/** Entry names only; nothing is inflated. */
+function listArchivePaths(zipBuffer: Buffer): string[] {
+  return asInvalidArchive(() => inspectArchivePaths(zipBuffer))
 }
 
 const NOT_ADT_PROJECT = "Invalid project archive: expected a .db and .pdf file at the root level"
@@ -150,8 +161,7 @@ function readDbMetadata(dbPath: string): DbMetadata {
 }
 
 export function previewImport(zipBuffer: Buffer): ImportPreview {
-  const entries = unzipBuffer(zipBuffer)
-  const filePaths = Object.keys(entries)
+  const filePaths = listArchivePaths(zipBuffer)
 
   const dbEntry = findEntry(filePaths, ".db")
   if (!dbEntry) throwInvalidArchive(NOT_ADT_PROJECT)
@@ -159,6 +169,10 @@ export function previewImport(zipBuffer: Buffer): ImportPreview {
   const safeLabel = parseBookLabel(rawLabel)
 
   const pdfEntry = findEntry(filePaths, ".pdf")
+  // Only the database and the source PDF are needed for the preview.
+  const entries = asInvalidArchive(() =>
+    readArchiveEntries(zipBuffer, pdfEntry ? [dbEntry, pdfEntry] : [dbEntry]),
+  )
   const imageCount = filePaths.filter((p) => p.startsWith("images/") && !p.endsWith("/")).length
   const videoCount = filePaths.filter((p) => p.startsWith("videos/") && !p.endsWith("/")).length
 
@@ -194,8 +208,7 @@ export async function importProject(
   zipBuffer: Buffer,
   booksDir: string,
 ): Promise<ImportResult> {
-  const entries = unzipBuffer(zipBuffer)
-  const filePaths = Object.keys(entries)
+  const filePaths = listArchivePaths(zipBuffer)
 
   const dbEntry = findEntry(filePaths, ".db")
   if (!dbEntry) throwInvalidArchive(NOT_ADT_PROJECT)
@@ -211,7 +224,9 @@ export async function importProject(
   fs.mkdirSync(bookDir, { recursive: true })
 
   try {
-    for (const [entryPath, data] of Object.entries(entries)) {
+    // Written to disk in bounded batches; large backups are never expanded
+    // in memory as a whole.
+    asInvalidArchive(() => extractArchiveToDisk(zipBuffer, (entryPath) => {
       const renamedPath = entryPath.startsWith(`${rawLabel}.`)
         ? entryPath.replace(rawLabel, targetLabel)
         : entryPath
@@ -221,14 +236,8 @@ export async function importProject(
       if (!destPath.startsWith(bookDir + path.sep) && destPath !== bookDir) {
         throwInvalidArchive("Invalid project archive: contains paths that escape the project directory")
       }
-
-      const destDir = path.dirname(destPath)
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true })
-      }
-
-      fs.writeFileSync(destPath, data)
-    }
+      return destPath
+    }))
 
     const dbPath = path.join(bookDir, `${targetLabel}.db`)
     const meta = readDbMetadata(dbPath)

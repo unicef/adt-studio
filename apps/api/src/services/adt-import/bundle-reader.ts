@@ -15,15 +15,24 @@ import type {
   AdtRoundTripManifest as AdtRoundTripManifestData,
 } from "@adt/types"
 import { canonicalJson } from "@adt/types/fingerprint"
-import { ARCHIVE_SAFETY_LIMITS } from "../archive-safety.js"
+import { ARCHIVE_SAFETY_LIMITS, IN_MEMORY_EXPANDED_BYTES } from "../archive-safety.js"
 
 export const ADT_BUNDLE_READER_LIMITS = {
   archiveBytes: ARCHIVE_SAFETY_LIMITS.compressedBytes,
-  entries: 10_000,
-  manifestBytes: 1024 * 1024,
+  // Sized from what the exporter writes: per language a texts.json, speech
+  // files and audio per text, plus pages and images. A two-language book with
+  // 1,500 texts is already ~3,100 entries, so 10,000 refused 7-language books.
+  entries: 100_000,
+  // frozen.textFingerprints grows with texts x languages (~170 KiB for a
+  // 2 x 1,500-text book); 1 MiB refused realistic 4-language exports.
+  manifestBytes: 16 * 1024 * 1024,
   jsonBytes: 10 * 1024 * 1024,
   htmlBytes: 20 * 1024 * 1024,
   selectedBytes: 256 * 1024 * 1024,
+  /** The ADT import still expands the whole bundle in memory. */
+  expandedBytes: IN_MEMORY_EXPANDED_BYTES,
+  /** A preview image over this size is left out of the preview, not an error. */
+  previewImageBytes: 10 * 1024 * 1024,
 } as const
 
 export class AdtBundleReadError extends Error {
@@ -142,7 +151,6 @@ function selectedLimit(name: string, includePreviewImages: boolean): number | nu
   if (RUNTIME_CONFIG_PATH.test(name) || PAGES_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.jsonBytes
   if (COVER_PATH.test(name)) return 10 * 1024 * 1024
   if (AGENT_GUIDE_PATH.test(name)) return 512 * 1024
-  if (includePreviewImages && PREVIEW_IMAGE_PATH.test(name)) return 10 * 1024 * 1024
   if (PAGE_HTML_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.htmlBytes
   return null
 }
@@ -282,6 +290,7 @@ function extractSelected(
   const seen = new Set<string>()
   let entryCount = 0
   let selectedBytes = 0
+  let previewImageBytes = 0
   try {
     return unzipSync(zipBuffer, {
       filter(info) {
@@ -297,6 +306,20 @@ function extractSelected(
         }
         seen.add(info.name)
 
+        // Preview images are optional: one that is too big, or that would push
+        // the selection over its cap, is simply not shown.
+        if (includePreviewImages && PREVIEW_IMAGE_PATH.test(info.name)) {
+          if (
+            !Number.isSafeInteger(info.originalSize) ||
+            info.originalSize < 0 ||
+            info.originalSize > ADT_BUNDLE_READER_LIMITS.previewImageBytes ||
+            previewImageBytes + info.originalSize > ADT_BUNDLE_READER_LIMITS.selectedBytes / 2
+          ) {
+            return false
+          }
+          previewImageBytes += info.originalSize
+          return true
+        }
         const limit = selectedLimit(info.name, includePreviewImages)
         if (limit === null) return false
         if (!Number.isSafeInteger(info.originalSize) || info.originalSize < 0 || info.originalSize > limit) {
@@ -501,7 +524,7 @@ export function extractAdtBundleArchiveFiles(zipBuffer: Buffer): Record<string, 
           throw new AdtBundleReadError("ADT bundle contains an invalid archive entry")
         }
         totalBytes += info.originalSize
-        if (totalBytes > ARCHIVE_SAFETY_LIMITS.expandedBytes) {
+        if (totalBytes > ADT_BUNDLE_READER_LIMITS.expandedBytes) {
           throw new AdtBundleReadError("ADT bundle exceeds the expanded archive size limit")
         }
         return true

@@ -204,6 +204,20 @@ export async function prepareExport(
   }
 }
 
+/**
+ * Top-level folders left out of project backups: export outputs (rebuilt by
+ * packaging) and the section screenshot cache (rebuilt on demand). The LLM
+ * cache (.cache) and LLM debug images stay, so restored books keep fast reruns
+ * and an inspectable call history.
+ */
+export const PROJECT_BACKUP_EXCLUDED_DIRS: ReadonlySet<string> = new Set([
+  "adt",
+  "webpub",
+  "epub",
+  "pnld",
+  ".section-renders",
+])
+
 export async function exportProject(
   label: string,
   booksDir: string,
@@ -232,14 +246,14 @@ export async function exportProject(
     const { startPage, endPage } = part.range
     const pad3 = (n: number) => String(n).padStart(3, "0")
     return {
-      stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
+      stream: createZipStream(bookDir, { excludeDirs: PROJECT_BACKUP_EXCLUDED_DIRS }),
       filename: `${title}-part-${startPage}-${endPage}-processed.zip`,
       safeFilename: `${part.sourceLabel}-p${pad3(startPage)}-${pad3(endPage)}-processed.zip`,
     }
   }
 
   return {
-    stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
+    stream: createZipStream(bookDir, { excludeDirs: PROJECT_BACKUP_EXCLUDED_DIRS }),
     filename: `${title}-project.zip`,
     safeFilename: `${safeLabel}-project.zip`,
   }

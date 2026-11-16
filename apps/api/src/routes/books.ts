@@ -70,7 +70,9 @@ import {
 import type { TaskService } from "../services/task-service.js"
 import {
   ARCHIVE_SAFETY_LIMITS,
+  ArchiveSafetyError,
   formatArchiveByteLimit,
+  inspectArchivePaths,
 } from "../services/archive-safety.js"
 import {
   AdtProjectImportError,
@@ -140,6 +142,16 @@ const archiveImportBodyLimit = bodyLimit({
     error: `Archive upload exceeds the ${formatArchiveByteLimit(ARCHIVE_SAFETY_LIMITS.compressedBytes)} compressed size limit`,
   }, 413),
 })
+
+/** True when the archive has a database file at its root (a project backup). */
+function isProjectBackupArchive(zipBuffer: Buffer): boolean {
+  try {
+    return inspectArchivePaths(zipBuffer).some((name) => !name.includes("/") && name.endsWith(".db"))
+  } catch (error) {
+    if (error instanceof ArchiveSafetyError) throw new HTTPException(400, { message: error.message })
+    throw error
+  }
+}
 
 export function createBookRoutes(
   booksDir: string,
@@ -277,6 +289,11 @@ export function createBookRoutes(
     const distributionFormat = detectDistributionFormat(zipBuffer)
     if (distributionFormat) {
       throw new HTTPException(400, { message: distributionFormatMessage(distributionFormat) })
+    }
+    // A project backup carries its database at the root. Decide that from the
+    // entry names alone, so ADT bundle limits never apply to a backup.
+    if (isProjectBackupArchive(zipBuffer)) {
+      return c.json(previewImport(zipBuffer))
     }
     try {
       const guideTemplate = readAdtAgentGuideTemplate(webAssetsDir) ?? undefined

@@ -1603,7 +1603,7 @@ describe("GET /books/:label/export-webpub", () => {
   })
 })
 
-function createProjectZip(label: string, options?: { omitPdf?: boolean; omitDb?: boolean; corruptDb?: boolean }): Buffer {
+function createProjectZip(label: string, options?: { omitPdf?: boolean; omitDb?: boolean; corruptDb?: boolean; extraFiles?: Record<string, Uint8Array> }): Buffer {
   const files: Record<string, Uint8Array> = {}
 
   if (!options?.omitDb) {
@@ -1639,6 +1639,7 @@ function createProjectZip(label: string, options?: { omitPdf?: boolean; omitDb?:
   }
 
   files["images/img1.png"] = new Uint8Array([0x89, 0x50, 0x4e, 0x47])
+  Object.assign(files, options?.extraFiles)
 
   return Buffer.from(zipSync(files))
 }
@@ -1739,6 +1740,29 @@ function createExportedAdtZip(options: {
 }
 
 describe("POST /books/preview-import", () => {
+  // F2: ADT bundle limits must never apply to a project backup.
+  it("previews a project backup with an image over the ADT preview-image limit", async () => {
+    const bigImage = new Uint8Array(11 * 1024 * 1024)
+    const zip = createProjectZip("big-image", { extraFiles: { "images/big_scan.png": bigImage } })
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zip], { type: "application/zip" }), "big-image.zip")
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ label: "big-image", imageCount: 2, validationError: null })
+  })
+
+  it("previews an ADT bundle with an oversized image by leaving that image out", async () => {
+    const files = unzipSync(new Uint8Array(createExportedAdtZip()))
+    files["images/huge_photo.png"] = new Uint8Array(11 * 1024 * 1024)
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([Buffer.from(zipSync(files))], { type: "application/zip" }), "huge.zip")
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ isAdtBundle: true })
+  })
+
   it("returns preview for a valid project ZIP", async () => {
     const zip = createProjectZip("preview-test")
     const app = createBookRoutes(tmpDir)
@@ -2281,6 +2305,21 @@ describe("POST /books/import-adt", () => {
 })
 
 describe("POST /books/import", () => {
+  // F3: a backup with more entries than the old 10,000 cap imports.
+  it("imports a backup with more than 10,000 entries and writes every file", async () => {
+    const extraFiles: Record<string, Uint8Array> = {}
+    for (let i = 0; i < 10_050; i++) extraFiles[`audio/clip-${i}.mp3`] = new Uint8Array([i % 256])
+    const zip = createProjectZip("many-files", { extraFiles })
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([zip], { type: "application/zip" }), "many-files.zip")
+    const res = await app.request("/books/import", { method: "POST", body: formData })
+    expect(res.status).toBe(201)
+    const label = (await res.json()).label as string
+    expect(fs.readdirSync(path.join(tmpDir, label, "audio"))).toHaveLength(10_050)
+    expect(fs.readFileSync(path.join(tmpDir, label, "audio", "clip-300.mp3"))[0]).toBe(300 % 256)
+  })
+
   it("imports a valid project ZIP", async () => {
     const zip = createProjectZip("import-test")
     const app = createBookRoutes(tmpDir)
