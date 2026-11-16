@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import { Link } from "@tanstack/react-router"
+import { CardsBookContext } from "./cards-book-context"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
 import type { ProviderDescriptor, ProviderHealthResponse } from "@adt/types"
@@ -36,11 +37,14 @@ function Handles({ descriptor }: { descriptor: ProviderDescriptor }) {
 }
 
 function CardFooter({ descriptor }: { descriptor: ProviderDescriptor }) {
+  const bookLabel = useContext(CardsBookContext)
   return (
     <div className="flex items-center justify-between gap-3 border-t pt-3">
       {descriptor.manifest.docsUrl ? <DocsLink url={descriptor.manifest.docsUrl} /> : <span />}
       <Link
-        to="/settings/models"
+        {...(bookLabel
+          ? { to: "/books/$label/$step/settings" as const, params: { label: bookLabel, step: "book" }, search: { tab: "models" } }
+          : { to: "/settings/models" as const })}
         className={cn(
           "inline-flex items-center gap-1 text-[12px] font-medium text-muted-foreground underline-offset-4 transition-colors duration-150 hover:text-foreground hover:underline",
           EASE,

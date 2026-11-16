@@ -87,7 +87,9 @@ vi.mock("@lingui/react/macro", () => ({
   }),
 }))
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
+  Link: ({ children, to, search, params }: { children: React.ReactNode; to?: string; search?: { tab?: string }; params?: { label?: string; step?: string } }) => (
+    <a data-to={to} data-tab={search?.tab} data-label={params?.label} data-step={params?.step}>{children}</a>
+  ),
   useLocation: () => ({ hash: location.hash }),
   useSearch: () => location.search,
 }))
@@ -140,6 +142,8 @@ let credentials: Record<string, Record<string, string>> = {}
 let ownCredentials: Record<string, Record<string, string>> = {}
 
 const { ProvidersList } = await import("./ProvidersList")
+const { ProviderCardGroups } = await import("./ProviderCardGroups")
+const { useProviders } = await import("./useProviders")
 
 /** The expanded card's own region, so collapsed siblings' controls stay out of reach. */
 function panelFor(cardKey: string): HTMLElement {
@@ -451,5 +455,27 @@ describe("ProvidersList — live manifests", () => {
     expect(
       within(googlePanel).getByText("Also used by Gemini Speech unless that provider has its own key."),
     ).toBeTruthy()
+  })
+})
+
+describe("ProviderCardGroups — Assign models", () => {
+  it("opens the global model defaults from Settings → AI providers", async () => {
+    render(<ProvidersList />)
+    const panel = panelFor("openai")
+    const link = await waitFor(() => within(panel).getByText("Assign models").closest("a")!)
+    expect(link.getAttribute("data-to")).toBe("/settings/models")
+  })
+
+  it("opens the book's Models tab from a book's API keys screen", async () => {
+    function BookCards() {
+      return <ProviderCardGroups store={useProviders()} openId="openai" onToggle={() => {}} bookLabel="demo-book" />
+    }
+    render(<BookCards />)
+    const panel = document.getElementById("prov-panel-openai")!
+    const link = await waitFor(() => within(panel).getByText("Assign models").closest("a")!)
+    expect(link.getAttribute("data-to")).toBe("/books/$label/$step/settings")
+    expect(link.getAttribute("data-label")).toBe("demo-book")
+    expect(link.getAttribute("data-step")).toBe("book")
+    expect(link.getAttribute("data-tab")).toBe("models")
   })
 })
