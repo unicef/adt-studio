@@ -183,6 +183,8 @@ export interface Draft {
   sharedNotes: Map<string, string>
   /** Saves, then waits for the live check so the toast reports the real result. */
   save: () => Promise<void>
+  /** True while a save waits for that check (up to 15 s). */
+  saving: boolean
   remove: () => void
 }
 
@@ -243,6 +245,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
   )
   const [values, setValues] = useState<Record<string, string>>(stored)
   const [revealed, setRevealed] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   // `stored` starts empty while /providers is pending and fills in once the
   // manifests arrive, so an untouched draft has to follow it.
@@ -303,6 +306,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
     hasStored,
     errors,
     sharedNotes,
+    saving,
     save: async () => {
       // `save` is async, so a storage failure would otherwise vanish into the
       // void-ed promise of the Save button instead of reaching the user.
@@ -318,7 +322,13 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draf
       const hasKey = descriptor.manifest.credentialFields.some(
         (f) => f.kind === "secret" && (values[f.key] ?? "").trim(),
       )
-      const rejected = await recheckSavedKeys(queryClient, hasKey ? [id] : [])
+      setSaving(true)
+      let rejected: string[]
+      try {
+        rejected = await recheckSavedKeys(queryClient, hasKey ? [id] : [])
+      } finally {
+        setSaving(false)
+      }
       const name = descriptor.manifest.displayName
       const providerKey = providerSelectKey(id)
       if (rejected.length > 0) toast.error(t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Saved, but ${name} rejected this API key. Check that you copied the whole key.` })}` }))
@@ -532,10 +542,18 @@ export function SaveRow({ draft }: { draft: Draft }) {
         type="button"
         size="sm"
         className="ml-auto"
-        disabled={!draft.canSave}
+        disabled={!draft.canSave || draft.saving}
+        aria-busy={draft.saving || undefined}
         onClick={() => void draft.save()}
       >
-        <Trans>Save</Trans>
+        {draft.saving ? (
+          <>
+            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            <Trans>Checking the connection…</Trans>
+          </>
+        ) : (
+          <Trans>Save</Trans>
+        )}
       </Button>
     </div>
   )

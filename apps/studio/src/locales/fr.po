@@ -698,6 +698,10 @@ msgstr "{providerKey, select, other {Votre clé {name} a été refusée}}"
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} détectée(s)"
 
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
+msgstr "{rejectedProviderKey, select, other {Paramètres des clés API — la clé {rejectedName} a été refusée}}"
+
 #. placeholder {0}: section.criteria.length
 msgid "{reviewed}/{0} checked"
 msgstr "{reviewed}/{0} vérifié"

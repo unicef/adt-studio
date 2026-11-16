@@ -1,4 +1,4 @@
-import { useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query"
+import { isCancelledError, useQuery, type QueryClient, type UseQueryResult } from "@tanstack/react-query"
 import type { ProviderHealthResponse } from "@adt/types"
 import { getProviderHealth } from "@/api/client"
 
@@ -32,15 +32,21 @@ export async function recheckSavedKeys(
   void queryClient.invalidateQueries({ queryKey: ["provider-health"] })
   const results = await Promise.all(
     providerIds.map(async (providerId) => {
-      const check = queryClient
-        .fetchQuery({
-          queryKey: storedHealthKey(providerId),
-          queryFn: () => getProviderHealth(providerId),
-          staleTime: HEALTH_STALE_TIME_MS,
-          retry: false,
-        })
-        .then((health) => health.code === "invalid-credential")
-        .catch(() => false)
+      const check = (async function settle(): Promise<boolean> {
+        try {
+          const health = await queryClient.fetchQuery({
+            queryKey: storedHealthKey(providerId),
+            queryFn: () => getProviderHealth(providerId),
+            staleTime: HEALTH_STALE_TIME_MS,
+            retry: false,
+          })
+          return health.code === "invalid-credential"
+        } catch (error) {
+          // Another save re-ran the check and cancelled this fetch: wait for
+          // that run's verdict instead of reading the cancel as "not refused".
+          return isCancelledError(error) ? settle() : false
+        }
+      })()
       let timer: ReturnType<typeof setTimeout> | undefined
       const timeout = new Promise<boolean>((resolve) => {
         timer = setTimeout(() => resolve(false), SAVE_CHECK_TIMEOUT_MS)

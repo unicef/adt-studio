@@ -18,6 +18,7 @@ import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey, useRejectedProvider, useWordHighlightingUnavailable } from "@/hooks/use-api-key"
 import { useBookConfig } from "@/hooks/use-book-config"
+import { useConnectProvider } from "@/hooks/use-connect-provider"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "./components/SpeechPreview"
 
@@ -153,6 +154,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   // eslint-disable-next-line lingui/no-unlocalized-strings -- qualified model identifier, never rendered
   const selectedProviderRejected = useRejectedProvider("tts", `${provider}:default`)
   const selectedProviderLabel = linguiI18n._(PROVIDER_LABELS[provider])
+  const updateRejectedKey = useConnectProvider({ providerId: provider })
   const providerKey = providerSelectKey(provider)
 
   const disabledProviderLabels = useMemo(
@@ -247,7 +249,14 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
             ) : selectedProviderRejected ? (
               <span className="text-red-700 dark:text-red-300">
                 {/* `select` lets translations pick the article for the name (pt-BR: "a OpenAI", "o Azure"). */}
-                {t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `${selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.` })}` })}
+                {t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `${selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.` })}` })}{" "}
+                <button
+                  type="button"
+                  onClick={updateRejectedKey}
+                  className="font-medium underline underline-offset-2 hover:text-red-800 dark:hover:text-red-200"
+                >
+                  <Trans>Update key</Trans>
+                </button>
               </span>
             ) : (
               linguiI18n._(PROVIDER_HINTS[provider])

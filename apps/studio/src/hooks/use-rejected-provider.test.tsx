@@ -197,6 +197,36 @@ describe("recheckSavedKeys", () => {
     await waitFor(() => expect(result.current?.providerId).toBe("openai"))
   })
 
+  it("keeps a save's verdict when a second save restarts the check", async () => {
+    credentials = { openai: { apiKey: "sk-good" } }
+    const { result } = renderHook(() => useRejectedTextProvider(), { wrapper })
+    await waitFor(() => expect(getProviderHealth).toHaveBeenCalledTimes(1))
+
+    // The first save's check is still running when the second save
+    // invalidates it: TanStack cancels that fetch, which must not read as
+    // "not refused".
+    storedCode = "invalid-credential"
+    let releaseFirst: () => void = () => {}
+    getProviderHealth.mockImplementationOnce(
+      (providerId) =>
+        new Promise((resolve) => {
+          releaseFirst = () => resolve({ providerId, ok: false, code: "invalid-credential" })
+        }),
+    )
+    let first: string[] = []
+    let second: string[] = []
+    await act(async () => {
+      const firstSave = recheckSavedKeys(queryClient, ["openai"])
+      await waitFor(() => expect(getProviderHealth).toHaveBeenCalledTimes(2))
+      const secondSave = recheckSavedKeys(queryClient, ["openai"])
+      releaseFirst()
+      ;[first, second] = await Promise.all([firstSave, secondSave])
+    })
+    expect(second).toEqual(["openai"])
+    expect(first).toEqual(["openai"])
+    await waitFor(() => expect(result.current?.providerId).toBe("openai"))
+  })
+
   it("never reports an outage or a failed request as a refused key", async () => {
     storedCode = "unreachable"
     expect(await recheckSavedKeys(queryClient, ["openai"])).toEqual([])

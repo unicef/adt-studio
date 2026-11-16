@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react"
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ProviderDescriptor, ProviderHealthResponse } from "@adt/types"
 
@@ -317,6 +317,24 @@ describe("ProvidersList — live manifests", () => {
 
     expect(recheckSavedKeys).toHaveBeenCalledWith(expect.anything(), ["openai"])
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Provider credentials saved."))
+  })
+
+  it("shows the save as busy while it waits for the connection check", async () => {
+    let finishCheck: (rejected: string[]) => void = () => {}
+    recheckSavedKeys.mockImplementationOnce(() => new Promise((resolve) => { finishCheck = resolve }))
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    fireEvent.change(input, { target: { value: "sk-live" } })
+    fireEvent.click(within(panel).getByRole("button", { name: "Save" }))
+
+    const busy = await waitFor(() => within(panel).getByRole("button", { name: "Checking the connection…" }))
+    expect((busy as HTMLButtonElement).disabled).toBe(true)
+    expect(busy.getAttribute("aria-busy")).toBe("true")
+    await act(async () => finishCheck([]))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Provider credentials saved."))
+    expect(within(panel).queryByRole("button", { name: "Checking the connection…" })).toBeNull()
   })
 
   it("reports a refused key after saving instead of a plain success", async () => {

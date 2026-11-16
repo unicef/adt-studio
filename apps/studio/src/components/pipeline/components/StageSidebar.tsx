@@ -14,7 +14,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { useLingui } from "@lingui/react"
-import { msg } from "@lingui/core/macro"
+import { msg, select } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
@@ -47,6 +47,10 @@ import type { TaskInfoResponse } from "@/api/client"
 import { getStageLabelI18n, getStepLabelI18n, getStageStatusLabelI18n } from "../pipeline-i18n"
 import { ALL_STEP_NAMES, STAGE_ORDER } from "@adt/types"
 import { useHasUnsavedChanges } from "./floating-save"
+import { useBookRejectedTextProvider } from "@/hooks/use-api-key"
+import { providerSelectKey } from "@/i18n/provider-select-key"
+import { providerAnchor } from "@/components/app/screens/settings/provider-anchor"
+import { cardKeyForProvider } from "@/components/app/screens/settings/providers/cards"
 
 const STAGE_GROUP_LABELS: Record<StageGroup, MessageDescriptor> = {
   convert: msg`Core Pipeline`,
@@ -104,6 +108,16 @@ export function StageSidebar({
   const { data: catalog } = useOutputSummary(bookLabel)
   const activeDirtyTabs = useDirtyTabsForStage(activeStep)
   const { data: sidebarPages } = usePages(bookLabel, { enabled: false })
+  // Only the overview and the landing pages carry the key banner, so a key the
+  // provider refuses is also flagged on the book's settings cog, which every
+  // page of the book shows, and links to that provider's card.
+  const rejectedProvider = useBookRejectedTextProvider(bookLabel)
+  const rejectedName = rejectedProvider?.displayName ?? ""
+  // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
+  const rejectedProviderKey = providerSelectKey(rejectedProvider?.providerId ?? "")
+  const bookSettingsLabel = rejectedProvider
+    ? i18n._(msg({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(rejectedProviderKey, { other: `API Key Settings — the ${rejectedName} key was rejected` })}` }))
+    : i18n._(msg`API Key Settings`)
   const hasNoTextLayer = (sidebarPages ?? []).some((p) => p.extractionWarning)
   const noTextLayerLabel = i18n._(
     msg`Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF.`
@@ -290,7 +304,19 @@ export function StageSidebar({
                 <Icon className="w-3.5 h-3.5" />
               </div>
               <StepProgressRing size={28} state={ringState} colorClass={isActive ? "bg-white" : step.color} />
-              {state === "error" ? (
+              {step.slug === "book" && rejectedProvider && railCollapsed ? (
+                // The settings cog is clipped while the rail is collapsed;
+                // mirror its rejected-key dot on the book icon until hover
+                // expands the rail.
+                <span
+                  role="img"
+                  aria-label={bookSettingsLabel}
+                  title={bookSettingsLabel}
+                  className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-red-600 ring-2 ring-background"
+                >
+                  <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
+                </span>
+              ) : state === "error" ? (
                 <span
                   role="img"
                   aria-label={stepAriaLabel}
@@ -388,15 +414,28 @@ export function StageSidebar({
               to="/books/$label/$step/settings"
               params={{ label: bookLabel, step: step.slug }}
               search={{ tab: "general" }}
-              title={i18n._(msg`API Key Settings`)}
+              {...(rejectedProvider
+                ? { hash: providerAnchor(cardKeyForProvider(rejectedProvider.providerId)), "aria-label": bookSettingsLabel }
+                : {})}
+              title={bookSettingsLabel}
               className={cn(
-                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors",
+                "relative shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors",
                 isActive
                   ? "text-white/60 hover:text-white hover:bg-white/20"
-                  : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
+                  : rejectedProvider
+                    ? "text-muted-foreground hover:text-foreground hover:bg-muted-foreground/20"
+                    : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
               )}
             >
               <Settings className="w-3.5 h-3.5" />
+              {/* A dot, as on the app's Settings link: one thing waiting, on the card the link opens. */}
+              {rejectedProvider && (
+                <span
+                  data-rejected-key-dot
+                  aria-hidden
+                  className="absolute right-0.5 top-0.5 size-2 rounded-full bg-red-500 ring-2 ring-background motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-300"
+                />
+              )}
             </Link>
           ) : settingsTabs ? (
             <Link
