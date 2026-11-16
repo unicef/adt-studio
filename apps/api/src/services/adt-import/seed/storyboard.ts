@@ -92,14 +92,22 @@ export function seedImportedStoryboard(
           stepperActivities[String(sectionIndex)] = { ...stepper.activity, enabled: true }
         }
       })
-      if (Object.keys(stepperActivities).length > 0) {
+      // Seed only a page that has none yet: a re-projection must not replace
+      // step-by-step activities the user edited after import.
+      if (Object.keys(stepperActivities).length > 0 && !storage.getLatestNodeData(EDITABLE_ACTIVITY_NODE, pageId)) {
         storage.putNodeData(EDITABLE_ACTIVITY_NODE, pageId, { activities: stepperActivities })
       }
       storage.putNodeData("page-sectioning", pageId, {
         reasoning: "Recovered from the exported ADT HTML storyboard.",
         sections: entries.map((entry) => {
           const nodes = [...entry.projection.nodes]
-          const tocEntry = toc.find((candidate) => candidate.section_id === entry.sectionId)
+          // Only an entry that names a heading can stand in for one (the TOC
+          // editor allows entries with no title or chapter id).
+          const tocEntry = toc.find((candidate) => (
+            candidate.section_id === entry.sectionId
+            && candidate.title.trim().length > 0
+            && candidate.chapter_id.trim().length > 0
+          ))
           if (tocEntry && !nodes.some((node) => node.role === "heading")) {
             nodes.unshift({
               nodeId: tocEntry.chapter_id,

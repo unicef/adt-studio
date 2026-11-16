@@ -156,7 +156,11 @@ export function stampImportedSectionContract(
       // An empty attribute is present; replace it in the opening tag.
       const openEnd = html.indexOf(">", section.startIndex)
       const openTag = html.slice(section.startIndex, openEnd)
-      const fixed = openTag.replace(/\sdata-section-type=(["'])\s*\1/, ` data-section-type="${escapeSectionAttribute(sectionType)}"`)
+      // Empty (`=""`) or bare (`data-section-type`) attribute.
+      const fixed = openTag.replace(
+        /\sdata-section-type(?:\s*=\s*(["'])\s*\1)?(?=[\s/>]|$)/,
+        ` data-section-type="${escapeSectionAttribute(sectionType)}"`,
+      )
       html = html.slice(0, section.startIndex) + fixed + html.slice(openEnd)
     } else {
       additions.push(`data-section-type="${escapeSectionAttribute(sectionType)}"`)

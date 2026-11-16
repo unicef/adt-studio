@@ -22,6 +22,11 @@ describe("stampImportedSectionContract", () => {
     )
   })
 
+  it("fills a bare data-section-type attribute", () => {
+    expect(stampImportedSectionContract(`<section data-section-id="s1" data-section-type><p>x</p></section>`, "s1", "content"))
+      .toBe(`<section data-section-id="s1" data-section-type="content"><p>x</p></section>`)
+  })
+
   it("returns a valid section byte for byte", () => {
     const html = `<section data-section-id="s1" data-section-type="content" class="a"><p>Caf&eacute; <br/>x</p></section>`
     expect(stampImportedSectionContract(html, "s1", "content")).toBe(html)

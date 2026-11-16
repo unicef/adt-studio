@@ -20,7 +20,12 @@ import {
   isImportedAdtProject,
   readImportedAdtCurrent,
   readImportedAdtSourceArchive,
+  writeImportedAdtCurrent,
 } from "./source.js"
+import { recoverImportedQuizzes } from "./quiz.js"
+import { recoverImportedSignLanguageVideos } from "./sign-language.js"
+import { currentImportedNarration, recoverImportedAudio } from "./speech.js"
+import { createRecoveredCatalog } from "./catalog.js"
 
 function readCurrentImportedAdtSource(label: string, booksDir: string): Buffer {
   try {
@@ -147,6 +152,32 @@ export function readSeededImportedAdtFeatures(
   }
 }
 
+/** Features the archive carries in a form the import recovers: what an import
+ * made before `seededFeatures` was recorded brought into the project. */
+function recoverableImportedFeatures(
+  bundle: ReturnType<typeof readAdtBundle>,
+  files: Record<string, Uint8Array>,
+): ImportedAdtFeature[] {
+  const sourceTexts = bundle.texts[bundle.manifest.languages.source] ?? {}
+  const features: ImportedAdtFeature[] = []
+  if (bundle.runtimeFeatures.readAloud) {
+    // Only narration the import adopted: still current for its text.
+    const { catalog } = createRecoveredCatalog(
+      sourceTexts,
+      bundle.pages,
+      bundle.pageHtml,
+      bundle.sourceFormat === "legacy-studio-export",
+    )
+    if (recoverImportedAudio(bundle, files, currentImportedNarration(bundle, files, catalog.entries)).length > 0) {
+      features.push("Speech")
+    }
+  }
+  if (recoverImportedQuizzes(bundle, sourceTexts).quizzes.length > 0) features.push("Quizzes")
+  if (Object.entries(sourceTexts).some(([id, text]) => id.endsWith("_easy_read") && text.trim().length > 0)) features.push("Easy Read")
+  if (recoverImportedSignLanguageVideos(bundle, files).length > 0) features.push("Sign Language")
+  return features
+}
+
 /**
  * Imported features a package would silently lose: the archive shipped them,
  * the import could not bring them in, and the project does not have them now.
@@ -161,16 +192,27 @@ export function getImportedAdtFeaturesNeedingRegeneration(
   const safeLabel = parseBookLabel(label)
   const bookDir = path.join(path.resolve(booksDir), safeLabel)
   if (!isImportedAdtProject(bookDir)) return []
+  let sourceZip: Buffer
   let bundle: ReturnType<typeof readAdtBundle>
   try {
-    bundle = readAdtBundle(readCurrentImportedAdtSource(safeLabel, booksDir))
+    sourceZip = readCurrentImportedAdtSource(safeLabel, booksDir)
+    bundle = readAdtBundle(sourceZip)
   } catch {
     return []
   }
   let seeded: ReadonlySet<string> | null = null
   try {
-    const recorded = readImportedAdtCurrent(bookDir).seededFeatures
-    if (Array.isArray(recorded)) seeded = new Set(recorded.filter((f): f is string => typeof f === "string"))
+    const current = readImportedAdtCurrent(bookDir)
+    const recorded = current.seededFeatures
+    if (Array.isArray(recorded)) {
+      seeded = new Set(recorded.filter((f): f is string => typeof f === "string"))
+    } else {
+      // Imported before `seededFeatures` was recorded: work out once, from the
+      // stored archive, which features the import could bring in, and save it.
+      const backfilled = recoverableImportedFeatures(bundle, extractAdtBundleArchiveFiles(sourceZip))
+      writeImportedAdtCurrent(bookDir, { ...current, seededFeatures: backfilled })
+      seeded = new Set(backfilled)
+    }
   } catch {
     seeded = null
   }
@@ -181,9 +223,9 @@ export function getImportedAdtFeaturesNeedingRegeneration(
     return (Object.keys(states) as ImportedAdtFeature[]).filter((feature) => {
       const state = states[feature]
       if (!state.inArchive || state.present || excluded.has(feature)) return false
-      // Imports recorded before `seededFeatures` existed: any trace of the
-      // feature in the project means it was brought in and later removed.
-      const broughtIn = seeded ? seeded.has(feature) : state.everPresent
+      // Without any record, any trace of the feature in the project means it
+      // was brought in and later removed.
+      const broughtIn = seeded ? seeded.has(feature) || state.everPresent : state.everPresent
       return !broughtIn
     })
   } finally {

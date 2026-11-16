@@ -179,6 +179,26 @@ describe("inline data: images", () => {
   })
 })
 
+// A TOC-editor entry with no title must not become an empty heading.
+describe("TOC entries without a title", () => {
+  it("are not used as a section heading", () => {
+    const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
+    files["content/toc.json"] = json([{ section_id: "pg001_sec001", href: "index.html", title: "", chapter_id: "" }])
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-toc-empty-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const sectioning = storage.getLatestNodeData("page-sectioning", "pg001")?.data as
+        { sections: Array<{ nodes: Array<{ nodeId: string; role: string; text?: string }> }> }
+      const headings = sectioning.sections.flatMap((section) => section.nodes).filter((node) => node.role === "heading")
+      expect(headings.every((node) => node.nodeId && node.text)).toBe(true)
+    } finally {
+      storage.close()
+    }
+  })
+})
+
 describe("imported feature recovery", () => {
   it("does not promise features whose editable data the archive cannot carry", () => {
     const files = unzipSync(makeFixedLayoutBundle())
@@ -370,6 +390,14 @@ describe("imported Easy Read and sign language recovery", () => {
       // ...unless the export leaves that feature out.
       expect(getImportedAdtFeaturesNeedingRegeneration(session.label, booksDir, new Set(["Sign Language"])))
         .toEqual([])
+    })
+
+    it("backfills what an older import brought in, so deleting all its sign-language videos does not block", () => {
+      const { session, booksDir, bookDir } = importWithRecord(false)
+      deleteAllSignLanguageVideos(session.label, booksDir)
+      expect(getImportedAdtFeaturesNeedingRegeneration(session.label, booksDir)).toEqual([])
+      expect(JSON.parse(fs.readFileSync(path.join(bookDir, ".adt-import-current.json"), "utf8")).seededFeatures)
+        .toEqual(expect.arrayContaining(["Easy Read", "Sign Language"]))
     })
 
     it("treats an emptied quiz or Easy Read entity as removed, for imports recorded before seededFeatures", () => {

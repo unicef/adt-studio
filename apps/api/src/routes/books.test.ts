@@ -2411,7 +2411,13 @@ describe("POST /books/import", () => {
       sourceFingerprint: "8".repeat(64),
       createdAt: "2026-11-15T19:52:38.546Z",
     }))
-    const zip = createProjectZip("imported-book", { omitPdf: true, extraFiles: { ".adt-project.json": identity } })
+    const zip = createProjectZip("imported-book", {
+      omitPdf: true,
+      extraFiles: {
+        ".adt-project.json": identity,
+        ".adt-import-current.json": new TextEncoder().encode(JSON.stringify({ version: 1, revisionId: "rev" })),
+      },
+    })
     const app = createBookRoutes(tmpDir)
     const send = (route: string) => {
       const formData = new FormData()

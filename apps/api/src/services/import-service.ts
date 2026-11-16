@@ -7,6 +7,7 @@ import { renderPdfCover } from "@adt/pdf"
 import { openBookDb } from "@adt/storage"
 import { getBook, type BookSummary } from "./book-service.js"
 import { PROJECT_IDENTITY_FILE } from "./project-identity.js"
+import { ADT_IMPORT_CURRENT_FILE } from "./adt-import/source.js"
 import {
   ArchiveSafetyError,
   extractArchiveToDisk,
@@ -82,7 +83,9 @@ function missingSourceProblem(
   filePaths: string[],
 ): string | null {
   if (findEntry(filePaths, ".pdf")) return null
-  if (!filePaths.includes(PROJECT_IDENTITY_FILE)) return NOT_ADT_PROJECT
+  // Both the identity and the import marker (which names the stored source
+  // archive) must be there, or the restored book would have no source at all.
+  if (!filePaths.includes(PROJECT_IDENTITY_FILE) || !filePaths.includes(ADT_IMPORT_CURRENT_FILE)) return NOT_ADT_PROJECT
   const raw = asInvalidArchive(() => readArchiveEntries(zipBuffer, [PROJECT_IDENTITY_FILE]))[PROJECT_IDENTITY_FILE]
   try {
     const identity = ProjectIdentity.parse(JSON.parse(new TextDecoder().decode(raw)))
