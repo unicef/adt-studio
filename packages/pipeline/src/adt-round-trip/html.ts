@@ -503,16 +503,21 @@ export function projectImportedHtmlSection(
   const seen = new Set<string>()
   for (const el of leaves) {
     const nodeId = el.attribs["data-id"]?.trim()
+    const archivedSrc = el.attribs.src ?? ""
+    // Every copy of an image (responsive desktop/mobile variants share one
+    // data-id) points at the stored image, not at its archive-relative path.
+    if (nodeId && el.name === "img" && imageUrlPrefix) {
+      el.attribs.src = `${imageUrlPrefix}/${encodeURIComponent(nodeId)}`
+    }
     if (!nodeId || seen.has(nodeId)) continue
     seen.add(nodeId)
 
     if (el.name === "img") {
-      const src = el.attribs.src ?? ""
+      const src = archivedSrc
       const alt = (el.attribs.alt ?? "").trim()
       const decorative = el.attribs["aria-hidden"] === "true" || el.attribs.role === "presentation"
       images.push({ imageId: nodeId, src, alt, decorative })
       nodes.push({ nodeId, role: "image", isPruned: false })
-      if (imageUrlPrefix) el.attribs.src = `${imageUrlPrefix}/${encodeURIComponent(nodeId)}`
       continue
     }
 

@@ -6,6 +6,20 @@ import {
 } from "../adt-round-trip/html.js"
 
 describe("projectImportedHtmlSection", () => {
+  // F17: responsive copies share one data-id; every copy must point at the stored image.
+  it("rewrites the src of every copy of an image", () => {
+    const result = projectImportedHtmlSection(
+      `<section data-section-id="s1" data-section-type="content"><picture><img data-id="pg001_im001" class="hidden md:block" src="images/pg001_im001.png" alt="A raven"></picture><img data-id="pg001_im001" class="md:hidden" src="images/pg001_im001.png" alt="A raven"></section>`,
+      "s1",
+      "/api/books/b/images",
+    )
+    expect(result.html.match(/src="[^"]*"/g)).toEqual([
+      'src="/api/books/b/images/pg001_im001"',
+      'src="/api/books/b/images/pg001_im001"',
+    ])
+    expect(result.images).toEqual([expect.objectContaining({ imageId: "pg001_im001", src: "images/pg001_im001.png" })])
+  })
+
   it("normalizes a full exported page into a semantic section fragment", () => {
     const result = projectImportedHtmlSection(`<!doctype html><html><head>
       <title>Book shell</title>

@@ -157,6 +157,28 @@ describe("glossary term pictures", () => {
   })
 })
 
+// F18: an image embedded as a data: URI becomes a real book image.
+describe("inline data: images", () => {
+  it("stores the embedded image instead of losing it", () => {
+    const pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
+    files["index.html"] = strToU8(new TextDecoder().decode(files["index.html"])
+      .replace('src="images/pg001_im001.png"', `src="data:image/png;base64,${pixel}"`))
+    delete files["images/pg001_im001.png"]
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-f18-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      expect(storage.getImageMeta("pg001_im001")).toMatchObject({ relativePath: "images/pg001_im001.png" })
+      expect(fs.readFileSync(path.join(booksDir, session.label, "images", "pg001_im001.png")))
+        .toEqual(Buffer.from(pixel, "base64"))
+    } finally {
+      storage.close()
+    }
+  })
+})
+
 describe("imported feature recovery", () => {
   it("does not promise features whose editable data the archive cannot carry", () => {
     const files = unzipSync(makeFixedLayoutBundle())

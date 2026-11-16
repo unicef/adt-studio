@@ -21,6 +21,13 @@ function resolveImportedImage(
   src: string,
 ): { archivePath: string; bytes: Uint8Array; extension: string } | null {
   const supported = new Set(["png", "jpg", "jpeg", "webp", "gif", "svg"])
+  // An image embedded in the HTML as a data: URI becomes a real book image.
+  const inline = /^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,([a-z0-9+/=\s]+)$/i.exec(src.trim())
+  if (inline) {
+    const extension = inline[1].toLowerCase().replace("svg+xml", "svg").replace("jpeg", "jpg")
+    const bytes = new Uint8Array(Buffer.from(inline[2].replace(/\s+/g, ""), "base64"))
+    if (bytes.length > 0) return { archivePath: `${href}#${imageId}`, bytes, extension }
+  }
   const candidates: string[] = []
   if (src && !/^(?:data:|https?:|\/)/i.test(src)) {
     let decoded = src.split(/[?#]/, 1)[0]
