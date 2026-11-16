@@ -1752,6 +1752,16 @@ describe("POST /books/preview-import", () => {
     expect(await res.json()).toMatchObject({ label: "big-image", imageCount: 2, validationError: null })
   })
 
+  it("reads an ADT bundle with a stray Thumbs.db as an ADT bundle, not a backup", async () => {
+    const files = unzipSync(new Uint8Array(createExportedAdtZip()))
+    files["Thumbs.db"] = new Uint8Array([1, 2, 3])
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append("zip", new Blob([Buffer.from(zipSync(files))], { type: "application/zip" }), "thumbs.zip")
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(await res.json()).toMatchObject({ isAdtBundle: true })
+  })
+
   it("previews an ADT bundle with an oversized image by leaving that image out", async () => {
     const files = unzipSync(new Uint8Array(createExportedAdtZip()))
     files["images/huge_photo.png"] = new Uint8Array(11 * 1024 * 1024)

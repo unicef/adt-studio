@@ -128,6 +128,21 @@ describe("listBooks", () => {
     }
   })
 
+  it("lists every other book when one folder can't be read at all", () => {
+    if (process.platform === "win32" || process.getuid?.() === 0) return
+    createTestDb("healthy")
+    const bad = path.join(tmpDir, "unreadable")
+    fs.mkdirSync(bad)
+    fs.chmodSync(bad, 0o000)
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      expect(listBooks(tmpDir).map((book) => book.label)).toContain("healthy")
+    } finally {
+      warn.mockRestore()
+      fs.chmodSync(bad, 0o755)
+    }
+  })
+
   it("lists a book whose folder can't be written and has no identity yet", () => {
     if (process.platform === "win32" || process.getuid?.() === 0) return
     createTestDb("read-only")

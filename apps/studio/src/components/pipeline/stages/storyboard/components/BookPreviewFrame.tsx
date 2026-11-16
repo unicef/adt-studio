@@ -590,7 +590,9 @@ ${autoFitScript}
         )
         return
       }
-      callbacksRef.current.onTextChanged?.(dataId, newText, reconstructed)
+      // The edited element's innerHTML comes from the live preview, so any image
+      // inside it carries the display-only link; save the stored form.
+      callbacksRef.current.onTextChanged?.(dataId, newText, toStoredImageSources(reconstructed))
     } else if (type === "deselect") {
       callbacksRef.current.onSelectElement?.("", {} as DOMRect)
     }

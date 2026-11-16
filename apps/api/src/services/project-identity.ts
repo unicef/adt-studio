@@ -117,7 +117,12 @@ export function projectIdentityForListing(bookDir: string): ProjectIdentity {
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error)
     console.warn(`[books] ${path.basename(bookDir)}: project identity unavailable (${reason}); listed without one`)
-    const hasPdf = fs.readdirSync(bookDir).some((name) => name.toLowerCase().endsWith(".pdf"))
+    let hasPdf = false
+    try {
+      hasPdf = fs.readdirSync(bookDir).some((name) => name.toLowerCase().endsWith(".pdf"))
+    } catch {
+      // An unreadable folder is listed as an unknown source.
+    }
     return ProjectIdentity.parse({
       version: PROJECT_IDENTITY_VERSION,
       projectId: unsavedProjectId(bookDir),

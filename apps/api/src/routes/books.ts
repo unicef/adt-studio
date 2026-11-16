@@ -143,10 +143,15 @@ const archiveImportBodyLimit = bodyLimit({
   }, 413),
 })
 
-/** True when the archive has a database file at its root (a project backup). */
+/** True when the archive is a project backup: a database file at its root, and
+ * not an exported ADT bundle. */
 function isProjectBackupArchive(zipBuffer: Buffer): boolean {
   try {
-    return inspectArchivePaths(zipBuffer).some((name) => !name.includes("/") && name.endsWith(".db"))
+    const paths = inspectArchivePaths(zipBuffer)
+    // An exported ADT bundle always has content/pages.json at its root; a
+    // stray Thumbs.db next to it must not turn it into a "backup".
+    return paths.some((name) => !name.includes("/") && name.endsWith(".db"))
+      && !paths.includes("content/pages.json")
   } catch (error) {
     if (error instanceof ArchiveSafetyError) throw new HTTPException(400, { message: error.message })
     throw error
