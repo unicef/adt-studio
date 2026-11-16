@@ -2,6 +2,32 @@ import { describe, it, expect } from "vitest"
 import { applyFontToHtml } from "../font-apply.js"
 
 describe("applyFontToHtml", () => {
+  it("returns the input unchanged when no style changes, so older HTML is not rewritten just to re-encode it (#907)", () => {
+    // Before #907, stored HTML wrote non-ASCII as numeric entities. Re-serializing
+    // it now would differ only in encoding, and the font route would save a new
+    // rendering version for a page whose fonts did not change.
+    const html = '<section><p>La explicaci&#xf3;n</p><h1 style="font-family: Lora">&#xa1;Brrr!</h1></section>'
+    expect(applyFontToHtml(html, { family: null, scope: "paragraph" })).toBe(html)
+    expect(applyFontToHtml(html, { family: "Lora", scope: "heading" })).toBe(html)
+  })
+
+  it("still moves font-family last when a later font shorthand would override it", () => {
+    const out = applyFontToHtml('<h2 style="font-family: Lora; font: bold 2rem serif">T</h2>', { family: "Lora", scope: "heading" })
+    expect(out).toBe('<h2 style="font: bold 2rem serif; font-family: Lora">T</h2>')
+  })
+
+  it("counts only a font-family change as a change, not other style formatting (#907)", () => {
+    const html = '<section><p style="color:red;">&#xa1;Hola!</p><h2 style="color: red; font-family: Lora">T&#xed;tulo</h2></section>'
+    expect(applyFontToHtml(html, { family: null, scope: "whole" })).not.toBe(html) // the h2 loses its font-family
+    expect(applyFontToHtml(html, { family: null, scope: "paragraph" })).toBe(html)
+    expect(applyFontToHtml(html, { family: "Lora", scope: "heading" })).toBe(html)
+  })
+
+  it("writes literal UTF-8 when a style does change (#907)", () => {
+    const out = applyFontToHtml("<p>La explicaci&#xf3;n</p>", { family: "Lora", scope: "paragraph" })
+    expect(out).toBe('<p style="font-family: Lora">La explicación</p>')
+  })
+
   it("removes every inline font-family for whole-book scope", () => {
     const html = `<section><h1 style="font-family:'Nabla',serif;color:red">T</h1><p style="font-family:'Lora',serif">b</p></section>`
     const out = applyFontToHtml(html, { family: "'Ignored',serif", scope: "whole" })

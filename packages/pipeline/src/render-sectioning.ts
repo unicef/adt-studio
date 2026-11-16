@@ -22,6 +22,7 @@ import type { NodeDataRow, Storage } from "@adt/storage"
 import type { PageSectioningOutput, PageSectioningSection, SectionRendering, PackagingWarning, ContentNodeData, SectioningSynchronization } from "@adt/types"
 import { PageSectioningOutput as PageSectioningOutputSchema, WebRenderingOutput } from "@adt/types"
 import { parseDocument, DomUtils } from "htmlparser2"
+import { serializeHtml } from "./html-escape.js"
 
 export const FIXED_LAYOUT_SECTIONING_NODE = "fixed-layout-sectioning"
 export const PAGE_SECTIONING_NODE = "page-sectioning"
@@ -82,7 +83,7 @@ function withLegacyFixedLayoutOwnership(
   if (roots.length !== 1) return rendering
   const sectionId = fixed.data.sections[0].sectionId
   roots[0].attribs["data-section-id"] = sectionId
-  return { ...rendering, sections: [{ ...entry, sectionId, html: DomUtils.getOuterHTML(doc) }] }
+  return { ...rendering, sections: [{ ...entry, sectionId, html: serializeHtml(doc) }] }
 }
 
 /** Read-only legacy compatibility, not historical proof. Whole content trees

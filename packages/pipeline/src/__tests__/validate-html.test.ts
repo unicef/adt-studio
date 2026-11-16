@@ -6,6 +6,17 @@ import {
 } from "../validate-html.js"
 
 describe("validateSectionHtml", () => {
+  it("stores non-ASCII text as literal UTF-8, not numeric entities (#907)", () => {
+    const html = `<div id="content"><section data-section-type="text_only">
+      <h1 data-id="pg001_tx001">La explicación</h1>
+      <p data-id="pg001_tx002">¡Brrr! ¿Qué &amp; cómo?</p>
+    </section></div>`
+    const result = validateSectionHtml(html, ["pg001_tx001", "pg001_tx002"], [])
+    expect(result.sectionHtml).toContain(">La explicación</h1>")
+    expect(result.sectionHtml).toContain(">¡Brrr! ¿Qué &amp; cómo?</p>")
+    expect(result.sectionHtml).not.toMatch(/&#x/)
+  })
+
   it("passes valid HTML with correct data-ids", () => {
     const html = `
       <div id="content" class="container">
