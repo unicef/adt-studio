@@ -54,9 +54,9 @@ export function seedImportedAdtProject(
   if (bundle.pages.length === 0 || Object.keys(bundle.pageHtml).length === 0) {
     throw new AdtImportError("The ADT bundle does not contain recoverable book pages")
   }
-  if (!files[`${bundle.root}index.html`]) {
-    throw new AdtImportError("ADT bundle is missing its book entry page")
-  }
+  // No index.html requirement: the entry page only redirects to the first page
+  // and packaging writes a new one, so its absence must not refuse an import
+  // the preview approved (it is only a title fallback in readAdtBundle).
   const activityReview = analyzeImportedActivities(bundle)
   const activityOverrides = resolveImportedActivityDecisions(activityReview, activityDecisions)
 

@@ -1990,6 +1990,30 @@ describe("POST /books/preview-import", () => {
     })
   })
 
+  // F26: the preview and the import agree on a bundle with no index.html.
+  it("imports a bundle without index.html that the preview approved", async () => {
+    const renamed: Record<string, Uint8Array> = {}
+    for (const [name, bytes] of Object.entries(unzipSync(new Uint8Array(createExportedAdtZip())))) {
+      const text = /\.(?:html|json)$/.test(name)
+      renamed[name.replaceAll("index.html", "pg001_sec001.html")] = text
+        ? new TextEncoder().encode(new TextDecoder().decode(bytes).replaceAll("index.html", "pg001_sec001.html"))
+        : bytes
+    }
+    expect(renamed["index.html"]).toBeUndefined()
+    const zip = Buffer.from(zipSync(renamed))
+    const app = createBookRoutes(tmpDir)
+    const send = (route: string, mode?: string) => {
+      const formData = new FormData()
+      formData.append("zip", new Blob([zip], { type: "application/zip" }), "no-entry.zip")
+      if (mode) formData.append("mode", mode)
+      return app.request(route, { method: "POST", body: formData })
+    }
+    const preview = await send("/books/preview-import")
+    expect(await preview.json()).toMatchObject({ isAdtBundle: true, compatibility: { supported: true } })
+    const imported = await send("/books/import-adt", "new-project")
+    expect(imported.status).toBe(201)
+  })
+
   it("recovers an older manifest without the Studio editing contract", async () => {
     const app = createBookRoutes(tmpDir)
     const formData = new FormData()
