@@ -7,6 +7,7 @@ import { createBookStorage } from "@adt/storage"
 import { BookMetadata, TextCatalogOutput, type AdtActivityImportDecision } from "@adt/types"
 
 import type { ReadAdtBundle } from "../bundle-reader.js"
+import { importedSourceTextIsCurrent } from "../speech.js"
 import {
   analyzeImportedActivities,
   resolveImportedActivityDecisions,
@@ -99,13 +100,19 @@ export function seedImportedAdtProject(
     })
     storage.putNodeData("metadata", "book", metadata)
     storage.putNodeData("text-catalog", "book", catalog)
-    const catalogIds = new Set(catalog.entries.map((entry) => entry.id))
+    const catalogTexts = new Map(catalog.entries.map((entry) => [entry.id, entry.text]))
+    // A translation of text edited after export no longer matches its source:
+    // leave it out so it shows as missing and is translated again.
+    const sourceIsCurrent = importedSourceTextIsCurrent(bundle)
     for (const language of outputLanguages) {
       const texts = bundle.texts[language] ?? bundle.texts[language.replace("-", "_")]
       if (!texts) continue
       storage.putNodeData("text-catalog-translation", language, TextCatalogOutput.parse({
         entries: Object.entries(texts)
-          .filter(([id]) => catalogIds.has(id))
+          .filter(([id]) => {
+            const sourceText = catalogTexts.get(id)
+            return sourceText !== undefined && sourceIsCurrent(id, sourceText)
+          })
           .map(([id, text]) => ({ id, text })),
         generatedAt: createdAt,
       }))

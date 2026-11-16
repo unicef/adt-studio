@@ -20,6 +20,7 @@ import {
   ensureImportedAdtProjectProjection,
 } from "../projection.js"
 import {
+  exportedThenEdited,
   json,
   makeBundle,
   makeBundleWithBaselinedNarrationAfterEdit,
@@ -34,6 +35,50 @@ import {
   seedFromArchive,
   temporaryRoots,
 } from "./fixtures.js"
+
+// F10: translations and Easy Read of text edited after export are made again.
+describe("derived text of a source edited after export", () => {
+  const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes)
+  function editedArchive() {
+    return exportedThenEdited(makeBundleWithEasyReadAndSignLanguage(), (edited) => {
+      edited["index.html"] = strToU8(decode(edited["index.html"]).replace("Edited outside Studio", "Rewritten after export"))
+      const texts = JSON.parse(decode(edited["content/i18n/en/texts.json"]))
+      texts.pg001_n001 = "Rewritten after export"
+      edited["content/i18n/en/texts.json"] = json(texts)
+    }, { textFingerprints: true })
+  }
+
+  it("drops the stale translation and Easy Read of that text and keeps the rest", () => {
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-f10-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(editedArchive(), booksDir)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const source = storage.getLatestNodeData("text-catalog", "book")?.data as { entries: Array<{ id: string; text: string }> }
+      expect(source.entries.find((e) => e.id === "pg001_n001")?.text).toBe("Rewritten after export")
+      const es = storage.getLatestNodeData("text-catalog-translation", "es")?.data as { entries: Array<{ id: string }> }
+      expect(es.entries.map((e) => e.id)).not.toContain("pg001_n001")
+      expect(es.entries.length).toBeGreaterThan(0)
+      const easyRead = storage.getLatestNodeData("easy-read", "book")?.data as
+        { blocks: Array<{ entries: Array<{ sourceId: string }> }> } | undefined
+      expect((easyRead?.blocks ?? []).flatMap((b) => b.entries).map((e) => e.sourceId)).not.toContain("pg001_n001")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("reports the translation as partly recovered in the preview", () => {
+    const preview = previewAdtRecoveryImport(editedArchive())
+    expect(preview.featureRecovery.translate).toBe("partial")
+    expect(preview.featureRecovery["easy-read"]).not.toBe("recovered")
+  })
+
+  it("keeps everything from an untouched export", () => {
+    const preview = previewAdtRecoveryImport(exportedThenEdited(makeBundleWithEasyReadAndSignLanguage(), () => {}, { textFingerprints: true }))
+    expect(preview.featureRecovery.translate).toBe("recovered")
+    expect(preview.featureRecovery["easy-read"]).toBe("recovered")
+  })
+})
 
 describe("imported feature recovery", () => {
   it("does not promise features whose editable data the archive cannot carry", () => {

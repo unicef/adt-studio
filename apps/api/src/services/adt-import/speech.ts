@@ -74,6 +74,24 @@ export function isExportUnchanged(bundle: ReadAdtBundle): boolean {
 }
 
 /**
+ * Is a source text still what was exported? Derived output made from it
+ * (translations, Easy Read) is only current while it is. Checked against the
+ * per-entry `frozen.textFingerprints` baseline narration also uses; an export
+ * without that baseline can't tell, so everything counts as current there.
+ */
+export function importedSourceTextIsCurrent(
+  bundle: ReadAdtBundle,
+): (textId: string, currentText: string) => boolean {
+  const baseline = bundle.manifest.frozen?.textFingerprints
+  if (!baseline) return () => true
+  const sourceBaseline = baseline[bundle.manifest.languages.source] ?? {}
+  return (textId, currentText) => {
+    const expected = sourceBaseline[textId]
+    return expected !== undefined && adtTextFingerprint(currentText) === expected
+  }
+}
+
+/**
  * Per archive locale and text id: may the archive's audio and prepared speech
  * be adopted?
  *

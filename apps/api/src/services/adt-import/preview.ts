@@ -11,12 +11,12 @@ import {
   recoveredPageCount,
 } from "./catalog.js"
 import { previewCoverDataUri } from "./preview-cover.js"
-import { recoverableEasyReadIds } from "./easy-read.js"
+import { EASY_READ_ID_SUFFIX, recoverableEasyReadIds } from "./easy-read.js"
 import { AdtImportError } from "./error.js"
 import { createAdtImportRepairGuide } from "./repair-guide.js"
 import { recoverImportedQuizzes } from "./quiz.js"
 import { recoverImportedSignLanguageVideos } from "./sign-language.js"
-import { currentImportedNarration, recoverImportedAudio } from "./speech.js"
+import { currentImportedNarration, importedSourceTextIsCurrent, recoverImportedAudio } from "./speech.js"
 
 /**
  * How each pipeline feature will actually come out of this archive.
@@ -43,12 +43,16 @@ export function planImportedFeatureRecovery(
     glossaryEntryCount: number
     tocEntryCount: number
     translationLanguageCount: number
+    /** Translated entries in the archive, and how many still match their source. */
+    translation?: { kept: number; total: number }
     quizCount: number
     declaredQuizCount: number
     recoverableQuizCount: number
     /** Narrated entries in the archive, and how many are still current. */
     speech: { kept: number; total: number }
     easyReadEntryCount: number
+    /** Easy Read entries whose source text is still what was exported. */
+    easyReadKeptCount?: number
     signLanguageVideoCount: number
   },
 ): Record<string, AdtImportFeatureRecovery> {
@@ -57,7 +61,11 @@ export function planImportedFeatureRecovery(
   if (counts.captionedImageCount > 0) plan.captions = "recovered"
   if (counts.glossaryEntryCount > 0) plan.glossary = "recovered"
   if (counts.tocEntryCount > 0) plan.toc = "recovered"
-  if (counts.translationLanguageCount > 0) plan.translate = "recovered"
+  if (counts.translationLanguageCount > 0) {
+    // Translations of text edited after export are made again.
+    const { kept, total } = counts.translation ?? { kept: 1, total: 1 }
+    plan.translate = kept === 0 && total > 0 ? "needs-regeneration" : kept < total ? "partial" : "recovered"
+  }
   if (bundle.runtimeFeatures.readAloud) {
     const { kept, total } = counts.speech
     // Narration for text edited after export is withheld and made again, so
@@ -77,11 +85,38 @@ export function planImportedFeatureRecovery(
       ? "recovered"
       : "needs-regeneration"
   }
-  if (counts.easyReadEntryCount > 0) plan["easy-read"] = "recovered"
+  const easyReadKept = counts.easyReadKeptCount ?? counts.easyReadEntryCount
+  if (counts.easyReadEntryCount > 0 && easyReadKept === 0) plan["easy-read"] = "needs-regeneration"
+  else if (counts.easyReadEntryCount > 0) {
+    plan["easy-read"] = easyReadKept < counts.easyReadEntryCount ? "partial" : "recovered"
+  }
   else if (bundle.runtimeFeatures.easyRead) plan["easy-read"] = "needs-regeneration"
   if (counts.signLanguageVideoCount > 0) plan["sign-language"] = "recovered"
   else if (bundle.runtimeFeatures.signLanguage) plan["sign-language"] = "needs-regeneration"
   return plan
+}
+
+/** How many archived translations the import keeps: the rule
+ * `seedImportedAdtProject` applies (source text unchanged since export). */
+function translationRecovery(
+  bundle: ReadAdtBundle,
+  outputLanguages: readonly string[],
+  catalogEntries: ReadonlyArray<{ id: string; text: string }>,
+): { kept: number; total: number } {
+  const catalogTexts = new Map(catalogEntries.map((entry) => [entry.id, entry.text]))
+  const sourceIsCurrent = importedSourceTextIsCurrent(bundle)
+  let kept = 0
+  let total = 0
+  for (const language of outputLanguages) {
+    const texts = bundle.texts[language] ?? bundle.texts[language.replace("-", "_")] ?? {}
+    for (const id of Object.keys(texts)) {
+      const sourceText = catalogTexts.get(id)
+      if (sourceText === undefined) continue
+      total++
+      if (sourceIsCurrent(id, sourceText)) kept++
+    }
+  }
+  return { kept, total }
 }
 
 /** How much of the archive's narration the importer can adopt: the same
@@ -145,6 +180,9 @@ export function previewAdtRecoveryImport(
     bundle.texts[language] || bundle.texts[language.replace("-", "_")]
   )).length
   const contentChanged = hasSourceChanges(bundle, catalog, sourceTexts)
+  const catalogTexts = new Map(catalog.entries.map((entry) => [entry.id, entry.text]))
+  const sourceIsCurrent = importedSourceTextIsCurrent(bundle)
+  const easyReadIds = recoverableEasyReadIds(sourceTexts, new Set(catalogTexts.keys()))
 
   return {
     isAdtBundle: true,
@@ -174,10 +212,13 @@ export function previewAdtRecoveryImport(
       declaredQuizCount: recoveredQuizzes.declaredCount,
       recoverableQuizCount: recoveredQuizzes.quizzes.length,
       speech: speechRecovery(bundle, files, catalog.entries),
-      easyReadEntryCount: recoverableEasyReadIds(
-        sourceTexts,
-        new Set(catalog.entries.map((entry) => entry.id)),
-      ).length,
+      translation: translationRecovery(bundle, outputLanguages, catalog.entries),
+      easyReadEntryCount: easyReadIds.length,
+      easyReadKeptCount: easyReadIds.filter((id) => {
+        const sourceId = id.slice(0, -EASY_READ_ID_SUFFIX.length)
+        const sourceText = catalogTexts.get(sourceId)
+        return sourceText !== undefined && sourceIsCurrent(sourceId, sourceText)
+      }).length,
       signLanguageVideoCount: recoverImportedSignLanguageVideos(bundle, files).length,
     }),
     agentGuide: createAdtImportRepairGuide(bundle, compatibility, template, activityReview, archiveName),

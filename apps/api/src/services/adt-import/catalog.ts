@@ -71,7 +71,11 @@ export function createRecoveredCatalog(
         ]
       : extractTextCatalogEntriesFromHtml(html, pageId)
     for (const entry of entries) {
-      if (recovered.has(entry.id)) {
+      const earlier = recovered.get(entry.id)
+      // The exporter writes the same <img data-id alt> into every section an
+      // image appears in; one id with one text is one entry, not a conflict.
+      if (earlier === entry.text) continue
+      if (earlier !== undefined) {
         throw new AdtImportError(`Duplicate stable text id across ADT pages: ${entry.id} (${page.href})`)
       }
       recovered.set(entry.id, entry.text)
