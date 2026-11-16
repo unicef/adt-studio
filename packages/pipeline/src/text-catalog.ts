@@ -17,6 +17,11 @@ import {
   resolveQuizId,
   withResolvedQuizIds,
 } from "@adt/types"
+import {
+  ELEMENT_AUDIO_NODE,
+  ElementAudioOutput as ElementAudioOutputSchema,
+  elementAudioTextId,
+} from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
 import { withLegacyRenderingOwnership, getRenderSectioning, renderedSectionId, resolveRenderedSection } from "./render-sectioning.js"
@@ -339,6 +344,57 @@ export function findIntroducedCatalogConflict(
   return after?.find(conflict => !before?.some(previous => previous.id === conflict.id && conflict.texts.every(text => previous.texts.includes(text))))
 }
 
+/**
+ * Authored per-element scripts (SPEC-0014). Each non-empty entry becomes a
+ * synthetic catalog entry `${nodeId}_audio`. The artifact is the source of
+ * truth, so the entry is re-emitted on every catalog rebuild. A missing or
+ * malformed rendering only removes the `sectionId`; it never drops the script.
+ */
+function loadElementAudioEntries(
+  storage: Storage,
+  pageId: string,
+  rendering: WebRenderingOutput | null,
+  sectioning: PageSectioningOutputType | null | undefined,
+): TextCatalogEntry[] {
+  const row = storage.getLatestNodeData(ELEMENT_AUDIO_NODE, pageId)
+  if (!row) return []
+
+  const parsed = ElementAudioOutputSchema.safeParse(row.data)
+  if (!parsed.success) return []
+
+  const sectionByNodeId = new Map<string, string>()
+  if (rendering) {
+    for (const renderedSection of rendering.sections) {
+      const section = resolveRenderedSection(renderedSection, sectioning?.sections ?? [], rendering.sections)
+      if (!section || section.isPruned) continue
+      const sectionId = renderedSectionId(renderedSection)
+      if (!sectionId) continue
+      const doc = parseDocument(renderedSection.html)
+      const elements = DomUtils.findAll(
+        (el) => el.type === "tag" && el.attribs?.["data-id"] !== undefined,
+        doc.children,
+      )
+      for (const element of elements) {
+        const dataId = (element as unknown as { attribs: Record<string, string> }).attribs["data-id"]
+        if (dataId) sectionByNodeId.set(dataId, sectionId)
+      }
+    }
+  }
+
+  const entries: TextCatalogEntry[] = []
+  for (const entry of parsed.data.entries) {
+    const text = entry.text.trim()
+    if (text.length === 0) continue
+    const sectionId = sectionByNodeId.get(entry.nodeId)
+    entries.push({
+      id: elementAudioTextId(entry.nodeId),
+      text,
+      locations: [{ pageId, ...(sectionId ? { sectionId } : {}), role: "element-audio" }],
+    })
+  }
+  return entries
+}
+
 /** Synchronous snapshot for atomic authored-save/catalog reconciliation. */
 export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): TextCatalogOutput {
   const entries: TextCatalogEntry[] = []
@@ -346,24 +402,31 @@ export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): T
   // Page text + image captions
   for (const page of pages) {
     const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    if (!renderingRow) continue
+    if (!renderingRow) {
+      entries.push(...loadElementAudioEntries(storage, page.pageId, null, null))
+      continue
+    }
 
     const parsed = WebRenderingOutputSchema.safeParse(renderingRow.data)
-    if (!parsed.success) continue
+    if (!parsed.success) {
+      entries.push(...loadElementAudioEntries(storage, page.pageId, null, null))
+      continue
+    }
 
     // Determine which sections are pruned. Use the render-sectioning resolver
     // so fixed-layout books read the positioned tree whose ids/section count
     // match the rendered HTML (1 section/page), not the semantic tree.
     const sectioning = getRenderSectioning(storage, page.pageId)
 
-    const captionMap = loadCaptionMap(storage, page.pageId, extractImageIds(parsed.data.sections.map((section) => section.html)))
+    const rendering = withLegacyRenderingOwnership(storage, page.pageId, parsed.data)
+    const captionMap = loadCaptionMap(storage, page.pageId, extractImageIds(rendering.sections.map((section) => section.html)))
     entries.push(...extractPageEntries(
       page.pageId,
-      withLegacyRenderingOwnership(storage, page.pageId, parsed.data),
+      rendering,
       captionMap,
       sectioning
     ))
-
+    entries.push(...loadElementAudioEntries(storage, page.pageId, rendering, sectioning))
   }
 
   // Glossary
