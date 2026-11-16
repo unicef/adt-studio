@@ -43,8 +43,11 @@ export function newRegionBox(
   const maxTop = imageHeight - height
   let left = Math.round(maxLeft / 2)
   let top = Math.round(maxTop / 2)
-  // One more spot than there are boxes is enough to find a free one. Only an
-  // image too small to hold that many spots runs out, and then boxes stack.
+  // Trying one more spot than there are boxes finds any spot of the cascade
+  // that is still free. The cascade comes back round to its start after a
+  // number of spots that depends on the image size (13 on a 233×233 image, 54
+  // on 1024×768, thousands on most). Once boxes start at all of them, a new
+  // box lands on an earlier one.
   for (let i = 0; i < regions.length; i++) {
     if (!regions.some((r) => r.cropLeft === left && r.cropTop === top)) break
     left = (left + step) % (maxLeft + 1)
