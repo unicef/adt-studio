@@ -131,6 +131,7 @@ import {
   buildHashDedupPlan,
   sentInFirstRound,
   settleHashDedup,
+  formatStepWarnings,
   buildMeaningfulnessConfig,
   buildMeaningfulnessImages,
   dedupAutoFigureCandidatesInStorage,
@@ -175,6 +176,7 @@ import type {
   StageName,
   BookSummaryOutput,
   GlossaryOutput,
+  StepWarning,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { PageData } from "@adt/storage"
@@ -373,13 +375,29 @@ function reportPageFailure(
   return handlePageFailure({ ...deps, progress, step, pageId, err })
 }
 
-/** Compose the "Completed — N page(s) skipped" message, or undefined if none. */
-function skipMessage(
+/** The "pages skipped" warning for a page step, or undefined if none were. */
+function skipWarning(
   skippedByStep: Map<string, Set<string>>,
   step: StepName
-): string | undefined {
-  const n = skippedByStep.get(step)?.size ?? 0
-  return n > 0 ? `Completed — ${n} page(s) skipped` : undefined
+): StepWarning | undefined {
+  const count = skippedByStep.get(step)?.size ?? 0
+  return count > 0 ? { kind: "pages-skipped", count } : undefined
+}
+
+/** Emit step-complete with the step's typed warnings (SPEC-0021, §Step warnings)
+ *  and their English rendering as the message; with none, the event carries
+ *  neither, so the step keeps its last progress text. */
+function completeStep(
+  progress: StageRunProgress,
+  step: StepName,
+  warnings: Array<StepWarning | undefined> = [],
+): void {
+  const present = warnings.filter((warning): warning is StepWarning => warning !== undefined)
+  progress.emit({
+    type: "step-complete",
+    step,
+    ...(present.length > 0 ? { warnings: present, message: formatStepWarnings(present) } : {}),
+  })
 }
 
 /** Finalize one page-processing step: throw if it accumulated real failures
@@ -399,11 +417,7 @@ function finishPageStep(
         .join("\n")}`
     )
   }
-  progress.emit({
-    type: "step-complete",
-    step,
-    message: skipMessage(deps.skippedByStep, step),
-  })
+  completeStep(progress, step, [skipWarning(deps.skippedByStep, step)])
 }
 
 /**
@@ -981,7 +995,7 @@ export function createStageRunner(): StageRunner {
               completionStorage.markStepStarted(event.step)
             } else if (event.type === "step-complete") {
               runningSteps.delete(event.step)
-              completionStorage.markStepCompleted(event.step, event.message)
+              completionStorage.markStepCompleted(event.step, event.message, event.warnings)
             } else if (event.type === "step-skip") {
               runningSteps.delete(event.step)
               completionStorage.markStepSkipped(event.step)
@@ -3907,11 +3921,7 @@ async function runFilterPass(
   // the DB with "done", leaving the run failing with no step attributed.
   const failed = deps.failedPages.some((f) => f.step === "image-filtering")
   if (!failed && !deps.stepController.signal.aborted) {
-    progress.emit({
-      type: "step-complete",
-      step: "image-filtering",
-      message: skipMessage(deps.skippedByStep, "image-filtering"),
-    })
+    completeStep(progress, "image-filtering", [skipWarning(deps.skippedByStep, "image-filtering")])
   }
 }
 
@@ -4012,11 +4022,7 @@ async function runMeaningfulnessPass(
   }
   const failed = deps.failedPages.some((f) => f.step === "image-meaningfulness")
   if (!failed && !deps.stepController.signal.aborted) {
-    progress.emit({
-      type: "step-complete",
-      step: "image-meaningfulness",
-      message: skipMessage(deps.skippedByStep, "image-meaningfulness"),
-    })
+    completeStep(progress, "image-meaningfulness", [skipWarning(deps.skippedByStep, "image-meaningfulness")])
   }
 }
 
