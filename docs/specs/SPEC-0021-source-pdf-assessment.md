@@ -686,7 +686,8 @@ New `packages/types/src/step-warning.ts`, exported from the index:
 ```ts
 export const StepWarning = z.discriminatedUnion("kind", [
   // A page-processing step finished after the user chose to skip pages that failed.
-  z.object({ kind: z.literal("pages-skipped"), count: z.number().int().positive() }),
+  // `pageIds` names the skipped pages in page order; absent for a skip adapted from an older app's message.
+  z.object({ kind: z.literal("pages-skipped"), count: z.number().int().positive(), pageIds: z.array(z.string()).optional() }),
   // Image Segmentation or Image Cropping: the model call failed for these pages, which kept
   // their extracted images (#1012). `error` is one line, at most 120 code points.
   z.object({
@@ -787,9 +788,11 @@ Adding a kind is a change to this contract and goes through this spec.
   "N warning(s) this version of ADT Studio can't show; open the book in a newer version" and
   keeps the pill amber. A `source-assessment` warning shows the translated counts and, when
   `incompletePages > 0`, "Not fully assessed on N pages". With zero findings, that line alone
-  is why the pill is amber. For `pages-skipped` it shows the count and links to the skipped pages in
-  OutputReview: SPEC-0013's per-page recovery records stay the source of truth, and the count
-  never replaces them. For `pages-unchanged` it shows up to five page ids and "and N more",
+  is why the pill is amber. For `pages-skipped` it shows the count and up to five of the
+  skipped page ids and "and N more". The popover is a hover tooltip, so it names the pages
+  rather than linking to them, and the ids come from the stored warning, so they survive a
+  reload. SPEC-0013's per-page recovery records stay the source of truth, and OutputReview
+  lists them once SPEC-0013 lands. For `pages-unchanged` it shows up to five page ids and "and N more",
   each with a translated "the model call failed" line. Once SPEC-0017 lands, its classified,
   localized wording replaces that line. For `pages-unchanged` and `summary-missing`, the
   provider's `error` text sits behind the technical-details disclosure SPEC-0017 defines, not
@@ -1086,9 +1089,10 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   limits, the same page shape yields no `incomplete` entry. A legacy book reassessed without
   `signals` lists the signal-fed kinds with `reason: "no-signals"`.
 - [ ] AC-30: Skipped pages stay discoverable. After a run that skips pages (SPEC-0013) and a
-  reload, the `pages-skipped` popover links to them, and OutputReview lists the same pages from
-  SPEC-0013's recovery records. The OutputReview half depends on SPEC-0013 (#889) landing; until
-  then only the popover half is asserted, and the AC stays open.
+  reload, the `pages-skipped` popover names them (`pageIds`, up to five and "and N more"), and
+  OutputReview lists the same pages from SPEC-0013's recovery records. The OutputReview half
+  depends on SPEC-0013 (#889) landing; until then only the popover half is asserted, and the AC
+  stays open.
 - [ ] AC-31: History survives an attempted rerun. A book with assessment v1 (`extract`) and v2
   (`reassess`) gets an ordinary extraction rerun through each of the API
   (`fromStage: "extract"`), the CLI DAG and a direct `extractPDF` call. Each is refused with
@@ -1162,7 +1166,7 @@ findings are asserted in `packages/pipeline` tests.
 | AC-27 | integration + component | `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/api/src/services/part-service.test.ts` (part merge), `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (amber pill and legacy line) (#1013) | `AC-27: older-writer round trips never revive stale warnings, adapt only the legacy skip literal, and unknown kinds stay visible` |
 | AC-28 | integration + browser | `apps/api/src/routes/source-assessment.test.ts` (PR 4), `apps/studio/src/components/pipeline/stages/extract/ExtractView.source-assessment.test.tsx` (PR 5b), `packages/pipeline/src/__tests__/extract-report.test.ts` (PR 6) | `AC-28: every surface counts from the latest assessment after each trigger` |
 | AC-29 | unit + integration + browser | `packages/pdf/src/__tests__/source-signals.test.ts` (occlusion budget, PR 3b), `packages/pipeline/src/__tests__/source-assessment.test.ts` (pairwise cap and `incomplete`, PR 2b), `SourceQualityPanel.test.tsx` (the panel line, PR 5b), `packages/pipeline/src/__tests__/extract-report.test.ts` (the printed line, PR 6) | `AC-29: geometry passes stay within budget and report truncation` |
-| AC-30 | component + browser | `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (popover links, #1013); the reload and OutputReview half in a browser check once SPEC-0013 lands, recorded in `docs/verification/spec-0021.md` | `AC-30: skipped pages stay discoverable after reload` |
+| AC-30 | component + browser | `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` and `packages/pipeline/src/__tests__/step-warnings.test.ts` (the named pages, #1013); the reload and OutputReview half in a browser check once SPEC-0013 lands, recorded in `docs/verification/spec-0021.md` | `AC-30: skipped pages stay discoverable after reload` |
 | AC-31 | integration | `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (direct `extractPDF`), `apps/api/src/routes/stages.test.ts` and `packages/pipeline/src/__tests__/pipeline-dag.test.ts` (orchestrators), all PR 2d | `AC-31: an attempted extraction rerun keeps every assessment version` |
 | AC-32 | unit + integration + browser | `packages/pipeline/src/__tests__/source-assessment.test.ts` (coverage, PR 2b; `sourceAssessmentWarning`, PR 2c), `apps/api/src/routes/source-assessment.test.ts` (`BookSummary`, PR 4), `packages/pipeline/src/__tests__/extract-report.test.ts` (exit code, PR 6), `apps/studio/src/components/pipeline/StageSidebar.test.tsx` and `SubStepPillRow.test.tsx` (PR 5b) | `AC-32: partial coverage with zero findings is amber everywhere and exits 0` |
 | AC-33 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts` (rules, PR 2c), `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (extract write equals Reassess, PR 2d) | `AC-33: an extraction without signals reports the missing checks as incomplete` |
@@ -1279,7 +1283,7 @@ SPEC-0017 disclosure for provider text. The 2026-11-13 revision adds:
 - `incompletePages` on the `source-assessment` kind;
 - the narrowed AC-25 equality and the new-skip case of AC-27(b);
 - the `unrecognized` popover line ("N warning(s) this version of ADT Studio can't show") and
-  AC-30's popover links to the skipped pages;
+  `pageIds` on `pages-skipped` and AC-30's popover naming the skipped pages;
 - `step_runs.message` holding only the rendering of persisted warnings.
 
 #1013 adopts these before it leaves draft. It is a
