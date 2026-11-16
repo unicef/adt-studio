@@ -5,10 +5,10 @@ status: in-review
 owner: "@gbergengruen"
 approvers: [] # ≥1 maintainer + product sign-off (user-facing scope)
 issues: ["#1016", "#1008", "#1012", "#901", "#676", "#985", "#326", "#749", "#957"]
-prs: ["#1009", "#1013"] # PR 0 adopted 2026-10-29; #1013 implements §Step warnings
+prs: ["#1009", "#1013", "#1015"] # PR 0 adopted 2026-10-29; #1013 implements §Step warnings; #1015 emits summary-missing
 adr: ""
 created: 2026-10-27
-updated: 2026-11-13
+updated: 2026-11-16
 ---
 
 **After the `extract` step, every book gets one persisted, deterministic, LLM-free
@@ -52,6 +52,17 @@ whose checks were cut short never shows a plain green pill (§Work budget). A co
 written by an older app is read through a bounded adapter for the one warning those apps
 record, a page skip, and otherwise as "completed by an older version", never as a clean
 completion (§Step warnings).
+Amended on 2026-11-16, before the third re-review, against develop at af7972c72 (76 commits
+after this spec branched). An extraction without the `packages/pdf` signals reports the
+checks it could not run as incomplete, exactly as a Reassess does, and PR 2d ships in the same
+release as PRs 3a and 3b (§Work budget, decision 20). Watermark removal now also learns stamps
+baked into page images (#1106). Without removal, `watermark-detected` sees text-layer stamps
+only, and with removal on it reports what was removed (decision 23). Images added in Extract
+after extraction (#1104) are not part of the extraction inventory (decision 22). Books whose
+working source is an imported ADT bundle (#803) get no assessment (decision 21). Reassess and
+the other in-place triggers use the per-book writer lease that develop already has. The
+`editing_language` fallback to the book language gets the same refresh hook. Every code anchor
+was re-verified on develop.
 
 ## Problem (with evidence)
 
@@ -62,13 +73,13 @@ later as poor output, or as pruned images with an opaque free-text reason.
 | Signal | Evidence (local corpus under `books/`, measured 2026-10-27) | Where it is lost today |
 |---|---|---|
 | No text layer | Pages with ≥ 20 non-whitespace chars: qa784 0/100, cuaderno5 0/100, cuaderno4 7/38, cuaderno3 22/25, Uruguay_Ceibal 20/25, momo 9/10; PNLD `prac_math_vol2` 40/40. | The only warning, `text-layer-missing` (PR #513, `apps/api/src/services/extraction-warning.ts`), needs Sectioning's vision text (≥ 24 chars), so it appears one stage later, is computed on read, is never persisted and never reaches the CLI. |
-| Figure split across stacked rasters | cuaderno4 owl (cover, `pg001`): body raster `pg001_im001` 252×236 pt and an overlay strip `pg001_im002` 110×34 pt 100 % inside it, holding the eyebrows, cap top and eye rims. With `figure_extraction_mode: off`, rasters never enter grouping (`packages/pipeline/src/pdf-extraction.ts:26-30` → `packages/pdf/src/extract.ts:972` passes `rasterPlacements = undefined`), so both are exported separately and the meaningfulness model prunes the strip: *"only a narrow cropped fragment showing the top of the same character's head and eyebrows"*. 32 of the 35 pages with rasters hold such a pair (66 pairs); `pg006` has four owls, each losing one or two overlays. cuaderno3 `pg009_im001` contains three overlays. | Nothing records that two rasters overlap. The prune reason is free text. In `auto`/`all` the pair would be grouped by `shouldAttachToRasterPlacement` (`extract.ts:3127`) and page-cropped as one figure, so the loss depends on a setting the user cannot judge. |
-| Vector render with holes | cuaderno4 `pg012_im012`: a 52-shape vector group whose box covers the swallow photo and two binder-clip rasters it does not include → SVG render with blank holes, pruned by the model ("major missing areas"); the arrows that belong to the figure are lost. | The render decision (`extract.ts:4036-4048`) never checks raster placements in `off` mode. |
+| Figure split across stacked rasters | cuaderno4 owl (cover, `pg001`): body raster `pg001_im001` 252×236 pt and an overlay strip `pg001_im002` 110×34 pt 100 % inside it, holding the eyebrows, cap top and eye rims. With `figure_extraction_mode: off`, rasters never enter grouping (`packages/pipeline/src/pdf-extraction.ts:26-30` → `packages/pdf/src/extract.ts:1066` passes `rasterPlacements = undefined`), so both are exported separately and the meaningfulness model prunes the strip: *"only a narrow cropped fragment showing the top of the same character's head and eyebrows"*. 32 of the 35 pages with rasters hold such a pair (66 pairs); `pg006` has four owls, each losing one or two overlays. cuaderno3 `pg009_im001` contains three overlays. | Nothing records that two rasters overlap. The prune reason is free text. In `auto`/`all` the pair would be grouped by `shouldAttachToRasterPlacement` (`extract.ts:3231`) and page-cropped as one figure, so the loss depends on a setting the user cannot judge. |
+| Vector render with holes | cuaderno4 `pg012_im012`: a 52-shape vector group whose box covers the swallow photo and two binder-clip rasters it does not include → SVG render with blank holes, pruned by the model ("major missing areas"); the arrows that belong to the figure are lost. | The render decision (`extract.ts:4140-4152`) never checks raster placements in `off` mode. |
 | Whole-page screenshot as figure; crops cutting figures | #901, image-only PNLD book: 21/40 pages used a whole-page raster as the figure; crops cut through figures; an ISBN digit was misread. | Manual audit only. |
 | Duplicate images | qa784: 1,049 extracted images, 761 distinct hashes, 288 byte-identical copies (27 %). | Only the read-only `extract-report` CLI counts them (#1009, adopted here as PR 0). |
-| Signals seen and thrown away | Unmapped glyphs (`packages/pdf/src/page-stream-recorder.ts:494-497` returns on `ucs <= 0`), undecodable paragraphs (`extract.ts:1630-1634`), image decode, figure render and crop failures that drop content (`console.warn` at `extract.ts:2080, 3779, 3824`) and orientation transforms that were not applied (`extract.ts:1282`, `flip-utils.ts:212`), `producer`/`creator`/`format`/`encryption` from `extractPdfMetadata` (`extract.ts:852`, dropped by `toBookMetadata`), page boxes and `/Rotate` (#676), raster DPI at placed size (`stampRasterPlacementsFromOps`, `extract.ts:1236`, has native and placed sizes), colour-space class (`classifyImageColorSpace`, `extract.ts:612`), watermark signatures (only when removal is on, `extract.ts:324`), spread suggestions (stored by `detectSpreads`, never compared with the mode). | Never persisted or shown. |
+| Signals seen and thrown away | Unmapped glyphs (`packages/pdf/src/page-stream-recorder.ts:494-497` returns on `ucs <= 0`), undecodable paragraphs (`extract.ts:1728-1732`), image decode, figure render and crop failures that drop content (`console.warn` at `extract.ts:2184, 3883, 3928`) and orientation transforms that were not applied (`extract.ts:1380`, `flip-utils.ts:212`), `producer`/`creator`/`format`/`encryption` from `extractPdfMetadata` (`extract.ts:883`, dropped by `toBookMetadata`), page boxes and `/Rotate` (#676), raster DPI at placed size (`stampRasterPlacementsFromOps`, `extract.ts:1334`, has native and placed sizes), colour-space class (`classifyImageColorSpace`, `extract.ts:643`), text and image watermark signatures (only when removal is on, `extract.ts:347-354`), spread suggestions (stored by `detectSpreads`, never compared with the mode). | Never persisted or shown. |
 | Encodings that silently lose, duplicate or leak content | The taxonomy (@Elias, 2026-10-28) lists 81 print encodings with a structural detection signal each; its V1 triage ranks tiled images, stacked/MRC layers, scanned-or-mixed pages and covered figures as high or medium severity. Probed on mupdf 1.27.0 (2026-10-29): text drawn in render mode 3 (the hidden OCR layer of a scanned PDF) **is** returned by `toStructuredText()`, so it enters the page text, counts towards `text-layer-empty`'s 20 chars and is read aloud, while the device reports it through `ignoreText` (`page-stream-recorder.ts:289`), which discards it; `page.toPixmap()` draws annotations by default (`showExtras = true`), so review stamps are baked into page renders and page-crop figures; `doc.countLayers()` and `doc.wasRepaired()` are available. Nothing in `packages/pdf` reads `/OCProperties`, `/AcroForm`/`/XFA`, `/EmbeddedFiles`/`/Collection` or `TrimBox`. | Tiles (abutting, not nested) escape the overlay rule; occlusion is only checked raster-on-raster; the rest is never looked at. |
-| Qualified completion | The `extract` step ends with no message (`pdf-extraction.ts:163`), so a fully scanned book shows a plain green pill. | SPEC-0013 calls a plain green completion insufficient when work is qualified. |
+| Qualified completion | The `extract` step ends with no message (`pdf-extraction.ts:164`), so a fully scanned book shows a plain green pill. | SPEC-0013 calls a plain green completion insufficient when work is qualified. |
 
 Cost context: Extract is 4–6 % of a conversion's LLM tokens, but it decides what every
 later stage sees. A user who learns on day one that the PDF is a scan, or that figures are
@@ -106,7 +117,7 @@ Binding. Each has an owner elsewhere so adjacent work is not blocked.
 - Choosing or changing extraction settings from the input. Recommendations may *name* a setting; they
   never set one (SPEC-0016 / #333 own recommendations; SPEC-0010 makes a changed source a
   new book).
-- Text recovery for image-only pages by vision (planned SPEC-0022). This spec's
+- Text recovery for image-only pages by vision (a later spec; no number is reserved). This spec's
   `text-layer-empty` finding is its page selector.
 - Any LLM or vision call. An opt-in spot check is an open question for v2.
 - Fidelity scoring of figures by a model (SPEC-0020's non-goal as well).
@@ -122,7 +133,7 @@ Binding. Each has an owner elsewhere so adjacent work is not blocked.
 - The taxonomy's remediation design (render-and-crop "Path B", text-suppressed renders,
   two-background mattes, patch compositing, image-model transparency): input to SPEC-0020.
   Its Path A soft-mask merge already exists (`readSoftMaskMatte` and the SMask composite,
-  `extract.ts:648-670, 1997-2040`), so `layered-artwork` reports masks but not as a defect.
+  `extract.ts:679-701, 2101-2144`), so `layered-artwork` reports masks but not as a defect.
 - Taxonomy rows with no cheap structural signal or another owner: tables ruled with lines,
   equations, reading order and paint order (layout analysis), ICC-managed colour conversion,
   running headers/footers and ornaments (repetition; O1), QR/ISBN codes, scan skew and
@@ -136,13 +147,13 @@ Binding. Each has an owner elsewhere so adjacent work is not blocked.
 
 | Option | Where the assessment is computed | Cost | Why not |
 |---|---|---|---|
-| A — end of the `extract` step, a sub-product node like `positioned-text`, `spread-suggestions` and `font-profile` (`pdf-extraction.ts:116-163`) | During the page loop, from data already in memory; one pass | ~1,220 lines in `packages/pipeline` (four PRs) + ~820 in `packages/pdf` (three PRs) | **Chosen.** 14 of the 25 v1 kinds (plus the text profile) are pure functions of what `ExtractedPage` already carries in every figure mode (§Where it is computed); the node is derived from the pages it describes, and every write appends a version (§Lifecycle). |
+| A — end of the `extract` step, a sub-product node like `positioned-text`, `spread-suggestions` and `font-profile` (`pdf-extraction.ts:117-164`) | During the page loop, from data already in memory; one pass | ~1,330 lines in `packages/pipeline` (four PRs) + ~890 in `packages/pdf` (three PRs) | **Chosen.** 14 of the 25 v1 kinds (plus the text profile) are pure functions of what `ExtractedPage` already carries in every figure mode (§Where it is computed); the node is derived from the pages it describes, and every write appends a version (§Lifecycle). |
 | B — a new `source-assessment` PIPELINE step after `image-cropping` | After the image passes, so it could record "the overlay was then pruned" | Same plus a step in `PIPELINE`, `STAGE_ORDER`, the runner, Studio pills | Depends on LLM verdicts (non-deterministic, skippable), arrives minutes later, adds a pill users must learn. |
 | C — computed on read, like `extractionWarning` today | Nothing stored | ~150 lines in the API | Loses history, repeats O(pages) work per request, no CLI parity, no step note. |
 
 Decisions a reviewer must ratify: (1) option A; (2) the finding-kind list and severity
 rules below; (3) the note on the `extract` step only when warnings or criticals exist or
-coverage is partial (18);
+coverage is partial (decision 18);
 (4) `text-layer-missing` stays as the after-Sectioning confirmation, not folded in; (5) no
 "Mark checked" in v1; (6) recommendations as structured data (setting + value, or action)
 rather than a flat hint enum; (7) pipeline rules ship before the `packages/pdf` signals, so
@@ -167,7 +178,18 @@ on the sidebar, `BookSummary` and the CLI, while `extract-report` still exits 0 
 evaluated check found a warning or critical (§Work budget, §CLI); (19) a completion written by
 an app that does not know `step_runs.warnings` is read through a bounded adapter for the
 legacy skip message and is otherwise marked as completed by an older version, never as
-completed cleanly (§Step warnings).
+completed cleanly (§Step warnings); (20) a kind that could not be evaluated because its input is
+missing is incomplete whichever trigger wrote the version. An `extract` write without
+`signals` or `source.structure` records it with `reason: "no-signals"`, the same as a Reassess,
+and PR 2d ships in the same release as PRs 3a and 3b so that no release assesses every new
+book as partial (§Work budget, §Rollout); (21) a book whose working source is not a PDF (an
+imported ADT bundle, #803) is not assessed: it has no node, no `sourceReadiness`, and Reassess
+is refused (§Lifecycle); (22) the assessment reads only the images extraction wrote. An image
+added, cropped, segmented or cleaned up after extraction writes no new version (§Lifecycle);
+(23) with `remove_watermarks` off, `watermark-detected` reports text-layer stamps only,
+because learning a stamp baked into page images costs seconds (#1106) and is not run for an
+assessment. With removal on, the same kind reports at `info` what was removed (§Where it is
+computed).
 
 ### Data contract
 
@@ -194,12 +216,12 @@ export const SourceFindingKind = z.enum([
   "low-resolution-raster",   // nativeWidth / (bounds.width / 72) < 100 dpi, raster ≥ 1 in²
   "needs-convert-colorspace",// CMYK / Indexed / Separation / Lab sources converted on extraction
   "layered-artwork",         // blend mode, alpha < 1 or a clip path on a raster placement
-  "image-decode-failed",     // an image, figure render or crop dropped at a console.warn site (extract.ts:2080, 3779, 3824)
+  "image-decode-failed",     // an image, figure render or crop dropped at a console.warn site (extract.ts:2184, 3883, 3928)
   "duplicate-images",        // byte-identical hashes shared across pages ≥ 10 % of extracted images
   // document
   "page-geometry",           // size or orientation deviates > 2 % from the modal page or /Rotate ≠ 0 (warning); CropBox ≠ MediaBox or TrimBox ≠ CropBox alone (info)
   "spreads-unmarked",        // spread-suggestions non-empty while spread mode is off
-  "watermark-detected",      // signatures found while remove_watermarks is off
+  "watermark-detected",      // removal off: text-layer signatures found (warning); removal on: what was removed (info, params.removed)
   "pdf-encrypted",           // restricted permissions (copy / accessibility / print); a password requirement is a typed open error
   "optional-content",        // /OCProperties in the catalog (InDesign / Illustrator layers: language versions, print-only, hidden)
   "pdf-container",           // XFA form (/XFA in /AcroForm) or a portfolio (/Collection) / attachments (/EmbeddedFiles)
@@ -231,7 +253,7 @@ export const SourcePageSignals = z.object({
   invisibleGlyphs: z.number().int(),  // glyphs the device reports through ignoreText (render mode 3); mupdf still returns them as text
   replacementChars: z.number().int(), // U+FFFD in the text layer
   imageDecodeFailed: z.number().int(), figureRenderFailed: z.number().int(),
-  orientationNotApplied: z.number().int(), // image kept with its original pixels (extract.ts:1282, flip-utils.ts:212); evidence only, not a failure
+  orientationNotApplied: z.number().int(), // image kept with its original pixels (extract.ts:1380, flip-utils.ts:212); evidence only, not a failure
   rotate: z.number().int(), cropBoxDiffers: z.boolean(), trimBoxDiffers: z.boolean(),
   occludedRasters: z.array(z.object({ imageId: z.string(), coveredRatio: z.number(), byKind: z.enum(["fill", "image"]) })),
   rasters: z.array(z.object({ imageId: z.string(), colorClass: z.enum(["rgb", "gray", "cmyk", "indexed", "separation", "lab", "other"]),
@@ -279,12 +301,14 @@ export const SourceAssessment = z.object({
     counts: z.object({ info: z.number().int(), warning: z.number().int(), critical: z.number().int() }),
     textProfile: z.enum(["image-only", "weak", "text-rich"]),   // ≥ 0.8 / ≥ 0.3 empty, as in extract-report
     // Kinds that could not be fully evaluated, never read as "no findings": a pass that hit
-    // its work budget (`reason: "budget"`, §Work budget) or signal-fed kinds on pages whose
-    // `signals` are null (`reason: "no-signals"`: a book extracted before PR 3a/3b, reassessed).
+    // its work budget (`reason: "budget"`, §Work budget), or kinds whose input is missing
+    // (`reason: "no-signals"`): signal-fed kinds on pages whose `signals` are null, and
+    // document kinds while `source.structure` or `source.permissions` is null, whatever the
+    // trigger (decision 20). A document kind's entry has `pageIds: []` (book-scoped).
     incomplete: z.array(z.object({ kind: SourceFindingKind, reason: z.enum(["budget", "no-signals"]), pageIds: z.array(z.string()) })),
     // "partial" exactly when `incomplete` is nonempty; independent of readiness (§Work budget).
     coverage: z.enum(["complete", "partial"]),
-    incompletePages: z.number().int(),   // distinct pages across `incomplete[].pageIds`
+    incompletePages: z.number().int(),   // distinct pages across `incomplete[].pageIds`; a book-scoped entry counts every page, so > 0 exactly when partial
   }),
   findings: z.array(SourceFinding),
   pages: z.array(SourcePageRollup),
@@ -305,17 +329,17 @@ thresholds live in `packages/pipeline/src/source-assessment.ts` as one exported
 | `script-mismatch` (book) | warning | setting `editing_language`, **no value** |
 | `hidden-text-layer` (page; needs `signals`) | warning when the page also has a whole-page raster (an OCR layer under a scan: the text is OCR output and is read aloud); info otherwise (invisible text on a digital page). `text-layer-empty` counts *visible* chars, `max(0, textChars − invisibleGlyphs)` (glyphs approximate chars; an OCR layer has one glyph per char), so an OCR'd scan is graded as a scan | action `get-text-pdf` |
 | `mixed-page-types` (book, `pageIds` = scanned pages, `params.digital`, `params.scanned`) | warning when both counts are ≥ 1 and the minority is ≥ 5 % of pages; info otherwise; never raised from a `scanned` page type that rests only on the image-and-no-text test (§Page type) | action `get-text-pdf` (for the listed pages) |
-| `raster-overlay-split` (page, evidence `[A, B]`) | pairs where either raster is in a figure group's `coveredRasterImageIds` are skipped (grouping already merged them; in `all` mode the covered rasters are filtered out of `images`, `extract.ts:980-982`); every remaining pair is a warning in any mode; critical when B is drawn *under* an opaque A (lower `streamSeqno`, A has no soft mask, `blendMode` Normal, `opacity` 1); pairs without a `streamSeqno` are never critical | setting `figure_extraction_mode: auto` in `off`; action `figure-cleanup` in `auto`/`all` |
+| `raster-overlay-split` (page, evidence `[A, B]`) | pairs where either raster is in a figure group's `coveredRasterImageIds` are skipped (grouping already merged them; in `all` mode the covered rasters are filtered out of `images`, `extract.ts:1074-1076`); every remaining pair is a warning in any mode; critical when B is drawn *under* an opaque A (lower `streamSeqno`, A has no soft mask, `blendMode` Normal, `opacity` 1); pairs without a `streamSeqno` are never critical | setting `figure_extraction_mode: auto` in `off`; action `figure-cleanup` in `auto`/`all` |
 | `raster-tiles` (page, evidence = the tiles, `params.tiles`) | requires equal native ppi (± 2 %) across the tiles and a shared edge length, so two different photos that happen to line up do not qualify; covered tiles skipped as for overlays; warning (each tile is exported, captioned and pruned on its own) | same as `raster-overlay-split` |
 | `raster-occluded` (page, evidence = the raster, `params.coveredRatio`, `params.byKind`) | info until E10 freezes the rule (the raw raster may hold content the reader never sees: labels under answer boxes, white-out corrections, old language versions). Occluders are opaque fills and rasters only — text never occludes, so labels and body text over a photo do not count; rasters ≥ 85 % of the page (plates) are never the occluded raster; members of a `raster-overlay-split` pair or of the raster's own figure group are excluded; each occluder's box is intersected with its active clip | action `figure-cleanup` |
 | `figure-render-holes` (page, evidence figure + uncovered rasters; uncovered overlap ≥ 50 % of a raster, OQ8) | warning | same as `raster-overlay-split` |
 | `whole-page-figure` (book, `params.liveTextOverlap` = pages where ≥ 20 visible chars sit on the raster) | warning when ≥ 25 % of pages, info otherwise | background plates (no live text on top): setting `image_filters.segmentation: true` when segmentation is off; art with live text on top (picture books) or segmentation already on: action `figure-cleanup` |
 | `low-resolution-raster`, `layered-artwork` | info (thresholds frozen after E5); `low-resolution-raster` sets `params.uniform` when every raster in the book shares one ppi (a file downsampled by an optimiser); `layered-artwork` adds `params.stencil` (`/ImageMask`) and `params.softMask` (`/SMask`) counts | `none` |
 | `image-decode-failed` (page, `params.images`, `params.figures`) | warning | `none` |
-| `duplicate-images` (book) | info; warning ≥ 20 % | `none` (#1011 judges duplicates once) |
+| `duplicate-images` (book) | info; warning ≥ 20 %. Counts the same membership as Image Meaningfulness's hash dedup (`planHashDedup`, `image-meaningfulness.ts:415-440`, #1011): images already pruned or covered by a figure are left out, so the two counts agree. After watermark removal the hashes are those of the cleaned images | `none` (#1011, merged, judges exact duplicates once) |
 | `page-geometry` (book, `pageIds` = deviating pages) | warning for size, orientation or `/Rotate` deviation; info when only the page boxes differ (bleed and slug are the normal state of a print export) | action `normalise-pages` |
-| `spreads-unmarked` (book, `params.leads`) | info | action `mark-spreads` with the leads — the apply route (`pages.ts:1284`) re-extracts only those pairs; naming `spread_mode` would imply a full re-extract |
-| `watermark-detected` | warning | setting `remove_watermarks: true` (in `EXTRACTION_CONFIG_KEYS`: under SPEC-0010 a changed value is a new book, and the panel says so) |
+| `spreads-unmarked` (book, `params.leads`) | info | action `mark-spreads` with the leads — the apply route (`POST /books/:label/spreads/apply`, `pages.ts:1416`) re-extracts only those pairs; naming `spread_mode` would imply a full re-extract |
+| `watermark-detected` (book) | removal off: warning when text-layer signatures are found. A stamp baked into page images is not detected (decision 23). Removal on: info, `params.removed` = `{ text, image }` page counts from `extractionDebug.watermarks` and `extractionDebug.rasterWatermark.cleanedImageStrengths` (`extract.ts:1120-1125`), because removal can also take out repeated faint decorations (`docs/ARCHITECTURE.md`, watermark limits) | removal off: setting `remove_watermarks: true` (in `EXTRACTION_CONFIG_KEYS`: under SPEC-0010 a changed value is a new book, and the panel says so; the message adds that removal re-encodes extracted images and can take seconds per book); removal on: `none` |
 | `pdf-encrypted` | info (restricted permissions) | `none` |
 | `optional-content` (book, `params.layers`, `params.off`, `params.names`) | warning: only the default-visible configuration is rendered and extracted, so an alternate language layer is silently dropped and a print-only layer may be kept | `none` (the message lists `params.names`; choosing a layer is a follow-up, OQ9) |
 | `pdf-container` (book, `params.form`, `params.portfolio`, `params.attachments`) | critical for a portfolio or a dynamic XFA form (`/NeedsRendering true`: the pages are a "please wait" placeholder); warning for static XFA; info for attachments only | action `get-text-pdf` (re-export the book itself) |
@@ -355,33 +379,40 @@ one-line enum change plus its rule and message.
 
 ### Where it is computed: reuse first, one input shape, two builders
 
-**What the extractor already hands the pipeline.** When `extractPDF` (`pdf-extraction.ts:116`)
+**What the extractor already hands the pipeline.** When `extractPDF` (`pdf-extraction.ts:117`)
 receives an `ExtractedPage`, it already holds — in *every* figure-extraction mode, because
-`stampRasterPlacementsFromOps` runs unconditionally (`extract.ts:963`) — `text`;
+`stampRasterPlacementsFromOps` runs unconditionally (`extract.ts:1057`) — `text`;
 `images[]` with native `width`/`height`, placed `bounds` (page pt), `hash`, `renderMethod`,
 `streamSeqno`, `blendMode`, `opacity`, `clipPath`; `positionedText` (page size);
 `extractionDebug` with `groups[].{imageId, groupIndex, groupBbox, renderMethod,
 coveredRasterImageIds}` and the shape counters; `fontStats`. `pdfMetadata` carries
-`producer`, `format`, `encryption` (`extract.ts:852`; dropped today by `toBookMetadata`), and
-the spread suggestions are computed in the same function (`pdf-extraction.ts:146`). So these
+`producer`, `format`, `encryption` (`extract.ts:883`; dropped today by `toBookMetadata`), and
+the spread suggestions are computed in the same function (`pdf-extraction.ts:147`). So these
 14 kinds are pure pipeline code with **no extractor change**: `text-layer-empty`,
 `script-mismatch`, `raster-overlay-split`, `raster-tiles`, `mixed-page-types` (its ink-blank
 half waits for `signals`), `figure-render-holes`, `whole-page-figure`,
 `low-resolution-raster`, `layered-artwork` (blend, opacity and clip half), `duplicate-images`,
 `page-geometry` (size and orientation half), `spreads-unmarked`, `book-scale`, `shape-flood`,
-and the text profile. `pdf-encrypted` is not among them: `encryption` is mupdf's
+and the text profile. Their rules run on an `extract` write without `signals`, and only the
+signal-fed half of a split kind (`page-geometry`'s `/Rotate` and page boxes, `layered-artwork`'s
+stencil and soft-mask counts, `mixed-page-types`' ink-blank test) lands in
+`summary.incomplete` (decision 20). `pdf-encrypted` is not among them: `encryption` is mupdf's
 `getMetaData("encryption")` (method and key length), and permissions need `hasPermission()`
 (PR 3c). `creator` is already in `PdfMetadata`; only `toBookMetadata` drops it.
 
 **One input shape, two builders** (`packages/pipeline/src/source-assessment.ts`):
 `PageAssessmentInput` (text counts and script histogram, page size, rasters, figures joined
 from `extractionDebug.groups` to `images` by `imageId` — the figure's `bounds` carries the
-spread `xOffset` that `groupBbox` lacks, `extract.ts:4063` vs `4096-4101` — counters, and
+spread `xOffset` that `groupBbox` lacks, `extract.ts:4167` vs `4200-4205` — counters, and
 `signals: SourcePageSignals | null`) and `SourceAssessmentInput` (pages, pdf, spread
 suggestions, settings). `pageInputFromExtractedPage(page)` builds it from memory inside
 `extractPDF`; `pageInputFromStorage(storage, pageId, previousSignals)` builds the same shape
 from the `pages` and `images` tables, `positioned-text` and `extraction-debug`, so the
-spreads re-apply route (`pages.ts:1284`) and `extract-report` recompute without re-extracting.
+spreads re-apply route (`pages.ts:1416`) and `extract-report` recompute without re-extracting.
+It reads only the rows extraction wrote, `images.source IN ('page', 'extract')`
+(`packages/storage/src/db.ts:48`), because the table also holds crops, segments, uploads and
+translated images added later, and `getPageImages` (`book-storage.ts:193`) does not filter
+by source (decision 22).
 Per-raster evidence is therefore never persisted twice; only `signals` (the numbers no table
 holds) travel in the node. A test proves both builders agree on a raven page.
 
@@ -397,33 +428,44 @@ the latest node (§Step warnings).
 The settings the rules need (`editing_language`, the image-filter flags, spread pairs) are not
 visible to `extractPDF` today, so `ExtractOptions` gains an
 `assessmentSettings` field filled by both callers — the stage runner
-(`apps/api/src/services/stage-runner.ts:1131`) and the CLI DAG (`pipeline-dag.ts:266-283`).
+(`apps/api/src/services/stage-runner.ts:1142`) and the CLI DAG (`pipeline-dag.ts:271-288`).
 
 **What only the extractor can see** (`ExtractedPage.sourceSignals`, transient like
-`fontStats`, filled in `extractPage` (`extract.ts:908-1039`) and `extractSpreadPage` (1699)):
+`fontStats`, filled in `extractPage` (`extract.ts:1004-1137`) and `extractSpreadPage` (1797)):
 
-- **One pixel pass, replacing a decode.** Today the page render is chained
-  `page.toPixmap(…).asPNG()` (`extract.ts:918-922`) and the pixmap is never kept, while
-  `samplePageEdges` (`pdf-extraction.ts:131` → `packages/pdf/src/png-utils.ts:37-57`) fully decodes that PNG
+- **One pixel pass, replacing a decode.** Today every page render, single and spread, goes
+  through `renderPageForExtraction` (`extract.ts:945-962`, called at 1016 and from the spread
+  path), which returns PNG bytes from one of three paths: `renderPageWithoutRasterWatermark`
+  (`raster-watermarks.ts:1911`), `renderPageWithoutWatermarks` (`watermarks.ts:322-328`, a
+  wrapper of `renderPageFiltered`, 349-509), or `page.toPixmap(…).asPNG()`. The pixmap is
+  never kept, while
+  `samplePageEdges` (`pdf-extraction.ts:132` → `packages/pdf/src/png-utils.ts:37-57`) fully decodes that PNG
   again with pngjs on every page just to read two columns × 48 rows. The restructure keeps the
   pixmap, runs `scanPagePixmap` over `getPixels()` at a 4-px step (ink fraction = share of
   samples darker than 240/255; the 48 edge samples computed with the `png-utils.ts:47-55`
   formula verbatim so `detectSpreads` sees bit-identical input and `spread-detection.ts` is
   untouched), encodes the PNG, then `destroy()`s the pixmap explicitly.
-  `renderPageWithoutWatermarks` (`watermarks.ts:309-458`) returns the pixmap instead of bytes
-  on success. `samplePageEdges` stays exported: the API still uses it as the fallback for
-  books extracted before inline detection (`pages.ts:1269`).
+  `renderPageForExtraction` returns the pixmap with the cleaned rasters, and
+  `renderPageFiltered` hands its pixmap back before `asPNG` (`watermarks.ts:493`) instead of
+  bytes. The pixel pass therefore measures the page as extracted, after any watermark removal.
+  `samplePageEdges` stays exported: the API still uses it as the fallback for books extracted
+  before inline detection (`pages.ts:1374`).
 - **Counters at existing sites, zero cost**: `collectGlyphs` (`page-stream-recorder.ts:482-506`)
   returns the `ucs <= 0` count it drops today; the recorder's `ignoreText` callback
   (`page-stream-recorder.ts:289`, a no-op today) counts the render-mode-3 glyphs mupdf still
   returns in `toStructuredText()` (probed 2026-10-29 on mupdf 1.27.0); content-dropping
-  failures counted at their warn sites (`extract.ts:2080` image, `3779` figure render, `3824`
-  crop) and unapplied orientation transforms separately (`extract.ts:1282`,
-  `flip-utils.ts:212`); the pixel-digest warn (`extract.ts:2128`) and the watermark-render
-  fallback (`watermarks.ts:444`) lose nothing and are not counted; U+FFFD counted in the text.
+  failures counted at their warn sites (`extract.ts:2184` image, `3883` figure render, `3928`
+  crop) and unapplied orientation transforms separately (`extract.ts:1380`,
+  `flip-utils.ts:212`). These warn sites lose nothing and are not counted: the pixel digest
+  (`extract.ts:2232`), the watermark-render fallback (`watermarks.ts:495`), and the three
+  image-watermark sites from #1106, which keep the original image or render
+  (`extract.ts:996`, `raster-watermarks.ts:656` and `1927`). U+FFFD is counted in the text.
+  Images cleaned of a stamp replace the originals with new bytes and a new hash
+  (`applyCleanedRasters`, `extract.ts:973-1001`), so `duplicate-images` and the ink and
+  blank-page checks measure the cleaned output.
 - **Occlusion from the recorded ops, pure JS**: the recorder already gives every `fillPath`
   its `seqno`, `bbox`, `color` and composed `alpha`, and `stampRasterPlacementsFromOps`
-  stamps each raster's `streamSeqno` (`extract.ts:1274`). For each raster, the opaque
+  stamps each raster's `streamSeqno` (`extract.ts:1372`). For each raster, the opaque
   (`alpha ≥ 0.95`) fills and images painted *after* it, outside its own figure group, each
   box intersected with the op's active clip, are marked on a coverage grid over its bounds
   (§Work budget); ≥ 10 % coverage lands in `signals.occludedRasters`. Text ops carry no colour
@@ -432,15 +474,20 @@ visible to `extractPDF` today, so `ExtractOptions` gains an
 - **Dictionary reads, microseconds**: `/Rotate` and MediaBox vs CropBox vs TrimBox from the page
   (`getBounds("MediaBox"|"CropBox"|"TrimBox")`), the `/Annots` count; colour-space class and
   `/ImageMask` / `/SMask` presence for every raster (into `signals.rasters`) by calling
-  `classifyImageColorSpace` (`extract.ts:2008-2012`, today only for JPEGs); once per document: `needsPassword()` /
-  `hasPermission()` (`openPdfFromBuffer`, `extract.ts:816-823`), `countLayers()` plus the
+  `classifyImageColorSpace` (`extract.ts:2112-2116`, today only for JPEGs); once per document: `needsPassword()` /
+  `hasPermission()` (`openPdfFromBuffer`, `extract.ts:847-854`), `countLayers()` plus the
   `/OCProperties /D /OFF` array, `/AcroForm /XFA` and `/NeedsRendering`, `/Names
   /EmbeddedFiles` and `/Collection` from the catalog, `/MarkInfo /Marked`, `wasRepaired()`,
   the layer names (`getLayerName`) → `source.structure`; `producer` and `creator` →
   `source.producerFamily`.
-- **Watermark detection always on**: `detectTextWatermarks` (`watermarks.ts:180-233`) samples
-  ≤ 16 pages with one extra `page.run` each — the only net cost in this spec (≈ 100–300 ms
-  per book) — and its signatures are applied only when `remove_watermarks` is on.
+- **Text-watermark detection always on**: `detectTextWatermarks` (`watermarks.ts:197-246`)
+  samples ≤ 16 pages with one extra `page.run` each — the only net cost in this spec (≈ 100–300
+  ms per book) — and its signatures are applied only when `remove_watermarks` is on. Learning a
+  stamp baked into page images (`detectRasterWatermark`, `extract.ts:347-349`, #1106) is
+  **not** made always-on: it costs seconds per book, up to about 45 s on a 300 DPI scan
+  (`docs/ARCHITECTURE.md`), which would break G7. With removal off, `watermark-detected`
+  therefore sees text-layer stamps only. With removal on, it reports what was removed from the
+  debug record the extractor already writes (decision 23).
 - **Password-required PDFs**: `loadPage` throws before any page exists, so no node can be
   written; `openPdfFromBuffer` throws a typed `PdfPasswordRequiredError` whose message reaches
   the `step-error` event and the UI as-is.
@@ -486,6 +533,15 @@ silently read as "no findings".
   This stays advisory: nothing is blocked. A pre-spec book stays partial after a Reassess
   (`no-signals` on every page) until it is re-extracted as a new book, which is what the
   amber pill then says.
+- **Missing input on a fresh extraction.** The same rule applies to an `extract` write
+  (decision 20). PR 2d writes the node before the `packages/pdf` PRs supply `signals` and
+  `source.structure`. An extraction in that window records every signal-fed kind per page,
+  and every document kind book-scoped, with `reason: "no-signals"`, just as a Reassess of a
+  pre-spec book does. It never drops them. So a build that contains PR 2d without PRs 3a and
+  3b would show every new book as partial. **PR 2d therefore ships in the same release as PRs
+  3a and 3b**: they may merge to develop in the rollout order, but no release is cut between
+  them. PR 3c's document reads (permissions and `source.structure`) are book-scoped
+  `no-signals` until it lands, and the same release rule covers it unless it lands first.
 
 ### Cost
 
@@ -498,7 +554,7 @@ Per 1200 × 1680 render (a letter page at 2×):
 | Unmapped-glyph and failure counters | 0 (existing callbacks and catches) | — |
 | U+FFFD / script histogram; all geometry rules | < 1 ms per page, pure JS | — |
 | `/Rotate`, boxes, colour space, permissions | µs | — |
-| `detectTextWatermarks` with removal off | ≈ 100–300 ms **per book** (≤ 16 `page.run`) | The only net cost; < 1 % of a 40-page extract |
+| `detectTextWatermarks` with removal off | ≈ 100–300 ms **per book** (≤ 16 `page.run`) | The only net cost; < 1 % of a 40-page extract. Image-watermark learning is not added (decision 23) |
 | Node write | ≈ 5 ms per book; ≤ ≈ 100 KB at 300 pages (`extraction-debug` is already 298 KB on cuaderno4) | — |
 
 Expected: net negative on single-page books, ≈ neutral in spread mode (no edge sampling
@@ -519,9 +575,12 @@ there today; `stitchPngsHorizontally` keeps its own decode, listed under O5).
 
 ### Lifecycle
 
-The extraction inventory (pages, images, positioned text, extraction debug) is immutable once
-extracted; under SPEC-0010 it is what the extraction manifest inventories and what verified
-reuse checks. The assessment is **derived from** that inventory and is **not part of it**: it
+The extraction inventory is what extraction wrote: the pages, the images with
+`source IN ('page', 'extract')`, positioned text and extraction debug. It is immutable once
+extracted. Under SPEC-0010 it is what the extraction manifest inventories and what verified
+reuse checks. The `images` table is not the inventory by itself: Extract now adds crops and
+uploads to a page after extraction (#1104, `images.source` `crop`/`upload`), and segmentation
+and translation add rows too (`packages/storage/src/db.ts:48`). The assessment is **derived from** that inventory and is **not part of it**: it
 references pages and images by id, the manifest never lists it, and writing a new assessment
 never invalidates reuse. It is listed in `EXTRA_STAGE_OUTPUT_NODES.extract` only so Studio
 and the cache registry treat it as an Extract output.
@@ -537,20 +596,22 @@ latest version is the current assessment. Each version records `rulesVersion` (`
 | SPEC-0010 verified reuse of an unchanged extraction | nothing: reuse writes no extraction entity and no history | the existing latest version, unchanged |
 | A book extracted before this spec (no node) | nothing automatically; no backfill | API `{ version: null, assessment: null }`; the panel says "Not assessed" and offers Reassess; no badges, no pill warning |
 | `rulesVersion` older than `SOURCE_RULES_VERSION` | nothing automatically | the assessment, marked "Assessed with older rules", with Reassess |
-| Spreads re-apply (`pages.ts:1284`), an in-place operation on develop | a version with `trigger: "spreads-reapply"` (§API) | the new assessment |
+| Spreads re-apply (`pages.ts:1416`), an in-place operation on develop | a version with `trigger: "spreads-reapply"` (§API) | the new assessment |
+| An image is added to a page, recropped, segmented, or replaced by an accepted figure cleanup (#1104, SPEC-0020) | nothing: these images are not in the inventory (decision 22) | the existing assessment. A finding may already be fixed (for example a `raster-overlay-split` pair replaced by a cleaned crop); the finding stays, because it describes the source |
+| A book whose working source is not a PDF (`BookSummary.sourceKind` or `workingSource` is not `pdf`, an imported ADT bundle, #803) | nothing, and Reassess is refused with 409 (decision 21) | no Source quality panel, badge or pill warning. Extract is already locked for these books (`stages.ts:231-239`) |
 | A downstream setting the rules read changes | a version with `trigger: "settings-change"` (§Snapshot and current settings) | the new assessment |
 | Reassess | a version with `trigger: "reassess"`, built from storage | the new assessment |
 | An attempted extraction rerun on a book with pages or a node | nothing: the rerun is refused before anything is cleared (below) | the existing versions, unchanged |
 
 **What the history guarantee requires.** Versions survive only while nothing clears the
 node. `clearExtractedData` deletes every `source-assessment` version together with the pages
-(`clearExtractedRows`, `book-storage.ts:655-660`), and `extractPDF` still calls it
-unconditionally (`pdf-extraction.ts:104`). Since v0.9.0-beta.2 (#879), both orchestrators on
+(`clearExtractedRows`, `book-storage.ts:657-666`), and `extractPDF` still calls it
+unconditionally (`pdf-extraction.ts:105`). Since v0.9.0-beta.2 (#879), both orchestrators on
 develop refuse to extract over a book that has pages, before anything is cleared: the API's
-`makeBeforeRun` (409 `UNSAFE_RESUME_UNAVAILABLE`, `apps/api/src/routes/stages.ts:138-141`)
-and the CLI DAG (`pipeline-dag.ts:184`). A direct `extractPDF` call still bypasses both, and
+`makeBeforeRun` (409 `UNSAFE_RESUME_UNAVAILABLE`, `apps/api/src/routes/stages.ts:139-142`)
+and the CLI DAG (`pipeline-dag.ts:187`). A direct `extractPDF` call still bypasses both, and
 both test pages only, so on a book with a node but no pages `makeBeforeRun` still clears
-(`stages.ts:161-163`) before `extractPDF` runs. The
+(`stages.ts:162-164`) before `extractPDF` runs. The
 guarantee therefore requires the refusal at the common extraction boundary. SPEC-0010 owns
 that boundary ("a direct `extractPDF` call must not bypass it", §Writer coordination), and
 this spec requires its safe extraction admission and refusal, not the rest of SPEC-0010. If
@@ -568,9 +629,22 @@ pages have `signals: null`, is assessed without the signal-fed kinds, which land
 `summary.incomplete` with `reason: "no-signals"`. It re-extracts nothing and calls no
 provider. Surfaces: `POST /books/:label/source-assessment/reassess` (a Reassess button on the
 panel) and a new `pnpm pipeline assess-source <books-dir> --label <label>` subcommand.
-`extract-report` stays read-only, as PR 0 promises. Both take the same per-book writer
-gate as a stage run (SPEC-0010's admission primitive once it lands), so a reassessment never
-races an extraction.
+`extract-report` stays read-only, as PR 0 promises. Reassess is refused with 409 for a book
+whose working source is not a PDF (decision 21).
+
+**Writers.** Develop already has one per-book writer lease, `withBookWriter`
+(`packages/storage/src/book-writer.ts:174`). Stage runs, tasks and the CLI DAG take it, and
+`bookWriterMiddleware` (`apps/api/src/middleware/book-writer.ts`) takes it for every non-GET
+`/books/:label` route. Every write of this node runs inside it:
+- the `extract` write, inside the stage run or the CLI DAG;
+- Reassess, through the route, and `assess-source`, which takes it itself;
+- the `settings-change` hook, inside `PUT config` and `PUT metadata`;
+- the `spreads-reapply` version, inside the same lease and inside the route's per-book
+  `oneSpreadApplyPerBook` queue (`pages.ts:1397`), after the splice and its
+  `withSourceGenerationTracking` writes.
+
+So no assessment write races an extraction or another assessment. SPEC-0010's admission later
+builds on the same lease.
 
 ### Snapshot and current settings
 
@@ -585,9 +659,11 @@ The rules read two kinds of settings, recorded in the node's `settings`:
 - **Downstream settings**: `editing_language` (`script-mismatch`) and
   `image_filters.segmentation` (the `whole-page-figure` recommendation). They change in place
   on an existing book and do not touch the extraction. When `PUT /books/:label/config`
-  (`apps/api/src/routes/books.ts:323`) changes either one on a book that has a node, the route
-  appends a reassessed version (`trigger: "settings-change"`). This is pure and takes
-  milliseconds. A downstream setting change is never treated as a changed extraction input,
+  (`apps/api/src/routes/books.ts:459`) changes either one on a book that has a node, the route
+  appends a reassessed version (`trigger: "settings-change"`). The effective `editing_language`
+  falls back to the book's `language_code` when the config sets none (`books.ts:557-558`), so
+  `PUT /books/:label/metadata` (`books.ts:504`) runs the same hook when it changes the
+  effective editing language. This is pure and takes milliseconds. A downstream setting change is never treated as a changed extraction input,
   and it never triggers SPEC-0010's new-book rule.
 
 The panel header reads "Assessed <date> · <trigger>". If the node's `settings` disagree with
@@ -640,15 +716,18 @@ Adding a kind is a change to this contract and goes through this spec.
   rendering, `formatStepWarnings(warnings)` in `packages/pipeline`. That rendering never
   equals the frozen legacy skip literal (below). For example, it reads "Completed with 3
   page(s) skipped.", so only text an older app wrote can be adapted. The CLI, the server log
-  and an older Studio read only `message`.
+  and an older Studio read only `message`. The `message` written to `step_runs` renders the
+  persisted warnings only. The derived `source-assessment` warning appears in the event's
+  `message` but is never written, so no persisted text carries a count that a later version
+  could make stale.
 - **Storage.** `step_runs` gains `warnings TEXT`, holding a `StoredStepWarnings` envelope.
   `markStepCompleted(step, message?, warnings?)` writes `completed_at` and the envelope in the
   same statement, with `envelope.completedAt` equal to that `completed_at`. It always writes
   an envelope, with `items: []` for a clean completion, so this app's clean completion is
   recorded evidence rather than an absence. It also always sets `message`, to NULL for a clean
   completion: develop's `markStepCompleted` without a message keeps the previous one
-  (`book-storage.ts:452-455`), and steps that routes complete directly, without a start, would
-  otherwise carry a stale message forward. The part merge (`part-service.ts:868`), which today
+  (`book-storage.ts:454-458`), and steps that routes complete directly, without a start, would
+  otherwise carry a stale message forward. The part merge (`part-service.ts:888-895`), which today
   copies only `status`, copies `completed_at`, `message` and the envelope together from the
   part row, so a recorded part stays recorded in the assembled book. When parts disagree, it
   writes a fresh `completed_at` with an envelope stamped to it that holds the parts' warnings
@@ -664,7 +743,7 @@ Adding a kind is a change to this contract and goes through this spec.
     last completed by an app that does not write the column, so there is no current
     structured evidence. A stale envelope is never revived. A bounded adapter reads the one
     warning-bearing outcome a released writer records, the skip message from
-    `skipMessage` (`apps/api/src/services/stage-runner.ts:373-378`). A `message` that matches
+    `skipMessage` (`apps/api/src/services/stage-runner.ts:376-382`). A `message` that matches
     exactly `^Completed — ([1-9]\d*) page\(s\) skipped$` reads as `{ kind: "pages-skipped", count }`.
     The adapter is frozen to that literal and gains no new patterns: newer outcomes are typed
     from the start. Any other message gives no warnings, and the step is marked as a legacy
@@ -673,7 +752,10 @@ Adding a kind is a change to this contract and goes through this spec.
     completion's stored outcomes, only the skip adapts and turns the pill amber. A legacy
     `extract` step still gets the derived `source-assessment` warning, which comes from the
     node, not from `step_runs` (§API). Every step of a pre-spec book is a legacy completion
-    until it is rerun.
+    until it is rerun. Extract cannot be rerun on an existing book (§Lifecycle), so a pre-spec
+    book's `extract` step keeps the legacy line for the life of the book. That is accurate,
+    because an older app completed it, and the line sits in the popover only: it does not
+    turn the pill amber.
 
   A step that is not `done` returns no warnings. New books get the column from `SCHEMA_SQL`. On opening a book for writing, an
   existing book gains it through `ALTER TABLE step_runs ADD COLUMN warnings TEXT` when
@@ -742,7 +824,12 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 - Page cards: a severity dot from `PageSummary.sourceFindings.severity` with the kinds in
   the tooltip, distinct from the existing amber triangle (which now reads "confirmed").
 - `ExtractPageDetail`: a "Source findings" list beside the pruned-image list, so a pruned
-  overlay finally shows "drawn over `pgNNN_imMMM`" next to its prune reason.
+  overlay finally shows "drawn over `pgNNN_imMMM`" next to its prune reason. The list sits
+  next to the page's existing "Add image → Crop from page" control (#1104), which is where a
+  user acts on a `whole-page-figure` or `raster-overlay-split` finding today. Adding or
+  cropping an image there does not change the findings (decision 22).
+- A book whose working source is not a PDF shows no panel, badge or pill warning, because its
+  Extract stage is marked not needed (`StageSidebar.tsx:237`, decision 21).
 - `StageSidebar`: the Extract badge becomes `counts.warning + counts.critical`. When
   `summary.coverage` is `"partial"`, it adds a partial marker with the tooltip "Not fully
   assessed on N pages", including when the count is zero (§Work budget).
@@ -757,22 +844,24 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 - `apps/api/src/routes/source-assessment.ts`: `GET /books/:label/source-assessment` →
   `{ version: number | null, assessment: SourceAssessment | null }`, `safeParse` on read like
   `debug.ts:250-256`. A user-facing route, not `/debug/*`.
-- `PageSummary` (`pages.ts:126`) gains `sourceFindings: { kinds: SourceFindingKind[];
+- `PageSummary` (`pages.ts:150`) gains `sourceFindings: { kinds: SourceFindingKind[];
   severity: SourceSeverity | null }` from one node read per request; `PageDetail` gains the
   page's `SourceFinding[]`.
-- The spreads re-apply route (`pages.ts:1284-1370`) reads the previous node before it splices
+- The spreads re-apply route (`pages.ts:1413-1535`) reads the previous node before it splices
   the pages, rebuilds the input with `pageInputFromStorage` (previous `signals` for untouched
   pages, fresh ones from `extractPages` for the re-extracted pair) and appends a version with
-  `trigger: "spreads-reapply"`. No step warning needs updating, because the `extract` pill
+  `trigger: "spreads-reapply"`, inside `oneSpreadApplyPerBook` (§Lifecycle, Writers). No step warning needs updating, because the `extract` pill
   derives its count from the latest node (§Step warnings).
 - `POST /books/:label/source-assessment/reassess` appends a version from storage
-  (`trigger: "reassess"`, §Lifecycle) under the per-book writer gate and returns it like the
-  GET. `PUT /books/:label/config` appends a `settings-change` version when `editing_language`
-  or `image_filters.segmentation` changes on a book that has a node (§Snapshot and current
-  settings).
+  (`trigger: "reassess"`, §Lifecycle) under the per-book writer lease and returns it like the
+  GET. It returns 409 for a book whose working source is not a PDF (decision 21).
+  `PUT /books/:label/config` appends a `settings-change` version when `editing_language`
+  or `image_filters.segmentation` changes on a book that has a node, and `PUT
+  /books/:label/metadata` does the same when a `language_code` change moves the effective
+  editing language (§Snapshot and current settings).
 - `BookSummary` (`packages/types/src/book.ts`) gains optional `sourceReadiness: { readiness,
   coverage }`, dropped if the books-list benchmark (#996) regresses. It never carries the
-  grade without the coverage.
+  grade without the coverage, and it is absent for a book whose working source is not a PDF.
 
 ### CLI
 
@@ -800,19 +889,26 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   the render restructure, counters at the warn and drop sites (including the recorder's
   `ignoreText`), the occlusion pass over recorded ops, page-box (TrimBox included), annotation
   and colour-space / mask reads, `needsPassword`/`hasPermission`, the catalog reads behind
-  `source.structure`, always-on watermark detection. No change to grouping or to any
-  extraction output.
+  `source.structure`, always-on text-watermark detection, and the render paths
+  (`renderPageForExtraction`, `renderPageFiltered`, `renderPageWithoutRasterWatermark`)
+  returning the pixmap. No change to grouping or to any extraction output.
 - `packages/pipeline`: `source-assessment.ts`, `pdf-extraction.ts` (collect, aggregate,
-  write, note, use the pixmap edge samples instead of `samplePageEdges`), `extract-report.ts`
+  write, note, use the pixmap edge samples instead of `samplePageEdges`, the interim "pages or
+  node" guard in `extractPDF`), the CLI DAG's matching guard and `assessmentSettings`
+  (`pipeline-dag.ts`), the `assess-source` subcommand (`cli.ts`), `extract-report.ts`
   and the rest of PR 0 (#1009: `book-inspection.ts`, `cli.ts`, `cli-args.ts`), plus
   `packages/llm/src/pricing.ts` and `openBookDbReadOnly` in `packages/storage` from PR 0.
 - `packages/storage`: none for the node (`node_data` is generic and every write appends a
-  version, §Lifecycle). The additive `step_runs.warnings` column for step warnings (§Step warnings, #1013), holding the completion-stamped envelope. One independent fast-lane fix: `clearExtractedRows` (`book-storage.ts:655`)
+  version, §Lifecycle). The additive `step_runs.warnings` column for step warnings (§Step warnings, #1013), holding the completion-stamped envelope. One independent fast-lane fix: `clearExtractedRows` (`book-storage.ts:657-666`)
   deletes every `step_runs` row, including the `extract` row whose `started_at` was just
   written, so extract wall time cannot be measured from the DB today; the fix keeps the
   `extract` row and lands before AC-18 is measured.
-- `apps/api`: route and test, `PageSummary`/`PageDetail`/`BookSummary`, `assessmentSettings`
-  passed by `stage-runner.ts` (PR 2d).
+- `apps/api`: the `source-assessment` route (GET and reassess) and tests,
+  `PageSummary`/`PageDetail`/`BookSummary`, the derived `source-assessment` entry in `GET
+  step-status`, the `settings-change` hook in `PUT config` and `PUT metadata` (`books.ts`),
+  the spreads re-apply recompute (`pages.ts`), the `makeBeforeRun` guard (`stages.ts`),
+  `assessmentSettings` passed by `stage-runner.ts` (PR 2d), and the step-warning part merge
+  in `part-service.ts` (#1013).
 - `apps/studio`: panel, messages map, page badges, page detail, sidebar count, shared
   validation components, five catalogs.
 - Docs: `docs/specs/INDEX.md`; `docs/ARCHITECTURE.md` Extract outputs list (with PR 2d).
@@ -828,8 +924,8 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   provider error text in step warnings), SPEC-0020 (#993: recommendation target; R-h is a
   proposed extension), SPEC-0016 (#932: a future consumer of the node, not a dependency: its
   first slice runs before Create, this node after extraction); §Prerequisites and related work for #1009 (adopted),
-  #1013 (implements §Step warnings), #1015 (adds the `summary-missing` kind) and #1011
-  (independent).
+  #1013 (implements §Step warnings), #1015 (adds the `summary-missing` kind), and the merged
+  #1011, #1104, #1106 and #803 that this spec now accounts for.
 
 ## Acceptance criteria
 
@@ -894,7 +990,9 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   book without the node.
 - [ ] AC-18: False-positive and cost bounds: `prac_math_vol2` has zero critical and ≤ 2
   warning findings; extract wall time on `prac_math_vol2` and qa784 is within +5 % of the
-  pre-spec run (same machine, three runs each, measured from `step_runs.started_at /
+  pre-spec run on develop at or after 8f34af99b (#1106), with the same `remove_watermarks`
+  value in both runs, because the wizard turns removal on by default and image-watermark
+  learning then dominates an image-only book's time (same machine, three runs each, measured from `step_runs.started_at /
   completed_at` once the `clearExtractedRows` fix has landed; until then from a non-committed
   timing script around `extractPdfStream`). Spread suggestions on cuaderno3 are deep-equal
   before and after the pixmap pass.
@@ -927,9 +1025,11 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   `blank-page` (with `trim-page-range` at the ends of the range only), `text-unmapped-glyphs`
   (2 % boundary), `script-mismatch` (Latin text, `editing_language` with a non-Latin script),
   `low-resolution-raster` (100 dpi; `params.uniform`), `needs-convert-colorspace`,
-  `layered-artwork` (blend, opacity, clip, stencil, soft mask), `watermark-detected` (only
-  while `remove_watermarks` is off), `book-scale` (300 pages / 500 Mpx) and `shape-flood`
-  (1,500 shapes / 60 rasters).
+  `layered-artwork` (blend, opacity, clip, stencil, soft mask), `watermark-detected` (warning
+  for text-layer signatures while `remove_watermarks` is off; with removal on, info with
+  `params.removed` from a debug record that holds text signatures and `cleanedImageStrengths`,
+  and no finding when nothing was removed), `book-scale` (300 pages / 500 Mpx) and
+  `shape-flood` (1,500 shapes / 60 rasters).
 - [ ] AC-25: A step that completes with warnings persists them typed, except the derived
   `source-assessment` warning, which is never persisted. `GET step-status` returns them under
   `stepWarnings` for the done step, with `stepWarningSources` set to `"recorded"`. The live
@@ -977,15 +1077,18 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   null }`, shows "Not assessed", and has no `source-assessment` pill warning. A node with
   `rulesVersion` below the current one shows "Assessed with older rules". Under SPEC-0010
   verified reuse (once #886 lands), no version is written.
-- [ ] AC-29: Work budget. A synthetic page with 20,000 opaque fills and 200 rasters completes
+- [ ] AC-29: Work budget. A synthetic page with 20,000 opaque fills and 201 rasters (one above
+  the pairwise cap, so the pairwise rules are skipped) completes
   the occlusion pass and the pairwise rules within the budget's time bound (≤ 50 ms per page on
   the CI runner, recorded with AC-18). It records `truncated` and `summary.incomplete` with
-  `reason: "budget"`, and the panel and `extract-report` show "Not fully assessed". Below the
-  limits the same page shape yields no `incomplete` entry. A legacy book reassessed without
+  `reason: "budget"` for `raster-occluded` and the three pairwise kinds, and the panel and
+  `extract-report` show "Not fully assessed". With 200 rasters and fills below the occlusion
+  limits, the same page shape yields no `incomplete` entry. A legacy book reassessed without
   `signals` lists the signal-fed kinds with `reason: "no-signals"`.
 - [ ] AC-30: Skipped pages stay discoverable. After a run that skips pages (SPEC-0013) and a
   reload, the `pages-skipped` popover links to them, and OutputReview lists the same pages from
-  SPEC-0013's recovery records.
+  SPEC-0013's recovery records. The OutputReview half depends on SPEC-0013 (#889) landing; until
+  then only the popover half is asserted, and the AC stays open.
 - [ ] AC-31: History survives an attempted rerun. A book with assessment v1 (`extract`) and v2
   (`reassess`) gets an ordinary extraction rerun through each of the API
   (`fromStage: "extract"`), the CLI DAG and a direct `extractPDF` call. Each is refused with
@@ -1005,6 +1108,22 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
 
   The same book with `signals` present gives `coverage: "complete"`, a green pill, no marker
   and exit 0.
+- [ ] AC-33: Missing input on a fresh extraction. An `extract` write with `signals: null` on
+  every page and `source.structure` and `source.permissions` null lists every signal-fed kind
+  per page and every document kind (`pdf-encrypted`, `optional-content`, `pdf-container`)
+  book-scoped with `pageIds: []`, all with `reason: "no-signals"`. It gives `coverage:
+  "partial"` and `incompletePages` equal to the page count. It is identical to a Reassess of
+  the same storage, and `page-geometry`'s size half and `layered-artwork`'s blend half are
+  still evaluated.
+- [ ] AC-34: Images added later do not move the assessment. On cuaderno4, after an image is
+  added to a page by upload, by picking an image from another page and by "Crop from page"
+  (#1104), no new version exists. A Reassess then gives the same findings and counts as before
+  the additions, because `pageInputFromStorage` reads only `source IN ('page', 'extract')`.
+- [ ] AC-35: Books with no PDF source are not assessed. For a book imported from an ADT bundle
+  (#803): no `source-assessment` node exists, `GET source-assessment` returns `{ version: null,
+  assessment: null }`, `POST …/reassess` and `pnpm pipeline assess-source` are refused (409 /
+  non-zero exit) and write nothing, `BookSummary.sourceReadiness` is absent, and `PUT config` or
+  `PUT metadata` writes no version.
 
 ## Test plan
 
@@ -1028,8 +1147,8 @@ findings are asserted in `packages/pipeline` tests.
 | AC-12 | integration | `apps/api/src/routes/source-assessment.test.ts`, `apps/api/src/routes/pages.test.ts` | `AC-12: returns the latest assessment, nulls when absent, and page rollups` |
 | AC-13 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-13: assessment is deterministic and provider-free` |
 | AC-14 | unit + browser | `apps/studio/src/lib/source-assessment-messages.test.ts`, `apps/studio/src/components/pipeline/stages/extract/components/SourceQualityPanel.test.tsx` | `AC-14: every finding kind has a translated title, description and recommendation` |
-| AC-15 | browser | `apps/studio/src/components/pipeline/stages/extract/ExtractView.source-assessment.test.tsx`, `apps/studio/src/components/pipeline/components/StageSidebar.test.tsx` | `AC-15: page badges and the sidebar count follow the assessment` |
-| AC-16 | integration + browser | `apps/api/src/routes/stages.test.ts`, `apps/studio/src/components/pipeline/stages/extract/ExtractView.source-assessment.test.tsx` | `AC-16: poor readiness never disables run or export` |
+| AC-15 | browser | `apps/studio/src/components/pipeline/stages/extract/ExtractView.source-assessment.test.tsx`, `apps/studio/src/components/pipeline/StageSidebar.test.tsx` | `AC-15: page badges and the sidebar count follow the assessment` |
+| AC-16 | integration + browser | `apps/api/src/routes/stages.test.ts` (PR 4), `apps/studio/src/components/pipeline/stages/extract/ExtractView.source-assessment.test.tsx` (PR 5b) | `AC-16: poor readiness never disables run or export` |
 | AC-17 | unit + integration | `packages/pipeline/src/__tests__/extract-report.test.ts` (exists from PR 0) | `AC-17: extract-report prints persisted findings and sets the exit code` |
 | AC-18 | corpus + integration | `docs/verification/spec-0021.md` (recorded), `packages/pdf/src/__tests__/source-signals.test.ts` | `AC-18: false-positive bound on prac_math_vol2 and extract wall time within +5 %`; `AC-18: pixmap edge samples equal samplePageEdges of the PNG` |
 | AC-19 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-19: reports raster-tiles for abutting rasters that union to a rectangle` |
@@ -1041,11 +1160,14 @@ findings are asserted in `packages/pipeline` tests.
 | AC-25 | unit + integration | `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/api/src/routes/stages.test.ts`, `apps/api/src/services/stage-runner.test.ts` (#1013); the `extract` event-versus-GET equality and its divergence after a Reassess in `apps/api/src/routes/stages.test.ts` (PR 4) | `AC-25: step warnings are persisted typed, returned for done steps and cleared on restart` |
 | AC-26 | unit + component + browser | `apps/studio/src/lib/step-warnings.test.ts`, `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (#1013); the `es` rendering is checked in a browser, because Studio unit tests stub the Lingui macros, and the CI i18n job enforces complete catalogs | `AC-26: every step warning kind renders a translated summary`; `AC-26: a done pill is amber with a warning only when its step has warnings` |
 | AC-27 | integration + component | `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/api/src/services/part-service.test.ts` (part merge), `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (amber pill and legacy line) (#1013) | `AC-27: older-writer round trips never revive stale warnings, adapt only the legacy skip literal, and unknown kinds stay visible` |
-| AC-28 | integration + browser | `apps/api/src/routes/source-assessment.test.ts` (PR 4), `apps/studio/src/components/pipeline/stages/extract/ExtractView.source-assessment.test.tsx` (PR 5b) | `AC-28: every surface counts from the latest assessment after each trigger` |
-| AC-29 | unit + integration | `packages/pdf/src/__tests__/source-signals.test.ts` (occlusion budget, PR 3b), `packages/pipeline/src/__tests__/source-assessment.test.ts` (pairwise cap and `incomplete`, PR 2b) | `AC-29: geometry passes stay within budget and report truncation` |
-| AC-30 | browser | `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (#1013) | `AC-30: skipped pages stay discoverable after reload` |
+| AC-28 | integration + browser | `apps/api/src/routes/source-assessment.test.ts` (PR 4), `apps/studio/src/components/pipeline/stages/extract/ExtractView.source-assessment.test.tsx` (PR 5b), `packages/pipeline/src/__tests__/extract-report.test.ts` (PR 6) | `AC-28: every surface counts from the latest assessment after each trigger` |
+| AC-29 | unit + integration + browser | `packages/pdf/src/__tests__/source-signals.test.ts` (occlusion budget, PR 3b), `packages/pipeline/src/__tests__/source-assessment.test.ts` (pairwise cap and `incomplete`, PR 2b), `SourceQualityPanel.test.tsx` (the panel line, PR 5b), `packages/pipeline/src/__tests__/extract-report.test.ts` (the printed line, PR 6) | `AC-29: geometry passes stay within budget and report truncation` |
+| AC-30 | component + browser | `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (popover links, #1013); the reload and OutputReview half in a browser check once SPEC-0013 lands, recorded in `docs/verification/spec-0021.md` | `AC-30: skipped pages stay discoverable after reload` |
 | AC-31 | integration | `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (direct `extractPDF`), `apps/api/src/routes/stages.test.ts` and `packages/pipeline/src/__tests__/pipeline-dag.test.ts` (orchestrators), all PR 2d | `AC-31: an attempted extraction rerun keeps every assessment version` |
-| AC-32 | unit + integration + browser | `packages/pipeline/src/__tests__/source-assessment.test.ts` (coverage, PR 2b; `sourceAssessmentWarning`, PR 2c), `apps/api/src/routes/source-assessment.test.ts` (`BookSummary`, PR 4), `packages/pipeline/src/__tests__/extract-report.test.ts` (exit code, PR 6), `apps/studio/src/components/pipeline/components/StageSidebar.test.tsx` and `SubStepPillRow.test.tsx` (PR 5b) | `AC-32: partial coverage with zero findings is amber everywhere and exits 0` |
+| AC-32 | unit + integration + browser | `packages/pipeline/src/__tests__/source-assessment.test.ts` (coverage, PR 2b; `sourceAssessmentWarning`, PR 2c), `apps/api/src/routes/source-assessment.test.ts` (`BookSummary`, PR 4), `packages/pipeline/src/__tests__/extract-report.test.ts` (exit code, PR 6), `apps/studio/src/components/pipeline/StageSidebar.test.tsx` and `SubStepPillRow.test.tsx` (PR 5b) | `AC-32: partial coverage with zero findings is amber everywhere and exits 0` |
+| AC-33 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts` (rules, PR 2c), `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (extract write equals Reassess, PR 2d) | `AC-33: an extraction without signals reports the missing checks as incomplete` |
+| AC-34 | integration | `apps/api/src/routes/source-assessment.test.ts` (PR 4) | `AC-34: images added after extraction write no version and do not enter a Reassess` |
+| AC-35 | integration | `apps/api/src/routes/source-assessment.test.ts` (PR 4), `packages/pipeline/src/__tests__/cli-args.test.ts` (`assess-source`, PR 6) | `AC-35: an imported ADT book is never assessed` |
 
 Fixtures: cuaderno4 pages 1, 6 and 12 and cuaderno3 page 9 extracted in the test (the
 PDFs are local corpus files, listed in `docs/verification/spec-0021.md`, not committed);
@@ -1072,21 +1194,27 @@ otherwise kept as local corpus files like cuaderno4.
 
 ## Rollout
 
-No feature flag: the assessment is additive, free and deterministic, and an absent node
-means no UI. Thresholds are exported constants so SPEC-0005 can tune them with corpus
-evidence. Each PR is revertable on its own; reverting PR 2d removes the node and the note,
-and every consumer tolerates its absence.
+No feature flag: the assessment is additive, free and deterministic. An absent node means
+no findings, badges or pill warning; the panel shows only its "Not assessed" state with
+Reassess (§Lifecycle). Thresholds are exported constants so SPEC-0005 can tune them with corpus
+evidence. Each PR is revertable on its own. Reverting PR 2d removes the node, the note and the
+interim extraction guard, so history is no longer preserved (§Lifecycle), and every consumer
+tolerates the node's absence.
 
-Implementation PRs (≤ 400 changed lines each, in dependency order; the first
-value-bearing PR after PR 0 touches no extractor code). Every kind is named in exactly one
-rules PR; every PR is opened as a draft until this spec is `approved` on develop.
+**Release rule (decision 20).** PR 2d ships in the same release as PRs 3a and 3b (and 3c, unless
+3c lands first). They may merge to develop in the order below, but no release is cut between
+them, so no released build reports every new book as partially assessed.
+
+Implementation PRs in dependency order, each within the SDD review budget (about 1,000 changed
+lines, #1060). The first value-bearing PR after PR 0 touches no extractor code. Every kind is
+named in exactly one rules PR, and every PR is opened as a draft until this spec is `approved`
+on develop.
 
 0. **#1009, adopted**: the read-only `extract-report` CLI (#1008) — text profile, image
    counts and duplicates, pruning, Extract LLM cost and cache attribution, `--compare`,
    `--csv`, `--json`. It is the baseline that measures every later PR (AC-2, AC-6, AC-18) and
    it defines `MIN_TEXT_LAYER_CHARS` and `TextProfile`. Already open at ≈ 745 lines across 13
-   files: reviewed as one self-contained, read-only PR; the reviewer may ask to split
-   `packages/llm/src/pricing.ts` and `book-inspection.ts` out.
+   files, within the review budget; reviewed as one self-contained, read-only PR.
 1. `packages/types`: schema, constants (moving `MIN_TEXT_LAYER_CHARS` and `TextProfile` from
    PR 0), registry rows, `BookSummary` field (≈ 200).
 2. `packages/pipeline`:
@@ -1097,37 +1225,46 @@ rules PR; every PR is opened as a draft until this spec is `approved` on develop
    `low-resolution-raster`, `layered-artwork`; the 200-raster pairwise cap and
    `summary.incomplete`, `coverage` and `incompletePages`; AC-3, AC-4, AC-19, the rule half of
    AC-29 and the coverage half of AC-32 on synthetic inputs (≈ 330);
-   c) signal-fed and document rules, all skipped while `signals` or `source.structure` is
-   null: `ink-without-text`, `blank-page`, `text-unmapped-glyphs`, `hidden-text-layer`,
+   c) signal-fed and document rules, each recorded in `summary.incomplete` with `reason:
+   "no-signals"` (book-scoped for the document kinds) while its input is null, never
+   dropped: `ink-without-text`, `blank-page`, `text-unmapped-glyphs`, `hidden-text-layer`,
    `raster-occluded`, `image-decode-failed`, `needs-convert-colorspace`, `page-geometry`,
    `watermark-detected`, `pdf-encrypted`, `optional-content`, `pdf-container`; aggregation,
    readiness, rollups, `sourceAssessmentWarning`; the rule halves of AC-7, AC-9, AC-10, AC-11,
-   AC-20, AC-21, AC-22, and AC-24 (≈ 360);
+   AC-20, AC-21, AC-22, AC-24 and AC-33 (≈ 380);
    d) the write: `pdf-extraction.ts`, `assessmentSettings` from both callers (the CLI DAG and
-   `apps/api/src/services/stage-runner.ts`), `pageInputFromStorage`, and the interim
-   extraction guard (one "pages or node" condition in `extractPDF`, `makeBeforeRun` and the
-   CLI DAG) unless SPEC-0010's boundary has landed (§Lifecycle); AC-1, the corpus halves of
-   AC-3 and AC-4, AC-31 (≈ 300).
-3. `packages/pdf` (signals only; reverting any of these degrades — its kinds vanish, the
-   pngjs call returns — rather than removing the node):
-   a) the pixmap pass: render restructure on the single-page, spread and watermark paths,
-   `inkFraction`, edge samples, `pdf-extraction.ts` switched to them; AC-18 (≈ 260);
+   `apps/api/src/services/stage-runner.ts`), `pageInputFromStorage` (extraction-written images
+   only), and the interim extraction guard (one "pages or node" condition in `extractPDF`,
+   `makeBeforeRun` and the CLI DAG) unless SPEC-0010's boundary has landed (§Lifecycle); AC-1,
+   the corpus halves of AC-3 and AC-4, AC-31, the write half of AC-33 (≈ 300). Ships in the
+   same release as PRs 3a and 3b (release rule above).
+3. `packages/pdf` (signals only; reverting any of these degrades — its kinds become
+   `incomplete` with `no-signals`, the pngjs call returns — rather than removing the node):
+   a) the pixmap pass: `renderPageForExtraction` and its three paths (the image-watermark
+   render, `renderPageFiltered` and the plain render) return the pixmap alongside the cleaned
+   rasters, and the spread path does the same; `inkFraction`, edge samples,
+   `pdf-extraction.ts` switched to them; AC-18 (≈ 300);
    b) page counters and reads: glyph and `ignoreText` counters, failure counters, the
    occlusion pass with its work budget and `truncated`, page boxes, annotations, per-raster
    colour class and masks; fixtures; AC-9, the signal halves of AC-7, AC-20, AC-22 and AC-29
    (≈ 370);
    c) document reads: permissions, `PdfPasswordRequiredError`, `source.structure`,
-   `producerFamily`, always-on watermark detection; fixtures; AC-10, the signal half of
-   AC-21 (≈ 220).
-4. `apps/api`: route, payload fields, spreads re-apply recompute, the reassess route, the
-   `PUT config` settings-change hook, the derived `source-assessment` entry in `GET
-   step-status`, `BookSummary.sourceReadiness` with coverage; AC-12, AC-16, the API halves of
-   AC-11, AC-28 and AC-32 (≈ 360; split the reassess
-   route and the config hook into 4b if it runs over).
+   `producerFamily`, always-on text-watermark detection, and the removed-watermark record
+   for `watermark-detected`; fixtures; AC-10, the signal half of AC-21 (≈ 220).
+4. `apps/api`: route, payload fields, spreads re-apply recompute, the reassess route (refused
+   for imported books), the `PUT config` and `PUT metadata` settings-change hooks, the derived
+   `source-assessment` entry in `GET step-status`, `BookSummary.sourceReadiness` with coverage;
+   AC-12, AC-34, AC-35, the API halves of AC-11, AC-16, AC-25 (the `extract` event versus `GET`),
+   AC-28 and AC-32 (≈ 420). Needs #1013's `stepWarnings` field.
 5. `apps/studio` a) shared validation components, messages map, hook, catalogs (≈ 320);
    b) panel (with the not-assessed, outdated and incomplete states and the Reassess button),
    page badges, page detail, sidebar with the partial marker; AC-14, AC-15, the pill half of
-   AC-11, the browser halves of AC-28 and AC-32 (≈ 400; split the page-detail list out if it runs over). Needs #1013.
+   AC-11, the browser halves of AC-16, AC-28, AC-29 and AC-32 (≈ 420). Needs #1013.
+
+6. CLI: `extract-report` source section on top of PR 0 (still read-only) with the incomplete
+   line, the documented exit code and `summary.coverage` in `--json`; the `assess-source`
+   subcommand (refused for imported books); AC-17 and the CLI halves of AC-28, AC-29, AC-32
+   and AC-35 (≈ 230).
 
 **#1013 implements §Step warnings** next to its original fix (#1012, the image passes naming
 the pages left unchanged): `StepWarning`, the event field, the column, the API field, the
@@ -1140,16 +1277,16 @@ SPEC-0017 disclosure for provider text. The 2026-11-13 revision adds:
 - `message` always set (NULL when clean), an English rendering that differs from the legacy
   literal, and a part merge that carries `completed_at`, `message` and the envelope;
 - `incompletePages` on the `source-assessment` kind;
-- the narrowed AC-25 equality and the new-skip case of AC-27(b).
+- the narrowed AC-25 equality and the new-skip case of AC-27(b);
+- the `unrecognized` popover line ("N warning(s) this version of ADT Studio can't show") and
+  AC-30's popover links to the skipped pages;
+- `step_runs.message` holding only the rendering of persisted warnings.
 
 #1013 adopts these before it leaves draft. It is a
 draft until this spec is `approved`. #1015, stacked on it, then emits `summary-missing`.
-6. CLI: `extract-report` source section on top of PR 0 (still read-only) with the incomplete
-   line, the documented exit code and `summary.coverage` in `--json`; the `assess-source`
-   subcommand; AC-17 and the CLI halves of AC-28 and AC-32 (≈ 210).
 
 Independent fast-lane fix, before AC-18 is measured: keep the `extract` row in `step_runs`
-when `clearExtractedRows` runs (`book-storage.ts:663`), with a test that `started_at`
+when `clearExtractedRows` runs (`book-storage.ts:665`), with a test that `started_at`
 survives a re-extract.
 
 ### Prerequisites and related work
@@ -1157,14 +1294,17 @@ survives a re-extract.
 | PR | Relation | What this spec takes from it |
 |---|---|---|
 | #1009 `extract-report` CLI (#1008) | **Adopted as PR 0**, owned by this spec | The baseline report, `MIN_TEXT_LAYER_CHARS`, `TextProfile`, the exit-code convention, the `--compare` / `--json` surfaces PR 6 extends |
-| #1013 image-pass failures (#1012) | **Implements §Step warnings**; hard prerequisite of PR 2c, PR 5b and AC-11 | The typed step-warning channel: `StepWarning`, the `step-complete` field, `step_runs.warnings`, `stepWarnings` in `GET step-status`, the translated amber pill, and the console sink printing `event.message` |
+| #1013 image-pass failures (#1012) | **Implements §Step warnings**; hard prerequisite of PR 2c, PR 4, PR 5b and AC-11 | The typed step-warning channel: `StepWarning`, the `step-complete` field, `step_runs.warnings`, `stepWarnings` in `GET step-status`, the translated amber pill, and the console sink printing `event.message` |
 | SPEC-0010 safe reruns (#886, in review) | **Prerequisite of the history guarantee only**: its safe extraction admission and refusal at the common boundary, or PR 2d's interim guard until then (§Lifecycle, AC-31). The rest of SPEC-0010 is not a dependency | §Lifecycle: the node is derived and stays out of the manifest inventory; reuse writes nothing; an extraction rerun is refused before `clearExtractedData` runs |
-| SPEC-0013 page-failure recovery (#889, in review) | Owner of skipped-page records | `pages-skipped` is a count that links to SPEC-0013's per-page recovery records and OutputReview; it never replaces them (AC-30) |
+| SPEC-0013 page-failure recovery (#889, in review) | Owner of skipped-page records; AC-30's OutputReview half depends on it | `pages-skipped` is a count that links to SPEC-0013's per-page recovery records and OutputReview; it never replaces them (AC-30) |
 | SPEC-0017 connectivity handling (#950, in review) | Owner of error disclosure | Provider error text in `pages-unchanged` and `summary-missing` is shown through its technical-details disclosure; its classified wording replaces the generic line once it lands |
-| SPEC-0020 figure cleanup (#993, in review) | Recommendation target | `figure-cleanup` opens its entry point; R-h is a proposed extension that needs its owner's agreement |
+| SPEC-0020 figure cleanup (#993, in review) | Recommendation target; shares `ExtractPageDetail` | `figure-cleanup` opens its entry point; an accepted cleanup writes no assessment version (§Lifecycle); R-h is a proposed extension that needs its owner's agreement |
 | SPEC-0016 AI setup recommender (#932) | Future consumer | None today: its first slice is pre-Create; consuming the node later is an integration, not a dependency |
-| #1011 identical images judged once (#1010) | Related, independent | `duplicate-images` recommends `none` because #1011 already judges duplicates once |
-| #1015 book summary for scanned books | Related; stacked on #1013 | Emits the `summary-missing` step warning (§Step warnings) when the summary call fails; it consumes page renders the same way `text-layer-empty` pages would be routed by SPEC-0022 |
+| #1011 identical images judged once (#1010) | Merged (725632947) | `duplicate-images` recommends `none` because #1011 already judges exact duplicates once, and counts the same membership as its `planHashDedup` |
+| #1015 book summary for scanned books | Related; stacked on #1013 | Emits the `summary-missing` step warning (§Step warnings) when the summary call fails; it consumes page renders the same way a later vision text-recovery spec would route `text-layer-empty` pages |
+| #1106 image-watermark removal (#1105) | Merged (8f34af99b) | The render paths PR 3a restructures; the cleaned images the checks measure; `watermark-detected`'s removal-on record; AC-18's baseline (decision 23) |
+| #1104 add images in Extract | Merged (8b454f658) | Images with `source` `crop`/`upload` are not inventory (decision 22); the page detail's "Crop from page" control next to the findings list |
+| #803 round-trip ADT import (#705) | Merged (38977d14e) | Imported books are not assessed (decision 21) |
 
 Verification record: `docs/verification/spec-0021.md` with the corpus table (books,
 findings, counts, wall time) before the status moves to `implemented`.
@@ -1193,18 +1333,19 @@ the triage says spec):
 - **R-a Composite stacked rasters regardless of `figure_extraction_mode`** behind a new
   config `composite_stacked_rasters` (default on; added to `EXTRACTION_CONFIG_KEYS` in
   `packages/types/src/fingerprint.ts`): one page-crop over the union of the pair's bounds via
-  `cropFigureFromPageRender` (`extract.ts:3788`), members added to `coveredRasterHashes`.
+  `cropFigureFromPageRender` (`extract.ts:3892`), members added to `coveredRasterHashes`.
   Gate: cuaderno4 yields ≥ 25 owl composites and 0 "narrow cropped fragment" prunes;
   `prac_math_vol2` image count unchanged; E8 audit. Changes extraction output, so triage
   decides between fast lane and its own spec.
 - **R-b Prune guard for a contained overlay** in `off` and `all` modes (extend the auto-only
-  guard at `image-meaningfulness.ts:299-322`): with R-a off, 0 overlay prunes on cuaderno4.
+  guard at `image-meaningfulness.ts:303-326`): with R-a off, 0 overlay prunes on cuaderno4.
 - **R-c No holes**: a vector group overlapping excluded rasters renders as `page-crop`
-  (decision at `extract.ts:4036-4048`); `pg012_im012` contains the photos; ≤ 3 % of PNLD
+  (decision at `extract.ts:4140-4152`); `pg012_im012` contains the photos; ≤ 3 % of PNLD
   vector figures flip render method.
 - **R-d** Crop padding by an ink test and ink-adjacency group merge (after E4).
-- **R-g** Align the background-split comment with the code (`extract.ts:2143-2147` vs
-  3927-3933).
+- (R-e and R-f are not used; the ids are not reassigned.)
+- **R-g** Align the background-split comment with the code (`extract.ts:2247-2251` vs
+  4031-4037).
 - **R-h Describe what the page shows**: alt text, captions and meaningfulness verdicts for a
   raster flagged `raster-occluded` are generated from its page-crop, never from the raw
   raster, so labels hidden under answer boxes cannot leak into them. **A proposed extension of
@@ -1220,7 +1361,7 @@ the triage says spec):
 
 Optimisations the assessment enables:
 
-- **O1** Deterministic verdicts skip the meaningfulness call: exact duplicates (#1011),
+- **O1** Deterministic verdicts skip the meaningfulness call: exact duplicates (done by #1011),
   small decorations repeated on ≥ 5 pages, standalones replaced by an R-a composite, a
   full-page raster on an image-only page (E7 gate).
 - **O2** Downscale sub-images for classification (roadmap experiment).
@@ -1229,7 +1370,7 @@ Optimisations the assessment enables:
   rounding) and give it a zod schema and registry row — separate fast-lane PR.
 - **O5** One pixel pass per page shared by the ink signals, the edge samples (done by this
   spec) and the page-crop decodes (`cropPng` decodes the whole page PNG once per page-crop
-  figure, `extract.ts:3788-3826`; `stitchPngsHorizontally` decodes both halves of a spread).
+  figure, `extract.ts:3892-3930`; `stitchPngsHorizontally` decodes both halves of a spread).
 - **O6** Compute `grayscaleStdDev` while the raster is still a pixmap so
   `classifyPageImages` skips a decode.
 - **O7** Opt-in vision spot check on ≤ 5 flagged pages with the cheapest model, cached — v2.
@@ -1249,13 +1390,13 @@ Optimisations the assessment enables:
 5. `BookSummary.sourceReadiness` in the books list — keep if the list benchmark (#996)
    holds, otherwise read on demand. Owner: @gbergengruen, decided in PR 4.
 6. Resolved 2026-10-29: in spread mode `spread-suggestions` is always `[]`
-   (`pdf-extraction.ts:146`), so `spreads-unmarked` disappears once spreads are marked; no
+   (`pdf-extraction.ts:147`), so `spreads-unmarked` disappears once spreads are marked; no
    subtraction is needed.
 7. R-a: fast lane or its own spec — triage. Owner: the maintainer who triages R-a, after E8.
 8. `figure-render-holes` is defined on the figure's `bounds` joined by `imageId`, not on
    `extractionDebug.groups[].groupBbox` (which lacks the spread `xOffset`), and keys on
    `renderMethod: "vector"` plus an uncovered raster overlap ≥ 50 %, not on `hasImages`
-   (SVG `<image>` elements set it in `off` mode too, `extract.ts:3045-3085`). Confirm on
+   (SVG `<image>` elements set it in `off` mode too, `extract.ts:3149-3189`). Confirm on
    cuaderno4 `pg012` in PR 2d; if the join misses, PR 3b records `overlappedRasterImageIds`
    at the render decision as originally drafted. Owner: @gbergengruen, in PR 2d.
 9. `optional-content`: is naming the layers enough, or should a later setting choose the
