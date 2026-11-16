@@ -39,7 +39,7 @@ beforeEach(() => {
 afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true })
   fs.rmSync(`${tmpDir}-web-assets`, { recursive: true, force: true })
-})
+}, 60_000)
 
 function createTestBook(label: string): void {
   const bookDir = path.join(tmpDir, label)
@@ -2318,7 +2318,7 @@ describe("POST /books/import", () => {
     const label = (await res.json()).label as string
     expect(fs.readdirSync(path.join(tmpDir, label, "audio"))).toHaveLength(10_050)
     expect(fs.readFileSync(path.join(tmpDir, label, "audio", "clip-300.mp3"))[0]).toBe(300 % 256)
-  })
+  }, 120_000)
 
   it("imports a valid project ZIP", async () => {
     const zip = createProjectZip("import-test")

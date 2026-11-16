@@ -21,7 +21,9 @@ afterEach(() => {
 
 describe("archive safety limits", () => {
   it("accepts the size of real book backups (633 MiB, 5,456 entries were refused before)", () => {
-    expect(ARCHIVE_SAFETY_LIMITS.compressedBytes).toBeGreaterThanOrEqual(2 * 1024 * 1024 * 1024)
+    expect(ARCHIVE_SAFETY_LIMITS.compressedBytes).toBe(1024 * 1024 * 1024)
+    // One entry is inflated whole, so it keeps the old in-memory bound.
+    expect(ARCHIVE_SAFETY_LIMITS.entryBytes).toBe(1024 * 1024 * 1024)
     expect(ARCHIVE_SAFETY_LIMITS.entries).toBeGreaterThanOrEqual(100_000)
     // Archives still expanded in memory keep a 1 GiB bound.
     expect(IN_MEMORY_EXPANDED_BYTES).toBe(1024 * 1024 * 1024)
@@ -29,7 +31,7 @@ describe("archive safety limits", () => {
 
   it("formats binary limits for actionable API errors", () => {
     expect(formatArchiveByteLimit(512 * 1024 * 1024)).toBe("512 MiB")
-    expect(formatArchiveByteLimit(2 * 1024 * 1024 * 1024)).toBe("2 GiB")
+    expect(formatArchiveByteLimit(1024 * 1024 * 1024)).toBe("1 GiB")
   })
 })
 

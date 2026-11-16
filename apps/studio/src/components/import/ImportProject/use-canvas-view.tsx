@@ -42,7 +42,7 @@ export function useCanvasView({
     return {
       state: "drag", tone: "drag", icon: "upload", iconTone: "brand",
       title: t`Release to read the archive`,
-      message: t`One ZIP, up to 512 MiB`,
+      message: t`One ZIP, up to 1 GiB`,
       body: null, bodyKey: "none", missingTypes: false,
     }
   }
@@ -149,7 +149,7 @@ export function useCanvasView({
           <Upload aria-hidden="true" className="size-4" />
           <Trans>Browse files</Trans>
         </Button>
-        <span className="text-xs text-muted-foreground"><Trans>One ZIP, up to 512 MiB</Trans></span>
+        <span className="text-xs text-muted-foreground"><Trans>One ZIP, up to 1 GiB</Trans></span>
       </>
     ),
     bodyKey: "idle", missingTypes: false,

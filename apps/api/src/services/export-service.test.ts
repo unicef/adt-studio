@@ -114,6 +114,24 @@ describe("exportProject", () => {
     })
   })
 
+  it("leaves export outputs and the screenshot cache out, keeps the LLM cache and debug images", async () => {
+    createTestDb("lean-backup")
+    addPages("lean-backup", 1)
+    const bookDir = path.join(tmpDir, "lean-backup")
+    for (const dir of ["adt", "webpub", "epub", "pnld", ".section-renders", ".cache", ".debug-images"]) {
+      fs.mkdirSync(path.join(bookDir, dir), { recursive: true })
+      fs.writeFileSync(path.join(bookDir, dir, "file.bin"), "x")
+    }
+
+    const result = await exportProject("lean-backup", tmpDir)
+    const names = Object.keys(unzipSync(await streamToBuffer(result.stream)))
+    for (const dir of ["adt", "webpub", "epub", "pnld", ".section-renders"]) {
+      expect(names.some((n) => n.startsWith(`${dir}/`))).toBe(false)
+    }
+    expect(names).toContain(".cache/file.bin")
+    expect(names).toContain(".debug-images/file.bin")
+  })
+
   it("includes PDF in the ZIP", async () => {
     createTestDb("with-pdf")
     addPages("with-pdf", 1)

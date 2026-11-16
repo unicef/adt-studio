@@ -5,15 +5,18 @@ import { unzipSync } from "fflate"
 /**
  * Limits for project archives (backups and parts).
  *
- * Imports no longer expand a project archive in memory: entries are checked
- * once, then written to disk in bounded batches. Only the upload itself is
- * held in memory, so the compressed size is the real memory bound and the
- * expanded and entry caps only stop zip bombs. They are sized well above the
- * largest real books (a 633 MiB, 5,456-entry backup was refused at 512 MiB).
+ * A project import no longer expands the whole archive in memory: entries are
+ * checked once, then written to disk in bounded batches. The upload itself is
+ * still buffered (and the Studio flow sends it twice: preview, then import),
+ * so the compressed cap is the main memory bound; 1 GiB keeps that safe on
+ * 8 GB machines while fitting the largest real backups (633 MiB before
+ * caches were left out). One entry is inflated whole, so each entry is capped
+ * too. The expanded and entry caps only stop zip bombs.
  */
 export const ARCHIVE_SAFETY_LIMITS = {
-  compressedBytes: 2 * 1024 * 1024 * 1024,
+  compressedBytes: 1024 * 1024 * 1024,
   expandedBytes: 8 * 1024 * 1024 * 1024,
+  entryBytes: 1024 * 1024 * 1024,
   entries: 200_000,
 } as const
 
@@ -89,6 +92,9 @@ export function inspectArchiveEntries(zipBuffer: Buffer): ArchiveEntryInfo[] {
     if (!Number.isSafeInteger(info.originalSize) || info.originalSize < 0) {
       throw new ArchiveSafetyError("Archive contains an invalid entry size")
     }
+    if (info.originalSize > ARCHIVE_SAFETY_LIMITS.entryBytes) {
+      throw new ArchiveSafetyError(`Archive entry exceeds the size limit: ${info.name}`)
+    }
     expandedBytes += info.originalSize
     if (expandedBytes > ARCHIVE_SAFETY_LIMITS.expandedBytes) {
       throw new ArchiveSafetyError("Archive exceeds the expanded size limit")
@@ -132,13 +138,18 @@ export function extractArchiveToDisk(
 
   let batch = new Set<string>()
   let batchBytes = 0
+  const createdDirs = new Set<string>()
   const flush = () => {
     if (batch.size === 0) return
     const current = batch
     const files = unzipFiltered(zipBuffer, (info) => current.has(info.name))
     for (const [name, data] of Object.entries(files)) {
       const destination = targets.get(name)!
-      fs.mkdirSync(path.dirname(destination), { recursive: true })
+      const dir = path.dirname(destination)
+      if (!createdDirs.has(dir)) {
+        fs.mkdirSync(dir, { recursive: true })
+        createdDirs.add(dir)
+      }
       fs.writeFileSync(destination, data)
     }
     batch = new Set()

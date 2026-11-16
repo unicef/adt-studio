@@ -19,13 +19,30 @@ afterEach(cleanup)
 describe("useFriendlyArchiveError", () => {
   it("states the compressed upload limit for oversized archives", () => {
     const { result } = renderHook(() => useFriendlyArchiveError(
-      "Archive upload exceeds the 512 MiB compressed size limit",
+      "Archive upload exceeds the 1 GiB compressed size limit",
     ))
 
     expect(result.current).toEqual({
       title: "This archive is too large",
-      hint: "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again.",
+      hint: "ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again.",
     })
+  })
+
+  it("explains a full disk without blaming the archive", () => {
+    const { result } = renderHook(() => useFriendlyArchiveError("Not enough disk space to import this archive"))
+    expect(result.current).toMatchObject({ title: "Not enough disk space", kind: "server" })
+  })
+
+  it("does not quote the upload limit when what is inside the archive is too big", () => {
+    for (const raw of [
+      "ADT bundle exceeds the 1 GiB expanded size limit",
+      "Archive entry exceeds the size limit: videos/a.mp4",
+      "Archive contains too many entries",
+    ]) {
+      const { result } = renderHook(() => useFriendlyArchiveError(raw))
+      expect(result.current?.title).toBe("This archive is too large")
+      expect(result.current?.hint).not.toMatch(/MiB|GiB/)
+    }
   })
 
   it("prioritizes an unsafe-path explanation over the broad ADT bundle error", () => {

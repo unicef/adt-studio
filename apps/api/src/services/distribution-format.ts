@@ -26,6 +26,9 @@ export function distributionFormatMessage(format: DistributionExportFormat): str
   )
 }
 
+/** Largest marker file read (an ADT manifest.json can reach 16 MiB). */
+const MAX_MARKER_BYTES = 16 * 1024 * 1024
+
 function basename(entryPath: string): string {
   return entryPath.split("/").pop() ?? entryPath
 }
@@ -71,7 +74,13 @@ export function detectDistributionFormat(zipBuffer: Buffer): DistributionExportF
       filter: (file: UnzipFileInfo) => {
         names.push(file.name)
         const base = basename(file.name)
-        return base === "mimetype" || base === "manifest.json"
+        // Markers only matter at the root or one wrapper folder deep, and are
+        // small; never inflate anything else just to classify the archive.
+        return (
+          (base === "mimetype" || base === "manifest.json") &&
+          file.name.split("/").length <= 2 &&
+          file.originalSize <= MAX_MARKER_BYTES
+        )
       },
     })
   } catch {

@@ -1545,8 +1545,11 @@ msgstr "ADT Studio"
 msgid "ADT STUDIO"
 msgstr "ADT STUDIO"
 
-msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
-msgstr "ADT Studio pranon arkiva ZIP deri në 512 MiB të kompresuara. Zgjidhni një paketë më të vogël dhe provoni sërish."
+msgid "ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again."
+msgstr "ADT Studio pranon arkiva ZIP deri në 1 GiB të kompresuara. Zgjidhni një paketë më të vogël dhe provoni përsëri."
+
+#~ msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+#~ msgstr "ADT Studio pranon arkiva ZIP deri në 512 MiB të kompresuara. Zgjidhni një paketë më të vogël dhe provoni sërish."
 
 msgid "ADT Studio can’t import this ZIP"
 msgstr "ADT Studio nuk mund ta importojë këtë ZIP"
@@ -5130,6 +5133,9 @@ msgstr "Plan falas, në llogarinë tuaj"
 msgid "Free rectangle — resize without skewing"
 msgstr "Drejtkëndësh i lirë — ripërmaso pa shtrembëruar"
 
+msgid "Free up space on this computer, then try the import again. The archive itself is fine."
+msgstr "Lironi hapësirë në këtë kompjuter, pastaj provoni importin përsëri. Vetë arkivi është në rregull."
+
 msgid "Free-form polygon — move, add, and remove points"
 msgstr "Poligon i lirë — lëviz, shto dhe hiq pika"
 
@@ -7841,6 +7847,9 @@ msgstr "Nuk u krijua"
 msgid "Not detected"
 msgstr "Nuk u zbulua"
 
+msgid "Not enough disk space"
+msgstr "Nuk ka hapësirë të mjaftueshme në disk"
+
 msgid "Not found in the book text"
 msgstr "Nuk u gjet në tekstin e librit"
 
@@ -8068,8 +8077,11 @@ msgstr "Një etiketë për rresht ose të ndara me presje. Lërini siç janë p�
 msgid "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
 msgstr "Një shkallë e vetme teksti për të gjithë librin. Nis nga madhësitë e zbuluara të vetë librit (kurrë nën 16px), kështu që faqet mbeten afër origjinalit. Përdor “Madhësi të aksesueshme” për ta zmadhuar librin, ose cakto vetë çdo rol — zgjidh një token Tailwind ose shkruaj një vlerë të saktë në px. Këto mbizotërojnë çdo madhësi që zgjedh IA-ja, kështu teksti mbetet i qëndrueshëm në çdo faqe."
 
-msgid "One ZIP, up to 512 MiB"
-msgstr "Një ZIP, deri në 512 MiB"
+msgid "One ZIP, up to 1 GiB"
+msgstr "Një ZIP, deri në 1 GiB"
+
+#~ msgid "One ZIP, up to 512 MiB"
+#~ msgstr "Një ZIP, deri në 512 MiB"
 
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Mund të zgjidhen vetëm imazhet që shfaqen në storyboard (kanë tituj)."
@@ -11239,6 +11251,9 @@ msgstr "Disa paraqitje të ruajtura nuk përputhen më me seksionet e kësaj faq
 
 msgid "Something else in your account already uses the name the Studio needs. Rename it in Cloudflare, or write to us if you'd rather not — then try again."
 msgstr "Diçka tjetër në llogarinë tuaj tashmë përdor emrin që Studio ka nevojë. Riemërtoje atë në Cloudflare, ose na shkruani nëse nuk dëshironi — pastaj provoni përsëri."
+
+msgid "Something inside this ZIP is larger than ADT Studio can import safely. Remove files the book doesn't need, such as old exports, and try again."
+msgstr "Diçka brenda këtij ZIP-i është më e madhe se sa mund të importojë ADT Studio në mënyrë të sigurt. Hiqni skedarët që libri nuk i nevojitet, si eksportet e vjetra, dhe provoni përsëri."
 
 msgid "Something went wrong"
 msgstr "Diçka shkoi keq"

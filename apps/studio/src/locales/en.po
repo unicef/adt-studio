@@ -1543,8 +1543,11 @@ msgstr "ADT Studio"
 msgid "ADT STUDIO"
 msgstr "ADT STUDIO"
 
-msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
-msgstr "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+msgid "ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again."
+msgstr "ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again."
+
+#~ msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+#~ msgstr "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
 
 msgid "ADT Studio can’t import this ZIP"
 msgstr "ADT Studio can’t import this ZIP"
@@ -5128,6 +5131,9 @@ msgstr "Free plan, in your own account"
 msgid "Free rectangle — resize without skewing"
 msgstr "Free rectangle — resize without skewing"
 
+msgid "Free up space on this computer, then try the import again. The archive itself is fine."
+msgstr "Free up space on this computer, then try the import again. The archive itself is fine."
+
 msgid "Free-form polygon — move, add, and remove points"
 msgstr "Free-form polygon — move, add, and remove points"
 
@@ -7839,6 +7845,9 @@ msgstr "Not created"
 msgid "Not detected"
 msgstr "Not detected"
 
+msgid "Not enough disk space"
+msgstr "Not enough disk space"
+
 msgid "Not found in the book text"
 msgstr "Not found in the book text"
 
@@ -8066,8 +8075,11 @@ msgstr "One tag per line or comma-separated. Leave as-is to keep the current pac
 msgid "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
 msgstr "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
 
-msgid "One ZIP, up to 512 MiB"
-msgstr "One ZIP, up to 512 MiB"
+msgid "One ZIP, up to 1 GiB"
+msgstr "One ZIP, up to 1 GiB"
+
+#~ msgid "One ZIP, up to 512 MiB"
+#~ msgstr "One ZIP, up to 512 MiB"
 
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Only images that appear in the storyboard (have captions) can be selected."
@@ -11237,6 +11249,9 @@ msgstr "Some retained renderings no longer match this page’s sections. Their c
 
 msgid "Something else in your account already uses the name the Studio needs. Rename it in Cloudflare, or write to us if you'd rather not — then try again."
 msgstr "Something else in your account already uses the name the Studio needs. Rename it in Cloudflare, or write to us if you'd rather not — then try again."
+
+msgid "Something inside this ZIP is larger than ADT Studio can import safely. Remove files the book doesn't need, such as old exports, and try again."
+msgstr "Something inside this ZIP is larger than ADT Studio can import safely. Remove files the book doesn't need, such as old exports, and try again."
 
 msgid "Something went wrong"
 msgstr "Something went wrong"

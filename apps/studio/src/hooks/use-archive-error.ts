@@ -27,10 +27,32 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
   if (!rawError) return null
   const e = rawError.toLowerCase()
 
-  if (e.includes("size limit") || e.includes("exceeds the size")) {
+  if (e.includes("compressed size limit") || e.includes("compressed archive size limit")) {
     return {
       title: t`This archive is too large`,
-      hint: t`ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again.`,
+      hint: t`ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again.`,
+    }
+  }
+
+  // Expanded-size, per-file and entry-count limits: the upload size was fine,
+  // but what is inside the archive is too big to import safely.
+  if (
+    e.includes("size limit") ||
+    e.includes("exceeds the size") ||
+    e.includes("too many entries") ||
+    e.includes("too many archive entries")
+  ) {
+    return {
+      title: t`This archive is too large`,
+      hint: t`Something inside this ZIP is larger than ADT Studio can import safely. Remove files the book doesn't need, such as old exports, and try again.`,
+    }
+  }
+
+  if (e.includes("not enough disk space")) {
+    return {
+      title: t`Not enough disk space`,
+      hint: t`Free up space on this computer, then try the import again. The archive itself is fine.`,
+      kind: "server",
     }
   }
 

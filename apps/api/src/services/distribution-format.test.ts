@@ -61,14 +61,19 @@ describe("detectDistributionFormat", () => {
     expect(detectDistributionFormat(zip)).toBeNull()
   })
 
+  it("does not inflate a marker-named file nested deep in the archive", () => {
+    const zip = makeZip({ "a/b/c/manifest.json": JSON.stringify({ readingOrder: [] }), "x.html": "<p>" })
+    expect(detectDistributionFormat(zip)).toBeNull()
+  })
+
   it("returns null for a project backup (db + pdf)", () => {
     const zip = makeZip({ "book.db": "SQLite format 3", "book.pdf": "%PDF-1.7" })
     expect(detectDistributionFormat(zip)).toBeNull()
   })
 
   it("returns null for a project backup that still contains leftover epub/ + pnld/ export dirs", () => {
-    // A Project backup excludes only adt/ + webpub/, so epub/ and pnld/ export
-    // dirs ride along. Their markers must NOT be read as a distribution export.
+    // Backups now leave out epub/ and pnld/ too, but older backups still carry
+    // them. Their markers must NOT be read as a distribution export.
     const zip = makeZip({
       "raven.db": "SQLite format 3",
       "raven.pdf": "%PDF-1.7",

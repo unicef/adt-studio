@@ -1543,8 +1543,11 @@ msgstr "ADT Studio"
 msgid "ADT STUDIO"
 msgstr "ADT STUDIO"
 
-msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
-msgstr "O ADT Studio aceita arquivos ZIP de até 512 MiB compactados. Escolha um pacote menor e tente novamente."
+msgid "ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again."
+msgstr "O ADT Studio aceita arquivos ZIP de até 1 GiB compactados. Escolha um pacote menor e tente novamente."
+
+#~ msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+#~ msgstr "O ADT Studio aceita arquivos ZIP de até 512 MiB compactados. Escolha um pacote menor e tente novamente."
 
 msgid "ADT Studio can’t import this ZIP"
 msgstr "O ADT Studio não pode importar este ZIP"
@@ -5128,6 +5131,9 @@ msgstr "Plano gratuito, na sua própria conta"
 msgid "Free rectangle — resize without skewing"
 msgstr "Retângulo livre — redimensione sem distorcer"
 
+msgid "Free up space on this computer, then try the import again. The archive itself is fine."
+msgstr "Libere espaço neste computador e tente importar novamente. O arquivo em si está correto."
+
 msgid "Free-form polygon — move, add, and remove points"
 msgstr "Polígono livre — mova, adicione e remova pontos"
 
@@ -7839,6 +7845,9 @@ msgstr "Não criado"
 msgid "Not detected"
 msgstr "Não detectado"
 
+msgid "Not enough disk space"
+msgstr "Espaço em disco insuficiente"
+
 msgid "Not found in the book text"
 msgstr "Não encontrado no texto do livro"
 
@@ -8066,8 +8075,11 @@ msgstr "Uma tag por linha ou separadas por vírgula. Deixe como está para mante
 msgid "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
 msgstr "Uma única escala de texto para todo o livro. Ela parte dos tamanhos detectados do próprio livro (nunca abaixo de 16px), para que as páginas fiquem próximas do original. Use “Tamanhos acessíveis” para ampliar o livro, ou defina cada função você mesmo — escolha um token do Tailwind ou digite um valor exato em px. Eles substituem qualquer tamanho escolhido pela IA, assim o texto permanece consistente em todas as páginas."
 
-msgid "One ZIP, up to 512 MiB"
-msgstr "Um ZIP, de até 512 MiB"
+msgid "One ZIP, up to 1 GiB"
+msgstr "Um ZIP, de até 1 GiB"
+
+#~ msgid "One ZIP, up to 512 MiB"
+#~ msgstr "Um ZIP, de até 512 MiB"
 
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Só é possível selecionar imagens que aparecem no Storyboard (com texto alternativo)."
@@ -11237,6 +11249,9 @@ msgstr "Algumas renderizações preservadas não correspondem mais às seções 
 
 msgid "Something else in your account already uses the name the Studio needs. Rename it in Cloudflare, or write to us if you'd rather not — then try again."
 msgstr "Algo mais na sua conta já usa o nome que o Studio precisa. Renomeie no Cloudflare, ou escreva para nós se preferir não — depois tente novamente."
+
+msgid "Something inside this ZIP is larger than ADT Studio can import safely. Remove files the book doesn't need, such as old exports, and try again."
+msgstr "Algo dentro deste ZIP é maior do que o ADT Studio consegue importar com segurança. Remova os arquivos de que o livro não precisa, como exportações antigas, e tente novamente."
 
 msgid "Something went wrong"
 msgstr "Algo deu errado"

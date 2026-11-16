@@ -15,10 +15,11 @@ import type {
   AdtRoundTripManifest as AdtRoundTripManifestData,
 } from "@adt/types"
 import { canonicalJson } from "@adt/types/fingerprint"
-import { ARCHIVE_SAFETY_LIMITS, IN_MEMORY_EXPANDED_BYTES } from "../archive-safety.js"
+import { IN_MEMORY_EXPANDED_BYTES } from "../archive-safety.js"
 
 export const ADT_BUNDLE_READER_LIMITS = {
-  archiveBytes: ARCHIVE_SAFETY_LIMITS.compressedBytes,
+  /** ADT bundles are still expanded in memory, so the upload shares that bound. */
+  archiveBytes: IN_MEMORY_EXPANDED_BYTES,
   // Sized from what the exporter writes: per language a texts.json, speech
   // files and audio per text, plus pages and images. A two-language book with
   // 1,500 texts is already ~3,100 entries, so 10,000 refused 7-language books.
@@ -525,7 +526,7 @@ export function extractAdtBundleArchiveFiles(zipBuffer: Buffer): Record<string, 
         }
         totalBytes += info.originalSize
         if (totalBytes > ADT_BUNDLE_READER_LIMITS.expandedBytes) {
-          throw new AdtBundleReadError("ADT bundle exceeds the expanded archive size limit")
+          throw new AdtBundleReadError(`ADT bundle exceeds the ${IN_MEMORY_EXPANDED_BYTES / (1024 * 1024 * 1024)} GiB expanded size limit`)
         }
         return true
       },

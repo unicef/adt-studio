@@ -54,8 +54,13 @@ function asInvalidArchive<T>(read: () => T): T {
   try {
     return read()
   } catch (error) {
-    if (error instanceof HTTPException) throw error
-    throwInvalidArchive(error instanceof ArchiveSafetyError ? error.message : "Invalid ZIP file")
+    if (error instanceof ArchiveSafetyError) throwInvalidArchive(error.message)
+    if ((error as NodeJS.ErrnoException | null)?.code === "ENOSPC") {
+      throw new HTTPException(507, { message: "Not enough disk space to import this archive" })
+    }
+    // Anything else (an HTTP error from a path check, a disk error) is not a
+    // broken archive; let it through unchanged.
+    throw error
   }
 }
 
@@ -224,9 +229,7 @@ export async function importProject(
   fs.mkdirSync(bookDir, { recursive: true })
 
   try {
-    // Written to disk in bounded batches; large backups are never expanded
-    // in memory as a whole.
-    asInvalidArchive(() => extractArchiveToDisk(zipBuffer, (entryPath) => {
+    const destinationFor = (entryPath: string): string => {
       const renamedPath = entryPath.startsWith(`${rawLabel}.`)
         ? entryPath.replace(rawLabel, targetLabel)
         : entryPath
@@ -237,8 +240,13 @@ export async function importProject(
         throwInvalidArchive("Invalid project archive: contains paths that escape the project directory")
       }
       return destPath
-    }))
+    }
 
+    // Check the database before writing anything else, so a broken backup
+    // never fills the disk. Then write the rest in bounded batches; large
+    // backups are never expanded in memory as a whole.
+    asInvalidArchive(() => extractArchiveToDisk(zipBuffer, (entryPath) =>
+      entryPath === dbEntry ? destinationFor(entryPath) : null))
     const dbPath = path.join(bookDir, `${targetLabel}.db`)
     const meta = readDbMetadata(dbPath)
 
@@ -246,6 +254,9 @@ export async function importProject(
       if (meta.validationCorrupt) throwCorruptProject(meta.validationError)
       throwInvalidArchive(meta.validationError)
     }
+
+    asInvalidArchive(() => extractArchiveToDisk(zipBuffer, (entryPath) =>
+      entryPath === dbEntry ? null : destinationFor(entryPath)))
 
     return getBook(targetLabel, booksDir)
   } catch (err) {
