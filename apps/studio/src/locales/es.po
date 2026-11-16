@@ -10937,8 +10937,9 @@ msgstr "Configuración"
 msgid "Settings — a sharing update is ready"
 msgstr "Ajustes: hay una actualización para compartir"
 
-msgid "Settings — no AI provider is connected"
-msgstr "Configuración — no hay ningún proveedor de IA conectado"
+#. missingName is the provider's name (OpenAI, Anthropic, Claude Agent…).
+msgid "Settings — the default AI provider isn't set up ({missingName})"
+msgstr "Configuración — el proveedor de IA predeterminado no está configurado ({missingName})"
 
 msgid "Settings for this step are not yet available."
 msgstr "La configuración para esta etapa aún no está disponible."

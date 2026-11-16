@@ -33,9 +33,9 @@ import type { AppView } from "./types"
 import { useUpdateDialog } from "@/components/updates"
 import { SidebarLogo } from "./SidebarLogo"
 import { useSharingUpdate } from "@/hooks/use-sharing-update"
-import { useNeedsTextProvider, useRejectedTextProvider } from "@/hooks/use-api-key"
+import { useMissingTextProvider, useRejectedTextProvider } from "@/hooks/use-api-key"
 import { providerAnchor } from "./screens/settings/provider-anchor"
-import { cardKeyForProvider } from "./screens/settings/providers/cards"
+import { cardKeyForProvider, isCliProvider } from "./screens/settings/providers/cards"
 
 const DOCS_URL = "https://unicef.github.io/adt-studio/docs/get-started/";
 const ISSUES_URL = "https://github.com/unicef/adt-studio/issues";
@@ -99,8 +99,17 @@ export function AppSidebar({
   const rejectedName = rejectedProvider?.displayName ?? ""
   // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
   const providerKey = providerSelectKey(rejectedProvider?.providerId ?? "")
-  // No provider can run the text steps at all: same link, amber instead of red.
-  const needsProvider = useNeedsTextProvider()
+  // The default text model's provider isn't set up (no key, no login): same
+  // link, to that provider's card, amber instead of red.
+  const missingProvider = useMissingTextProvider()
+  const missingName = missingProvider?.displayName ?? ""
+  const settingsLabel = rejectedProvider
+    ? t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Settings — the ${rejectedName} key was rejected` })}` })
+    : missingProvider
+      ? t({ comment: "missingName is the provider's name (OpenAI, Anthropic, Claude Agent…).", message: `Settings — the default AI provider isn't set up (${missingName})` })
+      : sharingUpdate
+        ? t`Settings — a sharing update is ready`
+        : undefined
 
   const items: { view: AppView; label: string; icon: LucideIcon; count?: number }[] = [
     { view: "home", label: t`Home`, icon: House },
@@ -172,22 +181,17 @@ export function AppSidebar({
                 search: { auth: "api-key" as const },
                 hash: providerAnchor(cardKeyForProvider(rejectedProvider.providerId)),
               }
-            : needsProvider
+            : missingProvider
               ? {
                   to: SETTINGS_PATHS.providers,
-                  search: { auth: "api-key" as const },
-                  hash: providerAnchor(cardKeyForProvider("openai")),
+                  // A CLI backend signs in on its own tab; the card picks it.
+                  search: isCliProvider(missingProvider.providerId) ? {} : { auth: "api-key" as const },
+                  hash: providerAnchor(cardKeyForProvider(missingProvider.providerId)),
                 }
               : { to: sharingUpdate ? SETTINGS_PATHS.publishing : APP_PATHS.settings })}
-          aria-label={
-            rejectedProvider
-              ? t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Settings — the ${rejectedName} key was rejected` })}` })
-              : needsProvider
-                ? t`Settings — no AI provider is connected`
-                : sharingUpdate
-                  ? t`Settings — a sharing update is ready`
-                  : undefined
-          }
+          aria-label={settingsLabel}
+          // The dot is colour only; the tooltip says what it means.
+          title={settingsLabel}
           className="flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
         >
           <span className="relative">
@@ -198,7 +202,7 @@ export function AppSidebar({
                 aria-hidden
                 className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-red-500 ring-2 ring-sidebar motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-300"
               />
-            ) : needsProvider ? (
+            ) : missingProvider ? (
               <span
                 aria-hidden
                 className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-amber-500 ring-2 ring-sidebar motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-300"
