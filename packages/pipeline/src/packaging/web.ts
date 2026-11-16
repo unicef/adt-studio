@@ -2818,7 +2818,10 @@ function pickDefaultLanguage(
  * (EPUB/WebPub): the SCORM package manifest and the repo's AGENTS.md. Pass as
  * the `skip` set when copying `adt/` into an export directory.
  */
-export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md", "CLAUDE.md"])
+/** Top-level ADT files that reader formats (EPUB, PNLD, WebPub) leave out:
+ * SCORM and agent files, and the round-trip `manifest.json` editing contract,
+ * which carries the project id (WebPub writes its own manifest.json). */
+export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md", "CLAUDE.md", "manifest.json"])
 
 /**
  * The bundle's entry point: a redirect to the first page of the reading order.

@@ -428,6 +428,18 @@ describe("exportEpub", () => {
     expect(files["OEBPS/toc.ncx"]).toBeDefined()
   })
 
+  // F22: the round-trip editing contract (with the project id) stays out of EPUB.
+  it("leaves the ADT round-trip manifest.json out of the EPUB and its OPF", async () => {
+    createBookWithMetadata("epub-no-manifest", "No Manifest")
+    addPagesAndRenderings("epub-no-manifest", 1)
+
+    await prepareExport("epub-no-manifest", "epub", tmpDir, webAssetsDir)
+    expect(fs.existsSync(path.join(tmpDir, "epub-no-manifest", "adt", "manifest.json"))).toBe(true)
+    const files = unzipSync(await streamToBuffer((await exportEpub("epub-no-manifest", tmpDir)).stream))
+    expect(files["OEBPS/manifest.json"]).toBeUndefined()
+    expect(new TextDecoder().decode(files["OEBPS/content.opf"])).not.toContain('href="manifest.json"')
+  })
+
   it("includes content pages as HTML files from ADT package", async () => {
     createBookWithMetadata("epub-pages", "Pages Book")
     addPagesAndRenderings("epub-pages", 2)
