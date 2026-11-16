@@ -140,9 +140,58 @@ The `openai_gpt_6_1_sol` directory ships six variants:
   of merging the unit and lesson banners into one heading, which only the
   synthesis call had been undoing. They add about 4% input tokens.
 
-The `openai_gpt_6_luna` directory ships two variants. `web_generation_html`
+The `openai_gpt_6_luna` directory ships four variants. `web_generation_html`
 sizes and places images by their footprint on the original page. It retains the
 earlier prompt wording; the goal-first Sol rewrite does not change Luna.
+
+Luna follows the wording of a prompt more literally than GPT-5.4 and gives the
+page image less weight, so every Luna variant opens by telling it to look at
+the page (or the candidate image) before applying any rule, and states that no
+rule asks it to add, drop, merge, repeat or split content the page does not show
+that way. A 22-book, 440-page comparison against GPT-5.4
+(`books/_comparisons/relatorio-bateria-gpt54-vs-gpt61.md`, local only) traced
+these Luna failures to that literal reading:
+
+- `page_sectioning` summarised very dense pages (50–92% of the text dropped
+  with a successful response) and dropped a paragraph on an ordinary page;
+  wrote captions the page does not print; split one numbered exercise into
+  several sections because its answer fields differed (the MIXED MECHANICS rule
+  read field by field); added a second `___` leaf beside a blank that already
+  had one; wrapped plain arithmetic in an unpaired `$`; and placed text-only
+  crops as images with their words repeated as caption leaves. The variant now
+  has a READ THE PAGE BEFORE APPLYING ANY RULE section, transcription rules
+  (no summary, each sentence once, nothing invented, exact spelling, LaTeX only
+  where plain text cannot express the notation), an INSIDE ONE EXERCISE no-split
+  rule, answer leaves that mirror the printed writing spaces, and an OMIT rule
+  for text crops.
+- `image_meaningfulness` kept composites that are page layout (portraits beside
+  their descriptive paragraphs, a side label plus page number plus instruction)
+  because the base prompt says to keep when uncertain and to favor raster
+  content. GPT-5.4 rejected the same candidates. The variant asks first whether
+  the candidate is a picture or a piece of the page and limits the
+  keep-when-uncertain rule to real pictures.
+- `image_cropping` cut figures in half or kept only a detail. The variant states
+  that a crop only removes edge strips and must still contain the whole
+  picture, and that coordinates stay inside the image.
+- `web_generation_html` added inputs for rhetorical questions and speech
+  bubbles on reading pages (the Sol variant already had this guard) and left
+  headings outside `<hN>`. It now limits the learner-control rules to real
+  response tasks, hides a text-only crop whose words are also supplied as
+  leaves, and lists heading tags in its completion check.
+
+Page sectioning also validates the tree against the page's selectable text
+(`findSourceFidelityIssues` in `packages/pipeline/src/page-sectioning.ts`, all
+models): a 30-word window of page text with under 25% of its word pairs in the
+tree, or a sentence of eight or more words that the tree repeats more often
+than the page prints it, fails the attempt with feedback naming the passage.
+Pages with fewer than 60 selectable words are exempt. At most two attempts are
+rejected for fidelity, so a page that cannot be transcribed in full is still
+saved rather than lost.
+
+The shipped config runs `image_segmentation` and `image_cropping` at `low`
+reasoning effort. At Luna's default `medium`, 55–71% of the output of those
+tasks was reasoning, the cropping step took three times as long as on GPT-5.4,
+and three calls ran out of their 4,096 output tokens.
 
 `page_sectioning` keeps the base wording and adds targeted fixes for the
 validation failures Luna produced on the base prompt (about 10% of pages on a

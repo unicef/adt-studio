@@ -208,8 +208,14 @@ page_sectioning:
 image_meaningfulness:
   prompt: image_meaningfulness
 
+# Splitting and trimming images are mechanical decisions. At medium effort Luna
+# spent most of its output on reasoning there and ran out of output tokens.
+image_segmentation:
+  reasoning_effort: "low"
+
 image_cropping:
   prompt: image_cropping
+  reasoning_effort: "low"
 
 default_render_strategy: two_column
 

@@ -12,7 +12,12 @@ describe("Luna prompt variants", () => {
     const folder = path.join(root, "openai_gpt_6_luna")
     const engine = createPromptEngine(root)
     expect(fs.readdirSync(folder).filter((file) => file.endsWith(".liquid")).sort())
-      .toEqual(["page_sectioning.liquid", "web_generation_html.liquid"])
+      .toEqual([
+        "image_cropping.liquid",
+        "image_meaningfulness.liquid",
+        "page_sectioning.liquid",
+        "web_generation_html.liquid",
+      ])
     expect(engine.resolvePrompt("web_generation_html", { modelId: "openai:gpt-6-luna" }).filePath)
       .toBe(path.join(folder, "web_generation_html.liquid"))
     expect(engine.resolvePrompt("visual_review", { modelId: "openai:gpt-6-luna" }).filePath)
@@ -50,7 +55,34 @@ describe("Luna prompt variants", () => {
     expect(system.content).toContain("ROLE TYPES and SECTION TYPES are two separate vocabularies")
     expect(system.content).toContain("Writing lines in an `activity_open_ended_answer` section are `activity_fill_in_the_blank` leaves")
     expect(system.content).toContain("## DONE WHEN")
+    expect(system.content).toContain("## READ THE PAGE BEFORE APPLYING ANY RULE")
+    expect(system.content).toContain("This is a transcription, not a summary")
+    expect(system.content).toContain("INSIDE ONE EXERCISE")
   })
+
+  it.each(["image_meaningfulness", "image_cropping"])(
+    "ships a %s variant that keeps the base Liquid contract and judges the image before the rules",
+    async (name) => {
+      const root = path.resolve(import.meta.dirname, "../../../../prompts")
+      const folder = path.join(root, "openai_gpt_6_luna")
+      const engine = createPromptEngine(root)
+      expect(engine.resolvePrompt(name, { modelId: "openai:gpt-6-luna" }).filePath)
+        .toBe(path.join(folder, `${name}.liquid`))
+      for (const modelId of ["openai:gpt-6.1-sol", "openai:gpt-5.4"]) {
+        expect(engine.resolvePrompt(name, { modelId }).filePath).toBe(path.join(root, `${name}.liquid`))
+      }
+      const base = fs.readFileSync(path.join(root, `${name}.liquid`), "utf8")
+      const luna = fs.readFileSync(path.join(folder, `${name}.liquid`), "utf8")
+      const liquidTokens = (text: string) => text.match(/\{%[\s\S]*?%\}|\{\{[\s\S]*?\}\}/g)
+      expect(liquidTokens(luna)).toEqual(liquidTokens(base))
+      const [system] = await engine.renderPrompt(
+        name,
+        { images: [], figure_extraction_mode: "auto" },
+        { modelId: "openai:gpt-6-luna" },
+      )
+      expect(system.content).toMatch(/LOOK AT EACH (CANDIDATE|IMAGE)/)
+    },
+  )
 })
 
 describe("Sol prompt variants", () => {

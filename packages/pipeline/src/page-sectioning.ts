@@ -144,6 +144,11 @@ async function generateInitial(
   validatorContext: ValidatorContext,
   llmModel: LLMModel
 ): Promise<LLMStructuringResult> {
+  const maxFidelityRejections = Math.min(
+    MAX_FIDELITY_REJECTIONS,
+    Math.max(0, config.maxRetries - 1),
+  )
+  let fidelityRejections = 0
   const result = await llmModel.generateObject<LLMStructuringResult>({
     schema: buildPageSectioningLLMSchema(),
     recursiveSchema: true,
@@ -166,7 +171,12 @@ async function generateInitial(
     },
     validate: (raw) => {
       applyAutoRepairs(raw as LLMStructuringResult | null, validatorContext)
-      return runValidator(raw, validatorContext)
+      const structural = runValidator(raw, validatorContext)
+      if (!structural.valid || fidelityRejections >= maxFidelityRejections) return structural
+      const fidelityIssues = findSourceFidelityIssues(input.text, raw as LLMStructuringResult)
+      if (fidelityIssues.length === 0) return structural
+      fidelityRejections += 1
+      return { valid: false, errors: fidelityIssues }
     },
     maxRetries: config.maxRetries,
     maxTokens: 16384,
@@ -690,6 +700,108 @@ function validateNode(
       `${path}: a leaf node must not have "children". Use a container (structure) instead.`
     )
   }
+}
+
+const MAX_FIDELITY_REJECTIONS = 2
+const FIDELITY_MIN_SOURCE_WORDS = 60
+const FIDELITY_WINDOW_WORDS = 30
+const FIDELITY_MIN_WINDOW_HIT_RATE = 0.25
+const FIDELITY_MIN_DUPLICATE_WORDS = 8
+const FIDELITY_SNIPPET_WORDS = 12
+
+function fidelityWords(text: string): string[] {
+  return (
+    text
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/(\p{L})[-­]\s*\n\s*(\p{L})/gu, "$1$2")
+      .match(/\p{L}{3,}/gu) ?? []
+  )
+}
+
+function collectLeafTexts(nodes: LLMNode[] | null | undefined, out: string[]): void {
+  if (!Array.isArray(nodes)) return
+  for (const node of nodes) {
+    if (!node || typeof node !== "object") continue
+    if (typeof node.text === "string" && node.text.length > 0) out.push(node.text)
+    collectLeafTexts(node.children, out)
+  }
+}
+
+function findMissingPassage(sourceWords: string[], treeWords: string[]): string | null {
+  if (sourceWords.length < FIDELITY_MIN_SOURCE_WORDS) return null
+  const treeBigrams = new Set<string>()
+  for (let index = 0; index + 1 < treeWords.length; index++) {
+    treeBigrams.add(`${treeWords[index]} ${treeWords[index + 1]}`)
+  }
+  const covered = sourceWords.map(
+    (word, index) =>
+      (index + 1 < sourceWords.length && treeBigrams.has(`${word} ${sourceWords[index + 1]}`)) ||
+      (index > 0 && treeBigrams.has(`${sourceWords[index - 1]} ${word}`)),
+  )
+  let hits = 0
+  for (let index = 0; index < FIDELITY_WINDOW_WORDS; index++) hits += covered[index] ? 1 : 0
+  let worstHits = hits
+  let worstStart = 0
+  for (let start = 1; start + FIDELITY_WINDOW_WORDS <= sourceWords.length; start++) {
+    hits += (covered[start + FIDELITY_WINDOW_WORDS - 1] ? 1 : 0) - (covered[start - 1] ? 1 : 0)
+    if (hits < worstHits) {
+      worstHits = hits
+      worstStart = start
+    }
+  }
+  if (worstHits / FIDELITY_WINDOW_WORDS >= FIDELITY_MIN_WINDOW_HIT_RATE) return null
+  const coveredShare = Math.round(
+    (covered.filter(Boolean).length / sourceWords.length) * 100,
+  )
+  const snippet = sourceWords
+    .slice(worstStart, worstStart + FIDELITY_SNIPPET_WORDS)
+    .join(" ")
+  return (
+    `The tree is missing text that is printed on the page: only about ${coveredShare}% of the page text is present, ` +
+    `and a passage containing the words "${snippet}" is absent. Transcribe every sentence, table row, table cell and ` +
+    `list item exactly as printed. Do not summarize, shorten, sample or stop early, however long the page is.`
+  )
+}
+
+function findDuplicatedLeafText(sourceWords: string[], leafTexts: string[]): string | null {
+  const sourceText = ` ${sourceWords.join(" ")} `
+  const hasSourceText = sourceWords.length >= FIDELITY_MIN_SOURCE_WORDS
+  const occurrences = new Map<string, number>()
+  for (const leafText of leafTexts) {
+    if (leafText.includes("\\")) continue
+    const words = fidelityWords(leafText)
+    if (words.length < FIDELITY_MIN_DUPLICATE_WORDS) continue
+    const key = words.join(" ")
+    occurrences.set(key, (occurrences.get(key) ?? 0) + 1)
+  }
+  for (const [key, treeCount] of occurrences) {
+    if (treeCount < 2) continue
+    const sourceCount = hasSourceText ? sourceText.split(` ${key} `).length - 1 : 1
+    if (treeCount <= Math.max(1, sourceCount)) continue
+    const snippet = key.split(" ").slice(0, FIDELITY_SNIPPET_WORDS).join(" ")
+    return (
+      `The text "${snippet}…" appears ${treeCount} times in the tree but is printed ${Math.max(1, sourceCount)} time(s) on the page. ` +
+      `Emit each printed sentence once. Do not repeat text as the caption or label of an image that merely shows the same words.`
+    )
+  }
+  return null
+}
+
+export function findSourceFidelityIssues(
+  sourceText: string,
+  raw: LLMStructuringResult | null | undefined,
+): string[] {
+  if (!raw || !Array.isArray(raw.sections)) return []
+  const leafTexts: string[] = []
+  for (const section of raw.sections) collectLeafTexts(section.nodes, leafTexts)
+  const sourceWords = fidelityWords(sourceText)
+  const issues: string[] = []
+  const missing = findMissingPassage(sourceWords, fidelityWords(leafTexts.join("\n")))
+  if (missing) issues.push(missing)
+  const duplicated = findDuplicatedLeafText(sourceWords, leafTexts)
+  if (duplicated) issues.push(duplicated)
+  return issues
 }
 
 // ── Finalization ────────────────────────────────────────────────

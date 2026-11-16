@@ -12,6 +12,7 @@ import {
   applyAutoRepairs,
   buildPageSectioningConfig,
   finalizePageSectioning,
+  findSourceFidelityIssues,
   flattenTreeToText,
   runValidator,
   sectionPage,
@@ -1583,3 +1584,127 @@ function makeFakeLlm(
     },
   }
 }
+
+function makeSentences(count: number): string[] {
+  const slots = ["ka", "le", "mi", "no", "pu", "ra", "se", "ti"]
+  const suffix = (index: number) =>
+    String.fromCharCode(97 + (index % 26)) + String.fromCharCode(97 + Math.floor(index / 26))
+  return Array.from(
+    { length: count },
+    (_, index) => `${slots.map((slot) => `${slot}${suffix(index)}zo`).join(" ")}.`,
+  )
+}
+
+function makeTextSection(texts: string[]) {
+  return {
+    section_type: "text_only",
+    background_color: "#ffffff",
+    text_color: "#000000",
+    page_number: 1,
+    nodes: [{ structure: "paragraph", children: texts.map((text) => ({ role: "text", text })) }],
+  }
+}
+
+describe("findSourceFidelityIssues", () => {
+  const sentences = makeSentences(40)
+  const pageText = sentences.join("\n")
+
+  it("accepts a tree that carries every sentence of the page", () => {
+    expect(
+      findSourceFidelityIssues(pageText, { reasoning: "", sections: [makeTextSection(sentences)] }),
+    ).toEqual([])
+  })
+
+  it("reports a passage that the tree dropped", () => {
+    const kept = [...sentences.slice(0, 10), ...sentences.slice(22)]
+    const issues = findSourceFidelityIssues(pageText, {
+      reasoning: "",
+      sections: [makeTextSection(kept)],
+    })
+    expect(issues).toHaveLength(1)
+    expect(issues[0]).toContain("missing text that is printed on the page")
+  })
+
+  it("tolerates words hyphenated across lines and one sentence left inside a figure", () => {
+    const hyphenated = pageText.replace(/ mi/g, " m-\ni")
+    const withoutOneSentence = sentences.filter((_, index) => index !== 7)
+    expect(
+      findSourceFidelityIssues(hyphenated, {
+        reasoning: "",
+        sections: [makeTextSection(withoutOneSentence)],
+      }),
+    ).toEqual([])
+  })
+
+  it("skips the coverage check on pages with little or no selectable text", () => {
+    expect(
+      findSourceFidelityIssues("12", { reasoning: "", sections: [makeTextSection(["Scanned page text."])] }),
+    ).toEqual([])
+  })
+
+  it("reports a sentence the tree repeats more often than the page prints it", () => {
+    const issues = findSourceFidelityIssues(pageText, {
+      reasoning: "",
+      sections: [makeTextSection([...sentences, sentences[3]])],
+    })
+    expect(issues).toHaveLength(1)
+    expect(issues[0]).toContain("appears 2 times in the tree")
+  })
+
+  it("allows a sentence the page itself prints twice", () => {
+    const repeatedPage = `${pageText}\n${sentences[3]}`
+    expect(
+      findSourceFidelityIssues(repeatedPage, {
+        reasoning: "",
+        sections: [makeTextSection([...sentences, sentences[3]])],
+      }),
+    ).toEqual([])
+  })
+})
+
+describe("sectionPage source fidelity retries", () => {
+  const sentences = makeSentences(40)
+  const pageText = sentences.join("\n")
+  const lossy = { reasoning: "lossy", sections: [makeTextSection(sentences.slice(0, 5))] }
+  const complete = { reasoning: "complete", sections: [makeTextSection(sentences)] }
+
+  function makeValidatingLlm(responses: Array<{ reasoning: string; sections: unknown[] }>) {
+    const rejections: string[][] = []
+    const llm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        for (const response of responses) {
+          const candidate = structuredClone(response)
+          const check = opts.validate
+            ? opts.validate(candidate, opts.context ?? {})
+            : { valid: true, errors: [] }
+          if (check.valid) return { object: candidate as T } as GenerateObjectResult<T>
+          rejections.push(check.errors)
+        }
+        throw new Error("validation failed on every attempt")
+      },
+    }
+    return { llm, rejections }
+  }
+
+  it("retries with feedback when the first tree drops most of the page", async () => {
+    const { llm, rejections } = makeValidatingLlm([lossy, complete])
+    const output = await sectionPage(makeInput({ text: pageText }), makeConfig(), llm)
+    expect(output.reasoning).toBe("complete")
+    expect(rejections).toHaveLength(1)
+    expect(rejections[0][0]).toContain("missing text that is printed on the page")
+  })
+
+  it("stops rejecting for fidelity after two attempts so the page is never lost", async () => {
+    const { llm, rejections } = makeValidatingLlm([lossy, lossy, lossy])
+    const output = await sectionPage(makeInput({ text: pageText }), makeConfig(), llm)
+    expect(output.reasoning).toBe("lossy")
+    expect(rejections).toHaveLength(2)
+  })
+
+  it("does not spend a retry on fidelity when only one retry is configured", async () => {
+    const { llm, rejections } = makeValidatingLlm([lossy])
+    const output = await sectionPage(makeInput({ text: pageText }), makeConfig({ maxRetries: 1 }), llm)
+    expect(output.reasoning).toBe("lossy")
+    expect(rejections).toHaveLength(0)
+  })
+})
