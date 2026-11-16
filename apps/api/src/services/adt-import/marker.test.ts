@@ -25,14 +25,15 @@ describe("removeAbandonedAdtImports", () => {
       if (markerJson !== null) fs.writeFileSync(path.join(booksDir, label, ADT_IMPORT_IN_PROGRESS_MARKER), markerJson)
     }
     make("dead-owner", marker({ pid: 999_999, hostname: os.hostname() }))
-    make("live-owner", marker({ pid: process.pid, hostname: os.hostname() }))
+    make("live-owner", marker({ pid: process.ppid, hostname: os.hostname() }))
+    make("reused-pid", marker({ pid: process.pid, hostname: os.hostname() }))
     make("other-host-recent", marker({ pid: 1, hostname: "another-container" }))
     make("no-owner-old", marker({ createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString() }))
     make("unknown-marker", "{}")
     make("real-book", null)
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     try {
-      expect(removeAbandonedAdtImports(booksDir).sort()).toEqual(["dead-owner", "no-owner-old"])
+      expect(removeAbandonedAdtImports(booksDir).sort()).toEqual(["dead-owner", "no-owner-old", "reused-pid"])
     } finally {
       warn.mockRestore()
     }

@@ -34,7 +34,10 @@ function isAbandoned(markerPath: string, now: number): boolean {
   if (!marker || marker.version !== 1) return false
   const createdAt = typeof marker.createdAt === "string" ? Date.parse(marker.createdAt) : NaN
   if (typeof marker.pid === "number" && marker.hostname === os.hostname()) {
-    return !processIsAlive(marker.pid)
+    // The sweep runs at startup, before this process imports anything, so a
+    // marker naming this very pid came from an earlier process that reused it
+    // (a restarted container keeps its hostname and often gets pid 1 again).
+    return marker.pid === process.pid || !processIsAlive(marker.pid)
   }
   return Number.isFinite(createdAt) && now - createdAt > ABANDONED_IMPORT_AGE_MS
 }
