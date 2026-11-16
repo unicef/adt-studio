@@ -132,6 +132,7 @@ import {
   sentInFirstRound,
   settleHashDedup,
   formatStepWarnings,
+  pagesSkippedWarning,
   buildMeaningfulnessConfig,
   buildMeaningfulnessImages,
   dedupAutoFigureCandidatesInStorage,
@@ -380,8 +381,7 @@ function skipWarning(
   skippedByStep: Map<string, Set<string>>,
   step: StepName
 ): StepWarning | undefined {
-  const count = skippedByStep.get(step)?.size ?? 0
-  return count > 0 ? { kind: "pages-skipped", count } : undefined
+  return pagesSkippedWarning(skippedByStep.get(step))
 }
 
 /** Emit step-complete with the step's typed warnings (SPEC-0021, §Step warnings)

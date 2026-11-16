@@ -51,8 +51,11 @@ describe("describeStepWarning", () => {
     expect(describeStepWarning({ kind: "summary-missing", error: long }, i18n).technical[0]).toHaveLength(120)
   })
 
-  it("counts skipped pages", () => {
-    expect(describeStepWarning({ kind: "pages-skipped", count: 1 }, i18n).summary).toBe("1 page was skipped after it failed.")
+  it("counts skipped pages and, for AC-30, lists them like unchanged pages", () => {
+    expect(describeStepWarning({ kind: "pages-skipped", count: 1 }, i18n)).toMatchObject({ summary: "1 page was skipped after it failed.", details: [] })
+    const pageIds = Array.from({ length: 6 }, (_, index) => `pg00${index + 1}`)
+    expect(describeStepWarning({ kind: "pages-skipped", count: 6, pageIds }, i18n).details)
+      .toEqual(["pg001", "pg002", "pg003", "pg004", "pg005", "… and 1 more"])
   })
 
   it("says when the source assessment could not run every check, alone when it found nothing", () => {

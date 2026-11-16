@@ -80,3 +80,17 @@ it("AC-27: a step completed by an older version says so in the popover and stays
   expect(screen.getByText("Completed by an older version of ADT Studio; it may not have recorded every warning.")).toBeTruthy()
   expect(screen.getByText("Completed")).toBeTruthy()
 })
+
+it("AC-30: the skipped-pages popover names the skipped pages, from data that survives a reload", () => {
+  render(
+    <SubStepPopoverCard
+      stepKey="image-meaningfulness"
+      state="done"
+      warnings={[{ kind: "pages-skipped", count: 2, pageIds: ["pg002", "pg010"] }]}
+      warningSource="recorded"
+    />,
+  )
+  expect(screen.getByText("2 pages were skipped after they failed.")).toBeTruthy()
+  expect(screen.getByText("pg002")).toBeTruthy()
+  expect(screen.getByText("pg010")).toBeTruthy()
+})

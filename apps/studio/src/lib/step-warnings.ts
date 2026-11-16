@@ -23,6 +23,13 @@ export interface StepWarningText {
 const MAX_LISTED_PAGES = 5
 const MAX_TECHNICAL_CHARS = 120
 
+/** Up to five page ids, then how many more. */
+function listPages(pageIds: string[], i18n: I18n): string[] {
+  const listed = pageIds.slice(0, MAX_LISTED_PAGES)
+  const more = pageIds.length - MAX_LISTED_PAGES
+  return more > 0 ? [...listed, i18n._(msg`… and ${more} more`)] : listed
+}
+
 const technicalText = (error: string) => Array.from(error).slice(0, MAX_TECHNICAL_CHARS).join("")
 
 export function describeStepWarning(warning: StepWarningView, i18n: I18n): StepWarningText {
@@ -35,12 +42,10 @@ export function describeStepWarning(warning: StepWarningView, i18n: I18n): StepW
             other: "# pages were skipped after they failed.",
           }),
         })),
-        details: [],
+        details: listPages(warning.pageIds ?? [], i18n),
         technical: [],
       }
     case "pages-unchanged": {
-      const listed = warning.pages.slice(0, MAX_LISTED_PAGES).map((page) => page.pageId)
-      const more = warning.pages.length - MAX_LISTED_PAGES
       return {
         summary: i18n._(msg({
           message: plural(warning.pages.length, {
@@ -48,7 +53,7 @@ export function describeStepWarning(warning: StepWarningView, i18n: I18n): StepW
             other: "# pages kept their extracted images unchanged because the model call failed.",
           }),
         })),
-        details: more > 0 ? [...listed, i18n._(msg`… and ${more} more`)] : listed,
+        details: listPages(warning.pages.map((page) => page.pageId), i18n),
         technical: [...new Set(warning.pages.map((page) => technicalText(page.error)))],
       }
     }

@@ -13,7 +13,7 @@ const MAX_LISTED_PAGES = 5
 function clause(warning: StepWarning): string {
   switch (warning.kind) {
     case "pages-skipped":
-      return `${warning.count} page(s) skipped`
+      return `${warning.count} page(s) skipped${warning.pageIds?.length ? `: ${listPages(warning.pageIds)}` : ""}`
     case "pages-unchanged": {
       const listed = warning.pages.slice(0, MAX_LISTED_PAGES).map((page) => `${page.pageId} (${page.error})`)
       const more = warning.pages.length > MAX_LISTED_PAGES ? `, … and ${warning.pages.length - MAX_LISTED_PAGES} more` : ""
@@ -26,6 +26,17 @@ function clause(warning: StepWarning): string {
       return `source assessment: ${warning.warning} warning(s), ${warning.critical} critical${partial}`
     }
   }
+}
+
+function listPages(pageIds: string[]): string {
+  const more = pageIds.length > MAX_LISTED_PAGES ? `, … and ${pageIds.length - MAX_LISTED_PAGES} more` : ""
+  return `${pageIds.slice(0, MAX_LISTED_PAGES).join(", ")}${more}`
+}
+
+/** The warning for a page step that finished after skipping pages, naming them in page order (AC-30). */
+export function pagesSkippedWarning(skipped: Iterable<string> | undefined): StepWarning | undefined {
+  const pageIds = [...(skipped ?? [])].sort()
+  return pageIds.length > 0 ? { kind: "pages-skipped", count: pageIds.length, pageIds } : undefined
 }
 
 /** One line for all of a step's warnings, or undefined when it has none. */

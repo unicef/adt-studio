@@ -22,7 +22,8 @@ import { z } from "zod"
  *   Derived from the latest assessment on read and never persisted.
  */
 export const StepWarning = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("pages-skipped"), count: z.number().int().positive() }),
+  // `pageIds` names the skipped pages (AC-30); absent for a skip adapted from an older app's message.
+  z.object({ kind: z.literal("pages-skipped"), count: z.number().int().positive(), pageIds: z.array(z.string()).optional() }),
   z.object({
     kind: z.literal("pages-unchanged"),
     pages: z.array(z.object({ pageId: z.string(), error: z.string() })).min(1),
