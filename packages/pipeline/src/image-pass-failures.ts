@@ -27,6 +27,11 @@ function shortError(error: string): string {
   return chars.length > MAX_ERROR_CHARS ? `${chars.slice(0, MAX_ERROR_CHARS - 1).join("")}…` : chars.join("")
 }
 
+/** One-line, length-bounded error text for a completion note. */
+export function shortErrorText(err: unknown): string {
+  return shortError(errorText(err))
+}
+
 /**
  * The warning for an optional image pass, or undefined when every page
  * succeeded. Pages are in id order so reruns produce the same warning.
