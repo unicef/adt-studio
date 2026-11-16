@@ -2,6 +2,7 @@ import { parseDocument, DomUtils } from "htmlparser2"
 import type { ContentNodeData } from "@adt/types"
 
 import { textContentExcludingScripts } from "../html-text.js"
+import { expandImportedStepperShell } from "../render-editable-activity.js"
 
 export interface ImportedHtmlImageReference {
   imageId: string
@@ -118,6 +119,54 @@ function dataIdCopyContent(element: any): string {
   return textContentExcludingScripts(element).replace(/\s+/g, " ").trim()
 }
 
+function escapeSectionAttribute(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
+}
+
+/**
+ * Make a packaged section carry the hooks the importer requires: its
+ * `data-section-id` and a `data-section-type`. Some packaged shells (the
+ * stepper, custom-activity sections an agent wrote) omit one of them, so the
+ * importer refused the exporter's own untouched pages.
+ *
+ * Only the opening tag of the canonical section is edited; nothing else is
+ * re-serialized, so a page that already follows the contract is returned
+ * byte-for-byte. The canonical section is the one already carrying this id, or
+ * else the first top-level <section>. HTML with no such section (fixed layout)
+ * is returned unchanged.
+ */
+export function stampImportedSectionContract(
+  html: string,
+  sectionId: string,
+  sectionType: string,
+): string {
+  const doc = parseDocument(html, { withStartIndices: true })
+  const section = DomUtils.findOne(
+    (el) => el.name === "section" && el.attribs?.["data-section-id"] === sectionId,
+    doc.children,
+  ) ?? DomUtils.findOne((el) => el.name === "section", doc.children, false)
+  if (!section || section.startIndex == null) return html
+  const additions: string[] = []
+  if (section.attribs["data-section-id"] !== sectionId) {
+    if (section.attribs["data-section-id"] !== undefined) return html
+    additions.push(`data-section-id="${escapeSectionAttribute(sectionId)}"`)
+  }
+  if (!section.attribs["data-section-type"]?.trim() && sectionType.trim()) {
+    if (section.attribs["data-section-type"] !== undefined) {
+      // An empty attribute is present; replace it in the opening tag.
+      const openEnd = html.indexOf(">", section.startIndex)
+      const openTag = html.slice(section.startIndex, openEnd)
+      const fixed = openTag.replace(/\sdata-section-type=(["'])\s*\1/, ` data-section-type="${escapeSectionAttribute(sectionType)}"`)
+      html = html.slice(0, section.startIndex) + fixed + html.slice(openEnd)
+    } else {
+      additions.push(`data-section-type="${escapeSectionAttribute(sectionType)}"`)
+    }
+  }
+  if (additions.length === 0) return html
+  const insertAt = section.startIndex + "<section".length
+  return `${html.slice(0, insertAt)} ${additions.join(" ")}${html.slice(insertAt)}`
+}
+
 /** Validate the stable HTML hooks ADT Studio needs to project an exported page
  * back into pipeline entities. This is deliberately a narrow contract: the
  * importer must reject unsupported page structures instead of guessing. */
@@ -126,6 +175,8 @@ export function inspectImportedHtmlContract(
   expectedSectionId: string,
   options: ImportedHtmlContractOptions = {},
 ): ImportedHtmlContractInspection {
+  // A stepper page is checked as its static rendering (see expandImportedStepperShell).
+  html = expandImportedStepperShell(html, expectedSectionId)?.html ?? html
   const doc = parseDocument(html)
   const issues: ImportedHtmlContractIssue[] = []
   const pageDataIds: string[] = []
@@ -365,6 +416,7 @@ export function projectImportedHtmlSection(
   imageUrlPrefix?: string,
   options: ImportedHtmlProjectionOptions = {},
 ): ImportedHtmlSectionProjection {
+  html = expandImportedStepperShell(html, expectedSectionId)?.html ?? html
   const doc = parseDocument(html)
   const sections = DomUtils.findAll(
     (el) => el.type === "tag" && el.name === "section",

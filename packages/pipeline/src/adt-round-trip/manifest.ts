@@ -36,6 +36,9 @@ export interface BuildAdtRoundTripManifestOptions {
   tocVersion: number | null
   translationBaselines: Record<string, number>
   lineage?: AdtExportLineage
+  /** Called for each page the importer would refuse, so the packager can say
+   * so instead of shipping a bundle that silently fails re-import. */
+  onContractIssues?: (href: string, issueCodes: string[]) => void
 }
 
 function hashBuffer(value: Uint8Array): string {
@@ -108,7 +111,7 @@ export function buildAdtRoundTripManifest(
   const {
     adtDir, contentDir, label, title, language, outputLanguages, pageList,
     catalog, catalogVersion, easyReadEntries, glossaryVersion, tocVersion,
-    translationBaselines, lineage,
+    translationBaselines, lineage, onContractIssues,
   } = options
 
   const sourceTextsPath = path.join(contentDir, "i18n", language, "texts.json")
@@ -127,11 +130,15 @@ export function buildAdtRoundTripManifest(
     // A fixed-layout page has no semantic <section>; its data-ids hang directly
     // off #content.
     const fixedLayoutPage = isImportedFixedLayoutPage(html)
-    pageDataIds[href] = inspectImportedHtmlContract(
+    const contract = inspectImportedHtmlContract(
       html,
       page.section_id,
       { allowSectionDataId, fixedLayoutPage },
-    ).dataIds
+    )
+    pageDataIds[href] = contract.dataIds
+    if (contract.issues.length > 0) {
+      onContractIssues?.(href, contract.issues.map((issue) => issue.code))
+    }
     const activity = inspectImportedActivity(html, page.section_id, { allowSectionDataId })
     if (activity.isActivity && activity.sectionType) {
       activities.push({ sectionId: page.section_id, href, type: activity.sectionType })

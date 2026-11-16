@@ -63,6 +63,7 @@ import { getGlossaryItemTextId } from "../glossary.js"
 import { dirAttr, getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { buildTextCatalog } from "../text-catalog.js"
 import { readAdtAgentGuideTemplate, renderAdtAgentGuide } from "../adt-round-trip/agent-guide.js"
+import { stampImportedSectionContract } from "../adt-round-trip/html.js"
 import {
   buildAdtRoundTripManifest,
   collectTranslationBaselines,
@@ -542,6 +543,17 @@ export async function packageAdtWeb(
           copiedImages.add(imageId)
         }
       }
+    }
+
+    // Every packaged section carries the hooks the importer requires, so an
+    // untouched export always re-imports (stepper shells and agent-written
+    // custom sections can omit them).
+    if (!fixedLayout) {
+      rewrittenHtml = stampImportedSectionContract(
+        rewrittenHtml,
+        sectionId,
+        stepperActivity?.sectionType ?? rs.sectionType,
+      )
     }
 
     // Convert LaTeX math to MathML (stepper shells are JSON — leave untouched)
@@ -1095,6 +1107,11 @@ export async function packageAdtWeb(
       (lang) => storage.getLatestNodeData("text-catalog-translation", lang),
     ),
     ...(lineage ? { lineage } : {}),
+    onContractIssues: (href, issueCodes) => {
+      const message = `Page ${href} will not re-import into ADT Studio (${issueCodes.join(", ")})`
+      console.warn(`[package] ${message}`)
+      progress.emit({ type: "step-progress", step, message })
+    },
   })
   writeJson(path.join(adtDir, "manifest.json"), roundTripManifest)
 

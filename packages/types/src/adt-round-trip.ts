@@ -45,32 +45,25 @@ export const AdtActivityImportDecision = z.object({
 }).strict()
 export type AdtActivityImportDecision = z.infer<typeof AdtActivityImportDecision>
 
-/** Runtime projection written to `content/toc.json`. */
+/** Runtime projection written to `content/toc.json`.
+ *
+ * Accepts everything Studio's own table of contents (`TocEntry`) accepts and
+ * the packager writes unchanged: a TOC-editor "New Entry" with no target yet
+ * (empty section_id, href and chapter_id), an entry whose target page was
+ * pruned (empty href), and several entries for one section (a section with
+ * more than one heading). */
 export const AdtBundleTocEntry = z.object({
-  section_id: z.string().min(1),
-  href: z.string().min(1),
-  title: z.string().trim().min(1),
-  chapter_id: z.string().min(1),
+  section_id: z.string(),
+  href: z.string(),
+  title: z.string(),
+  chapter_id: z.string(),
   // Heading-derived fallback TOCs predate levels and intentionally omit it.
   // Same h1–h6 range Studio's own table of contents accepts (`TocEntry`).
   level: z.number().int().min(1).max(6).optional(),
 }).strict()
 export type AdtBundleTocEntry = z.infer<typeof AdtBundleTocEntry>
 
-export const AdtBundleToc = z.array(AdtBundleTocEntry).superRefine((entries, ctx) => {
-  const seen = new Set<string>()
-  for (let index = 0; index < entries.length; index++) {
-    const sectionId = entries[index].section_id
-    if (seen.has(sectionId)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [index, "section_id"],
-        message: `Duplicate table of contents section id: ${sectionId}`,
-      })
-    }
-    seen.add(sectionId)
-  }
-})
+export const AdtBundleToc = z.array(AdtBundleTocEntry)
 export type AdtBundleToc = z.infer<typeof AdtBundleToc>
 
 /** Runtime projection written to each locale's `glossary.json`. */

@@ -66,11 +66,14 @@ describe("ADT round-trip archive schemas", () => {
     ]).success).toBe(true)
   })
 
-  it("rejects duplicate table of contents section ids", () => {
+  // F16: what Studio's TOC editor and the packager write must re-import.
+  it("accepts TOC shapes Studio writes: two headings in one section, a new empty entry, a pruned target", () => {
     expect(AdtBundleToc.safeParse([
       { section_id: "s1", href: "index.html", title: "One", chapter_id: "c1" },
-      { section_id: "s1", href: "index.html", title: "Again", chapter_id: "c1" },
-    ]).success).toBe(false)
+      { section_id: "s1", href: "index.html", title: "Again", chapter_id: "c2", level: 2 },
+      { section_id: "", href: "", title: "New Entry", chapter_id: "" },
+      { section_id: "pg001_sec002", href: "", title: "Pruned", chapter_id: "c3" },
+    ]).success).toBe(true)
   })
 
   it("rejects duplicate glossary ids even when object keys differ", () => {

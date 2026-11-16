@@ -1,4 +1,5 @@
 import {
+  expandImportedStepperShell,
   exportedActivityCatalogIds,
   extractTextCatalogEntriesFromHtml,
   projectImportedFixedLayoutPage,
@@ -10,8 +11,10 @@ import {
 import { createBookStorage } from "@adt/storage"
 import {
   AdtActivityImportDecision,
+  EDITABLE_ACTIVITY_NODE,
   ImageCaptioningOutput,
   type AdtImportedActivityReview,
+  type EditableActivity,
 } from "@adt/types"
 
 import { readAdtBundle } from "../bundle-reader.js"
@@ -79,6 +82,19 @@ export function seedImportedStoryboard(
     let importedImages = 0
     for (const [pageId, entries] of grouped) {
       pageNumber++
+      // A stepper activity's payload restores its editable-activity entity, so
+      // re-packaging renders the step-by-step activity again (keyed by the
+      // section's index on the page, like every editable activity).
+      const stepperActivities: Record<string, EditableActivity> = {}
+      entries.forEach((entry, sectionIndex) => {
+        const stepper = expandImportedStepperShell(pageHtml[entry.href] ?? "", entry.sectionId)
+        if (stepper && stepper.activity.sectionType === entry.projection.sectionType) {
+          stepperActivities[String(sectionIndex)] = { ...stepper.activity, enabled: true }
+        }
+      })
+      if (Object.keys(stepperActivities).length > 0) {
+        storage.putNodeData(EDITABLE_ACTIVITY_NODE, pageId, { activities: stepperActivities })
+      }
       storage.putNodeData("page-sectioning", pageId, {
         reasoning: "Recovered from the exported ADT HTML storyboard.",
         sections: entries.map((entry) => {
