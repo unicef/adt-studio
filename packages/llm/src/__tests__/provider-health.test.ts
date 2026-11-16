@@ -433,3 +433,38 @@ describe("checkCodexConnection", () => {
     expect(fake.calls[0].env.CODEX_API_KEY).toBeUndefined()
   })
 })
+
+// The "key rejected" warnings in Studio fire on `invalid-credential` only. A
+// 403 from the model listing is a working key that can't list models (an
+// OpenAI restricted key, an Anthropic `permission_error`), so the connection
+// check must answer `unsupported` and never `invalid-credential`.
+describe("checkProviderConnection — HTTP status of the model listing", () => {
+  const fetchMock = vi.fn()
+  const respond = (status: number) => fetchMock.mockResolvedValue(
+    new Response(JSON.stringify({ error: { message: "nope" } }), { status, headers: { "Content-Type": "application/json" } }),
+  )
+
+  async function check(providerId: "openai" | "anthropic") {
+    const { openaiProvider, anthropicProvider } = await import("../providers/index.js")
+    const module = (providerId === "openai" ? openaiProvider : anthropicProvider) as AnyProviderModule
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      return await checkProviderConnection(registryWith(module), providerId, {
+        credentials: { [providerId]: { apiKey: "sk-test" } },
+      })
+    } finally {
+      vi.unstubAllGlobals()
+      fetchMock.mockReset()
+    }
+  }
+
+  it.each(["openai", "anthropic"] as const)("reports a 403 from %s as unsupported, not a rejected key", async (providerId) => {
+    respond(403)
+    expect((await check(providerId)).code).toBe("unsupported")
+  })
+
+  it.each(["openai", "anthropic"] as const)("reports a 401 from %s as a rejected key", async (providerId) => {
+    respond(401)
+    expect((await check(providerId)).code).toBe("invalid-credential")
+  })
+})
