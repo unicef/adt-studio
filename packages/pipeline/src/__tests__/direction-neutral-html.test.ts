@@ -220,6 +220,29 @@ describe("neutralizeDirectionMarkup", () => {
       )
     })
 
+    // The correction reads the float and its margin as one pair. On a box with
+    // its own `dir` the two are resolved against different directions (the
+    // float against the page, the margin against the box), so the pair says
+    // nothing about which side the gap is on. Here the box floats right with
+    // its gap on the left, the text side; moving it would put the text against
+    // the box, which is what the correction exists to prevent.
+    it("AC-10: leaves the gap of a floated box that has its own dir", () => {
+      expect(
+        neutralizeDirectionMarkup('<aside dir="ltr" class="float-right ml-8">Note</aside>', "rtl", {
+          correctMisalignedText: true,
+        }),
+      ).toBe('<aside dir="ltr" class="float-start ms-8">Note</aside>')
+    })
+
+    // `mx-` already puts a gap on the text side, whatever side margin comes with it.
+    it("AC-10: leaves a floated box's gap alone when mx- sets it on both sides", () => {
+      expect(
+        neutralizeDirectionMarkup('<aside class="float-right mx-4 ms-8">نوٹ</aside>', "rtl", {
+          correctMisalignedText: true,
+        }),
+      ).toBe('<aside class="float-start mx-4 ms-8">نوٹ</aside>')
+    })
+
     it("AC-10: changes nothing in a page written left to right", () => {
       for (const html of ['<p class="text-right">Signed</p>', '<p dir="rtl" class="text-left">متن</p>']) {
         expect(neutralizeDirectionMarkup(html, "ltr", { correctMisalignedText: true })).toBe(
