@@ -6,11 +6,24 @@ import { readAdtBundle } from "../bundle-reader.js"
 import { pageIdFromSection } from "../catalog.js"
 import { recoverImportedQuizzes } from "../quiz.js"
 
+/** The image id a glossary entry's picture is shipped as (`images/<id>.<ext>`),
+ * when the archive carries that file. */
+export function importedGlossaryImageId(
+  bundle: ReturnType<typeof readAdtBundle>,
+  files: Record<string, Uint8Array> | undefined,
+  image: string | undefined,
+): string | undefined {
+  if (!image || !files?.[`${bundle.root}${image}`]) return undefined
+  const match = /^images\/([a-zA-Z0-9][a-zA-Z0-9._-]*)\.(?:png|jpe?g|webp|gif|svg)$/i.exec(image)
+  return match?.[1]
+}
+
 export function seedImportedFeatures(
   label: string,
   booksDir: string,
   bundle: ReturnType<typeof readAdtBundle>,
   generatedAt: string,
+  files?: Record<string, Uint8Array>,
 ): void {
   const storage = createBookStorage(label, booksDir)
   try {
@@ -36,14 +49,19 @@ export function seedImportedFeatures(
       ?? bundle.glossaries[normalizeLocale(bundle.manifest.languages.source)]
     if (sourceGlossary && Object.keys(sourceGlossary).length > 0) {
       storage.putNodeData("glossary", "book", GlossaryOutput.parse({
-        items: Object.values(sourceGlossary).map((entry) => ({
-          id: entry.id,
-          source: "manual" as const,
-          word: entry.word,
-          definition: entry.definition,
-          variations: entry.variations,
-          emojis: entry.emoji ? [entry.emoji] : [],
-        })),
+        items: Object.values(sourceGlossary).map((entry) => {
+          // The term's picture: registered as a book image by seedImportedImages.
+          const imageId = importedGlossaryImageId(bundle, files, entry.image)
+          return {
+            id: entry.id,
+            source: "manual" as const,
+            word: entry.word,
+            definition: entry.definition,
+            variations: entry.variations,
+            emojis: entry.emoji ? [entry.emoji] : [],
+            ...(imageId ? { imageId } : {}),
+          }
+        }),
         pageCount: bundle.pages.filter((page, index) => (
           pageIdFromSection(page.section_id, index) !== null
         )).length,

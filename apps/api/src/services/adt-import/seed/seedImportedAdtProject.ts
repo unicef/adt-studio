@@ -141,7 +141,7 @@ export function seedImportedAdtProject(
     activityReview,
     activityDecisions,
   )
-  seedImportedFeatures(label, booksDir, bundle, createdAt)
+  seedImportedFeatures(label, booksDir, bundle, createdAt, files)
   const hasEasyRead = seedImportedEasyRead(label, booksDir, bundle, createdAt)
   seedImportedCoreTts(label, booksDir, bundle, files, createdAt)
   seedImportedImages(label, booksDir, bundle, files)

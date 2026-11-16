@@ -129,6 +129,34 @@ describe("image alt edited after export", () => {
   })
 })
 
+// F13: a glossary term's picture survives import (and so re-export).
+describe("glossary term pictures", () => {
+  it("links the term to its picture and registers the image", () => {
+    const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
+    const glossary = JSON.parse(new TextDecoder().decode(files["content/i18n/en/glossary.json"]))
+    for (const entry of Object.values(glossary) as Array<{ id: string; image?: string }>) {
+      if (entry.id === "gl001") entry.image = "images/gl_hyena.png"
+    }
+    files["content/i18n/en/glossary.json"] = json(glossary)
+    files["images/gl_hyena.png"] = new Uint8Array(Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    ))
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-f13-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const items = (storage.getLatestNodeData("glossary", "book")?.data as { items: Array<{ id: string; imageId?: string }> }).items
+      expect(items.find((item) => item.id === "gl001")?.imageId).toBe("gl_hyena")
+      expect(storage.getImageMeta("gl_hyena")).toMatchObject({ relativePath: "images/gl_hyena.png" })
+      expect(fs.existsSync(path.join(booksDir, session.label, "images", "gl_hyena.png"))).toBe(true)
+    } finally {
+      storage.close()
+    }
+  })
+})
+
 describe("imported feature recovery", () => {
   it("does not promise features whose editable data the archive cannot carry", () => {
     const files = unzipSync(makeFixedLayoutBundle())

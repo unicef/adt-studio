@@ -195,7 +195,7 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
     activityDecisions,
   )
   const generatedAt = new Date().toISOString()
-  seedImportedFeatures(safeLabel, booksDir, bundle, generatedAt)
+  seedImportedFeatures(safeLabel, booksDir, bundle, generatedAt, files)
   seedImportedEasyRead(safeLabel, booksDir, bundle, generatedAt)
   seedImportedCoreTts(safeLabel, booksDir, bundle, files, generatedAt)
   seedImportedImages(safeLabel, booksDir, bundle, files)

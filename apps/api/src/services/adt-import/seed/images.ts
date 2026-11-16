@@ -9,6 +9,7 @@ import { ImageClassificationOutput } from "@adt/types"
 import { readAdtBundle } from "../bundle-reader.js"
 import { pageIdFromSection } from "../catalog.js"
 import { importedImageDimensions } from "./image-dimensions.js"
+import { importedGlossaryImageId } from "./features.js"
 
 /** The HTML `src` is the image the page shows, so a replacement that keeps the
  * element's data-id wins over a stale file still named after that id. */
@@ -105,6 +106,27 @@ export function seedImportedImages(
       .map((page, index) => pageIdFromSection(page.section_id, index))
       .filter((pageId): pageId is string => pageId !== null)
     const firstPageId = logicalPages[0]
+
+    // Glossary pictures no page shows are still book images: register them so
+    // the glossary keeps its picture (images need a page; the first one hosts).
+    const pageImageIds = new Set([...imageIdsByPage.values()].flat())
+    const sourceGlossary = bundle.glossaries[bundle.manifest.languages.source] ?? {}
+    for (const entry of Object.values(sourceGlossary)) {
+      const imageId = importedGlossaryImageId(bundle, files, entry.image)
+      if (!imageId || !firstPageId || pageImageIds.has(imageId)) continue
+      const bytes = files[`${bundle.root}${entry.image}`]
+      const extension = path.posix.extname(entry.image!).slice(1).toLowerCase()
+      const filename = `${imageId}.${extension}`
+      fs.writeFileSync(path.join(imagesDir, filename), bytes)
+      const dimensions = importedImageDimensions(bytes, extension)
+      db.run(
+        `INSERT INTO images (image_id, page_id, path, hash, width, height, source)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (image_id) DO NOTHING`,
+        [imageId, firstPageId, `images/${filename}`, createHash("sha256").update(bytes).digest("hex"), dimensions.width, dimensions.height, "extract"],
+      )
+      pageImageIds.add(imageId)
+    }
     if (firstPageId && bundle.cover) {
       const extension = bundle.cover.mimeType === "image/png"
         ? "png"
