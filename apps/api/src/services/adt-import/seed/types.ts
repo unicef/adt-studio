@@ -26,4 +26,7 @@ export interface AdtImportInProgressMarker {
   createdAt: string
   sourceLabel: string
   sourceFileName: string | null
+  /** The seeding process; absent on markers written before it was recorded. */
+  pid?: number
+  hostname?: string
 }

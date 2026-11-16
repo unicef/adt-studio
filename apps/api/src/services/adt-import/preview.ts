@@ -17,7 +17,7 @@ import { sourceTextsWithEditedImageAlts } from "./image-alts.js"
 import { createAdtImportRepairGuide } from "./repair-guide.js"
 import { recoverImportedQuizzes } from "./quiz.js"
 import { recoverImportedSignLanguageVideos } from "./sign-language.js"
-import { currentImportedNarration, importedSourceTextIsCurrent, recoverImportedAudio } from "./speech.js"
+import { currentImportedNarration, importedSourceTextIsCurrent, importedTextWasEdited, recoverImportedAudio } from "./speech.js"
 
 /**
  * How each pipeline feature will actually come out of this archive.
@@ -106,15 +106,17 @@ function translationRecovery(
 ): { kept: number; total: number } {
   const catalogTexts = new Map(catalogEntries.map((entry) => [entry.id, entry.text]))
   const sourceIsCurrent = importedSourceTextIsCurrent(bundle)
+  const wasEdited = importedTextWasEdited(bundle)
   let kept = 0
   let total = 0
   for (const language of outputLanguages) {
-    const texts = bundle.texts[language] ?? bundle.texts[language.replace("-", "_")] ?? {}
-    for (const id of Object.keys(texts)) {
+    const archiveLanguage = bundle.texts[language] ? language : language.replace("-", "_")
+    const texts = bundle.texts[archiveLanguage] ?? {}
+    for (const [id, text] of Object.entries(texts)) {
       const sourceText = catalogTexts.get(id)
       if (sourceText === undefined) continue
       total++
-      if (sourceIsCurrent(id, sourceText)) kept++
+      if (sourceIsCurrent(id, sourceText) || wasEdited(archiveLanguage, id, text)) kept++
     }
   }
   return { kept, total }
@@ -218,7 +220,10 @@ export function previewAdtRecoveryImport(
       easyReadKeptCount: easyReadIds.filter((id) => {
         const sourceId = id.slice(0, -EASY_READ_ID_SUFFIX.length)
         const sourceText = catalogTexts.get(sourceId)
-        return sourceText !== undefined && sourceIsCurrent(sourceId, sourceText)
+        return sourceText !== undefined && (
+          sourceIsCurrent(sourceId, sourceText)
+          || importedTextWasEdited(bundle)(bundle.manifest.languages.source, id, sourceTexts[id] ?? "")
+        )
       }).length,
       signLanguageVideoCount: recoverImportedSignLanguageVideos(bundle, files).length,
     }),

@@ -248,7 +248,8 @@ export function getBook(label: string, booksDir: string): BookDetail {
 
   const dbPath = path.join(bookDir, `${safeLabel}.db`)
   const pdfPath = path.join(bookDir, `${safeLabel}.pdf`)
-  const identity = ensureProjectIdentity(bookDir)
+  // Same fallback as the library list, so a book it shows can be opened too.
+  const identity = projectIdentityForListing(bookDir)
 
   let title: string | null = null
   let authors: string[] = []

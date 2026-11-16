@@ -92,6 +92,23 @@ export function importedSourceTextIsCurrent(
 }
 
 /**
+ * Was this archived text (a translation, an Easy Read text) itself edited after
+ * export? Then it was updated along with its source on purpose and is kept,
+ * even though its source changed. Exports without per-entry fingerprints
+ * can't tell and answer no.
+ */
+export function importedTextWasEdited(
+  bundle: ReadAdtBundle,
+): (archiveLanguage: string, textId: string, text: string) => boolean {
+  const baseline = bundle.manifest.frozen?.textFingerprints
+  if (!baseline) return () => false
+  return (archiveLanguage, textId, text) => {
+    const expected = baseline[archiveLanguage]?.[textId]
+    return expected !== undefined && adtTextFingerprint(text) !== expected
+  }
+}
+
+/**
  * Per archive locale and text id: may the archive's audio and prepared speech
  * be adopted?
  *

@@ -58,6 +58,7 @@ export function createRecoveredCatalog(
       Boolean(sourceTexts[image.imageId]) || image.alt.length > 0 || image.decorative
     )).length
     projection.images.forEach((image) => sourceImageIds.add(image.imageId))
+    const projectionImageIds = new Set(projection.images.map((image) => image.imageId))
     const entries = legacyRecovery
       ? [
           ...projection.nodes.flatMap((node) => (
@@ -74,7 +75,7 @@ export function createRecoveredCatalog(
       const earlier = recovered.get(entry.id)
       // The exporter writes the same <img data-id alt> into every section an
       // image appears in; one id with one text is one entry, not a conflict.
-      if (earlier === entry.text) continue
+      if (earlier === entry.text && projectionImageIds.has(entry.id)) continue
       if (earlier !== undefined) {
         throw new AdtImportError(`Duplicate stable text id across ADT pages: ${entry.id} (${page.href})`)
       }

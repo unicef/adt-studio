@@ -206,7 +206,7 @@ describe("ADT recovery workspace", () => {
       issues: expect.arrayContaining([
         expect.objectContaining({
           code: "unexpected-bundle-entry",
-          pageHref: "showcase-assets/paper.png",
+          pageHref: "showcase-assets/",
         }),
       ]),
     })

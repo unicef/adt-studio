@@ -111,6 +111,11 @@ export function readReplayedNodeVersions(label: string, booksDir: string): Recor
  * version 1 is the baseline then. Any other version means the user (or a
  * pipeline run) has changed the entity since it was projected.
  */
+function sameVersions(baseline: Record<string, unknown>, versions: Record<string, number>): boolean {
+  const keys = new Set([...Object.keys(baseline), ...Object.keys(versions)])
+  return [...keys].every((key) => baseline[key] === versions[key])
+}
+
 function replayKeepsLaterWork(
   current: Record<string, unknown>,
   versions: Record<string, number>,
@@ -150,14 +155,21 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
 
   // A replay a crash interrupted left its own partial writes behind; finish
   // it rather than mistaking them for the user's later edits.
-  const resuming = current.projectionInProgress === true
+  // A process crash leaves no baseline; startup resumes it before anyone can
+  // edit. A replay that failed with an error resumes only while untouched.
+  const resumeBaseline = current.projectionResumeBaseline
+  const resuming = current.projectionInProgress === true && (
+    !resumeBaseline
+    || typeof resumeBaseline !== "object"
+    || sameVersions(resumeBaseline as Record<string, unknown>, readReplayedNodeVersions(safeLabel, booksDir))
+  )
   if (!resuming && !replayKeepsLaterWork(current, readReplayedNodeVersions(safeLabel, booksDir))) {
     console.warn(
       `[adt-import] ${safeLabel} changed after it was imported; keeping its current content instead of re-projecting the archive.`,
     )
     // Marked as upgraded so the check does not repeat on every start. No
     // `projectedVersions` is recorded, so a later projection bump skips it too.
-    const { projectedVersions: _stale, ...rest } = current
+    const { projectedVersions: _stale, projectionInProgress: _flag, projectionResumeBaseline: _base, ...rest } = current
     writeImportedAdtCurrent(bookDir, {
       ...rest,
       projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
@@ -169,6 +181,29 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
   const sourceZip = readCurrentImportedAdtSource(safeLabel, booksDir)
   const bundle = readAdtBundle(sourceZip)
   writeImportedAdtCurrent(bookDir, { ...current, projectionInProgress: true })
+  try {
+    return finishImportedAdtProjection(safeLabel, booksDir, bookDir, current, sourceZip, bundle)
+  } catch (error) {
+    // The book stays editable after a failed replay. Record where it stopped:
+    // a later attempt resumes only if nothing has changed since, so it never
+    // overrides edits the user made in between.
+    writeImportedAdtCurrent(bookDir, {
+      ...current,
+      projectionInProgress: true,
+      projectionResumeBaseline: readReplayedNodeVersions(safeLabel, booksDir),
+    })
+    throw error
+  }
+}
+
+function finishImportedAdtProjection(
+  safeLabel: string,
+  booksDir: string,
+  bookDir: string,
+  current: Record<string, unknown>,
+  sourceZip: Buffer,
+  bundle: ReturnType<typeof readAdtBundle>,
+): boolean {
   const files = extractAdtBundleArchiveFiles(sourceZip)
   const legacyRecovery = bundle.sourceFormat === "legacy-studio-export"
   // Re-projecting from the archive would otherwise discard how the user
@@ -212,7 +247,7 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
     applyFixedLayoutBookConfig(bookDir)
   }
 
-  const { projectionInProgress: _done, ...finished } = current
+  const { projectionInProgress: _done, projectionResumeBaseline: _baseline, ...finished } = current
   writeImportedAdtCurrent(bookDir, {
     ...finished,
     projectionVersion: ADT_IMPORT_PROJECTION_VERSION,

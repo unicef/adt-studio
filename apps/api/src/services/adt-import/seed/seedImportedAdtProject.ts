@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import os from "node:os"
 import path from "node:path"
 
 import yaml from "js-yaml"
@@ -7,7 +8,7 @@ import { createBookStorage } from "@adt/storage"
 import { BookMetadata, TextCatalogOutput, type AdtActivityImportDecision } from "@adt/types"
 
 import type { ReadAdtBundle } from "../bundle-reader.js"
-import { importedSourceTextIsCurrent } from "../speech.js"
+import { importedSourceTextIsCurrent, importedTextWasEdited } from "../speech.js"
 import { sourceTextsWithEditedImageAlts } from "../image-alts.js"
 import {
   analyzeImportedActivities,
@@ -89,6 +90,10 @@ export function seedImportedAdtProject(
     createdAt,
     sourceLabel: bundle.manifest.book.label,
     sourceFileName: options.sourceFileName ?? null,
+    // Who is seeding it: the startup sweep only removes an import whose
+    // process is gone (see removeAbandonedAdtImports).
+    pid: process.pid,
+    hostname: os.hostname(),
   } satisfies AdtImportInProgressMarker, null, 2))
 
   const storage = createBookStorage(label, booksDir)
@@ -107,14 +112,18 @@ export function seedImportedAdtProject(
     // A translation of text edited after export no longer matches its source:
     // leave it out so it shows as missing and is translated again.
     const sourceIsCurrent = importedSourceTextIsCurrent(bundle)
+    const wasEdited = importedTextWasEdited(bundle)
     for (const language of outputLanguages) {
-      const texts = bundle.texts[language] ?? bundle.texts[language.replace("-", "_")]
+      const archiveLanguage = bundle.texts[language] ? language : language.replace("-", "_")
+      const texts = bundle.texts[archiveLanguage]
       if (!texts) continue
       storage.putNodeData("text-catalog-translation", language, TextCatalogOutput.parse({
         entries: Object.entries(texts)
-          .filter(([id]) => {
+          .filter(([id, text]) => {
             const sourceText = catalogTexts.get(id)
-            return sourceText !== undefined && sourceIsCurrent(id, sourceText)
+            // A translation updated along with its source is the user's work.
+            return sourceText !== undefined
+              && (sourceIsCurrent(id, sourceText) || wasEdited(archiveLanguage, id, text))
           })
           .map(([id, text]) => ({ id, text })),
         generatedAt: createdAt,

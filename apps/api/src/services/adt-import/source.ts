@@ -72,7 +72,8 @@ export function readImportedAdtCurrent(bookDir: string): ImportedAdtCurrent & Re
 
 export function writeImportedAdtCurrent(bookDir: string, value: Record<string, unknown>): void {
   const filePath = path.join(bookDir, ADT_IMPORT_CURRENT_FILE)
-  const temporaryPath = `${filePath}.tmp`
+  // Unique per writer, so two processes never interleave one temp file.
+  const temporaryPath = `${filePath}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`
   fs.writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`)
   fs.renameSync(temporaryPath, filePath)
 }

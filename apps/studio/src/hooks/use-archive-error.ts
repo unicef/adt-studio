@@ -38,6 +38,17 @@ export function useFriendlyArchiveError(
       hint: t`ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again.`,
     }
   }
+  // A server failure says nothing about the file, whatever its text says.
+  // The one exception is the corrupt-backup message, which the API answers
+  // with 500 but which is about the file.
+  if (typeof status === "number" && status >= 500 && status !== 507 && !e.includes("project database")) {
+    return {
+      kind: "server",
+      title: t`ADT Studio couldn't check this archive`,
+      hint: t`Something went wrong in ADT Studio, not necessarily in your file. Try again; if it keeps failing, report the problem and include the archive.`,
+    }
+  }
+
   if (status === 507) {
     return {
       title: t`Not enough disk space`,

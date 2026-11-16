@@ -76,6 +76,32 @@ describe("derived text of a source edited after export", () => {
     }
   })
 
+  it("keeps a translation and Easy Read rewritten along with the source", () => {
+    const archive = exportedThenEdited(makeBundleWithEasyReadAndSignLanguage(), (edited) => {
+      edited["index.html"] = strToU8(decode(edited["index.html"]).replace("Edited outside Studio", "Rewritten after export"))
+      const texts = JSON.parse(decode(edited["content/i18n/en/texts.json"]))
+      texts.pg001_n001 = "Rewritten after export"
+      texts.pg001_n001_easy_read = "Rewritten, simply"
+      edited["content/i18n/en/texts.json"] = json(texts)
+      const es = JSON.parse(decode(edited["content/i18n/es/texts.json"]))
+      es.pg001_n001 = "Reescrito después de exportar"
+      edited["content/i18n/es/texts.json"] = json(es)
+    }, { textFingerprints: true })
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-f10-kept-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(archive, booksDir)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const es = storage.getLatestNodeData("text-catalog-translation", "es")?.data as { entries: Array<{ id: string; text: string }> }
+      expect(es.entries.find((e) => e.id === "pg001_n001")?.text).toBe("Reescrito después de exportar")
+      const easyRead = storage.getLatestNodeData("easy-read", "book")?.data as
+        { blocks: Array<{ entries: Array<{ sourceId: string; text: string }> }> }
+      expect(easyRead.blocks.flatMap((b) => b.entries).find((e) => e.sourceId === "pg001_n001")?.text).toBe("Rewritten, simply")
+    } finally {
+      storage.close()
+    }
+  })
+
   it("reports the translation as partly recovered in the preview", () => {
     const preview = previewAdtRecoveryImport(editedArchive())
     expect(preview.featureRecovery.translate).toBe("partial")

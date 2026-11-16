@@ -3,7 +3,7 @@ import { createBookStorage } from "@adt/storage"
 import { EasyReadOutput } from "@adt/types"
 
 import type { ReadAdtBundle } from "../bundle-reader.js"
-import { importedSourceTextIsCurrent } from "../speech.js"
+import { importedSourceTextIsCurrent, importedTextWasEdited } from "../speech.js"
 
 /** Rebuild the Easy Read entity from the `<id>_easy_read` texts the archive
  * published, anchored to the recovered storyboard. Seeds only when the project
@@ -18,6 +18,8 @@ export function seedImportedEasyRead(
   const sourceTexts = bundle.texts[bundle.manifest.languages.source] ?? {}
   // Easy Read of a text edited after export is left out and made again.
   const sourceIsCurrent = importedSourceTextIsCurrent(bundle)
+  // ...unless the Easy Read text was rewritten along with it.
+  const wasEdited = importedTextWasEdited(bundle)
   const storage = createBookStorage(label, booksDir)
   try {
     if (storage.getLatestNodeData("easy-read", "book")) return true
@@ -27,7 +29,8 @@ export function seedImportedEasyRead(
         entries: block.entries.flatMap((entry) => {
           const text = sourceTexts[entry.easyReadId]
           return typeof text === "string" && text.trim().length > 0
-            && sourceIsCurrent(entry.sourceId, entry.originalText)
+            && (sourceIsCurrent(entry.sourceId, entry.originalText)
+              || wasEdited(bundle.manifest.languages.source, entry.easyReadId, text))
             ? [{ ...entry, text }]
             : []
         }),

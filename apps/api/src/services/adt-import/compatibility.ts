@@ -68,7 +68,8 @@ export function assessAdtImportCompatibility(
       reportedStrayEntries.add(rootEntry)
       issues.push({
         code: "unexpected-bundle-entry",
-        pageHref: relativePath,
+        // Name the folder, not its first file, so the whole folder is removed.
+        pageHref: relativePath.includes("/") ? `${rootEntry}/` : relativePath,
         detail: rootEntry,
       })
     }

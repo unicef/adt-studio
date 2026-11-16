@@ -75,8 +75,17 @@ export function ensureProjectIdentity(
   // leave a truncated identity, and linking fails if another writer won.
   const temporaryPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`
   try {
-    fs.writeFileSync(temporaryPath, `${JSON.stringify(identity, null, 2)}\n`, { flag: "wx" })
-    fs.linkSync(temporaryPath, filePath)
+    const contents = `${JSON.stringify(identity, null, 2)}\n`
+    fs.writeFileSync(temporaryPath, contents, { flag: "wx" })
+    try {
+      fs.linkSync(temporaryPath, filePath)
+    } catch (linkError) {
+      // exFAT/FAT32 drives and many network shares have no hard links: write
+      // in place, still refusing to replace an identity another writer saved.
+      const code = (linkError as NodeJS.ErrnoException).code
+      if (code !== "EPERM" && code !== "ENOTSUP" && code !== "ENOSYS" && code !== "EXDEV" && code !== "EOPNOTSUPP") throw linkError
+      fs.writeFileSync(filePath, contents, { flag: "wx" })
+    }
     return identity
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "EEXIST") {

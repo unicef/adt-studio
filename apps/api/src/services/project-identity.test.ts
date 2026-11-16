@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   PROJECT_IDENTITY_FILE,
@@ -23,6 +23,19 @@ afterEach(() => {
 
 describe("project identity", () => {
   // F14: the identity is never left half-written, and no temp file remains.
+  it("still writes the identity on a drive without hard links (exFAT, network shares)", () => {
+    const link = vi.spyOn(fs, "linkSync").mockImplementation(() => {
+      throw Object.assign(new Error("operation not permitted"), { code: "EPERM" })
+    })
+    try {
+      const identity = ensureProjectIdentity(tmpDir)
+      expect(readProjectIdentity(tmpDir)).toEqual(identity)
+      expect(fs.readdirSync(tmpDir)).toEqual([PROJECT_IDENTITY_FILE])
+    } finally {
+      link.mockRestore()
+    }
+  })
+
   it("writes the identity atomically and cleans up", () => {
     const identity = ensureProjectIdentity(tmpDir)
     expect(fs.readdirSync(tmpDir)).toEqual([PROJECT_IDENTITY_FILE])

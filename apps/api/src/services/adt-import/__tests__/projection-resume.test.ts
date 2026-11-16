@@ -58,6 +58,27 @@ describe("projection replay", () => {
     expect(current.projectedVersions).toEqual(expect.objectContaining({ "web-rendering/pg001": expect.any(Number) }))
   })
 
+  it("never resumes over edits made after a failed replay", () => {
+    const { dir, label, readCurrent } = imported()
+    ;(globalThis as { __failImages?: boolean }).__failImages = true
+    try {
+      expect(() => ensureImportedAdtProjectProjection(label, dir)).toThrow(/simulated crash/)
+    } finally {
+      ;(globalThis as { __failImages?: boolean }).__failImages = false
+    }
+    // The user edits the book before the next attempt.
+    const storage = createBookStorage(label, dir)
+    try {
+      const rendering = storage.getLatestNodeData("web-rendering", "pg001")!.data as { sections: Array<{ html: string }> }
+      storage.putNodeData("web-rendering", "pg001", rendering)
+    } finally {
+      storage.close()
+    }
+    expect(ensureImportedAdtProjectProjection(label, dir)).toBe(false)
+    expect(readCurrent()).toMatchObject({ projectionReplaySkippedFrom: ADT_IMPORT_PROJECTION_VERSION - 1 })
+    expect(readCurrent().projectionInProgress).toBeUndefined()
+  })
+
   it("does not bring back a sign-language video the user deleted", () => {
     const probe = imported()
     const ids = (() => {
