@@ -43,3 +43,8 @@ export function cardKeyForProvider(providerId: string): string {
   )
   return card?.key ?? providerId
 }
+
+/** Whether a backend is a card's local CLI (Codex, Claude Code), which signs in instead of taking a key. */
+export function isCliProvider(providerId: string): boolean {
+  return Object.values(PROVIDER_CARDS).some((card) => card.cliProviderId === providerId)
+}

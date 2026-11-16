@@ -106,6 +106,22 @@ export function useBookStructuredTextStatus(bookLabel: string): { available: boo
 }
 
 /**
+ * The provider of the global default text model, once the provider list has
+ * loaded and that model can't run (no key, no login). Null while loading, on
+ * a failed load, and whenever the default model can run. Only the default
+ * model is checked, so prompts built on it name that provider instead of
+ * claiming no provider is connected at all.
+ */
+export function useMissingTextProvider(): RejectedProvider | null {
+  const { providers, defaults, isAvailable, isLoading, error } = useProviderCredentials()
+  if (isLoading || error || isAvailable("structured-text")) return null
+  const model = defaults["structured-text"]?.trim()
+  const providerId = model ? providerIdOfModel(model) : "openai"
+  const manifest = providers.find((provider) => provider.manifest.id === providerId)?.manifest
+  return { providerId, displayName: manifest?.displayName ?? providerId }
+}
+
+/**
  * True once the provider list has loaded and no provider can run text steps
  * on the global default model. False while loading or on a failed load, so
  * prompts asking the user to connect a provider never flash.

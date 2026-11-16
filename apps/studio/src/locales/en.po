@@ -7887,6 +7887,9 @@ msgstr "Not compatible with Fixed Layout"
 msgid "Not configured"
 msgstr "Not configured"
 
+msgid "Not connected"
+msgstr "Not connected"
+
 msgid "Not created"
 msgstr "Not created"
 
@@ -10933,6 +10936,10 @@ msgstr "Settings"
 
 msgid "Settings — a sharing update is ready"
 msgstr "Settings — a sharing update is ready"
+
+#. missingName is the provider's name (OpenAI, Anthropic, Claude Agent…).
+msgid "Settings — the default AI provider isn't set up ({missingName})"
+msgstr "Settings — the default AI provider isn't set up ({missingName})"
 
 msgid "Settings for this step are not yet available."
 msgstr "Settings for this step are not yet available."
