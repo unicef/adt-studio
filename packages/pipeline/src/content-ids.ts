@@ -1,6 +1,7 @@
 import { parseDocument, DomUtils } from "htmlparser2"
 import type { Storage } from "@adt/storage"
-import { IDENTITY_HISTORY_NODES, answerTextId, formatQuizId, resolveQuizOptionId, type GlossaryItem, type QuizOption, type IdentityHistoryRecord } from "@adt/types"
+import { IDENTITY_HISTORY_NODES, answerTextId, elementAudioTextId, formatQuizId, isElementAudioTextId, parseElementAudioTextId, resolveQuizOptionId, type GlossaryItem, type QuizOption, type IdentityHistoryRecord } from "@adt/types"
+import { collectElementAudioTextIds } from "./element-audio-ids.js"
 
 export function getGlossaryItemTextId(item: Pick<GlossaryItem, "id">, index: number): string {
   return item.id?.trim() || `gl${String(index + 1).padStart(3, "0")}`
@@ -106,6 +107,15 @@ export function collectSpentContentIds(storage: Storage): Set<string> {
       storage.getNodeItemIds(node).flatMap(itemId => storage.getAllNodeVersions(node, itemId).map(row => ({ ...row, node }))))
     for (const row of rows) for (const id of historyContentIds(row)) spent.add(id)
   }
+  // Authored element scripts are not part of the persisted identity-evidence
+  // contract (their node is deliberately not in IDENTITY_HISTORY_NODES), but
+  // their own id and synthetic catalog slot are still reserved. Read them from
+  // the artifact.
+  for (const id of collectElementAudioTextIds(storage)) {
+    spent.add(id)
+    const nodeId = parseElementAudioTextId(id)
+    if (nodeId) spent.add(nodeId)
+  }
   return spent
 }
 
@@ -115,8 +125,26 @@ export function findIntroducedDerivedIdCollision(proposed: Iterable<string>, pre
   const next = new Set(proposed)
   const prior = new Set(previous)
   for (const id of next) {
-    const derived = `${id}_easy_read`
-    if (next.has(derived) && (!prior.has(id) || !prior.has(derived))) return derived
+    // The suffix is reserved for the synthetic catalog entry. Existing legacy
+    // ids are preserved; a new rendered image id cannot mint one.
+    if (isElementAudioTextId(id) && !prior.has(id)) return id
+    const easyRead = `${id}_easy_read`
+    if (next.has(easyRead) && (!prior.has(id) || !prior.has(easyRead))) return easyRead
+    const audio = elementAudioTextId(id)
+    if (next.has(audio) && (!prior.has(id) || !prior.has(audio))) return audio
+  }
+  return undefined
+}
+
+/**
+ * The page-save text-id set deliberately excludes images (`renderedTextIds` /
+ * `sourceTextIds`), so the image-audio namespace needs its own check with the
+ * complete content-id set. A pre-existing legacy id is preserved.
+ */
+export function findIntroducedImageAudioCollision(proposed: Iterable<string>, previous: Iterable<string>): string | undefined {
+  const prior = new Set(previous)
+  for (const id of proposed) {
+    if (isElementAudioTextId(id) && !prior.has(id)) return id
   }
   return undefined
 }

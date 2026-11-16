@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { createBookStorage, openBookDb } from "@adt/storage"
-import { collectSpentContentIds } from "../content-ids.js"
+import { collectSpentContentIds, findIntroducedDerivedIdCollision } from "../content-ids.js"
 import { reconcileGlossaryEditIds } from "../glossary.js"
 import { saveQuizOutput } from "../quiz-ids.js"
 import { createSectionIdFactory } from "../section-ids.js"
@@ -155,4 +155,51 @@ it("does not reuse a warm projection from another book's same tuple", () => {
     other.putNodeData("page-sectioning", "pg001", { sections: [{ sectionId: "pg001_sec003", nodes: [] }] })
     expect(createSectionIdFactory(other, "pg001")()).toBe("pg001_sec004")
   } finally { other.close() }
+})
+
+it("AC-19: reserves the derived _audio slot in both directions, including artifact entries", () => {
+  storage.putNodeData("web-rendering", "pg-audio", {
+    sections: [{ sectionId: "pg-audio_s001", html: '<section><span data-id="legacy_audio">Legacy</span><img data-id="pg001_im001" /></section>' }],
+  })
+  storage.putNodeData("element-audio", "pg-audio", {
+    entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+    generatedAt: "2026-11-16T00:00:00.000Z",
+  })
+  storage.putNodeData("text-catalog", "book", {
+    entries: [{ id: "pg001_im001_audio", text: "Mago" }],
+    generatedAt: "2026-11-16T00:00:00.000Z",
+  })
+
+  const ids = collectSpentContentIds(storage)
+
+  // A real text id ending in _audio is not the synthetic image-audio slot.
+  expect(ids.has("legacy_audio")).toBe(true)
+  expect(ids.has("legacy")).toBe(false)
+  expect(ids.has("pg001_im001")).toBe(true)
+  expect(ids.has("pg001_im001_audio")).toBe(true)
+  expect(ids.has("pg001_im001_audio_audio")).toBe(false)
+})
+
+it("AC-19: rejects a new X/X_audio pair but preserves an existing one", () => {
+  expect(findIntroducedDerivedIdCollision(["X", "X_audio"], [])).toBe("X_audio")
+  expect(findIntroducedDerivedIdCollision(["X", "X_audio"], ["X", "X_audio"])).toBeUndefined()
+})
+
+it("AC-19: reserves an artifact entry's synthetic slot even when the element is not rendered", () => {
+  storage.putNodeData("element-audio", "pg-orphan", {
+    entries: [{ nodeId: "pg999_im999", text: "Orphan" }],
+    generatedAt: "2026-11-18T00:00:00.000Z",
+  })
+
+  const ids = collectSpentContentIds(storage)
+
+  expect(ids.has("pg999_im999")).toBe(true)
+  expect(ids.has("pg999_im999_audio")).toBe(true)
+})
+
+it("AC-24: rejects a new rendered image id ending in _audio", () => {
+  expect(findIntroducedDerivedIdCollision(["pg001_im999_audio"], [])).toBe("pg001_im999_audio")
+  expect(findIntroducedDerivedIdCollision(["pg001_im999_audio"], ["pg001_im999_audio"])).toBeUndefined()
+  // A real text id is not the reserved image-audio slot.
+  expect(findIntroducedDerivedIdCollision(["pg001_listen_audio"], [])).toBeUndefined()
 })

@@ -8,6 +8,7 @@ import { z } from "zod"
 import {
   CoreTtsCatalogOutput as CoreTtsCatalogOutputSchema,
   containsLatexSpeechCandidate,
+  isElementAudioTextId,
   type AppConfig,
   type CoreTtsCatalogEntry,
   type CoreTtsCatalogOutput,
@@ -194,6 +195,29 @@ interface PreparationInput {
   next_display_text: string | null
 }
 
+function adjacentPreparationEntry(
+  entries: TextCatalogEntry[],
+  index: number,
+  direction: 1 | -1,
+): TextCatalogEntry | undefined {
+  for (let i = index + direction; i >= 0 && i < entries.length; i += direction) {
+    if (isElementAudioTextId(entries[i].id)) continue
+    return entries[i]
+  }
+  return undefined
+}
+
+/** The current entry plus its nearest non-element-audio neighbours. */
+export function preparationNeighbors(entries: TextCatalogEntry[], index: number): TextCatalogEntry[] {
+  const out: TextCatalogEntry[] = []
+  const previous = adjacentPreparationEntry(entries, index, -1)
+  if (previous) out.push(previous)
+  out.push(entries[index])
+  const next = adjacentPreparationEntry(entries, index, 1)
+  if (next) out.push(next)
+  return out
+}
+
 export function coreTtsInputBasis(options: {
   entries: TextCatalogEntry[]
   index: number
@@ -211,8 +235,8 @@ export function coreTtsInputBasis(options: {
     id: entry.id, display_text: entry.text, enabled_transformations: enabled,
     source_display_text: source?.displayText ?? null,
     source_speech_text: source?.speechText ?? null,
-    previous_display_text: enabled.length ? options.entries[options.index - 1]?.text ?? null : null,
-    next_display_text: enabled.length ? options.entries[options.index + 1]?.text ?? null : null,
+    previous_display_text: enabled.length ? adjacentPreparationEntry(options.entries, options.index, -1)?.text ?? null : null,
+    next_display_text: enabled.length ? adjacentPreparationEntry(options.entries, options.index, 1)?.text ?? null : null,
   }
   const signature = inputSignature({
     language: normalizeLocale(options.language), input,

@@ -120,7 +120,8 @@ import {
   findAdjacentSpeechText,
   generateSpeechFile,
   generatePageSpeechFiles,
-  supportsPageBatchedSpeech,
+  isPageBatchableSpeech,
+  isBatchableSpeechEntry,
   generateWordTimestamps,
   wavDurationSeconds,
   stripEmojis,
@@ -3225,10 +3226,7 @@ async function runSpeechStep(
         // can route to a different provider than its language's primary.
         .map((item) => ({
           ...item,
-          batchThisVoice:
-            batchByPage &&
-            item.profile.provider === "gemini" &&
-            supportsPageBatchedSpeech(lang),
+          batchThisVoice: batchByPage && isPageBatchableSpeech(item.profile.provider, lang, config.speech),
         }))
 
       for (const { slot, profile, batchThisVoice } of configuredVoices) {
@@ -3294,8 +3292,7 @@ async function runSpeechStep(
 
           // Record the context actually synthesized, including cache reuse. A
           // page preference without an alignment credential uses item inputs.
-          const pageBatchFallback = config.speech?.batch_by_page && !openaiApiKey && provider === "gemini" &&
-            supportsPageBatchedSpeech(lang) && pageById.get(entry.id) !== undefined && !entry.id.endsWith("_easy_read")
+          const pageBatchFallback = !openaiApiKey && isBatchableSpeechEntry(pageById.get(entry.id), provider, lang, config.speech)
             ? "single-item" as const : undefined
           const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
           // OpenAI consumes instructions via its `instructions` field; Gemini embeds
