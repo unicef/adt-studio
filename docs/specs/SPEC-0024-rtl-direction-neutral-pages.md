@@ -1,14 +1,14 @@
 ---
 id: SPEC-0024
 title: Right-to-left books — direction-neutral page generation
-status: approved # draft | in-review | approved | in-progress | implemented | verified | superseded
+status: in-progress # draft | in-review | approved | in-progress | implemented | verified | superseded
 owner: "@elasticsounds" # exactly one human owner
 approvers: ["@rechkunov"] # ≥1 maintainer; + product sign-off when user-facing scope changes
 issues: ["#1115"]
 prs: ["#1118", "#1119", "#1120", "#1130"]
 adr: ""
 created: 2026-11-12
-updated: 2026-11-16
+updated: 2026-11-17
 ---
 
 ## Problem (with evidence)
@@ -301,9 +301,9 @@ translation* is written right to left.
 
 ## Acceptance criteria
 
-- [ ] AC-1: For a page that is not right-to-left, each of the seventeen prompts renders
+- [x] AC-1: For a page that is not right-to-left, each of the seventeen prompts renders
       byte-identical to its output without the block.
-- [ ] AC-2: For a right-to-left page, each of the seventeen prompts carries the block
+- [x] AC-2: For a right-to-left page, each of the seventeen prompts carries the block
       once, in the system message, and nothing else changes.
 - [ ] AC-3: The gate is off for a book with no right-to-left language, and otherwise
       returns the source language's direction.
