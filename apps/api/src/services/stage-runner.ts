@@ -131,8 +131,12 @@ import {
   buildHashDedupPlan,
   sentInFirstRound,
   settleHashDedup,
+  imagePassWarning,
   formatStepWarnings,
   pagesSkippedWarning,
+  everyPageFailed,
+  recordOptionalModelFailure,
+  type ImagePassFailure,
   buildMeaningfulnessConfig,
   buildMeaningfulnessImages,
   dedupAutoFigureCandidatesInStorage,
@@ -1361,14 +1365,14 @@ async function runExtractStep(
     if (!stepController.signal.aborted) {
       await runSegmentationPass(
         label, pages, storage, segmentationConfig, segmentationModel,
-        effectiveConcurrency, pageResults, progress, options.signal
+        effectiveConcurrency, pageResults, pageFailureDeps, progress
       )
     }
 
     if (!stepController.signal.aborted) {
       await runCroppingPass(
         label, pages, storage, croppingConfig, croppingModel,
-        effectiveConcurrency, pageResults, progress, options.signal
+        effectiveConcurrency, pageResults, pageFailureDeps, progress
       )
     }
 
@@ -4034,8 +4038,8 @@ async function runSegmentationPass(
   model: ReturnType<typeof createLLMModel> | null,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
+  deps: PageFailureDeps,
   progress: StageRunProgress,
-  runSignal?: AbortSignal,
 ): Promise<void> {
   if (!config || !model) {
     progress.emit({ type: "step-skip", step: "image-segmentation" })
@@ -4045,6 +4049,9 @@ async function runSegmentationPass(
   const total = pages.length
   let completed = 0
   progress.emit({ type: "step-start", step: "image-segmentation" })
+  // Optional refinement: a failed page keeps its extracted images, and the step's warning names it.
+  const failures: ImagePassFailure[] = []
+  let attempted = 0
   await processWithConcurrency(pages, concurrency, async (page) => {
     const existing = results.get(page.pageId)
     if (!existing) {
@@ -4075,15 +4082,16 @@ async function runSegmentationPass(
         }))
 
       if (unprunedImages.length > 0) {
-        const segmentationResult = await segmentPageImages(
-          {
-            pageId: page.pageId,
-            pageImageBase64: storage.getPageImageBase64(page.pageId),
-            images: unprunedImages,
-          },
-          config,
-          model,
+        attempted++
+        const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+        const segmentationResult = await recordOptionalModelFailure(
+          failures,
+          page.pageId,
+          () => segmentPageImages({ pageId: page.pageId, pageImageBase64, images: unprunedImages }, config, model),
+          (error) => console.error(`[stage-run] ${label}: image segmentation failed for ${page.pageId}: ${error}`),
+          (err) => isCancellation(err, [deps.runSignal, deps.stepController.signal]),
         )
+        if (!segmentationResult) return
         const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
         const segDims = new Map(images.map((img) => [img.imageId, { width: img.width, height: img.height }]))
         const applied = applySegmentation(
@@ -4125,8 +4133,11 @@ async function runSegmentationPass(
         }
       }
     } catch (err) {
-      if (isCancellation(err, [runSignal])) throw err
-      console.error(`[stage-run] ${label}: image segmentation failed for ${page.pageId}: ${toErrorMessage(err)}`)
+      // Not the model call (that is recorded above): reading the page's images
+      // or applying the model's result failed, and the page may be partially
+      // updated, so this is a page failure with a skip/stop decision.
+      console.error(`[stage-run] ${label}: ${page.pageId} failed at image segmentation: ${toErrorMessage(err)}`)
+      await reportPageFailure(deps, progress, "image-segmentation", page.pageId, err)
     } finally {
       completed++
       progress.emit({
@@ -4137,9 +4148,14 @@ async function runSegmentationPass(
         totalPages: total,
       })
     }
-  }, { runSignal })
-  if (runSignal?.aborted) return
-  progress.emit({ type: "step-complete", step: "image-segmentation" })
+  }, { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate })
+  const failed = deps.failedPages.some((f) => f.step === "image-segmentation")
+  if (failed || deps.stepController.signal.aborted) return
+  if (everyPageFailed(failures, attempted)) {
+    // Nothing was processed: a provider or configuration problem, not a page one.
+    throw new StepError("image-segmentation", `every page failed: ${failures[0].error}`)
+  }
+  completeStep(progress, "image-segmentation", [skipWarning(deps.skippedByStep, "image-segmentation"), imagePassWarning(failures)])
 }
 
 async function runCroppingPass(
@@ -4150,8 +4166,8 @@ async function runCroppingPass(
   model: ReturnType<typeof createLLMModel> | null,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
+  deps: PageFailureDeps,
   progress: StageRunProgress,
-  runSignal?: AbortSignal,
 ): Promise<void> {
   if (!config || !model) {
     progress.emit({ type: "step-skip", step: "image-cropping" })
@@ -4161,6 +4177,9 @@ async function runCroppingPass(
   const total = pages.length
   let completed = 0
   progress.emit({ type: "step-start", step: "image-cropping" })
+  // Optional refinement: a failed page keeps its extracted images, and the step's warning names it.
+  const failures: ImagePassFailure[] = []
+  let attempted = 0
   await processWithConcurrency(pages, concurrency, async (page) => {
     const existing = results.get(page.pageId)
     if (!existing) {
@@ -4189,15 +4208,16 @@ async function runCroppingPass(
         }))
 
       if (unprunedImages.length > 0) {
-        const croppingResult = await cropPageImages(
-          {
-            pageId: page.pageId,
-            pageImageBase64: storage.getPageImageBase64(page.pageId),
-            images: unprunedImages,
-          },
-          config,
-          model,
+        attempted++
+        const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+        const croppingResult = await recordOptionalModelFailure(
+          failures,
+          page.pageId,
+          () => cropPageImages({ pageId: page.pageId, pageImageBase64, images: unprunedImages }, config, model),
+          (error) => console.error(`[stage-run] ${label}: image cropping failed for ${page.pageId}: ${error}`),
+          (err) => isCancellation(err, [deps.runSignal, deps.stepController.signal]),
         )
+        if (!croppingResult) return
         const croppingVersion = storage.putNodeData("image-cropping", page.pageId, croppingResult)
         const applied = applyCrops(
           croppingResult,
@@ -4227,8 +4247,11 @@ async function runCroppingPass(
         }
       }
     } catch (err) {
-      if (isCancellation(err, [runSignal])) throw err
-      console.error(`[stage-run] ${label}: image cropping failed for ${page.pageId}: ${toErrorMessage(err)}`)
+      // Not the model call (that is recorded above): reading the page's images
+      // or applying the model's result failed, and the page may be partially
+      // updated, so this is a page failure with a skip/stop decision.
+      console.error(`[stage-run] ${label}: ${page.pageId} failed at image cropping: ${toErrorMessage(err)}`)
+      await reportPageFailure(deps, progress, "image-cropping", page.pageId, err)
     } finally {
       completed++
       progress.emit({
@@ -4239,7 +4262,12 @@ async function runCroppingPass(
         totalPages: total,
       })
     }
-  }, { runSignal })
-  if (runSignal?.aborted) return
-  progress.emit({ type: "step-complete", step: "image-cropping" })
+  }, { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate })
+  const failed = deps.failedPages.some((f) => f.step === "image-cropping")
+  if (failed || deps.stepController.signal.aborted) return
+  if (everyPageFailed(failures, attempted)) {
+    // Nothing was processed: a provider or configuration problem, not a page one.
+    throw new StepError("image-cropping", `every page failed: ${failures[0].error}`)
+  }
+  completeStep(progress, "image-cropping", [skipWarning(deps.skippedByStep, "image-cropping"), imagePassWarning(failures)])
 }
