@@ -43,6 +43,8 @@ import {
   renderPageHtml,
   NAV_HTML,
   buildPreviewTailwindCss,
+  resolvePageDirection,
+  neutralizeDirectionMarkup,
   resolveTypographyCss,
   resolveQuizPalette,
   buildGlossaryJson,
@@ -735,6 +737,13 @@ export function createAdtPreviewRoutes(
       const pages = partScopedPages(storage)
       const typographyCss = resolveTypographyCss(storage)
       const bundleVersion = getPreviewBundleVersion(webAssetsDir)
+      // Scan stored and direction-neutral served markup (SPEC-0024).
+      const pageDirection = resolvePageDirection(getBookLanguage(storage), loadBookConfig(safeLabel, booksDir, configPath).output_languages)
+      const asServed = (html: string) => {
+        if (!pageDirection) return html
+        const served = neutralizeDirectionMarkup(html, pageDirection)
+        return served === html ? html : `${html}\n${served}`
+      }
       // Everything the compiler reads comes from saved book content, page
       // membership, the imported-part window, the runtime assets, typography
       // and this request's unsaved HTML. The saved-state key changes on any
@@ -744,7 +753,7 @@ export function createAdtPreviewRoutes(
         safeLabel, bundleVersion, bookStateKey(storage, bookDir),
         storage.bookDir ? requiredPartRange(storage.bookDir) : null,
         storage.getPages().map(({ pageId, pageNumber }) => [pageId, pageNumber]),
-        typographyCss, extraHtml ?? "",
+        typographyCss, pageDirection, extraHtml ?? "",
       ])
       const knownInputs = tailwindInputKeys.get(stateKey)
       const reused = knownInputs === undefined ? undefined : tailwindCssCache.get(knownInputs)
@@ -757,7 +766,7 @@ export function createAdtPreviewRoutes(
           const parsed = WebRenderingOutput.safeParse(renderRow.data)
           if (parsed.success) {
             for (const section of parsed.data.sections) {
-              allHtml += section.html + "\n"
+              allHtml += asServed(section.html) + "\n"
             }
           }
         }
@@ -770,7 +779,7 @@ export function createAdtPreviewRoutes(
       if (quizData?.quizzes) {
         for (let i = 0; i < quizData.quizzes.length; i++) {
           const quizId = resolveQuizId(quizData.quizzes[i], i)
-          allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
+          allHtml += asServed(renderQuizHtml(quizData.quizzes[i], quizId, catalog)) + "\n"
         }
       }
 
@@ -1162,6 +1171,7 @@ export function createAdtPreviewRoutes(
       const html = renderPageHtml({
         content: quizHtmlContent,
         language,
+        outputLanguages: config.output_languages,
         sectionId: pageId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
@@ -1243,6 +1253,7 @@ export function createAdtPreviewRoutes(
       const html = renderPageHtml({
         content: stepperActivity ? previewSectionHtml : convertLatexToMathml(previewSectionHtml),
         language,
+        outputLanguages: config.output_languages,
         sectionId: pageId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,

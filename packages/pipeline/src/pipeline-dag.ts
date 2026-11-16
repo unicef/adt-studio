@@ -107,7 +107,7 @@ import {
   buildCoreTtsSourceContext,
   getReadyCoreTtsEntries,
 } from "./core-tts.js"
-import { normalizeLocale } from "./language-context.js"
+import { normalizeLocale, resolvePageDirection } from "./language-context.js"
 import {
   loadVoicesConfig,
   loadSpeechInstructions,
@@ -638,6 +638,7 @@ async function runAdmittedFullPipeline(
           imageBase64: storage.getPageImageBase64(page.pageId),
           availableImages: imageIds.map((imageId) => ({ imageId, imageBase64: storage.getImageBase64(imageId) })),
           outline: outlineContextForPage(bookOutline, page.pageId),
+          pageDirection: resolvePageDirection(getLanguage(storage, config), config.output_languages),
         }, pageSectioningConfig, model)
         options.signal?.throwIfAborted()
         // A page is the publication unit, including optional translation.
@@ -777,6 +778,7 @@ async function runAdmittedFullPipeline(
             sourcePageImages,
             bookFonts: buildBookFontsPromptContext(renderingStorage),
             typography,
+            pageDirection: resolvePageDirection(getLanguage(storage, config), config.output_languages),
           },
           resolveRenderConfig,
           resolveRenderModel,

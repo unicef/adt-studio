@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { select } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { providerSelectKey } from "@/i18n/provider-select-key"
+import { useQueryClient } from "@tanstack/react-query"
 import {
   CheckCircle2,
   AlertCircle,
@@ -27,7 +30,7 @@ import type {
   ProviderHealthCode,
   ProviderHealthResponse,
 } from "@adt/types"
-import { useProviderHealth } from "@/hooks/use-provider-health"
+import { providerHealthKey, recheckSavedKeys, useProviderHealth } from "@/hooks/use-provider-health"
 import { PROVIDER_CARDS } from "./data"
 import { PROVIDER_BRAND } from "./providerLogos"
 import { authKind, requiredFieldsFilled, type Providers } from "./useProviders"
@@ -176,9 +179,14 @@ export interface Draft {
   canSave: boolean
   hasStored: boolean
   errors: Map<string, string>
+  /** Per field: a key whose shape looks wrong. Advisory only — Save stays enabled. */
+  warnings: Map<string, string>
   /** Per field: whose key a shared field is using, or who else reads this one. */
   sharedNotes: Map<string, string>
-  save: () => void
+  /** Saves, then waits for the live check so the toast reports the real result. */
+  save: () => Promise<void>
+  /** True while a save waits for that check (up to 15 s). */
+  saving: boolean
   remove: () => void
 }
 
@@ -186,17 +194,30 @@ export interface Draft {
  * Client-side echo of the provider's Zod schema, so a malformed endpoint or an
  * over-long region is caught before it reaches a request header. The server
  * schema stays the authority.
+ *
+ * Only fields the user changed are checked: a value saved before a rule
+ * existed must not block saving an edit to a different field.
+ *
+ * A key that doesn't match its provider's usual shape is only a warning: the
+ * pattern is a client-side hint, providers do issue new key formats, and the
+ * live check after saving is what says whether a key works.
  */
 function useFieldErrors(
   descriptor: ProviderDescriptor,
   values: Record<string, string>,
-): Map<string, string> {
+  stored: Record<string, string>,
+): { errors: Map<string, string>; warnings: Map<string, string> } {
   const { t } = useLingui()
   return useMemo(() => {
     const errors = new Map<string, string>()
+    const warnings = new Map<string, string>()
+    const name = descriptor.manifest.displayName
+    // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
+    const providerKey = providerSelectKey(descriptor.manifest.id)
     for (const field of descriptor.manifest.credentialFields) {
       const value = (values[field.key] ?? "").trim()
       if (!value) continue
+      if (value === (stored[field.key] ?? "").trim()) continue
       if (field.maxLength && value.length > field.maxLength) {
         errors.set(field.key, t`Maximum length is ${field.maxLength} characters.`)
         continue
@@ -215,19 +236,30 @@ function useFieldErrors(
       }
       if (field.pattern) {
         try {
-          if (!new RegExp(field.pattern).test(value)) errors.set(field.key, t`Invalid value.`)
+          if (!new RegExp(field.pattern).test(value)) {
+            const example = field.placeholder
+            if (field.kind !== "secret") errors.set(field.key, t`Invalid value.`)
+            else
+              warnings.set(
+                field.key,
+                example
+                  ? t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `This doesn't look like an API key for ${name}. ${name} keys usually start with ${example}` })}` })
+                  : t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `This doesn't look like an API key for ${name}.` })}` }),
+              )
+          }
         } catch {
           // The manifest was already server-validated; ignore an unsupported
           // client RegExp feature and let the server schema decide.
         }
       }
     }
-    return errors
-  }, [descriptor, values, t])
+    return { errors, warnings }
+  }, [descriptor, values, stored, t])
 }
 
-export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSaved?: () => void): Draft {
+export function useDraft(descriptor: ProviderDescriptor, store: Providers): Draft {
   const { t } = useLingui()
+  const queryClient = useQueryClient()
   const id = descriptor.manifest.id
   const stored = useMemo(
     () =>
@@ -238,6 +270,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSav
   )
   const [values, setValues] = useState<Record<string, string>>(stored)
   const [revealed, setRevealed] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   // `stored` starts empty while /providers is pending and fills in once the
   // manifests arrive, so an untouched draft has to follow it.
@@ -248,7 +281,7 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSav
     setValues(JSON.parse(storedSignature) as Record<string, string>)
   }, [storedSignature])
 
-  const errors = useFieldErrors(descriptor, values)
+  const { errors, warnings } = useFieldErrors(descriptor, values, stored)
   const dirty = descriptor.manifest.credentialFields.some(
     (f) => (values[f.key] ?? "").trim() !== (stored[f.key] ?? "").trim(),
   )
@@ -297,15 +330,45 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSav
     canSave: dirty && errors.size === 0,
     hasStored,
     errors,
+    warnings,
     sharedNotes,
-    save: () => {
-      for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, (values[field.key] ?? "").trim())
-      toast.success(t`Provider credentials saved.`)
-      onSaved?.()
+    saving,
+    save: async () => {
+      // `save` is async, so a storage failure would otherwise vanish into the
+      // void-ed promise of the Save button instead of reaching the user.
+      try {
+        for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, (values[field.key] ?? "").trim())
+      } catch {
+        toast.error(t`Couldn't save the credentials in this browser. Check that site storage is allowed, then try again.`)
+        return
+      }
+      // Re-check with the key just saved, so a wrong key shows up here instead
+      // of on the first failed run. Every provider is re-checked, since a key
+      // can be shared (Gemini Speech reads the Google key).
+      const hasKey = descriptor.manifest.credentialFields.some(
+        (f) => f.kind === "secret" && (values[f.key] ?? "").trim(),
+      )
+      setSaving(true)
+      let rejected: string[]
+      try {
+        rejected = await recheckSavedKeys(queryClient, hasKey ? [id] : [])
+      } finally {
+        setSaving(false)
+      }
+      const name = descriptor.manifest.displayName
+      const providerKey = providerSelectKey(id)
+      if (rejected.length > 0) toast.error(t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Saved, but ${name} rejected this API key. Check that you copied the whole key.` })}` }))
+      else toast.success(t`Provider credentials saved.`)
     },
     remove: () => {
       for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, "")
       setValues(Object.fromEntries(descriptor.manifest.credentialFields.map((f) => [f.key, ""])))
+      // Forget the form's check of the removed values rather than re-run it: a
+      // re-check now would still send them, since the form has not re-rendered
+      // empty yet. The saved-key checks do re-run, because settings the server
+      // holds (or a key shared from another provider) may take over.
+      queryClient.removeQueries({ queryKey: [...providerHealthKey(id), "draft"] })
+      void queryClient.invalidateQueries({ queryKey: ["provider-health"] })
     },
   }
 }
@@ -359,6 +422,10 @@ export function CredentialFields({ draft, onSubmit }: { draft: Draft; onSubmit?:
             {draft.errors.has(field.key) ? (
               <p role="alert" className="text-[11.5px] leading-normal text-destructive">
                 {draft.errors.get(field.key)}
+              </p>
+            ) : draft.warnings.has(field.key) ? (
+              <p role="status" className="text-[11.5px] leading-normal text-amber-700 dark:text-amber-400">
+                {draft.warnings.get(field.key)}
               </p>
             ) : (
               <>
@@ -505,10 +572,18 @@ export function SaveRow({ draft }: { draft: Draft }) {
         type="button"
         size="sm"
         className="ml-auto"
-        disabled={!draft.canSave}
-        onClick={draft.save}
+        disabled={!draft.canSave || draft.saving}
+        aria-busy={draft.saving || undefined}
+        onClick={() => void draft.save()}
       >
-        <Trans>Save</Trans>
+        {draft.saving ? (
+          <>
+            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            <Trans>Checking the connection…</Trans>
+          </>
+        ) : (
+          <Trans>Save</Trans>
+        )}
       </Button>
     </div>
   )
@@ -564,9 +639,10 @@ interface CardHealth {
 }
 
 /**
- * Resolve a vendor card to a single connection status: prefer the configured API key (cheap
- * local badge, no probe); if the vendor has no key but a CLI/local backend, probe that so a
- * live login still reads "Connected". Backs both the rail dot and the auth line from one probe.
+ * Resolve a vendor card to a single connection status: the saved-key check when an API key
+ * is configured (so a rejected key never reads as connected), else a CLI/local backend's probe
+ * so a live login still reads "Connected". Backs both the rail dot and the auth line from one
+ * probe — the same saved-key entry the app-wide "key rejected" warnings read.
  */
 export function useCardHealth(cardKey: string, store: Providers): CardHealth {
   const card = PROVIDER_CARDS[cardKey]
@@ -581,14 +657,20 @@ export function useCardHealth(cardKey: string, store: Providers): CardHealth {
     enabled = store.isRegistered(card.localProviderId)
   } else if (apiConfigured) {
     fallbackConfigured = true
+    enabled = true
   } else if (card.cliProviderId && store.isRegistered(card.cliProviderId)) {
     probeId = card.cliProviderId
     enabled = true
   }
 
-  const health = useProviderHealth(probeId, store.credentials[probeId], enabled)
+  // Saved keys: the card status shares the cache entry the app-wide warnings read.
+  const health = useProviderHealth(probeId, undefined, enabled)
+  // A provider without a live check only reports that a key is set: keep the
+  // configured badge for it rather than a muted "not checked".
+  const uninformative =
+    fallbackConfigured && (health.data?.code === "configured" || health.data?.code === "unsupported")
   return {
-    data: enabled ? (health.data ?? null) : null,
+    data: enabled && !uninformative ? (health.data ?? null) : null,
     isFetching: enabled && health.isFetching,
     fallbackConfigured,
   }
@@ -609,11 +691,12 @@ export function HealthDotMark({ data, isFetching, fallbackConfigured }: CardHeal
 
 /** Pure auth-line text from a resolved CardHealth (no probe of its own). */
 export function AuthLineFromHealth({ data, isFetching, fallbackConfigured }: CardHealth) {
-  if (isFetching) return <Trans>Checking connection…</Trans>
-  if (fallbackConfigured) return <Trans>Authenticated · API key</Trans>
-  if (!data) return <Trans>Not configured</Trans>
+  // Like the dot: a refresh keeps the last result on screen instead of flashing "Checking".
+  if (isFetching && !data) return <Trans>Checking connection…</Trans>
+  if (!data) return fallbackConfigured ? <Trans>Authenticated · API key</Trans> : <Trans>Not configured</Trans>
   switch (data.code) {
     case "ok":
+      if (fallbackConfigured) return <Trans>Authenticated · API key</Trans>
       return data.detail ? <Trans>Authenticated · {data.detail}</Trans> : <Trans>Authenticated</Trans>
     case "local-login":
       return data.detail ? <Trans>Authenticated · {data.detail}</Trans> : <Trans>Authenticated · local login</Trans>

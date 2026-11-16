@@ -7,6 +7,9 @@ Each spec that establishes an invariant adds its checker in the same change.
 > run them together is itself still planned — the first spec that needs it introduces it. Until
 > then the checks that do exist run under `pnpm typecheck`, `pnpm test` and `pnpm lint`. Treat a
 > row whose check is not yet implemented as a debt marker, not as enforcement.
+>
+> Row 8 landed with SPEC-0002 (#880); rows 9–10 are reserved by the SPEC-0003 B1 / SPEC-0010
+> stack (#884, #886) and land with it. SPEC-0014 adds row 11.
 
 | # | Invariant | Check | Runs | Established by |
 |---|-----------|-------|------|----------------|
@@ -19,3 +22,4 @@ Each spec that establishes an invariant adds its checker in the same change.
 | 7 | No provider key in logs or model-call records | log scrubber test + grep in CI | every PR | security chain (Block 1) |
 | 8 | Manual and unknown-authorship units survive ordinary own-stage and upstream runs; guarded saves reject stale versions; replacement retires identities only on successful publication | `apps/api/src/routes/manual-edit-survival.test.ts`, `packages/pipeline/src/__tests__/catalog-execution.test.ts`, Studio draft conflict tests | `pnpm test`; human UI/release verification remains separate | SPEC-0002 (owner-approved with explicit deferrals; independent PR approval pending) |
 | 9 | B1 generation preferences preserve content; admission revalidates at every execution boundary; explicit reset retains history; ordinary Storyboard publishes safe page pairs with honest coverage | `apps/api/src/services/sectioning-lifecycle.test.ts`, `sectioning-preflight-runners.test.ts`, `sectioning-existing-book.test.ts`, `apps/api/src/services/storyboard-publication.test.ts`, and `packages/storage/src/__tests__/sectioning-book-writer.test.ts` under `pnpm test` | every PR | SPEC-0003 B1 implementation (review pending) |
+| 11 | Per-element authored content (`element-audio`) is never cleared or deleted | source scan over `apps/api/src/**` and the pipeline clear lists (`getStageRerunClearNodes`, `IMAGE_SET_CHANGE_CLEAR_NODE_TYPES`) asserting `"element-audio"` appears in none of them, plus `deletePage` / `clearExtractedData` and storage tests per preserved path | every PR | SPEC-0014 |
