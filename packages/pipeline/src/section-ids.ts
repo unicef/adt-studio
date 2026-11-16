@@ -100,9 +100,28 @@ function spentSeq(pageId: string, id: string): number | null {
  * leaves a gap, the next append reuses a length that is already taken.
  */
 export function createSectionIdFactory(storage: Storage, pageId: string): () => string {
+  return sectionIdFactory(storage, pageId, collectSpentContentIds(storage))
+}
+
+/** Both allocators belong to one synchronous reconciliation. Validate history
+ * once here; never accept a caller-supplied or cross-publication reservation set. */
+export function createSectioningIdFactories(storage: Storage, pageId: string) {
+  const spent = collectSpentContentIds(storage)
+  const allocateSection = sectionIdFactory(storage, pageId, spent)
+  let next = 1
+  const allocateNode = () => {
+    let id: string
+    do { id = `${pageId}_n${String(next++).padStart(4, "0")}` } while (spent.has(id))
+    spent.add(id)
+    return id
+  }
+  return { allocateNode, allocateSection }
+}
+
+function sectionIdFactory(storage: Storage, pageId: string, contentIds: ReadonlySet<string>): () => string {
   let highWaterMark = 0
   const spent = collectSpentSectionIds(storage, pageId)
-  for (const id of collectSpentContentIds(storage)) {
+  for (const id of contentIds) {
     const owner = sectionIdOfAnswerTextId(id) ?? id.split("__activity_gen_")[0]
     if (spentSeq(pageId, owner) !== null) spent.add(owner)
   }

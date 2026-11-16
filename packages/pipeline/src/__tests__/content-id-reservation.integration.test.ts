@@ -68,6 +68,27 @@ it("new sections cannot claim retained answer namespaces without sectioning hist
   expect(createSectionIdFactory(storage, "pg001")()).toBe("pg001_sec002")
 })
 
+it("shares one validated content reservation scan per reconciliation and checks subsequent damage", () => {
+  storage.putNodeData("tts", "en", { entries: [{ textId: "pg001_n0001" }, { textId: "pg001_sec004_ans_input" }] })
+  const scan = vi.spyOn(storage, "readIdentityHistoryIds")
+  const input = { reasoning: "", sections: [{ sectionId: "provisional", sectionType: "text", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: [{ nodeId: "provisional", role: "text", text: "New text", isPruned: false }] }] }
+  const generated = reconcileSectioningIdentities(storage, "pg001", input)
+  expect(generated.sections[0].sectionId).toBe("pg001_sec005")
+  expect(generated.sections[0].nodes[0].nodeId).toBe("pg001_n0002")
+  // A full content scan has no item scope; the separate section scan stays scoped.
+  expect(scan.mock.calls.filter(([, , itemId]) => itemId === undefined)).toHaveLength(1)
+  storage.putNodeData("tts", "en", { entries: [{ textId: "pg001_n0002" }, { textId: "pg001_sec005_ans_input" }] })
+  const next = reconcileSectioningIdentities(storage, "pg001", input)
+  expect(next.sections[0].sectionId).toBe("pg001_sec006")
+  expect(next.sections[0].nodes[0].nodeId).toBe("pg001_n0003")
+  const db = openBookDb(path.join(root, "book/book.db"))
+  try {
+    db.run("UPDATE node_data SET data=? WHERE node='tts' AND version=1", ["{broken"])
+    expect(() => reconcileSectioningIdentities(storage, "pg001", input)).toThrow("HISTORY_REPAIR_REQUIRED")
+    expect(() => createSectionIdFactory(storage, "pg001")).toThrow("HISTORY_REPAIR_REQUIRED")
+  } finally { db.close(); scan.mockRestore() }
+})
+
 // Round four: public filenames share a case-insensitive namespace with quizzes.
 it.each(["edit", "insert", "replace"] as const)("%s quiz allocation skips a case-alias held by a section", mode => {
   storage.putNodeData("page-sectioning", "retired-page", { sections: [{ sectionId: "QZ001", nodes: [] }] })

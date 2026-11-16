@@ -19,10 +19,10 @@ export function currentStoryboardSourceWarnings(storage: Storage, bookDir: strin
 /** A retained partial bundle remains usable, but newly rendered source HTML
  * cannot establish that the bundle already contains all its required sections.
  * This checks membership only; ordinary freshness warnings remain independent. */
-export function storyboardPackageStatus(storage: Storage, bookDir: string, pageIds: string[], config: AppConfig, cachedOnly = false): NonNullable<BookSummary["previewStatus"]> {
+export function storyboardPackageStatus(storage: Storage, bookDir: string, pageIds: string[], config: AppConfig, cachedOnly = false, model?: ReturnType<typeof readStoryboardModel>): NonNullable<BookSummary["previewStatus"]> {
   const adtDir = publishedAdtDirectory(bookDir)
   if (!fs.existsSync(adtDir)) return "incomplete"
-  const { coverage, renderable } = readStoryboardModel(storage, bookDir, pageIds)
+  const { coverage, renderable } = model ?? readStoryboardModel(storage, bookDir, pageIds)
   if (!coverage.complete || !coverage.rendered) return "incomplete"
   const expectedLanguages = [...(config.output_languages ?? []), ...(config.editing_language ? [config.editing_language] : [])].map(normalizeLocale)
   const readOwnership = cachedOnly ? readRetainedPackageOwnership.peek : readRetainedPackageOwnership

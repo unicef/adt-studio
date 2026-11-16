@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto"
 import type { NodeDataRow, Storage } from "@adt/storage"
-import type { StoryboardCoverage } from "@adt/types"
-import { ambiguousPublicOutputIdsFromOwners, publicOutputOwners, requiredPartRange, resolveReadingOrder, storyboardCoverage, storyboardSourceWarnings } from "@adt/pipeline"
+import { QuizIdentityError, type StoryboardCoverage } from "@adt/types"
+import { ambiguousPublicOutputIdsFromOwners, publicOutputOwners, requiredPartRange, resolveReadingOrder, SectioningSafetyError, storyboardCoverage, storyboardCoverageByPage, storyboardSourceWarnings } from "@adt/pipeline"
 import { HistoryIntegrityError } from "@adt/storage"
 import { bookStateKey } from "./book-state-memo.js"
 
@@ -16,6 +16,7 @@ type PageFacts = {
 }
 type ReadModel = {
   coverage: StoryboardCoverage
+  coverageByPage: ReadonlyMap<string, StoryboardCoverage>
   renderable: string[]
   warnings: ReturnType<typeof storyboardSourceWarnings>
   readingOwners: Map<string, string | null>
@@ -92,7 +93,8 @@ export function readStoryboardModel(storage: Storage, bookDir: string, pageIds: 
   }
   const ambiguous = ambiguousPublicOutputIdsFromOwners(owners)
   const namespace = JSON.stringify([[...ambiguous].sort(), part])
-  const result: ReadModel = { coverage: { complete: pageIds.length > 0, included: 0, rendered: 0, missingPages: [], missingSections: [] }, renderable: [], warnings: [], readingOwners: new Map() }
+  const coverageByPage = new Map<string, StoryboardCoverage>()
+  const result: ReadModel = { coverage: { complete: pageIds.length > 0, included: 0, rendered: 0, missingPages: [], missingSections: [] }, coverageByPage, renderable: [], warnings: [], readingOwners: new Map() }
   // Keep unreadable quizzes out of independent coverage, but never turn them
   // into an empty set authorizing a retained package.
   const quizzesByPage = new Map<string, string[]>()
@@ -121,6 +123,7 @@ export function readStoryboardModel(storage: Storage, bookDir: string, pageIds: 
     const facts = book.pages.get(pageId)
     if (!facts) { result.coverage.complete = false; result.coverage.missingPages.push(pageId); continue }
     const coverage = facts.coverage!
+    coverageByPage.set(pageId, coverage)
     result.coverage.complete &&= coverage.complete
     result.coverage.included += coverage.included
     result.coverage.rendered += coverage.rendered
@@ -135,6 +138,18 @@ export function readStoryboardModel(storage: Storage, bookDir: string, pageIds: 
   if (books.size >= 128) books.delete(books.keys().next().value!)
   books.set(bookDir, book)
   return result
+}
+
+/** Page-list coverage does not require a valid part manifest or quiz order.
+ * Reuse the shared model where possible, retaining the independent live read
+ * for those damaged dependencies. Admission and integrity errors still escape. */
+export function currentStoryboardCoverageByPage(storage: Storage, bookDir: string, pageIds: string[]) {
+  try { return readStoryboardModel(storage, bookDir, pageIds).coverageByPage }
+  catch (error) {
+    if (!(error instanceof QuizIdentityError) &&
+      !(error instanceof SectioningSafetyError && error.code === "SECTIONING_WINDOW_INVALID")) throw error
+    return storyboardCoverageByPage(storage, pageIds)
+  }
 }
 
 export function currentReadingOwners(storage: Storage, bookDir: string) {

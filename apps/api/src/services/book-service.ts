@@ -1,4 +1,5 @@
-import { storyboardPackageStatus, currentStoryboardCoverage, currentStoryboardSourceWarnings } from "./storyboard-package-coverage.js"
+import { storyboardPackageStatus } from "./storyboard-package-coverage.js"
+import { readStoryboardModel } from "./storyboard-read-model.js"
 import { isCorruptBookDatabase } from "@adt/storage"
 import fs from "node:fs"
 import { setImmediate as yieldToRequests } from "node:timers/promises"
@@ -113,9 +114,10 @@ function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string
     const config = loadBookConfig(label, booksDir, configPath)
     if (cachedPackageOnly) readReadingOrderQuizzes(storage)
     const pageIds = activeSectioningPages(storage, config, bookDir).map(page => page.pageId)
-    const coverage = currentStoryboardCoverage(storage, bookDir, pageIds)
-    const storyboardNeedsReview = currentStoryboardSourceWarnings(storage, bookDir, pageIds).length > 0
-    const previewStatus = storyboardPackageStatus(storage, bookDir, pageIds, config, cachedPackageOnly)
+    const model = readStoryboardModel(storage, bookDir, pageIds)
+    const coverage = model.coverage
+    const storyboardNeedsReview = model.warnings.length > 0
+    const previewStatus = storyboardPackageStatus(storage, bookDir, pageIds, config, cachedPackageOnly, model)
     if (previewStatus === "complete") completed.push("preview")
     return {
       completedStages: completed.filter(stage => (!storyboardNeedsReview || stage !== "storyboard") && (coverage.complete || (stage !== "storyboard" && stage !== "package"))),

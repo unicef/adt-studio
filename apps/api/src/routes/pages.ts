@@ -8,7 +8,8 @@ import { RenderingSave, StoryboardSave, StoryboardSaveResult, AiSectionEdit } fr
 import { invalidPublicOutputIdentity } from "@adt/pipeline"
 import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
-import { storyboardCoverageByPage, scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
+import { scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
+import { currentStoryboardCoverageByPage } from "../services/storyboard-read-model.js"
 import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
 import { OutputEditGuard } from "@adt/types"
 import { outputEvidence } from "@adt/pipeline"
@@ -925,6 +926,7 @@ export function createPageRoutes(
     }
 
     const db = openBookDb(dbPath)
+    let inventoryStorage: Storage | undefined
     try {
       const pages = db.all(
         "SELECT page_id, page_number, text FROM pages ORDER BY page_number"
@@ -1013,16 +1015,21 @@ export function createPageRoutes(
           }
         }
       }
-      const inventoryStorage = createBookStorage(safeLabel, booksDir)
-      try {
-        for (const image of inventoryStorage.readSnapshot(() => buildImageInventory(inventoryStorage))) {
-          if (!image.pageId || !image.available) continue
-          const ids = imageIdsByPage.get(image.pageId) ?? new Set<string>()
-          ids.add(image.id)
-          imageIdsByPage.set(image.pageId, ids)
+      const storage = inventoryStorage = createBookStorage(safeLabel, booksDir)
+      // This read-only list tolerates damaged page JSON just like coverage.
+      // Keep the complete-inventory contract of catalog mutation callers intact.
+      const inventoryView: Storage = { ...storage, getLatestNodeData(node, itemId) {
+        try { return storage.getLatestNodeData(node, itemId) }
+        catch (error) {
+          if (error instanceof SyntaxError && ["web-rendering", "page-sectioning", "fixed-layout-sectioning"].includes(node)) return null
+          throw error
         }
-      } finally {
-        inventoryStorage.close()
+      } }
+      for (const image of storage.readSnapshot(() => buildImageInventory(inventoryView))) {
+        if (!image.pageId || !image.available) continue
+        const ids = imageIdsByPage.get(image.pageId) ?? new Set<string>()
+        ids.add(image.id)
+        imageIdsByPage.set(image.pageId, ids)
       }
 
       // Get section counts, pruned indices, sectionIds, and flattened text per page from page-sectioning node data
@@ -1111,13 +1118,10 @@ export function createPageRoutes(
         }
       }
 
-      const coverageStorage = createBookStorage(safeLabel, booksDir)
-      try {
-        const coverage = storyboardCoverageByPage(coverageStorage, pages.map(page => page.page_id))
-        for (const page of pages) {
-          if (coverage.get(page.page_id)!.rendered === 0) rendered.delete(page.page_id)
-        }
-      } finally { coverageStorage.close() }
+      const coverage = currentStoryboardCoverageByPage(storage, path.dirname(dbPath), pages.map(page => page.page_id))
+      for (const page of pages) {
+        if (coverage.get(page.page_id)!.rendered === 0) rendered.delete(page.page_id)
+      }
       const result: PageSummary[] = pages.map((p) => ({
         pageId: p.page_id,
         pageNumber: p.page_number,
@@ -1139,7 +1143,7 @@ export function createPageRoutes(
 
       return c.json(result)
     } finally {
-      db.close()
+      try { inventoryStorage?.close() } finally { db.close() }
     }
   })
 
