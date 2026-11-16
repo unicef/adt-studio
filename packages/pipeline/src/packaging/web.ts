@@ -752,6 +752,25 @@ export async function packageAdtWeb(
       }
     }
     writeJson(path.join(localeDir, "texts.json"), textsMap)
+    const writeGlossary = (videoHrefs: Map<string, string>) => {
+      if (features?.glossary === false) return
+      const glossaryJson = buildGlossaryJson(
+        glossary,
+        catalog,
+        textsMap,
+        baseLang === sourceLanguage,
+        glossaryImageHrefs,
+        videoHrefs,
+      )
+      writeJson(path.join(localeDir, "glossary.json"), glossaryJson)
+    }
+    // The source language rides along only so the bundle can be re-imported:
+    // when the export leaves it out, ship its texts and glossary for the
+    // importer and none of its speech, audio, video or image variants.
+    if (!outputLanguages.includes(lang)) {
+      writeGlossary(new Map())
+      continue
+    }
     for (const id of Object.keys(textsMap)) for (const kind of ["translation", "caption", "easy-read"]) included.add(JSON.stringify([kind, id, kind === "caption" ? "" : lang, ""]))
 
     // speech_texts.json is intentionally separate from display content. Failed
@@ -922,17 +941,7 @@ export async function packageAdtWeb(
       .map((output) => ({ ...output, included: output.identity.kind === "preparation" ? !!speechTextsMap[output.identity.id] : included.has(JSON.stringify([output.identity.kind, output.identity.id, output.identity.language ?? "", output.identity.voiceSlot ?? ""])) }))
     writeJson(path.join(localeDir, "freshness.json"), { outputs: disclosure })
 
-    if (features?.glossary !== false) {
-      const glossaryJson = buildGlossaryJson(
-        glossary,
-        catalog,
-        textsMap,
-        baseLang === sourceLanguage,
-        glossaryImageHrefs,
-        glossaryVideoHrefs,
-      )
-      writeJson(path.join(localeDir, "glossary.json"), glossaryJson)
-    }
+    writeGlossary(glossaryVideoHrefs)
   }
 
   // ------------------------------------------------------------------

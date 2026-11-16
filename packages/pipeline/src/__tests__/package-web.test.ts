@@ -729,6 +729,16 @@ describe("packageAdtWeb", () => {
     expect(configJson.languages.available).toEqual(["fr"])
     expect(configJson.languages.default).toBe("fr")
 
+    // F4: the deselected source language ships only what re-import needs.
+    const sourceLocaleDir = path.join(bookDir, "adt", "content", "i18n", "en")
+    expect(fs.readdirSync(sourceLocaleDir).sort()).toEqual(
+      expect.arrayContaining(["texts.json"]),
+    )
+    for (const name of ["audio", "audios.json", "speech_texts.json", "timecode", "video", "videos.json", "images.json", "freshness.json"]) {
+      expect(fs.existsSync(path.join(sourceLocaleDir, name))).toBe(false)
+    }
+    expect(fs.existsSync(path.join(bookDir, "adt", "content", "i18n", "fr", "audios.json"))).toBe(true)
+
     const pageHtml = readFirstPage(path.join(bookDir, "adt"))
     expect((pageHtml.match(/<main\b/g) ?? [])).toHaveLength(1)
     expect(pageHtml).toContain("window.correctAnswers = JSON.parse(")
