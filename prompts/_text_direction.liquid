@@ -6,6 +6,12 @@
   prompts. Renders NOTHING unless `page_direction` is "rtl", so the prompt
   text — and its cache key — is unchanged for every other book. Keep it that
   way: the include line and this file use whitespace control for that reason.
+
+  The last line, which calls left-aligned text a defect, is for the prompts
+  that compare a rendering with the original page image. They include this
+  file with `reviewing: true`. The prompts that write or edit a page, and the
+  one that only checks whether a user's edit was applied, do not get it: they
+  are not asked to judge the page, and a user may left-align a block on purpose.
 {%- endcomment -%}
 {%- if page_direction == "rtl" %}
 ## WRITING DIRECTION: RIGHT TO LEFT
@@ -15,6 +21,8 @@ This book is written right to left, and the page is already rendered that way: t
 - Keep the alignment each block has in the original page image. Text that starts at the right edge there, as most headings, paragraphs, list items and table cells do, needs NO alignment class: it follows the page. Use `text-center` only for text that is clearly centred in the original. Do NOT use `text-left` or `text-right`; for the rare block set against the left edge, use `text-end`.
 - A box the text wraps around goes on the side it has in the original page image: `float-start` is the right, `float-end` is the left. Do NOT use `float-left` or `float-right`. Put the gap on the text side of the box: `float-start me-8`, or `float-end ms-8`.
 - Prefer `ms-*`, `me-*`, `ps-*` and `pe-*` to `ml-*`, `mr-*`, `pl-*` and `pr-*`.
+{%- if reviewing %}
 - When reviewing a rendering: the screenshots are right-to-left. Text in the book's own script sitting against the left edge is a defect unless the original page shows it there.
+{%- endif %}
 
 {% endif -%}

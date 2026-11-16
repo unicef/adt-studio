@@ -11,8 +11,13 @@ import type { Message } from "@adt/llm"
  * rendered prompt (and so its cache key) must not change by a single byte.
  */
 const promptsDir = path.join(process.cwd(), "prompts")
-const INCLUDE_LINE = '{% include "_text_direction" -%}\n'
+const INCLUDE = '{% include "_text_direction" -%}'
+// The prompts that compare a rendering with the original page image also get
+// the line that calls left-aligned text a defect.
+const REVIEWING_INCLUDE = '{% include "_text_direction", reviewing: true -%}'
+const INCLUDE_LINES = /\{% include "_text_direction"(?:, reviewing: true)? -%\}\r?\n/g
 const HEADING = "## WRITING DIRECTION: RIGHT TO LEFT"
+const DEFECT_LINE = "Text in the book's own script sitting against the left edge is a defect"
 
 const RENDER_PROMPTS = [
   "web_generation_html",
@@ -28,13 +33,9 @@ const RENDER_PROMPTS = [
   "activity_ordering",
   "activity_open_ended_answer",
 ]
-const REVIEW_AND_EDIT_PROMPTS = [
-  "visual_review",
-  "visual_review_flexible",
-  "visual_review_edit",
-  "html_edit",
-  "html_edit_verify",
-]
+const VISUAL_REVIEW_PROMPTS = ["visual_review", "visual_review_flexible", "visual_review_edit"]
+const EDIT_PROMPTS = ["html_edit", "html_edit_verify"]
+const REVIEW_AND_EDIT_PROMPTS = [...VISUAL_REVIEW_PROMPTS, ...EDIT_PROMPTS]
 const ALL_PROMPTS = [...RENDER_PROMPTS, ...REVIEW_AND_EDIT_PROMPTS]
 
 const context: Record<string, unknown> = {
@@ -63,7 +64,7 @@ for (const file of fs.readdirSync(promptsDir)) {
   if (file === "_text_direction.liquid") continue
   const source = path.join(promptsDir, file)
   if (!fs.statSync(source).isFile()) continue
-  fs.writeFileSync(path.join(withoutBlockDir, file), fs.readFileSync(source, "utf8").split(INCLUDE_LINE).join(""))
+  fs.writeFileSync(path.join(withoutBlockDir, file), fs.readFileSync(source, "utf8").replace(INCLUDE_LINES, ""))
 }
 afterAll(() => fs.rmSync(withoutBlockDir, { recursive: true, force: true }))
 
@@ -83,12 +84,28 @@ function text(messages: Message[]): string {
 describe("writing-direction prompt block (SPEC-0024)", () => {
   it("is wired into all seventeen prompts", () => {
     // The twelve render prompts get it through the shared fidelity partial.
-    expect(fs.readFileSync(path.join(promptsDir, "_render_fidelity.liquid"), "utf8")).toContain(INCLUDE_LINE)
+    expect(fs.readFileSync(path.join(promptsDir, "_render_fidelity.liquid"), "utf8")).toContain(INCLUDE)
     for (const name of RENDER_PROMPTS) {
       expect(fs.readFileSync(path.join(promptsDir, `${name}.liquid`), "utf8"), name).toContain('{% include "_render_fidelity" %}')
     }
-    for (const name of REVIEW_AND_EDIT_PROMPTS) {
-      expect(fs.readFileSync(path.join(promptsDir, `${name}.liquid`), "utf8"), name).toContain(INCLUDE_LINE)
+    for (const name of EDIT_PROMPTS) {
+      expect(fs.readFileSync(path.join(promptsDir, `${name}.liquid`), "utf8"), name).toContain(INCLUDE)
+    }
+    for (const name of VISUAL_REVIEW_PROMPTS) {
+      expect(fs.readFileSync(path.join(promptsDir, `${name}.liquid`), "utf8"), name).toContain(REVIEWING_INCLUDE)
+    }
+  })
+
+  // The edit verifier is told to judge only whether the user's edit was
+  // applied, and it sees before and after screenshots, never the original
+  // page. Told that left-aligned text is a defect, it could fail a correct
+  // edit on a page that already had such text, and trigger another edit pass.
+  // The prompts that write or edit a page are not asked to judge it either.
+  it("tells only the visual-review prompts that left-aligned text is a defect", async () => {
+    for (const name of ALL_PROMPTS) {
+      const rendered = await current.renderPrompt(name, { ...context, page_direction: "rtl" })
+      const system = text(rendered.filter((message) => message.role === "system"))
+      expect(system.includes(DEFECT_LINE), name).toBe(VISUAL_REVIEW_PROMPTS.includes(name))
     }
   })
 
