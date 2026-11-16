@@ -461,3 +461,39 @@ export const WordTimestampOutput = z.object({
   failed: z.array(SpeechFailedEntry).optional(),
 })
 export type WordTimestampOutput = z.infer<typeof WordTimestampOutput>
+
+/**
+ * Text-to-speech model ids per provider — the single source for the Studio
+ * pickers and for the runtime's check that a globally chosen speech model
+ * actually belongs to the provider a book synthesizes with.
+ */
+export const TTS_MODELS_BY_PROVIDER = {
+  openai: ["gpt-4o-mini-tts", "tts-1", "tts-1-hd"],
+  azure: ["azure-tts"],
+  gemini: [
+    "gemini-3.1-flash-tts-preview",
+    "gemini-2.5-flash-preview-tts",
+    "gemini-2.5-pro-preview-tts",
+  ],
+  elevenlabs: ["eleven_multilingual_v2", "eleven_turbo_v2_5", "eleven_flash_v2_5"],
+} as const satisfies Record<string, readonly string[]>
+export type TtsModelProvider = keyof typeof TTS_MODELS_BY_PROVIDER
+
+/**
+ * Which provider a speech model id belongs to: the known list first, then the
+ * id's shape for newer or custom ids (`gemini-*`, `gpt-*` / `tts-*`,
+ * `eleven_*`, `azure*`). `undefined` when nothing matches, so the caller
+ * decides what an unrecognised id means.
+ */
+export function speechModelProvider(modelId: string): TtsModelProvider | undefined {
+  const id = modelId.trim().toLowerCase()
+  if (!id) return undefined
+  for (const [provider, models] of Object.entries(TTS_MODELS_BY_PROVIDER)) {
+    if ((models as readonly string[]).includes(id)) return provider as TtsModelProvider
+  }
+  if (id.startsWith("gemini-")) return "gemini"
+  if (id.startsWith("gpt-") || id.startsWith("tts-")) return "openai"
+  if (id.startsWith("eleven_")) return "elevenlabs"
+  if (id.startsWith("azure")) return "azure"
+  return undefined
+}

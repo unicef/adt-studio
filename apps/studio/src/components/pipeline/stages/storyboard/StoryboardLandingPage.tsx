@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
+import type { RunStagesOptions } from "@/api/client"
 import type { ComponentType, ReactNode, SVGProps } from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import {
@@ -237,17 +238,16 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
     persist({ storyboard_activity_mode: value })
   }
 
-  const handleRun = () => {
-    if (!hasStructuredTextProvider || status.isRunning || resolvingStoredState) return
-    // Cue from here even if upstream stages haven't run. Queue from the first
-    // upstream stage that isn't already covered (done/running/queued) so we
-    // never try to re-run a stage that's mid-flight.
-    const fromStage = !extractCovered && !hasExtractedPages
+  // Protection comes from saved content, even when a restored/imported book
+  // has no completed Sectioning attempt. Confirm the included stage as well.
+  const fromStage = !extractCovered && !hasExtractedPages
       ? "extract"
       : !sectioningCovered
         ? "sectioning"
         : "storyboard"
-    queueRun({ fromStage, toStage: "storyboard", apiKey, viewAfter: true })
+  const handleRun = (options?: Pick<RunStagesOptions, "replaceManual" | "protectedReplacements">) => {
+    if (!hasStructuredTextProvider || status.isRunning || resolvingStoredState) return
+    queueRun({ fromStage, toStage: "storyboard", apiKey, viewAfter: true, ...options })
   }
 
   const isAi = AI_STRATEGIES.has(defaultRenderStrategy)
@@ -273,9 +273,11 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
 
   return (
     <LandingPageShell
+      key={fromStage}
       bookLabel={bookLabel}
       requiresProvider
       stageSlug="storyboard"
+      confirmationStageSlug={fromStage === "storyboard" ? "storyboard" : "sectioning"}
       settingsTab="general"
       colorClass="bg-violet-600 hover:bg-violet-700"
       accentColor="#7c3aed"

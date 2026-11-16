@@ -21,6 +21,12 @@ export interface AppFeatures {
   activities?: boolean
   state?: boolean
   /**
+   * Pinned reviewer comments. Only ever set by the publish flow, which patches
+   * it into the snapshot's `config.json`; a plain `adt` export never has it, so
+   * the feature costs a downloaded book nothing.
+   */
+  comments?: boolean
+  /**
    * Opt into cookie-backed atom persistence instead of the default
    * `localStorage`. Use only for legacy multi-book deployments on a shared
    * origin where path-scoped cookies are needed to isolate titles.

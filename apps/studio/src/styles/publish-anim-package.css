@@ -1,0 +1,224 @@
+/* Keyframes for the package step's candidate animations.
+ *
+ * One file per step so parallel work on different steps cannot collide, and so a rejected step's
+ * motion can be deleted in one move. Imported from globals.css.
+ *
+ * Animations here are referenced with Tailwind arbitrary values —
+ * `[animation:name_4.4s_cubic-bezier(...)_infinite]` — rather than `--animate-*` theme tokens,
+ * because the theme block is a single shared surface and this is explicitly throwaway work.
+ *
+ * IMPORTANT: globals.css kills all animation under `prefers-reduced-motion` for
+ * `[data-publish-run]` with `!important`. Nothing here can rely on `fill-mode` to hold a
+ * final frame — author the resting state as base CSS and make keyframes depart from it.
+ */
+
+/* Convention note for this file: the `animation` shorthand is declared on the classes below rather
+ * than as Tailwind arbitrary values in JSX. Nothing here touches the shared `--animate-*` theme —
+ * that is what the note above is protecting — and every one of these animations needs a sibling
+ * declaration next to it: a per-index `animation-delay`, a `transform-origin`, or the resting
+ * `transform` the keyframes have to depart from and return to. Splitting one gesture between a
+ * stylesheet and a class attribute is how a resting state and its keyframes drift apart.
+ *
+ * TIMING. The two rejected options ran the original 7800ms bench cycle — a ~780ms gesture, 6.2s of
+ * stillness and a plain 400ms rewind. A does not, by decision: it is the chosen design for this step
+ * and the owner asked for it slower, larger and genuinely looping, so it runs its own 5200ms cycle —
+ * a 1.5s gather instead of 520ms, a 1.7s rest instead of 6.2s, and an 800ms return that is part of
+ * the loop rather than a rewind hidden in dead time. It reads as paper being gathered over and over,
+ * which is what was wanted. Keyframe percentages are annotated in ms, because 28.846% is unreadable
+ * and 1500ms is not.
+ */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Shared scaffolding: two units, not one.
+ *
+ * The four slots (160×160, 240×200, 400×200, 400×240) differ by 2.5× in the narrow dimension, and
+ * the option here is a *small resting object* that arrives from a *wide loose arrangement*. One
+ * unit fitted to the wide arrangement is the trap: at 160×160 the arrangement is three times wider
+ * than the object, so fitting the arrangement shrinks the finished stack to a postage stamp — and
+ * the finished stack is what is on screen for six of the seven seconds.
+ *
+ * So `--u` sizes the object from the slot's *height*, which every slot has enough of, and
+ * `--sx-unit`/`--sy-unit` are whatever room is left over once the object is placed, capped at the
+ * distances in the spec so a wide slot does not exaggerate the throw. Container query units, so
+ * there is no measuring pass, no resize listener and no re-render: at the small slot the scatter
+ * closes up and the object stays legible.
+ */
+.pkg-scope {
+  container-type: size;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.pkg-art {
+  --u: min(0.625cqh, 1.2cqw);
+  --sx-unit: min(var(--u), calc((50cqw - var(--u) * 30) / 110));
+  --sy-unit: min(var(--u), calc((50cqh - var(--u) * 37) / 44));
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* A is drawn ~30% larger than the options it beat, on request. The scatter units are derived from the room
+ * *left over* once the object is sized, so a bigger object automatically gets a tighter scatter —
+ * which is the right trade: the stack is what is on screen for most of the loop, and a scatter wide
+ * enough to look generous at the cost of a small stack was the wrong way round. */
+.pkg-art--a {
+  --u: min(0.82cqh, 1.55cqw);
+}
+
+/* Paper.
+ *
+ * The shadow is one baked pair — a hairline ring and a short offset — and is never animated: seven
+ * rotated thumbnails each with a soft moving shadow is a scrapbook sticker collage, and `box-shadow`
+ * is a paint-tier property besides. */
+.pkg-paper {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: calc(var(--u) * 2.5);
+  background-color: #f4f7fa;
+  box-shadow:
+    0 0 0 1px rgb(24 40 56 / 0.10),
+    0 calc(var(--u) * 1) calc(var(--u) * 2) rgb(24 40 56 / 0.13);
+}
+
+.pkg-paper-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The no-book degradation. Not a blank slab: a well and four rules of unequal length, because
+ * matching widths are the tell that makes a skeleton look like a skeleton and not like a page seen
+ * too small to read. */
+.pkg-paper-well {
+  position: absolute;
+  border-radius: calc(var(--u) * 1.5);
+  background-image: linear-gradient(160deg, rgb(35 52 70 / 0.11), rgb(35 52 70 / 0.05));
+}
+
+.pkg-paper-rule {
+  position: absolute;
+  height: calc(var(--u) * 2);
+  border-radius: calc(var(--u) * 1);
+  background-color: rgb(35 52 70 / 0.1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * A — The Gather
+ *
+ * Seven loose cards converge on one squared stack and the stack takes the compression as a squash.
+ * The resting state authored here is the *finished* stack — which is both the reduced-motion frame
+ * the spec asks for and the frame this step hands to step 3. The keyframes depart from it backwards
+ * into the scatter, which is the only arrangement that survives
+ * `animation-duration: 0s !important`.
+ */
+/* Height comes from the book's own trim size, not from a constant. A picture book for five-year-
+ * olds is very often square or landscape, and 46×60 units is a textbook — drawing that frame around
+ * a landscape page either letterboxes it or crops the illustration, which is the whole content of
+ * the page. `--page-aspect` is width ÷ height, measured from a real render, defaulting to 3:4. */
+.pkg-a-stack {
+  --page-aspect: 0.75;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--u) * 46);
+  height: calc(var(--u) * 46 / var(--page-aspect));
+  margin-top: calc(var(--u) * -23 / var(--page-aspect));
+  margin-left: calc(var(--u) * -23);
+  transform-origin: 50% 100%;
+  animation: pkg-a-squash 5200ms linear infinite;
+}
+
+.pkg-a-card {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(0, calc(var(--u) * var(--i) * -1.5), 0);
+  animation: pkg-a-card 5200ms cubic-bezier(0.22, 1, 0.36, 1) infinite backwards;
+  /* 30ms in reading order, and `backwards` so a delayed card holds the scatter rather than sitting
+   * at its resting position until its delay elapses. 30ms is small enough that all seven overlap
+   * heavily: a stagger with visible gaps between arrivals is a count, and this step has none. */
+  animation-delay: calc(var(--i) * 55ms);
+}
+
+
+@keyframes pkg-a-card {
+  /* 0ms — the scatter. `--sx`/`--sy` are design units against the two travel units, `--sr` degrees. */
+  0% {
+    transform: translate3d(
+        calc(var(--sx-unit) * var(--sx)),
+        calc(var(--sy-unit) * var(--sy)),
+        0
+      )
+      rotate(calc(var(--sr) * 1deg)) scale(1);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  /* 260ms — anticipation. All seven shrink 1.5% in place; nothing has travelled yet. Two and a half
+   * times longer than it was, because at this speed the settle is what carries the weight and a
+   * 110ms tell is gone before the eye finds it. */
+  5% {
+    transform: translate3d(
+        calc(var(--sx-unit) * var(--sx)),
+        calc(var(--sy-unit) * var(--sy)),
+        0
+      )
+      rotate(calc(var(--sr) * 1deg)) scale(0.985);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* 1500ms → 3600ms — arrived, then 2.1s at rest. Long enough to read the assembled stack, short
+   * enough that the loop is plainly a loop. */
+  28.846%,
+  69.231% {
+    transform: translate3d(0, calc(var(--u) * var(--i) * -1.5), 0) rotate(0deg) scale(1);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.4, 1);
+  }
+  /* 4400ms — the return. Slower than the old rewind and symmetric rather than plain, because it is
+   * now part of the loop the author watches rather than a bench artefact hidden in dead time. */
+  84.615% {
+    transform: translate3d(
+        calc(var(--sx-unit) * var(--sx)),
+        calc(var(--sy-unit) * var(--sy)),
+        0
+      )
+      rotate(calc(var(--sr) * 1deg)) scale(1);
+  }
+  /* 4400ms → 5200ms — held at the scatter. 100% is identical to 0% in position *and* velocity, which
+   * is what makes the wrap invisible rather than merely seamless. */
+  100% {
+    transform: translate3d(
+        calc(var(--sx-unit) * var(--sx)),
+        calc(var(--sy-unit) * var(--sy)),
+        0
+      )
+      rotate(calc(var(--sr) * 1deg)) scale(1);
+  }
+}
+
+/* The compression beat: the stack takes the arrival in its height. Squash, a 1.2% stretch on the
+ * rebound, then settle — density, and specifically not a lid closing. */
+@keyframes pkg-a-squash {
+  /* 1380ms — the stack is still square right up to contact. */
+  0%,
+  26.538% {
+    transform: scaleY(1);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  /* 1600ms — the compression itself: this is the step's whole subject, so it takes the weight. */
+  30.769% {
+    transform: scaleY(0.94);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* 1820ms — overshoot back through square. */
+  35% {
+    transform: scaleY(1.012);
+    animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+  }
+  /* 2000ms — settled, and square for the rest of the cycle. */
+  38.462%,
+  100% {
+    transform: scaleY(1);
+  }
+}

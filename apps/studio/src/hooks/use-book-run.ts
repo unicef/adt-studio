@@ -14,7 +14,15 @@ import {
   type PageDetail,
   type PendingDecision,
 } from "@/api/client"
-import { STEP_TO_STAGE, PIPELINE, getStageClearOrder, PAGE_PROGRESS_STEPS } from "@adt/types"
+import {
+  STEP_TO_STAGE,
+  PIPELINE,
+  getStageClearOrder,
+  getStageRerunClearNodes,
+  PAGE_PROGRESS_STEPS,
+  STAGE_ORDER,
+  IMPORTED_ADT_LOCKED_STAGES,
+} from "@adt/types"
 import type { StageName } from "@adt/types"
 import { isStageComplete } from "./run-state"
 import { playCompletionSound, playErrorSound } from "@/lib/completion-sound"
@@ -23,6 +31,7 @@ import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeli
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
 import { useApiKey } from "./use-api-key"
+import { useBook } from "./use-books"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -38,6 +47,8 @@ export interface StepProgress {
 }
 
 export interface QueueRunOptions {
+  replaceManual?: boolean
+  protectedReplacements?: import("@adt/types").AuthoredReplacement[]
   fromStage: string
   toStage: string
   apiKey: string
@@ -143,6 +154,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // Held in a ref so the always-on SSE effect can navigate (from a toast action)
   // without listing navigate as a dependency and re-subscribing.
   const navigateRef = useRef(navigate)
+  const { data: runBook } = useBook(label)
+  const workingSourceRef = useRef(runBook?.workingSource)
+  workingSourceRef.current = runBook?.workingSource
   navigateRef.current = navigate
 
   // Primary source of truth: enriched step-status from the server
@@ -657,6 +671,21 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   const queueRun = useCallback(
     (options: QueueRunOptions) => {
       const { fromStage, toStage, apiKey, renderOnly, viewAfter } = options
+      // The API rejects these with 409. Stopping here keeps the optimistic
+      // "queued" state and downstream cache clear from flashing before the
+      // rejection lands.
+      if (workingSourceRef.current === "imported-adt") {
+        const locked = STAGE_ORDER
+          .slice(
+            STAGE_ORDER.indexOf(fromStage as StageName),
+            STAGE_ORDER.indexOf(toStage as StageName) + 1,
+          )
+          .filter((stage) => IMPORTED_ADT_LOCKED_STAGES.has(stage))
+        if (locked.length > 0) {
+          toast.error(i18n._(msg`${getStageLabelI18n(locked[0])} cannot be regenerated while imported HTML is this project's source.`))
+          return
+        }
+      }
       const providerCredentials: StageRunProviderCredentials = {
         ...options.providerCredentials,
         values: storedProviderCredentials,
@@ -705,17 +734,12 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
       })
 
-      // Optimistically clear the page data this run will regenerate, so the
-      // step view immediately mirrors a first-time run instead of leaving stale
-      // content up. Without this, a fast/cached re-run finishes before the async
-      // refetch ever observes the cleared backend state. Extract re-extracts the
-      // PDF (the pages themselves are dropped → empty the list); storyboard
-      // clears web-rendering (page.rendering / hasRendering); sectioning/extract
-      // also clear page-sectioning (sectioningTree / sectionCount).
-      const clearsPages = stagesToClear.has("extract" as StageName)
-      const clearsRendering = stagesToClear.has("storyboard" as StageName)
-      const clearsSectioning =
-        stagesToClear.has("sectioning" as StageName) || stagesToClear.has("extract" as StageName)
+      // Only clear data that the server actually removes. Invalidating an
+      // attempt must not blank retained rendering or protected source drafts.
+      const clearedNodes = new Set(getStageRerunClearNodes(fromStage as StageName, toStage as StageName))
+      const clearsPages = fromStage === "extract"
+      const clearsRendering = clearsPages || clearedNodes.has("web-rendering")
+      const clearsSectioning = clearsPages || clearedNodes.has("page-sectioning")
       if (clearsPages) {
         // Extract drops and rebuilds every page — empty the list so the extract
         // view shows its from-scratch run card while pages re-extract.
@@ -774,7 +798,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       runChainRef.current = runChainRef.current.then(async () => {
         try {
           // The Studio always opts into interactive page-error handling.
-          await api.runStages(label, apiKey, { fromStage, toStage, renderOnly, pageErrorPolicy: "ask" }, providerCredentials)
+          await api.runStages(label, apiKey, { fromStage, toStage, renderOnly, pageErrorPolicy: "ask", replaceManual: options.replaceManual, protectedReplacements: options.protectedReplacements }, providerCredentials)
         } catch (error) {
           // The server refused to start (e.g. a model in the run's range has no
           // credential). Nothing ran, so say why instead of silently snapping

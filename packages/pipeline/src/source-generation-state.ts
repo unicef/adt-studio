@@ -94,16 +94,16 @@ export function captureSourceGeneration(storage: Storage, step: SourceGeneratorS
   return { step, policy: selection, inputSignature: inputSignature(sourceInputs(storage, step, selection)) }
 }
 
-/** Call only for complete generator output, under existing writer admission.
- * Check the inputs captured before provider calls and publish the output and
- * its clean state together. Manual edits and generic completion never call it. */
-export function publishSourceGeneration<T>(storage: Storage, receipt: SourceGenerationReceipt, publish: () => T): T {
+/** Validate captured inputs and publish under existing writer admission.
+ * Only complete generator output accepts the input baseline. A partial result
+ * retaining protected work must leave its review state for an explicit Keep. */
+export function publishSourceGeneration<T>(storage: Storage, receipt: SourceGenerationReceipt, publish: () => T, completeOutput = true): T {
   return storage.transaction(() => {
     if (captureSourceGeneration(storage, receipt.step, receipt.policy).inputSignature !== receipt.inputSignature) {
       throw new Error("Source inputs changed during generation. Run this stage again.")
     }
     const result = publish()
-    storage.putNodeData(STATE_NODE, receipt.step, { version: 1, needsUpdate: false, policy: receipt.policy, inputSignature: receipt.inputSignature } satisfies SourceGenerationState)
+    if (completeOutput) storage.putNodeData(STATE_NODE, receipt.step, { version: 1, needsUpdate: false, policy: receipt.policy, inputSignature: receipt.inputSignature } satisfies SourceGenerationState)
     return result
   })
 }

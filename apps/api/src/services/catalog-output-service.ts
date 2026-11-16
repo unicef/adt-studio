@@ -1,3 +1,4 @@
+import { EditConflictError } from "./edit-conflict.js"
 import path from "node:path"
 import { HTTPException } from "hono/http-exception"
 import type { Storage } from "@adt/storage"
@@ -20,7 +21,7 @@ export function editSourceSignature(outputs: OutputStatus[], kind: OutputKind, l
 }
 
 export function assertEditVersion(current: number | undefined, expected: number): void {
-  if ((current ?? 0) !== expected) throw new HTTPException(409, { message: "Content changed. Your draft has not been saved. Refresh before retrying." })
+  if ((current ?? 0) !== expected) throw new EditConflictError(current ?? 0)
 }
 export function assertEditSource(current: string, expected: string): void {
   if (current !== expected) throw new HTTPException(409, { message: "Source or settings changed. Your draft has not been saved. Refresh before retrying." })

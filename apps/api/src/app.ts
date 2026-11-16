@@ -41,6 +41,11 @@ import { createEditableActivitiesRoutes } from "./routes/editable-activities.js"
 import { createAgentRoutes } from "./routes/agents.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
 import { createProviderRoutes } from "./routes/providers.js"
+import { createCloudflareRoutes } from "./routes/cloudflare.js"
+import { createConnectionStore, resolvePublishStateDir } from "./services/cloudflare/connection-store.js"
+import { createCloudflareOAuthService } from "./services/cloudflare/oauth.js"
+import { createPublishRoutes } from "./routes/publications.js"
+import { removeAbandonedAdtImports } from "./services/adt-import/marker.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -76,6 +81,10 @@ if (adtResourcesZip && fs.existsSync(adtResourcesZip)) {
     process.env.WEB_ASSETS_DIR ?? path.join(projectRoot, "assets", "adt")
   )
 }
+
+// An ADT import interrupted by a crash or shutdown leaves a hidden, half-made
+// book folder; no import of this process can be running yet, so clear them.
+removeAbandonedAdtImports(booksDir)
 
 const eventBus = createBookEventBus()
 const pageErrorDecisions = createPageErrorDecisions(eventBus)
@@ -134,6 +143,30 @@ app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, con
 app.route("/api", createSignLanguageVideoRoutes(booksDir))
 app.route("/api", createAgentRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTranslationEvaluationRoutes(booksDir, configPath, taskService))
+/** One Cloudflare login service for both route groups below, so a renewal is never raced by a
+ *  second service on the same saved login. */
+const cloudflareOAuth = createCloudflareOAuthService({
+  store: createConnectionStore(resolvePublishStateDir(booksDir)),
+})
+app.route(
+  "/api",
+  createCloudflareRoutes({
+    booksDir,
+    projectRoot,
+    oauth: cloudflareOAuth,
+  }),
+)
+app.route(
+  "/api",
+  createPublishRoutes({
+    booksDir,
+    oauth: cloudflareOAuth,
+    webAssetsDir,
+    configPath,
+    projectRoot,
+    promptsDir,
+  }),
+)
 
 export default app
 export { booksDir }

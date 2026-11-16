@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+import { randomUUID } from "node:crypto"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
@@ -7,6 +8,12 @@ import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
+import { ensureProjectIdentity } from "./project-identity.js"
+import {
+  getImportedAdtFeaturesNeedingRegeneration,
+  type ImportedAdtFeature,
+  restoreImportedAdtPresentation,
+} from "./adt-import/presentation.js"
 
 export interface ExportResult {
   stream: ReadableStream<Uint8Array>
@@ -30,7 +37,7 @@ function throwAdtDirMissing(): never {
  * Read book title from metadata for use in export filenames.
  * Falls back to the safe label if metadata is not available.
  */
-function readBookTitle(label: string, resolvedDir: string): string {
+export function readBookTitle(label: string, resolvedDir: string): string {
   const storage = createBookStorage(label, resolvedDir)
   try {
     const metadataRow = storage.getLatestNodeData("metadata", "book")
@@ -91,6 +98,23 @@ export async function prepareExport(
     throwWebAssetsMissing()
   }
 
+  // A feature this export leaves out can't be lost by it.
+  const excludedFeatures = new Set<ImportedAdtFeature>([
+    ...(features?.readAloud === false ? ["Speech" as const] : []),
+    ...(features?.quizzes === false ? ["Quizzes" as const] : []),
+    ...(features?.signLanguage === false ? ["Sign Language" as const] : []),
+  ])
+  const importedFeaturesPending = getImportedAdtFeaturesNeedingRegeneration(
+    safeLabel,
+    resolvedDir,
+    excludedFeatures,
+  )
+  if (importedFeaturesPending.length > 0) {
+    throw new HTTPException(409, {
+      message: `Regenerate these imported features before exporting: ${importedFeaturesPending.join(", ")}. Their exported runtime data cannot be edited safely as pipeline entities.`,
+    })
+  }
+
   const storage = createBookStorage(safeLabel, resolvedDir)
   try {
     const config = loadBookConfig(safeLabel, resolvedDir, configPath)
@@ -106,6 +130,7 @@ export async function prepareExport(
       )
     )
     const title = metadata?.title ?? safeLabel
+    const identity = ensureProjectIdentity(bookDir)
 
     const normalizedRequested = features?.languages?.map(normalizeLocale) ?? []
     const finalLanguages = normalizedRequested.length > 0
@@ -162,11 +187,19 @@ export async function prepareExport(
       fixedLayout: isFixedLayoutBook(config),
       reflowableFont: config.reflowable_font,
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
+      lineage: {
+        originProjectId: identity.projectId,
+        sourceKind: identity.sourceKind,
+        sourceFingerprint: identity.sourceFingerprint,
+        publicationId: randomUUID(),
+        exportedAt: new Date().toISOString(),
+      },
       // EPUB glossary implementation (word-level spec / in-flow pages / both).
       epubGlossary: config.epub_glossary,
     }
 
     const { warnings } = await packageAdtWeb(storage, opts)
+    restoreImportedAdtPresentation(safeLabel, resolvedDir)
 
     if (format === "webpub") {
       packageWebpub(storage, opts)
@@ -182,6 +215,20 @@ export async function prepareExport(
   }
 }
 
+/**
+ * Top-level folders left out of project backups: export outputs (rebuilt by
+ * packaging) and the section screenshot cache (rebuilt on demand). The LLM
+ * cache (.cache) and LLM debug images stay, so restored books keep fast reruns
+ * and an inspectable call history.
+ */
+export const PROJECT_BACKUP_EXCLUDED_DIRS: ReadonlySet<string> = new Set([
+  "adt",
+  "webpub",
+  "epub",
+  "pnld",
+  ".section-renders",
+])
+
 export async function exportProject(
   label: string,
   booksDir: string,
@@ -194,6 +241,9 @@ export async function exportProject(
     throwBookNotFound(safeLabel)
   }
 
+  // Project archives carry the stable identity too, so moving a project to a
+  // different machine does not sever future exported-ADT lineage matches.
+  ensureProjectIdentity(bookDir)
   const title = readBookTitle(safeLabel, resolvedDir)
 
   // When this book is an imported page-range part, name the returned archive
@@ -207,14 +257,14 @@ export async function exportProject(
     const { startPage, endPage } = part.range
     const pad3 = (n: number) => String(n).padStart(3, "0")
     return {
-      stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
+      stream: createZipStream(bookDir, { excludeDirs: PROJECT_BACKUP_EXCLUDED_DIRS }),
       filename: `${title}-part-${startPage}-${endPage}-processed.zip`,
       safeFilename: `${part.sourceLabel}-p${pad3(startPage)}-${pad3(endPage)}-processed.zip`,
     }
   }
 
   return {
-    stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
+    stream: createZipStream(bookDir, { excludeDirs: PROJECT_BACKUP_EXCLUDED_DIRS }),
     filename: `${title}-project.zip`,
     safeFilename: `${safeLabel}-project.zip`,
   }

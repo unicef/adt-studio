@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 import type { Storage, PageData } from "@adt/storage"
-import { buildTextCatalog } from "../text-catalog.js"
+import {
+  buildTextCatalog,
+  extractTextCatalogEntriesFromHtml,
+  exportedActivityCatalogIds,
+} from "../text-catalog.js"
 
 function createMockStorage(
   nodeData: Record<string, Record<string, unknown>>,
@@ -81,6 +85,30 @@ describe("buildTextCatalog", () => {
       { id: "pg001_gp001_tx001", text: "Hello world" },
       { id: "pg001_gp001_tx002", text: "Second paragraph" },
       { id: "pg002_gp001_tx001", text: "Page two text" },
+    ])
+  })
+
+  it("keeps imported MathML so the packaged reader still renders formulas", async () => {
+    const formula = "<math><mrow><msup><mi>a</mi><mn>2</mn></msup><mo>&lt;</mo><mn>1</mn></mrow></math>"
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "text",
+            reasoning: "",
+            html: `<section><p data-id="pg001_n001">Se ${formula}, então</p><p data-id="pg001_n002">\\frac{1}{2}</p></section>`,
+          }],
+        },
+      },
+    })
+
+    const result = await buildTextCatalog(storage, [{ pageId: "pg001", pageNumber: 1, text: "" }])
+
+    expect(result.entries.map(({ id, text }) => ({ id, text }))).toEqual([
+      { id: "pg001_n001", text: `Se ${formula}, então` },
+      // Studio-rendered pages carry LaTeX text, which stays as it was.
+      { id: "pg001_n002", text: "\\frac{1}{2}" },
     ])
   })
 
@@ -675,5 +703,75 @@ describe("buildTextCatalog", () => {
 
     expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toContainEqual({ id: "pg001_section_0_ans_item-1", text: "alpha" })
     expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toContainEqual({ id: "pg001_section_1_ans_item-1", text: "beta" })
+  })
+})
+
+describe("extractTextCatalogEntriesFromHtml", () => {
+  it("recovers leaf text and image alternative text from edited pages", () => {
+    expect(extractTextCatalogEntriesFromHtml(`
+      <main data-id="wrapper">
+        <p data-id="pg001_n001">Edited <strong>book text</strong></p>
+        <img data-id="pg001_im001" alt="An edited image description">
+        <script data-id="script-entry">doNotNarrate()</script>
+      </main>
+    `)).toEqual([
+      { id: "pg001_n001", text: "Edited book text" },
+      { id: "pg001_im001", text: "An edited image description" },
+    ])
+  })
+
+  it("recovers exported math in the same MathML form texts.json carries", () => {
+    // Export converts catalog LaTeX to MathML in both the page and texts.json;
+    // flattening it to text content ("35=35") would make every formula look edited.
+    const formula = '<math><mrow><mfrac><mn>3</mn><msqrt><mn>5</mn></msqrt></mfrac><mo>&lt;</mo>'
+      + '<mtext>\u00a0</mtext><mspace width="0pt" height="0.5em"></mspace><mi>x</mi></mrow></math>'
+    expect(extractTextCatalogEntriesFromHtml(`
+      <p data-id="pg001_n001">${formula}</p>
+      <p data-id="pg001_n002">(UFV-MG)  A expressão ${formula}, é &amp; mais</p>
+      <p data-id="pg001_n003">Plain\u00a0 text</p>
+    `)).toEqual([
+      { id: "pg001_n001", text: formula },
+      { id: "pg001_n002", text: `(UFV-MG) A expressão ${formula}, é & mais` },
+      { id: "pg001_n003", text: "Plain text" },
+    ])
+  })
+
+  it("recovers one entry for the desktop and mobile copies of a responsive element", () => {
+    // Studio's own exports repeat a data-id across responsive layouts.
+    const html = `
+      <div id="content">
+        <div class="hidden md:block">
+          <p data-id="pg001_n001">Shared text</p>
+          <p data-id="activity_gen_q">Question</p>
+        </div>
+        <div class="md:hidden">
+          <p data-id="pg001_n001">Shared text</p>
+          <p data-id="activity_gen_q">Question</p>
+        </div>
+        <p data-id="activity_gen_a">Answer</p>
+      </div>
+    `
+    expect(extractTextCatalogEntriesFromHtml(html, "pg001")).toEqual([
+      { id: "pg001_n001", text: "Shared text" },
+      { id: "pg001_ac001", text: "Question" },
+      { id: "pg001_ac002", text: "Answer" },
+    ])
+    expect([...exportedActivityCatalogIds(html, "pg001")]).toEqual([
+      ["activity_gen_q", "pg001_ac001"],
+      ["activity_gen_a", "pg001_ac002"],
+    ])
+  })
+
+  it("uses the exported content root and rewrites generated activity ids", () => {
+    expect(extractTextCatalogEntriesFromHtml(`
+      <h1 data-id="runtime-title">Runtime chrome</h1>
+      <div id="content">
+        <p data-id="activity_gen_question">Question</p>
+        <p data-id="activity_gen_answer">Answer</p>
+      </div>
+    `, "pg003")).toEqual([
+      { id: "pg003_ac001", text: "Question" },
+      { id: "pg003_ac002", text: "Answer" },
+    ])
   })
 })

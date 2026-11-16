@@ -4,6 +4,7 @@ import { Link, useMatchRoute, useNavigate, useSearch } from "@tanstack/react-rou
 import { Trans } from "@lingui/react/macro"
 import {
   AlertCircle,
+  Info,
   Loader2,
   RotateCcw,
   Settings,
@@ -25,8 +26,12 @@ import { StageOutputStatus } from "./StageOutputStatus"
 import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
 import { getSettingsTabs } from "../settings-tabs"
 import { OVERVIEW_STAGE_SLUGS } from "../settings-routing"
-import { usePackageAdtStatus } from "@/hooks/use-books"
+import { useBook, usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
+import { publicationLifecycle, useBookPublication } from "@/hooks/use-book-publication"
+import { useFeedbackBadge } from "../../publication-feedback/use-feedback-badge"
+import { useNewCommentAlerts } from "../../publication-feedback/use-new-comment-alerts"
+import { useShareRunning } from "@/hooks/use-publish-run-notice"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
 import { useSectionNav } from "@/routes/books.$label"
@@ -34,6 +39,7 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import {
   STAGES,
   hasStagePages,
+  isImportedAdtStageAvailable,
   toCamelLabel,
   type StageGroup,
 } from "../stage-config"
@@ -84,6 +90,16 @@ export function StageSidebar({
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
+  const { data: book } = useBook(bookLabel)
+  const usesImportedHtml = book?.workingSource === "imported-adt"
+  /** Sharing is not a pipeline stage, so nothing ticks its disc on its own: a live link is what
+   *  "done" means for it. The count beside the disc is reviewer comments still waiting on the
+   *  author — a count, never a completion state, so an open thread cannot un-tick the stage. */
+  const { data: publicationStatus } = useBookPublication(bookLabel)
+  const shared = publicationLifecycle(publicationStatus) === "active"
+  const feedback = useFeedbackBadge(bookLabel)
+  useNewCommentAlerts(bookLabel)
+  const shareRunning = useShareRunning(bookLabel)
   const { tasks } = useBookTasks(bookLabel)
   const { data: catalog } = useOutputSummary(bookLabel)
   const activeDirtyTabs = useDirtyTabsForStage(activeStep)
@@ -92,6 +108,10 @@ export function StageSidebar({
   const noTextLayerLabel = i18n._(
     msg`Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF.`
   )
+  const waitingFeedbackLabel = (count: number) =>
+    count === 1
+      ? i18n._(msg`1 comment waiting for you`)
+      : i18n._(msg`${count} comments waiting for you`)
 
   const currentState = stageState(activeStep)
   // A stale Storyboard still has its renderings — staleness is a step_runs flag,
@@ -137,6 +157,7 @@ export function StageSidebar({
     validation: validationCompleted,
     preview: previewCompleted,
     export: exportCompleted,
+    publish: shared,
   }
 
   const stageItems: ReactNode[] = []
@@ -202,17 +223,25 @@ export function StageSidebar({
 
     const stageNeedsRerun = sourceNeedsUpdate || updates > 0 || missing > 0
     const activeAttempt = state === "running" || state === "queued"
-    const ringState = activeAttempt ? state : stageNeedsRerun || state === "error" ? "idle" : content?.current ? "done" : state
+    /* Sharing isn't a pipeline stage, so its run shows on the ring alone — never as the stage's
+       running state, which would offer the pipeline's cancel button for it. */
+    const ringState =
+      step.slug === "publish" && shareRunning
+        ? "running"
+        : activeAttempt ? state : stageNeedsRerun || state === "error" ? "idle" : content?.current ? "done" : state
 
     // "book" is always filled; all other stages fill when their own completion signal is met.
     const iconFilled = step.slug === "book" ? true : stageCompleted
 
     const stepLabel = step.slug === "book" ? toCamelLabel(bookLabel) : getStageLabelI18n(step.slug)
+    const stageNotNeeded = usesImportedHtml && !isImportedAdtStageAvailable(step.slug)
 
     // Expose stage status to screen readers — the visual ring/color carries it
     // for sighted users, but the link's accessible name must say it too.
     const statusKey = step.slug === "book" ? undefined : activeAttempt || state === "error" ? state : stageNeedsRerun ? "needs-update" : content?.current ? "done" : state
-    const stepAriaLabel = statusKey
+    const stepAriaLabel = stageNotNeeded
+      ? i18n._(msg`${stepLabel}: not needed for imported ADTs`)
+      : statusKey
       ? i18n._(msg`${stepLabel}: ${getStageStatusLabelI18n(statusKey)}`)
       : stepLabel
     const cancelStepLabel = i18n._(msg`Cancel ${stepLabel} step`)
@@ -243,7 +272,7 @@ export function StageSidebar({
               ? { label: bookLabel, step: step.slug, pageId: selectedPageId }
               : { label: bookLabel, step: step.slug }}
             className={cn("flex items-center gap-2.5 min-w-7", x.flex1)}
-            title={stepLabel}
+            title={stageNotNeeded ? i18n._(msg`Imported HTML already provides this stage's output`) : stepLabel}
             aria-label={stepAriaLabel}
             aria-current={isActive ? "page" : undefined}
           >
@@ -269,6 +298,25 @@ export function StageSidebar({
                   className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-red-600 ring-2 ring-background"
                 >
                   <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
+                </span>
+              ) : stageNotNeeded ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-1 -top-1 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-slate-200 text-slate-700 ring-2 ring-background"
+                >
+                  <Info className="h-2.5 w-2.5" />
+                </span>
+              ) : step.slug === "publish" && feedback.unresolvedCount > 0 ? (
+                <span
+                  role="img"
+                  aria-label={waitingFeedbackLabel(feedback.unresolvedCount)}
+                  title={waitingFeedbackLabel(feedback.unresolvedCount)}
+                  className={cn(
+                    "absolute -top-1.5 -right-1.5 z-20 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none tabular-nums text-white ring-2 ring-background duration-200 motion-safe:animate-in motion-safe:zoom-in-50",
+                    step.color,
+                  )}
+                >
+                  {feedback.unresolvedCount > 99 ? "99+" : feedback.unresolvedCount}
                 </span>
               ) : step.slug === "extract" && hasNoTextLayer ? (
                 <span
@@ -296,6 +344,14 @@ export function StageSidebar({
             <span className={cn("truncate hidden", x.showLabel)}>
               {stepLabel}
             </span>
+            {stageNotNeeded && (
+              <span className={cn(
+                "hidden shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600",
+                x.showLabel,
+              )}>
+                <Trans>Not needed</Trans>
+              </span>
+            )}
           </Link>
 
           {visibleContent && <StageOutputStatus bookLabel={bookLabel} stage={step.slug} summary={visibleContent} active={isActive} />}
@@ -327,7 +383,7 @@ export function StageSidebar({
             </button>
           )}
 
-          {step.slug === "book" ? (
+          {!stageNotNeeded && (step.slug === "book" ? (
             <Link
               to="/books/$label/$step/settings"
               params={{ label: bookLabel, step: step.slug }}
@@ -371,7 +427,7 @@ export function StageSidebar({
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
-          ) : null}
+          ) : null)}
         </div>
 
         {/* Settings sub-tabs */}

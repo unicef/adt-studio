@@ -7,7 +7,9 @@ import {
   type PageEntry,
 } from "@/features/navigation/state/nav.atoms";
 import { dockMenuValueAtom } from "@/shared/state/ui.atoms";
+import { followedPeerAtom } from "@/features/comments/state/follow.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
+import { textDirectionAtom } from "@/features/language/state/language.atoms";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
 import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
@@ -52,7 +54,13 @@ export function PageNav() {
   const currentPageFromMeta = useAtomValue(currentPageNumberAtom);
   const dockMenuValue = useAtomValue(dockMenuValueAtom);
   const setDockMenuValue = useSetAtom(dockMenuValueAtom);
+  const stopFollowing = useSetAtom(followedPeerAtom);
   const { t } = useTranslation();
+  // The row follows the document direction, so in a right-to-left book "next"
+  // sits on the left. Each chevron points the way its button turns the page.
+  const rtl = useAtomValue(textDirectionAtom) === "rtl";
+  const NextIcon = rtl ? ChevronLeft : ChevronRight;
+  const PrevIcon = rtl ? ChevronRight : ChevronLeft;
 
   const idx = pages.findIndex((p) => p.section_id === currentSectionId);
   const prev = idx > 0 ? pages[idx - 1] : undefined;
@@ -66,6 +74,10 @@ export function PageNav() {
 
   const go = (href: string | undefined) => {
     if (!href) return;
+    // Turning the page yourself is the clearest possible statement that you want the wheel
+    // back, so it ends a follow — otherwise the next presence frame would drag you straight
+    // back to the page you just left.
+    stopFollowing(null);
     // Turning the page dismisses the read-aloud panel. `dockMenuValue` is
     // persisted, so clearing it keeps the panel closed on the next document
     // rather than re-opening. Playback resumes independently via the
@@ -82,7 +94,7 @@ export function PageNav() {
         onClick={() => go(next?.href)}
         className="order-4"
       >
-        <ChevronRight />
+        <NextIcon />
       </DockIconButton>
 
       {/* Reserve the widest page number this book can reach. `tabular-nums`
@@ -90,8 +102,10 @@ export function PageNav() {
           it the counter gains a digit at page 10 (and again at 100) and both
           arrows visibly jump outwards mid-book. Inline rather than a utility
           class: each book ships a stylesheet generated when it was packaged, so
-          a newly introduced Tailwind class is absent from books already built. */}
-      <div className="order-3 min-w-12 flex text-base tabular-nums px-2 text-foreground/80 select-none">
+          a newly introduced Tailwind class is absent from books already built.
+          `dir="ltr"` keeps "page / total" in that order in a right-to-left
+          book, where the flex row would otherwise show it as "total / page". */}
+      <div dir="ltr" className="order-3 min-w-12 flex text-base tabular-nums px-2 text-foreground/80 select-none">
         <span
           className="font-medium text-foreground text-right"
           style={{ minWidth: `${String(totalPages || 1).length}ch` }}
@@ -109,7 +123,7 @@ export function PageNav() {
         onClick={() => go(prev?.href)}
         className="order-2"
       >
-        <ChevronLeft />
+        <PrevIcon />
       </DockIconButton>
     </div>
   );

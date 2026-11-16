@@ -13,6 +13,7 @@ const cancelRunMock = vi.fn()
 const toastInfoMock = vi.fn()
 const matchRouteMock = vi.fn(() => true)
 const searchMock = { tab: "reviewer-checklist" }
+let workingSource = "pdf"
 const ttsMock = vi.fn((): { data?: import("@/api/client").TTSResponse } => ({}))
 vi.mock("@/hooks/use-tts", () => ({ useTTSData: () => ttsMock() }))
 const outputsMock = vi.fn((): { data?: { summaries: { stages: Record<string, { applicable: number; current: boolean; updates: number; warnings: number; missing: number }> } } } => ({}))
@@ -74,12 +75,14 @@ vi.mock("@tanstack/react-router", () => ({
     title,
     to,
     search,
+    params,
     ...props
   }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
     to?: string
     search?: { tab?: string }
+    params?: { label: string; step: string; pageId?: string }
   }) => (
-    <a title={title} data-to={to} data-tab={search?.tab} {...props}>{children}</a>
+    <a title={title} data-to={to} data-tab={search?.tab} data-page-id={params?.pageId} {...props}>{children}</a>
   ),
   useMatchRoute: () => matchRouteMock,
   useNavigate: () => vi.fn(),
@@ -128,7 +131,21 @@ vi.mock("@/hooks/use-book-tasks", () => ({
 }))
 
 vi.mock("@/hooks/use-books", () => ({
+  useBook: () => ({ data: { workingSource } }),
   usePackageAdtStatus: () => ({ data: { hasAdt: false } }),
+}))
+
+const publicationStatusMock = vi.fn<() => unknown>(() => undefined)
+const feedbackBadgeMock = vi.fn(() => ({ published: false, unresolvedCount: 0, loaded: false, unavailable: false }))
+vi.mock("@/hooks/use-book-publication", async () => {
+  const actual = await vi.importActual<typeof import("@/hooks/use-book-publication")>("@/hooks/use-book-publication")
+  return { ...actual, useBookPublication: () => ({ data: publicationStatusMock() }) }
+})
+vi.mock("@/components/publication-feedback/use-new-comment-alerts", () => ({
+  useNewCommentAlerts: () => {},
+}))
+vi.mock("@/components/publication-feedback/use-feedback-badge", () => ({
+  useFeedbackBadge: () => feedbackBadgeMock(),
 }))
 
 vi.mock("@/hooks/use-sign-language-videos", () => ({
@@ -161,11 +178,57 @@ afterEach(() => {
   cleanup()
   vi.clearAllMocks()
   stageStateMock.mockImplementation(defaultStageState)
+  workingSource = "pdf"
   outputsMock.mockReturnValue({})
   ttsMock.mockReturnValue({})
+  publicationStatusMock.mockReturnValue(undefined)
+  feedbackBadgeMock.mockReturnValue({ published: false, unresolvedCount: 0, loaded: false, unavailable: false })
+})
+
+/** Sharing is not a pipeline stage, so its disc only fills once a link is live, and the count
+ *  beside it is the reviewer comments still waiting — never a completion state of its own. */
+describe("StageSidebar — sharing row", () => {
+  it("fills the disc once the book has a live link and counts the open comments", async () => {
+    publicationStatusMock.mockReturnValue({
+      record: { token: "t", revoked_at: null, expires_at: null },
+      publication: { current_version: 1, revoked_at: null, expires_at: null },
+    })
+    feedbackBadgeMock.mockReturnValue({ published: true, unresolvedCount: 5, loaded: true, unavailable: false })
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(<StageSidebar bookLabel="my-book" activeStep="book" />)
+
+    const badge = screen.getByTitle("5 comments waiting for you")
+    expect(badge.textContent).toBe("5")
+    expect(badge.getAttribute("role")).toBe("img")
+    const row = screen.getByTitle("Sharing")
+    expect(row.querySelector(".bg-indigo-600")).not.toBeNull()
+  })
+
+  it("leaves the disc empty and unbadged for a book that was never shared", async () => {
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(<StageSidebar bookLabel="my-book" activeStep="book" />)
+
+    expect(screen.queryByTitle(/comments? waiting for you/)).toBeNull()
+    const row = screen.getByTitle("Sharing")
+    expect(row.querySelector(".bg-indigo-600")).toBeNull()
+  })
 })
 
 describe("StageSidebar", () => {
+  it("#863: links to Quizzes without inheriting the selected page from another stage", async () => {
+    matchRouteMock.mockReturnValue(false)
+    stageStateMock.mockReturnValue("idle")
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(<StageSidebar bookLabel="demo-book" activeStep="storyboard" selectedPageId="pg001" />)
+
+    const quizzesLink = screen.getByTitle("Quizzes")
+    expect(quizzesLink.getAttribute("data-to")).toBe("/books/$label/$step")
+    expect(quizzesLink.getAttribute("data-page-id")).toBeNull()
+    const sectioningLink = screen.getByTitle("Sectioning")
+    expect(sectioningLink.getAttribute("data-to")).toBe("/books/$label/$step/$pageId")
+    expect(sectioningLink.getAttribute("data-page-id")).toBe("pg001")
+  })
+
   it.each(["idle", "queued", "running", "done", "error"] as const)("keeps missing-only Speech attention consistent with the %s attempt state", async (state) => {
     outputsMock.mockReturnValue({ data: { summaries: { stages: { speech: { applicable: 3, current: false, updates: 0, warnings: 0, missing: 3 } } } } })
     stageStateMock.mockImplementation((stage) => stage === "speech" ? state : "idle")
@@ -329,6 +392,43 @@ describe("StageSidebar", () => {
 
     expect(cancelRunMock).toHaveBeenCalledTimes(1)
     expect(toastInfoMock).toHaveBeenCalledWith("Cancelling Storyboard step")
+  })
+
+  it("keeps PDF preparation stages navigable and explains why they are not needed", async () => {
+    workingSource = "imported-adt"
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(
+      <StageSidebar
+        bookLabel="imported-book"
+        activeStep="book"
+      />,
+    )
+
+    const extractLink = screen.getByLabelText("Extract: not needed for imported ADTs")
+    const sectioningLink = screen.getByLabelText("Sectioning: not needed for imported ADTs")
+
+    expect(extractLink.getAttribute("aria-disabled")).toBeNull()
+    expect(sectioningLink.getAttribute("aria-disabled")).toBeNull()
+    expect(extractLink.getAttribute("tabindex")).not.toBe("-1")
+    expect(sectioningLink.getAttribute("tabindex")).not.toBe("-1")
+    expect(extractLink.getAttribute("title")).toBe("Imported HTML already provides this stage's output")
+    expect(sectioningLink.getAttribute("title")).toBe("Imported HTML already provides this stage's output")
+    expect(screen.getAllByText("Not needed")).toHaveLength(2)
+    for (const title of [
+      "Storyboard",
+      "Quizzes",
+      "Image Captions",
+      "Glossary",
+      "Table of Contents",
+      "Easy Read",
+      "Language",
+      "Speech",
+      "Validation",
+      "Preview",
+      "Export",
+    ]) {
+      expect(screen.getByTitle(title).getAttribute("aria-disabled")).toBeNull()
+    }
   })
 })
 

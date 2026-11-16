@@ -12,6 +12,8 @@ export interface ImageData {
   imageId: string
   width: number
   height: number
+  /** Content hash of the stored bytes; identical values mean identical pixels. */
+  hash?: string
   /** How this image was produced: vector SVG render, page crop, or direct raster extraction */
   renderMethod?: RenderMethodValue
   /** Placement on the page in PDF points (top-left origin), when known. */
@@ -104,6 +106,8 @@ export interface Storage {
   clearTranslatedImages(filter?: { sourceImageIds?: string[]; languageCodes?: string[] }): void
 
   putNodeData(node: string, itemId: string, data: unknown): number
+  /** Newest node_data write across every node but the excluded ones. */
+  latestNodeWriteExcluding(...excluded: string[]): number | null
   /** Current output, or null when absent or explicitly invalidated. */
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null
   /**

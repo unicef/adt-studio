@@ -6,10 +6,10 @@ import { usePageTitle } from "@/hooks/use-page-title"
 
 function ImportBookPage() {
   const { t } = useLingui()
-  usePageTitle(t`Import Project`)
+  usePageTitle(t`Import`)
   return (
     <div className="flex flex-1 min-h-0 flex-col h-full bg-background">
-      <FlowTopBar title={<Trans>Import Project</Trans>} />
+      <FlowTopBar title={<Trans>Import</Trans>} />
       <div className="flex flex-1 min-h-0 flex-col overflow-auto">
         <ImportProject />
       </div>

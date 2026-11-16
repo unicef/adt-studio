@@ -4,7 +4,7 @@ import type { AppConfig, ImageCaptioningOutput, TextCatalogEntry, TextCatalogOut
 import { buildTextCatalogSnapshot } from "./text-catalog.js"
 import { buildImageInventory } from "./catalog-reconciliation.js"
 import { buildEasyReadSourceBlocks, flattenEasyReadEntries } from "./easy-read.js"
-import { retainedEasyRead } from "./retained-catalog.js"
+import { readTranslationEntries, retainedEasyRead } from "./retained-catalog.js"
 
 /** Legacy duplicate IDs use the first value in reading order everywhere. */
 export function firstCatalogEntries<T extends { id: string }>(entries: readonly T[]): Map<string, T> {
@@ -55,7 +55,14 @@ export function buildOutputSources(storage: Storage, config: AppConfig) {
 /** Project target text onto the identical source order, retaining missing slots
  * and dropping retired entries without accidentally substituting a language. */
 export function translatedDisplayEntries(storage: Storage, language: string, sources: readonly TextCatalogEntry[]): TextCatalogEntry[] {
-  const row = storage.getLatestNodeData("text-catalog-translation", language) ?? storage.getLatestNodeData("text-catalog-translation", language.replace("-", "_"))
-  const byId = firstCatalogEntries((row?.data as TextCatalogOutput | undefined)?.entries ?? [])
+  const byId = firstCatalogEntries(currentTranslationEntries(storage, language))
   return sources.map((source) => ({ ...source, text: byId.get(source.id)?.text ?? "" }))
+}
+
+/** Read models describe published content. History is recovered by generation,
+ * not presented as current before it has been republished. Canonical row
+ * presence remains authoritative even when its content is empty or invalid. */
+export function currentTranslationEntries(storage: Storage, language: string): TextCatalogEntry[] {
+  const row = storage.getLatestNodeData("text-catalog-translation", language) ?? storage.getLatestNodeData("text-catalog-translation", language.replace("-", "_"))
+  return readTranslationEntries(row?.data) ?? []
 }

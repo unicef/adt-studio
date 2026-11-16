@@ -1,3 +1,6 @@
+import type { Storage } from "@adt/storage"
+import { getTextDirection } from "@adt/types"
+
 /**
  * Normalize locale code to dash format.
  * "en_US" -> "en-US", "pt-br" -> "pt-BR", "en" -> "en"
@@ -24,6 +27,29 @@ export function normalizeLocale(code: string): string {
 export function getBaseLanguage(code: string): string {
   const normalized = normalizeLocale(code)
   return normalized.split("-")[0].toLowerCase()
+}
+
+/**
+ * The book's source language: the configured editing language, else the one
+ * detected at extraction, else English.
+ */
+export function resolveBookLanguage(
+  storage: Pick<Storage, "getLatestNodeData">,
+  config: { editing_language?: string },
+): string {
+  const metadata = storage.getLatestNodeData("metadata", "book")?.data as
+    | { language_code?: string | null }
+    | undefined
+  return normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+}
+
+/**
+ * ` dir="rtl"` for a right-to-left language, empty otherwise. Appended to the
+ * element that carries the matching `lang`, so left-to-right documents are
+ * emitted exactly as before.
+ */
+export function dirAttr(language: string): string {
+  return getTextDirection(language) === "rtl" ? ' dir="rtl"' : ""
 }
 
 export interface LanguageContext {

@@ -6,6 +6,8 @@ import { toBookVM } from "../../data"
 import { ScreenFallback } from "../../ui/ScreenFallback"
 import { useAppBooks } from "../../use-app-books"
 import { useAppShell } from "../../AppShellContext"
+import { usePublicationsByBook } from "@/hooks/use-publications"
+import { withPublication } from "./publication-decoration"
 import { BookDetailDialog } from "./BookDetailDialog"
 import { LibraryEmptyState } from "./LibraryEmptyState"
 import { LibraryView } from "./LibraryView"
@@ -14,11 +16,15 @@ export function LibraryScreen() {
   const navigate = useNavigate()
   const { books, locale, isLoading, error } = useAppBooks()
   const { openAdd, requestDelete } = useAppShell()
+  const { byLabel: publications, countsKnown } = usePublicationsByBook()
   const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
 
   const [detailLabel, setDetailLabel] = useState<string | null>(null)
 
-  const vms = useMemo(() => books.map((b) => toBookVM(b, locale)), [books, locale])
+  const vms = useMemo(
+    () => books.map((b) => withPublication(toBookVM(b, locale), publications, countsKnown)),
+    [books, locale, publications, countsKnown],
+  )
   const detail = detailLabel ? vms.find((b) => b.label === detailLabel) ?? null : null
 
   if (isLoading || error) return <ScreenFallback error={error} />

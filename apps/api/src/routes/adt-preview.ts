@@ -70,6 +70,7 @@ import {
   getReadyCoreTtsEntries,
   resolveNarratorLabel,
 } from "@adt/pipeline"
+import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
 
 // ---------------------------------------------------------------------------
 // MIME type helper
@@ -342,19 +343,18 @@ function buildTocManifest(storage: Storage): Array<{ section_id: string; href: s
   const tocRow = storage.getLatestNodeData("toc-generation", "book")
   if (tocRow) {
     const tocData = tocRow.data as TocGenerationOutput
-    if (tocData.entries.length > 0) {
-      // Build href map from pages manifest for accurate hrefs
-      const readingOrder = resolveReadingOrder(storage)
-      const hrefMap = new Map(readingOrder.items.map((i) => [i.id, readingOrderHref(i)]))
-      return orderTocEntries(tocData.entries, readingOrder.positionById)
-        .map((e) => ({
-          section_id: e.sectionId,
-          href: hrefMap.get(e.sectionId) ?? e.href,
-          title: e.title,
-          chapter_id: e.chapterId,
-          level: e.level,
-        }))
-    }
+    // Build href map from pages manifest for accurate hrefs
+    const readingOrder = resolveReadingOrder(storage)
+    const hrefMap = new Map(readingOrder.items.map((i) => [i.id, readingOrderHref(i)]))
+    return orderTocEntries(tocData.entries, readingOrder.positionById)
+      .map((e) => ({
+        section_id: e.sectionId,
+        // Keep authored headings, but never navigate to an unavailable owner.
+        href: hrefMap.get(e.sectionId) ?? "",
+        title: e.title,
+        chapter_id: e.chapterId,
+        level: e.level,
+      }))
   }
 
   // Fallback: build from headings
@@ -562,6 +562,15 @@ export function createAdtPreviewRoutes(
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
     return c.body(JSON.stringify(previewConfig))
+  })
+
+  // Custom styles from an imported ADT are loaded into the Storyboard iframe
+  // so the normal editor preserves the external design while keeping custom
+  // scripts out of the editing surface.
+  app.get("/books/:label/adt-preview/assets/imported-presentation.json", (c) => {
+    const { safeLabel } = resolveBook(c.req.param("label"))
+    setNoStoreHeaders(c)
+    return c.json(getImportedAdtPresentationAssets(safeLabel, booksDir))
   })
 
   // /assets/* — Static files from webAssetsDir

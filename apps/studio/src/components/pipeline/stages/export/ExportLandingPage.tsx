@@ -8,7 +8,7 @@ import {
   SettingsCard,
   SettingsField,
 } from "@/components/pipeline/components/SettingsCard"
-import { useBookRun } from "@/hooks/use-book-run"
+import { usePages } from "@/hooks/use-pages"
 import { useAllPagesPruned } from "@/hooks/use-all-pages-pruned"
 import { usePartInfo } from "@/hooks/use-parts"
 import { useExportWatcher } from "@/hooks/use-export-watcher"
@@ -26,19 +26,19 @@ import { ExportPreview } from "./components/ExportPreview"
 import { useCapturedPreviewSettings } from "@/hooks/use-preview-settings-listener"
 
 export function ExportLandingPage({ bookLabel }: { bookLabel: string }) {
-  const { stageState, isStatusLoading } = useBookRun()
-  const storyboardDone = stageState("storyboard") === "done"
+  const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
+  const hasRendering = (pages ?? []).some((page) => page.hasRendering)
   const { allPruned, isLoading: prunedLoading } = useAllPagesPruned(bookLabel)
   // A book imported as a page-range part should be exported as a Project
   // Archive (the artifact the coordinator merges back) — wait for this to
   // resolve before mounting the body so the default format is correct.
   const { data: partInfo, isLoading: partInfoLoading } = usePartInfo(bookLabel)
 
-  if (isStatusLoading || prunedLoading || partInfoLoading) {
+  if (pagesLoading || prunedLoading || partInfoLoading) {
     return <LoadingState stageSlug="export" label={<Trans>Loading export...</Trans>} />
   }
 
-  if (!storyboardDone) {
+  if (!hasRendering) {
     return <StageBlockedState bookLabel={bookLabel} reason="storyboard-missing" stageLabel={<Trans>Export</Trans>} />
   }
 
@@ -79,6 +79,7 @@ function ExportLandingBody({
   }
 
   const handleConfirmExport = () => {
+    if (!projectFeatures.isReady) return
     const features =
       selectedFormat === "project"
         ? undefined
@@ -114,7 +115,7 @@ function ExportLandingBody({
       isRunning={isThisFormatPreparing}
       isCompleted={false}
       hasError={!!formatError}
-      canRun={true}
+      canRun={projectFeatures.isReady}
       runLabel={formatLabels[selectedFormat].runLabel}
       rerunLabel={<Trans>Retry Export</Trans>}
       previewLabel={t`Export Preview`}
@@ -173,7 +174,7 @@ function ExportLandingBody({
         languageOrder={languageOrder}
         onLanguageOrderChange={setLanguageOrder}
         onConfirmExport={handleConfirmExport}
-        isPreparing={isPreparing}
+        isPreparing={isPreparing || !projectFeatures.isReady}
         preparingFormat={preparingFormat}
         error={error}
       />

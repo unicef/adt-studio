@@ -1,23 +1,81 @@
 import type { ReactNode } from "react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
-import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus } from "lucide-react"
+import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus, Globe, MessageSquare, DownloadCloud } from "lucide-react"
 import { CORE_STAGE_ORDER } from "@adt/types"
-import { STAGES } from "@/components/pipeline/stage-config"
+import { STAGES, isImportedAdtStageAvailable } from "@/components/pipeline/stage-config"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
 import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
 
 export interface HomeVariantProps {
-  books: BookVM[]
+  books: Array<BookVM & SharedDecoration>
   pinnedLabels?: Set<string>
   onOpen: (label: string) => void
   onContinue?: (label: string) => void
   onAddBook: () => void
   onOpenLibrary: () => void
+  /** Opens the book where its readers' comments are read. */
+  onReview?: (label: string) => void
 }
 
 export type ViewMode = "grid" | "list"
+
+const BADGE = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-200"
+
+/** What a card wears while its book has a live share link. The detail dialog carries the link
+ *  itself; the shelf only has to say that one exists. */
+export function SharedBadge() {
+  return (
+    <span className={cn(BADGE, "bg-emerald-600 text-white")}>
+      <Globe className="size-3" aria-hidden />
+      <Trans>Shared</Trans>
+    </span>
+  )
+}
+
+/**
+ * Comments readers left that nobody has resolved yet — the open count, never the total, because
+ * this is a to-do, not a statistic. Shown whether or not the link is still live: stopping the
+ * link does not stop the comments being there to read.
+ */
+export function CommentsBadge({ count }: { count: number }) {
+  return (
+    <span className={cn(BADGE, "bg-brand-600 tabular-nums text-primary-foreground")}>
+      <MessageSquare className="size-3" aria-hidden />
+      <span aria-hidden>{count > 99 ? "99+" : count}</span>
+      <span className="sr-only">
+        <Plural value={count} one="# open comment" other="# open comments" />
+      </span>
+    </span>
+  )
+}
+
+/** Where the book came from, not a state to act on, so it sits quietly in the byline rather than
+ *  in a corner badge. Only re-imported ADT exports wear it: their pipeline runs from imported HTML. */
+export function ImportedMark({ className }: { className?: string }) {
+  return (
+    <span className={cn("inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground", className)}>
+      <DownloadCloud className="size-3" aria-hidden />
+      <Trans>Imported</Trans>
+    </span>
+  )
+}
+
+/** The shelf never fetches this itself — the screens decorate their view-models with it, so a
+ *  home screen that has no Cloudflare account connected renders exactly as before. */
+export interface SharedDecoration {
+  publication?: { url?: string; state?: "active" | "expired" | "revoked" } | null
+  pendingComments?: number
+}
+
+export function openComments(vm: SharedDecoration): number {
+  return vm.pendingComments ?? 0
+}
+
+export function isShared(vm: SharedDecoration): boolean {
+  return vm.publication?.state === "active"
+}
 
 export function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
   const { t } = useLingui()
@@ -64,8 +122,10 @@ export interface Progress {
 
 export function progressFor(vm: BookVM): Progress {
   const done = new Set(vm.discs.map((d) => d.slug))
-  const baseSteps = BASE.map((stage) => ({ stage, done: done.has(stage.slug) }))
-  const baseFrontier = BASE.find((s) => !done.has(s.slug)) ?? null
+  // A re-imported ADT starts from its HTML: the PDF stages are not part of its base, not unfinished.
+  const base = vm.imported ? BASE.filter((stage) => isImportedAdtStageAvailable(stage.slug)) : BASE
+  const baseSteps = base.map((stage) => ({ stage, done: done.has(stage.slug) }))
+  const baseFrontier = base.find((s) => !done.has(s.slug)) ?? null
   const baseComplete = !baseFrontier
   const optional = OPTIONAL.map((stage) => ({ stage, done: done.has(stage.slug) }))
   const optionalDone = optional.filter((o) => o.done)
@@ -77,7 +137,7 @@ export function isActive(vm: BookVM): boolean {
   return ["in-progress", "rebuild"].includes(progressFor(vm).status)
 }
 
-export function pickResume(sortedByRecency: BookVM[]): BookVM | undefined {
+export function pickResume<T extends BookVM>(sortedByRecency: T[]): T | undefined {
   return (
     sortedByRecency.find((b) => isActive(b)) ??
     sortedByRecency.find((b) => progressFor(b).status !== "new") ??
@@ -254,8 +314,9 @@ export function GridCard({
       </div>
       <div className="mt-2.5">
         <div className="truncate text-[13px] font-semibold leading-tight">{vm.displayTitle}</div>
-        <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
-          {vm.authors} · {vm.pagesText}
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+          {vm.imported && <ImportedMark />}
+          <span className="truncate">{vm.authors} · {vm.pagesText}</span>
         </div>
         <div className="mt-2 flex items-center justify-between gap-2">
           <FrontierChip vm={vm} />
@@ -353,6 +414,7 @@ export function ShelfCard({
   elevated = false,
   progress = false,
   badge,
+  comments = 0,
 }: {
   vm: BookVM
   onOpen: (label: string) => void
@@ -360,7 +422,11 @@ export function ShelfCard({
   pinned?: boolean
   elevated?: boolean
   progress?: boolean
+  /** Top-left: what state the book is in — needs fixing, or shared. */
   badge?: ReactNode
+  /** Top-right: open comments waiting on it. Its own corner, so a shared book with feedback
+   *  says both instead of one hiding the other. */
+  comments?: number
 }) {
   return (
     <button
@@ -376,6 +442,11 @@ export function ShelfCard({
       >
         <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} fit="cover" />
         {badge && <div className="absolute left-2 top-2 z-10">{badge}</div>}
+        {comments > 0 && (
+          <div className="absolute right-2 top-2 z-10">
+            <CommentsBadge count={comments} />
+          </div>
+        )}
         {elevated && (
           <span className="absolute inset-x-2 bottom-2 inline-flex items-center justify-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10.5px] font-semibold text-primary-foreground backdrop-blur-sm">
             <ContinueLabel vm={vm} />
@@ -386,7 +457,12 @@ export function ShelfCard({
         {pinned && <Pin className="mt-[3px] size-3 shrink-0 fill-current text-muted-foreground" />}
         <div className="min-w-0">
           <div className="truncate text-[13px] font-semibold leading-tight">{vm.displayTitle}</div>
-          {showAuthor && <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>}
+          {(showAuthor || vm.imported) && (
+            <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+              {vm.imported && <ImportedMark />}
+              {showAuthor && <span className="truncate">{vm.authors}</span>}
+            </div>
+          )}
           {(elevated || progress) && <StageBar vm={vm} className="mt-2.5" />}
         </div>
       </div>
@@ -533,7 +609,10 @@ export function LibraryTable({ books, onOpen }: { books: BookVM[]; onOpen: (labe
                   </div>
                   <div className="min-w-0">
                     <div className="truncate font-semibold leading-tight">{vm.displayTitle}</div>
-                    <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>
+                    <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                      {vm.imported && <ImportedMark />}
+                      <span className="truncate">{vm.authors}</span>
+                    </div>
                   </div>
                 </button>
               </td>

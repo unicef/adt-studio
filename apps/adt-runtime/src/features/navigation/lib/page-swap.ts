@@ -432,6 +432,18 @@ export async function swapToPage(
 }
 
 /**
+ * An embedded page (`?embed=1`, the Studio storyboard preview) navigates by
+ * document load, which would drop the flag and bring back the full reader
+ * chrome inside the host's frame. Carry it over to the target (#1092).
+ */
+function keepEmbedMode(href: string): string {
+  if (new URLSearchParams(window.location.search).get("embed") !== "1") return href
+  const target = new URL(href, window.location.href)
+  target.searchParams.set("embed", "1")
+  return target.href
+}
+
+/**
  * Navigate to a book page. Swaps in place when the bundle is served over HTTP,
  * otherwise performs the original full document load.
  *
@@ -440,7 +452,7 @@ export async function swapToPage(
  */
 export function navigateToPage(href: string): void {
   if (!canSoftNavigate()) {
-    window.location.href = href
+    window.location.href = keepEmbedMode(href)
     return
   }
 

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLingui } from "@lingui/react/macro"
-import { GOOGLE_IMAGE_MODELS } from "@adt/types"
+import { GOOGLE_IMAGE_MODELS, TTS_MODELS_BY_PROVIDER } from "@adt/types"
 
 export interface ModelGroup {
   provider: string
@@ -304,50 +304,28 @@ export const IMAGE_MODEL_GROUPS: ModelGroup[] = [
   },
 ]
 
+// TTS models per provider come from @adt/types so the runtime's "does this
+// model belong to this provider" check (resolveSpeechModel) and these pickers
+// can never disagree.
+
 /** TTS models for speech generation — OpenAI provider */
 export const OPENAI_TTS_MODELS: ModelGroup[] = [
-  {
-    provider: "openai",
-    models: [
-      "gpt-4o-mini-tts",
-      "tts-1",
-      "tts-1-hd",
-    ],
-  },
+  { provider: "openai", models: [...TTS_MODELS_BY_PROVIDER.openai] },
 ]
 
 /** TTS models for speech generation — Azure provider */
 export const AZURE_TTS_MODELS: ModelGroup[] = [
-  {
-    provider: "azure",
-    models: [
-      "azure-tts",
-    ],
-  },
+  { provider: "azure", models: [...TTS_MODELS_BY_PROVIDER.azure] },
 ]
 
 /** TTS models for speech generation — Gemini provider */
 export const GEMINI_TTS_MODELS: ModelGroup[] = [
-  {
-    provider: "gemini",
-    models: [
-      "gemini-3.1-flash-tts-preview",
-      "gemini-2.5-flash-preview-tts",
-      "gemini-2.5-pro-preview-tts",
-    ],
-  },
+  { provider: "gemini", models: [...TTS_MODELS_BY_PROVIDER.gemini] },
 ]
 
 /** TTS models for speech generation — ElevenLabs provider */
 export const ELEVENLABS_TTS_MODELS: ModelGroup[] = [
-  {
-    provider: "elevenlabs",
-    models: [
-      "eleven_multilingual_v2",
-      "eleven_turbo_v2_5",
-      "eleven_flash_v2_5",
-    ],
-  },
+  { provider: "elevenlabs", models: [...TTS_MODELS_BY_PROVIDER.elevenlabs] },
 ]
 
 /** All TTS models across providers — mirrors the speech screen's provider options */

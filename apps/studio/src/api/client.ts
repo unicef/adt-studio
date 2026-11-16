@@ -1,10 +1,20 @@
-import type { WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
+import type { TranslationSaveResponse, WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
 export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/types"
+import { i18n } from "@lingui/core"
+import { msg } from "@lingui/core/macro"
 import type { OutputSkipRequest } from "@adt/types"
 import type { OutputStatus, OutputSummary, OutputStageSummaryResponse, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement, StageName } from "@adt/types"
 import { isElectron } from "@/lib/utils"
+import { readEventStream } from "@/api/sse"
+import {
+  CLOUDFLARE_ACCOUNT_ID_HEADER,
+  CLOUDFLARE_TOKEN_HEADER,
+  PUBLISH_AUTHOR_NAME_HEADER,
+} from "@adt/types"
 import type {
   AccessibilityAssessmentOutput,
+  AdtBundleImportPreview,
+  AdtImportUnreadableDetails,
   BookDetail,
   BookFont,
   BookFontRole,
@@ -28,6 +38,38 @@ import type {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
+  CloudflareAuthMethod,
+  CloudflareConnectionDeleteResponse,
+  CloudflareConnectionResources,
+  CloudflareConnectionStatus,
+  CloudflareOAuthAccount,
+  CloudflareOAuthAccountResponse,
+  CloudflareOAuthErrorCode,
+  CloudflareOAuthStartResponse,
+  CloudflareOAuthStatusResponse,
+  CloudflareTokenScope,
+  CloudflareVerifyResponse,
+  ProvisionErrorCode,
+  ProvisionProgressEvent,
+  ProvisionStepId,
+  ProvisionStepStatus,
+  BookPublicationStatus,
+  BookPublicationRecord,
+  BookPublicationVersionRecord,
+  PublicationPageEntry,
+  PublicationResponse,
+  PublicationReaderList,
+  PublicationDeleteResult,
+  PublicationsOverview,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+  PublishProgressEvent,
+  PublishRunSnapshot,
+  PublishFeatureSelection,
+  CommentAnchor,
+  PublishComment,
+  PublishStepId,
+  PublishStepStatus,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -38,6 +80,20 @@ import {
 } from "./provider-credentials"
 
 export type { BookSummary, BookDetail }
+export type {
+  BookPublicationRecord,
+  BookPublicationStatus,
+  BookPublicationVersionRecord,
+  CommentAnchor,
+  PublicationPageEntry,
+  PublicationResponse,
+  PublishComment,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+  PublishProgressEvent,
+  PublishStepId,
+  PublishStepStatus,
+}
 
 const CLI_ACTION_HEADERS = { "X-ADT-CLI-Action": "1" } as const
 
@@ -94,6 +150,10 @@ export function getSourcePdfUrl(label: string): string {
   return `${BASE_URL}/books/${label}/source-pdf`
 }
 
+export function getPageImageUrl(label: string, pageId: string): string {
+  return `${BASE_URL}/books/${encodeURIComponent(label)}/pages/${encodeURIComponent(pageId)}/image?raw=1`
+}
+
 export function getBookCoverUrl(label: string, cacheKey?: string): string {
   const base = `${BASE_URL}/books/${label}/cover`
   if (!cacheKey) return base
@@ -116,15 +176,78 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => "")
     let message: string | undefined
+    let code: string | null = null
+    let details: unknown
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      const parsed = JSON.parse(text) as { error?: string; code?: string; details?: unknown }
+      message = parsed.error
+      code = typeof parsed.code === "string" ? parsed.code : null
+      details = parsed.details
     } catch {
-      message = text || undefined
+      // A proxy error page (nginx 413/502/504) is HTML, not a message to show.
+      message = text && !/^\s*</.test(text) ? text : undefined
     }
-    throw new Error(message ?? `Request failed: ${res.status}`)
+    throw new ApiError(message ?? i18n._(msg`Request failed: ${res.status}`), res.status, code, details)
   }
 
   return res.json()
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string | null = null,
+    /** Extra data a route sends beside the message, such as what an import
+     * preview could still read from an archive it rejected. */
+    readonly details?: unknown,
+  ) {
+    super(message)
+    this.name = "ApiError"
+  }
+}
+
+export function apiErrorCode(error: unknown): string | null {
+  return error instanceof ApiError ? error.code : null
+}
+
+export function apiErrorStatus(error: unknown): number | null {
+  return error instanceof ApiError ? error.status : null
+}
+
+async function postEventStream<TEvent>(path: string, body: Record<string, unknown>, options: {
+  headers?: Record<string, string>
+  onEvent: (event: TEvent) => void
+  signal?: AbortSignal
+}): Promise<void> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { ...options.headers, "Content-Type": "application/json", Accept: "text/event-stream" },
+    body: JSON.stringify(body),
+    signal: options.signal,
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    let message: string | undefined
+    let code: string | null = null
+    try {
+      const parsed = JSON.parse(text) as { error?: string; code?: string }
+      message = parsed.error
+      code = typeof parsed.code === "string" ? parsed.code : null
+    } catch { message = text || undefined }
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- HTTP response fallback.
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
+  }
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- HTTP response fallback.
+  if (!res.body) throw new ApiError(`Request failed: ${res.status}`, res.status)
+  await readEventStream(res.body, ({ event, data }) => {
+    if (!data) return
+    try {
+      const payload = JSON.parse(data) as Record<string, unknown>
+      const type = typeof payload.type === "string" ? payload.type : event
+      options.onEvent({ ...payload, type } as TEvent)
+    } catch { /* Ignore malformed progress events. */ }
+  })
 }
 
 export interface ImportPreview {
@@ -176,12 +299,36 @@ export interface PartImportPreview {
   coverBase64: string | null
 }
 
-export type AnyImportPreview = ImportPreview | PartImportPreview
+export type { AdtBundleImportPreview, AdtImportUnreadableDetails }
+
+const UNREADABLE_DETAIL_KEYS = [
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- JSON field names, not UI text.
+  "title", "coverBase64", "pageCount", "imageCount", "tocEntryCount", "sourceLanguage", "outputLanguages",
+] as const
+
+/** What an import preview could still read from an ADT export it rejected,
+ * or null when the error carries none. */
+export function unreadableAdtDetails(error: unknown): AdtImportUnreadableDetails | null {
+  if (!(error instanceof ApiError) || error.code !== "adt-unreadable") return null
+  const details = error.details
+  if (!details || typeof details !== "object") return null
+  return UNREADABLE_DETAIL_KEYS.every((key) => key in details)
+    ? details as AdtImportUnreadableDetails
+    : null
+}
+
+export type AnyImportPreview = ImportPreview | PartImportPreview | AdtBundleImportPreview
 
 export function isPartImportPreview(
   preview: AnyImportPreview,
 ): preview is PartImportPreview {
   return (preview as PartImportPreview).isPart === true
+}
+
+export function isAdtBundleImportPreview(
+  preview: AnyImportPreview,
+): preview is AdtBundleImportPreview {
+  return (preview as AdtBundleImportPreview).isAdtBundle === true
 }
 
 export interface MergePreview {
@@ -249,6 +396,8 @@ export interface StageRunProviderCredentials {
 }
 
 export interface RunStagesOptions {
+  replaceManual?: boolean
+  protectedReplacements?: import("@adt/types").AuthoredReplacement[]
   outputScope?: OutputRunScope
   fromStage: string
   toStage: string
@@ -440,6 +589,7 @@ export interface PageSummaryItem {
 }
 
 export interface SectionRendering {
+  sectionId?: string
   sectionIndex: number
   sectionType: string
   reasoning: string
@@ -490,6 +640,7 @@ export interface PageDetail {
     }>
   } | null
   sectioningTree: {
+    source?: "ai" | "manual"
     reasoning: string
     sections: Array<{
       sectionId: string
@@ -570,6 +721,7 @@ export interface TocEntry {
 }
 
 export interface TocGenerationOutput {
+  source?: "ai" | "manual"
   entries: TocEntry[]
   pageCount: number
   generatedAt: string
@@ -591,6 +743,7 @@ export interface QuizOption {
 }
 
 export interface QuizItem {
+  source?: "ai" | "manual"
   /** Stable output-page id (`qz001`). Filled in by GET /quizzes; optional only
    *  because a book written before it existed has none stored. Round-trip it on
    *  every write — it keys the quiz's catalog entries, translations and audio. */
@@ -643,6 +796,8 @@ export interface TextCatalogResponse {
   generatedAt: string
   version: number
   translations: Record<string, { entries: TextCatalogEntry[]; version: number; sourceSignature: string }>
+  /** Existing current records that cannot be safely edited; never alias-fallback. */
+  unavailableTranslations?: string[]
   translationSourceSignatures?: Record<string, string>
   speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number; sourceSignature: string }>
 }
@@ -982,6 +1137,43 @@ export function getBookFontFileUrl(label: string, fontId: string, file: string):
 
 // --- Task types ---
 
+export type {
+  CloudflareAuthMethod, CloudflareConnectionDeleteResponse, CloudflareConnectionResources,
+  CloudflareConnectionStatus, CloudflareOAuthAccount, CloudflareOAuthAccountResponse,
+  CloudflareOAuthErrorCode, CloudflareOAuthStartResponse, CloudflareOAuthStatusResponse,
+  CloudflareTokenScope, CloudflareVerifyResponse, ProvisionErrorCode, ProvisionProgressEvent,
+  ProvisionStepId, ProvisionStepStatus,
+}
+
+export interface CloudflareCredentials { token: string; accountId: string }
+/** Live view of a provisioning run the browser may have stopped watching. */
+export interface ProvisionRunSnapshot {
+  status: "running" | "done" | "error"
+  step_states: ProvisionStepStatus[]
+  active_step: number | null
+  failure: {
+    code: ProvisionErrorCode | "unknown"
+    message: string
+    resume_from_step: number | null
+    missing_scopes: CloudflareTokenScope[]
+  } | null
+  started_at: string
+  finished_at: string | null
+}
+
+export interface ProvisionOptions {
+  onEvent: (event: ProvisionProgressEvent) => void
+  resumeFromStep?: number
+  signal?: AbortSignal
+}
+
+function buildCloudflareHeaders(credentials?: Partial<CloudflareCredentials>): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (credentials?.token) headers[CLOUDFLARE_TOKEN_HEADER] = credentials.token
+  if (credentials?.accountId) headers[CLOUDFLARE_ACCOUNT_ID_HEADER] = credentials.accountId
+  return headers
+}
+
 export interface TaskInfoResponse {
   taskId: string
   kind: string
@@ -996,6 +1188,47 @@ export interface TaskInfoResponse {
   progressMessage?: string
   progressPercent?: number
 }
+
+export interface PublicationPageManifest {
+  pages: PublicationPageEntry[]
+}
+
+export interface PublicationCommentQuery {
+  includeResolved?: boolean
+  pageSectionId?: string
+  version?: number
+}
+
+function authorNameHeader(authorName?: string | null): Record<string, string> {
+  const trimmed = authorName?.trim() ?? ""
+  return trimmed.length === 0 ? {} : { [PUBLISH_AUTHOR_NAME_HEADER]: trimmed }
+}
+
+function commentQueryString(query: PublicationCommentQuery = {}): string {
+  const params = new URLSearchParams()
+  if (query.includeResolved !== undefined) {
+    params.set("include_resolved", query.includeResolved ? "true" : "false")
+  }
+  if (query.pageSectionId !== undefined) params.set("page_section_id", query.pageSectionId)
+  if (query.version !== undefined) params.set("version", String(query.version))
+  const search = params.toString()
+  return search.length === 0 ? "" : `?${search}`
+}
+
+export interface PublishStreamOptions {
+  onEvent: (event: PublishProgressEvent) => void
+  signal?: AbortSignal
+}
+
+const streamPublishEvents = (
+  path: string,
+  body: Record<string, unknown>,
+  options: PublishStreamOptions,
+): Promise<void> =>
+  postEventStream<PublishProgressEvent>(path, body, {
+    onEvent: options.onEvent,
+    ...(options.signal ? { signal: options.signal } : {}),
+  })
 
 export const api = {
   getBooks: () => request<BookSummary[]>("/books"),
@@ -1189,6 +1422,19 @@ export const api = {
     })
   },
 
+  importAdtProject: (
+    zip: File,
+    activityDecisions: Array<{ sectionId: string; type: string | null }> = [],
+  ) => {
+    const formData = new FormData()
+    formData.append("zip", zip)
+    formData.append("activityDecisions", JSON.stringify(activityDecisions))
+    return request<BookSummary>("/books/import-adt", {
+      method: "POST",
+      body: formData,
+    })
+  },
+
   getPartInfo: (label: string) =>
     request<PartInfo | null>(`/books/${label}/part-info`),
 
@@ -1313,7 +1559,7 @@ export const api = {
   saveStoryboard: (
     label: string,
     pageId: string,
-    data: { sectioning?: unknown; rendering?: unknown; renderingInSync?: boolean }
+    data: { sectioning?: unknown; rendering?: unknown; renderingInSync?: boolean; baseVersion?: number }
   ) =>
     request<{ sectioningVersion: number | null; renderingVersion: number | null }>(
       `/books/${label}/pages/${pageId}/storyboard`,
@@ -1326,20 +1572,22 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  cloneSection: (label: string, pageId: string, sectionIndex: number) =>
+  cloneSection: (label: string, pageId: string, sectionIndex: number, baseVersion: number) =>
     request<{
       clonedSectionIndex: number
       sectioningVersion: number
       renderingVersion: number | null
     }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/clone`, {
       method: "POST",
+      body: JSON.stringify({ baseVersion }),
     }),
 
   splitSection: (
     label: string,
     pageId: string,
     sectionIndex: number,
-    at: { beforeNodeIndex: number } | { beforeNodeId: string }
+    at: { beforeNodeIndex: number } | { beforeNodeId: string },
+    baseVersion: number
   ) =>
     request<{
       splitSectionIndex: number
@@ -1347,7 +1595,7 @@ export const api = {
       renderingVersion: number | null
     }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/split`, {
       method: "POST",
-      body: JSON.stringify(at),
+      body: JSON.stringify({ ...at, baseVersion }),
     }),
 
   /** `renderingInSync` is for callers that re-render the affected sections
@@ -1357,7 +1605,8 @@ export const api = {
     pageId: string,
     sectionIndex: number,
     direction: "next" | "prev" = "next",
-    renderingInSync = false
+    renderingInSync: boolean,
+    baseVersion: number
   ) =>
     request<{
       mergedSectionIndex: number
@@ -1365,18 +1614,29 @@ export const api = {
       renderingVersion: number | null
     }>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge?direction=${direction}${renderingInSync ? "&renderingInSync=1" : ""}`,
-      { method: "POST" }
+      { method: "POST", body: JSON.stringify({ baseVersion }) }
     ),
 
   /** Moves a section across a page boundary and empties both renderings. The
    *  Storyboard is always marked stale until reRenderPages repairs both. */
-  mergeSectionCrossPage: (
+  mergeSectionCrossPage: async (
     label: string,
     pageId: string,
     sectionIndex: number,
-    direction: "next" | "prev"
-  ) =>
-    request<{
+    direction: "next" | "prev",
+    baseVersion: number,
+    targetBaseVersion?: number
+  ) => {
+    // The source guard is the displayed version. Load the adjacent page before
+    // this immediate structural action if it is not already visible/cached.
+    if (targetBaseVersion === undefined) {
+      const pages = await api.getPages(label)
+      const index = pages.findIndex((p) => p.pageId === pageId)
+      const target = pages[index + (direction === "next" ? 1 : -1)]
+      if (!target) throw new Error("Adjacent page no longer exists")
+      targetBaseVersion = (await api.getPage(label, target.pageId)).versions.sectioning ?? 0
+    }
+    return request<{
       sourcePageId: string
       targetPageId: string
       targetSectionIndex: number
@@ -1386,16 +1646,18 @@ export const api = {
       targetRenderingVersion: number | null
     }>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge-cross-page?direction=${direction}`,
-      { method: "POST" }
-    ),
+      { method: "POST", body: JSON.stringify({ baseVersion, targetBaseVersion }) }
+    )
+  },
 
-  deleteSection: (label: string, pageId: string, sectionIndex: number) =>
+  deleteSection: (label: string, pageId: string, sectionIndex: number, baseVersion: number) =>
     request<{
       sectioningVersion: number
       renderingVersion: number | null
       remainingSections: number
     }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}`, {
       method: "DELETE",
+      body: JSON.stringify({ baseVersion }),
     }),
 
   reRenderPage: async (label: string, pageId: string, apiKey: string, sectionIndex?: number, prompt?: string) =>
@@ -1426,7 +1688,8 @@ export const api = {
     sectionIndex: number,
     instruction: string,
     apiKey: string,
-    currentHtml?: string,
+    currentHtml: string | undefined,
+    baseVersion: number,
   ) =>
     request<{
       taskId?: string
@@ -1439,7 +1702,7 @@ export const api = {
       {
         method: "POST",
         headers: await buildApiHeaders(apiKey),
-        body: JSON.stringify({ instruction, currentHtml }),
+        body: JSON.stringify({ instruction, currentHtml, baseVersion }),
         signal: AbortSignal.timeout(30_000),
       }
     ),
@@ -1525,22 +1788,27 @@ export const api = {
       }>
     }>(`/books/${label}/translated-images`),
 
-  uploadNewImage: (label: string, pageId: string, imageBlob: Blob) => {
+  /** `addToPage` also adds the image to the page's image-filtering list in the
+   *  same request — nothing is left behind if that fails. */
+  uploadNewImage: (label: string, pageId: string, imageBlob: Blob, options?: { addToPage?: boolean }) => {
     const formData = new FormData()
     formData.append("image", imageBlob, "upload.png")
     formData.append("pageId", pageId)
-    return request<{ imageId: string; width: number; height: number }>(
+    if (options?.addToPage) formData.append("addToPage", "true")
+    return request<{ imageId: string; width: number; height: number; imageFilteringVersion?: number }>(
       `/books/${label}/images/upload`,
       { method: "POST", body: formData }
     )
   },
 
-  uploadCroppedImage: (label: string, pageId: string, sourceImageId: string, imageBlob: Blob) => {
+  /** `addToPage`: see uploadNewImage. */
+  uploadCroppedImage: (label: string, pageId: string, sourceImageId: string, imageBlob: Blob, options?: { addToPage?: boolean }) => {
     const formData = new FormData()
     formData.append("image", imageBlob, "crop.png")
     formData.append("pageId", pageId)
     formData.append("sourceImageId", sourceImageId)
-    return request<{ imageId: string; width: number; height: number }>(
+    if (options?.addToPage) formData.append("addToPage", "true")
+    return request<{ imageId: string; width: number; height: number; imageFilteringVersion?: number }>(
       `/books/${label}/images`,
       { method: "POST", body: formData }
     )
@@ -1676,10 +1944,10 @@ export const api = {
 
   /** Roll an entity back to an existing version (moves the current-version
    *  pointer; does not create a new version). */
-  restoreVersion: (label: string, node: string, itemId: string, version: number) =>
+  restoreVersion: (label: string, node: string, itemId: string, version: number, baseVersion: number) =>
     request<{ node: string; itemId: string; version: number }>(
       `/books/${label}/versions/${node}/${itemId}/restore`,
-      { method: "POST", body: JSON.stringify({ version }) }
+      { method: "POST", body: JSON.stringify({ version, baseVersion }) }
     ),
 
   getBookConfig: (label: string) =>
@@ -1689,6 +1957,12 @@ export const api = {
     request<BookConfigResponse>(`/books/${label}/config`, {
       method: "PUT",
       body: JSON.stringify({ config }),
+    }),
+
+  updateBookConfigWithReceipt: (label: string, config: Record<string, unknown>) =>
+    request<import("@adt/types").BookConfigSaveReceipt>(`/books/${label}/config`, {
+      method: "PUT",
+      body: JSON.stringify({ config, includeEffectiveConfig: true }),
     }),
 
   listPrompts: () => request<PromptListResponse>("/prompts"),
@@ -1773,6 +2047,8 @@ export const api = {
       pageIds: string[]
       afterPageId: string
       placement?: "replace" | "after"
+      baseVersion: number
+      replaceQuizIds?: string[]
     },
     providerCredentials?: StageRunProviderCredentials
   ) =>
@@ -1849,7 +2125,7 @@ export const api = {
     }),
 
   updateTranslation: (label: string, language: string, data: unknown) =>
-    request<{ version: number }>(`/books/${label}/text-catalog-translation/${language}`, {
+    request<TranslationSaveResponse>(`/books/${label}/text-catalog-translation/${language}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -1919,6 +2195,7 @@ export const api = {
       publicationAgeMs?: number
       runStatus: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
       pendingDecisions: PendingDecision[]
+      protectedWork?: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }>
     }>(`/books/${label}/step-status`),
 
   getTTS: (label: string) =>
@@ -2279,6 +2556,164 @@ export const api = {
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
   },
+
+  startCloudflareOAuth: () => request<CloudflareOAuthStartResponse>("/cloudflare/oauth/start", { method: "POST" }),
+
+  getCloudflareOAuthStatus: (state: string) => request<CloudflareOAuthStatusResponse>(`/cloudflare/oauth/status?state=${encodeURIComponent(state)}`),
+
+  pickCloudflareOAuthAccount: (state: string, accountId: string) => request<CloudflareOAuthAccountResponse>("/cloudflare/oauth/account", {
+    method: "POST", body: JSON.stringify({ state, account_id: accountId }),
+  }),
+
+  getCloudflareConnection: (credentials?: Partial<CloudflareCredentials>) => request<CloudflareConnectionStatus>("/cloudflare/connection", { headers: buildCloudflareHeaders(credentials) }),
+
+  disconnectCloudflare: (credentials: Partial<CloudflareCredentials>, options?: { deleteResources?: boolean }) => request<CloudflareConnectionDeleteResponse>(
+    `/cloudflare/connection${options?.deleteResources ? "?delete_resources=1" : ""}`, { method: "DELETE", headers: buildCloudflareHeaders(credentials) },
+  ),
+
+  getCloudflareProvisionRun: () => request<{ run: ProvisionRunSnapshot | null }>("/cloudflare/provision/run"),
+
+  provisionCloudflare: async (credentials: Partial<CloudflareCredentials>, options: ProvisionOptions): Promise<void> => {
+    await postEventStream<ProvisionProgressEvent>("/cloudflare/provision", options.resumeFromStep ? { resume_from_step: options.resumeFromStep } : {}, {
+      headers: buildCloudflareHeaders(credentials), onEvent: options.onEvent, signal: options.signal,
+    })
+  },
+
+  // --- Book publication ---
+
+  getBookPublication: (label: string) =>
+    request<BookPublicationStatus>(`/books/${encodeURIComponent(label)}/publication`),
+
+  getPublications: () => request<PublicationsOverview>("/publications"),
+
+  getPublicationReaders: (token: string) =>
+    request<PublicationReaderList>(`/publications/${encodeURIComponent(token)}/readers`),
+
+  deletePublication: (token: string) =>
+    request<PublicationDeleteResult>(`/publications/${encodeURIComponent(token)}`, { method: "DELETE" }),
+
+  publishBook: (
+    label: string,
+    options: PublishStreamOptions & {
+      expiresAt?: string | null
+      accessCode?: string | null
+      features?: PublishFeatureSelection
+    },
+  ): Promise<void> =>
+    streamPublishEvents(
+      `/books/${encodeURIComponent(label)}/publication`,
+      {
+        ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
+        ...(options.accessCode === undefined ? {} : { access_code: options.accessCode }),
+        ...(options.features === undefined ? {} : { features: options.features }),
+      },
+      options,
+    ),
+
+  publishBookVersion: (label: string, options: PublishStreamOptions): Promise<void> =>
+    streamPublishEvents(`/books/${encodeURIComponent(label)}/publication/versions`, {}, options),
+
+  /** The book's share run as the server last saw it — for a page that lost the stream. */
+  getPublishRun: (label: string) =>
+    request<{ run: PublishRunSnapshot | null }>(
+      `/books/${encodeURIComponent(label)}/publication/run`,
+    ),
+
+  /** Every share run still going, across books. */
+  listPublishRuns: () =>
+    request<{ runs: { label: string; run: PublishRunSnapshot }[] }>("/publication-runs"),
+
+  /** Asks a running share to stop; `false` when it is past the point it safely can. */
+  cancelPublishRun: (label: string) =>
+    request<{ cancelled: boolean }>(`/books/${encodeURIComponent(label)}/publication/run/cancel`, {
+      method: "POST",
+    }),
+
+  revokeBookPublication: (label: string) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication/revoke`, {
+      method: "POST",
+    }),
+
+  resumeBookPublication: (label: string) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication/resume`, {
+      method: "POST",
+    }),
+
+  setBookPublicationExpiry: (label: string, expiresAt: string | null) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ expires_at: expiresAt }),
+    }),
+
+  setBookPublicationAccessCode: (label: string, accessCode: string | null) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ access_code: accessCode }),
+    }),
+
+  setBookPublicationComments: (label: string, comments: boolean) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ comments }),
+    }),
+
+  // --- Publication feedback ---
+
+  getPublicationPages: (label: string) =>
+    request<PublicationPageManifest>(`/books/${encodeURIComponent(label)}/publication/pages`),
+
+  getPublicationComments: (label: string, query: PublicationCommentQuery = {}) =>
+    request<PublishCommentListResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments${commentQueryString(query)}`,
+    ),
+
+  createPublicationComment: (
+    label: string,
+    body: { pageSectionId: string; body: string; parentId?: string | null; anchor?: CommentAnchor | null },
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(`/books/${encodeURIComponent(label)}/publication/comments`, {
+      method: "POST",
+      headers: authorNameHeader(authorName),
+      body: JSON.stringify({
+        page_section_id: body.pageSectionId,
+        body: body.body,
+        ...(body.parentId === undefined ? {} : { parent_id: body.parentId }),
+        ...(body.anchor === undefined ? {} : { anchor: body.anchor }),
+      }),
+    }),
+
+  resolvePublicationComment: (
+    label: string,
+    id: string,
+    resolved: boolean,
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments/${encodeURIComponent(id)}/resolve`,
+      {
+        method: "POST",
+        headers: authorNameHeader(authorName),
+        body: JSON.stringify({ resolved }),
+      },
+    ),
+
+  updatePublicationComment: (
+    label: string,
+    id: string,
+    body: string,
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments/${encodeURIComponent(id)}`,
+      { method: "PATCH", headers: authorNameHeader(authorName), body: JSON.stringify({ body }) },
+    ),
+
+  deletePublicationComment: (label: string, id: string, authorName?: string | null) =>
+    request<PublishCommentResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments/${encodeURIComponent(id)}`,
+      { method: "DELETE", headers: authorNameHeader(authorName) },
+    ),
 
   exportPnld: async (label: string): Promise<Blob | null> => {
     if (!isDesktop()) {

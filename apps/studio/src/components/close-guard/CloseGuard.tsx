@@ -12,6 +12,7 @@ import {
 import { Trans } from "@lingui/react/macro"
 import {
   ArrowLeft,
+  CloudUpload,
   DoorOpen,
   Info,
   LogOut,
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 
-export type QuitIntent = "wizard" | "unsaved-changes"
+export type QuitIntent = "wizard" | "unsaved-changes" | "sharing"
 
 interface CloseGuardContextValue {
   setIntent: (id: string, intent: QuitIntent | null) => void
@@ -166,7 +167,9 @@ export function CloseGuardProvider({ children }: { children: ReactNode }) {
         return
       }
       quittingRef.current = false
-      setActiveIntent(active.has("unsaved-changes") ? "unsaved-changes" : "wizard")
+      setActiveIntent(
+        active.has("unsaved-changes") ? "unsaved-changes" : active.has("sharing") ? "sharing" : "wizard",
+      )
       setOpen(true)
     })
   }, [controls])
@@ -210,6 +213,25 @@ export function CloseGuardProvider({ children }: { children: ReactNode }) {
             }
             confirmLabel={<Trans>Leave setup</Trans>}
           />
+        ) : intent === "sharing" ? (
+          <QuitDialogShell
+            accent="sky"
+            HeaderIcon={CloudUpload}
+            CalloutIcon={Info}
+            onQuit={quit}
+            eyebrow={<Trans>Sharing in progress</Trans>}
+            title={<Trans>Quit while sharing?</Trans>}
+            body={
+              <Trans>
+                A book is still being shared, or sharing is still being set up. Quitting stops it
+                partway — you can start it again next time.
+              </Trans>
+            }
+            callout={
+              <Trans>Readers keep the version they already have. Nothing half-finished reaches them.</Trans>
+            }
+            confirmLabel={<Trans>Quit anyway</Trans>}
+          />
         ) : (
           <QuitDialogShell
             accent="amber"
@@ -250,3 +272,21 @@ export function useCloseIntent(active: boolean, intent: QuitIntent): void {
     return () => ctx.setIntent(id, null)
   }, [ctx, id, active, intent])
 }
+
+/**
+ * Asks before quitting while a share or the sharing setup is running. Both run in the Studio's own
+ * server, which goes with the app: quitting stops them partway, and the desktop only asks the page
+ * when it has a pending `beforeunload`.
+ */
+export function useSharingCloseGuard(active: boolean): void {
+  useCloseIntent(active, "sharing")
+  useEffect(() => {
+    if (!active) return
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+    }
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }, [active])
+}
+

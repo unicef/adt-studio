@@ -40,7 +40,7 @@ refactors within existing contracts.
 
 Issue → branch → PR. No spec is required. Behaviour bugs need a regression test;
 every PR needs one non-author human approval and green CI before merge. Keep each PR
-within the review budget of about 400 changed lines; see [§9](#9-reviews-and-merging).
+within the review budget of about 1000 changed lines; see [§9](#9-reviews-and-merging).
 
 **Most work is fast lane, and that is the intent.** The process exists to catch the
 handful of changes that would otherwise cost the project weeks; it is not a tax on the
@@ -72,8 +72,9 @@ Spikes and feasibility trials go in the **experiment lane** and never merge as
 implementation. For work intended to ship, **any one** of these triggers requires
 the **spec lane**:
 
-1. **Expected change above about 300 net lines, or touching more than about 10 files.**
-   This applies even when the change preserves behaviour.
+1. **Expected change above about 1000 net lines, or touching more than about 25 files.**
+   This applies even when the change preserves behaviour. Generated files, such as
+   the `.po` catalogs and `pnpm-lock.yaml`, do not count toward either number.
 2. **Changes an entity schema, the storage layout, the pipeline graph, or a
    cross-package interface, or needs a data migration.** Books are the user's data
    and the format is shared with old versions of the app.
@@ -107,7 +108,7 @@ Some worked examples:
 | Add a column to an existing Studio table | Fast | Contained UI within existing contracts and the size thresholds |
 | Change how staleness invalidates downstream artifacts | **Spec** | Behaviour contract, disputed, affects saved data |
 | Rename a local internal helper | Fast | Small refactor that preserves contracts and invariants |
-| Refactor across 12 files without changing behaviour | **Spec** | Exceeds the file-count trigger |
+| Refactor across 30 files without changing behaviour | **Spec** | Exceeds the file-count trigger |
 | Try a new sectioning heuristic to see if it's better | **Experiment** | We don't know yet — ends in a finding |
 | Add a provider to `@adt/llm` following the existing port | **Spec** | A new provider requires a spec even when the interface already exists |
 | Change what a `data-id` refers to | **Spec** | Every downstream stage depends on the meaning |
@@ -308,9 +309,9 @@ and spec amendments:
 
 - **One non-author human approval and green CI before merge.** The person who prompted
   an agent is an author of its work; an agent review does not supply human approval.
-- **About 400 changed lines per reviewable PR.** Split larger work into focused PRs;
+- **About 1000 changed lines per reviewable PR.** Split larger work into focused PRs;
   spec-lane implementation is decomposed to fit this budget. This review budget is
-  separate from the roughly 300-net-line or 10-file trigger for deciding whether
+  separate from the roughly 1000-net-line or 25-file trigger for deciding whether
   the overall change needs a spec.
 - **Findings require re-review after fixes.** The person who requested changes, or
   another reviewer with merge authority, reviews the updated diff before merge.
@@ -348,8 +349,8 @@ a value; until it does, ask at triage rather than assume one.
 |---|---|---|
 | Spec review (the spec PR) | 3 working days | [§4](#4-the-spec-lifecycle) |
 | Experiment | 2 weeks at most | [§2](#experiment-lane--time-boxed-ends-in-a-finding) |
-| Size that needs a spec | above ~300 net lines or ~10 files | [§3](#3-choosing-a-lane) |
-| Reviewable PR | ~400 changed lines | [§9](#9-reviews-and-merging) |
+| Size that needs a spec | above ~1000 net lines or ~25 files | [§3](#3-choosing-a-lane) |
+| Reviewable PR | ~1000 changed lines | [§9](#9-reviews-and-merging) |
 | When the spec review clock starts | *not yet agreed* | |
 | What happens when spec review runs out | *not yet agreed* | |
 | Spec amendment review | *not yet agreed* | |
