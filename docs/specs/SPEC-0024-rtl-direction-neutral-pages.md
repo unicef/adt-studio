@@ -328,7 +328,7 @@ translation* is written right to left.
       table-of-contents page number is aligned to the end, a class re-added by a
       repair step is not duplicated, and a floated box whose only side margin is on its
       outer side gets it on the text side.
-- [ ] AC-11: The prompts receive the page direction from the book's languages, from the
+- [x] AC-11: The prompts receive the page direction from the book's languages, from the
       Storyboard render and from the section an agent creates.
 - [x] AC-12 (measured through the real packager, on scratch copies): *English Grade 2*
       with an Urdu translation is pixel-identical in English on 34 of 34 pages, with
@@ -346,10 +346,10 @@ translation* is written right to left.
       mapped for that block's direction.
 - [x] AC-15: The Studio preview stylesheet has rules for the classes the rewrite
       introduces, and is rebuilt when a book gains a right-to-left language.
-- [ ] AC-16: For a page that is not right-to-left, the two sectioning prompts render
+- [x] AC-16: For a page that is not right-to-left, the two sectioning prompts render
       byte-identical to their output without the reading-direction block; for a
       right-to-left page each carries it once, in the system message.
-- [ ] AC-17: The sectioning prompts receive the page direction from the book's
+- [x] AC-17: The sectioning prompts receive the page direction from the book's
       languages.
 - [ ] AC-18 (acceptance re-run, needs a provider key): *GK-2-2* sectioned and rendered
       from scratch has its contents table in the order of the original (serial number

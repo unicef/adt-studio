@@ -38,6 +38,7 @@ Ancestors:
 {% for entry in book_outline.ancestors %}- `{{ entry.outlineId }}`: level {{ entry.level }}, "{{ entry.title }}"
 {% endfor %}{% endif %}
 
+{% include "_reading_direction" -%}
 ## STRUCTURE TYPES
 
 {% for t in structure_types %}- `{{ t.key }}`: {{ t.description }}
