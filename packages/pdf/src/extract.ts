@@ -1026,7 +1026,7 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtr
   };
 
   // Extract text (handles legacy FM Sinhala font remapping when detected)
-  const stext = page.toStructuredText();
+  const stext = page.toStructuredText("");
   const pageBounds = page.getBounds();
   const text = extractPageTextFiltered(stext, pageBounds, watermarks);
   const fontStats = tallyFontCategories(stext);
@@ -1830,8 +1830,8 @@ async function extractSpreadPage(
   };
 
   // Concatenate text from both pages (handles legacy FM Sinhala font remapping)
-  const leftStext = leftPage.toStructuredText();
-  const rightStext = rightPage.toStructuredText();
+  const leftStext = leftPage.toStructuredText("");
+  const rightStext = rightPage.toStructuredText("");
   const leftBounds = leftPage.getBounds();
   const rightBounds = rightPage.getBounds();
   const text = extractPageTextFiltered(leftStext, leftBounds, watermarks) + "\n"
