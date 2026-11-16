@@ -1,30 +1,20 @@
-import { useEffect, useState } from "react"
-import { useLocation, useSearch } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Plus, RefreshCw, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StepperInput } from "@/components/ui/stepper-input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { PROVIDER_CARDS } from "./data"
 import { EASE } from "./shared"
 import { ComingSoon } from "../ui"
 import { useProviders } from "./useProviders"
 import { ProviderCardGroups } from "./ProviderCardGroups"
-import { providerFromAnchor } from "../nav"
+import { useLinkedCard } from "./useLinkedCard"
 
 export function ProvidersList() {
   const { t } = useLingui()
   const store = useProviders()
   const queryClient = useQueryClient()
-  const { hash } = useLocation()
-  const { auth } = useSearch({ strict: false })
-  const linkedCard = hash ? providerFromAnchor(hash) : null
-  const [openId, setOpenId] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (linkedCard && PROVIDER_CARDS[linkedCard]) setOpenId(linkedCard)
-  }, [linkedCard])
+  const cards = useLinkedCard()
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["providers"] })
@@ -90,13 +80,7 @@ export function ProvidersList() {
           </div>
         </div>
 
-        <ProviderCardGroups
-          store={store}
-          openId={openId}
-          onToggle={(cardKey) => setOpenId((prev) => (prev === cardKey ? null : cardKey))}
-          linkedCard={linkedCard}
-          requestedAuth={auth}
-        />
+        <ProviderCardGroups store={store} {...cards} />
       </div>
     </TooltipProvider>
   )

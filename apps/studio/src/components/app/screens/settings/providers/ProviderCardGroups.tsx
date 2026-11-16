@@ -7,6 +7,7 @@ import { ProviderCard } from "./ProviderEditor"
 import type { Providers } from "./useProviders"
 import { GroupHeading } from "./GroupHeading"
 import { providerAnchor, type ProvidersSearch } from "../nav"
+import { CardsBookContext } from "./cards-book-context"
 
 function Row({ cardKey, open, onToggle, store, requestedAuth }: { cardKey: string; open: boolean; onToggle: () => void; store: Providers; requestedAuth?: ProvidersSearch["auth"] }) {
   const card = PROVIDER_CARDS[cardKey]
@@ -76,6 +77,7 @@ export function ProviderCardGroups({
   onToggle,
   linkedCard,
   requestedAuth,
+  bookLabel,
 }: {
   store: Providers
   openId: string | null
@@ -83,9 +85,11 @@ export function ProviderCardGroups({
   /** The card a "connect provider" link pointed at, which opens on `requestedAuth`. */
   linkedCard?: string | null
   requestedAuth?: ProvidersSearch["auth"]
+  /** Set on a book's API keys screen: the cards' "Assign models" opens that book's Models tab. */
+  bookLabel?: string
 }) {
   return (
-    <>
+    <CardsBookContext.Provider value={bookLabel ?? null}>
       {store.isLoading ? (
         <div className="flex items-center justify-center gap-2 rounded-2xl border bg-card py-12 text-[12.5px] text-muted-foreground shadow-sm">
           <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
@@ -114,6 +118,6 @@ export function ProviderCardGroups({
           </section>
         ))
       )}
-    </>
+    </CardsBookContext.Provider>
   )
 }

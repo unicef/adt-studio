@@ -1,7 +1,7 @@
-import { useState } from "react"
 import { Trans } from "@lingui/react/macro"
 import { ProviderCardGroups } from "@/components/app/screens/settings/providers/ProviderCardGroups"
 import { useProviders } from "@/components/app/screens/settings/providers/useProviders"
+import { useLinkedCard } from "@/components/app/screens/settings/providers/useLinkedCard"
 import { BookModelSettings } from "./BookModelSettings"
 
 export function BookSettings({ bookLabel, tab = "general" }: { bookLabel: string; tab?: string }) {
@@ -20,10 +20,11 @@ export function BookSettings({ bookLabel, tab = "general" }: { bookLabel: string
           <Trans>API keys</Trans>
         </h3>
         <p className="text-[12.5px] leading-relaxed text-[#737373]">
-          <Trans>Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine.</Trans>
+          <Trans>Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine.</Trans>{" "}
+          <Trans>These keys are shared with Settings → AI providers and apply to every book.</Trans>
         </p>
       </div>
-      <ApiKeyCards />
+      <ApiKeyCards bookLabel={bookLabel} />
     </div>
   )
 }
@@ -33,14 +34,9 @@ export function BookSettings({ bookLabel, tab = "general" }: { bookLabel: string
  * checked and shown the same way in both places. Each card saves on its own
  * and shows its live check, so a refused key is visible right here.
  */
-function ApiKeyCards() {
+function ApiKeyCards({ bookLabel }: { bookLabel: string }) {
   const store = useProviders()
-  const [openId, setOpenId] = useState<string | null>(null)
-  return (
-    <ProviderCardGroups
-      store={store}
-      openId={openId}
-      onToggle={(cardKey) => setOpenId((prev) => (prev === cardKey ? null : cardKey))}
-    />
-  )
+  // A "key rejected" link (the book's settings cog) points at the card by hash.
+  const cards = useLinkedCard()
+  return <ProviderCardGroups store={store} {...cards} bookLabel={bookLabel} />
 }

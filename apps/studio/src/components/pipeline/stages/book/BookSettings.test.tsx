@@ -10,10 +10,16 @@ import { afterEach, describe, expect, it, vi } from "vitest"
  */
 
 const store = { isLoading: false, isError: false }
-const groupsProps: Array<{ store: unknown }> = []
+type GroupsProps = { store: unknown; openId: string | null; linkedCard?: string | null; bookLabel?: string }
+const groupsProps: GroupsProps[] = []
+let location = { hash: "" }
 
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+vi.mock("@tanstack/react-router", () => ({
+  useLocation: () => location,
+  useSearch: () => ({ tab: "general" }),
 }))
 vi.mock("@/components/app/screens/settings/providers/useProviders", () => ({
   useProviders: () => store,
@@ -35,6 +41,7 @@ const { BookSettings } = await import("./BookSettings")
 afterEach(() => {
   cleanup()
   groupsProps.length = 0
+  location = { hash: "" }
 })
 
 describe("BookSettings", () => {
@@ -47,6 +54,28 @@ describe("BookSettings", () => {
     fireEvent.click(screen.getByRole("button", { name: "openai-card" }))
     fireEvent.click(screen.getByRole("button", { name: "openai-card-open" }))
     expect(screen.getByRole("button", { name: "openai-card" })).toBeTruthy()
+  })
+
+  // A "key rejected" link (the book's settings cog) lands on the provider's
+  // card, expanded.
+  it("opens the card a link points at", () => {
+    location = { hash: "settings-provider-anthropic" }
+    render(<BookSettings bookLabel="book" />)
+    const last = groupsProps.at(-1)!
+    expect(last.openId).toBe("anthropic")
+    expect(last.linkedCard).toBe("anthropic")
+  })
+
+  it("ignores a link to a card that doesn't exist", () => {
+    location = { hash: "settings-provider-nope" }
+    render(<BookSettings bookLabel="book" />)
+    expect(groupsProps.at(-1)!.openId).toBeNull()
+  })
+
+  it("says the keys are shared with every book, and points the cards at this book", () => {
+    render(<BookSettings bookLabel="book" />)
+    expect(screen.getByText(/shared with Settings → AI providers and apply to every book/)).toBeTruthy()
+    expect(groupsProps[0]?.bookLabel).toBe("book")
   })
 
   it("keeps the models tab separate", () => {

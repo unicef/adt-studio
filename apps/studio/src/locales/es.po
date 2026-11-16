@@ -12397,6 +12397,9 @@ msgstr "Estos cambios aún no se han aplicado. Si sales, se perderán, o guarda 
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Estas funciones mejoran el acceso para personas con discapacidades. Ejecutarlas antes de exportar ayuda a que su libro cumpla con los estándares de accesibilidad ADT."
 
+msgid "These keys are shared with Settings → AI providers and apply to every book."
+msgstr "Estas claves se comparten con Configuración → Proveedores de IA y se aplican a todos los libros."
+
 msgid "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
 msgstr "Estas páginas provienen de una exportación ADT importada. Edítalas aquí; la regeneración de Storyboard está desactivada para que no pueda sobrescribirlas."
 
