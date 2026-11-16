@@ -395,7 +395,7 @@ export function makeBundleWithEasyReadAndSignLanguage(): Buffer {
 export function exportedThenEdited(
   archive: Buffer,
   edit: (files: Record<string, Uint8Array>) => void = () => {},
-  options: { textFingerprints?: boolean } = {},
+  options: { textFingerprints?: boolean; imageAltFingerprints?: boolean } = {},
 ): Buffer {
   const files = unzipSync(archive)
   const read = (filePath: string) => JSON.parse(new TextDecoder().decode(files[filePath]))
@@ -417,6 +417,13 @@ export function exportedThenEdited(
               Object.fromEntries(Object.entries(read(`content/i18n/${language}/texts.json`) as Record<string, string>)
                 .map(([id, text]) => [id, adtTextFingerprint(text)])),
             ])),
+        }
+      : {}),
+    ...(options.imageAltFingerprints
+      ? {
+          imageAltFingerprints: Object.fromEntries(pages.flatMap((page) => [
+            ...new TextDecoder().decode(files[page.href]).matchAll(/<img[^>]*data-id="([^"]+)"[^>]*alt="([^"]*)"/g),
+          ].map((match) => [match[1], adtTextFingerprint(match[2])]))),
         }
       : {}),
   }

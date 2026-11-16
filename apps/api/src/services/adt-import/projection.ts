@@ -5,6 +5,7 @@ import { createBookStorage } from "@adt/storage"
 import { AdtActivityImportDecision, parseBookLabel, type AdtImportedActivityReview } from "@adt/types"
 
 import { extractAdtBundleArchiveFiles, readAdtBundle } from "./bundle-reader.js"
+import { sourceTextsWithEditedImageAlts } from "./image-alts.js"
 import { analyzeImportedActivities } from "./activity-reconciliation.js"
 import { AdtImportError } from "./error.js"
 import { applyFixedLayoutBookConfig } from "./fixed-layout.js"
@@ -188,7 +189,7 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
     bundle.pageHtml,
     bundle.toc,
     legacyRecovery,
-    bundle.texts[bundle.manifest.languages.source] ?? {},
+    sourceTextsWithEditedImageAlts(bundle, bundle.texts[bundle.manifest.languages.source] ?? {}),
     activityOverrides,
     activityReview,
     activityDecisions,

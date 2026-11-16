@@ -13,6 +13,7 @@ import {
 import { previewCoverDataUri } from "./preview-cover.js"
 import { EASY_READ_ID_SUFFIX, recoverableEasyReadIds } from "./easy-read.js"
 import { AdtImportError } from "./error.js"
+import { sourceTextsWithEditedImageAlts } from "./image-alts.js"
 import { createAdtImportRepairGuide } from "./repair-guide.js"
 import { recoverImportedQuizzes } from "./quiz.js"
 import { recoverImportedSignLanguageVideos } from "./sign-language.js"
@@ -155,7 +156,7 @@ export function previewAdtRecoveryImport(
     throw new AdtImportError("The ADT bundle does not contain its source text catalog")
   }
   const { catalog, imageCount, captionedImageCount } = createRecoveredCatalog(
-    sourceTexts,
+    sourceTextsWithEditedImageAlts(bundle, sourceTexts),
     bundle.pages,
     bundle.pageHtml,
     bundle.sourceFormat === "legacy-studio-export",

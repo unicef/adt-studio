@@ -162,6 +162,13 @@ export const AdtRoundTripManifest = z.object({
      * exports made before it shipped fall back to a coarser rule.
      */
     textFingerprints: z.record(LocaleCode, z.record(z.string().min(1), TextFingerprint)).optional(),
+    /**
+     * Per image id, a fingerprint of the `alt` the exported HTML carries. The
+     * HTML alt may legitimately differ from the catalog description, so this
+     * is the only way to tell an alt edited after export from an untouched one.
+     * Optional: older exports have none and keep the catalog description.
+     */
+    imageAltFingerprints: z.record(z.string().min(1), TextFingerprint).optional(),
   }).strict().optional(),
 }).strict().superRefine((manifest, ctx) => {
   const output = new Set(manifest.languages.output)

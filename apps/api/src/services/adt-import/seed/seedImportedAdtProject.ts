@@ -8,6 +8,7 @@ import { BookMetadata, TextCatalogOutput, type AdtActivityImportDecision } from 
 
 import type { ReadAdtBundle } from "../bundle-reader.js"
 import { importedSourceTextIsCurrent } from "../speech.js"
+import { sourceTextsWithEditedImageAlts } from "../image-alts.js"
 import {
   analyzeImportedActivities,
   resolveImportedActivityDecisions,
@@ -60,10 +61,12 @@ export function seedImportedAdtProject(
   const activityOverrides = resolveImportedActivityDecisions(activityReview, activityDecisions)
 
   const sourceLanguage = normalizeLocale(bundle.manifest.languages.source)
-  const sourceTexts = bundle.texts[bundle.manifest.languages.source]
-  if (!sourceTexts) {
+  const archivedSourceTexts = bundle.texts[bundle.manifest.languages.source]
+  if (!archivedSourceTexts) {
     throw new AdtImportError("The ADT bundle does not contain its source text catalog")
   }
+  // Image alts edited after export win over the archived catalog description.
+  const sourceTexts = sourceTextsWithEditedImageAlts(bundle, archivedSourceTexts)
   const { catalog, htmlEntryCount, ignoredHtmlEntryCount } = createRecoveredCatalog(
     sourceTexts,
     bundle.pages,
@@ -75,7 +78,7 @@ export function seedImportedAdtProject(
       .map((language) => normalizeLocale(language))
       .filter((language) => language !== sourceLanguage),
   )]
-  const sourceContentChanged = hasSourceChanges(bundle, catalog, sourceTexts)
+  const sourceContentChanged = hasSourceChanges(bundle, catalog, archivedSourceTexts)
 
   const bookDir = path.join(path.resolve(booksDir), label)
   const createdAt = new Date().toISOString()

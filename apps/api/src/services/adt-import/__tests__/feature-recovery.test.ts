@@ -89,6 +89,46 @@ describe("derived text of a source edited after export", () => {
   })
 })
 
+// F12: an image alt edited after export is the image's new description.
+describe("image alt edited after export", () => {
+  const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes)
+  const caption = (archive: Buffer) => {
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-f12-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(archive, booksDir)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const catalog = storage.getLatestNodeData("text-catalog", "book")?.data as { entries: Array<{ id: string; text: string }> }
+      const captions = storage.getLatestNodeData("image-captioning", "pg001")?.data as { captions: Array<{ imageId: string; caption: string }> }
+      return {
+        catalog: catalog.entries.find((e) => e.id === "pg001_im001")?.text,
+        caption: captions.captions.find((c) => c.imageId === "pg001_im001")?.caption,
+      }
+    } finally {
+      storage.close()
+    }
+  }
+  const editAlt = (files: Record<string, Uint8Array>) => {
+    files["index.html"] = strToU8(decode(files["index.html"]).replace('alt="A raven"', 'alt="A black raven on a branch"'))
+  }
+
+  it("uses the edited HTML alt for the catalog and the caption", () => {
+    const archive = exportedThenEdited(makeBundleWithUnchangedHtmlCatalog(), editAlt, { textFingerprints: true, imageAltFingerprints: true })
+    expect(caption(archive)).toEqual({ catalog: "A black raven on a branch", caption: "A black raven on a branch" })
+    expect(previewAdtRecoveryImport(archive).contentChanged).toBe(true)
+  })
+
+  it("keeps the catalog description when the alt is untouched", () => {
+    const archive = exportedThenEdited(makeBundleWithUnchangedHtmlCatalog(), () => {}, { textFingerprints: true, imageAltFingerprints: true })
+    expect(caption(archive)).toEqual({ catalog: "A raven", caption: "A raven" })
+  })
+
+  it("keeps the catalog description for older exports without alt fingerprints", () => {
+    const archive = exportedThenEdited(makeBundleWithUnchangedHtmlCatalog(), editAlt, { textFingerprints: true })
+    expect(caption(archive).catalog).toBe("A raven")
+  })
+})
+
 describe("imported feature recovery", () => {
   it("does not promise features whose editable data the archive cannot carry", () => {
     const files = unzipSync(makeFixedLayoutBundle())

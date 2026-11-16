@@ -789,6 +789,17 @@ describe("packageAdtWeb", () => {
     })
     expect(roundTripManifest.frozen?.sourceTextsFingerprint).toMatch(/^[a-f0-9]{64}$/)
     expect(roundTripManifest.frozen?.pageHtmlFingerprints["pg001_sec001.html"]).toMatch(/^[a-f0-9]{64}$/)
+    // F12: every shipped image alt is fingerprinted, so an alt edit is visible on import.
+    const shippedAlts = new Map<string, string>()
+    for (const page of ["pg001_sec001.html", "pg002_sec001.html"]) {
+      const html = fs.readFileSync(path.join(bookDir, "adt", page), "utf-8")
+      for (const match of html.matchAll(/<img[^>]*?data-id="([^"]+)"[^>]*?alt="([^"]*)"/g)) {
+        if (!shippedAlts.has(match[1])) shippedAlts.set(match[1], match[2])
+      }
+    }
+    expect(roundTripManifest.frozen?.imageAltFingerprints).toEqual(Object.fromEntries(
+      [...shippedAlts].map(([id, alt]) => [id, adtTextFingerprint(alt)]),
+    ))
     // Every shipped text is fingerprinted per locale, matching texts.json.
     for (const language of ["en", "fr"]) {
       const texts = JSON.parse(fs.readFileSync(

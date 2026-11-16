@@ -9,6 +9,7 @@ import {
   type AdtExportLineage,
   type TextCatalogOutput,
 } from "@adt/types"
+import { DomUtils, parseDocument } from "htmlparser2"
 import { canonicalJson } from "@adt/types/fingerprint"
 
 import { getBaseLanguage } from "../language-context.js"
@@ -120,12 +121,22 @@ export function buildAdtRoundTripManifest(
   const activities: Array<{ sectionId: string; href: string; type: string }> = []
   const nonActivities: Array<{ sectionId: string; href: string }> = []
 
+  const imageAltFingerprints: Record<string, string> = {}
   const pageByHref = new Map(pageList.map((page) => [page.href, page]))
   for (const [href, page] of pageByHref) {
     const filePath = path.join(adtDir, href)
     if (!fs.existsSync(filePath)) continue
     pageHtmlFingerprints[href] = hashBuffer(fs.readFileSync(filePath))
     const html = fs.readFileSync(filePath, "utf8")
+    for (const image of DomUtils.findAll(
+      (el) => el.name === "img" && Boolean(el.attribs?.["data-id"]),
+      parseDocument(html).children,
+    )) {
+      const imageId = image.attribs["data-id"]
+      if (!Object.hasOwn(imageAltFingerprints, imageId)) {
+        imageAltFingerprints[imageId] = adtTextFingerprint(image.attribs.alt ?? "")
+      }
+    }
     const allowSectionDataId = page.section_id.startsWith("qz")
     // A fixed-layout page has no semantic <section>; its data-ids hang directly
     // off #content.
@@ -183,6 +194,7 @@ export function buildAdtRoundTripManifest(
         : {}),
       pageHtmlFingerprints,
       textFingerprints: readTextFingerprints(contentDir, [language, ...outputLanguages]),
+      imageAltFingerprints,
     },
   })
 }
