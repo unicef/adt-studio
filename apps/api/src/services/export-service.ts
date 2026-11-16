@@ -11,6 +11,7 @@ import { readPartInfo } from "./book-service.js"
 import { ensureProjectIdentity } from "./project-identity.js"
 import {
   getImportedAdtFeaturesNeedingRegeneration,
+  type ImportedAdtFeature,
   restoreImportedAdtPresentation,
 } from "./adt-import/presentation.js"
 
@@ -97,7 +98,17 @@ export async function prepareExport(
     throwWebAssetsMissing()
   }
 
-  const importedFeaturesPending = getImportedAdtFeaturesNeedingRegeneration(safeLabel, resolvedDir)
+  // A feature this export leaves out can't be lost by it.
+  const excludedFeatures = new Set<ImportedAdtFeature>([
+    ...(features?.readAloud === false ? ["Speech" as const] : []),
+    ...(features?.quizzes === false ? ["Quizzes" as const] : []),
+    ...(features?.signLanguage === false ? ["Sign Language" as const] : []),
+  ])
+  const importedFeaturesPending = getImportedAdtFeaturesNeedingRegeneration(
+    safeLabel,
+    resolvedDir,
+    excludedFeatures,
+  )
   if (importedFeaturesPending.length > 0) {
     throw new HTTPException(409, {
       message: `Regenerate these imported features before exporting: ${importedFeaturesPending.join(", ")}. Their exported runtime data cannot be edited safely as pipeline entities.`,

@@ -82,6 +82,16 @@ describe("inspectImportedActivity", () => {
       source.replace("activity_custom_crossword", "content"),
       "sec-1",
     )).toContain("adtRegisterCustomActivity")
+    // F20: an edited registration in Studio is kept, never doubled.
+    const edited = generated.replace(
+      "</section>",
+      "<script>window.adtRegisterCustomActivity(document.currentScript.parentElement, {validate(){ return false }})</script></section>",
+    )
+    const restoredEdited = restoreImportedCustomActivityScripts(edited, source, "sec-1")
+    expect(restoredEdited.match(/adtRegisterCustomActivity/g)).toHaveLength(1)
+    expect(restoredEdited).toContain("return false")
+    expect(restoreImportedCustomActivityScripts(restored, source, "sec-1")).toBe(restored)
+
     expect(restoreImportedCustomActivityScripts(
       generated.replace("activity_custom_crossword", "content"),
       source,

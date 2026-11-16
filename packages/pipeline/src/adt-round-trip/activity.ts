@@ -199,14 +199,17 @@ export function restoreImportedCustomActivityScripts(
     sourceSection.children ?? [],
   )
   if (sourceScripts.length === 0) return generatedHtml
-  const generatedScriptBodies = new Set(DomUtils.findAll(
+  const generatedScripts = DomUtils.findAll(
     (element) => element.type === "script",
     generatedSection.children ?? [],
-  ).map((element) => DomUtils.textContent(element)))
+  )
+  // The section already registers its activity (an edit in Studio, or an
+  // earlier restore): adding the archive's registration would run both.
+  if (generatedScripts.some((element) => DomUtils.textContent(element).includes("adtRegisterCustomActivity"))) {
+    return generatedHtml
+  }
 
   for (const sourceScript of sourceScripts) {
-    const body = DomUtils.textContent(sourceScript)
-    if (generatedScriptBodies.has(body)) continue
     const cloned = parseDocument(DomUtils.getOuterHTML(sourceScript)).children[0]
     if (cloned) DomUtils.appendChild(generatedSection, cloned)
   }

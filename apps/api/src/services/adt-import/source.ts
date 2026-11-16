@@ -27,6 +27,8 @@ export interface ImportedAdtCurrent {
   projectedVersions?: Record<string, number>
   /** Projection version an upgrade declined to replay because of later edits. */
   projectionReplaySkippedFrom?: number | null
+  /** Archive features the import brought in (see readSeededImportedAdtFeatures). */
+  seededFeatures?: string[]
 }
 
 export function bookDirFor(label: string, booksDir: string): string {

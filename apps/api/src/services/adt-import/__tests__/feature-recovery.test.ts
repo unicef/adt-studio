@@ -8,7 +8,11 @@ import { getCoreTtsCatalog, getReadyCoreTtsEntries, loadBookConfig, readOutputCa
 import { createBookStorage } from "@adt/storage"
 
 import { getBook } from "../../book-service.js"
-import { getImportedAdtFeaturesNeedingRegeneration } from "../presentation.js"
+import {
+  getImportedAdtFeaturesNeedingRegeneration,
+  readSeededImportedAdtFeatures,
+} from "../presentation.js"
+import { readAdtBundle } from "../bundle-reader.js"
 import { previewAdtRecoveryImport } from "../preview.js"
 import { stampImportedSpeechEvidence } from "../speech-evidence.js"
 import {
@@ -168,6 +172,73 @@ describe("imported Easy Read and sign language recovery", () => {
     writeCurrent(ADT_IMPORT_PROJECTION_VERSION)
     return { booksDir, session, bookDir, writeCurrent }
   }
+
+  // F7: removing an imported feature is the user's choice, not a lost import.
+  describe("after the user removes an imported feature", () => {
+    function importWithRecord(recordSeeded: boolean) {
+      const archive = makeBundleWithEasyReadAndSignLanguage()
+      const project = importedProject(archive)
+      const seededFeatures = readSeededImportedAdtFeatures(
+        project.session.label,
+        project.booksDir,
+        readAdtBundle(archive),
+      )
+      fs.writeFileSync(
+        path.join(project.bookDir, ".adt-import-current.json"),
+        JSON.stringify({
+          version: 1,
+          revisionId: "feature-revision",
+          projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
+          ...(recordSeeded ? { seededFeatures } : {}),
+        }),
+      )
+      return { ...project, seededFeatures }
+    }
+
+    function deleteAllSignLanguageVideos(label: string, booksDir: string) {
+      const storage = createBookStorage(label, booksDir)
+      try {
+        for (const video of storage.getSignLanguageVideos()) storage.deleteSignLanguageVideo(video.videoId)
+        expect(storage.getSignLanguageVideos()).toEqual([])
+      } finally {
+        storage.close()
+      }
+    }
+
+    it("records the features the import brought in", () => {
+      const { seededFeatures } = importWithRecord(true)
+      expect(seededFeatures).toEqual(expect.arrayContaining(["Easy Read", "Sign Language"]))
+    })
+
+    it("does not block packaging once the imported sign-language videos are deleted", () => {
+      const { session, booksDir } = importWithRecord(true)
+      deleteAllSignLanguageVideos(session.label, booksDir)
+      expect(getImportedAdtFeaturesNeedingRegeneration(session.label, booksDir)).toEqual([])
+    })
+
+    it("still blocks a feature the import could not bring in", () => {
+      const { session, booksDir, bookDir } = importWithRecord(true)
+      deleteAllSignLanguageVideos(session.label, booksDir)
+      const current = JSON.parse(fs.readFileSync(path.join(bookDir, ".adt-import-current.json"), "utf8"))
+      current.seededFeatures = current.seededFeatures.filter((f: string) => f !== "Sign Language")
+      fs.writeFileSync(path.join(bookDir, ".adt-import-current.json"), JSON.stringify(current))
+      expect(getImportedAdtFeaturesNeedingRegeneration(session.label, booksDir)).toEqual(["Sign Language"])
+      // ...unless the export leaves that feature out.
+      expect(getImportedAdtFeaturesNeedingRegeneration(session.label, booksDir, new Set(["Sign Language"])))
+        .toEqual([])
+    })
+
+    it("treats an emptied quiz or Easy Read entity as removed, for imports recorded before seededFeatures", () => {
+      const { session, booksDir } = importWithRecord(false)
+      const storage = createBookStorage(session.label, booksDir)
+      try {
+        storage.putNodeData("easy-read", "book", { blocks: [], generatedAt: new Date().toISOString() })
+      } finally {
+        storage.close()
+      }
+      expect(getImportedAdtFeaturesNeedingRegeneration(session.label, booksDir)).not.toContain("Easy Read")
+    })
+  })
 
   it("reports both features as recovered when the archive carries their data", () => {
     const preview = previewAdtRecoveryImport(makeBundleWithEasyReadAndSignLanguage())

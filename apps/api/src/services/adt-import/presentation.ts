@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 
@@ -17,6 +18,7 @@ import {
   ImportedAdtSourceError,
   bookDirFor,
   isImportedAdtProject,
+  readImportedAdtCurrent,
   readImportedAdtSourceArchive,
 } from "./source.js"
 
@@ -67,9 +69,94 @@ export function getImportedAdtPresentationAssets(
   }
 }
 
+/** An imported runtime feature the gate tracks. */
+export type ImportedAdtFeature = "Speech" | "Quizzes" | "Easy Read" | "Sign Language"
+
+interface ImportedFeatureState {
+  /** The archive shipped it, so a package without it would silently lose it. */
+  inArchive: boolean
+  /** The project holds it now as pipeline entities. */
+  present: boolean
+  /** The project has ever held it (an empty later version still counts). */
+  everPresent: boolean
+}
+
+function importedFeatureStates(
+  bundle: ReturnType<typeof readAdtBundle>,
+  storage: ReturnType<typeof createBookStorage>,
+): Record<ImportedAdtFeature, ImportedFeatureState> {
+  const speechRows = bundle.manifest.languages.output.map((archiveLanguage) => {
+    const language = normalizeLocale(archiveLanguage)
+    return storage.getLatestNodeData("tts", language)
+      ?? storage.getLatestNodeData("tts", language.replace("-", "_"))
+  })
+  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
+  const easyReadRow = storage.getLatestNodeData("easy-read", "book")
+  const easyRead = EasyReadOutput.safeParse(easyReadRow?.data)
+  const signVideos = storage.getSignLanguageVideos()
+  return {
+    Speech: {
+      inArchive: Boolean(bundle.runtimeFeatures.readAloud),
+      present: speechRows.some((row) => {
+        const parsed = TTSOutput.safeParse(row?.data)
+        return parsed.success && parsed.data.entries.length > 0
+      }),
+      everPresent: speechRows.some(Boolean),
+    },
+    Quizzes: {
+      inArchive: analyzeImportedActivities(bundle).quizCount > 0,
+      present: Boolean(
+        quizRow
+        && typeof quizRow.data === "object"
+        && quizRow.data !== null
+        && Array.isArray((quizRow.data as { quizzes?: unknown }).quizzes)
+        && ((quizRow.data as { quizzes: unknown[] }).quizzes.length > 0),
+      ),
+      everPresent: Boolean(quizRow),
+    },
+    "Easy Read": {
+      inArchive: Boolean(bundle.runtimeFeatures.easyRead),
+      present: easyRead.success && easyRead.data.blocks.some((block) => block.entries.length > 0),
+      everPresent: Boolean(easyReadRow),
+    },
+    "Sign Language": {
+      inArchive: Boolean(bundle.runtimeFeatures.signLanguage),
+      present: signVideos.some((video) => video.sectionId !== null),
+      everPresent: signVideos.length > 0,
+    },
+  }
+}
+
+/**
+ * Features the archive shipped that the import brought into the project.
+ * Recorded at import so that removing one later reads as the user's choice,
+ * not as data the import failed to recover.
+ */
+export function readSeededImportedAdtFeatures(
+  label: string,
+  booksDir: string,
+  bundle: ReturnType<typeof readAdtBundle>,
+): ImportedAdtFeature[] {
+  const storage = createBookStorage(parseBookLabel(label), booksDir)
+  try {
+    const states = importedFeatureStates(bundle, storage)
+    return (Object.keys(states) as ImportedAdtFeature[])
+      .filter((feature) => states[feature].inArchive && states[feature].present)
+  } finally {
+    storage.close()
+  }
+}
+
+/**
+ * Imported features a package would silently lose: the archive shipped them,
+ * the import could not bring them in, and the project does not have them now.
+ * A feature the import did bring in never blocks, even after the user deletes
+ * it, and neither does one the export leaves out (`excluded`).
+ */
 export function getImportedAdtFeaturesNeedingRegeneration(
   label: string,
   booksDir: string,
+  excluded: ReadonlySet<ImportedAdtFeature> = new Set(),
 ): string[] {
   const safeLabel = parseBookLabel(label)
   const bookDir = path.join(path.resolve(booksDir), safeLabel)
@@ -80,49 +167,25 @@ export function getImportedAdtFeaturesNeedingRegeneration(
   } catch {
     return []
   }
+  let seeded: ReadonlySet<string> | null = null
+  try {
+    const recorded = readImportedAdtCurrent(bookDir).seededFeatures
+    if (Array.isArray(recorded)) seeded = new Set(recorded.filter((f): f is string => typeof f === "string"))
+  } catch {
+    seeded = null
+  }
 
   const storage = createBookStorage(safeLabel, booksDir)
   try {
-    const pending: string[] = []
-    if (bundle.runtimeFeatures.readAloud) {
-      const hasSpeech = bundle.manifest.languages.output.some((archiveLanguage) => {
-        const language = normalizeLocale(archiveLanguage)
-        const row = storage.getLatestNodeData("tts", language)
-          ?? storage.getLatestNodeData("tts", language.replace("-", "_"))
-        const parsed = TTSOutput.safeParse(row?.data)
-        return parsed.success && parsed.data.entries.length > 0
-      })
-      if (!hasSpeech) pending.push("Speech")
-    }
-    if (analyzeImportedActivities(bundle).quizCount > 0) {
-      const quizRow = storage.getLatestNodeData("quiz-generation", "book")
-      const hasQuizzes = Boolean(
-        quizRow
-        && typeof quizRow.data === "object"
-        && quizRow.data !== null
-        && Array.isArray((quizRow.data as { quizzes?: unknown }).quizzes)
-        && ((quizRow.data as { quizzes: unknown[] }).quizzes.length > 0),
-      )
-      if (!hasQuizzes) pending.push("Quizzes")
-    }
-    if (bundle.runtimeFeatures.easyRead) {
-      const easyRead = EasyReadOutput.safeParse(
-        storage.getLatestNodeData("easy-read", "book")?.data,
-      )
-      if (
-        !easyRead.success
-        || !easyRead.data.blocks.some((block) => block.entries.length > 0)
-      ) {
-        pending.push("Easy Read")
-      }
-    }
-    if (
-      bundle.runtimeFeatures.signLanguage
-      && !storage.getSignLanguageVideos().some((video) => video.sectionId !== null)
-    ) {
-      pending.push("Sign Language")
-    }
-    return pending
+    const states = importedFeatureStates(bundle, storage)
+    return (Object.keys(states) as ImportedAdtFeature[]).filter((feature) => {
+      const state = states[feature]
+      if (!state.inArchive || state.present || excluded.has(feature)) return false
+      // Imports recorded before `seededFeatures` existed: any trace of the
+      // feature in the project means it was brought in and later removed.
+      const broughtIn = seeded ? seeded.has(feature) : state.everPresent
+      return !broughtIn
+    })
   } finally {
     storage.close()
   }
@@ -150,6 +213,22 @@ function escapePresentationAttribute(value: string): string {
  * Book content (`content/**`: texts, audio, glossary, timings) is never copied
  * back: the packager decides what ships, including languages and features left
  * out of this export. */
+function refreshPageHtmlFingerprints(adtDir: string, hrefs: string[]): void {
+  const manifestPath = path.join(adtDir, "manifest.json")
+  if (!fs.existsSync(manifestPath)) return
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
+    frozen?: { pageHtmlFingerprints?: Record<string, string> }
+  }
+  const fingerprints = manifest.frozen?.pageHtmlFingerprints
+  if (!fingerprints) return
+  for (const href of hrefs) {
+    if (!(href in fingerprints)) continue
+    fingerprints[href] = createHash("sha256").update(fs.readFileSync(path.join(adtDir, href))).digest("hex")
+  }
+  // Same format the packager writes (writeJson).
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+}
+
 export function restoreImportedAdtPresentation(label: string, booksDir: string): boolean {
   const safeLabel = parseBookLabel(label)
   const bookDir = path.join(path.resolve(booksDir), safeLabel)
@@ -195,6 +274,7 @@ export function restoreImportedAdtPresentation(label: string, booksDir: string):
     section_id?: unknown
     href?: unknown
   }>
+  const changedPageHrefs: string[] = []
   for (const page of pages) {
     if (typeof page.href !== "string" || typeof page.section_id !== "string") continue
     const pagePath = path.resolve(adtDir, page.href)
@@ -214,9 +294,14 @@ export function restoreImportedAdtPresentation(label: string, booksDir: string):
     }
     if (html !== before) {
       fs.writeFileSync(pagePath, html)
+      changedPageHrefs.push(page.href)
       changed = true
     }
   }
+  // The packager fingerprinted each page before this restore. Refresh those
+  // fingerprints so an untouched re-import doesn't read the restored styles
+  // and scripts as edits made outside Studio.
+  if (changedPageHrefs.length > 0) refreshPageHtmlFingerprints(adtDir, changedPageHrefs)
   if (changed) generateOfflinePreloader(adtDir, packagedLanguages(adtDir))
   return changed
 }

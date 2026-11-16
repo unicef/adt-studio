@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -331,7 +332,15 @@ describe("ADT recovery workspace", () => {
     fs.writeFileSync(path.join(bookDir, "adt", "content", "pages.json"), JSON.stringify([
       { section_id: "pg001_sec001", href: "index.html" },
     ]))
+    const packagedFingerprint = "0".repeat(64)
+    fs.writeFileSync(path.join(bookDir, "adt", "manifest.json"), JSON.stringify({
+      frozen: { pageHtmlFingerprints: { "index.html": packagedFingerprint } },
+    }))
     expect(restoreImportedAdtPresentation(session.label, booksDir)).toBe(true)
+    // F20: the manifest fingerprints the page as it ships, after the restore.
+    const shippedHtml = fs.readFileSync(path.join(bookDir, "adt", "index.html"))
+    expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt", "manifest.json"), "utf8")).frozen.pageHtmlFingerprints)
+      .toEqual({ "index.html": createHash("sha256").update(shippedHtml).digest("hex") })
     expect(fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf8"))
       .toContain('href="./assets/book-showcase.css"')
     expect(fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf8"))
