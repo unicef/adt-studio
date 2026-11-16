@@ -16,7 +16,7 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     const label = c.req.param("label")
     if (!label) return next()
     const suffix = c.req.path.split(`/books/${encodeURIComponent(label)}`)[1] ?? ""
-    if (suffix === "" && c.req.method === "POST" && ["import", "preview-import"].includes(label)) return next()
+    if (suffix === "" && c.req.method === "POST" && ["import", "import-adt", "preview-import"].includes(label)) return next()
     const bookDir = requireExistingBook(label, booksDir)
     // These POSTs are preview reads. Math transforms supplied HTML; CSS reads
     // through shared database admission and compiles temporary/in-memory output,

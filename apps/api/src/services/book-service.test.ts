@@ -142,6 +142,53 @@ function markStepsDone(label: string, steps: string[]): void {
 }
 
 describe("listBooks", () => {
+  // F14: one book with an unreadable identity must not break the library.
+  it("still lists every book when one identity file is truncated", () => {
+    createTestDb("healthy")
+    createTestDb("damaged")
+    fs.writeFileSync(path.join(tmpDir, "damaged", ".adt-project.json"), '{"version": 1, "projec')
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      const books = listBooks(tmpDir)
+      expect(books.map((book) => book.label)).toEqual(["damaged", "healthy"])
+      expect(books[0].projectId).toMatch(/^[0-9a-f-]{36}$/)
+      expect(listBooks(tmpDir)[0].projectId).toBe(books[0].projectId)
+      expect(warn).toHaveBeenCalled()
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it("lists every other book when one folder can't be read at all", () => {
+    if (process.platform === "win32" || process.getuid?.() === 0) return
+    createTestDb("healthy")
+    const bad = path.join(tmpDir, "unreadable")
+    fs.mkdirSync(bad)
+    fs.chmodSync(bad, 0o000)
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      expect(listBooks(tmpDir).map((book) => book.label)).toContain("healthy")
+    } finally {
+      warn.mockRestore()
+      fs.chmodSync(bad, 0o755)
+    }
+  })
+
+  it("lists a book whose folder can't be written and has no identity yet", () => {
+    if (process.platform === "win32" || process.getuid?.() === 0) return
+    createTestDb("read-only")
+    const bookDir = path.join(tmpDir, "read-only")
+    fs.rmSync(path.join(bookDir, ".adt-project.json"), { force: true })
+    fs.chmodSync(bookDir, 0o555)
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      expect(listBooks(tmpDir).map((book) => book.label)).toEqual(["read-only"])
+    } finally {
+      warn.mockRestore()
+      fs.chmodSync(bookDir, 0o755)
+    }
+  })
+
   it("returns empty array for empty directory", () => {
     expect(listBooks(tmpDir)).toEqual([])
   })
@@ -166,6 +213,10 @@ describe("listBooks", () => {
       languageCode: "en",
       pageCount: 3,
       hasSourcePdf: true,
+      projectId: expect.any(String),
+      sourceKind: "pdf",
+      workingSource: "pdf",
+      sourceFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
@@ -190,6 +241,10 @@ describe("listBooks", () => {
       languageCode: null,
       pageCount: 0,
       hasSourcePdf: false,
+      projectId: expect.any(String),
+      sourceKind: "unknown",
+      workingSource: "unknown",
+      sourceFingerprint: null,
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
@@ -216,6 +271,10 @@ describe("listBooks", () => {
       languageCode: null,
       pageCount: 0,
       hasSourcePdf: true,
+      projectId: expect.any(String),
+      sourceKind: "pdf",
+      workingSource: "pdf",
+      sourceFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],

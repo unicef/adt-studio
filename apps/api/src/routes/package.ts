@@ -22,6 +22,10 @@ import {
 } from "@adt/pipeline"
 import type { Storage } from "@adt/storage"
 import type { TaskService } from "../services/task-service.js"
+import {
+  getImportedAdtFeaturesNeedingRegeneration,
+  restoreImportedAdtPresentation,
+} from "../services/adt-import/presentation.js"
 
 const PACKAGE_VERSION_LENGTH = 16
 
@@ -201,6 +205,16 @@ export function createPackageRoutes(
       })
     }
 
+    const importedFeaturesPending = getImportedAdtFeaturesNeedingRegeneration(
+      safeLabel,
+      resolvedBooksDir,
+    )
+    if (importedFeaturesPending.length > 0) {
+      throw new HTTPException(409, {
+        message: `Regenerate these imported features before packaging: ${importedFeaturesPending.join(", ")}. Their exported runtime data cannot be edited safely as pipeline entities.`,
+      })
+    }
+
     let cacheState: PackagingCacheState
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -343,6 +357,7 @@ async function runPackaging(
     }
 
     const { warnings } = await packageAdtWeb(storage, {
+      finalizePresentation: adtDir => { restoreImportedAdtPresentation(safeLabel, booksDir, adtDir) },
       preparePublication: async (stagingRoot, result) => {
         fs.writeFileSync(getBuildVersionPath(stagingRoot), bundleVersion, "utf8")
         fs.writeFileSync(getBuildHashPath(stagingRoot), preHash, "utf8")

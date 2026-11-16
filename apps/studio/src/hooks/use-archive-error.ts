@@ -1,8 +1,15 @@
 import { useLingui } from "@lingui/react/macro"
 
+/** What kind of failure it is, so a screen can choose its layout without
+ * matching English again. "not-recognized": no archive type ADT Studio
+ * imports was found. "adt-unreadable": an ADT export was recognized but one of
+ * its files is broken. "server": ADT Studio failed, not the file. */
+export type FriendlyErrorKind = "not-recognized" | "adt-unreadable" | "server" | "other"
+
 export interface FriendlyError {
   title: string
   hint: string
+  kind?: FriendlyErrorKind
 }
 
 /**
@@ -15,10 +22,76 @@ export interface FriendlyError {
  * English at all; until then keep the match tokens in sync with the throwers in
  * `part-service.ts` / `import-service.ts`.
  */
-export function useFriendlyArchiveError(rawError: string | null): FriendlyError | null {
+export function useFriendlyArchiveError(
+  rawError: string | null,
+  /** The HTTP status, when known. It decides before any message text, which
+   * may be localized or come from a proxy. */
+  status?: number | null,
+): FriendlyError | null {
   const { t } = useLingui()
   if (!rawError) return null
   const e = rawError.toLowerCase()
+
+  if (status === 413) {
+    return {
+      title: t`This archive is too large`,
+      hint: t`ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again.`,
+    }
+  }
+  // A server failure says nothing about the file, whatever its text says.
+  // The one exception is the corrupt-backup message, which the API answers
+  // with 500 but which is about the file.
+  if (typeof status === "number" && status >= 500 && status !== 507 && !e.includes("project database")) {
+    return {
+      kind: "server",
+      title: t`ADT Studio couldn't check this archive`,
+      hint: t`Something went wrong in ADT Studio, not necessarily in your file. Try again; if it keeps failing, report the problem and include the archive.`,
+    }
+  }
+
+  if (status === 507) {
+    return {
+      title: t`Not enough disk space`,
+      hint: t`Free up space on this computer, then try the import again. The archive itself is fine.`,
+      kind: "server",
+    }
+  }
+
+  if (e.includes("compressed size limit") || e.includes("compressed archive size limit")) {
+    return {
+      title: t`This archive is too large`,
+      hint: t`ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller bundle and try again.`,
+    }
+  }
+
+  // Expanded-size, per-file and entry-count limits: the upload size was fine,
+  // but what is inside the archive is too big to import safely.
+  if (
+    e.includes("size limit") ||
+    e.includes("exceeds the size") ||
+    e.includes("too many entries") ||
+    e.includes("too many archive entries")
+  ) {
+    return {
+      title: t`This archive is too large`,
+      hint: t`Something inside this ZIP is larger than ADT Studio can import safely. Remove files the book doesn't need, such as old exports, and try again.`,
+    }
+  }
+
+  if (e.includes("not enough disk space")) {
+    return {
+      title: t`Not enough disk space`,
+      hint: t`Free up space on this computer, then try the import again. The archive itself is fine.`,
+      kind: "server",
+    }
+  }
+
+  if (e.includes("read-only distribution format") || e.includes("cannot be re-imported yet")) {
+    return {
+      title: t`This export format can't be re-imported yet`,
+      hint: t`EPUB, PNLD, and WebPub are read-only distribution formats. Re-import the ADT Web ZIP or a Project backup instead.`,
+    }
+  }
 
   // Order matters: more specific phrases are checked before broader ones.
   if (e.includes("invalid zip file") || e.includes("valid .zip archive")) {
@@ -32,6 +105,21 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     return {
       title: t`This isn't a completed part`,
       hint: t`Export the finished part from its Export step, then upload that file.`,
+    }
+  }
+
+  if (e.includes("legacy adt export") || e.includes("recognized legacy adt studio export")) {
+    return {
+      kind: "adt-unreadable",
+      title: t`This legacy ADT export is incomplete`,
+      hint: t`ADT Studio recognized the publication, but required book files are missing or inconsistent. Open the error details to see what must be repaired.`,
+    }
+  }
+
+  if (e.includes("already being edited") || e.includes("database is locked")) {
+    return {
+      title: t`This project is busy`,
+      hint: t`Wait for the current operation to finish, then try the import again.`,
     }
   }
 
@@ -61,6 +149,7 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     e.includes("expected a .db")
   ) {
     return {
+      kind: "not-recognized",
       title: t`This isn't a valid ADT Studio project`,
       hint: t`The archive must contain a project database and its PDF. Re-export it from ADT Studio.`,
     }
@@ -77,6 +166,39 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     return {
       title: t`This archive can't be opened safely`,
       hint: t`It contains unexpected file paths. Use a .zip exported from ADT Studio.`,
+    }
+  }
+
+  if (
+    e.includes("adt bundle") ||
+    e.includes("manifest.json") ||
+    e.includes("invalid shape") ||
+    e.includes("offline cache")
+  ) {
+    return {
+      kind: "adt-unreadable",
+      title: t`This isn't an editable ADT bundle`,
+      hint: t`Choose a Web Export ZIP created by a current version of ADT Studio.`,
+    }
+  }
+
+  // An unexpected server failure says nothing about the file, so don't blame it.
+  // Decided by status when known (the message may be localized or a proxy's).
+  if ((typeof status === "number" && status >= 500) || e.includes("internal server error") || /request failed: 5\d\d/.test(e)) {
+    return {
+      kind: "server",
+      title: t`ADT Studio couldn't check this archive`,
+      hint: t`Something went wrong in ADT Studio, not necessarily in your file. Try again; if it keeps failing, report the problem and include the archive.`,
+    }
+  }
+
+  // The request never got an answer (the browser's fetch failure, in Chrome,
+  // Firefox and Safari wording): the file was not checked at all.
+  if (e.includes("failed to fetch") || e.includes("networkerror") || e.includes("load failed")) {
+    return {
+      kind: "server",
+      title: t`ADT Studio couldn't check this archive`,
+      hint: t`ADT Studio's server didn't answer, so the file wasn't checked. Try again in a moment; if it keeps failing, restart ADT Studio.`,
     }
   }
 

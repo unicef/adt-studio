@@ -45,6 +45,7 @@ import { createCloudflareRoutes } from "./routes/cloudflare.js"
 import { createConnectionStore, resolvePublishStateDir } from "./services/cloudflare/connection-store.js"
 import { createCloudflareOAuthService } from "./services/cloudflare/oauth.js"
 import { createPublishRoutes } from "./routes/publications.js"
+import { removeAbandonedAdtImports } from "./services/adt-import/marker.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -80,6 +81,10 @@ if (adtResourcesZip && fs.existsSync(adtResourcesZip)) {
     process.env.WEB_ASSETS_DIR ?? path.join(projectRoot, "assets", "adt")
   )
 }
+
+// An ADT import interrupted by a crash or shutdown leaves a hidden, half-made
+// book folder; no import of this process can be running yet, so clear them.
+removeAbandonedAdtImports(booksDir)
 
 const eventBus = createBookEventBus()
 const pageErrorDecisions = createPageErrorDecisions(eventBus)

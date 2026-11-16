@@ -2,10 +2,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import { openBookDb, createBookStorage, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
 import { unzipSync } from "fflate"
 import { packageEpub } from "@adt/pipeline"
+import { Hono } from "hono"
+import { createPackageRoutes } from "../routes/package.js"
+import { errorHandler } from "../middleware/error-handler.js"
+import { makeBundle, seedFromArchive } from "./adt-import/__tests__/fixtures.js"
 import { prepareExport, exportProject, exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld } from "./export-service.js"
 
 let tmpDir: string
@@ -120,6 +124,7 @@ describe("exportProject", () => {
     const held = withBookWriter(path.join(tmpDir, "busy-export"), () => new Promise<void>((resolve) => { release = resolve }))
     try {
       await expect(exportProject("busy-export", tmpDir)).rejects.toMatchObject({ code: "BOOK_BUSY" })
+      expect(fs.existsSync(path.join(tmpDir, "busy-export", ".adt-project.json"))).toBe(false)
     } finally { release(); await held }
   })
   it.each([false, true])("retains writer admission while a large archive is read (cancelled: %s)", async (cancelled) => {
@@ -173,6 +178,29 @@ describe("exportProject", () => {
     const zipBuffer = await streamToBuffer(result.stream)
     const files = unzipSync(zipBuffer)
     expect(files["export-test.db"]).toBeDefined()
+    expect(files[".adt-project.json"]).toBeDefined()
+    expect(JSON.parse(new TextDecoder().decode(files[".adt-project.json"]))).toMatchObject({
+      version: 1,
+      sourceKind: "unknown",
+    })
+  })
+
+  it("leaves export outputs and the screenshot cache out, keeps the LLM cache and debug images", async () => {
+    createTestDb("lean-backup")
+    addPages("lean-backup", 1)
+    const bookDir = path.join(tmpDir, "lean-backup")
+    for (const dir of ["adt", "webpub", "epub", "pnld", ".section-renders", ".cache", ".debug-images"]) {
+      fs.mkdirSync(path.join(bookDir, dir), { recursive: true })
+      fs.writeFileSync(path.join(bookDir, dir, "file.bin"), "x")
+    }
+
+    const result = await exportProject("lean-backup", tmpDir)
+    const names = Object.keys(unzipSync(await streamToBuffer(result.stream)))
+    for (const dir of ["adt", "webpub", "epub", "pnld", ".section-renders"]) {
+      expect(names.some((n) => n.startsWith(`${dir}/`))).toBe(false)
+    }
+    expect(names).toContain(".cache/file.bin")
+    expect(names).toContain(".debug-images/file.bin")
   })
 
   it("includes PDF in the ZIP", async () => {
@@ -565,6 +593,18 @@ describe("exportEpub", () => {
     expect(files["OEBPS/toc.ncx"]).toBeDefined()
   })
 
+  // F22: the round-trip editing contract (with the project id) stays out of EPUB.
+  it("leaves the ADT round-trip manifest.json out of the EPUB and its OPF", async () => {
+    createBookWithMetadata("epub-no-manifest", "No Manifest")
+    addPagesAndRenderings("epub-no-manifest", 1)
+
+    await prepareExport("epub-no-manifest", "epub", tmpDir, webAssetsDir)
+    expect(fs.existsSync(path.join(tmpDir, "epub-no-manifest", "adt", "manifest.json"))).toBe(true)
+    const files = unzipSync(await streamToBuffer((await exportEpub("epub-no-manifest", tmpDir)).stream))
+    expect(files["OEBPS/manifest.json"]).toBeUndefined()
+    expect(new TextDecoder().decode(files["OEBPS/content.opf"])).not.toContain('href="manifest.json"')
+  })
+
   it("includes content pages as HTML files from ADT package", async () => {
     createBookWithMetadata("epub-pages", "Pages Book")
     addPagesAndRenderings("epub-pages", 2)
@@ -902,7 +942,7 @@ it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("keeps origin recei
     const text = new TextDecoder().decode(bytes)
     expect.soft(text).not.toContain(".build-owners")
     const hrefs: string[] = file.endsWith("manifest.json")
-      ? [...JSON.parse(text).readingOrder, ...JSON.parse(text).resources].map(entry => entry.href)
+      ? [...(JSON.parse(text).readingOrder ?? []), ...(JSON.parse(text).resources ?? [])].map(entry => entry.href)
       : [...text.matchAll(/href="([^"]+)"/g)].map(match => match[1])
     for (const href of hrefs) if (!/^(?:[a-z]+:|\/\/|#)/i.test(href)) expect(files[path.posix.join(path.posix.dirname(file), decodeURIComponent(href.split("#")[0]))], `${file}: ${href}`).toBeDefined()
   }
@@ -923,9 +963,10 @@ it.each(["adt", "scorm", "webpub", "epub", "pnld"] as const)("keeps origin recei
     await streamToBuffer((await download(label, tmpDir)).stream)
   }
   const project = unzipSync(await streamToBuffer((await exportProject(label, tmpDir)).stream))
-  // Project policy is unchanged: generated EPUB/PNLD directories were already
-  // preserved, and must not lose their internal proof due to reader filtering.
-  if (format === "epub" || format === "pnld") expect(Buffer.from(project[`${format}/${relative}`])).toEqual(receipt)
+  // Upstream project backups now omit all rebuilt distribution directories.
+  // The live package receipt stays intact; the source identity/history reopens below.
+  expect(Object.keys(project).some(name => /^(adt|webpub|epub|pnld)\//.test(name))).toBe(false)
+  expect(fs.readFileSync(receiptFile)).toEqual(receipt)
   const reopenedRoot = path.join(tmpDir, "reopened"), reopenedDir = path.join(reopenedRoot, label)
   for (const [name, bytes] of Object.entries(project)) {
     const file = path.join(reopenedDir, name)
@@ -1137,4 +1178,47 @@ it("validates the actual EPUB converter's narration overlay and restored target 
   }
   fs.writeFileSync(smil, original)
   expect(await download()).toEqual(valid)
+})
+
+
+it.each(["prepare-export", "package-route"] as const)("seals restored imported presentation before publication through %s", async entry => {
+  const sourceArchive = makeBundle()
+  // An existing imported project from before the stricter import admission:
+  // rebuilding must preserve the presentation retained with its source archive.
+  const { label } = seedFromArchive(sourceArchive, tmpDir)
+  const bookDir = path.join(tmpDir, label)
+  const revisionDir = path.join(bookDir, ".adt-imports", "legacy")
+  fs.mkdirSync(revisionDir, { recursive: true })
+  fs.writeFileSync(path.join(revisionDir, "source.zip"), sourceArchive)
+  fs.writeFileSync(path.join(bookDir, ".adt-import-current.json"), JSON.stringify({
+    version: 1, revisionId: "legacy", importedAt: "2026-01-01T00:00:00.000Z", seededFeatures: ["Speech"],
+  }))
+  const app = new Hono().onError(errorHandler).route("/api", createPackageRoutes(tmpDir, webAssetsDir))
+  const build = async () => {
+    if (entry === "prepare-export") return prepareExport(label, "adt", tmpDir, webAssetsDir)
+    const response = await app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+    expect(response.status).toBe(200)
+    return response.json()
+  }
+  const download = async () => unzipSync(await streamToBuffer((await exportAdt(label, tmpDir)).stream))
+  await build()
+  const first = await download()
+  const html = Buffer.from(first["pg001_sec001.html"]).toString()
+  expect(html).toContain('href="./assets/book-showcase.css"')
+  expect(Buffer.from(first["assets/book-showcase.css"]).toString()).toContain("rebeccapurple")
+  expect(first["showcase-assets/paper.png"]).toBeDefined()
+  const manifest = JSON.parse(Buffer.from(first["manifest.json"]).toString())
+  expect(manifest.frozen.pageHtmlFingerprints["pg001_sec001.html"]).toBe(createHash("sha256").update(html).digest("hex"))
+  expect(first[".build-owners"]).toBeUndefined()
+  if (entry === "package-route") {
+    await build() // cache hit must preserve the already sealed presentation
+    expect(await download()).toEqual(first)
+  }
+  const pagePath = path.join(bookDir, "adt", "pg001_sec001.html")
+  fs.writeFileSync(pagePath, html + "<!-- changed after publication -->")
+  await expect(download()).rejects.toMatchObject({ code: "PACKAGE_FILES_INCOMPLETE" })
+  await build()
+  expect(Buffer.from((await download())["pg001_sec001.html"]).toString()).toContain('href="./assets/book-showcase.css"')
+  const current = JSON.parse(fs.readFileSync(path.join(bookDir, ".adt-import-current.json"), "utf8"))
+  expect(fs.readFileSync(path.join(bookDir, ".adt-imports", current.revisionId, "source.zip"))).toEqual(sourceArchive)
 })

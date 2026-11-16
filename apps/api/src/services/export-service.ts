@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+import { randomUUID } from "node:crypto"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, PackageOwnershipReceipt } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
@@ -9,6 +10,12 @@ import { readRetainedPackageOwnership } from "./retained-package-reader.js"
 import { publishedAdtDirectory, requiredPartRange, resolveReadingOrder, assertDerivedPackageFilesAvailable, SectioningSafetyError, assertPackageFilesAvailable, packageFilesAvailable, packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook, PACKAGE_OWNERS_FILE } from "@adt/pipeline"
 import { createZipStream, type ZipStreamOptions } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
+import { ensureProjectIdentity } from "./project-identity.js"
+import {
+  getImportedAdtFeaturesNeedingRegeneration,
+  type ImportedAdtFeature,
+  restoreImportedAdtPresentation,
+} from "./adt-import/presentation.js"
 
 export interface ExportResult {
   stream: ReadableStream<Uint8Array>
@@ -113,6 +120,23 @@ async function prepareAdmittedExport(
     throwWebAssetsMissing()
   }
 
+  // A feature this export leaves out can't be lost by it.
+  const excludedFeatures = new Set<ImportedAdtFeature>([
+    ...(features?.readAloud === false ? ["Speech" as const] : []),
+    ...(features?.quizzes === false ? ["Quizzes" as const] : []),
+    ...(features?.signLanguage === false ? ["Sign Language" as const] : []),
+  ])
+  const importedFeaturesPending = getImportedAdtFeaturesNeedingRegeneration(
+    safeLabel,
+    resolvedDir,
+    excludedFeatures,
+  )
+  if (importedFeaturesPending.length > 0) {
+    throw new HTTPException(409, {
+      message: `Regenerate these imported features before exporting: ${importedFeaturesPending.join(", ")}. Their exported runtime data cannot be edited safely as pipeline entities.`,
+    })
+  }
+
   const storage = createBookStorage(safeLabel, resolvedDir)
   try {
     const config = loadBookConfig(safeLabel, resolvedDir, configPath)
@@ -128,6 +152,7 @@ async function prepareAdmittedExport(
       )
     )
     const title = metadata?.title ?? safeLabel
+    const identity = ensureProjectIdentity(bookDir)
 
     const normalizedRequested = features?.languages?.map(normalizeLocale) ?? []
     const finalLanguages = normalizedRequested.length > 0
@@ -168,6 +193,7 @@ async function prepareAdmittedExport(
     })()
 
     const opts = {
+      finalizePresentation: (adtDir: string) => { restoreImportedAdtPresentation(safeLabel, resolvedDir, adtDir) },
       promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
       bookDir,
       label: safeLabel,
@@ -184,6 +210,13 @@ async function prepareAdmittedExport(
       fixedLayout: isFixedLayoutBook(config),
       reflowableFont: config.reflowable_font,
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
+      lineage: {
+        originProjectId: identity.projectId,
+        sourceKind: identity.sourceKind,
+        sourceFingerprint: identity.sourceFingerprint,
+        publicationId: randomUUID(),
+        exportedAt: new Date().toISOString(),
+      },
       // EPUB glossary implementation (word-level spec / in-flow pages / both).
       epubGlossary: config.epub_glossary,
     }
@@ -223,7 +256,7 @@ function warmDownloadProofs(storage: Storage, bookDir: string, format: "scorm" |
 function createProjectZipStream(bookDir: string) {
   const artifacts = fs.readdirSync(bookDir).filter(name => isBookWriterArtifact(bookDir, name))
   return createAdmittedZipStream(bookDir, bookDir, {
-    excludeDirs: new Set(["adt", "webpub", ".adt-package-work", ".book-writer.json.recovery", ...artifacts]),
+    excludeDirs: new Set([...PROJECT_BACKUP_EXCLUDED_DIRS, ".adt-package-work", ".book-writer.json.recovery", ...artifacts]),
     excludeFiles: new Set([".book-writer.json", ".book-writer.json.recovery", ...artifacts]),
   })
 }
@@ -251,6 +284,19 @@ function createAdmittedZipStream(bookDir: string, directory: string, options?: Z
     cancel() { cancelled = true },
   })
 }
+/**
+ * Top-level folders left out of project backups: export outputs (rebuilt by
+ * packaging) and the section screenshot cache (rebuilt on demand). The LLM
+ * cache (.cache) and LLM debug images stay, so restored books keep fast reruns
+ * and an inspectable call history.
+ */
+export const PROJECT_BACKUP_EXCLUDED_DIRS: ReadonlySet<string> = new Set([
+  "adt",
+  "webpub",
+  "epub",
+  "pnld",
+  ".section-renders",
+])
 
 export async function exportProject(
   label: string,
@@ -264,6 +310,9 @@ export async function exportProject(
     throwBookNotFound(safeLabel)
   }
 
+  // Project archives carry the stable identity too, so moving a project to a
+  // different machine does not sever future exported-ADT lineage matches.
+  withBookWriter(bookDir, () => ensureProjectIdentity(bookDir))
   const title = readBookTitle(safeLabel, resolvedDir)
 
   // When this book is an imported page-range part, name the returned archive

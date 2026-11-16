@@ -169,7 +169,9 @@ function staticImage(img: ActivityImage | undefined): string {
   if (!img) return ""
   const alt = img.decorative ? "" : (img.alt ?? "")
   const hidden = img.decorative ? ` role="presentation" aria-hidden="true"` : ""
-  return `<img src="${escapeAttr(img.src)}" alt="${escapeAttr(alt)}"${hidden} style="max-height:240px;max-width:100%;object-fit:contain;border-radius:8px;margin:0 auto 12px;display:block;" />`
+  // The image's catalog id: EPUB keeps it, and a re-import projects the image by it.
+  const dataId = img.imageId ? ` data-id="${escapeAttr(img.imageId)}"` : ""
+  return `<img${dataId} src="${escapeAttr(img.src)}" alt="${escapeAttr(alt)}"${hidden} style="max-height:240px;max-width:100%;object-fit:contain;border-radius:8px;margin:0 auto 12px;display:block;" />`
 }
 
 const STATIC_BLANK = `<span style="display:inline-block;min-width:6ch;border-bottom:2px solid #64748B;">&#160;</span>`
@@ -287,6 +289,39 @@ export function maskStepperPayloads(html: string): {
       ? out
       : out.replace(STEPPER_PAYLOAD_MASK_RE, (m, i) => payloads[Number(i)] ?? m)
   return { masked, restore }
+}
+
+/**
+ * Re-import of a packaged stepper page. The shell carries the whole activity
+ * as JSON but none of the data-ids the importer projects, so the importer
+ * reads the section as its static rendering (which carries them) and restores
+ * the activity entity from the payload. Returns null when the page has no
+ * readable stepper shell for this section.
+ */
+export function expandImportedStepperShell(
+  pageHtml: string,
+  sectionId: string,
+): { html: string; activity: EditableActivity } | null {
+  let activity: EditableActivity | null = null
+  const html = pageHtml.replace(STEPPER_SHELL_RE, (shell) => {
+    if (activity) return shell
+    const openingTag = shell.slice(0, shell.indexOf(">") + 1)
+    const shellSectionId = /\sdata-section-id="([^"]*)"/.exec(openingTag)?.[1]
+    if (shellSectionId !== undefined && shellSectionId !== sectionId) return shell
+    const payloadMatch = STEPPER_PAYLOAD_RE.exec(shell)
+    if (!payloadMatch) return shell
+    try {
+      const payload = JSON.parse(payloadMatch[1]) as StepperPayload
+      const parsed = EditableActivity.safeParse(payload.activity)
+      if (!parsed.success) return shell
+      activity = parsed.data
+      const staticHtml = renderEditableActivityStaticHtml(parsed.data)
+      return `<section data-section-id="${escapeAttr(sectionId)}"${staticHtml.slice("<section".length)}`
+    } catch {
+      return shell
+    }
+  })
+  return activity ? { html, activity } : null
 }
 
 /**

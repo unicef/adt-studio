@@ -20,6 +20,13 @@ import {
 import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
 import { BookConfigError, SectioningSafetyError, readReadingOrderQuizzes, activeSectioningPages, loadBookConfig, loadBookConfigOverrides, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
 import { AppConfig } from "@adt/types"
+import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import/marker.js"
+import { ensureProjectIdentity, projectIdentityForListing } from "./project-identity.js"
+import { isImportedAdtProject } from "./adt-import/source.js"
+
+function workingSource(bookDir: string, fallback: BookSummary["sourceKind"]): BookSummary["workingSource"] {
+  return isImportedAdtProject(bookDir) ? "imported-adt" : fallback
+}
 
 type BookDb = ReturnType<typeof openBookDb>
 
@@ -154,6 +161,10 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
   const resolvedDir = path.resolve(booksDir)
   if (!fs.existsSync(resolvedDir)) return
 
+  // A shared configuration error must not label every book as damaged.
+  // Validate outside the per-book failure isolation below.
+  loadConfig(configPath)
+
   const entries = fs.readdirSync(resolvedDir, { withFileTypes: true })
 
   for (const entry of entries) {
@@ -162,8 +173,10 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
 
     const label = entry.name
     const bookDir = path.join(resolvedDir, label)
+    if (fs.existsSync(path.join(bookDir, ADT_IMPORT_IN_PROGRESS_MARKER))) continue
     const dbPath = path.join(bookDir, `${label}.db`)
     const pdfPath = path.join(bookDir, `${label}.pdf`)
+    const identity = projectIdentityForListing(bookDir)
 
     let title: string | null = null
     let authors: string[] = []
@@ -222,7 +235,10 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
             ? "Book database is temporarily locked. Try again shortly."
             : "Book data uses an older storage schema and must be rebuilt."
         } else {
-          throw err
+          // One unreadable book must not take the whole library down.
+          console.warn(`[books] ${label}: database could not be read (${err instanceof Error ? err.message : String(err)})`)
+          needsRebuild = true
+          rebuildReason = "Book database could not be read. Check the book folder's permissions and disk."
         }
       }
     }
@@ -237,6 +253,10 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
       languageCode,
       pageCount,
       hasSourcePdf: fs.existsSync(pdfPath),
+      projectId: identity.projectId,
+      sourceKind: identity.sourceKind,
+      workingSource: workingSource(bookDir, identity.sourceKind),
+      sourceFingerprint: identity.sourceFingerprint,
       needsRebuild,
       rebuildReason,
       completedStages,
@@ -277,6 +297,8 @@ export function getBook(label: string, booksDir: string, configPath?: string): B
 
   const dbPath = path.join(bookDir, `${safeLabel}.db`)
   const pdfPath = path.join(bookDir, `${safeLabel}.pdf`)
+  // Same fallback as the library list, so a book it shows can be opened too.
+  const identity = projectIdentityForListing(bookDir)
 
   let title: string | null = null
   let authors: string[] = []
@@ -354,6 +376,10 @@ export function getBook(label: string, booksDir: string, configPath?: string): B
     languageCode,
     pageCount,
     hasSourcePdf: fs.existsSync(pdfPath),
+    projectId: identity.projectId,
+    sourceKind: identity.sourceKind,
+    workingSource: workingSource(bookDir, identity.sourceKind),
+    sourceFingerprint: identity.sourceFingerprint,
     needsRebuild,
     rebuildReason,
     completedStages,
@@ -407,6 +433,7 @@ export function createBook(
 
   fs.mkdirSync(bookDir, { recursive: true })
   fs.writeFileSync(path.join(bookDir, `${safeLabel}.pdf`), pdfBuffer)
+  const identity = ensureProjectIdentity(bookDir, { sourceKind: "pdf" })
 
   fs.writeFileSync(
     path.join(bookDir, "config.yaml"),
@@ -423,6 +450,10 @@ export function createBook(
     languageCode: null,
     pageCount: 0,
     hasSourcePdf: true,
+    projectId: identity.projectId,
+    sourceKind: identity.sourceKind,
+    workingSource: identity.sourceKind,
+    sourceFingerprint: identity.sourceFingerprint,
     needsRebuild: false,
     rebuildReason: null,
     completedStages: [],

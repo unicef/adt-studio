@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import { openCoordinatedDatabase } from "./database-admission.js"
-import { BookFontRegistry, FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID, ExtractionManifest, type ExtractionInputs } from "@adt/types"
+import { BookFontRegistry, FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID, ExtractionManifest, PROJECT_IDENTITY_FILE, ProjectIdentity, type ExtractionInputs } from "@adt/types"
 import { assertBookWriter, BookBusyError, isBookWriterArtifact } from "./book-writer.js"
 import { ExtractionAdmissionError } from "./extraction-error.js"
 import { readSectioningLifecycle, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
@@ -79,6 +79,15 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
     // Changing a generation preference before Extract creates bookkeeping,
     // not generated content. Still validate the sidecar and every DB row below.
     if (entry.isFile() && entry.name === SECTIONING_LIFECYCLE && readSectioningLifecycle(bookDir)) continue
+    // New PDF projects have identity metadata before Extract. It is not proof
+    // of an empty destination: validate its source and all content below.
+    if (entry.isFile() && entry.name === PROJECT_IDENTITY_FILE) {
+      try {
+        const identity = ProjectIdentity.parse(JSON.parse(fs.readFileSync(path.join(bookDir, entry.name), "utf8")))
+        if (identity.sourceKind !== "pdf" || identity.sourceFingerprint !== sourceHash) throw new Error("Source mismatch")
+      } catch { throw new ExtractionAdmissionError("EXTRACTION_LEGACY") }
+      continue
+    }
     if (entry.isDirectory() && entry.name === "fonts") {
       // Uploaded fonts are initial configuration inputs, but the directory is
       // not a blanket exception for unknown content or symlinks. Validate its

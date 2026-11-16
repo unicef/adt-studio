@@ -10,6 +10,7 @@ import { extractPDF } from "../../../../packages/pipeline/src/pdf-extraction.js"
 import { createBookRoutes } from "../routes/books.js"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createBook } from "./book-service.js"
+import { PROJECT_IDENTITY_FILE } from "@adt/types"
 
 let root: string
 let configPath: string
@@ -37,6 +38,7 @@ it.each([false, true])("allows first extraction after a preference change, with 
   const dir = path.join(root, label)
   expect(readSectioningLifecycle(dir)?.mode).toBe("page")
   const sidecar = fs.readFileSync(path.join(dir, ".sectioning-lifecycle.json"))
+  const identity = fs.readFileSync(path.join(dir, PROJECT_IDENTITY_FILE))
   const storage = createBookStorage(label, root)
   try {
     if (leftovers) {
@@ -54,10 +56,11 @@ it.each([false, true])("allows first extraction after a preference change, with 
     expect(readExtractionManifest(dir)?.status).toBe("complete")
     expect(fs.readFileSync(path.join(dir, label + ".pdf")).equals(fs.readFileSync(source))).toBe(true)
     expect(fs.readFileSync(path.join(dir, ".sectioning-lifecycle.json"))).toEqual(sidecar)
+    expect(fs.readFileSync(path.join(dir, PROJECT_IDENTITY_FILE))).toEqual(identity)
   } finally { storage.close() }
 }, 30_000)
 
-it.each(["generated-history", "unknown-file", "malformed-sidecar", "sidecar-directory", "sidecar-symlink", "unknown-admission-file", "admission-extra-file", "admission-symlink"])(
+it.each(["generated-history", "unknown-file", "malformed-sidecar", "sidecar-directory", "sidecar-symlink", "unknown-admission-file", "admission-extra-file", "admission-symlink", "malformed-project-identity", "project-identity-directory", "project-identity-symlink", "imported-project-identity", "mismatched-project-identity"])(
   "a preference sidecar does not bypass initial extraction protection for %s", async kind => {
     await changeMode()
     const dir = path.join(root, label), sidecar = path.join(dir, ".sectioning-lifecycle.json")
@@ -68,6 +71,16 @@ it.each(["generated-history", "unknown-file", "malformed-sidecar", "sidecar-dire
       if (kind === "malformed-sidecar") fs.writeFileSync(sidecar, "{invalid")
       if (kind === "sidecar-directory") { fs.unlinkSync(sidecar); fs.mkdirSync(sidecar) }
       if (kind === "sidecar-symlink") { fs.unlinkSync(sidecar); fs.symlinkSync(configPath, sidecar) }
+      const identityPath = path.join(dir, PROJECT_IDENTITY_FILE)
+      if (kind === "malformed-project-identity") fs.writeFileSync(identityPath, "{invalid")
+      if (kind === "project-identity-directory") { fs.unlinkSync(identityPath); fs.mkdirSync(identityPath) }
+      if (kind === "project-identity-symlink") { fs.unlinkSync(identityPath); fs.symlinkSync(configPath, identityPath) }
+      if (kind === "imported-project-identity" || kind === "mismatched-project-identity") {
+        const identity = JSON.parse(fs.readFileSync(identityPath, "utf8"))
+        if (kind === "imported-project-identity") identity.sourceKind = "imported-adt"
+        else identity.sourceFingerprint = "0".repeat(64)
+        fs.writeFileSync(identityPath, JSON.stringify(identity))
+      }
       if (kind.startsWith("admission-") || kind === "unknown-admission-file") {
         const token = randomUUID(), artifact = path.join(dir, `.book-writer.json.recovery.preparing-${token}`)
         fs.mkdirSync(artifact)
@@ -82,10 +95,12 @@ it.each(["generated-history", "unknown-file", "malformed-sidecar", "sidecar-dire
       }
       const dbBefore = fs.readFileSync(path.join(dir, label + ".db"))
       const configBefore = fs.readFileSync(path.join(dir, "config.yaml"))
+      const identityBefore = fs.lstatSync(identityPath).isFile() ? fs.readFileSync(identityPath) : null
       await expect(extractPDF({ pdfPath: source, startPage: 1, endPage: 1 }, storage, { emit() {} }))
         .rejects.toMatchObject({ code: "EXTRACTION_LEGACY" })
       expect(fs.readFileSync(path.join(dir, label + ".db")).equals(dbBefore)).toBe(true)
       expect(fs.readFileSync(path.join(dir, "config.yaml"))).toEqual(configBefore)
+      if (identityBefore) expect(fs.readFileSync(identityPath)).toEqual(identityBefore)
       expect(fs.readFileSync(path.join(dir, label + ".pdf")).equals(fs.readFileSync(source))).toBe(true)
       expect(readExtractionManifest(dir)).toBeNull()
     } finally { storage.close() }
