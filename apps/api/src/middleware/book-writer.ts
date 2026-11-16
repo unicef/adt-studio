@@ -1,9 +1,12 @@
 import type { MiddlewareHandler } from "hono"
-import { withBookWriter, recoverSectioningTransition } from "@adt/storage"
+import { withBookWriter, ownsBookWriter, recoverSectioningTransition } from "@adt/storage"
 import { requireExistingBook } from "../utils/book-exists.js"
 
 const PUBLISH_WITHOUT_WRITES = ["/publication/comments", "/publication/room-ticket", "/publication/run/cancel"]
 const PUBLISH_RUNS = ["/publication", "/publication/versions"]
+// Spread applies reconcile from current membership, so order them before
+// admission, including the app's outer guard and the route's nested guard.
+const spreadApplies = new Map<string, Promise<unknown>>()
 
 /** Adapted from published SPEC-0010/#886. Reads remain read-only; queued runs
  * and cancellation are admitted by their service when execution starts. */
@@ -30,9 +33,25 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     if (PUBLISH_WITHOUT_WRITES.some((prefix) => suffix.startsWith(prefix))) return next()
     // A share takes the lease itself, after telling a second share about the running one.
     if (c.req.method === "POST" && PUBLISH_RUNS.includes(suffix)) return next()
-    return withBookWriter(bookDir, () => {
-      recoverSectioningTransition(bookDir)
-      return next()
-    })
+    const admit = () => {
+      // Recheck existence when queued work actually starts.
+      const currentDir = requireExistingBook(label, booksDir)
+      return withBookWriter(currentDir, () => {
+        recoverSectioningTransition(currentDir)
+        return next()
+      })
+    }
+    if (c.req.method === "POST" && suffix === "/spreads/apply" && !ownsBookWriter(bookDir)) {
+      // Hono caches this body. Read it on arrival, before a disconnected client
+      // can make a delayed body read look like an empty spread selection.
+      const sent = c.req.json().catch(() => undefined)
+      const start = async () => { await sent; return admit() }
+      const run = (spreadApplies.get(bookDir) ?? Promise.resolve()).then(start, start)
+      spreadApplies.set(bookDir, run)
+      const forget = () => { if (spreadApplies.get(bookDir) === run) spreadApplies.delete(bookDir) }
+      run.then(forget, forget)
+      return run
+    }
+    return admit()
   }
 }

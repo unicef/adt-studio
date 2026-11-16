@@ -1435,86 +1435,88 @@ export function createPageRoutes(
     const desiredIds = new Set(desiredGroups.map(idOf))
 
     const storage = createBookStorage(safeLabel, booksDir)
-    const currentIds = new Set(storage.getPages().map((p) => p.pageId))
+    try {
+      const currentIds = new Set(storage.getPages().map((p) => p.pageId))
 
-    const toAdd = desiredGroups.filter((g) => !currentIds.has(idOf(g)))
-    const toRemove = [...currentIds].filter((id) => !desiredIds.has(id))
+      const toAdd = desiredGroups.filter((g) => !currentIds.has(idOf(g)))
+      const toRemove = [...currentIds].filter((id) => !desiredIds.has(id))
 
-    if (toAdd.length > 0) {
-      const autoFigureMode = resolveFigureExtractionMode(config) === "auto"
-      const newPages = await extractPages({
-        pdfBuffer,
-        groups: toAdd,
-        ...figureExtractionFlags(config),
-        removeWatermarks: config.remove_watermarks === true,
-        fixedLayout: isFixedLayoutBook(config),
-      })
-      const imageClassifyConfig = {
-        ...buildImageClassifyConfig(config),
-        getImageBytes: (imageId: string) =>
-          Buffer.from(storage.getImageBase64(imageId), "base64"),
-      }
-      for (const page of newPages) {
-        withSourceGenerationTracking(storage, () => {
-          storage.putExtractedPage(page)
-          storage.putNodeData("positioned-text", page.pageId, page.positionedText)
-          if (page.extractionDebug) {
-            storage.putNodeData("extraction-debug", page.pageId, page.extractionDebug)
-          }
-          const classified = classifyPageImages(
-            page.pageId,
-            storage.getPageImages(page.pageId),
-            imageClassifyConfig,
-          )
-          storage.putNodeData(
-            "image-filtering",
-            page.pageId,
-            autoFigureMode
-              ? deduplicateAutoFigureCandidates(classified, page.extractionDebug)
-              : classified,
-          )
+      if (toAdd.length > 0) {
+        const autoFigureMode = resolveFigureExtractionMode(config) === "auto"
+        const newPages = await extractPages({
+          pdfBuffer,
+          groups: toAdd,
+          ...figureExtractionFlags(config),
+          removeWatermarks: config.remove_watermarks === true,
+          fixedLayout: isFixedLayoutBook(config),
         })
+        const imageClassifyConfig = {
+          ...buildImageClassifyConfig(config),
+          getImageBytes: (imageId: string) =>
+            Buffer.from(storage.getImageBase64(imageId), "base64"),
+        }
+        for (const page of newPages) {
+          withSourceGenerationTracking(storage, () => {
+            storage.putExtractedPage(page)
+            storage.putNodeData("positioned-text", page.pageId, page.positionedText)
+            if (page.extractionDebug) {
+              storage.putNodeData("extraction-debug", page.pageId, page.extractionDebug)
+            }
+            const classified = classifyPageImages(
+              page.pageId,
+              storage.getPageImages(page.pageId),
+              imageClassifyConfig,
+            )
+            storage.putNodeData(
+              "image-filtering",
+              page.pageId,
+              autoFigureMode
+                ? deduplicateAutoFigureCandidates(classified, page.extractionDebug)
+                : classified,
+            )
+          })
+        }
       }
-    }
-    // Retire before deleting, and in one pass so the whole reconcile costs a
-    // single `toc-generation` version. `deletePage` drops the page's entire
-    // node_data history, including the sectioning the id factory reads its
-    // high-water mark from — so a page later re-created under the same id
-    // restarts at `_sec001`. Any `toc-generation` entry, sign-language video or
-    // speech manifest entry still pointing at an id that page spent would then
-    // silently reattach to unrelated content, which is exactly what id
-    // immutability prevents everywhere else. The speech manifests are the ones
-    // `deletePage` cannot reach on its own: they are keyed by language, not by
-    // page.
-    const spentOnRemovedPages = toRemove.flatMap((id) => [
-      ...collectSpentSectionIds(storage, id),
-    ])
-    const { retired, preserved } = retireWithPreservedRecordings(
-      storage,
-      path.join(path.resolve(booksDir), safeLabel),
-      () => retireSectionIds(storage, spentOnRemovedPages)
-    )
-    // Preserve before `deletePage`, for the same reason retirement runs before it.
-    // Un-applying the spread re-creates these pages under their old ids with no
-    // history to allocate past, so they re-mint `_sec001` and Speech regenerates
-    // straight over any recording left at `audio/<lang>/${sectionId}_ans_*`. The
-    // manifest entry is gone by then, so nothing downstream could rescue it.
-    if (retired.detachedRecordings.length > 0) {
-      console.warn(
-        `[pages] ${safeLabel}: detached ${retired.detachedRecordings.length} uploaded audio recording(s) from removed page(s); ${preserved.length} file(s) backed up to ${DETACHED_AUDIO_DIR}/ so a later re-section cannot overwrite the backups.`
+      // Retire before deleting, and in one pass so the whole reconcile costs a
+      // single `toc-generation` version. `deletePage` drops the page's entire
+      // node_data history, including the sectioning the id factory reads its
+      // high-water mark from — so a page later re-created under the same id
+      // restarts at `_sec001`. Any `toc-generation` entry, sign-language video or
+      // speech manifest entry still pointing at an id that page spent would then
+      // silently reattach to unrelated content, which is exactly what id
+      // immutability prevents everywhere else. The speech manifests are the ones
+      // `deletePage` cannot reach on its own: they are keyed by language, not by
+      // page.
+      const spentOnRemovedPages = toRemove.flatMap((id) => [
+        ...collectSpentSectionIds(storage, id),
+      ])
+      const { retired, preserved } = retireWithPreservedRecordings(
+        storage,
+        path.join(path.resolve(booksDir), safeLabel),
+        () => retireSectionIds(storage, spentOnRemovedPages)
       )
-    }
-    // A later extraction/retirement failure may leave an earlier page published.
-    // Reset with each committed membership change, never only on HTTP success.
-    for (const id of toRemove) withSourceGenerationTracking(storage, () => {
-      storage.deletePage(id)
-    })
+      // Preserve before `deletePage`, for the same reason retirement runs before it.
+      // Un-applying the spread re-creates these pages under their old ids with no
+      // history to allocate past, so they re-mint `_sec001` and Speech regenerates
+      // straight over any recording left at `audio/<lang>/${sectionId}_ans_*`. The
+      // manifest entry is gone by then, so nothing downstream could rescue it.
+      if (retired.detachedRecordings.length > 0) {
+        console.warn(
+          `[pages] ${safeLabel}: detached ${retired.detachedRecordings.length} uploaded audio recording(s) from removed page(s); ${preserved.length} file(s) backed up to ${DETACHED_AUDIO_DIR}/ so a later re-section cannot overwrite the backups.`
+        )
+      }
+      // A later extraction/retirement failure may leave an earlier page published.
+      // Reset with each committed membership change, never only on HTTP success.
+      for (const id of toRemove) withSourceGenerationTracking(storage, () => {
+        storage.deletePage(id)
+      })
 
-    return c.json({
-      merged: toAdd.length,
-      removed: toRemove.length,
-      pageCount: storage.getPages().length,
-    })
+      return c.json({
+        merged: toAdd.length,
+        removed: toRemove.length,
+        pageCount: storage.getPages().length,
+      })
+    } finally { storage.close() }
   })
 
   // GET /books/:label/pages/:pageId/sections/:sectionIndex/screenshot — Rendered section as PNG
