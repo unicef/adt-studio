@@ -305,25 +305,25 @@ translation* is written right to left.
       byte-identical to its output without the block.
 - [x] AC-2: For a right-to-left page, each of the seventeen prompts carries the block
       once, in the system message, and nothing else changes.
-- [ ] AC-3: The gate is off for a book with no right-to-left language, and otherwise
+- [x] AC-3: The gate is off for a book with no right-to-left language, and otherwise
       returns the source language's direction.
-- [ ] AC-4: The rewrite maps `text-left`/`text-right` to `text-start`/`text-end` for a
+- [x] AC-4: The rewrite maps `text-left`/`text-right` to `text-start`/`text-end` for a
       left-to-right page and the mirror for a right-to-left page, keeping variant
       prefixes, and maps a block whose `dir` differs from the page's for its own
       direction.
-- [ ] AC-5: A `<th>` that was inheriting left or right gets the logical class itself;
+- [x] AC-5: A `<th>` that was inheriting left or right gets the logical class itself;
       one whose nearest explicit alignment is neither is not touched.
-- [ ] AC-6: A `dir` that repeats the inherited direction is removed; one that changes
+- [x] AC-6: A `dir` that repeats the inherited direction is removed; one that changes
       it, and what is nested inside it, is kept.
-- [ ] AC-7: The rewrite changes opening tags only, leaves a page with nothing to
+- [x] AC-7: The rewrite changes opening tags only, leaves a page with nothing to
       rewrite byte-identical, and is unchanged when applied twice.
-- [ ] AC-8: Packaging rewrites the page for a book with a right-to-left language and
+- [x] AC-8: Packaging rewrites the page for a book with a right-to-left language and
       leaves every other book's page byte-identical.
-- [ ] AC-9: A newly generated right-to-left page is stored rewritten, including what
+- [x] AC-9: A newly generated right-to-left page is stored rewritten, including what
       the repairs after validation write (a table-of-contents page number). Every other
       page is stored exactly as the model wrote it, including a left-to-right page of a
       book with a right-to-left translation.
-- [ ] AC-10: At generation, in a right-to-left page, right-to-left text aligned left is
+- [x] AC-10: At generation, in a right-to-left page, right-to-left text aligned left is
       started, a block wholly in a left-to-right script is kept at the end, a
       table-of-contents page number is aligned to the end, a class re-added by a
       repair step is not duplicated, and a floated box whose only side margin is on its
@@ -339,12 +339,12 @@ translation* is written right to left.
       *GK-2-2* rendered from scratch shows, on all 20 sections, no Urdu text against the
       left edge and no `dir` written by the model; in English all 302 text blocks read
       left to right.
-- [ ] AC-14: The rewrite maps `float-left`/`float-right` and `clear-left`/`clear-right`
+- [x] AC-14: The rewrite maps `float-left`/`float-right` and `clear-left`/`clear-right`
       to their logical forms for the direction the page was written in, moves the side
       margin of the floated element with it and no other margin, and is unchanged when
       applied twice. A float inside a block whose `dir` differs from the page's is
       mapped for that block's direction.
-- [ ] AC-15: The Studio preview stylesheet has rules for the classes the rewrite
+- [x] AC-15: The Studio preview stylesheet has rules for the classes the rewrite
       introduces, and is rebuilt when a book gains a right-to-left language.
 - [ ] AC-16: For a page that is not right-to-left, the two sectioning prompts render
       byte-identical to their output without the reading-direction block; for a
@@ -355,9 +355,9 @@ translation* is written right to left.
       from scratch has its contents table in the order of the original (serial number
       at the right), contents titles aligned to the start, and each floated box on the
       mirrored side in English with its gap on the text side.
-- [ ] AC-19: The EPUB page of a book whose source language is right-to-left carries
+- [x] AC-19: The EPUB page of a book whose source language is right-to-left carries
       `dir="rtl"` on its root element; a left-to-right page's EPUB root is unchanged.
-- [ ] AC-20: The visual review of a left-to-right page is sent the same messages with
+- [x] AC-20: The visual review of a left-to-right page is sent the same messages with
       and without a right-to-left translation, and the page is stored the same; for a
       right-to-left page it is sent the rewritten page, which is what is stored.
 
