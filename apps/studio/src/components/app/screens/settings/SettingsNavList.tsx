@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import { useSharingUpdate } from "@/hooks/use-sharing-update"
+import { useRejectedTextProvider } from "@/hooks/use-api-key"
 import { SETTINGS_GROUPS, SETTINGS_PATHS, type SettingsSection } from "./nav"
 
 interface SettingsNavListProps {
@@ -14,6 +15,8 @@ export function SettingsNavList({ activeKey, className }: SettingsNavListProps) 
   /** The tab that has something waiting says so, the same way the app sidebar's Settings does —
    *  otherwise the dot that brought the author here stops pointing anywhere once they arrive. */
   const pending: Partial<Record<SettingsSection, boolean>> = { publishing: useSharingUpdate() !== null }
+  /** Same idea for a provider that refuses its key: the dot on Settings points here. */
+  const attention: Partial<Record<SettingsSection, boolean>> = { providers: useRejectedTextProvider() !== null }
 
   return (
     <div className={cn("flex flex-col gap-5", className)}>
@@ -38,7 +41,12 @@ export function SettingsNavList({ activeKey, className }: SettingsNavListProps) 
               >
                 <Icon className="size-[17px]" />
                 <span className="flex-1 truncate text-left">{i18n._(tab.label)}</span>
-                {pending[tab.key] ? (
+                {attention[tab.key] ? (
+                  <span className="flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-red-700 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-300 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+                    <span aria-hidden className="size-1.5 rounded-full bg-red-500" />
+                    {t`Key rejected`}
+                  </span>
+                ) : pending[tab.key] ? (
                   <span className="flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-brand-700 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-300">
                     <span aria-hidden className="size-1.5 rounded-full bg-brand-600" />
                     {t`Update`}

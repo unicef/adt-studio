@@ -1,5 +1,5 @@
 import type { Storage } from "@adt/storage"
-import { getTextDirection } from "@adt/types"
+import { getTextDirection, type TextDirection } from "@adt/types"
 
 /**
  * Normalize locale code to dash format.
@@ -41,6 +41,23 @@ export function resolveBookLanguage(
     | { language_code?: string | null }
     | undefined
   return normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+}
+
+/**
+ * The direction a book's pages are rendered in, for a book that has a
+ * right-to-left language among its source and output languages — and
+ * `undefined` for every other book (SPEC-0024).
+ *
+ * Such a book's single page layout is read in both directions, so its pages
+ * have to be direction-neutral. `undefined` is the gate: callers do nothing
+ * for a book that is only ever read left to right.
+ */
+export function resolvePageDirection(
+  sourceLanguage: string,
+  outputLanguages: readonly string[] | undefined,
+): TextDirection | undefined {
+  if (getTextDirection(sourceLanguage) === "rtl") return "rtl"
+  return (outputLanguages ?? []).some((language) => getTextDirection(language) === "rtl") ? "ltr" : undefined
 }
 
 /**

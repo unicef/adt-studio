@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/sonner"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { i18n } from "@lingui/core"
+import { useQueryClient } from "@tanstack/react-query"
 import { useProviderCredentials } from "@/hooks/use-provider-credentials"
 import { isProviderAvailable, type ProviderCredentialValues } from "@/api/provider-credentials"
 import type { AppLocale } from "@/i18n/locales"
@@ -47,6 +48,8 @@ function localized(
 ): string | undefined {
   return text?.[locale] ?? text?.en
 }
+
+const EMPTY_DRAFT: Record<string, string> = {}
 
 function fieldValue(
   values: ProviderCredentialValues,
@@ -83,6 +86,7 @@ export function ApiKeyDialog({
     isLoading,
     error,
   } = useProviderCredentials()
+  const queryClient = useQueryClient()
   const locale = i18n.locale as AppLocale
   const [activeProvider, setActiveProvider] = useState("")
   const [drafts, setDrafts] = useState<ProviderCredentialValues>({})
@@ -166,6 +170,8 @@ export function ApiKeyDialog({
         )
       }
     }
+    // Re-check every provider's connection with the keys just saved.
+    void queryClient.invalidateQueries({ queryKey: ["provider-health"] })
     if (embedded) toast.success(t`Provider credentials saved.`)
     else onOpenChange(false)
   }
@@ -299,7 +305,10 @@ export function ApiKeyDialog({
               >
                 <ProviderConnectionStatus
                   providerId={provider.manifest.id}
-                  draftCredentials={drafts[provider.manifest.id]}
+                  // Never undefined: a provider with nothing saved has no draft
+                  // entry yet, and switching from the saved-key scope to the
+                  // draft scope on the first keystroke would probe a half key.
+                  draftCredentials={drafts[provider.manifest.id] ?? EMPTY_DRAFT}
                 />
                 {provider.manifest.credentialFields.length > 0 ? (
                   provider.manifest.credentialFields.map((field) => renderField(provider, field))

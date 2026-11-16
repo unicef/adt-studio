@@ -6,6 +6,7 @@ import type { ProviderDescriptor } from "@adt/types"
 import { ApiKeyDialog } from "./ApiKeyDialog"
 
 const setCredential = vi.fn()
+const invalidateQueries = vi.fn()
 const emptyCredentials = {}
 
 const fakeProvider: ProviderDescriptor = {
@@ -48,14 +49,21 @@ vi.mock("@lingui/react/macro", () => ({
       strings.reduce((text, part, index) => text + part + String(values[index] ?? ""), ""),
   }),
 }))
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ invalidateQueries }),
+}))
 vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn() } }))
+const healthCalls: Array<Record<string, string> | undefined> = []
 vi.mock("@/hooks/use-provider-health", () => ({
-  useProviderHealth: () => ({
-    data: { providerId: "fake", ok: true, code: "configured" },
-    error: null,
-    isFetching: false,
-    refetch: vi.fn(),
-  }),
+  useProviderHealth: (_providerId: string, draft: Record<string, string> | undefined) => {
+    healthCalls.push(draft)
+    return {
+      data: { providerId: "fake", ok: true, code: "configured" },
+      error: null,
+      isFetching: false,
+      refetch: vi.fn(),
+    }
+  },
 }))
 vi.mock("@/hooks/use-provider-credentials", () => ({
   useProviderCredentials: () => ({
@@ -71,6 +79,8 @@ vi.mock("@/hooks/use-provider-credentials", () => ({
 afterEach(() => {
   cleanup()
   setCredential.mockClear()
+  invalidateQueries.mockClear()
+  healthCalls.length = 0
 })
 
 describe("ApiKeyDialog", () => {
@@ -83,5 +93,17 @@ describe("ApiKeyDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     expect(setCredential).toHaveBeenCalledWith("fake", "token", "manifest-secret")
+    // The saved key is re-checked right away rather than on the first failed run.
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["provider-health"] })
+  })
+
+  it("keeps the connection check in the draft scope while typing a first key", () => {
+    // Nothing saved for this provider: a scope switch on the first keystroke
+    // would change the query key and probe a one-character key.
+    render(<ApiKeyDialog embedded open onOpenChange={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText("Fake token"), { target: { value: "s" } })
+
+    expect(healthCalls.length).toBeGreaterThan(1)
+    expect(healthCalls.every((draft) => draft !== undefined)).toBe(true)
   })
 })

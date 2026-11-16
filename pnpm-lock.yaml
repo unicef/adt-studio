@@ -611,8 +611,8 @@ importers:
         specifier: ^0.4.4
         version: 0.4.4
       mupdf:
-        specifier: 1.27.0
-        version: 1.27.0
+        specifier: 1.28.6
+        version: 1.28.6
       pngjs:
         specifier: ^7.0.0
         version: 7.0.0
@@ -5465,8 +5465,8 @@ packages:
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
-  mupdf@1.27.0:
-    resolution: {integrity: sha512-vEPUYwZeu5NgiFLz4e20R7Vp2pNY7szirGEvTxHyQQpQs6ab4DeGdonwT6sH1JZG5EhyHSrojZrZn2/0ee6qZQ==}
+  mupdf@1.28.6:
+    resolution: {integrity: sha512-LsNqk3a9TNJGjJKWVOUK1YMlWJNxFh8bIf+SSxGI+A+WXDlkwc4R2PW/n1qINb4YpqZfOazjPdRqw95WpmCrfw==}
 
   nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
@@ -11587,7 +11587,7 @@ snapshots:
 
   ms@2.1.3: {}
 
-  mupdf@1.27.0: {}
+  mupdf@1.28.6: {}
 
   nanoid@3.3.11: {}
 

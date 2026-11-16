@@ -310,6 +310,51 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
 }
 
+/**
+ * Stop presses on the page root from selecting text while a page-turn
+ * transition runs.
+ *
+ * While a view transition animates, Chrome hit-tests every press to `<html>`
+ * instead of the element under the pointer, so a reader clicking Next two or
+ * three times in quick succession double- or triple-clicks the page and selects
+ * a word or paragraph of book text. `::view-transition { pointer-events: none }`
+ * does not change that hit-test.
+ *
+ * Cancelling the press drops its other defaults too (focus change, drag start,
+ * middle-click autoscroll), and it leaves focus on `<main>`, where
+ * `moveReadingPosition` put it.
+ *
+ * The press is not lost: skipping the transition restores normal hit-testing
+ * synchronously, so the control under the pointer is looked up and activated,
+ * which lets a reader turn pages as fast as they can click.
+ *
+ * Each transition holds its own listener, so a skipped transition settling
+ * early does not release the one that replaced it.
+ */
+function forwardRootPressesDuring(transition: PageTurnTransition): void {
+  const forwardRootPress = (event: MouseEvent) => {
+    if (event.target !== document.documentElement) return
+    event.preventDefault()
+    if (event.button !== 0) return
+    transition.skipTransition()
+    document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>(PRESSABLE_SELECTOR)
+      ?.click()
+  }
+  const release = () => document.removeEventListener("mousedown", forwardRootPress, true)
+  document.addEventListener("mousedown", forwardRootPress, true)
+  transition.finished.then(release, release)
+}
+
+const PRESSABLE_SELECTOR = "button, a[href], [role='button']"
+
+interface PageTurnTransition {
+  updateCallbackDone: Promise<void>
+  finished: Promise<void>
+  skipTransition: () => void
+}
+
 let inFlight: AbortController | null = null
 
 /**
@@ -402,13 +447,12 @@ export async function swapToPage(
 
     const viewTransition = (
       document as Document & {
-        startViewTransition?: (cb: () => void) => {
-          updateCallbackDone: Promise<void>
-          finished: Promise<void>
-        }
+        startViewTransition?: (cb: () => void) => PageTurnTransition
       }
     ).startViewTransition
     if (viewTransition && !prefersReducedMotion()) {
+      const transition = viewTransition.call(document, commit)
+      forwardRootPressesDuring(transition)
       // `updateCallbackDone`, not `finished`: this waits for `commit` itself
       // rather than the animation that follows it. A throw inside `commit`
       // rejects this promise, which reaches the catch below and lets the
@@ -416,7 +460,7 @@ export async function swapToPage(
       // the rejection inside the transition, `swapToPage` has already
       // returned "ok", and the reader is stranded on a pushed URL with a
       // half-committed page — the non-animated path recovers, this one did not.
-      await viewTransition.call(document, commit).updateCallbackDone
+      await transition.updateCallbackDone
     } else {
       commit()
     }
