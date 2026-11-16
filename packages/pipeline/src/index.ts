@@ -578,6 +578,7 @@ export { cloneRenderedIdentities, rewriteRenderedIdentityReferences, stampRender
 export { indexEasyReadEntries } from "./easy-read.js"
 
 export { diagnoseBook, diagnoseBooks, formatDiagnosis, hasFindings, type BookDiagnosis, type UnownedRendering, type OwnerCandidate } from "./book-doctor.js"
+export { imagePassWarning, recordOptionalModelFailure, everyPageFailed, type ImagePassFailure } from "./image-pass-failures.js"
 export { formatStepWarnings, pagesSkippedWarning } from "./step-warnings.js"
 export { sourceGenerationBasis, putSourceNodeData, preserveRenderedOwnership, putReflowableRendering, withSourceGenerationTracking, captureSourceGeneration, publishSourceGeneration, getSourceGenerationUpdates, markSourceGenerationNeedsUpdate, keepSourceGeneration, currentSourceInputSignature } from "./source-generation-state.js"
 
