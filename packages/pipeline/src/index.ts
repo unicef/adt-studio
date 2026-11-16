@@ -207,7 +207,48 @@ export {
   type QuizConfig,
   type QuizPageInput,
 } from "./quiz-generation.js"
-export { buildTextCatalog } from "./text-catalog.js"
+export {
+  buildTextCatalog,
+  extractTextCatalogEntriesFromHtml,
+  exportedActivityCatalogIds,
+} from "./text-catalog.js"
+export {
+  projectImportedHtmlSection,
+  createSafeImportedHtmlPreview,
+  extractImportedHtmlPresentationAssets,
+  inspectImportedHtmlContract,
+  stampImportedSectionContract,
+  removeExecutableImportedMarkup,
+  ADT_EDITING_ALLOWED_ROOT_ENTRIES,
+  type ImportedHtmlImageReference,
+  type ImportedHtmlSectionProjection,
+  type ImportedHtmlProjectionOptions,
+  type ImportedHtmlPresentationAssets,
+  type ImportedHtmlContractIssue,
+  type ImportedHtmlContractIssueCode,
+  type ImportedHtmlContractInspection,
+  type ImportedHtmlContractOptions,
+} from "./adt-round-trip/html.js"
+export {
+  projectImportedFixedLayoutPage,
+  isImportedFixedLayoutPage,
+  type ImportedFixedLayoutProjection,
+} from "./adt-round-trip/fixed-layout.js"
+export {
+  recoverImportedActivityAnswers,
+  recoverImportedQuiz,
+  type ImportedQuizRecovery,
+} from "./adt-round-trip/quiz.js"
+export {
+  inspectImportedActivity,
+  restoreImportedCustomActivityScripts,
+  KNOWN_ACTIVITY_SECTION_TYPES,
+  ACTIVITY_CLASSIFICATION_GUIDE,
+  type ImportedActivityInspection,
+  type ImportedActivityControl,
+  type ImportedActivityControlKind,
+  type ImportedActivitySignal,
+} from "./adt-round-trip/activity.js"
 export {
   buildCoreTtsPreparationConfig,
   loadCoreTtsProfiles,
@@ -217,6 +258,7 @@ export {
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
   buildCoreTtsSourceContext,
+  createImportedCoreTtsCatalog,
   type CoreTtsProfiles,
   type ResolvedCoreTtsProfile,
   type CoreTtsPreparationLocale,
@@ -230,6 +272,7 @@ export {
   generateEasyRead,
   rewriteBlockEasyRead,
   flattenEasyReadEntries,
+  mergeEasyReadEntries,
   DEFAULT_EASY_READ_MODEL_ID,
   EMPTY_EASY_READ_GENERATED_AT,
   isDeterministicEmptyEasyReadOutput,
@@ -358,6 +401,9 @@ export { htmlToXhtml } from "./html-semantics.js"
 export {
   packageAdtWeb,
   computePackagingInputHash,
+  getWordTimestamps,
+  buildRuntimeTimecodeMap,
+  generateOfflinePreloader,
   type PackageAdtWebOptions,
   type PackageAdtWebResult,
   type ComputePackagingInputHashOptions,
@@ -376,6 +422,21 @@ export {
   pad3,
   convertLatexToMathml,
 } from "./packaging/web.js"
+export {
+  adtTextFingerprint,
+  buildAdtRoundTripManifest,
+  collectTranslationBaselines,
+  type BuildAdtRoundTripManifestOptions,
+} from "./adt-round-trip/manifest.js"
+export {
+  ADT_AGENT_GUIDE_VERSION,
+  inspectAdtAgentGuide,
+  readAdtAgentGuideTemplate,
+  renderAdtAgentGuide,
+  resolveAdtAgentGuideTemplatePath,
+  type AdtAgentGuideContext,
+  type AdtAgentGuideInspection,
+} from "./adt-round-trip/agent-guide.js"
 export {
   resolveQuizPalette,
   deriveQuizPalette,
@@ -463,6 +524,7 @@ export {
   renderEditableActivityHtml,
   renderEditableActivityStaticHtml,
   replaceStepperShellsWithStaticHtml,
+  expandImportedStepperShell,
   STEPPER_VARIANT,
   type EditableActivitiesRow,
   type ResolveEditableActivityImageOptions,
@@ -511,7 +573,7 @@ export { OutputPublicationConflict } from "./output-freshness.js"
 export { materializeGlossaryIds, projectMaterializedGlossary, reconcileGlossaryEditIds } from "./glossary.js"
 
 export { reconcileSectioningIdentities, collectSpentContentIds } from "./sectioning-identity.js"
-export { cloneRenderedIdentities, stampRenderedOwner } from "./rendered-identity.js"
+export { cloneRenderedIdentities, rewriteRenderedIdentityReferences, stampRenderedOwner } from "./rendered-identity.js"
 
 export { indexEasyReadEntries } from "./easy-read.js"
 

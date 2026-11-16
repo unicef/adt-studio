@@ -1,12 +1,19 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { unzipSync } from "fflate"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, BookMetadata, PIPELINE } from "@adt/types"
+import { parseBookLabel, BookMetadata, PIPELINE, ProjectIdentity } from "@adt/types"
 import { renderPdfCover } from "@adt/pdf"
 import { openBookDb } from "@adt/storage"
 import { getBook, type BookSummary } from "./book-service.js"
+import { PROJECT_IDENTITY_FILE } from "./project-identity.js"
+import { ADT_IMPORT_CURRENT_FILE } from "./adt-import/source.js"
+import {
+  ArchiveSafetyError,
+  extractArchiveToDisk,
+  inspectArchivePaths,
+  readArchiveEntries,
+} from "./archive-safety.js"
 
 export interface ImportResult extends BookSummary {}
 
@@ -45,15 +52,48 @@ function resolveUniqueLabel(baseLabel: string, booksDir: string): string {
   return `${baseLabel}-${n}`
 }
 
-function unzipBuffer(zipBuffer: Buffer): Record<string, Uint8Array> {
+function asInvalidArchive<T>(read: () => T): T {
   try {
-    return unzipSync(zipBuffer)
-  } catch {
-    throwInvalidArchive("Invalid ZIP file")
+    return read()
+  } catch (error) {
+    if (error instanceof ArchiveSafetyError) throwInvalidArchive(error.message)
+    if ((error as NodeJS.ErrnoException | null)?.code === "ENOSPC") {
+      throw new HTTPException(507, { message: "Not enough disk space to import this archive" })
+    }
+    // Anything else (an HTTP error from a path check, a disk error) is not a
+    // broken archive; let it through unchanged.
+    throw error
   }
 }
 
+/** Entry names only; nothing is inflated. */
+function listArchivePaths(zipBuffer: Buffer): string[] {
+  return asInvalidArchive(() => inspectArchivePaths(zipBuffer))
+}
+
 const NOT_ADT_PROJECT = "Invalid project archive: expected a .db and .pdf file at the root level"
+
+/**
+ * A backup needs its source PDF, except for a book created by ADT import:
+ * it never had one, and works from its recorded ADT import instead. One rule
+ * for preview and import, so the preview can't promise an import that fails.
+ */
+function missingSourceProblem(
+  zipBuffer: Buffer,
+  filePaths: string[],
+): string | null {
+  if (findEntry(filePaths, ".pdf")) return null
+  // Both the identity and the import marker (which names the stored source
+  // archive) must be there, or the restored book would have no source at all.
+  if (!filePaths.includes(PROJECT_IDENTITY_FILE) || !filePaths.includes(ADT_IMPORT_CURRENT_FILE)) return NOT_ADT_PROJECT
+  const raw = asInvalidArchive(() => readArchiveEntries(zipBuffer, [PROJECT_IDENTITY_FILE]))[PROJECT_IDENTITY_FILE]
+  try {
+    const identity = ProjectIdentity.parse(JSON.parse(new TextDecoder().decode(raw)))
+    return identity.sourceKind === "imported-adt" ? null : NOT_ADT_PROJECT
+  } catch {
+    return NOT_ADT_PROJECT
+  }
+}
 
 function findEntry(filePaths: string[], ext: string): string | undefined {
   return filePaths.find((p) => p.endsWith(ext) && !p.includes("/"))
@@ -150,8 +190,7 @@ function readDbMetadata(dbPath: string): DbMetadata {
 }
 
 export function previewImport(zipBuffer: Buffer): ImportPreview {
-  const entries = unzipBuffer(zipBuffer)
-  const filePaths = Object.keys(entries)
+  const filePaths = listArchivePaths(zipBuffer)
 
   const dbEntry = findEntry(filePaths, ".db")
   if (!dbEntry) throwInvalidArchive(NOT_ADT_PROJECT)
@@ -159,6 +198,10 @@ export function previewImport(zipBuffer: Buffer): ImportPreview {
   const safeLabel = parseBookLabel(rawLabel)
 
   const pdfEntry = findEntry(filePaths, ".pdf")
+  // Only the database and the source PDF are needed for the preview.
+  const entries = asInvalidArchive(() =>
+    readArchiveEntries(zipBuffer, pdfEntry ? [dbEntry, pdfEntry] : [dbEntry]),
+  )
   const imageCount = filePaths.filter((p) => p.startsWith("images/") && !p.endsWith("/")).length
   const videoCount = filePaths.filter((p) => p.startsWith("videos/") && !p.endsWith("/")).length
 
@@ -180,6 +223,7 @@ export function previewImport(zipBuffer: Buffer): ImportPreview {
     return {
       label: safeLabel,
       ...meta,
+      validationError: meta.validationError ?? missingSourceProblem(zipBuffer, filePaths),
       hasSourcePdf: !!pdfEntry,
       imageCount,
       videoCount,
@@ -194,14 +238,14 @@ export async function importProject(
   zipBuffer: Buffer,
   booksDir: string,
 ): Promise<ImportResult> {
-  const entries = unzipBuffer(zipBuffer)
-  const filePaths = Object.keys(entries)
+  const filePaths = listArchivePaths(zipBuffer)
 
   const dbEntry = findEntry(filePaths, ".db")
   if (!dbEntry) throwInvalidArchive(NOT_ADT_PROJECT)
   const rawLabel = dbEntry.replace(/\.db$/, "")
 
-  if (!findEntry(filePaths, ".pdf")) throwInvalidArchive(NOT_ADT_PROJECT)
+  const sourceProblem = missingSourceProblem(zipBuffer, filePaths)
+  if (sourceProblem) throwInvalidArchive(sourceProblem)
 
   const safeLabel = parseBookLabel(rawLabel)
   const targetLabel = resolveUniqueLabel(safeLabel, booksDir)
@@ -211,7 +255,7 @@ export async function importProject(
   fs.mkdirSync(bookDir, { recursive: true })
 
   try {
-    for (const [entryPath, data] of Object.entries(entries)) {
+    const destinationFor = (entryPath: string): string => {
       const renamedPath = entryPath.startsWith(`${rawLabel}.`)
         ? entryPath.replace(rawLabel, targetLabel)
         : entryPath
@@ -221,15 +265,14 @@ export async function importProject(
       if (!destPath.startsWith(bookDir + path.sep) && destPath !== bookDir) {
         throwInvalidArchive("Invalid project archive: contains paths that escape the project directory")
       }
-
-      const destDir = path.dirname(destPath)
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true })
-      }
-
-      fs.writeFileSync(destPath, data)
+      return destPath
     }
 
+    // Check the database before writing anything else, so a broken backup
+    // never fills the disk. Then write the rest in bounded batches; large
+    // backups are never expanded in memory as a whole.
+    asInvalidArchive(() => extractArchiveToDisk(zipBuffer, (entryPath) =>
+      entryPath === dbEntry ? destinationFor(entryPath) : null))
     const dbPath = path.join(bookDir, `${targetLabel}.db`)
     const meta = readDbMetadata(dbPath)
 
@@ -237,6 +280,9 @@ export async function importProject(
       if (meta.validationCorrupt) throwCorruptProject(meta.validationError)
       throwInvalidArchive(meta.validationError)
     }
+
+    asInvalidArchive(() => extractArchiveToDisk(zipBuffer, (entryPath) =>
+      entryPath === dbEntry ? null : destinationFor(entryPath)))
 
     return getBook(targetLabel, booksDir)
   } catch (err) {

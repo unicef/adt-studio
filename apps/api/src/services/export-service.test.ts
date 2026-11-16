@@ -107,6 +107,29 @@ describe("exportProject", () => {
     const zipBuffer = await streamToBuffer(result.stream)
     const files = unzipSync(zipBuffer)
     expect(files["export-test.db"]).toBeDefined()
+    expect(files[".adt-project.json"]).toBeDefined()
+    expect(JSON.parse(new TextDecoder().decode(files[".adt-project.json"]))).toMatchObject({
+      version: 1,
+      sourceKind: "unknown",
+    })
+  })
+
+  it("leaves export outputs and the screenshot cache out, keeps the LLM cache and debug images", async () => {
+    createTestDb("lean-backup")
+    addPages("lean-backup", 1)
+    const bookDir = path.join(tmpDir, "lean-backup")
+    for (const dir of ["adt", "webpub", "epub", "pnld", ".section-renders", ".cache", ".debug-images"]) {
+      fs.mkdirSync(path.join(bookDir, dir), { recursive: true })
+      fs.writeFileSync(path.join(bookDir, dir, "file.bin"), "x")
+    }
+
+    const result = await exportProject("lean-backup", tmpDir)
+    const names = Object.keys(unzipSync(await streamToBuffer(result.stream)))
+    for (const dir of ["adt", "webpub", "epub", "pnld", ".section-renders"]) {
+      expect(names.some((n) => n.startsWith(`${dir}/`))).toBe(false)
+    }
+    expect(names).toContain(".cache/file.bin")
+    expect(names).toContain(".debug-images/file.bin")
   })
 
   it("includes PDF in the ZIP", async () => {
@@ -403,6 +426,18 @@ describe("exportEpub", () => {
     expect(files["OEBPS/content.opf"]).toBeDefined()
     expect(files["OEBPS/toc.xhtml"]).toBeDefined()
     expect(files["OEBPS/toc.ncx"]).toBeDefined()
+  })
+
+  // F22: the round-trip editing contract (with the project id) stays out of EPUB.
+  it("leaves the ADT round-trip manifest.json out of the EPUB and its OPF", async () => {
+    createBookWithMetadata("epub-no-manifest", "No Manifest")
+    addPagesAndRenderings("epub-no-manifest", 1)
+
+    await prepareExport("epub-no-manifest", "epub", tmpDir, webAssetsDir)
+    expect(fs.existsSync(path.join(tmpDir, "epub-no-manifest", "adt", "manifest.json"))).toBe(true)
+    const files = unzipSync(await streamToBuffer((await exportEpub("epub-no-manifest", tmpDir)).stream))
+    expect(files["OEBPS/manifest.json"]).toBeUndefined()
+    expect(new TextDecoder().decode(files["OEBPS/content.opf"])).not.toContain('href="manifest.json"')
   })
 
   it("includes content pages as HTML files from ADT package", async () => {
