@@ -81,6 +81,9 @@ export async function renderSectionLlm(
     _allowNonHeadingFontSizes:
       isActivity || config.promptName === "web_generation_html_overlay",
     user_instructions: userInstructions,
+    // "rtl" switches on the writing-direction block in the prompts; any other
+    // value renders nothing there (SPEC-0024).
+    page_direction: input.pageDirection ?? "",
   }
 
   const result = await llmModel.generateObject<{
@@ -146,6 +149,7 @@ export async function renderSectionLlm(
         leaf_texts: renderContext.leaf_texts,
         has_merged_content: sourcePages.length > 0,
         user_instructions: userInstructions,
+        page_direction: input.pageDirection ?? "",
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
