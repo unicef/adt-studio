@@ -2092,6 +2092,9 @@ msgstr "Organizoni përmbajtjen e nxjerrë në një storyboard të strukturuar m
 #~ msgid "Arrange items into an order or categories."
 #~ msgstr "Rendit elementet sipas një rendi ose kategorish."
 
+msgid "Arrow keys move a selected box; Shift+arrow keys resize it"
+msgstr "Tastet me shigjeta lëvizin kutinë e zgjedhur; Shift+shigjetat ndryshojnë madhësinë e saj"
+
 msgid "Article"
 msgstr "Artikull"
 

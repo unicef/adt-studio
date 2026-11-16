@@ -2092,6 +2092,9 @@ msgstr "Organisez le contenu extrait en un scénarimage structuré avec des page
 #~ msgid "Arrange items into an order or categories."
 #~ msgstr "Classer des éléments dans un ordre ou des catégories."
 
+msgid "Arrow keys move a selected box; Shift+arrow keys resize it"
+msgstr "Les flèches déplacent le cadre sélectionné ; Maj+flèches le redimensionne"
+
 msgid "Article"
 msgstr "Article"
 

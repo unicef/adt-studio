@@ -2090,6 +2090,9 @@ msgstr "Arrange extracted content into a structured storyboard with pages, secti
 #~ msgid "Arrange items into an order or categories."
 #~ msgstr "Arrange items into an order or categories."
 
+msgid "Arrow keys move a selected box; Shift+arrow keys resize it"
+msgstr "Arrow keys move a selected box; Shift+arrow keys resize it"
+
 msgid "Article"
 msgstr "Article"
 

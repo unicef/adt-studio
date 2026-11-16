@@ -91,6 +91,144 @@ describe("newRegionBox", () => {
 })
 
 describe("SegmentPreviewDialog", () => {
+  it("moves focus into the dialog, traps Tab, and returns focus on close", () => {
+    const opener = document.createElement("button")
+    document.body.append(opener)
+    opener.focus()
+    renderDialog()
+
+    const add = button("Add region")
+    const lastBox = button("drawing")
+    expect(screen.getByRole("dialog", { name: /Segment Preview/ }).getAttribute("aria-modal")).toBe("true")
+    expect(document.activeElement).toBe(add)
+
+    fireEvent.keyDown(add, { key: "Tab", shiftKey: true })
+    expect(document.activeElement).toBe(lastBox)
+    fireEvent.keyDown(lastBox, { key: "Tab" })
+    expect(document.activeElement).toBe(add)
+
+    cleanup()
+    expect(document.activeElement).toBe(opener)
+    opener.remove()
+  })
+
+  it("focuses the next box after removal, or Add region when none remain", () => {
+    renderDialog()
+    const first = button("photo")
+    first.focus()
+    fireEvent.keyDown(first, { key: "Enter" })
+    fireEvent.keyDown(first, { key: "Delete" })
+    expect(document.activeElement).toBe(button("drawing"))
+
+    const last = button("drawing")
+    fireEvent.keyDown(last, { key: "Enter" })
+    fireEvent.keyDown(last, { key: "Backspace" })
+    expect(document.activeElement).toBe(button("Add region"))
+  })
+
+  it("focuses a newly added box so arrow keys can place it immediately", () => {
+    const onApply = renderDialog([])
+    fireEvent.click(button("Add region"))
+
+    const box = button("Region 1")
+    expect(document.activeElement).toBe(box)
+    expect(box.getAttribute("aria-pressed")).toBe("true")
+    fireEvent.keyDown(box, { key: "ArrowRight" })
+
+    expect(applied(onApply)).toEqual([{
+      label: "Region 1", cropLeft: 201, cropTop: 100, cropRight: 401, cropBottom: 200,
+    }])
+  })
+
+  it("keeps arrow presses on dialog controls from navigating the page behind it", () => {
+    const pageKeyDown = vi.fn()
+    window.addEventListener("keydown", pageKeyDown)
+    try {
+      renderDialog()
+      fireEvent.keyDown(button("Add region"), { key: "ArrowRight" })
+      fireEvent.keyDown(button("photo"), { key: "ArrowLeft" })
+      expect(pageKeyDown).not.toHaveBeenCalled()
+    } finally {
+      window.removeEventListener("keydown", pageKeyDown)
+    }
+  })
+
+  it.each([
+    ["ArrowLeft", 99, 50],
+    ["ArrowRight", 101, 50],
+    ["ArrowUp", 100, 49],
+    ["ArrowDown", 100, 51],
+  ])("moves a selected box with %s", (key, left, top) => {
+    const onApply = renderDialog([{ label: "photo", cropLeft: 100, cropTop: 50, cropRight: 200, cropBottom: 150 }])
+    const box = button("photo")
+    box.focus()
+    fireEvent.keyDown(box, { key: "Enter" })
+    fireEvent.keyDown(box, { key })
+
+    expect(applied(onApply)).toEqual([{
+      label: "photo", cropLeft: left, cropTop: top, cropRight: left + 100, cropBottom: top + 100,
+    }])
+  })
+
+  it.each([
+    ["ArrowLeft", 199, 150],
+    ["ArrowRight", 201, 150],
+    ["ArrowUp", 200, 149],
+    ["ArrowDown", 200, 151],
+  ])("resizes a selected box with Shift+%s", (key, right, bottom) => {
+    const onApply = renderDialog([{ label: "photo", cropLeft: 100, cropTop: 50, cropRight: 200, cropBottom: 150 }])
+    const box = button("photo")
+    box.focus()
+    fireEvent.keyDown(box, { key: "Enter" })
+    fireEvent.keyDown(box, { key, shiftKey: true })
+
+    expect(applied(onApply)).toEqual([{
+      label: "photo", cropLeft: 100, cropTop: 50, cropRight: right, cropBottom: bottom,
+    }])
+  })
+
+  it("keeps keyboard movement and resizing inside the image and above the minimum size", () => {
+    const onApply = renderDialog([{ label: "photo", cropLeft: 590, cropTop: 290, cropRight: 600, cropBottom: 300 }])
+    const box = button("photo")
+    box.focus()
+    fireEvent.keyDown(box, { key: "Enter" })
+    for (const key of ["ArrowRight", "ArrowDown"]) {
+      fireEvent.keyDown(box, { key })
+      fireEvent.keyDown(box, { key, shiftKey: true })
+    }
+    for (const key of ["ArrowLeft", "ArrowUp"]) fireEvent.keyDown(box, { key, shiftKey: true })
+
+    expect(applied(onApply)).toEqual([{
+      label: "photo", cropLeft: 590, cropTop: 290, cropRight: 600, cropBottom: 300,
+    }])
+  })
+
+  it("does not let keyboard input change a box while Apply is pending", () => {
+    const onApply = vi.fn(() => new Promise<void>(() => {}))
+    render(
+      <SegmentPreviewDialog
+        imageSrc="img.png"
+        imageWidth={W}
+        imageHeight={H}
+        regions={[{ label: "photo", cropLeft: 100, cropTop: 50, cropRight: 200, cropBottom: 150 }]}
+        onApply={onApply}
+        onClose={() => {}}
+      />,
+    )
+    const box = button("photo")
+    box.focus()
+    fireEvent.keyDown(box, { key: "Enter" })
+    fireEvent.click(button("Apply Segmentation"))
+    expect(button("Add region").disabled).toBe(true)
+
+    fireEvent.keyDown(box, { key: "ArrowRight" })
+    fireEvent.keyDown(box, { key: "ArrowDown", shiftKey: true })
+    fireEvent.keyDown(box, { key: " " })
+    expect(box.style.left).toBe("100px")
+    expect(box.style.height).toBe("100px")
+    expect(box.getAttribute("aria-pressed")).toBe("true")
+  })
+
   it("adds a region for something the model missed", () => {
     const onApply = renderDialog()
 

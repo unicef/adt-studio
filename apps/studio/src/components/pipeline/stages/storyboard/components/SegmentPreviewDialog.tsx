@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, useId } from "react"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { NO_DRAG_REGION } from "@/constants"
@@ -24,6 +24,35 @@ interface SegmentPreviewDialogProps {
 }
 
 const EDGE_SIZE = 8
+const MIN_BOX_SIZE = 10
+// KeyboardEvent.key values are platform tokens, not user-visible copy.
+// eslint-disable-next-line lingui/no-unlocalized-strings
+const ARROW_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]
+
+function adjustRegionWithKeyboard(
+  region: SegmentRegion,
+  key: string,
+  resize: boolean,
+  imageWidth: number,
+  imageHeight: number,
+): SegmentRegion {
+  const dx = key === "ArrowLeft" ? -1 : key === "ArrowRight" ? 1 : 0
+  const dy = key === "ArrowUp" ? -1 : key === "ArrowDown" ? 1 : 0
+  if (resize) {
+    const minRight = region.cropLeft + Math.min(MIN_BOX_SIZE, imageWidth)
+    const minBottom = region.cropTop + Math.min(MIN_BOX_SIZE, imageHeight)
+    return {
+      ...region,
+      cropRight: dx === 0 ? region.cropRight : Math.max(minRight, Math.min(imageWidth, region.cropRight + dx)),
+      cropBottom: dy === 0 ? region.cropBottom : Math.max(minBottom, Math.min(imageHeight, region.cropBottom + dy)),
+    }
+  }
+  const width = region.cropRight - region.cropLeft
+  const height = region.cropBottom - region.cropTop
+  const left = Math.max(0, Math.min(imageWidth - width, region.cropLeft + dx))
+  const top = Math.max(0, Math.min(imageHeight - height, region.cropTop + dy))
+  return { ...region, cropLeft: left, cropTop: top, cropRight: left + width, cropBottom: top + height }
+}
 
 /**
  * Box for a region the user adds by hand: a third of the image, centred, and
@@ -76,9 +105,53 @@ export function SegmentPreviewDialog({
   const [applying, setApplying] = useState(false)
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [displaySize, setDisplaySize] = useState<{ w: number; h: number } | null>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const addButtonRef = useRef<HTMLButtonElement>(null)
+  const pendingBoxFocusRef = useRef<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ mode: DragMode; regionIdx: number } | null>(null)
+  const titleId = useId()
   const regionCount = regions.length
+
+  useEffect(() => {
+    const opener = document.activeElement
+    addButtonRef.current?.focus()
+    return () => {
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus()
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    const index = pendingBoxFocusRef.current
+    if (index == null) return
+    pendingBoxFocusRef.current = null
+    const boxes = dialogRef.current?.querySelectorAll<HTMLElement>("[data-segment-box]")
+    if (boxes?.length) boxes[Math.min(index, boxes.length - 1)].focus()
+    else addButtonRef.current?.focus()
+  }, [regions])
+
+  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (ARROW_KEYS.includes(e.key)) {
+      // Extract and Storyboard use window-level arrows to change pages.
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+    if (e.key !== "Tab") return
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [data-segment-box][tabindex="0"]',
+    )
+    if (!focusable?.length) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
 
   // Compute display size: fit image within available space
   useEffect(() => {
@@ -235,12 +308,14 @@ export function SegmentPreviewDialog({
     let n = regions.length + 1
     while (labels.has(t`Region ${n}`)) n++
     const next = [...regions, { label: t`Region ${n}`, ...newRegionBox(regions, imageWidth, imageHeight) }]
+    pendingBoxFocusRef.current = next.length - 1
     setRegions(next)
     setSelectedIdx(next.length - 1)
   }
 
   const handleRemoveRegion = useCallback(() => {
     if (selectedIdx == null || dragRef.current) return
+    pendingBoxFocusRef.current = selectedIdx
     setRegions((prev) => prev.filter((_, i) => i !== selectedIdx))
     setSelectedIdx(null)
   }, [selectedIdx])
@@ -270,12 +345,20 @@ export function SegmentPreviewDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/80 flex flex-col" style={NO_DRAG_REGION}>
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      onKeyDown={handleDialogKeyDown}
+      className="fixed inset-0 z-[100] bg-black/80 flex flex-col"
+      style={NO_DRAG_REGION}
+    >
       {/* Header — see ImageCropDialog: the overlay must opt out of the app's
           title-bar drag region so these buttons stay clickable in the packaged
           desktop app; `drag-region` keeps the empty header area draggable. */}
       <div className="flex items-center justify-between px-4 py-3 bg-background border-b shrink-0 drag-region">
-        <h2 className="flex items-center text-sm font-medium">
+        <h2 id={titleId} className="flex items-center text-sm font-medium">
           {showMacOSSpacer && <MacOSTrafficLightSpacer />}
           <Trans>Segment Preview</Trans>
           <span className="ml-2 text-xs text-muted-foreground">
@@ -284,6 +367,7 @@ export function SegmentPreviewDialog({
         </h2>
         <div className="flex items-center gap-2">
           <button
+            ref={addButtonRef}
             type="button"
             onClick={handleAddRegion}
             disabled={applying}
@@ -342,17 +426,29 @@ export function SegmentPreviewDialog({
               return (
                 <div
                   key={idx}
+                  data-segment-box
                   // A toggle button, so the keyboard can select a box too:
                   // Tab reaches it, Enter or Space selects it (or lets go).
                   role="button"
                   tabIndex={0}
                   aria-label={region.label}
                   aria-pressed={isSelected}
+                  aria-disabled={applying}
                   className="absolute focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   onKeyDown={(e) => {
-                    if (e.key !== "Enter" && e.key !== " ") return
-                    e.preventDefault()
-                    setSelectedIdx(isSelected ? null : idx)
+                    if (applying) return
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      setSelectedIdx(isSelected ? null : idx)
+                    } else if (isSelected && ARROW_KEYS.includes(e.key)) {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      const key = e.key
+                      const resize = e.shiftKey
+                      setRegions((previous) => previous.map((box, i) =>
+                        i === idx ? adjustRegionWithKeyboard(box, key, resize, imageWidth, imageHeight) : box,
+                      ))
+                    }
                   }}
                   style={{
                     left: d.left,
@@ -403,6 +499,9 @@ export function SegmentPreviewDialog({
       <div className="bg-background border-t shrink-0 px-4 py-2 flex items-center gap-4 text-[10px] text-muted-foreground">
         <span>
           <Trans>Drag to move boxes, drag edges/corners to resize</Trans>
+        </span>
+        <span>
+          <Trans>Arrow keys move a selected box; Shift+arrow keys resize it</Trans>
         </span>
         {selectedIdx != null && regions[selectedIdx] && (
           <span className="ml-auto font-mono">
