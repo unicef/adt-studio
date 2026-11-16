@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -2305,6 +2305,26 @@ describe("POST /books/import-adt", () => {
 })
 
 describe("POST /books/import", () => {
+  it("reports a full disk as such, not as a damaged archive", async () => {
+    const zip = createProjectZip("full-disk")
+    const app = createBookRoutes(tmpDir)
+    const realWrite = fs.writeFileSync
+    const spy = vi.spyOn(fs, "writeFileSync").mockImplementation(((file: fs.PathOrFileDescriptor, ...rest: unknown[]) => {
+      if (String(file).includes("images")) throw Object.assign(new Error("no space"), { code: "ENOSPC" })
+      return (realWrite as (...args: unknown[]) => void)(file, ...rest)
+    }) as typeof fs.writeFileSync)
+    try {
+      const formData = new FormData()
+      formData.append("zip", new Blob([zip], { type: "application/zip" }), "full-disk.zip")
+      const res = await app.request("/books/import", { method: "POST", body: formData })
+      expect(res.status).toBe(507)
+      expect(await res.text()).toContain("Not enough disk space")
+    } finally {
+      spy.mockRestore()
+    }
+    expect(fs.existsSync(path.join(tmpDir, "full-disk"))).toBe(false)
+  })
+
   // F3: a backup with more entries than the old 10,000 cap imports.
   it("imports a backup with more than 10,000 entries and writes every file", async () => {
     const extraFiles: Record<string, Uint8Array> = {}

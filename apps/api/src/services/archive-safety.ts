@@ -102,6 +102,17 @@ export function inspectArchiveEntries(zipBuffer: Buffer): ArchiveEntryInfo[] {
     entries.push({ name: info.name, size: info.originalSize })
     return false
   })
+  // A file can't also be a folder ("images" next to "images/a.png").
+  const files = new Set(entries.filter((entry) => !entry.name.endsWith("/")).map((entry) => entry.name))
+  for (const entry of entries) {
+    const parts = entry.name.split("/")
+    for (let depth = 1; depth < parts.length; depth++) {
+      const parent = parts.slice(0, depth).join("/")
+      if (files.has(parent)) {
+        throw new ArchiveSafetyError(`Archive contains a path that is both a file and a folder: ${parent}`)
+      }
+    }
+  }
   return entries
 }
 

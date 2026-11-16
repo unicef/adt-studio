@@ -49,6 +49,18 @@ describe("inspectArchiveEntries", () => {
     expect(() => inspectArchiveEntries(zip)).toThrow(ArchiveSafetyError)
   })
 
+  it("rejects a name that is both a file and a folder", () => {
+    const zip = Buffer.from(zipSync({ images: new Uint8Array(1), "images/a.png": new Uint8Array(1) }))
+    expect(() => inspectArchiveEntries(zip)).toThrow(/both a file and a folder: images/)
+  })
+
+  it("rejects one entry over the per-entry cap without inflating it", () => {
+    const zip = Buffer.from(zipSync({ "videos/huge.mp4": new Uint8Array(4) }))
+    // Patch the declared uncompressed size in the central directory.
+    zip.writeUInt32LE(ARCHIVE_SAFETY_LIMITS.entryBytes + 1, zip.indexOf("PK\x01\x02", 0, "latin1") + 24)
+    expect(() => inspectArchiveEntries(zip)).toThrow(/entry exceeds the size limit: videos\/huge.mp4/)
+  })
+
   it("rejects a file that is not a zip", () => {
     expect(() => inspectArchiveEntries(Buffer.from("not a zip"))).toThrow("Invalid ZIP file")
   })
