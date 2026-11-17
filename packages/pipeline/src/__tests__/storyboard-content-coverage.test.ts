@@ -78,3 +78,14 @@ it("retains usable owned legacy HTML for an empty source tree without requiring 
   storage.putNodeData("page-sectioning", "p1", source)
   expect(storyboardCoverage(storage)).toMatchObject({ complete: true, included: 0, rendered: 0 })
 })
+
+it("reports a missing-image-only input instead of publishing successful empty output", async () => {
+  const source = tree(); source.sections[0].nodes = [{ nodeId: "missing", role: "image", isPruned: false }]
+  storage.putNodeData("page-sectioning", "p1", source)
+  const generateObject = vi.fn(async () => { throw new Error("Missing pixels must not generate fake content") })
+  await expect(renderPage({ label: "book", pageId: "p1", pageImageBase64: "", sectioning: source, images: new Map() },
+    () => { throw new Error("No render strategy needed before reporting missing input") }, { generateObject }))
+    .rejects.toMatchObject({ code: "STORYBOARD_PAGE_INPUT_MISSING" })
+  expect(generateObject).not.toHaveBeenCalled()
+  expect(storyboardCoverage(storage)).toMatchObject({ complete: false, included: 1, rendered: 0 })
+})

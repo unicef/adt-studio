@@ -585,7 +585,7 @@ export { sourceGenerationBasis, putSourceNodeData, preserveRenderedOwnership, pu
 
 export { collectQuizPages } from "./quiz-generation.js"
 
-export { assertReflowableSectioning } from "./render-sectioning.js"
+export { assertReflowableSectioning, hasFixedLayoutSectioning } from "./render-sectioning.js"
 
 export { renderedTextIds, sourceTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision } from "./content-ids.js"
 export { effectiveSectioningMode, sectioningInvalidationSteps, assertSectioningReplacementSafe, prepareSectioningRun, completeSectioning } from "./sectioning-lifecycle.js"

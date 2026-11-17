@@ -1947,11 +1947,8 @@ async function runStoryboardStep(
             { signal: options.signal },
           )
           if (options.signal?.aborted) throw new RunCancelledError()
-          storage.transaction(() => {
-            storage.putNodeData("web-rendering", page.pageId, renderResult)
-            // Switch away from a positioned tree only with its replacement HTML.
-            if (storage.getLatestNodeData("fixed-layout-sectioning", page.pageId)?.data != null) storage.putNodeData("fixed-layout-sectioning", page.pageId, null)
-          })
+          // Publication retires the positioned tree atomically with this HTML.
+          storage.putNodeData("web-rendering", page.pageId, renderResult)
           publication.publishPage(page.pageId)
           completedRendering++
           progress.emit({

@@ -638,3 +638,30 @@ it.each(["styleguide: different", "editing_language: fr", "start_page: 7", "defa
     } finally { s.close() }
   },
 )
+
+it.each(["direct", "stage", "targeted"])("appends a reflowable replacement without parsing or overwriting malformed prior fixed output (%s)", async entry => {
+  fs.writeFileSync(configPath, config)
+  const s = store()
+  s.putNodeData("fixed-layout-sectioning", "p2", { sections: [] }); s.close()
+  const file = path.join(root, label, `${label}.db`)
+  const db = openBookDb(file)
+  db.run("UPDATE node_data SET data = ? WHERE node = ? AND item_id = ?", ["{broken-json", "fixed-layout-sectioning", "p2"])
+  db.close()
+  // A damaged positioned selection must never become consent for a partial edit.
+  await expect(reRenderPages([{ ...options(), label, pageId: "p2", sectionIndex: 0 }]))
+    .rejects.toMatchObject({ code: "STORYBOARD_INPUT_CHANGED" })
+  if (entry === "direct") {
+    const writer = store()
+    try {
+      const publication = createStoryboardPublication(writer, label, root, configPath)
+      publication.storage.putNodeData("web-rendering", "p2", { sections: [] })
+      expect(() => publication.publishPage("p2")).not.toThrow()
+    } finally { writer.close() }
+  } else if (entry === "stage") await expect(run()).resolves.toBeUndefined()
+  else await expect(reRenderPages([{ ...options(), label, pageId: "p2" }])).resolves.toHaveLength(1)
+  const check = openBookDb(file)
+  try {
+    expect(check.all("SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version", ["fixed-layout-sectioning", "p2"]))
+      .toEqual([{ data: "{broken-json" }, { data: "null" }])
+  } finally { check.close() }
+})

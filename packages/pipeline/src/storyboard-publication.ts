@@ -7,7 +7,7 @@ import { withSourceGenerationTracking } from "./source-generation-state.js"
 import { storyboardConfigInputs } from "./generation-config.js"
 import { loadBookConfig } from "./config.js"
 import { isFixedLayoutBook } from "./fixed-layout-rendering.js"
-import { FIXED_LAYOUT_SECTIONING_NODE, publishedPageLayouts } from "./render-sectioning.js"
+import { FIXED_LAYOUT_SECTIONING_NODE, hasFixedLayoutSectioning, publishedPageLayouts } from "./render-sectioning.js"
 import { activeSectioningPages } from "./sectioning-window.js"
 import { SectioningSafetyError } from "./sectioning-errors.js"
 
@@ -90,7 +90,7 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
         const priorSource = captureStoryboardSource(storage, pageId)
         const writes = pending.get(pageId)
         if (!writes) throw incompletePublication([pageId])
-        if (!writes.has(FIXED_LAYOUT_SECTIONING_NODE) && storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)?.data != null) {
+        if (!writes.has(FIXED_LAYOUT_SECTIONING_NODE) && hasFixedLayoutSectioning(storage, pageId)) {
           storage.putNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId, null)
         }
         for (const [node, data] of writes) storage.putNodeData(node, pageId, data)

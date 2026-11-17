@@ -26,6 +26,16 @@ import { parseDocument, DomUtils } from "htmlparser2"
 export const FIXED_LAYOUT_SECTIONING_NODE = "fixed-layout-sectioning"
 export const PAGE_SECTIONING_NODE = "page-sectioning"
 
+/** A malformed positioned tree still needs retirement during an explicit whole
+ * page replacement. Never reinterpret it as permission for a partial edit. */
+export function hasFixedLayoutSectioning(storage: Storage, pageId: string): boolean {
+  try { return storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)?.data != null }
+  catch (error) {
+    if (error instanceof SyntaxError) return true
+    throw error
+  }
+}
+
 /** Older fixed-layout books stored their positioned tree in the semantic slot.
  * A reflow renderer must not reinterpret that tree as semantic sectioning. */
 export function assertReflowableSectioning(sectioning: PageSectioningOutput): void {

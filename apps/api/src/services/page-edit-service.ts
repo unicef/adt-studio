@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception"
 import { renderedSectionId, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
 import { withBookWriter, resolveBookPaths } from "@adt/storage"
 import {
-  createStoryboardPublication, FIXED_LAYOUT_SECTIONING_NODE, SectioningSafetyError,
+  createStoryboardPublication, FIXED_LAYOUT_SECTIONING_NODE, hasFixedLayoutSectioning, SectioningSafetyError,
   processFixedLayoutPages, missingStoryboardInputMessage,
 } from "@adt/pipeline"
 import crypto from "node:crypto"
@@ -122,7 +122,9 @@ async function reRenderAdmittedPage(
   const typography = readTypography(storage)
 
   try {
-    if (sectionIndex !== undefined && storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)?.data != null) {
+    const hasFixedTree = hasFixedLayoutSectioning(storage, pageId)
+    const fixedVersion = storage.getSelectedNodeVersion(FIXED_LAYOUT_SECTIONING_NODE, pageId)
+    if (sectionIndex !== undefined && hasFixedTree) {
       throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "A positioned page must be re-rendered as a whole before re-rendering a semantic section. Existing output is kept.")
     }
     let structuringRow: ReturnType<typeof storage.getLatestNodeData> = null
@@ -133,9 +135,8 @@ async function reRenderAdmittedPage(
       throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", missingStoryboardInputMessage([pageId]))
     }
     const sectioning = structuringParsed.data
-    const fixedRow = storage.getLatestNodeData("fixed-layout-sectioning", pageId)
     const legacyPositioned = sectioning.sections.some(section => section.sectionType === "fixed-layout-page" && section.viewport && section.placement)
-    if (fixedRow?.data != null || legacyPositioned) {
+    if (hasFixedTree || legacyPositioned) {
       const config = loadBookConfig(label, booksDir, configPath)
       if (sectionIndex !== undefined || legacyPositioned || isFixedLayoutBook(config)) {
         throw new HTTPException(409, { message: "This page uses fixed layout. Run Sectioning and Storyboard after selecting a reflowable layout, or run Storyboard to rebuild fixed layout. Existing content has been preserved." })
@@ -270,7 +271,7 @@ async function reRenderAdmittedPage(
     return storage.transaction(() => {
       if (storage.getLatestNodeData("page-sectioning", pageId)?.version !== structuringRow?.version ||
           storage.getLatestNodeData("web-rendering", pageId)?.version !== initialRenderingRow?.version ||
-          storage.getLatestNodeData("fixed-layout-sectioning", pageId)?.version !== fixedRow?.version) {
+          storage.getSelectedNodeVersion(FIXED_LAYOUT_SECTIONING_NODE, pageId) !== fixedVersion) {
         throw new HTTPException(409, { message: "Page changed during re-rendering. The existing rendering has been preserved." })
       }
       let rendering = renderResult

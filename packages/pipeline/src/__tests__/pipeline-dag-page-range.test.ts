@@ -16,7 +16,7 @@ vi.mock("../page-sectioning.js", async original => ({
   ...await original<typeof import("../page-sectioning.js")>(),
   sectionPage: async (input: { pageId: string; pageNumber: number }) => {
     state.selected.push(input.pageId)
-    if (state.changeConfig) fs.appendFileSync(path.join(state.root, "global.yaml"), "\nconcurrency: 2\n")
+    if (state.changeConfig) fs.appendFileSync(path.join(state.root, "global.yaml"), "\nediting_language: fr\n")
     return { reasoning: "fixture", sections: [{ sectionId: input.pageId + "_sec001", sectionType: "text_only", pageNumber: input.pageNumber, backgroundColor: "white", textColor: "black", isPruned: false, nodes: [{ nodeId: input.pageId + "_n001", role: "text", text: "Requested page", isPruned: false }] }] }
   },
 }))
