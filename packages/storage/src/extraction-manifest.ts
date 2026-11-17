@@ -6,7 +6,7 @@ import { openCoordinatedDatabase } from "./database-admission.js"
 import { BookRecoveryCopyAudit, BookFontRegistry, FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID, ExtractionManifest, PROJECT_IDENTITY_FILE, ProjectIdentity, type ExtractionInputs } from "@adt/types"
 import { assertBookWriter, BookBusyError, isBookWriterArtifact } from "./book-writer.js"
 import { ExtractionAdmissionError } from "./extraction-error.js"
-import { readSectioningLifecycle, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
+import { isConfigRecoveryEvidence, readSectioningLifecycle, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
 
 export const EXTRACTION_MANIFEST_FILE = "extraction.json"
 export const extractionHash = (bytes: string | Buffer): string => createHash("sha256").update(bytes).digest("hex")
@@ -101,6 +101,7 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
   for (const entry of fs.readdirSync(bookDir, { withFileTypes: true })) {
     if (entry.isSymbolicLink()) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
     if (isBookWriterArtifact(bookDir, entry.name)) continue
+    if (entry.isFile() && isConfigRecoveryEvidence(bookDir, entry.name)) continue
     if (entry.isDirectory() && isInitialRecoveryEvidence(bookDir, entry.name)) continue
     // Finder metadata is neither content nor extraction history. Preserve the
     // exact regular file; the name does not exempt directories or symlinks.

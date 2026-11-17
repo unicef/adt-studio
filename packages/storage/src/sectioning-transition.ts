@@ -49,6 +49,32 @@ export function atomicBookFile(file: string, text: string): void {
   }
 }
 
+/** Preserve the exact invalid override before an explicit valid replacement.
+ * Content addressing makes retries idempotent; unknown aliases never qualify. */
+export function retainInvalidBookConfig(bookDir: string): void {
+  const source = path.join(bookDir, "config.yaml"), stat = fs.lstatSync(source)
+  if (!stat.isFile() || stat.nlink !== 1) throw new BookBusyError("The invalid configuration is not a regular private file.")
+  const bytes = fs.readFileSync(source)
+  const name = `.config-recovery-${createHash("sha256").update(bytes).digest("hex")}.yaml`
+  const target = path.join(bookDir, name)
+  if (fs.existsSync(target)) {
+    if (!isConfigRecoveryEvidence(bookDir, name)) throw new BookBusyError("Configuration recovery evidence conflicts with the saved file.")
+    return
+  }
+  const fd = fs.openSync(target, "wx", stat.mode & 0o777)
+  try { fs.writeFileSync(fd, bytes); fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
+  syncDirectory(bookDir)
+}
+
+export function isConfigRecoveryEvidence(bookDir: string, name: string): boolean {
+  const digest = /^\.config-recovery-([a-f0-9]{64})\.yaml$/.exec(name)?.[1]
+  if (!digest) return false
+  try {
+    const file = path.join(bookDir, name), stat = fs.lstatSync(file)
+    return stat.isFile() && stat.nlink === 1 && createHash("sha256").update(fs.readFileSync(file)).digest("hex") === digest
+  } catch { return false }
+}
+
 /** null means absent; undefined means unreadable optional bookkeeping.
  * Keep unreadable bytes/paths as evidence instead of replacing them on Save. */
 function readLifecycleText(bookDir: string): string | null | undefined {

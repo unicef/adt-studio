@@ -16,7 +16,7 @@ export { withBookWriter, withNewBookWriter, ownsBookWriter, assertBookWriter, is
 export { publishSpeechOutput, publishSpeechTimings, restoreSpeechOutput, withSpeechAudioIdentity } from "./speech-history.js"
 
 export { bookAssetExists } from "./immutable-assets.js"
-export { atomicBookFile, configHash, readConfigText, readSectioningLifecycle, writeSectioningLifecycle, invalidateSectioningLifecycle, recoverSectioningTransition, publishSectioningTransition, SECTIONING_JOURNAL, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
+export { retainInvalidBookConfig, atomicBookFile, configHash, readConfigText, readSectioningLifecycle, writeSectioningLifecycle, invalidateSectioningLifecycle, recoverSectioningTransition, publishSectioningTransition, SECTIONING_JOURNAL, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
 
 export { ExtractionAdmissionError } from "./extraction-error.js"
 export { EXTRACTION_MANIFEST_FILE, extractionHash, readExtractionManifest, writeExtractionManifest, hashExtractionAsset, flushExtractionAsset, syncDirectory, inspectExtractionDestination, verifyExtractionInventory, assertExtractionReadable } from "./extraction-manifest.js"

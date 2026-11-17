@@ -348,7 +348,7 @@ describe("SPEC-0003 persisted data and publication", () => {
     writeSectioningLifecycle(dir, "dynamic", true)
     const publication = createStoryboardPublication(s, label, root, globalConfig)
     publication.storage.putNodeData("web-rendering", "pg002", { sections: [{ html: "new" }] })
-    if (target === "config") fs.writeFileSync(globalConfig, "structure_types: {}\nrole_types: {}\nconcurrency: 2\n")
+    if (target === "config") fs.writeFileSync(globalConfig, "structure_types: {}\nrole_types: {}\nediting_language: fr\n")
     else if (target === "sectioning") s.putNodeData("page-sectioning", "pg002", value())
     else if (target === "rollback") s.setCurrentNodeVersion("page-sectioning", "pg002", 1)
     else if (target === "rendering") s.putNodeData("web-rendering", "pg002", { sections: [{ html: "concurrent manual edit" }] })
@@ -409,4 +409,49 @@ describe("SPEC-0003 persisted data and publication", () => {
     expect(() => prepareSectioningRun(label, root, "sectioning", "storyboard", globalConfig)).not.toThrow()
     expect(snapshot()).toEqual(before)
   })
+})
+
+it.each(["page_sectioning:\n  mode: invalid\n", "page_sectioning: [unfinished", "concurrency: -1\n"])(
+  "RAC-1: a valid config save repairs invalid prior config while preserving its bytes and output: %s", async original => {
+    fs.writeFileSync(path.join(dir, "config.yaml"), original)
+    writeSectioningLifecycle(dir, "dynamic", true)
+    const before = snapshot(), beforeRuns = runs()
+    const app = new Hono().onError(errorHandler).route("/", createBookRoutes(root, undefined, globalConfig))
+    const response = await app.request(`/books/${label}/config`, { method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ config: config("dynamic"), includeEffectiveConfig: true }) })
+    expect(response.status, await response.clone().text()).toBe(200)
+    expect(await response.json()).toMatchObject({ activeConfig: { merged: config("dynamic") } })
+    const evidence = fs.readdirSync(dir).filter(file => file.startsWith(".config-recovery-"))
+    expect(evidence).toHaveLength(1)
+    expect(fs.readFileSync(path.join(dir, evidence[0]))).toEqual(Buffer.from(original))
+    expect(snapshot()).toEqual(before)
+    expect(runs()).toEqual(beforeRuns)
+    expect(readSectioningLifecycle(dir)).toMatchObject({ mode: "dynamic", sectioningReady: false })
+  },
+)
+
+it("keeps invalid config untouched when the proposed replacement is invalid or a run is active", () => {
+  const file = path.join(dir, "config.yaml"), original = "concurrency: -1\n"
+  fs.writeFileSync(file, original)
+  expect(() => updateBookConfig(label, root, config("invalid"), globalConfig)).toThrow()
+  expect(fs.readdirSync(dir).filter(name => name.startsWith(".config-recovery-"))).toHaveLength(0)
+  const storage = createBookStorage(label, root)
+  storage.markStepStarted("page-sectioning"); storage.close()
+  expect(() => updateBookConfig(label, root, config("page"), globalConfig)).toThrow("BOOK_BUSY")
+  expect(fs.readFileSync(file, "utf8")).toBe(original)
+  expect(fs.readdirSync(dir).filter(name => name.startsWith(".config-recovery-"))).toHaveLength(0)
+})
+
+it("permits first extraction after repairing an invalid initial configuration", async () => {
+  const { inspectExtractionDestination, extractionHash } = await import("@adt/storage")
+  const initialLabel = "initial", initialDir = path.join(root, initialLabel)
+  const storage = createBookStorage(initialLabel, root); storage.close()
+  fs.writeFileSync(path.join(initialDir, "config.yaml"), "concurrency: -1\n")
+  fs.writeFileSync(path.join(initialDir, `${initialLabel}.pdf`), "source")
+  updateBookConfig(initialLabel, root, config("dynamic"), globalConfig)
+  const inputs = { contractVersion: 1, startPage: 1, endPage: 1, spreadMode: false, spreadPairs: [], vectorTextGrouping: false, keepCoveredRasters: false, removeWatermarks: false, fixedLayout: false }
+  expect(withBookWriter(initialDir, () => inspectExtractionDestination(initialDir, extractionHash("source"), inputs))).toBe("initial")
+  const evidence = fs.readdirSync(initialDir).find(name => name.startsWith(".config-recovery-"))!
+  fs.appendFileSync(path.join(initialDir, evidence), "unknown content")
+  expect(() => withBookWriter(initialDir, () => inspectExtractionDestination(initialDir, extractionHash("source"), inputs))).toThrow("EXTRACTION_LEGACY")
 })

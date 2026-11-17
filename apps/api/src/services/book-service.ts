@@ -19,7 +19,7 @@ import {
   type BookDetail,
   type PartRange,
 } from "@adt/types"
-import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
+import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, retainInvalidBookConfig, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
 import { BookConfigError, SectioningSafetyError, readReadingOrderQuizzes, activeSectioningPages, loadBookConfig, loadBookConfigOverrides, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
 import { AppConfig } from "@adt/types"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import/marker.js"
@@ -491,9 +491,14 @@ export function updateBookConfig(
   if (!fs.existsSync(bookDir)) throw new Error(`Book not found: ${safeLabel}`)
   withBookWriter(bookDir, () => {
     recoverSectioningTransition(bookDir)
-    const previous = loadBookConfig(label, booksDir, configPath)
     const proposed = AppConfig.parse(deepMerge(loadConfig(configPath), overrides))
-    const oldMode = effectiveSectioningMode(previous)
+    let oldMode: ReturnType<typeof effectiveSectioningMode> | undefined
+    try { oldMode = effectiveSectioningMode(loadBookConfig(label, booksDir, configPath)) }
+    catch (error) {
+      // A valid explicit save can repair an invalid override. An unreadable
+      // global configuration or book path still refuses before any mutation.
+      if (!(error instanceof BookConfigError)) throw error
+    }
     const newMode = effectiveSectioningMode(proposed)
     // Empty overrides are an empty YAML mapping, preserving inheritance without
     // a delete/rename ambiguity in the transition journal.
@@ -506,6 +511,7 @@ export function updateBookConfig(
     try {
       if (db.all("SELECT step FROM step_runs WHERE status = 'running'").length) throw new BookBusyError()
     } finally { db.close() }
+    if (oldMode === undefined) retainInvalidBookConfig(bookDir)
     publishSectioningTransition(bookDir, text, newMode, [])
   })
 }
