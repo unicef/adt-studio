@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 const mocks = vi.hoisted(() => ({
   pages: [{ pageId: "p1", sectioningVersion: 1, sectionCount: 1, hasRendering: true, sections: [] }],
   loading: false, state: "idle", coverage: undefined as import("@adt/types").StoryboardCoverage | undefined,
@@ -153,4 +153,25 @@ it("does not lend a retained editor snapshot to another book with equal indices"
  expect(screen.getByTestId("editor-section-owner").textContent).toBe("book_b_owner")
  expect(screen.getByTestId("editor-source-version").textContent).toBe("8")
  expect(screen.queryByText(/Saved sections changed/)).toBeNull()
+})
+
+// These exercise real view branching, not only the queue's readiness API.
+const { StoryboardThumbnailProvider, useStoryboardThumbnail } = await import("../../components/storyboard-thumbnails")
+function PendingThumbnail() {
+ const job = useStoryboardThumbnail("thumbnail", 2)
+ return <output data-testid="thumbnail-admission">{job.enabled ? "admitted" : "waiting"}</output>
+}
+it.each(["landing", "empty", "quiz", "error"])("releases sidebar thumbnails for the %s view", async state => {
+ if(state==="landing")mocks.pages=mocks.pages.map(p=>({...p,hasRendering:false}))
+ if(state==="empty")mocks.page={...mocks.page,sectioningTree:{sections:[]}}
+ if(state==="error")mocks.page=undefined as unknown as typeof mocks.page
+ render(<StoryboardThumbnailProvider scopeKey="book/page" waitForPreview><PendingThumbnail /><StoryboardIndex bookLabel="book" selectedPageId={state==="quiz"?"quiz-qz001":"p1"} /></StoryboardThumbnailProvider>)
+ await act(async()=>{await Promise.resolve()})
+ expect(screen.getByTestId("thumbnail-admission").textContent).toBe("admitted")
+})
+it("keeps thumbnails waiting while page summaries are still loading", async () => {
+ mocks.loading=true;mocks.pages=[];mocks.state="running"
+ render(<StoryboardThumbnailProvider scopeKey="book/page" waitForPreview><PendingThumbnail /><StoryboardIndex bookLabel="book" selectedPageId="p1" /></StoryboardThumbnailProvider>)
+ await act(async()=>{await Promise.resolve()})
+ expect(screen.getByTestId("thumbnail-admission").textContent).toBe("waiting")
 })

@@ -1,3 +1,4 @@
+import { useStoryboardPreviewReady } from "../../components/storyboard-thumbnails"
 import { StoryboardSourceNotice } from "../../components/StoryboardSourceNotice"
 import { useEffect, useRef, useCallback, useState, useMemo, type ReactNode } from "react"
 import { useSearch, useNavigate } from "@tanstack/react-router"
@@ -456,6 +457,12 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
         <div className="flex-1 min-h-0">{content}</div>
       </div>
     )
+
+  useStoryboardPreviewReady(
+    (!pagesLoading && showRunCard && !retainDraftContext) || overviewMode || outlineMode || isQuizRoute ||
+    (!pagesLoading && (pageList.length === 0 || (!pageLoading && (!page?.sectioningTree || sectionCount === 0)))) ||
+    (hasFeedbackLink && appliedSectionRef.current !== linkKey && !hasUnsavedChanges && !pagesLoading && !pageLoading && !(search.comment && linkedComments.isPending) && (!linkedLocation || linkedIndex === undefined)),
+  )
 
   if (showRunCard && !retainDraftContext) {
     return (

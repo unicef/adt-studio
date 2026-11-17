@@ -1,3 +1,4 @@
+import { useStoryboardPreviewReady } from "../../../components/storyboard-thumbnails"
 import { rebaseDraft } from "@/lib/rebase-draft"
 import { applyStoryboardSave, useStoryboardSaveReceipt } from "./use-storyboard-save-receipt"
 import type { StoryboardSaveResult } from "@adt/types"
@@ -2831,6 +2832,8 @@ export function StoryboardSectionDetail({
     </>
   )
 
+  const previewReady = useStoryboardPreviewReady(!section || !renderedSection?.html)
+
   if (!section) {
     return (
       <div className="p-4 text-sm text-muted-foreground">
@@ -3045,6 +3048,7 @@ export function StoryboardSectionDetail({
                   key={`stepper-${sectionIndex}-${editableVersion}`}
                   src={`${BASE_URL}/books/${bookLabel}/adt-preview/${previewSectionId}.html?embed=1&v=ea${editableVersion}`}
                   deviceView={deviceView}
+                  onReady={previewReady}
                 />
               </>
             ) : previewMode === "classic-activity" ? (
@@ -3060,6 +3064,7 @@ export function StoryboardSectionDetail({
                   key={`classic-${sectionIndex}-${page.versions.rendering ?? 0}`}
                   src={`${BASE_URL}/books/${bookLabel}/adt-preview/${previewSectionId}.html?embed=1&v=${page.versions.rendering ?? 0}`}
                   deviceView={deviceView}
+                  onReady={previewReady}
                 />
               </>
             ) : (
@@ -3067,6 +3072,7 @@ export function StoryboardSectionDetail({
                 <BookPreviewFrame
                   ref={previewFrameRef}
                   html={renderedSection.html}
+                  onContentReady={previewReady}
                   bookLabel={bookLabel}
                   className="w-full rounded borde"
                   editable={!hasActiveTask && !storyboardRunning && !restoring}

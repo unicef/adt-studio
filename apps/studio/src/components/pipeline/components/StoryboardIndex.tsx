@@ -6,6 +6,7 @@ import { useLingui } from "@lingui/react"
 import { msg, plural } from "@lingui/core/macro"
 import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCircle, Loader2, MessageSquare, Monitor, Puzzle } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
+import { useStoryboardThumbnail } from "./storyboard-thumbnails"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useBook } from "@/hooks/use-books"
@@ -192,6 +193,7 @@ export function StoryboardIndex({
                   page={item.page}
                   section={item.section}
                   isActive={isActive}
+                  isVisible={virtualRow.end > (virtualizer.scrollOffset ?? 0) && virtualRow.start < (virtualizer.scrollOffset ?? 0) + (virtualizer.scrollRect?.height ?? 0)}
                   activeColor={storyboardStageDef?.bgLight}
                   activeText={storyboardStageDef?.textColor}
                   onSelect={() =>
@@ -286,6 +288,7 @@ function SectionRow({
   onSelect,
   stageRunning,
   hasSourcePdf,
+  isVisible,
   waiting = 0,
 }: {
   bookLabel: string
@@ -297,11 +300,11 @@ function SectionRow({
   onSelect: () => void
   stageRunning?: boolean
   hasSourcePdf: boolean
+  isVisible: boolean
   /** Reader comments waiting on this section. */
   waiting?: number
 }) {
   const { i18n } = useLingui()
-  const { data: pageImageData, isLoading: pageImageLoading } = usePageImage(bookLabel, page.pageId)
   const rowRef = useRef<HTMLButtonElement>(null)
 
   // Pruned sections are intentionally excluded from rendering, so the
@@ -315,13 +318,23 @@ function SectionRow({
         })
       : null
 
+  const hover = useHoverPreview(rowRef)
+  const priority = hover.show ? 0 : isActive ? 1 : isVisible ? 2 : 3
+  const screenshot = useStoryboardThumbnail(renderedThumb, priority)
+  const sourceImage = useStoryboardThumbnail(
+    !renderedThumb || (hasSourcePdf && hover.show) ? JSON.stringify([bookLabel, page.pageId, "image"]) : null,
+    priority,
+  )
+  const { data: pageImageData, isLoading: pageImageLoading, isFetching: pageImageFetching } = usePageImage(bookLabel, page.pageId, { enabled: sourceImage.enabled })
+  useEffect(() => {
+    if (sourceImage.enabled && !pageImageFetching) sourceImage.finish()
+  }, [sourceImage.enabled, sourceImage.finish, pageImageFetching])
+
   const pdfThumb = pageImageData?.imageBase64
     ? `data:image/png;base64,${pageImageData.imageBase64}`
     : null
 
   const sectionPending = stageRunning && !page.hasRendering
-
-  const hover = useHoverPreview(rowRef)
 
   const previewLabel = section.textPreview?.trim() || i18n._(msg`Section ${section.sectionIndex + 1}`)
 
@@ -348,16 +361,19 @@ function SectionRow({
       )}
     >
       <div className="relative shrink-0 w-24 aspect-[4/3]">
-        {renderedThumb ? (
+        {renderedThumb && screenshot.enabled ? (
           <img
+            key={renderedThumb}
             src={renderedThumb}
+            onLoad={screenshot.finish}
+            onError={screenshot.finish}
             alt=""
             className={cn(
               "w-full h-full rounded-md object-cover object-top ring-1 ring-border bg-white shadow-sm transition-opacity",
               section.isPruned && "grayscale",
             )}
           />
-        ) : pageImageLoading || !pdfThumb ? (
+        ) : renderedThumb || pageImageLoading || !pdfThumb ? (
           <div className="w-full h-full bg-muted rounded-md ring-1 ring-border" />
         ) : (
           <img
@@ -412,7 +428,7 @@ function SectionRow({
           <ComparisonPreview
             pos={hover.pos}
             pdfThumb={pdfThumb}
-            renderedThumb={renderedThumb}
+            renderedThumb={screenshot.enabled ? renderedThumb : null}
             pageNumber={page.pageNumber}
             sectionIndex={section.sectionIndex}
             sectionType={section.sectionType}

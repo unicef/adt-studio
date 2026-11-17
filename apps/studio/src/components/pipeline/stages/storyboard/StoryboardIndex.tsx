@@ -1,3 +1,4 @@
+import { useStoryboardPreviewReady } from "../../components/storyboard-thumbnails"
 import { Trans } from "@lingui/react/macro"
 import { usePages } from "@/hooks/use-pages"
 import { useStageStatus } from "@/hooks/use-stage-status"
@@ -27,9 +28,12 @@ export function StoryboardIndex({
   // whole book. Show the editor whenever there is a rendering to edit.
   const hasRendering = (pages ?? []).some((p) => p.hasRendering)
 
+  const showView = status.isCompleted || status.isRunning || hasRendering || !!(selectedPageId && hasUnsavedChanges)
+  useStoryboardPreviewReady(!pagesLoading && !showView)
+
   // A committed reset can remove every rendering while this route owns an
   // editor draft. Keep its guarded session mounted until explicit discard/save.
-  if (status.isCompleted || status.isRunning || hasRendering || (selectedPageId && hasUnsavedChanges)) {
+  if (showView) {
     return (
       <StoryboardView
         bookLabel={bookLabel}
