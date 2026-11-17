@@ -399,7 +399,8 @@ loop on large databases. File permission bits are preserved, but the copy and
 atomic replacement files belong to the creating process, not necessarily the
 original group. These are operational limits, not OS-reboot or release certification.
 
-Without verifiable process-incarnation evidence, a same-host legacy lease whose
-PID is currently alive remains refused. An unrelated process reusing that PID
+Without verifiable process-incarnation evidence, a same-host lease whose PID is
+currently alive remains refused. This includes current macOS/Windows leases as
+well as legacy leases. An unrelated process reusing that PID
 can therefore also prevent copy recovery. File age alone is not proof that the
 recorded owner is dead; timestamps do not override this refusal.

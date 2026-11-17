@@ -328,3 +328,46 @@ it.each([false, true])("a real query observer becomes clean after accepting late
   }
   expect(mocks.save).toHaveBeenCalledTimes(1)
 })
+
+
+it.each(["newer-cache", "older-fetch"])("conflict reload preserves query ordering with %s", async race => {
+  const initial = defaultMap()
+  const latest = { ...initial, "0": { ...original, title: { text: "Latest saved" } } }
+  const newest = { ...initial, "0": { ...original, title: { text: "Newest saved" } } }
+  const key = ["editable-activities", "book", "page-1"]
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  client.setQueryData(key, { activities: initial, version: 1 })
+  function Connected() {
+    const { data } = useQuery({ queryKey: key, queryFn: mocks.reload, enabled: false })
+    return <FloatingSaveProvider><EditableActivityPanel open onClose={() => {}} bookLabel="book" pageId="page-1" sectionIndex={0}
+      activity={data.activities["0"]} activities={data.activities} version={data.version} paletteAccent="#2563EB" /><SaveBarrierProbe /></FloatingSaveProvider>
+  }
+  const reload = deferred<{ activities: MapOfActivities; version: number }>()
+  const older = deferred<{ activities: MapOfActivities; version: number }>()
+  let cancelled = false
+  let olderRequest: Promise<unknown> | undefined
+  mocks.save.mockRejectedValueOnce(new ApiError("Conflict", 409))
+  mocks.reload.mockImplementationOnce(() => reload.promise)
+  render(<QueryClientProvider client={client}><Connected /></QueryClientProvider>)
+  if (race === "older-fetch") {
+    act(() => {
+      olderRequest = client.fetchQuery({ queryKey: key, staleTime: 0, queryFn: ({ signal }) => {
+        signal.addEventListener("abort", () => { cancelled = true })
+        return older.promise
+      } }).catch(() => undefined)
+    })
+  }
+  changeTitle("My retained draft"); fireEvent.click(saveButton())
+  await waitFor(() => expect(mocks.reload).toHaveBeenCalledOnce())
+  if (race === "newer-cache") act(() => { client.setQueryData(key, { activities: newest, version: 3 }) })
+  await act(async () => { reload.resolve({ activities: latest, version: 2 }) })
+  fireEvent.click(await screen.findByRole("button", { name: "Load latest saved values" }))
+  if (race === "older-fetch") {
+    expect(cancelled).toBe(true)
+    await act(async () => { older.resolve({ activities: initial, version: 1 }); await olderRequest })
+  }
+  const expected = race === "newer-cache" ? { activities: newest, version: 3 } : { activities: latest, version: 2 }
+  await waitFor(() => expect(screen.getByTestId("activity-unsaved-barrier").textContent).toBe("false"))
+  expect(client.getQueryData(key)).toEqual(expected)
+  expect(title().value).toBe(expected.activities["0"].title!.text)
+})

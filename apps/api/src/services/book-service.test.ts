@@ -653,3 +653,15 @@ describe("deleteBook", () => {
     expect(() => deleteBook("-bad", tmpDir)).toThrow()
   })
 })
+
+
+it("persists one stable identity when listing a healthy legacy book", () => {
+  createTestDb("legacy")
+  const identityFile = path.join(tmpDir, "legacy", ".adt-project.json")
+  expect(fs.existsSync(identityFile)).toBe(false)
+  const first = listBooks(tmpDir).find(book => book.label === "legacy")!
+  const bytes = fs.readFileSync(identityFile)
+  expect(JSON.parse(bytes.toString()).projectId).toBe(first.projectId)
+  expect(listBooks(tmpDir).find(book => book.label === "legacy")!.projectId).toBe(first.projectId)
+  expect(fs.readFileSync(identityFile)).toEqual(bytes)
+})

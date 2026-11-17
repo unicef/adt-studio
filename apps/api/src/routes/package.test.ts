@@ -109,7 +109,7 @@ describe("Package routes", () => {
     fs.writeFileSync(config, "structure_types: {}\nrole_types: {}\n")
     const storage = createBookStorage("original", tmpDir)
     const rendering = storage.getLatestNodeData("web-rendering", "pg001")!.data as { sections: Array<{ html: string }> }
-    rendering.sections[0].html = '<main><p>Recovered content</p><img data-id="pg001_page" src="/api/books/original/images/pg001_page"></main>'
+    rendering.sections[0].html = '<main><p>Recovered content</p><img src="/api/books/original/images/pg001_page"></main>'
     storage.putNodeData("web-rendering", "pg001", rendering)
     if (stepper) storage.putNodeData("editable-activity", "pg001", EditableActivitiesEntity.parse({ activities: { "0": {
       kind: "multiple-choice", sectionType: "content", enabled: true,
@@ -140,6 +140,7 @@ describe("Package routes", () => {
     const html = await preview.text()
     expect(html).toContain("Recovered content")
     expect(html).not.toContain("/api/books/original/images/")
+    expect(html).toContain("/api/books/recovered/images/pg001_page")
     if (stepper) expect(html).toContain("data-editable-activity")
     const image = await routes.request("/api/books/recovered/images/pg001_page")
     expect(image.status).toBe(200)

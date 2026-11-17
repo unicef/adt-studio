@@ -54,3 +54,16 @@ it("requires an explicit publication-guard decision for every new application se
   expect(unrelated.filter(key => projected.has(key))).toEqual([])
   expect([...new Set([...projected, ...unrelated])].sort()).toEqual(Object.keys(AppConfig.innerType().shape).sort())
 })
+
+
+it("binds actual layout strategies and sectioning mode while ignoring output-format preferences", () => {
+  const config = AppConfig.parse({ structure_types: {}, role_types: {}, page_sectioning: { mode: "dynamic" } })
+  const preferences = { ...config, book_format: ["epub" as const], layout_type: "storybook" as const }
+  expect(sectioningConfigInputs(preferences)).toEqual(sectioningConfigInputs(config))
+  expect(storyboardConfigInputs(preferences)).toEqual(storyboardConfigInputs(config))
+  const fixed = { ...config, default_render_strategy: "fixed", render_strategies: { fixed: { render_type: "fixed_layout" as const } } }
+  expect(sectioningConfigInputs(config).fixedLayout).toBe(false)
+  expect(sectioningConfigInputs(fixed).fixedLayout).toBe(true)
+  expect(storyboardConfigInputs({ ...config, page_sectioning: { mode: "page" } }).sectioningMode).toBe("page")
+  expect(storyboardConfigInputs(config).sectioningMode).toBe("dynamic")
+})
