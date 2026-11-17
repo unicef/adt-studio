@@ -166,13 +166,16 @@ export function resolveRenderedSection(
   rendering: SectionRendering,
   sections: readonly PageSectioningSection[] | undefined,
   renderings: readonly SectionRendering[],
+  // A synchronous caller may reuse owners derived from these unchanged
+  // renderings. Both directions still go through the same uniqueness checks.
+  ownerOf: typeof renderedSectionId = renderedSectionId,
 ): PageSectioningSection | undefined {
-  const id = renderedSectionId(rendering)
+  const id = ownerOf(rendering)
   if (!id) return undefined
   // Require unique valid ownership in both directions. An invalid contradictory
   // entry remains unresolved; its mentions cannot disqualify a separate valid
   // rendering. Raw declarations still reserve legacy inference candidates above.
-  const claimants = renderings.filter(entry => renderedSectionId(entry) === id)
+  const claimants = renderings.filter(entry => ownerOf(entry) === id)
   if (claimants.length !== 1 || claimants[0] !== rendering) return undefined
   const matches = sections?.filter((section) => section.sectionId === id)
   return matches?.length === 1 ? matches[0] : undefined
