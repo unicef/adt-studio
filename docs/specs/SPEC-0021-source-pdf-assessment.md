@@ -1,9 +1,9 @@
 ---
 id: SPEC-0021
 title: Source PDF assessment
-status: in-review
+status: approved
 owner: "@gbergengruen"
-approvers: [] # ≥1 maintainer + product sign-off (user-facing scope)
+approvers: ["@ksokolovic"] # maintainer + product sign-off, 2026-11-17 (#1017 comment 6946992457)
 issues: ["#1016", "#1008", "#1012", "#901", "#676", "#985", "#326", "#749", "#957"]
 prs: ["#1009", "#1013", "#1015"] # PR 0 adopted 2026-10-29; #1013 implements §Step warnings; #1015 emits summary-missing
 adr: ""
