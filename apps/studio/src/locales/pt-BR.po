@@ -6318,6 +6318,9 @@ msgstr "Manter este"
 msgid "Keep working"
 msgstr "Continue trabalhando"
 
+msgid "Keep your entire activity draft, including its questions and answers."
+msgstr "Mantenha todo o rascunho da atividade, incluindo as perguntas e respostas."
+
 msgid "Keep your entire table of contents, including its chapter targets and order."
 msgstr "Mantenha todo o seu sumário, incluindo os destinos e a ordem dos capítulos."
 
@@ -10051,6 +10054,9 @@ msgstr "Resolver o comentário de {0}"
 msgid "Resolve conflicting edits before saving"
 msgstr "Resolva as alterações em conflito antes de salvar"
 
+msgid "Resolve the conflicting changes before saving."
+msgstr "Resolva as alterações conflitantes antes de salvar."
+
 msgid "Resolved"
 msgstr "Resolvido"
 
@@ -10221,6 +10227,9 @@ msgstr "Revise as páginas afetadas e suas versões atuais e confirme explicitam
 
 msgid "Review the affected stages after this change."
 msgstr "Revise as etapas afetadas após essa alteração."
+
+msgid "Review the chosen activity, then save again."
+msgstr "Revise a atividade escolhida e salve novamente."
 
 msgid "Review the chosen document, then save again."
 msgstr "Revise o documento escolhido e salve novamente."
@@ -10484,6 +10493,9 @@ msgstr "Salvar ponto de recuperação do histórico"
 
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Salve ou cancele seu rascunho antes de revisar os resultados."
+
+msgid "Save or discard your changes before AI editing"
+msgstr "Salve ou descarte suas alterações antes de editar com IA"
 
 msgid "Save or discard your changes before re-running."
 msgstr "Salve ou descarte suas alterações antes de executar novamente."
@@ -12663,6 +12675,9 @@ msgstr "Esta atividade não tem textos nem respostas endereçáveis. Gere-a nova
 msgid "This activity was added after export."
 msgstr "Esta atividade foi adicionada após a exportação."
 
+msgid "This activity was rebuilt or replaced. Your draft is intact. Choose which complete activity to keep."
+msgstr "Esta atividade foi gerada novamente ou substituída. Seu rascunho está intacto. Escolha qual atividade completa deseja manter."
+
 msgid "This ADT export can’t be read"
 msgstr "Esta exportação ADT não pode ser lida"
 
@@ -13654,6 +13669,9 @@ msgstr "Use “Dupla” para livros impressos com páginas lado a lado (as capas
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Use o + entre as páginas para posicionar o questionário"
+
+msgid "Use the entire latest saved activity instead of this draft."
+msgstr "Use toda a última atividade salva em vez deste rascunho."
 
 msgid "Use the exported pages"
 msgstr "Usar as páginas exportadas"

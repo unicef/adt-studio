@@ -6318,6 +6318,9 @@ msgstr "Conservar este"
 msgid "Keep working"
 msgstr "Sigue trabajando"
 
+msgid "Keep your entire activity draft, including its questions and answers."
+msgstr "Conserva todo tu borrador de actividad, incluidas sus preguntas y respuestas."
+
 msgid "Keep your entire table of contents, including its chapter targets and order."
 msgstr "Conserva todo tu índice, incluidos los destinos y el orden de los capítulos."
 
@@ -10051,6 +10054,9 @@ msgstr "Resolver el comentario de {0}"
 msgid "Resolve conflicting edits before saving"
 msgstr "Resuelve los cambios en conflicto antes de guardar"
 
+msgid "Resolve the conflicting changes before saving."
+msgstr "Resuelve los cambios en conflicto antes de guardar."
+
 msgid "Resolved"
 msgstr "Resuelto"
 
@@ -10221,6 +10227,9 @@ msgstr "Revisa las páginas afectadas y sus versiones actuales y confirma explí
 
 msgid "Review the affected stages after this change."
 msgstr "Revise las etapas afectadas después de este cambio."
+
+msgid "Review the chosen activity, then save again."
+msgstr "Revisa la actividad elegida y vuelve a guardar."
 
 msgid "Review the chosen document, then save again."
 msgstr "Revisa el documento elegido y vuelve a guardar."
@@ -10484,6 +10493,9 @@ msgstr "Guardar punto de recuperación del historial"
 
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Guarda o cancela tu borrador antes de revisar los resultados."
+
+msgid "Save or discard your changes before AI editing"
+msgstr "Guarda o descarta tus cambios antes de editar con IA"
 
 msgid "Save or discard your changes before re-running."
 msgstr "Guarda o descarta tus cambios antes de volver a ejecutar."
@@ -12663,6 +12675,9 @@ msgstr "Esta actividad no tiene textos ni respuestas direccionables. Vuelve a ge
 msgid "This activity was added after export."
 msgstr "Esta actividad se añadió después de la exportación."
 
+msgid "This activity was rebuilt or replaced. Your draft is intact. Choose which complete activity to keep."
+msgstr "Esta actividad se ha regenerado o reemplazado. Tu borrador sigue intacto. Elige qué actividad completa quieres conservar."
+
 msgid "This ADT export can’t be read"
 msgstr "Esta exportación ADT no se puede leer"
 
@@ -13654,6 +13669,9 @@ msgstr "Usa Extendido para libros impresos con diseños de páginas enfrentadas 
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Usa el + entre las páginas para colocar el cuestionario"
+
+msgid "Use the entire latest saved activity instead of this draft."
+msgstr "Usa la última actividad guardada completa en lugar de este borrador."
 
 msgid "Use the exported pages"
 msgstr "Usar las páginas exportadas"

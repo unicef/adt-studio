@@ -6320,6 +6320,9 @@ msgstr "Garder celui-ci"
 msgid "Keep working"
 msgstr "Continuer à travailler"
 
+msgid "Keep your entire activity draft, including its questions and answers."
+msgstr "Conservez votre brouillon d’activité complet, y compris ses questions et réponses."
+
 msgid "Keep your entire table of contents, including its chapter targets and order."
 msgstr "Conservez toute votre table des matières, y compris les destinations et l’ordre des chapitres."
 
@@ -10053,6 +10056,9 @@ msgstr "Résoudre le commentaire de {0}"
 msgid "Resolve conflicting edits before saving"
 msgstr "Résolvez les modifications en conflit avant d’enregistrer"
 
+msgid "Resolve the conflicting changes before saving."
+msgstr "Résolvez les modifications en conflit avant d’enregistrer."
+
 msgid "Resolved"
 msgstr "Résolu"
 
@@ -10223,6 +10229,9 @@ msgstr "Examinez les pages concernées et leurs versions actuelles, puis confirm
 
 msgid "Review the affected stages after this change."
 msgstr "Vérifiez les étapes concernées après ce changement."
+
+msgid "Review the chosen activity, then save again."
+msgstr "Vérifiez l’activité choisie, puis enregistrez à nouveau."
 
 msgid "Review the chosen document, then save again."
 msgstr "Vérifiez le document choisi, puis enregistrez-le à nouveau."
@@ -10486,6 +10495,9 @@ msgstr "Enregistrer un point de récupération de l’historique"
 
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Enregistrez ou annulez votre brouillon avant de vérifier les résultats."
+
+msgid "Save or discard your changes before AI editing"
+msgstr "Enregistrez ou abandonnez vos modifications avant de modifier avec l’IA"
 
 msgid "Save or discard your changes before re-running."
 msgstr "Enregistrez ou abandonnez vos modifications avant de relancer."
@@ -12665,6 +12677,9 @@ msgstr "Cette activité ne contient aucun texte ni aucune réponse adressable. R
 msgid "This activity was added after export."
 msgstr "Cette activité a été ajoutée après l'export."
 
+msgid "This activity was rebuilt or replaced. Your draft is intact. Choose which complete activity to keep."
+msgstr "Cette activité a été régénérée ou remplacée. Votre brouillon est intact. Choisissez l’activité complète à conserver."
+
 msgid "This ADT export can’t be read"
 msgstr "Cet export ADT est illisible"
 
@@ -13656,6 +13671,9 @@ msgstr "Utilisez l'étalement pour les livres imprimés avec des mises en page e
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Utilisez le + entre les pages pour placer le quiz"
+
+msgid "Use the entire latest saved activity instead of this draft."
+msgstr "Utilisez la dernière activité enregistrée complète à la place de ce brouillon."
 
 msgid "Use the exported pages"
 msgstr "Utiliser les pages exportées"

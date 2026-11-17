@@ -6320,6 +6320,9 @@ msgstr "Mbaje këtë"
 msgid "Keep working"
 msgstr "Vazhdo punën"
 
+msgid "Keep your entire activity draft, including its questions and answers."
+msgstr "Mbajeni të gjithë draftin e aktivitetit, përfshirë pyetjet dhe përgjigjet."
+
 msgid "Keep your entire table of contents, including its chapter targets and order."
 msgstr "Mbani të gjithë tabelën tuaj të përmbajtjes, përfshirë destinacionet dhe renditjen e kapitujve."
 
@@ -10053,6 +10056,9 @@ msgstr "Zgjidh komentin nga {0}"
 msgid "Resolve conflicting edits before saving"
 msgstr "Zgjidh ndryshimet në konflikt para ruajtjes"
 
+msgid "Resolve the conflicting changes before saving."
+msgstr "Zgjidhni ndryshimet në konflikt para se të ruani."
+
 msgid "Resolved"
 msgstr "Zgjidhur"
 
@@ -10223,6 +10229,9 @@ msgstr "Shqyrtoni faqet e prekura dhe versionet e tyre aktuale, pastaj konfirmon
 
 msgid "Review the affected stages after this change."
 msgstr "Rishikoni fazat e prekura pas këtij ndryshimi."
+
+msgid "Review the chosen activity, then save again."
+msgstr "Rishikoni aktivitetin e zgjedhur, pastaj ruajeni përsëri."
 
 msgid "Review the chosen document, then save again."
 msgstr "Rishikoni dokumentin e zgjedhur dhe ruajeni përsëri."
@@ -10486,6 +10495,9 @@ msgstr "Ruaj pikën e rikuperimit të historikut"
 
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Ruani ose anuloni draftin para se të rishikoni rezultatet."
+
+msgid "Save or discard your changes before AI editing"
+msgstr "Ruajini ose hidhini poshtë ndryshimet para redaktimit me IA"
 
 msgid "Save or discard your changes before re-running."
 msgstr "Ruani ose hidhni poshtë ndryshimet para se ta ekzekutoni sërish."
@@ -12665,6 +12677,9 @@ msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni a
 msgid "This activity was added after export."
 msgstr "Ky aktivitet u shtua pas eksportimit."
 
+msgid "This activity was rebuilt or replaced. Your draft is intact. Choose which complete activity to keep."
+msgstr "Ky aktivitet është rigjeneruar ose zëvendësuar. Drafti juaj është i paprekur. Zgjidhni cilin aktivitet të plotë dëshironi të mbani."
+
 msgid "This ADT export can’t be read"
 msgstr "Ky eksport ADT nuk mund të lexohet"
 
@@ -13656,6 +13671,9 @@ msgstr "Përdor Spread për libra të shtypur me paraqitje faqesh ballë për ba
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Përdor + ndërmjet faqeve për të vendosur kuizin"
+
+msgid "Use the entire latest saved activity instead of this draft."
+msgstr "Përdorni të gjithë aktivitetin e fundit të ruajtur në vend të këtij drafti."
 
 msgid "Use the exported pages"
 msgstr "Përdorni faqet e eksportuara"

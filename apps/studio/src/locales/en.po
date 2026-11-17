@@ -6318,6 +6318,9 @@ msgstr "Keep this one"
 msgid "Keep working"
 msgstr "Keep working"
 
+msgid "Keep your entire activity draft, including its questions and answers."
+msgstr "Keep your entire activity draft, including its questions and answers."
+
 msgid "Keep your entire table of contents, including its chapter targets and order."
 msgstr "Keep your entire table of contents, including its chapter targets and order."
 
@@ -10051,6 +10054,9 @@ msgstr "Resolve {0}'s comment"
 msgid "Resolve conflicting edits before saving"
 msgstr "Resolve conflicting edits before saving"
 
+msgid "Resolve the conflicting changes before saving."
+msgstr "Resolve the conflicting changes before saving."
+
 msgid "Resolved"
 msgstr "Resolved"
 
@@ -10221,6 +10227,9 @@ msgstr "Review the affected pages and their current versions, then explicitly co
 
 msgid "Review the affected stages after this change."
 msgstr "Review the affected stages after this change."
+
+msgid "Review the chosen activity, then save again."
+msgstr "Review the chosen activity, then save again."
 
 msgid "Review the chosen document, then save again."
 msgstr "Review the chosen document, then save again."
@@ -10484,6 +10493,9 @@ msgstr "Save history checkpoint"
 
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Save or cancel your draft before reviewing outputs."
+
+msgid "Save or discard your changes before AI editing"
+msgstr "Save or discard your changes before AI editing"
 
 msgid "Save or discard your changes before re-running."
 msgstr "Save or discard your changes before re-running."
@@ -12663,6 +12675,9 @@ msgstr "This activity has no addressable text or answers. Regenerate it, or use 
 msgid "This activity was added after export."
 msgstr "This activity was added after export."
 
+msgid "This activity was rebuilt or replaced. Your draft is intact. Choose which complete activity to keep."
+msgstr "This activity was rebuilt or replaced. Your draft is intact. Choose which complete activity to keep."
+
 msgid "This ADT export can’t be read"
 msgstr "This ADT export can’t be read"
 
@@ -13654,6 +13669,9 @@ msgstr "Use Spread for printed books with facing-page layouts (covers stay solo,
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Use the + between pages to place the quiz"
+
+msgid "Use the entire latest saved activity instead of this draft."
+msgstr "Use the entire latest saved activity instead of this draft."
 
 msgid "Use the exported pages"
 msgstr "Use the exported pages"

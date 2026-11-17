@@ -11,9 +11,9 @@ import type { EditableActivity } from "@adt/types"
 const mocks = vi.hoisted(() => ({ save: vi.fn(), feedback: vi.fn(), reload: vi.fn(), error: vi.fn(), success: vi.fn() }))
 vi.mock("@lingui/react/macro", () => ({ useLingui: () => ({ t(strings: TemplateStringsArray, ...values: unknown[]) {
   return strings.reduce((result, part, index) => result + part + (index < values.length ? String(values[index]) : ""), "")
-} }) }))
+} }), Trans: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("sonner", () => ({ toast: { success: mocks.success, error: mocks.error } }))
-vi.mock("@/api/client", () => ({ BASE_URL: "", api: { getEditableActivities: mocks.reload }, ApiError: class ApiError extends Error {} }))
+vi.mock("@/api/client", () => ({ BASE_URL: "", api: { getEditableActivities: mocks.reload }, ApiError: class ApiError extends Error { constructor(message: string, readonly status: number) { super(message) } } }))
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "", anthropicKey: "", googleKey: "", customBaseUrl: "", customApiKey: "", geminiKey: "" }), useBookStructuredTextAvailability: () => true }))
 vi.mock("@/hooks/use-editable-activities", async () => {
   const { useState } = await import("react")
@@ -42,6 +42,7 @@ vi.mock("./style-editor/controls/ColorPicker", () => ({ ColorPicker: () => null 
 vi.mock("./style-editor/controls/Select", () => ({ Select: () => null }))
 
 import { FloatingSaveProvider, useHasUnsavedChanges, useFloatingSaveLeaveAction } from "@/components/pipeline/components/floating-save"
+import { ApiError } from "@/api/client"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 
 type MapOfActivities = Record<string, EditableActivity>
@@ -224,4 +225,56 @@ it("Save & leave waits for the existing activity save instead of starting a comp
   mounted.refresh(submitted, 2)
   expect(settled).toBe(true)
   expect(screen.getByTestId("activity-unsaved-barrier").textContent).toBe("false")
+})
+
+
+it("rebases a 409 onto the latest neighbor while retaining edits made during the save", async () => {
+  const waiting = deferred<{ version: number }>(), initial = defaultMap()
+  mocks.save.mockImplementationOnce(() => waiting.promise)
+  const latest = { ...initial, "1": { ...neighbor, title: { text: "Neighbor saved elsewhere" } } }
+  mocks.reload.mockResolvedValue({ activities: latest, version: 2 })
+  mount(initial)
+  changeTitle("Submitted title"); fireEvent.click(saveButton())
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1))
+  changeTitle("Successor title")
+  await act(async () => { waiting.reject(new ApiError("Conflict", 409)) })
+  await waitFor(() => expect(mocks.reload).toHaveBeenCalledOnce())
+  expect(title().value).toBe("Successor title")
+  fireEvent.click(saveButton())
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2))
+  expect(mocks.save.mock.calls[1][0]).toMatchObject({ baseVersion: 2, activities: { "0": { title: { text: "Successor title" } }, "1": latest["1"] } })
+})
+
+it.each(["Keep my changes", "Load latest saved values"])("requires an explicit overlapping activity conflict choice: %s", async choice => {
+  const initial = defaultMap(), latest = { ...initial, "0": { ...original, title: { text: "Other writer" } } }
+  mocks.save.mockRejectedValueOnce(new ApiError("Conflict", 409))
+  mocks.reload.mockResolvedValue({ activities: latest, version: 2 })
+  mount(initial); changeTitle("Mine"); fireEvent.click(saveButton())
+  await waitFor(() => expect(screen.getByRole("button", { name: choice })).toBeTruthy())
+  expect(saveButton().disabled).toBe(true)
+  await expect(leaveAction.saveAndStay()).rejects.toThrow()
+  expect(mocks.save).toHaveBeenCalledTimes(1)
+  fireEvent.change(instructions(), { target: { value: "Typed after conflict" } })
+  fireEvent.click(screen.getByRole("button", { name: choice }))
+  expect(title().value).toBe(choice === "Keep my changes" ? "Mine" : "Other writer")
+  expect(instructions().value).toBe("Typed after conflict")
+  fireEvent.click(saveButton())
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2))
+  expect(mocks.save.mock.calls[1][0].baseVersion).toBe(2)
+})
+
+it("does not graft a draft onto a rebuilt activity before an explicit choice", async () => {
+  const initial = defaultMap()
+  initial["0"] = { ...original, sourceRenderingVersion: 1 }
+  const latest = { ...initial, "0": { ...original, sourceRenderingVersion: 2, title: { text: "Rebuilt" }, steps: [{ id: "new-step", prompt: { text: "New question" }, multiline: true }] } as EditableActivity }
+  mocks.save.mockRejectedValueOnce(new ApiError("Conflict", 409))
+  mocks.reload.mockResolvedValue({ activities: latest, version: 2 })
+  mount(initial); changeTitle("My retained draft"); fireEvent.click(saveButton())
+  await waitFor(() => expect(screen.getByRole("button", { name: "Load latest saved values" })).toBeTruthy())
+  expect(title().value).toBe("My retained draft")
+  expect(screen.queryByDisplayValue("New question")).toBeNull()
+  fireEvent.click(screen.getByRole("button", { name: "Load latest saved values" }))
+  expect(title().value).toBe("Rebuilt")
+  expect(screen.getByDisplayValue("New question")).toBeTruthy()
+  expect(mocks.save).toHaveBeenCalledTimes(1)
 })

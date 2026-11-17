@@ -2349,11 +2349,10 @@ export function StoryboardSectionDetail({
   // AI edit handler
   const handleAiEdit = async () => {
     if (restoringRef.current) return
-    if (!aiInstruction.trim() || !hasStructuredTextProvider || hasActiveTask || storyboardRunning) return
+    if (!aiInstruction.trim() || !hasStructuredTextProvider || hasActiveTask || storyboardRunning || savingRef.current || !draftIsSaved()) return
     setAiError(null)
 
-    const draft = flushPendingHtml() ?? pendingRendering ?? page.rendering
-    const currentHtml = getRenderedSectionByIndex(draft, sectionIndex)?.html
+    const currentHtml = getRenderedSectionByIndex(page.rendering, sectionIndex)?.html
     const instruction = aiInstruction.trim()
     setAiInstruction("")
 
@@ -2759,8 +2758,8 @@ export function StoryboardSectionDetail({
                 handleAiEdit()
               }
             }}
-            placeholder={hasActiveTask || storyboardRunning ? t`Task running...` : t`Ask AI to edit...`}
-            disabled={hasActiveTask || storyboardRunning}
+            placeholder={hasActiveTask || storyboardRunning ? t`Task running...` : dirty || renderingDirty || saving ? t`Save or discard your changes before AI editing` : t`Ask AI to edit...`}
+            disabled={hasActiveTask || storyboardRunning || dirty || renderingDirty || saving}
             className={`pl-7 h-7 text-[11px] bg-white border-white/40 text-gray-900 placeholder:text-gray-400 focus-visible:ring-white/50 ${hasActiveTask ? "opacity-60" : ""}`}
           />
         </div>

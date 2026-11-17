@@ -628,30 +628,45 @@ it("a dirty stepper session stays the sole open editor after current output is r
   expect(state.activitySave).not.toHaveBeenCalled()
 })
 
-it("AI edit submits the captured rendering version and retains its instruction and cosmetic draft on conflict", async () => {
-  const header = document.createElement("div")
-  document.body.appendChild(header)
-  state.headerSlot = header
-  state.aiEdit.mockRejectedValueOnce(new Error("Content changed"))
+it.each(["style", "source"])("AI edit requires saving or discarding a %s draft before submitting", async kind => {
+  const header = document.createElement("div"); document.body.appendChild(header); state.headerSlot = header
+  state.aiEdit.mockResolvedValue({})
+  state.save.mockImplementationOnce(async (_label, _page, body) => ({ rendering: body.rendering, renderingVersion: 2, sectioning: body.sectioning, sectioningVersion: 2 }))
   const page = fixture()
-  const view = render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page} /></FloatingSaveProvider>)
+  render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page} /><LeaveProbe /></FloatingSaveProvider>)
   try {
-    act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
-    const newer = structuredClone(page)
-    newer.versions.rendering = 2
-    newer.rendering!.sections[0].html = newer.rendering!.sections[0].html.replace("Keep me", "Newer saved text")
-    view.rerender(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={newer} /></FloatingSaveProvider>)
+    const instruction = screen.getByPlaceholderText("Ask AI to edit...") as HTMLInputElement
+    fireEvent.change(instruction, { target: { value: "Make this clearer" } })
+    act(() => {
+      if (kind === "style") state.style.onClassesChange("keep", ["text-blue-600"])
+      else state.panel.onSectionChange({ ...state.panel.section, backgroundColor: "blue" })
+    })
+    fireEvent.keyDown(instruction, { key: "Enter" })
+    expect(state.aiEdit).not.toHaveBeenCalled()
+    expect(instruction.disabled).toBe(true)
+    expect(instruction.value).toBe("Make this clearer")
+    expect(state.save).not.toHaveBeenCalled()
+    await act(async () => { await leaveAction.saveAndStay() })
+    await waitFor(() => expect(instruction.disabled).toBe(false))
+    fireEvent.keyDown(instruction, { key: "Enter" })
+    await waitFor(() => expect(state.aiEdit).toHaveBeenCalledOnce())
+    expect(state.aiEdit.mock.calls[0][3]).toBe("Make this clearer")
+    expect(state.aiEdit.mock.calls[0].slice(6)).toEqual([2, 2])
+    if (kind === "style") expect(state.aiEdit.mock.calls[0][5]).toContain("text-blue-600")
+  } finally { header.remove() }
+})
+
+it("AI edit from a clean page retains its instruction after a concurrent version refusal", async () => {
+  const header = document.createElement("div"); document.body.appendChild(header); state.headerSlot = header
+  state.aiEdit.mockRejectedValueOnce(new Error("Content changed"))
+  render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={fixture()} /></FloatingSaveProvider>)
+  try {
     const instruction = screen.getByPlaceholderText("Ask AI to edit...") as HTMLInputElement
     fireEvent.change(instruction, { target: { value: "Make this clearer" } })
     fireEvent.keyDown(instruction, { key: "Enter" })
     await waitFor(() => expect(state.aiEdit).toHaveBeenCalledOnce())
-    const sent = state.aiEdit.mock.calls[0]
-    expect(sent[5]).toContain("text-blue-600")
-    expect(sent[5]).toContain("Keep me")
-    expect(sent[6]).toBe(1)
-    expect(sent[7]).toBe(1)
+    expect(state.aiEdit.mock.calls[0].slice(6)).toEqual([1, 1])
     await waitFor(() => expect(instruction.value).toBe("Make this clearer"))
-    expect(screen.getByRole("button", { name: "Save", exact: true })).toBeTruthy()
     expect(state.save).not.toHaveBeenCalled()
   } finally { header.remove() }
 })

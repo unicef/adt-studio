@@ -6,6 +6,7 @@ import { api } from "@/api/client"
 import { useGuardedDraft } from "@/hooks/use-guarded-draft"
 import { useSaveEditableActivities } from "@/hooks/use-editable-activities"
 import { rebaseDraft } from "@/lib/rebase-draft"
+import { rebaseActivityDraft } from "./rebase-activity-draft"
 
 /** Keep the whole-page entity and its captured version together through reset,
  * query refresh, delayed feedback and asynchronous Save acknowledgements. */
@@ -18,12 +19,12 @@ export function useEditableActivityDraft(props: {
   const guarded = useGuardedDraft(activities, version, async () => {
     const latest = await api.getEditableActivities(bookLabel, pageId)
     return { value: latest.activities, version: latest.version }
-  })
+  }, rebaseActivityDraft)
   const savePromiseRef = useRef<Promise<void> | null>(null)
   const submittedRef = useRef<Record<string, EditableActivity> | null>(null)
   const save = useSaveEditableActivities(bookLabel, pageId)
   const key = String(sectionIndex)
-  const draft = guarded.pending?.[key] ?? props.activity
+  const draft = guarded.pending ? guarded.pending[key] : props.activity
   const setDraft: Dispatch<SetStateAction<EditableActivity>> = (action) => {
     guarded.setPending(previous => {
       const entity = previous ?? activities
@@ -34,6 +35,7 @@ export function useEditableActivityDraft(props: {
   }
   const saveDraft = (): Promise<void> => {
     if (savePromiseRef.current) return savePromiseRef.current
+    if (guarded.conflict) return Promise.reject(new Error(t`Resolve the conflicting changes before saving.`))
     const promise = (async () => {
       const pending = guarded.getPending()
       const target = pending?.[key]
@@ -53,8 +55,9 @@ export function useEditableActivityDraft(props: {
         guarded.acknowledge(submitted, result.version)
         toast.success(t`Activity saved`)
       } catch (error) {
-        // Keep the old draft/version after conflict; never silently apply it to a
-        // regenerated tree or replace a neighboring activity edited meanwhile.
+        // Rebase the latest local draft, including edits typed after Save,
+        // and require an explicit choice wherever saved values overlap.
+        await guarded.handleError(error)
         toast.error(error instanceof Error ? error.message : t`Save failed`)
         throw error
       } finally {
@@ -92,5 +95,5 @@ export function useEditableActivityDraft(props: {
   }
   const dirty = save.isPending || submittedRef.current !== null || guarded.pending !== null && (version !== guarded.baseVersion || JSON.stringify(guarded.pending) !== JSON.stringify(guarded.baseValue))
   return { draft, setDraft, dirty, saveDraft, saveBeforeLeave, beginFeedback,
-    saving: save.isPending, captureDiscard, discardDraft: () => guarded.setPending(null) }
+    saving: save.isPending, conflict: guarded.conflict, error: guarded.error, resolve: guarded.resolve, captureDiscard, discardDraft: () => guarded.setPending(null) }
 }

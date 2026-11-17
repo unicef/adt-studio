@@ -7,7 +7,7 @@
  * storyboard's web-rendering data is never touched, so switching back to the
  * classic presentation is lossless.
  */
-import { useState, useImperativeHandle, type Ref, type Dispatch, type SetStateAction } from "react"
+import { useState, useImperativeHandle, type Ref } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { toast } from "sonner"
 import {
@@ -31,6 +31,7 @@ import type {
 } from "@adt/types"
 import { blankItemIdsInText } from "@adt/types"
 import { BASE_URL } from "@/api/client"
+import { DraftConflict } from "../../../components/DraftConflict"
 import { useEditableActivityDraft } from "./use-editable-activity-draft"
 import {
   useGenerateActivityFeedback,
@@ -126,8 +127,8 @@ function EditableActivityEditor({
   sectionIndex,
   activity,
   paletteAccent,
-  draft, setDraft, dirty, saveDraft, saveBeforeLeave, saving, discardDraft, beginFeedback,
-}: EditableActivityPanelProps & { activity: EditableActivity; draft: EditableActivity; setDraft: Dispatch<SetStateAction<EditableActivity>>; dirty: boolean; saveDraft: () => Promise<void>; saveBeforeLeave: () => Promise<void>; saving: boolean; discardDraft: () => void; beginFeedback: () => { accepts: () => boolean; failed: () => void } }) {
+  draft, setDraft, dirty, saveDraft, saveBeforeLeave, saving, discardDraft, beginFeedback, conflict, error, resolve,
+}: EditableActivityPanelProps & ReturnType<typeof useEditableActivityDraft> & { activity: EditableActivity; draft: EditableActivity }) {
   const { t } = useLingui()
   const generateFeedback = useGenerateActivityFeedback(bookLabel, pageId)
   const { apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, geminiKey } =
@@ -596,6 +597,8 @@ function EditableActivityEditor({
         </button>
       </div>
 
+      <DraftConflict error={error} paths={conflict?.paths} onResolve={resolve} wholeActivity={conflict?.paths.some(item => /^\/[^/]+$/.test(item))} />
+
       {/* Form */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
         {activity.extractionWarnings && activity.extractionWarnings.length > 0 && (
@@ -941,7 +944,7 @@ function EditableActivityEditor({
         <button
           type="button"
           onClick={handleSave}
-          disabled={!dirty || saving}
+          disabled={!dirty || saving || !!conflict}
           className="h-8 px-4 rounded text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 transition-colors cursor-pointer"
         >
           {saving ? t`Saving…` : t`Save activity`}
