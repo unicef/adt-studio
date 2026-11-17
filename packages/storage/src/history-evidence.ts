@@ -31,8 +31,11 @@ export function tupleKey(row: HistoryTuple): string { return JSON.stringify([row
 export function historyBookId(db: sqlite.Database): string | null {
   return (db.get("SELECT book_id FROM history_identity WHERE id=1") as { book_id: string } | undefined)?.book_id ?? null
 }
+const HISTORY_BYTES_SQL = "SELECT typeof(data) AS storageType, hex(CAST(data AS BLOB)) AS hex FROM node_data WHERE node=? AND item_id=? AND version=?"
+const HISTORY_SLOT_SQL = "SELECT incarnation,present FROM history_slots WHERE node=? AND item_id=? AND version=?"
+
 export function readHistoryBytes(db: sqlite.Database, row: HistoryTuple): HistoryBytes | undefined {
-  return db.get("SELECT typeof(data) AS storageType, hex(CAST(data AS BLOB)) AS hex FROM node_data WHERE node=? AND item_id=? AND version=?", [row.node, row.itemId, row.version]) as HistoryBytes | undefined
+  return db.get(HISTORY_BYTES_SQL, [row.node, row.itemId, row.version]) as HistoryBytes | undefined
 }
 export function decodeHistoryBytes(bytes: HistoryBytes): unknown {
   if (bytes.storageType === "null" && bytes.hex === "") return null
@@ -43,7 +46,7 @@ export function decodeHistoryBytes(bytes: HistoryBytes): unknown {
   return JSON.parse(text)
 }
 export function historySlot(db: sqlite.Database, row: HistoryTuple): { incarnation: string; present: number } | undefined {
-  return db.get("SELECT incarnation,present FROM history_slots WHERE node=? AND item_id=? AND version=?", [row.node, row.itemId, row.version]) as { incarnation: string; present: number } | undefined
+  return db.get(HISTORY_SLOT_SQL, [row.node, row.itemId, row.version]) as { incarnation: string; present: number } | undefined
 }
 function verifyWitnessProof(raw: unknown, bookId: string | null): HistoryWitness {
   const witness = HistoryWitness.parse(raw)
@@ -197,38 +200,57 @@ function scanIdentityHistory<T>(db: sqlite.Database, nodes: readonly string[], i
   const result: T[] = []
   const witnessed = new Map<string, string>()
   const bookId = historyBookId(db)
-  for (const entry of historyRows<HistoryTuple & { incarnation: string; evidence: string }>(db, `SELECT node,item_id AS itemId,version,incarnation,evidence FROM history_witnesses WHERE ${where} ORDER BY node,item_id,version,incarnation`, values)) {
-    try {
-      if (!historySlot(db, entry)) throw new Error("Missing insertion continuity")
-      const identity = JSON.stringify([bookId, tupleKey(entry), entry.incarnation, createHash("sha256").update(entry.evidence).digest("hex")])
-      const projected = read(identity, () => {
-        const witness = verifyWitnessProof(decodeWitness(entry.evidence), bookId)
-        if (tupleKey(witness) !== tupleKey(entry) || witness.incarnation !== entry.incarnation) throw new Error("Witness tuple changed")
-        return { hash: historyHash(witness.bytes), record: { node: entry.node, itemId: entry.itemId, version: entry.version, data: decodeHistoryBytes(witness.bytes) } }
-      })
-      witnessed.set(`${tupleKey(entry)}:${entry.incarnation}`, projected.hash)
-      for (const value of projected.values) result.push(value)
-    } catch { throw new HistoryIntegrityError(entry.node, entry.itemId, entry.version) }
-  }
-  const extant = new Set<string>()
-  for (const row of historyRows<HistoryTuple>(db, `SELECT node,item_id AS itemId,version FROM node_data WHERE ${where} ORDER BY node,item_id,version`, values)) {
-    extant.add(tupleKey(row))
-    try {
-      const bytes = readHistoryBytes(db, row)!
-      const slot = historySlot(db, row)
-      if (slot?.present === 0) throw new Error("Lost insertion continuity")
-      const proof = slot && witnessed.get(`${tupleKey(row)}:${slot.incarnation}`)
-      const hash = historyHash(bytes)
-      if (proof && proof !== hash) throw new Error("Changed payload")
-      if (!proof) {
-        const projected = read(JSON.stringify([bookId, tupleKey(row), slot?.incarnation, "unwitnessed", hash]), () => ({ hash, record: { ...row, data: decodeHistoryBytes(bytes) } }))
+  // Reuse point statements only within this synchronous snapshot. Keep payload
+  // reads inside the per-tuple error boundary: moving them into the iterator
+  // would turn damaged overflow pages into untyped SQLite iteration errors.
+  let slotStatement: sqlite.Statement | undefined
+  let bytesStatement: sqlite.Statement | undefined
+  let failed = false
+  try {
+    for (const entry of historyRows<HistoryTuple & { incarnation: string; evidence: string }>(db, `SELECT node,item_id AS itemId,version,incarnation,evidence FROM history_witnesses WHERE ${where} ORDER BY node,item_id,version,incarnation`, values)) {
+      try {
+        if (!(slotStatement ??= db.prepare(HISTORY_SLOT_SQL)).get([entry.node, entry.itemId, entry.version])) throw new Error("Missing insertion continuity")
+        const identity = JSON.stringify([bookId, tupleKey(entry), entry.incarnation, createHash("sha256").update(entry.evidence).digest("hex")])
+        const projected = read(identity, () => {
+          const witness = verifyWitnessProof(decodeWitness(entry.evidence), bookId)
+          if (tupleKey(witness) !== tupleKey(entry) || witness.incarnation !== entry.incarnation) throw new Error("Witness tuple changed")
+          return { hash: historyHash(witness.bytes), record: { node: entry.node, itemId: entry.itemId, version: entry.version, data: decodeHistoryBytes(witness.bytes) } }
+        })
+        witnessed.set(`${tupleKey(entry)}:${entry.incarnation}`, projected.hash)
         for (const value of projected.values) result.push(value)
-      }
-    } catch { throw new HistoryIntegrityError(row.node, row.itemId, row.version) }
+      } catch { throw new HistoryIntegrityError(entry.node, entry.itemId, entry.version) }
+    }
+    const extant = new Set<string>()
+    for (const row of historyRows<HistoryTuple>(db, `SELECT node,item_id AS itemId,version FROM node_data WHERE ${where} ORDER BY node,item_id,version`, values)) {
+      extant.add(tupleKey(row))
+      try {
+        const bytes = (bytesStatement ??= db.prepare(HISTORY_BYTES_SQL)).get([row.node, row.itemId, row.version]) as HistoryBytes
+        const slot = (slotStatement ??= db.prepare(HISTORY_SLOT_SQL)).get([row.node, row.itemId, row.version]) as { incarnation: string; present: number } | null
+        if (slot?.present === 0) throw new Error("Lost insertion continuity")
+        const proof = slot && witnessed.get(`${tupleKey(row)}:${slot.incarnation}`)
+        const hash = historyHash(bytes)
+        if (proof && proof !== hash) throw new Error("Changed payload")
+        if (!proof) {
+          const projected = read(JSON.stringify([bookId, tupleKey(row), slot?.incarnation, "unwitnessed", hash]), () => ({ hash, record: { ...row, data: decodeHistoryBytes(bytes) } }))
+          for (const value of projected.values) result.push(value)
+        }
+      } catch { throw new HistoryIntegrityError(row.node, row.itemId, row.version) }
+    }
+    for (const row of historyRows<HistoryTuple & { incarnation: string; present: number }>(db, `SELECT node,item_id AS itemId,version,incarnation,present FROM history_slots WHERE ${where}`, values)) {
+      if (extant.has(tupleKey(row))) continue
+      if (row.present !== 0 || !witnessed.has(`${tupleKey(row)}:${row.incarnation}`)) throw new HistoryIntegrityError(row.node, row.itemId, row.version)
+    }
+    return result
+  } catch (error) {
+    failed = true
+    throw error
+  } finally {
+    // SQLite finalize can repeat the preceding step error. Release both
+    // statements without replacing the already typed offending-tuple error.
+    let finalizeError: unknown
+    for (const statement of [slotStatement, bytesStatement]) {
+      try { statement?.finalize() } catch (error) { finalizeError ??= error }
+    }
+    if (!failed && finalizeError) throw finalizeError
   }
-  for (const row of historyRows<HistoryTuple & { incarnation: string; present: number }>(db, `SELECT node,item_id AS itemId,version,incarnation,present FROM history_slots WHERE ${where}`, values)) {
-    if (extant.has(tupleKey(row))) continue
-    if (row.present !== 0 || !witnessed.has(`${tupleKey(row)}:${row.incarnation}`)) throw new HistoryIntegrityError(row.node, row.itemId, row.version)
-  }
-  return result
 }
