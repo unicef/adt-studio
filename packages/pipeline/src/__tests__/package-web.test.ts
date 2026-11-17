@@ -2986,6 +2986,16 @@ describe("buildImageMap", () => {
 })
 
 describe("rewriteImageUrls", () => {
+  it("resolves portable old-label image URLs locally without changing external URLs", () => {
+    const html = '<img src="/api/books/original/images/img1"><img src="https://example.test/api/books/original/images/img1">'
+    const preview = rewriteImageUrls(html, "copy", new Map()).html
+    expect(preview).toContain('src="/api/books/copy/images/img1"')
+    expect(preview).toContain('src="https://example.test/api/books/original/images/img1"')
+    const packaged = rewriteImageUrls(html, "copy", new Map([["img1", "image.png"]]))
+    expect(packaged.html).toContain('src="images/image.png"')
+    expect(packaged.html).toContain('src="https://example.test/api/books/original/images/img1"')
+    expect(packaged.referencedImages).toEqual(["img1"])
+  })
   it("rewrites src URL from API path to local images/ path", () => {
     const html = `<img src="/api/books/mybook/images/abc123">`
     const imageMap = new Map([["abc123", "photo.jpg"]])

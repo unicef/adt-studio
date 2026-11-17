@@ -51,6 +51,7 @@ import {
 } from "@adt/types"
 import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
 import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
+import { currentBookImageSrc } from "../book-image-url.js"
 import {
   bundleBookFontsIntoCss,
   readBookFontRegistry,
@@ -2145,7 +2146,8 @@ export function rewriteImageUrls(
 
   for (const img of imgs) {
     let resolvedImageId: string | undefined
-    const src = img.attribs.src ?? ""
+    const src = currentBookImageSrc(img.attribs.src ?? "", label)
+    if (img.attribs.src !== undefined) img.attribs.src = src
     if (src.startsWith(prefix)) {
       const imageId = src.slice(prefix.length)
       const filename = imageMap.get(imageId)

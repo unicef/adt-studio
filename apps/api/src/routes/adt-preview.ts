@@ -1229,9 +1229,10 @@ export function createAdtPreviewRoutes(
           ((config.quiz_generation?.match_book_style ?? true)
             ? resolveQuizPalette(storage)
             : null) ?? DEFAULT_QUIZ_PALETTE
-        // Empty image map (preview serves stored srcs directly) but the same
-        // curated alt/decorative handling as packaged output.
+        // Preview resolves portable references against this book, with the
+        // same curated alt/decorative handling as packaged output.
         const resolved = resolveEditableActivityImages(stepperActivity, new Map(), {
+          previewLabel: label,
           preferredAltMap: preferredImageAltMap,
           decorativeImageIds,
         })

@@ -2,10 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { randomUUID } from "node:crypto"
 import { Hono } from "hono"
 import type { ExtractedPage } from "@adt/pdf"
 import { createBookStorage, openBookDb, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
-import { AccessibilityAssessmentOutput, type TaskInfo } from "@adt/types"
+import { AccessibilityAssessmentOutput, EditableActivitiesEntity, type TaskInfo } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
 import { exportAdt, exportScorm, exportWebpub, exportEpub, exportPnld, exportProject } from "../services/export-service.js"
 import { spawnSync } from "node:child_process"
@@ -17,6 +18,7 @@ import { listBooks, getBook } from "../services/book-service.js"
 import type { TaskService } from "../services/task-service.js"
 import { createPackageRoutes } from "./package.js"
 import { createAdtPreviewRoutes } from "./adt-preview.js"
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
 
 describe("Package routes", () => {
   let tmpDir: string
@@ -100,6 +102,59 @@ describe("Package routes", () => {
       "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",
     )
   }
+
+  it.each([false, true])("RAC-13 RAC-15 RAC-18: a recovered copy previews and packages retained old-label images while the original stays locked, stepper=%s", async stepper => {
+    createRenderedBook("original"); createWebAssets()
+    const config = path.join(tmpDir, "global.yaml")
+    fs.writeFileSync(config, "structure_types: {}\nrole_types: {}\n")
+    const storage = createBookStorage("original", tmpDir)
+    const rendering = storage.getLatestNodeData("web-rendering", "pg001")!.data as { sections: Array<{ html: string }> }
+    rendering.sections[0].html = '<main><p>Recovered content</p><img data-id="pg001_page" src="/api/books/original/images/pg001_page"></main>'
+    storage.putNodeData("web-rendering", "pg001", rendering)
+    if (stepper) storage.putNodeData("editable-activity", "pg001", EditableActivitiesEntity.parse({ activities: { "0": {
+      kind: "multiple-choice", sectionType: "content", enabled: true,
+      steps: [{ id: "question-1", prompt: { text: "Recovered content" },
+        image: { imageId: "pg001_page", src: "/api/books/original/images/pg001_page" },
+        options: [{ itemId: "item-1", text: { text: "Yes" }, correct: true }, { itemId: "item-2", text: { text: "No" }, correct: false }],
+      }],
+    } } }))
+    storage.close()
+    const original = path.join(tmpDir, "original")
+    fs.writeFileSync(path.join(original, ".book-writer.json"), JSON.stringify({ token: randomUUID(), pid: 1, host: "other-machine" }))
+    const snapshot = () => Object.fromEntries(fs.readdirSync(original, { recursive: true })
+      .filter(file => fs.statSync(path.join(original, String(file))).isFile())
+      .map(file => [String(file), fs.readFileSync(path.join(original, String(file)))]))
+    const before = snapshot()
+    const routes = new Hono().onError(errorHandler)
+    routes.use("/api/books/:label/*", bookWriterMiddleware(tmpDir))
+    routes.route("/api", createBookRoutes(tmpDir, undefined, config))
+    routes.route("/api", createAdtPreviewRoutes(tmpDir, webAssetsDir, config))
+    routes.route("/api", createPackageRoutes(tmpDir, webAssetsDir, config))
+    const copied = await routes.request("/api/books/original/recover-copy", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label: "recovered", preserveOriginal: true }),
+    })
+    expect(copied.status, await copied.clone().text()).toBe(201)
+    const preview = await routes.request("/api/books/recovered/adt-preview/pg001_sec001.html")
+    expect(preview.status, await preview.clone().text()).toBe(200)
+    const html = await preview.text()
+    expect(html).toContain("Recovered content")
+    expect(html).not.toContain("/api/books/original/images/")
+    if (stepper) expect(html).toContain("data-editable-activity")
+    const image = await routes.request("/api/books/recovered/images/pg001_page")
+    expect(image.status).toBe(200)
+    expect(Buffer.from(await image.arrayBuffer())).toEqual(Buffer.from("fake-png-800x1200"))
+    const packaged = await routes.request("/api/books/recovered/package-adt", { method: "POST" })
+    expect(packaged.status, await packaged.clone().text()).toBe(200)
+    const download = await routes.request("/api/books/recovered/export-adt")
+    expect(download.status, await download.clone().text()).toBe(200)
+    const archive = unzipSync(new Uint8Array(await download.arrayBuffer()))
+    expect(Buffer.from(archive["pg001_sec001.html"]).toString()).toContain("Recovered content")
+    expect(Buffer.from(archive["pg001_sec001.html"]).toString()).not.toContain("/api/books/original/images/")
+    expect(Object.entries(archive).some(([name, bytes]) => name.startsWith("images/") && Buffer.from(bytes).equals(Buffer.from("fake-png-800x1200")))).toBe(true)
+    expect((await routes.request("/api/books/original")).status).toBe(409)
+    expect(snapshot()).toEqual(before)
+  })
 
   it("RAC-10 RAC-19: PACKAGE_INPUTS_CHANGED preserves the published package when settings change during preparation", { timeout: 30_000 }, async () => {
     const label = "changed-package-inputs"

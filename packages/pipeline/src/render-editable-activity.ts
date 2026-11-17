@@ -18,6 +18,7 @@ import {
   type ActivityText,
 } from "@adt/types"
 import { type QuizPalette, paletteWithAccent } from "./quiz-palette.js"
+import { currentBookImageSrc } from "./book-image-url.js"
 
 /** Attribute value marking a section as stepper-rendered; the classic
  *  activity initializers skip sections carrying it. */
@@ -83,6 +84,8 @@ export function remapEditableActivities(
 }
 
 export interface ResolveEditableActivityImageOptions {
+  /** Live Preview resolves portable API references against this book. */
+  previewLabel?: string
   /** Curated alt text from image captioning, keyed by imageId. */
   preferredAltMap?: Map<string, string>
   /** Images marked decorative in captioning — hidden from assistive tech. */
@@ -103,7 +106,7 @@ export function resolveEditableActivityImages(
   const referenced = new Set<string>()
   const resolveImage = (img: ActivityImage | undefined): ActivityImage | undefined => {
     if (!img) return undefined
-    let resolved = img
+    let resolved = opts.previewLabel ? { ...img, src: currentBookImageSrc(img.src, opts.previewLabel) } : img
     if (img.imageId && imageMap.has(img.imageId)) {
       referenced.add(img.imageId)
       resolved = { ...resolved, src: `images/${imageMap.get(img.imageId)}` }
