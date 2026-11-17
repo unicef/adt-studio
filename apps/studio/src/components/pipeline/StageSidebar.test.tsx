@@ -13,6 +13,7 @@ const cancelRunMock = vi.fn()
 const toastInfoMock = vi.fn()
 const matchRouteMock = vi.fn(() => true)
 const searchMock = { tab: "reviewer-checklist" }
+let workingSource = "pdf"
 const ttsMock = vi.fn((): { data?: import("@/api/client").TTSResponse } => ({}))
 vi.mock("@/hooks/use-tts", () => ({ useTTSData: () => ttsMock() }))
 const outputsMock = vi.fn((): { data?: { summaries: { stages: Record<string, { applicable: number; current: boolean; updates: number; warnings: number; missing: number }> } } } => ({}))
@@ -44,7 +45,8 @@ vi.mock("@lingui/core", () => ({
 }))
 
 vi.mock("@lingui/core/macro", () => ({
-  msg(strings: TemplateStringsArray, ...values: unknown[]) {
+  msg(strings: TemplateStringsArray | { message: string }, ...values: unknown[]) {
+    if (!Array.isArray(strings)) return { id: (strings as { message: string }).message }
     let text = ""
     for (let index = 0; index < strings.length; index += 1) {
       text += strings[index]
@@ -52,6 +54,12 @@ vi.mock("@lingui/core/macro", () => ({
     }
     return { id: text }
   },
+  select: (_value: string, cases: { other: string }) => cases.other,
+}))
+
+const rejectedProviderMock = vi.fn((): { providerId: string; displayName: string } | null => null)
+vi.mock("@/hooks/use-api-key", () => ({
+  useBookRejectedTextProvider: () => rejectedProviderMock(),
 }))
 
 vi.mock("@lingui/react", () => ({
@@ -74,13 +82,17 @@ vi.mock("@tanstack/react-router", () => ({
     title,
     to,
     search,
+    params,
     ...props
   }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
     to?: string
     search?: { tab?: string }
-  }) => (
-    <a title={title} data-to={to} data-tab={search?.tab} {...props}>{children}</a>
-  ),
+    params?: { label: string; step: string; pageId?: string }
+    hash?: string
+  }) => {
+    const { hash, ...rest } = props as typeof props & { hash?: string }
+    return <a title={title} data-to={to} data-tab={search?.tab} data-page-id={params?.pageId} data-hash={hash} {...rest}>{children}</a>
+  },
   useMatchRoute: () => matchRouteMock,
   useNavigate: () => vi.fn(),
   useSearch: () => searchMock,
@@ -128,6 +140,7 @@ vi.mock("@/hooks/use-book-tasks", () => ({
 }))
 
 vi.mock("@/hooks/use-books", () => ({
+  useBook: () => ({ data: { workingSource } }),
   usePackageAdtStatus: () => ({ data: { hasAdt: false } }),
 }))
 
@@ -174,10 +187,12 @@ afterEach(() => {
   cleanup()
   vi.clearAllMocks()
   stageStateMock.mockImplementation(defaultStageState)
+  workingSource = "pdf"
   outputsMock.mockReturnValue({})
   ttsMock.mockReturnValue({})
   publicationStatusMock.mockReturnValue(undefined)
   feedbackBadgeMock.mockReturnValue({ published: false, unresolvedCount: 0, loaded: false, unavailable: false })
+  rejectedProviderMock.mockReturnValue(null)
 })
 
 /** Sharing is not a pipeline stage, so its disc only fills once a link is live, and the count
@@ -210,6 +225,20 @@ describe("StageSidebar — sharing row", () => {
 })
 
 describe("StageSidebar", () => {
+  it("#863: links to Quizzes without inheriting the selected page from another stage", async () => {
+    matchRouteMock.mockReturnValue(false)
+    stageStateMock.mockReturnValue("idle")
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(<StageSidebar bookLabel="demo-book" activeStep="storyboard" selectedPageId="pg001" />)
+
+    const quizzesLink = screen.getByTitle("Quizzes")
+    expect(quizzesLink.getAttribute("data-to")).toBe("/books/$label/$step")
+    expect(quizzesLink.getAttribute("data-page-id")).toBeNull()
+    const sectioningLink = screen.getByTitle("Sectioning")
+    expect(sectioningLink.getAttribute("data-to")).toBe("/books/$label/$step/$pageId")
+    expect(sectioningLink.getAttribute("data-page-id")).toBe("pg001")
+  })
+
   it.each(["idle", "queued", "running", "done", "error"] as const)("keeps missing-only Speech attention consistent with the %s attempt state", async (state) => {
     outputsMock.mockReturnValue({ data: { summaries: { stages: { speech: { applicable: 3, current: false, updates: 0, warnings: 0, missing: 3 } } } } })
     stageStateMock.mockImplementation((stage) => stage === "speech" ? state : "idle")
@@ -302,6 +331,61 @@ describe("StageSidebar", () => {
     expect(screen.queryByText("Global Prompts")).toBeNull()
   })
 
+  it("keeps the book settings button quiet while the provider accepts the key", async () => {
+    matchRouteMock.mockReturnValue(false)
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(<StageSidebar bookLabel="demo-book" activeStep="sectioning" />)
+
+    const settingsLink = screen.getByTitle("API Key Settings")
+    expect(settingsLink.getAttribute("data-hash")).toBeNull()
+    expect(settingsLink.getAttribute("aria-label")).toBeNull()
+    expect(settingsLink.querySelector("[data-rejected-key-dot]")).toBeNull()
+  })
+
+  // Stage pages carry no key banner, so a rejected key has to show from every
+  // page of the book: the cog stays visible, with a red dot, and opens the
+  // book's API keys on the rejected provider's card.
+  it("flags the book settings button when the book's text provider rejects the key", async () => {
+    matchRouteMock.mockReturnValue(false)
+    rejectedProviderMock.mockReturnValue({ providerId: "codex", displayName: "Codex" })
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(<StageSidebar bookLabel="demo-book" activeStep="sectioning" />)
+
+    const label = "API Key Settings — the Codex key was rejected"
+    const settingsLink = screen.getByTitle(label)
+    expect(settingsLink.getAttribute("aria-label")).toBe(label)
+    expect(settingsLink.getAttribute("data-to")).toBe("/books/$label/$step/settings")
+    expect(settingsLink.getAttribute("data-tab")).toBe("general")
+    // codex lives on the OpenAI card
+    expect(settingsLink.getAttribute("data-hash")).toBe("settings-provider-openai")
+    expect(settingsLink.className).not.toContain("opacity-0")
+    expect(settingsLink.querySelector("[data-rejected-key-dot]")).toBeTruthy()
+  })
+
+  it("mirrors the rejected-key dot on the book icon while the rail is collapsed", async () => {
+    // A stage that has run shows its pages: the rail collapses and clips the cog.
+    matchRouteMock.mockReturnValue(false)
+    stageStateMock.mockImplementation((stage) => stage === "sectioning" ? "done" : "idle")
+    rejectedProviderMock.mockReturnValue({ providerId: "openai", displayName: "OpenAI" })
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(<StageSidebar bookLabel="demo-book" activeStep="sectioning" />)
+    const label = "API Key Settings — the OpenAI key was rejected"
+    expect(screen.getAllByTitle(label).some((element) => element.getAttribute("role") === "img")).toBe(true)
+  })
+
+  it("keeps the book row's error badge over the rejected-key badge", async () => {
+    matchRouteMock.mockReturnValue(false)
+    stageStateMock.mockImplementation((stage) => stage === "sectioning" ? "done" : stage === "book" ? "error" : "idle")
+    rejectedProviderMock.mockReturnValue({ providerId: "openai", displayName: "OpenAI" })
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(<StageSidebar bookLabel="demo-book" activeStep="sectioning" />)
+    const label = "API Key Settings — the OpenAI key was rejected"
+    expect(screen.getAllByTitle(label).some((element) => element.getAttribute("role") === "img")).toBe(false)
+    // The book row's own badge (titled with its label) is the one shown.
+    const bookRow = screen.getByTitle("API Key Settings — the OpenAI key was rejected").parentElement!
+    expect(bookRow.querySelector("[role=img]")?.getAttribute("title")).not.toContain("key was rejected")
+  })
+
   it.each(["quizzes", "glossary", "toc", "captions"])("keeps the %s Overview (and its Run button) after a reset leaves the stage idle", async (stage) => {
     matchRouteMock.mockReturnValue(true)
     stageStateMock.mockReturnValue("idle")
@@ -373,6 +457,43 @@ describe("StageSidebar", () => {
 
     expect(cancelRunMock).toHaveBeenCalledTimes(1)
     expect(toastInfoMock).toHaveBeenCalledWith("Cancelling Storyboard step")
+  })
+
+  it("keeps PDF preparation stages navigable and explains why they are not needed", async () => {
+    workingSource = "imported-adt"
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(
+      <StageSidebar
+        bookLabel="imported-book"
+        activeStep="book"
+      />,
+    )
+
+    const extractLink = screen.getByLabelText("Extract: not needed for imported ADTs")
+    const sectioningLink = screen.getByLabelText("Sectioning: not needed for imported ADTs")
+
+    expect(extractLink.getAttribute("aria-disabled")).toBeNull()
+    expect(sectioningLink.getAttribute("aria-disabled")).toBeNull()
+    expect(extractLink.getAttribute("tabindex")).not.toBe("-1")
+    expect(sectioningLink.getAttribute("tabindex")).not.toBe("-1")
+    expect(extractLink.getAttribute("title")).toBe("Imported HTML already provides this stage's output")
+    expect(sectioningLink.getAttribute("title")).toBe("Imported HTML already provides this stage's output")
+    expect(screen.getAllByText("Not needed")).toHaveLength(2)
+    for (const title of [
+      "Storyboard",
+      "Quizzes",
+      "Image Captions",
+      "Glossary",
+      "Table of Contents",
+      "Easy Read",
+      "Language",
+      "Speech",
+      "Validation",
+      "Preview",
+      "Export",
+    ]) {
+      expect(screen.getByTitle(title).getAttribute("aria-disabled")).toBeNull()
+    }
   })
 })
 

@@ -14,7 +14,7 @@ import {
 import { useHeldResolve } from "@/components/pipeline/stages/publish/dashboard/use-held-resolve"
 import type { BookPreviewFrameHandle } from "../BookPreviewFrame"
 import { useSectionNav } from "@/routes/books.$label"
-import { parseSectionId, placePins, type PlacedPin, type UnplacedPin } from "./storyboard-pins"
+import { placePins, type PlacedPin, type UnplacedPin } from "./storyboard-pins"
 import { useCommentsMode } from "./use-comments-mode"
 import { nextCommented, useBookComments, type CommentedSection } from "./use-book-comments"
 
@@ -80,10 +80,11 @@ export function useSectionComments({
   /** The waiting ones — plus the open one if it is resolved, so a link to a resolved comment
    *  still opens it (and offers Reopen) instead of opening nothing. */
   const threads = useMemo(() => {
+    if (!book.locations.has(sectionId)) return []
     const waiting = filterThreads(all, { resolution: "unresolved", pageSectionId: sectionId })
     const open = all.find((thread) => thread.root.id === selectedThreadId && thread.pageSectionId === sectionId)
     return open && open.resolved ? [...waiting, open] : waiting
-  }, [all, sectionId, selectedThreadId])
+  }, [all, sectionId, selectedThreadId, book.locations])
 
   /** Waiting threads on the page's other sections, so the author knows there is more to see. */
   const elsewhere = useMemo(
@@ -94,8 +95,8 @@ export function useSectionComments({
           index,
           count: filterThreads(all, { resolution: "unresolved", pageSectionId: id }).length,
         }))
-        .filter((entry) => entry.sectionId !== sectionId && entry.count > 0),
-    [all, pageSectionIds, sectionId],
+        .filter((entry) => book.locations.has(entry.sectionId) && entry.sectionId !== sectionId && entry.count > 0),
+    [all, pageSectionIds, sectionId, book.locations],
   )
 
   useEffect(() => {
@@ -178,7 +179,7 @@ export function useSectionComments({
      *  so it can't carry a move between two pages at the same index. */
     goTo: (entry: CommentedSection) => {
       commentsMode.open(entry.latestThreadId, entry.sectionId)
-      if (entry.pageId !== parseSectionId(sectionId)?.pageId) {
+      if (entry.pageId !== book.locations.get(sectionId)?.pageId) {
         skipNextResetRef.current = true
         void navigate({
           to: "/books/$label/$step/$pageId",

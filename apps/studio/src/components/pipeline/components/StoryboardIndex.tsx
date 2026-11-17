@@ -8,13 +8,13 @@ import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCirc
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
+import { useBook } from "@/hooks/use-books"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
 import { STAGES } from "../stage-config"
 import type { Quiz } from "@adt/types"
 import { parseQuizRouteId } from "@/lib/quiz-route"
 import { useBookComments } from "../stages/storyboard/components/feedback/use-book-comments"
-import { sectionIdFor } from "../stages/storyboard/components/feedback/storyboard-pins"
 import { useCommentsMode } from "../stages/storyboard/components/feedback/use-comments-mode"
 
 /**
@@ -37,6 +37,7 @@ export function StoryboardIndex({
   stageRunning?: boolean
 }) {
   const { data: pages } = usePages(bookLabel)
+  const { data: book } = useBook(bookLabel)
   const { data: quizzesData } = useQuizzes(bookLabel)
   const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
@@ -60,7 +61,7 @@ export function StoryboardIndex({
     const out: StoryboardListItem[] = []
     for (const page of pages) {
       for (const section of page.sections) {
-        if (filtering && !bookComments.bySection.has(sectionIdFor(page.pageId, section.sectionIndex))) continue
+        if (filtering && !bookComments.bySection.has(section.sectionId)) continue
         out.push({
           kind: "section",
           page,
@@ -139,7 +140,7 @@ export function StoryboardIndex({
   /** From the filtered list a click goes to the section the ordinary way — unsaved-changes check
    *  and all — and asks that section to open its newest waiting comment. */
   const openComments = (pageId: string, sectionIndex: number) => {
-    const entry = bookComments.bySection.get(sectionIdFor(pageId, sectionIndex))
+    const entry = bookComments.bySection.get(pages?.find((page) => page.pageId === pageId)?.sections.find((section) => section.sectionIndex === sectionIndex)?.sectionId ?? "")
     if (entry) commentsMode.open(entry.latestThreadId, entry.sectionId)
     onSelectSection?.(pageId, sectionIndex)
   }
@@ -199,7 +200,8 @@ export function StoryboardIndex({
                       : onSelectSection?.(item.page.pageId, item.section.sectionIndex)
                   }
                   stageRunning={stageRunning}
-                  waiting={bookComments.bySection.get(sectionIdFor(item.page.pageId, item.section.sectionIndex))?.waiting ?? 0}
+                  hasSourcePdf={book?.hasSourcePdf ?? false}
+                  waiting={bookComments.bySection.get(item.section.sectionId)?.waiting ?? 0}
                 />
               ) : (
                 <QuizRow
@@ -283,6 +285,7 @@ function SectionRow({
   activeText,
   onSelect,
   stageRunning,
+  hasSourcePdf,
   waiting = 0,
 }: {
   bookLabel: string
@@ -293,6 +296,7 @@ function SectionRow({
   activeText?: string
   onSelect: () => void
   stageRunning?: boolean
+  hasSourcePdf: boolean
   /** Reader comments waiting on this section. */
   waiting?: number
 }) {
@@ -326,8 +330,8 @@ function SectionRow({
       ref={rowRef}
       type="button"
       onClick={onSelect}
-      onMouseEnter={hover.handleEnter}
-      onMouseLeave={hover.handleLeave}
+      onMouseEnter={hasSourcePdf ? hover.handleEnter : undefined}
+      onMouseLeave={hasSourcePdf ? hover.handleLeave : undefined}
       title={
         section.isPruned
           ? i18n._(msg`Section ${section.sectionIndex + 1} (pruned)`)
@@ -403,7 +407,7 @@ function SectionRow({
           )}
         </span>
       </div>
-      {hover.show &&
+      {hasSourcePdf && hover.show &&
         createPortal(
           <ComparisonPreview
             pos={hover.pos}

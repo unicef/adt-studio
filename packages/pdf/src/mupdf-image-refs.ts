@@ -1,7 +1,7 @@
 /**
  * Reference-balanced replacements for two mupdf.js `Image` APIs that leak.
  *
- * In mupdf.js 1.27.0, `new Image(pointer)` takes its own reference
+ * In mupdf.js 1.27.0 and 1.28.6, `new Image(pointer)` takes its own reference
  * (`fz_keep_image`), but `destroy()` and the finalizer release only one. Two
  * APIs hand the constructor a pointer that already carries a reference, so
  * each call leaks one:
@@ -20,7 +20,7 @@
  *
  * Each helper drops the extra reference, so the wrapper's own `destroy()` (or
  * finalizer) balances it. This depends on the exact upstream behaviour, so
- * `mupdf` is pinned to 1.27.0 in package.json. `mupdf-image-refs.test.ts`
+ * `mupdf` is pinned to an exact version in package.json. `mupdf-image-refs.test.ts`
  * fails if an upgrade changes either API, at which point these helpers must be
  * revisited: against a fixed mupdf.js they would release a reference twice.
  */

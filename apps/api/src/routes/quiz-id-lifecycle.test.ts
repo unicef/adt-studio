@@ -125,7 +125,7 @@ async function putQuizzes(body: QuizGenerationOutput) {
   const res = await app.request(`/api/books/${label}/quizzes`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, baseVersion: withStorage((storage) => storage.getLatestNodeData("quiz-generation", "book")?.version ?? 0) }),
   })
   expect(res.status).toBe(200)
 }

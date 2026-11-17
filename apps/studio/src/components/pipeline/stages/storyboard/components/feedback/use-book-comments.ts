@@ -3,7 +3,7 @@ import { buildThreads, filterThreads } from "@/components/publication-feedback/l
 import { useBookPublication } from "@/hooks/use-book-publication"
 import { usePages } from "@/hooks/use-pages"
 import { usePublicationComments } from "@/hooks/use-publication-feedback"
-import { sectionIdFor } from "./storyboard-pins"
+import { currentSectionLocations } from "./current-section-locations"
 
 export interface CommentedSection {
   sectionId: string
@@ -32,11 +32,13 @@ export function useBookComments(bookLabel: string) {
       buildThreads(comments.data?.comments ?? []).filter((thread) => thread.root.deleted_at === null),
       { resolution: "unresolved", pageSectionId: null },
     )
+    const locations = currentSectionLocations(pages.data ?? [])
     const bySection = new Map<string, CommentedSection>()
     const ordered: CommentedSection[] = []
     for (const page of pages.data ?? []) {
       for (const section of page.sections) {
-        const sectionId = sectionIdFor(page.pageId, section.sectionIndex)
+        const sectionId = section.sectionId
+        if (!locations.has(sectionId)) continue
         const here = waiting.filter((thread) => thread.pageSectionId === sectionId)
         if (here.length === 0) continue
         const latest = [...here].sort((a, b) => b.lastActivityAt - a.lastActivityAt)[0]
@@ -54,6 +56,7 @@ export function useBookComments(bookLabel: string) {
     }
     return {
       published,
+      locations,
       bySection,
       ordered,
       total: ordered.reduce((sum, entry) => sum + entry.waiting, 0),

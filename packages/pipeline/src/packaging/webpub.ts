@@ -128,15 +128,33 @@ export function packageWebpub(
     title: page.page_number != null ? String(page.page_number) : page.section_id,
   }))
 
+  // Readium Link Objects require a destination. An HTML contents resource can
+  // preserve authored unlinked headings without inventing a chapter target.
+  // https://readium.org/webpub-manifest/#6-table-of-contents
+  const toc = buildTocCollection(webpubDir)
+  const needsHtmlToc = (entries: TocLink[]): boolean => entries.some((entry) =>
+    !entry.href || (entry.children !== undefined && needsHtmlToc(entry.children)),
+  )
+  let htmlTocHref: string | undefined
+  if (needsHtmlToc(toc)) {
+    htmlTocHref = "contents.html"
+    // Legacy stable IDs can already own this filename. Keep every copied page
+    // intact and allocate only the derived navigation resource's name.
+    for (let suffix = 2; fs.existsSync(path.join(webpubDir, htmlTocHref)); suffix++) {
+      htmlTocHref = `contents-${suffix}.html`
+    }
+    fs.writeFileSync(path.join(webpubDir, htmlTocHref), renderTocDocument(toc, title, options.language))
+  }
+
   // Enumerate all files as resources, excluding the reading-order documents
   // (Readium's `resources` holds items NOT already in `readingOrder`).
   const readingOrderHrefs = new Set(readingOrder.map((entry) => entry.href))
   const allResources: Array<{ href: string; type: string }> = []
   collectWebpubResources(webpubDir, webpubDir, allResources)
   const resources = allResources.filter((r) => !readingOrderHrefs.has(r.href))
-
-  // Navigation collections the reader uses to build its own UI
-  const toc = buildTocCollection(webpubDir)
+    .map((resource) => resource.href === htmlTocHref
+      ? { ...resource, rel: "contents" }
+      : resource)
 
   const pageListNav = pageList
     .filter((page) => page.page_number != null)
@@ -158,11 +176,23 @@ export function packageWebpub(
     links,
     readingOrder,
     resources,
-    ...(toc.length > 0 ? { toc } : {}),
+    ...(toc.length > 0 && !htmlTocHref ? { toc } : {}),
     ...(pageListNav.length > 0 ? { pageList: pageListNav } : {}),
     ...(landmarks.length > 0 ? { landmarks } : {}),
   }
   writeJson(path.join(webpubDir, "manifest.json"), manifest)
+}
+
+function renderTocDocument(entries: TocLink[], title: string, language: string): string {
+  const escape = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;")
+  const list = (items: TocLink[]): string => `<ol>${items.map((entry) => {
+    const heading = entry.href
+      ? `<a href="${escape(entry.href)}">${escape(entry.title)}</a>`
+      : `<span>${escape(entry.title)}</span>`
+    return `<li>${heading}${entry.children?.length ? list(entry.children) : ""}</li>`
+  }).join("")}</ol>`
+  return `<!DOCTYPE html><html lang="${escape(language)}"><head><meta charset="utf-8"><title>${escape(title)}</title></head><body><nav role="doc-toc">${list(entries)}</nav></body></html>`
 }
 
 interface TocFileEntry {

@@ -1,3 +1,6 @@
+import { AuthorshipBadge } from "../../components/AuthorshipBadge"
+import { useGuardedDraft } from "@/hooks/use-guarded-draft"
+import { DraftConflict } from "../../components/DraftConflict"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
 import {
@@ -125,9 +128,11 @@ function PageThumb({
 export function QuizzesView({
   bookLabel,
   selectedPageId,
+  onSelectPage,
 }: {
   bookLabel: string;
   selectedPageId?: string;
+  onSelectPage?: (pageId: string | null) => void;
 }) {
   const { t } = useLingui();
   const queryClient = useQueryClient();
@@ -147,8 +152,14 @@ export function QuizzesView({
   }, [pages]);
 
   const { restoring, restoringRef, onRestoringChange, isCurrent } = useVersionRestoreBusy(bookLabel)
-  const [pending, setPendingState] = useState<QuizData | null>(null);
-  const setPending = useCallback((next: QuizData | null) => { if (!restoringRef.current) setPendingState(next) }, [])
+  const draft = useGuardedDraft<QuizData>(data?.quizzes, data?.version, async () => {
+    const latest = await api.getQuizzes(bookLabel)
+    if (!latest?.quizzes) throw new Error(t`Saved content is unavailable; your draft is retained`)
+    queryClient.setQueryData(["books", bookLabel, "quizzes"], latest)
+    return { value: latest.quizzes, version: latest.version ?? 0 }
+  })
+  const { pending } = draft
+  const setPending = useCallback((next: QuizData | null) => { if (!restoringRef.current) draft.setPending(next) }, [draft.setPending])
   const [saving, setSaving] = useState(false);
   const mutationRef = useRef(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -268,24 +279,26 @@ export function QuizzesView({
 
   const saveQuizzes = useCallback(async () => {
     if (mutationRef.current || restoringRef.current) throw new Error(t`Please wait for the current operation to finish`);
+    if (draft.conflict) throw new Error(t`Resolve conflicting edits before saving`)
     if (!pending) return;
     mutationRef.current = true;
     setSaving(true);
     setSaveError(null);
     const minDelay = new Promise((r) => setTimeout(r, 400));
     try {
-      await api.updateQuizzes(bookLabel, pending);
+      await api.updateQuizzes(bookLabel, { ...pending, baseVersion: draft.baseVersion });
       if (isCurrent()) setPending(null);
       void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] });
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "quizzes"] });
     } catch (error) {
       if (isCurrent()) setSaveError(error instanceof Error ? error.message : t`Save failed`);
+      if (isCurrent()) await draft.handleError(error);
       throw error;
     } finally {
       await minDelay;
       if (isCurrent()) { mutationRef.current = false; setSaving(false); }
     }
-  }, [pending, bookLabel, queryClient, isCurrent, t]);
+  }, [pending, bookLabel, queryClient, isCurrent, t, draft]);
 
   const saveRef = useRef(saveQuizzes);
   saveRef.current = saveQuizzes;
@@ -313,17 +326,18 @@ export function QuizzesView({
           .map((q, i) => ({ ...q, quizIndex: i })),
       };
       try {
-        await api.updateQuizzes(bookLabel, next);
+        await api.updateQuizzes(bookLabel, { ...next, baseVersion: draft.baseVersion });
         if (isCurrent()) { setPending(null); setConfirmDeleteIdx(null); }
         void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] });
         await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "quizzes"] });
       } catch (error) {
         if (isCurrent()) setSaveError(error instanceof Error ? error.message : t`Save failed`);
+        if (isCurrent()) await draft.handleError(error, next);
       } finally {
         if (isCurrent()) { mutationRef.current = false; setDeleting(false); }
       }
     },
-    [pending, data?.quizzes, bookLabel, queryClient, isCurrent, t],
+    [pending, data?.quizzes, bookLabel, queryClient, isCurrent, t, draft],
   );
 
   useEffect(() => {
@@ -523,10 +537,19 @@ export function QuizzesView({
 
   const showPerPageEmpty =
     selectedPageId && displayQuizzes.length === 0 && quizzes.length > 0;
+  const showAllButton = selectedPageId && onSelectPage ? (
+    <button
+      type="button"
+      onClick={() => onSelectPage(null)}
+      className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline transition-colors"
+    >
+      {t`Show all quizzes`}
+    </button>
+  ) : null;
 
   return (
     <EditorBusyBoundary busy={restoring || saving || deleting}>
-    {saveError && <p role="alert" className="p-3 text-xs text-destructive">{saveError}</p>}
+    {saveError && !draft.error && <p role="alert" className="p-3 text-xs text-destructive">{saveError}</p>}
     <StageContentGuard
       stageSlug="quizzes"
       isLoading={isLoading && !effective}
@@ -534,15 +557,18 @@ export function QuizzesView({
       showRunCard={false}
       runCard={null}
     >
+      <DraftConflict error={draft.error} paths={draft.conflict?.paths} onResolve={draft.resolve} />
+
       {showPerPageEmpty ? (
         <StageEmptyState
           icon={HelpCircle}
           color="orange"
           title={t`No quizzes for this page`}
           subtitle={t`Quizzes are linked to other pages in this book`}
+          cta={showAllButton}
         />
       ) : (
-        <div className="flex flex-1 flex-col">
+        <fieldset disabled={saving || restoring || deleting} className="flex min-w-0 flex-1 flex-col border-0 p-0">
           <QuizzesHintBanner />
           <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur-md">
             <div className="relative max-w-md flex-1">
@@ -566,6 +592,7 @@ export function QuizzesView({
               )}
             </div>
             <div className="ml-auto flex items-center gap-2">
+              {showAllButton}
               <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
                 {normalizedQuery
                   ? t`${String(filteredQuizzes.length)} of ${String(displayQuizzes.length)}`
@@ -660,6 +687,7 @@ export function QuizzesView({
                   )}
                 </div>
                 <div className="px-4 py-3">
+                  <AuthorshipBadge source={quiz.source} />
                   <textarea
                     value={quiz.question}
                     onChange={(e) => updateQuestion(idx, e.target.value)}
@@ -774,7 +802,7 @@ export function QuizzesView({
             </DialogContent>
           </Dialog>
           </div>
-        </div>
+        </fieldset>
       )}
     </StageContentGuard>
     </EditorBusyBoundary>

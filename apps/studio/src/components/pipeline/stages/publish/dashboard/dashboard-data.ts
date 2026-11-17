@@ -5,10 +5,8 @@ import { PUBLISH_AUTHOR_DEFAULT_NAME } from "@adt/types"
 import type { CommentAnchor } from "@/api/client"
 import { buildThreads, filterThreads } from "@/components/publication-feedback/lib/threads"
 import { useQuizzes } from "@/hooks/use-quizzes"
-import {
-  parseSectionId,
-  sectionLocation,
-} from "@/components/pipeline/stages/storyboard/components/feedback/storyboard-pins"
+import { currentSectionLocations } from "@/components/pipeline/stages/storyboard/components/feedback/current-section-locations"
+import { usePages } from "@/hooks/use-pages"
 import { isQuizSectionId, type ThreadQuiz } from "./quiz-comments"
 import {
   type BookPublishRunController,
@@ -153,29 +151,32 @@ export interface DashboardData {
   replying: boolean
 }
 
-export function usePageLabel() {
+export function usePageLabel(locations: ReturnType<typeof currentSectionLocations>) {
   const { t } = useLingui()
   return useCallback(
     (sectionId: string, quiz: ThreadQuiz | null = null): string => {
       if (quiz) return quiz.number === null ? t`A quiz` : t`Quiz ${quiz.number}`
-      const at = sectionLocation(sectionId)
-      if (at === null) return t`Somewhere in the book`
-      if (at.lastPageNumber !== undefined) {
-        return t`Pages ${at.pageNumber}–${at.lastPageNumber} · Section ${at.sectionNumber}`
+      const at = locations.get(sectionId)
+      if (!at) return t`Somewhere in the book`
+      const sectionNumber = at.sectionIndex + 1
+      const spread = /^pg(\d{3})(\d{3})$/.exec(at.pageId)
+      if (spread && Number(spread[2]) > Number(spread[1])) {
+        const pageNumber = Number(spread[1]), lastPageNumber = Number(spread[2])
+        return t`Pages ${pageNumber}–${lastPageNumber} · Section ${sectionNumber}`
       }
-      return t`Page ${at.pageNumber} · Section ${at.sectionNumber}`
+      const pageNumber = at.pageNumber
+      return t`Page ${pageNumber} · Section ${sectionNumber}`
     },
-    [t],
+    [t, locations],
   )
 }
 
-export function locate(sectionId: string) {
-  const parsed = parseSectionId(sectionId)
-  const at = sectionLocation(sectionId)
+export function locate(sectionId: string, locations: ReturnType<typeof currentSectionLocations>) {
+  const at = locations.get(sectionId)
   return {
-    pageId: parsed?.pageId ?? null,
+    pageId: at?.pageId ?? null,
     pageNumber: at?.pageNumber ?? null,
-    sectionNumber: at?.sectionNumber ?? null,
+    sectionNumber: at ? at.sectionIndex + 1 : null,
   }
 }
 
@@ -249,7 +250,9 @@ export function useSharingDashboardData(bookLabel: string, link: DashLink): Dash
   const identity = useAuthorIdentity(PUBLISH_AUTHOR_DEFAULT_NAME)
   const resolveThread = useResolveThread(bookLabel, identity.authorName)
   const replyToThread = useReplyToThread(bookLabel, identity.authorName)
-  const pageLabel = usePageLabel()
+  const pages = usePages(bookLabel)
+  const locations = useMemo(() => currentSectionLocations(pages.data ?? []), [pages.data])
+  const pageLabel = usePageLabel(locations)
   const quizzes = useQuizzes(bookLabel)
   const queryClient = useQueryClient()
 
@@ -284,7 +287,7 @@ export function useSharingDashboardData(bookLabel: string, link: DashLink): Dash
           anchor: thread.root.anchor,
           id: thread.root.id,
           pageSectionId: thread.pageSectionId,
-          ...locate(thread.pageSectionId),
+          ...locate(thread.pageSectionId, locations),
           quiz: quizOf(thread.pageSectionId),
           pageLabel: pageLabel(thread.pageSectionId, quizOf(thread.pageSectionId)),
           authorName: thread.root.author_name,
@@ -298,7 +301,7 @@ export function useSharingDashboardData(bookLabel: string, link: DashLink): Dash
             : null,
         }
       })
-  }, [comments.data, pageLabel, quizzesById])
+  }, [comments.data, pageLabel, quizzesById, locations])
   const threads = useMemo(() => allThreads.filter((thread) => !thread.resolved), [allThreads])
 
   const record = status.data?.record ?? null

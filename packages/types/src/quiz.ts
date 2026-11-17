@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { AuthoredContent } from "./content-authorship.js"
 
 /** IDs retain their three-digit minimum padding and grow without renumbering. */
 export const MAX_QUIZ_SEQ = Number.MAX_SAFE_INTEGER
@@ -30,7 +31,7 @@ export function resolveQuizOptionId(option: QuizOption, quizId: string, index: n
   return id
 }
 
-export const Quiz = z.object({
+export const Quiz = AuthoredContent.extend({
   /**
    * Stable output-page id (`qz001`, …), permanently reserved by retained history. Names
    * the quiz's HTML file and, through `${quizId}_que` / `${quizId}_o${n}`, its

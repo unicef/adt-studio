@@ -25,7 +25,7 @@ it.each(["success", "rendering-conflict", "source-conflict"])("publishes a queue
   let execute: TaskExecutor | undefined
   const tasks: TaskService = { submitTask: (_label, _kind, _description, fn) => { execute = fn; return { taskId: "test" } }, getActiveTasks: () => [] }
   const app = createPageRoutes(root, path.resolve("prompts"), path.resolve("assets"), undefined, tasks)
-  const response = await app.request("/books/book/pages/pg001/sections/0/ai-edit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ instruction: "Edit B", currentHtml: old.sections[1].html }) })
+  const response = await app.request("/books/book/pages/pg001/sections/0/ai-edit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ baseVersion: 1, instruction: "Edit B", currentHtml: old.sections[1].html }) })
   expect(response.status).toBe(200)
   aiEditSection.mockImplementation(async () => {
     if (mode !== "success") {
@@ -37,7 +37,7 @@ it.each(["success", "rendering-conflict", "source-conflict"])("publishes a queue
     return { html: '<section><p data-id="text-B">Edited B</p></section>', reasoning: "updated" }
   })
   if (mode === "success") await execute!(() => {})
-  else await expect(execute!(() => {})).rejects.toThrow("Page changed during AI editing")
+  else await expect(execute!(() => {})).rejects.toThrow(mode === "source-conflict" ? "Content changed" : "Page changed during AI editing")
   const db = storage()
   try {
     const saved = db.getLatestNodeData("web-rendering", "pg001")!.data as WebRenderingOutput

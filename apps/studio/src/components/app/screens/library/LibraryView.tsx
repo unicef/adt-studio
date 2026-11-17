@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { ActionMenu } from "@/components/ui/action-menu"
 import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
-import { CommentsBadge, StageBar, ShelfCard, SharedBadge, ViewToggle, isShared, openComments, type SharedDecoration } from "../shared/kit"
+import { CommentsBadge, ImportedMark, StageBar, ShelfCard, SharedBadge, ViewToggle, isShared, openComments, type SharedDecoration } from "../shared/kit"
 import { useLibraryPrefs, type LibrarySort, type LibraryGroup } from "@/hooks/use-library-prefs"
 
 export interface LibBook extends BookVM, SharedDecoration {
@@ -326,7 +326,10 @@ function Row({ vm, onOpen }: { vm: LibBook; onOpen: (label: string) => void }) {
               {hasStatus(vm) ? <StatusBadge book={vm} /> : null}
               {openComments(vm) > 0 ? <CommentsBadge count={openComments(vm)} /> : null}
             </div>
-            <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>
+            <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground">
+              {vm.imported && <ImportedMark />}
+              <span className="truncate">{vm.authors}</span>
+            </div>
           </div>
         </button>
       </td>
