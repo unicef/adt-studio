@@ -99,7 +99,7 @@ import {
   buildCoreTtsSourceContext,
   getReadyCoreTtsEntries,
 } from "./core-tts.js"
-import { normalizeLocale } from "./language-context.js"
+import { normalizeLocale, resolvePageDirection } from "./language-context.js"
 import {
   loadVoicesConfig,
   loadSpeechInstructions,
@@ -612,6 +612,7 @@ export async function runFullPipeline(
             imageBase64,
             availableImages,
             outline: outlineContextForPage(bookOutline, page.pageId),
+            pageDirection: resolvePageDirection(getLanguage(storage, config), config.output_languages),
           },
           pageSectioningConfig,
           model,
@@ -730,6 +731,7 @@ export async function runFullPipeline(
             sourcePageImages,
             bookFonts: buildBookFontsPromptContext(storage),
             typography,
+            pageDirection: resolvePageDirection(getLanguage(storage, config), config.output_languages),
           },
           resolveRenderConfig,
           resolveRenderModel,

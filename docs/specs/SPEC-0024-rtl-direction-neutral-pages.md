@@ -1,14 +1,14 @@
 ---
 id: SPEC-0024
 title: Right-to-left books — direction-neutral page generation
-status: approved # draft | in-review | approved | in-progress | implemented | verified | superseded
+status: in-progress # draft | in-review | approved | in-progress | implemented | verified | superseded
 owner: "@elasticsounds" # exactly one human owner
 approvers: ["@rechkunov"] # ≥1 maintainer; + product sign-off when user-facing scope changes
 issues: ["#1115"]
 prs: ["#1118", "#1119", "#1120", "#1130"]
 adr: ""
 created: 2026-11-12
-updated: 2026-11-16
+updated: 2026-11-17
 ---
 
 ## Problem (with evidence)
@@ -301,34 +301,34 @@ translation* is written right to left.
 
 ## Acceptance criteria
 
-- [ ] AC-1: For a page that is not right-to-left, each of the seventeen prompts renders
+- [x] AC-1: For a page that is not right-to-left, each of the seventeen prompts renders
       byte-identical to its output without the block.
-- [ ] AC-2: For a right-to-left page, each of the seventeen prompts carries the block
+- [x] AC-2: For a right-to-left page, each of the seventeen prompts carries the block
       once, in the system message, and nothing else changes.
-- [ ] AC-3: The gate is off for a book with no right-to-left language, and otherwise
+- [x] AC-3: The gate is off for a book with no right-to-left language, and otherwise
       returns the source language's direction.
-- [ ] AC-4: The rewrite maps `text-left`/`text-right` to `text-start`/`text-end` for a
+- [x] AC-4: The rewrite maps `text-left`/`text-right` to `text-start`/`text-end` for a
       left-to-right page and the mirror for a right-to-left page, keeping variant
       prefixes, and maps a block whose `dir` differs from the page's for its own
       direction.
-- [ ] AC-5: A `<th>` that was inheriting left or right gets the logical class itself;
+- [x] AC-5: A `<th>` that was inheriting left or right gets the logical class itself;
       one whose nearest explicit alignment is neither is not touched.
-- [ ] AC-6: A `dir` that repeats the inherited direction is removed; one that changes
+- [x] AC-6: A `dir` that repeats the inherited direction is removed; one that changes
       it, and what is nested inside it, is kept.
-- [ ] AC-7: The rewrite changes opening tags only, leaves a page with nothing to
+- [x] AC-7: The rewrite changes opening tags only, leaves a page with nothing to
       rewrite byte-identical, and is unchanged when applied twice.
-- [ ] AC-8: Packaging rewrites the page for a book with a right-to-left language and
+- [x] AC-8: Packaging rewrites the page for a book with a right-to-left language and
       leaves every other book's page byte-identical.
-- [ ] AC-9: A newly generated right-to-left page is stored rewritten, including what
+- [x] AC-9: A newly generated right-to-left page is stored rewritten, including what
       the repairs after validation write (a table-of-contents page number). Every other
       page is stored exactly as the model wrote it, including a left-to-right page of a
       book with a right-to-left translation.
-- [ ] AC-10: At generation, in a right-to-left page, right-to-left text aligned left is
+- [x] AC-10: At generation, in a right-to-left page, right-to-left text aligned left is
       started, a block wholly in a left-to-right script is kept at the end, a
       table-of-contents page number is aligned to the end, a class re-added by a
       repair step is not duplicated, and a floated box whose only side margin is on its
       outer side gets it on the text side.
-- [ ] AC-11: The prompts receive the page direction from the book's languages, from the
+- [x] AC-11: The prompts receive the page direction from the book's languages, from the
       Storyboard render and from the section an agent creates.
 - [x] AC-12 (measured through the real packager, on scratch copies): *English Grade 2*
       with an Urdu translation is pixel-identical in English on 34 of 34 pages, with
@@ -339,25 +339,25 @@ translation* is written right to left.
       *GK-2-2* rendered from scratch shows, on all 20 sections, no Urdu text against the
       left edge and no `dir` written by the model; in English all 302 text blocks read
       left to right.
-- [ ] AC-14: The rewrite maps `float-left`/`float-right` and `clear-left`/`clear-right`
+- [x] AC-14: The rewrite maps `float-left`/`float-right` and `clear-left`/`clear-right`
       to their logical forms for the direction the page was written in, moves the side
       margin of the floated element with it and no other margin, and is unchanged when
       applied twice. A float inside a block whose `dir` differs from the page's is
       mapped for that block's direction.
-- [ ] AC-15: The Studio preview stylesheet has rules for the classes the rewrite
+- [x] AC-15: The Studio preview stylesheet has rules for the classes the rewrite
       introduces, and is rebuilt when a book gains a right-to-left language.
-- [ ] AC-16: For a page that is not right-to-left, the two sectioning prompts render
+- [x] AC-16: For a page that is not right-to-left, the two sectioning prompts render
       byte-identical to their output without the reading-direction block; for a
       right-to-left page each carries it once, in the system message.
-- [ ] AC-17: The sectioning prompts receive the page direction from the book's
+- [x] AC-17: The sectioning prompts receive the page direction from the book's
       languages.
 - [ ] AC-18 (acceptance re-run, needs a provider key): *GK-2-2* sectioned and rendered
       from scratch has its contents table in the order of the original (serial number
       at the right), contents titles aligned to the start, and each floated box on the
       mirrored side in English with its gap on the text side.
-- [ ] AC-19: The EPUB page of a book whose source language is right-to-left carries
+- [x] AC-19: The EPUB page of a book whose source language is right-to-left carries
       `dir="rtl"` on its root element; a left-to-right page's EPUB root is unchanged.
-- [ ] AC-20: The visual review of a left-to-right page is sent the same messages with
+- [x] AC-20: The visual review of a left-to-right page is sent the same messages with
       and without a right-to-left translation, and the page is stored the same; for a
       right-to-left page it is sent the rewritten page, which is what is stored.
 

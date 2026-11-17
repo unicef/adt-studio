@@ -160,10 +160,6 @@ msgstr "{0, plural, one {# detyrë trashëgon këtë model} other {# detyra tras
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {koment} other {komente}}"
 
-#. placeholder {0}: health.modelCount
-msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-msgstr "{0, plural, one {Lidhja u krye me sukses — # model në dispozicion.} other {Lidhja u krye me sukses — # modele në dispozicion.}}"
-
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {ditë} other {ditë}}"
@@ -662,8 +658,53 @@ msgstr "{pdfFilename} · {pageCount} faqe"
 msgid "{position} of {total}"
 msgstr "{position} nga {total}"
 
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} key rejected}}"
+msgstr "{providerKey, select, other {Çelësi i {name} u refuzua}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+msgstr "{providerKey, select, other {{name} refuzoi çelësin e ruajtur të API-së, prandaj nxjerrja dhe hapat e tjerë të AI-së do të dështojnë. Përditësoni çelësin, ose konfiguroni librin tani dhe rregullojeni më vonë.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+msgstr "{providerKey, select, other {{selectedProviderLabel} refuzoi çelësin e ruajtur të API-së, prandaj leximi me zë do të dështojë. Përditësojeni te Cilësime → Ofruesit e AI.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
+msgstr "{providerKey, select, other {U ruajt, por {name} e refuzoi këtë çelës API. Kontrolloni që e keni kopjuar të gjithë çelësin.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Settings — the {rejectedName} key was rejected}}"
+msgstr "{providerKey, select, other {Cilësime — çelësi i {rejectedName} u refuzua}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
+msgstr "{providerKey, select, other {Çelësi i {name} u refuzua. Përditësoni çelësin.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{providerKey, select, other {Kjo nuk duket si një çelës API për {name}. Çelësat e {name} zakonisht fillojnë me {example}}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{providerKey, select, other {Kjo nuk duket si një çelës API për {name}.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua, prandaj librat nuk mund të përpunohen ende.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected}}"
+msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua}}"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
+msgstr "{rejectedProviderKey, select, other {Cilësimet e çelësit API — çelësi i {rejectedName} u refuzua}}"
 
 #. placeholder {0}: section.criteria.length
 msgid "{reviewed}/{0} checked"
@@ -1692,9 +1733,6 @@ msgstr "Mbivendosje AI"
 msgid "AI provider connected. Your book can be processed now."
 msgstr "Ofruesi i AI u lidh. Libri juaj tani mund të përpunohet."
 
-msgid "AI provider credentials"
-msgstr "Kredencialet e ofruesve të IA-së"
-
 msgid "AI providers"
 msgstr "Ofruesit e AI"
 
@@ -1706,6 +1744,9 @@ msgstr "Udhëzuesi i riparimit me IA"
 
 msgid "AI sees the current image and modifies it"
 msgstr "AI sheh imazhin aktual dhe e modifikon atë"
+
+msgid "AI steps will fail until the key is updated."
+msgstr "Hapat e AI-së do të dështojnë derisa të përditësohet çelësi."
 
 msgid "AI-powered"
 msgstr "I fuqizuar nga AI"
@@ -3172,17 +3213,11 @@ msgstr "Konfiguroni informacionin bazë të dokumentit dhe shtigjet e skedarëve
 msgid "Configure features to include in the export"
 msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
 
-msgid "Configure the credentials used by AI features on this device."
-msgstr "Konfiguroni kredencialet që përdoren nga veçoritë e IA-së në këtë pajisje."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Konfiguro kredencialet e ofruesve që përdoren kur ADT Studio ekzekuton hapat e pipeline-it të IA-së në këtë makinë."
 
 msgid "Configure voices and accents"
 msgstr "Konfiguroni zërat dhe thekset"
-
-msgid "Configured on server"
-msgstr "Konfiguruar në server"
 
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
@@ -3347,6 +3382,9 @@ msgstr "Vazhdo"
 msgid "Continue adding your book"
 msgstr "Vazhdo shtimin e librit"
 
+msgid "Continue anyway"
+msgstr "Vazhdo gjithsesi"
+
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"
 msgstr "Vazhdo në faqen {0}"
@@ -3484,9 +3522,6 @@ msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej."
 msgid "Could not load saved content. Retry"
 msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej. Provo përsëri"
 
-msgid "Could not load the AI provider catalogue."
-msgstr "Katalogu i ofruesve të IA-së nuk mund të ngarkohej."
-
 msgid "Could not load the book outline."
 msgstr "Struktura e librit nuk mund të ngarkohej."
 
@@ -3554,6 +3589,9 @@ msgstr "Nuk mund të lexohej ky PDF"
 
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Nuk u rikthye dot v{version}. Ju lutemi provoni përsëri."
+
+msgid "Couldn't save the credentials in this browser. Check that site storage is allowed, then try again."
+msgstr "Kredencialet nuk u ruajtën në këtë shfletues. Kontrolloni që ruajtja e sajtit të jetë e lejuar dhe provoni sërish."
 
 msgid "Couldn't save the glossary. Your draft is kept; check for newer changes before trying again."
 msgstr "Fjalorthi nuk mund të ruhej. Drafti juaj është ruajtur; kontrolloni nëse ka ndryshime më të reja përpara se të provoni përsëri."
@@ -6279,6 +6317,9 @@ msgstr "Mbajtur"
 msgid "Kept where nothing changed since export. The rest is generated again."
 msgstr "Mbahet aty ku asgjë nuk ndryshoi që nga eksporti. Pjesa tjetër gjenerohet sërish."
 
+msgid "Key rejected"
+msgstr "Çelësi u refuzua"
+
 msgid "Key terms"
 msgstr "Termat kyç"
 
@@ -6290,9 +6331,6 @@ msgstr "Tastierë dhe navigim"
 
 msgid "Keyboard shortcuts"
 msgstr "Shkurtesat e tastierës"
-
-msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-msgstr "Çelësat ruhen lokalisht në këtë shfletues ose sesion desktop dhe dërgohen vetëm me kërkesat e ekzekutimit."
 
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "Çelësat ruhen lokalisht në këtë pajisje — nuk dërgohen kurrë diku tjetër."
@@ -6594,9 +6632,6 @@ msgstr "Ngarko vlerat e fundit të ruajtura"
 
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
-
-msgid "Loading AI providers…"
-msgstr "Po ngarkohen ofruesit e IA-së…"
 
 msgid "Loading beta versions…"
 msgstr "Po ngarkohen versionet beta…"
@@ -7854,6 +7889,9 @@ msgstr "I papajtueshëm me Paraqitjen e fiksuar"
 msgid "Not configured"
 msgstr "Nuk është konfiguruar"
 
+msgid "Not connected"
+msgstr "Jo i lidhur"
+
 msgid "Not created"
 msgstr "Nuk u krijua"
 
@@ -8171,9 +8209,6 @@ msgstr "Hapi të gjitha në Storyboard"
 
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Hap një projekt ADT që <0>tashmë ekziston</0> — një kopje rezervë, një pjesë libri, ose një i eksportuar nga dikush tjetër. Asgjë nuk konvertohet. <1>.zip → shtuar siç është</1>"
-
-msgid "Open API key settings"
-msgstr "Hap cilësimet e çelësave API"
 
 msgid "Open command palette"
 msgstr "Hap paletën e komandave"
@@ -9161,9 +9196,6 @@ msgstr "Ofruesi \"{providerId}\" nuk mbështet gjenerimin e tekstit."
 msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 msgstr "Ofruesi \"{providerId}\" nuk është i regjistruar. Shto çelësat e tij API te Cilësimet ose zgjidh një model tjetër."
 
-msgid "Provider credentials"
-msgstr "Kredencialet e ofruesit"
-
 msgid "Provider credentials saved."
 msgstr "Kredencialet e ofruesve u ruajtën."
 
@@ -9172,9 +9204,6 @@ msgstr "Dokumentacioni i ofruesit"
 
 msgid "providers api key credentials endpoint"
 msgstr "ofruesit çelësi api kredencialet pika fundore"
-
-msgid "Providers unavailable"
-msgstr "Ofruesit nuk janë të disponueshëm"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Siguron modele të qëndrueshme HTML/CSS për faqet e gjeneruara nga LLM."
@@ -10910,6 +10939,10 @@ msgstr "Cilësime"
 msgid "Settings — a sharing update is ready"
 msgstr "Cilësimet — një përditësim i ndarjes është gati"
 
+#. missingName is the provider's name (OpenAI, Anthropic, Claude Agent…).
+msgid "Settings — the default AI provider isn't set up ({missingName})"
+msgstr "Cilësime — ofruesi i paracaktuar i AI nuk është konfiguruar ({missingName})"
+
 msgid "Settings for this step are not yet available."
 msgstr "Cilësimet për këtë hap nuk janë ende të disponueshme."
 
@@ -11895,9 +11928,6 @@ msgstr "Termet u zgjodhën nga AI nga libri. Redakto një përkufizim ose emoji-
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termat, emrat e karaktereve ose frazat që gjykatësi duhet të ruajë ose preferojë."
 
-msgid "Test connection"
-msgstr "Testo lidhjen"
-
 msgid "Test notification"
 msgstr "Testo njoftimin"
 
@@ -12048,9 +12078,6 @@ msgstr "Komentet që lanë njerëzit ruhen. Mund ta rifilloni ndarjen më vonë 
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "Bashkësia e organizmave të gjallë në një vend dhe mënyra si ndërveprojnë me njëri-tjetrin dhe mjedisin e tyre."
-
-msgid "The connection check could not be completed."
-msgstr "Kontrolli i lidhjes nuk mundi të përfundohet."
 
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "Lidhja me Cloudflare u ndërpre ose zgjati shumë. Kontrolloni internetin, pastaj provoni përsëri — çdo gjë e konfiguruar ruhet."
@@ -12387,6 +12414,9 @@ msgstr "Këto ndryshime nuk janë zbatuar ende. Nëse del, do të humbasin — o
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Këto veçori përmirësojnë aksesin për personat me aftësi të kufizuara. Ekzekutimi i tyre para eksportimit ndihmon librin tuaj të përmbushë standardet e aksesibilitetit ADT."
 
+msgid "These keys are shared with Settings → AI providers and apply to every book."
+msgstr "Këta çelësa ndahen me Cilësime → Ofruesit e AI dhe vlejnë për çdo libër."
+
 msgid "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
 msgstr "Këto faqe vijnë nga një eksport ADT i importuar. Redaktojini këtu; rigjenerimi i Storyboard-it është i çaktivizuar që të mos i mbishkruajë."
 
@@ -12685,9 +12715,6 @@ msgstr "Ky projekt u krijua nga një botim ADT i eksportuar, prandaj nuk përfsh
 
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundrejt faqes origjinale. Zgjedhja më lart kontrollon cilin shabllon përdoret."
-
-msgid "This provider does not require local credentials."
-msgstr "Ky ofrues nuk kërkon kredenciale lokale."
 
 msgid "This provider has no automatic connection check."
 msgstr "Ky ofrues nuk ka kontroll automatik të lidhjes."
@@ -13225,6 +13252,9 @@ msgstr "Përditësim i disponueshëm"
 
 msgid "Update filtered items"
 msgstr "Përditëso elementet e filtruara"
+
+msgid "Update key"
+msgstr "Përditëso çelësin"
 
 msgid "Update link"
 msgstr "Përditëso lidhjen"

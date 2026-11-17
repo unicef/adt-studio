@@ -2,7 +2,7 @@
  * Guards the reference-count workarounds in `mupdf-image-refs.ts`.
  *
  * Each helper must leave mupdf's reference counts exactly as it found them.
- * The "upstream" tests pin down the mupdf.js 1.27.0 leaks the helpers
+ * The "upstream" tests pin down the mupdf.js leaks (present in 1.27.0 and 1.28.6) the helpers
  * compensate for. If an upgrade fixes those leaks, the upstream tests fail,
  * and the helpers must be changed before the version pin moves: against a
  * fixed mupdf.js they would release a reference twice.

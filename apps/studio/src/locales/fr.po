@@ -160,10 +160,6 @@ msgstr "{0, plural, one {# tâche hérite de ce modèle} other {# tâches hérit
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {commentaire} other {commentaires}}"
 
-#. placeholder {0}: health.modelCount
-msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-msgstr "{0, plural, one {Connexion réussie — # modèle disponible.} other {Connexion réussie — # modèles disponibles.}}"
-
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {jour} other {jours}}"
@@ -662,8 +658,53 @@ msgstr "{pdfFilename} · {pageCount} pages"
 msgid "{position} of {total}"
 msgstr "{position} sur {total}"
 
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} key rejected}}"
+msgstr "{providerKey, select, other {Clé {name} refusée}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.}}"
+msgstr "{providerKey, select, other {{name} a refusé la clé d'API enregistrée : l'extraction et les autres étapes d'IA échoueront. Mettez la clé à jour, ou configurez le livre maintenant et corrigez-la plus tard.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {{selectedProviderLabel} rejected the saved API key, so speech will fail. Update it in Settings → AI providers.}}"
+msgstr "{providerKey, select, other {{selectedProviderLabel} a refusé la clé d'API enregistrée : la narration échouera. Mettez-la à jour dans Paramètres → Fournisseurs IA.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Saved, but {name} rejected this API key. Check that you copied the whole key.}}"
+msgstr "{providerKey, select, other {Enregistrée, mais {name} a refusé cette clé d'API. Vérifiez que vous avez copié la clé entière.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Settings — the {rejectedName} key was rejected}}"
+msgstr "{providerKey, select, other {Paramètres — la clé {rejectedName} a été refusée}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
+msgstr "{providerKey, select, other {La clé {name} a été refusée. Mettez la clé à jour.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{providerKey, select, other {Cela ne ressemble pas à une clé d'API {name}. Les clés {name} commencent généralement par {example}}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{providerKey, select, other {Cela ne ressemble pas à une clé d'API {name}.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
+msgstr "{providerKey, select, other {Votre clé {name} a été refusée, les livres ne peuvent donc pas encore être traités.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {Your {name} key was rejected}}"
+msgstr "{providerKey, select, other {Votre clé {name} a été refusée}}"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} détectée(s)"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
+msgstr "{rejectedProviderKey, select, other {Paramètres des clés API — la clé {rejectedName} a été refusée}}"
 
 #. placeholder {0}: section.criteria.length
 msgid "{reviewed}/{0} checked"
@@ -1692,9 +1733,6 @@ msgstr "Superposition IA"
 msgid "AI provider connected. Your book can be processed now."
 msgstr "Fournisseur IA connecté. Votre livre peut maintenant être traité."
 
-msgid "AI provider credentials"
-msgstr "Identifiants des fournisseurs d’IA"
-
 msgid "AI providers"
 msgstr "Fournisseurs IA"
 
@@ -1706,6 +1744,9 @@ msgstr "Guide de réparation par IA"
 
 msgid "AI sees the current image and modifies it"
 msgstr "L'IA voit l'image actuelle et la modifie"
+
+msgid "AI steps will fail until the key is updated."
+msgstr "Les étapes d'IA échoueront tant que la clé n'est pas mise à jour."
 
 msgid "AI-powered"
 msgstr "Assisté par IA"
@@ -3172,17 +3213,11 @@ msgstr "Configurez les informations de base du document et les chemins de fichie
 msgid "Configure features to include in the export"
 msgstr "Configurer les fonctionnalités à inclure dans l'exportation"
 
-msgid "Configure the credentials used by AI features on this device."
-msgstr "Configurez les identifiants utilisés par les fonctionnalités d’IA sur cet appareil."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configurez les identifiants des fournisseurs utilisés quand ADT Studio exécute les étapes du pipeline d'IA sur cette machine."
 
 msgid "Configure voices and accents"
 msgstr "Configurer les voix et les accents"
-
-msgid "Configured on server"
-msgstr "Configuré sur le serveur"
 
 msgid "Confirm merge"
 msgstr "Confirmer la fusion"
@@ -3347,6 +3382,9 @@ msgstr "Continuer"
 msgid "Continue adding your book"
 msgstr "Continuer l'ajout de votre livre"
 
+msgid "Continue anyway"
+msgstr "Continuer quand même"
+
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"
 msgstr "Continuer à la page {0}"
@@ -3484,9 +3522,6 @@ msgstr "Impossible de charger le contenu enregistré."
 msgid "Could not load saved content. Retry"
 msgstr "Impossible de charger le contenu enregistré. Réessayer"
 
-msgid "Could not load the AI provider catalogue."
-msgstr "Impossible de charger le catalogue des fournisseurs d’IA."
-
 msgid "Could not load the book outline."
 msgstr "Impossible de charger le plan du livre."
 
@@ -3554,6 +3589,9 @@ msgstr "Impossible de lire ce PDF"
 
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Impossible de restaurer la v{version}. Veuillez réessayer."
+
+msgid "Couldn't save the credentials in this browser. Check that site storage is allowed, then try again."
+msgstr "Impossible d'enregistrer les identifiants dans ce navigateur. Vérifiez que le stockage du site est autorisé, puis réessayez."
 
 msgid "Couldn't save the glossary. Your draft is kept; check for newer changes before trying again."
 msgstr "Impossible d’enregistrer le glossaire. Votre brouillon est conservé ; vérifiez si des modifications plus récentes existent avant de réessayer."
@@ -6279,6 +6317,9 @@ msgstr "Conservé"
 msgid "Kept where nothing changed since export. The rest is generated again."
 msgstr "Conservé là où rien n’a changé depuis l’export. Le reste est généré à nouveau."
 
+msgid "Key rejected"
+msgstr "Clé refusée"
+
 msgid "Key terms"
 msgstr "Termes clés"
 
@@ -6290,9 +6331,6 @@ msgstr "Clavier et navigation"
 
 msgid "Keyboard shortcuts"
 msgstr "Raccourcis clavier"
-
-msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-msgstr "Les clés sont stockées localement dans ce navigateur ou cette session desktop et ne sont envoyées qu'avec les demandes d'exécution."
 
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "Les clés sont stockées localement sur cet appareil — jamais envoyées ailleurs."
@@ -6594,9 +6632,6 @@ msgstr "Charger les dernières valeurs enregistrées"
 
 msgid "Loading accessibility summary..."
 msgstr "Chargement du résumé d'accessibilité..."
-
-msgid "Loading AI providers…"
-msgstr "Chargement des fournisseurs d’IA…"
 
 msgid "Loading beta versions…"
 msgstr "Chargement des versions bêta…"
@@ -7854,6 +7889,9 @@ msgstr "Incompatible avec la mise en page fixe"
 msgid "Not configured"
 msgstr "Non configuré"
 
+msgid "Not connected"
+msgstr "Non connecté"
+
 msgid "Not created"
 msgstr "Non créé"
 
@@ -8171,9 +8209,6 @@ msgstr "Tout ouvrir dans le Storyboard"
 
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Ouvrir un projet ADT qui <0>existe déjà</0> — une sauvegarde, une partie de livre, ou un projet exporté par quelqu'un d'autre. Rien n'est converti. <1>.zip → ajouté tel quel</1>"
-
-msgid "Open API key settings"
-msgstr "Ouvrir les paramètres des clés API"
 
 msgid "Open command palette"
 msgstr "Ouvrir la palette de commandes"
@@ -9161,9 +9196,6 @@ msgstr "Le fournisseur « {providerId} » ne prend pas en charge la génération
 msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 msgstr "Le fournisseur « {providerId} » n'est pas enregistré. Ajoutez ses clés d'API dans Paramètres ou choisissez un autre modèle."
 
-msgid "Provider credentials"
-msgstr "Identifiants du fournisseur"
-
 msgid "Provider credentials saved."
 msgstr "Identifiants des fournisseurs enregistrés."
 
@@ -9172,9 +9204,6 @@ msgstr "Documentation du fournisseur"
 
 msgid "providers api key credentials endpoint"
 msgstr "fournisseurs clé api informations d'identification point de terminaison"
-
-msgid "Providers unavailable"
-msgstr "Fournisseurs indisponibles"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Fournit des modèles HTML/CSS cohérents pour les pages générées par le LLM."
@@ -10910,6 +10939,10 @@ msgstr "Paramètres"
 msgid "Settings — a sharing update is ready"
 msgstr "Réglages — une mise à jour du partage est prête"
 
+#. missingName is the provider's name (OpenAI, Anthropic, Claude Agent…).
+msgid "Settings — the default AI provider isn't set up ({missingName})"
+msgstr "Paramètres — le fournisseur IA par défaut n'est pas configuré ({missingName})"
+
 msgid "Settings for this step are not yet available."
 msgstr "Les paramètres pour cette étape ne sont pas encore disponibles."
 
@@ -11895,9 +11928,6 @@ msgstr "Les termes ont été choisis par l'IA à partir du livre. Modifiez une d
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termes, noms de personnages ou expressions que le juge doit préserver ou privilégier."
 
-msgid "Test connection"
-msgstr "Tester la connexion"
-
 msgid "Test notification"
 msgstr "Notification de test"
 
@@ -12048,9 +12078,6 @@ msgstr "Les commentaires laissés sont conservés. Vous pouvez reprendre le part
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "La communauté des organismes vivants dans un lieu et la façon dont ils interagissent entre eux et avec leur environnement."
-
-msgid "The connection check could not be completed."
-msgstr "La vérification de la connexion n'a pas pu aboutir."
 
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "La connexion à Cloudflare a été coupée ou a expiré. Vérifiez votre connexion Internet, puis réessayez — ce qui est déjà configuré est conservé."
@@ -12387,6 +12414,9 @@ msgstr "Ces modifications n'ont pas encore été appliquées. Quittez et elles s
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Ces fonctionnalités améliorent l'accès pour les personnes handicapées. Les exécuter avant l'exportation aide votre livre à respecter les normes d'accessibilité ADT."
 
+msgid "These keys are shared with Settings → AI providers and apply to every book."
+msgstr "Ces clés sont partagées avec Paramètres → Fournisseurs IA et s'appliquent à tous les livres."
+
 msgid "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
 msgstr "Ces pages proviennent d’un export ADT importé. Modifiez-les ici ; la régénération du Storyboard est désactivée pour qu’elle ne puisse pas les écraser."
 
@@ -12685,9 +12715,6 @@ msgstr "Ce projet a été créé à partir d'une publication ADT exportée ; il 
 
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Cette invite indique au LLM comment évaluer le HTML rendu par rapport à la page originale. La sélection ci-dessus contrôle le modèle utilisé."
-
-msgid "This provider does not require local credentials."
-msgstr "Ce fournisseur ne nécessite pas d’identifiants locaux."
 
 msgid "This provider has no automatic connection check."
 msgstr "Ce fournisseur n'a pas de vérification automatique de connexion."
@@ -13225,6 +13252,9 @@ msgstr "Mise à jour disponible"
 
 msgid "Update filtered items"
 msgstr "Mettre à jour les éléments filtrés"
+
+msgid "Update key"
+msgstr "Mettre à jour la clé"
 
 msgid "Update link"
 msgstr "Mettre à jour le lien"
