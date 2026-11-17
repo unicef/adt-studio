@@ -361,7 +361,9 @@ it.each(["content", "telemetry", "raw rewrite", "schema loss", "database replace
     expect(inspectHistoryRecovery(b.dbPath).snapshot).not.toEqual(before.snapshot)
     expect(() => checkpointHistory(b.dbPath, { snapshot: before.snapshot, requestId: randomUUID(), confirmed: true })).toThrow("HISTORY_RECOVERY_STALE")
   }
-})
+  // Includes an 80-page compressed-history fixture and two complete scans.
+  // Yielding is asserted above; fixture/setup wall time is not that guarantee.
+}, 15000)
 
 it("inspects while an unrelated same-process writer is active without granting writer authority", async () => {
   const b = book(); b.write({ id: "p1_sec001" })

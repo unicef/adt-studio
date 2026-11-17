@@ -380,3 +380,26 @@ API ──── step-start ────► mark step + stage as "running"
 | HTML rendering templates | `templates/` |
 | Coding standards | `docs/GUIDELINES.md` |
 | Architecture decision records | `docs/DECISIONS.md` |
+
+### Recovery-copy operational limits
+
+Copy recovery is offered for lock admission failures, not invalid configuration or
+corrupt content. The original remains unchanged and may still be unavailable.
+Interrupted copies retain `.book-recovery-pending.json` and remain hidden/refused;
+start a new copy from the preserved original. After all ADT instances are closed,
+an operator may move an unwanted **whole** original or incomplete-copy directory
+out of `BOOKS_DIR` into a backup location using the filesystem. Do not delete lock
+files to force admission. Verify the successful copy and retain the original
+before deciding on any permanent cleanup.
+
+Same-process Library/open attempts are refused without writing source admission
+artifacts while copying. Other-process changes cause validation refusal. SQLite
+integrity validation is synchronous; it can temporarily occupy the API event
+loop on large databases. File permission bits are preserved, but the copy and
+atomic replacement files belong to the creating process, not necessarily the
+original group. These are operational limits, not OS-reboot or release certification.
+
+Without verifiable process-incarnation evidence, a same-host legacy lease whose
+PID is currently alive remains refused. An unrelated process reusing that PID
+can therefore also prevent copy recovery. File age alone is not proof that the
+recorded owner is dead; timestamps do not override this refusal.

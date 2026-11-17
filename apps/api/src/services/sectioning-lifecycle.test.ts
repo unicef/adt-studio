@@ -412,7 +412,7 @@ describe("SPEC-0003 persisted data and publication", () => {
 })
 
 it.each(["page_sectioning:\n  mode: invalid\n", "page_sectioning: [unfinished", "concurrency: -1\n"])(
-  "RAC-1: a valid config save repairs invalid prior config while preserving its bytes and output: %s", async original => {
+  "RAC-14: a valid config save repairs invalid prior config while preserving its bytes and output: %s", async original => {
     fs.writeFileSync(path.join(dir, "config.yaml"), original)
     writeSectioningLifecycle(dir, "dynamic", true)
     const before = snapshot(), beforeRuns = runs()
