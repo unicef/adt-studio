@@ -49,6 +49,7 @@ export const BookSummary = z.object({
   rebuildReason: z.string().nullable(),
   /** No database snapshot was read. Admission/recovery does not authorize rebuilding. */
   readUnavailable: z.boolean().optional(),
+  readUnavailableReason: z.enum(["book-busy", "invalid-config", "invalid-data"]).optional(),
   completedStages: z.array(z.string()),
   storyboardNeedsReview: z.boolean().optional(),
   /** Unverified is distinct from a known missing or incomplete package. */

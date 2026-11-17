@@ -193,6 +193,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
     let previewStatus: BookSummary["previewStatus"] = "incomplete"
     let storyboardNeedsReview = false
     let readUnavailable = false
+    let readUnavailableReason: BookSummary["readUnavailableReason"]
 
     if (fs.existsSync(dbPath)) {
       try {
@@ -231,6 +232,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
           // database snapshot or offering a rebuild for temporary exclusion or
           // malformed persisted data. Retain the payload for explicit recovery.
           readUnavailable = true
+          readUnavailableReason = err instanceof BookBusyError ? "book-busy" : err instanceof BookConfigError ? "invalid-config" : "invalid-data"
           previewStatus = "unverified"
           completedStages = []
         } else if (isRecoverableDbError(err)) {
@@ -266,7 +268,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
       completedStages,
       previewStatus,
       ...(storyboardNeedsReview ? { storyboardNeedsReview: true } : {}),
-      ...(readUnavailable ? { readUnavailable: true } : {}),
+      ...(readUnavailable ? { readUnavailable: true, readUnavailableReason } : {}),
       createdAt,
       modifiedAt,
       part: readPartInfo(bookDir),

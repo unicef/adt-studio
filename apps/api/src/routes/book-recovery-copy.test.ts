@@ -12,7 +12,7 @@ import { errorHandler } from "../middleware/error-handler.js"
 
 const roots: string[] = []
 afterEach(() => { for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true }) })
-it("RAC-18: exposes explicit copy recovery through both API admission layers and keeps the original busy", async () => {
+it("RAC-15 RAC-18: exposes explicit copy recovery through both API admission layers and keeps the original busy", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "book-copy-route-")); roots.push(root)
   const config = path.join(root, "config.yaml"); fs.writeFileSync(config, "structure_types: {}\nrole_types: {}\n")
   const storage = createBookStorage("original", root); storage.close()
@@ -23,6 +23,9 @@ it("RAC-18: exposes explicit copy recovery through both API admission layers and
   app.use("/api/books/:label/*", bookWriterMiddleware(root))
   app.route("/api", createBookRoutes(root, undefined, config))
   expect((await app.request("/api/books/original")).status).toBe(409)
+  expect(await (await app.request("/api/books")).json()).toEqual([
+    expect.objectContaining({ label: "original", readUnavailable: true, readUnavailableReason: "book-busy" }),
+  ])
   const send = (data: unknown) => app.request("/api/books/original/recover-copy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
   expect((await send({ label: "copy" })).status).toBe(400)
   expect((await send({ label: "../escape", preserveOriginal: true })).status).toBe(400)

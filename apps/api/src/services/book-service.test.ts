@@ -72,7 +72,7 @@ it.each(["page_sectioning:\n  mode: imported-invalid\n", "page_sectioning: ["])(
   const healthy = listBooks(tmpDir).find(b => b.label === "good")!
   fs.writeFileSync(config, malformed)
   const listed = listBooks(tmpDir)
-  expect(listed.find(b => b.label === "bad")).toMatchObject({ readUnavailable: true, needsRebuild: false })
+  expect(listed.find(b => b.label === "bad")).toMatchObject({ readUnavailable: true, readUnavailableReason: "invalid-config", needsRebuild: false })
   expect(listed.find(b => b.label === "good")).toMatchObject({ pageCount: healthy.pageCount, completedStages: healthy.completedStages })
   expect(fs.readFileSync(config, "utf8")).toBe(malformed)
   fs.writeFileSync(config, "page_sectioning:\n  mode: page\n")

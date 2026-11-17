@@ -2,10 +2,11 @@ import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { api, ApiError } from "@/api/client"
+import type { BookSummary } from "@adt/types"
 import { Button } from "@/components/ui/button"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog"
 
-export function RecoverBookCopyButton({ label, onOpen }: { label: string; onOpen: (label: string) => void }) {
+export function RecoverBookCopyButton({ label, reason, onOpen }: { label: string; reason: BookSummary["readUnavailableReason"]; onOpen: (label: string) => void }) {
   const { t } = useLingui()
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -16,6 +17,7 @@ export function RecoverBookCopyButton({ label, onOpen }: { label: string; onOpen
     },
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["books"] }); setOpen(false) },
   })
+  if (reason !== "book-busy") return null
   if (recovery.data) return <Button variant="outline" onClick={() => onOpen(recovery.data.label)}><Trans>Open recovered copy</Trans></Button>
   return <>
     <Button variant="outline" onClick={() => { recovery.reset(); setOpen(true) }}><Trans>Recover a copy</Trans></Button>

@@ -8,12 +8,16 @@ import { RecoverBookCopyButton } from "./RecoverBookCopyButton"
 
 vi.mock("@lingui/react/macro", () => ({ Trans: ({ children }: { children: ReactNode }) => <>{children}</>, useLingui: () => ({ t: (parts: TemplateStringsArray) => parts.join("") }) }))
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
-function mount(label = "original") {
+function mount(label = "original", reason: "book-busy" | "invalid-config" | "invalid-data" = "book-busy") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   const onOpen = vi.fn()
-  render(<QueryClientProvider client={client}><RecoverBookCopyButton key={label} label={label} onOpen={onOpen} /></QueryClientProvider>)
+  render(<QueryClientProvider client={client}><RecoverBookCopyButton key={label} label={label} reason={reason} onOpen={onOpen} /></QueryClientProvider>)
   return onOpen
 }
+it.each(["invalid-config", "invalid-data"] as const)("does not offer copy recovery for %s", reason => {
+  mount("original", reason)
+  expect(screen.queryByRole("button", { name: "Recover a copy" })).toBeNull()
+})
 it("requires confirmation, creates one separate copy and opens only the returned copy", async () => {
   const recover = vi.spyOn(api, "recoverBookCopy").mockResolvedValue({ sourceLabel: "original", label: "recovered" })
   const onOpen = mount()
