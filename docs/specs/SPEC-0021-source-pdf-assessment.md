@@ -8,7 +8,7 @@ issues: ["#1016", "#1008", "#1012", "#901", "#676", "#985", "#326", "#749", "#95
 prs: ["#1009", "#1013", "#1015"] # PR 0 adopted 2026-10-29; #1013 implements §Step warnings; #1015 emits summary-missing
 adr: ""
 created: 2026-10-27
-updated: 2026-11-16
+updated: 2026-11-17
 ---
 
 **After the `extract` step, every book gets one persisted, deterministic, LLM-free
@@ -63,6 +63,13 @@ working source is an imported ADT bundle (#803) get no assessment (decision 21).
 the other in-place triggers use the per-book writer lease that develop already has. The
 `editing_language` fallback to the book language gets the same refresh hook. Every code anchor
 was re-verified on develop.
+Amended on 2026-11-17 after @ksokolovic's fourth review, to apply four corrections. A book
+assembled from recorded and legacy parts keeps the recorded parts' typed warnings and discloses
+the legacy parts separately (decision 24). An extraction rerun is refused under PR 2d's interim
+guard and admitted by SPEC-0010's outcomes (verified reuse or rejection) once it lands
+(decision 25). The watermark-removal counts are flat parameters. The `duplicate-images`
+membership is built from extraction-time evidence only, so later pruning does not change it
+(decision 26).
 
 ## Problem (with evidence)
 
@@ -171,8 +178,10 @@ the extract step, the spreads re-apply route, a change to a downstream setting t
 and an explicit Reassess (§Lifecycle, §Snapshot and current settings); (16) every per-page
 pass whose cost grows faster than the page's op count has a fixed work budget, and an exceeded
 budget is reported as incomplete, never as "no findings" (§Work budget); (17) preserved
-assessment history requires that an extraction rerun is refused at the common extraction
-boundary, by SPEC-0010 or by this spec's interim guard in PR 2d (§Lifecycle); (18) coverage is
+assessment history requires that an extraction rerun never clears an existing extraction:
+PR 2d's interim guard refuses it at the common extraction boundary, and SPEC-0010's admission
+later either reuses a verified, unchanged extraction or rejects the rerun before mutation
+(§Lifecycle, decision 25); (18) coverage is
 independent of severity: a partial assessment turns the `extract` pill amber and is carried
 on the sidebar, `BookSummary` and the CLI, while `extract-report` still exits 0 when no
 evaluated check found a warning or critical (§Work budget, §CLI); (19) a completion written by
@@ -189,7 +198,16 @@ added, cropped, segmented or cleaned up after extraction writes no new version (
 (23) with `remove_watermarks` off, `watermark-detected` reports text-layer stamps only,
 because learning a stamp baked into page images costs seconds (#1106) and is not run for an
 assessment. With removal on, the same kind reports at `info` what was removed (§Where it is
-computed).
+computed); (24) a stored step-warnings envelope keeps the warning evidence apart from its
+provenance. A book assembled from recorded and legacy parts keeps every typed warning and
+records how many parts were legacy, which reads as `"mixed"` (§Step warnings); (25) the
+interim guard refuses every extraction rerun on a book with pages or a node. Once SPEC-0010's
+admission lands, its outcomes apply instead: verified reuse of an identical, intact extraction
+or rejection before mutation. Both keep the assessment history and the extraction assets
+(§Lifecycle, AC-31); (26) `duplicate-images` counts membership from extraction-time evidence
+(inventory images, their hashes, the figure ids in the extraction debug). It never reads image
+classification or pruning, so a later pass cannot change it. Image Meaningfulness's downstream
+deduplication count is a separate metric and may differ (§Where it is computed, AC-37).
 
 ### Data contract
 
@@ -221,7 +239,7 @@ export const SourceFindingKind = z.enum([
   // document
   "page-geometry",           // size or orientation deviates > 2 % from the modal page or /Rotate ≠ 0 (warning); CropBox ≠ MediaBox or TrimBox ≠ CropBox alone (info)
   "spreads-unmarked",        // spread-suggestions non-empty while spread mode is off
-  "watermark-detected",      // removal off: text-layer signatures found (warning); removal on: what was removed (info, params.removed)
+  "watermark-detected",      // removal off: text-layer signatures found (warning); removal on: what was removed (info, params.removedText / params.removedImage)
   "pdf-encrypted",           // restricted permissions (copy / accessibility / print); a password requirement is a typed open error
   "optional-content",        // /OCProperties in the catalog (InDesign / Illustrator layers: language versions, print-only, hidden)
   "pdf-container",           // XFA form (/XFA in /AcroForm) or a portfolio (/Collection) / attachments (/EmbeddedFiles)
@@ -336,10 +354,10 @@ thresholds live in `packages/pipeline/src/source-assessment.ts` as one exported
 | `whole-page-figure` (book, `params.liveTextOverlap` = pages where ≥ 20 visible chars sit on the raster) | warning when ≥ 25 % of pages, info otherwise | background plates (no live text on top): setting `image_filters.segmentation: true` when segmentation is off; art with live text on top (picture books) or segmentation already on: action `figure-cleanup` |
 | `low-resolution-raster`, `layered-artwork` | info (thresholds frozen after E5); `low-resolution-raster` sets `params.uniform` when every raster in the book shares one ppi (a file downsampled by an optimiser); `layered-artwork` adds `params.stencil` (`/ImageMask`) and `params.softMask` (`/SMask`) counts | `none` |
 | `image-decode-failed` (page, `params.images`, `params.figures`) | warning | `none` |
-| `duplicate-images` (book) | info; warning ≥ 20 %. Counts the same membership as Image Meaningfulness's hash dedup (`planHashDedup`, `image-meaningfulness.ts:415-440`, #1011): images already pruned or covered by a figure are left out, so the two counts agree. After watermark removal the hashes are those of the cleaned images | `none` (#1011, merged, judges exact duplicates once) |
+| `duplicate-images` (book) | info; warning ≥ 20 %. Membership comes from extraction-time evidence only (decision 26): inventory images (`source IN ('page', 'extract')`) with a hash, less the ids the page's extraction debug ties to a figure (`figureInvolvedImageIds`, `image-meaningfulness.ts`), counted when one hash appears on ≥ `MIN_PAGES_TO_SHARE` pages (the same constant). It never reads image classification, so pruning by a later pass (Image Filtering, Image Meaningfulness's dedup `planHashDedup`, #1011) does not change it on Reassess (AC-37). That downstream count is a separate metric and can differ. After watermark removal the hashes are those of the cleaned images, which extraction writes | `none` (#1011, merged, judges exact duplicates once) |
 | `page-geometry` (book, `pageIds` = deviating pages) | warning for size, orientation or `/Rotate` deviation; info when only the page boxes differ (bleed and slug are the normal state of a print export) | action `normalise-pages` |
 | `spreads-unmarked` (book, `params.leads`) | info | action `mark-spreads` with the leads — the apply route (`POST /books/:label/spreads/apply`, `pages.ts:1416`) re-extracts only those pairs; naming `spread_mode` would imply a full re-extract |
-| `watermark-detected` (book) | removal off: warning when text-layer signatures are found. A stamp baked into page images is not detected (decision 23). Removal on: info, `params.removed` = `{ text, image }` page counts from `extractionDebug.watermarks` and `extractionDebug.rasterWatermark.cleanedImageStrengths` (`extract.ts:1120-1125`), because removal can also take out repeated faint decorations (`docs/ARCHITECTURE.md`, watermark limits) | removal off: setting `remove_watermarks: true` (in `EXTRACTION_CONFIG_KEYS`: under SPEC-0010 a changed value is a new book, and the panel says so; the message adds that removal re-encodes extracted images and can take seconds per book); removal on: `none` |
+| `watermark-detected` (book) | removal off: warning when text-layer signatures are found. A stamp baked into page images is not detected (decision 23). Removal on: info, with the page counts as two scalar parameters (`SourceParam` holds no objects), `params.removedText` and `params.removedImage`, from `extractionDebug.watermarks` and `extractionDebug.rasterWatermark.cleanedImageStrengths` (`extract.ts:1120-1125`), because removal can also take out repeated faint decorations (`docs/ARCHITECTURE.md`, watermark limits) | removal off: setting `remove_watermarks: true` (in `EXTRACTION_CONFIG_KEYS`: under SPEC-0010 a changed value is a new book, and the panel says so; the message adds that removal re-encodes extracted images and can take seconds per book); removal on: `none` |
 | `pdf-encrypted` | info (restricted permissions) | `none` |
 | `optional-content` (book, `params.layers`, `params.off`, `params.names`) | warning: only the default-visible configuration is rendered and extracted, so an alternate language layer is silently dropped and a print-only layer may be kept | `none` (the message lists `params.names`; choosing a layer is a follow-up, OQ9) |
 | `pdf-container` (book, `params.form`, `params.portfolio`, `params.attachments`) | critical for a portfolio or a dynamic XFA form (`/NeedsRendering true`: the pages are a "please wait" placeholder); warning for static XFA; info for attachments only | action `get-text-pdf` (re-export the book itself) |
@@ -601,7 +619,7 @@ latest version is the current assessment. Each version records `rulesVersion` (`
 | A book whose working source is not a PDF (`BookSummary.sourceKind` or `workingSource` is not `pdf`, an imported ADT bundle, #803) | nothing, and Reassess is refused with 409 (decision 21) | no Source quality panel, badge or pill warning. Extract is already locked for these books (`stages.ts:231-239`) |
 | A downstream setting the rules read changes | a version with `trigger: "settings-change"` (§Snapshot and current settings) | the new assessment |
 | Reassess | a version with `trigger: "reassess"`, built from storage | the new assessment |
-| An attempted extraction rerun on a book with pages or a node | nothing: the rerun is refused before anything is cleared (below) | the existing versions, unchanged |
+| An attempted extraction rerun on a book with pages or a node | nothing: under the interim guard the rerun is refused before anything is cleared; under SPEC-0010 it is a verified reuse (row above) or a rejection before mutation (below) | the existing versions, unchanged |
 
 **What the history guarantee requires.** Versions survive only while nothing clears the
 node. `clearExtractedData` deletes every `source-assessment` version together with the pages
@@ -612,16 +630,20 @@ develop refuse to extract over a book that has pages, before anything is cleared
 and the CLI DAG (`pipeline-dag.ts:187`). A direct `extractPDF` call still bypasses both, and
 both test pages only, so on a book with a node but no pages `makeBeforeRun` still clears
 (`stages.ts:162-164`) before `extractPDF` runs. The
-guarantee therefore requires the refusal at the common extraction boundary. SPEC-0010 owns
-that boundary ("a direct `extractPDF` call must not bypass it", §Writer coordination), and
-this spec requires its safe extraction admission and refusal, not the rest of SPEC-0010. If
+guarantee therefore requires that no rerun clears an existing extraction, decided at the
+common extraction boundary. SPEC-0010 owns that boundary ("a direct `extractPDF` call must
+not bypass it", §Writer coordination), and this spec requires its extraction admission, not
+the rest of SPEC-0010. Its admission has two outcomes for an occupied book: verified reuse
+of an identical, intact extraction, which writes nothing, or rejection before mutation. If
 that boundary has not landed when PR 2d ships, PR 2d adds an equivalent interim guard with one
 condition, "the book has pages or a `source-assessment` node", shared by all three entry
 points: `extractPDF` throws the same `UNSAFE_RESUME_UNAVAILABLE` error before
 `clearExtractedData`, and the `makeBeforeRun` and CLI DAG checks use the same condition
-instead of pages alone. SPEC-0010's admission later replaces all three. Until PR 2d ships the guard, the spec does not claim preserved history. Even
+instead of pages alone. The interim guard refuses every rerun, including one SPEC-0010 would
+reuse. SPEC-0010's admission later replaces all three checks, and its reuse outcome then
+applies (decision 25). Until PR 2d ships the guard, the spec does not claim preserved history. Even
 with it, an app older than v0.9.0-beta.2 has neither guard and can still clear the node,
-which a newer app cannot detect afterwards. AC-31 covers the guard.
+which a newer app cannot detect afterwards. AC-31 covers the guard (a) and the admission (b).
 
 **Reassess** builds the input with `pageInputFromStorage`, reusing each page's `signals` from
 the latest version when one exists, and appends a version. A book that has no node, or whose
@@ -707,7 +729,13 @@ export const StepWarning = z.discriminatedUnion("kind", [
 export const UnrecognizedStepWarning = z.object({ kind: z.literal("unrecognized"), count: z.number().int().positive() })
 export const StepWarningView = z.union([StepWarning, UnrecognizedStepWarning])
 // What step_runs.warnings holds: the warnings stamped with the completion they belong to.
-export const StoredStepWarnings = z.object({ completedAt: z.string(), items: z.array(z.unknown()) })
+// `items` is the warning evidence; `legacyParts` is provenance only (decision 24): the number of
+// parts of an assembled book whose completion was legacy, so their warnings may be incomplete.
+export const StoredStepWarnings = z.object({
+  completedAt: z.string(),
+  items: z.array(z.unknown()),
+  legacyParts: z.number().int().positive().optional(),
+})
 ```
 
 Adding a kind is a change to this contract and goes through this spec.
@@ -731,15 +759,23 @@ Adding a kind is a change to this contract and goes through this spec.
   otherwise carry a stale message forward. The part merge (`part-service.ts:888-895`), which today
   copies only `status`, copies `completed_at`, `message` and the envelope together from the
   part row, so a recorded part stays recorded in the assembled book. When parts disagree, it
-  writes a fresh `completed_at` with an envelope stamped to it that holds the parts' warnings
-  combined, and a part that reads as legacy makes the merged row legacy. This app's
+  writes a fresh `completed_at` with an envelope stamped to it. The envelope keeps the warning
+  evidence apart from its provenance (decision 24). Its `items` hold every part's warnings as
+  the reader would return them: a recorded part's items, and a legacy part's adapted warnings
+  (the skip literal gives `pages-skipped` without `pageIds`; any other legacy message gives
+  none). Its `legacyParts` counts the parts that read as legacy, and is absent when there are
+  none. `message` is `formatStepWarnings(items)`. A legacy part therefore neither discards a
+  recorded part's warnings nor lets the merged row pass as fully recorded. This app's
   `markStepStarted`, `markStepSkipped` and `recordStepError` also clear the column. An older
   app does not know the column, so its writes leave the envelope in place. The stamp is what
   keeps such an envelope from being read as current: an older start sets `completed_at = NULL`,
   an older complete or skip writes a new timestamp, and an older error sets `status = 'error'`.
   For a done step the reader tells two cases apart:
   - **Recorded**: `envelope.completedAt` equals the row's `completed_at`. The warnings are the
-    envelope's items.
+    envelope's items. When `legacyParts` is set, the step reads as `"mixed"`: the typed
+    warnings are current, and Studio adds "N part(s) of this book were completed by an older
+    version of ADT Studio; they may not have recorded every warning" to the popover. Like the
+    legacy line, that disclosure does not turn the pill amber; the typed warnings do.
   - **Legacy completion**: there is no envelope, or its stamp does not match. The step was
     last completed by an app that does not write the column, so there is no current
     structured evidence. A stale envelope is never revived. A bounded adapter reads the one
@@ -771,7 +807,8 @@ Adding a kind is a change to this contract and goes through this spec.
   `openBookDbReadOnly`) must tolerate the column's absence.
 - **API.** `GET /books/:label/step-status` adds `stepWarnings: Record<string, StepWarningView[]> |
   null` for done steps, as storage parsed them (adapted for a legacy completion), and
-  `stepWarningSources: Record<string, "recorded" | "legacy">` for the same steps. For a done `extract` step it appends
+  `stepWarningSources: Record<string, "recorded" | "legacy" | "mixed">` for the same steps
+  (`"mixed"`: a recorded envelope with `legacyParts`). For a done `extract` step it appends
   `sourceAssessmentWarning(latest node)`, computed on read, so the pill, the panel, the page
   badges, the sidebar, `GET source-assessment` and `extract-report` all count from one node,
   whichever trigger wrote it (§Lifecycle). `stepMessages` is unchanged. The live stream
@@ -1030,8 +1067,9 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   `low-resolution-raster` (100 dpi; `params.uniform`), `needs-convert-colorspace`,
   `layered-artwork` (blend, opacity, clip, stencil, soft mask), `watermark-detected` (warning
   for text-layer signatures while `remove_watermarks` is off; with removal on, info with
-  `params.removed` from a debug record that holds text signatures and `cleanedImageStrengths`,
-  and no finding when nothing was removed), `book-scale` (300 pages / 500 Mpx) and
+  `params.removedText` and `params.removedImage` from a debug record that holds text signatures
+  and `cleanedImageStrengths`, which `SourceFinding.parse` accepts; with removal on and nothing
+  removed, no finding), `book-scale` (300 pages / 500 Mpx) and
   `shape-flood` (1,500 shapes / 60 rasters).
 - [ ] AC-25: A step that completes with warnings persists them typed, except the derived
   `source-assessment` warning, which is never persisted. `GET step-status` returns them under
@@ -1095,11 +1133,18 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   stays open.
 - [ ] AC-31: History survives an attempted rerun. A book with assessment v1 (`extract`) and v2
   (`reassess`) gets an ordinary extraction rerun through each of the API
-  (`fromStage: "extract"`), the CLI DAG and a direct `extractPDF` call. Each is refused with
-  `UNSAFE_RESUME_UNAVAILABLE` before anything is cleared, and v1, v2, the pages and the
-  images are all still present. The same holds for a book that has a node but no pages, through
-  each of the three entry points. This holds with SPEC-0010's boundary or with PR 2d's interim
-  guard.
+  (`fromStage: "extract"`), the CLI DAG and a direct `extractPDF` call. In every outcome, v1,
+  v2, the pages and the images are all still present and unchanged.
+  (a) Under PR 2d's interim guard, each entry point refuses with `UNSAFE_RESUME_UNAVAILABLE`
+  before anything is cleared. The same holds for a book that has a node but no pages.
+  (b) Once SPEC-0010's admission replaces the guard, the outcome follows its admission table.
+  A rerun with identical PDF bytes, effective extraction inputs and contract over an intact
+  extraction is a verified reuse: it writes no extraction entity and no assessment version, and
+  the latest version stays current (as in AC-28). A changed source or extraction setting, a book
+  without a trustworthy manifest (which includes a node with no pages) and an incomplete
+  extraction are each rejected before mutation, with SPEC-0010's mismatch class.
+  (b) is asserted in the SPEC-0010 implementation PR, or here if this spec's PR 2d lands after
+  it.
 - [ ] AC-32: Partial coverage with zero findings. A synthetic book with no warning or critical
   finding of any kind, reassessed without `signals` (so `incomplete` lists the signal-fed
   kinds with `no-signals`) gives:
@@ -1128,6 +1173,22 @@ Under `apps/studio/src/components/pipeline/stages/extract/`:
   assessment: null }`, `POST …/reassess` and `pnpm pipeline assess-source` are refused (409 /
   non-zero exit) and write nothing, `BookSummary.sourceReadiness` is absent, and `PUT config` or
   `PUT metadata` writes no version.
+- [ ] AC-36: Mixed parts keep their typed warnings. A book is assembled from part A, which this
+  app completed with a `pages-unchanged` warning, and part B, which an older writer completed
+  (statements copied as in AC-27). (i) When B's message is the skip literal
+  (`"Completed — 2 page(s) skipped"`), the assembled step reads as `pages-unchanged` plus
+  `{ kind: "pages-skipped", count: 2 }`. (ii) When B's message is any other text, it reads as
+  `pages-unchanged` alone. In both cases the envelope's `completedAt` matches the fresh
+  `completed_at`, `legacyParts` is 1, `stepWarningSources` is `"mixed"`, the pill is amber, and
+  the popover lists the typed warnings and the older-version disclosure line. A book assembled
+  only from clean legacy parts and recorded parts with no warnings reads as `"mixed"` with no
+  warnings and a pill that is not amber.
+- [ ] AC-37: The source duplicate count does not follow later pruning. A synthetic book has
+  one hash on three pages and no figure ids in the extraction debug. The assessment reports
+  `duplicate-images` with those copies. After Image Filtering or Image Meaningfulness's dedup
+  marks copies pruned in the classification, a Reassess built from storage reports the same
+  finding with the same counts. An image whose id the extraction debug ties to a figure is
+  left out both times.
 
 ## Test plan
 
@@ -1172,6 +1233,8 @@ findings are asserted in `packages/pipeline` tests.
 | AC-33 | unit + integration | `packages/pipeline/src/__tests__/source-assessment.test.ts` (rules, PR 2c), `packages/pipeline/src/__tests__/pdf-extraction.source-assessment.test.ts` (extract write equals Reassess, PR 2d) | `AC-33: an extraction without signals reports the missing checks as incomplete` |
 | AC-34 | integration | `apps/api/src/routes/source-assessment.test.ts` (PR 4) | `AC-34: images added after extraction write no version and do not enter a Reassess` |
 | AC-35 | integration | `apps/api/src/routes/source-assessment.test.ts` (PR 4), `packages/pipeline/src/__tests__/cli-args.test.ts` (`assess-source`, PR 6) | `AC-35: an imported ADT book is never assessed` |
+| AC-36 | integration + component | `apps/api/src/services/part-service.test.ts` (part merge), `packages/storage/src/__tests__/step-warnings.test.ts`, `apps/studio/src/components/pipeline/components/SubStepPillRow.test.tsx` (#1013) | `AC-36: merging recorded and legacy parts keeps typed warnings and reads as mixed` |
+| AC-37 | unit | `packages/pipeline/src/__tests__/source-assessment.test.ts` | `AC-37: duplicate-images membership ignores later pruning` |
 
 Fixtures: cuaderno4 pages 1, 6 and 12 and cuaderno3 page 9 extracted in the test (the
 PDFs are local corpus files, listed in `docs/verification/spec-0021.md`, not committed);
@@ -1224,7 +1287,7 @@ on develop.
 2. `packages/pipeline`:
    a) text and page-type rules: `text-layer-empty`, `script-mismatch`, `pageType`,
    `mixed-page-types`, `whole-page-figure`, `duplicate-images`, `spreads-unmarked`,
-   `shape-flood`, `book-scale`; AC-2, AC-5, AC-6, AC-8, AC-13, AC-23 (≈ 320);
+   `shape-flood`, `book-scale`; AC-2, AC-5, AC-6, AC-8, AC-13, AC-23, AC-37 (≈ 320);
    b) figure-geometry rules: `raster-overlay-split`, `raster-tiles`, `figure-render-holes`,
    `low-resolution-raster`, `layered-artwork`; the 200-raster pairwise cap and
    `summary.incomplete`, `coverage` and `incompletePages`; AC-3, AC-4, AC-19, the rule half of
@@ -1286,6 +1349,10 @@ SPEC-0017 disclosure for provider text. The 2026-11-13 revision adds:
   `pageIds` on `pages-skipped` and AC-30's popover naming the skipped pages;
 - `step_runs.message` holding only the rendering of persisted warnings.
 
+The 2026-11-17 revision adds the mixed-part merge: `legacyParts` on the envelope, legacy
+parts' adapted warnings combined into `items`, `"mixed"` in `stepWarningSources`, the
+older-version disclosure line for a mixed step, and AC-36.
+
 #1013 adopts these before it leaves draft. It is a
 draft until this spec is `approved`. #1015, stacked on it, then emits `summary-missing`.
 
@@ -1299,12 +1366,12 @@ survives a re-extract.
 |---|---|---|
 | #1009 `extract-report` CLI (#1008) | **Adopted as PR 0**, owned by this spec | The baseline report, `MIN_TEXT_LAYER_CHARS`, `TextProfile`, the exit-code convention, the `--compare` / `--json` surfaces PR 6 extends |
 | #1013 image-pass failures (#1012) | **Implements §Step warnings**; hard prerequisite of PR 2c, PR 4, PR 5b and AC-11 | The typed step-warning channel: `StepWarning`, the `step-complete` field, `step_runs.warnings`, `stepWarnings` in `GET step-status`, the translated amber pill, and the console sink printing `event.message` |
-| SPEC-0010 safe reruns (#886, in review) | **Prerequisite of the history guarantee only**: its safe extraction admission and refusal at the common boundary, or PR 2d's interim guard until then (§Lifecycle, AC-31). The rest of SPEC-0010 is not a dependency | §Lifecycle: the node is derived and stays out of the manifest inventory; reuse writes nothing; an extraction rerun is refused before `clearExtractedData` runs |
+| SPEC-0010 safe reruns (#886, in review) | **Prerequisite of the history guarantee only**: its extraction admission at the common boundary (verified reuse or rejection before mutation), or PR 2d's interim guard, which refuses every rerun, until then (§Lifecycle, AC-31). The rest of SPEC-0010 is not a dependency | §Lifecycle: the node is derived and stays out of the manifest inventory; verified reuse writes nothing; any other rerun is refused before `clearExtractedData` runs |
 | SPEC-0013 page-failure recovery (#889, in review) | Owner of skipped-page records; AC-30's OutputReview half depends on it | `pages-skipped` is a count that links to SPEC-0013's per-page recovery records and OutputReview; it never replaces them (AC-30) |
 | SPEC-0017 connectivity handling (#950, in review) | Owner of error disclosure | Provider error text in `pages-unchanged` and `summary-missing` is shown through its technical-details disclosure; its classified wording replaces the generic line once it lands |
 | SPEC-0020 figure cleanup (#993, in review) | Recommendation target; shares `ExtractPageDetail` | `figure-cleanup` opens its entry point; an accepted cleanup writes no assessment version (§Lifecycle); R-h is a proposed extension that needs its owner's agreement |
 | SPEC-0016 AI setup recommender (#932) | Future consumer | None today: its first slice is pre-Create; consuming the node later is an integration, not a dependency |
-| #1011 identical images judged once (#1010) | Merged (725632947) | `duplicate-images` recommends `none` because #1011 already judges exact duplicates once, and counts the same membership as its `planHashDedup` |
+| #1011 identical images judged once (#1010) | Merged (725632947) | `duplicate-images` recommends `none` because #1011 already judges exact duplicates once. Its membership is built from extraction-time evidence and is independent of `planHashDedup`'s pruning-dependent count (decision 26) |
 | #1015 book summary for scanned books | Related; stacked on #1013 | Emits the `summary-missing` step warning (§Step warnings) when the summary call fails; it consumes page renders the same way a later vision text-recovery spec would route `text-layer-empty` pages |
 | #1106 image-watermark removal (#1105) | Merged (8f34af99b) | The render paths PR 3a restructures; the cleaned images the checks measure; `watermark-detected`'s removal-on record; AC-18's baseline (decision 23) |
 | #1104 add images in Extract | Merged (8b454f658) | Images with `source` `crop`/`upload` are not inventory (decision 22); the page detail's "Crop from page" control next to the findings list |
