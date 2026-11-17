@@ -106,6 +106,22 @@ function createWebAssets(dir: string): void {
 }
 
 describe("exportProject", () => {
+  it.each(["consume", "cancel"])("releases admission before a slow consumer finishes (%s)", async action => {
+    const label = "slow-consumer"
+    createTestDb(label)
+    const dir = path.join(tmpDir, label)
+    for (let i = 0; i < 120; i++) fs.writeFileSync(path.join(dir, `asset-${i}.txt`), `before-${i}`)
+    const { stream } = await exportProject(label, tmpDir)
+    // Deliberately do not read the response. The lock protects production, not
+    // the client's network connection or the queued response bytes.
+    await vi.waitFor(() => expect(fs.existsSync(path.join(dir, ".book-writer.json"))).toBe(false))
+    withBookWriter(dir, () => fs.writeFileSync(path.join(dir, "asset-119.txt"), "after"))
+    if (action === "cancel") await stream.cancel()
+    else {
+      const archive = unzipSync(await streamToBuffer(stream))
+      expect(Buffer.from(archive["asset-119.txt"]).toString()).toBe("before-119")
+    }
+  })
   it("allows usable output export after a generation preference change and preserves project backup", async () => {
     createTestDb("stale-export")
     addPagesAndRenderings("stale-export", 1)

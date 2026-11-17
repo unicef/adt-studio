@@ -65,7 +65,7 @@ describe("verified historical recovery", () => {
     expect(inspectHistoryRecovery(b.dbPath).issues[0].reason).toBe("recoverable")
   })
 
-  it("restores exact bytes, retains damaged evidence and manual provenance, and advances a selected version", () => {
+  it("RAC-18: restores exact bytes, retains damaged evidence and manual provenance, and advances a selected version", () => {
     const b = book()
     const original = { source: "manual", sectionId: "p1_sec078", nested: { id: "stable", answer: "preserve me" } }
     b.write(original)

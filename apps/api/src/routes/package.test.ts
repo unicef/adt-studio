@@ -101,6 +101,43 @@ describe("Package routes", () => {
     )
   }
 
+  it("RAC-10 RAC-19: PACKAGE_INPUTS_CHANGED preserves the published package when settings change during preparation", { timeout: 30_000 }, async () => {
+    const label = "changed-package-inputs"
+    createRenderedBook(label); createWebAssets()
+    const globalConfig = path.join(tmpDir, "global.yaml")
+    fs.writeFileSync(globalConfig, "structure_types: {}\nrole_types: {}\n")
+    const routes = new Hono().onError(errorHandler).route("/", createPackageRoutes(tmpDir, webAssetsDir, globalConfig))
+    const request = () => routes.request(`/books/${label}/package-adt`, { method: "POST" })
+    expect((await request()).status).toBe(200)
+    const bundle = path.join(tmpDir, label, "adt")
+    const snapshot = (dir: string): Record<string, Buffer> => Object.fromEntries(fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+      const file = path.join(dir, entry.name)
+      return entry.isDirectory() ? Object.entries(snapshot(file)).map(([key, bytes]) => [`${entry.name}/${key}`, bytes]) : [[entry.name, fs.readFileSync(file)]]
+    }))
+    const prior = snapshot(bundle)
+    // Request an actual rebuild, then change another relevant setting after its
+    // initial hash was captured. The final publication guard must catch this.
+    fs.appendFileSync(globalConfig, "apply_body_background: false\n")
+    const write = fs.writeFileSync
+    let injected = false
+    const spy = vi.spyOn(fs, "writeFileSync").mockImplementation((file, data, options) => {
+      const result = write(file, data, options)
+      if (!injected && String(file).endsWith("/.build-hash")) {
+        injected = true
+        write(globalConfig, "structure_types: {}\nrole_types: {}\napply_body_background: true\n")
+      }
+      return result
+    })
+    try {
+      const response = await request()
+      expect(injected).toBe(true)
+      expect(response.status, await response.clone().text()).toBe(409)
+      expect(await response.json()).toMatchObject({ code: "PACKAGE_INPUTS_CHANGED" })
+      expect(snapshot(bundle)).toEqual(prior)
+    } finally { spy.mockRestore() }
+    expect((await request()).status).toBe(200)
+  })
+
   // Includes two real 120-page builds and their accessibility audits. Leave
   // room for suite contention; deterministic read counts enforce bounded work.
   it("prepares and downloads 120 documents with bounded dependency reads and invalidation", { timeout: 180_000 }, async () => {

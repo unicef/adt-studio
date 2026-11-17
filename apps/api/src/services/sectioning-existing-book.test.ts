@@ -54,6 +54,63 @@ async function replacement(ids?: string[]) {
   return { replaceManual: true, protectedReplacements: protectedWork.filter((record: { node: string; itemId: string }) => record.node === "page-sectioning" && (!ids || ids.includes(record.itemId))).map(({ pageNumber: _, ...record }: Record<string, unknown>) => record) }
 }
 
+it.each(["duplicate", "outside stages", "outside window"])("RAC-6: rejects %s replacement consent before reset or provider work", async kind => {
+  const consent = await replacement(["p2"])
+  expect(consent.protectedReplacements).toHaveLength(1)
+  if (kind === "outside window") {
+    fs.appendFileSync(configPath, "start_page: 7\nend_page: 7\n")
+    const current = await replacement(["p7"])
+    // Use the current window receipt, isolating the scope guard from staleness.
+    consent.protectedReplacements[0].sectioningInputSignature = current.protectedReplacements[0].sectioningInputSignature
+  }
+  if (kind === "duplicate") consent.protectedReplacements.push({ ...consent.protectedReplacements[0] })
+  const before = rawHistoryState()
+  const response = await send("stages/run", {
+    fromStage: kind === "outside stages" ? "storyboard" : "sectioning",
+    toStage: "storyboard", ...consent,
+  })
+  expect(response.status).toBe(kind === "outside window" ? 409 : 400)
+  expect(await response.json()).toMatchObject({ code: "REPLACEMENT_CONFIRMATION_INVALID" })
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(renderPage).not.toHaveBeenCalled()
+  expect(rawHistoryState()).toEqual(before)
+})
+
+it.each([["dynamic", "page"], ["page", "dynamic"]])("RAC-8: %s to %s regeneration survives split, add, clone, merge, delete and Storyboard", async (priorMode, mode) => {
+  const neighbor = history("page-sectioning", "p7")
+  const pixels = fs.readFileSync(path.join(dir, "images/p2_page.png"))
+  expect((await send("config", { page_sectioning: { mode: priorMode } }, "PUT")).status).toBe(200)
+  const before = rawHistoryState()
+  await replacement(["p2"]) // Reviewing then cancelling submits no mutation.
+  expect(rawHistoryState()).toEqual(before)
+  expect((await send("config", { page_sectioning: { mode } }, "PUT")).status).toBe(200)
+  expect((await run({ toStage: "sectioning", ...await replacement(["p2"]) })).status).toBe("completed")
+  const version = () => history("page-sectioning", "p2").at(-1)!.version
+  const edit = async (suffix: string, fields = {}, method = "POST") => {
+    const response = await send(`pages/p2/${suffix}`, { baseVersion: version(), ...fields }, method)
+    expect(response.status, await response.clone().text()).toBe(200)
+  }
+  await edit("sections/0/split", { beforeNodeIndex: 1 })
+  const current = history("page-sectioning", "p2").at(-1)!.data as ReturnType<typeof tree>
+  await edit("sectioning", { ...current, sections: [...current.sections, {
+    ...tree("p2").sections[0], sectionId: "p2_new_section", nodes: [],
+  }] }, "PUT")
+  await edit("sections/0/clone")
+  await edit("sections/0/merge")
+  await edit("sections/2", {}, "DELETE")
+  expect((await run({ fromStage: "storyboard", toStage: "storyboard" })).status).toBe("completed")
+  const storage = store()
+  try {
+    expect(storyboardCoverage(storage, ["p2"]).complete).toBe(true)
+    const saved = storage.getLatestNodeData("page-sectioning", "p2")!.data as ReturnType<typeof tree>
+    const rendered = JSON.stringify(storage.getLatestNodeData("web-rendering", "p2")!.data)
+    for (const section of saved.sections) expect(rendered).toContain(section.sectionId)
+    expect(rendered).not.toContain("Retained HTML")
+  } finally { storage.close() }
+  expect(history("page-sectioning", "p7")).toEqual(neighbor)
+  expect(fs.readFileSync(path.join(dir, "images/p2_page.png"))).toEqual(pixels)
+})
+
 it("rejects a changed effective Sectioning prompt before reset and accepts a freshly reviewed receipt", async () => {
   const prompt = path.join(root, "page_sectioning.liquid")
   fs.writeFileSync(prompt, "Reviewed prompt")
@@ -350,7 +407,7 @@ it.each(["history_recovery_requests", "history_recovery_audit", "history_repair_
 
 // Original AC-18/19 mode gates and retained-current HTML were superseded by
 // the authorized October review. These cases exercise their revised outcomes.
-it.each(["reflowable", "fixed", "reflowable-part", "fixed-part"].flatMap((layout) => ["page", "dynamic"].map((mode) => ({ layout, mode }))))("mode preference, missing-only run, explicit reset and publication through HTTP: $layout → $mode", async ({ layout, mode }) => {
+it.each(["reflowable", "fixed", "reflowable-part", "fixed-part"].flatMap((layout) => ["page", "dynamic"].map((mode) => ({ layout, mode }))))("RAC-5 RAC-7 RAC-14: mode preference, missing-only run, explicit reset and publication through HTTP: $layout → $mode", async ({ layout, mode }) => {
   if (mode === "dynamic") { fs.writeFileSync(path.join(dir, "config.yaml"), "page_sectioning:\n  mode: page\n"); writeSectioningLifecycle(dir, "page", true) }
   if (layout.startsWith("fixed")) fs.appendFileSync(configPath, "default_render_strategy: fixed\nrender_strategies:\n  fixed:\n    render_type: fixed_layout\n")
   if (layout.endsWith("part")) fs.writeFileSync(path.join(dir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: label, title: null,
@@ -392,7 +449,7 @@ it.each(["reflowable", "fixed", "reflowable-part", "fixed-part"].flatMap((layout
   expect(fs.readFileSync(path.join(dir, "images/p7_page.png"))).toEqual(pixels)
 })
 
-it("older books render intentional By Page edits without lifecycle initialization", async () => {
+it("RAC-2 RAC-3: older books render intentional By Page edits without lifecycle initialization", async () => {
   fs.rmSync(path.join(dir, ".sectioning-lifecycle.json"))
   fs.appendFileSync(configPath, "# inherited preference\n")
   await send("config", { page_sectioning: { mode: "page" } }, "PUT")
@@ -518,7 +575,7 @@ it.each([null, "null", "{broken json", JSON.stringify({ sections: "invalid" })])
   check.close()
 })
 
-it("partial section rendering stays usable but incomplete across page, library, stage and export disclosure", async () => {
+it("RAC-12 RAC-13: partial section rendering stays usable but incomplete across page, library, stage and export disclosure", async () => {
   const s = store(); s.putNodeData("web-rendering", "p2", null); s.close()
   const result = await app.request(`/books/${label}/pages/p2/re-render?sectionIndex=0`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
   expect(result.status, await result.clone().text()).toBe(200)
@@ -676,7 +733,7 @@ it("rejects changed extracted text at publication even when page IDs and version
 })
 
 
-it.each(["sync", "task"].flatMap(entry => ["missing", "json-null", "unreadable"].map(input => ({ entry, input }))))("batch HTTP $entry rendering preserves $input input and publishes its runnable neighbor", async ({ entry, input }) => {
+it.each(["sync", "task"].flatMap(entry => ["missing", "json-null", "unreadable"].map(input => ({ entry, input }))))("RAC-4: batch HTTP $entry rendering preserves $input input and publishes its runnable neighbor", async ({ entry, input }) => {
   const raw = openBookDb(path.join(dir, `${label}.db`))
   if (input === "missing") { raw.run("DELETE FROM node_current WHERE node = ? AND item_id = ?", ["page-sectioning", "p2"]); raw.run("DELETE FROM node_data WHERE node = ? AND item_id = ?", ["page-sectioning", "p2"]) }
   else raw.run("UPDATE node_data SET data = ? WHERE node = ? AND item_id = ?", [input === "json-null" ? "null" : "{unreadable", "page-sectioning", "p2"])
@@ -785,7 +842,7 @@ it.each(["first generation", "same-layout rerun"].flatMap(runKind => [false, tru
 // It intentionally reuses that file's real storage/Hono/stage runner fixtures
 // and its controlled sectionPage/renderPage outputs. No ownership/reset/read
 // helper is mocked. This is not provider accounting or a paid-model test.
-it("explicit scoped Sectioning replacement cannot attach an old enabled stepper to a new same-index same-type section", async () => {
+it("RAC-18: explicit scoped Sectioning replacement cannot attach an old enabled stepper to a new same-index same-type section", async () => {
   const { EditableActivitiesEntity, EDITABLE_ACTIVITY_NODE, PageSectioningOutput } = await import("@adt/types")
   const { unzipSync } = await import("fflate")
   const { exportAdt } = await import("./export-service.js")

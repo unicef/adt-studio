@@ -80,7 +80,7 @@ function part() {
   fs.writeFileSync(path.join(dir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: "source", title: null, range: { startPage: 2, endPage: 2 }, pageCount: 3, fingerprint: {}, identityHash: "fixture", semanticsHash: "fixture", createdAt: "fixture", partLabelSuggestion: "range" }))
 }
 
-it.each([false, true])("fresh CLI overrides reach Sectioning and Storyboard and survive reopen, part=%s", async isPart => {
+it.each([false, true])("RAC-17: fresh CLI overrides reach Sectioning and Storyboard and survive reopen, part=%s", async isPart => {
   if (isPart) part()
   const dir = path.join(state.root, "range")
   fs.mkdirSync(dir, { recursive: true })

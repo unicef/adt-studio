@@ -365,7 +365,7 @@ describe("Storyboard layout publication", () => {
     } finally { after.close() }
   })
 
-  it("keeps both the positioned tree and rendering on cancellation during a layout switch", async () => {
+  it("RAC-11: keeps both the positioned tree and rendering on cancellation during a layout switch", async () => {
     await run()
     const before = store()
     const oldTree = before.getAllNodeVersions("fixed-layout-sectioning", "p2")

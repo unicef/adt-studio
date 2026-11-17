@@ -7,7 +7,7 @@ import path from "node:path"
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
-import { createBookStorage, withBookWriter, openBookDb } from "../../packages/storage/dist/index.js"
+import { createBookStorage, withBookWriter, openBookDb, writeSectioningLifecycle, readSectioningLifecycle } from "../../packages/storage/dist/index.js"
 import { resetSectioningStoryboard } from "../../packages/pipeline/dist/index.js"
 
 const script = fileURLToPath(import.meta.url)
@@ -53,6 +53,7 @@ if (childMode) {
     }
     storage.markStepCompleted("web-rendering")
     storage.close()
+    writeSectioningLifecycle(dir, "dynamic", true)
     fs.writeFileSync(path.join(dir, "source.pdf"), "Original PDF bytes")
     fs.writeFileSync(path.join(dir, "images", "retained.png"), "Referenced asset bytes")
   }
@@ -73,6 +74,19 @@ if (childMode) {
   })
   assert.deepEqual(snapshot("rollback"), before)
   console.log("Injected failure midway through reset: all page histories unchanged")
+  const rollbackDir = path.join(root, "rollback")
+  const retryDb = openBookDb(path.join(rollbackDir, "rollback.db"))
+  retryDb.exec("DROP TRIGGER reject_reset")
+  retryDb.exec("CREATE TRIGGER reject_completion BEFORE DELETE ON step_runs BEGIN SELECT RAISE(ABORT, 'injected completion failure'); END")
+  retryDb.close()
+  withBookWriter(rollbackDir, () => {
+    const storage = createBookStorage("rollback", root)
+    try { assert.throws(() => resetSectioningStoryboard(storage, options, sectioningInputSignature), /injected completion failure/) }
+    finally { storage.close() }
+  })
+  assert.deepEqual(snapshot("rollback"), before)
+  assert.equal(readSectioningLifecycle(rollbackDir).sectioningReady, false)
+  console.log("Failed reset after readiness invalidation: SQL rolls back; lifecycle remains conservatively stale")
   for (const point of ["inside", "after"]) {
     seed(point)
     const old = snapshot(point)
@@ -98,6 +112,7 @@ if (childMode) {
       })
       console.log("Crash inside coordinated reset: SQLite rolls back every page; next edit succeeds; raw evidence retained")
     } else {
+      assert.equal(readSectioningLifecycle(path.join(root, point)).sectioningReady, false)
       withBookWriter(path.join(root, point), () => {
         const storage = createBookStorage(point, root)
         try {

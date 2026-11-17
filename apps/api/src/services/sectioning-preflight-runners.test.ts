@@ -51,7 +51,7 @@ function rendered(input: { sectioning: ReturnType<typeof output> }) {
 function app() { return new Hono().onError(errorHandler).route("/", createPageRoutes(root, root, undefined, configPath)) }
 
 describe("revised saved-content and per-page publication boundaries", () => {
-  it.each(["first generation", "same-layout rerun"])("an early page is available through the real page API during a slow second page: %s", async (kind) => {
+  it.each(["first generation", "same-layout rerun"])("RAC-9: an early page is available through the real page API during a slow second page: %s", async (kind) => {
     if (kind === "first generation") { const s = store(); for (const id of ["p2", "p7"]) s.putNodeData("web-rendering", id, null); s.close() }
     let finish!: () => void
     render.mockImplementation(async (input) => {
@@ -70,7 +70,7 @@ describe("revised saved-content and per-page publication boundaries", () => {
     expect(render).toHaveBeenCalledTimes(2)
   })
 
-  it.each(["failure", "skip", "cancel"])("a later %s retains both the successfully published page and the failed page's old output", async (outcome) => {
+  it.each(["failure", "skip", "cancel"])("RAC-10: a later %s retains both the successfully published page and the failed page's old output", async (outcome) => {
     const before = history()
     const controller = new AbortController()
     render.mockImplementation(async (input) => {

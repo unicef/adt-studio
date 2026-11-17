@@ -1,5 +1,5 @@
 import { HistoryIntegrityError, type Storage } from "@adt/storage"
-import { STAGE_ORDER, PIPELINE, getStageDependents, EDITABLE_ACTIVITY_NODE, PageSectioningOutput, type AuthoredReplacement, type StageName, type OutputRunScope } from "@adt/types"
+import { STAGE_ORDER, PIPELINE, getStageClearOrder, EDITABLE_ACTIVITY_NODE, PageSectioningOutput, type AuthoredReplacement, type StageName, type OutputRunScope } from "@adt/types"
 import { isProtectedContent } from "./manual-edits.js"
 import { withSourceGenerationTracking } from "./source-generation-state.js"
 import { collectSpentContentIds } from "./content-ids.js"
@@ -115,7 +115,8 @@ export function assertSectioningIdentityHistory(storage: Storage, options: {
   if (unreadable.length) throw new SectioningSafetyError("SECTIONING_INPUT_UNREADABLE", `${unreadable.slice(0, 20).join(", ")}; total=${unreadable.length}`)
 }
 
-/** Reset is a separately confirmed, database-only transaction. It intentionally
+/** Reset is a separately confirmed database transaction with lifecycle readiness
+ * invalidation (a failed transaction may conservatively leave readiness stale). It intentionally
  * survives a subsequent generation failure; the authored Sectioning does not
  * change until that page successfully publishes. No rows or assets are deleted. */
 export function resetSectioningStoryboard(storage: Storage, options: {
@@ -132,7 +133,7 @@ export function resetSectioningStoryboard(storage: Storage, options: {
         if (storage.getSelectedNodeVersion(node, record.itemId) !== null) storage.putNodeData(node, record.itemId, null)
       }
     }
-    const affected = ["sectioning", "storyboard", ...getStageDependents("storyboard")]
+    const affected = getStageClearOrder("sectioning")
     storage.clearStepRuns(PIPELINE.filter((stage) => affected.includes(stage.name)).flatMap((stage) => stage.steps.map((step) => step.name)))
   })
 }

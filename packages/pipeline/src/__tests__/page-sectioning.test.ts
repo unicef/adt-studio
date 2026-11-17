@@ -92,7 +92,7 @@ function makeConfig(
 
 // SPEC-0003 retains #692's validator and the production LLM cache/retry path.
 describe("By Page cache transport regression", () => {
-  it("evicts historical multi-section cache, retries with feedback and reuses valid responses", async () => {
+  it("RAC-1: evicts historical multi-section cache, retries with feedback and reuses valid responses", async () => {
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "sectioning-cache-"))
     const requests: StructuredTextRequest[] = []
     const valid = {
