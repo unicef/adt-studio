@@ -1481,6 +1481,57 @@ describe("Page routes", () => {
   })
 
   describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/merge", () => {
+    it("preserves dollar signs in the merged section's saved HTML", async () => {
+      const pageId = `${label}_p1`
+      const firstId = `${pageId}_sec001`
+      const secondId = `${pageId}_sec002`
+      const removedHtml = "<p>R$&#xa0;5,00 y $$x^2$$</p>"
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", pageId, {
+          reasoning: "sectioned",
+          sections: [firstId, secondId].map((sectionId, sectionIndex) => ({
+            sectionId,
+            sectionType: "content",
+            backgroundColor: "#ffffff",
+            textColor: "#000000",
+            pageNumber: 1,
+            isPruned: false,
+            nodes: [{ nodeId: `${pageId}_n000${sectionIndex + 1}`, isPruned: false, role: "text", text: "Text" }],
+          })),
+        })
+        storage.putNodeData("web-rendering", pageId, {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "rendered", sectionId: firstId,
+              html: `<section data-section-id="${firstId}"><p>First</p></section>` },
+            { sectionIndex: 1, sectionType: "content", reasoning: "rendered", sectionId: secondId,
+              html: `<section data-section-id="${secondId}">${removedHtml}</section>` },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await requestPageEdit(
+        `/api/books/${label}/pages/${pageId}/sections/0/merge?direction=next`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const rendering = verify.getLatestNodeData("web-rendering", pageId)?.data as {
+          sections: Array<{ html: string }>
+        }
+        expect(rendering.sections).toHaveLength(1)
+        expect(rendering.sections[0].html).toBe(
+          `<section data-section-id="${firstId}"><p>First</p>${removedHtml}</section>`
+        )
+      } finally {
+        verify.close()
+      }
+    })
+
     it("merges adjacent sections and unions the placement sidecar", async () => {
       const storage = createBookStorage(label, tmpDir)
       try {
