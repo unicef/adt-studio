@@ -185,6 +185,10 @@ async function main(): Promise<void> {
     log(`\nOutput: ${path.join(booksRoot, label)}/\n`)
   } catch (err) {
     progress.stop()
+    // Local CLI input is useful here; shared API diagnostics remain path-free.
+    if (err instanceof ExtractionAdmissionError && err.code === "EXTRACTION_INPUT_INVALID") {
+      process.stderr.write(`\nInput PDF: ${pdfPath}\nCheck that this file is readable and valid, and that the requested page range is valid.\n`)
+    }
     throw err
   } finally {
     process.off("SIGINT", cancel)

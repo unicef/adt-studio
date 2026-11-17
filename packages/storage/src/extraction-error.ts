@@ -17,7 +17,7 @@ export class ExtractionAdmissionError extends Error {
   readonly summary?: ExtractionResumeBlockedSummary
 
   constructor(readonly code: ExtractionErrorCode) {
-    super(`${code}: ${reasons[code]}${code === "BOOK_BUSY" || code === "UNSAFE_RESUME_UNAVAILABLE" ? "" : ` ${guidance}`}`)
+    super(`${code}: ${reasons[code]}${code === "BOOK_BUSY" || code === "UNSAFE_RESUME_UNAVAILABLE" || code === "EXTRACTION_INPUT_INVALID" ? "" : ` ${guidance}`}`)
     this.name = "ExtractionAdmissionError"
     if (code === "UNSAFE_RESUME_UNAVAILABLE") {
       this.summary = ExtractionResumeBlockedSummary.parse({

@@ -18,6 +18,7 @@ import { completeSectioning } from "./sectioning-lifecycle.js"
 import { createStoryboardPublication } from "./storyboard-publication.js"
 import { activeSectioningPages } from "./sectioning-window.js"
 import { SectioningSafetyError } from "./sectioning-errors.js"
+import { countPdfPages } from "@adt/pdf"
 import fs from "node:fs"
 import path from "node:path"
 import yaml from "js-yaml"
@@ -182,7 +183,15 @@ export interface FullPipelineOptions {
  */
 export async function runFullPipeline(options: FullPipelineOptions, progress: Progress = nullProgress): Promise<PipelineDAGResult> {
   const { bookDir } = resolveBookPaths(options.label, options.booksRoot)
-  const admit = fs.existsSync(bookDir) ? withBookWriter : withNewBookWriter
+  const existing = fs.existsSync(bookDir)
+  if (!existing) {
+    // Diagnose an unusable source before reserving a new label. Admission still
+    // re-reads the PDF under the writer and validates its complete input/window.
+    try {
+      if (countPdfPages(fs.readFileSync(options.pdfPath)) < 1) throw new Error("Empty PDF")
+    } catch { throw new ExtractionAdmissionError("EXTRACTION_INPUT_INVALID") }
+  }
+  const admit = existing ? withBookWriter : withNewBookWriter
   return admit(bookDir, async () => {
     options.signal?.throwIfAborted()
     recoverSectioningTransition(bookDir)
