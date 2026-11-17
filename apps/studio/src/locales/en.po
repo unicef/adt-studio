@@ -3021,6 +3021,9 @@ msgstr "Close style editor"
 msgid "Close the guide"
 msgstr "Close the guide"
 
+msgid "Close this book in other apps first. Recovery creates and checks a separate copy, keeping the original book and its lock evidence unchanged. It refuses a known active owner or a source that changes during copying. It does not repair damaged history or regenerate content."
+msgstr "Close this book in other apps first. Recovery creates and checks a separate copy, keeping the original book and its lock evidence unchanged. It refuses a known active owner or a source that changes during copying. It does not repair damaged history or regenerate content."
+
 msgid "Close this comment"
 msgstr "Close this comment"
 
@@ -8280,6 +8283,9 @@ msgstr "Open pull request {0}"
 msgid "Open quiz in Quizzes"
 msgstr "Open quiz in Quizzes"
 
+msgid "Open recovered copy"
+msgstr "Open recovered copy"
+
 msgid "Open Sharing"
 msgstr "Open Sharing"
 
@@ -9697,6 +9703,15 @@ msgstr "Record reviewer findings for the current page and save them to the activ
 
 msgid "Recover {recoveredCount} {recoveredCount, plural, one {feature} other {features}}"
 msgstr "Recover {recoveredCount} {recoveredCount, plural, one {feature} other {features}}"
+
+msgid "Recover a copy"
+msgstr "Recover a copy"
+
+msgid "Recover a separate copy?"
+msgstr "Recover a separate copy?"
+
+msgid "Recovering copy…"
+msgstr "Recovering copy…"
 
 msgid "Recrop from page"
 msgstr "Recrop from page"
@@ -12229,6 +12244,9 @@ msgstr "The connection to Cloudflare dropped or timed out. Check your internet, 
 msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
 msgstr "The copy also includes the current guide, because this archive’s guide is missing or outdated."
 
+msgid "The copy could not be validated. The original book is unchanged. Check that other apps have closed it and that there is enough disk space, then retry."
+msgstr "The copy could not be validated. The original book is unchanged. Check that other apps have closed it and that there is enough disk space, then retry."
+
 msgid "The credits page."
 msgstr "The credits page."
 
@@ -12689,6 +12707,9 @@ msgstr "This book is fully assembled"
 
 msgid "This book is not on this computer."
 msgstr "This book is not on this computer."
+
+msgid "This book is still open in another process. Close it there before recovering a copy."
+msgstr "This book is still open in another process. Close it there before recovering a copy."
 
 msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 msgstr "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."

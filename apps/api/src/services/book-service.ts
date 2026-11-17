@@ -10,6 +10,7 @@ import {
   BookLabel,
   BookMetadata,
   BookSummaryOutput,
+  BOOK_RECOVERY_PENDING_FILE,
   PartManifest,
   PartsLedger,
   PIPELINE,
@@ -176,6 +177,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
     const label = entry.name
     const bookDir = path.join(resolvedDir, label)
     if (fs.existsSync(path.join(bookDir, ADT_IMPORT_IN_PROGRESS_MARKER))) continue
+    if (fs.existsSync(path.join(bookDir, BOOK_RECOVERY_PENDING_FILE))) continue
     const dbPath = path.join(bookDir, `${label}.db`)
     const pdfPath = path.join(bookDir, `${label}.pdf`)
     const identity = projectIdentityForListing(bookDir)

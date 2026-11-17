@@ -1,4 +1,4 @@
-import type { TranslationSaveResponse, WordTimestampSaveRequest, WordTimestampSaveResponse } from "@adt/types"
+import type { TranslationSaveResponse, WordTimestampSaveRequest, WordTimestampSaveResponse, BookRecoveryCopyResult } from "@adt/types"
 export type { WordTimestampEditGuard, WordTimestampSaveResponse } from "@adt/types"
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
@@ -1406,6 +1406,11 @@ export const api = {
 
   deleteBook: (label: string) =>
     request<{ ok: boolean }>(`/books/${label}`, { method: "DELETE" }),
+
+  recoverBookCopy: (sourceLabel: string, label: string) =>
+    request<BookRecoveryCopyResult>(`/books/${sourceLabel}/recover-copy`, {
+      method: "POST", body: JSON.stringify({ label, preserveOriginal: true }),
+    }),
 
   previewImport: (zip: File) => {
     const formData = new FormData()

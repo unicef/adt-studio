@@ -11,6 +11,26 @@ export const BookLabel = z
   .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/, "Label must be filesystem-safe")
 export type BookLabel = z.infer<typeof BookLabel>
 
+export const BookRecoveryCopyRequest = z.object({
+  label: BookLabel,
+  preserveOriginal: z.literal(true),
+}).strict()
+export type BookRecoveryCopyRequest = z.infer<typeof BookRecoveryCopyRequest>
+export const BookRecoveryCopyResult = z.object({ label: BookLabel, sourceLabel: BookLabel }).strict()
+export type BookRecoveryCopyResult = z.infer<typeof BookRecoveryCopyResult>
+
+/** A partial recovery copy is never presented as a usable Library book. */
+export const BOOK_RECOVERY_PENDING_FILE = ".book-recovery-pending.json"
+
+export const BookRecoveryCopyAudit = z.object({
+  format: z.literal("adt-book-recovery-copy-v1"),
+  sourceLabel: BookLabel,
+  label: BookLabel,
+  createdAt: z.string().datetime(),
+  files: z.array(z.object({ path: z.string(), sha256: z.string().regex(/^[a-f0-9]{64}$/) })),
+}).strict()
+export type BookRecoveryCopyAudit = z.infer<typeof BookRecoveryCopyAudit>
+
 export const BookSummary = z.object({
   label: z.string(),
   title: z.string().nullable(),

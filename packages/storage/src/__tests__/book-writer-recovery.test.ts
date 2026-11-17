@@ -3,8 +3,9 @@ import os from "node:os"
 import path from "node:path"
 import { spawn, spawnSync, type ChildProcess } from "node:child_process"
 import { once } from "node:events"
+import { randomUUID } from "node:crypto"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
-import { BookBusyError, withBookWriter } from "../book-writer.js"
+import { BookBusyError, withBookWriter, isBookWriterArtifact } from "../book-writer.js"
 
 let dir: string
 const children: ChildProcess[] = []
@@ -14,6 +15,28 @@ afterEach(async () => {
     const exited = once(child, "exit"); child.kill("SIGKILL"); await exited
   }
   fs.rmSync(dir, { recursive: true, force: true })
+})
+
+it("recognizes empty preparation and retired-chain residue without hiding unknown data or active reservations", () => {
+  const anonymous = `.book-writer.json.recovery.preparing-${randomUUID()}`
+  fs.mkdirSync(path.join(dir, anonymous))
+  expect(isBookWriterArtifact(dir, anonymous)).toBe(true)
+  fs.writeFileSync(path.join(dir, anonymous, "owner-data"), "preserve")
+  expect(isBookWriterArtifact(dir, anonymous)).toBe(false)
+
+  const predecessor = randomUUID(), rootToken = randomUUID(), token = randomUUID()
+  const name = `.book-writer.json.recovery.${predecessor}`
+  const successor = path.join(dir, name)
+  const record = { format: "adt-book-admission-v1", rootToken, predecessorToken: predecessor,
+    owner: { token, host: "unknown-host", pid: 1 } }
+  fs.mkdirSync(successor)
+  fs.writeFileSync(path.join(successor, "owner.json"), JSON.stringify(record))
+  expect(isBookWriterArtifact(dir, name)).toBe(true)
+  const canonical = path.join(dir, ".book-writer.json.recovery")
+  fs.mkdirSync(canonical)
+  fs.writeFileSync(path.join(canonical, "owner.json"), JSON.stringify({ format: "adt-book-admission-v1", rootToken, owner: { token: rootToken, host: "unknown-host", pid: 1 } }))
+  expect(isBookWriterArtifact(dir, name)).toBe(false)
+  expect(isBookWriterArtifact(dir, ".book-writer.json.recovery")).toBe(false)
 })
 
 // Intercept filesystem boundaries in a real process: SIGKILL cannot run finally.
@@ -124,6 +147,32 @@ it("recovers repeated killed reapers, excluding competitors at each successor", 
   }
   expect(withBookWriter(dir, () => "reopened")).toBe("reopened")
   expect(fs.readdirSync(dir).filter(name => name.startsWith(".book-writer.json.recovery"))).toEqual([])
+})
+
+it("cleans orphan successors after a reaper dies immediately after retiring its root", async () => {
+  await kill(await pausedAdmission("after-reservation"))
+  await kill(await pausedAdmission("after-retirement"))
+  expect(withBookWriter(dir, () => "reopened")).toBe("reopened")
+  expect(fs.readdirSync(dir).filter(name => name.startsWith(".book-writer.json"))).toEqual([])
+})
+
+it("excludes an anonymous empty preparation left by SIGKILL without deleting its evidence", () => {
+  const child = spawnSync(process.execPath, ["--input-type=module", "-e", `
+    import fs from 'node:fs';
+    import {withBookWriter} from ${JSON.stringify(path.resolve("packages/storage/dist/book-writer.js"))};
+    const mkdir=fs.mkdirSync;
+    fs.mkdirSync=function(file,...args){
+      const result=mkdir.call(this,file,...args);
+      if(String(file).includes('.recovery.preparing-')) process.kill(process.pid,'SIGKILL');
+      return result;
+    };
+    withBookWriter(${JSON.stringify(dir)},()=>{});
+  `], { encoding: "utf8", timeout: 5000 })
+  expect(child.signal, child.stderr).toBe("SIGKILL")
+  const artifact = fs.readdirSync(dir)[0]
+  expect(isBookWriterArtifact(dir, artifact)).toBe(true)
+  expect(withBookWriter(dir, () => "opened")).toBe("opened")
+  expect(fs.readdirSync(path.join(dir, artifact))).toEqual([])
 })
 
 it("a delayed successor cannot replace a new live owner after its old root completes", async () => {

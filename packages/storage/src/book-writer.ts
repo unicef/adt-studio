@@ -150,6 +150,43 @@ function recoverableOwner(dir: string, owner: BookWriterOwner): boolean {
     abandoned.get(dir)?.has(owner.token) === true) || provenDead(owner)
 }
 
+/** Explicit copy recovery may proceed with unknown ownership, but never with
+ * a known live owner. This grants no admission to, or mutation of, the source. */
+export function assertNoKnownLiveBookOwner(bookDir: string): void {
+  const dir = canonical(bookDir)
+  if (localLeases.has(dir) || admitting.has(dir)) throw new BookBusyError()
+  const live = (owner: BookWriterOwner): boolean => {
+    if (owner.host !== os.hostname() || provenDead(owner)) return false
+    if (owner.linuxProcess) {
+      const here = linuxProcess(process.pid)
+      if (!here || here.bootId !== owner.linuxProcess.bootId || here.pidNamespace !== owner.linuxProcess.pidNamespace ||
+          here.dockerContainerId !== owner.linuxProcess.dockerContainerId) return false
+    }
+    try { process.kill(owner.pid, 0); return true }
+    catch (error) { return (error as NodeJS.ErrnoException).code === "EPERM" }
+  }
+  for (const name of fs.readdirSync(dir)) {
+    if (name !== lockName && !name.startsWith(lockName + ".")) continue
+    let owners: BookWriterOwner[] = []
+    try {
+      const file = path.join(dir, name)
+      if (fs.lstatSync(file).isDirectory()) {
+        // Even a reservation with unrelated extra entries can identify a live
+        // process. Its structural invalidity must not waive the refusal.
+        const recordFile = path.join(file, "owner.json")
+        const stat = fs.lstatSync(recordFile)
+        if (!stat.isFile() || stat.nlink !== 1 || fs.realpathSync(recordFile) !== recordFile) throw new BookBusyError()
+        const record = JSON.parse(fs.readFileSync(recordFile, "utf8"))
+        owners = [record.owner, record.previous].flatMap(value => {
+          const parsed = BookWriterOwner.safeParse(value)
+          return parsed.success ? [parsed.data] : []
+        })
+      } else owners = [readOwner(file)]
+    } catch { /* Unverifiable evidence is copied and retained, never unlocked. */ }
+    if (owners.some(live)) throw new BookBusyError()
+  }
+}
+
 function syncLeaseDirectory(dir: string): void {
   if (process.platform === "win32") return
   const fd = fs.openSync(dir, "r")
@@ -177,6 +214,14 @@ function artifactOwner(dir: string, name: string): BookWriterOwner | undefined {
   const uuid = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
   try {
     if (new RegExp(`^\\.book-writer\\.json\\.preparing-${uuid}$`).test(name)) return readOwner(path.join(dir, name))
+    const orphan = name.match(new RegExp(`^\\.book-writer\\.json\\.recovery\\.(${uuid})$`))
+    if (orphan) {
+      const record = readReservation(path.join(dir, name))
+      if (record.predecessorToken !== orphan[1] || record.previous || record.rootToken === record.owner.token) return undefined
+      const root = path.join(dir, `${lockName}.recovery`)
+      if (entryExists(root) && readReservation(root).rootToken === record.rootToken) return undefined
+      return record.owner
+    }
     const match = name.match(new RegExp(`^\\.book-writer\\.json\\.recovery(?:\\.(${uuid}))?\\.(preparing|completed)-(${uuid})$`))
     if (!match) return undefined
     const record = readReservation(path.join(dir, name))
@@ -192,7 +237,16 @@ function artifactOwner(dir: string, name: string): BookWriterOwner | undefined {
 }
 
 export function isBookWriterArtifact(bookDir: string, name: string): boolean {
-  return artifactOwner(bookDir, name) !== undefined
+  if (artifactOwner(bookDir, name) !== undefined) return true
+  // Death immediately after mkdir can leave an empty preparation. It holds
+  // no book data and need not pollute backups or reject first extraction.
+  // Preserve it on disk: no owner evidence permits deleting it automatically.
+  const uuid = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
+  if (!new RegExp(`^\\.book-writer\\.json\\.recovery(?:\\.${uuid})?\\.(?:preparing|completed)-${uuid}$`).test(name)) return false
+  try {
+    const file = path.join(bookDir, name)
+    return fs.lstatSync(file).isDirectory() && fs.readdirSync(file).length === 0
+  } catch { return false }
 }
 
 function cleanAbandonedArtifacts(dir: string): boolean {

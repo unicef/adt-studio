@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import { openCoordinatedDatabase } from "./database-admission.js"
-import { BookFontRegistry, FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID, ExtractionManifest, PROJECT_IDENTITY_FILE, ProjectIdentity, type ExtractionInputs } from "@adt/types"
+import { BookRecoveryCopyAudit, BookFontRegistry, FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID, ExtractionManifest, PROJECT_IDENTITY_FILE, ProjectIdentity, type ExtractionInputs } from "@adt/types"
 import { assertBookWriter, BookBusyError, isBookWriterArtifact } from "./book-writer.js"
 import { ExtractionAdmissionError } from "./extraction-error.js"
 import { readSectioningLifecycle, SECTIONING_LIFECYCLE } from "./sectioning-transition.js"
@@ -65,6 +65,34 @@ function readDatabase<T>(bookDir: string, read: (db: sqlite.Database) => T): T {
   try { return read(db) } finally { db.close() }
 }
 
+/** A recovered initial project may retain quarantined lock evidence. This
+ * exempts only the typed audit and byte-verified locks, never ordinary content
+ * or a retained extraction record. The normal file/DB emptiness checks remain. */
+function isInitialRecoveryEvidence(bookDir: string, name: string): boolean {
+  if (!/^\.book-recovery-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(name)) return false
+  try {
+    const folder = path.join(bookDir, name)
+    if (!fs.lstatSync(folder).isDirectory()) return false
+    const entries = fs.readdirSync(folder)
+    if (!entries.includes("audit.json") || entries.some(entry => !["audit.json", "locks"].includes(entry))) return false
+    const auditFile = path.join(folder, "audit.json"), stat = fs.lstatSync(auditFile)
+    if (!stat.isFile() || stat.nlink !== 1) return false
+    const audit = BookRecoveryCopyAudit.parse(JSON.parse(fs.readFileSync(auditFile, "utf8")))
+    const files = new Map(audit.files.map(file => [file.path, file.sha256]))
+    if (files.size !== audit.files.length) return false
+    const locks = path.join(folder, "locks")
+    if (!entries.includes("locks")) return true
+    if (!fs.lstatSync(locks).isDirectory()) return false
+    const verify = (relative: string): boolean => {
+      const file = path.join(locks, relative), stat = fs.lstatSync(file)
+      if (stat.isDirectory()) return fs.readdirSync(file).every(entry => verify(path.join(relative, entry)))
+      return stat.isFile() && stat.nlink === 1 && files.get(relative) === extractionHash(fs.readFileSync(file))
+    }
+    return fs.readdirSync(locks).every(entry =>
+      (entry === ".book-writer.json" || entry.startsWith(".book-writer.json.") || entry.endsWith(".db.lock")) && verify(entry))
+  } catch { return false }
+}
+
 function assertInitialDestination(bookDir: string, sourceHash: string): void {
   const label = path.basename(bookDir)
   const allowedFiles = new Set([`${label}.pdf`, `${label}.db`, `${label}.db-wal`, `${label}.db-shm`, "config.yaml", "part.json", ".book-writer.json"])
@@ -73,6 +101,7 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
   for (const entry of fs.readdirSync(bookDir, { withFileTypes: true })) {
     if (entry.isSymbolicLink()) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
     if (isBookWriterArtifact(bookDir, entry.name)) continue
+    if (entry.isDirectory() && isInitialRecoveryEvidence(bookDir, entry.name)) continue
     // Finder metadata is neither content nor extraction history. Preserve the
     // exact regular file; the name does not exempt directories or symlinks.
     if (entry.isFile() && entry.name === ".DS_Store") continue

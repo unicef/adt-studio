@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
-import { SCHEMA_VERSION } from "@adt/types"
+import { SCHEMA_VERSION, BOOK_RECOVERY_PENDING_FILE } from "@adt/types"
 import { BookBusyError, ownsBookWriter, withBookWriter } from "./book-writer.js"
 
 import { initHistoryEvidence } from "./history-schema.js"
@@ -88,6 +88,9 @@ CREATE TABLE IF NOT EXISTS sign_language_videos (
 
 export function openBookDb(dbPath: string): sqlite.Database {
   const bookDir = path.dirname(dbPath)
+  if (fs.existsSync(path.join(bookDir, BOOK_RECOVERY_PENDING_FILE))) {
+    throw new BookBusyError("This recovery copy has not been validated. Use the preserved original book to start a new recovery copy.")
+  }
   if (fs.existsSync(path.join(bookDir, ".sectioning-transition.json")) && !ownsBookWriter(bookDir)) {
     throw new BookBusyError("Sectioning configuration recovery is pending. Reopen the book configuration to reconcile it before reading completion state.")
   }

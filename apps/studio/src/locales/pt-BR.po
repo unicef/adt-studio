@@ -3021,6 +3021,9 @@ msgstr "Fechar editor de estilo"
 msgid "Close the guide"
 msgstr "Fechar o guia"
 
+msgid "Close this book in other apps first. Recovery creates and checks a separate copy, keeping the original book and its lock evidence unchanged. It refuses a known active owner or a source that changes during copying. It does not repair damaged history or regenerate content."
+msgstr "Primeiro, feche este livro nos outros aplicativos. A recuperação cria e verifica uma cópia separada, mantendo o livro original e as informações dos bloqueios inalterados. Ela não continua se identificar um processo ativo ou se a origem mudar durante a cópia. Ela não repara o histórico danificado nem gera conteúdo novamente."
+
 msgid "Close this comment"
 msgstr "Fechar este comentário"
 
@@ -8280,6 +8283,9 @@ msgstr "Abrir pull request {0}"
 msgid "Open quiz in Quizzes"
 msgstr "Abrir o questionário em Questionários"
 
+msgid "Open recovered copy"
+msgstr "Abrir a cópia recuperada"
+
 msgid "Open Sharing"
 msgstr "Abrir Compartilhar"
 
@@ -9697,6 +9703,15 @@ msgstr "Registre os apontamentos do revisor para a página atual e salve-os na s
 
 msgid "Recover {recoveredCount} {recoveredCount, plural, one {feature} other {features}}"
 msgstr "Recuperar {recoveredCount} {recoveredCount, plural, one {recurso} other {recursos}}"
+
+msgid "Recover a copy"
+msgstr "Recuperar uma cópia"
+
+msgid "Recover a separate copy?"
+msgstr "Recuperar uma cópia separada?"
+
+msgid "Recovering copy…"
+msgstr "Recuperando cópia…"
 
 msgid "Recrop from page"
 msgstr "Recortar da página"
@@ -12229,6 +12244,9 @@ msgstr "A conexão com o Cloudflare caiu ou demorou demais. Verifique sua intern
 msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
 msgstr "A cópia também inclui o guia atual, porque o guia deste arquivo está ausente ou desatualizado."
 
+msgid "The copy could not be validated. The original book is unchanged. Check that other apps have closed it and that there is enough disk space, then retry."
+msgstr "Não foi possível validar a cópia. O livro original permanece inalterado. Verifique se os outros aplicativos fecharam o livro e se há espaço suficiente em disco. Depois, tente novamente."
+
 msgid "The credits page."
 msgstr "A página de créditos."
 
@@ -12689,6 +12707,9 @@ msgstr "Este livro está totalmente montado"
 
 msgid "This book is not on this computer."
 msgstr "Este livro não está neste computador."
+
+msgid "This book is still open in another process. Close it there before recovering a copy."
+msgstr "Este livro ainda está aberto em outro processo. Feche-o nesse processo antes de recuperar uma cópia."
 
 msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 msgstr "Este livro está temporariamente indisponível. Seu conteúdo salvo foi preservado. Tente abri-lo para ver os detalhes e tente novamente após resolver o problema informado."

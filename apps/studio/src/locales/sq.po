@@ -3023,6 +3023,9 @@ msgstr "Mbyll redaktorin e stilit"
 msgid "Close the guide"
 msgstr "Mbyllni udhëzuesin"
 
+msgid "Close this book in other apps first. Recovery creates and checks a separate copy, keeping the original book and its lock evidence unchanged. It refuses a known active owner or a source that changes during copying. It does not repair damaged history or regenerate content."
+msgstr "Mbylleni fillimisht këtë libër në aplikacionet e tjera. Rikuperimi krijon dhe kontrollon një kopje të veçantë, duke ruajtur të pandryshuar librin origjinal dhe të dhënat e bllokimit. Ai nuk vazhdon nëse identifikon një proces aktiv ose nëse burimi ndryshon gjatë kopjimit. Ai nuk riparon historikun e dëmtuar dhe nuk rigjeneron përmbajtje."
+
 msgid "Close this comment"
 msgstr "Mbyll këtë koment"
 
@@ -8282,6 +8285,9 @@ msgstr "Hap pull request-in {0}"
 msgid "Open quiz in Quizzes"
 msgstr "Hap kuizin te Kuizet"
 
+msgid "Open recovered copy"
+msgstr "Hap kopjen e rikuperuar"
+
 msgid "Open Sharing"
 msgstr "Hap Ndarje"
 
@@ -9699,6 +9705,15 @@ msgstr "Regjistroni gjetjet e rishikuesit për faqen aktuale dhe ruajini në ses
 
 msgid "Recover {recoveredCount} {recoveredCount, plural, one {feature} other {features}}"
 msgstr "Riktheni {recoveredCount} {recoveredCount, plural, one {veçori} other {veçori}}"
+
+msgid "Recover a copy"
+msgstr "Rikupero një kopje"
+
+msgid "Recover a separate copy?"
+msgstr "Të rikuperohet një kopje e veçantë?"
+
+msgid "Recovering copy…"
+msgstr "Duke rikuperuar kopjen…"
 
 msgid "Recrop from page"
 msgstr "Rirritjo nga faqja"
@@ -12231,6 +12246,9 @@ msgstr "Lidhja me Cloudflare u ndërpre ose zgjati shumë. Kontrolloni interneti
 msgid "The copy also includes the current guide, because this archive’s guide is missing or outdated."
 msgstr "Kopja përfshin edhe udhëzuesin aktual, sepse udhëzuesi i këtij arkivi mungon ose është i vjetëruar."
 
+msgid "The copy could not be validated. The original book is unchanged. Check that other apps have closed it and that there is enough disk space, then retry."
+msgstr "Kopja nuk mund të verifikohej. Libri origjinal është i pandryshuar. Kontrolloni që aplikacionet e tjera ta kenë mbyllur dhe që të ketë hapësirë të mjaftueshme në disk, pastaj provoni përsëri."
+
 msgid "The credits page."
 msgstr "Faqja e krediteve."
 
@@ -12691,6 +12709,9 @@ msgstr "Ky libër është plotësisht i montuar"
 
 msgid "This book is not on this computer."
 msgstr "Ky libër nuk është në këtë kompjuter."
+
+msgid "This book is still open in another process. Close it there before recovering a copy."
+msgstr "Ky libër është ende i hapur në një proces tjetër. Mbylleni atje përpara se të rikuperoni një kopje."
 
 msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 msgstr "Ky libër është përkohësisht i padisponueshëm. Përmbajtja e tij e ruajtur është e mbrojtur. Provoni ta hapni për hollësi dhe provoni përsëri pasi të zgjidhni problemin e raportuar."

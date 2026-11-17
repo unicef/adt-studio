@@ -7,7 +7,7 @@ import fs from "node:fs"
 import { createHash } from "node:crypto"
 import { readRetainedPackageOwnership } from "../services/retained-package-reader.js"
 import { readPreviewAsset } from "../services/preview-asset-validator.js"
-import { BookBusyError } from "@adt/storage"
+import { BookBusyError, recoverBookCopy } from "@adt/storage"
 import path from "node:path"
 import { z } from "zod"
 import { Hono } from "hono"
@@ -17,6 +17,7 @@ import {
   parseBookLabel,
   PIPELINE,
   BookMetadata,
+  BookRecoveryCopyRequest,
   SourceGeneratorStep,
   LLMModelId,
   SpeechGenerationModelId,
@@ -180,6 +181,14 @@ export function createBookRoutes(
   app.use("/books/:label/*", bookWriterMiddleware(booksDir))
   app.use("/books/:label", bookWriterMiddleware(booksDir))
   app.route("/", createHistoryRecoveryRoutes(booksDir))
+
+  app.post("/books/:label/recover-copy", async c => {
+    const sourceLabel = parseBookLabel(c.req.param("label"))
+    const request = BookRecoveryCopyRequest.safeParse(await c.req.json().catch(() => null))
+    if (!request.success) throw new HTTPException(400, { message: "A new book label and explicit recovery confirmation are required." })
+    await recoverBookCopy(booksDir, sourceLabel, request.data.label)
+    return c.json({ sourceLabel, label: request.data.label }, 201)
+  })
 
   app.get("/books", async (c) => {
     const books = await listBooksAsync(booksDir, configPath)

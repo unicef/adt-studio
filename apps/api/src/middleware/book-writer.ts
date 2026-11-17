@@ -18,6 +18,9 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     const suffix = c.req.path.split(`/books/${encodeURIComponent(label)}`)[1] ?? ""
     if (suffix === "" && c.req.method === "POST" && ["import", "import-adt", "preview-import"].includes(label)) return next()
     const bookDir = requireExistingBook(label, booksDir)
+    // Explicit recovery reads the stranded source without opening SQLite or
+    // changing its locks. It takes writer admission on a new destination only.
+    if (c.req.method === "POST" && suffix === "/recover-copy") return next()
     // These POSTs are preview reads. Math transforms supplied HTML; CSS reads
     // through shared database admission and compiles temporary/in-memory output,
     // just like its GET counterpart. Neither grants the caller writer authority.
