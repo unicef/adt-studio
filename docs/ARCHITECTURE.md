@@ -404,3 +404,6 @@ currently alive remains refused. This includes current macOS/Windows leases as
 well as legacy leases. An unrelated process reusing that PID
 can therefore also prevent copy recovery. File age alone is not proof that the
 recorded owner is dead; timestamps do not override this refusal.
+The owner explicitly accepted this narrow recovery limitation on November 17,
+2026. It is not a promise to recover every stranded book after reboot; formal
+non-author review of the amended contract remains required.

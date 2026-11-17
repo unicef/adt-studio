@@ -320,6 +320,12 @@ lock evidence, copy to a new user-visible label, verify source stability and the
 copied SQLite database, and retain quarantined lock evidence plus an audit in the
 copy. Incomplete copies remain hidden/refused. This does not silently unlock the
 original, delete ambiguous locks by time, or make noncooperating writers safe.
+The owner explicitly accepts that a same-host lease with a currently live PID
+and no verifiable process-incarnation evidence also refuses copy recovery, even
+when that PID may have been reused after reboot. This includes current
+macOS/Windows leases as well as legacy leases. File timestamps do not authorize
+an override. This narrow limitation was accepted on November 17, 2026; it does
+not grant formal non-author spec or PR approval.
 Valid explicit configuration repairs preserve the invalid original YAML inside
 the book and revoke readiness conservatively, without generation or content reset.
 Generation guards compare relevant settings; unrelated downstream/scheduling

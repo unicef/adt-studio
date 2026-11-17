@@ -1065,6 +1065,11 @@ copies to a distinct label, checks source stability and the copied SQLite
 database, quarantines lock evidence in the copy and records an audit. An
 incomplete copy remains hidden and unusable. The original book and locks are
 untouched; no timeout unlock or claim of safe noncooperating concurrency is added.
+The owner subsequently accepted strict refusal for a same-host live PID without
+verifiable process-incarnation evidence, including possible PID reuse after a
+reboot and current macOS/Windows leases. Timestamps are not sufficient authority
+to recover a copy. This is an explicit narrow limitation, not an unresolved
+implementation decision or a guarantee that all reboot leftovers are recoverable.
 Valid explicit configuration repairs preserve invalid prior YAML byte-for-byte
 inside the book and conservatively revoke readiness. They do not regenerate or
 reset content. Reset itself is a SQLite transaction with lifecycle-file
