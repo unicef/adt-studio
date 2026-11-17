@@ -252,7 +252,9 @@ it.each(["Keep my changes", "Load latest saved values"])("requires an explicit o
   mount(initial); changeTitle("Mine"); fireEvent.click(saveButton())
   await waitFor(() => expect(screen.getByRole("button", { name: choice })).toBeTruthy())
   expect(saveButton().disabled).toBe(true)
-  await expect(leaveAction.saveAndStay()).rejects.toThrow()
+  // The leave guard is registered by an effect; exercise it after that commit.
+  await act(async () => {})
+  await act(async () => { await expect(leaveAction.saveAndStay()).rejects.toThrow() })
   expect(mocks.save).toHaveBeenCalledTimes(1)
   fireEvent.change(instructions(), { target: { value: "Typed after conflict" } })
   fireEvent.click(screen.getByRole("button", { name: choice }))
@@ -277,4 +279,21 @@ it("does not graft a draft onto a rebuilt activity before an explicit choice", a
   expect(title().value).toBe("Rebuilt")
   expect(screen.getByDisplayValue("New question")).toBeTruthy()
   expect(mocks.save).toHaveBeenCalledTimes(1)
+})
+
+it("follows later saved activities after accepting a deleted activity in a conflict", async () => {
+  const initial = defaultMap(), latest = { "1": initial["1"] }
+  mocks.save.mockRejectedValueOnce(new ApiError("Conflict", 409))
+  mocks.reload.mockResolvedValue({ activities: latest, version: 2 })
+  const mounted = mount(initial)
+  changeTitle("Discard this draft"); fireEvent.click(saveButton())
+  fireEvent.click(await screen.findByRole("button", { name: "Load latest saved values" }))
+  expect(screen.queryByPlaceholderText("Title")).toBeNull()
+  mounted.refresh(latest, 2)
+  const recreated = { ...latest, "0": { ...original, title: { text: "New saved activity" } } }
+  mounted.refresh(recreated, 3)
+  expect(title().value).toBe("New saved activity")
+  changeTitle("Next deliberate edit"); fireEvent.click(saveButton())
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2))
+  expect(mocks.save.mock.calls[1][0]).toMatchObject({ baseVersion: 3, activities: { "0": { title: { text: "Next deliberate edit" } } } })
 })

@@ -1,4 +1,4 @@
-import { useRef, type Dispatch, type SetStateAction } from "react"
+import { useEffect, useRef, type Dispatch, type SetStateAction } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { toast } from "sonner"
 import type { EditableActivity } from "@adt/types"
@@ -22,10 +22,25 @@ export function useEditableActivityDraft(props: {
   }, rebaseActivityDraft)
   const savePromiseRef = useRef<Promise<void> | null>(null)
   const submittedRef = useRef<Record<string, EditableActivity> | null>(null)
+  const acceptedLatestRef = useRef<Record<string, EditableActivity> | null>(null)
   const save = useSaveEditableActivities(bookLabel, pageId)
   const key = String(sectionIndex)
   const draft = guarded.pending ? guarded.pending[key] : props.activity
+  // Keep a conflict's chosen saved value until the query catches up. Once it
+  // does, a clean choice must not mask future saved replacements or recreation.
+  useEffect(() => {
+    if (acceptedLatestRef.current && guarded.pending === acceptedLatestRef.current && version >= guarded.baseVersion) {
+      acceptedLatestRef.current = null
+      guarded.setPending(null)
+    }
+  }, [guarded.pending, guarded.baseVersion, guarded.setPending, version])
+  const resolve = (choice: "draft" | "latest") => {
+    guarded.resolve(choice)
+    const resolved = guarded.getPending()
+    acceptedLatestRef.current = resolved && JSON.stringify(resolved) === JSON.stringify(guarded.baseValue) ? resolved : null
+  }
   const setDraft: Dispatch<SetStateAction<EditableActivity>> = (action) => {
+    acceptedLatestRef.current = null
     guarded.setPending(previous => {
       const entity = previous ?? activities
       const current = entity[key] ?? props.activity!
@@ -74,6 +89,7 @@ export function useEditableActivityDraft(props: {
     if (guarded.getPending()) throw new Error(t`Newer edits are still unsaved. Save them before leaving.`)
   }
   const beginFeedback = () => {
+    acceptedLatestRef.current = null
     const existing = guarded.getPending()
     const captured = existing ?? structuredClone(activities)
     const requestedActivity = JSON.stringify(captured[key])
@@ -95,5 +111,5 @@ export function useEditableActivityDraft(props: {
   }
   const dirty = save.isPending || submittedRef.current !== null || guarded.pending !== null && (version !== guarded.baseVersion || JSON.stringify(guarded.pending) !== JSON.stringify(guarded.baseValue))
   return { draft, setDraft, dirty, saveDraft, saveBeforeLeave, beginFeedback,
-    saving: save.isPending, conflict: guarded.conflict, error: guarded.error, resolve: guarded.resolve, captureDiscard, discardDraft: () => guarded.setPending(null) }
+    saving: save.isPending, conflict: guarded.conflict, error: guarded.error, resolve, captureDiscard, discardDraft: () => guarded.setPending(null) }
 }
