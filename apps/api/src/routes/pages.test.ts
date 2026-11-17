@@ -4,6 +4,7 @@ import path from "node:path"
 import os from "node:os"
 import { Hono } from "hono"
 import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
+import * as storageModule from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createPageRoutes } from "./pages.js"
 import type { TaskExecutor, TaskService } from "../services/task-service.js"
@@ -14,6 +15,44 @@ describe("Page routes", () => {
   let globalConfigPath: string
   let app: Hono
   const label = "test-book"
+
+  it.each(["latest", "restored", "legacy", "dangling", "SQL-null", "JSON-null", "malformed", "raw-update"])(
+    "keeps page summaries identical to historical bulk selection for %s rows", async state => {
+      const pageId = `${label}_p1`
+      const storage = createBookStorage(label, tmpDir)
+      storage.putNodeData("image-captioning", pageId, { captions: [] })
+      storage.putNodeData("image-filtering", pageId, { images: [] })
+      storage.close()
+      const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+      const nodes = ["web-rendering", "page-sectioning", "image-captioning", "image-filtering"]
+      try {
+        for (const node of nodes) {
+          const row = db.get("SELECT version,data FROM node_data WHERE node=? AND item_id=? ORDER BY version DESC LIMIT 1", [node, pageId]) as { version: number; data: string }
+          const version = row.version + 1
+          const data = state === "SQL-null" ? null : state === "JSON-null" ? " \nnull " : state === "malformed" ? "{broken" : row.data
+          db.run("INSERT INTO node_data (node,item_id,version,data) VALUES (?,?,?,?)", [node, pageId, version, data])
+          db.run("DELETE FROM node_current WHERE node=? AND item_id=?", [node, pageId])
+          if (state !== "legacy") db.run("INSERT INTO node_current (node,item_id,version) VALUES (?,?,?)", [node, pageId, state === "restored" ? row.version : state === "dangling" ? version + 10 : version])
+          if (state === "raw-update") db.run("UPDATE node_data SET data=? WHERE node=? AND item_id=? AND version=?", [row.data + " ", node, pageId, version])
+        }
+        const before = db.all("SELECT * FROM node_data ORDER BY node,item_id,version")
+        const optimized = await app.request(`/api/books/${label}/pages`)
+        const actual = await optimized.json()
+        const spy = vi.spyOn(storageModule, "readCurrentNodeRows").mockImplementation((raw, node) => raw.all(
+          `SELECT nd.item_id,nd.version,nd.data FROM node_data nd
+           LEFT JOIN node_current nc ON nc.node=nd.node AND nc.item_id=nd.item_id
+           WHERE nd.node=? ORDER BY nd.item_id, ${storageModule.CURRENT_VERSION_ORDER}`, [node],
+        ) as ReturnType<typeof storageModule.readCurrentNodeRows>)
+        try {
+          const legacy = await app.request(`/api/books/${label}/pages`)
+          expect(optimized.status).toBe(legacy.status)
+          expect(actual).toEqual(await legacy.json())
+          expect(spy).toHaveBeenCalled()
+          expect(db.all("SELECT * FROM node_data ORDER BY node,item_id,version")).toEqual(before)
+        } finally { spy.mockRestore() }
+      } finally { db.close() }
+    },
+  )
 
   it.each(["storyboard", "rendering", "ai-edit", "ai-instruction"])("returns a localizable 400 for invalid %s requests without changing history or starting work", async kind => {
     const pageId = `${label}_p1`

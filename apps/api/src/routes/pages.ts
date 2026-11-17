@@ -52,7 +52,7 @@ import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
-import { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
+import { readCurrentNodeRow, readCurrentNodeRows } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import {
   detectSpreads,
@@ -936,14 +936,7 @@ export function createPageRoutes(
       // per page so we can compute per-section activity flags.
       const rendered = new Set<string>()
       const renderingByPage = new Map<string, { version: number; activityBySectionIndex: Map<number, boolean> }>()
-      const renderRows = db.all(
-        `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
-         FROM node_data nd
-         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
-         WHERE nd.node = ?
-         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
-        ["web-rendering"]
-      ) as Array<{ item_id: string; version: number; data: string | null }>
+      const renderRows = readCurrentNodeRows(db, "web-rendering")
       const seenRenderings = new Set<string>()
       for (const row of renderRows) {
         if (seenRenderings.has(row.item_id)) continue
@@ -974,14 +967,7 @@ export function createPageRoutes(
 
       // Check which pages have image-captioning output
       const captioned = new Set<string>()
-      const captionRows = db.all(
-        `SELECT nd.item_id AS item_id, nd.data AS data
-         FROM node_data nd
-         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
-         WHERE nd.node = ?
-         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
-        ["image-captioning"]
-      ) as Array<{ item_id: string; data: string | null }>
+      const captionRows = readCurrentNodeRows(db, "image-captioning")
       const seenCaptions = new Set<string>()
       for (const row of captionRows) {
         if (seenCaptions.has(row.item_id)) continue
@@ -993,18 +979,11 @@ export function createPageRoutes(
       // through Storyboard or Glossary. Captions must discover these before a
       // caption exists, even on pages with no retained extracted images.
       const imageIdsByPage = new Map<string, Set<string>>()
-      const imageRows = db.all(
-        `SELECT nd.item_id AS item_id, nd.data AS data
-         FROM node_data nd
-         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
-         WHERE nd.node = ?
-         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
-        ["image-filtering"]
-      ) as Array<{ item_id: string; data: string }>
+      const imageRows = readCurrentNodeRows(db, "image-filtering")
       for (const row of imageRows) {
         if (!imageIdsByPage.has(row.item_id)) {
           try {
-            const parsed = JSON.parse(row.data)
+            const parsed = JSON.parse(row.data ?? "null")
             const images = parsed.images as Array<{ imageId: string }>
             // Exclude page image from count
             imageIdsByPage.set(row.item_id, new Set(images
@@ -1038,19 +1017,12 @@ export function createPageRoutes(
       const sectionsByPage = new Map<string, PageSummarySection[]>()
       const sectioningVersions = new Map<string, number>()
       const structuredText = new Map<string, string>()
-      const structuringRows = db.all(
-        `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
-         FROM node_data nd
-         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
-         WHERE nd.node = ?
-         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
-        ["page-sectioning"]
-      ) as Array<{ item_id: string; version: number; data: string }>
+      const structuringRows = readCurrentNodeRows(db, "page-sectioning")
       for (const row of structuringRows) {
         if (sectionCounts.has(row.item_id)) continue
         sectioningVersions.set(row.item_id, row.version)
         try {
-          const parsed = JSON.parse(row.data)
+          const parsed = JSON.parse(row.data ?? "null")
           const rawSections = parsed.sections as Array<{
             sectionId?: string
             sectionType?: string
