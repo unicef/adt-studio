@@ -1,4 +1,6 @@
 export { SectionSyncStatus, SectionSyncResult, SectioningSynchronization } from "./sectioning-sync.js"
+export { AuthoredContent, AuthoredSaveGuard, AuthoredReplacement, AuthoredRunOptions } from "./content-authorship.js"
+
 export {
   SCHEMA_VERSION,
   ImageSource,
@@ -75,6 +77,11 @@ export {
   STEPS_BY_DEFAULT_MODEL_KIND,
   PAGE_PROGRESS_STEPS,
   BOOK_LEVEL_STAGES,
+  IMPORTED_ADT_UNAVAILABLE_STAGE_NAMES,
+  IMPORTED_ADT_UNAVAILABLE_STAGES,
+  IMPORTED_ADT_LOCKED_STAGES,
+  isImportedAdtUnavailableStage,
+  type ImportedAdtUnavailableStage,
 } from "./pipeline.js"
 
 export {
@@ -104,6 +111,40 @@ export {
 export { readableTextColor } from "./commenter-color.js"
 
 export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
+
+export {
+  ADT_ROUND_TRIP_FORMAT_VERSION,
+  ADT_EDITING_CONTRACT_VERSION,
+  ADT_EDITING_CONTRACT_MIN_VERSION,
+  AdtActivitySectionType,
+  AdtActivityDeclaration,
+  AdtNonActivityDeclaration,
+  AdtActivityImportDecision,
+  AdtBundleTocEntry,
+  AdtBundleToc,
+  AdtBundleGlossaryEntry,
+  AdtBundleGlossary,
+  AdtBundleTexts,
+  AdtRoundTripManifest,
+  AdtImportCompatibilityIssueCode,
+  AdtImportCompatibilityIssue,
+  AdtImportCompatibility,
+  AdtActivityReviewReason,
+  AdtImportedActivityReviewItem,
+  AdtImportedActivityReview,
+  AdtAgentGuideFileState,
+  AdtAgentGuideReview,
+  AdtImportFeatureRecovery,
+  AdtBundleImportPreview,
+  AdtImportUnreadableDetails,
+} from "./adt-round-trip.js"
+
+export {
+  PROJECT_IDENTITY_VERSION,
+  ProjectSourceKind,
+  ProjectIdentity,
+  AdtExportLineage,
+} from "./project-identity.js"
 
 export { ProgressEvent } from "./progress.js"
 
@@ -321,6 +362,7 @@ export {
 export {
   TextCatalogEntry,
   TextCatalogOutput,
+  TranslationSaveResponse,
   CatalogConflict,
   TextCatalogCategory,
   getTextCatalogCategory,
@@ -734,3 +776,6 @@ export { OutputDisclosureOptions } from "./output-freshness.js"
 
 export { SOURCE_GENERATION_RESET_STEPS } from "./pipeline.js"
 export { SourceGeneratorStep, SourceGenerationPolicy, SourceGenerationState, SourceGenerationReceipt } from "./source-generation-state.js"
+export { BookConfigSaveReceipt } from "./book-config-save.js"
+
+export { type TextDirection, getTextDirection } from "./text-direction.js"

@@ -27,6 +27,7 @@ import type {
   StepName,
   ImageClassificationOutput,
   PageSectioningOutput,
+  QuizGenerationOutput,
   BookMetadata,
   BookSummaryOutput,
   GlossaryOutput,
@@ -68,6 +69,9 @@ import {
   buildMeaningfulnessImages,
   dedupAutoFigureCandidatesInStorage,
   filterPageImageMeaningfulness,
+  buildHashDedupPlan,
+  sentInFirstRound,
+  settleHashDedup,
   buildMeaningfulnessConfig,
 } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
@@ -80,6 +84,7 @@ import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossa
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, batchPages } from "./quiz-generation.js"
 import { saveQuizOutput, assertQuizGenerationCapacity } from "./quiz-ids.js"
+import { isProtectedContent } from "./manual-edits.js"
 import { buildTextCatalog } from "./text-catalog.js"
 import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
 import { retainedEasyRead } from "./retained-catalog.js"
@@ -94,7 +99,7 @@ import {
   buildCoreTtsSourceContext,
   getReadyCoreTtsEntries,
 } from "./core-tts.js"
-import { normalizeLocale } from "./language-context.js"
+import { normalizeLocale, resolvePageDirection } from "./language-context.js"
 import {
   loadVoicesConfig,
   loadSpeechInstructions,
@@ -456,11 +461,14 @@ export async function runFullPipeline(
         return
       }
       const model = getModel(meaningfulnessConfig.modelId)
-      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
-        const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
-        if (!classRow) return
-        let imageResult = classRow.data as ImageClassificationOutput
-        const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, imageResult)
+      const classificationOf = (pageId: string) =>
+        storage.getLatestNodeData("image-filtering", pageId)?.data as ImageClassificationOutput | undefined
+      // Identical bytes on several pages are judged once; see planHashDedup.
+      const dedupPlan = buildHashDedupPlan(storage, pages, classificationOf)
+      const judgedPages = new Set<string>()
+      const judgePage = async (page: { pageId: string; text: string }, include: (imageId: string) => boolean) => {
+        let imageResult = classificationOf(page.pageId)!
+        const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, imageResult, include)
         if (unprunedImages.length > 0) {
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
           imageResult = await filterPageImageMeaningfulness(
@@ -476,6 +484,11 @@ export async function runFullPipeline(
           )
           storage.putNodeData("image-filtering", page.pageId, imageResult)
         }
+      }
+      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
+        if (!classificationOf(page.pageId)) return
+        await judgePage(page, sentInFirstRound(dedupPlan))
+        judgedPages.add(page.pageId)
         p.emit({
           type: "step-progress",
           step: "image-meaningfulness",
@@ -484,6 +497,19 @@ export async function runFullPipeline(
           totalPages,
         })
       })
+      // Settled only once every page finished: a page failure fails the step
+      // here, and settling while other pages are still in flight would race them.
+      const pageById = new Map(pages.map((page) => [page.pageId, page]))
+      const settled = await settleHashDedup(
+        dedupPlan,
+        judgedPages,
+        async (pageId, imageIds) => {
+          await judgePage(pageById.get(pageId)!, (id) => imageIds.has(id))
+          return true
+        },
+        classificationOf,
+      )
+      for (const [pageId, updated] of settled) storage.putNodeData("image-filtering", pageId, updated)
     })
 
     executors.set("image-cropping", async (p) => {
@@ -586,11 +612,12 @@ export async function runFullPipeline(
             imageBase64,
             availableImages,
             outline: outlineContextForPage(bookOutline, page.pageId),
+            pageDirection: resolvePageDirection(getLanguage(storage, config), config.output_languages),
           },
           pageSectioningConfig,
           model,
         )
-        putSourceNodeData(storage, "page-sectioning", page.pageId, reconcileSectioningIdentities(storage, page.pageId, result))
+        putSourceNodeData(storage, "page-sectioning", page.pageId, reconcileSectioningIdentities(storage, page.pageId, { ...result, source: "ai" }))
         p.emit({
           type: "step-progress",
           step: "page-sectioning",
@@ -619,7 +646,7 @@ export async function runFullPipeline(
           translationConfig,
           model,
         )
-        putSourceNodeData(storage, "page-sectioning", page.pageId, translated)
+        putSourceNodeData(storage, "page-sectioning", page.pageId, { ...translated, source: "ai" })
         p.emit({
           type: "step-progress",
           step: "translation",
@@ -669,7 +696,9 @@ export async function runFullPipeline(
         const pageDims = new Map(storage.getPageImages(page.pageId).map((img) => [img.imageId, { width: img.width, height: img.height }]))
         const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
         for (const imageId of unprunedImageIds) {
-          const dims = pageDims.get(imageId)
+          // Images added to this page in Extract from another page keep
+          // their own page_id, so they are not in pageDims.
+          const dims = pageDims.get(imageId) ?? storage.getImageDimensions(imageId)
           renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
         }
         // Sections can reference images extracted on other pages (cross-page
@@ -702,6 +731,7 @@ export async function runFullPipeline(
             sourcePageImages,
             bookFonts: buildBookFontsPromptContext(storage),
             typography,
+            pageDirection: resolvePageDirection(getLanguage(storage, config), config.output_languages),
           },
           resolveRenderConfig,
           resolveRenderModel,
@@ -728,10 +758,13 @@ export async function runFullPipeline(
       const model = getModel(quizConfig.modelId)
       const quizPages = collectQuizPages(storage)
       const sourceReceipt = captureSourceGeneration(storage, "quiz-generation", { quiz: quizConfig })
+      const previous = storage.getLatestNodeData("quiz-generation", "book")?.data as QuizGenerationOutput | undefined
+      const protectedPageGroups = (previous?.quizzes ?? []).filter(isProtectedContent).map((quiz) => quiz.pageIds)
       if (quizPages.length > 0) {
-        assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes).length)
+        assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes, protectedPageGroups).length)
         const result = await generateAllQuizzes(quizPages, quizConfig, model, {
           concurrency: effectiveConcurrency,
+          protectedPageGroups,
           onQuizComplete: (completed, total) => {
             p.emit({
               type: "step-progress",
@@ -742,12 +775,12 @@ export async function runFullPipeline(
             })
           },
         })
-        publishSourceGeneration(storage, sourceReceipt, () => saveQuizOutput(storage, result, "replace"))
+        publishSourceGeneration(storage, sourceReceipt, () => saveQuizOutput(storage, result, "replace"), protectedPageGroups.length === 0)
       } else {
         publishSourceGeneration(storage, sourceReceipt, () => saveQuizOutput(storage, {
           generatedAt: new Date().toISOString(), language: quizConfig.language,
           pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
-        }, "replace"))
+        }, "replace"), protectedPageGroups.length === 0)
       }
     })
 
@@ -839,7 +872,7 @@ export async function runFullPipeline(
         config: tocConfig,
         llmModel: model,
       })
-      publishSourceGeneration(storage, sourceReceipt, () => storage.putNodeData("toc-generation", "book", toc))
+      publishSourceGeneration(storage, sourceReceipt, () => storage.putNodeData("toc-generation", "book", { ...toc, source: "ai" }))
 
       p.emit({
         type: "step-progress",

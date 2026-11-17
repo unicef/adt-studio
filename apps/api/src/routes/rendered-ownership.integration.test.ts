@@ -30,12 +30,18 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); fs.rmSync(root, { recursive: true, force: true }) })
 const answerMap = () => { const db = storage(); try { return Object.fromEntries(buildTextCatalogSnapshot(db, db.getPages()).entries.filter((entry) => entry.id.includes("_ans_")).map((entry) => [entry.id, entry.text])) } finally { db.close() } }
 
+function currentVersion(node = "page-sectioning") {
+  const db = storage()
+  try { return db.getLatestNodeData(node, "pg001")?.version ?? 0 } finally { db.close() }
+}
+function editBody(body = {}) { return { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, baseVersion: currentVersion() }) } }
+
 it("AC-4/9 keeps answers, contexts, images and packaged corrections with their owner across source reorder, prune and restore", async () => {
   const app = createPageRoutes(root, path.resolve("prompts"), path.resolve("assets"))
   const before = storage(); const corrections = before.getLatestNodeData("text-catalog-translation", "fr"); const raw = before.getLatestNodeData("web-rendering", "pg001"); before.close()
   const provider = vi.fn(() => { throw new Error("Save must not generate") }); vi.stubGlobal("fetch", provider)
   const reordered = { ...sections, sections: [...sections.sections].reverse() }
-  const response = await app.request(`/books/${label}/pages/pg001/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(reordered) })
+  const response = await app.request(`/books/${label}/pages/pg001/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...reordered, baseVersion: 1 }) })
   expect(response.status).toBe(200)
   expect(answerMap()).toEqual({ "A_ans_item-1": "sun", "B_ans_item-1": "moon" })
   const db = storage()
@@ -214,7 +220,7 @@ it("restoring sectioning freezes the pre-edit legacy owner atomically, retaining
   expect(resolveReadingOrder(db).items.map(item => item.id)).toEqual(["B"])
   db.close()
   const app = createPageRoutes(root, path.resolve("prompts"), path.resolve("assets"))
-  const restore = (version: number) => app.request(`/books/${label}/versions/${node}/pg001/restore`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version }) })
+  const restore = (version: number) => app.request(`/books/${label}/versions/${node}/pg001/restore`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version, baseVersion: currentVersion(node) }) })
   expect((await restore(999)).status).toBe(404)
   const failed = storage()
   expect(failed.getNodeVersionFingerprint()).toEqual(before)
@@ -298,7 +304,7 @@ it("legacy custom activity leaf identities preserve answers, scripts, Preview/ex
   const preview = await createAdtPreviewRoutes(root, path.resolve("assets/adt")).request(`/books/${label}/adt-preview/${id}.html`)
   expect(preview.status).toBe(200)
   expect(await preview.text()).toContain(script)
-  const clone = await createPageRoutes(root, path.resolve("prompts"), path.resolve("assets")).request(`/books/${label}/pages/pg001/sections/0/clone`, { method: "POST" })
+  const clone = await createPageRoutes(root, path.resolve("prompts"), path.resolve("assets")).request(`/books/${label}/pages/pg001/sections/0/clone`, { method: "POST", ...editBody() })
   expect(clone.status).toBe(200)
   const updated = storage()
   try {
@@ -331,7 +337,7 @@ it.each(["clone", "split", "merge", "delete"])("legacy custom content no longer 
   ] })
   db.close()
   const response = await createPageRoutes(root, path.resolve("prompts"), path.resolve("assets")).request(`/books/${label}/pages/pg001/sections/1${operation === "delete" ? "" : `/${operation}`}`, {
-    method: operation === "delete" ? "DELETE" : "POST", headers: { "Content-Type": "application/json" }, ...(operation === "split" ? { body: JSON.stringify({ beforeNodeIndex: 1 }) } : {}),
+    method: operation === "delete" ? "DELETE" : "POST", headers: { "Content-Type": "application/json" }, ...editBody(operation === "split" ? { beforeNodeIndex: 1 } : {}),
   })
   expect(response.status).toBe(200)
   const updated = storage()
@@ -404,7 +410,7 @@ it.each(["clone", "delete"])("resolves leaf ownership before %s after ordinary s
   const beforeEdit = await app.request(`/books/${label}/pages/pg001`)
   const detail = await beforeEdit.json()
   expect(detail.rendering.sections.find((entry: WebRenderingOutput["sections"][number]) => entry.sectionIndex === 0).sectionId).toBe("B")
-  const response = await app.request(`/books/${label}/pages/pg001/sections/0${operation === "clone" ? "/clone" : ""}`, { method: operation === "clone" ? "POST" : "DELETE" })
+  const response = await app.request(`/books/${label}/pages/pg001/sections/0${operation === "clone" ? "/clone" : ""}`, { method: operation === "clone" ? "POST" : "DELETE", ...editBody() })
   expect(response.status).toBe(200)
   const changed = storage()
   try {

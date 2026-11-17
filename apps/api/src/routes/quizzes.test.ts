@@ -39,10 +39,13 @@ function output(quizzes: Quiz[]): QuizGenerationOutput {
 }
 
 function putQuizzes(body: QuizGenerationOutput) {
+  const storage = createBookStorage(label, tmpDir)
+  const baseVersion = storage.getLatestNodeData("quiz-generation", "book")?.version ?? 0
+  storage.close()
   return app.request(`/api/books/${label}/quizzes`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, baseVersion }),
   })
 }
 

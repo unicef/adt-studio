@@ -1,6 +1,7 @@
 import { firstCatalogEntries } from "@adt/pipeline"
 import { captureOutputReferences } from "@adt/pipeline"
-import { catalogOutputs, editSourceSignature, assertEditSource } from "../services/catalog-output-service.js"
+import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
+import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
@@ -16,6 +17,7 @@ import {
   type CoreTtsCatalogEntry,
   type OutputStatus,
   type TTSOutput,
+  type TranslationSaveResponse,
   type WordTimestampOutput,
 } from "@adt/types"
 import { openBookDb, createBookStorage, readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
@@ -46,6 +48,10 @@ function hash(value: unknown): string {
  * independent from the canonical alias's version history. */
 function speechEditSourceSignature(outputs: OutputStatus[], itemId: string): string {
   return hash({ itemId, source: editSourceSignature(outputs, "preparation", itemId) })
+}
+
+function translationEditSourceSignature(outputs: OutputStatus[], itemId: string): string {
+  return hash({ itemId, source: editSourceSignature(outputs, "translation", itemId) })
 }
 
 export function createTextCatalogRoutes(booksDir: string, promptsDir = path.resolve("prompts"), configPath?: string): Hono {
@@ -98,15 +104,22 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
       ) as Array<{ item_id: string; data: string; version: number }>
 
       const translations: Record<string, { entries: Array<{ id: string; text: string }>; version: number; sourceSignature: string }> = {}
+      const unavailableTranslations: string[] = []
       const seen = new Set<string>()
       for (const row of translationRows) {
         if (seen.has(row.item_id)) continue
         seen.add(row.item_id)
         try {
           const parsed = JSON.parse(row.data)
-          translations[row.item_id] = { entries: parsed.entries, version: row.version, sourceSignature: editSourceSignature(outputs, "translation", row.item_id) }
+          if (!TextCatalogOutput.shape.entries.safeParse(parsed?.entries).success) {
+            unavailableTranslations.push(row.item_id)
+            continue
+          }
+          translations[row.item_id] = { entries: parsed.entries, version: row.version, sourceSignature: translationEditSourceSignature(outputs, row.item_id) }
         } catch {
-          // skip corrupted current version
+          // Presence still matters: unreadable canonical data must not expose an
+          // older alias or authorize a first Save over this current version.
+          unavailableTranslations.push(row.item_id)
         }
       }
 
@@ -142,12 +155,13 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
         generatedAt: catalog.generatedAt,
         version: catalogRow?.version ?? 0,
         translations,
+        unavailableTranslations,
         // A first manual save has no translation entity yet, but must still
         // bind to the current source/settings instead of sending an empty guard.
         translationSourceSignatures: Object.fromEntries(
           [...new Set(outputs.filter(output => output.identity.kind === "translation")
             .flatMap(output => output.identity.language ? [output.identity.language] : []))]
-            .map(language => [language, editSourceSignature(outputs, "translation", language)]),
+            .map(language => [language, translationEditSourceSignature(outputs, language)]),
         ),
         speechTexts,
       })
@@ -172,73 +186,93 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const previous = storage.getLatestNodeData("text-catalog-translation", language)
-      if ((previous?.version ?? 0) !== parsed.data.baseVersion || (storage.getLatestNodeData("text-catalog", "book")?.version ?? 0) !== parsed.data.sourceVersion) {
-        throw new HTTPException(409, { message: "Translation or source changed. Refresh before saving." })
-      }
-      const outputs = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { kinds: ["translation", "preparation"] })
-      assertEditSource(editSourceSignature(outputs, "translation", language), parsed.data.sourceSignature)
-      const retainedEntries = TextCatalogOutput.safeParse(previous?.data).data?.entries ?? []
-      const previousEntries = firstCatalogEntries(retainedEntries)
-      const previousData = previous?.data && typeof previous.data === "object"
-        ? previous.data as { generatedAt?: unknown }
-        : null
-      const changes = new Map<string, (typeof parsed.data.entries)[number]>()
-      const submitted = new Map<string, typeof parsed.data.entries>()
-      for (const entry of parsed.data.entries) {
-        const group = submitted.get(entry.id) ?? []
-        group.push(entry)
-        submitted.set(entry.id, group)
-      }
-      for (const [id, group] of submitted) {
-        const retained = retainedEntries.filter(entry => entry.id === id)
-        // Studio sends the complete stored list. Passing through an unchanged
-        // retired ID or conflicting legacy copies must not block another edit.
-        if (isDeepStrictEqual(group, retained.map(({ id, text }) => ({ id, text })))) continue
-        const entry = group[0]
-        // Editing a visible legacy ID updates all of its submitted copies. Only
-        // that unambiguous edit may resolve a pre-existing duplicate collection.
-        if (group.length > 1 && (retained.length !== group.length || group.some(copy => copy.text !== entry.text))) {
-          throw new HTTPException(400, { message: "Duplicate translation identity." })
+      return storage.transaction(() => {
+        // Match the runner's canonical/legacy lookup. A spelling alias must not
+        // create a second document and bypass the existing version guard.
+        const canonical = storage.getLatestNodeData("text-catalog-translation", normalizedLanguage)
+        const legacyLanguage = normalizedLanguage.replace("-", "_")
+        const legacy = canonical ? null : storage.getLatestNodeData("text-catalog-translation", legacyLanguage)
+        const itemId = legacy ? legacyLanguage : normalizedLanguage
+        const previous = canonical ?? legacy
+        assertAuthoredIdle(storage)
+        assertEditVersion(previous?.version, parsed.data.baseVersion)
+        if ((storage.getLatestNodeData("text-catalog", "book")?.version ?? 0) !== parsed.data.sourceVersion) {
+          throw new HTTPException(409, { message: "Translation or source changed. Refresh before saving." })
         }
-        if (previousEntries.get(id)?.text === entry.text) continue
-        if (!outputs.some((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)) {
-          throw new HTTPException(409, { message: "Translation source is no longer available. Refresh before saving." })
+        const outputs = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { kinds: ["translation", "preparation"] })
+        assertEditSource(translationEditSourceSignature(outputs, itemId), parsed.data.sourceSignature)
+        const retained = TextCatalogOutput.shape.entries.safeParse((previous?.data as TextCatalogOutput | null)?.entries)
+        if (previous && !retained.success) {
+          throw new HTTPException(409, { message: "Saved translation is unavailable. Restore a readable version before saving." })
         }
-        changes.set(entry.id, entry)
-      }
-      const replacements = new Map<string, TextCatalogOutput["entries"][number]>()
-      for (const entry of changes.values()) {
-        const old = previousEntries.get(entry.id)
-        // A full-form save of the visible first copy must not discard an
-        // unseen legacy correction. Only an actual edit resolves this ID.
-        if (old?.text === entry.text) continue
-        const status = outputs.find((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)
-        replacements.set(entry.id, { ...old, ...entry, source: "manual", review: undefined, input: status ? outputEvidence(status.signature, entry.text, captureOutputReferences(storage, status.identity.kind, status.identity.language)) : undefined })
-      }
-      const consumed = new Set<string>()
-      const entries = retainedEntries.flatMap((entry) => {
-        const replacement = replacements.get(entry.id)
-        if (!replacement) return [entry]
-        if (consumed.has(entry.id)) return []
-        consumed.add(entry.id)
-        return [replacement]
-      })
-      for (const [id, entry] of replacements) if (!consumed.has(id)) entries.push(entry)
-      const data = TextCatalogOutput.parse({
-        entries,
-        generatedAt: parsed.data.generatedAt
-          ?? (typeof previousData?.generatedAt === "string" ? previousData.generatedAt : undefined)
-          ?? new Date().toISOString(),
-      })
+        // Validate the complete stored list, but retain its original entries.
+        // Zod's normalized result strips opaque legacy metadata from untouched
+        // protected copies. Only the server's stored values may pass through.
+        const retainedEntries = retained.success ? (previous!.data as TextCatalogOutput).entries : []
+        const previousEntries = firstCatalogEntries(retainedEntries)
+        const previousData = previous?.data && typeof previous.data === "object"
+          ? previous.data as { generatedAt?: unknown }
+          : null
+        const changes = new Map<string, (typeof parsed.data.entries)[number]>()
+        const submitted = new Map<string, typeof parsed.data.entries>()
+        for (const entry of parsed.data.entries) {
+          const group = submitted.get(entry.id) ?? []
+          group.push(entry)
+          submitted.set(entry.id, group)
+        }
+        for (const [id, group] of submitted) {
+          const retained = retainedEntries.filter(entry => entry.id === id)
+          // Studio sends the complete stored list. Passing through an unchanged
+          // retired ID or conflicting legacy copies must not block another edit.
+          if (isDeepStrictEqual(group, retained.map(({ id, text }) => ({ id, text })))) continue
+          const entry = group[0]
+          // Editing a visible legacy ID updates all of its submitted copies. Only
+          // that unambiguous edit may resolve a pre-existing duplicate collection.
+          if (group.length > 1 && (retained.length !== group.length || group.some(copy => copy.text !== entry.text))) {
+            throw new HTTPException(400, { message: "Duplicate translation identity." })
+          }
+          if (previousEntries.get(id)?.text === entry.text) continue
+          if (!outputs.some((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)) {
+            throw new HTTPException(409, { message: "Translation source is no longer available. Refresh before saving." })
+          }
+          changes.set(entry.id, entry)
+        }
+        const replacements = new Map<string, TextCatalogOutput["entries"][number]>()
+        for (const entry of changes.values()) {
+          const old = previousEntries.get(entry.id)
+          // A full-form save of the visible first copy must not discard an
+          // unseen legacy correction. Only an actual edit resolves this ID.
+          if (old?.text === entry.text) continue
+          const status = outputs.find((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)
+          replacements.set(entry.id, { ...old, ...entry, source: "manual", review: undefined, input: status ? outputEvidence(status.signature, entry.text, captureOutputReferences(storage, status.identity.kind, status.identity.language)) : undefined })
+        }
+        const consumed = new Set<string>()
+        const entries = retainedEntries.flatMap((entry) => {
+          const replacement = replacements.get(entry.id)
+          if (!replacement) return [entry]
+          if (consumed.has(entry.id)) return []
+          consumed.add(entry.id)
+          return [replacement]
+        })
+        for (const [id, entry] of replacements) if (!consumed.has(id)) entries.push(entry)
+        const data = {
+          entries,
+          generatedAt: parsed.data.generatedAt
+            ?? (typeof previousData?.generatedAt === "string" ? previousData.generatedAt : undefined)
+            ?? new Date().toISOString(),
+        }
+        TextCatalogOutput.parse(data)
       const version = storage.putNodeData(
         "text-catalog-translation",
-        language,
+        itemId,
         data
       )
 
       storage.clearNodesByType(["accessibility-assessment"])
-      return c.json({ version })
+      // Acknowledgement must describe this transaction, not a later GET that
+      // could already include another writer's version or locale namespace.
+      return c.json({ version, entries: data.entries } satisfies TranslationSaveResponse)
+      })
     } finally {
       storage.close()
     }

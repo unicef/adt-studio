@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { api } from "@/api/client"
 import { toastPackagingWarnings } from "@/lib/packaging-warnings"
-import { useBookRun } from "@/hooks/use-book-run"
+import { usePages } from "@/hooks/use-pages"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { AccessibilityOverviewTab } from "@/components/validation/AccessibilityValidationTabs"
 import { ReviewerValidationSummaryTab } from "@/components/validation/ReviewerValidationSummaryTab"
@@ -31,11 +31,11 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
   const { t, i18n } = useLingui()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { tab?: string }
-  const { stageState, isStatusLoading } = useBookRun()
+  const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
   const { isTaskRunning, getTask } = useBookTasks(bookLabel)
   const reviewerValidationCatalog = useReviewerValidationCatalog(bookLabel)
   const reviewerValidationEnabled = reviewerValidationCatalog.data?.enabled ?? false
-  const storyboardDone = stageState("storyboard") === "done"
+  const hasRendering = (pages ?? []).some((page) => page.hasRendering)
   const { allPruned, isLoading: prunedLoading } = useAllPagesPruned(bookLabel)
   const ranRef = useRef(false)
   const [isSubmittingPackage, setIsSubmittingPackage] = useState(false)
@@ -71,10 +71,10 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
   }, [bookLabel, t, i18n])
 
   useEffect(() => {
-    if (!storyboardDone || ranRef.current) return
+    if (!hasRendering || ranRef.current) return
     ranRef.current = true
     void runPackage()
-  }, [storyboardDone, runPackage])
+  }, [hasRendering, runPackage])
 
   // Track task completion/failure to update local loading/error state.
   // Query invalidation is handled by the SSE task-complete handler in use-book-run.ts.
@@ -93,11 +93,11 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
     }
   }, [getTask, pendingPackagingTaskId, t, i18n])
 
-  if (isStatusLoading || prunedLoading) {
+  if (pagesLoading || prunedLoading) {
     return <LoadingState stageSlug="validation" label={<Trans>Loading validation...</Trans>} />
   }
 
-  if (!storyboardDone) {
+  if (!hasRendering) {
     return <StageBlockedState bookLabel={bookLabel} reason="storyboard-missing" stageLabel={<Trans>Validation</Trans>} />
   }
 

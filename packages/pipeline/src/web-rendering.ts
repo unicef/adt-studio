@@ -5,6 +5,7 @@ import {
   type PageSectioningSection,
   type SectionRendering,
   type BookTypography,
+  type TextDirection,
   type WebRenderingOutput,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
@@ -109,6 +110,14 @@ export interface RenderSectionInput {
   bookFonts?: BookFontPromptEntry[]
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
+  /**
+   * The direction the book's pages are written in, from `resolvePageDirection()`.
+   * Only `"rtl"` (the source language is right-to-left) changes anything here:
+   * it switches on the prompt block and the stored rewrite. `"ltr"` (a
+   * left-to-right book with a right-to-left translation) and `undefined` leave
+   * the prompts and the generated HTML untouched (SPEC-0024).
+   */
+  pageDirection?: TextDirection
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -128,6 +137,14 @@ export interface RenderPageInput {
   bookFonts?: BookFontPromptEntry[]
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
+  /**
+   * The direction the book's pages are written in, from `resolvePageDirection()`.
+   * Only `"rtl"` (the source language is right-to-left) changes anything here:
+   * it switches on the prompt block and the stored rewrite. `"ltr"` (a
+   * left-to-right book with a right-to-left translation) and `undefined` leave
+   * the prompts and the generated HTML untouched (SPEC-0024).
+   */
+  pageDirection?: TextDirection
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -366,6 +383,7 @@ export async function renderPage(
       styleguide: input.styleguide,
       bookFonts: input.bookFonts,
       typography: input.typography,
+      pageDirection: input.pageDirection,
       userPrompt: input.userPrompt,
     }
 

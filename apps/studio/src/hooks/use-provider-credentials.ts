@@ -13,7 +13,7 @@ const CREDENTIALS_CHANGED_EVENT = "adt-provider-credentials-changed"
 
 // Stable fallbacks: a fresh `?? []` per render would give `credentials` a new
 // identity on every render while /providers is pending or errored, and any
-// effect keyed on it (ApiKeyDialog's draft sync) would loop.
+// effect keyed on it (a credentials form's draft sync) would loop.
 const EMPTY_PROVIDERS: ProvidersResponse["providers"] = []
 const EMPTY_DEFAULTS: ProvidersResponse["defaults"] = {}
 

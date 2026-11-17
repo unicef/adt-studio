@@ -25,4 +25,14 @@ describe("useConnectProvider", () => {
       hash: "settings-provider-openai",
     })
   })
+
+  it("opens the card that hosts a given backend", () => {
+    navigate.mockClear()
+    renderHook(() => useConnectProvider({ providerId: "claude-agent" })).result.current()
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/settings/providers",
+      search: { auth: "api-key" },
+      hash: "settings-provider-anthropic",
+    })
+  })
 })

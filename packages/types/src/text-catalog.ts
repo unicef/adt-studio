@@ -26,6 +26,13 @@ export const TextCatalogOutput = z.object({
 })
 export type TextCatalogOutput = z.infer<typeof TextCatalogOutput>
 
+/** Exact transaction result: an edited legacy ID may have been normalized. */
+export const TranslationSaveResponse = z.object({
+  version: z.number().int().nonnegative(),
+  entries: z.array(TextCatalogEntry),
+})
+export type TranslationSaveResponse = z.infer<typeof TranslationSaveResponse>
+
 /**
  * Categories of text catalog entries, inferred from entry id patterns.
  * Catalog entries carry no explicit type field, so the id conventions used

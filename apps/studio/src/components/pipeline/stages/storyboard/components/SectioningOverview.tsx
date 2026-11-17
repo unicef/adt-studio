@@ -102,27 +102,29 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
     invalidateStoryboardDependents(queryClient, bookLabel)
   }
 
+  const sectionVersion = (pageId: string) => pageDetails.find((p) => p.pageId === pageId)?.versions.sectioning ?? 0
+
   const mergeMutation = useMutation({
     mutationFn: ({ pageId, sectionIndex, direction }: { pageId: string; sectionIndex: number; direction: "prev" | "next" }) =>
-      api.mergeSection(bookLabel, pageId, sectionIndex, direction),
+      api.mergeSection(bookLabel, pageId, sectionIndex, direction, false, sectionVersion(pageId)),
     onSuccess: (_data, vars) => invalidatePages(vars.pageId),
   })
 
   const mergeCrossPageMutation = useMutation({
     mutationFn: ({ pageId, sectionIndex, direction }: { pageId: string; sectionIndex: number; direction: "prev" | "next" }) =>
-      api.mergeSectionCrossPage(bookLabel, pageId, sectionIndex, direction),
+      api.mergeSectionCrossPage(bookLabel, pageId, sectionIndex, direction, sectionVersion(pageId)),
     onSuccess: (data) => invalidatePages(data.sourcePageId, data.targetPageId),
   })
 
   const cloneMutation = useMutation({
     mutationFn: ({ pageId, sectionIndex }: { pageId: string; sectionIndex: number }) =>
-      api.cloneSection(bookLabel, pageId, sectionIndex),
+      api.cloneSection(bookLabel, pageId, sectionIndex, sectionVersion(pageId)),
     onSuccess: (_data, vars) => invalidatePages(vars.pageId),
   })
 
   const deleteMutation = useMutation({
     mutationFn: ({ pageId, sectionIndex }: { pageId: string; sectionIndex: number }) =>
-      api.deleteSection(bookLabel, pageId, sectionIndex),
+      api.deleteSection(bookLabel, pageId, sectionIndex, sectionVersion(pageId)),
     onSuccess: (_data, vars) => invalidatePages(vars.pageId),
   })
 
@@ -150,6 +152,7 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
       return api
         .saveStoryboard(bookLabel, pageId, {
           sectioning: updated,
+          baseVersion: page.versions.sectioning ?? 0,
           // Without a key we cannot fill the HTML, so the stage must report it.
           renderingInSync: !needsRerender || hasStructuredTextProvider,
         })
@@ -163,7 +166,7 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
             await api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex)
           } catch (err) {
             await api
-              .saveStoryboard(bookLabel, pageId, { sectioning: updated, renderingInSync: false })
+              .saveStoryboard(bookLabel, pageId, { sectioning: updated, renderingInSync: false, baseVersion: result.sectioningVersion ?? 0 })
               .catch(() => {})
             throw err
           }
@@ -790,7 +793,7 @@ function SectionDetail({
       const updated = updateSectionNodes(pageData.sectioningTree, sectionIndex, (nodes) =>
         replaceNodeId(nodes, cropTarget, result.imageId)
       )
-      await api.updateSectioning(bookLabel, pageId, updated)
+      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0 })
     }
     setCropTarget(null)
     setRecropPageSrc(null)
@@ -826,7 +829,7 @@ function SectionDetail({
       const updated = updateSectionNodes(pageData.sectioningTree, sectionIndex, (nodes) =>
         replaceNodeId(nodes, targetId, result.imageId)
       )
-      await api.updateSectioning(bookLabel, pageId, updated)
+      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0 })
     }
     onInvalidatePages(pageId)
   }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
@@ -859,7 +862,7 @@ function SectionDetail({
       const updated = updateSectionNodes(pageData.sectioningTree, sectionIndex, (nodes) =>
         deleteNode(nodes, dataId)
       )
-      await api.updateSectioning(bookLabel, pageId, updated)
+      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0 })
     }
     onInvalidatePages(pageId)
   }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
@@ -873,7 +876,7 @@ function SectionDetail({
         i === sectionIndex ? next : s
       ),
     }
-    await api.updateSectioning(bookLabel, pageId, updated)
+    await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0 })
     onInvalidatePages(pageId)
   }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
 
@@ -884,7 +887,7 @@ function SectionDetail({
       const updated = updateSectionNodes(pageData.sectioningTree, sectionIndex, (nodes) =>
         toggleNodePruned(nodes, dataId)
       )
-      await api.updateSectioning(bookLabel, pageId, updated)
+      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0 })
     }
     onInvalidatePages(pageId)
   }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])

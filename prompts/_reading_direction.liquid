@@ -1,0 +1,17 @@
+{%- comment -%}
+  Reading order for a right-to-left book (SPEC-0024).
+
+  Included by the sectioning prompts, which save the order the page is read
+  in. Renders NOTHING unless `page_direction` is "rtl", so the prompt text —
+  and its cache key — is unchanged for every other book. Keep it that way: the
+  include line and this file use whitespace control for that reason.
+{%- endcomment -%}
+{%- if page_direction == "rtl" %}
+## READING DIRECTION: RIGHT TO LEFT
+This book is written right to left, so this page is read starting from the RIGHT. Wherever these instructions say "left-to-right", "on the left" or "at the right edge", they describe a left-to-right book: apply them mirrored.
+- Reading order is right-to-left, top-to-bottom. Of side-by-side blocks or columns, the RIGHTMOST comes first.
+- Tables: within each row, the first `table_cell` is the RIGHTMOST cell on the page image, and the cells continue leftwards. Rows stay top-to-bottom.
+- A table-of-contents entry has its title towards the RIGHT and its page number at the LEFT edge. The title still comes before its page number.
+- This is about the order of blocks, never the text inside one: copy each leaf's text exactly as the rules above say, including any left-to-right words or numbers in it.
+
+{% endif -%}

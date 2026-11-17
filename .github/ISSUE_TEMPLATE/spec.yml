@@ -19,7 +19,7 @@ body:
 
         > [!IMPORTANT]
         > - Most work does **not** need a spec — see [docs/SPEC_DRIVEN_DEVELOPMENT.md §3](https://github.com/unicef/adt-studio/blob/develop/docs/SPEC_DRIVEN_DEVELOPMENT.md#3-choosing-a-lane) before filing.
-        > - Use the spec lane for changes above about 300 net lines or more than about 10 files; schema, storage, pipeline, interface or contract changes; registered invariants; and new feature surfaces, dependencies, formats or providers.
+        > - Use the spec lane for changes above about 1000 net lines or more than about 25 files; schema, storage, pipeline, interface or contract changes; registered invariants; and new feature surfaces, dependencies, formats or providers.
         > - When the lane is unclear, resolve it at triage before implementation.
         > - This issue is the *proposal*. The spec document is written from it and reviewed as its own PR.
         > - Please search existing issues and `docs/specs/INDEX.md` to avoid duplicates.
@@ -47,7 +47,7 @@ body:
       label: Why does this need a spec?
       description: Which rule from §3 does it hit?
       options:
-        - Expected change above about 300 net lines or more than about 10 files
+        - Expected change above about 1000 net lines or more than about 25 files
         - Changes a contract users or other packages depend on
         - Changes an entity schema, storage layout, pipeline graph or cross-package interface, or needs a data migration
         - Touches an invariant in docs/INVARIANTS.md
