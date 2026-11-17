@@ -98,3 +98,32 @@ it("keeps warm page flags current across reset, rollback, raw rewrites and damag
     expect((await read()).map(page => page.hasRendering)).toEqual([true, true])
   } finally { storage.close(); fs.rmSync(root, { recursive: true, force: true }) }
 })
+
+it("does not attribute retained images through semantic fallback when positioned source JSON is unreadable", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "page-list-positioned-"))
+  const storage = createBookStorage("book", root)
+  const config = path.join(root, "global.yaml")
+  fs.writeFileSync(config, "structure_types: {}\nrole_types: {}\n")
+  const app = new Hono().onError(errorHandler).route("/", createPageRoutes(root, "prompts", "assets/adt", config))
+  const image = (imageId: string) => ({ imageId, buffer: Buffer.from("image"), hash: imageId, format: "png" as const, width: 10, height: 10 })
+  try {
+    storage.putExtractedPage({ pageId: "pg001", pageNumber: 1, text: "Text", images: [image("pg001_extra")], pageImage: image("pg001_page") })
+    const source = { reasoning: "", sections: [{ sectionId: "pg001_sec001", sectionType: "text", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: [{ nodeId: "pg001_text", role: "text", text: "Text", isPruned: false }] }] }
+    storage.putNodeData("page-sectioning", "pg001", source)
+    storage.putNodeData("fixed-layout-sectioning", "pg001", source)
+    storage.putNodeData("web-rendering", "pg001", { sections: [{ sectionId: "pg001_sec001", sectionIndex: 0, sectionType: "text", reasoning: "", html: '<section data-section-id="pg001_sec001"><img data-id="pg001_extra" src="images/pg001_extra.png"></section>' }] })
+    const read = async () => {
+      const response = await app.request("/books/book/pages")
+      expect(response.status).toBe(200)
+      return await response.json()
+    }
+    expect(await read()).toMatchObject([{ imageCount: 1, hasRendering: true }])
+    const db = openBookDb(path.join(root, "book/book.db"))
+    try {
+      db.run("UPDATE node_data SET data=? WHERE node='fixed-layout-sectioning' AND item_id='pg001'", ["{"])
+      expect(await read()).toMatchObject([{ imageCount: 0, hasRendering: false }])
+      expect(db.get("SELECT data FROM node_data WHERE node='fixed-layout-sectioning' AND item_id='pg001'")).toEqual({ data: "{" })
+      expect(storage.getLatestNodeData("page-sectioning", "pg001")?.data).toEqual(source)
+    } finally { db.close() }
+  } finally { storage.close(); fs.rmSync(root, { recursive: true, force: true }) }
+})

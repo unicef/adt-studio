@@ -1021,7 +1021,7 @@ export function createPageRoutes(
       const inventoryView: Storage = { ...storage, getLatestNodeData(node, itemId) {
         try { return storage.getLatestNodeData(node, itemId) }
         catch (error) {
-          if (error instanceof SyntaxError && ["web-rendering", "page-sectioning", "fixed-layout-sectioning"].includes(node)) return null
+          if (error instanceof SyntaxError && node === "web-rendering") return null
           throw error
         }
       } }
