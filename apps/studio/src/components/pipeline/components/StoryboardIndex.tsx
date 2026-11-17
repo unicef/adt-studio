@@ -429,6 +429,8 @@ function SectionRow({
             pos={hover.pos}
             pdfThumb={pdfThumb}
             renderedThumb={screenshot.enabled ? renderedThumb : null}
+            pdfPending={!pdfThumb && (!sourceImage.enabled || pageImageFetching)}
+            screenshotPending={!!renderedThumb && !screenshot.enabled}
             pageNumber={page.pageNumber}
             sectionIndex={section.sectionIndex}
             sectionType={section.sectionType}
@@ -638,6 +640,8 @@ function useHoverPreview(
 
 function ComparisonPreview({
   pos,
+  pdfPending,
+  screenshotPending,
   pdfThumb,
   renderedThumb,
   pageNumber,
@@ -649,6 +653,8 @@ function ComparisonPreview({
 }: {
   pos: { top: number; left: number }
   pdfThumb: string | null
+  pdfPending: boolean
+  screenshotPending: boolean
   renderedThumb: string | null
   pageNumber: number
   sectionIndex: number
@@ -701,6 +707,7 @@ function ComparisonPreview({
         <div className="flex items-stretch p-3 gap-3 bg-background">
           <PreviewPanel
             src={pdfThumb}
+            pending={pdfPending}
             icon={<FileText className="w-3 h-3" />}
             label={<Trans>Source PDF</Trans>}
             fallback={<Trans>No source image</Trans>}
@@ -712,6 +719,7 @@ function ComparisonPreview({
           </div>
           <PreviewPanel
             src={renderedThumb}
+            pending={screenshotPending}
             icon={<Monitor className="w-3 h-3" />}
             label={<Trans>Generated section</Trans>}
             fallback={
@@ -731,12 +739,14 @@ function ComparisonPreview({
 
 function PreviewPanel({
   src,
+  pending = false,
   icon,
   label,
   fallback,
   tint,
 }: {
   src: string | null
+  pending?: boolean
   icon: React.ReactNode
   label: React.ReactNode
   fallback?: React.ReactNode
@@ -749,6 +759,7 @@ function PreviewPanel({
         {label}
       </div>
       <div
+        aria-busy={pending}
         className={cn(
           "h-[400px] w-[340px] rounded-lg bg-muted/40 ring-1 ring-border overflow-hidden flex items-center justify-center",
           tint === "amber" && "ring-amber-200 bg-amber-50/40",
@@ -757,6 +768,8 @@ function PreviewPanel({
       >
         {src ? (
           <img src={src} alt="" className="max-h-full max-w-full object-contain" />
+        ) : pending ? (
+          <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin text-muted-foreground" />
         ) : (
           <span className="text-xs text-muted-foreground px-3 text-center">
             {fallback ?? <Trans>No preview available</Trans>}

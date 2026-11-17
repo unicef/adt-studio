@@ -20,6 +20,7 @@ vi.mock("@/hooks/use-books", () => ({ useBook: () => ({ data: { hasSourcePdf: tr
 vi.mock("@/hooks/use-quizzes", () => ({ useQuizzes: () => ({}) }))
 vi.mock("../stages/storyboard/components/feedback/use-book-comments", () => ({ useBookComments: () => ({ total: 0, bySection: new Map() }) }))
 vi.mock("../stages/storyboard/components/feedback/use-comments-mode", () => ({ useCommentsMode: () => ({ on: false }) }))
+import { StoryboardThumbnailProvider } from "./storyboard-thumbnails"
 import { StoryboardIndex } from "./StoryboardIndex"
 afterEach(() => { cleanup(); vi.useRealTimers() })
 beforeEach(() => {
@@ -49,4 +50,21 @@ it("requests a PDF fallback when no rendering exists", () => {
   mocks.pages[0].hasRendering = false
   render(<StoryboardIndex bookLabel="book" />)
   expect(mocks.image).toHaveBeenLastCalledWith("book", "pg001", { enabled: true })
+})
+
+it.each(["fetching", "queued"])("does not describe %s hover images as missing", mode => {
+ vi.useFakeTimers()
+ mocks.image.mockReturnValue({isFetching:mode==="fetching",isLoading:false})
+ const sidebar=<StoryboardIndex bookLabel="book" />
+ render(mode==="queued"?<StoryboardThumbnailProvider scopeKey="book/page" waitForPreview>{sidebar}</StoryboardThumbnailProvider>:sidebar)
+ fireEvent.mouseEnter(screen.getByRole("button"));act(()=>vi.advanceTimersByTime(800))
+ expect(screen.getByText("Source PDF")).toBeTruthy()
+ expect(screen.queryByText("No source image")).toBeNull()
+ expect(screen.queryByText("Not rendered yet")).toBeNull()
+})
+it("shows the existing source-image fallback after a settled failure", () => {
+ vi.useFakeTimers();mocks.image.mockReturnValue({isFetching:false,isLoading:false,isError:true})
+ render(<StoryboardIndex bookLabel="book" />)
+ fireEvent.mouseEnter(screen.getByRole("button"));act(()=>vi.advanceTimersByTime(800))
+ expect(screen.getByText("No source image")).toBeTruthy()
 })

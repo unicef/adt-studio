@@ -4,17 +4,17 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 const mocks = vi.hoisted(() => ({
   pages: [{ pageId: "p1", sectioningVersion: 1, sectionCount: 1, hasRendering: true, sections: [] }],
-  loading: false, state: "idle", coverage: undefined as import("@adt/types").StoryboardCoverage | undefined,
+  search: {} as {sectionId?:string}, navigate: vi.fn(), loading: false, state: "idle", coverage: undefined as import("@adt/types").StoryboardCoverage | undefined,
   queue: vi.fn(), header: vi.fn(), select: vi.fn(), unsaved: false, sectionIndex: 0,
   page: {sectioningTree:{sections:[{sectionId:"p1_s1"}]},versions:{sectioning:1,rendering:1}},
 }))
 vi.mock("@lingui/react/macro", () => ({ Trans: ({children}: {children: React.ReactNode}) => <>{children}</>, useLingui: () => ({ t: (s: TemplateStringsArray) => s.join("") }) }))
 vi.mock("@lingui/core/macro", () => ({ msg: (s: TemplateStringsArray) => ({id:s.join("")}) }))
 vi.mock("@lingui/core", () => ({ i18n: { _: (d: {id:string}) => d.id } }))
-vi.mock("@tanstack/react-router", () => ({ useSearch: () => ({}), useNavigate: () => vi.fn() }))
+vi.mock("@tanstack/react-router", () => ({ useSearch: () => mocks.search, useNavigate: () => mocks.navigate }))
 vi.mock("./components/feedback/use-comments-mode", () => ({ useCommentsMode: () => false }))
 vi.mock("@/hooks/use-publication-feedback", () => ({ usePublicationComments: () => ({ data: { comments: [] } }) }))
-vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({data:mocks.pages,isLoading:mocks.loading}), usePage: () => ({data:mocks.page,isLoading:false}) }))
+vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({data:mocks.pages,isLoading:mocks.loading}), usePage: (_label: string, pageId: string) => ({data:pageId?mocks.page:undefined,isLoading:false}) }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({stageState:()=>mocks.state,storyboardCoverage:mocks.coverage,queueRun:mocks.queue}) }))
 vi.mock("@/hooks/use-books", () => ({ useBook: () => ({ data: { workingSource: "pdf" } }) }))
 vi.mock("@/hooks/use-stage-status", () => ({ useStageStatus: () => ({isCompleted:false,isRunning:false,hasError:false}) }))
@@ -36,7 +36,7 @@ vi.mock("../../components/StageRunCard", () => ({StageRunCard:()=> <p>Storyboard
 const {StoryboardView}=await import("./StoryboardView")
 const {StoryboardIndex}=await import("./StoryboardIndex")
 const {StoryboardLandingPage}=await import("./StoryboardLandingPage")
-beforeEach(()=>{mocks.pages=[{pageId:"p1",sectioningVersion:1,sectionCount:1,hasRendering:true,sections:[]}];mocks.loading=false;mocks.unsaved=false;mocks.state="idle";mocks.coverage=undefined;mocks.sectionIndex=0;mocks.page={sectioningTree:{sections:[{sectionId:"p1_s1"}]},versions:{sectioning:1,rendering:1}};mocks.select.mockReset();mocks.queue.mockReset()})
+beforeEach(()=>{mocks.search={};mocks.navigate.mockReset();mocks.pages=[{pageId:"p1",sectioningVersion:1,sectionCount:1,hasRendering:true,sections:[]}];mocks.loading=false;mocks.unsaved=false;mocks.state="idle";mocks.coverage=undefined;mocks.sectionIndex=0;mocks.page={sectioningTree:{sections:[{sectionId:"p1_s1"}]},versions:{sectioning:1,rendering:1}};mocks.select.mockReset();mocks.queue.mockReset()})
 afterEach(cleanup)
 it.each([true,undefined])("retained cancelled/legacy output does not invent Sectioning changes (coverage %s)",(complete)=>{
  mocks.coverage=complete===undefined?undefined:{complete,included:1,rendered:1,missingPages:[],missingSections:[]}
@@ -174,4 +174,26 @@ it("keeps thumbnails waiting while page summaries are still loading", async () =
  render(<StoryboardThumbnailProvider scopeKey="book/page" waitForPreview><PendingThumbnail /><StoryboardIndex bookLabel="book" selectedPageId="p1" /></StoryboardThumbnailProvider>)
  await act(async()=>{await Promise.resolve()})
  expect(screen.getByTestId("thumbnail-admission").textContent).toBe("waiting")
+})
+
+it("waits while the default Storyboard entry auto-selects its first page", async () => {
+ const select=vi.fn()
+ render(<StoryboardThumbnailProvider scopeKey="book/index" waitForPreview><PendingThumbnail /><StoryboardIndex bookLabel="book" onSelectPage={select} /></StoryboardThumbnailProvider>)
+ await act(async()=>{await Promise.resolve()})
+ expect(select).toHaveBeenCalledWith("p1")
+ expect(screen.getByTestId("thumbnail-admission").textContent).toBe("waiting")
+})
+it("waits while a stable section link redirects from the wrong page", async () => {
+ mocks.search={sectionId:"p2_s1"}
+ mocks.pages.push({pageId:"p2",sectioningVersion:1,sectionCount:1,hasRendering:true,sections:[{sectionId:"p2_s1",sectionIndex:0}] as unknown as typeof mocks.pages[0]["sections"]})
+ render(<StoryboardThumbnailProvider scopeKey="book/p1" waitForPreview><PendingThumbnail /><StoryboardIndex bookLabel="book" selectedPageId="p1" /></StoryboardThumbnailProvider>)
+ await act(async()=>{await Promise.resolve()})
+ expect(mocks.navigate).toHaveBeenCalled()
+ expect(screen.getByTestId("thumbnail-admission").textContent).toBe("waiting")
+})
+it("releases a genuinely empty Storyboard index", async () => {
+ mocks.pages=[];mocks.state="done"
+ render(<StoryboardThumbnailProvider scopeKey="book/index" waitForPreview><PendingThumbnail /><StoryboardIndex bookLabel="book" onSelectPage={vi.fn()} /></StoryboardThumbnailProvider>)
+ await act(async()=>{await Promise.resolve()})
+ expect(screen.getByTestId("thumbnail-admission").textContent).toBe("admitted")
 })

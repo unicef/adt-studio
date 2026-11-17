@@ -458,11 +458,16 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       </div>
     )
 
-  useStoryboardPreviewReady(
+  // Index entry and cross-page feedback links still have a main preview to
+  // select. Do not treat the temporarily absent detail as a terminal view.
+  const selectingInitialPage = !selectedPageIdProp && pageList.length > 0 && !showRunCard && !!onSelectPage
+  const redirectingFeedback = hasFeedbackLink && appliedSectionRef.current !== linkKey &&
+    !hasUnsavedChanges && !!linkedLocation && linkedLocation.pageId !== selectedPageIdProp
+  useStoryboardPreviewReady(!selectingInitialPage && !redirectingFeedback && (
     (!pagesLoading && showRunCard && !retainDraftContext) || overviewMode || outlineMode || isQuizRoute ||
     (!pagesLoading && (pageList.length === 0 || (!pageLoading && (!page?.sectioningTree || sectionCount === 0)))) ||
-    (hasFeedbackLink && appliedSectionRef.current !== linkKey && !hasUnsavedChanges && !pagesLoading && !pageLoading && !(search.comment && linkedComments.isPending) && (!linkedLocation || linkedIndex === undefined)),
-  )
+    (hasFeedbackLink && appliedSectionRef.current !== linkKey && !hasUnsavedChanges && !pagesLoading && !pageLoading && !(search.comment && linkedComments.isPending) && (!linkedLocation || linkedIndex === undefined))
+  ))
 
   if (showRunCard && !retainDraftContext) {
     return (
