@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
+import { JSDOM } from "jsdom"
 import { describe, expect, it, beforeEach, afterEach } from "vitest"
 import type { ContentNodeData, PageSectioningSection } from "@adt/types"
 import { createTemplateEngine, renderSectionTemplate } from "../render-template.js"
@@ -555,7 +556,7 @@ describe("two_column_render.liquid", () => {
   })
 })
 
-describe("heading leaves nested in inline containers", () => {
+describe("nested content in the built-in templates", () => {
   const templatesDir = path.resolve(__dirname, "../../../../templates")
   const templates = ["one_column_render", "two_column_render", "two_column_story"]
 
@@ -607,6 +608,31 @@ describe("heading leaves nested in inline containers", () => {
     expect(result.html).toContain(
       '<li><h3 class="adt-h3" data-id="pg001_tx001">Step one</h3> <span data-id="pg001_tx002">Mix the paint.</span></li>',
     )
+  })
+
+  it.each(templates)("%s keeps a nested list inside its parent list item", async (templateName) => {
+    const { html } = await render(templateName, [
+      groupNode("pg001_ls001", "list", [
+        groupNode("pg001_li001", "list_item", [
+          leafNode("pg001_tx001", "section_heading", "Unit 1"),
+          groupNode("pg001_ls002", "list", [
+            groupNode("pg001_li002", "list_item", [
+              leafNode("pg001_tx002", "text", "Lesson 1"),
+            ]),
+          ]),
+        ]),
+        groupNode("pg001_li003", "list_item", [leafNode("pg001_tx003", "text", "Unit 2")]),
+      ]),
+    ])
+
+    const list = JSDOM.fragment(html).querySelector("ul")!
+    const units = list.querySelectorAll(":scope > li")
+    expect(units).toHaveLength(2)
+    expect(units[0].querySelector(":scope > h2")?.textContent).toBe("Unit 1")
+    expect(units[0].querySelector(":scope > ul > li")?.textContent).toBe("Lesson 1")
+    expect(units[1].textContent).toBe("Unit 2")
+    expect(Array.from(list.querySelectorAll("[data-id]"), (el) => el.getAttribute("data-id")))
+      .toEqual(["pg001_tx001", "pg001_tx002", "pg001_tx003"])
   })
 
   it.each(templates)("%s renders a heading inside a table cell semantically", async (templateName) => {
