@@ -1049,6 +1049,28 @@ stale editor protection and the explicitly authorized exception; schema-14
 readers remain compatible. Verification does not grant human or release acceptance.
 This decision remains proposed, with human review pending.
 
+The November 15 packaging amendment tolerates missing content resources,
+unreadable content styles and characters the output format cannot represent when
+the resulting bundle can still open. Build, cache reuse and download apply the
+same policy. Missing resources produce named warnings that survive cache hits;
+unreadable EPUB page content is warned about and retained. Required runtime files,
+path confinement, package origin and ownership proof remain mandatory. Under D2,
+loss of persistent book identity refuses formatted export while retaining live
+Preview, project backup and existing artifacts; no new fresh-export workflow is
+implied.
+
+On November 17 the owner authorized explicit **Recover a copy** for stranded
+books with unverifiable/legacy lock evidence. It refuses known-live owners,
+copies to a distinct label, checks source stability and the copied SQLite
+database, quarantines lock evidence in the copy and records an audit. An
+incomplete copy remains hidden and unusable. The original book and locks are
+untouched; no timeout unlock or claim of safe noncooperating concurrency is added.
+Valid explicit configuration repairs preserve invalid prior YAML byte-for-byte
+inside the book and conservatively revoke readiness. They do not regenerate or
+reset content. Reset itself is a SQLite transaction with lifecycle-file
+invalidation: failed SQL can leave readiness stale, but cannot mark old content
+current or remove history. Non-author approval of these amendments remains open.
+
 ### Alternatives Considered
 
 | Approach | Why not |

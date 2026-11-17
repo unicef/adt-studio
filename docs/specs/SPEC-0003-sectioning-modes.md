@@ -8,7 +8,7 @@ issues: ["#708"]
 prs: ["#884"]
 adr: "docs/DECISIONS.md#025-sectioning-generation-preferences-scoped-reset-and-per-page-publication"
 created: 2026-09-22
-updated: 2026-11-15
+updated: 2026-11-17
 ---
 
 ## Authorized product amendment (review pending)
@@ -112,9 +112,12 @@ only the affected completion claims. Do not delete history, physical media or
 Sectioning. Cancel before confirmation/admission changes nothing. After commit,
 the reset is intentional and survives cancellation, failure or restart; old
 Storyboard stays recoverable in history, not active input. SQLite transaction
-rollback leaves the entire reset unchanged. No second filesystem reset journal is
-needed for this database-only transaction. The configuration journal remains for
-cross-file/database recovery of earlier transitions.
+rollback leaves the SQLite reset unchanged. Completion invalidation also writes
+`.sectioning-lifecycle.json` before deleting completion records; a later SQL
+failure may leave that informational readiness conservatively stale. It never
+certifies old output as current. No second reset journal is needed: SQLite owns
+entity/selection atomicity and lifecycle state is informational. The configuration
+journal remains for cross-file/database recovery of configuration transitions.
 
 Editable activities are part of that page's Storyboard reset, including enabled
 step-by-step answers. Bind their selected version to consent and reject stale
@@ -309,6 +312,21 @@ Studio handling in en, pt-BR, es, fr and sq. Obsolete mode-gate errors are remov
 
 ## Revised acceptance criteria
 
+### November 17 recovery and repair clarification (owner-authorized; review pending)
+
+Stranded books with unverifiable or legacy lock owners have an explicit **Recover
+a copy** action. Refuse known-live owners. Preserve the original directory and all
+lock evidence, copy to a new user-visible label, verify source stability and the
+copied SQLite database, and retain quarantined lock evidence plus an audit in the
+copy. Incomplete copies remain hidden/refused. This does not silently unlock the
+original, delete ambiguous locks by time, or make noncooperating writers safe.
+Valid explicit configuration repairs preserve the invalid original YAML inside
+the book and revoke readiness conservatively, without generation or content reset.
+Generation guards compare relevant settings; unrelated downstream/scheduling
+settings do not invalidate Sectioning or Storyboard results.
+
+### Criteria
+
 Original AC-1–26 are preserved and individually mapped below. Unchecked boxes
 retain pending human acceptance; passing verification does not grant approval.
 
@@ -380,6 +398,41 @@ Separate these from paid providers, signed releases and full cross-platform GUI.
 Keep raw logs and review reports outside version control. Record concise commands,
 results, tested commits and verification limits in the PR discussion, including
 hosted CI for the published commit. ADR 025 and spec approval remain pending.
+
+## Test plan
+
+Test titles carry `RAC-n` tags at the relevant behavior boundary. Tags identify
+coverage, not human approval. All Vitest files below run under `pnpm test`; API
+and pipeline suites use real SQLite/filesystem with deterministic provider stubs.
+The existing `i18n` CI job separately checks extraction, lint and strict compilation
+of `en`, `pt-BR`, `es`, `fr` and `sq`; English macro-mocked tests alone do not prove
+translation completeness or quality.
+
+| Criterion | Automated coverage and boundary |
+|---|---|
+| RAC-1 | `packages/pipeline/src/__tests__/page-sectioning.test.ts`: invalid By Page cache eviction, feedback retry and valid-cache transport reuse. |
+| RAC-2/3 | `apps/api/src/services/sectioning-existing-book.test.ts`: older saved trees of varying cardinality, both modes, no lifecycle initialization; history first-open/repair controls remain in storage tests. |
+| RAC-4 | Same file's real batch HTTP missing/null/unreadable inputs; fixed inputs and active part windows in `storyboard-publication.test.ts` and `sectioning-reset-readers.test.ts`. |
+| RAC-5 | Existing-book mode matrix and `routes/manual-edit-survival.test.ts`: missing-only ordinary runs retain AI/manual/unknown records and neighbors. |
+| RAC-6 | Existing-book exact receipts, duplicate/outside-stage/outside-window controls, queued execution and cross-book rejection; Studio replacement-dialog tests cover default-off/cancel behavior. |
+| RAC-7 | `packages/pipeline/src/__tests__/sectioning-reset-crash.test.ts` invokes the real reset probe in CI: injected rollback, SIGKILL inside/after commit, retained media/history and ambiguous-lock refusal. Existing-book failure/cancellation tests cover committed reset. |
+| RAC-8 | Existing-book Dynamic↔By Page tests exercise explicit regeneration then split, add, clone, merge, delete and Storyboard through actual routes, retaining neighbors/media and rejecting positional reuse. Dialog tests cover cancellation before submission. |
+| RAC-9/10 | `sectioning-preflight-runners.test.ts` and existing-book loopback HTTP controls: early page visibility, later failure/Skip/cancellation, stale input refusal and retained previous output. |
+| RAC-11 | `storyboard-publication.test.ts`: full-window layout switches, fixed-tree retirement, failed/partial/targeted switch refusal and transactional rollback. |
+| RAC-12/13 | Existing-book partial-render test checks page, Library, stage and export disclosure; package/export tests check retained output and bounded owner warnings. |
+| RAC-14 | `sectioning-lifecycle.test.ts`: inheritance/override removal, preference/no-op saves, config journal faults and unchanged attempts/content; invalid prior config repair is separately conservative. |
+| RAC-15 | Reset crash test, `sectioning-book-writer.test.ts`, `book-recovery-copy.test.ts` and lifecycle tests cover same/cross-process admission, killed transactions/copies, live/unknown-owner distinction and preserved evidence. |
+| RAC-16 | `apps/studio/src/lib/sectioning-error.test.ts` checks typed HTTP/SSE mapping and bounded parameters; CI `i18n` verifies all five catalogs. Human terminology, focus/keyboard and translation review remain distinct. |
+| RAC-17 | `pipeline-dag-page-range.test.ts`, `cli-invalid-pdf.test.ts` and preflight tests cover actual fresh CLI/DAG windows and existing-book refusal without provider calls/source replacement. B2/automatic merge/full CLI resume remain excluded. |
+| RAC-18 | `history-recovery.test.ts`, manual-edit survival, Storyboard draft and editable-activity conflict suites cover exact-byte audited repair, IDs, current selection, successor drafts and full-activity conflict choices. SPEC-0001 legacy-owner and SPEC-0002 D1–D6 qualifications remain unchanged. |
+| RAC-19 | `routes/package.test.ts`, `export-service.test.ts`, CSS/resource/XML suites: malformed CSS across build/cache/export and supported import, warning persistence, ownership/path constraints, D2 and `PACKAGE_INPUTS_CHANGED` retaining the old bundle. |
+
+Run `pnpm typecheck`, `pnpm --filter @adt/runtime typecheck`, `pnpm lint`,
+`pnpm --filter @adt/studio extract`, `pnpm --filter @adt/studio exec lingui compile --strict`,
+then `pnpm test --maxWorkers=2`. Platform-specific skips and their separate Linux
+evidence must be reported for the exact tested head. These commands do not certify
+Windows, hardened Electron GUI, external LMS/SCORM hosting, signed releases or
+non-author specification/PR approval.
 
 ### Fixed-layout input qualification
 
