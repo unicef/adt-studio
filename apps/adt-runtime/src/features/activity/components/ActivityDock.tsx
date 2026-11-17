@@ -13,15 +13,16 @@ import { embedModeAtom } from "@/shared/state/ui.atoms";
 
 export function ActivityDock() {
   const { t } = useTranslation();
-  const { isCompact, shouldHide, isTop } = useDockContext();
+  const { isCompact, shouldHide, isTop, isVertical } = useDockContext();
   const activityMode = useAtomValue(activityModeAtom);
   const embed = useAtomValue(embedModeAtom);
   const submitState = useAtomValue(submitStateAtom);
   const submitVisible = useAtomValue(submitVisibleAtom);
   // In embed mode the BottomDock is hidden, so sit flush near the edge
   // instead of leaving room above the (absent) reader dock.
+  // A side rail leaves the bottom edge free, so the pill sits near it too.
   const topClassname = embed ? "top-3" : isCompact ? "top-21" : "top-18";
-  const bottomClassname = embed ? "bottom-3" : isCompact ? "bottom-21" : "bottom-18";
+  const bottomClassname = embed || isVertical ? "bottom-3" : isCompact ? "bottom-21" : "bottom-18";
 
   const showPill =
     activityMode && submitVisible && !(embed && submitState === "next");
@@ -44,11 +45,14 @@ export function ActivityDock() {
         "shadow-lg ring-1 ring-border",
         "transition-all duration-200 ease-out will-change-transform",
         "rounded-2xl",
-        "fixed z-[56] h-auto left-0 right-0 mx-auto",
+        "fixed z-[56] h-auto mx-auto",
         isTop ? topClassname : bottomClassname,
         shouldHide && "opacity-0 pointer-events-none",
         shouldHide && (isTop ? "-translate-y-[150%]" : "translate-y-[150%]"),
       )}
+      // Centred over the book, not the window: clear of a dock rail or a
+      // drawer that pushes the page aside.
+      style={{ left: "var(--adt-inset-left, 0px)", right: "var(--adt-inset-right, 0px)" }}
       aria-label={t("dock-label") || "Activity controls"}
     >
       <DockActivityActions />

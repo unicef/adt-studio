@@ -1576,6 +1576,59 @@ describe("packageAdtWeb", () => {
     ])
   })
 
+  it("ships the reader UI in config.json and bakes its tokens into the stylesheet", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const readerUi = {
+      layout: { dock_position: "left" as const, panel_style: "drawer" as const, panel_behavior: "push" as const },
+      light: { primary: "#0f5c5c", accent: "#cfeeee" },
+      radius: 1,
+    }
+    await packageAdtWeb(createMinimalStorage(), {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book",
+      webAssetsDir,
+      readerUi,
+    })
+
+    const configJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
+    ) as { readerUi?: unknown }
+    expect(configJson.readerUi).toEqual(readerUi)
+
+    const css = fs.readFileSync(path.join(bookDir, "adt", "content", "tailwind_output.css"), "utf-8")
+    expect(css).toContain("--primary: #0f5c5c;")
+    expect(css).toContain("--radius: 1rem;")
+  })
+
+  it("omits readerUi when the reader UI customizes nothing", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    await packageAdtWeb(createMinimalStorage(), {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book",
+      webAssetsDir,
+      readerUi: { layout: {}, light: {} },
+    })
+
+    const configJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
+    ) as Record<string, unknown>
+    expect(configJson.readerUi).toBeUndefined()
+  })
+
   it("omits defaultSettings and lockedSettings when not provided", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")

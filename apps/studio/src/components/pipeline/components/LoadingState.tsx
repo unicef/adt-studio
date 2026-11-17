@@ -393,6 +393,7 @@ const STAGE_SVGS = {
   translate: TranslateSvg,
   speech: SpeechSvg,
   validation: ValidationSvg,
+  reader: PreviewSvg,
   preview: PreviewSvg,
   export: ExportSvg,
 } satisfies Record<string, (props: SvgProps) => ReactNode>

@@ -95,7 +95,7 @@ export function CommentsHint({
       data-comments-hint=""
       style={{ position: "fixed", ...place }}
       className={
-        "z-[60] w-64 rounded-xl bg-popover p-3.5 pr-9 text-left text-popover-foreground shadow-xl ring-1 ring-black/10 duration-300 animate-in fade-in-0 motion-reduce:animate-none " +
+        "z-[60] w-64 rounded-xl bg-popover p-3.5 pr-9 text-left text-popover-foreground shadow-xl ring-1 ring-border duration-300 animate-in fade-in-0 motion-reduce:animate-none " +
         (above ? "slide-in-from-bottom-2" : "slide-in-from-top-2")
       }
     >

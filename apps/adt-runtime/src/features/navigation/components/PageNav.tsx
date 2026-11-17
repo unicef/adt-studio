@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import {
   currentPageNumberAtom,
   currentSectionIdAtom,
@@ -12,6 +12,8 @@ import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { textDirectionAtom } from "@/features/language/state/language.atoms";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
 import { navigateToPage } from "@/features/navigation/lib/page-swap"
+import { useDockContext } from "@/features/dock/context/dock-context";
+import { cn } from "@/shared/lib/utils";
 
 /**
  * Section IDs encode their page range, e.g.:
@@ -59,8 +61,10 @@ export function PageNav() {
   // The row follows the document direction, so in a right-to-left book "next"
   // sits on the left. Each chevron points the way its button turns the page.
   const rtl = useAtomValue(textDirectionAtom) === "rtl";
-  const NextIcon = rtl ? ChevronLeft : ChevronRight;
-  const PrevIcon = rtl ? ChevronRight : ChevronLeft;
+  // On a vertical rail the buttons stack, previous above next.
+  const { isVertical } = useDockContext();
+  const NextIcon = isVertical ? ChevronDown : rtl ? ChevronLeft : ChevronRight;
+  const PrevIcon = isVertical ? ChevronUp : rtl ? ChevronRight : ChevronLeft;
 
   const idx = pages.findIndex((p) => p.section_id === currentSectionId);
   const prev = idx > 0 ? pages[idx - 1] : undefined;
@@ -87,12 +91,13 @@ export function PageNav() {
   };
 
   return (
-    <div className="flex items-center gap-0.5 px-1">
+    <div className={cn("flex items-center gap-0.5", isVertical ? "flex-col py-1" : "px-1")}>
       <DockIconButton
         ariaLabel={t("next-page") || "Next page"}
         disabled={!next}
         onClick={() => go(next?.href)}
         className="order-4"
+        iconPosition={isVertical ? "start" : "end"}
       >
         <NextIcon />
       </DockIconButton>
@@ -105,9 +110,15 @@ export function PageNav() {
           a newly introduced Tailwind class is absent from books already built.
           `dir="ltr"` keeps "page / total" in that order in a right-to-left
           book, where the flex row would otherwise show it as "total / page". */}
-      <div dir="ltr" className="order-3 min-w-12 flex text-base tabular-nums px-2 text-foreground/80 select-none">
+      <div
+        dir="ltr"
+        className={cn(
+          "order-3 flex tabular-nums text-popover-foreground/80 select-none",
+          isVertical ? "flex-col items-center text-sm leading-tight" : "min-w-12 text-base px-2",
+        )}
+      >
         <span
-          className="font-medium text-foreground text-right"
+          className={cn("font-medium text-popover-foreground", isVertical ? "text-center" : "text-right")}
           style={{ minWidth: `${String(totalPages || 1).length}ch` }}
         >
           {pageNumber ?? ""}

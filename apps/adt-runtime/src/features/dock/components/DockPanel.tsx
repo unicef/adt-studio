@@ -5,15 +5,20 @@ import { useIsMobile } from "@/shared/hooks/use-is-mobile"
 import { useDockContext } from "@/features/dock/context/dock-context"
 import { getChromePortalContainer } from "@/shared/lib/chrome-portal"
 import { useRemountOnPageSwap } from "@/features/dock/hooks/useRemountOnPageSwap"
+import { useAtomValue } from "jotai"
+import { readerLayoutAtom } from "@/shared/state/ui.atoms"
+import { DockDrawer } from "@/features/dock/components/DockDrawer"
 
 interface DockPanelProps {
   open: boolean
   onClose: () => void
   anchor?: React.RefObject<HTMLElement | null>
-  side?: "top" | "bottom"
+  side?: "top" | "bottom" | "left" | "right"
   children: React.ReactNode
   mobileVariant?: "sheet" | "inline"
   persistent?: boolean
+  /** Accessible name; shown as the heading of a drawer. */
+  label?: string
 }
 
 function InlineBar({ children }: { children: React.ReactNode }) {
@@ -39,11 +44,31 @@ function DockPanel({
   children,
   mobileVariant = "sheet",
   persistent = false,
+  label,
 }: DockPanelProps) {
   const isMobile = useIsMobile()
+  const layout = useAtomValue(readerLayoutAtom)
+  // The author's Reader-step layout can turn panels into side drawers on
+  // desktop. Persistent panels (the read-aloud player) stay where they are:
+  // they are a control strip, not a panel to read in.
+  const asDrawer = !isMobile && !persistent && layout.panel_style === "drawer"
   // Persistent panels ignore outside presses anyway, and the mobile sheet is
   // a modal with its own backdrop, so only the desktop popover needs it.
-  const swap = useRemountOnPageSwap(open && !isMobile && !persistent)
+  const swap = useRemountOnPageSwap(open && !isMobile && !persistent && !asDrawer)
+
+  if (asDrawer) {
+    return (
+      <DockDrawer
+        open={open}
+        onClose={onClose}
+        side={layout.panel_side}
+        behavior={layout.panel_behavior}
+        label={label}
+      >
+        {children}
+      </DockDrawer>
+    )
+  }
 
   if (isMobile && mobileVariant === "inline") {
     if (!open) return null

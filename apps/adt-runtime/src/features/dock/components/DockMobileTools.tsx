@@ -63,7 +63,7 @@ export function DockMobileTools({
                   className={cn(
                     "flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-xl p-3 text-center transition-colors",
                     tileWidth,
-                    "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
+                    "text-popover-foreground/80 hover:bg-accent hover:text-accent-foreground",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     tool.active && "bg-accent text-accent-foreground",
                   )}

@@ -51,9 +51,9 @@ export function Eli5Popup() {
                   type="button"
                   aria-label={eli5Label}
                   title={eli5Label}
-                  className="fixed bottom-[18rem] right-4 w-12 h-12 flex items-center justify-center rounded-full bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/40 dark:hover:bg-yellow-900/60 focus:outline-none focus:ring-4 focus:ring-blue-500 dark:focus:ring-blue-400 shadow-lg z-[55]"
+                  className="fixed bottom-[18rem] right-4 w-12 h-12 flex items-center justify-center rounded-full bg-accent hover:bg-accent/80 focus:outline-none focus:ring-4 focus:ring-blue-500 dark:focus:ring-blue-400 shadow-lg z-[55]"
                 >
-                  <Sparkles className="w-6 h-6 text-yellow-600 dark:text-yellow-300" aria-hidden="true" />
+                  <Sparkles className="w-6 h-6 text-accent-foreground" aria-hidden="true" />
                 </button>
               }
             />
@@ -64,7 +64,7 @@ export function Eli5Popup() {
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="text-3xl rounded-full bg-yellow-100 dark:bg-yellow-900/40 w-12 h-12 flex items-center justify-center">
+            <span className="text-3xl rounded-full bg-accent w-12 h-12 flex items-center justify-center">
               ✨
             </span>
             <span className="sr-only">{t("eli5-label") || "Explain to me"}</span>

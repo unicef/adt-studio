@@ -94,6 +94,9 @@ describe("contents search across an in-place page turn", () => {
             isTop: false,
             isCompact: true,
             shouldHide: false,
+            isVertical: false,
+            edge: "bottom",
+            buttonStyle: "icon",
           }}
         >
           <BookMetadata />

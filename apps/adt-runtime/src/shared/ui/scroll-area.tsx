@@ -75,7 +75,6 @@ function ScrollAreaBar({
       <BaseScrollArea.Thumb
         className={cn(
           "rounded-full bg-foreground/25 hover:bg-foreground/45 active:bg-foreground/60",
-          "dark:bg-foreground/30 dark:hover:bg-foreground/50",
           "transition-colors duration-150 motion-reduce:transition-none",
           orientation === "vertical" ? "w-full" : "h-full",
         )}

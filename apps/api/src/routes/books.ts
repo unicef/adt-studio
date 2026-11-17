@@ -15,6 +15,7 @@ import {
   AppConfig,
   type BookConfigSaveReceipt,
   type AiModality,
+  ReaderUiConfig,
 } from "@adt/types"
 import {
   AiProviderError,
@@ -106,6 +107,9 @@ const BookConfigUpdateRequest = z.object({
       default_model: LLMModelId.optional(),
       default_image_generation_model: LLMModelId.optional(),
       default_speech_generation_model: SpeechGenerationModelId.optional(),
+      // Written into every bundle's CSS and config.json, so reject anything
+      // that is not a well-formed reader UI before it reaches disk.
+      reader_ui: ReaderUiConfig.optional(),
     })
     .passthrough(),
 })

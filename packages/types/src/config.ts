@@ -6,6 +6,7 @@ import { CoreTtsConfig } from "./core-tts.js"
 import { ReviewerValidationConfig } from "./reviewer-validation-config.js"
 import { TranslationEvaluationConfig } from "./translation-evaluation.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
+import { ReaderUiConfig } from "./reader-ui-schema.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
 export const DEFAULT_LLM_MODEL_ID = "openai:gpt-5.4"
@@ -397,6 +398,12 @@ export const AppConfig = z
     locked_settings: z
       .array(z.enum(["dockLayout", "theme", "iconSize", "reduceMotion"]))
       .optional(),
+    /**
+     * Reader chrome customization (colours, radius, font, dock and panel
+     * layout) chosen in Studio's Reader step. Packaged into the bundle's
+     * `config.json` as `readerUi`; see `reader-ui.ts`.
+     */
+    reader_ui: ReaderUiConfig.optional(),
     accessibility_assessment: AccessibilityAssessmentConfig.optional(),
     reviewer_validation: ReviewerValidationConfig.optional(),
     translation_evaluation: TranslationEvaluationConfig.optional(),

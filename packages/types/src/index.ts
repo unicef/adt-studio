@@ -779,3 +779,37 @@ export { SourceGeneratorStep, SourceGenerationPolicy, SourceGenerationState, Sou
 export { BookConfigSaveReceipt } from "./book-config-save.js"
 
 export { type TextDirection, getTextDirection } from "./text-direction.js"
+export {
+  READER_COLOR_TOKENS,
+  READER_DOCK_POSITIONS,
+  READER_DOCK_WIDTHS,
+  READER_DOCK_ALIGNS,
+  READER_PANEL_STYLES,
+  READER_PANEL_SIDES,
+  READER_PANEL_BEHAVIORS,
+  READER_BUTTON_STYLES,
+  READER_FONTS,
+  READER_RADIUS_MIN,
+  READER_RADIUS_MAX,
+  DEFAULT_READER_RADIUS,
+  DEFAULT_READER_LAYOUT,
+  DEFAULT_READER_COLORS,
+  READER_FONT_STACKS,
+  buildReaderUiCss,
+  resolveReaderUiLayout,
+  hasReaderUiCustomization,
+  isSafeReaderCssColor,
+  type ReaderUi,
+  type ReaderUiLayout,
+  type ReaderColorToken,
+  type ReaderColorTokens,
+  type ReaderDockPosition,
+  type ReaderDockWidth,
+  type ReaderDockAlign,
+  type ReaderPanelStyle,
+  type ReaderPanelSide,
+  type ReaderPanelBehavior,
+  type ReaderButtonStyle,
+  type ReaderFont,
+} from "./reader-ui.js"
+export { ReaderUiConfig, ReaderUiLayoutSchema, ReaderColorTokensSchema, ReaderCssColor } from "./reader-ui-schema.js"

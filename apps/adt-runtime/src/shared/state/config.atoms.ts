@@ -2,6 +2,7 @@
  * App config atoms — backed by `assets/config.json` fetched on boot.
  * The shape mirrors what the legacy runtime stashed on `window.appConfig`.
  */
+import type { ReaderUi } from "@adt/types/reader-ui"
 import { ephemeralAtom } from "@/shared/state/persist"
 
 export interface AppFeatures {
@@ -70,6 +71,11 @@ export interface AppConfig {
   analytics?: AppAnalytics
   defaultSettings?: DefaultSettings
   lockedSettings?: LockableSetting[]
+  /**
+   * Reader chrome customization chosen in Studio's Reader step (colours,
+   * radius, font, dock + panel layout). See `@adt/types/reader-ui`.
+   */
+  readerUi?: ReaderUi
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -83,5 +89,7 @@ export function isSettingLocked(
   config: AppConfig,
   key: LockableSetting,
 ): boolean {
+  // A book whose author designed the reader layout ships that layout only.
+  if (key === "dockLayout" && config.readerUi?.layout) return true
   return config.lockedSettings?.includes(key) === true
 }

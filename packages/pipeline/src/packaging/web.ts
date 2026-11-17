@@ -42,6 +42,7 @@ import {
   primaryFontFamily,
 } from "@adt/types"
 import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
+import { buildReaderUiCss, hasReaderUiCustomization, type ReaderUi } from "@adt/types"
 import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
 import {
   bundleBookFontsIntoCss,
@@ -109,6 +110,8 @@ export interface PackageAdtWebOptions {
     reduceMotion?: boolean
   }
   lockedSettings?: ("dockLayout" | "theme" | "iconSize" | "reduceMotion")[]
+  /** Reader chrome customization; defaults to `config.reader_ui`. */
+  readerUi?: ReaderUi
   fixedLayout?: boolean
   /** `reflowable_font` config value (font id or "auto"). Selects the reflowable
    *  base font; ignored for fixed-layout books. */
@@ -207,7 +210,7 @@ export function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 17
+const PACKAGING_FORMAT_VERSION = 19
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -1010,6 +1013,12 @@ export async function packageAdtWeb(
   if (fixedLayout) {
     configJson.fixedLayout = true
   }
+  // Reader chrome customization from the Studio "Reader" step. Only the
+  // variation the author chose ships; the runtime has no picker for it.
+  const readerUi = options.readerUi ?? options.config?.reader_ui
+  if (hasReaderUiCustomization(readerUi)) {
+    configJson.readerUi = readerUi
+  }
 
   // ------------------------------------------------------------------
   // Copy web assets
@@ -1047,7 +1056,12 @@ export async function packageAdtWeb(
   // Build Tailwind CSS
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Building Tailwind CSS..." })
-  await buildTailwindCss(adtDir, webAssetsDir, typographyCss)
+  // The reader UI tokens are baked in too, so the chrome paints in the book's
+  // colours from the first frame instead of flashing the defaults until the
+  // runtime has fetched config.json.
+  const readerUiCss = buildReaderUiCss(hasReaderUiCustomization(readerUi) ? readerUi : undefined)
+  const stylesheetSuffix = [typographyCss, readerUiCss].filter(Boolean).join("\n") || undefined
+  await buildTailwindCss(adtDir, webAssetsDir, stylesheetSuffix)
 
   // ------------------------------------------------------------------
   // SCORM + Offline support
@@ -1319,13 +1333,26 @@ function fixedLayoutWebFit(dockReserveFallbackPx: number): { headStyle: string; 
           var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-height"));
           return v > 0 ? v : FALLBACK;
         }
+        // Horizontal chrome (a side dock rail, a drawer that pushes the book)
+        // is published by the runtime as --adt-inset-left/right.
+        function inset(name) {
+          var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+          return v > 0 ? v : 0;
+        }
         function fit() {
           var DOCK = dock();
-          var byW = window.innerWidth / refW;
+          var L = inset("--adt-inset-left");
+          var R = inset("--adt-inset-right");
+          var availW = Math.max(1, window.innerWidth - L - R);
+          var byW = availW / refW;
           var byH = (window.innerHeight - DOCK) / H;
           var s = Math.min(${FIXED_LAYOUT_MAX_SCALE}, byW, byH > 0 ? byH : byW);
           c.style.position = "absolute";
-          c.style.left = "50%";
+          // With chrome on a side the runtime turns <body> into a fixed box
+          // between the insets, which then contains #content: its centre is
+          // already the book's. Otherwise centre in the window, offset by them.
+          var bodyBox = getComputedStyle(document.body).position !== "static";
+          c.style.left = bodyBox ? "50%" : "calc(50% + " + (L - R) / 2 + "px)";
           c.style.top = "calc((100% - " + DOCK + "px) / 2)";
           c.style.margin = "0";
           c.style.transformOrigin = "center center";

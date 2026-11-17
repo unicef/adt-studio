@@ -59,6 +59,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* Equal to Tailwind's 1rem at the default radius; follows a customised
+     --radius in the reader chrome (Studio Reader step). */
+  --radius-2xl: calc(var(--radius) + 6px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -135,6 +138,65 @@ body[nav-position] {
 }
 body[data-activity-dock] {
   --adt-chrome-inset: calc(var(--nav-height) + 3.75rem);
+}
+
+/*
+ * Reader layouts from the Studio Reader step.
+ *
+ * A dock on the left or right edge is a vertical rail: the page keeps its full
+ * height and gives up the rail's width instead. A drawer panel in "push" mode
+ * takes its width the same way. `chrome-insets.ts` publishes the totals on
+ * <html> as --adt-inset-left/right and flags <body> with data-adt-insets; the
+ * fixed-layout fit script reads the same variables.
+ */
+body[nav-position="left"],
+body[nav-position="right"] {
+  --adt-chrome-inset: 0px;
+}
+body[nav-position="left"][data-activity-dock],
+body[nav-position="right"][data-activity-dock] {
+  --adt-chrome-inset: 4.5rem;
+  padding-bottom: 4.5rem;
+}
+/*
+ * While chrome claims a side, <body> becomes the book's own viewport: a fixed
+ * box between the insets that scrolls itself. Both scrollbars then sit over
+ * the book instead of spanning the rail or drawer, and a page wider than the
+ * space left scrolls sideways inside it. <html> stops scrolling (and stops
+ * reserving a scrollbar gutter) so the body's overflow is not propagated to
+ * the window. `chrome-insets.ts` carries the scroll position across the switch.
+ */
+html:has(> body[data-adt-insets]) {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+body[data-adt-insets] {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: var(--adt-inset-left, 0px);
+  right: var(--adt-inset-right, 0px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+@media (prefers-reduced-motion: no-preference) {
+  body[data-adt-insets] {
+    transition: left 200ms ease-out, right 200ms ease-out;
+  }
+  .adt-dock-drawer[data-drawer-side="left"] {
+    animation: adt-drawer-in-left 200ms ease-out;
+  }
+  .adt-dock-drawer[data-drawer-side="right"] {
+    animation: adt-drawer-in-right 200ms ease-out;
+  }
+}
+@keyframes adt-drawer-in-left {
+  from { transform: translateX(-100%); opacity: 0.6; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes adt-drawer-in-right {
+  from { transform: translateX(100%); opacity: 0.6; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 /*

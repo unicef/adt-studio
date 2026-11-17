@@ -288,12 +288,17 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
     }
 
     document.addEventListener("pointermove", onPointerMove, { passive: true })
-    window.addEventListener("scroll", onScroll, { passive: true })
+    // Capture on the document: the book scrolls in <body> while a side rail or
+    // pushing drawer is open (chrome-insets), and element scrolls don't bubble.
+    const onPageScroll = (event: Event): void => {
+      if (event.target === document || event.target === document.body) onScroll()
+    }
+    document.addEventListener("scroll", onPageScroll, { passive: true, capture: true })
     document.addEventListener("pointerleave", onPointerGone)
     window.addEventListener("blur", onPointerGone)
     return () => {
       document.removeEventListener("pointermove", onPointerMove)
-      window.removeEventListener("scroll", onScroll)
+      document.removeEventListener("scroll", onPageScroll, { capture: true })
       document.removeEventListener("pointerleave", onPointerGone)
       window.removeEventListener("blur", onPointerGone)
       if (timer !== null) window.clearTimeout(timer)
@@ -367,10 +372,13 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
     }
 
     schedule()
-    window.addEventListener("scroll", schedule, { passive: true })
+    const onPageScroll = (event: Event): void => {
+      if (event.target === document || event.target === document.body) schedule()
+    }
+    document.addEventListener("scroll", onPageScroll, { passive: true, capture: true })
     window.addEventListener("resize", schedule, { passive: true })
     return () => {
-      window.removeEventListener("scroll", schedule)
+      document.removeEventListener("scroll", onPageScroll, { capture: true })
       window.removeEventListener("resize", schedule)
       if (timer !== null) window.clearTimeout(timer)
     }

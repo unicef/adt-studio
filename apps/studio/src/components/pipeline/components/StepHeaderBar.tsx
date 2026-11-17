@@ -25,7 +25,7 @@ export function StepHeaderBar({
   return (
     <div
       className={cn(
-        "shrink-0 h-10 px-4 flex items-center gap-3 text-white drag-region",
+        "relative shrink-0 h-10 px-4 flex items-center gap-3 text-white drag-region",
         color,
         hasWindowControls && platform !== "macos" && "pr-0",
         className,

@@ -5,56 +5,80 @@ import {
   type DockSide,
 } from "@/features/dock/context/dock-context";
 import {
-  dockAlignAtom,
   dockHiddenAtom,
   dockMenuValueAtom,
-  dockPositionAtom,
-  dockWidthAtom,
+  effectiveDockLayoutAtom,
   iconSizeAtom,
+  readerLayoutAtom,
   reduceMotionAtom,
-  type DockAlign,
-  type DockPosition,
-  type DockWidth,
   type IconSize,
 } from "@/shared/state/ui.atoms";
 import { AudioPlayerProvider } from "@/features/audio/hooks/AudioPlayerContext";
 import { useAutoHideDock } from "@/features/dock/hooks/useAutoHideDock";
 import { useDockShortcuts } from "@/features/dock/hooks/useDockShortcuts";
 import { useKeyboardPageNav } from "@/features/navigation/hooks/useKeyboardPageNav";
+import { useIsMobile } from "@/shared/hooks/use-is-mobile";
+import { clearChromeInset, setChromeInset } from "@/shared/lib/chrome-insets";
 
 interface DockProps {
   children: ReactNode;
 }
 
+const OPPOSITE: Record<DockSide, DockSide> = {
+  top: "bottom",
+  bottom: "top",
+  left: "right",
+  right: "left",
+};
+
 export function Dock({ children }: DockProps) {
   const dockRef = useRef<HTMLDivElement>(null);
-  const position = useAtomValue(dockPositionAtom) as DockPosition;
-  const width = useAtomValue(dockWidthAtom) as DockWidth;
-  const align = useAtomValue(dockAlignAtom) as DockAlign;
+  const layout = useAtomValue(effectiveDockLayoutAtom);
   const hidden = useAtomValue(dockHiddenAtom);
   const menuValue = useAtomValue(dockMenuValueAtom);
   const iconSize = useAtomValue(iconSizeAtom) as IconSize;
   const reduceMotion = useAtomValue(reduceMotionAtom);
+  const isMobile = useIsMobile();
+  const readerLayout = useAtomValue(readerLayoutAtom);
+  // A phone bar has no room for names.
+  const buttonStyle = isMobile ? "icon" : readerLayout.button_style;
 
   useAutoHideDock(dockRef);
   useKeyboardPageNav();
   useDockShortcuts();
 
-  const isTop = position === "top";
-  const isCompact = width === "compact";
-  const isSpread = align === "spread";
+  // A side rail needs a desktop's width; phones keep the bottom bar.
+  const edge: DockSide =
+    isMobile && (layout.position === "left" || layout.position === "right")
+      ? "bottom"
+      : layout.position;
+  const isVertical = edge === "left" || edge === "right";
+  const isTop = edge === "top";
+  const isCompact = layout.width === "compact";
+  const isSpread = layout.align === "spread";
   const shouldHide = hidden && menuValue === "";
-  const popoverSide: DockSide = isTop ? "bottom" : "top";
+  const popoverSide: DockSide = OPPOSITE[edge];
 
   useLayoutEffect(() => {
     const el = dockRef.current;
     if (!el) return;
     const update = () => {
       const rect = el.getBoundingClientRect();
-      document.documentElement.style.setProperty("--dock-width", `${rect.width}px`);
-      // --dock-height + event let fixed-layout pages reserve the dock band and
-      // re-fit (the fit script runs before the dock mounts; see package-web.ts).
-      document.documentElement.style.setProperty("--dock-height", `${rect.height}px`);
+      const root = document.documentElement.style;
+      if (isVertical) {
+        // A rail takes width, not height: the book keeps its full height and
+        // gives up the rail's band (plus the compact rail's float gap).
+        const gap = isCompact ? 12 : 0;
+        root.setProperty("--dock-width", `${rect.width}px`);
+        root.setProperty("--dock-height", "0px");
+        setChromeInset("rail", edge as "left" | "right", rect.width + gap * 2);
+      } else {
+        root.setProperty("--dock-width", `${rect.width}px`);
+        // --dock-height + event let fixed-layout pages reserve the dock band and
+        // re-fit (the fit script runs before the dock mounts; see package-web.ts).
+        root.setProperty("--dock-height", `${rect.height}px`);
+        clearChromeInset("rail");
+      }
       window.dispatchEvent(new Event("adt:dock-resize"));
     };
     update();
@@ -64,11 +88,12 @@ export function Dock({ children }: DockProps) {
       ro.disconnect();
       document.documentElement.style.removeProperty("--dock-width");
       document.documentElement.style.removeProperty("--dock-height");
+      clearChromeInset("rail");
     };
-  }, []);
+  }, [edge, isVertical, isCompact]);
 
   useLayoutEffect(() => {
-    document.body.setAttribute("nav-position", isTop ? "top" : "bottom");
+    document.body.setAttribute("nav-position", edge);
     if (!isCompact) {
       document.body.setAttribute("nav-size", "full");
     } else {
@@ -78,7 +103,7 @@ export function Dock({ children }: DockProps) {
       document.body.removeAttribute("nav-position");
       document.body.removeAttribute("nav-size");
     };
-  }, [isCompact, isTop]);
+  }, [isCompact, edge]);
 
   useLayoutEffect(() => {
     document.body.setAttribute("icon-size", iconSize);
@@ -100,6 +125,9 @@ export function Dock({ children }: DockProps) {
           isTop,
           isCompact,
           shouldHide,
+          isVertical,
+          edge,
+          buttonStyle,
         }}
       >
         {children}

@@ -33,6 +33,7 @@ import {
 import { useBookRun } from "@/hooks/use-book-run"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { useBook, usePackageAdtStatus } from "@/hooks/use-books"
+import { useBookConfig } from "@/hooks/use-book-config"
 import { getSourcePdfUrl } from "@/api/client"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { usePages, usePageImage } from "@/hooks/use-pages"
@@ -72,6 +73,7 @@ export function BookView({ bookLabel }: ViewProps) {
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
+  const { data: bookConfigData } = useBookConfig(bookLabel)
   const { tasks } = useBookTasks(bookLabel)
   const validationCompleted = Boolean(accessibilityAssessment?.assessment)
   const signLanguageCompleted =
@@ -83,6 +85,7 @@ export function BookView({ bookLabel }: ViewProps) {
   const completionOverrides: Record<string, boolean> = {
     "sign-language": signLanguageCompleted,
     validation: validationCompleted,
+    reader: Boolean(bookConfigData?.config?.reader_ui),
     preview: previewCompleted,
     export: exportCompleted,
   }

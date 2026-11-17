@@ -27,6 +27,7 @@ import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
 import { getSettingsTabs } from "../settings-tabs"
 import { OVERVIEW_STAGE_SLUGS } from "../settings-routing"
 import { useBook, usePackageAdtStatus } from "@/hooks/use-books"
+import { useBookConfig } from "@/hooks/use-book-config"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { publicationLifecycle, useBookPublication } from "@/hooks/use-book-publication"
 import { useFeedbackBadge } from "../../publication-feedback/use-feedback-badge"
@@ -94,6 +95,7 @@ export function StageSidebar({
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
+  const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: book } = useBook(bookLabel)
   const usesImportedHtml = book?.workingSource === "imported-adt"
   /** Sharing is not a pipeline stage, so nothing ticks its disc on its own: a live link is what
@@ -169,6 +171,7 @@ export function StageSidebar({
   const completionOverrides: Record<string, boolean> = {
     "sign-language": signLanguageCompleted,
     validation: validationCompleted,
+    reader: Boolean(bookConfigData?.config?.reader_ui),
     preview: previewCompleted,
     export: exportCompleted,
     publish: shared,

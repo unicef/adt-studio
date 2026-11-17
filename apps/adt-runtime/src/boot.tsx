@@ -13,6 +13,7 @@ import {
   subscribePreviewSettings,
 } from "@/app/lifecycle"
 import { subscribeSoftNavHistory } from "@/features/navigation/lib/page-swap"
+import { subscribeReaderUiPreview } from "@/features/reader-ui/runtime/reader-ui"
 import { describeInitError, showErrorToast, showMainContent } from "@/shared/lib/errors"
 
 const sharedStore = getDefaultStore()
@@ -79,9 +80,13 @@ function mount(): void {
       if (window.__adtRuntime !== runtime) return
       const unsubLanguage = subscribeLanguageChanges()
       const unsubPreview = subscribePreviewSettings()
+      // After boot, so a live draft from the Studio Reader step lands on top
+      // of the packaged config instead of being overwritten by it.
+      const unsubReaderUi = subscribeReaderUiPreview()
       runtime.unsubscribe = () => {
         unsubLanguage()
         unsubPreview()
+        unsubReaderUi()
         unsubSoftNav()
       }
     })

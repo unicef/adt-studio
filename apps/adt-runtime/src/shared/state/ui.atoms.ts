@@ -1,3 +1,8 @@
+import { atom } from "jotai"
+import {
+  resolveReaderUiLayout,
+  type ReaderUi,
+} from "@adt/types/reader-ui"
 import {
   ephemeralAtom,
   persistedBoolAtom,
@@ -13,12 +18,44 @@ export const syllablesModeAtom = persistedBoolAtom("syllablesMode", false)
 export const stateModeAtom = persistedBoolAtom("stateMode", false) // "Auto-hide menus" master switch
 
 export type DockWidth = "full" | "compact"
-export type DockPosition = "top" | "bottom"
+export type DockPosition = "top" | "bottom" | "left" | "right"
 export type DockAlign = "spread" | "center"
 
 export const dockWidthAtom = persistedStringAtom("dockWidth", "full")
 export const dockPositionAtom = persistedStringAtom("dockPosition", "bottom")
 export const dockAlignAtom = persistedStringAtom("dockAlign", "spread")
+
+/**
+ * The reader UI in effect: `config.json`'s `readerUi` on boot, replaced live by
+ * the Studio Reader step while the book is previewed there.
+ */
+export const readerUiAtom = ephemeralAtom<ReaderUi | null>(null)
+
+/** Panel (drawer vs popover) layout, every field resolved to a value. */
+export const readerLayoutAtom = atom((get) => resolveReaderUiLayout(get(readerUiAtom)?.layout))
+
+/**
+ * The dock layout the reader actually gets. A book with a designed reader
+ * layout uses it outright — the persisted picker values are ignored rather
+ * than overwritten, so previewing a design in Studio never leaks into the
+ * reader's own preferences for other books on the same origin.
+ */
+export const effectiveDockLayoutAtom = atom((get) => {
+  const ui = get(readerUiAtom)
+  if (ui?.layout) {
+    const layout = resolveReaderUiLayout(ui.layout)
+    return {
+      position: layout.dock_position as DockPosition,
+      width: layout.dock_width as DockWidth,
+      align: layout.dock_align as DockAlign,
+    }
+  }
+  return {
+    position: get(dockPositionAtom) as DockPosition,
+    width: get(dockWidthAtom) as DockWidth,
+    align: get(dockAlignAtom) as DockAlign,
+  }
+})
 
 export type IconSize = "sm" | "md" | "lg"
 export const iconSizeAtom = persistedStringAtom("iconSize", "md")

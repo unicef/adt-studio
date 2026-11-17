@@ -22,6 +22,7 @@ import { translationsAtom } from "@/features/language/state/language.atoms"
 import { PAGE_HEAD_ATTR } from "@/features/navigation/lib/page-head"
 import { currentPageNumberAtom, pagesAtom } from "@/features/navigation/state/nav.atoms"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
+import { getPageScrollTop, setPageScrollTop } from "@/shared/lib/chrome-insets"
 import { trackNavigation, trackSpaPageView } from "@/shared/lib/analytics"
 import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 
@@ -417,7 +418,7 @@ export async function swapToPage(
       if (controller.signal.aborted) return
       if (opts.pushUrl) {
         window.history.replaceState(
-          { ...readHistoryState(), adtScrollY: window.scrollY },
+          { ...readHistoryState(), adtScrollY: getPageScrollTop() },
           "",
         )
         window.history.pushState({ adtSoftNav: true } satisfies SoftNavHistoryState, "", href)
@@ -434,7 +435,8 @@ export async function swapToPage(
       swapMain(next)
       runPageScripts(next)
       initializePageContent()
-      window.scrollTo({ top: opts.scrollY ?? 0, behavior: "instant" })
+      // The book may scroll in <body> rather than the window (chrome-insets).
+      setPageScrollTop(opts.scrollY ?? 0)
       moveReadingPosition()
       trackSpaPageView(window.location.href, document.title, fromUrl)
       trackNavigation(fromSection, toSection)

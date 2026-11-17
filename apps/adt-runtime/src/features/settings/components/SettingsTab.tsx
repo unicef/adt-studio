@@ -2,7 +2,6 @@ import { useAtom, useAtomValue } from "jotai";
 import { ToggleRow } from "@/features/settings/components/ToggleRow";
 import { SegmentedRow } from "@/features/settings/components/SegmentedRow";
 import { SettingsSection } from "@/features/settings/components/SettingsSection";
-import { DockLayoutPicker } from "@/features/settings/components/DockLayoutPicker";
 import { KeyboardShortcutsSection } from "@/features/settings/components/KeyboardShortcutsSection";
 import { ReviewingSection } from "@/features/settings/components/ReviewingSection";
 import { appConfigAtom, isSettingLocked } from "@/shared/state/config.atoms";
@@ -35,7 +34,6 @@ export function SettingsTab() {
   const isMobile = useIsMobile();
   const config = useAtomValue(appConfigAtom);
   const features = config.features;
-  const dockLayoutLocked = isSettingLocked(config, "dockLayout");
   const themeLocked = isSettingLocked(config, "theme");
   const iconSizeLocked = isSettingLocked(config, "iconSize");
   const reduceMotionLocked = isSettingLocked(config, "reduceMotion");
@@ -148,11 +146,8 @@ export function SettingsTab() {
         </SettingsSection>
       ) : null}
 
-      {!dockLayoutLocked ? (
-        <SettingsSection title={t("settings-section-toolbar", {}, "Toolbar")}>
-          <DockLayoutPicker />
-        </SettingsSection>
-      ) : null}
+      {/* The toolbar layout is designed per book in the Studio Reader step
+          (config.json `readerUi`), so readers have no picker for it. */}
 
       {showAccessibilitySection ? (
         <SettingsSection

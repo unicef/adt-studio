@@ -61,6 +61,7 @@ import {
 } from "@/features/glossary/lib/highlight"
 import { locateGlossaryTerm } from "@/features/glossary/lib/locate"
 import { initAnalytics } from "@/shared/lib/analytics"
+import { applyReaderUi } from "@/features/reader-ui/runtime/reader-ui"
 import { installShowContentFallback, showMainContent } from "@/shared/lib/errors"
 import { activityModeAtom, isActivityPageAtom } from "@/features/activity/state/activity.atoms"
 import { initializeQuizActivity } from "@/features/activity/runtime/activity-quiz"
@@ -259,6 +260,7 @@ export async function bootRuntime(): Promise<void> {
     store.set(appConfigAtom, config)
     setStorageMode(pickStorageMode(config))
     applyConfiguredSettings(config)
+    applyReaderUi(config.readerUi)
 
     const htmlLang = document.documentElement.getAttribute("lang")
     const persisted = readPersistedLanguage()

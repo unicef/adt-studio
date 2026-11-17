@@ -42,12 +42,14 @@ export function DockActivityActions() {
               size="lg"
               title={submitLabel}
               className={cn(
-                // WCAG AA: white text on bg-blue-600 ≈ 8.6:1, on bg-emerald-600 ≈ 4.8:1.
+                // Theme tokens, so a book's reader design (Studio Reader step)
+                // colours the main call to action. "Next" reads as a step on
+                // from a checked answer: the highlight pair, outlined in primary.
                 // Bumped from text-sm (button default) to text-base for legibility.
-                "px-6 py-3 text-base font-semibold text-white",
+                "px-6 py-3 text-base font-semibold",
                 submitState === "next"
-                  ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
-                  : "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400",
+                  ? "bg-accent text-accent-foreground ring-2 ring-primary hover:bg-accent/80"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90",
               )}
             >
               {submitLabel}

@@ -102,8 +102,8 @@ function ProgressToastView({
         onClick={() => toast.dismiss(toastId)}
         className={
           "absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center " +
-          "rounded-full border border-gray-500 bg-white text-gray-600 shadow " +
-          "hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+          "rounded-full border border-border bg-background text-muted-foreground shadow " +
+          "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
         }
       >
         <i className="fas fa-times text-xs" aria-hidden="true" />

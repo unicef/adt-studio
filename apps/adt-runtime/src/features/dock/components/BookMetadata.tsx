@@ -36,8 +36,13 @@ export function BookMetadata({
   const { t } = useTranslation();
   const toc = useAtomValue(tocAtom);
   const currentSectionId = useAtomValue(currentSectionIdAtom);
-  const { popoverSide } = useDockContext();
+  const { popoverSide, isVertical, buttonStyle } = useDockContext();
   const isMobile = useIsMobile();
+  // A phone bar has room for the icon only; a side rail too, unless the
+  // book's button style names its buttons (then a short name stacks under it).
+  const iconOnly = isMobile || (isVertical && buttonStyle === "icon");
+  const stacked = !isMobile && isVertical && buttonStyle !== "icon";
+  const showIcon = buttonStyle !== "label" || isMobile;
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const activeTitle = useMemo(() => {
@@ -70,19 +75,27 @@ export function BookMetadata({
               data-dock-trigger=""
               className={cn(
                 "rounded-lg flex items-center justify-start shrink-0",
-                "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
+                "text-popover-foreground/80 hover:bg-accent hover:text-accent-foreground",
                 "transition-colors duration-150",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 "disabled:opacity-30 disabled:hover:bg-transparent",
                 "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
                 "aria-pressed:bg-accent aria-pressed:text-accent-foreground",
-                isMobile ? "h-11 w-11 justify-center" : "h-11 gap-3 px-3 max-w-64",
+                iconOnly
+                  ? "h-11 w-11 justify-center"
+                  : stacked
+                    ? "min-h-11 w-full min-w-14 max-w-20 flex-col justify-center gap-0.5 px-1 py-1.5 text-[11px] leading-tight"
+                    : "h-11 gap-3 px-3 max-w-64",
                 className,
               )}
               onClick={() => toggle("toc")}
             >
-              <List className="size-6 shrink-0" />
-              {!isMobile ? (
+              {showIcon ? <List className="size-6 shrink-0" /> : null}
+              {stacked ? (
+                <span className="text-center font-medium break-words">
+                  {t("toc-title") || "Contents"}
+                </span>
+              ) : !iconOnly ? (
                 <span className="text-base text-left font-medium truncate w-full">
                   {displayTitle}
                 </span>
@@ -97,6 +110,7 @@ export function BookMetadata({
         onClose={() => setValue("")}
         anchor={triggerRef}
         side={popoverSide}
+        label={displayTitle}
       >
         <TocContent />
       </DockPanel>

@@ -52,7 +52,7 @@ export function DockMenu({ className }: DockMenuProps) {
     useAtomValue(currentPageSignLanguageVideoAtom),
   );
   const { t } = useTranslation();
-  const { popoverSide: side } = useDockContext();
+  const { popoverSide: side, isVertical } = useDockContext();
   const isMobile = useIsMobile();
 
   const readAloud = useAtomValue(readAloudModeAtom);
@@ -152,7 +152,13 @@ export function DockMenu({ className }: DockMenuProps) {
       {isMobile ? (
         <DockMobileTools tools={tools} label={t("tutorial-smart-utility-sidebar-label") || "Accessibility menu"} />
       ) : (
-        <div className={cn("flex items-center justify-end gap-2", className)}>
+        <div
+          className={cn(
+            "flex items-center gap-2",
+            isVertical ? "flex-col" : "justify-end",
+            className,
+          )}
+        >
           <CommentsDockButton />
           <CommentsListButton />
 
@@ -222,6 +228,7 @@ export function DockMenu({ className }: DockMenuProps) {
           onClose={() => setValue("")}
           anchor={glossaryBtnRef}
           side={side}
+          label={t("glossary-label") || "Glossary"}
         >
           <GlossaryContent />
         </DockPanel>
@@ -249,6 +256,7 @@ export function DockMenu({ className }: DockMenuProps) {
         onClose={() => setValue("")}
         anchor={languageBtnRef}
         side={side}
+        label={t("language-label") || "Language"}
       >
         <LanguageContent onSelect={() => setValue("")} />
       </DockPanel>
@@ -258,6 +266,7 @@ export function DockMenu({ className }: DockMenuProps) {
         onClose={() => setValue("")}
         anchor={settingsBtnRef}
         side={side}
+        label={t("sidebar-settings") || "Settings"}
       >
         <SettingsContent />
       </DockPanel>
