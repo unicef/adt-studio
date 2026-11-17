@@ -42,6 +42,10 @@ export function openPackageWork(bookDir: string): string {
   const work = path.join(bookDir, ".adt-package-work")
   if (!fs.lstatSync(work, { throwIfNoEntry: false })) {
     fs.mkdirSync(work)
+  }
+  // mkdir may survive a crash before its marker is written. Under the shared
+  // writer, an empty real directory contains no prior output to adopt or lose.
+  if (fs.lstatSync(work).isDirectory() && fs.readdirSync(work).length === 0) {
     fs.writeFileSync(path.join(work, "format"), journalFormat, { flag: "wx" })
   }
   if (!isJournal(work)) throw new SectioningSafetyError("PACKAGE_RECOVERY_UNSAFE", "Unrecognized package work directory. Existing files have been retained.")

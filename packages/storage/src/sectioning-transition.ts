@@ -30,10 +30,18 @@ function removeJournal(journal: string): void {
 
 /** Same-directory replacement with durable contents; never truncate the live file. */
 export function atomicBookFile(file: string, text: string): void {
+  const previous = fs.lstatSync(file, { throwIfNoEntry: false })
+  if (previous && (!previous.isFile() || previous.nlink !== 1)) throw new BookBusyError("The book file is not a regular private path. Existing data has been preserved.")
   const temp = `${file}.${randomUUID()}.tmp`
   try {
     const fd = fs.openSync(temp, "wx", 0o600)
-    try { fs.writeFileSync(fd, text); fs.fsyncSync(fd) } finally { fs.closeSync(fd) }
+    try {
+      fs.writeFileSync(fd, text)
+      // Existing shared-volume permissions survive replacement; newly created
+      // bookkeeping keeps the private default. chmod avoids the current umask.
+      if (previous) fs.fchmodSync(fd, previous.mode & 0o777)
+      fs.fsyncSync(fd)
+    } finally { fs.closeSync(fd) }
     fs.renameSync(temp, file)
     syncDirectory(path.dirname(file))
   } finally {

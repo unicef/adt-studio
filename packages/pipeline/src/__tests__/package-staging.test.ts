@@ -10,6 +10,22 @@ const roots: string[] = []
 afterEach(() => { for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true }) })
 function fixture() { const root = fs.mkdtempSync(path.join(os.tmpdir(), "package-staging-")); roots.push(root); return root }
 
+it("resumes an empty unmarked work directory but preserves a nonempty one and directory aliases", () => {
+  const root = fixture(), work = path.join(root, ".adt-package-work")
+  fs.mkdirSync(work)
+  withBookWriter(root, () => expect(openPackageWork(root)).toBe(work))
+  expect(fs.readFileSync(path.join(work, "format"), "utf8")).toBe("adt-web-stage-v1\n")
+  fs.unlinkSync(path.join(work, "format"))
+  fs.writeFileSync(path.join(work, "owner-data"), "keep")
+  withBookWriter(root, () => expect(() => openPackageWork(root)).toThrow("Unrecognized"))
+  expect(fs.readFileSync(path.join(work, "owner-data"), "utf8")).toBe("keep")
+  fs.rmSync(work, { recursive: true })
+  const outside = fixture()
+  fs.symlinkSync(outside, work, "junction")
+  withBookWriter(root, () => expect(() => openPackageWork(root)).toThrow("Unrecognized"))
+  expect(fs.readdirSync(outside)).toEqual([])
+})
+
 it("requires admission and retains active stages across reentrant opens", async () => {
   const root = fixture()
   expect(() => openPackageWork(root)).toThrow("BOOK_BUSY")
