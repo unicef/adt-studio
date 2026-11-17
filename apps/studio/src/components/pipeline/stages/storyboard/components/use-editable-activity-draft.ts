@@ -1,5 +1,6 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from "react"
 import { useLingui } from "@lingui/react/macro"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { EditableActivity } from "@adt/types"
 import { api } from "@/api/client"
@@ -16,9 +17,13 @@ export function useEditableActivityDraft(props: {
 }) {
   const { t } = useLingui()
   const { bookLabel, pageId, sectionIndex, activities, version } = props
+  const queryClient = useQueryClient()
   const guarded = useGuardedDraft(activities, version, async () => {
+    const queryKey = ["editable-activities", bookLabel, pageId]
+    await queryClient.cancelQueries({ queryKey, exact: true })
     const latest = await api.getEditableActivities(bookLabel, pageId)
-    return { value: latest.activities, version: latest.version }
+    const current = queryClient.setQueryData<typeof latest>(queryKey, saved => saved && saved.version > latest.version ? saved : latest)!
+    return { value: current.activities, version: current.version }
   }, rebaseActivityDraft)
   const savePromiseRef = useRef<Promise<void> | null>(null)
   const submittedRef = useRef<Record<string, EditableActivity> | null>(null)

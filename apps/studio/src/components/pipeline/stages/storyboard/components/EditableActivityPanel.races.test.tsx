@@ -7,6 +7,7 @@ import React from "react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import type { EditableActivity } from "@adt/types"
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query"
 
 const mocks = vi.hoisted(() => ({ save: vi.fn(), feedback: vi.fn(), reload: vi.fn(), error: vi.fn(), success: vi.fn() }))
 vi.mock("@lingui/react/macro", () => ({ useLingui: () => ({ t(strings: TemplateStringsArray, ...values: unknown[]) {
@@ -56,11 +57,12 @@ function SaveBarrierProbe() {
   return <output data-testid="activity-unsaved-barrier">{String(useHasUnsavedChanges())}</output>
 }
 function mount(activities = defaultMap(), version = 1) {
-  const view = (next: MapOfActivities, nextVersion: number) => <FloatingSaveProvider>
+  const client = new QueryClient()
+  const view = (next: MapOfActivities, nextVersion: number) => <QueryClientProvider client={client}><FloatingSaveProvider>
     <EditableActivityPanel open onClose={() => {}} bookLabel="book" pageId="page-1" sectionIndex={0}
       activity={next["0"]} activities={next} version={nextVersion} paletteAccent="#2563EB" />
     <SaveBarrierProbe />
-  </FloatingSaveProvider>
+  </FloatingSaveProvider></QueryClientProvider>
   const mounted = render(view(activities, version))
   return { ...mounted, refresh: (next: MapOfActivities, nextVersion: number) => mounted.rerender(view(next, nextVersion)) }
 }
@@ -296,4 +298,33 @@ it("follows later saved activities after accepting a deleted activity in a confl
   changeTitle("Next deliberate edit"); fireEvent.click(saveButton())
   await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2))
   expect(mocks.save.mock.calls[1][0]).toMatchObject({ baseVersion: 3, activities: { "0": { title: { text: "Next deliberate edit" } } } })
+})
+
+it.each([false, true])("a real query observer becomes clean after accepting latest (deleted=%s)", async deleted => {
+  const initial = defaultMap(), latest = deleted ? { "1": initial["1"] } : { ...initial, "0": { ...original, title: { text: "Saved elsewhere" } } }
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  client.setQueryData(["editable-activities", "book", "page-1"], { activities: initial, version: 1 })
+  function Connected() {
+    const { data } = useQuery({ queryKey: ["editable-activities", "book", "page-1"], queryFn: mocks.reload, enabled: false })
+    return <FloatingSaveProvider><EditableActivityPanel open onClose={() => {}} bookLabel="book" pageId="page-1" sectionIndex={0}
+      activity={data.activities["0"]} activities={data.activities} version={data.version} paletteAccent="#2563EB" /><SaveBarrierProbe /></FloatingSaveProvider>
+  }
+  mocks.save.mockRejectedValueOnce(new ApiError("Conflict", 409))
+  mocks.reload.mockResolvedValue({ activities: latest, version: 2 })
+  render(<QueryClientProvider client={client}><Connected /></QueryClientProvider>)
+  changeTitle("Discard my draft"); fireEvent.click(saveButton())
+  fireEvent.click(await screen.findByRole("button", { name: "Load latest saved values" }))
+  await waitFor(() => expect(screen.getByTestId("activity-unsaved-barrier").textContent).toBe("false"))
+  expect(client.getQueryData(["editable-activities", "book", "page-1"])).toEqual({ activities: latest, version: 2 })
+  if (deleted) {
+    act(() => { client.setQueryData(["editable-activities", "book", "page-1"], { activities: initial, version: 3 }) })
+    await waitFor(() => expect(title().value).toBe("Original title"))
+  } else {
+    expect(title().value).toBe("Saved elsewhere")
+    fireEvent.click(screen.getByRole("button", { name: "Generate feedback" }))
+    await act(async () => { mocks.feedback.mock.calls[0][1].onError(new Error("Feedback failed")) })
+    expect(screen.getByTestId("activity-unsaved-barrier").textContent).toBe("false")
+    expect(title().value).toBe("Saved elsewhere")
+  }
+  expect(mocks.save).toHaveBeenCalledTimes(1)
 })

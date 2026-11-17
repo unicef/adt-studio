@@ -3,6 +3,7 @@ import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import type { EditableActivity } from "@adt/types"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 const mocks = vi.hoisted(() => ({
   save: vi.fn().mockResolvedValue({ version: 2 }),
@@ -70,7 +71,7 @@ const activity: EditableActivity = {
 describe("EditableActivityPanel", () => {
   it("registers draft edits with the shared unsaved-changes save system", async () => {
     render(
-      <FloatingSaveProvider>
+      <QueryClientProvider client={new QueryClient()}><FloatingSaveProvider>
         <EditableActivityPanel
           open
           onClose={vi.fn()}
@@ -82,7 +83,7 @@ describe("EditableActivityPanel", () => {
           activities={{ "0": activity }}
           paletteAccent="#2563EB"
         />
-      </FloatingSaveProvider>,
+      </FloatingSaveProvider></QueryClientProvider>,
     )
 
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull()
