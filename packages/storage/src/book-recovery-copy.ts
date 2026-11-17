@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { createHash, randomUUID } from "node:crypto"
 import { BOOK_RECOVERY_PENDING_FILE, BookRecoveryCopyAudit, ExtractionManifest, parseBookLabel } from "@adt/types"
-import { assertNoKnownLiveBookOwner, BookBusyError, withNewBookWriter } from "./book-writer.js"
+import { assertNoKnownLiveBookOwner, BookBusyError, withBookRecoverySource, withNewBookWriter } from "./book-writer.js"
 import { openCoordinatedDatabase } from "./database-admission.js"
 import { atomicBookFile } from "./sectioning-transition.js"
 
@@ -58,7 +58,7 @@ export async function recoverBookCopy(booksDir: string, sourceLabel: string, lab
   // The source must have a database; a PDF-only project can be opened normally.
   if (!fs.lstatSync(path.join(source, `${sourceLabel}.db`), { throwIfNoEntry: false })?.isFile()) throw unsafe()
   try {
-    await withNewBookWriter(destination, async () => {
+    await withBookRecoverySource(source, () => withNewBookWriter(destination, async () => {
       let completed = false
       try {
         const evidence = path.join(destination, evidenceName)
@@ -66,6 +66,7 @@ export async function recoverBookCopy(booksDir: string, sourceLabel: string, lab
         atomicBookFile(path.join(destination, BOOK_RECOVERY_PENDING_FILE), JSON.stringify({ sourceLabel, label }))
         const files = new Map<string, { identity: string; hash: string }>()
         const directories = new Map<string, string>()
+        let checkedFiles = 0, checkedDirectories = 0
         const mapName = (name: string) => {
           if (name === ".book-writer.json" || name.startsWith(".book-writer.json.") || name.endsWith(".db.lock")) return path.join(evidenceName, "locks", name)
           if (name === `${sourceLabel}.pdf`) return `${label}.pdf`
@@ -77,7 +78,10 @@ export async function recoverBookCopy(booksDir: string, sourceLabel: string, lab
           const stat = await fs.promises.lstat(folder, { bigint: true })
           if (!stat.isDirectory() || await fs.promises.realpath(folder) !== folder) throw unsafe()
           if (copying) directories.set(relative, stamp(stat))
-          else if (directories.get(relative) !== stamp(stat)) throw unsafe()
+          else {
+            if (directories.get(relative) !== stamp(stat)) throw unsafe()
+            checkedDirectories++
+          }
           for (const name of (await fs.promises.readdir(folder)).sort()) {
             const entry = path.join(relative, name), file = path.join(source, entry)
             const output = path.join(target, relative ? name : mapName(name))
@@ -89,7 +93,10 @@ export async function recoverBookCopy(booksDir: string, sourceLabel: string, lab
               if (copying) await fs.promises.mkdir(path.dirname(output), { recursive: true })
               const observed = await copyOrHash(file, copying ? output : undefined)
               if (copying) files.set(entry, observed)
-              else if (JSON.stringify(files.get(entry)) !== JSON.stringify(observed)) throw unsafe()
+              else {
+                if (JSON.stringify(files.get(entry)) !== JSON.stringify(observed)) throw unsafe()
+                checkedFiles++
+              }
             } else throw unsafe()
           }
           if (stamp(await fs.promises.lstat(folder, { bigint: true })) !== stamp(stat)) throw unsafe()
@@ -97,6 +104,7 @@ export async function recoverBookCopy(booksDir: string, sourceLabel: string, lab
         await visit("", destination, true)
         assertNoKnownLiveBookOwner(source)
         await visit("", destination, false)
+        if (checkedFiles !== files.size || checkedDirectories !== directories.size) throw unsafe()
         assertNoKnownLiveBookOwner(source)
 
         // Retain the original extraction record before relocating its PDF path.
@@ -115,8 +123,8 @@ export async function recoverBookCopy(booksDir: string, sourceLabel: string, lab
         const db = openCoordinatedDatabase(path.join(destination, `${label}.db`), { fileMustExist: true })
         try {
           if (JSON.stringify(db.all("PRAGMA integrity_check")) !== JSON.stringify([{ integrity_check: "ok" }])) throw unsafe()
-          const tables = db.all("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('pages', 'node_data', 'step_runs')")
-          if (tables.length !== 3) throw unsafe()
+          const tables = db.all("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('pages', 'node_data')")
+          if (tables.length !== 2) throw unsafe()
         } finally { db.close() }
         const audit = BookRecoveryCopyAudit.parse({ format: "adt-book-recovery-copy-v1", sourceLabel, label,
           createdAt: new Date().toISOString(), files: [...files].map(([file, value]) => ({ path: file, sha256: value.hash })) })
@@ -128,7 +136,7 @@ export async function recoverBookCopy(booksDir: string, sourceLabel: string, lab
         // Once admission releases, another operation may own this pathname.
         if (!completed) fs.rmSync(destination, { recursive: true, force: true })
       }
-    })
+    }))
   } catch (error) {
     throw error instanceof BookBusyError ? error : unsafe()
   }

@@ -35,7 +35,7 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); fs.rmSync(root, { recursive: true, force: true }) })
 
 it.each(["foreign-host", "different-boot", "legacy-mutex", "unknown-mutex", "anonymous-reservation"])(
-  "RAC-18: recovers a separate validated copy from %s without unlocking the original", async kind => {
+  "RAC-15 RAC-18: recovers a separate validated copy from %s without unlocking the original", async kind => {
     if (["foreign-host", "different-boot"].includes(kind)) fs.writeFileSync(path.join(source, ".book-writer.json"), JSON.stringify({
       token: randomUUID(), host: kind === "foreign-host" ? "another-host" : os.hostname(), pid: process.pid,
       ...(kind === "different-boot" ? { linuxProcess: { bootId: randomUUID(), pidNamespace: "pid:[1]", startTicks: "1" } } : {}),
@@ -67,6 +67,36 @@ it.each(["foreign-host", "different-boot", "legacy-mutex", "unknown-mutex", "ano
   },
 )
 
+it("keeps same-process Library opens from mutating a mutex-stranded source during copying", async () => {
+  fs.mkdirSync(path.join(source, `${label}.db.lock`))
+  const before = bytes(source), lstat = fs.promises.lstat
+  let attempted = false
+  vi.spyOn(fs.promises, "lstat").mockImplementation((async (...args: Parameters<typeof fs.promises.lstat>) => {
+    if (!attempted && String(args[0]).endsWith("original.mp3")) {
+      attempted = true
+      expect(() => createBookStorage(label, root)).toThrow("BOOK_BUSY")
+    }
+    return lstat(...args)
+  }) as typeof fs.promises.lstat)
+  await recoverBookCopy(root, label, "recovered")
+  expect(attempted).toBe(true)
+  expect(bytes(source)).toEqual(before)
+})
+
+it("copies a migratable v7 database without requiring step_runs before migration", async () => {
+  const db = openBookDb(path.join(source, `${label}.db`))
+  db.exec("DROP TABLE step_runs; CREATE TABLE step_completions (step TEXT PRIMARY KEY, completed_at TEXT); INSERT INTO step_completions VALUES ('extract', '2026-01-01'); UPDATE schema_version SET version=7 WHERE id=1")
+  db.exec("DROP TABLE images; CREATE TABLE images (image_id TEXT PRIMARY KEY, page_id TEXT NOT NULL REFERENCES pages(page_id), path TEXT NOT NULL, hash TEXT NOT NULL DEFAULT '', width INTEGER NOT NULL, height INTEGER NOT NULL, source TEXT NOT NULL CHECK(source IN ('page','extract','crop','segment')))")
+  db.close()
+  fs.mkdirSync(path.join(source, `${label}.db.lock`))
+  const before = bytes(source)
+  await recoverBookCopy(root, label, "recovered")
+  expect(bytes(source)).toEqual(before)
+  const copy = openBookDb(path.join(root, "recovered/recovered.db"))
+  try { expect(copy.all("SELECT status FROM step_runs WHERE step='extract'")).toEqual([{ status: "done" }]) }
+  finally { copy.close() }
+})
+
 it.each(["current", "legacy"])("refuses a known live %s owner before creating a destination", async kind => {
   const storage = kind === "current" ? createBookStorage(label, root) : undefined
   if (!storage) fs.writeFileSync(path.join(source, ".book-writer.json"), JSON.stringify({ token: randomUUID(), host: os.hostname(), pid: process.pid }))
@@ -76,6 +106,26 @@ it.each(["current", "legacy"])("refuses a known live %s owner before creating a 
     expect(bytes(source)).toEqual(original)
     expect(fs.existsSync(path.join(root, "recovered"))).toBe(false)
   } finally { storage?.close() }
+})
+
+it.each(["pre-boot", "recent", "one-old-timestamp"])("copy recovery treats %s legacy PID evidence conservatively", async kind => {
+  const lock = path.join(source, ".book-writer.json")
+  fs.writeFileSync(lock, JSON.stringify({ token: randomUUID(), host: os.hostname(), pid: process.pid }))
+  const original = bytes(source), stat = fs.lstatSync
+  vi.spyOn(os, "uptime").mockReturnValue(3600)
+  const beforeBoot = Date.now() - (os.uptime() + 300) * 1000
+  vi.spyOn(fs, "lstatSync").mockImplementation(((file: fs.PathLike, options?: fs.StatOptions) => {
+    const result = stat(file, options as never)
+    if (String(file) === lock && !options?.bigint && kind !== "recent") {
+      Object.assign(result, { mtimeMs: beforeBoot, ...(kind === "pre-boot" ? { ctimeMs: beforeBoot } : {}) })
+    }
+    return result
+  }) as typeof fs.lstatSync)
+  // Timestamps alone do not waive the agreed live-PID refusal. Changing this
+  // recovery policy requires an explicit owner decision, not an age heuristic.
+  await expect(recoverBookCopy(root, label, "recovered")).rejects.toMatchObject({ code: "BOOK_BUSY" })
+  expect(() => createBookStorage(label, root)).toThrow("BOOK_BUSY")
+  expect(bytes(source)).toEqual(original)
 })
 
 it.each(["same-label", "existing", "symlink", "hardlink", "corrupt-db"])("preserves the source and refuses %s recovery", async kind => {
@@ -101,6 +151,24 @@ it("rejects a source mutation during copying and removes only its own partial co
   }) as typeof fs.promises.lstat)
   await expect(recoverBookCopy(root, label, "recovered")).rejects.toMatchObject({ code: "BOOK_RECOVERY_COPY_UNSAFE" })
   expect(fs.readFileSync(path.join(source, "audio/original.mp3"), "utf8")).toBe("another writer changed this")
+  expect(fs.existsSync(path.join(root, "recovered"))).toBe(false)
+})
+
+it("rejects a missing source entry even if directory timestamps cannot distinguish the change", async () => {
+  const lstat = fs.promises.lstat, directories = new Map<string, fs.BigIntStats>()
+  let rootReads = 0
+  vi.spyOn(fs.promises, "lstat").mockImplementation((async (...args: Parameters<typeof fs.promises.lstat>) => {
+    const file = String(args[0])
+    if (file === source && ++rootReads === 3) fs.unlinkSync(path.join(source, "audio/original.mp3"))
+    const stat = await lstat(...args)
+    if (stat.isDirectory()) {
+      const original = directories.get(file)
+      if (original) return original
+      directories.set(file, stat as fs.BigIntStats)
+    }
+    return stat
+  }) as typeof fs.promises.lstat)
+  await expect(recoverBookCopy(root, label, "recovered")).rejects.toMatchObject({ code: "BOOK_RECOVERY_COPY_UNSAFE" })
   expect(fs.existsSync(path.join(root, "recovered"))).toBe(false)
 })
 

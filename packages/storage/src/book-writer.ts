@@ -24,6 +24,7 @@ const localLeases = new Map<string, Lease>()
 // neither a copied token nor an active database handle supplies this authority.
 const abandoned = new Map<string, Set<string>>()
 const admitting = new Set<string>()
+const copyingSources = new Set<string>()
 function rememberAbandoned(dir: string, token: string): void {
   const tokens = abandoned.get(dir) ?? new Set<string>()
   tokens.add(token)
@@ -185,6 +186,17 @@ export function assertNoKnownLiveBookOwner(bookDir: string): void {
     } catch { /* Unverifiable evidence is copied and retained, never unlocked. */ }
     if (owners.some(live)) throw new BookBusyError()
   }
+}
+
+/** Avoid our own Library/read admissions changing a stranded source while it
+ * is copied. Other processes remain subject to the copy's stability checks. */
+export async function withBookRecoverySource<T>(bookDir: string, operation: () => Promise<T>): Promise<T> {
+  const dir = canonical(bookDir)
+  if (copyingSources.has(dir)) throw new BookBusyError()
+  assertNoKnownLiveBookOwner(dir)
+  copyingSources.add(dir)
+  try { return await operation() }
+  finally { copyingSources.delete(dir) }
 }
 
 function syncLeaseDirectory(dir: string): void {
@@ -390,7 +402,7 @@ function verifyLocalLease(dir: string, lease: Lease): void {
 }
 
 function acquire(dir: string, databaseFile?: string): Lease {
-  if (admitting.has(dir)) throw new BookBusyError()
+  if (admitting.has(dir) || copyingSources.has(dir)) throw new BookBusyError()
   admitting.add(dir)
   const token = randomUUID()
   let issued = false
