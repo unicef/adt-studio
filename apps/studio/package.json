@@ -44,7 +44,7 @@
     "clsx": "^2.1.0",
     "color": "^5.0.3",
     "dayjs": "^1.11.21",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.17",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^0.469.0",
     "monaco-editor": "^0.55.1",
