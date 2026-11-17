@@ -57,6 +57,9 @@ export interface PackageFilesOptions {
    * files the reader needs to open (page documents, manifests, dictionaries,
    * scripts and the page shell's stylesheets) stay required. */
   allowMissingAssets?: boolean
+  /** Use the build's CSS syntax tolerance without accepting missing resources.
+   * Cache validation uses this even when a build reported no missing assets. */
+  allowUnreadableStyles?: boolean
   /** Implies `allowMissingAssets` and reports each such resource. The check
    * then always runs in full, so every call reports the complete list. */
   onMissingAsset?: (asset: MissingPackageAsset) => void
@@ -68,6 +71,7 @@ export interface PackageFilesOptions {
 export function packageFilesAvailable(adtDir: string, options: PackageFilesOptions = {}): boolean {
   let document: string | undefined, lastMember: string | undefined
   const tolerant = options.allowMissingAssets === true || options.onMissingAsset !== undefined
+  const allowUnreadableStyles = tolerant || options.allowUnreadableStyles === true
   const fail = () => {
     // A nonportable member must not erase a valid originating document.
     const source = PackageFileDiagnostic.shape.document.safeParse(document)
@@ -78,7 +82,7 @@ export function packageFilesAvailable(adtDir: string, options: PackageFilesOptio
   }
   try {
     const root = fs.realpathSync(adtDir)
-    const key = JSON.stringify([root, options.format, options.expectedLanguages, tolerant])
+    const key = JSON.stringify([root, options.format, options.expectedLanguages, tolerant, allowUnreadableStyles])
     const hit = proofs.get(key)
     // A removed dependency invalidates the proof; continue the cold check to
     // identify its originating document instead of swallowing stat errors.
@@ -137,7 +141,7 @@ export function packageFilesAvailable(adtDir: string, options: PackageFilesOptio
       if (!tolerant) return relativeMember(url, from)
       try { return relativeMember(url, from) } catch { missingAsset(url); return undefined }
     }
-    const styles = new Map<string, ReturnType<typeof parseCssSource>>()
+    const styles = new Map<string, ReturnType<typeof parseCssSource> | null>()
     const checkHtml = (html: string, from: string) => {
       document = from
       const sources: Parameters<typeof cssReferences>[0][number][] = []
@@ -155,8 +159,19 @@ export function packageFilesAvailable(adtDir: string, options: PackageFilesOptio
         if (!file || includedStyles.has(file)) return
         includedStyles.add(file)
         let parsed = styles.get(file)
+        if (parsed === null) return
         if (!parsed) {
-          try { parsed = parseCssSource(read(file, true)) } catch (error) { if (!optional) throw error; missingAsset(url); return }
+          // File admission remains strict for shell stylesheets, including
+          // imported dependencies. Syntax errors alone do not stop the reader.
+          let css: string
+          try { css = read(file, true) }
+          catch (error) { if (!optional) throw error; missingAsset(url); return }
+          try { parsed = parseCssSource(css, "stylesheet") }
+          catch (error) {
+            if (!allowUnreadableStyles) { lastMember = file; throw error }
+            styles.set(file, null)
+            return
+          }
           styles.set(file, parsed)
         }
         includeCss(parsed, file, undefined, content)
@@ -165,9 +180,11 @@ export function packageFilesAvailable(adtDir: string, options: PackageFilesOptio
       // read, so in tolerant mode such a block contributes no references
       // rather than refusing the page it styles. Nothing is missing from the
       // bundle on its account, so there is nothing to report.
-      const contentCss = (css: string, mode: true | "stylesheet", inlineStyle?: string) => {
-        if (!tolerant) return includeCss(parseCssSource(css, mode), from, inlineStyle, true)
-        try { includeCss(parseCssSource(css, mode), from, inlineStyle, true) } catch { lastMember = undefined }
+      const contentCss = (css: string, mode: true | "stylesheet", inlineStyle?: string, content = true) => {
+        let parsed: ReturnType<typeof parseCssSource>
+        try { parsed = parseCssSource(css, mode) }
+        catch (error) { if (!allowUnreadableStyles) throw error; return }
+        includeCss(parsed, from, inlineStyle, content)
       }
       let style: string | undefined, inBody = false
       new Parser({ onopentag(name, attrs) {
@@ -184,14 +201,13 @@ export function packageFilesAvailable(adtDir: string, options: PackageFilesOptio
         if (attrs.srcset) for (const url of srcsetUrls(attrs.srcset)) asset(url, from)
       }, ontext(text) { if (style !== undefined) style += text }, onclosetag(name) {
         if (name === "style" && style !== undefined) {
-          if (inBody) contentCss(style, "stylesheet")
-          else includeCss(parseCssSource(style, "stylesheet"), from)
+          contentCss(style, "stylesheet", undefined, inBody)
           style = undefined
         }
       } }).end(html)
       let references: ReturnType<typeof cssReferences>
       try { references = cssReferences(sources, html) }
-      catch (error) { if (!tolerant) throw error; lastMember = undefined; references = [] }
+      catch (error) { if (!allowUnreadableStyles) throw error; lastMember = undefined; references = [] }
       // Every url() target is a resource (image, font), never reader code.
       for (const reference of references) asset(reference.url, reference.from)
     }

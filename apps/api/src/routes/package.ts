@@ -97,7 +97,7 @@ function isBuildCacheValid(storage: Storage, bookDir: string, hash: string, expe
     // build that had none must still have every file, so a resource that
     // disappears from the bundle afterwards triggers a rebuild that restores it.
     const allowMissingAssets = warnings.some(warning => warning.kind === "missing-asset")
-    return packageFilesAvailable(root, { expectedLanguages, allowMissingAssets }) &&
+    return packageFilesAvailable(root, { expectedLanguages, allowMissingAssets, allowUnreadableStyles: true }) &&
       readRetainedPackageOwnership(storage, path.join(bookDir, `${path.basename(bookDir)}.db`), root).allOwned
   } catch { return false }
 }

@@ -629,6 +629,7 @@ describe("Package routes", () => {
   })
 
   it.each([
+    '<p style="color:red /* note">Text</p>',
     '<style>.a { content: "abc\n} .yy { background:url(images/missing.png) } .c { content: "x }</style><p class="yy">Text</p>',
     '<style>.typo { color red } .a { content: "abc\n} .yy { background:url(images/missing.png) } .c { content: "x }</style><p class="yy">Text</p>',
     "<p style=\"font-family:'abc\n; background:url(images/missing.png); quotes:'\">Text</p>",
@@ -657,6 +658,12 @@ describe("Package routes", () => {
     const delivered = await readZip()
     expect(Buffer.from(delivered["pg001_sec001.html"]).toString()).toContain("Text")
     expect(delivered).not.toEqual(original)
+    const pageFile = path.join(tmpDir, label, "adt", "pg001_sec001.html")
+    const before = fs.statSync(pageFile, { bigint: true })
+    expect((await run()).status).toBe(200)
+    const after = fs.statSync(pageFile, { bigint: true })
+    expect([after.ino, after.mtimeNs]).toEqual([before.ino, before.mtimeNs])
+    expect(await readZip()).toEqual(delivered)
   })
 
   it.each([

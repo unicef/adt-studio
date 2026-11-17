@@ -72,6 +72,16 @@ it("ignores styles in book content that cannot be read, as a browser does", () =
   expect(check(root)).toEqual({ opens: true, missing: [] })
 })
 
+it.each(["body { color: red } }", "body { color: red /* note"])("RAC-19: keeps a present imported stylesheet despite syntax errors: %s", css => {
+  const root = bundle("<p>Text</p>")
+  const file = path.join(root, "assets/shell.css")
+  fs.writeFileSync(file, css)
+  expect(check(root)).toEqual({ opens: true, missing: [] })
+  expect(fs.readFileSync(file, "utf8")).toBe(css)
+  fs.unlinkSync(file)
+  expect(check(root).opens).toBe(false)
+})
+
 it.each([
   ["the page document", (root: string) => fs.unlinkSync(path.join(root, "p1.html"))],
   ["the reader script", (root: string) => fs.unlinkSync(path.join(root, "assets/base.js"))],
