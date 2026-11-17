@@ -1030,3 +1030,14 @@ it.each(["captions", "glossary"] as const)("admits immediate and queued %s work 
   expect(await refused.text()).toContain("REPLACEMENT_CONFIRMATION_INVALID")
   expect(sectionPage).not.toHaveBeenCalled()
 })
+
+it("RAC-5: finishes confirmed Sectioning despite unrelated global settings changing during generation", async () => {
+  const consent = await replacement(["p2"])
+  sectionPage.mockImplementationOnce(async ({ pageId }) => {
+    fs.appendFileSync(configPath, "speech:\n  batch_by_page: true\nepub_glossary:\n  mode: both\n")
+    return tree(pageId)
+  })
+  const result = await run({ toStage: "sectioning", ...consent, pageErrorPolicy: "stop" })
+  expect(result.status).toBe("completed")
+  expect(history("page-sectioning", "p2").at(-1)?.data).toMatchObject({ source: "ai" })
+})

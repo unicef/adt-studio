@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { createPromptEngine } from "@adt/llm"
 import { configHash, resolveBookPaths, type Storage } from "@adt/storage"
+import { sectioningConfigInputs } from "./generation-config.js"
 import { loadBookConfig } from "./config.js"
 import { BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, buildBookOutlineConfig, readBookOutline } from "./book-outline.js"
 import { TYPE_SCALE_NODE, TYPE_SCALE_ITEM } from "./type-scale.js"
@@ -61,7 +62,7 @@ function replacementSignature(storage: Storage, label: string, booksRoot: string
     }
   })
   return configHash(JSON.stringify({
-    bookDir, config, range, prompts,
+    bookDir, config: sectioningConfigInputs(config), range, prompts,
     historyRecovery: storage.getSelectedNodeVersion("history-recovery-state", "book"),
     outline: storage.getSelectedNodeVersion(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM),
     outlineReady,

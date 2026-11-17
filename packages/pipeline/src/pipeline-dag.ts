@@ -129,6 +129,7 @@ import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
 import { getRenderSectioning, assertReflowableSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
+import { sectioningConfigInputs } from "./generation-config.js"
 import { loadBookConfig, loadBookConfigOverrides } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
 import { processWithConcurrency } from "./concurrency.js"
@@ -651,7 +652,7 @@ async function runAdmittedFullPipeline(
         withSourceGenerationTracking(storage, () => {
           const previous = previousSectioning.get(pageId)
           if ((storage.getLatestNodeData("page-sectioning", pageId)?.version ?? 0) !== (previous?.version ?? 0)
-            || JSON.stringify(loadBookConfig(label, booksRoot, configPath)) !== JSON.stringify(config)
+            || JSON.stringify(sectioningConfigInputs(loadBookConfig(label, booksRoot, configPath))) !== JSON.stringify(sectioningConfigInputs(config))
             || JSON.stringify(activeSectioningPages(storage, config, bookDir)) !== JSON.stringify(sectioningPages)) {
             throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Sectioning inputs changed during generation; previous output is kept.")
           }

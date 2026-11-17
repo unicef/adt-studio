@@ -4,6 +4,7 @@ import {
 } from "@adt/storage"
 import { captureStoryboardSource, publishStoryboardSource } from "./storyboard-source-state.js"
 import { withSourceGenerationTracking } from "./source-generation-state.js"
+import { storyboardConfigInputs } from "./generation-config.js"
 import { loadBookConfig } from "./config.js"
 import { isFixedLayoutBook } from "./fixed-layout-rendering.js"
 import { FIXED_LAYOUT_SECTIONING_NODE, publishedPageLayouts } from "./render-sectioning.js"
@@ -39,7 +40,7 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
   })
   const sharedInputs = () => {
     const currentConfig = loadBookConfig(label, booksRoot, configPath)
-    return configHash(JSON.stringify({ config: currentConfig, pages: activeSectioningPages(storage, currentConfig, bookDir) }))
+    return configHash(JSON.stringify({ config: storyboardConfigInputs(currentConfig), pages: activeSectioningPages(storage, currentConfig, bookDir) }))
   }
   const pageInputs = (pageId: string) => configHash(JSON.stringify([
     storage.getSelectedNodeVersion("page-sectioning", pageId),

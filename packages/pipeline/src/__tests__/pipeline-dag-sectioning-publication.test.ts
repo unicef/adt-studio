@@ -12,7 +12,7 @@ import type { StructuredTextRequest } from "@adt/llm"
 const transport = vi.hoisted(() => ({
   calls: [] as StructuredTextRequest[],
   beforeSecond: () => {},
-  ending: "failure" as "failure" | "cancel",
+  ending: "failure" as "failure" | "cancel" | "success",
 }))
 vi.mock("../extraction-admission.ts", async (original) => ({
   ...await original<typeof import("../extraction-admission.js")>(),
@@ -95,3 +95,31 @@ it.each([false, true].flatMap(translate => ["failure", "cancel"].map(ending => (
     } finally { after.close() }
   },
 )
+
+
+it.each([false, true])("fresh DAG publication ignores unrelated settings but guards Sectioning inputs, relevant=%s", async relevant => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "dag-config-publication-")); roots.push(root)
+  const label = "fresh", configPath = path.join(root, "global.yaml"), pdfPath = path.join(root, "fixture.pdf")
+  fs.writeFileSync(pdfPath, "isolated extraction fixture")
+  fs.writeFileSync(configPath, "default_model: review:stub\nconcurrency: 1\nstructure_types:\n  paragraph: Paragraph\nrole_types:\n  text: Text\nsection_types:\n  text_only: Text\npage_sectioning:\n  mode: page\n  max_retries: 0\n")
+  const storage = createBookStorage(label, root)
+  for (const n of [2, 7]) {
+    storage.putExtractedPage({ pageId: `p${n}`, pageNumber: n, text: n === 7 ? "SECOND PAGE" : "First page", images: [],
+      pageImage: { imageId: `p${n}_page`, buffer: Buffer.from("pixels"), hash: "test", format: "png", width: 4, height: 6 } })
+    storage.putNodeData("image-filtering", `p${n}`, { images: [] })
+  }
+  storage.putNodeData("metadata", "book", { language_code: "en" })
+  storage.putNodeData("book-outline", "book", { entries: [], styleClusters: [], reasoning: "fixture" })
+  storage.close()
+  transport.calls = []; transport.ending = "success"
+  transport.beforeSecond = () => fs.appendFileSync(configPath, relevant ? "editing_language: fr\n" : "speech:\n  batch_by_page: true\nepub_glossary:\n  mode: both\n")
+  const result = await runFullPipeline({ label, booksRoot: root, pdfPath, configPath, promptsDir: path.resolve("prompts"), templatesDir: path.resolve("templates") })
+  const after = createBookStorage(label, root)
+  try {
+    expect(after.getAllNodeVersions("page-sectioning", "p2")).toHaveLength(1)
+    expect(after.getAllNodeVersions("page-sectioning", "p7")).toHaveLength(relevant ? 0 : 1)
+    expect(result.steps.statuses.get("page-sectioning")).toBe(relevant ? "failed" : "complete")
+    expect(result.steps.statuses.get("translation")).toBe(relevant ? "skipped" : "complete")
+    expect(transport.calls).toHaveLength(2)
+  } finally { after.close() }
+})

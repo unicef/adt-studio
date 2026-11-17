@@ -3,6 +3,7 @@ import {
   createBookStorage, withBookWriter, recoverSectioningTransition,
   writeSectioningLifecycle, assertExtractionReadable, resolveBookPaths, type Storage,
 } from "@adt/storage"
+import { sectioningConfigInputs } from "./generation-config.js"
 import { loadBookConfig } from "./config.js"
 import { SectioningSafetyError } from "./sectioning-errors.js"
 
@@ -44,7 +45,7 @@ export function prepareSectioningRun(label: string, booksRoot: string, from: Sta
 
 export function completeSectioning(label: string, booksRoot: string, config: AppConfig, configPath?: string): void {
   const current = loadBookConfig(label, booksRoot, configPath)
-  if (JSON.stringify(current) !== JSON.stringify(config)) {
+  if (JSON.stringify(sectioningConfigInputs(current)) !== JSON.stringify(sectioningConfigInputs(config))) {
     throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Configuration changed during Sectioning. The run cannot establish current output.")
   }
   const { bookDir } = resolveBookPaths(label, booksRoot)

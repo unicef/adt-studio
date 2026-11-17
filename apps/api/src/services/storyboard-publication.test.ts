@@ -612,3 +612,29 @@ it("bounds missing layout-switch identities to the active window", async () => {
     }
   } finally { s.close() }
 })
+
+it("RAC-6: completes Storyboard when unrelated global settings change between pages", async () => {
+  fs.writeFileSync(configPath, config + "concurrency: 1\n")
+  render.mockImplementationOnce(async () => {
+    fs.appendFileSync(configPath, "speech:\n  batch_by_page: true\nepub_glossary:\n  mode: both\n")
+    return { sections: [] }
+  })
+  await expect(run()).resolves.toBeUndefined()
+  const s = store()
+  try { for (const id of ["p2", "p7"]) expect(s.getSelectedNodeVersion("web-rendering", id)).not.toBeNull() }
+  finally { s.close() }
+})
+
+it.each(["styleguide: different", "editing_language: fr", "start_page: 7", "default_render_strategy: fixed\nrender_strategies:\n  fixed:\n    render_type: fixed_layout"])(
+  "RAC-6: retains output when a relevant Storyboard input changes: %s", changed => {
+    fs.writeFileSync(configPath, config)
+    const s = store()
+    try {
+      const publication = createStoryboardPublication(s, label, root, configPath)
+      publication.storage.putNodeData("web-rendering", "p2", { sections: [] })
+      fs.appendFileSync(configPath, changed + "\n")
+      expect(() => publication.publishPage("p2")).toThrow("STORYBOARD_INPUT_CHANGED")
+      expect(s.getLatestNodeData("web-rendering", "p2")).toBeNull()
+    } finally { s.close() }
+  },
+)
