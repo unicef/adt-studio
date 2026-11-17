@@ -2724,7 +2724,7 @@ msgid "Change Preset"
 msgstr "Changer de préréglage"
 
 msgid "Change Sectioning mode?"
-msgstr "Changer le mode de découpage en sections ?"
+msgstr "Changer le mode de Sectionnement ?"
 
 msgid "Change the book language?"
 msgstr "Changer la langue du livre ?"
@@ -2748,7 +2748,7 @@ msgid "Changing fonts affects how pages are rendered — re-run Storyboard and E
 msgstr "Changer les polices affecte le rendu des pages — relancez le Storyboard et l'Export pour appliquer les nouvelles polices."
 
 msgid "Changing layout requires every active page to render successfully. Run the whole Storyboard stage. Previous output is retained."
-msgstr "Pour changer la mise en page, toutes les pages actives doivent être rendues correctement. Exécutez toute l’étape Storyboard. Le résultat précédent est conservé."
+msgstr "Pour changer la mise en page, toutes les pages actives doivent être rendues correctement. Exécutez toute l’étape Scénarimage. Le résultat précédent est conservé."
 
 msgid "Changing the language may affect saved work."
 msgstr "Le changement de langue peut affecter le travail enregistré."
@@ -3532,7 +3532,7 @@ msgid "Could not revert this page. Your edits were kept. Try again."
 msgstr "Impossible d’annuler les modifications de cette page. Vos modifications ont été conservées. Réessayez."
 
 msgid "Could not save Sectioning mode."
-msgstr "Impossible d’enregistrer le mode de découpage en sections."
+msgstr "Impossible d’enregistrer le mode de Sectionnement."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -4730,7 +4730,7 @@ msgid "Existing reviewer sessions keep their own checklist snapshot. New checkli
 msgstr "Les sessions de révision existantes conservent leur propre instantané de liste de contrôle. Les modifications de liste de contrôle s'appliquent aux sessions nouvellement créées."
 
 msgid "Existing-book extraction and CLI resume are unavailable here. Use Sectioning in Studio to review and confirm any replacement."
-msgstr "L’extraction des livres existants et la reprise par CLI ne sont pas disponibles ici. Utilisez la division en sections dans Studio pour examiner et confirmer tout remplacement."
+msgstr "L’extraction des livres existants et la reprise par CLI ne sont pas disponibles ici. Utilisez le Sectionnement dans Studio pour examiner et confirmer tout remplacement."
 
 msgid "Expand"
 msgstr "Développer"
@@ -9948,7 +9948,7 @@ msgid "Replace quizzes"
 msgstr "Remplacer les quiz"
 
 msgid "Replace these pages and reset their Storyboard"
-msgstr "Remplacer ces pages et réinitialiser leur Storyboard"
+msgstr "Remplacer ces pages et réinitialiser leur Scénarimage"
 
 msgid "Replace this audio file"
 msgstr "Remplacer ce fichier audio"
@@ -9960,7 +9960,7 @@ msgid "Replacement inputs could not be verified. Existing pages will stay unchan
 msgstr "Les données nécessaires au remplacement n’ont pas pu être vérifiées. Les pages existantes resteront inchangées."
 
 msgid "Replacing these pages resets their current Storyboard, including manual edits. Saved versions and media stay in history; Storyboard must be rebuilt even if generation is cancelled or fails."
-msgstr "Le remplacement de ces pages réinitialise leur Storyboard actuel, y compris les modifications manuelles. Les versions enregistrées et les médias restent dans l’historique ; Storyboard doit être reconstruit même si la génération est annulée ou échoue."
+msgstr "Le remplacement de ces pages réinitialise leur Scénarimage actuel, y compris les modifications manuelles. Les versions enregistrées et les médias restent dans l’historique ; Scénarimage doit être reconstruit même si la génération est annulée ou échoue."
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Rejouer l'introduction guidée à ADT Studio."
@@ -10093,7 +10093,7 @@ msgid "Restore section to flow"
 msgstr "Restaurer la section dans le flux"
 
 msgid "Restore the listed recoverable versions exactly. A selected version receives a new version number so old edit drafts cannot overwrite it. Review new replacement consent before running Sectioning."
-msgstr "Restaurez à l’identique les versions récupérables indiquées. Une version sélectionnée reçoit un nouveau numéro de version pour empêcher les anciens brouillons de la remplacer. Examinez une nouvelle confirmation de remplacement avant de lancer le découpage en sections."
+msgstr "Restaurez à l’identique les versions récupérables indiquées. Une version sélectionnée reçoit un nouveau numéro de version pour empêcher les anciens brouillons de la remplacer. Examinez une nouvelle confirmation de remplacement avant de lancer le Sectionnement."
 
 msgid "Restore this term — it will be eligible again on the next regeneration."
 msgstr "Restaurer ce terme — il sera à nouveau éligible lors de la prochaine régénération."
@@ -10225,7 +10225,7 @@ msgid "Review style"
 msgstr "Style de révision"
 
 msgid "Review the affected pages and their current versions, then explicitly confirm replacement and the Storyboard reset."
-msgstr "Examinez les pages concernées et leurs versions actuelles, puis confirmez explicitement le remplacement et la réinitialisation du Storyboard."
+msgstr "Examinez les pages concernées et leurs versions actuelles, puis confirmez explicitement le remplacement et la réinitialisation du Scénarimage."
 
 msgid "Review the affected stages after this change."
 msgstr "Vérifiez les étapes concernées après ce changement."
@@ -11422,7 +11422,7 @@ msgid "Some pages have no embedded text layer — text was recovered from the pa
 msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page. Préférez un PDF basé sur du texte."
 
 msgid "Some pages or sections are missing Storyboard output. Existing pages remain available."
-msgstr "Certaines pages ou sections n’ont pas de contenu Storyboard. Les pages existantes restent disponibles."
+msgstr "Certaines pages ou sections n’ont pas de contenu Scénarimage. Les pages existantes restent disponibles."
 
 msgid "Some permissions are missing"
 msgstr "Certaines autorisations manquent"
@@ -11480,7 +11480,7 @@ msgid "Source changed. Your edit has been kept."
 msgstr "La source a changé. Votre modification a été conservée."
 
 msgid "Source content changed after some Storyboard output was saved. The saved output remains available."
-msgstr "Le contenu source a changé après l’enregistrement d’une partie du storyboard. Le résultat enregistré reste accessible."
+msgstr "Le contenu source a changé après l’enregistrement d’une partie du scénarimage. Le résultat enregistré reste accessible."
 
 msgid "Source file"
 msgstr "Fichier source"
@@ -11779,13 +11779,13 @@ msgid "Storyboard has already been run. Changes made here will not take effect u
 msgstr "Le scénarimage a déjà été exécuté. Les modifications effectuées ici ne prendront effet que lorsque le scénarimage sera relancé."
 
 msgid "Storyboard inputs changed on {total} page(s) (showing up to 20): {pages}. Refresh the saved content before retrying. Previous output is retained."
-msgstr "Les données d’entrée du Storyboard ont changé sur {total} page(s) (20 affichées au maximum) : {pages}. Actualisez le contenu enregistré avant de réessayer. La sortie précédente est conservée."
+msgstr "Les données d’entrée du Scénarimage ont changé sur {total} page(s) (20 affichées au maximum) : {pages}. Actualisez le contenu enregistré avant de réessayer. La sortie précédente est conservée."
 
 msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
-msgstr "Les données d’entrée du Storyboard ont changé ou le périmètre demandé est incompatible avec cette mise en page. Actualisez le contenu enregistré et rendez à nouveau les pages concernées."
+msgstr "Les données d’entrée du Scénarimage ont changé ou le périmètre demandé est incompatible avec cette mise en page. Actualisez le contenu enregistré et rendez à nouveau les pages concernées."
 
 msgid "Storyboard needs review"
-msgstr "Le storyboard doit être vérifié"
+msgstr "Le scénarimage doit être vérifié"
 
 msgid "Storyboard nodes:"
 msgstr "Nœuds du storyboard :"
@@ -12334,7 +12334,7 @@ msgid "The last translation review failed before producing reliable item-level r
 msgstr "La dernière révision de traduction a échoué avant de produire des résultats fiables par élément. Relancez Réviser pour les traductions visibles."
 
 msgid "The layout switch has {total} unfinished page(s) (showing up to 20): {pages}. Inspect their inputs and page errors, then retry the whole Storyboard stage. Previous output is retained."
-msgstr "Le changement de mise en page comporte {total} page(s) inachevée(s) (20 affichées au maximum) : {pages}. Vérifiez leurs données d’entrée et les erreurs de page, puis relancez toute l’étape Storyboard. La sortie précédente est conservée."
+msgstr "Le changement de mise en page comporte {total} page(s) inachevée(s) (20 affichées au maximum) : {pages}. Vérifiez leurs données d’entrée et les erreurs de page, puis relancez toute l’étape Scénarimage. La sortie précédente est conservée."
 
 msgid "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
 msgstr "Le lien ne s’ouvre pas pour le moment. Reprendre réactive le même lien, avec tous les commentaires conservés."
@@ -12764,7 +12764,7 @@ msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "Cette action est irréversible. Tous les liens que vous avez partagés cesseront de fonctionner."
 
 msgid "This changes how new Sectioning is generated. Saved content and Storyboard stay available. Replacing existing pages requires a separate confirmation."
-msgstr "Cela change la génération des nouvelles sections. Le contenu enregistré et le Storyboard restent disponibles. Le remplacement des pages existantes nécessite une confirmation distincte."
+msgstr "Cela change la génération des nouvelles sections. Le contenu enregistré et le Scénarimage restent disponibles. Le remplacement des pages existantes nécessite une confirmation distincte."
 
 msgid "This code still works. A new one can wait until the service is back."
 msgstr "Ce code fonctionne toujours. Un nouveau peut attendre le retour du service."
@@ -12926,7 +12926,7 @@ msgid "This page's embedded text layer is empty, but the Sectioning step recover
 msgstr "La couche de texte intégrée de cette page est vide, mais l'étape de Sectionnement a récupéré du texte à partir de l'image de la page — elle semble donc numérisée ou uniquement composée d'images. Le pipeline peut toujours fonctionner à partir du texte récupéré, mais pour de meilleurs résumés, métadonnées et traductions, essayez d'obtenir une version de ce PDF basée sur du texte (avec une vraie couche de texte) plutôt qu'une copie numérisée."
 
 msgid "This page's saved Sectioning is unreadable. Restore a valid historical version before replacing it. History and media are retained."
-msgstr "La division en sections enregistrée de cette page est illisible. Restaurez une version valide de l’historique avant de la remplacer. L’historique et les médias sont conservés."
+msgstr "Le Sectionnement enregistré de cette page est illisible. Restaurez une version valide de l’historique avant de le remplacer. L’historique et les médias sont conservés."
 
 msgid "This part cannot be merged"
 msgstr "Cette partie ne peut pas être fusionnée"
@@ -13004,7 +13004,7 @@ msgid "This restores the default fallback font across every page and clears per-
 msgstr "Cela restaure la police par défaut sur toutes les pages et efface les réglages de police par élément ainsi que la sélection de police pour tout le livre. Les polices jointes restent dans la liste. La restauration est disponible par page dans l'historique des versions."
 
 msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. Replacing this page later requires a separate confirmation."
-msgstr "Cela restaure la dernière division en sections générée pour cette page. Votre version modifiée reste dans l’historique. Les autres pages conservent leurs modifications. Le remplacement ultérieur de cette page nécessite une confirmation distincte."
+msgstr "Cela restaure le dernier Sectionnement généré pour cette page. Votre version modifiée reste dans l’historique. Les autres pages conservent leurs modifications. Le remplacement ultérieur de cette page nécessite une confirmation distincte."
 
 #~ msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
 #~ msgstr "Cela restaure le dernier découpage en sections généré pour cette page. Votre version modifiée reste dans l’historique. Les autres pages conservent leurs modifications. Cette page pourra être régénérée lors de la prochaine relance."

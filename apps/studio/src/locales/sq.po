@@ -2724,7 +2724,7 @@ msgid "Change Preset"
 msgstr "Ndrysho Presetin"
 
 msgid "Change Sectioning mode?"
-msgstr "Të ndryshohet modaliteti i ndarjes në seksione?"
+msgstr "Të ndryshohet modaliteti i Seksionimit?"
 
 msgid "Change the book language?"
 msgstr "Të ndryshohet gjuha e librit?"
@@ -3532,7 +3532,7 @@ msgid "Could not revert this page. Your edits were kept. Try again."
 msgstr "Ndryshimet e kësaj faqeje nuk mund të zhbëheshin. Ndryshimet tuaja u ruajtën. Provoni përsëri."
 
 msgid "Could not save Sectioning mode."
-msgstr "Nuk u ruajt modaliteti i ndarjes në seksione."
+msgstr "Nuk u ruajt modaliteti i Seksionimit."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -4724,13 +4724,13 @@ msgid "Existing output is included."
 msgstr "Rezultati ekzistues përfshihet."
 
 msgid "Existing pages stay unchanged. This run fills missing Sectioning only unless you explicitly choose replacement."
-msgstr "Faqet ekzistuese mbeten të pandryshuara. Ky ekzekutim plotëson vetëm ndarjen në seksione që mungon, përveç nëse zgjidhni shprehimisht zëvendësimin."
+msgstr "Faqet ekzistuese mbeten të pandryshuara. Ky ekzekutim plotëson vetëm Seksionimin që mungon, përveç nëse zgjidhni shprehimisht zëvendësimin."
 
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Seancat ekzistuese të rishikuesit ruajnë fotografinë e tyre të listës së kontrollit. Ndryshimet e reja të listës zbatohen për seancat e krijuara rishtazi."
 
 msgid "Existing-book extraction and CLI resume are unavailable here. Use Sectioning in Studio to review and confirm any replacement."
-msgstr "Nxjerrja nga librat ekzistues dhe vazhdimi përmes CLI nuk janë të disponueshme këtu. Përdorni ndarjen në seksione në Studio për të shqyrtuar dhe konfirmuar çdo zëvendësim."
+msgstr "Nxjerrja nga librat ekzistues dhe vazhdimi përmes CLI nuk janë të disponueshme këtu. Përdorni Seksionimin në Studio për të shqyrtuar dhe konfirmuar çdo zëvendësim."
 
 msgid "Expand"
 msgstr "Zgjer"
@@ -10093,7 +10093,7 @@ msgid "Restore section to flow"
 msgstr "Rikthe seksionin në rrjedhë"
 
 msgid "Restore the listed recoverable versions exactly. A selected version receives a new version number so old edit drafts cannot overwrite it. Review new replacement consent before running Sectioning."
-msgstr "Riktheni saktësisht versionet e rikuperueshme të listuara. Një version i përzgjedhur merr një numër të ri versioni që draftet e vjetra të redaktimit të mos mund ta mbishkruajnë. Shqyrtoni një konfirmim të ri zëvendësimi para se të nisni ndarjen në seksione."
+msgstr "Riktheni saktësisht versionet e rikuperueshme të listuara. Një version i përzgjedhur merr një numër të ri versioni që draftet e vjetra të redaktimit të mos mund ta mbishkruajnë. Shqyrtoni një konfirmim të ri zëvendësimi para se të nisni Seksionimin."
 
 msgid "Restore this term — it will be eligible again on the next regeneration."
 msgstr "Riktheje këtë term — do të jetë i pranueshëm përsëri në rigjenerimin tjetër."
@@ -11480,7 +11480,7 @@ msgid "Source changed. Your edit has been kept."
 msgstr "Burimi ka ndryshuar. Ndryshimi juaj është ruajtur."
 
 msgid "Source content changed after some Storyboard output was saved. The saved output remains available."
-msgstr "Përmbajtja burimore ndryshoi pasi u ruajt një pjesë e skenarit vizual. Rezultati i ruajtur mbetet i disponueshëm."
+msgstr "Përmbajtja burimore ndryshoi pasi u ruajt një pjesë e Storyboard-it. Rezultati i ruajtur mbetet i disponueshëm."
 
 msgid "Source file"
 msgstr "Skedari burim"
@@ -11785,7 +11785,7 @@ msgid "Storyboard inputs changed or the requested scope is incompatible with thi
 msgstr "Të dhënat hyrëse të Storyboard-it kanë ndryshuar ose shtrirja e kërkuar nuk përputhet me këtë paraqitje. Rifreskoni përmbajtjen e ruajtur dhe renderoni sërish faqet e prekura."
 
 msgid "Storyboard needs review"
-msgstr "Skenari vizual duhet rishikuar"
+msgstr "Storyboard-i duhet rishikuar"
 
 msgid "Storyboard nodes:"
 msgstr "Nyjet e storyboard-it:"
@@ -12764,7 +12764,7 @@ msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "Kjo nuk mund të zhbëhet. Çdo lidhje që keni ndarë do të ndalojë së funksionuari."
 
 msgid "This changes how new Sectioning is generated. Saved content and Storyboard stay available. Replacing existing pages requires a separate confirmation."
-msgstr "Kjo ndryshon mënyrën e gjenerimit të ndarjes së re në seksione. Përmbajtja e ruajtur dhe Storyboard-i mbeten të disponueshme. Zëvendësimi i faqeve ekzistuese kërkon konfirmim të veçantë."
+msgstr "Kjo ndryshon mënyrën e gjenerimit të Seksionimit të ri. Përmbajtja e ruajtur dhe Storyboard-i mbeten të disponueshme. Zëvendësimi i faqeve ekzistuese kërkon konfirmim të veçantë."
 
 msgid "This code still works. A new one can wait until the service is back."
 msgstr "Ky kod ende funksionon. Një i ri mund të presë derisa shërbimi të rikthehet."
@@ -12926,7 +12926,7 @@ msgid "This page's embedded text layer is empty, but the Sectioning step recover
 msgstr "Shtresa e tekstit të integruar e kësaj faqeje është bosh, por hapi i Seksionimit rikuperoi tekst nga imazhi i faqes — pra duket si një faqe e skanuar ose vetëm me imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
 
 msgid "This page's saved Sectioning is unreadable. Restore a valid historical version before replacing it. History and media are retained."
-msgstr "Ndarja e ruajtur në seksione e kësaj faqeje është e palexueshme. Riktheni një version të vlefshëm historik para se ta zëvendësoni. Historiku dhe mediat ruhen."
+msgstr "Seksionimi i ruajtur i kësaj faqeje është i palexueshëm. Riktheni një version të vlefshëm historik para se ta zëvendësoni. Historiku dhe mediat ruhen."
 
 msgid "This part cannot be merged"
 msgstr "Kjo pjesë nuk mund të bashkohet"
