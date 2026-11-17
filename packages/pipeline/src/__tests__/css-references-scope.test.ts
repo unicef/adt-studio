@@ -1,4 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest"
+import { spawnSync } from "node:child_process"
+import path from "node:path"
+import { pathToFileURL } from "node:url"
 
 const dom = vi.hoisted(() => ({ created: 0 }))
 vi.mock("jsdom", async (importOriginal) => {
@@ -18,6 +21,34 @@ beforeEach(() => { dom.created = 0 })
 
 const urls = (css: string, html: string) =>
   cssReferences([{ parsed: parseCssSource(css), from: "content/styles.css" }], html).map((reference) => reference.url).sort()
+
+it("RAC-19: malformed escaped identifiers cannot stall package validation", { timeout: 15_000 }, () => {
+  // A separate process bounds the failure even when a synchronous regexp stalls.
+  // This is a liveness control, not a machine-speed benchmark. Test both one-
+  // and multi-digit escapes: disjoint alternatives alone leave hex-length
+  // backtracking if trailing hex digits can also be consumed as literal text.
+  const module = pathToFileURL(path.resolve("packages/pipeline/dist/packaging/css-references.js")).href
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
+    import { parseCssSource } from ${JSON.stringify(module)};
+    for (const escape of [String.fromCharCode(92) + "a", String.fromCharCode(92) + "ab"]) {
+      for (const mode of [false, true, "stylesheet"]) {
+        const value = "--x:" + escape.repeat(40) + ",;background:url(required.png)";
+        parseCssSource(mode === true ? value : ".a{" + value + "}", mode);
+      }
+    }
+    console.log("parsed");
+  `], { encoding: "utf8", timeout: 5_000 })
+  expect(result.error, result.stderr).toBeUndefined()
+  expect(result.status, result.stderr).toBe(0)
+  expect(result.stdout.trim()).toBe("parsed")
+})
+
+it.each([String.raw`\69 nherit`, String.raw`\000069nherit`, String.raw`i\nherit`, "\\69\r\nnherit"])(
+  "RAC-19: retains CSS-wide escaped keyword semantics: %s", keyword => {
+    expect(urls(`.parent{--hero:url(required.png)}.hero{--hero:${keyword};background:var(--hero)}`,
+      '<div class="parent"><div class="hero"></div></div>')).toEqual(["required.png"])
+  },
+)
 
 it("skips element scoping when no variable can carry a URL (generated Tailwind/Font Awesome CSS)", () => {
   // Tailwind and Font Awesome use var() heavily, but only for lengths, colours,

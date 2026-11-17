@@ -19,7 +19,28 @@ const quotedValue = (value: string) => /^(?:"(?:[^"\\\r\n\f]|\\[\s\S])*"|'(?:[^'
 function cssIdentifier(value: string): string | undefined {
   // Comments separate tokens: in/**/herit is not the identifier inherit.
   const token = value.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^[\t\n\r\f ]+|[\t\n\r\f ]+$/g, "")
-  if (!/^(?:\\[0-9a-f]{1,6}[\t\n\r\f ]?|\\[^\n\r\f]|[\w-])+$/i.test(token)) return undefined
+  if (!token) return undefined
+  // Consume each escape greedily once. A regexp can reinterpret a hex escape
+  // as a non-hex escape, or its final digits as literal characters, exponentially
+  // many ways before rejecting a trailing delimiter in an authored CSS value.
+  for (let position = 0; position < token.length;) {
+    if (token[position] !== "\\") {
+      if (!/[\w-]/.test(token[position++])) return undefined
+      continue
+    }
+    position++
+    const start = position
+    while (position - start < 6 && /[0-9a-f]/i.test(token[position] ?? "")) position++
+    if (position > start) {
+      if (/[\t\n\r\f ]/.test(token[position] ?? "")) {
+        if (token[position] === "\r" && token[position + 1] === "\n") position++
+        position++
+      }
+    } else {
+      if (position === token.length || /[\n\r\f]/.test(token[position])) return undefined
+      position++
+    }
+  }
   return valueReferences(`url(${token})`)[0]?.url.toLowerCase()
 }
 
