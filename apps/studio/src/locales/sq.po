@@ -12740,9 +12740,6 @@ msgstr "Ky libër është një pjesë: intervali i faqeve është fiks, i përke
 msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 msgstr "Ky libër është një pjesë. Eksportojeni si <0>Pjesa e përfunduar</0> dhe dërgojeni skedarin te koordinatori për ta bashkuar në librin burim."
 
-msgid "This book is being changed by another operation. Wait for it to finish, then retry."
-msgstr "Ky libër po ndryshohet nga një veprim tjetër. Prisni që ai të përfundojë, pastaj provoni sërish."
-
 msgid "This book is fully assembled"
 msgstr "Ky libër është plotësisht i montuar"
 
@@ -12768,6 +12765,9 @@ msgstr "Ky libër ende nuk është plotësuar — faqet <0>{0}</0> nuk janë bas
 
 msgid "This book isn't shared right now"
 msgstr "Ky libër nuk është ndarë tani"
+
+msgid "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, restart your computer and try again."
+msgstr "Ky libër mund të jetë ende në përdorim. Përfundoni çdo punë aktive dhe mbyllni aplikacionet e tjera të librave, pastaj provoni përsëri. Nëse mbetet i padisponueshëm, rinisni kompjuterin dhe provoni përsëri."
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinale të PDF-së. Fontet e bashkëngjitura gjithsesi udhëzojnë IA-në për aktivitetet dhe faqet e gjeneruara."

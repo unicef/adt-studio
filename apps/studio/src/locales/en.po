@@ -12738,9 +12738,6 @@ msgstr "This book is a part — its page range is fixed to the assigned subset a
 msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 msgstr "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 
-msgid "This book is being changed by another operation. Wait for it to finish, then retry."
-msgstr "This book is being changed by another operation. Wait for it to finish, then retry."
-
 msgid "This book is fully assembled"
 msgstr "This book is fully assembled"
 
@@ -12766,6 +12763,9 @@ msgstr "This book isn't fully assembled yet — pages <0>{0}</0> haven't been me
 
 msgid "This book isn't shared right now"
 msgstr "This book isn't shared right now"
+
+msgid "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, restart your computer and try again."
+msgstr "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, restart your computer and try again."
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."

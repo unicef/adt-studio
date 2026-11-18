@@ -12738,9 +12738,6 @@ msgstr "Este livro é uma parte: seu intervalo de páginas é fixo, corresponde 
 msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 msgstr "Este livro é uma parte. Exporte-o como <0>Parte concluída</0> e envie o arquivo de volta ao coordenador para mesclá-lo no livro de origem."
 
-msgid "This book is being changed by another operation. Wait for it to finish, then retry."
-msgstr "Outra operação está alterando este livro. Aguarde a conclusão e tente novamente."
-
 msgid "This book is fully assembled"
 msgstr "Este livro está totalmente montado"
 
@@ -12766,6 +12763,9 @@ msgstr "Este livro ainda não está completo — as páginas <0>{0}</0> não for
 
 msgid "This book isn't shared right now"
 msgstr "Este livro não está compartilhado agora"
+
+msgid "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, restart your computer and try again."
+msgstr "Este livro ainda pode estar em uso. Conclua qualquer trabalho em andamento e feche outros aplicativos de livros; depois, tente novamente. Se ele continuar indisponível, reinicie o computador e tente novamente."
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Este livro é renderizado em layout fixo, então mantém as fontes originais do PDF. Fontes anexadas ainda orientam a IA em atividades e páginas geradas."

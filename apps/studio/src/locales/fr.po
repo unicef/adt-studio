@@ -12740,9 +12740,6 @@ msgstr "Ce livre est une partie : sa plage de pages est fixe, correspond au sous
 msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 msgstr "Ce livre est une partie. Exportez-le en tant que <0>Partie terminée</0> et renvoyez le fichier au coordinateur pour le fusionner dans le livre source."
 
-msgid "This book is being changed by another operation. Wait for it to finish, then retry."
-msgstr "Une autre opération modifie ce livre. Attendez qu’elle se termine, puis réessayez."
-
 msgid "This book is fully assembled"
 msgstr "Ce livre est entièrement assemblé"
 
@@ -12768,6 +12765,9 @@ msgstr "Ce livre n'est pas encore complet — les pages <0>{0}</0> n'ont pas ét
 
 msgid "This book isn't shared right now"
 msgstr "Ce livre n'est pas partagé pour le moment"
+
+msgid "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, restart your computer and try again."
+msgstr "Ce livre est peut-être encore utilisé. Terminez les opérations en cours et fermez les autres applications de livres, puis réessayez. S’il reste indisponible, redémarrez votre ordinateur et réessayez."
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'origine du PDF. Les polices jointes guident tout de même l'IA pour les activités et les pages générées."
