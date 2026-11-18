@@ -1064,6 +1064,97 @@ describe("packageAdtWeb", () => {
       .not.toBe(roundTripManifest.translatableText.idFingerprint)
   })
 
+  it("AC-2: element-audio catalog ids stay out of texts.json", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const storage = createMockStorage(
+      [{ pageId: "pg001", pageNumber: 1, text: "Page one" }],
+      {
+        "web-rendering": {
+          pg001: {
+            sections: [
+              {
+                sectionIndex: 0,
+                sectionType: "content",
+                reasoning: "ok",
+                html: '<p data-id="pg001_tx001">Original text</p>',
+              },
+            ],
+          },
+        },
+        "page-sectioning": {
+          pg001: {
+            reasoning: "ok",
+            sections: [
+              {
+                sectionId: "pg001_sec001",
+                sectionType: "content",
+                nodes: [],
+                backgroundColor: "#fff",
+                textColor: "#000",
+                pageNumber: 1,
+                isPruned: false,
+              },
+            ],
+          },
+        },
+        "text-catalog": {
+          book: {
+            entries: [
+              { id: "pg001_tx001", text: "Original text", pageId: "pg001" },
+              { id: "pg001_im001_audio", text: "Mago", pageId: "pg001" },
+            ],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+        "easy-read": {
+          book: {
+            generatedAt: "2026-01-02T00:00:00.000Z",
+            blocks: [
+              {
+                pageId: "pg001",
+                pageNumber: 1,
+                sectionId: "pg001_sec001",
+                sectionIndex: 0,
+                sectionType: "content",
+                entries: [
+                  {
+                    sourceId: "pg001_im001_audio",
+                    easyReadId: "pg001_im001_audio_easy_read",
+                    originalText: "Mago",
+                    text: "Mago fácil",
+                    pageId: "pg001",
+                    sectionId: "pg001_sec001",
+                    sectionIndex: 0,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    )
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const textsJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "texts.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(textsJson.pg001_tx001).toBe("Original text")
+    expect(textsJson).not.toHaveProperty("pg001_im001_audio")
+    expect(textsJson).not.toHaveProperty("pg001_im001_audio_easy_read")
+  })
+
   it("inserts quiz pages even when the anchor page has no rendered sections", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")

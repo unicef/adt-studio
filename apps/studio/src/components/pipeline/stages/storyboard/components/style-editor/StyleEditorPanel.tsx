@@ -23,6 +23,7 @@ import {
 } from "./element-types"
 import { SECTION_COMPONENTS } from "./sections"
 import { AdvancedSection } from "./sections/Advanced"
+import { AudioSection } from "./sections/AudioSection"
 import { ImageActionsSection } from "./sections/ImageActions"
 import { TextRoleSection } from "./sections/TextRole"
 import { ElementProvider } from "./element-context"
@@ -53,6 +54,8 @@ interface StyleEditorPanelProps {
   isFixedLayout?: boolean
   /** Book label, forwarded to the font control so it can list attached fonts. */
   bookLabel?: string
+  /** Page that owns this selection, forwarded to the element-audio section. */
+  pageId?: string
 }
 
 export function StyleEditorPanel({
@@ -68,6 +71,7 @@ export function StyleEditorPanel({
   computedTypography,
   isFixedLayout = false,
   bookLabel,
+  pageId,
 }: StyleEditorPanelProps) {
   const { t } = useLingui()
 
@@ -216,6 +220,7 @@ export function StyleEditorPanel({
             computedTypography={computedTypography ?? null}
             isFixedLayout={isFixedLayout}
             bookLabel={bookLabel}
+            pageId={pageId}
           />
         ) : null}
       </div>
@@ -286,6 +291,7 @@ interface StyleEditorBodyProps {
   computedTypography: ComputedTypographyStyles | null
   isFixedLayout: boolean
   bookLabel?: string
+  pageId?: string
 }
 
 function StyleEditorBody({
@@ -299,6 +305,7 @@ function StyleEditorBody({
   computedTypography,
   isFixedLayout,
   bookLabel,
+  pageId,
 }: StyleEditorBodyProps) {
   const visibleSections = useMemo(
     () => (elementType ? getVisibleSections(elementType) : []),
@@ -320,6 +327,9 @@ function StyleEditorBody({
       <div className="flex flex-col min-h-full">
         {elementProps?.isImage ? (
           <ImageActionsSection dataId={dataId} elementProps={elementProps} />
+        ) : null}
+        {elementProps?.isImage && pageId ? (
+          <AudioSection dataId={dataId} pageId={pageId} />
         ) : null}
         {elementType === "text" ? (
           <TextRoleSection dataId={dataId} elementProps={elementProps} />
