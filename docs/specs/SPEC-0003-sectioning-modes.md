@@ -417,6 +417,12 @@ re-review under SDD §9. His live acceptance of the earlier items 1, 2, 3 and 7,
 and R6, remains pending; neither this approval record nor automated tests releases
 those PR gates.
 
+The shared busy message and recovery dialog describe unverifiable ownership as
+possibly still in use, without asserting a confirmed active writer. They advise
+finishing active work and closing other book apps before retrying, then restarting
+the computer if necessary. This wording does not promise that restart resolves
+every refusal or relax the approved live-PID and unknown-owner safeguards.
+
 For his cold-Library performance request, use option **(b)**: Library summaries
 reuse only a current, already-verified in-memory Storyboard model. Otherwise,
 books with completed Storyboard/package telemetry or a saved package report
