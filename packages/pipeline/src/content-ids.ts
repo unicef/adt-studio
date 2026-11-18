@@ -1,6 +1,6 @@
 import { parseDocument, DomUtils } from "htmlparser2"
 import type { Storage } from "@adt/storage"
-import { answerTextId, elementAudioTextId, formatQuizId, parseElementAudioTextId, resolveQuizOptionId, type GlossaryItem, type QuizOption } from "@adt/types"
+import { answerTextId, elementAudioTextId, formatQuizId, isElementAudioTextId, parseElementAudioTextId, resolveQuizOptionId, type GlossaryItem, type QuizOption } from "@adt/types"
 
 export function getGlossaryItemTextId(item: Pick<GlossaryItem, "id">, index: number): string {
   return item.id?.trim() || `gl${String(index + 1).padStart(3, "0")}`
@@ -109,6 +109,9 @@ export function findIntroducedDerivedIdCollision(proposed: Iterable<string>, pre
   const next = new Set(proposed)
   const prior = new Set(previous)
   for (const id of next) {
+    // The suffix is reserved for the synthetic catalog entry. Existing legacy
+    // ids are preserved; a new rendered image id cannot mint one.
+    if (isElementAudioTextId(id) && !prior.has(id)) return id
     const easyRead = `${id}_easy_read`
     if (next.has(easyRead) && (!prior.has(id) || !prior.has(easyRead))) return easyRead
     const audio = elementAudioTextId(id)

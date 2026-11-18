@@ -1,4 +1,5 @@
 import { OutputLocation, OutputMetadata } from "./output-freshness.js"
+import { isElementAudioTextId } from "./element-audio.js"
 import { z } from "zod"
 
 export const TextCatalogEntry = z.object({
@@ -95,6 +96,9 @@ export function getTextCatalogCategory(id: string): TextCatalogCategory {
   // Easy Read ids are `{sourceId}_easy_read`; check first so they are not
   // mistaken for their source entry's category.
   if (EASY_READ_ID_RE.test(id)) return "easy-read"
+  // The authored element-audio entry is not a caption: its id contains the
+  // image id, but muting captions must not silence it (SPEC-0014).
+  if (isElementAudioTextId(id)) return "text"
   if (IMAGE_ID_RE.test(id)) return "captions"
   if (sectionIdOfAnswerTextId(id) !== null) return "answers"
   if (GLOSSARY_ID_RE.test(id)) return "glossary"

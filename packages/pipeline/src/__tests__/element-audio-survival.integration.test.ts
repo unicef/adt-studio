@@ -103,6 +103,16 @@ it("AC-6: the latest artifact version wins", async () => {
   expect(result.entries).not.toContainEqual(expect.objectContaining({ id: "pg001_im001_audio", text: "Mago" }))
 })
 
+it("AC-23: clearing the rendering keeps the artifact but stops the derived entry", async () => {
+  seedBook()
+  storage.clearNodesByType(["web-rendering"])
+
+  const result = await buildTextCatalog(storage, pages)
+
+  expect(storage.getLatestNodeData("element-audio", "pg001")?.data).toMatchObject(artifact())
+  expect(result.entries.some((entry) => entry.id === "pg001_im001_audio")).toBe(false)
+})
+
 it("AC-6: deletePage destroys the artifact (documented non-goal)", async () => {
   seedBook()
 

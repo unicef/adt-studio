@@ -63,7 +63,15 @@ describe("elementAudioTextId", () => {
 
   it("AC-19: round-trips through parseElementAudioTextId", () => {
     expect(parseElementAudioTextId(elementAudioTextId("pg001_im001"))).toBe("pg001_im001")
+    expect(parseElementAudioTextId("pg001_im001_crop_v1_audio")).toBe("pg001_im001_crop_v1")
     expect(isElementAudioTextId(elementAudioTextId("pg001_im001"))).toBe(true)
+  })
+
+  it("AC-24: only image ids are treated as synthetic (v1 scope)", () => {
+    expect(isElementAudioTextId("pg001_im001_audio")).toBe(true)
+    expect(isElementAudioTextId("pg001_listen_audio")).toBe(false)
+    expect(isElementAudioTextId("pg001_t001_audio")).toBe(false)
+    expect(parseElementAudioTextId("pg001_listen_audio")).toBeNull()
   })
 
   it("AC-19: returns null for ids that are not element-audio ids", () => {

@@ -19,7 +19,7 @@ import {
 } from "@adt/types"
 import {
   ELEMENT_AUDIO_NODE,
-  ElementAudioOutput as ElementAudioOutputSchema,
+  ElementAudioEntry as ElementAudioEntrySchema,
   elementAudioTextId,
 } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
@@ -344,26 +344,28 @@ export function findIntroducedCatalogConflict(
   return after?.find(conflict => !before?.some(previous => previous.id === conflict.id && conflict.texts.every(text => previous.texts.includes(text))))
 }
 
+interface ElementAudioLocation {
+  pageId: string
+  sectionId: string
+}
+
 /**
- * Authored per-element scripts (SPEC-0014). Each non-empty entry becomes a
- * synthetic catalog entry `${nodeId}_audio`. The artifact is the source of
- * truth, so the entry is re-emitted on every catalog rebuild. A missing or
- * malformed rendering only removes the `sectionId`; it never drops the script.
+ * The current page/section of every rendered, unpruned element in the book.
+ * `element-audio` is stored under the page it was authored on, but images can
+ * move between pages (`pages.ts` move-section). The derived catalog follows
+ * the element's current location, not the artifact's page key.
  */
-function loadElementAudioEntries(
-  storage: Storage,
-  pageId: string,
-  rendering: WebRenderingOutput | null,
-  sectioning: PageSectioningOutputType | null | undefined,
-): TextCatalogEntry[] {
-  const row = storage.getLatestNodeData(ELEMENT_AUDIO_NODE, pageId)
-  if (!row) return []
+function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<string, ElementAudioLocation> {
+  const index = new Map<string, ElementAudioLocation>()
+  for (const page of pages) {
+    const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
+    if (!renderingRow) continue
 
-  const parsed = ElementAudioOutputSchema.safeParse(row.data)
-  if (!parsed.success) return []
+    const parsed = WebRenderingOutputSchema.safeParse(renderingRow.data)
+    if (!parsed.success) continue
 
-  const sectionByNodeId = new Map<string, string>()
-  if (rendering) {
+    const rendering = withLegacyRenderingOwnership(storage, page.pageId, parsed.data)
+    const sectioning = getRenderSectioning(storage, page.pageId)
     for (const renderedSection of rendering.sections) {
       const section = resolveRenderedSection(renderedSection, sectioning?.sections ?? [], rendering.sections)
       if (!section || section.isPruned) continue
@@ -376,20 +378,55 @@ function loadElementAudioEntries(
       )
       for (const element of elements) {
         const dataId = (element as unknown as { attribs: Record<string, string> }).attribs["data-id"]
-        if (dataId) sectionByNodeId.set(dataId, sectionId)
+        if (dataId) index.set(dataId, { pageId: page.pageId, sectionId })
       }
     }
   }
+  return index
+}
 
-  const entries: TextCatalogEntry[] = []
-  for (const entry of parsed.data.entries) {
-    const text = entry.text.trim()
+interface ElementAudioCatalogEntry {
+  pageId: string
+  entry: TextCatalogEntry
+}
+
+/**
+ * Authored per-element scripts (SPEC-0014). Each non-empty entry becomes a
+ * synthetic catalog entry `${nodeId}_audio`. The artifact is the source of
+ * truth, so the entry is re-emitted on every catalog rebuild. Only elements
+ * rendered in an unpruned section are emitted: the artifact text is kept, but
+ * the derived catalog does not pay for audio for absent elements. A duplicate
+ * nodeId keeps the first entry, so one bad write cannot hide the whole page.
+ */
+function loadElementAudioEntries(
+  storage: Storage,
+  pageId: string,
+  locations: Map<string, ElementAudioLocation>,
+): ElementAudioCatalogEntry[] {
+  const row = storage.getLatestNodeData(ELEMENT_AUDIO_NODE, pageId)
+  if (!row) return []
+
+  const data = row.data as { entries?: unknown } | null
+  if (!data || !Array.isArray(data.entries)) return []
+
+  const seen = new Set<string>()
+  const entries: ElementAudioCatalogEntry[] = []
+  for (const candidate of data.entries) {
+    const parsed = ElementAudioEntrySchema.safeParse(candidate)
+    if (!parsed.success) continue
+    if (seen.has(parsed.data.nodeId)) continue
+    seen.add(parsed.data.nodeId)
+    const text = parsed.data.text.trim()
     if (text.length === 0) continue
-    const sectionId = sectionByNodeId.get(entry.nodeId)
+    const location = locations.get(parsed.data.nodeId)
+    if (!location) continue
     entries.push({
-      id: elementAudioTextId(entry.nodeId),
-      text,
-      locations: [{ pageId, ...(sectionId ? { sectionId } : {}), role: "element-audio" }],
+      pageId: location.pageId,
+      entry: {
+        id: elementAudioTextId(parsed.data.nodeId),
+        text,
+        locations: [{ pageId: location.pageId, sectionId: location.sectionId, role: "element-audio" }],
+      },
     })
   }
   return entries
@@ -398,18 +435,28 @@ function loadElementAudioEntries(
 /** Synchronous snapshot for atomic authored-save/catalog reconciliation. */
 export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): TextCatalogOutput {
   const entries: TextCatalogEntry[] = []
+  const locations = buildElementLocationIndex(storage, pages)
+  const elementAudioByPage = new Map<string, TextCatalogEntry[]>()
+  for (const page of pages) {
+    for (const { pageId, entry } of loadElementAudioEntries(storage, page.pageId, locations)) {
+      const list = elementAudioByPage.get(pageId) ?? []
+      list.push(entry)
+      elementAudioByPage.set(pageId, list)
+    }
+  }
 
   // Page text + image captions
   for (const page of pages) {
+    const elementAudio = elementAudioByPage.get(page.pageId) ?? []
     const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
     if (!renderingRow) {
-      entries.push(...loadElementAudioEntries(storage, page.pageId, null, null))
+      entries.push(...elementAudio)
       continue
     }
 
     const parsed = WebRenderingOutputSchema.safeParse(renderingRow.data)
     if (!parsed.success) {
-      entries.push(...loadElementAudioEntries(storage, page.pageId, null, null))
+      entries.push(...elementAudio)
       continue
     }
 
@@ -426,7 +473,7 @@ export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): T
       captionMap,
       sectioning
     ))
-    entries.push(...loadElementAudioEntries(storage, page.pageId, rendering, sectioning))
+    entries.push(...elementAudio)
   }
 
   // Glossary

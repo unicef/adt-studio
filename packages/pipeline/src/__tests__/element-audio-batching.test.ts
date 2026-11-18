@@ -69,9 +69,18 @@ describe("preparation neighbours — element audio", () => {
     expect(preparationNeighbors(entries, 0).map((item) => item.id)).toEqual(["pg001_t001", "pg001_t002"])
   })
 
+  it("AC-25: the authored entry takes no preparation neighbours", () => {
+    expect(preparationNeighbors(entries, 1).map((item) => item.id)).toEqual(["pg001_im001_audio"])
+  })
+
   it("AC-15: findAdjacentSpeechText skips the synthetic entry", () => {
     expect(findAdjacentSpeechText(entries, 0, 1, speechConfig())).toBe("B")
     expect(findAdjacentSpeechText(entries, 2, -1, speechConfig())).toBe("A")
+  })
+
+  it("AC-25: findAdjacentSpeechText returns undefined for the authored entry", () => {
+    expect(findAdjacentSpeechText(entries, 1, 1, speechConfig())).toBeUndefined()
+    expect(findAdjacentSpeechText(entries, 1, -1, speechConfig())).toBeUndefined()
   })
 
   it("AC-15: coreTtsInputBasis produces the same signature with and without a synthetic neighbour", () => {
@@ -100,5 +109,34 @@ describe("preparation neighbours — element audio", () => {
 
     expect(withAudio.input.next_display_text).toBe("B")
     expect(withAudio.signature).toBe(withoutAudio.signature)
+  })
+
+  it("AC-25: the authored entry's preparation signature does not depend on real neighbours", () => {
+    const config = {
+      latexToSpeech: false,
+      languageNormalization: true,
+      modelId: "test-model",
+      promptName: "speech-prep",
+      promptSignature: "speech-prep-signature",
+    }
+    const profile = { guidance: "Normalize the text." }
+    const withBoth = coreTtsInputBasis({
+      entries,
+      index: 1,
+      language: "en",
+      config: config as never,
+      profile: profile as never,
+    })
+    const withoutNeighbours = coreTtsInputBasis({
+      entries: [entries[0], entries[1]],
+      index: 1,
+      language: "en",
+      config: config as never,
+      profile: profile as never,
+    })
+
+    expect(withBoth.input.previous_display_text).toBeNull()
+    expect(withBoth.input.next_display_text).toBeNull()
+    expect(withBoth.signature).toBe(withoutNeighbours.signature)
   })
 })
