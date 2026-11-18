@@ -1765,6 +1765,7 @@ describe("packageAdtWeb", () => {
     createWebAssets(webAssetsDir)
     fs.writeFileSync(path.join(audioDir, "pg001_im001_audio.mp3"), "audio")
     fs.writeFileSync(path.join(audioDir, "pg001_im001_audio--secondary.mp3"), "audio-secondary")
+    fs.writeFileSync(path.join(audioDir, "pg001_im001_easy_read.mp3"), "audio-easy-read")
 
     const pages: PageData[] = [{ pageId: "pg001", pageNumber: 1, text: "Page one" }]
 
@@ -1823,6 +1824,21 @@ describe("packageAdtWeb", () => {
                 contextHash: "context",
               },
             },
+            {
+              id: "pg001_im001_easy_read",
+              displayText: "Mago easy",
+              speechText: "Mago easy",
+              changed: false,
+              transformations: [],
+              status: "ready",
+              generation: {
+                mode: "unchanged",
+                generatedAt: "2026-01-01T00:00:00.000Z",
+                enabledTransformations: [],
+                sourceTextHash: "source",
+                contextHash: "context",
+              },
+            },
           ],
         },
       },
@@ -1843,6 +1859,14 @@ describe("packageAdtWeb", () => {
               fileName: "pg001_im001_audio--secondary.mp3",
               voice: "shimmer",
               voiceSlot: "secondary",
+              model: "gpt-4o-mini-tts",
+              cached: false,
+            },
+            {
+              textId: "pg001_im001_easy_read",
+              language: "en",
+              fileName: "pg001_im001_easy_read.mp3",
+              voice: "alloy",
               model: "gpt-4o-mini-tts",
               cached: false,
             },

@@ -17,6 +17,7 @@ import {
   audioLanguageAtom,
   audioVoicesAtom,
   currentLanguageAtom,
+  elementAudioIdsAtom,
   narratorVoiceAtom,
   type NarratorVoiceSlot,
   speechTextsAtom,
@@ -170,6 +171,7 @@ export function useAudioPlayer(): UseAudioPlayer {
   const narratorVoice: NarratorVoiceSlot =
     narratorVoiceValue === "secondary" && slotAudios("secondary") ? "secondary" : "primary"
   const audioFiles = slotAudios(narratorVoice) ?? primaryAudioFiles
+  const elementAudioIds = useAtomValue(elementAudioIdsAtom)
   const translations = useAtomValue(translationsAtom)
   const speechTexts = useAtomValue(speechTextsAtom)
   const language = useAtomValue(currentLanguageAtom) as string
@@ -212,8 +214,11 @@ export function useAudioPlayer(): UseAudioPlayer {
       easyReadMode,
     )
     if (describeImagesMode) return all
-    return all.filter((item) => item.el.tagName.toLowerCase() !== "img")
-  }, [audioFiles, translations, speechTexts, easyReadMode, describeImagesMode, pageEpoch])
+    // Authored element audio joins the sweep even when image descriptions are
+    // off: the same element id is the click target and the sweep entry (AC-4).
+    const authored = new Set(elementAudioIds)
+    return all.filter((item) => item.el.tagName.toLowerCase() !== "img" || authored.has(item.id))
+  }, [audioFiles, translations, speechTexts, easyReadMode, describeImagesMode, pageEpoch, elementAudioIds])
 
   // A partial language response can change which recordings are available
   // before the complete catalog publishes. Keep pending controls anchored to
