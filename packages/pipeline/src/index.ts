@@ -595,7 +595,7 @@ export { collectQuizPages } from "./quiz-generation.js"
 
 export { assertReflowableSectioning, hasFixedLayoutSectioning } from "./render-sectioning.js"
 
-export { renderedTextIds, sourceTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision } from "./content-ids.js"
+export { renderedContentIds, renderedTextIds, sourceTextIds, sourceContentIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision, findIntroducedImageAudioCollision } from "./content-ids.js"
 export { effectiveSectioningMode, sectioningInvalidationSteps, assertSectioningReplacementSafe, prepareSectioningRun, completeSectioning } from "./sectioning-lifecycle.js"
 export { SectioningSafetyError } from "./sectioning-errors.js"
 export { requiredPartRange, activeSectioningPages, partScopedPages } from "./sectioning-window.js"

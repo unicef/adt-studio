@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { SpeechConfig, TextCatalogEntry } from "@adt/types"
 import { coreTtsInputBasis, preparationNeighbors } from "../core-tts.js"
+import { adjacentSpeechContextId } from "../output-catalog.js"
 import {
   findAdjacentSpeechText,
   isBatchableSpeechEntry,
@@ -71,6 +72,21 @@ describe("preparation neighbours — element audio", () => {
 
   it("AC-25: the authored entry takes no preparation neighbours", () => {
     expect(preparationNeighbors(entries, 1).map((item) => item.id)).toEqual(["pg001_im001_audio"])
+  })
+
+  it("AC-25: preparationNeighbors tolerates an out-of-range index", () => {
+    expect(preparationNeighbors([], 0)).toEqual([])
+    expect(preparationNeighbors(entries, 99)).toEqual([])
+  })
+
+  it("AC-25: the adjacent ElevenLabs context never resolves to the authored entry", () => {
+    const withSameText = [
+      entry("pg001_t001", "A"),
+      entry("pg001_im001_audio", "B"),
+      entry("pg001_t002", "B"),
+    ]
+    expect(adjacentSpeechContextId(withSameText, 0, 1, "B")).toBe("pg001_t002")
+    expect(adjacentSpeechContextId(withSameText, 2, -1, "A")).toBe("pg001_t001")
   })
 
   it("AC-15: findAdjacentSpeechText skips the synthetic entry", () => {

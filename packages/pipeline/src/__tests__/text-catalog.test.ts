@@ -987,6 +987,78 @@ describe("buildTextCatalog — element-audio (SPEC-0014)", () => {
 
     expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_im001_audio", text: "Mago" }))
     expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_im002_audio", text: "Dragón" }))
+    expect(result.entries.filter((entry) => entry.id === "pg001_im001_audio")).toHaveLength(1)
+  })
+
+  it("AC-26: a first empty duplicate does not suppress a valid second entry", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([
+        { nodeId: "pg001_im001", text: "   " },
+        { nodeId: "pg001_im001", text: "Mago" },
+      ]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_im001_audio", text: "Mago" }))
+  })
+
+  it("AC-26: a duplicate nodeId across two page artifacts is a visible conflict", async () => {
+    const movedPage = { pageId: "pg002", pageNumber: 2, text: "" }
+    const storage = createMockStorage({
+      ...renderingFixture("pg001", "pg001_im001"),
+      "element-audio": {
+        pg001: { entries: [{ nodeId: "pg001_im001", text: "Mago" }], generatedAt: "t" },
+        pg002: { entries: [{ nodeId: "pg001_im001", text: "Maga" }], generatedAt: "t" },
+      },
+    })
+
+    const result = await buildTextCatalog(storage, [page, movedPage])
+
+    expect(result.conflicts?.some((conflict) => conflict.id === "pg001_im001_audio")).toBe(true)
+  })
+
+  it("AC-22: a duplicate data-id across pages resolves to the first page", async () => {
+    const secondPage = { pageId: "pg002", pageNumber: 2, text: "" }
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "images_only",
+            reasoning: "",
+            html: '<section><img data-id="pg001_im001" src="placeholder" alt="Mago" /></section>',
+          }],
+        },
+        pg002: {
+          sections: [{
+            sectionIndex: 0,
+            sectionType: "images_only",
+            reasoning: "",
+            html: '<section><img data-id="pg001_im001" src="placeholder" alt="Mago" /></section>',
+          }],
+        },
+      },
+      ...artifactFixture([{ nodeId: "pg001_im001", text: "Mago" }]),
+    })
+
+    const entry = (await buildTextCatalog(storage, [page, secondPage])).entries.find((item) => item.id === "pg001_im001_audio")
+    expect(entry?.locations?.[0]).toMatchObject({ pageId: "pg001" })
+  })
+
+  it("AC-26: an invalid entry does not hide the valid entries on the page", async () => {
+    const storage = createMockStorage({
+      ...renderingFixture(),
+      ...artifactFixture([
+        { text: "missing nodeId" } as never,
+        { nodeId: "pg001_im001", text: "Mago" },
+      ]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_im001_audio", text: "Mago" }))
   })
 
   it("AC-14: no element-audio node leaves the catalog unchanged", async () => {

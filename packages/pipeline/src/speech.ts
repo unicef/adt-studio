@@ -1,29 +1,4 @@
 import { inputSignature } from "./output-freshness.js"
-
-/** Active membership owns context; ID prefixes are only a legacy fallback. */
-export function speechPageId(id: string, pageIds: readonly string[] = []): string | undefined {
-  return id.endsWith("_easy_read") || isElementAudioTextId(id)
-    ? undefined
-    : pageIds[0] ?? /^(pg\d+)/.exec(id)?.[1]
-}
-
-/**
- * Page batching is an explicit provider/config decision. `speechPageId` owns
- * the id-level exclusion (`_easy_read`, `_audio`), so this predicate only
- * decides whether a resolved page may take the page-batch path.
- */
-export function isPageBatchableSpeech(provider: string, language: string, speechConfig?: SpeechConfig): boolean {
-  return speechConfig?.batch_by_page === true && provider === "gemini" && supportsPageBatchedSpeech(language)
-}
-
-export function isBatchableSpeechEntry(
-  pageId: string | undefined,
-  provider: string,
-  language: string,
-  speechConfig?: SpeechConfig,
-): boolean {
-  return pageId !== undefined && isPageBatchableSpeech(provider, language, speechConfig)
-}
 import { storeImmutableAsset } from "@adt/storage"
 import fs from "node:fs"
 import path from "node:path"
@@ -65,6 +40,31 @@ import {
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
 import { computeEntryTimeRanges, buildPageTranscript, supportsPageBatchedSpeech, type BatchEntry } from "./speech-batch.js"
 import { sliceWav, wavDurationSeconds, findQuietCutSeconds } from "./audio-wav.js"
+
+/** Active membership owns context; ID prefixes are only a legacy fallback. */
+export function speechPageId(id: string, pageIds: readonly string[] = []): string | undefined {
+  return id.endsWith("_easy_read") || isElementAudioTextId(id)
+    ? undefined
+    : pageIds[0] ?? /^(pg\d+)/.exec(id)?.[1]
+}
+
+/**
+ * Page batching is an explicit provider/config decision. `speechPageId` owns
+ * the id-level exclusion (`_easy_read`, `_audio`), so this predicate only
+ * decides whether a resolved page may take the page-batch path.
+ */
+export function isPageBatchableSpeech(provider: string, language: string, speechConfig?: SpeechConfig): boolean {
+  return speechConfig?.batch_by_page === true && provider === "gemini" && supportsPageBatchedSpeech(language)
+}
+
+export function isBatchableSpeechEntry(
+  pageId: string | undefined,
+  provider: string,
+  language: string,
+  speechConfig?: SpeechConfig,
+): boolean {
+  return pageId !== undefined && isPageBatchableSpeech(provider, language, speechConfig)
+}
 
 // ---------------------------------------------------------------------------
 // Emoji stripping

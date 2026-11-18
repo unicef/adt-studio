@@ -210,6 +210,7 @@ function adjacentPreparationEntry(
 /** The current entry plus its nearest non-element-audio neighbours. */
 export function preparationNeighbors(entries: TextCatalogEntry[], index: number): TextCatalogEntry[] {
   const entry = entries[index]
+  if (!entry) return []
   // Authored scripts take no neighbour context: editing a real neighbour must
   // not make the script's preparation stale (SPEC-0014 AC-15).
   if (isElementAudioTextId(entry.id)) return [entry]

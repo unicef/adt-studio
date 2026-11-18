@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 import {
   CATALOG_OUTPUT_NODES,
+  ELEMENT_AUDIO_NODE,
   IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
   STAGE_ORDER,
   getStageClearNodes,
@@ -70,6 +71,12 @@ function clearNodesByTypeArgs(source: string): string[] {
 describe("element-audio invariant (AC-7)", () => {
   it("detects a literal argument (checker self-test)", () => {
     expect(clearNodesByTypeArgs('clearNodesByType(["element-audio"])')).toEqual(['["element-audio"]'])
+    expect(clearNodesByTypeArgs("clearNodesByType([ELEMENT_AUDIO_NODE])")).toEqual(["[ELEMENT_AUDIO_NODE]"])
+  })
+
+  it("has source files to scan", () => {
+    expect(sourceFiles(API_SRC).length).toBeGreaterThan(10)
+    expect(packageSourceFiles().length).toBeGreaterThan(0)
   })
 
   it("never appears in a clearNodesByType literal in apps/api/src or packages/*/src", () => {
@@ -77,7 +84,7 @@ describe("element-audio invariant (AC-7)", () => {
     for (const file of [...sourceFiles(API_SRC), ...packageSourceFiles()]) {
       const source = readFileSync(file, "utf8")
       for (const args of clearNodesByTypeArgs(source)) {
-        if (args.includes("element-audio")) offenders.push(file)
+        if (args.includes("element-audio") || args.includes("ELEMENT_AUDIO_NODE")) offenders.push(file)
       }
     }
     expect(offenders).toEqual([])

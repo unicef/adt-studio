@@ -69,6 +69,7 @@ describe("elementAudioTextId", () => {
 
   it("AC-24: only image ids are treated as synthetic (v1 scope)", () => {
     expect(isElementAudioTextId("pg001_im001_audio")).toBe(true)
+    expect(isElementAudioTextId("pg001_im1000_audio")).toBe(true)
     expect(isElementAudioTextId("pg001_listen_audio")).toBe(false)
     expect(isElementAudioTextId("pg001_t001_audio")).toBe(false)
     expect(parseElementAudioTextId("pg001_listen_audio")).toBeNull()

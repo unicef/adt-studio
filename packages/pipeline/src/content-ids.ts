@@ -7,6 +7,12 @@ export function getGlossaryItemTextId(item: Pick<GlossaryItem, "id">, index: num
   return item.id?.trim() || `gl${String(index + 1).padStart(3, "0")}`
 }
 
+/** Every `data-id` in rendered HTML, including images. */
+export function renderedContentIds(html: string): string[] {
+  return DomUtils.findAll(element => element.type === "tag" && element.attribs["data-id"] !== undefined, parseDocument(html).children)
+    .map(element => element.attribs["data-id"])
+}
+
 /** Includes empty controls and containers: they may already have retained
  * answers or become text leaves after an edit. Images remain shareable. */
 export function renderedTextIds(html: string): string[] {
@@ -29,6 +35,22 @@ export function sourceTextIds(value: unknown): Set<string> {
     const data = item as Record<string, unknown>
     if (typeof data.nodeId === "string" && data.role !== "image") ids.add(data.nodeId)
     if (typeof data.html === "string") for (const id of renderedTextIds(data.html)) ids.add(id)
+    for (const child of Object.values(data)) visit(child)
+  }
+  visit(value)
+  return ids
+}
+
+/** Like `sourceTextIds`, but includes image leaves and rendered `<img>` ids.
+ * Used only for the element-audio namespace check, so the text-only reuse
+ * path is not widened. */
+export function sourceContentIds(value: unknown): Set<string> {
+  const ids = new Set<string>()
+  const visit = (item: unknown): void => {
+    if (!item || typeof item !== "object") return
+    const data = item as Record<string, unknown>
+    if (typeof data.nodeId === "string") ids.add(data.nodeId)
+    if (typeof data.html === "string") for (const id of renderedContentIds(data.html)) ids.add(id)
     for (const child of Object.values(data)) visit(child)
   }
   visit(value)

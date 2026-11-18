@@ -66,6 +66,22 @@ describe("catalog freshness through real API/storage boundaries", () => {
     }
     expect(pairs(projection.conflicts[0])).toEqual(expected)
   })
+  it("AC-24 rejects a new rendered image id ending in _audio", async () => {
+    const body = rendering()
+    body.sections[0].html = body.sections[0].html.replace("</section>", '<img data-id="pg001_im999_audio" /></section>')
+    const response = await send("pages/pg001/rendering", body)
+    expect(response.status).toBe(409)
+  })
+
+  it("AC-24 preserves a pre-existing legacy image id ending in _audio", async () => {
+    const body = rendering()
+    body.sections[0].html = body.sections[0].html.replace("</section>", '<img data-id="pg001_im999_audio" /></section>')
+    const db = storage()
+    try { db.putNodeData("web-rendering", "pg001", body) } finally { db.close() }
+    const response = await send("pages/pg001/rendering", body)
+    expect(response.status).toBe(200)
+  })
+
   it("AC-11 accepts unchanged image identity after an external same-name edit", () => {
     const db = storage()
     try {

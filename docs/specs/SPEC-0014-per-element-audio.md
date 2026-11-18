@@ -232,8 +232,9 @@ node join a page batch.
 In v1 the synthetic detection is **image-only**: `isElementAudioTextId` accepts only a base that
 looks like `_im{NNN}` (with optional suffix), so a real text id such as `pg001_listen_audio` is not
 misclassified and is not restale on upgrade. A new rendered **image** id ending in `_audio` is
-rejected (`findIntroducedDerivedIdCollision`); a pre-existing one is preserved. Text ids can adopt
-the suffix only after SPEC-0008.
+rejected by the page-save image-id check (`findIntroducedImageAudioCollision`, called with the full
+content-id set, not the text-only reuse set); a pre-existing one is preserved. Text ids can adopt the
+suffix only after SPEC-0008.
 
 **Concurrency guard.** The node is one versioned row per page holding every image's script, so two
 editors on the same page must not lose each other's work. The `PUT` carries `baseVersion`. It follows
