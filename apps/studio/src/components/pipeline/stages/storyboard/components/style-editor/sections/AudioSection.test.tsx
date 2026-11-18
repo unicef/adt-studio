@@ -202,6 +202,47 @@ describe("AudioSection (SPEC-0014)", () => {
     )
   })
 
+  it("keeps the draft's base versions across a selection switch after a refetch", async () => {
+    calls.getElementAudio.mockResolvedValue(
+      view([
+        { nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" },
+        { nodeId: "pg001_im002", text: "Dragón", sourcePageId: "pg001" },
+      ]),
+    )
+    calls.updateElementAudio.mockResolvedValue({
+      pageId: "pg001",
+      versions: { pg001: 2 },
+      entries: [{ nodeId: "pg001_im001", text: "Maga", sourcePageId: "pg001" }],
+    })
+
+    const { rerender } = render(<AudioSection dataId="pg001_im001" pageId="pg001" />, {
+      wrapper: Providers,
+    })
+    const first = await screen.findByLabelText("Element audio script")
+    fireEvent.change(first, { target: { value: "Maga" } })
+
+    // The row advances while the draft is open.
+    client.setQueryData(["books", "book", "element-audio", "pg001"], {
+      pageId: "pg001",
+      versions: { pg001: 2 },
+      entries: [
+        { nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" },
+        { nodeId: "pg001_im002", text: "Dragón", sourcePageId: "pg001" },
+      ],
+    })
+
+    rerender(<AudioSection dataId="pg001_im002" pageId="pg001" />)
+    rerender(<AudioSection dataId="pg001_im001" pageId="pg001" />)
+
+    fireEvent.click(screen.getByRole("button", { name: /Save/ }))
+    await waitFor(() => {
+      expect(calls.updateElementAudio).toHaveBeenCalledWith("book", "pg001", {
+        versions: { pg001: 1 },
+        entries: [{ nodeId: "pg001_im001", text: "Maga", sourcePageId: "pg001" }],
+      })
+    })
+  })
+
   it("surfaces a failed Speech Preparation instead of silently dropping the audio", async () => {
     calls.getElementAudio.mockResolvedValue(
       view([{ nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" }]),
