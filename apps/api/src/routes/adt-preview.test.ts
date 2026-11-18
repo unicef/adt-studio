@@ -510,13 +510,25 @@ describe("ADT preview routes", () => {
   it("publishes authored element audio under the element id and lists it in element_audio.json", async () => {
     const storage = createBookStorage(label, tmpDir)
     try {
-      putReadyCoreTts(storage, "pg001_im001_audio")
+      putReadyCoreTts(storage, "pg001_im001_audio", "pg001_im001_easy_read")
+      storage.putNodeData("element-audio", `${label}_p1`, {
+        entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
       storage.putNodeData("tts", "en", {
         entries: [
           {
             textId: "pg001_im001_audio",
             language: "en",
             fileName: "pg001_im001_audio.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+          },
+          {
+            textId: "pg001_im001_easy_read",
+            language: "en",
+            fileName: "pg001_im001_easy_read.mp3",
             voice: "alloy",
             model: "gpt-4o-mini-tts",
             cached: false,
@@ -533,7 +545,9 @@ describe("ADT preview routes", () => {
     const audios = await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)
     const manifest = await app.request(`/books/${label}/adt-preview/content/i18n/en/element_audio.json`)
 
-    expect(await speech.json()).toMatchObject({ pg001_im001: "pg001_im001_audio" })
+    const speechBody = await speech.json() as Record<string, string>
+    expect(speechBody).toMatchObject({ pg001_im001: "pg001_im001_audio" })
+    expect(speechBody.pg001_im001_easy_read).toBeUndefined()
     expect(await audios.json()).toEqual({ pg001_im001: "pg001_im001_audio.mp3" })
     expect(await manifest.json()).toEqual(["pg001_im001"])
   })

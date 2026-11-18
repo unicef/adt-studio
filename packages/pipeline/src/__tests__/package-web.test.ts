@@ -66,7 +66,7 @@ function createMockStorage(
     appendLlmLog: () => {},
     getSignLanguageVideos: () => [],
     getSignLanguageVideoPath: () => null,
-    getNodeItemIds: () => [],
+    getNodeItemIds: (node: string) => Object.keys(nodeData[node] ?? {}),
     getNodeVersionFingerprint: (excludeNodes: string[] = []) =>
       Object.entries(nodeData)
         .filter(([node]) => !excludeNodes.includes(node))
@@ -1001,6 +1001,12 @@ describe("packageAdtWeb", () => {
             generatedAt: "2026-01-01T00:00:00.000Z",
           },
         },
+        "element-audio": {
+          pg001: {
+            entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
         "easy-read": {
           book: {
             generatedAt: "2026-01-02T00:00:00.000Z",
@@ -1801,6 +1807,127 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(localeDir, "timecode", "timecode_output.json"), "utf-8"),
     ) as Record<string, unknown>
     expect(Object.keys(timecodes)).toEqual([])
+  })
+
+  it("AC-14/AC-24: a legacy image id ending _audio is not remapped", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(bookDir, { recursive: true })
+    fs.mkdirSync(audioDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.writeFileSync(path.join(audioDir, "pg003_im007_audio.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg003_im007_audio--secondary.mp3"), "audio-secondary")
+
+    const storage = createMockStorage(
+      [{ pageId: "pg003", pageNumber: 1, text: "Page three" }],
+      {
+        "web-rendering": {
+          pg003: {
+            sections: [
+              {
+                sectionIndex: 0,
+                sectionType: "images_only",
+                reasoning: "ok",
+                html: '<img data-id="pg003_im007_audio" alt="Mago" />',
+              },
+            ],
+          },
+        },
+        "page-sectioning": {
+          pg003: {
+            reasoning: "ok",
+            sections: [
+              {
+                sectionId: "pg003_sec001",
+                sectionType: "images_only",
+                nodes: [],
+                backgroundColor: "#fff",
+                textColor: "#000",
+                pageNumber: 1,
+                isPruned: false,
+              },
+            ],
+          },
+        },
+        "core-tts-catalog": { en: readyCoreTtsCatalog("pg003_im007_audio") },
+        tts: {
+          en: {
+            entries: [
+              {
+                textId: "pg003_im007_audio",
+                language: "en",
+                fileName: "pg003_im007_audio.mp3",
+                voice: "alloy",
+                model: "gpt-4o-mini-tts",
+                cached: false,
+              },
+              {
+                textId: "pg003_im007_audio",
+                language: "en",
+                fileName: "pg003_im007_audio--secondary.mp3",
+                voice: "shimmer",
+                voiceSlot: "secondary",
+                model: "gpt-4o-mini-tts",
+                cached: false,
+              },
+            ],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+        "tts-timestamps": {
+          en: {
+            entries: {
+              pg003_im007_audio: {
+                textId: "pg003_im007_audio",
+                language: "en",
+                duration: 0.5,
+                words: [{ word: "Mago", start: 0, end: 0.5 }],
+              },
+            },
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      },
+    )
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      speechConfig: { word_highlighting: true },
+    })
+
+    const localeDir = path.join(bookDir, "adt", "content", "i18n", "en")
+    const audios = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "audios.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(audios).toEqual({ pg003_im007_audio: "pg003_im007_audio.mp3" })
+
+    const speechTexts = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "speech_texts.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(speechTexts).toEqual({ pg003_im007_audio: "pg003_im007_audio" })
+
+    const voices = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "audio_voices.json"), "utf-8"),
+    ) as { voices: Record<string, { audios: Record<string, string> }> }
+    expect(voices.voices.primary.audios).toEqual({ pg003_im007_audio: "pg003_im007_audio.mp3" })
+    expect(voices.voices.secondary.audios).toEqual({
+      pg003_im007_audio: "pg003_im007_audio--secondary.mp3",
+    })
+
+    // No authored artifact -> no manifest.
+    expect(fs.existsSync(path.join(localeDir, "element_audio.json"))).toBe(false)
+
+    // The caption keeps its word timings.
+    const timecodes = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "timecode", "timecode_output.json"), "utf-8"),
+    ) as Record<string, unknown>
+    expect(Object.keys(timecodes)).toEqual(["pg003_im007_audio"])
   })
 
   it("emits defaultSettings and lockedSettings in config.json when provided", async () => {

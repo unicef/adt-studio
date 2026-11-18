@@ -354,8 +354,7 @@ export interface ElementAudioLocation {
  * move between pages (`pages.ts` move-section). The derived catalog follows
  * the element's current location, not the artifact's page key.
  */
-export function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<string, ElementAudioLocation> {
-  const index = new Map<string, ElementAudioLocation>()
+export function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<string, ElementAudioLocation> {  const index = new Map<string, ElementAudioLocation>()
   for (const page of pages) {
     const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
     if (!renderingRow) continue
@@ -434,6 +433,23 @@ function loadElementAudioEntries(
     })
   }
   return entries
+}
+
+/** Synthetic catalog ids that actually exist in the artifact. Unlike the
+ *  `_audio` shape helper, this cannot mistake a legacy image whose own id ends
+ *  in `_audio` for an authored entry. */
+export function collectElementAudioTextIds(storage: Storage): Set<string> {
+  const ids = new Set<string>()
+  for (const pageId of storage.getNodeItemIds(ELEMENT_AUDIO_NODE)) {
+    const data = storage.getLatestNodeData(ELEMENT_AUDIO_NODE, pageId)?.data
+    const entries = (data as { entries?: unknown } | null)?.entries
+    if (!Array.isArray(entries)) continue
+    for (const candidate of entries) {
+      const parsed = ElementAudioEntrySchema.safeParse(candidate)
+      if (parsed.success) ids.add(elementAudioTextId(parsed.data.nodeId))
+    }
+  }
+  return ids
 }
 
 /** Synchronous snapshot for atomic authored-save/catalog reconciliation. */
