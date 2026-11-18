@@ -310,6 +310,7 @@ export {
 export {
   ELEMENT_AUDIO_NODE,
   ElementAudioEntry,
+  ElementAudioManifest,
   ElementAudioOutput,
   elementAudioTextId,
   parseElementAudioTextId,

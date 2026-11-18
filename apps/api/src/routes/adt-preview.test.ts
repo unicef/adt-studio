@@ -507,6 +507,37 @@ describe("ADT preview routes", () => {
     expect(await audioRes.json()).toEqual({ pg001_tx001: "pg001_tx001.mp3", pg001_tx002: "pg001_tx002.mp3" })
   })
 
+  it("publishes authored element audio under the element id and lists it in element_audio.json", async () => {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      putReadyCoreTts(storage, "pg001_im001_audio")
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_im001_audio",
+            language: "en",
+            fileName: "pg001_im001_audio.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      storage.close()
+    }
+
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+    const speech = await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)
+    const audios = await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)
+    const manifest = await app.request(`/books/${label}/adt-preview/content/i18n/en/element_audio.json`)
+
+    expect(await speech.json()).toMatchObject({ pg001_im001: "pg001_im001_audio" })
+    expect(await audios.json()).toEqual({ pg001_im001: "pg001_im001_audio.mp3" })
+    expect(await manifest.json()).toEqual(["pg001_im001"])
+  })
+
   // The preview manifest must resolve narrator names exactly the way the
   // packaged bundle does — otherwise the Speech view shows an opaque voice ID
   // for a voice the export names properly.

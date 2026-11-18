@@ -32,7 +32,7 @@ import type {
   AdtExportLineage,
   PackagingWarning, AppConfig, OutputStatus,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, isElementAudioTextId, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, isElementAudioTextId, parseElementAudioTextId, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
 import {
   ADT_EDITING_CONTRACT_VERSION,
@@ -49,6 +49,12 @@ import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
 const EASY_READ_ID_SUFFIX = /_easy_read$/
 function isElementAudioCatalogId(id: string): boolean {
   return isElementAudioTextId(id.replace(EASY_READ_ID_SUFFIX, ""))
+}
+
+/** Publish an authored script under the element's own `data-id`, so the
+ *  runtime resolves it with the existing `[data-id]` lookup (SPEC-0014 §2). */
+function elementAudioPublishId(textId: string): string {
+  return parseElementAudioTextId(textId) ?? textId
 }
 import {
   bundleBookFontsIntoCss,
@@ -799,12 +805,15 @@ export async function packageAdtWeb(
     // speech_texts.json is intentionally separate from display content. Failed
     // conversions are omitted, which also withholds their audio below.
     const speechTextsMap: Record<string, string> = {}
+    const readySpeechIds = new Set<string>()
     for (const entry of speechEntries(lang)) {
       if ((entry.status === "ready" || entry.fallbackReason) && entry.speechText !== null) {
-        speechTextsMap[entry.id] = entry.speechText
+        // Authored element scripts publish under the element id; the original
+        // synthetic id stays the identity of the `tts` entry below.
+        speechTextsMap[elementAudioPublishId(entry.id)] = entry.speechText
+        readySpeechIds.add(entry.id)
       }
     }
-    const readySpeechIds = new Set(Object.keys(speechTextsMap))
     writeJson(path.join(localeDir, "speech_texts.json"), speechTextsMap)
 
     // Keep audios.json as the primary map for legacy readers and EPUB. The
@@ -850,7 +859,7 @@ export async function packageAdtWeb(
             const destFile = path.join(audioDir, entry.fileName)
             fs.copyFileSync(resolvedSrcFile, destFile)
             const slot = resolveEntryVoiceSlot(entry)
-            audioVoices[slot].audios[entry.textId] = entry.fileName
+            audioVoices[slot].audios[elementAudioPublishId(entry.textId)] = entry.fileName
             copiedBySlot[slot].push(entry)
             included.add(JSON.stringify(["audio", entry.textId, lang, slot]))
           }
@@ -860,6 +869,16 @@ export async function packageAdtWeb(
     audioVoices.primary.label = resolveNarratorLabel(copiedBySlot.primary, "Primary")
     audioVoices.secondary.label = resolveNarratorLabel(copiedBySlot.secondary, "Secondary")
     writeJson(path.join(localeDir, "audios.json"), audioMap)
+    const elementAudioIds = [
+      ...new Set(
+        [...copiedBySlot.primary, ...copiedBySlot.secondary]
+          .map((entry) => parseElementAudioTextId(entry.textId))
+          .filter((id): id is string => id !== null),
+      ),
+    ]
+    if (elementAudioIds.length > 0) {
+      writeJson(path.join(localeDir, "element_audio.json"), elementAudioIds)
+    }
     if (Object.keys(audioVoices.secondary.audios).length > 0) {
       writeJson(path.join(localeDir, "audio_voices.json"), {
         defaultVoice: "primary",
@@ -871,7 +890,7 @@ export async function packageAdtWeb(
     const timecodeDir = path.join(localeDir, "timecode")
     fs.mkdirSync(timecodeDir, { recursive: true })
     const timestamps = getWordTimestamps(storage, lang)
-    const timingIds = (slot: "primary" | "secondary") => new Set(copiedBySlot[slot].filter((entry) => !options.config || freshness.some((output) => output.identity.kind === "timestamps" && output.identity.id === entry.textId && output.identity.language === lang && output.identity.voiceSlot === slot && output.usable)).map((entry) => entry.textId))
+    const timingIds = (slot: "primary" | "secondary") => new Set(copiedBySlot[slot].filter((entry) => !parseElementAudioTextId(entry.textId) && (!options.config || freshness.some((output) => output.identity.kind === "timestamps" && output.identity.id === entry.textId && output.identity.language === lang && output.identity.voiceSlot === slot && output.usable))).map((entry) => entry.textId))
     const primaryTimecodes = highlightEnabled
       ? buildRuntimeTimecodeMap(timestamps, speechConfig, timingIds("primary"), "primary")
       : {}
