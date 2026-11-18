@@ -2415,6 +2415,30 @@ describe("Page routes", () => {
       }
     })
 
+    it("preserves a legacy image id ending _audio across a cross-page merge", async () => {
+      seedBothPages()
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const row = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!
+        const data = row.data as { sections: Array<{ nodes: Array<Record<string, unknown>> }> }
+        data.sections[0].nodes.push({
+          nodeId: `${label}_p1_im999_audio`,
+          isPruned: false,
+          role: "image",
+          text: "",
+        })
+        storage.putNodeData("page-sectioning", `${label}_p1`, data)
+      } finally {
+        storage.close()
+      }
+
+      const res = await requestPageEdit(
+        `/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+    })
+
     it("cannot claim the Storyboard is complete while both renderings are empty", async () => {
       seedBothPages()
       const storage = createBookStorage(label, tmpDir)
