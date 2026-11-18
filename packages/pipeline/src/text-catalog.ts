@@ -16,6 +16,7 @@ import {
   WebRenderingOutput as WebRenderingOutputSchema,
   answerTextId,
   elementAudioTextId,
+  isElementAudioNodeId,
   resolveQuizId,
   resolveQuizOptionId,
   withResolvedQuizIds,
@@ -414,6 +415,9 @@ function loadElementAudioEntries(
   for (const candidate of data.entries) {
     const parsed = ElementAudioEntrySchema.safeParse(candidate)
     if (!parsed.success) continue
+    // v1 emits image leaves only. A legacy non-image entry stays in the
+    // artifact (and is editable) but must not leak into the catalog.
+    if (!isElementAudioNodeId(parsed.data.nodeId)) continue
     const text = parsed.data.text.trim()
     if (text.length === 0) continue
     if (seen.has(parsed.data.nodeId)) continue

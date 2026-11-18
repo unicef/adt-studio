@@ -920,6 +920,32 @@ describe("buildTextCatalog — element-audio (SPEC-0014)", () => {
     })
   })
 
+  it("AC-24: a legacy non-image entry stays in the artifact but is not synthesised", async () => {
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "images_only",
+              reasoning: "",
+              html: '<section><p data-id="pg001_t001">Hola</p><img data-id="pg001_im001" alt="" /></section>',
+            },
+          ],
+        },
+      },
+      ...artifactFixture([{ nodeId: "pg001_t001", text: "Hola" }]),
+    })
+
+    const result = await buildTextCatalog(storage, [page])
+
+    expect(result.entries.some((entry) => entry.id === "pg001_t001_audio")).toBe(false)
+    expect(result.entries).toContainEqual(expect.objectContaining({ id: "pg001_t001", text: "Hola" }))
+    expect(storage.getLatestNodeData("element-audio", "pg001")?.data).toMatchObject({
+      entries: [{ nodeId: "pg001_t001", text: "Hola" }],
+    })
+  })
+
   it("AC-23: a script in a pruned section is not synthesised (artifact kept)", async () => {
     const storage = createMockStorage({
       ...renderingFixture(),

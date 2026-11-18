@@ -240,7 +240,9 @@ node join a page batch.
 
 In v1 the synthetic detection is **image-only**: `isElementAudioTextId` accepts only a base that
 looks like `_im{NNN}` (with optional suffix), so a real text id such as `pg001_listen_audio` is not
-misclassified and is not restale on upgrade. A new rendered **image** id ending in `_audio` is
+misclassified and is not restale on upgrade. The catalog likewise emits only an image `nodeId`: a
+legacy non-image entry stays in the artifact (and editable through the route) but produces no
+synthetic entry. A new rendered **image** id ending in `_audio` is
 rejected by the page-save image-id check (`findIntroducedImageAudioCollision`, called with the full
 content-id set, not the text-only reuse set); a pre-existing one is preserved. Text ids can adopt the
 suffix only after SPEC-0008.
