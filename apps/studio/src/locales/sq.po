@@ -4453,7 +4453,7 @@ msgid "Element audio"
 msgstr "Audio e elementit"
 
 msgid "Element audio script"
-msgstr "Skenari i audios sÃ« elementit"
+msgstr "Skenari i audios së elementit"
 
 msgid "Element style editor"
 msgstr "Redaktues i stilit të elementit"
@@ -13071,7 +13071,7 @@ msgid "Type the code you were given"
 msgstr "Shkruani kodin që ju dhanë"
 
 msgid "Type what the reader should hear"
-msgstr "Shkruani atÃ« qÃ« duhet tÃ« dÃ«gjojÃ« lexuesi"
+msgstr "Shkruani atë që duhet të dëgjojë lexuesi"
 
 msgid "Typed Sections"
 msgstr "Seksionet e Shtypura"
@@ -13917,7 +13917,7 @@ msgid "Write correct/incorrect feedback for every step with AI"
 msgstr "Shkruani me AI reagimin e saktë/gabuar për çdo hap"
 
 msgid "Write what this image should say when the reader taps it. Leave empty to remove the audio."
-msgstr "Shkruani atÃ« qÃ« duhet tÃ« thotÃ« kjo imazh kur lexuesi e prek. LÃ«reni bosh pÃ«r tÃ« hequr audion."
+msgstr "Shkruani atë që duhet të thotë kjo imazh kur lexuesi e prek. Lëreni bosh për të hequr audion."
 
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."

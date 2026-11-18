@@ -3533,7 +3533,7 @@ msgid "Couldn't copy the link — open the book's Sharing step and copy it there
 msgstr "Não foi possível copiar o link — abra a etapa Compartilhar do livro e copie-o lá."
 
 msgid "Couldn't load the element audio."
-msgstr "NÃ£o foi possÃ­vel carregar o Ã¡udio do elemento."
+msgstr "Não foi possível carregar o áudio do elemento."
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Não foi possível carregar a prévia do PDF. As páginas ainda podem ser divididas usando os controles."
@@ -4448,10 +4448,10 @@ msgid "Effort"
 msgstr "Esforço"
 
 msgid "Element audio"
-msgstr "Ãudio do elemento"
+msgstr "Áudio do elemento"
 
 msgid "Element audio script"
-msgstr "Roteiro de Ã¡udio do elemento"
+msgstr "Roteiro de áudio do elemento"
 
 msgid "Element style editor"
 msgstr "Editor de estilo de elemento"
@@ -13915,7 +13915,7 @@ msgid "Write correct/incorrect feedback for every step with AI"
 msgstr "Escrever com IA o feedback de acerto/erro para cada passo"
 
 msgid "Write what this image should say when the reader taps it. Leave empty to remove the audio."
-msgstr "Escreva o que esta imagem deve dizer quando o leitor tocar nela. Deixe vazio para remover o Ã¡udio."
+msgstr "Escreva o que esta imagem deve dizer quando o leitor tocar nela. Deixe vazio para remover o áudio."
 
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."

@@ -13915,7 +13915,7 @@ msgid "Write correct/incorrect feedback for every step with AI"
 msgstr "Escribe con IA la retroalimentación de acierto/error para cada paso"
 
 msgid "Write what this image should say when the reader taps it. Leave empty to remove the audio."
-msgstr "Escribe lo que debe decir esta imagen cuando el lector la toque. DÃ©jalo vacÃ­o para quitar el audio."
+msgstr "Escribe lo que debe decir esta imagen cuando el lector la toque. Déjalo vacío para quitar el audio."
 
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."
