@@ -9,6 +9,7 @@ const calls = vi.hoisted(() => ({
   getElementAudio: vi.fn(),
   updateElementAudio: vi.fn(),
   getTextCatalog: vi.fn(),
+  versionPicker: vi.fn(),
 }))
 
 const translate = (strings: TemplateStringsArray, ...values: unknown[]) =>
@@ -28,7 +29,10 @@ vi.mock("@/api/client", () => ({
 }))
 
 vi.mock("@/components/pipeline/components/VersionPicker", () => ({
-  VersionPicker: () => <div data-testid="version-picker" />,
+  VersionPicker: (props: unknown) => {
+    calls.versionPicker(props)
+    return <div data-testid="version-picker" />
+  },
 }))
 
 const { AudioSection } = await import("./AudioSection")
@@ -63,6 +67,7 @@ beforeEach(() => {
   calls.getElementAudio.mockReset()
   calls.updateElementAudio.mockReset()
   calls.getTextCatalog.mockReset()
+  calls.versionPicker.mockReset()
   calls.getTextCatalog.mockResolvedValue(null)
 })
 
@@ -81,6 +86,14 @@ describe("AudioSection (SPEC-0014)", () => {
 
     const textarea = await screen.findByLabelText("Element audio script")
     expect((textarea as HTMLTextAreaElement).value).toBe("Mago")
+    expect(calls.versionPicker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        step: "element-audio",
+        itemId: "pg001",
+        currentVersion: 1,
+        bookLabel: "book",
+      }),
+    )
 
     fireEvent.change(textarea, { target: { value: "Maga" } })
     fireEvent.click(screen.getByRole("button", { name: /Save/ }))
@@ -127,6 +140,13 @@ describe("AudioSection (SPEC-0014)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Save/ }))
 
     await screen.findByText("Element audio changed. Refresh before saving.")
+    expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
+
+    calls.getElementAudio.mockResolvedValueOnce(
+      view([{ nodeId: "pg001_im001", text: "Maga", sourcePageId: "pg001" }]),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }))
+    await waitFor(() => expect(calls.getElementAudio).toHaveBeenCalledTimes(2))
     expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
   })
 
