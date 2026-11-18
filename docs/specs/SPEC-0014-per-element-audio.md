@@ -5,7 +5,7 @@ status: in-progress
 owner: "@gaguerre-iugo"
 approvers: ["@gbergengruen"]
 issues: ["#890"]
-prs: ["#1145", "#1159", "#1160"]
+prs: ["#1145", "#1159", "#1160", "#1161"]
 adr: "docs/DECISIONS.md#028-per-element-authored-fields-with-no-catalog-home-live-in-their-own-versioned-node"
 created: 2026-09-23
 updated: 2026-11-18
