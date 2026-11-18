@@ -675,6 +675,25 @@ describe("element-audio route (SPEC-0014)", () => {
     ])
   })
 
+  it("AC-26: a blank first duplicate does not hide a later valid script", async () => {
+    const db = storage()
+    try {
+      db.putNodeData("element-audio", "pg001", {
+        entries: [
+          { nodeId: "pg001_im001", text: "   " },
+          { nodeId: "pg001_im001", text: "Mago" },
+        ],
+        generatedAt: "before",
+      })
+    } finally {
+      db.close()
+    }
+
+    expect((await get("pg001")).body.entries).toEqual([
+      { nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" },
+    ])
+  })
+
   it("AC-26: a save heals a duplicate entry instead of writing an invalid artifact", async () => {
     const db = storage()
     try {

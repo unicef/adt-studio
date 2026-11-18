@@ -51,19 +51,22 @@ interface PageView {
 }
 
 /** Reads the row leniently: a bad or legacy entry must not hide the rest of
- *  the page. First-wins keeps reads deterministic (SPEC-0014 AC-26). */
+ *  the page. First-wins matches the catalog, except that a blank first
+ *  duplicate does not suppress a later non-blank one (that is the catalog's
+ *  skip-empty-before-first-wins rule). */
 function readEntries(data: unknown): ElementAudioEntry[] {
   const entries = (data as { entries?: unknown } | null)?.entries
   if (!Array.isArray(entries)) return []
-  const seen = new Set<string>()
-  const result: ElementAudioEntry[] = []
+  const byId = new Map<string, ElementAudioEntry>()
   for (const candidate of entries) {
     const parsed = ElementAudioEntry.safeParse(candidate)
-    if (!parsed.success || seen.has(parsed.data.nodeId)) continue
-    seen.add(parsed.data.nodeId)
-    result.push(parsed.data)
+    if (!parsed.success) continue
+    const existing = byId.get(parsed.data.nodeId)
+    if (!existing || (existing.text.trim() === "" && parsed.data.text.trim() !== "")) {
+      byId.set(parsed.data.nodeId, parsed.data)
+    }
   }
-  return result
+  return [...byId.values()]
 }
 
 function readRows(storage: Storage): Map<string, StoredRow> {
