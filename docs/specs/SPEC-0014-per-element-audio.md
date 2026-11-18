@@ -471,10 +471,11 @@ Chosen: **Option A**. Rough costs are per rollout PR; refer to the §9 review bu
 - `apps/api`: the `element-audio` route (read/write, immediate save, per-row `versions` + merge);
   `RestorableNode`; the preview mirrors in `adt-preview.ts` (including `element_audio.json`);
   batch-exclusion in `stage-runner.ts`.
-- `apps/studio`: an **unconditional** section in `StyleEditorPanel` (the fixed-layout-safe pattern,
-  like `TextRoleSection`) — **not** the `SectionKey`/`VISIBLE_SECTIONS` accordion, which the
-  `isFixedLayout` branch skips; the save path; `VersionedStep` + `STEP_STYLING`; i18n in all five
-  locales.
+- `apps/studio`: an **unconditional** `AudioSection` in `StyleEditorPanel` (the fixed-layout-safe
+  pattern, like `TextRoleSection`) — **not** the `SectionKey`/`VISIBLE_SECTIONS` accordion, which the
+  `isFixedLayout` branch skips; the immediate-save path and error state; the per-page `VersionPicker`
+  (`VersionedStep` + `STEP_STYLING`); the Languages/Core TTS filter for `${nodeId}_audio`; i18n in
+  all five locales.
 - `apps/adt-runtime`: the optional `element_audio.json` fetch and authored-id set; the non-chaining
   play path in `useAudioPlayer`; the sweep inclusion for authored images; the React trigger
   component bound per `pageEpoch`; the badge (sibling/overlay).
@@ -517,7 +518,7 @@ Chosen: **Option A**. Rough costs are per rollout PR; refer to the §9 review bu
 - [ ] **AC-10** The visual indicator is decorative to assistive tech (`aria-hidden`), is not a second tab stop, and does not create a nested interactive control; a pointer click on it plays the element's audio and does not trigger the Storyboard selection.
 - [ ] **AC-11** In the **Storyboard preview** the **badge** plays the element's audio while a body click keeps selecting the element (same bundle/manifests as the reader).
 - [ ] **AC-12** A book whose `output_languages` equals its source language produces element audio with **zero** translation calls.
-- [ ] **AC-13** All new user-visible strings are wrapped in Lingui macros and translated in `en`, `pt-BR`, `es`, `fr`, `sq`; the i18n CI job passes.
+- [x] **AC-13** All new user-visible strings are wrapped in Lingui macros and translated in `en`, `pt-BR`, `es`, `fr`, `sq`; the i18n CI job passes.
 - [ ] **AC-14** Existing books (no `element-audio` node and no `element_audio.json`) open and export unchanged.
 - [ ] **AC-15** Changing one element's script makes **only that element's** audio stale — including with `speech.batch_by_page`, Speech Preparation transformations, ElevenLabs context and easy-read mode enabled: the `_audio` entry never enters another entry's page context or neighbour window, **no real neighbour enters the script's preparation or ElevenLabs context**, the `${nodeId}_easy_read` audio key is removed so the easy-read lookup falls back to the authored file, and **nothing is deleted** (hash-keyed reuse); restoring an earlier script deletes nothing.
 - [ ] **AC-16** An authored script goes through Speech Preparation; with normalization disabled the display text is used unchanged; a failed preparation is surfaced (not silent).
@@ -550,6 +551,7 @@ driven with a stub synthesizer and no API keys.
 | Invariant checker | source scan over `apps/api/src/**` and `packages/*/src` | **AC-7** |
 | Packaging remap | `packages/pipeline/src/__tests__/package-web.test.ts` | AC-2 (`element_audio.json`, no `texts.json` leak), AC-4, AC-18 (precedence + easy-read key), AC-5 (no timings) |
 | API routes | `apps/api/src/routes/` | AC-1 (including the `versions`-map merge/409 and page membership), AC-8, AC-14, **AC-16** (preparation states) |
+| Authoring UI | `.../style-editor/sections/AudioSection.test.tsx` | AC-1 (save, new entry, conflict), AC-13 |
 | Staleness scoping | `apps/api/src/routes/` | **AC-15** — change one script, nothing else stale or deleted; a restore deletes nothing |
 | Batching exclusion | `gemini-item-compatibility.integration.test.ts`, `stage-runner.test.ts`, `output-catalog` tests | **AC-17** — `speechPageId` excludes `_audio` at every grouping site and the output-catalog wiring is exercised |
 | Preview mirrors | `apps/api/src/routes/adt-preview.test.ts` | AC-11 (mirrors), AC-20 (`element_audio.json`) |
@@ -576,15 +578,14 @@ last one.** (The four are tracked as #895–#898 under #894.)
    pages (page membership), and the per-page image-id validation. Value: the script can be saved and
    versioned through the API. PR 3 owns the client-side query invalidation.
 3. **PR 3 — authoring.** The Storyboard inspector section in the **classic** `StyleEditorPanel`
-   (unconditional pattern), the save-path wiring, `VersionedStep` registration, i18n, and the filter
-   that hides `${nodeId}_audio` from the Languages/Core TTS editors. **Depends on the `texts.json`
-   exclusion**: land that part of PR 4 before or with PR 3, or the script would appear as page text.
-   Value: the author can write the script.
+   (unconditional pattern, so it also works on fixed-layout books), the immediate-save wiring, the
+   `VersionPicker` registration, i18n, the filter that hides `${nodeId}_audio` from the
+   Languages/Core TTS editors, and the **`texts.json` exclusion** (moved here from PR 4 so the
+   script never appears as page text while the UI exists). Value: the author can write the script.
 4. **PR 4 — playback.** The packaging remap (bundle **and** preview mirrors), including
-   `element_audio.json`, the `texts.json` exclusion, the easy-read key removal and the withheld
-   timestamps; the runtime manifest fetch, sweep inclusion, trigger and badge; the a11y attributes.
-   **Written against merged `develop`** (SPEC-0001's filename/freshness contract). Value: the reader
-   hears it.
+   `element_audio.json`, the easy-read key removal and the withheld timestamps; the runtime manifest
+   fetch, sweep inclusion, trigger and badge; the a11y attributes. **Written against merged
+   `develop`** (SPEC-0001's filename/freshness contract). Value: the reader hears it.
 
 No feature flag; each PR reverts alone.
 

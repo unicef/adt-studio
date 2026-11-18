@@ -3532,6 +3532,9 @@ msgstr "Não foi possível copiar o código de acesso."
 msgid "Couldn't copy the link — open the book's Sharing step and copy it there."
 msgstr "Não foi possível copiar o link — abra a etapa Compartilhar do livro e copie-o lá."
 
+msgid "Couldn't load the element audio."
+msgstr "NÃ£o foi possÃ­vel carregar o Ã¡udio do elemento."
+
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Não foi possível carregar a prévia do PDF. As páginas ainda podem ser divididas usando os controles."
 
@@ -4443,6 +4446,12 @@ msgstr "Edições vão para este prefixo de variante Tailwind"
 
 msgid "Effort"
 msgstr "Esforço"
+
+msgid "Element audio"
+msgstr "Ãudio do elemento"
+
+msgid "Element audio script"
+msgstr "Roteiro de Ã¡udio do elemento"
 
 msgid "Element style editor"
 msgstr "Editor de estilo de elemento"
@@ -8987,6 +8996,9 @@ msgstr "Prefira termos centrais ao assunto do livro. Pule vocabulário genérico
 msgid "Preferences"
 msgstr "Preferências"
 
+msgid "Preparation failed"
+msgstr "A preparação falhou"
+
 msgid "Prepare numbers, dates, and abbreviations for natural speech."
 msgstr "Prepara números, datas e abreviações para uma fala natural."
 
@@ -10397,6 +10409,9 @@ msgstr "Salve o novo tipo e escolha Regenerar para atualizar a atividade."
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Salve seu trabalho primeiro se quiser manter estas alterações."
+
+msgid "Saved"
+msgstr "Salvo"
 
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "O conteúdo salvo e as seções das páginas são mantidos. Revise as etapas afetadas após alterar o idioma. Nenhuma geração é iniciada automaticamente."
@@ -13053,6 +13068,9 @@ msgstr "Tipo"
 msgid "Type the code you were given"
 msgstr "Digite o código que você recebeu"
 
+msgid "Type what the reader should hear"
+msgstr "Digite o que o leitor deve ouvir"
+
 msgid "Typed Sections"
 msgstr "Seções classificadas"
 
@@ -13895,6 +13913,9 @@ msgstr "Escrever uma resposta livre."
 
 msgid "Write correct/incorrect feedback for every step with AI"
 msgstr "Escrever com IA o feedback de acerto/erro para cada passo"
+
+msgid "Write what this image should say when the reader taps it. Leave empty to remove the audio."
+msgstr "Escreva o que esta imagem deve dizer quando o leitor tocar nela. Deixe vazio para remover o Ã¡udio."
 
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."

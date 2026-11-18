@@ -3534,6 +3534,9 @@ msgstr "Kodi i hyrjes nuk u kopjua dot."
 msgid "Couldn't copy the link — open the book's Sharing step and copy it there."
 msgstr "Lidhja nuk u kopjua dot — hapni hapin Ndarje të librit dhe kopjojeni atje."
 
+msgid "Couldn't load the element audio."
+msgstr "Audioja e elementit nuk u ngarkua."
+
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Pamja paraprake e PDF-së nuk u ngarkua dot. Faqet mund të ndahen ende duke përdorur kontrollet."
 
@@ -4445,6 +4448,12 @@ msgstr "Ndryshimet shkojnë tek ky prefiks i variantit Tailwind"
 
 msgid "Effort"
 msgstr "Përpjekje"
+
+msgid "Element audio"
+msgstr "Audio e elementit"
+
+msgid "Element audio script"
+msgstr "Skenari i audios sÃ« elementit"
 
 msgid "Element style editor"
 msgstr "Redaktues i stilit të elementit"
@@ -8989,6 +8998,9 @@ msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjen
 msgid "Preferences"
 msgstr "Preferencat"
 
+msgid "Preparation failed"
+msgstr "Përgatitja dështoi"
+
 msgid "Prepare numbers, dates, and abbreviations for natural speech."
 msgstr "Përgatit numrat, datat dhe shkurtesat për shqiptim natyral."
 
@@ -10399,6 +10411,9 @@ msgstr "Ruani llojin e ri, pastaj zgjidhni Rigenero për të përditësuar aktiv
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
+
+msgid "Saved"
+msgstr "U ruajt"
 
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Përmbajtja e ruajtur dhe seksionet e faqeve ruhen. Rishikoni fazat e prekura pas ndryshimit të gjuhës. Asnjë gjenerim nuk fillon automatikisht."
@@ -13055,6 +13070,9 @@ msgstr "Lloji"
 msgid "Type the code you were given"
 msgstr "Shkruani kodin që ju dhanë"
 
+msgid "Type what the reader should hear"
+msgstr "Shkruani atÃ« qÃ« duhet tÃ« dÃ«gjojÃ« lexuesi"
+
 msgid "Typed Sections"
 msgstr "Seksionet e Shtypura"
 
@@ -13897,6 +13915,9 @@ msgstr "Shkruaj një përgjigje të lirë."
 
 msgid "Write correct/incorrect feedback for every step with AI"
 msgstr "Shkruani me AI reagimin e saktë/gabuar për çdo hap"
+
+msgid "Write what this image should say when the reader taps it. Leave empty to remove the audio."
+msgstr "Shkruani atÃ« qÃ« duhet tÃ« thotÃ« kjo imazh kur lexuesi e prek. LÃ«reni bosh pÃ«r tÃ« hequr audion."
 
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."

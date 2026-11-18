@@ -43,6 +43,13 @@ import {
 } from "@adt/types"
 import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
 import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
+
+/** Authored element audio is speech-only: its synthetic catalog id (and the
+ *  easy-read variant) must never become display text in `texts.json`. */
+const EASY_READ_ID_SUFFIX = /_easy_read$/
+function isElementAudioCatalogId(id: string): boolean {
+  return isElementAudioTextId(id.replace(EASY_READ_ID_SUFFIX, ""))
+}
 import {
   bundleBookFontsIntoCss,
   readBookFontRegistry,
@@ -744,11 +751,11 @@ export async function packageAdtWeb(
     const baseLang = getBaseLanguage(lang)
     let textsMap: Record<string, string> = {}
     if (baseLang === sourceLanguage) {
-      // Source language — use original catalog
+      // Source language - use original catalog
       if (catalog?.entries) {
-        for (const e of catalog.entries) textsMap[e.id] = e.text
+        for (const e of catalog.entries) if (!isElementAudioCatalogId(e.id)) textsMap[e.id] = e.text
       }
-      for (const e of easyReadEntries) textsMap[e.id] = e.text
+      for (const e of easyReadEntries) if (!isElementAudioCatalogId(e.id)) textsMap[e.id] = e.text
     } else {
       // Translated language
       const legacyLang = lang.replace("-", "_")
@@ -757,7 +764,7 @@ export async function packageAdtWeb(
         storage.getLatestNodeData("text-catalog-translation", legacyLang)
       if (transRow) {
         const translated = transRow.data as TextCatalogOutput
-        const activeIds = new Set([...catalog.entries, ...easyReadEntries].map((entry) => entry.id))
+        const activeIds = new Set([...catalog.entries, ...easyReadEntries].map((entry) => entry.id).filter((id) => !isElementAudioCatalogId(id)))
         for (const e of translated.entries) if (activeIds.has(e.id) && !Object.hasOwn(textsMap, e.id)) textsMap[e.id] = e.text
       }
     }

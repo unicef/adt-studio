@@ -3417,6 +3417,7 @@ export function StoryboardSectionDetail({
         deviceView={deviceView}
         isFixedLayout={isFixedLayout}
         bookLabel={bookLabel}
+        pageId={pageId}
       />
     </div>
 
