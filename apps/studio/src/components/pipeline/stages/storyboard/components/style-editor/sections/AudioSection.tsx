@@ -176,6 +176,21 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
     }
   }
 
+  const reload = async () => {
+    const result = await query.refetch()
+    const fresh = result.data
+    if (!fresh) return
+    const freshText = fresh.entries.find((candidate) => candidate.nodeId === dataId)?.text ?? ""
+    versionsRef.current = fresh.versions
+    latestVersionsRef.current = fresh.versions
+    draftRef.current = { dataId, dirty: false, versions: fresh.versions }
+    draftsRef.current.delete(dataId)
+    setValue(freshText)
+    setBaseline(freshText)
+    setSaved(false)
+    setError(null)
+  }
+
   if (!bookLabel) return null
 
   return (
@@ -271,7 +286,18 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
           </div>
         </>
       )}
-      {error ? <p className="text-[10px] text-red-700">{error}</p> : null}
+      {error ? (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] text-red-700">{error}</p>
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
+          >
+            {t`Retry`}
+          </button>
+        </div>
+      ) : null}
     </section>
   )
 }
