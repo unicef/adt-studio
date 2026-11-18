@@ -243,10 +243,12 @@ In v1 the synthetic **namespace** is image-only: `isElementAudioTextId` accepts 
 looks like `_im{NNN}` (with optional suffix), so a real text id such as `pg001_listen_audio` cannot
 claim the slot by accident. Classification is artifact-aware: `collectElementAudioTextIds(storage)`
 is the source of truth for the catalog/TTS category, mute, batching and neighbour predicates, so a
-pre-existing image id ending in `_audio` is never mistaken for an authored script. A new rendered
-**image** id ending in `_audio` is rejected by the page-save image-id check
-(`findIntroducedImageAudioCollision`, called with the full content-id set, not the text-only reuse
-set); a pre-existing one is preserved. Text ids can adopt the suffix only after SPEC-0008.
+pre-existing image id ending in `_audio` is never mistaken for an authored script. The catalog
+likewise emits only an image `nodeId`: a legacy non-image entry stays in the artifact (and editable
+through the route) but produces no synthetic entry. A new rendered **image** id ending in `_audio` is
+rejected by the page-save image-id check (`findIntroducedImageAudioCollision`, called with the full
+content-id set, not the text-only reuse set); a pre-existing one is preserved. Text ids can adopt the
+suffix only after SPEC-0008.
 
 **Concurrency guard.** The node is one versioned row per page holding every image's script, so two
 editors on the same page must not lose each other's work. Because a page view can merge entries

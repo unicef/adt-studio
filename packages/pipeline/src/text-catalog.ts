@@ -16,6 +16,7 @@ import {
   WebRenderingOutput as WebRenderingOutputSchema,
   answerTextId,
   elementAudioTextId,
+  isElementAudioNodeId,
   resolveQuizId,
   resolveQuizOptionId,
   withResolvedQuizIds,

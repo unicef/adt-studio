@@ -87,7 +87,8 @@ function currentVersions(rows: Map<string, StoredRow>): Record<string, number> {
 /** The inspector lists the elements in the order they render on the page.
  *  The page's own row version is always part of the save baseline, even when
  *  all of its entries are currently orphaned or pruned: a new entry is written
- *  to that row. */
+ *  to that row. `locations` must reflect the current rendering in the same
+ *  transaction; the PUT reuses its map because it only writes `element-audio`. */
 function buildPageView(
   storage: Storage,
   pageId: string,

@@ -652,6 +652,8 @@ describe("element-audio route (SPEC-0014)", () => {
   })
 
   it("AC-26: GET keeps the first duplicate and ignores a malformed entry", async () => {
+    // The read-side `seen.has` guard is exercised by the save-healing test
+    // below; this asserts the observable GET behavior.
     const db = storage()
     try {
       db.putNodeData("element-audio", "pg001", {
@@ -786,9 +788,11 @@ describe("element-audio route (SPEC-0014)", () => {
     expect(conflicted.body.versions).toEqual({ pg001: 1 })
   })
 
-  it("AC-1: an unknown base version is a conflict, not a 400", async () => {
+  it("AC-1: a base version ahead of current is a conflict", async () => {
     await put("pg001", { versions: {}, entries: [entry("pg001_im001", "Mago")] })
 
+    // Versions are contiguous, so v5 exercises the "ahead of current" guard.
+    // The `!baselineRow` guard covers truncated history and is defensive.
     const conflicted = await put("pg001", {
       versions: { pg001: 5 },
       entries: [entry("pg001_im001", "Otro")],
