@@ -5,10 +5,11 @@ import { getDefaultStore } from "jotai"
 import {
   autoplayModeAtom,
   currentAudioIndexAtom,
+  describeImagesModeAtom,
   isPlayingAtom,
   readAloudModeAtom,
 } from "@/features/audio/state/audio.atoms"
-import { audioFilesAtom, audioLanguageAtom, audioVoicesAtom, narratorVoiceAtom, currentLanguageAtom } from "@/features/language/state/language.atoms"
+import { audioFilesAtom, audioLanguageAtom, audioVoicesAtom, elementAudioIdsAtom, narratorVoiceAtom, currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { pageEpochAtom } from "@/features/navigation/state/nav.atoms"
 import { useAudioPlayer } from "./useAudioPlayer"
 
@@ -68,6 +69,8 @@ beforeEach(() => {
   store.set(audioLanguageAtom, "en")
   store.set(audioVoicesAtom, null)
   store.set(narratorVoiceAtom, "primary")
+  store.set(elementAudioIdsAtom, [])
+  store.set(describeImagesModeAtom, false)
 })
 
 afterEach(() => {
@@ -78,6 +81,8 @@ afterEach(() => {
   store.set(audioLanguageAtom, null)
   store.set(audioVoicesAtom, null)
   store.set(narratorVoiceAtom, "primary")
+  store.set(elementAudioIdsAtom, [])
+  store.set(describeImagesModeAtom, false)
   store.set(readAloudModeAtom, false)
   store.set(autoplayModeAtom, true)
   store.set(isPlayingAtom, false)
@@ -109,6 +114,25 @@ describe("useAudioPlayer across an in-place page turn", () => {
     await turnPage("pg003", 2)
 
     expect(played).toEqual(["pg002.mp3", "pg003.mp3"])
+  })
+
+  it("includes an authored image in the sweep when describeImagesMode is off", async () => {
+    document.getElementById("content")!.innerHTML =
+      '<p data-id="pg002">Text</p><img data-id="pg001_im001" alt="Mago" />'
+    await act(async () => {
+      store.set(audioFilesAtom, { pg002: "pg002.mp3", pg001_im001: "pg001_im001.mp3" })
+      store.set(elementAudioIdsAtom, ["pg001_im001"])
+      store.set(describeImagesModeAtom, false)
+      store.set(autoplayModeAtom, false)
+      store.set(pageEpochAtom, 2)
+    })
+
+    const { result } = renderHook(() => useAudioPlayer())
+
+    await act(async () => {
+      expect(result.current.playElement("pg001_im001")).toBe(true)
+    })
+    expect(played.at(-1)).toBe("pg001_im001.mp3")
   })
 })
 

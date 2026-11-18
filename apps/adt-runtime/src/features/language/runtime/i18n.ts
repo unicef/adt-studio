@@ -298,7 +298,7 @@ async function loadContentFiles(
     speechTexts: speechTexts ?? {},
     audios: audios ?? {},
     audioVoices,
-    elementAudio: elementAudio ?? [],
+    elementAudio: Array.isArray(elementAudio) ? elementAudio : [],
     videos: videos ?? {},
     images: images ?? {},
   }

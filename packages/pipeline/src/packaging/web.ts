@@ -814,7 +814,6 @@ export async function packageAdtWeb(
         readySpeechIds.add(entry.id)
       }
     }
-    writeJson(path.join(localeDir, "speech_texts.json"), speechTextsMap)
 
     // Keep audios.json as the primary map for legacy readers and EPUB. The
     // optional audio_voices.json manifest adds selectable narrator variants.
@@ -868,7 +867,6 @@ export async function packageAdtWeb(
     }
     audioVoices.primary.label = resolveNarratorLabel(copiedBySlot.primary, "Primary")
     audioVoices.secondary.label = resolveNarratorLabel(copiedBySlot.secondary, "Secondary")
-    writeJson(path.join(localeDir, "audios.json"), audioMap)
     const elementAudioIds = [
       ...new Set(
         [...copiedBySlot.primary, ...copiedBySlot.secondary]
@@ -876,6 +874,18 @@ export async function packageAdtWeb(
           .filter((id): id is string => id !== null),
       ),
     ]
+    // The authored script wins over the element's easy-read variant: remove the
+    // `${elementId}_easy_read` speech/audio keys so the easy-read lookup falls
+    // back to the authored file (AC-18). Only ids whose authored audio actually
+    // made it into the bundle are removed.
+    for (const elementId of elementAudioIds) {
+      delete speechTextsMap[`${elementId}_easy_read`]
+      delete audioMap[`${elementId}_easy_read`]
+      delete audioVoices.primary.audios[`${elementId}_easy_read`]
+      delete audioVoices.secondary.audios[`${elementId}_easy_read`]
+    }
+    writeJson(path.join(localeDir, "speech_texts.json"), speechTextsMap)
+    writeJson(path.join(localeDir, "audios.json"), audioMap)
     if (elementAudioIds.length > 0) {
       writeJson(path.join(localeDir, "element_audio.json"), elementAudioIds)
     }
