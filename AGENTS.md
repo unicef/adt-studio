@@ -41,7 +41,7 @@ for every PR. Resolve an uncertain lane at triage before implementation.
 |-----------------------------|-------------------------------------------------------------------------------------|
 | an entity, save, regenerate | docs/ARCHITECTURE.md#book-directory-structure (an `#entities` section is planned), docs/INVARIANTS.md |
 | staleness, re-render, cache | docs/specs/SPEC-0001-per-section-staleness.md (in review — arrives with PR #879)     |
-| sectioning, reading order   | docs/specs/SPEC-0003-sectioning-modes.md (planned), #834                            |
+| sectioning, reading order   | docs/specs/SPEC-0003-sectioning-modes.md (approved), #834                            |
 | a prompt under prompts/     | docs/PROMPTS.md (planned; prompt contracts), the prompt validator                   |
 | the reader (adt-runtime)    | docs/ARCHITECTURE.md#runtime (planned), docs/SECURITY_MODEL.md (planned)            |
 | exports or publishing       | docs/PRODUCT.md#registry (planned), docs/specs/SPEC-0006-publishing (planned)       |

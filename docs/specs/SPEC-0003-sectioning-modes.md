@@ -335,8 +335,10 @@ settings do not invalidate Sectioning or Storyboard results.
 
 ### Criteria
 
-Original AC-1–26 are preserved and individually mapped below. Unchecked boxes
-retain pending human acceptance; passing verification does not grant approval.
+Original AC-1–26 are preserved and individually mapped below. Checkboxes remain
+unset pending final PR approval; the reviewer's accepted live/test evidence is
+recorded under Approval and remaining follow-ups. Passing verification alone does
+not grant approval.
 
 - [ ] RAC-1 Generation/cache validation in By Page rejects/retries anything other than one section; valid cache reuse remains unchanged with transport counts.
 - [ ] RAC-2 Both modes render valid saved trees of any section count, including manual edits, without an unrelated targeted-render blocker.
@@ -413,15 +415,28 @@ independent human PR acceptance remains required.
 [Guillermo's re-review](https://github.com/unicef/adt-studio/pull/884#pullrequestreview-5957765294) explicitly approves this specification,
 including the recovery-copy/PID qualification, configuration-repair versioning
 exception and SPEC-0002 AC-8 amendment. He takes over the outstanding human
-re-review under SDD §9. His live acceptance of the earlier items 1, 2, 3 and 7,
-and R6, remains pending; neither this approval record nor automated tests releases
-those PR gates.
+re-review under SDD §9. In his [follow-up at `336e78a02`](https://github.com/unicef/adt-studio/pull/884#pullrequestreview-5961857461),
+he considers elasticsounds' original acceptance items 1–9 covered by the combined
+live pass, earlier reviews and RAC-tagged tests, and dismissed the October 12
+request for changes. The live pass confirms R6, splitting in By Page, incremental
+publication during an ordinary same-layout rerun, retained output after a later
+failure, scoped Dynamic-to-By-Page replacement, incomplete partial coverage and
+missing-only ordinary Sectioning. It ran on a qa784 copy at `dac4a1684`; the
+reviewer explicitly accepts it for `336e78a02` because the intervening eight
+commits do not change those paths. Multi-section retry, the reverse transition,
+per-page missing Sectioning and the locale walkthrough remain test-backed rather
+than newly exercised live. Fixed layout and parts were not run live in that pass.
+The remaining asks below and final PR approval are separate from this acceptance
+evidence and the approved specification.
 
 The shared busy message and recovery dialog describe unverifiable ownership as
 possibly still in use, without asserting a confirmed active writer. They advise
 finishing active work and closing other book apps before retrying, then restarting
-the computer if necessary. This wording does not promise that restart resolves
-every refusal or relax the approved live-PID and unknown-owner safeguards.
+the computer if necessary. The shared message now directs a persistently blocked
+user to **Library → select the book → Recover a copy** before suggesting restart
+if recovery is also refused. A lock from another computer may require this copy
+workflow; restart is not a universal remedy. The guidance does not relax the
+approved live-PID and unknown-owner safeguards.
 
 For his cold-Library performance request, use option **(b)**: Library summaries
 reuse only a current, already-verified in-memory Storyboard model. Otherwise,
@@ -437,17 +452,22 @@ page windows and part proof changes prevent stale model reuse. No persistent
 summary proof or ownership bypass is added. RAC-13 distinguishes this unknown
 summary from both verified completeness and known incompleteness.
 
-The same re-review accepts these remaining performance costs as follow-ups,
-rather than blockers for this PR. They remain open here:
+PF-1–3 and UX-1 are accepted follow-up work. WIN-1 is a required pre-release gate.
+B1 still requires the original-book comparison; creating its investigation issue
+does not resolve that pre-merge ask. Each item has issue tracking:
 
 | Follow-up | Scope and boundary |
 |---|---|
-| PF-1 | Warm Library and step-status admission/read overhead. Compare against exact develop on the same real books; retain cross-process ownership, actual coverage and same-version external-write invalidation. |
-| PF-2 | Page-list, package-status and packaged-asset overhead. Preserve busy/ownership refusals even for byte-identical application assets. |
-| PF-3 | Live reader `assets/config.json` work and repeated mounting requests, which can delay activity conflict reloads. This PR exposes pending reload honestly; it does not claim to remove that endpoint cost. |
-| UX-1 | A preserving Move/Remove-from-Library action for an unusable original and a friendlier recovered-copy label/rename workflow. Do not bypass the original's lock or delete its evidence. |
+| [PF-1 — #1162](https://github.com/unicef/adt-studio/issues/1162) | First detailed book open after each API restart, warm Library, step-status and idle admission/read overhead. The reviewer measured qa784 (175 MB DB) at **2.0 s first open versus 0.007 s on develop**. Finished books show Not yet verified until opened, including after each Desktop launch. Compare exact builds on the same books; retain ownership, actual coverage and same-version external-write invalidation. |
+| [PF-2 — #1163](https://github.com/unicef/adt-studio/issues/1163) | Page-list, package-status and packaged-asset overhead. Preserve busy/ownership refusals even for byte-identical application assets; coordinate overlapping page-list work with #996. |
+| [PF-3 — #995](https://github.com/unicef/adt-studio/issues/995) | Reuse the existing config/embedded-startup issue for live reader `assets/config.json` work and repeated mounting requests, which can delay activity conflict reloads. This PR exposes pending reload honestly; it does not claim to remove that endpoint cost. |
+| [UX-1 — #1164](https://github.com/unicef/adt-studio/issues/1164) | A preserving Move/Remove-from-Library action for an unusable original and a friendlier recovered-copy label/rename workflow. Do not bypass the original's lock or delete its evidence. |
+| [WIN-1 / N1 — #1165](https://github.com/unicef/adt-studio/issues/1165) | Actual Windows lease smoke test with Defender enabled: open, edit, kill/restart, preservation and known-live-owner control. **Must be completed and closed before the first release containing this PR.** WSL2/macOS injections and Linux CI do not satisfy it. This is a tracked release gate, not an implemented automated release-workflow check. |
+| [B1 — #1166](https://github.com/unicef/adt-studio/issues/1166) | Reconcile `collectSpentContentIds` and `reconcileSectioningIdentities` on elasticsounds' original 102-page, 237-section, approximately 162 MB book. His 3.1 s / 6.1 s timings contrast with Guillermo's faster results on other books. Access to the original fixture is pending; neither other-book measurements nor plain version depth resolve this finding. Preserve identity/history verification and do not claim resolution before the matched comparison. |
 
-These are traceable follow-ups to the linked review, not newly completed work.
+The original-book B1 benchmark and actual Windows smoke remain unperformed in
+this closeout. The approved runtime/admission contract is unchanged. These are
+traceable follow-ups to the linked reviews, not newly completed optimizations.
 The exact qa784/other reviewer-book measurements are his WSL2 results; local
 controlled-fixture timings do not certify those datasets, Electron startup,
 Windows/macOS reboot, Docker recreation or signed releases. The accepted direct
