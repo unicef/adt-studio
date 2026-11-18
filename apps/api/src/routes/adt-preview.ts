@@ -254,13 +254,17 @@ function buildTextsMap(
   const normalizedLang = normalizeLocale(lang)
   const baseLang = getBaseLanguage(normalizedLang)
   const textsMap: Record<string, string> = {}
+  const elementAudioTextIds = collectElementAudioTextIds(storage)
+  const isElementAudioCatalogId = (id: string): boolean =>
+    elementAudioTextIds.has(id) ||
+    (id.endsWith("_easy_read") && elementAudioTextIds.has(id.slice(0, -"_easy_read".length)))
 
   if (baseLang === sourceLanguage) {
     if (catalog?.entries) {
-      for (const e of catalog.entries) textsMap[e.id] = e.text
+      for (const e of catalog.entries) if (!isElementAudioCatalogId(e.id)) textsMap[e.id] = e.text
     }
     const easyReadEntries = easyReadEnabled ? flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, partScopedPages(storage)))) : []
-    for (const e of easyReadEntries) textsMap[e.id] = e.text
+    for (const e of easyReadEntries) if (!isElementAudioCatalogId(e.id)) textsMap[e.id] = e.text
   } else {
     const legacyLang = normalizedLang.replace("-", "_")
     const transRow =
@@ -268,9 +272,9 @@ function buildTextsMap(
       storage.getLatestNodeData("text-catalog-translation", legacyLang)
     if (transRow) {
       const translated = transRow.data as TextCatalogOutput
-      const active = new Set((catalog?.entries ?? []).map((entry) => entry.id))
+      const active = new Set((catalog?.entries ?? []).map((entry) => entry.id).filter((id) => !isElementAudioCatalogId(id)))
       const easy = activeEasyRead(storage, buildEasyReadSourceBlocks(storage, partScopedPages(storage)))
-      if (easyReadEnabled) for (const entry of flattenEasyReadEntries(easy)) active.add(entry.id)
+      if (easyReadEnabled) for (const entry of flattenEasyReadEntries(easy)) if (!isElementAudioCatalogId(entry.id)) active.add(entry.id)
       for (const e of translated.entries) if (active.has(e.id) && !Object.hasOwn(textsMap, e.id)) textsMap[e.id] = e.text
     }
   }
@@ -859,13 +863,25 @@ export function createAdtPreviewRoutes(
     const lang = safePreviewLanguage(c.req.param("lang"))
     const speechTexts = withStorage(c.req.param("label"), (storage) => {
       const map: Record<string, string> = {}
+      const elementAudioTextIds = collectElementAudioTextIds(storage)
+      const authoredElementIds = new Set<string>()
       for (const entry of previewSpeech(storage, parseBookLabel(c.req.param("label")), lang)) {
         if ((entry.status === "ready" || entry.fallbackReason) && entry.speechText !== null) {
           // Authored element scripts publish under the element's own id, so the
-          // runtime resolves them by `data-id` (SPEC-0014 §2).
-          map[parseElementAudioTextId(entry.id) ?? entry.id] = entry.speechText
+          // runtime resolves them by `data-id` (SPEC-0014 §2). The artifact set
+          // keeps a legacy image whose own id ends in `_audio` untouched.
+          const key = elementAudioTextIds.has(entry.id)
+            ? parseElementAudioTextId(entry.id) ?? entry.id
+            : entry.id
+          map[key] = entry.speechText
+          if (elementAudioTextIds.has(entry.id)) {
+            const elementId = parseElementAudioTextId(entry.id)
+            if (elementId) authoredElementIds.add(elementId)
+          }
         }
       }
+      // The authored script wins over the element's easy-read variant (AC-18).
+      for (const id of authoredElementIds) delete map[`${id}_easy_read`]
       return map
     })
     setNoStoreHeaders(c)
@@ -885,9 +901,11 @@ export function createAdtPreviewRoutes(
         storage.getLatestNodeData("tts", legacyLang)
       )?.data as TTSOutput | undefined
       const ready = includedSpeechIds(storage, safeLabel, lang)
+      const elementAudioTextIds = collectElementAudioTextIds(storage)
       const ids = new Set<string>()
       for (const entry of ttsData?.entries ?? []) {
         if (!ready.has(entry.textId)) continue
+        if (!elementAudioTextIds.has(entry.textId)) continue
         const elementId = parseElementAudioTextId(entry.textId)
         if (elementId) ids.add(elementId)
       }
@@ -958,15 +976,25 @@ export function createAdtPreviewRoutes(
         storage.getLatestNodeData("tts", legacyLang)
       const ttsData = ttsRow?.data as TTSOutput | undefined
       const readySpeechIds = includedSpeechIds(storage, safeLabel, lang, "primary")
+      const elementAudioTextIds = collectElementAudioTextIds(storage)
+      const authoredElementIds = new Set<string>()
       const map: Record<string, string> = {}
       if (ttsData?.entries) {
         for (const entry of ttsData.entries) {
           if (!readySpeechIds.has(entry.textId)) continue
           if (isTtsExcluded(entry.textId, speechConfig, authoredElementAudioIds)) continue
           if (resolveEntryVoiceSlot(entry) !== "primary") continue
-          map[parseElementAudioTextId(entry.textId) ?? entry.textId] = entry.fileName
+          const key = elementAudioTextIds.has(entry.textId)
+            ? parseElementAudioTextId(entry.textId) ?? entry.textId
+            : entry.textId
+          map[key] = entry.fileName
+          if (elementAudioTextIds.has(entry.textId)) {
+            const elementId = parseElementAudioTextId(entry.textId)
+            if (elementId) authoredElementIds.add(elementId)
+          }
         }
       }
+      for (const id of authoredElementIds) delete map[`${id}_easy_read`]
       return map
     })
     setNoStoreHeaders(c)
@@ -992,6 +1020,8 @@ export function createAdtPreviewRoutes(
         primary: includedSpeechIds(storage, parseBookLabel(c.req.param("label")), lang, "primary"),
         secondary: includedSpeechIds(storage, parseBookLabel(c.req.param("label")), lang, "secondary"),
       }
+      const elementAudioTextIds = collectElementAudioTextIds(storage)
+      const authoredElementIds = new Set<string>()
       const voices = {
         primary: { label: "Primary", audios: {} as Record<string, string> },
         secondary: { label: "Secondary", audios: {} as Record<string, string> },
@@ -999,9 +1029,20 @@ export function createAdtPreviewRoutes(
       const bySlot: Record<VoiceSlot, SpeechFileEntry[]> = { primary: [], secondary: [] }
       for (const entry of ttsData?.entries ?? []) {
         const slot = resolveEntryVoiceSlot(entry)
-        if (!readySpeechIds[slot].has(entry.textId) || isTtsExcluded(entry.textId, speechConfig, authoredElementAudioIds)) continue
-        voices[slot].audios[parseElementAudioTextId(entry.textId) ?? entry.textId] = entry.fileName
+        if (!readySpeechIds[slot].has(entry.textId) || isTtsExcluded(entry.textId, speechConfig, elementAudioTextIds)) continue
+        const key = elementAudioTextIds.has(entry.textId)
+          ? parseElementAudioTextId(entry.textId) ?? entry.textId
+          : entry.textId
+        voices[slot].audios[key] = entry.fileName
+        if (elementAudioTextIds.has(entry.textId)) {
+          const elementId = parseElementAudioTextId(entry.textId)
+          if (elementId) authoredElementIds.add(elementId)
+        }
         bySlot[slot].push(entry)
+      }
+      for (const id of authoredElementIds) {
+        delete voices.primary.audios[`${id}_easy_read`]
+        delete voices.secondary.audios[`${id}_easy_read`]
       }
       // Same resolution the packager uses, so the preview and the exported
       // bundle can never disagree about what a narrator is called.

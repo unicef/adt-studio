@@ -428,6 +428,23 @@ function loadElementAudioEntries(
   return entries
 }
 
+/** Synthetic catalog ids that actually exist in the artifact. Unlike the
+ *  `_audio` shape helper, this cannot mistake a legacy image whose own id ends
+ *  in `_audio` for an authored entry. */
+export function collectElementAudioTextIds(storage: Storage): Set<string> {
+  const ids = new Set<string>()
+  for (const pageId of storage.getNodeItemIds(ELEMENT_AUDIO_NODE)) {
+    const data = storage.getLatestNodeData(ELEMENT_AUDIO_NODE, pageId)?.data
+    const entries = (data as { entries?: unknown } | null)?.entries
+    if (!Array.isArray(entries)) continue
+    for (const candidate of entries) {
+      const parsed = ElementAudioEntrySchema.safeParse(candidate)
+      if (parsed.success) ids.add(elementAudioTextId(parsed.data.nodeId))
+    }
+  }
+  return ids
+}
+
 /** Synchronous snapshot for atomic authored-save/catalog reconciliation. */
 export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): TextCatalogOutput {
   const partPageIds = storage.bookDir && requiredPartRange(storage.bookDir) ? new Set(partScopedPages(storage).map(page => page.pageId)) : undefined

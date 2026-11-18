@@ -549,7 +549,7 @@ export {
 
 export { inputSignature, outputEvidence, outputIdentityKey, deriveOutputStatus, selectedOutput, summarizeOutputs, summarizeOutputScopes, needsOutputGeneration } from "./output-freshness.js"
 
-export { buildTextCatalogSnapshot, buildElementLocationIndex, findIntroducedCatalogConflict } from "./text-catalog.js"
+export { buildTextCatalogSnapshot, buildElementLocationIndex, collectElementAudioTextIds, findIntroducedCatalogConflict } from "./text-catalog.js"
 export type { ElementAudioLocation } from "./text-catalog.js"
 export { assignActivityIds, reconcileActivityIds, reconcileTextCatalog, buildImageInventory } from "./catalog-reconciliation.js"
 
