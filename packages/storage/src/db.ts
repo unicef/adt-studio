@@ -86,11 +86,15 @@ CREATE TABLE IF NOT EXISTS sign_language_videos (
 );
 `
 
-export function openBookDb(dbPath: string): sqlite.Database {
-  const bookDir = path.dirname(dbPath)
+export function assertRecoveryCopyReady(bookDir: string): void {
   if (fs.existsSync(path.join(bookDir, BOOK_RECOVERY_PENDING_FILE))) {
     throw new BookBusyError("This recovery copy has not been validated. Use the preserved original book to start a new recovery copy.")
   }
+}
+
+export function openBookDb(dbPath: string): sqlite.Database {
+  const bookDir = path.dirname(dbPath)
+  assertRecoveryCopyReady(bookDir)
   if (fs.existsSync(path.join(bookDir, ".sectioning-transition.json")) && !ownsBookWriter(bookDir)) {
     throw new BookBusyError("Sectioning configuration recovery is pending. Reopen the book configuration to reconcile it before reading completion state.")
   }

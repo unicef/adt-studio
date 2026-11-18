@@ -8,7 +8,7 @@ import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
 import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES, STAGE_OUTPUT_NODES, PIPELINE } from "@adt/types"
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
-import { openBookDb } from "./db.js"
+import { assertRecoveryCopyReady, openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
 import { historyBookId, insertNodeVersion, checkpointBeforeRetirement, readIdentityHistory, readIdentityHistoryIds } from "./history-evidence.js"
 import { parseHistoricalPayload } from "./history-integrity.js"
@@ -43,6 +43,7 @@ export function resolveBookPaths(label: string, booksRoot: string): BookPaths {
 
 export function createBookStorage(label: string, booksRoot: string): Storage {
   const paths = resolveBookPaths(label, booksRoot)
+  assertRecoveryCopyReady(paths.bookDir)
 
   fs.mkdirSync(paths.bookDir, { recursive: true })
   fs.mkdirSync(paths.imagesDir, { recursive: true })

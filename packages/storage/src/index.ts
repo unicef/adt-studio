@@ -4,7 +4,7 @@ export {
   resolveBookPaths,
   type BookPaths,
 } from "./book-storage.js"
-export { openBookDb, cleanupInterruptedSteps, readBookSchemaVersion } from "./db.js"
+export { assertRecoveryCopyReady, openBookDb, cleanupInterruptedSteps, readBookSchemaVersion } from "./db.js"
 export { isCorruptBookDatabase } from "./database-admission.js"
 export { recoverBookCopy, BookRecoveryCopyError } from "./book-recovery-copy.js"
 export { readCurrentNodeRow, readCurrentNodeRows, CURRENT_VERSION_ORDER } from "./node-current.js"

@@ -40,3 +40,25 @@ it("RAC-15 RAC-18: exposes explicit copy recovery through both API admission lay
   const books = await (await app.request("/api/books")).json()
   expect(books.map((book: { label: string }) => book.label)).toEqual(["original"])
 })
+
+
+it("refuses an interrupted recovery copy without creating identity, media directories or locks", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "book-copy-refusal-")); roots.push(root)
+  const config = path.join(root, "config.yaml"); fs.writeFileSync(config, "structure_types: {}\nrole_types: {}\n")
+  const dir = path.join(root, "interrupted")
+  fs.mkdirSync(dir)
+  fs.writeFileSync(path.join(dir, BOOK_RECOVERY_PENDING_FILE), "pending")
+  fs.writeFileSync(path.join(dir, "interrupted.db"), "partial database")
+  const snapshot = () => [dir, ...fs.readdirSync(dir).map(name => path.join(dir, name))].map(file => {
+    const stat = fs.statSync(file, { bigint: true })
+    return { file, mode: stat.mode, inode: stat.ino, mtime: stat.mtimeNs, ctime: stat.ctimeNs,
+      bytes: stat.isFile() ? fs.readFileSync(file).toString("hex") : null }
+  })
+  const before = snapshot()
+  const app = new Hono().onError(errorHandler)
+  app.route("/api", createBookRoutes(root, undefined, config))
+  expect((await app.request("/api/books/interrupted")).status).toBe(409)
+  expect(snapshot()).toEqual(before)
+  expect(() => createBookStorage("interrupted", root)).toThrow("not been validated")
+  expect(snapshot()).toEqual(before)
+})

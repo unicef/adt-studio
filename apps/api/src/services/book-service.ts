@@ -19,7 +19,7 @@ import {
   type BookDetail,
   type PartRange,
 } from "@adt/types"
-import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, retainInvalidBookConfig, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
+import { assertRecoveryCopyReady, createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, retainInvalidBookConfig, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
 import { BookConfigError, SectioningSafetyError, readReadingOrderQuizzes, activeSectioningPages, loadBookConfig, loadBookConfigOverrides, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
 import { AppConfig } from "@adt/types"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import/marker.js"
@@ -303,6 +303,7 @@ export function getBook(label: string, booksDir: string, configPath?: string): B
 
   const dbPath = path.join(bookDir, `${safeLabel}.db`)
   const pdfPath = path.join(bookDir, `${safeLabel}.pdf`)
+  assertRecoveryCopyReady(bookDir)
   // Same fallback as the library list, so a book it shows can be opened too.
   const identity = projectIdentityForListing(bookDir)
 
