@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createHash, randomUUID } from "node:crypto"
-import { openBookDb, createBookStorage, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
+import { BookBusyError, openBookDb, createBookStorage, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
 import { unzipSync } from "fflate"
 import { packageEpub } from "@adt/pipeline"
 import { Hono } from "hono"
@@ -149,7 +149,7 @@ describe("exportProject", () => {
     const bookDir = path.join(tmpDir, label)
     for (let n = 0; n < 120; n++) fs.writeFileSync(path.join(bookDir, `fixture-${n}.txt`), "saved content")
     const { stream } = await exportProject(label, tmpDir)
-    expect(() => withBookWriter(bookDir, () => {})).toThrow(/active writer/)
+    expect(() => withBookWriter(bookDir, () => {})).toThrow(BookBusyError)
     if (cancelled) await stream.cancel()
     else await streamToBuffer(stream)
     await vi.waitFor(() => expect(fs.existsSync(path.join(bookDir, ".book-writer.json"))).toBe(false))

@@ -463,6 +463,10 @@ The existing `i18n` CI job separately checks extraction, lint and strict compila
 of `en`, `pt-BR`, `es`, `fr` and `sq`; English macro-mocked tests alone do not prove
 translation completeness or quality.
 
+Admission checks in the export and lifecycle suites assert the typed
+`BookBusyError` contract independently of its user-facing wording, while retaining
+their content-preservation, no-task-publication and lock-release assertions.
+
 | Criterion | Automated coverage and boundary |
 |---|---|
 | RAC-1 | `packages/pipeline/src/__tests__/page-sectioning.test.ts`: invalid By Page cache eviction, feedback retry and valid-cache transport reuse. |

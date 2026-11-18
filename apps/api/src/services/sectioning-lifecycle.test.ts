@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Hono } from "hono"
 import {
-  createBookStorage, openBookDb, withBookWriter, recoverSectioningTransition,
+  BookBusyError, createBookStorage, openBookDb, withBookWriter, recoverSectioningTransition,
   readSectioningLifecycle, writeSectioningLifecycle, SECTIONING_JOURNAL,
 } from "@adt/storage"
 import { PIPELINE } from "@adt/types"
@@ -85,7 +85,7 @@ describe("SPEC-0003 configuration publication", () => {
     const held = withBookWriter(dir, () => new Promise<void>((resolve) => { release = resolve }))
     const executor = vi.fn(async () => undefined)
     try {
-      expect(() => tasks.submitTask(label, "re-render", "busy task", executor)).toThrow(/active writer/)
+      expect(() => tasks.submitTask(label, "re-render", "busy task", executor)).toThrow(BookBusyError)
       expect(executor).not.toHaveBeenCalled()
       expect(tasks.getActiveTasks(label)).toEqual([])
       expect(events).toEqual([])
@@ -98,7 +98,7 @@ describe("SPEC-0003 configuration publication", () => {
     await vi.waitFor(() => expect(finish).toBeDefined())
     const before = snapshot()
     try {
-      expect(() => updateBookConfig(label, root, config("page"), globalConfig)).toThrow(/active writer/)
+      expect(() => updateBookConfig(label, root, config("page"), globalConfig)).toThrow(BookBusyError)
       expect(getBookConfig(label, root)).toBeNull()
       expect(snapshot()).toEqual(before)
     } finally { finish() }
@@ -140,7 +140,7 @@ describe("SPEC-0003 configuration publication", () => {
     expect(runs()).toEqual(beforeRuns)
     const s = createBookStorage(label, root); s.markStepStarted("tts"); s.close()
     const active = runs()
-    expect(() => updateBookConfig(label, root, config("page"), globalConfig)).toThrow(/active writer/)
+    expect(() => updateBookConfig(label, root, config("page"), globalConfig)).toThrow(BookBusyError)
     expect(getBookConfig(label, root)).toBeNull()
     expect(runs()).toEqual(active)
     expect(snapshot()).toEqual(before)
