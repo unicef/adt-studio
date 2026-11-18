@@ -21,16 +21,25 @@ vi.mock("@/features/audio/hooks/AudioPlayerContext", () => ({
 
 import { ElementAudioTargets } from "./ElementAudioTargets"
 
+const atoms = (await import("@/features/language/state/language.atoms")) as unknown as {
+  elementAudioIdsAtom: { __value: string[] }
+}
+
+function setContent(html: string): void {
+  document.body.innerHTML = `<div id="content">${html}</div>`
+}
+
 describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
   beforeEach(() => {
     playElement.mockReset()
+    atoms.elementAudioIdsAtom.__value = ["pg001_im001"]
     document.body.innerHTML = ""
   })
 
   afterEach(cleanup)
 
   it("makes an image with audio focusable and plays it on click and Enter/Space", () => {
-    document.body.innerHTML = '<section><img data-id="pg001_im001" alt="Mago" /></section>'
+    setContent('<section><img data-id="pg001_im001" alt="Mago" /></section>')
     render(<ElementAudioTargets />)
 
     const img = document.querySelector("img")!
@@ -47,7 +56,7 @@ describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
   })
 
   it("plays from the decorative badge and stops the click from selecting the page", () => {
-    document.body.innerHTML = '<section><img data-id="pg001_im001" alt="Mago" /></section>'
+    setContent('<section><img data-id="pg001_im001" alt="Mago" /></section>')
     render(<ElementAudioTargets />)
 
     const badge = document.querySelector<HTMLElement>("[data-element-audio-badge]")!
@@ -71,7 +80,7 @@ describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
   })
 
   it("gives a non-image target an interactive role and a name slot", () => {
-    document.body.innerHTML = '<section><p data-id="pg001_im001">Mago</p></section>'
+    setContent('<section><p data-id="pg001_im001">Mago</p></section>')
     render(<ElementAudioTargets />)
 
     const p = document.querySelector("p")!
@@ -80,7 +89,7 @@ describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
   })
 
   it("leaves an element without audio untouched", () => {
-    document.body.innerHTML = '<p data-id="pg001_t999">no audio</p>'
+    setContent('<p data-id="pg001_t999">no audio</p>')
     render(<ElementAudioTargets />)
 
     const p = document.querySelector("p")!
@@ -90,7 +99,7 @@ describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
   })
 
   it("leaves an image without alt untouched (AC-9 accessible name)", () => {
-    document.body.innerHTML = '<section><img data-id="pg001_im001" /></section>'
+    setContent('<section><img data-id="pg001_im001" /></section>')
     render(<ElementAudioTargets />)
 
     const img = document.querySelector("img")!
@@ -99,7 +108,7 @@ describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
   })
 
   it("leaves an empty non-image untouched (AC-9 accessible name)", () => {
-    document.body.innerHTML = '<section><span data-id="pg001_im001"></span></section>'
+    setContent('<section><span data-id="pg001_im001"></span></section>')
     render(<ElementAudioTargets />)
 
     const span = document.querySelector("span")!
@@ -108,8 +117,22 @@ describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
   })
 
   it("does not attach inside another interactive control", () => {
-    document.body.innerHTML = '<button><img data-id="pg001_im001" alt="x" /></button>'
+    setContent('<button><img data-id="pg001_im001" alt="x" /></button>')
     render(<ElementAudioTargets />)
     expect(document.querySelector("img")!.getAttribute("tabindex")).toBeNull()
+  })
+
+  it("removes the runtime attributes when the manifest no longer includes the element", () => {
+    setContent('<section><img data-id="pg001_im001" alt="Mago" /></section>')
+    const { rerender } = render(<ElementAudioTargets />)
+    const img = document.querySelector("img")!
+    expect(img.getAttribute("tabindex")).toBe("0")
+    expect(document.querySelector("[data-element-audio-badge]")).toBeTruthy()
+
+    atoms.elementAudioIdsAtom.__value = []
+    rerender(<ElementAudioTargets />)
+
+    expect(img.getAttribute("tabindex")).toBeNull()
+    expect(document.querySelector("[data-element-audio-badge]")).toBeNull()
   })
 })
