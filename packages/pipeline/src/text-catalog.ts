@@ -433,7 +433,7 @@ function loadElementAudioEntries(
  *  in `_audio` for an authored entry. */
 export function collectElementAudioTextIds(storage: Storage): Set<string> {
   const ids = new Set<string>()
-  for (const pageId of storage.getNodeItemIds(ELEMENT_AUDIO_NODE)) {
+  for (const pageId of storage.getNodeItemIds?.(ELEMENT_AUDIO_NODE) ?? []) {
     const data = storage.getLatestNodeData(ELEMENT_AUDIO_NODE, pageId)?.data
     const entries = (data as { entries?: unknown } | null)?.entries
     if (!Array.isArray(entries)) continue
