@@ -16,6 +16,11 @@ export const BookRecoveryCopyRequest = z.object({
   preserveOriginal: z.literal(true),
 }).strict()
 export type BookRecoveryCopyRequest = z.infer<typeof BookRecoveryCopyRequest>
+export const BookRecoveryCopyErrorCode = z.enum([
+  "BOOK_RECOVERY_COPY_UNSAFE", "BOOK_RECOVERY_COPY_DESTINATION_EXISTS",
+  "BOOK_RECOVERY_COPY_NO_SPACE", "BOOK_RECOVERY_COPY_ACCESS_DENIED",
+])
+export type BookRecoveryCopyErrorCode = z.infer<typeof BookRecoveryCopyErrorCode>
 export const BookRecoveryCopyResult = z.object({ label: BookLabel, sourceLabel: BookLabel }).strict()
 export type BookRecoveryCopyResult = z.infer<typeof BookRecoveryCopyResult>
 

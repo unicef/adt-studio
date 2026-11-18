@@ -1,13 +1,15 @@
 import fs from "node:fs"
 import path from "node:path"
 import { createHash, randomUUID } from "node:crypto"
-import { BOOK_RECOVERY_PENDING_FILE, BookRecoveryCopyAudit, ExtractionManifest, parseBookLabel } from "@adt/types"
+import { BOOK_RECOVERY_PENDING_FILE, BookRecoveryCopyAudit, type BookRecoveryCopyErrorCode, ExtractionManifest, parseBookLabel } from "@adt/types"
 import { assertNoKnownLiveBookOwner, BookBusyError, withBookRecoverySource, withNewBookWriter } from "./book-writer.js"
 import { openCoordinatedDatabase } from "./database-admission.js"
 import { atomicBookFile } from "./sectioning-transition.js"
 
 export class BookRecoveryCopyError extends Error {
-  readonly code = "BOOK_RECOVERY_COPY_UNSAFE"
+  constructor(message: string, readonly code: BookRecoveryCopyErrorCode = "BOOK_RECOVERY_COPY_UNSAFE") {
+    super(message)
+  }
 }
 
 const unsafe = () => new BookRecoveryCopyError("The source changed, contains unsafe paths, or could not be validated. The original book and its lock evidence have been preserved.")
@@ -50,15 +52,17 @@ async function copyOrHash(file: string, destination?: string): Promise<{ identit
  * discards our partial copy. SQLite recovers only the copied journal/WAL. */
 export async function recoverBookCopy(booksDir: string, sourceLabel: string, label: string): Promise<void> {
   parseBookLabel(sourceLabel); parseBookLabel(label)
-  const root = fs.realpathSync(booksDir), source = path.join(root, sourceLabel), destination = path.join(root, label)
-  if (source === destination || fs.realpathSync(source) !== source || !fs.lstatSync(source).isDirectory()) throw unsafe()
-  if (fs.existsSync(path.join(source, BOOK_RECOVERY_PENDING_FILE))) throw unsafe()
-  assertNoKnownLiveBookOwner(source)
-  const evidenceName = `.book-recovery-${randomUUID()}`
-  // The source must have a database; a PDF-only project can be opened normally.
-  if (!fs.lstatSync(path.join(source, `${sourceLabel}.db`), { throwIfNoEntry: false })?.isFile()) throw unsafe()
+  let destinationReserved = false
   try {
+    const root = fs.realpathSync(booksDir), source = path.join(root, sourceLabel), destination = path.join(root, label)
+    if (source === destination || fs.realpathSync(source) !== source || !fs.lstatSync(source).isDirectory()) throw unsafe()
+    if (fs.existsSync(path.join(source, BOOK_RECOVERY_PENDING_FILE))) throw unsafe()
+    assertNoKnownLiveBookOwner(source)
+    const evidenceName = `.book-recovery-${randomUUID()}`
+    // The source must have a database; a PDF-only project can be opened normally.
+    if (!fs.lstatSync(path.join(source, `${sourceLabel}.db`), { throwIfNoEntry: false })?.isFile()) throw unsafe()
     await withBookRecoverySource(source, () => withNewBookWriter(destination, async () => {
+      destinationReserved = true
       let completed = false
       try {
         const evidence = path.join(destination, evidenceName)
@@ -138,6 +142,11 @@ export async function recoverBookCopy(booksDir: string, sourceLabel: string, lab
       }
     }))
   } catch (error) {
-    throw error instanceof BookBusyError ? error : unsafe()
+    if (error instanceof BookBusyError || error instanceof BookRecoveryCopyError) throw error
+    const code = (error as NodeJS.ErrnoException)?.code
+    if (code === "EEXIST" && !destinationReserved) throw new BookRecoveryCopyError("That recovery copy label already exists, possibly as an interrupted copy. Choose a different label. The original book is unchanged.", "BOOK_RECOVERY_COPY_DESTINATION_EXISTS")
+    if (code === "ENOSPC" || code === "EDQUOT") throw new BookRecoveryCopyError("There is not enough disk space for the recovery copy. Free space and retry. The original book is unchanged.", "BOOK_RECOVERY_COPY_NO_SPACE")
+    if (code === "EACCES" || code === "EPERM" || code === "EROFS") throw new BookRecoveryCopyError("The recovery copy could not read or write its files. Check folder access and retry. The original book is unchanged.", "BOOK_RECOVERY_COPY_ACCESS_DENIED")
+    throw unsafe()
   }
 }

@@ -22,12 +22,6 @@ msgstr " +{0} more"
 msgid " and "
 msgstr " and "
 
-msgid "Not yet verified"
-msgstr "Not yet verified"
-
-msgid "Open the book to verify Storyboard and Preview"
-msgstr "Open the book to verify Storyboard and Preview"
-
 msgid "_page"
 msgstr "_page"
 
@@ -2826,8 +2820,14 @@ msgstr "Checking everything answers"
 msgid "Checking for updates…"
 msgstr "Checking for updates…"
 
+msgid "Checking latest…"
+msgstr "Checking latest…"
+
 msgid "Checking the connection…"
 msgstr "Checking the connection…"
+
+msgid "Checking the latest saved version…"
+msgstr "Checking the latest saved version…"
 
 msgid "Checking whether this book is shared…"
 msgstr "Checking whether this book is shared…"
@@ -7989,6 +7989,9 @@ msgstr "Not yet"
 msgid "Not yet split:"
 msgstr "Not yet split:"
 
+msgid "Not yet verified"
+msgstr "Not yet verified"
+
 msgid "Note"
 msgstr "Note"
 
@@ -8312,6 +8315,9 @@ msgstr "Open the book"
 
 msgid "Open the book to verify Preview"
 msgstr "Open the book to verify Preview"
+
+msgid "Open the book to verify Storyboard and Preview"
+msgstr "Open the book to verify Storyboard and Preview"
 
 msgid "Open the Cloudflare page again"
 msgstr "Open the Cloudflare page again"
@@ -9721,6 +9727,12 @@ msgstr "Recover a separate copy?"
 
 msgid "Recovering copy…"
 msgstr "Recovering copy…"
+
+msgid "Recovery cannot safely proceed because an active owner cannot be ruled out. Close other book apps and retry. If the refusal persists, restart your computer and try again."
+msgstr "Recovery cannot safely proceed because an active owner cannot be ruled out. Close other book apps and retry. If the refusal persists, restart your computer and try again."
+
+msgid "Recovery could not read or write its files. Check folder permissions and retry. The original book is unchanged."
+msgstr "Recovery could not read or write its files. Check folder permissions and retry. The original book is unchanged."
 
 msgid "Recrop from page"
 msgstr "Recrop from page"
@@ -12166,6 +12178,9 @@ msgstr "That didn't go through"
 msgid "That didn't resolve. Try again."
 msgstr "That didn't resolve. Try again."
 
+msgid "That recovery copy name is already in use. Cancel and try again to use a new name. The original book is unchanged."
+msgstr "That recovery copy name is already in use. Cancel and try again to use a new name. The original book is unchanged."
+
 msgid "That reply didn't send. Try again."
 msgstr "That reply didn't send. Try again."
 
@@ -12624,6 +12639,9 @@ msgstr "theme appearance system automatic"
 msgid "There is no readable history that needs a recovery checkpoint."
 msgstr "There is no readable history that needs a recovery checkpoint."
 
+msgid "There is not enough disk space for the copy. Free space and retry. The original book is unchanged."
+msgstr "There is not enough disk space for the copy. Free space and retry. The original book is unchanged."
+
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 
@@ -12729,8 +12747,8 @@ msgstr "This book is fully assembled"
 msgid "This book is not on this computer."
 msgstr "This book is not on this computer."
 
-msgid "This book is still open in another process. Close it there before recovering a copy."
-msgstr "This book is still open in another process. Close it there before recovering a copy."
+#~ msgid "This book is still open in another process. Close it there before recovering a copy."
+#~ msgstr "This book is still open in another process. Close it there before recovering a copy."
 
 msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 msgstr "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."

@@ -24,12 +24,6 @@ msgstr " +{0} më shumë"
 msgid " and "
 msgstr " dhe "
 
-msgid "Not yet verified"
-msgstr "Ende i paverifikuar"
-
-msgid "Open the book to verify Storyboard and Preview"
-msgstr "Hapeni librin për të verifikuar Storyboard dhe pamjen paraprake"
-
 msgid "_page"
 msgstr "_faqe"
 
@@ -2828,8 +2822,14 @@ msgstr "Kontrollimi i gjithçkaje përgjigjet"
 msgid "Checking for updates…"
 msgstr "Po kontrollohet për përditësime…"
 
+msgid "Checking latest…"
+msgstr "Po kontrollohet versioni i fundit…"
+
 msgid "Checking the connection…"
 msgstr "Po kontrollohet lidhja…"
+
+msgid "Checking the latest saved version…"
+msgstr "Po kontrollohet versioni i fundit i ruajtur…"
 
 msgid "Checking whether this book is shared…"
 msgstr "Kontrollimi nëse ky libër është ndarë…"
@@ -7991,6 +7991,9 @@ msgstr "Ende jo"
 msgid "Not yet split:"
 msgstr "Ende të pandara:"
 
+msgid "Not yet verified"
+msgstr "Ende i paverifikuar"
+
 msgid "Note"
 msgstr "Shënim"
 
@@ -8314,6 +8317,9 @@ msgstr "Hapni librin"
 
 msgid "Open the book to verify Preview"
 msgstr "Hapni librin për të verifikuar pamjen paraprake"
+
+msgid "Open the book to verify Storyboard and Preview"
+msgstr "Hapeni librin për të verifikuar Storyboard dhe pamjen paraprake"
 
 msgid "Open the Cloudflare page again"
 msgstr "Hap përsëri faqen e Cloudflare"
@@ -9723,6 +9729,12 @@ msgstr "Të rikuperohet një kopje e veçantë?"
 
 msgid "Recovering copy…"
 msgstr "Duke rikuperuar kopjen…"
+
+msgid "Recovery cannot safely proceed because an active owner cannot be ruled out. Close other book apps and retry. If the refusal persists, restart your computer and try again."
+msgstr "Rikuperimi nuk mund të vazhdojë në mënyrë të sigurt, sepse nuk mund të përjashtohet që një proces tjetër po e përdor librin. Mbyllni aplikacionet e tjera të librit dhe provoni përsëri. Nëse refuzimi vazhdon, rinisni kompjuterin dhe provoni përsëri."
+
+msgid "Recovery could not read or write its files. Check folder permissions and retry. The original book is unchanged."
+msgstr "Rikuperimi nuk mundi të lexojë ose të shkruajë skedarët. Kontrolloni lejet e dosjes dhe provoni përsëri. Libri origjinal mbetet i pandryshuar."
 
 msgid "Recrop from page"
 msgstr "Rirritjo nga faqja"
@@ -12168,6 +12180,9 @@ msgstr "Ajo nuk kaloi"
 msgid "That didn't resolve. Try again."
 msgstr "Nuk u zgjidh. Provoni përsëri."
 
+msgid "That recovery copy name is already in use. Cancel and try again to use a new name. The original book is unchanged."
+msgstr "Ky emër i kopjes së rikuperuar është tashmë në përdorim. Anuloni dhe provoni përsëri për të përdorur një emër të ri. Libri origjinal mbetet i pandryshuar."
+
 msgid "That reply didn't send. Try again."
 msgstr "Përgjigjja nuk u dërgua. Provoni përsëri."
 
@@ -12626,6 +12641,9 @@ msgstr "tema pamja sistemi automatik"
 msgid "There is no readable history that needs a recovery checkpoint."
 msgstr "Nuk ka historik të lexueshëm që ka nevojë për pikë rikuperimi."
 
+msgid "There is not enough disk space for the copy. Free space and retry. The original book is unchanged."
+msgstr "Nuk ka hapësirë të mjaftueshme në disk për kopjen. Lironi hapësirë dhe provoni përsëri. Libri origjinal mbetet i pandryshuar."
+
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Këto ndryshime nuk janë zbatuar ende. Nëse del, do të humbasin — ose ruaji dhe ri-ekzekuto për t'i zbatuar. Ekzekutimi vazhdon në sfond ndërsa ti punon."
 
@@ -12731,8 +12749,8 @@ msgstr "Ky libër është plotësisht i montuar"
 msgid "This book is not on this computer."
 msgstr "Ky libër nuk është në këtë kompjuter."
 
-msgid "This book is still open in another process. Close it there before recovering a copy."
-msgstr "Ky libër është ende i hapur në një proces tjetër. Mbylleni atje përpara se të rikuperoni një kopje."
+#~ msgid "This book is still open in another process. Close it there before recovering a copy."
+#~ msgstr "Ky libër është ende i hapur në një proces tjetër. Mbylleni atje përpara se të rikuperoni një kopje."
 
 msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 msgstr "Ky libër është përkohësisht i padisponueshëm. Përmbajtja e tij e ruajtur është e mbrojtur. Provoni ta hapni për hollësi dhe provoni përsëri pasi të zgjidhni problemin e raportuar."

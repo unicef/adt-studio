@@ -37,6 +37,32 @@ it("keeps the confirmation open with a useful live-owner refusal and does not re
   mount()
   fireEvent.click(screen.getByRole("button", { name: "Recover a copy" }))
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Recover a copy" }))
-  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("still open in another process"))
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("cannot safely proceed"))
   expect(recover).toHaveBeenCalledTimes(1)
+})
+
+
+it.each(["Cancel", "Escape"])("returns focus to the recovery trigger on %s", async action => {
+  mount()
+  const trigger = screen.getByRole("button", { name: "Recover a copy" })
+  trigger.focus(); fireEvent.click(trigger)
+  if (action === "Cancel") fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
+  else fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape" })
+  await waitFor(() => expect(document.activeElement).toBe(trigger))
+})
+it("returns focus to Open recovered copy after success", async () => {
+  vi.spyOn(api, "recoverBookCopy").mockResolvedValue({ sourceLabel: "original", label: "recovered" })
+  mount(); fireEvent.click(screen.getByRole("button", { name: "Recover a copy" }))
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Recover a copy" }))
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Open recovered copy" })))
+})
+it.each([
+  ["BOOK_RECOVERY_COPY_DESTINATION_EXISTS", "name is already in use"],
+  ["BOOK_RECOVERY_COPY_NO_SPACE", "not enough disk space"],
+  ["BOOK_RECOVERY_COPY_ACCESS_DENIED", "folder permissions"],
+])("explains %s without claiming source corruption", async (code, explanation) => {
+  vi.spyOn(api, "recoverBookCopy").mockRejectedValue(new ApiError("failure", 409, code))
+  mount(); fireEvent.click(screen.getByRole("button", { name: "Recover a copy" }))
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Recover a copy" }))
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain(explanation))
 })

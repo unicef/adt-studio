@@ -22,12 +22,6 @@ msgstr " +{0} más"
 msgid " and "
 msgstr " y "
 
-msgid "Not yet verified"
-msgstr "Aún no verificado"
-
-msgid "Open the book to verify Storyboard and Preview"
-msgstr "Abre el libro para verificar Storyboard y la vista previa"
-
 msgid "_page"
 msgstr "_page"
 
@@ -2826,8 +2820,14 @@ msgstr "Comprobando todas las respuestas"
 msgid "Checking for updates…"
 msgstr "Buscando actualizaciones…"
 
+msgid "Checking latest…"
+msgstr "Comprobando la última versión…"
+
 msgid "Checking the connection…"
 msgstr "Comprobando la conexión…"
+
+msgid "Checking the latest saved version…"
+msgstr "Comprobando la última versión guardada…"
 
 msgid "Checking whether this book is shared…"
 msgstr "Comprobando si este libro está compartido…"
@@ -7989,6 +7989,9 @@ msgstr "Todavía no"
 msgid "Not yet split:"
 msgstr "Aún sin dividir:"
 
+msgid "Not yet verified"
+msgstr "Aún no verificado"
+
 msgid "Note"
 msgstr "Nota"
 
@@ -8312,6 +8315,9 @@ msgstr "Abrir el libro"
 
 msgid "Open the book to verify Preview"
 msgstr "Abre el libro para verificar la vista previa"
+
+msgid "Open the book to verify Storyboard and Preview"
+msgstr "Abre el libro para verificar Storyboard y la vista previa"
 
 msgid "Open the Cloudflare page again"
 msgstr "Abrir la página de Cloudflare de nuevo"
@@ -9721,6 +9727,12 @@ msgstr "¿Recuperar una copia independiente?"
 
 msgid "Recovering copy…"
 msgstr "Recuperando copia…"
+
+msgid "Recovery cannot safely proceed because an active owner cannot be ruled out. Close other book apps and retry. If the refusal persists, restart your computer and try again."
+msgstr "La recuperación no puede continuar de forma segura porque no se puede descartar que otro proceso esté usando el libro. Cierra las otras aplicaciones del libro e inténtalo de nuevo. Si el bloqueo persiste, reinicia el equipo y vuelve a intentarlo."
+
+msgid "Recovery could not read or write its files. Check folder permissions and retry. The original book is unchanged."
+msgstr "La recuperación no pudo leer o escribir los archivos. Revisa los permisos de la carpeta e inténtalo de nuevo. El libro original no ha cambiado."
 
 msgid "Recrop from page"
 msgstr "Recortar desde la página"
@@ -12166,6 +12178,9 @@ msgstr "Eso no se realizó"
 msgid "That didn't resolve. Try again."
 msgstr "No se resolvió. Inténtalo de nuevo."
 
+msgid "That recovery copy name is already in use. Cancel and try again to use a new name. The original book is unchanged."
+msgstr "Ese nombre ya se usa para una copia recuperada. Cancela e inténtalo de nuevo para usar otro nombre. El libro original no ha cambiado."
+
 msgid "That reply didn't send. Try again."
 msgstr "Esa respuesta no se envió. Inténtalo de nuevo."
 
@@ -12624,6 +12639,9 @@ msgstr "tema apariencia sistema automático"
 msgid "There is no readable history that needs a recovery checkpoint."
 msgstr "No hay historial legible que necesite un punto de recuperación."
 
+msgid "There is not enough disk space for the copy. Free space and retry. The original book is unchanged."
+msgstr "No hay suficiente espacio en disco para la copia. Libera espacio e inténtalo de nuevo. El libro original no ha cambiado."
+
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Estos cambios aún no se han aplicado. Si sales, se perderán, o guarda y re-ejecuta para aplicarlos. La ejecución continúa en segundo plano mientras sigues trabajando."
 
@@ -12729,8 +12747,8 @@ msgstr "Este libro está completamente ensamblado"
 msgid "This book is not on this computer."
 msgstr "Este libro no está en este equipo."
 
-msgid "This book is still open in another process. Close it there before recovering a copy."
-msgstr "Este libro sigue abierto en otro proceso. Ciérralo allí antes de recuperar una copia."
+#~ msgid "This book is still open in another process. Close it there before recovering a copy."
+#~ msgstr "Este libro sigue abierto en otro proceso. Ciérralo allí antes de recuperar una copia."
 
 msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 msgstr "Este libro no está disponible temporalmente. Su contenido guardado se conserva. Intenta abrirlo para ver los detalles y vuelve a intentarlo después de resolver el problema indicado."

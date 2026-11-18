@@ -371,3 +371,31 @@ it.each(["newer-cache", "older-fetch"])("conflict reload preserves query orderin
   expect(client.getQueryData(key)).toEqual(expected)
   expect(title().value).toBe(expected.activities["0"].title!.text)
 })
+
+
+it.each([false, true])("keeps Save disabled and drafts intact during a delayed conflict reload (fails=%s)", async fails => {
+  const reload = deferred<{ activities: MapOfActivities; version: number }>(), initial = defaultMap()
+  mocks.save.mockRejectedValueOnce(new ApiError("Conflict", 409))
+  mocks.reload.mockImplementationOnce(() => reload.promise)
+  mount(initial); changeTitle("My draft"); fireEvent.click(saveButton())
+  await waitFor(() => expect(screen.getByText("Checking the latest saved version…").getAttribute("role")).toBe("status"))
+  const checking = screen.getByRole("button", { name: "Checking latest…" }) as HTMLButtonElement
+  expect(checking.disabled).toBe(true)
+  expect(screen.queryByText("Changes not saved")).toBeNull()
+  fireEvent.click(checking); expect(mocks.save).toHaveBeenCalledTimes(1)
+  if (fails) {
+    changeTitle("Newer local draft")
+    await act(async () => { reload.reject(new Error("Reload unavailable")) })
+    // A successor draft invalidates the old reload result, including its error.
+    await waitFor(() => expect(screen.getByText("Changes not saved")).toBeTruthy())
+    expect(title().value).toBe("Newer local draft")
+  } else {
+    const latest = { ...initial, "1": { ...neighbor, title: { text: "Neighbor saved elsewhere" } } }
+    await act(async () => { reload.resolve({ activities: latest, version: 2 }) })
+    expect(title().value).toBe("My draft")
+  }
+  await waitFor(() => expect((saveButton() as HTMLButtonElement).disabled).toBe(false))
+  fireEvent.click(saveButton())
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2))
+  expect(mocks.save.mock.calls[1][0].baseVersion).toBe(fails ? 1 : 2)
+})

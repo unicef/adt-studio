@@ -163,7 +163,7 @@ export {
   TaskInfo,
 } from "./task.js"
 
-export { BookLabel, BookSummary, BookDetail, parseBookLabel, BookRecoveryCopyRequest, BookRecoveryCopyResult, BookRecoveryCopyAudit, BOOK_RECOVERY_PENDING_FILE } from "./book.js"
+export { BookLabel, BookSummary, BookDetail, parseBookLabel, BookRecoveryCopyErrorCode, BookRecoveryCopyRequest, BookRecoveryCopyResult, BookRecoveryCopyAudit, BOOK_RECOVERY_PENDING_FILE } from "./book.js"
 
 export {
   BookFormat,

@@ -1,9 +1,9 @@
-import { useEffect, useRef, type Dispatch, type SetStateAction } from "react"
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { EditableActivity } from "@adt/types"
-import { api } from "@/api/client"
+import { api, ApiError } from "@/api/client"
 import { useGuardedDraft } from "@/hooks/use-guarded-draft"
 import { useSaveEditableActivities } from "@/hooks/use-editable-activities"
 import { rebaseDraft } from "@/lib/rebase-draft"
@@ -25,6 +25,7 @@ export function useEditableActivityDraft(props: {
     const current = queryClient.setQueryData<typeof latest>(queryKey, saved => saved && saved.version > latest.version ? saved : latest)!
     return { value: current.activities, version: current.version }
   }, rebaseActivityDraft)
+  const [checkingLatest, setCheckingLatest] = useState(false)
   const savePromiseRef = useRef<Promise<void> | null>(null)
   const submittedRef = useRef<Record<string, EditableActivity> | null>(null)
   const acceptedLatestRef = useRef<Record<string, EditableActivity> | null>(null)
@@ -77,7 +78,9 @@ export function useEditableActivityDraft(props: {
       } catch (error) {
         // Rebase the latest local draft, including edits typed after Save,
         // and require an explicit choice wherever saved values overlap.
-        await guarded.handleError(error)
+        setCheckingLatest(error instanceof ApiError && error.status === 409)
+        try { await guarded.handleError(error) }
+        finally { setCheckingLatest(false) }
         toast.error(error instanceof Error ? error.message : t`Save failed`)
         throw error
       } finally {
@@ -116,5 +119,5 @@ export function useEditableActivityDraft(props: {
   }
   const dirty = save.isPending || submittedRef.current !== null || guarded.pending !== null && (version !== guarded.baseVersion || JSON.stringify(guarded.pending) !== JSON.stringify(guarded.baseValue))
   return { draft, setDraft, dirty, saveDraft, saveBeforeLeave, beginFeedback,
-    saving: save.isPending, conflict: guarded.conflict, error: guarded.error, resolve, captureDiscard, discardDraft: () => guarded.setPending(null) }
+    saving: save.isPending || checkingLatest, checkingLatest, conflict: guarded.conflict, error: guarded.error, resolve, captureDiscard, discardDraft: () => guarded.setPending(null) }
 }

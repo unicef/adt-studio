@@ -255,3 +255,26 @@ it("refuses a live reservation owner even when its directory contains unrelated 
   expect(bytes(source)).toEqual(original)
   expect(fs.existsSync(path.join(root, "recovered"))).toBe(false)
 })
+
+
+it.each([false, true])("reports an existing destination without touching it (interrupted=%s)", async interrupted => {
+  const destination = path.join(root, "taken")
+  fs.mkdirSync(destination); fs.writeFileSync(path.join(destination, "owner-file"), "keep")
+  if (interrupted) fs.writeFileSync(path.join(destination, BOOK_RECOVERY_PENDING_FILE), "pending")
+  const original = bytes(source), existing = bytes(destination)
+  await expect(recoverBookCopy(root, label, "taken")).rejects.toMatchObject({ code: "BOOK_RECOVERY_COPY_DESTINATION_EXISTS" })
+  expect(bytes(source)).toEqual(original); expect(bytes(destination)).toEqual(existing)
+})
+it.each([
+  ["ENOSPC", "BOOK_RECOVERY_COPY_NO_SPACE"], ["EDQUOT", "BOOK_RECOVERY_COPY_NO_SPACE"],
+  ["EACCES", "BOOK_RECOVERY_COPY_ACCESS_DENIED"], ["EROFS", "BOOK_RECOVERY_COPY_ACCESS_DENIED"],
+])("reports %s while preserving the original and removing only its own partial copy", async (errno, code) => {
+  const original = bytes(source), open = fs.promises.open
+  vi.spyOn(fs.promises, "open").mockImplementation(((...args: Parameters<typeof fs.promises.open>) => {
+    if (String(args[0]).startsWith(path.join(root, "failed") + path.sep)) return Promise.reject(Object.assign(new Error(errno), { code: errno }))
+    return open(...args)
+  }) as typeof fs.promises.open)
+  await expect(recoverBookCopy(root, label, "failed")).rejects.toMatchObject({ code })
+  expect(bytes(source)).toEqual(original)
+  expect(fs.existsSync(path.join(root, "failed"))).toBe(false)
+})

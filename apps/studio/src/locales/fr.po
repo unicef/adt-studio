@@ -24,12 +24,6 @@ msgstr " +{0} de plus"
 msgid " and "
 msgstr " et "
 
-msgid "Not yet verified"
-msgstr "Pas encore vérifié"
-
-msgid "Open the book to verify Storyboard and Preview"
-msgstr "Ouvrez le livre pour vérifier le Storyboard et l’aperçu"
-
 msgid "_page"
 msgstr "_page"
 
@@ -2828,8 +2822,14 @@ msgstr "Vérification de toutes les réponses"
 msgid "Checking for updates…"
 msgstr "Vérification des mises à jour…"
 
+msgid "Checking latest…"
+msgstr "Vérification de la dernière version…"
+
 msgid "Checking the connection…"
 msgstr "Vérification de la connexion…"
+
+msgid "Checking the latest saved version…"
+msgstr "Vérification de la dernière version enregistrée…"
 
 msgid "Checking whether this book is shared…"
 msgstr "Vérification si ce livre est partagé…"
@@ -7991,6 +7991,9 @@ msgstr "Pas encore"
 msgid "Not yet split:"
 msgstr "Pas encore divisé :"
 
+msgid "Not yet verified"
+msgstr "Pas encore vérifié"
+
 msgid "Note"
 msgstr "Note"
 
@@ -8314,6 +8317,9 @@ msgstr "Ouvrir le livre"
 
 msgid "Open the book to verify Preview"
 msgstr "Ouvrez le livre pour vérifier l’aperçu"
+
+msgid "Open the book to verify Storyboard and Preview"
+msgstr "Ouvrez le livre pour vérifier le Storyboard et l’aperçu"
 
 msgid "Open the Cloudflare page again"
 msgstr "Ouvrez à nouveau la page Cloudflare"
@@ -9723,6 +9729,12 @@ msgstr "Récupérer une copie distincte ?"
 
 msgid "Recovering copy…"
 msgstr "Récupération de la copie…"
+
+msgid "Recovery cannot safely proceed because an active owner cannot be ruled out. Close other book apps and retry. If the refusal persists, restart your computer and try again."
+msgstr "La récupération ne peut pas continuer en toute sécurité, car un autre processus utilise peut-être le livre. Fermez les autres applications du livre et réessayez. Si le refus persiste, redémarrez votre ordinateur et réessayez."
+
+msgid "Recovery could not read or write its files. Check folder permissions and retry. The original book is unchanged."
+msgstr "La récupération n’a pas pu lire ou écrire les fichiers. Vérifiez les autorisations du dossier et réessayez. Le livre original est inchangé."
 
 msgid "Recrop from page"
 msgstr "Recadrer depuis la page"
@@ -12168,6 +12180,9 @@ msgstr "Cela n'a pas été effectué"
 msgid "That didn't resolve. Try again."
 msgstr "La résolution a échoué. Réessayez."
 
+msgid "That recovery copy name is already in use. Cancel and try again to use a new name. The original book is unchanged."
+msgstr "Ce nom de copie récupérée est déjà utilisé. Annulez et réessayez pour utiliser un nouveau nom. Le livre original est inchangé."
+
 msgid "That reply didn't send. Try again."
 msgstr "Cette réponse n’a pas été envoyée. Réessayez."
 
@@ -12626,6 +12641,9 @@ msgstr "thème apparence système automatique"
 msgid "There is no readable history that needs a recovery checkpoint."
 msgstr "Aucun historique lisible ne nécessite de point de récupération."
 
+msgid "There is not enough disk space for the copy. Free space and retry. The original book is unchanged."
+msgstr "L’espace disque est insuffisant pour la copie. Libérez de l’espace et réessayez. Le livre original est inchangé."
+
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Ces modifications n'ont pas encore été appliquées. Quittez et elles seront perdues — ou enregistrez et relancez pour les appliquer. L'exécution se poursuit en arrière-plan pendant que vous continuez à travailler."
 
@@ -12731,8 +12749,8 @@ msgstr "Ce livre est entièrement assemblé"
 msgid "This book is not on this computer."
 msgstr "Ce livre n’est pas sur cet ordinateur."
 
-msgid "This book is still open in another process. Close it there before recovering a copy."
-msgstr "Ce livre est encore ouvert dans un autre processus. Fermez-le dans ce processus avant de récupérer une copie."
+#~ msgid "This book is still open in another process. Close it there before recovering a copy."
+#~ msgstr "Ce livre est encore ouvert dans un autre processus. Fermez-le dans ce processus avant de récupérer une copie."
 
 msgid "This book is temporarily unavailable. Its saved content is preserved. Try opening it for details and retry after resolving the reported problem."
 msgstr "Ce livre est temporairement indisponible. Son contenu enregistré est conservé. Essayez de l’ouvrir pour obtenir des détails, puis réessayez après avoir résolu le problème signalé."

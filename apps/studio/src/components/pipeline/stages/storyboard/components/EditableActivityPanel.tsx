@@ -8,7 +8,7 @@
  * classic presentation is lossless.
  */
 import { useState, useImperativeHandle, type Ref } from "react"
-import { useLingui } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { toast } from "sonner"
 import {
   ArrowDown,
@@ -127,7 +127,7 @@ function EditableActivityEditor({
   sectionIndex,
   activity,
   paletteAccent,
-  draft, setDraft, dirty, saveDraft, saveBeforeLeave, saving, discardDraft, beginFeedback, conflict, error, resolve,
+  draft, setDraft, dirty, saveDraft, saveBeforeLeave, saving, checkingLatest, discardDraft, beginFeedback, conflict, error, resolve,
 }: EditableActivityPanelProps & ReturnType<typeof useEditableActivityDraft> & { activity: EditableActivity; draft: EditableActivity }) {
   const { t } = useLingui()
   const generateFeedback = useGenerateActivityFeedback(bookLabel, pageId)
@@ -597,7 +597,8 @@ function EditableActivityEditor({
         </button>
       </div>
 
-      <DraftConflict error={error} paths={conflict?.paths} onResolve={resolve} wholeActivity={conflict?.paths.some(item => /^\/[^/]+$/.test(item))} />
+      {checkingLatest && <p role="status" className="text-sm text-muted-foreground"><Trans>Checking the latest saved version…</Trans></p>}
+      <DraftConflict error={checkingLatest ? null : error} paths={conflict?.paths} onResolve={resolve} wholeActivity={conflict?.paths.some(item => /^\/[^/]+$/.test(item))} />
 
       {/* Form */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
@@ -947,7 +948,7 @@ function EditableActivityEditor({
           disabled={!dirty || saving || !!conflict}
           className="h-8 px-4 rounded text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 transition-colors cursor-pointer"
         >
-          {saving ? t`Saving…` : t`Save activity`}
+          {checkingLatest ? t`Checking latest…` : saving ? t`Saving…` : t`Save activity`}
         </button>
       </div>
 
