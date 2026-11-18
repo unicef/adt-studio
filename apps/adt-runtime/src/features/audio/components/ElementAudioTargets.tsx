@@ -46,7 +46,7 @@ export function ElementAudioTargets() {
   useEffect(() => {
     const cleanups: Array<() => void> = []
 
-    for (const el of Array.from(document.querySelectorAll<HTMLElement>("[data-id]"))) {
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>("#content [data-id]"))) {
       const id = el.getAttribute("data-id")
       if (!id || !elementAudioIds.includes(id)) continue
       // Not inside another interactive control (axe `nested-interactive`).
@@ -68,11 +68,13 @@ export function ElementAudioTargets() {
       // An <img> target needs only tabindex="0" plus a meaningful alt; any other
       // element needs an interactive role and an accessible name. Never a
       // positive tabindex (axe `tabindex`, serious).
+      const addedTabindex = !el.hasAttribute("tabindex")
+      const addedRole = el.tagName !== "IMG" && !el.hasAttribute("role")
       if (el.tagName === "IMG") {
-        if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "0")
+        if (addedTabindex) el.setAttribute("tabindex", "0")
       } else {
-        if (!el.hasAttribute("role")) el.setAttribute("role", "button")
-        if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "0")
+        if (addedRole) el.setAttribute("role", "button")
+        if (addedTabindex) el.setAttribute("tabindex", "0")
       }
 
       el.addEventListener("click", activate)
@@ -103,6 +105,8 @@ export function ElementAudioTargets() {
       cleanups.push(() => {
         el.removeEventListener("click", activate)
         el.removeEventListener("keydown", onKeyDown)
+        if (addedTabindex) el.removeAttribute("tabindex")
+        if (addedRole) el.removeAttribute("role")
         if (badge && badge.parentElement === parent) parent?.removeChild(badge)
       })
     }
