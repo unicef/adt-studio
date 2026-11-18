@@ -136,6 +136,16 @@ export interface UseAudioPlayer {
   playPrevious: () => void
   stop: () => void
   playAtIndex: (index: number) => void
+  /** Play one element's audio by its data-id, without chaining to the rest of
+   *  the section (SPEC-0014 AC-3). Returns false when the element has no audio. */
+  playElement: (id: string) => boolean
+}
+
+/** The read-aloud sweep chains to the next item; a per-element play stops
+ *  after one clip (SPEC-0014 AC-3). */
+export function nextChainIndex(index: number, length: number, chain: boolean): number | null {
+  if (!chain) return null
+  return index + 1 < length ? index + 1 : null
 }
 
 export function useAudioPlayer(): UseAudioPlayer {
@@ -291,7 +301,7 @@ export function useAudioPlayer(): UseAudioPlayer {
   }, [narratorVoice, language, audioLanguage, setCurrentIndex, setIsPlaying, stopAndClear])
 
   const playAtIndex = useCallback(
-    (index: number) => {
+    (index: number, chain = true) => {
       hasAutoStartedRef.current = true
       const requestedItem = navigationItems[index]
       if (!requestedItem) {
@@ -363,8 +373,10 @@ export function useAudioPlayer(): UseAudioPlayer {
 
       audio.onended = () => {
         teardownActive()
-        const next = index + 1
-        if (next < items.length) {
+        // A per-element play (chain === false) plays only that element's audio
+        // (SPEC-0014 AC-3); the read-aloud sweep chains to the rest.
+        const next = nextChainIndex(index, items.length, chain)
+        if (next !== null) {
           playAtIndex(next)
         } else {
           setIsPlaying(false)
@@ -408,6 +420,16 @@ export function useAudioPlayer(): UseAudioPlayer {
       teardownActive,
       timecodeMap,
     ],
+  )
+
+  const playElement = useCallback(
+    (id: string): boolean => {
+      const index = navigationItems.findIndex((item) => item.id === id)
+      if (index === -1) return false
+      playAtIndex(index, false)
+      return true
+    },
+    [navigationItems, playAtIndex],
   )
 
   const pause = useCallback(() => {
@@ -614,5 +636,6 @@ export function useAudioPlayer(): UseAudioPlayer {
     playPrevious,
     stop,
     playAtIndex,
+    playElement,
   }
 }

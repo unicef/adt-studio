@@ -15,6 +15,7 @@ import {
   type AuthoredElementAudioIds,
   parseBookLabel,
   parseAnySectionId,
+  parseElementAudioTextId,
   resolveEntryVoiceSlot,
   parseQuizId,
   resolveQuizId,
@@ -860,7 +861,9 @@ export function createAdtPreviewRoutes(
       const map: Record<string, string> = {}
       for (const entry of previewSpeech(storage, parseBookLabel(c.req.param("label")), lang)) {
         if ((entry.status === "ready" || entry.fallbackReason) && entry.speechText !== null) {
-          map[entry.id] = entry.speechText
+          // Authored element scripts publish under the element's own id, so the
+          // runtime resolves them by `data-id` (SPEC-0014 §2).
+          map[parseElementAudioTextId(entry.id) ?? entry.id] = entry.speechText
         }
       }
       return map
@@ -868,6 +871,31 @@ export function createAdtPreviewRoutes(
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
     return c.body(JSON.stringify(speechTexts))
+  })
+
+  // /content/i18n/:lang/element_audio.json - authored element ids with audio.
+  // The optional manifest gates the runtime trigger and badge (AC-20); a book
+  // without it (or without authored audio) keeps today's behaviour.
+  app.get("/books/:label/adt-preview/content/i18n/:lang/element_audio.json", (c) => {
+    const lang = safePreviewLanguage(c.req.param("lang"))
+    const elementIds = withStorage(c.req.param("label"), (storage, safeLabel) => {
+      const legacyLang = lang.replace("-", "_")
+      const ttsData = (
+        storage.getLatestNodeData("tts", lang) ??
+        storage.getLatestNodeData("tts", legacyLang)
+      )?.data as TTSOutput | undefined
+      const ready = includedSpeechIds(storage, safeLabel, lang)
+      const ids = new Set<string>()
+      for (const entry of ttsData?.entries ?? []) {
+        if (!ready.has(entry.textId)) continue
+        const elementId = parseElementAudioTextId(entry.textId)
+        if (elementId) ids.add(elementId)
+      }
+      return [...ids]
+    })
+    setNoStoreHeaders(c)
+    c.header("Content-Type", "application/json")
+    return c.body(JSON.stringify(elementIds))
   })
 
   // /content/i18n/:lang/glossary.json — Glossary data
@@ -936,7 +964,7 @@ export function createAdtPreviewRoutes(
           if (!readySpeechIds.has(entry.textId)) continue
           if (isTtsExcluded(entry.textId, speechConfig, authoredElementAudioIds)) continue
           if (resolveEntryVoiceSlot(entry) !== "primary") continue
-          map[entry.textId] = entry.fileName
+          map[parseElementAudioTextId(entry.textId) ?? entry.textId] = entry.fileName
         }
       }
       return map
@@ -972,7 +1000,7 @@ export function createAdtPreviewRoutes(
       for (const entry of ttsData?.entries ?? []) {
         const slot = resolveEntryVoiceSlot(entry)
         if (!readySpeechIds[slot].has(entry.textId) || isTtsExcluded(entry.textId, speechConfig, authoredElementAudioIds)) continue
-        voices[slot].audios[entry.textId] = entry.fileName
+        voices[slot].audios[parseElementAudioTextId(entry.textId) ?? entry.textId] = entry.fileName
         bySlot[slot].push(entry)
       }
       // Same resolution the packager uses, so the preview and the exported

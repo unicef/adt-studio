@@ -14,6 +14,7 @@ import {
   audioFilesAtom,
   audioVoicesAtom,
   type AudioVoicesManifest,
+  elementAudioIdsAtom,
   speechTextsAtom,
   imageFilesAtom,
   translationsAtom,
@@ -274,6 +275,7 @@ interface ContentBundle {
   speechTexts: Record<string, string>
   audios: Record<string, string>
   audioVoices: AudioVoicesManifest | null
+  elementAudio: string[]
   videos: Record<string, string>
   images: Record<string, string>
 }
@@ -285,13 +287,14 @@ async function loadContentFiles(
   const base = `${runtimeBase()}content/i18n/${lang}`
   // A book with one narrator has no audio_voices.json (#1157).
   const voiceVariants = getDefaultStore().get(appConfigAtom).features?.voiceVariants !== false
-  const [texts, speechTexts, audios, audioVoices, videos, images] = await Promise.all([
+  const [texts, speechTexts, audios, audioVoices, elementAudio, videos, images] = await Promise.all([
     safeJsonFetch<Record<string, string>>(`${base}/texts.json${versionParam}`, "texts.json"),
     safeJsonFetch<Record<string, string>>(`${base}/speech_texts.json${versionParam}`, "speech_texts.json"),
     safeJsonFetch<Record<string, string>>(`${base}/audios.json${versionParam}`, "audios.json"),
     voiceVariants
       ? safeOptionalJsonFetch<AudioVoicesManifest>(`${base}/audio_voices.json${versionParam}`)
       : Promise.resolve(null),
+    safeOptionalJsonFetch<string[]>(`${base}/element_audio.json${versionParam}`),
     safeJsonFetch<Record<string, string>>(`${base}/videos.json${versionParam}`, "videos.json"),
     safeJsonFetch<Record<string, string>>(`${base}/images.json${versionParam}`, "images.json"),
   ])
@@ -300,6 +303,7 @@ async function loadContentFiles(
     speechTexts: speechTexts ?? {},
     audios: audios ?? {},
     audioVoices,
+    elementAudio: elementAudio ?? [],
     videos: videos ?? {},
     images: images ?? {},
   }
@@ -338,6 +342,7 @@ export async function loadTranslations(
   store.set(translationsAtom, { ...interfaceData, ...content.texts })
   store.set(speechTextsAtom, content.speechTexts)
   store.set(audioFilesAtom, content.audios)
+  store.set(elementAudioIdsAtom, content.elementAudio)
   store.set(audioVoicesAtom, content.audioVoices)
   store.set(videoFilesAtom, content.videos)
   // Replace (don't merge) imageFiles so switching to a language without an
