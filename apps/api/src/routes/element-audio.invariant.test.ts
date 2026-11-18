@@ -13,13 +13,14 @@ import {
 // The invariant (docs/INVARIANTS.md, row 11): authored per-element content
 // (`element-audio`) is never cleared or deleted by invalidation or extraction.
 //
-// This is a source scan plus a runtime assertion — the same "two places must
-// agree" class of check as apps/adt-runtime/src/app/activity-initializers.test.ts.
-// It has to be a source scan because the ad-hoc `clearNodesByType([...])`
-// literals cannot be enumerated from a derived list at runtime.
+// Source scan plus runtime assertions. The scan covers apps/api/src and every
+// packages/*/src, because a literal can live outside the API (the pipeline has
+// clearNodesByType calls too). The generic deletePage/clearExtractedData paths
+// are documented non-goals for a deleted page or a full re-extraction; they are
+// not asserted here (a source scan cannot protect them).
 
 const API_SRC = resolve(dirname(fileURLToPath(import.meta.url)), "..")
-const BOOK_STORAGE = resolve(API_SRC, "../../../packages/storage/src/book-storage.ts")
+const PACKAGES_ROOT = resolve(API_SRC, "../../../packages")
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = []
@@ -27,6 +28,19 @@ function sourceFiles(dir: string): string[] {
     const full = join(dir, name)
     if (statSync(full).isDirectory()) out.push(...sourceFiles(full))
     else if (name.endsWith(".ts") && !name.endsWith(".test.ts")) out.push(full)
+  }
+  return out
+}
+
+function packageSourceFiles(): string[] {
+  const out: string[] = []
+  for (const name of readdirSync(PACKAGES_ROOT)) {
+    const src = join(PACKAGES_ROOT, name, "src")
+    try {
+      if (statSync(src).isDirectory()) out.push(...sourceFiles(src))
+    } catch {
+      // Package without a src directory.
+    }
   }
   return out
 }
@@ -54,9 +68,13 @@ function clearNodesByTypeArgs(source: string): string[] {
 }
 
 describe("element-audio invariant (AC-7)", () => {
-  it("never appears in a clearNodesByType literal in apps/api/src", () => {
+  it("detects a literal argument (checker self-test)", () => {
+    expect(clearNodesByTypeArgs('clearNodesByType(["element-audio"])')).toEqual(['["element-audio"]'])
+  })
+
+  it("never appears in a clearNodesByType literal in apps/api/src or packages/*/src", () => {
     const offenders: string[] = []
-    for (const file of sourceFiles(API_SRC)) {
+    for (const file of [...sourceFiles(API_SRC), ...packageSourceFiles()]) {
       const source = readFileSync(file, "utf8")
       for (const args of clearNodesByTypeArgs(source)) {
         if (args.includes("element-audio")) offenders.push(file)
@@ -82,13 +100,5 @@ describe("element-audio invariant (AC-7)", () => {
       }
     }
     expect(offenders).toEqual([])
-  })
-
-  it("has no explicit reference in the destructive storage primitives", () => {
-    // deletePage / clearExtractedData are generic hard-delete paths and remain
-    // documented non-goals for a deleted page or a full re-extraction. This
-    // asserts that nobody added element-audio to their explicit list.
-    const source = readFileSync(BOOK_STORAGE, "utf8")
-    expect(source).not.toContain("element-audio")
   })
 })

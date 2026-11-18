@@ -924,6 +924,7 @@ export function findAdjacentSpeechText(
   direction: 1 | -1,
   speechConfig: Parameters<typeof isTtsExcluded>[1],
 ): string | undefined {
+  if (isElementAudioTextId(entries[index]?.id ?? "")) return undefined
   const wantEasyRead = EASY_READ_ID_RE.test(entries[index]?.id ?? "")
   for (let i = index + direction; i >= 0 && i < entries.length; i += direction) {
     const entry = entries[i]

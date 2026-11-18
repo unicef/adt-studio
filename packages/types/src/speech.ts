@@ -288,6 +288,8 @@ export interface TtsExclusionConfig {
   excluded_text_ids?: string[]
 }
 
+import { isElementAudioTextId } from "./element-audio.js"
+
 const EASY_READ_SUFFIX_RE = /_easy_read$/
 
 /**
@@ -305,6 +307,9 @@ export function isTtsExcluded(
   if (config.excluded_text_ids?.some((id) => id === textId || id === baseId)) {
     return true
   }
+  // Authored element audio is its own surface: muting captions/text must not
+  // silence it. An explicit excluded_text_ids entry still wins above.
+  if (isElementAudioTextId(textId)) return false
   const categories = config.excluded_categories
   if (!categories || categories.length === 0) return false
   if (categories.includes(getTextCatalogCategory(textId))) return true
