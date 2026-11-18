@@ -86,8 +86,18 @@ export function ElementAudioTargets() {
         badge.dataset.elementAudioBadge = "true"
         badge.textContent = "🔊"
         badge.style.cssText =
-          "position:absolute;top:0;right:0;pointer-events:none;font-size:0.75rem;line-height:1;opacity:0.85"
+          "position:absolute;top:0;right:0;cursor:pointer;font-size:0.75rem;line-height:1;opacity:0.85"
+        // The badge is the play control in the preview: it plays without
+        // selecting the element (AC-10/AC-11). Keyboard users activate the
+        // element itself, which already carries the keydown handler.
+        const onBadgeClick = (event: MouseEvent) => {
+          event.preventDefault()
+          event.stopPropagation()
+          playElement(id)
+        }
+        badge.addEventListener("click", onBadgeClick)
         parent.appendChild(badge)
+        cleanups.push(() => badge?.removeEventListener("click", onBadgeClick))
       }
 
       cleanups.push(() => {

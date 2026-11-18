@@ -46,16 +46,28 @@ describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
     expect(playElement).toHaveBeenCalledTimes(3)
   })
 
-  it("adds a decorative sibling badge that does not intercept the click", () => {
+  it("plays from the decorative badge and stops the click from selecting the page", () => {
     document.body.innerHTML = '<section><img data-id="pg001_im001" alt="Mago" /></section>'
     render(<ElementAudioTargets />)
 
     const badge = document.querySelector<HTMLElement>("[data-element-audio-badge]")!
     expect(badge).toBeTruthy()
     expect(badge.getAttribute("aria-hidden")).toBe("true")
-    expect(badge.style.pointerEvents).toBe("none")
     // A sibling of the [data-id] element, never a child.
     expect(badge.parentElement).toBe(document.querySelector("section"))
+
+    let selected = false
+    const onDocumentClick = () => {
+      selected = true
+    }
+    document.addEventListener("click", onDocumentClick)
+    try {
+      fireEvent.click(badge)
+    } finally {
+      document.removeEventListener("click", onDocumentClick)
+    }
+    expect(playElement).toHaveBeenCalledWith("pg001_im001")
+    expect(selected).toBe(false)
   })
 
   it("gives a non-image target an interactive role and a name slot", () => {
