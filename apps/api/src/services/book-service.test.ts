@@ -220,7 +220,8 @@ describe("listBooks", () => {
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
-      previewStatus: "incomplete",
+      previewStatus: "unverified",
+      storyboardVerificationPending: true,
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
@@ -664,4 +665,24 @@ it("persists one stable identity when listing a healthy legacy book", () => {
   expect(JSON.parse(bytes.toString()).projectId).toBe(first.projectId)
   expect(listBooks(tmpDir).find(book => book.label === "legacy")!.projectId).toBe(first.projectId)
   expect(fs.readFileSync(identityFile)).toEqual(bytes)
+})
+
+
+it("RAC-13: cold Library defers Storyboard verification, then reuses only current verified coverage", () => {
+  createTestDb("summary"); addTestPages("summary", 2); addTestRenderings("summary", 2)
+  markStepsDone("summary", ["web-rendering"])
+  expect(listBooks(tmpDir)[0]).toMatchObject({ storyboardVerificationPending: true, completedStages: [] })
+  // Detailed access still checks actual saved output, independent of run telemetry.
+  const detail = getBook("summary", tmpDir)
+  const warm = listBooks(tmpDir)[0]
+  expect(warm.storyboardVerificationPending).toBeUndefined()
+  expect(warm.completedStages).toEqual(detail.completedStages)
+  const db = openBookDb(path.join(tmpDir, "summary/summary.db"))
+  // Same-version external rewrites cannot reuse a previous completion result.
+  db.run("UPDATE node_data SET data=? WHERE node=? AND item_id=?", ["{bad", "web-rendering", "pg001"])
+  db.close()
+  const changed = listBooks(tmpDir)[0]
+  expect(changed.storyboardVerificationPending).toBe(true)
+  expect(changed.completedStages).not.toContain("storyboard")
+  expect(getBook("summary", tmpDir).completedStages).not.toContain("storyboard")
 })

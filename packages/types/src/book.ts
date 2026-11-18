@@ -52,6 +52,8 @@ export const BookSummary = z.object({
   readUnavailableReason: z.enum(["book-busy", "invalid-config", "invalid-data"]).optional(),
   completedStages: z.array(z.string()),
   storyboardNeedsReview: z.boolean().optional(),
+  /** Lightweight Library summaries have not checked current Storyboard output yet. */
+  storyboardVerificationPending: z.boolean().optional(),
   /** Unverified is distinct from a known missing or incomplete package. */
   previewStatus: z.enum(["complete", "incomplete", "unverified"]).optional(),
   createdAt: z.string(),

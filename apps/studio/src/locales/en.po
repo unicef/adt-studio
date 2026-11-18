@@ -22,6 +22,12 @@ msgstr " +{0} more"
 msgid " and "
 msgstr " and "
 
+msgid "Not yet verified"
+msgstr "Not yet verified"
+
+msgid "Open the book to verify Storyboard and Preview"
+msgstr "Open the book to verify Storyboard and Preview"
+
 msgid "_page"
 msgstr "_page"
 

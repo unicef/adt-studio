@@ -24,6 +24,12 @@ msgstr " +{0} më shumë"
 msgid " and "
 msgstr " dhe "
 
+msgid "Not yet verified"
+msgstr "Ende i paverifikuar"
+
+msgid "Open the book to verify Storyboard and Preview"
+msgstr "Hapeni librin për të verifikuar Storyboard dhe pamjen paraprake"
+
 msgid "_page"
 msgstr "_faqe"
 

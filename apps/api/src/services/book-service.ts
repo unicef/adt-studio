@@ -1,5 +1,5 @@
 import { storyboardPackageStatus } from "./storyboard-package-coverage.js"
-import { readStoryboardModel } from "./storyboard-read-model.js"
+import { peekStoryboardModel, readStoryboardModel } from "./storyboard-read-model.js"
 import { isCorruptBookDatabase } from "@adt/storage"
 import fs from "node:fs"
 import { setImmediate as yieldToRequests } from "node:timers/promises"
@@ -115,7 +115,17 @@ function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string
     const config = loadBookConfig(label, booksDir, configPath)
     if (cachedPackageOnly) readReadingOrderQuizzes(storage)
     const pageIds = activeSectioningPages(storage, config, bookDir).map(page => page.pageId)
-    const model = readStoryboardModel(storage, bookDir, pageIds)
+    const model = cachedPackageOnly ? peekStoryboardModel(storage, bookDir, pageIds) : readStoryboardModel(storage, bookDir, pageIds)
+    if (!model) {
+      // Telemetry is not proof of current output. Keep Library lightweight on
+      // restart; explicit book/Preview/export access still performs full checks.
+      return {
+        completedStages: completed.filter(stage => stage !== "storyboard" && stage !== "package"),
+        storyboardNeedsReview: false,
+        storyboardVerificationPending: pageIds.length > 0,
+        previewStatus: (pageIds.length > 0 ? "unverified" : "incomplete") as NonNullable<BookSummary["previewStatus"]>,
+      }
+    }
     const coverage = model.coverage
     const storyboardNeedsReview = model.warnings.length > 0
     const previewStatus = storyboardPackageStatus(storage, bookDir, pageIds, config, cachedPackageOnly, model)
@@ -191,6 +201,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
     let rebuildReason: string | null = null
     let completedStages: string[] = []
     let previewStatus: BookSummary["previewStatus"] = "incomplete"
+    let storyboardVerificationPending = false
     let storyboardNeedsReview = false
     let readUnavailable = false
     let readUnavailableReason: BookSummary["readUnavailableReason"]
@@ -222,7 +233,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
             }
           }
 
-          ({ completedStages, storyboardNeedsReview, previewStatus } = computeCompletedStages(db, bookDir, configPath, true))
+          ({ completedStages, storyboardNeedsReview, previewStatus, storyboardVerificationPending = false } = computeCompletedStages(db, bookDir, configPath, true))
         } finally {
           db.close()
         }
@@ -268,6 +279,7 @@ function* scanBookSummaries(booksDir: string, configPath?: string): Generator<Bo
       completedStages,
       previewStatus,
       ...(storyboardNeedsReview ? { storyboardNeedsReview: true } : {}),
+      ...(storyboardVerificationPending ? { storyboardVerificationPending: true } : {}),
       ...(readUnavailable ? { readUnavailable: true, readUnavailableReason } : {}),
       createdAt,
       modifiedAt,

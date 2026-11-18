@@ -140,6 +140,14 @@ export function readStoryboardModel(storage: Storage, bookDir: string, pageIds: 
   return result
 }
 
+/** Library summaries may reuse a verified model, but never build it on a cold
+ * listing. A changed database, selected page window or part proof is a miss. */
+export function peekStoryboardModel(storage: Storage, bookDir: string, pageIds: string[]): ReadModel | undefined {
+  const book = books.get(bookDir)
+  if (!book || book.generation !== bookStateKey(storage, bookDir)) return undefined
+  return book.variants.get(JSON.stringify([pageIds, requiredPartRange(bookDir)]))
+}
+
 /** Page-list coverage does not require a valid part manifest or quiz order.
  * Reuse the shared model where possible, retaining the independent live read
  * for those damaged dependencies. Admission and integrity errors still escape. */
