@@ -6,6 +6,12 @@ export function getGlossaryItemTextId(item: Pick<GlossaryItem, "id">, index: num
   return item.id?.trim() || `gl${String(index + 1).padStart(3, "0")}`
 }
 
+/** Every `data-id` in rendered HTML, including images. */
+export function renderedContentIds(html: string): string[] {
+  return DomUtils.findAll(element => element.type === "tag" && element.attribs["data-id"] !== undefined, parseDocument(html).children)
+    .map(element => element.attribs["data-id"])
+}
+
 /** Includes empty controls and containers: they may already have retained
  * answers or become text leaves after an edit. Images remain shareable. */
 export function renderedTextIds(html: string): string[] {
@@ -34,6 +40,22 @@ export function sourceTextIds(value: unknown): Set<string> {
   return ids
 }
 
+/** Like `sourceTextIds`, but includes image leaves and rendered `<img>` ids.
+ * Used only for the element-audio namespace check, so the text-only reuse
+ * path is not widened. */
+export function sourceContentIds(value: unknown): Set<string> {
+  const ids = new Set<string>()
+  const visit = (item: unknown): void => {
+    if (!item || typeof item !== "object") return
+    const data = item as Record<string, unknown>
+    if (typeof data.nodeId === "string") ids.add(data.nodeId)
+    if (typeof data.html === "string") for (const id of renderedContentIds(data.html)) ids.add(id)
+    for (const child of Object.values(data)) visit(child)
+  }
+  visit(value)
+  return ids
+}
+
 /** Book-wide reservation, including retired pages and source-less retained
  * outputs. Read leniently so an old schema cannot give away an identity.
  * This reads JSON/HTML only, never media files or provider responses. */
@@ -50,7 +72,8 @@ export function collectSpentContentIds(storage: Storage): Set<string> {
     // The authored element-audio slot belongs to its source too (SPEC-0014).
     const audioSource = parseElementAudioTextId(value)
     if (audioSource) spent.add(audioSource)
-    spent.add(elementAudioTextId(value))
+    // Do not mint `_audio_audio` for a value that is already a synthetic id.
+    if (!isElementAudioTextId(value)) spent.add(elementAudioTextId(value))
   }
   const collect = (value: unknown): void => {
     if (!value || typeof value !== "object") return
@@ -116,6 +139,19 @@ export function findIntroducedDerivedIdCollision(proposed: Iterable<string>, pre
     if (next.has(easyRead) && (!prior.has(id) || !prior.has(easyRead))) return easyRead
     const audio = elementAudioTextId(id)
     if (next.has(audio) && (!prior.has(id) || !prior.has(audio))) return audio
+  }
+  return undefined
+}
+
+/**
+ * The page-save text-id set deliberately excludes images (`renderedTextIds` /
+ * `sourceTextIds`), so the image-audio namespace needs its own check with the
+ * complete content-id set. A pre-existing legacy id is preserved.
+ */
+export function findIntroducedImageAudioCollision(proposed: Iterable<string>, previous: Iterable<string>): string | undefined {
+  const prior = new Set(previous)
+  for (const id of proposed) {
+    if (isElementAudioTextId(id) && !prior.has(id)) return id
   }
   return undefined
 }

@@ -76,6 +76,10 @@ it("AC-19: reserves the derived _audio slot in both directions, including artifa
     entries: [{ nodeId: "pg001_im001", text: "Mago" }],
     generatedAt: "2026-11-16T00:00:00.000Z",
   })
+  storage.putNodeData("text-catalog", "book", {
+    entries: [{ id: "pg001_im001_audio", text: "Mago" }],
+    generatedAt: "2026-11-16T00:00:00.000Z",
+  })
 
   const ids = collectSpentContentIds(storage)
 
@@ -84,6 +88,7 @@ it("AC-19: reserves the derived _audio slot in both directions, including artifa
   expect(ids.has("legacy")).toBe(false)
   expect(ids.has("pg001_im001")).toBe(true)
   expect(ids.has("pg001_im001_audio")).toBe(true)
+  expect(ids.has("pg001_im001_audio_audio")).toBe(false)
 })
 
 it("AC-19: rejects a new X/X_audio pair but preserves an existing one", () => {

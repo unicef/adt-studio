@@ -32,7 +32,7 @@ import type {
   AdtExportLineage,
   PackagingWarning, AppConfig, OutputStatus,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, isElementAudioTextId, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
 import {
   ADT_EDITING_CONTRACT_VERSION,
@@ -184,6 +184,7 @@ export function buildRuntimeTimecodeMap(
   for (const entry of Object.values(timestamps?.entries ?? {})) {
     if (resolveEntryVoiceSlot(entry) !== voiceSlot) continue
     const textId = entry.textId
+    if (isElementAudioTextId(textId)) continue
     if (entry.words.length === 0) continue
     if (readySpeechIds && !readySpeechIds.has(textId)) continue
     if (isTtsExcluded(textId, speechConfig)) continue

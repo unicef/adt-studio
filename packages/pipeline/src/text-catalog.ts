@@ -1,4 +1,3 @@
-import { resolveQuizOptionId } from "@adt/types"
 import { extractImageIds } from "./image-captioning.js"
 import { parseDocument, DomUtils } from "htmlparser2"
 import type {
@@ -12,15 +11,14 @@ import type {
   PageSectioningOutput as PageSectioningOutputType,
 } from "@adt/types"
 import {
-  WebRenderingOutput as WebRenderingOutputSchema,
-  answerTextId,
-  resolveQuizId,
-  withResolvedQuizIds,
-} from "@adt/types"
-import {
   ELEMENT_AUDIO_NODE,
   ElementAudioEntry as ElementAudioEntrySchema,
+  WebRenderingOutput as WebRenderingOutputSchema,
+  answerTextId,
   elementAudioTextId,
+  resolveQuizId,
+  resolveQuizOptionId,
+  withResolvedQuizIds,
 } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
@@ -378,7 +376,9 @@ function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<str
       )
       for (const element of elements) {
         const dataId = (element as unknown as { attribs: Record<string, string> }).attribs["data-id"]
-        if (dataId) index.set(dataId, { pageId: page.pageId, sectionId })
+        // First page wins for a duplicate data-id (legacy/import); the rule is
+        // deterministic instead of depending on page iteration order.
+        if (dataId && !index.has(dataId)) index.set(dataId, { pageId: page.pageId, sectionId })
       }
     }
   }
@@ -414,10 +414,10 @@ function loadElementAudioEntries(
   for (const candidate of data.entries) {
     const parsed = ElementAudioEntrySchema.safeParse(candidate)
     if (!parsed.success) continue
-    if (seen.has(parsed.data.nodeId)) continue
-    seen.add(parsed.data.nodeId)
     const text = parsed.data.text.trim()
     if (text.length === 0) continue
+    if (seen.has(parsed.data.nodeId)) continue
+    seen.add(parsed.data.nodeId)
     const location = locations.get(parsed.data.nodeId)
     if (!location) continue
     entries.push({
@@ -435,13 +435,18 @@ function loadElementAudioEntries(
 /** Synchronous snapshot for atomic authored-save/catalog reconciliation. */
 export function buildTextCatalogSnapshot(storage: Storage, pages: PageData[]): TextCatalogOutput {
   const entries: TextCatalogEntry[] = []
-  const locations = buildElementLocationIndex(storage, pages)
+  const hasElementAudio = (storage.getNodeItemIds?.(ELEMENT_AUDIO_NODE)?.length ?? 0) > 0
+  const locations = hasElementAudio
+    ? buildElementLocationIndex(storage, pages)
+    : new Map<string, ElementAudioLocation>()
   const elementAudioByPage = new Map<string, TextCatalogEntry[]>()
-  for (const page of pages) {
-    for (const { pageId, entry } of loadElementAudioEntries(storage, page.pageId, locations)) {
-      const list = elementAudioByPage.get(pageId) ?? []
-      list.push(entry)
-      elementAudioByPage.set(pageId, list)
+  if (hasElementAudio) {
+    for (const page of pages) {
+      for (const { pageId, entry } of loadElementAudioEntries(storage, page.pageId, locations)) {
+        const list = elementAudioByPage.get(pageId) ?? []
+        list.push(entry)
+        elementAudioByPage.set(pageId, list)
+      }
     }
   }
 

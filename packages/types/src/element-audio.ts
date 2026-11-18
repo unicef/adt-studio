@@ -42,7 +42,7 @@ const ELEMENT_AUDIO_SUFFIX = "_audio"
 // v1 scope: only image leaves (SPEC-0014). Text and container ids are deferred
 // to SPEC-0008, so a real text id ending in `_audio` must not be mistaken for
 // the synthetic entry.
-const IMAGE_ID_BASE_RE = /_im\d{3}(?:_|$)/
+const IMAGE_ID_BASE_RE = /_im\d{3,}(?:_|$)/
 
 /** The synthetic text-catalog id used as internal plumbing. */
 export function elementAudioTextId(nodeId: string): string {

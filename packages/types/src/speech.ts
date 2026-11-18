@@ -1,6 +1,7 @@
 import { OutputMetadata } from "./output-freshness.js"
 import { z } from "zod"
 import { TextCatalogCategory, getTextCatalogCategory } from "./text-catalog.js"
+import { isElementAudioTextId } from "./element-audio.js"
 
 export const TTSRateLimitConfig = z.object({
   /**
@@ -279,8 +280,6 @@ export interface TtsExclusionConfig {
   excluded_categories?: string[]
   excluded_text_ids?: string[]
 }
-
-import { isElementAudioTextId } from "./element-audio.js"
 
 const EASY_READ_SUFFIX_RE = /_easy_read$/
 

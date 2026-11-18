@@ -13,6 +13,21 @@ import { normalizeLocale, getBaseLanguage } from "./language-context.js"
 import { deriveOutputStatus, inputSignature, outputIdentityKey, withOutputLocations } from "./output-freshness.js"
 import { speechPageId, isBatchableSpeechEntry, isSpeakableText, computePageSpeechInputSignature, computeSpeechCacheKey, loadVoicesConfig, loadSpeechInstructions, resolveSpeechVoice, resolveSpeechFormat, resolveInstructions, stripEmojis, elevenLabsVoiceSettingsFromConfig, findAdjacentSpeechText } from "./speech.js"
 
+/** The catalog id whose text is the adjacent ElevenLabs context, skipping
+ * element-audio entries so a script can never become a real entry's context. */
+export function adjacentSpeechContextId(
+  entries: TextCatalogEntry[],
+  index: number,
+  direction: 1 | -1,
+  text: string,
+): string | undefined {
+  for (let candidate = index + direction; candidate >= 0 && candidate < entries.length; candidate += direction) {
+    if (isElementAudioTextId(entries[candidate].id)) continue
+    if (stripEmojis(entries[candidate].text).trim() === text) return entries[candidate].id
+  }
+  return undefined
+}
+
 export function captionInputSignature(options: { language: string; summary?: string; config: ReturnType<typeof buildCaptionConfig>; prompt: string }): string {
   return inputSignature({ language: options.language,
     summary: options.summary, prompt: options.prompt, model: options.config.modelId,
@@ -239,10 +254,8 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
         } else if (voice.provider === "elevenlabs" && config.speech?.elevenlabs_use_context) {
           for (const direction of [-1, 1] as const) {
             const text = findAdjacentSpeechText(speechEntries, index, direction, config.speech)
-            for (let candidate = index + direction; text && candidate >= 0 && candidate < speechEntries.length; candidate += direction) {
-              if (isElementAudioTextId(speechEntries[candidate].id)) continue
-              if (stripEmojis(speechEntries[candidate].text).trim() === text) { speechContext.push(speechEntries[candidate].id); break }
-            }
+            const contextId = text ? adjacentSpeechContextId(speechEntries, index, direction, text) : undefined
+            if (contextId) speechContext.push(contextId)
           }
         }
         dependencies.set(outputIdentityKey(audioStatus.identity), speechContext.map((id) => outputIdentityKey({ kind: "preparation", id, language })))
