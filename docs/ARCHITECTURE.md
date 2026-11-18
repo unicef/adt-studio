@@ -405,5 +405,28 @@ well as legacy leases. An unrelated process reusing that PID
 can therefore also prevent copy recovery. File age alone is not proof that the
 recorded owner is dead; timestamps do not override this refusal.
 The owner explicitly accepted this narrow recovery limitation on November 17,
-2026. It is not a promise to recover every stranded book after reboot; formal
-non-author review of the amended contract remains required.
+2026 and @gbergengruen [approved the amended contract on November 18](https://github.com/unicef/adt-studio/pull/884#pullrequestreview-5957765294).
+This does not promise recovery of every stranded book after reboot, or grant
+PR/release approval.
+
+A recovery copy is an intentional continuation of the same saved project, not a
+new authored fork. It keeps `.adt-project.json`'s `projectId`, the persistent
+history book UUID, historical entities and original export `originProjectId`.
+Its directory label is new. If a later ADT import finds that origin project ID
+already present, the existing import policy allocates a fresh project ID and
+records `derivedFromProjectId`; recovery does not bypass that policy.
+
+The quarantined `.book-recovery-<uuid>/locks/` and audit directory remain part of
+a project ZIP backup. Lock records may contain the original hostname and process
+ID. Consider that evidence when sharing the project archive; these retained
+records are evidence, not active locks on import. Recovery does not silently
+strip them or rewrite identity/history to hide them. File access, insufficient
+space and an occupied destination label have distinct recovery errors. A refused
+incomplete copy is checked before creating identity, media directories or locks.
+
+Library listings do not build cold Storyboard HTML/ownership read models. A
+current in-memory result can be reused. Otherwise, completed run telemetry or a
+saved package results in an explicitly unverified summary, withholding
+Storyboard/package/Preview completion; extracted-only books keep their next-step
+guidance. Full
+book/Preview/export validation is still required at the existing entrypoints.

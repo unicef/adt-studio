@@ -1,23 +1,24 @@
 ---
 id: SPEC-0003
 title: Sectioning modes — B1 generation preferences and safe publication
-status: in-review
+status: approved
 owner: "@ksokolovic"
-approvers: []
+approvers: ["@gbergengruen"]
 issues: ["#708"]
 prs: ["#884"]
 adr: "docs/DECISIONS.md#025-sectioning-generation-preferences-scoped-reset-and-per-page-publication"
 created: 2026-09-22
-updated: 2026-11-17
+updated: 2026-11-18
 ---
 
-## Authorized product amendment (review pending)
+## Approved product amendment
 
 [The October 12 consolidated review](https://github.com/unicef/adt-studio/pull/884#pullrequestreview-5486273946)
 and [September 30 product decisions](https://github.com/unicef/adt-studio/pull/884#pullrequestreview-5368403884)
 replace the former persisted-cardinality/lifecycle contract. The owner explicitly
-authorized these amendments and implementation before formal approval. Status
-remains `in-review`; no human approval or release verification is inferred.
+authorized these amendments and implementation before formal approval.
+[@gbergengruen approved the amended contract on November 18](https://github.com/unicef/adt-studio/pull/884#pullrequestreview-5957765294).
+This is specification approval, not PR approval or release verification.
 
 **By Page controls Sectioning generation, not saved content.** Issue #666 reported
 accepting multiple generated sections. Merged #692 fixes that generation/cache
@@ -152,7 +153,7 @@ replacement. Check the shared reservation history before Sectioning reset or
 provider work, and again at execution/publication. Merely selecting an older
 valid version is not proof of identities reserved by the damaged version.
 
-**Verified history recovery (owner-authorized, review pending):** capture original
+**Verified history recovery (owner-authorized; approved November 18):** capture original
 identity-bearing payloads with their book, node, item, version, insertion
 incarnation and byte digest. Recovery is a separate explicit inspect/confirm
 operation using shared writer admission and one SQLite transaction. Restore only
@@ -228,7 +229,7 @@ complete coverage. Genuinely missing output and inherited ownership safety remai
 visible; removing mode/provenance gates must not certify incomplete packages.
 Compatible downstream freshness warnings remain usable under SPEC-0001. Package cache hits and new builds must validate the mandatory part window. A failed build must leave the previous published directory intact. Source coverage alone does not prove that a bundle can be read; the bundle itself is checked.
 
-**November 15 packaging amendment (product-owner decision, review pending):**
+**November 15 packaging amendment (product-owner decision; approved November 18):**
 packaging fails gracefully, subject to retained ownership proof and the accepted
 D2 identity-loss limitation below. A build or download is otherwise refused when the bundle
 could not open at all: a missing or unreadable page document, page list, entry
@@ -273,8 +274,8 @@ updates. The smallest safe reconciliation is to retain that shared guard and add
 no extra lock subsystem. Preserve the final prerequisite's Linux incarnation,
 namespace/container proof and recovery-sentinel safeguards.
 
-**November 2 recovery correction (owner-authorized implementation, spec review
-pending):** an independent real HTTP/SQLite reproduction showed that a live reader
+**November 2 recovery correction (owner-authorized implementation; approved
+November 18):** an independent real HTTP/SQLite reproduction showed that a live reader
 without a writer lease can hold the anonymous WASM mutex while startup removes it.
 Note 7 B6's absence-of-live-writer assumption is insufficient. Extend the same
 shared lease to every database opener, including nonmigrating schema and extraction
@@ -312,7 +313,7 @@ Studio handling in en, pt-BR, es, fr and sq. Obsolete mode-gate errors are remov
 
 ## Revised acceptance criteria
 
-### November 17 recovery and repair clarification (owner-authorized; review pending)
+### November 17 recovery and repair clarification (owner-authorized; approved November 18)
 
 Stranded books with unverifiable or legacy lock owners have an explicit **Recover
 a copy** action. Refuse known-live owners. Preserve the original directory and all
@@ -325,7 +326,8 @@ and no verifiable process-incarnation evidence also refuses copy recovery, even
 when that PID may have been reused after reboot. This includes current
 macOS/Windows leases as well as legacy leases. File timestamps do not authorize
 an override. This narrow limitation was accepted on November 17, 2026; it does
-not grant formal non-author spec or PR approval.
+not itself grant formal non-author approval. The November 18 review subsequently
+approved this contract; PR acceptance remains separate.
 Valid explicit configuration repairs preserve the invalid original YAML inside
 the book and revoke readiness conservatively, without generation or content reset.
 Generation guards compare relevant settings; unrelated downstream/scheduling
@@ -403,7 +405,48 @@ Separate these from paid providers, signed releases and full cross-platform GUI.
 
 Keep raw logs and review reports outside version control. Record concise commands,
 results, tested commits and verification limits in the PR discussion, including
-hosted CI for the published commit. ADR 025 and spec approval remain pending.
+hosted CI for the published commit. ADR 025 follows the approved contract;
+independent human PR acceptance remains required.
+
+## Approval and remaining follow-ups — 2026-11-18
+
+[Guillermo's re-review](https://github.com/unicef/adt-studio/pull/884#pullrequestreview-5957765294) explicitly approves this specification,
+including the recovery-copy/PID qualification, configuration-repair versioning
+exception and SPEC-0002 AC-8 amendment. He takes over the outstanding human
+re-review under SDD §9. His live acceptance of the earlier items 1, 2, 3 and 7,
+and R6, remains pending; neither this approval record nor automated tests releases
+those PR gates.
+
+For his cold-Library performance request, use option **(b)**: Library summaries
+reuse only a current, already-verified in-memory Storyboard model. Otherwise,
+books with completed Storyboard/package telemetry or a saved package report
+`storyboardVerificationPending` and withhold Storyboard, package and Preview
+completion. Extracted-only books retain their normal next-step guidance; an
+absent package remains known incomplete. Returning to Library through the app
+refreshes summaries after detailed book access. Studio labels this state **Not yet verified**
+and offers opening the book to verify Storyboard and Preview. It is not known
+missing output or a repair instruction. Full book access and actionable
+stage/Preview/export paths keep their existing checks. Database changes, selected
+page windows and part proof changes prevent stale model reuse. No persistent
+summary proof or ownership bypass is added. RAC-13 distinguishes this unknown
+summary from both verified completeness and known incompleteness.
+
+The same re-review accepts these remaining performance costs as follow-ups,
+rather than blockers for this PR. They remain open here:
+
+| Follow-up | Scope and boundary |
+|---|---|
+| PF-1 | Warm Library and step-status admission/read overhead. Compare against exact develop on the same real books; retain cross-process ownership, actual coverage and same-version external-write invalidation. |
+| PF-2 | Page-list, package-status and packaged-asset overhead. Preserve busy/ownership refusals even for byte-identical application assets. |
+| PF-3 | Live reader `assets/config.json` work and repeated mounting requests, which can delay activity conflict reloads. This PR exposes pending reload honestly; it does not claim to remove that endpoint cost. |
+| UX-1 | A preserving Move/Remove-from-Library action for an unusable original and a friendlier recovered-copy label/rename workflow. Do not bypass the original's lock or delete its evidence. |
+
+These are traceable follow-ups to the linked review, not newly completed work.
+The exact qa784/other reviewer-book measurements are his WSL2 results; local
+controlled-fixture timings do not certify those datasets, Electron startup,
+Windows/macOS reboot, Docker recreation or signed releases. The accepted direct
+`/adt/` redirect for develop-built packages lasts until Studio Preview rebuilds
+them; normal Preview rebuild/reopen behavior is unchanged.
 
 ## Test plan
 

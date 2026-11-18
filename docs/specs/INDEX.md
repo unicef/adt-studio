@@ -12,7 +12,7 @@ already holds its number — check both before taking one
 |-----------|-----------------------------------------------------------------|--------|-------------|-----------|
 | SPEC-0001 | Catalog-based freshness and scoped regeneration | in-review | @ksokolovic | Block 1 |
 | [SPEC-0002](SPEC-0002-manual-edit-preservation.md) | Manual-edit preservation for translation, quiz, sectioning, TOC | approved | @ksokolovic | Block 1   |
-| [SPEC-0003](SPEC-0003-sectioning-modes.md) | Sectioning modes — B1 generation preferences and safe publication | in-review | @ksokolovic | Block 1; fresh CLI only; human approval pending; B2 deferred |
+| [SPEC-0003](SPEC-0003-sectioning-modes.md) | Sectioning modes — B1 generation preferences and safe publication | approved | @ksokolovic | Approver: @gbergengruen; Block 1; fresh CLI only; PR acceptance pending; B2 deferred |
 | SPEC-0004 | Style guide, Styles panel, token-enforced rendering             | draft  | TBD         | Block 2   |
 | SPEC-0005 | Acceptance harness over the acceptance set                      | draft  | TBD         | Block 1   |
 | SPEC-0006 | Cloudflare publishing: scope, ops surface, security             | draft  | TBD         | Block 2   |
@@ -44,3 +44,5 @@ Legacy notes, from before this process existed, now in [`docs/analysis/`](../ana
 [SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),
 [SECTIONING_VALIDATION_FAILURES.md](../analysis/SECTIONING_VALIDATION_FAILURES.md)
 (May 2026, implemented). They are bug analyses, not specs.
+
+SPEC-0003 was approved by @gbergengruen on 2026-11-18; see its [approval and remaining follow-ups](SPEC-0003-sectioning-modes.md#approval-and-remaining-follow-ups--2026-11-18). Contract approval does not approve PR #884 or waive its remaining live acceptance.

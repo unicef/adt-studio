@@ -974,7 +974,7 @@ separate action after saving. #619 and #626 remain background/deferred.
 
 ## 025: Sectioning generation preferences, scoped reset and per-page publication
 
-**Status**: proposed
+**Status**: Decided
 **Date**: 2026-09-22
 **Spec**: [SPEC-0003](specs/SPEC-0003-sectioning-modes.md)
 **Issues**: #708
@@ -1011,7 +1011,7 @@ The November 2 owner-authorized correction extends that same lease to every SQLi
 connection and statement lifetime after a live-reader/startup recovery race was
 reproduced. Same-process database borrowing grants no writer authority; registered
 database paths plus proven owner death bound mutex recovery. Uncoordinated older
-processes are outside this concurrency guarantee. SPEC-0003 approval stays pending.
+processes are outside this concurrency guarantee. The amended SPEC-0003 contract was approved on November 18, 2026.
 The November 11 correction makes reservation and capability publication atomic.
 Verified dead reservations use an exclusive successor chain and root revalidation;
 completion retires the root atomically before cleanup. Anonymous legacy evidence
@@ -1047,7 +1047,7 @@ by an older runtime; existing noncooperating-concurrency limits remain unchanged
 The specification defines byte witnesses, tuple continuity, transactional audit,
 stale editor protection and the explicitly authorized exception; schema-14
 readers remain compatible. Verification does not grant human or release acceptance.
-This decision remains proposed, with human review pending.
+The amended decision is approved; human PR acceptance remains separate.
 
 The November 15 packaging amendment tolerates missing content resources,
 unreadable content styles and characters the output format cannot represent when
@@ -1074,7 +1074,13 @@ Valid explicit configuration repairs preserve invalid prior YAML byte-for-byte
 inside the book and conservatively revoke readiness. They do not regenerate or
 reset content. Reset itself is a SQLite transaction with lifecycle-file
 invalidation: failed SQL can leave readiness stale, but cannot mark old content
-current or remove history. Non-author approval of these amendments remains open.
+current or remove history. [@gbergengruen approved these amendments on November 18](https://github.com/unicef/adt-studio/pull/884#pullrequestreview-5957765294); PR acceptance remains open.
+
+Cold Library summaries defer Storyboard proof construction and explicitly report
+unverified output. This adopts review option (b), avoids a new persistent cache,
+and retains full validation on book access and guarded Preview/export routes.
+Recovered copies retain project/history identity as continuations; project ZIPs
+retain audit and quarantined lock evidence, including recorded host/PID fields.
 
 ### Alternatives Considered
 
