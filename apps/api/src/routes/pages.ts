@@ -609,6 +609,7 @@ const RestorableNode = z.enum([
   "image-captioning",
   "page-sectioning",
   "web-rendering",
+  "element-audio",
 ])
 type RestorableNode = z.infer<typeof RestorableNode>
 

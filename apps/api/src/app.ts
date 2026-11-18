@@ -18,6 +18,7 @@ import { createQuizRoutes } from "./routes/quizzes.js"
 import { createPackageRoutes } from "./routes/package.js"
 import { createPromptRoutes } from "./routes/prompts.js"
 import { createTextCatalogRoutes } from "./routes/text-catalog.js"
+import { createElementAudioRoutes } from "./routes/element-audio.js"
 import { createEasyReadRoutes } from "./routes/easy-read.js"
 import { createBookSummaryRoutes } from "./routes/book-summary.js"
 import { createBookOutlineRoutes } from "./routes/book-outline.js"
@@ -123,6 +124,7 @@ app.route("/api", createQuizRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath, taskService, promptsDir))
 app.route("/api", createPromptRoutes(promptsDir, booksDir, configPath))
 app.route("/api", createTextCatalogRoutes(booksDir, promptsDir, configPath))
+app.route("/api", createElementAudioRoutes(booksDir))
 app.route("/api", createOutputRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createEasyReadRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createBookSummaryRoutes(booksDir, promptsDir, configPath, taskService))
