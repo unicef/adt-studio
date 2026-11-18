@@ -12178,8 +12178,8 @@ msgstr "Isso não foi concluído"
 msgid "That didn't resolve. Try again."
 msgstr "Não foi possível resolver. Tente de novo."
 
-msgid "That recovery copy name is already in use. Cancel and try again to use a new name. The original book is unchanged."
-msgstr "Esse nome de cópia recuperada já está em uso. Cancele e tente novamente para usar um novo nome. O livro original permanece inalterado."
+msgid "That recovery copy name is already in use. Retry to use a new name. The original book is unchanged."
+msgstr "Esse nome de cópia recuperada já está em uso. Tente novamente para usar um novo nome. O livro original permanece inalterado."
 
 msgid "That reply didn't send. Try again."
 msgstr "A resposta não foi enviada. Tente de novo."

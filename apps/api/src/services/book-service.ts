@@ -20,7 +20,7 @@ import {
   type PartRange,
 } from "@adt/types"
 import { assertRecoveryCopyReady, createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, retainInvalidBookConfig, atomicBookFile, SECTIONING_JOURNAL } from "@adt/storage"
-import { BookConfigError, SectioningSafetyError, readReadingOrderQuizzes, activeSectioningPages, loadBookConfig, loadBookConfigOverrides, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
+import { BookConfigError, SectioningSafetyError, publishedAdtDirectory, readReadingOrderQuizzes, activeSectioningPages, loadBookConfig, loadBookConfigOverrides, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
 import { AppConfig } from "@adt/types"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import/marker.js"
 import { ensureProjectIdentity, projectIdentityForListing } from "./project-identity.js"
@@ -119,11 +119,12 @@ function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string
     if (!model) {
       // Telemetry is not proof of current output. Keep Library lightweight on
       // restart; explicit book/Preview/export access still performs full checks.
+      const hasPackage = fs.existsSync(publishedAdtDirectory(bookDir))
       return {
         completedStages: completed.filter(stage => stage !== "storyboard" && stage !== "package"),
         storyboardNeedsReview: false,
-        storyboardVerificationPending: pageIds.length > 0,
-        previewStatus: (pageIds.length > 0 ? "unverified" : "incomplete") as NonNullable<BookSummary["previewStatus"]>,
+        storyboardVerificationPending: completed.includes("storyboard") || completed.includes("package") || hasPackage,
+        previewStatus: (hasPackage ? "unverified" : "incomplete") as NonNullable<BookSummary["previewStatus"]>,
       }
     }
     const coverage = model.coverage

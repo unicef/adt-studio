@@ -32,7 +32,7 @@ export function RecoverBookCopyButton({ label, reason, onOpen }: { label: string
         {recovery.error && <p role="alert" className="text-sm text-destructive">{recovery.error instanceof ApiError && recovery.error.code === "BOOK_BUSY"
           ? t`Recovery cannot safely proceed because an active owner cannot be ruled out. Close other book apps and retry. If the refusal persists, restart your computer and try again.`
           : recovery.error instanceof ApiError && recovery.error.code === "BOOK_RECOVERY_COPY_DESTINATION_EXISTS"
-            ? t`That recovery copy name is already in use. Cancel and try again to use a new name. The original book is unchanged.`
+            ? t`That recovery copy name is already in use. Retry to use a new name. The original book is unchanged.`
           : recovery.error instanceof ApiError && recovery.error.code === "BOOK_RECOVERY_COPY_NO_SPACE"
             ? t`There is not enough disk space for the copy. Free space and retry. The original book is unchanged.`
           : recovery.error instanceof ApiError && recovery.error.code === "BOOK_RECOVERY_COPY_ACCESS_DENIED"

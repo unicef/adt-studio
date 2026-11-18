@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import { SCHEMA_VERSION } from "@adt/types"
 import {
   listBooks,
@@ -220,8 +220,7 @@ describe("listBooks", () => {
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],
-      previewStatus: "unverified",
-      storyboardVerificationPending: true,
+      previewStatus: "incomplete",
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
@@ -668,21 +667,55 @@ it("persists one stable identity when listing a healthy legacy book", () => {
 })
 
 
-it("RAC-13: cold Library defers Storyboard verification, then reuses only current verified coverage", () => {
-  createTestDb("summary"); addTestPages("summary", 2); addTestRenderings("summary", 2)
+it.each(["rewrite", "window", "part", "rollback"])("RAC-13: cold Library verifies on book access and invalidates on %s", change => {
+  createTestDb("summary"); addTestPages("summary", 2)
+  const bookDir = path.join(tmpDir, "summary")
+  const storage = createBookStorage("summary", tmpDir)
+  for (const id of ["pg001", "pg002"]) {
+    storage.putNodeData("page-sectioning", id, { reasoning: "", sections: [{
+      sectionId: id + "_sec001", sectionType: "content", pageNumber: Number(id.slice(2)),
+      isPruned: false, backgroundColor: "white", textColor: "black",
+      nodes: [{ nodeId: id + "_n001", role: "paragraph", text: "Saved page", isPruned: false }],
+    }] })
+    storage.putNodeData("web-rendering", id, { sections: [] })
+    storage.putNodeData("web-rendering", id, { sections: [{ sectionId: id + "_sec001", sectionIndex: 0,
+      sectionType: "content", reasoning: "", html: `<section data-section-id="${id}_sec001"><p data-id="${id}_n001">Saved page</p></section>`,
+    }] })
+  }
+  storage.close()
   markStepsDone("summary", ["web-rendering"])
-  expect(listBooks(tmpDir)[0]).toMatchObject({ storyboardVerificationPending: true, completedStages: [] })
-  // Detailed access still checks actual saved output, independent of run telemetry.
+  expect(listBooks(tmpDir)[0]).toMatchObject({ storyboardVerificationPending: true, completedStages: [], previewStatus: "incomplete" })
   const detail = getBook("summary", tmpDir)
+  expect(detail.completedStages).toContain("storyboard")
   const warm = listBooks(tmpDir)[0]
   expect(warm.storyboardVerificationPending).toBeUndefined()
   expect(warm.completedStages).toEqual(detail.completedStages)
-  const db = openBookDb(path.join(tmpDir, "summary/summary.db"))
-  // Same-version external rewrites cannot reuse a previous completion result.
-  db.run("UPDATE node_data SET data=? WHERE node=? AND item_id=?", ["{bad", "web-rendering", "pg001"])
-  db.close()
+  if (change === "rewrite") {
+    const db = openBookDb(path.join(bookDir, "summary.db"))
+    db.run("UPDATE node_data SET data=? WHERE node=? AND item_id=?", ["{bad", "web-rendering", "pg001"])
+    db.close()
+  } else if (change === "window") {
+    fs.writeFileSync(path.join(bookDir, "config.yaml"), "start_page: 1\nend_page: 1\n")
+  } else if (change === "part") {
+    fs.writeFileSync(path.join(bookDir, "part.json"), JSON.stringify({ adtPart: 1, sourceLabel: "source", title: null,
+      range: { startPage: 1, endPage: 1 }, pageCount: 2, fingerprint: {}, identityHash: "id", semanticsHash: "sem",
+      createdAt: "test", partLabelSuggestion: "part" }))
+  } else {
+    const writer = createBookStorage("summary", tmpDir)
+    expect(writer.setCurrentNodeVersion("web-rendering", "pg001", 1)).toBe(true)
+    writer.close()
+  }
   const changed = listBooks(tmpDir)[0]
   expect(changed.storyboardVerificationPending).toBe(true)
   expect(changed.completedStages).not.toContain("storyboard")
-  expect(getBook("summary", tmpDir).completedStages).not.toContain("storyboard")
+  const reopened = getBook("summary", tmpDir)
+  if (change === "rewrite" || change === "rollback") expect(reopened.completedStages).not.toContain("storyboard")
+  else expect(reopened.completedStages).toContain("storyboard")
+  expect(listBooks(tmpDir)[0].storyboardVerificationPending).toBeUndefined()
+})
+
+it("reports an existing package as unverified even without completed run telemetry", () => {
+  createTestDb("saved-package"); addTestPages("saved-package", 1)
+  fs.mkdirSync(path.join(tmpDir, "saved-package", "adt"))
+  expect(listBooks(tmpDir)[0]).toMatchObject({ storyboardVerificationPending: true, previewStatus: "unverified", completedStages: [] })
 })

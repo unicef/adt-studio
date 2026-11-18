@@ -12178,8 +12178,8 @@ msgstr "That didn't go through"
 msgid "That didn't resolve. Try again."
 msgstr "That didn't resolve. Try again."
 
-msgid "That recovery copy name is already in use. Cancel and try again to use a new name. The original book is unchanged."
-msgstr "That recovery copy name is already in use. Cancel and try again to use a new name. The original book is unchanged."
+msgid "That recovery copy name is already in use. Retry to use a new name. The original book is unchanged."
+msgstr "That recovery copy name is already in use. Retry to use a new name. The original book is unchanged."
 
 msgid "That reply didn't send. Try again."
 msgstr "That reply didn't send. Try again."

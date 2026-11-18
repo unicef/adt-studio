@@ -383,6 +383,12 @@ it.each([false, true])("keeps Save disabled and drafts intact during a delayed c
   expect(checking.disabled).toBe(true)
   expect(screen.queryByText("Changes not saved")).toBeNull()
   fireEvent.click(checking); expect(mocks.save).toHaveBeenCalledTimes(1)
+  // Navigation uses a separate Save entrypoint, so a disabled dialog button
+  // alone cannot prove that the in-flight reload excludes another save.
+  let navigationResult: unknown = "pending"
+  const navigationSave = leaveAction!.saveAndStay().catch(error => { navigationResult = error })
+  expect(mocks.save).toHaveBeenCalledTimes(1)
+  expect(navigationResult).toBe("pending")
   if (fails) {
     changeTitle("Newer local draft")
     await act(async () => { reload.reject(new Error("Reload unavailable")) })
@@ -395,6 +401,10 @@ it.each([false, true])("keeps Save disabled and drafts intact during a delayed c
     expect(title().value).toBe("My draft")
   }
   await waitFor(() => expect((saveButton() as HTMLButtonElement).disabled).toBe(false))
+  await navigationSave
+  expect(navigationResult).toBeInstanceOf(ApiError)
+  expect((navigationResult as ApiError).status).toBe(409)
+  expect(mocks.save).toHaveBeenCalledTimes(1)
   fireEvent.click(saveButton())
   await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2))
   expect(mocks.save.mock.calls[1][0].baseVersion).toBe(fails ? 1 : 2)
