@@ -12324,6 +12324,9 @@ msgstr "Kërkesa shfaqet si <0>Wrangler</0> — mjeti i vetë Cloudflare, përme
 msgid "The rules ADT Studio checks. Your assistant gets them with the repair request."
 msgstr "Rregullat që kontrollon ADT Studio. Asistenti juaj i merr bashkë me kërkesën për riparim."
 
+msgid "The same data-id is used on more than one page."
+msgstr "I njëjti data-id përdoret në më shumë se një faqe."
+
 msgid "The same edition in every language."
 msgstr "I njëjti botim në çdo gjuhë."
 

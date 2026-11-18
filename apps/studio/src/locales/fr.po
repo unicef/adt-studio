@@ -12324,6 +12324,9 @@ msgstr "La demande apparaît comme <0>Wrangler</0> — l'outil propre de Cloudfl
 msgid "The rules ADT Studio checks. Your assistant gets them with the repair request."
 msgstr "Les règles vérifiées par ADT Studio. Votre assistant les reçoit avec la demande de réparation."
 
+msgid "The same data-id is used on more than one page."
+msgstr "Le même data-id est utilisé sur plus d’une page."
+
 msgid "The same edition in every language."
 msgstr "La même édition dans chaque langue."
 

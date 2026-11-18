@@ -14,7 +14,7 @@ import {
 } from "@adt/types"
 
 import type { ReadAdtBundle } from "./bundle-reader.js"
-import { pageIdFromSection } from "./catalog.js"
+import { findCrossPageDuplicateIds, pageIdFromSection } from "./catalog.js"
 
 /**
  * Sections whose source page already ended earlier in the reading order.
@@ -190,6 +190,22 @@ export function assessAdtImportCompatibility(
         stylesheets.add(relativePath)
       }
     }
+  }
+  // The catalog keeps one entry per id, so an id on two pages is reported
+  // here, every one of them, rather than failing the read on the first (#1153).
+  for (const duplicate of findCrossPageDuplicateIds(
+    bundle.pages,
+    bundle.pageHtml,
+    bundle.sourceFormat === "legacy-studio-export",
+  )) {
+    const [first, ...others] = duplicate.hrefs
+    issues.push({
+      code: "cross-page-duplicate-data-id",
+      pageHref: first,
+      detail: others.length > 0
+        ? `${duplicate.id} (also on ${others.join(", ")})`
+        : duplicate.id,
+    })
   }
   const checkedStylesheets = new Set<string>()
   while (stylesheets.size > 0) {
