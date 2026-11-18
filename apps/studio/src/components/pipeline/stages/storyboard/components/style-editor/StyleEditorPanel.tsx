@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { isElementAudioNodeId } from "@adt/types"
 import { cn } from "@/lib/utils"
 import type { StyleEditorElementProps } from "./ElementActions"
 import {
@@ -328,7 +329,7 @@ function StyleEditorBody({
         {elementProps?.isImage ? (
           <ImageActionsSection dataId={dataId} elementProps={elementProps} />
         ) : null}
-        {elementProps?.isImage && pageId ? (
+        {elementProps?.isImage && pageId && !elementProps.isPruned && isElementAudioNodeId(dataId) ? (
           <AudioSection dataId={dataId} pageId={pageId} />
         ) : null}
         {elementType === "text" ? (

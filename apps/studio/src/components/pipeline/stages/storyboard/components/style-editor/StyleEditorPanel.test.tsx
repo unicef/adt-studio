@@ -70,4 +70,27 @@ describe("StyleEditorPanel inherited prune (#596)", () => {
     expect((toggle as HTMLButtonElement).disabled).toBe(true)
     expect(toggle?.parentElement?.getAttribute("title")).toBe(toggle?.getAttribute("aria-label"))
   })
+
+  it("does not offer element audio for a pruned image", () => {
+    const { container } = render(
+      <StyleEditorPanel
+        open
+        onClose={vi.fn()}
+        selectedDataId="pg001_im001"
+        selectedTagName="img"
+        elementClasses={[]}
+        elementProps={{
+          isImage: true,
+          isContainer: false,
+          isPruned: true,
+        }}
+        onClassesChange={vi.fn()}
+        deviceView="desktop"
+        pageId="pg001"
+        isFixedLayout
+      />
+    )
+
+    expect(container.textContent).not.toContain("Element audio")
+  })
 })

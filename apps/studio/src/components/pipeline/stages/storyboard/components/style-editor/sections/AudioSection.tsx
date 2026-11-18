@@ -63,7 +63,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
   const [restoring, setRestoring] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
-  const draftRef = useRef({ dataId, dirty: false })
+  const draftRef = useRef({ dataId, dirty: false, versions: query.data?.versions ?? {} })
   const valueRef = useRef(value)
   valueRef.current = value
   const baselineRef = useRef(baseline)
@@ -79,7 +79,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
   const latestVersionsRef = useRef(query.data?.versions ?? {})
   latestVersionsRef.current = query.data?.versions ?? {}
   useEffect(() => {
-    if (draftRef.current.dataId === dataId && draftRef.current.dirty) return
+    if (draftRef.current.dirty) return
     versionsRef.current = latestVersionsRef.current
   }, [dataId, query.data?.versions])
 
@@ -94,12 +94,16 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
         draftsRef.current.set(previous.dataId, {
           value: valueRef.current,
           baseline: baselineRef.current,
-          versions: versionsRef.current,
+          versions: previous.versions,
         })
       }
       const stored = draftsRef.current.get(dataId)
       if (stored) {
-        draftRef.current = { dataId, dirty: stored.value !== stored.baseline }
+        draftRef.current = {
+          dataId,
+          dirty: stored.value !== stored.baseline,
+          versions: stored.versions,
+        }
         versionsRef.current = stored.versions
         setValue(stored.value)
         setBaseline(stored.baseline)
@@ -112,7 +116,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
     } else if (previous.dirty) {
       return
     }
-    draftRef.current = { dataId, dirty: false }
+    draftRef.current = { dataId, dirty: false, versions: latestVersionsRef.current }
     setValue(savedText)
     setBaseline(savedText)
     setError(null)
@@ -121,14 +125,21 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
   const dirty = value !== baseline
 
   const updateValue = (next: string) => {
-    draftRef.current = { dataId, dirty: next !== baseline }
+    const wasDirty = draftRef.current.dirty
+    draftRef.current = {
+      dataId,
+      dirty: next !== baseline,
+      // Snapshot the base map when the draft starts, not when it is stored on
+      // a selection change: a background refetch must not re-base an open draft.
+      versions: wasDirty ? draftRef.current.versions : { ...versionsRef.current },
+    }
     setValue(next)
     setSaved(false)
     setError(null)
   }
 
   const discard = () => {
-    draftRef.current = { dataId, dirty: false }
+    draftRef.current = { dataId, dirty: false, versions: latestVersionsRef.current }
     draftsRef.current.delete(dataId)
     versionsRef.current = latestVersionsRef.current
     setValue(baseline)
@@ -149,7 +160,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
       queryClient.setQueryData(queryKey, view)
       versionsRef.current = view.versions
       draftsRef.current.delete(dataId)
-      draftRef.current = { dataId, dirty: false }
+      draftRef.current = { dataId, dirty: false, versions: view.versions }
       setBaseline(value)
       setSaved(true)
       await Promise.all([
@@ -195,7 +206,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
             onDiscard={discard}
             onRestoringChange={setRestoring}
             onRestored={() => {
-              draftRef.current = { dataId, dirty: false }
+              draftRef.current = { dataId, dirty: false, versions: versionsRef.current }
               void queryClient.invalidateQueries({ queryKey })
               void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
               void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] })
