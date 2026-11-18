@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   ElementAudioOutput,
   elementAudioTextId,
+  isElementAudioNodeId,
   isElementAudioTextId,
   parseElementAudioTextId,
 } from "../element-audio.js"
@@ -73,6 +74,15 @@ describe("elementAudioTextId", () => {
     expect(isElementAudioTextId("pg001_listen_audio")).toBe(false)
     expect(isElementAudioTextId("pg001_t001_audio")).toBe(false)
     expect(parseElementAudioTextId("pg001_listen_audio")).toBeNull()
+  })
+
+  it("AC-1/A6: the write path accepts image node ids only", () => {
+    expect(isElementAudioNodeId("pg001_im001")).toBe(true)
+    expect(isElementAudioNodeId("pg001_im1000_crop_v1")).toBe(true)
+    // A pre-existing legacy image id ending in `_audio` stays authorable.
+    expect(isElementAudioNodeId("pg001_im001_audio")).toBe(true)
+    expect(isElementAudioNodeId("pg001_t001")).toBe(false)
+    expect(isElementAudioNodeId("pg001_listen")).toBe(false)
   })
 
   it("AC-19: returns null for ids that are not element-audio ids", () => {

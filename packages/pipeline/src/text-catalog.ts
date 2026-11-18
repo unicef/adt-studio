@@ -342,7 +342,7 @@ export function findIntroducedCatalogConflict(
   return after?.find(conflict => !before?.some(previous => previous.id === conflict.id && conflict.texts.every(text => previous.texts.includes(text))))
 }
 
-interface ElementAudioLocation {
+export interface ElementAudioLocation {
   pageId: string
   sectionId: string
 }
@@ -353,7 +353,7 @@ interface ElementAudioLocation {
  * move between pages (`pages.ts` move-section). The derived catalog follows
  * the element's current location, not the artifact's page key.
  */
-function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<string, ElementAudioLocation> {
+export function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<string, ElementAudioLocation> {
   const index = new Map<string, ElementAudioLocation>()
   for (const page of pages) {
     const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
