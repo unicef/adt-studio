@@ -12766,8 +12766,8 @@ msgstr "Ky libër ende nuk është plotësuar — faqet <0>{0}</0> nuk janë bas
 msgid "This book isn't shared right now"
 msgstr "Ky libër nuk është ndarë tani"
 
-msgid "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, restart your computer and try again."
-msgstr "Ky libër mund të jetë ende në përdorim. Përfundoni çdo punë aktive dhe mbyllni aplikacionet e tjera të librave, pastaj provoni përsëri. Nëse mbetet i padisponueshëm, rinisni kompjuterin dhe provoni përsëri."
+msgid "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, go to Library, select this book, and choose Recover a copy. If recovery is also refused, restart your computer and try again."
+msgstr "Ky libër mund të jetë ende në përdorim. Përfundoni çdo punë aktive dhe mbyllni aplikacionet e tjera të librave, pastaj provoni përsëri. Nëse mbetet i padisponueshëm, shkoni te Biblioteka, zgjidhni këtë libër dhe zgjidhni Rikupero një kopje. Nëse refuzohet edhe rikuperimi, rinisni kompjuterin dhe provoni përsëri."
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinale të PDF-së. Fontet e bashkëngjitura gjithsesi udhëzojnë IA-në për aktivitetet dhe faqet e gjeneruara."

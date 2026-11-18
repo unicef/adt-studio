@@ -12764,8 +12764,8 @@ msgstr "Este livro ainda não está completo — as páginas <0>{0}</0> não for
 msgid "This book isn't shared right now"
 msgstr "Este livro não está compartilhado agora"
 
-msgid "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, restart your computer and try again."
-msgstr "Este livro ainda pode estar em uso. Conclua qualquer trabalho em andamento e feche outros aplicativos de livros; depois, tente novamente. Se ele continuar indisponível, reinicie o computador e tente novamente."
+msgid "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, go to Library, select this book, and choose Recover a copy. If recovery is also refused, restart your computer and try again."
+msgstr "Este livro ainda pode estar em uso. Conclua qualquer trabalho em andamento e feche outros aplicativos de livros; depois, tente novamente. Se ele continuar indisponível, acesse Biblioteca, selecione este livro e escolha Recuperar uma cópia. Se a recuperação também for recusada, reinicie o computador e tente novamente."
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Este livro é renderizado em layout fixo, então mantém as fontes originais do PDF. Fontes anexadas ainda orientam a IA em atividades e páginas geradas."

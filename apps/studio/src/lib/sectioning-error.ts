@@ -67,7 +67,7 @@ export function sectioningErrorMessage(error?: string, code?: string): string | 
       const total = error?.match(/; total=(\d+)/)?.[1] ?? ""
       return i18n._(msg`Generation failed on ${total} page(s) (showing up to 20): ${pages}. Successful pages are retained. Inspect the page errors before retrying.`)
     }
-    case "BOOK_BUSY": return i18n._(msg`This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, restart your computer and try again.`)
+    case "BOOK_BUSY": return i18n._(msg`This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, go to Library, select this book, and choose Recover a copy. If recovery is also refused, restart your computer and try again.`)
     case "STORYBOARD_INPUT_CHANGED": {
       const pages = error?.match(/STORYBOARD_INPUT_CHANGED:\s*([^;]*)/)?.[1]?.trim() ?? ""
       const total = error?.match(/; total=(\d+)/)?.[1]

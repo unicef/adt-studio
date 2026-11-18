@@ -7,7 +7,7 @@ import { BookWriterOwner, BookWriterReservation } from "@adt/types"
 
 export class BookBusyError extends Error {
   readonly code = "BOOK_BUSY"
-  constructor(message = "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, restart your computer and try again.") {
+  constructor(message = "This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, go to Library, select this book, and choose Recover a copy. If recovery is also refused, restart your computer and try again.") {
     super(`BOOK_BUSY: ${message}`)
     this.name = "BookBusyError"
   }
