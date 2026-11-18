@@ -2804,7 +2804,7 @@ export function createPageRoutes(
             // Extract inner content from remove section's <section> tag and append into keep section's <section>
             const innerContentMatch = removeEntry.html.match(/<section[^>]*>([\s\S]*)<\/section>/)
             const innerContent = innerContentMatch ? innerContentMatch[1] : removeEntry.html
-            keepEntry.html = keepEntry.html.replace(/<\/section>\s*$/, `${innerContent}</section>`)
+            keepEntry.html = keepEntry.html.replace(/<\/section>\s*$/, () => `${innerContent}</section>`)
           }
 
           // Remove the removeIdx rendering entry
