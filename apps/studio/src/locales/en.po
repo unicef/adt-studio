@@ -653,6 +653,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {page} other {pages}} review
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} pages"
 
+msgid "{pendingActivities} {pendingActivities, plural, one {activity page will} other {activity pages will}} also need a type"
+msgstr "{pendingActivities} {pendingActivities, plural, one {activity page will} other {activity pages will}} also need a type"
+
 msgid "{position} of {total}"
 msgstr "{position} of {total}"
 
@@ -1596,6 +1599,9 @@ msgstr "ADT Studio accepts ZIP archives up to 1 GiB compressed. Choose a smaller
 
 #~ msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
 #~ msgstr "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+
+msgid "ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can handle both at once."
+msgstr "ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can handle both at once."
 
 msgid "ADT Studio can’t import this ZIP"
 msgstr "ADT Studio can’t import this ZIP"
