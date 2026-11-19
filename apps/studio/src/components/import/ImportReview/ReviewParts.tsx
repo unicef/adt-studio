@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertCircle, Check as CheckIcon, Minus, X } from "lucide-react"
+import { AlertCircle, Check as CheckIcon, Minus, MoreHorizontal, X } from "lucide-react"
 import type { AnyImportPreview } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { FEATURES, featureStatus } from "./helpers"
@@ -217,19 +217,31 @@ export function FactList({ facts }: { facts: Array<{ label: string; value: strin
   )
 }
 
-/** The problems to fix, each with the file it is in and its code. */
+/** The problems to fix, each with the file it is in and its code, grouped by
+ * problem type. */
 export function IssueList({ issues }: { issues: Issue[] }) {
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
       {issues.map((issue, index) => issue.more ? (
-        <li key={`${issue.code}:more`} className="px-3.5 py-2 text-[12.5px] text-muted-foreground">
+        <li
+          key={`${issue.code}:more`}
+          className="flex items-center gap-2 bg-destructive/[0.06] px-3.5 py-2 text-[12.5px] font-medium text-foreground"
+        >
+          <MoreHorizontal aria-hidden="true" className="size-4 shrink-0 text-destructive" />
           {issue.text}
         </li>
       ) : (
         <li key={`${issue.code}:${issue.file}:${index}`} className="px-3.5 py-2.5">
           <div className="flex items-baseline justify-between gap-3">
             <code className="truncate font-mono text-xs font-semibold text-foreground">{issue.file}</code>
-            <code className="shrink-0 font-mono text-[11px] text-muted-foreground">{issue.code}</code>
+            <span className="flex shrink-0 items-baseline gap-2">
+              <code className="font-mono text-[11px] text-muted-foreground">{issue.code}</code>
+              {issue.countLabel ? (
+                <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-destructive">
+                  {issue.countLabel}
+                </span>
+              ) : null}
+            </span>
           </div>
           <p className="mt-1 break-words text-[13px] text-foreground">{issue.text}</p>
         </li>

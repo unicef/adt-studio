@@ -570,7 +570,9 @@ describe("ImportProject", () => {
 
     expect(await screen.findByText(/^61 .*to fix before import/)).toBeTruthy()
     expect(screen.getAllByText("unsupported-script")).toHaveLength(10)
-    expect(screen.getByText("+50 more with this problem")).toBeTruthy()
+    // The type's count on its first row, and what the list leaves out after its last.
+    expect(screen.getByText("60 found")).toBeTruthy()
+    expect(screen.getByText("+50 more of this problem, not listed here. The repair request includes them all.")).toBeTruthy()
     expect(screen.getByText("creditos.html")).toBeTruthy()
   })
 

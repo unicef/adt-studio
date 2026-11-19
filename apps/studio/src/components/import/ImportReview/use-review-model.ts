@@ -27,9 +27,10 @@ export type ReviewMode = "ready" | "activity" | "repair" | "blocked"
 export interface Stat { value: string | null; label: string; long?: boolean }
 export interface Status { tone: Tone; icon: LucideIcon; title: string; text: string }
 export interface Check { icon: LucideIcon; label: string; value: string; state: CheckState }
-/** One problem to fix. With `more`, a summary row instead: how many more of
- * that type the report left out. */
-export interface Issue { file: string; text: string; code: string; more?: number }
+/** One problem to fix. The first row of each problem type carries
+ * `countLabel`, how many of that type were found. With `more`, a summary row
+ * instead: how many more of that type the report left out. */
+export interface Issue { file: string; text: string; code: string; countLabel?: string; more?: number }
 /** One line of "Import will": done already, needs you before import, or
  * happens when you import (or later, for a part). */
 export interface Step { title: string; text: string; state: "done" | "todo" | "later"; status: string; noDivider?: boolean }
@@ -247,13 +248,26 @@ export function useReviewModel(
         { icon: FolderPlus, label: t`New, separate project`, value: repair ? t`Not yet` : t`Yes`, state: repair ? "off" : "ok" },
       ],
       issues: issues.flatMap((issue, index) => {
-        const row: Issue = { file: issue.pageHref, code: issue.code, text: issueText(issue.code, issue.pageHref, issue.detail) }
-        // After a type's last example, say how many more of it there are.
-        const lastOfType = issues[index + 1]?.code !== issue.code
         const shown = issues.filter((other) => other.code === issue.code).length
-        const more = (counts?.[issue.code] ?? shown) - shown
+        const total = counts?.[issue.code] ?? shown
+        const more = total - shown
+        // The first row of a type says how many of that type there are, the
+        // last one is followed by how many more the list leaves out.
+        const firstOfType = issues[index - 1]?.code !== issue.code
+        const lastOfType = issues[index + 1]?.code !== issue.code
+        const row: Issue = {
+          file: issue.pageHref,
+          code: issue.code,
+          text: issueText(issue.code, issue.pageHref, issue.detail),
+          ...(firstOfType && total > 1 ? { countLabel: t`${total} found` } : {}),
+        }
         return lastOfType && more > 0
-          ? [row, { file: "", code: issue.code, text: t`+${more} more with this problem`, more }]
+          ? [row, {
+              file: "",
+              code: issue.code,
+              text: t`+${more} more of this problem, not listed here. The repair request includes them all.`,
+              more,
+            }]
           : [row]
       }),
       steps: adtSteps(adt),

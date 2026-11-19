@@ -809,6 +809,9 @@ msgstr "{toggleShortcut} to toggle"
 msgid "{total, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{total, plural, one {# comment waiting} other {# comments waiting}}"
 
+msgid "{total} found"
+msgstr "{total} found"
+
 msgid "{total} here"
 msgstr "{total} here"
 
@@ -840,8 +843,9 @@ msgstr "/ Section {0}"
 msgid "+{more} more"
 msgstr "+{more} more"
 
-msgid "+{more} more with this problem"
-msgstr "+{more} more with this problem"
+msgid "+{more} more of this problem, not listed here. The repair request includes them all."
+msgstr "+{more} more of this problem, not listed here. The repair request includes them all."
+
 
 msgid "×4"
 msgstr "×4"

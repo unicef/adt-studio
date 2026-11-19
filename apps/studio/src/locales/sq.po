@@ -811,6 +811,9 @@ msgstr "{toggleShortcut} për të ndërruar"
 msgid "{total, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{total, plural, one {# koment në pritje} other {# komente në pritje}}"
 
+msgid "{total} found"
+msgstr "{total} të gjetura"
+
 msgid "{total} here"
 msgstr "{total} këtu"
 
@@ -842,8 +845,9 @@ msgstr "/ Seksioni {0}"
 msgid "+{more} more"
 msgstr "+{more} të tjera"
 
-msgid "+{more} more with this problem"
-msgstr "+{more} të tjera me këtë problem"
+msgid "+{more} more of this problem, not listed here. The repair request includes them all."
+msgstr "+{more} të tjera të këtij problemi, që nuk janë renditur këtu. Kërkesa për riparim i përfshin të gjitha."
+
 
 msgid "×4"
 msgstr "×4"
