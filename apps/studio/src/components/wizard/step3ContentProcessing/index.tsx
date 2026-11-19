@@ -29,7 +29,7 @@ const TITLE_FIGURE_EXTRACTION = msg`Figure Extraction`
 const SUBTITLE_FIGURE_EXTRACTION = msg`Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML.`
 
 const TITLE_REMOVE_WATERMARKS = msg`Remove Watermarks`
-const SUBTITLE_REMOVE_WATERMARKS = msg`Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed.`
+const SUBTITLE_REMOVE_WATERMARKS = msg`Detects a watermark repeated across pages — like a diagonal “for online reading only” notice — whether it is stamped as text or baked into scanned page images, and removes it from page renders, extracted images, and the book text. Turn off to keep pages exactly as printed.`
 
 const TITLE_SMART_CROPPING = msg`Smart Cropping`
 const SUBTITLE_SMART_CROPPING = msg`Best for complex content like textbooks - automatically trims stray text, artifacts, and extra margins from extracted images.`

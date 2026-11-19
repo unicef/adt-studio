@@ -11,6 +11,16 @@ import { createGoogleImageBackend, googleImageCapabilities, isGoogleImageModel }
 import { listGoogleModels } from "./discovery.js"
 
 export const GOOGLE_PROVIDER_ID = "google"
+
+/**
+ * Google AI Studio keys; loose shape check only. AI Studio issues both the
+ * classic `AIza…` keys and the newer `AQ.…` ones (some accounts can only
+ * create the latter), so both must pass. Shared with Gemini Speech, which
+ * takes the same key.
+ */
+export const GOOGLE_API_KEY_PATTERN = "^(AIza[A-Za-z0-9_-]+|AQ\\.[A-Za-z0-9._-]+)$"
+export const GOOGLE_API_KEY_PLACEHOLDER = "AIza… / AQ.…"
+
 const ADAPTER_VERSION = "google-1"
 
 const credentialSchema = z
@@ -37,6 +47,8 @@ export const googleManifest: ProviderManifest = {
       legacyHeaders: [],
       storageKey: "adt-studio-google-key",
       legacyStorageKeys: [],
+      placeholder: GOOGLE_API_KEY_PLACEHOLDER,
+      pattern: GOOGLE_API_KEY_PATTERN,
     },
   ],
   capabilities: {

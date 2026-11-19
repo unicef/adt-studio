@@ -20,7 +20,7 @@ export interface ExtraZipEntry {
 
 export interface ZipStreamOptions {
   /** Top-level directory names to skip (e.g. "adt", "webpub"). */
-  excludeDirs?: Set<string>
+  excludeDirs?: ReadonlySet<string>
   /** In-memory entries appended after the on-disk files. Override on-disk
    *  files with the same path by listing them in `excludeFiles`. */
   extraEntries?: ExtraZipEntry[]
@@ -32,7 +32,7 @@ export interface ZipStreamOptions {
 /**
  * Collect relative file paths under a directory (lightweight — no file content read).
  */
-export function collectFilePaths(dir: string, prefix = "", excludeDirs?: Set<string>): string[] {
+export function collectFilePaths(dir: string, prefix = "", excludeDirs?: ReadonlySet<string>): string[] {
   const result: string[] = []
   const entries = fs.readdirSync(dir, { withFileTypes: true })
   for (const entry of entries) {

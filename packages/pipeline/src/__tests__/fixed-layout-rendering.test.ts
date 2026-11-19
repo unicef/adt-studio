@@ -1151,4 +1151,38 @@ describe("processFixedLayoutPages", () => {
       storage.close()
     }
   })
+
+  it("leaves an already-rendered page alone when there is no positioned text", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fl-no-postext-"))
+    const storage = createBookStorage("book", dir)
+    try {
+      storage.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "",
+        pageImage: makeImage("pg001_page", "pg001", 800, 600),
+        images: [makeImage("pg001_im001", "pg001", 600, 400, { x: 0, y: 0, width: 600, height: 400 })],
+      })
+      // An imported fixed-layout page renders, but was never extracted from a
+      // PDF — there is no positioned text to rebuild it from. Rebuilding anyway
+      // would replace it with an empty `#content`.
+      const imported = {
+        sections: [{
+          sectionIndex: 0,
+          sectionType: "fixed-layout-page",
+          reasoning: "Imported.",
+          html: '<div id="content" data-fl-reference-width="1145" style="position:relative;width:1145px;height:692px"><p data-id="p1">Hi</p></div>',
+        }],
+      }
+      storage.putNodeData("web-rendering", "pg001", imported)
+
+      processFixedLayoutPages(storage, "/api/books/book/images")
+
+      expect(storage.getLatestNodeData("web-rendering", "pg001")!.data).toEqual(imported)
+      expect(storage.getLatestNodeData("fixed-layout-sectioning", "pg001")).toBeNull()
+    } finally {
+      storage.close()
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })

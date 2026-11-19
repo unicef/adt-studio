@@ -52,10 +52,14 @@ export async function listAnthropicModels(
   }
 
   if (!response.ok) {
+    // Only a 401 (authentication_error) means the key itself was refused; a
+    // 403 (permission_error) is a valid key without access to the listing.
     const code =
-      response.status === 401 || response.status === 403
+      response.status === 401
         ? "missing-credential"
-        : "unreachable"
+        : response.status === 403
+          ? "unsupported"
+          : "unreachable"
     throw new ModelDiscoveryError(code, `Model listing failed with HTTP ${response.status}`)
   }
 

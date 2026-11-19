@@ -6,9 +6,15 @@ import {
 } from "../extract-editable-activity.js"
 import { buildActivityOutline, applyActivityHeader } from "../activity-outline.js"
 import {
+  expandImportedStepperShell,
   renderEditableActivityHtml,
   replaceStepperShellsWithStaticHtml,
 } from "../render-editable-activity.js"
+import {
+  inspectImportedHtmlContract,
+  projectImportedHtmlSection,
+  stampImportedSectionContract,
+} from "../adt-round-trip/html.js"
 import { DEFAULT_QUIZ_PALETTE } from "../quiz-palette.js"
 
 // ---------------------------------------------------------------------------
@@ -423,6 +429,40 @@ describe("replaceStepperShellsWithStaticHtml", () => {
     // Pages without shells pass through untouched.
     const plain = "<html><body><p>hi</p></body></html>"
     expect(replaceStepperShellsWithStaticHtml(plain)).toBe(plain)
+  })
+})
+
+// F5: an untouched stepper page re-imports, and the activity comes back.
+describe("expandImportedStepperShell", () => {
+  function stepperPage(sectionId: string) {
+    const { activity } = extractEditableActivity({
+      html: FITB_CARDS,
+      sectionType: "activity_fill_in_the_blank",
+      activityAnswers: { "item-1": "cat", "item-2": "dog" },
+    })
+    if (!activity) throw new Error("extraction failed")
+    const shell = stampImportedSectionContract(
+      renderEditableActivityHtml({ ...activity, enabled: true }, { palette: DEFAULT_QUIZ_PALETTE }),
+      sectionId,
+      activity.sectionType,
+    )
+    return { activity, page: `<html><body><main><div id="content">${shell}</div></main></body></html>` }
+  }
+
+  it("passes the importer's contract and projects the step texts", () => {
+    const { page } = stepperPage("pg004_sec001")
+    expect(inspectImportedHtmlContract(page, "pg004_sec001").issues).toEqual([])
+    const projection = projectImportedHtmlSection(page, "pg004_sec001")
+    expect(projection.sectionType).toBe("activity_fill_in_the_blank")
+    expect(projection.html).toContain('data-section-id="pg004_sec001"')
+    expect(projection.nodes.length).toBeGreaterThan(0)
+  })
+
+  it("returns the activity from the payload, for a matching section only", () => {
+    const { page, activity } = stepperPage("pg004_sec001")
+    expect(expandImportedStepperShell(page, "pg004_sec001")?.activity).toEqual({ ...activity, enabled: true })
+    expect(expandImportedStepperShell(page, "pg009_sec001")).toBeNull()
+    expect(expandImportedStepperShell("<p>plain</p>", "pg004_sec001")).toBeNull()
   })
 })
 

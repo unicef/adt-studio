@@ -82,6 +82,7 @@ import {
   getSegmentedImageId,
   segmentBoundsOnPage,
   loadBookConfig,
+  resolveBookLanguage,
   applyCrop,
   generateStyleguide,
   buildBookFontsPromptContext,
@@ -98,6 +99,8 @@ import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEn
 import type { ResolvedCredentials } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
+import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
+import { isImportedAdtProject } from "../services/adt-import/source.js"
 
 /**
  * Lazily-initialized shared Playwright renderer for section screenshots.
@@ -106,6 +109,24 @@ import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/d
  * screenshot call opens its own browser context inside it.
  */
 let sharedScreenshotRendererPromise: Promise<ScreenshotRenderer> | null = null
+
+/** Where the screenshot browser loads an imported ADT's presentation assets.
+ * The request's Host header is client-controlled and also feeds the page's
+ * CSP, so the origin is always this server's own loopback listener. */
+function importedAdtBaseHref(requestUrl: string, label: string, localPort?: number): string {
+  const url = new URL(requestUrl)
+  url.protocol = "http:"
+  url.hostname = "127.0.0.1"
+  if (localPort) url.port = String(localPort)
+  const booksSegment = "/books/"
+  const booksIndex = url.pathname.indexOf(booksSegment)
+  const routePrefix = booksIndex >= 0 ? url.pathname.slice(0, booksIndex) : ""
+  url.pathname = `${routePrefix}/books/${encodeURIComponent(label)}/adt/`
+  url.search = ""
+  url.hash = ""
+  return url.href
+}
+
 function getSharedScreenshotRenderer(): Promise<ScreenshotRenderer> {
   if (!sharedScreenshotRendererPromise) {
     sharedScreenshotRendererPromise = createScreenshotRenderer().catch((err) => {
@@ -508,6 +529,64 @@ function clearCaptionData(storage: Storage): void {
   // Catalog outputs and attempt history survive edits. Their current input
   // signatures, not cleared completion rows, determine freshness.
   storage.clearNodesByType(["accessibility-assessment"])
+}
+
+/** The page's current image-filtering list; 409 when Extract hasn't made one. */
+function readPageImageList(storage: Storage, pageId: string): { version: number; data: ImageClassificationOutput } {
+  const row = storage.getLatestNodeData("image-filtering", pageId)
+  const parsed = ImageClassificationOutput.safeParse(row?.data)
+  if (!row || !parsed.success) {
+    throw new HTTPException(409, { message: `Page ${pageId} has no extracted image list yet. Run Extract first.` })
+  }
+  return { version: row.version, data: parsed.data }
+}
+
+/** Append an image, unpruned, to the page's current image-filtering list as a
+ *  new version. Returns that version (or the current one if already listed). */
+function addImageToPageList(storage: Storage, pageId: string, imageId: string): number {
+  return storage.transaction(() => {
+    const current = readPageImageList(storage, pageId)
+    if (current.data.images.some((img) => img.imageId === imageId)) return current.version
+    return storage.putNodeData("image-filtering", pageId, {
+      ...current.data,
+      images: [...current.data.images, { imageId, isPruned: false }],
+    })
+  })
+}
+
+/** `addToPage` on the crop/upload routes is checked before anything is
+ *  written, so a refused add leaves no image behind. */
+function assertPageImageList(safeLabel: string, booksDir: string, pageId: string): void {
+  const storage = createBookStorage(safeLabel, booksDir)
+  try {
+    readPageImageList(storage, pageId)
+  } finally {
+    storage.close()
+  }
+}
+
+/** Add an image created earlier in this request to its page's image list. If
+ *  that fails, remove the image again (row + file) so the failed add leaves
+ *  nothing unreferenced behind and a retry starts clean. */
+function addCreatedImageToPage(
+  storage: Storage,
+  db: ReturnType<typeof openBookDb>,
+  bookDir: string,
+  image: { imageId: string; pageId: string; relativePath: string; createdHere: boolean },
+): number {
+  try {
+    return addImageToPageList(storage, image.pageId, image.imageId)
+  } catch (err) {
+    if (image.createdHere) {
+      try {
+        db.run("DELETE FROM images WHERE image_id = ?", [image.imageId])
+        fs.rmSync(path.join(bookDir, image.relativePath), { force: true })
+      } catch {
+        // Best effort — report the original failure.
+      }
+    }
+    throw err
+  }
 }
 
 const RestorableNode = z.enum([
@@ -1304,10 +1383,37 @@ export function createPageRoutes(
     return c.json({ suggestions: detectSpreads(samples) })
   })
 
+  // One spread apply per book at a time. Each apply works out what to add and
+  // remove from the pages it reads at the start, and extraction yields to the
+  // event loop while a watermark stamp is learned. Without this a second apply
+  // could run from start to finish in that gap, and the first would then
+  // finish on top of it, leaving pages that match neither request.
+  //
+  // `sent` is the request body, which the route starts reading as the request
+  // arrives. Read only when the apply's turn came, it could no longer be read
+  // if the client had gone away meanwhile, and the apply would take that for
+  // "no spreads" and split every merged spread in the book.
+  const spreadApplies = new Map<string, Promise<unknown>>()
+  const oneSpreadApplyPerBook = <R>(
+    book: string,
+    sent: Promise<unknown>,
+    apply: (body: unknown) => Promise<R>,
+  ): Promise<R> => {
+    // Wait for the apply before this one, whether it succeeded or failed.
+    const start = async () => apply(await sent)
+    const run = (spreadApplies.get(book) ?? Promise.resolve()).then(start, start)
+    spreadApplies.set(book, run)
+    const forget = () => {
+      if (spreadApplies.get(book) === run) spreadApplies.delete(book)
+    }
+    run.then(forget, forget)
+    return run
+  }
+
   // POST /books/:label/spreads/apply — Reconcile the extracted pages to the
   // given spread pairs by (re)extracting only the affected pairs and splicing
   // them in, instead of re-running the whole extraction.
-  app.post("/books/:label/spreads/apply", async (c) => {
+  app.post("/books/:label/spreads/apply", (c) => oneSpreadApplyPerBook(c.req.param("label"), c.req.json().catch(() => ({})), async (body) => {
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
     const dbPath = getDbPath(safeLabel, booksDir)
@@ -1318,7 +1424,6 @@ export function createPageRoutes(
       })
     }
 
-    const body = await c.req.json().catch(() => ({}))
     const parsed = z
       .object({ spreadPairs: z.array(z.number().int().min(1)).default([]) })
       .safeParse(body)
@@ -1427,7 +1532,7 @@ export function createPageRoutes(
       removed: toRemove.length,
       pageCount: storage.getPages().length,
     })
-  })
+  }))
 
   // GET /books/:label/pages/:pageId/sections/:sectionIndex/screenshot — Rendered section as PNG
   // Lazily generates a Playwright screenshot of the section's rendered HTML and
@@ -1492,6 +1597,7 @@ export function createPageRoutes(
       const storage = createBookStorage(safeLabel, booksDir)
       const images = new Map<string, { base64: string }>()
       let typographyCss = ""
+      let language: string
       try {
         for (const id of referencedImageIds) {
           try {
@@ -1501,16 +1607,37 @@ export function createPageRoutes(
           }
         }
         typographyCss = resolveTypographyCss(storage)
+        language = resolveBookLanguage(storage, loadBookConfig(safeLabel, booksDir, configPath))
       } finally {
         storage.close()
       }
 
+      const importedPresentation = isImportedAdtProject(bookDir)
+        ? getImportedAdtPresentationAssets(safeLabel, booksDir)
+        : null
       const screenshotHtml = await buildScreenshotHtml({
         sectionHtml,
         label: safeLabel,
         images,
         webAssetsDir,
         typographyCss,
+        language,
+        ...(importedPresentation
+          ? {
+              baseHref: importedAdtBaseHref(
+                c.req.url,
+                safeLabel,
+                (c.env as { incoming?: { socket?: { localPort?: number } } } | undefined)?.incoming?.socket?.localPort,
+              ),
+              stylesheets: [...new Set([
+                "content/tailwind_output.css",
+                "assets/libs/fontawesome/css/all.min.css",
+                "assets/fonts.css",
+                ...importedPresentation.stylesheets,
+              ])],
+              contentClassName: importedPresentation.contentClasses.join(" "),
+            }
+          : {}),
       })
 
       // Cache key incorporates HTML + viewport so cache invalidates whenever
@@ -2677,7 +2804,7 @@ export function createPageRoutes(
             // Extract inner content from remove section's <section> tag and append into keep section's <section>
             const innerContentMatch = removeEntry.html.match(/<section[^>]*>([\s\S]*)<\/section>/)
             const innerContent = innerContentMatch ? innerContentMatch[1] : removeEntry.html
-            keepEntry.html = keepEntry.html.replace(/<\/section>\s*$/, `${innerContent}</section>`)
+            keepEntry.html = keepEntry.html.replace(/<\/section>\s*$/, () => `${innerContent}</section>`)
           }
 
           // Remove the removeIdx rendering entry
@@ -3143,6 +3270,9 @@ export function createPageRoutes(
     }
     validateImageId(pageId)
     validateImageId(sourceImageId)
+    // `addToPage`: also add the crop to the page's image list in this request.
+    const addToPage = formData.get("addToPage") === "true"
+    if (addToPage) assertPageImageList(safeLabel, booksDir, pageId)
 
     const buffer = Buffer.from(await imageFile.arrayBuffer())
     const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
@@ -3182,6 +3312,9 @@ export function createPageRoutes(
         height = buffer.readUInt32BE(20)
       }
 
+      // A failed add only removes a row this request created, never one the
+      // upsert below overwrote.
+      const createdHere = db.all("SELECT 1 FROM images WHERE image_id = ?", [newImageId]).length === 0
       db.run(
         `INSERT INTO images (image_id, page_id, path, hash, width, height, source)
          VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -3197,13 +3330,19 @@ export function createPageRoutes(
 
       // Clear caption data since the image content changed
       const storage = createBookStorage(safeLabel, booksDir)
+      let imageFilteringVersion: number | undefined
       try {
+        if (addToPage) {
+          imageFilteringVersion = addCreatedImageToPage(storage, db, bookDir, {
+            imageId: newImageId, pageId, relativePath: `images/${filename}`, createdHere,
+          })
+        }
         clearCaptionData(storage)
       } finally {
         storage.close()
       }
 
-      return c.json({ imageId: newImageId, width, height })
+      return c.json({ imageId: newImageId, width, height, ...(imageFilteringVersion !== undefined && { imageFilteringVersion }) })
     } finally {
       db.close()
     }
@@ -3232,6 +3371,9 @@ export function createPageRoutes(
       throw new HTTPException(400, { message: "Missing pageId" })
     }
     validateImageId(pageId)
+    // `addToPage`: also add the upload to the page's image list in this request.
+    const addToPage = formData.get("addToPage") === "true"
+    if (addToPage) assertPageImageList(safeLabel, booksDir, pageId)
 
     const buffer = Buffer.from(await imageFile.arrayBuffer())
     const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
@@ -3283,13 +3425,20 @@ export function createPageRoutes(
 
       // Clear caption data since a new image was added
       const storage = createBookStorage(safeLabel, booksDir)
+      let imageFilteringVersion: number | undefined
       try {
+        if (addToPage) {
+          // Plain INSERT above: the row is always this request's own.
+          imageFilteringVersion = addCreatedImageToPage(storage, db, bookDir, {
+            imageId: newImageId, pageId, relativePath: `images/${filename}`, createdHere: true,
+          })
+        }
         clearCaptionData(storage)
       } finally {
         storage.close()
       }
 
-      return c.json({ imageId: newImageId, width, height })
+      return c.json({ imageId: newImageId, width, height, ...(imageFilteringVersion !== undefined && { imageFilteringVersion }) })
     } finally {
       db.close()
     }

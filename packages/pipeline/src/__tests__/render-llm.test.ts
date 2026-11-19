@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { GenerateObjectResult, LLMModel } from "@adt/llm"
+import type { GenerateObjectOptions, GenerateObjectResult, LLMModel } from "@adt/llm"
 import {
   collectOptionalTextIds,
   minimumLearnerResponseCount,
@@ -264,5 +264,100 @@ describe("renderSectionLlm visual review routing", () => {
     expect(calls).toHaveLength(1)
     expect(calls[0].promptName).toBe("visual_review")
     expect(calls[0].context.user_instructions).toBe("")
+  })
+})
+
+// SPEC-0024: the page the render call returns goes into the messages of the
+// calls that follow it, and the cache key hashes those messages. So what the
+// rewrite does to a page decides whether those calls run again.
+describe("renderSectionLlm direction-neutral rewrite and the calls that read the page", () => {
+  const WRITTEN_HTML =
+    '<div id="content" class="container"><section role="region" data-section-type="text_only" data-section-id="s1">' +
+    '<p class="text-left" data-id="t1">Hello</p></section></div>'
+
+  // Applies the validate hook the way the client does: the caller gets the
+  // validator's cleaned result, not what the model wrote.
+  const renderModel: LLMModel = {
+    renderPrompt: async () => [{ role: "system", content: "You are a renderer." }],
+    generateObject: async <T>(opts: GenerateObjectOptions) => {
+      const written = { reasoning: "rendered", content: WRITTEN_HTML }
+      const checked = opts.validate?.(written, opts.context ?? {})
+      expect(checked?.errors ?? []).toEqual([])
+      return { object: (checked?.cleaned ?? written) as T } as GenerateObjectResult<T>
+    },
+  }
+
+  /** Everything the review call is sent, as one string, and the stored page. */
+  async function reviewed(pageDirection: "rtl" | "ltr" | undefined): Promise<{ sent: string; stored: string }> {
+    const sent: unknown[] = []
+    const reviewModel: LLMModel = {
+      renderPrompt: async (_promptName, context) => {
+        sent.push(context.current_html)
+        return [{ role: "system", content: "You are a reviewer." }]
+      },
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        sent.push(opts.messages)
+        return {
+          object: { approved: true, reasoning: "looks good", content: "" } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+    const rendering = await renderSectionLlm(
+      {
+        label: "book",
+        pageId: "pg001",
+        pageImageBase64: "cGFnZQ==",
+        sectionIndex: 0,
+        section: {
+          sectionId: "s1",
+          sectionType: "text_only",
+          backgroundColor: "#fff",
+          textColor: "#000",
+          pageNumber: 1,
+          isPruned: false,
+          nodes: [],
+        },
+        context: {
+          nodes: [{ node_id: "t1", role: "paragraph", text: "Hello" }],
+          leaf_texts: [{ text_id: "t1", text_type: "paragraph", text: "Hello" }],
+          image_refs: [],
+          group_ids: [],
+        },
+        pageDirection,
+      },
+      {
+        renderType: "llm",
+        promptName: "web_generation_html",
+        modelId: "openai:gpt-5.4",
+        maxRetries: 1,
+        timeoutMs: 1000,
+        temperature: 0.2,
+        answerPromptName: "",
+        templateName: "",
+        visualRefinement: { enabled: true, promptName: "visual_review", maxIterations: 1, timeoutMs: 1000, temperature: 0.2 },
+      },
+      renderModel,
+      {
+        screenshotRenderer: { screenshot: async () => "aGVsbG8=", close: async () => {} },
+        webAssetsDir: "/tmp/nonexistent",
+        llmModel: reviewModel,
+      },
+    )
+    return { sent: JSON.stringify(sent), stored: rendering.html }
+  }
+
+  it("AC-20: sends the review the same page whether or not a left-to-right book has a right-to-left translation", async () => {
+    const alone = await reviewed(undefined)
+    const withTranslation = await reviewed("ltr")
+    expect(alone.sent).toContain("text-left")
+    expect(withTranslation.sent).toBe(alone.sent)
+    expect(withTranslation.stored).toBe(alone.stored)
+  })
+
+  it("AC-20: sends the review the rewritten page for a right-to-left book, which is what is stored", async () => {
+    const { sent, stored } = await reviewed("rtl")
+    expect(sent).toContain("text-end")
+    expect(sent).not.toContain("text-left")
+    expect(stored).toContain('class="text-end" data-id="t1"')
   })
 })
