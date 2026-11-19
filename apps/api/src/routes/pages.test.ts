@@ -2202,6 +2202,82 @@ describe("Page routes", () => {
       }
     })
 
+    it("preserves a legacy image id ending _audio across a cross-page merge", async () => {
+      seedBothPages()
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const row = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!
+        const data = row.data as { sections: Array<{ nodes: Array<Record<string, unknown>> }> }
+        data.sections[0].nodes.push({
+          nodeId: `${label}_p1_im999_audio`,
+          isPruned: false,
+          role: "image",
+          text: "",
+        })
+        storage.putNodeData("page-sectioning", `${label}_p1`, data)
+      } finally {
+        storage.close()
+      }
+
+      const res = await requestPageEdit(
+        `/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+    })
+
+    it("preserves an extracted legacy image id ending _audio on a page save", async () => {
+      seedBothPages()
+      const targetId = `${label}_p1_im999_audio`
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.putExtractedPage({
+          pageId: `${label}_p1`,
+          pageNumber: 1,
+          text: "Page one",
+          pageImage: {
+            imageId: `${label}_p1_page`,
+            buffer: Buffer.from("page"),
+            format: "png",
+            hash: "page",
+            width: 1,
+            height: 1,
+          },
+          images: [
+            {
+              imageId: targetId,
+              buffer: Buffer.from("image"),
+              format: "png",
+              hash: "image",
+              width: 1,
+              height: 1,
+            },
+          ],
+        })
+      } finally {
+        seed.close()
+      }
+
+      const storage = createBookStorage(label, tmpDir)
+      let data: { sections: Array<{ nodes: Array<Record<string, unknown>> }> }
+      try {
+        data = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!.data as typeof data
+        data.sections[0].nodes.push({ nodeId: targetId, isPruned: false, role: "image", text: "" })
+      } finally {
+        storage.close()
+      }
+
+      const res = await requestPageEdit(
+        `/api/books/${label}/pages/${label}_p1/sectioning`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }
+      )
+      expect(res.status).toBe(200)
+    })
+
     it("cannot claim the Storyboard is complete while both renderings are empty", async () => {
       seedBothPages()
       const storage = createBookStorage(label, tmpDir)

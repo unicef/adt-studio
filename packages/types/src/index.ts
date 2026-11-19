@@ -308,6 +308,15 @@ export {
 } from "./image-captioning.js"
 
 export {
+  ELEMENT_AUDIO_NODE,
+  ElementAudioEntry,
+  ElementAudioOutput,
+  elementAudioTextId,
+  parseElementAudioTextId,
+  isElementAudioTextId,
+} from "./element-audio.js"
+
+export {
   EDITABLE_ACTIVITY_NODE,
   BLANK_MARKER_RE,
   blankItemIdsInText,

@@ -51,7 +51,7 @@ import {
   generateSpeechFile,
   generatePageSpeechFiles,
   speechPageId,
-  supportsPageBatchedSpeech,
+  isBatchableSpeechEntry,
   generateWordTimestamps,
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
@@ -977,7 +977,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         targetVoice: string
       }) => {
         const pageId = speechPageId(textEntry.id, status.pageIds)
-        const pageBatch = config.speech?.batch_by_page && options.targetProvider === "gemini" && supportsPageBatchedSpeech(normalizedLanguage) && pageId && !textEntry.id.endsWith("_easy_read")
+        const pageBatch = isBatchableSpeechEntry(pageId, options.targetProvider, normalizedLanguage, config.speech)
         const itemFallback = !!pageBatch && !openaiApiKey && !config.speech?.word_highlighting
         if (pageBatch && !itemFallback) {
           if (!openaiApiKey) throw new HTTPException(400, { message: "Page-batched speech requires an OpenAI key for audio alignment." })
