@@ -20,7 +20,16 @@ Doctor (read-only compatibility check of existing books):
               Reports per book: schema version, stale lock files, rendered
               sections without a provable owner, duplicate text ids, and
               catalog ids that re-key on this version. Writes nothing.
-              Exit code 0 = no findings, 1 = findings, 2 = a book could not be read.`
+              Exit code 0 = no findings, 1 = findings, 2 = a book could not be read.
+
+Extract report (read-only account of what Extract produced and cost):
+  pnpm pipeline extract-report [books-dir] [--label <label>] [--compare <label>]
+                               [--json] [--csv pages|tasks] [--config <path>]
+              Reports per book: text-layer coverage, extracted and duplicate
+              images, deterministic and model pruning, and every Extract LLM
+              task's calls, cache hits (misses attributed), failures, tokens,
+              latency and estimated cost. --compare diffs two books of the same
+              PDF. Writes nothing. Same exit codes as doctor.`
 
 const ParsedCliArgsSchema = z
   .object({

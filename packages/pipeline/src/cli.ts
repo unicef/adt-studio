@@ -7,6 +7,7 @@ import type { StepName, StageName, ProgressEvent } from "@adt/types"
 import { parseCliArgs, USAGE } from "./cli-args.js"
 import { runFullPipeline } from "./pipeline-dag.js"
 import { diagnoseBook, diagnoseBooks, formatDiagnosis, hasFindings } from "./book-doctor.js"
+import { diffExtractReports, extractReportCsv, formatExtractReport, formatExtractReportDiff, hasExtractFindings, reportExtract, reportExtracts } from "./extract-report.js"
 import type { Progress } from "./progress.js"
 
 function log(msg: string): void {
@@ -129,6 +130,44 @@ function runDoctor(args: string[]): void {
   process.exitCode = reports.some((report) => report.error) ? 2 : reports.some(hasFindings) ? 1 : 0
 }
 
+/** `pipeline extract-report [books-dir] [--label <label>] [--compare <label>] [--json] [--csv pages|tasks] [--config <path>]`: read-only. */
+function runExtractReport(args: string[]): void {
+  let booksDir = "books"
+  let label: string | undefined
+  let compare: string | undefined
+  let configPath: string | undefined
+  let csv: "pages" | "tasks" | undefined
+  let json = false
+  const value = (index: number, option: string): string => {
+    const next = args[index]
+    if (next === undefined || next.startsWith("--")) throw new Error(`${option} needs a value`)
+    return next
+  }
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]
+    if (arg === "--json") json = true
+    else if (arg === "--label") label = value(++index, arg)
+    else if (arg === "--compare") compare = value(++index, arg)
+    else if (arg === "--config") configPath = value(++index, arg)
+    else if (arg === "--csv") {
+      const kind = value(++index, arg)
+      if (kind !== "pages" && kind !== "tasks") throw new Error(`--csv expects "pages" or "tasks", got ${kind}`)
+      csv = kind
+    }
+    else if (arg.startsWith("--")) throw new Error(`Unknown extract-report option: ${arg}`)
+    else booksDir = arg
+  }
+  if (compare && !label) throw new Error("--compare needs --label for the baseline book")
+  const reports = label ? [reportExtract(booksDir, label, configPath)] : reportExtracts(booksDir, configPath)
+  if (compare) reports.push(reportExtract(booksDir, compare, configPath))
+  const diff = compare ? diffExtractReports(reports[0], reports[1]) : undefined
+  if (json) process.stdout.write(JSON.stringify(diff ? { reports, diff } : reports, null, 2) + "\n")
+  else if (csv) process.stdout.write(extractReportCsv(reports, csv))
+  else if (reports.length === 0) process.stdout.write(`No books found under ${path.resolve(booksDir)}\n`)
+  else process.stdout.write(reports.map(formatExtractReport).concat(diff ? [formatExtractReportDiff(diff)] : []).join("\n") + "\n")
+  process.exitCode = reports.some((report) => report.error) ? 2 : reports.some(hasExtractFindings) ? 1 : 0
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
 
@@ -139,6 +178,11 @@ async function main(): Promise<void> {
 
   if (args[0] === "doctor") {
     runDoctor(args.slice(1))
+    return
+  }
+
+  if (args[0] === "extract-report") {
+    runExtractReport(args.slice(1))
     return
   }
 
