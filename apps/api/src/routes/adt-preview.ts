@@ -42,6 +42,8 @@ import {
   renderPageHtml,
   NAV_HTML,
   buildPreviewTailwindCss,
+  resolvePageDirection,
+  neutralizeDirectionMarkup,
   resolveTypographyCss,
   resolveQuizPalette,
   buildGlossaryJson,
@@ -70,6 +72,7 @@ import {
   getReadyCoreTtsEntries,
   resolveNarratorLabel,
 } from "@adt/pipeline"
+import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
 
 // ---------------------------------------------------------------------------
 // MIME type helper
@@ -563,6 +566,15 @@ export function createAdtPreviewRoutes(
     return c.body(JSON.stringify(previewConfig))
   })
 
+  // Custom styles from an imported ADT are loaded into the Storyboard iframe
+  // so the normal editor preserves the external design while keeping custom
+  // scripts out of the editing surface.
+  app.get("/books/:label/adt-preview/assets/imported-presentation.json", (c) => {
+    const { safeLabel } = resolveBook(c.req.param("label"))
+    setNoStoreHeaders(c)
+    return c.json(getImportedAdtPresentationAssets(safeLabel, booksDir))
+  })
+
   // /assets/* — Static files from webAssetsDir
   app.get("/books/:label/adt-preview/assets/*", async (c) => {
     resolveBook(c.req.param("label")) // validate label
@@ -661,10 +673,25 @@ export function createAdtPreviewRoutes(
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const fingerprint = storage.getNodeVersionFingerprint()
+      // Pages of a book with a right-to-left language are served through the
+      // direction-neutral rewrite (SPEC-0024), which introduces classes the
+      // stored HTML does not have (`text-end`, `float-start`). Scan what is
+      // served as well as what is stored, which the Storyboard shows.
+      const pageDirection = resolvePageDirection(
+        getBookLanguage(storage),
+        loadBookConfig(safeLabel, booksDir, configPath).output_languages,
+      )
+      const asServed = (html: string): string => {
+        if (!pageDirection) return html
+        const served = neutralizeDirectionMarkup(html, pageDirection)
+        return served === html ? html : `${html}\n${served}`
+      }
       const cacheKey = createHash("sha256")
         .update(safeLabel)
         .update("\0")
         .update(JSON.stringify(fingerprint))
+        .update("\0")
+        .update(pageDirection ?? "")
         .update("\0")
         .update(extraHtml ?? "")
         .digest("hex")
@@ -683,7 +710,7 @@ export function createAdtPreviewRoutes(
             const parsed = WebRenderingOutput.safeParse(renderRow.data)
             if (parsed.success) {
               for (const section of parsed.data.sections) {
-                allHtml += section.html + "\n"
+                allHtml += asServed(section.html) + "\n"
               }
             }
           }
@@ -695,7 +722,7 @@ export function createAdtPreviewRoutes(
         if (quizData?.quizzes) {
           for (let i = 0; i < quizData.quizzes.length; i++) {
             const quizId = resolveQuizId(quizData.quizzes[i], i)
-            allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
+            allHtml += asServed(renderQuizHtml(quizData.quizzes[i], quizId, catalog)) + "\n"
           }
         }
 
@@ -1074,6 +1101,7 @@ export function createAdtPreviewRoutes(
       const html = renderPageHtml({
         content: quizHtmlContent,
         language,
+        outputLanguages: config.output_languages,
         sectionId: pageId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
@@ -1155,6 +1183,7 @@ export function createAdtPreviewRoutes(
       const html = renderPageHtml({
         content: stepperActivity ? previewSectionHtml : convertLatexToMathml(previewSectionHtml),
         language,
+        outputLanguages: config.output_languages,
         sectionId: pageId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,

@@ -27,6 +27,8 @@ export interface ElementActionsProps {
   isContainer: boolean
   textType?: string
   isPruned?: boolean
+  /** The selected leaf is hidden by a pruned ancestor, not its own flag. */
+  ancestorPruned?: boolean
   textTypes?: Record<string, string>
   imageSrc?: string
   segmenting?: boolean

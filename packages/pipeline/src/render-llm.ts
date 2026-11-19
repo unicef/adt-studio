@@ -1,4 +1,5 @@
 import { assignActivitySectionIds } from "./catalog-reconciliation.js"
+import { neutralizeDirectionMarkup } from "./direction-neutral-html.js"
 import { inputSignature } from "./output-freshness.js"
 import type { SectionRendering } from "@adt/types"
 import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
@@ -29,6 +30,8 @@ export interface VisualRefinementDeps {
   llmModel: LLMModel
   /** Persist a screenshot (base64 PNG) so it can be resolved in the LLM log UI. */
   storeScreenshot?: (base64: string) => void
+  /** Book language — review screenshots follow its writing direction. */
+  language?: string
 }
 
 /**
@@ -81,6 +84,9 @@ export async function renderSectionLlm(
     _allowNonHeadingFontSizes:
       isActivity || config.promptName === "web_generation_html_overlay",
     user_instructions: userInstructions,
+    // "rtl" switches on the writing-direction block in the prompts; any other
+    // value renders nothing there (SPEC-0024).
+    page_direction: input.pageDirection ?? "",
   }
 
   const result = await llmModel.generateObject<{
@@ -131,6 +137,7 @@ export async function renderSectionLlm(
         webAssetsDir: visualRefinement.webAssetsDir,
         storeScreenshot: visualRefinement.storeScreenshot,
         typographyCss: buildTypographyCss(input.typography ?? DEFAULT_TYPOGRAPHY),
+        language: visualRefinement.language,
       },
       promptName: reviewPromptName,
       maxIterations: vr.maxIterations,
@@ -148,6 +155,7 @@ export async function renderSectionLlm(
         has_merged_content: sourcePages.length > 0,
         book_context: bookContextPromptValue(input.bookContext, input.sectionIndex, "review"),
         user_instructions: userInstructions,
+        page_direction: input.pageDirection ?? "",
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
@@ -180,6 +188,11 @@ export async function renderSectionLlm(
   if (section.sectionType === "table_of_contents") {
     generatedHtml = repairTableOfContentsLayout(generatedHtml, renderContext.leaf_texts)
   }
+  // These repairs run after validation, and the table-of-contents one writes
+  // `text-right` on each page number (for a merged row it builds the whole row
+  // here). Rewrite once more so a right-to-left page is stored
+  // direction-neutral; it changes nothing when the repairs did not.
+  generatedHtml = directionNeutral(generatedHtml, input.pageDirection)
 
   // Ordering has one inspectable source of truth in the validated HTML. Derive
   // its rank map deterministically so initial render, rerender, Studio editing,
@@ -245,6 +258,26 @@ export async function renderSectionLlm(
   }, (id) => `${section.sectionId}_activity_${inputSignature({ id, html: generatedHtml }).slice(0, 24)}`)
 }
 
+/**
+ * Newly generated HTML as it is stored for a right-to-left page: rewritten
+ * direction-neutral, with the generation-only corrections (SPEC-0024). Any
+ * other page's HTML is returned as it is.
+ *
+ * That includes a left-to-right page of a book with a right-to-left
+ * translation. The HTML returned here goes into the messages of the calls
+ * that follow (the visual review, the activity answers), and the cache key
+ * hashes those messages. Rewriting such a page would make a book that gains
+ * or loses a translation run those calls again, for a page that looks the
+ * same in its own language. It is made neutral where it is read in the
+ * translation instead: `renderPageHtml()` rewrites it as it is packaged or
+ * previewed.
+ */
+function directionNeutral(html: string, pageDirection: unknown): string {
+  return pageDirection === "rtl"
+    ? neutralizeDirectionMarkup(html, "rtl", { correctMisalignedText: true })
+    : html
+}
+
 function validateWebRendering(
   result: unknown,
   context: Record<string, unknown>
@@ -301,10 +334,14 @@ function validateWebRendering(
     { allowNonHeadingFontSizes },
   )
   if (check.valid && typographyErrors.length === 0 && check.sectionHtml) {
+    // A right-to-left page is read mirrored in a translation, so it is stored
+    // direction-neutral. Repaired here rather than rejected: the rewrite is
+    // deterministic, so it cannot cost a retry or fail a page (SPEC-0024).
+    // Last, so the checks above see the HTML the repairs before them produced.
     return {
       valid: true,
       errors: [],
-      cleaned: { reasoning: r.reasoning, content: check.sectionHtml },
+      cleaned: { reasoning: r.reasoning, content: directionNeutral(check.sectionHtml, context.page_direction) },
     }
   }
 

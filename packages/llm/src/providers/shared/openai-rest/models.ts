@@ -43,9 +43,14 @@ export async function listOpenAiCompatibleModels(
   }
 
   if (!response.ok) {
-    const code = response.status === 401 || response.status === 403
+    // Only a 401 means the key itself was refused. A 403 is a key that works
+    // but may not list models (an OpenAI restricted key without the Models
+    // read permission still runs generation), so it is not reported as a bad key.
+    const code = response.status === 401
       ? "missing-credential"
-      : "unreachable"
+      : response.status === 403
+        ? "unsupported"
+        : "unreachable"
     throw new ModelDiscoveryError(code, `Model listing failed with HTTP ${response.status}`)
   }
 

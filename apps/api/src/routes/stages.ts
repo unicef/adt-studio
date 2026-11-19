@@ -7,7 +7,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
+import { AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, IMPORTED_ADT_LOCKED_STAGES, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
@@ -20,6 +20,7 @@ import {
   PAGE_SECTIONING_NODE,
 } from "@adt/pipeline"
 import type { SectionIdRetirementResult } from "@adt/pipeline"
+import { isImportedAdtProjectLabel } from "../services/adt-import/source.js"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
@@ -224,13 +225,25 @@ export function createStageRoutes(
     const { fromStage, toStage, renderOnly, pageErrorPolicy, outputScope, replaceManual, protectedReplacements } = parsed.data
     const credentials = readProviderCredentials(c)
 
+    const fromIndex = STAGE_ORDER.indexOf(fromStage)
+    const toIndex = STAGE_ORDER.indexOf(toStage)
+
+    if (isImportedAdtProjectLabel(label, booksDir)) {
+      const includesLockedStage = STAGE_ORDER
+        .slice(fromIndex, toIndex + 1)
+        .some((stage) => IMPORTED_ADT_LOCKED_STAGES.has(stage))
+      if (includesLockedStage) {
+        throw new HTTPException(409, {
+          message: "Extract, Sectioning, and Storyboard regeneration are not available while imported HTML is the source. Open Storyboard to edit the imported HTML, or run an enhancement stage.",
+        })
+      }
+    }
+
     // Fail before beforeRun clears any stage data: a run that cannot make a
     // single LLM call must not wipe the book. Scoped to the stages being run —
     // a speech-only rerun must not demand the text default's key, and a
     // per-step model override must be credentialed too, not just the default.
     // Keyless providers pass through.
-    const fromIndex = STAGE_ORDER.indexOf(fromStage)
-    const toIndex = STAGE_ORDER.indexOf(toStage)
     assertStageRunModelCredentials(
       loadBookConfig(label, booksDir, configPath),
       (fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER)

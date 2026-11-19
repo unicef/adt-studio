@@ -64,6 +64,11 @@ export const glossaryListOpenAtom = ephemeralAtom(false)
 export const activeSidebarTabAtom = ephemeralAtom<"assistant" | "settings">("assistant")
 export const activeGlossaryTabAtom = ephemeralAtom<"page" | "book">("page")
 export const activeNavTabAtom = persistedStringAtom("navActiveTab", "toc")
+/**
+ * The Contents panel's search text. Kept outside the panel so it survives the
+ * panel re-mounting after a page turn (#1135); cleared when the panel closes.
+ */
+export const tocSearchTermAtom = ephemeralAtom("")
 
 export type DockMenuValue =
   | "toc"

@@ -90,11 +90,7 @@ export function checkModelModalitySupport(
   modelId: string,
   modality: AiModality,
 ): ModelModalitySupport {
-  const trimmed = modelId.trim()
-  const separator = trimmed.indexOf(":")
-  const providerId = (
-    separator === -1 ? "openai" : trimmed.slice(0, separator)
-  ).toLowerCase()
+  const providerId = providerIdOfModel(modelId.trim())
   const provider = providers.find(({ manifest }) => manifest.id === providerId)
   if (!provider) return { ok: false, providerId, reason: "unknown-provider" }
   if (!provider.manifest.modalities.includes(modality)) {
@@ -109,10 +105,15 @@ export function reasoningEffortSupportFor(
 ): ReasoningEffortSupport | null {
   const trimmed = modelId.trim()
   if (!trimmed) return null
-  const separator = trimmed.indexOf(":")
-  const providerId = (separator === -1 ? "openai" : trimmed.slice(0, separator)).toLowerCase()
+  const providerId = providerIdOfModel(trimmed)
   const provider = providers.find(({ manifest }) => manifest.id === providerId)
   return findReasoningEffortSupport(provider?.manifest.capabilities["structured-text"]?.reasoningEfforts, trimmed)
+}
+
+/** Provider id of a model id; a bare model id is an OpenAI model. */
+export function providerIdOfModel(modelId: string): string {
+  const separator = modelId.indexOf(":")
+  return (separator === -1 ? "openai" : modelId.slice(0, separator)).toLowerCase()
 }
 
 /** Resolve availability for the effective provider/model exposed by `/providers`. */
@@ -125,10 +126,7 @@ export function isAiOperationAvailable(
 ): boolean {
   const effectiveModel = modelId?.trim() || defaults[modality]?.trim()
   if (!effectiveModel) return false
-  const separator = effectiveModel.indexOf(":")
-  const providerId = (
-    separator === -1 ? "openai" : effectiveModel.slice(0, separator)
-  ).toLowerCase()
+  const providerId = providerIdOfModel(effectiveModel)
   const provider = providers.find(({ manifest }) => manifest.id === providerId)
   return Boolean(
     provider &&

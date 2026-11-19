@@ -8,6 +8,7 @@ import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCirc
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
+import { useBook } from "@/hooks/use-books"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
 import { STAGES } from "../stage-config"
@@ -36,6 +37,7 @@ export function StoryboardIndex({
   stageRunning?: boolean
 }) {
   const { data: pages } = usePages(bookLabel)
+  const { data: book } = useBook(bookLabel)
   const { data: quizzesData } = useQuizzes(bookLabel)
   const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
@@ -198,6 +200,7 @@ export function StoryboardIndex({
                       : onSelectSection?.(item.page.pageId, item.section.sectionIndex)
                   }
                   stageRunning={stageRunning}
+                  hasSourcePdf={book?.hasSourcePdf ?? false}
                   waiting={bookComments.bySection.get(item.section.sectionId)?.waiting ?? 0}
                 />
               ) : (
@@ -282,6 +285,7 @@ function SectionRow({
   activeText,
   onSelect,
   stageRunning,
+  hasSourcePdf,
   waiting = 0,
 }: {
   bookLabel: string
@@ -292,6 +296,7 @@ function SectionRow({
   activeText?: string
   onSelect: () => void
   stageRunning?: boolean
+  hasSourcePdf: boolean
   /** Reader comments waiting on this section. */
   waiting?: number
 }) {
@@ -325,8 +330,8 @@ function SectionRow({
       ref={rowRef}
       type="button"
       onClick={onSelect}
-      onMouseEnter={hover.handleEnter}
-      onMouseLeave={hover.handleLeave}
+      onMouseEnter={hasSourcePdf ? hover.handleEnter : undefined}
+      onMouseLeave={hasSourcePdf ? hover.handleLeave : undefined}
       title={
         section.isPruned
           ? i18n._(msg`Section ${section.sectionIndex + 1} (pruned)`)
@@ -402,7 +407,7 @@ function SectionRow({
           )}
         </span>
       </div>
-      {hover.show &&
+      {hasSourcePdf && hover.show &&
         createPortal(
           <ComparisonPreview
             pos={hover.pos}

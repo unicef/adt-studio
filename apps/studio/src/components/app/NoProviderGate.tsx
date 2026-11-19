@@ -1,5 +1,7 @@
 import { useRef, useState, type ReactNode } from "react"
-import { Trans } from "@lingui/react/macro"
+import { select } from "@lingui/core/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { providerSelectKey } from "@/i18n/provider-select-key"
 import { ArrowRight, FileText, KeyRound } from "lucide-react"
 import {
   Dialog,
@@ -12,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useAppLogo } from "@/hooks/use-app-logo"
 import { useConnectProvider } from "@/hooks/use-connect-provider"
-import { useNeedsTextProvider } from "@/hooks/use-api-key"
+import { useNeedsTextProvider, useRejectedTextProvider } from "@/hooks/use-api-key"
 
 /** PDF → provider → ADT, with the provider as the missing link the dialog asks for. */
 function ProviderFlow() {
@@ -39,16 +41,28 @@ function ProviderFlow() {
 
 /**
  * Asks for an AI provider before the Add Book wizard when none can run text
- * steps, so a new user learns why extraction won't run before building a book.
- * Sits on the route so every entry point is covered. Never blocks: the user can
- * continue without a provider.
+ * steps — or for a new key when the provider that would run them refuses the
+ * saved one — so a user learns why extraction won't run before building a
+ * book. Sits on the route so every entry point is covered. Never blocks: the
+ * user can continue either way.
  */
 export function NoProviderGate({ children }: { children: ReactNode }) {
-  const connect = useConnectProvider({ from: "add-book" })
+  const { t } = useLingui()
   const needsProvider = useNeedsTextProvider()
+  const rejected = useRejectedTextProvider()
+  const connect = useConnectProvider({
+    from: "add-book",
+    ...(!needsProvider && rejected ? { providerId: rejected.providerId } : {}),
+  })
   const [dismissed, setDismissed] = useState(false)
   const connectRef = useRef<HTMLButtonElement>(null)
-  const open = !dismissed && needsProvider
+  // The rejection arrives from a live check after the page has rendered; it
+  // still opens the dialog once, and a dismissal covers both cases.
+  const reason = needsProvider ? "missing" : rejected ? "rejected" : null
+  const open = !dismissed && reason !== null
+  const name = rejected?.displayName ?? ""
+  // Lets translations pick the article for the name (pt-BR: "da OpenAI", "do Google").
+  const providerKey = providerSelectKey(rejected?.providerId ?? "")
 
   return (
     <>
@@ -64,10 +78,18 @@ export function NoProviderGate({ children }: { children: ReactNode }) {
           <ProviderFlow />
           <DialogHeader className="gap-1.5 px-6 pt-5 text-left">
             <DialogTitle className="text-[17px] leading-tight tracking-[-0.01em]">
-              <Trans>Connect an AI provider to process your book</Trans>
+              {reason === "rejected" ? (
+                t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `Your ${name} key was rejected` })}` })
+              ) : (
+                <Trans>Connect an AI provider to process your book</Trans>
+              )}
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
-              <Trans>Connect your AI provider to extract and process pages. You can still set up the book without one.</Trans>
+              {reason === "rejected" ? (
+                t({ comment: "providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.", message: `${select(providerKey, { other: `${name} refused the saved API key, so extraction and the other AI steps will fail. Update the key, or set up the book now and fix it later.` })}` })
+              ) : (
+                <Trans>Connect your AI provider to extract and process pages. You can still set up the book without one.</Trans>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 p-6 sm:justify-end">
@@ -76,10 +98,10 @@ export function NoProviderGate({ children }: { children: ReactNode }) {
               onClick={() => setDismissed(true)}
               className="text-muted-foreground hover:text-foreground"
             >
-              <Trans>Continue without a provider</Trans>
+              {reason === "rejected" ? <Trans>Continue anyway</Trans> : <Trans>Continue without a provider</Trans>}
             </Button>
             <Button ref={connectRef} onClick={connect}>
-              <Trans>Connect provider</Trans>
+              {reason === "rejected" ? <Trans>Update key</Trans> : <Trans>Connect provider</Trans>}
               <ArrowRight className="size-3.5" />
             </Button>
           </DialogFooter>

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react"
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ProviderDescriptor, ProviderHealthResponse } from "@adt/types"
 
@@ -68,6 +68,8 @@ let health: ProviderHealthResponse = { providerId: "openai", ok: true, code: "ok
 let location: { hash: string; search: { auth?: "api-key" } } = { hash: "", search: {} }
 
 vi.mock("@lingui/core/macro", () => ({
+  // `select` keeps its `other` branch, which is the English text.
+  select: (_value: string, branches: { other: string }) => branches.other,
   msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({
     id: strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
   }),
@@ -77,20 +79,33 @@ vi.mock("@lingui/react/macro", () => ({
   Plural: () => null,
   useLingui: () => ({
     i18n: { locale: "en", _: (descriptor: { id: string }) => descriptor.id },
-    t: (strings: TemplateStringsArray, ...values: unknown[]) =>
-      strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
+    // Tagged template, or the descriptor form `t({ comment, message })`.
+    t: (strings: TemplateStringsArray | { message: string }, ...values: unknown[]) =>
+      "message" in strings
+        ? strings.message
+        : strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
   }),
 }))
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
+  Link: ({ children, to, search, params }: { children: React.ReactNode; to?: string; search?: { tab?: string }; params?: { label?: string; step?: string } }) => (
+    <a data-to={to} data-tab={search?.tab} data-label={params?.label} data-step={params?.step}>{children}</a>
+  ),
   useLocation: () => ({ hash: location.hash }),
   useSearch: () => location.search,
 }))
+const invalidateQueries = vi.fn()
+const removeQueries = vi.fn()
 vi.mock("@tanstack/react-query", () => ({
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQueryClient: () => ({ invalidateQueries, removeQueries }),
 }))
-vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn() } }))
+const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
+vi.mock("@/components/ui/sonner", () => ({ toast }))
+/** The providers whose saved key the post-save check reports as refused. */
+let rejectedAfterSave: string[] = []
+const recheckSavedKeys = vi.fn(async () => rejectedAfterSave)
 vi.mock("@/hooks/use-provider-health", () => ({
+  providerHealthKey: (providerId: string) => ["provider-health", providerId],
+  recheckSavedKeys: (...args: unknown[]) => recheckSavedKeys(...(args as [])),
   useProviderHealth: (providerId: string, _draft: unknown, enabled: boolean) => ({
     data: enabled ? { ...health, providerId } : undefined,
     isFetching: false,
@@ -127,6 +142,8 @@ let credentials: Record<string, Record<string, string>> = {}
 let ownCredentials: Record<string, Record<string, string>> = {}
 
 const { ProvidersList } = await import("./ProvidersList")
+const { ProviderCardGroups } = await import("./ProviderCardGroups")
+const { useProviders } = await import("./useProviders")
 
 /** The expanded card's own region, so collapsed siblings' controls stay out of reach. */
 function panelFor(cardKey: string): HTMLElement {
@@ -147,6 +164,13 @@ afterEach(() => {
   cleanup()
   location = { hash: "", search: {} }
   setCredential.mockClear()
+  invalidateQueries.mockClear()
+  removeQueries.mockClear()
+  recheckSavedKeys.mockClear()
+  toast.success.mockClear()
+  toast.error.mockClear()
+  rejectedAfterSave = []
+  health = { providerId: "openai", ok: true, code: "ok", modelCount: 3 }
   credentials = {}
   ownCredentials = {}
   cliLogin.status = null
@@ -287,6 +311,142 @@ describe("ProvidersList — live manifests", () => {
     expect(setCredential).toHaveBeenCalledWith("openai", "apiKey", "sk-live")
   })
 
+  it("re-checks the provider's connection after a save", async () => {
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    fireEvent.change(input, { target: { value: "sk-live" } })
+    fireEvent.click(within(panel).getByRole("button", { name: "Save" }))
+
+    expect(recheckSavedKeys).toHaveBeenCalledWith(expect.anything(), ["openai"])
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Provider credentials saved."))
+  })
+
+  it("shows the save as busy while it waits for the connection check", async () => {
+    let finishCheck: (rejected: string[]) => void = () => {}
+    recheckSavedKeys.mockImplementationOnce(() => new Promise((resolve) => { finishCheck = resolve }))
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    fireEvent.change(input, { target: { value: "sk-live" } })
+    fireEvent.click(within(panel).getByRole("button", { name: "Save" }))
+
+    const busy = await waitFor(() => within(panel).getByRole("button", { name: "Checking the connection…" }))
+    expect((busy as HTMLButtonElement).disabled).toBe(true)
+    expect(busy.getAttribute("aria-busy")).toBe("true")
+    await act(async () => finishCheck([]))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Provider credentials saved."))
+    expect(within(panel).queryByRole("button", { name: "Checking the connection…" })).toBeNull()
+  })
+
+  it("reports a refused key after saving instead of a plain success", async () => {
+    rejectedAfterSave = ["openai"]
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    fireEvent.change(input, { target: { value: "sk-wrong" } })
+    fireEvent.click(within(panel).getByRole("button", { name: "Save" }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1))
+    expect(toast.error.mock.calls[0][0]).toContain("OpenAI rejected this API key")
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  it("shows a saved key the provider refused as rejected on its card, not as connected", () => {
+    ownCredentials = { openai: { apiKey: "sk-wrong" } }
+    credentials = { openai: { apiKey: "sk-wrong" } }
+    health = { providerId: "openai", ok: false, code: "invalid-credential" }
+    render(<ProvidersList />)
+
+    const row = document.querySelector<HTMLElement>('[aria-controls="prov-panel-openai"][aria-expanded]')!
+    expect(within(row).getByText("Credentials rejected")).toBeTruthy()
+    expect(within(row).queryByText("Authenticated · API key")).toBeNull()
+  })
+
+  it("shows a saved key as authenticated once its check passes", () => {
+    ownCredentials = { openai: { apiKey: "sk-good" } }
+    credentials = { openai: { apiKey: "sk-good" } }
+    render(<ProvidersList />)
+
+    const row = document.querySelector<HTMLElement>('[aria-controls="prov-panel-openai"][aria-expanded]')!
+    expect(within(row).getByText("Authenticated · API key")).toBeTruthy()
+  })
+
+  it("says a credential is missing without probing when nothing is saved", async () => {
+    // No key in the browser, on the server or shared: no "Checking…" flash, e.g. right after Remove.
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    await waitFor(() => expect(within(panel).getByText("A required credential is missing.")).toBeTruthy())
+    expect(within(panel).queryByText("Checking the connection…")).toBeNull()
+  })
+
+  it("re-checks the connection after a key is removed", async () => {
+    // Settings the server holds may take over from the removed browser key.
+    ownCredentials = { openai: { apiKey: "sk-wrong" } }
+    credentials = { openai: { apiKey: "sk-wrong" } }
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    fireEvent.click(await waitFor(() => within(panel).getByRole("button", { name: "Remove" })))
+
+    expect(setCredential).toHaveBeenCalledWith("openai", "apiKey", "")
+    // The form's check of the removed values is dropped, not re-run with them.
+    expect(removeQueries).toHaveBeenCalledWith({ queryKey: ["provider-health", "openai", "draft"] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["provider-health"] })
+  })
+
+  it("warns about a key of an unexpected shape but still lets it be saved", async () => {
+    // The pattern is a hint: providers issue new key formats, and the live
+    // check after saving is what says whether a key works.
+    const openai = descriptor("openai", { displayName: "OpenAI" })
+    openai.manifest.credentialFields[0] = {
+      ...openai.manifest.credentialFields[0],
+      placeholder: "sk-...",
+      pattern: "^sk-(?!ant-)[A-Za-z0-9_-]+$",
+    }
+    providers = [openai, OLLAMA]
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    fireEvent.change(input, { target: { value: "sk-ant-api03-abc" } })
+
+    expect(
+      within(panel).getByText("This doesn't look like an API key for OpenAI. OpenAI keys usually start with sk-..."),
+    ).toBeTruthy()
+    expect(within(panel).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(false)
+
+    fireEvent.change(input, { target: { value: "sk-proj-abc123" } })
+    expect(within(panel).queryByText(/doesn't look like/)).toBeNull()
+    expect(within(panel).getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(false)
+  })
+
+  it("doesn't warn about a saved key the user hasn't changed", async () => {
+    // Only edited fields are validated: a key saved before the pattern existed
+    // must not show a warning every time the card is opened.
+    const openai = descriptor("openai", { displayName: "OpenAI" })
+    openai.manifest.credentialFields[0] = {
+      ...openai.manifest.credentialFields[0],
+      placeholder: "sk-...",
+      pattern: "^sk-(?!ant-)[A-Za-z0-9_-]+$",
+    }
+    providers = [openai, OLLAMA]
+    credentials = { openai: { apiKey: "legacy-key" } }
+    ownCredentials = { openai: { apiKey: "legacy-key" } }
+    render(<ProvidersList />)
+
+    const panel = panelFor("openai")
+    const input = await waitFor(() => within(panel).getByLabelText("API key"))
+    expect(within(panel).queryByText(/doesn't look like/)).toBeNull()
+
+    fireEvent.change(input, { target: { value: "legacy-key-2" } })
+    expect(within(panel).getByText(/doesn't look like an API key for OpenAI/)).toBeTruthy()
+  })
+
   it("blocks the save when a url field fails client validation", async () => {
     render(<ProvidersList />)
 
@@ -343,5 +503,27 @@ describe("ProvidersList — live manifests", () => {
     expect(
       within(googlePanel).getByText("Also used by Gemini Speech unless that provider has its own key."),
     ).toBeTruthy()
+  })
+})
+
+describe("ProviderCardGroups — Assign models", () => {
+  it("opens the global model defaults from Settings → AI providers", async () => {
+    render(<ProvidersList />)
+    const panel = panelFor("openai")
+    const link = await waitFor(() => within(panel).getByText("Assign models").closest("a")!)
+    expect(link.getAttribute("data-to")).toBe("/settings/models")
+  })
+
+  it("opens the book's Models tab from a book's API keys screen", async () => {
+    function BookCards() {
+      return <ProviderCardGroups store={useProviders()} openId="openai" onToggle={() => {}} bookLabel="demo-book" />
+    }
+    render(<BookCards />)
+    const panel = document.getElementById("prov-panel-openai")!
+    const link = await waitFor(() => within(panel).getByText("Assign models").closest("a")!)
+    expect(link.getAttribute("data-to")).toBe("/books/$label/$step/settings")
+    expect(link.getAttribute("data-label")).toBe("demo-book")
+    expect(link.getAttribute("data-step")).toBe("book")
+    expect(link.getAttribute("data-tab")).toBe("models")
   })
 })

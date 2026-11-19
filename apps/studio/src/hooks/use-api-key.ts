@@ -1,10 +1,79 @@
 import { useCallback } from "react"
-import { safeParseModelId } from "@adt/types"
+import { safeParseModelId, type AiModality } from "@adt/types"
 import { useProviderCredentials } from "./use-provider-credentials"
 import { resolveEffectiveDefaultModel, useEffectiveDefaultModel } from "./use-effective-default-model"
 import { useActiveConfig } from "./use-debug"
 import { useBook } from "./use-books"
 import { bookSpeechProviders } from "@/lib/speech-routing"
+import { providerIdOfModel } from "@/api/provider-credentials"
+import { useProviderHealth } from "./use-provider-health"
+
+/** A provider that is set up but whose live check says the key was refused. */
+export interface RejectedProvider {
+  providerId: string
+  displayName: string
+}
+
+/**
+ * The provider that would run `modality` for `modelId` (default: the global
+ * default model for that modality) when it has a key but its live connection
+ * check came back `invalid-credential`.
+ *
+ * Only an outright rejection counts: an unreachable provider, an outage or a
+ * rate limit says nothing about the key, and providers without a live check
+ * only report that a key is present. This is a warning signal, never an
+ * availability gate — a wrong probe must not lock anyone out of running steps.
+ * The check is the cached Settings health query, so prompts across the app
+ * share one probe per provider and clear as soon as a saved key passes.
+ */
+export function useRejectedProvider(
+  modality: AiModality,
+  modelId?: string,
+  /** False while the model is not known yet (a book's config loading): no probe, no warning. */
+  ready = true,
+): RejectedProvider | null {
+  const { providers, defaults, credentials, isAvailable } = useProviderCredentials()
+  const effectiveModel = modelId?.trim() || defaults[modality]?.trim()
+  const providerId = effectiveModel ? providerIdOfModel(effectiveModel) : ""
+  const descriptor = providers.find((provider) => provider.manifest.id === providerId)
+  const manifest = descriptor?.manifest
+  // Only a key can be rejected. Probe when the provider requires a secret, or
+  // has an optional one that is actually set (a Custom endpoint's key, a key
+  // typed for Codex). A CLI login (Codex, Claude Code) or a keyless local
+  // server (Ollama) never reports `invalid-credential`, so probing it is waste.
+  const usesApiKey = Boolean(
+    manifest?.credentialFields.some(
+      (field) =>
+        field.kind === "secret" &&
+        (field.required ||
+          Boolean(credentials?.[providerId]?.[field.key]?.trim()) ||
+          descriptor?.fieldStatus.some(
+            (status) => status.key === field.key && status.configuredOnServer,
+          )),
+    ),
+  )
+  const enabled = ready && usesApiKey && isAvailable(modality, effectiveModel)
+  // No draft values: the request carries the stored keys, and the API falls
+  // back to its own when the browser has none.
+  const health = useProviderHealth(providerId, undefined, enabled)
+  if (!enabled || health.data?.code !== "invalid-credential") return null
+  return { providerId, displayName: manifest?.displayName ?? providerId }
+}
+
+/** {@link useRejectedProvider} for the text steps (extraction and the rest of the pipeline). */
+export function useRejectedTextProvider(modelId?: string, ready = true): RejectedProvider | null {
+  return useRejectedProvider("structured-text", modelId, ready)
+}
+
+/**
+ * {@link useRejectedTextProvider} against the model a run of this book
+ * actually uses. Waits for the book's config, so a book on another provider
+ * never flashes the global default's warning while it loads.
+ */
+export function useBookRejectedTextProvider(bookLabel: string): RejectedProvider | null {
+  const config = useActiveConfig(bookLabel)
+  return useRejectedTextProvider(resolveEffectiveDefaultModel(config.data), config.data !== undefined)
+}
 
 /**
  * Structured-text availability resolved against the book's effective default
@@ -34,6 +103,22 @@ export function useBookStructuredTextStatus(bookLabel: string): { available: boo
     available: isAvailable("structured-text", effectiveModel),
     ready: !isLoading && !error && !config.isLoading && !config.error,
   }
+}
+
+/**
+ * The provider of the global default text model, once the provider list has
+ * loaded and that model can't run (no key, no login). Null while loading, on
+ * a failed load, and whenever the default model can run. Only the default
+ * model is checked, so prompts built on it name that provider instead of
+ * claiming no provider is connected at all.
+ */
+export function useMissingTextProvider(): RejectedProvider | null {
+  const { providers, defaults, isAvailable, isLoading, error } = useProviderCredentials()
+  if (isLoading || error || isAvailable("structured-text")) return null
+  const model = defaults["structured-text"]?.trim()
+  const providerId = model ? providerIdOfModel(model) : "openai"
+  const manifest = providers.find((provider) => provider.manifest.id === providerId)?.manifest
+  return { providerId, displayName: manifest?.displayName ?? providerId }
 }
 
 /**

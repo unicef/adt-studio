@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { listOpenAiCompatibleModels } from "../providers/shared/openai-rest/models.js"
+import { listAnthropicModels } from "../providers/shared/anthropic-rest/models.js"
 import { ModelDiscoveryError } from "../model-discovery.js"
 
 const fetchMock = vi.fn()
@@ -65,6 +66,15 @@ describe("listOpenAiCompatibleModels", () => {
     ).rejects.toMatchObject({ code: "missing-credential" })
   })
 
+  it("throws unsupported, not a rejected key, on 403", async () => {
+    // An OpenAI restricted key without the Models read permission: the key
+    // works for generation, so it must not read as rejected.
+    fetchMock.mockResolvedValue(jsonResponse({ error: "forbidden" }, 403))
+    await expect(
+      listOpenAiCompatibleModels({ baseUrl: "https://api.openai.com/v1" }),
+    ).rejects.toMatchObject({ code: "unsupported" })
+  })
+
   it("throws unreachable on a network error", async () => {
     fetchMock.mockRejectedValue(new Error("ECONNREFUSED"))
     await expect(
@@ -77,5 +87,21 @@ describe("listOpenAiCompatibleModels", () => {
     await expect(
       listOpenAiCompatibleModels({ baseUrl: "https://api.openai.com/v1" }),
     ).rejects.toMatchObject({ code: "invalid-response" })
+  })
+})
+
+describe("listAnthropicModels", () => {
+  it("throws missing-credential on 401", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ type: "error" }, 401))
+    await expect(listAnthropicModels({ apiKey: "sk-ant-bad" })).rejects.toMatchObject({
+      code: "missing-credential",
+    })
+  })
+
+  it("throws unsupported, not a rejected key, on 403", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ type: "error" }, 403))
+    await expect(listAnthropicModels({ apiKey: "sk-ant-ok" })).rejects.toMatchObject({
+      code: "unsupported",
+    })
   })
 })

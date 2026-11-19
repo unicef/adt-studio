@@ -5,14 +5,45 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { NoProviderGate } from "./NoProviderGate"
 
 const navigate = vi.fn()
-const state = { available: false, isLoading: false, error: null as unknown }
+const state = {
+  available: false,
+  isLoading: false,
+  error: null as unknown,
+  healthCode: "ok" as string,
+}
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }))
+// `select` keeps its `other` branch, which is the English text.
+vi.mock("@lingui/core/macro", () => ({
+  select: (_value: string, branches: { other: string }) => branches.other,
+}))
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useLingui: () => ({
+    // Tagged template, or the descriptor form `t({ comment, message })`.
+    t: (strings: TemplateStringsArray | { message: string }, ...values: unknown[]) =>
+      "message" in strings
+        ? strings.message
+        : strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
+  }),
+}))
+vi.mock("@/hooks/use-provider-health", () => ({
+  useProviderHealth: (providerId: string, _draft: unknown, enabled: boolean) => ({
+    data: enabled ? { providerId, ok: state.healthCode === "ok", code: state.healthCode } : undefined,
+  }),
 }))
 vi.mock("@/hooks/use-provider-credentials", () => ({
   useProviderCredentials: () => ({
+    providers: [
+      {
+        manifest: {
+          id: "anthropic",
+          displayName: "Anthropic",
+          credentialFields: [{ key: "apiKey", kind: "secret", required: true }],
+        },
+      },
+    ],
+    defaults: { "structured-text": "anthropic:claude-sonnet" },
     isAvailable: () => state.available,
     isLoading: state.isLoading,
     error: state.error,
@@ -30,7 +61,7 @@ describe("NoProviderGate", () => {
   afterEach(cleanup)
   beforeEach(() => {
     navigate.mockClear()
-    Object.assign(state, { available: false, isLoading: false, error: null })
+    Object.assign(state, { available: false, isLoading: false, error: null, healthCode: "ok" })
   })
 
   it("asks for a provider over the wizard when none is connected", () => {
@@ -75,5 +106,31 @@ describe("NoProviderGate", () => {
     expect(screen.queryByRole("dialog")).toBeNull()
     expect(screen.getByText("wizard")).toBeTruthy()
     expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it("asks for a new key when the provider rejects the saved one", () => {
+    Object.assign(state, { available: true, healthCode: "invalid-credential" })
+    renderGate()
+    expect(screen.getByRole("dialog")).toBeTruthy()
+    expect(screen.getByText("Your Anthropic key was rejected")).toBeTruthy()
+    fireEvent.click(screen.getByText("Update key"))
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/settings/providers",
+      search: { auth: "api-key", from: "add-book" },
+      hash: "settings-provider-anthropic",
+    })
+  })
+
+  it("lets the user continue past a rejected key", () => {
+    Object.assign(state, { available: true, healthCode: "invalid-credential" })
+    renderGate()
+    fireEvent.click(screen.getByText("Continue anyway"))
+    expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
+  it("stays hidden when the live check fails for a reason other than the key", () => {
+    Object.assign(state, { available: true, healthCode: "unreachable" })
+    renderGate()
+    expect(screen.queryByRole("dialog")).toBeNull()
   })
 })
