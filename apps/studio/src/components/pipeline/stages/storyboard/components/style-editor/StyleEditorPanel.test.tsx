@@ -43,6 +43,10 @@ vi.mock("@lingui/react", () => ({
   },
 }))
 
+vi.mock("./sections/AudioSection", () => ({
+  AudioSection: () => <div>Element audio</div>,
+}))
+
 afterEach(cleanup)
 
 describe("StyleEditorPanel inherited prune (#596)", () => {
@@ -92,5 +96,28 @@ describe("StyleEditorPanel inherited prune (#596)", () => {
     )
 
     expect(container.textContent).not.toContain("Element audio")
+  })
+
+  it("offers element audio for a rendered image", () => {
+    const { container } = render(
+      <StyleEditorPanel
+        open
+        onClose={vi.fn()}
+        selectedDataId="pg001_im001"
+        selectedTagName="img"
+        elementClasses={[]}
+        elementProps={{
+          isImage: true,
+          isContainer: false,
+          isPruned: false,
+        }}
+        onClassesChange={vi.fn()}
+        deviceView="desktop"
+        pageId="pg001"
+        isFixedLayout
+      />
+    )
+
+    expect(container.textContent).toContain("Element audio")
   })
 })

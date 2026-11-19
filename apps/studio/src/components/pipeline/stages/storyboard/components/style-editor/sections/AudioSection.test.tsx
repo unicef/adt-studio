@@ -26,6 +26,8 @@ vi.mock("@/api/client", () => ({
     updateElementAudio: calls.updateElementAudio,
     getTextCatalog: calls.getTextCatalog,
   },
+  apiErrorStatus: (error: unknown) =>
+    (error as { status?: number } | null)?.status ?? null,
 }))
 
 vi.mock("@/components/pipeline/components/VersionPicker", () => ({
@@ -131,7 +133,11 @@ describe("AudioSection (SPEC-0014)", () => {
     calls.getElementAudio.mockResolvedValue(
       view([{ nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" }]),
     )
-    calls.updateElementAudio.mockRejectedValue(new Error("Element audio changed. Refresh before saving."))
+    calls.updateElementAudio.mockRejectedValue(
+      Object.assign(new Error("Element audio changed. Refresh before saving."), {
+        status: 409,
+      }),
+    )
 
     render(<AudioSection dataId="pg001_im001" pageId="pg001" />, { wrapper: Providers })
 
@@ -148,6 +154,36 @@ describe("AudioSection (SPEC-0014)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }))
     await waitFor(() => expect(calls.getElementAudio).toHaveBeenCalledTimes(2))
     expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
+  })
+
+  it("retries a non-conflict save without discarding the draft", async () => {
+    calls.getElementAudio.mockResolvedValue(
+      view([{ nodeId: "pg001_im001", text: "Mago", sourcePageId: "pg001" }]),
+    )
+    calls.updateElementAudio.mockRejectedValueOnce(new Error("Network down"))
+    calls.updateElementAudio.mockResolvedValueOnce(
+      view([{ nodeId: "pg001_im001", text: "Maga", sourcePageId: "pg001" }]),
+    )
+
+    render(<AudioSection dataId="pg001_im001" pageId="pg001" />, { wrapper: Providers })
+
+    const textarea = await screen.findByLabelText("Element audio script")
+    fireEvent.change(textarea, { target: { value: "Maga" } })
+    fireEvent.click(screen.getByRole("button", { name: /Save/ }))
+
+    await screen.findByText("Network down")
+    expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }))
+    await waitFor(() => expect(calls.updateElementAudio).toHaveBeenCalledTimes(2))
+    expect(calls.updateElementAudio).toHaveBeenLastCalledWith("book", "pg001", {
+      versions: { pg001: 1 },
+      entries: [{ nodeId: "pg001_im001", text: "Maga", sourcePageId: "pg001" }],
+    })
+    // A network failure must not overwrite what the author typed.
+    expect((textarea as HTMLTextAreaElement).value).toBe("Maga")
+    // The destructive reload was not used.
+    expect(calls.getElementAudio).toHaveBeenCalledTimes(1)
   })
 
   it("discards the draft back to the saved script", async () => {
