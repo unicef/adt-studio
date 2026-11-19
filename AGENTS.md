@@ -45,7 +45,8 @@ for every PR. Resolve an uncertain lane at triage before implementation.
 | a prompt under prompts/     | docs/PROMPTS.md (planned; prompt contracts), the prompt validator                   |
 | the reader (adt-runtime)    | docs/ARCHITECTURE.md#runtime (planned), docs/SECURITY_MODEL.md (planned)            |
 | exports or publishing       | docs/PRODUCT.md#registry (planned), docs/specs/SPEC-0006-publishing (planned)       |
-| anything user-facing        | docs/PRODUCT.md#critical-path (planned)                                             |
+| anything user-facing        | docs/UX_GOALS.md, docs/PRODUCT.md#critical-path (planned)                            |
+| a stage run, a status or read endpoint, save, preview, export, or a new safeguard | docs/UX_GOALS.md               |
 
 ## Architecture
 
