@@ -1,0 +1,299 @@
+{
+  "bookId": "storybook-colouring-my-school",
+  "variant": "e7-bagged",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 89.50942799999757,
+  "facts": {
+    "pageStorage": {
+      "value": "spreads-as-separate-pages",
+      "evidence": [
+        2,
+        3,
+        8,
+        9,
+        6,
+        7
+      ],
+      "detail": "3 of 4 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "3/7 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": true,
+      "share": 1,
+      "evidence": [
+        5,
+        7,
+        8
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 65,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        3,
+        5,
+        8
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "fixed_layout",
+      "rule": "Text is placed on the pictures, so the original page design is kept."
+    },
+    "pageGrouping": {
+      "value": "spread",
+      "rule": "Facing pages continue across the gutter, so each pair is joined into one screen."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "slices": [
+      [
+        2,
+        5,
+        8
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        4,
+        7
+      ]
+    ],
+    "votes": {
+      "genre": [
+        "story",
+        "story",
+        "story"
+      ],
+      "exercises": [
+        "none",
+        "none",
+        "none"
+      ],
+      "composition": [
+        "text-in-art",
+        "text-in-art",
+        "text-beside-art"
+      ],
+      "diagrams": [
+        "none",
+        "none",
+        "none"
+      ]
+    },
+    "answers": {
+      "genre": {
+        "answer": "story",
+        "confidence": "high",
+        "evidencePages": [
+          5,
+          8
+        ],
+        "reason": "The shown pages use rhyming narrative text about a setting (bookshelves, a chalkboard, lessons) rather than instructions or information sections."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8
+        ],
+        "reason": "The pages show only story text and illustrations, with no questions, blanks, numbered problems, or activity directions."
+      },
+      "composition": {
+        "answer": "text-in-art",
+        "confidence": "medium",
+        "evidencePages": [
+          5,
+          8
+        ],
+        "reason": "On the shown pages, the text is printed inside the illustration area in a translucent box over the picture rather than in a separate text column or page."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8
+        ],
+        "reason": "The pages show illustrations of a room and students, but no labeled charts, maps, or other explanatory diagrams."
+      }
+    },
+    "semantic": {
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-in-art",
+      "diagrams": "none"
+    },
+    "flags": [
+      "composition"
+    ],
+    "perSlice": [
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            5,
+            8
+          ],
+          "reason": "The shown pages use rhyming narrative text about a setting (bookshelves, a chalkboard, lessons) rather than instructions or information sections."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8
+          ],
+          "reason": "The pages show only story text and illustrations, with no questions, blanks, numbered problems, or activity directions."
+        },
+        "composition": {
+          "answer": "text-in-art",
+          "confidence": "high",
+          "evidencePages": [
+            5,
+            8
+          ],
+          "reason": "On the shown pages, the text is printed inside the illustration area in a translucent box over the picture rather than in a separate text column or page."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8
+          ],
+          "reason": "The pages show illustrations of a room and students, but no labeled charts, maps, or other explanatory diagrams."
+        }
+      },
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "Page 3 has narrative prose (“Let’s take a look. I’ll show you inside.”) and page 6 shows a scene in a classroom, which fits a storybook rather than lessons or reference material."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "The shown pages contain only story text and illustration, with no numbered problems, blanks, or directions for the reader to complete activities."
+        },
+        "composition": {
+          "answer": "text-in-art",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "On page 3 the words are printed on a white panel over the classroom illustration, and page 6 shows the picture full-page with no separate text block visible."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "The pages show drawings of a classroom and children, but no labeled figures, charts, maps, or other informative diagrams."
+        }
+      },
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "The pages use a simple narrative-style sentence about a classroom scene, with no lesson structure or informational headings."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "The shown pages contain only read-aloud text and illustrations, with no questions, blanks, or task instructions."
+        },
+        "composition": {
+          "answer": "text-beside-art",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "Page 7 places the text in a large open area above the illustration, and page 4 has text shown as part of the picture but not as body text woven through it."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "The pages show illustrations of a classroom and students, but no charts, maps, labeled figures, or infographics."
+        }
+      }
+    ]
+  },
+  "usage": {
+    "inputTokens": 8261,
+    "outputTokens": 631,
+    "calls": 3
+  },
+  "ms": 3883.2831670000014
+}

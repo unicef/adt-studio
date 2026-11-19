@@ -1,0 +1,297 @@
+{
+  "bookId": "storybook-colouring-my-school",
+  "variant": "e7-bagged",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "profileMs": 89.50942799999757,
+  "facts": {
+    "pageStorage": {
+      "value": "spreads-as-separate-pages",
+      "evidence": [
+        2,
+        3,
+        8,
+        9,
+        6,
+        7
+      ],
+      "detail": "3 of 4 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "3/7 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": true,
+      "share": 1,
+      "evidence": [
+        5,
+        7,
+        8
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 65,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        3,
+        5,
+        8
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "fixed_layout",
+      "rule": "Text is placed on the pictures, so the original page design is kept."
+    },
+    "pageGrouping": {
+      "value": "spread",
+      "rule": "Facing pages continue across the gutter, so each pair is joined into one screen."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "slices": [
+      [
+        2,
+        5,
+        8
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        4,
+        7
+      ]
+    ],
+    "votes": {
+      "genre": [
+        "story",
+        "story",
+        "story"
+      ],
+      "exercises": [
+        "none",
+        "none",
+        "none"
+      ],
+      "composition": [
+        "text-in-art",
+        "text-in-art",
+        "text-in-art"
+      ],
+      "diagrams": [
+        "none",
+        "none",
+        "none"
+      ]
+    },
+    "answers": {
+      "genre": {
+        "answer": "story",
+        "confidence": "high",
+        "evidencePages": [
+          5,
+          8
+        ],
+        "reason": "The shown pages use rhyming narrative text describing scenes in a school and library, which reads like a picture-book story rather than instructional material."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8
+        ],
+        "reason": "The pages show only story text and illustrations, with no questions, blanks, numbered tasks, or directions for the reader to complete."
+      },
+      "composition": {
+        "answer": "text-in-art",
+        "confidence": "high",
+        "evidencePages": [
+          5,
+          8
+        ],
+        "reason": "On the shown pages, the printed text is placed inside the illustrated scene in a large text box over the picture, not in a separate text-only area."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8
+        ],
+        "reason": "The pages contain only illustrations of a room, bookshelves, and students; there are no labeled diagrams, charts, maps, or infographics."
+      }
+    },
+    "semantic": {
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-in-art",
+      "diagrams": "none"
+    },
+    "flags": [],
+    "perSlice": [
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            5,
+            8
+          ],
+          "reason": "The shown pages use rhyming narrative text describing scenes in a school and library, which reads like a picture-book story rather than instructional material."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8
+          ],
+          "reason": "The pages show only story text and illustrations, with no questions, blanks, numbered tasks, or directions for the reader to complete."
+        },
+        "composition": {
+          "answer": "text-in-art",
+          "confidence": "high",
+          "evidencePages": [
+            5,
+            8
+          ],
+          "reason": "On the shown pages, the printed text is placed inside the illustrated scene in a large text box over the picture, not in a separate text-only area."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8
+          ],
+          "reason": "The pages contain only illustrations of a room, bookshelves, and students; there are no labeled diagrams, charts, maps, or infographics."
+        }
+      },
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "Page 3 has narrative-style prose (“Let’s take a look. I’ll show you inside.”), and page 6 is an illustrated scene rather than lesson material or reference text."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "The shown pages contain only story text and illustrations, with no numbered questions, blanks, or directions for the reader to complete tasks."
+        },
+        "composition": {
+          "answer": "text-in-art",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "On page 3 the words are placed over the classroom illustration, and page 6 is a full-page scene with no separate text block."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "The pages show drawings of a classroom and children, but no labeled diagrams, charts, maps, or infographics."
+        }
+      },
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "The pages read like a picture-book narrative with simple descriptive lines and scenes of children in a classroom, not lesson material or a reference layout."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "Neither shown page has questions, blanks, numbered tasks, or directions to complete an activity."
+        },
+        "composition": {
+          "answer": "text-in-art",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "On both pages the words are printed directly over the illustrated background rather than in a separate text box beside the art."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "The pages show illustrations of a classroom and children, but no labeled diagrams, charts, maps, or infographics."
+        }
+      }
+    ]
+  },
+  "usage": {
+    "inputTokens": 8261,
+    "outputTokens": 619,
+    "calls": 3
+  },
+  "ms": 3859.7317519999924
+}

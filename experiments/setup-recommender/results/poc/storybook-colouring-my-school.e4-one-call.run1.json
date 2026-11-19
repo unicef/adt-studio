@@ -1,0 +1,158 @@
+{
+  "bookId": "storybook-colouring-my-school",
+  "variant": "e4-one-call",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "profileMs": 89.50942799999757,
+  "facts": {
+    "pageStorage": {
+      "value": "spreads-as-separate-pages",
+      "evidence": [
+        2,
+        3,
+        8,
+        9,
+        6,
+        7
+      ],
+      "detail": "3 of 4 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "3/7 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": true,
+      "share": 1,
+      "evidence": [
+        5,
+        7,
+        8
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 65,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        3,
+        5,
+        8
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "fixed_layout",
+      "rule": "Text is placed on the pictures, so the original page design is kept."
+    },
+    "pageGrouping": {
+      "value": "spread",
+      "rule": "Facing pages continue across the gutter, so each pair is joined into one screen."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      8
+    ],
+    "answers": {
+      "genre": {
+        "answer": "story",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          5,
+          8
+        ],
+        "reason": "The pages read like a narrated tour with rhyme and scene description, not like instructional material or an information reference."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8
+        ],
+        "reason": "The shown pages have descriptive sentences only, and the PDF notes say 0 pages show exercise cues such as questions, blanks, or instructions."
+      },
+      "composition": {
+        "answer": "text-in-art",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          5,
+          8
+        ],
+        "reason": "The sentences are placed inside large white text boxes over the illustrated classroom scenes rather than in a separate text area."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8
+        ],
+        "reason": "The pages show illustrated classroom scenes and labels, but no charts, maps, diagrams, or other meaningful labeled figures."
+      }
+    },
+    "semantic": {
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-in-art",
+      "diagrams": "none"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 5861,
+    "outputTokens": 213,
+    "calls": 1
+  },
+  "ms": 6008.915624000001
+}

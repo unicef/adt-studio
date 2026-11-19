@@ -1,0 +1,313 @@
+{
+  "bookId": "storybook-hyena-and-raven",
+  "variant": "e7-bagged",
+  "run": 3,
+  "model": "gpt-5.4-mini",
+  "profileMs": 75.7152919999935,
+  "facts": {
+    "pageStorage": {
+      "value": "spreads-as-wide-pages",
+      "evidence": [
+        2,
+        3,
+        4
+      ],
+      "detail": "100% of pages are landscape"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/10 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.39250100040016006
+    },
+    "textDensity": {
+      "medianChars": 80,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        2,
+        3,
+        4
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "two_column_story",
+      "rule": "Text sits beside the pictures, so story text and art go side by side."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Spreads are already stored as one wide page."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "slices": [
+      [
+        2,
+        5,
+        8,
+        11
+      ],
+      [
+        3,
+        6,
+        9
+      ],
+      [
+        4,
+        7,
+        10
+      ]
+    ],
+    "votes": {
+      "genre": [
+        "story",
+        "story",
+        "story"
+      ],
+      "exercises": [
+        "none",
+        "none",
+        "none"
+      ],
+      "composition": [
+        "text-beside-art",
+        "text-beside-art",
+        "text-beside-art"
+      ],
+      "diagrams": [
+        "none",
+        "none",
+        "none"
+      ]
+    },
+    "answers": {
+      "genre": {
+        "answer": "story",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8,
+          11
+        ],
+        "reason": "The pages tell a continuous narrative about Hyena and Raven, with events unfolding across pages like a tale rather than lessons or facts."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8,
+          11
+        ],
+        "reason": "The shown pages contain only story text and illustrations, and there are no questions, blanks, or instructions for the reader to complete."
+      },
+      "composition": {
+        "answer": "text-beside-art",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8,
+          11
+        ],
+        "reason": "On each shown page, the illustration fills the left side and the text is set in a separate block on the right, not placed over the art."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8,
+          11
+        ],
+        "reason": "The pages show narrative illustrations only, with no charts, maps, labeled figures, or infographics."
+      }
+    },
+    "semantic": {
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-beside-art",
+      "diagrams": "none"
+    },
+    "flags": [],
+    "perSlice": [
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8,
+            11
+          ],
+          "reason": "The pages tell a continuous narrative about Hyena and Raven, with events unfolding across pages like a tale rather than lessons or facts."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8,
+            11
+          ],
+          "reason": "The shown pages contain only story text and illustrations, and there are no questions, blanks, or instructions for the reader to complete."
+        },
+        "composition": {
+          "answer": "text-beside-art",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8,
+            11
+          ],
+          "reason": "On each shown page, the illustration fills the left side and the text is set in a separate block on the right, not placed over the art."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8,
+            11
+          ],
+          "reason": "The pages show narrative illustrations only, with no charts, maps, labeled figures, or infographics."
+        }
+      },
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6,
+            9
+          ],
+          "reason": "The shown pages tell a continuous narrative about Hyena and Raven, with events unfolding from one page to the next."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6,
+            9
+          ],
+          "reason": "The pages contain story text only and no questions, blanks, matching, or other learner activities."
+        },
+        "composition": {
+          "answer": "text-beside-art",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6,
+            9
+          ],
+          "reason": "On each shown page, the illustration is on the left and the text is placed separately in a clear block on the right, not over the picture."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6,
+            9
+          ],
+          "reason": "The pages show only story illustrations with no charts, maps, labeled figures, or infographics."
+        }
+      },
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7,
+            10
+          ],
+          "reason": "The pages tell a continuous narrative about Raven and Hyena, with events unfolding across pages rather than lessons or information sections."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7,
+            10
+          ],
+          "reason": "The shown pages have only story text and pictures, with no numbered questions, blanks, or instructions for the reader."
+        },
+        "composition": {
+          "answer": "text-beside-art",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7,
+            10
+          ],
+          "reason": "On each shown page, the illustration takes the left side and the text is placed in a separate column on the right rather than being woven into the art."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7,
+            10
+          ],
+          "reason": "The pages show only narrative illustrations of the characters, with no labeled diagrams, charts, maps, or infographics."
+        }
+      }
+    ]
+  },
+  "usage": {
+    "inputTokens": 11651,
+    "outputTokens": 626,
+    "calls": 3
+  },
+  "ms": 4295.549174999993
+}

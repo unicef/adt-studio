@@ -1,0 +1,1758 @@
+{
+  "generatedAt": "2026-11-19T21:30:37.292Z",
+  "factVariants": [
+    {
+      "variant": "e1-measure",
+      "runs": 6,
+      "factCells": 24,
+      "wrong": 1,
+      "flagged": 0,
+      "wrongFlagged": 0,
+      "silentErrors": 1,
+      "flagRecall": 0,
+      "flagPrecision": null,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0.16666666666666666,
+        "settings": {
+          "agree": 18,
+          "total": 18,
+          "diagAgree": 5,
+          "diagTotal": 5,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 18,
+          "total": 18,
+          "diagAgree": 5,
+          "diagTotal": 5,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 18,
+        "total": 18,
+        "diagAgree": 5,
+        "diagTotal": 5,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            []
+          ],
+          "flags": [
+            []
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            []
+          ],
+          "flags": [
+            []
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            []
+          ],
+          "flags": [
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            []
+          ],
+          "flags": [
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [
+              "genre"
+            ]
+          ],
+          "flags": [
+            []
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            []
+          ],
+          "flags": [
+            []
+          ]
+        }
+      }
+    },
+    {
+      "variant": "e2-facts",
+      "runs": 18,
+      "factCells": 72,
+      "wrong": 3,
+      "flagged": 0,
+      "wrongFlagged": 0,
+      "silentErrors": 3,
+      "flagRecall": 0,
+      "flagPrecision": null,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0.16666666666666666,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 48,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 48,
+        "total": 54,
+        "diagAgree": 15,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        }
+      }
+    },
+    {
+      "variant": "e3-facts-description",
+      "runs": 18,
+      "factCells": 72,
+      "wrong": 3,
+      "flagged": 0,
+      "wrongFlagged": 0,
+      "silentErrors": 3,
+      "flagRecall": 0,
+      "flagPrecision": null,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0.16666666666666666,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 48,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 48,
+        "total": 54,
+        "diagAgree": 15,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        }
+      }
+    },
+    {
+      "variant": "e4-one-call",
+      "runs": 18,
+      "factCells": 72,
+      "wrong": 4,
+      "flagged": 3,
+      "wrongFlagged": 0,
+      "silentErrors": 4,
+      "flagRecall": 0,
+      "flagPrecision": 0,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0.2222222222222222,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0.16666666666666666,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 48,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 48,
+        "total": 54,
+        "diagAgree": 15,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [],
+            [],
+            [
+              "composition"
+            ]
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ],
+          "flags": [
+            [],
+            [
+              "diagrams"
+            ],
+            []
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "diagrams"
+            ],
+            [],
+            [
+              "diagrams"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "variant": "e4-one-call@gpt-5.4",
+      "runs": 18,
+      "factCells": 72,
+      "wrong": 0,
+      "flagged": 7,
+      "wrongFlagged": 0,
+      "silentErrors": 0,
+      "flagRecall": null,
+      "flagPrecision": 0,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0.3888888888888889,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 54,
+        "total": 54,
+        "diagAgree": 15,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "diagrams"
+            ],
+            [
+              "diagrams"
+            ],
+            [
+              "composition",
+              "diagrams"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "variant": "e5-page-types",
+      "runs": 18,
+      "factCells": 72,
+      "wrong": 5,
+      "flagged": 7,
+      "wrongFlagged": 2,
+      "silentErrors": 3,
+      "flagRecall": 0.4,
+      "flagPrecision": 0.2857142857142857,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0.2777777777777778,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0.3888888888888889,
+        "correctionsPerBook": 0.1111111111111111,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 13,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 54,
+        "total": 54,
+        "diagAgree": 13,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [],
+            [
+              "genre",
+              "composition"
+            ],
+            []
+          ],
+          "flags": [
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ],
+            []
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [
+              "composition"
+            ],
+            []
+          ],
+          "flags": [
+            [],
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "variant": "e5-page-types@gpt-5.4",
+      "runs": 18,
+      "factCells": 72,
+      "wrong": 0,
+      "flagged": 9,
+      "wrongFlagged": 0,
+      "silentErrors": 0,
+      "flagRecall": null,
+      "flagPrecision": 0,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0.5,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 54,
+        "total": 54,
+        "diagAgree": 15,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ]
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "variant": "e6-text-only",
+      "runs": 18,
+      "factCells": 72,
+      "wrong": 9,
+      "flagged": 11,
+      "wrongFlagged": 2,
+      "silentErrors": 7,
+      "flagRecall": 0.2222222222222222,
+      "flagPrecision": 0.18181818181818182,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0.5,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0.6111111111111112,
+        "correctionsPerBook": 0.1111111111111111,
+        "settings": {
+          "agree": 48,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 45,
+        "total": 54,
+        "diagAgree": 15,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ],
+          "flags": [
+            [
+              "diagrams"
+            ],
+            [
+              "genre",
+              "diagrams"
+            ],
+            [
+              "composition"
+            ]
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [
+              "composition"
+            ],
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ]
+          ],
+          "flags": [
+            [],
+            [
+              "composition"
+            ],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ]
+          ],
+          "flags": [
+            [
+              "diagrams"
+            ],
+            [
+              "diagrams"
+            ],
+            [
+              "diagrams"
+            ]
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [
+              "diagrams"
+            ],
+            [
+              "diagrams"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "variant": "e7-bagged",
+      "runs": 18,
+      "factCells": 72,
+      "wrong": 6,
+      "flagged": 22,
+      "wrongFlagged": 6,
+      "silentErrors": 0,
+      "flagRecall": 1,
+      "flagPrecision": 0.2727272727272727,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0.3333333333333333,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 1.2222222222222223,
+        "correctionsPerBook": 0.3333333333333333,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 48,
+        "total": 54,
+        "diagAgree": 15,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ]
+          ],
+          "flags": [
+            [
+              "composition",
+              "diagrams"
+            ],
+            [
+              "composition",
+              "diagrams"
+            ],
+            [
+              "composition",
+              "diagrams"
+            ]
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ],
+          "flags": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [
+              "composition"
+            ],
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "diagrams"
+            ],
+            [
+              "composition",
+              "diagrams"
+            ],
+            [
+              "diagrams"
+            ]
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "exercises",
+              "composition",
+              "diagrams"
+            ],
+            [
+              "exercises",
+              "diagrams"
+            ],
+            [
+              "exercises",
+              "composition",
+              "diagrams"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "variant": "e8-genre-first",
+      "runs": 18,
+      "factCells": 54,
+      "wrong": 3,
+      "flagged": 0,
+      "wrongFlagged": 0,
+      "silentErrors": 3,
+      "flagRecall": 0,
+      "flagPrecision": null,
+      "reviewAll": {
+        "cardsPerBook": 3,
+        "correctionsPerBook": 0.16666666666666666,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 54,
+        "total": 54,
+        "diagAgree": 15,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ]
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        }
+      }
+    },
+    {
+      "variant": "x-e4-e5-crosscheck",
+      "runs": 18,
+      "factCells": 72,
+      "wrong": 5,
+      "flagged": 15,
+      "wrongFlagged": 5,
+      "silentErrors": 0,
+      "flagRecall": 1,
+      "flagPrecision": 0.3333333333333333,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0.2777777777777778,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0.8333333333333334,
+        "correctionsPerBook": 0.2777777777777778,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 54,
+        "total": 54,
+        "diagAgree": 13,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [],
+            [
+              "genre",
+              "composition"
+            ],
+            []
+          ],
+          "flags": [
+            [],
+            [
+              "genre",
+              "composition"
+            ],
+            [
+              "composition"
+            ]
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ],
+          "flags": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [
+              "composition"
+            ],
+            []
+          ],
+          "flags": [
+            [
+              "composition",
+              "diagrams"
+            ],
+            [
+              "composition",
+              "diagrams"
+            ],
+            [
+              "composition",
+              "diagrams"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "variant": "x-e4-e5-crosscheck@gpt-5.4",
+      "runs": 18,
+      "factCells": 72,
+      "wrong": 0,
+      "flagged": 9,
+      "wrongFlagged": 0,
+      "silentErrors": 0,
+      "flagRecall": null,
+      "flagPrecision": 0,
+      "reviewAll": {
+        "cardsPerBook": 4,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "reviewFlagged": {
+        "cardsPerBook": 0.5,
+        "correctionsPerBook": 0,
+        "settings": {
+          "agree": 54,
+          "total": 54,
+          "diagAgree": 15,
+          "diagTotal": 15,
+          "irrWrong": 0
+        }
+      },
+      "asIs": {
+        "agree": 54,
+        "total": 54,
+        "diagAgree": 15,
+        "diagTotal": 15,
+        "irrWrong": 0
+      },
+      "perBook": {
+        "reference-reimagining-target-aware-molecular": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-1930-el-viaje": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ]
+        },
+        "storybook-colouring-my-school": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "storybook-hyena-and-raven": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [],
+            [],
+            []
+          ]
+        },
+        "textbook-egito-antigo": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ],
+            [
+              "genre"
+            ]
+          ]
+        },
+        "textbook-praticas-de-alfabetizacao-e-de-matematica": {
+          "wrongFacts": [
+            [],
+            [],
+            []
+          ],
+          "flags": [
+            [
+              "composition"
+            ],
+            [
+              "composition"
+            ],
+            [
+              "diagrams"
+            ]
+          ]
+        }
+      }
+    }
+  ],
+  "teach": [
+    {
+      "variant": "e0-poc",
+      "runs": 18,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0.8888888888888888,
+      "hardCorrectionsPerBook": 0.6111111111111112,
+      "labelledPerBook": 3.8333333333333335
+    },
+    {
+      "variant": "e1-measure",
+      "runs": 6,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0,
+      "hardCorrectionsPerBook": 0,
+      "labelledPerBook": 3.8333333333333335
+    },
+    {
+      "variant": "e2-facts",
+      "runs": 18,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0.3333333333333333,
+      "hardCorrectionsPerBook": 0.16666666666666666,
+      "labelledPerBook": 3.8333333333333335
+    },
+    {
+      "variant": "e3-facts-description",
+      "runs": 18,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0.3333333333333333,
+      "hardCorrectionsPerBook": 0.16666666666666666,
+      "labelledPerBook": 3.8333333333333335
+    },
+    {
+      "variant": "e4-one-call",
+      "runs": 18,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0.3333333333333333,
+      "hardCorrectionsPerBook": 0.16666666666666666,
+      "labelledPerBook": 3.8333333333333335
+    },
+    {
+      "variant": "e4-one-call@gpt-5.4",
+      "runs": 18,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0,
+      "hardCorrectionsPerBook": 0,
+      "labelledPerBook": 3.8333333333333335
+    },
+    {
+      "variant": "e5-page-types",
+      "runs": 18,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0.1111111111111111,
+      "hardCorrectionsPerBook": 0.05555555555555555,
+      "labelledPerBook": 3.8333333333333335
+    },
+    {
+      "variant": "e5-page-types@gpt-5.4",
+      "runs": 18,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0,
+      "hardCorrectionsPerBook": 0,
+      "labelledPerBook": 3.8333333333333335
+    },
+    {
+      "variant": "e6-text-only",
+      "runs": 18,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0.5,
+      "hardCorrectionsPerBook": 0.3333333333333333,
+      "labelledPerBook": 3.8333333333333335
+    },
+    {
+      "variant": "e7-bagged",
+      "runs": 18,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0.3333333333333333,
+      "hardCorrectionsPerBook": 0.16666666666666666,
+      "labelledPerBook": 3.8333333333333335
+    },
+    {
+      "variant": "e8-genre-first",
+      "runs": 18,
+      "questionsPerBook": 6,
+      "correctionsPerBook": 0,
+      "hardCorrectionsPerBook": 0,
+      "labelledPerBook": 3.8333333333333335
+    }
+  ],
+  "ceiling": [
+    {
+      "bookId": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+      "diagnostic": false,
+      "agree": 6,
+      "total": 6,
+      "irrWrong": 0,
+      "settings": {
+        "preset": "textbook",
+        "renderStrategy": "llm",
+        "pageGrouping": "single",
+        "sectioningMode": "dynamic",
+        "activitiesGenerator": "enabled",
+        "figureExtraction": "auto"
+      }
+    },
+    {
+      "bookId": "storybook-colouring-my-school",
+      "diagnostic": false,
+      "agree": 4,
+      "total": 4,
+      "irrWrong": 0,
+      "settings": {
+        "preset": "storybook",
+        "renderStrategy": "fixed_layout",
+        "pageGrouping": "spread",
+        "sectioningMode": "page",
+        "activitiesGenerator": "disabled",
+        "figureExtraction": "off"
+      }
+    },
+    {
+      "bookId": "storybook-hyena-and-raven",
+      "diagnostic": false,
+      "agree": 4,
+      "total": 4,
+      "irrWrong": 0,
+      "settings": {
+        "preset": "storybook",
+        "renderStrategy": "two_column_story",
+        "pageGrouping": "single",
+        "sectioningMode": "page",
+        "activitiesGenerator": "disabled",
+        "figureExtraction": "off"
+      }
+    },
+    {
+      "bookId": "storybook-1930-el-viaje",
+      "diagnostic": false,
+      "agree": 4,
+      "total": 4,
+      "irrWrong": 0,
+      "settings": {
+        "preset": "storybook",
+        "renderStrategy": "llm",
+        "pageGrouping": "single",
+        "sectioningMode": "page",
+        "activitiesGenerator": "disabled",
+        "figureExtraction": "off"
+      }
+    },
+    {
+      "bookId": "reference-reimagining-target-aware-molecular",
+      "diagnostic": true,
+      "agree": 5,
+      "total": 5,
+      "irrWrong": 0,
+      "settings": {
+        "preset": "reference",
+        "renderStrategy": "single_column",
+        "pageGrouping": "single",
+        "sectioningMode": "page",
+        "activitiesGenerator": "disabled",
+        "figureExtraction": "auto"
+      }
+    },
+    {
+      "bookId": "textbook-egito-antigo",
+      "diagnostic": true,
+      "agree": 0,
+      "total": 0,
+      "irrWrong": 0,
+      "settings": {
+        "preset": "textbook",
+        "renderStrategy": "llm",
+        "pageGrouping": "single",
+        "sectioningMode": "page",
+        "activitiesGenerator": "disabled",
+        "figureExtraction": "off"
+      }
+    }
+  ]
+}

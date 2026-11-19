@@ -1,0 +1,297 @@
+{
+  "bookId": "storybook-colouring-my-school",
+  "variant": "e7-bagged",
+  "run": 3,
+  "model": "gpt-5.4-mini",
+  "profileMs": 89.50942799999757,
+  "facts": {
+    "pageStorage": {
+      "value": "spreads-as-separate-pages",
+      "evidence": [
+        2,
+        3,
+        8,
+        9,
+        6,
+        7
+      ],
+      "detail": "3 of 4 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "3/7 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": true,
+      "share": 1,
+      "evidence": [
+        5,
+        7,
+        8
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 65,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        3,
+        5,
+        8
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "fixed_layout",
+      "rule": "Text is placed on the pictures, so the original page design is kept."
+    },
+    "pageGrouping": {
+      "value": "spread",
+      "rule": "Facing pages continue across the gutter, so each pair is joined into one screen."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "slices": [
+      [
+        2,
+        5,
+        8
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        4,
+        7
+      ]
+    ],
+    "votes": {
+      "genre": [
+        "story",
+        "story",
+        "story"
+      ],
+      "exercises": [
+        "none",
+        "none",
+        "none"
+      ],
+      "composition": [
+        "text-in-art",
+        "text-in-art",
+        "text-in-art"
+      ],
+      "diagrams": [
+        "none",
+        "none",
+        "none"
+      ]
+    },
+    "answers": {
+      "genre": {
+        "answer": "story",
+        "confidence": "high",
+        "evidencePages": [
+          5,
+          8
+        ],
+        "reason": "The shown pages present simple narrative verses about a school setting rather than lessons with directions or information pages."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8
+        ],
+        "reason": "The pages show descriptive text only, with no blanks, questions, numbered tasks, or instructions for the reader to do."
+      },
+      "composition": {
+        "answer": "text-in-art",
+        "confidence": "high",
+        "evidencePages": [
+          5,
+          8
+        ],
+        "reason": "The words are placed in large boxes over the illustrations, so the text sits on top of the art rather than in a separate text area."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8
+        ],
+        "reason": "The pages show illustrations of a classroom and bookshelves, but no labeled diagrams, charts, maps, or infographics."
+      }
+    },
+    "semantic": {
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-in-art",
+      "diagrams": "none"
+    },
+    "flags": [],
+    "perSlice": [
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            5,
+            8
+          ],
+          "reason": "The shown pages present simple narrative verses about a school setting rather than lessons with directions or information pages."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8
+          ],
+          "reason": "The pages show descriptive text only, with no blanks, questions, numbered tasks, or instructions for the reader to do."
+        },
+        "composition": {
+          "answer": "text-in-art",
+          "confidence": "high",
+          "evidencePages": [
+            5,
+            8
+          ],
+          "reason": "The words are placed in large boxes over the illustrations, so the text sits on top of the art rather than in a separate text area."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8
+          ],
+          "reason": "The pages show illustrations of a classroom and bookshelves, but no labeled diagrams, charts, maps, or infographics."
+        }
+      },
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "Page 3 reads like a narrative line of a picture book (“Let’s take a look. I’ll show you inside.”) rather than a lesson or reference entry."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "The shown pages have story text and illustrations, but no numbered questions, blanks, or instructions for the reader to complete."
+        },
+        "composition": {
+          "answer": "text-in-art",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "On both pages the words are placed directly over the illustrations inside a white text box or within the picture itself, not in a separate text area."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "The pages show classroom illustrations only, with no labelled diagrams, charts, maps, or infographics."
+        }
+      },
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "The pages show a picture-book style narrative about children at school, with a line of story text rather than lesson material or informational sections."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "Neither shown page has questions, blanks, numbered items, or directions to complete an activity."
+        },
+        "composition": {
+          "answer": "text-in-art",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "On page 4 the words are placed directly over the illustration, and on page 7 the sentence sits on top of the classroom picture."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "The shown pages contain illustrations only, with no charts, maps, labeled figures, or other meaningful diagrams."
+        }
+      }
+    ]
+  },
+  "usage": {
+    "inputTokens": 8261,
+    "outputTokens": 595,
+    "calls": 3
+  },
+  "ms": 4173.836458000005
+}

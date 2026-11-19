@@ -66,7 +66,7 @@ export function choosePages(b: BookProfile, f: DeterministicFacts): number[] {
   return [...picks].sort((a, c) => a - c)
 }
 
-function context(b: BookProfile, f: DeterministicFacts, pages: number[], description?: string): string {
+export function context(b: BookProfile, f: DeterministicFacts, pages: number[], description?: string): string {
   const lines = [
     `The book has ${b.pageCount} pages. You are shown pages ${pages.join(", ")}.`,
     `Measured from the PDF: median ${f.textDensity.medianChars} visible characters per page; pictures cover a median ${Math.round(f.pictureHeavy.medianCoverage * 100)}% of a page; text sits over a large picture on ${Math.round(f.textOverPictures.share * 100)}% of text pages; ${f.exerciseCues.pagesWithCues} pages show exercise cues (numbered items, blanks, instructions).`,

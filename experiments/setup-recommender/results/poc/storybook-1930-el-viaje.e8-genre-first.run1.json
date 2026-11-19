@@ -1,0 +1,143 @@
+{
+  "bookId": "storybook-1930-el-viaje",
+  "variant": "e8-genre-first",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "profileMs": 38.63766300000134,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 4 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/6 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.16726175988533135
+    },
+    "textDensity": {
+      "medianChars": 1175,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        2,
+        3,
+        4
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "es"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "Mostly text, so the AI layout reflows it."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "given": {
+      "genre": "story"
+    },
+    "answers": {
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "reason": "The shown pages are prose pages with no numbered problems, blanks, answer spaces, or activity instructions; the PDF note also says 0 pages show exercise cues."
+      },
+      "composition": {
+        "answer": "text-mostly",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "reason": "The pages are dominated by long blocks of text, and the pictures are minimal or absent on the shown pages, with text laid out in its own page area."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "reason": "The shown pages contain only prose and page design elements, with no charts, maps, labelled figures, or other meaningful diagrams visible."
+      }
+    },
+    "semantic": {
+      "exercises": "none",
+      "composition": "text-mostly",
+      "diagrams": "none",
+      "genre": "story"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 6506,
+    "outputTokens": 191,
+    "calls": 1
+  },
+  "ms": 2904.3733139999968
+}

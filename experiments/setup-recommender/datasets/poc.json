@@ -1,17 +1,156 @@
 {
-  "name": "poc",
-  "note": "adt-poc-llm fd36742 pdfs/ (7–12 page excerpts). Labels from its evaluation/benchmark.json; 'diagnostic' books are outside its 18-decision denominator. Descriptions are simulated (written from title and cover).",
-  "books": [
-    { "id": "textbook-praticas-de-alfabetizacao-e-de-matematica", "description": "A literacy and maths workbook for adult learners in Portuguese.",
-      "labels": { "preset": "textbook", "renderStrategy": "llm", "pageGrouping": "single", "sectioningMode": "dynamic", "activitiesGenerator": "enabled", "figureExtraction": "auto" } },
-    { "id": "storybook-colouring-my-school", "description": "A picture book for small children about their school.",
-      "labels": { "preset": "storybook", "renderStrategy": "fixed_layout", "pageGrouping": "spread", "sectioningMode": "page" } },
-    { "id": "storybook-hyena-and-raven", "description": "An illustrated children's story about a hyena and a raven.",
-      "labels": { "preset": "storybook", "renderStrategy": "two_column_story", "pageGrouping": "single", "sectioningMode": "page" } },
-    { "id": "storybook-1930-el-viaje", "description": "A short story in Spanish for young readers.",
-      "labels": { "preset": "storybook", "renderStrategy": "llm", "pageGrouping": "single", "sectioningMode": "page" } },
-    { "id": "reference-reimagining-target-aware-molecular", "description": "A research paper about AI for molecular design.", "diagnostic": true,
-      "labels": { "preset": "reference", "renderStrategy": "single_column", "pageGrouping": "single", "sectioningMode": "page", "figureExtraction": "auto" } },
-    { "id": "textbook-egito-antigo", "description": "A history textbook chapter about Ancient Egypt.", "diagnostic": true, "labels": {} }
-  ]
+ "name": "poc",
+ "note": "adt-poc-llm fd36742 pdfs/ (7–12 page excerpts). Labels from its evaluation/benchmark.json; 'diagnostic' books are outside its 18-decision denominator. Descriptions are simulated (written from title and cover).",
+ "books": [
+  {
+   "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "description": "A literacy and maths workbook for adult learners in Portuguese.",
+   "labels": {
+    "preset": "textbook",
+    "renderStrategy": "llm",
+    "pageGrouping": "single",
+    "sectioningMode": "dynamic",
+    "activitiesGenerator": "enabled",
+    "figureExtraction": "auto"
+   },
+   "facts": {
+    "genre": [
+     "textbook"
+    ],
+    "exercises": [
+     "many"
+    ],
+    "composition": [
+     "text-mostly",
+     "text-beside-art"
+    ],
+    "diagrams": [
+     "some",
+     "many"
+    ]
+   }
+  },
+  {
+   "id": "storybook-colouring-my-school",
+   "description": "A picture book for small children about their school.",
+   "labels": {
+    "preset": "storybook",
+    "renderStrategy": "fixed_layout",
+    "pageGrouping": "spread",
+    "sectioningMode": "page"
+   },
+   "facts": {
+    "genre": [
+     "story"
+    ],
+    "exercises": [
+     "none"
+    ],
+    "composition": [
+     "text-in-art"
+    ],
+    "diagrams": [
+     "none"
+    ]
+   }
+  },
+  {
+   "id": "storybook-hyena-and-raven",
+   "description": "An illustrated children's story about a hyena and a raven.",
+   "labels": {
+    "preset": "storybook",
+    "renderStrategy": "two_column_story",
+    "pageGrouping": "single",
+    "sectioningMode": "page"
+   },
+   "facts": {
+    "genre": [
+     "story"
+    ],
+    "exercises": [
+     "none"
+    ],
+    "composition": [
+     "text-beside-art"
+    ],
+    "diagrams": [
+     "none"
+    ]
+   }
+  },
+  {
+   "id": "storybook-1930-el-viaje",
+   "description": "A short story in Spanish for young readers.",
+   "labels": {
+    "preset": "storybook",
+    "renderStrategy": "llm",
+    "pageGrouping": "single",
+    "sectioningMode": "page"
+   },
+   "facts": {
+    "genre": [
+     "story"
+    ],
+    "exercises": [
+     "none"
+    ],
+    "composition": [
+     "text-mostly"
+    ],
+    "diagrams": [
+     "none"
+    ]
+   }
+  },
+  {
+   "id": "reference-reimagining-target-aware-molecular",
+   "description": "A research paper about AI for molecular design.",
+   "diagnostic": true,
+   "labels": {
+    "preset": "reference",
+    "renderStrategy": "single_column",
+    "pageGrouping": "single",
+    "sectioningMode": "page",
+    "figureExtraction": "auto"
+   },
+   "facts": {
+    "genre": [
+     "reference"
+    ],
+    "exercises": [
+     "none"
+    ],
+    "composition": [
+     "text-mostly"
+    ],
+    "diagrams": [
+     "some",
+     "many"
+    ]
+   }
+  },
+  {
+   "id": "textbook-egito-antigo",
+   "description": "A history textbook chapter about Ancient Egypt.",
+   "diagnostic": true,
+   "labels": {},
+   "facts": {
+    "genre": [
+     "textbook",
+     "reference"
+    ],
+    "exercises": [
+     "none"
+    ],
+    "composition": [
+     "text-beside-art"
+    ],
+    "diagrams": [
+     "none",
+     "some"
+    ]
+   }
+  }
+ ],
+ "factsNote": "'facts' are hand-labelled from the excerpt pages on 2026-11-19 (what an honest user would answer); several values mean either is acceptable. El Viaje is a novel even though the excerpt shows only its publisher's note and foreword."
 }

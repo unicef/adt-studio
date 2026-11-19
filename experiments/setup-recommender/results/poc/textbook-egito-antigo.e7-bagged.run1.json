@@ -1,0 +1,305 @@
+{
+  "bookId": "textbook-egito-antigo",
+  "variant": "e7-bagged",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "profileMs": 353.1308040000149,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 5 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/9 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0.3333333333333333,
+      "evidence": [
+        3,
+        4,
+        9
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 263,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 1,
+      "evidence": [
+        2,
+        6,
+        10
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "reference",
+      "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+      "value": "single_column",
+      "rule": "Reference material reads best as one clean column."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "slices": [
+      [
+        2,
+        5,
+        8
+      ],
+      [
+        3,
+        6,
+        9
+      ],
+      [
+        4,
+        7,
+        10
+      ]
+    ],
+    "votes": {
+      "genre": [
+        "reference",
+        "reference",
+        "reference"
+      ],
+      "exercises": [
+        "none",
+        "none",
+        "none"
+      ],
+      "composition": [
+        "text-beside-art",
+        "text-beside-art",
+        "text-beside-art"
+      ],
+      "diagrams": [
+        "some",
+        "none",
+        "none"
+      ]
+    },
+    "answers": {
+      "genre": {
+        "answer": "reference",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8
+        ],
+        "reason": "The pages present factual information about Ancient Egypt, with explanatory text and no storyline or student activities."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8
+        ],
+        "reason": "The shown pages contain only informational text and pictures, and there are no questions, blanks, or activity directions."
+      },
+      "composition": {
+        "answer": "text-beside-art",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5,
+          8
+        ],
+        "reason": "The text is placed in clear blocks above or beside large pictures rather than written on top of the images."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "medium",
+        "evidencePages": [
+          3,
+          6,
+          9
+        ],
+        "reason": "The pages show a painting and photographs/statues, but no labeled diagrams, charts, maps, or infographics."
+      }
+    },
+    "semantic": {
+      "genre": "reference",
+      "exercises": "none",
+      "composition": "text-beside-art",
+      "diagrams": "none"
+    },
+    "flags": [
+      "diagrams"
+    ],
+    "perSlice": [
+      {
+        "genre": {
+          "answer": "reference",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8
+          ],
+          "reason": "The pages present factual information about Ancient Egypt, with explanatory text and no storyline or student activities."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8
+          ],
+          "reason": "The shown pages contain only informational text and pictures, and there are no questions, blanks, or activity directions."
+        },
+        "composition": {
+          "answer": "text-beside-art",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5,
+            8
+          ],
+          "reason": "The text is placed in clear blocks above or beside large pictures rather than written on top of the images."
+        },
+        "diagrams": {
+          "answer": "some",
+          "confidence": "high",
+          "evidencePages": [
+            5,
+            8
+          ],
+          "reason": "Page 5 includes a labeled map with a scale and compass directions, which is a meaningful diagram."
+        }
+      },
+      {
+        "genre": {
+          "answer": "reference",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6,
+            9
+          ],
+          "reason": "The pages present factual information about ancient Egypt and its rulers, not a story, and they read like an informational book."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6,
+            9
+          ],
+          "reason": "The shown pages only contain expository text and pictures; there are no questions, blanks, or directions for the reader to do anything."
+        },
+        "composition": {
+          "answer": "text-beside-art",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6,
+            9
+          ],
+          "reason": "On all shown pages, the text is arranged in a separate area above the large illustration rather than woven into the picture."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6,
+            9
+          ],
+          "reason": "The pages show a painting and photographs/statues, but no labeled diagrams, charts, maps, or infographics."
+        }
+      },
+      {
+        "genre": {
+          "answer": "reference",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7,
+            10
+          ],
+          "reason": "The pages present factual information about ancient Egyptian farming, King Tut, and Hatshepsut rather than a plot or lesson with activities."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7,
+            10
+          ],
+          "reason": "These pages only contain informational text and pictures; there are no questions, blanks, or task instructions."
+        },
+        "composition": {
+          "answer": "text-beside-art",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7,
+            10
+          ],
+          "reason": "On each shown page, the text is placed in separate blocks next to or above/below large illustrations rather than woven into the art."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7,
+            10
+          ],
+          "reason": "The pages show illustrations and photos, but no labeled diagrams, charts, maps, or infographics with meaningful labels."
+        }
+      }
+    ]
+  },
+  "usage": {
+    "inputTokens": 12119,
+    "outputTokens": 599,
+    "calls": 3
+  },
+  "ms": 5641.11849199998
+}

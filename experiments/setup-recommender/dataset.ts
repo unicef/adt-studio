@@ -8,6 +8,8 @@ export interface DatasetBook {
   description?: string
   /** Known-good settings; only these fields are scored. */
   labels: Partial<Record<DecisionId, string>>
+  /** True plain facts (genre, exercises, composition, diagrams), hand-labelled from the pages; every listed value is acceptable. */
+  facts?: Partial<Record<string, string[]>>
   /** Reported apart from the main score. */
   diagnostic?: boolean
 }

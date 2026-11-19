@@ -1,0 +1,147 @@
+{
+  "bookId": "storybook-hyena-and-raven",
+  "variant": "e8-genre-first",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 75.7152919999935,
+  "facts": {
+    "pageStorage": {
+      "value": "spreads-as-wide-pages",
+      "evidence": [
+        2,
+        3,
+        4
+      ],
+      "detail": "100% of pages are landscape"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/10 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.39250100040016006
+    },
+    "textDensity": {
+      "medianChars": 80,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        2,
+        3,
+        4
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "two_column_story",
+      "rule": "Text sits beside the pictures, so story text and art go side by side."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Spreads are already stored as one wide page."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      7,
+      11
+    ],
+    "given": {
+      "genre": "story"
+    },
+    "answers": {
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          7,
+          11
+        ],
+        "reason": "The shown pages only tell a story in sentences and pictures, with no instructions, blanks, questions to answer, or other activity cues."
+      },
+      "composition": {
+        "answer": "text-beside-art",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          7,
+          11
+        ],
+        "reason": "On each shown page, the illustration is on one side and the printed story text sits in a separate column beside it rather than inside the artwork."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          7,
+          11
+        ],
+        "reason": "The pages show story illustrations of Hyena and Raven, but no charts, maps, labelled figures, or other diagram-style graphics."
+      }
+    },
+    "semantic": {
+      "exercises": "none",
+      "composition": "text-beside-art",
+      "diagrams": "none",
+      "genre": "story"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 6240,
+    "outputTokens": 185,
+    "calls": 1
+  },
+  "ms": 5179.6712390000175
+}

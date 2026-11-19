@@ -1,0 +1,147 @@
+{
+  "bookId": "reference-reimagining-target-aware-molecular",
+  "variant": "e4-one-call",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 164.58195100000012,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 3 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/5 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.034146456813465634
+    },
+    "textDensity": {
+      "medianChars": 3348,
+      "class": "dense"
+    },
+    "vectorDiagrams": {
+      "value": true,
+      "pagesWithDiagrams": 2,
+      "evidence": [
+        3,
+        5,
+        6
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "reference",
+      "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+      "value": "single_column",
+      "rule": "Reference material reads best as one clean column."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "answers": {
+      "genre": {
+        "answer": "reference",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "The shown pages are an academic paper with sections, equations, figures, tables, and citations, meant to report information rather than tell a story or teach exercises."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "The pages contain exposition, equations, figures, and tables, but no prompts, blanks, numbered problems, or instructions for the reader to complete."
+      },
+      "composition": {
+        "answer": "text-mostly",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "The pages are dominated by dense text and formulas, with figures and tables occupying relatively little of each page."
+      },
+      "diagrams": {
+        "answer": "many",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "The pages include multiple meaningful figures and a table, such as workflow diagrams, molecule images, scatter plots, and comparative metric tables."
+      }
+    },
+    "semantic": {
+      "genre": "reference",
+      "exercises": "none",
+      "composition": "text-mostly",
+      "diagrams": "many"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 6626,
+    "outputTokens": 228,
+    "calls": 1
+  },
+  "ms": 3194.0073799999955
+}

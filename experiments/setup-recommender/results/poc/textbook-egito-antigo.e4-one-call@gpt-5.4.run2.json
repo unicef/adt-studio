@@ -1,0 +1,148 @@
+{
+  "bookId": "textbook-egito-antigo",
+  "variant": "e4-one-call@gpt-5.4",
+  "run": 2,
+  "model": "gpt-5.4",
+  "profileMs": 354.77456800002255,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 5 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/9 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0.3333333333333333,
+      "evidence": [
+        3,
+        4,
+        9
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 263,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 1,
+      "evidence": [
+        2,
+        6,
+        10
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "reference",
+      "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+      "value": "single_column",
+      "rule": "Reference material reads best as one clean column."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      10
+    ],
+    "answers": {
+      "genre": {
+        "answer": "reference",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          5,
+          6,
+          10
+        ],
+        "reason": "The shown pages give factual explanations about the Nile, pharaohs, and Hatshepsut in short chapters rather than telling a continuous story."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          4,
+          5,
+          6,
+          10
+        ],
+        "reason": "These pages contain only informational text and pictures, with no questions, blanks, numbered tasks, or activity instructions."
+      },
+      "composition": {
+        "answer": "text-beside-art",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          4,
+          5,
+          6,
+          10
+        ],
+        "reason": "On the shown interior pages, the text sits in separate white areas above or beside pictures instead of being laid directly over the images."
+      },
+      "diagrams": {
+        "answer": "some",
+        "confidence": "high",
+        "evidencePages": [
+          5
+        ],
+        "reason": "Page 5 includes a labeled map with place names, compass directions, and a scale, which is a meaningful diagram-like figure."
+      }
+    },
+    "semantic": {
+      "genre": "reference",
+      "exercises": "none",
+      "composition": "text-beside-art",
+      "diagrams": "some"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 7288,
+    "outputTokens": 217,
+    "calls": 1
+  },
+  "ms": 7864.481742000004
+}

@@ -1,0 +1,285 @@
+{
+  "bookId": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+  "variant": "e7-bagged",
+  "run": 3,
+  "model": "gpt-5.4-mini",
+  "profileMs": 464.47931400000004,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 3 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/5 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": [
+        6
+      ]
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0
+    },
+    "textDensity": {
+      "medianChars": 465,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": true,
+      "pagesWithDiagrams": 3,
+      "evidence": [
+        2,
+        3,
+        5
+      ]
+    },
+    "exerciseCues": {
+      "value": true,
+      "pagesWithCues": 3,
+      "evidence": [
+        2,
+        3,
+        5
+      ]
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "pt"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "The book is a textbook."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "Lessons and exercises need the AI layout to rebuild their structure."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "dynamic",
+      "rule": "Pages mix reading and exercises, so each page is split into sections."
+    },
+    "activitiesGenerator": {
+      "value": "enabled",
+      "rule": "The book has exercises for the reader, so they become interactive activities."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "slices": [
+      [
+        2,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        4
+      ]
+    ],
+    "votes": {
+      "genre": [
+        "textbook",
+        "textbook",
+        "textbook"
+      ],
+      "exercises": [
+        "many",
+        "many",
+        "some"
+      ],
+      "composition": [
+        "text-beside-art",
+        "text-mostly",
+        "text-mostly"
+      ],
+      "diagrams": [
+        "some",
+        "some",
+        "none"
+      ]
+    },
+    "answers": {
+      "genre": {
+        "answer": "textbook",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5
+        ],
+        "reason": "Both pages are full of classroom prompts and instructions such as “PRATICANDO” and questions for students to answer."
+      },
+      "exercises": {
+        "answer": "many",
+        "confidence": "medium",
+        "evidencePages": [
+          2,
+          5
+        ],
+        "reason": "The pages contain multiple numbered activities, discussion prompts, and blank lines for students to respond."
+      },
+      "composition": {
+        "answer": "text-mostly",
+        "confidence": "medium",
+        "evidencePages": [
+          3,
+          6
+        ],
+        "reason": "The pages are mostly text and writing lines, with only a small illustration on page 3 and a boxed form on page 6, not text woven into pictures."
+      },
+      "diagrams": {
+        "answer": "some",
+        "confidence": "medium",
+        "evidencePages": [
+          2,
+          5
+        ],
+        "reason": "Page 2 includes a labeled identity-card figure, which is a meaningful visual, but the pages do not show many such diagrams."
+      }
+    },
+    "semantic": {
+      "genre": "textbook",
+      "exercises": "many",
+      "composition": "text-mostly",
+      "diagrams": "some"
+    },
+    "flags": [
+      "exercises",
+      "composition",
+      "diagrams"
+    ],
+    "perSlice": [
+      {
+        "genre": {
+          "answer": "textbook",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5
+          ],
+          "reason": "Both pages are full of classroom prompts and instructions such as “PRATICANDO” and questions for students to answer."
+        },
+        "exercises": {
+          "answer": "many",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5
+          ],
+          "reason": "The pages contain multiple numbered activities, discussion prompts, and blank lines for students to respond."
+        },
+        "composition": {
+          "answer": "text-beside-art",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5
+          ],
+          "reason": "The text is set in its own blocks and the pictures are separate from it, like the identity-card image placed below the instructions."
+        },
+        "diagrams": {
+          "answer": "some",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5
+          ],
+          "reason": "Page 2 includes a labeled identity-card figure, which is a meaningful visual, but the pages do not show many such diagrams."
+        }
+      },
+      {
+        "genre": {
+          "answer": "textbook",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "The pages present numbered activities, fill-in-the-blank fields, and instructions for students, which is characteristic of learning material."
+        },
+        "exercises": {
+          "answer": "many",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "Both shown pages contain explicit student tasks like answering questions, completing forms, and filling blanks, and the page metadata also notes exercise cues on multiple pages."
+        },
+        "composition": {
+          "answer": "text-mostly",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "The pages are mostly text and writing lines, with only a small illustration on page 3 and a boxed form on page 6, not text woven into pictures."
+        },
+        "diagrams": {
+          "answer": "some",
+          "confidence": "high",
+          "evidencePages": [
+            6
+          ],
+          "reason": "Page 6 contains a structured form/boxed layout with labeled fields, which functions as a meaningful figure, though there are no many such figures across the shown pages."
+        }
+      },
+      {
+        "genre": {
+          "answer": "textbook",
+          "confidence": "high",
+          "evidencePages": [
+            4
+          ],
+          "reason": "The page explains a concept and then gives a numbered practice section with blanks for the reader to fill in."
+        },
+        "exercises": {
+          "answer": "some",
+          "confidence": "high",
+          "evidencePages": [
+            4
+          ],
+          "reason": "Page 4 has a 'PRATICANDO' section with a numbered item and several fill-in blanks for the reader."
+        },
+        "composition": {
+          "answer": "text-mostly",
+          "confidence": "high",
+          "evidencePages": [
+            4
+          ],
+          "reason": "The page is mostly text with only simple ruled blanks and no large pictures or text woven into art."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4
+          ],
+          "reason": "Page 4 shows text, a sample CPF number, and blank lines, but no labeled diagrams, charts, maps, or infographics."
+        }
+      }
+    ]
+  },
+  "usage": {
+    "inputTokens": 8174,
+    "outputTokens": 596,
+    "calls": 3
+  },
+  "ms": 3112.2934040000036
+}

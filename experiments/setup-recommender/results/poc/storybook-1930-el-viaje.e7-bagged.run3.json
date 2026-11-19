@@ -1,0 +1,281 @@
+{
+  "bookId": "storybook-1930-el-viaje",
+  "variant": "e7-bagged",
+  "run": 3,
+  "model": "gpt-5.4-mini",
+  "profileMs": 38.63766300000134,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 4 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/6 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.16726175988533135
+    },
+    "textDensity": {
+      "medianChars": 1175,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        2,
+        3,
+        4
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "es"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "reference",
+      "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+      "value": "single_column",
+      "rule": "Reference material reads best as one clean column."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "slices": [
+      [
+        2,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        4,
+        7
+      ]
+    ],
+    "votes": {
+      "genre": [
+        "reference",
+        "reference",
+        "story"
+      ],
+      "exercises": [
+        "none",
+        "none",
+        "none"
+      ],
+      "composition": [
+        "text-mostly",
+        "text-mostly",
+        "text-mostly"
+      ],
+      "diagrams": [
+        "none",
+        "none",
+        "none"
+      ]
+    },
+    "answers": {
+      "genre": {
+        "answer": "reference",
+        "confidence": "medium",
+        "evidencePages": [
+          2
+        ],
+        "reason": "Page 2 is an informational introduction about the project and its goals, not a narrative with characters or plot, and page 5 does not add story elements."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5
+        ],
+        "reason": "Page 2 is continuous expository text with rhetorical questions, and page 5 shows no exercise cues such as prompts, blanks, or numbered tasks."
+      },
+      "composition": {
+        "answer": "text-mostly",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5
+        ],
+        "reason": "Page 2 is dominated by text with no visible illustration, and page 5 is almost entirely blank aside from a few small marks at the edge."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          5
+        ],
+        "reason": "Neither shown page contains diagrams, charts, maps, or labeled figures; page 2 is plain text and page 5 is blank."
+      }
+    },
+    "semantic": {
+      "genre": "reference",
+      "exercises": "none",
+      "composition": "text-mostly",
+      "diagrams": "none"
+    },
+    "flags": [
+      "genre"
+    ],
+    "perSlice": [
+      {
+        "genre": {
+          "answer": "reference",
+          "confidence": "high",
+          "evidencePages": [
+            2
+          ],
+          "reason": "Page 2 is an informational introduction about the project and its goals, not a narrative with characters or plot, and page 5 does not add story elements."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5
+          ],
+          "reason": "Page 2 is continuous expository text with rhetorical questions, and page 5 shows no exercise cues such as prompts, blanks, or numbered tasks."
+        },
+        "composition": {
+          "answer": "text-mostly",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5
+          ],
+          "reason": "Page 2 is dominated by text with no visible illustration, and page 5 is almost entirely blank aside from a few small marks at the edge."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            2,
+            5
+          ],
+          "reason": "Neither shown page contains diagrams, charts, maps, or labeled figures; page 2 is plain text and page 5 is blank."
+        }
+      },
+      {
+        "genre": {
+          "answer": "reference",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "Both pages are expository prose about an educational project and a book’s purpose, not a plotted narrative or lesson-with-activities format."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "The shown pages are continuous explanatory text and, as noted from the page scan, show no numbered items, blanks, or activity instructions."
+        },
+        "composition": {
+          "answer": "text-mostly",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "Page 3 is almost entirely text, and page 6 is also mostly text with only a small decorative edge element rather than a picture-integrated layout."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            3,
+            6
+          ],
+          "reason": "The shown pages contain only text and decoration, with no diagrams, charts, maps, or labeled figures."
+        }
+      },
+      {
+        "genre": {
+          "answer": "story",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "Page 4 says it is a 'subgénero narrativo de la ficción histórica' and page 7 describes adventures and suspense, which shows it is a narrative story book."
+        },
+        "exercises": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "The shown pages contain continuous prose and no numbered questions, blanks, or activity instructions, and the page summary also notes 0 exercise cues."
+        },
+        "composition": {
+          "answer": "text-mostly",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "Both pages are dominated by text with only a small decorative strip at the side and no large illustration taking up the page."
+        },
+        "diagrams": {
+          "answer": "none",
+          "confidence": "high",
+          "evidencePages": [
+            4,
+            7
+          ],
+          "reason": "The pages show plain text pages without charts, maps, labelled figures, or other meaningful diagrams."
+        }
+      }
+    ]
+  },
+  "usage": {
+    "inputTokens": 8174,
+    "outputTokens": 624,
+    "calls": 3
+  },
+  "ms": 3330.0511309999856
+}

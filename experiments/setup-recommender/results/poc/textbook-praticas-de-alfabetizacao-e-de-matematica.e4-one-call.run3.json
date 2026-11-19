@@ -1,0 +1,153 @@
+{
+  "bookId": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+  "variant": "e4-one-call",
+  "run": 3,
+  "model": "gpt-5.4-mini",
+  "profileMs": 464.47931400000004,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 3 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/5 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": [
+        6
+      ]
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0
+    },
+    "textDensity": {
+      "medianChars": 465,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": true,
+      "pagesWithDiagrams": 3,
+      "evidence": [
+        2,
+        3,
+        5
+      ]
+    },
+    "exerciseCues": {
+      "value": true,
+      "pagesWithCues": 3,
+      "evidence": [
+        2,
+        3,
+        5
+      ]
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "pt"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "The book is a textbook."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "Lessons and exercises need the AI layout to rebuild their structure."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "dynamic",
+      "rule": "Pages mix reading and exercises, so each page is split into sections."
+    },
+    "activitiesGenerator": {
+      "value": "enabled",
+      "rule": "The book has exercises for the reader, so they become interactive activities."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "answers": {
+      "genre": {
+        "answer": "textbook",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "The pages teach content about personal documents and numbers and repeatedly include practice sections like “PRATICANDO” with tasks for the student."
+      },
+      "exercises": {
+        "answer": "many",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "Several pages contain numbered activities, fill-in blanks, and questions for the reader to answer, such as “complete a ficha” and “responda às questões.”"
+      },
+      "composition": {
+        "answer": "text-mostly",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "The pages are mostly text with only one or a few small photos/screenshots of documents and no large text-over-art layout."
+      },
+      "diagrams": {
+        "answer": "some",
+        "confidence": "medium",
+        "evidencePages": [
+          2,
+          6
+        ],
+        "reason": "There are meaningful labeled figures, such as the shown identity card and the form with fields to complete, but they are not spread throughout every page."
+      }
+    },
+    "semantic": {
+      "genre": "textbook",
+      "exercises": "many",
+      "composition": "text-mostly",
+      "diagrams": "some"
+    },
+    "flags": [
+      "diagrams"
+    ]
+  },
+  "usage": {
+    "inputTokens": 6636,
+    "outputTokens": 231,
+    "calls": 1
+  },
+  "ms": 3048.8827200000005
+}

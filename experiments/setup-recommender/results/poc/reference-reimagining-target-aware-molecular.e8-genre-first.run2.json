@@ -1,0 +1,135 @@
+{
+  "bookId": "reference-reimagining-target-aware-molecular",
+  "variant": "e8-genre-first",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 164.58195100000012,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 3 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/5 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.034146456813465634
+    },
+    "textDensity": {
+      "medianChars": 3348,
+      "class": "dense"
+    },
+    "vectorDiagrams": {
+      "value": true,
+      "pagesWithDiagrams": 2,
+      "evidence": [
+        3,
+        5,
+        6
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "reference",
+      "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+      "value": "single_column",
+      "rule": "Reference material reads best as one clean column."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "given": {
+      "genre": "reference"
+    },
+    "answers": {
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "The shown pages are research-paper pages with figures, equations, and tables, and the provided page metrics say 0 pages show exercise cues such as numbered items, blanks, or instructions."
+      },
+      "composition": {
+        "answer": "text-beside-art",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          4,
+          6
+        ],
+        "reason": "The pages show text blocks laid out separately from figures and tables, with captions and side-by-side panels rather than text woven into artwork."
+      },
+      "diagrams": {
+        "answer": "many",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          4,
+          6
+        ],
+        "reason": "The shown pages include multiple meaningful labeled figures and charts, such as workflow diagrams, quantitative plots, and tables with labeled metrics."
+      }
+    },
+    "semantic": {
+      "exercises": "none",
+      "composition": "text-beside-art",
+      "diagrams": "many",
+      "genre": "reference"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 6503,
+    "outputTokens": 178,
+    "calls": 1
+  },
+  "ms": 2760.242624000006
+}
