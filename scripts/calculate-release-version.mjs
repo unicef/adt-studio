@@ -54,11 +54,32 @@ export function calculateReleaseVersion(tags, releaseType, stagingSlug) {
         "Staging versions require a branch slug (letters, numbers, and hyphens)",
       );
     }
-    return `${formatCore(core)}-beta-${stagingSlug}`;
+    return `${formatCore(core)}-beta-${stagingSlug}${stagingBuildSuffix(versions, core, stagingSlug)}`;
   }
 
   const betaNumber = continueBetaLine ? betaNumberOf(latestBeta) + 1 : 1;
   return `${formatCore(core)}-beta.${betaNumber}`;
+}
+
+/**
+ * Re-staging a PR must not reuse its version: the in-app updater refuses to
+ * install a version equal to the running one, so a rebuild with the same tag
+ * could never reach anyone already on the previous build. The first build keeps
+ * the bare `-beta-<slug>` tag; each rebuild on the same core appends `.2`, `.3`…,
+ * which semver orders after the bare tag and after each other.
+ */
+function stagingBuildSuffix(versions, core, stagingSlug) {
+  const identifier = `beta-${stagingSlug}`;
+  const builds = versions
+    .filter(
+      (version) =>
+        version.prerelease?.[0] === identifier && compareCore(version, core) === 0,
+    )
+    .map((version) =>
+      typeof version.prerelease[1] === "number" ? version.prerelease[1] : 1,
+    );
+  if (builds.length === 0) return "";
+  return `.${Math.max(...builds) + 1}`;
 }
 
 function bumpCore(version, bump) {

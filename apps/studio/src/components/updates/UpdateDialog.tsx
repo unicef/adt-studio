@@ -7,9 +7,6 @@ import {
 } from "@/components/ui/dialog"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useUpdateStatus, type UpdateStatus } from "@/hooks/use-update-status"
-import { cn } from "@/lib/utils"
-import { BetaVersionsView } from "./beta/BetaVersionsView"
-import { getReleaseChannel } from "./release-banner-utils"
 import { UpdateStateSurface } from "./UpdateStateSurface"
 
 export interface UpdateDialogProps {
@@ -37,57 +34,37 @@ export function UpdateDialog({
     status.phase === "available" || status.phase === "downloaded"
       ? { version: status.version, releaseNotes: status.releaseNotes }
       : null
-  const showBetaVersions =
-    currentVersion != null &&
-    getReleaseChannel(currentVersion) === "beta" &&
-    status.phase !== "downloading" &&
-    status.phase !== "downloaded" &&
-    status.phase !== "installing"
-
   const close = () => onOpenChange(false)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={modal}>
       <DialogContent
         overlayClassName="bg-black/55 backdrop-blur-[1px] data-[state=closed]:duration-150 data-[state=open]:duration-200 motion-reduce:animate-none"
-        className={cn(
-          "gap-0 overflow-hidden p-0 data-[state=closed]:duration-150 data-[state=open]:duration-200 motion-reduce:animate-none sm:rounded-xl [&>button]:top-2 [&>button]:right-2",
-          showBetaVersions
-            ? "border shadow-none sm:max-w-5xl"
-            : "border-0 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 sm:max-w-125",
-        )}
+        className="gap-0 overflow-hidden border-0 p-0 shadow-2xl ring-1 ring-black/5 data-[state=closed]:duration-150 data-[state=open]:duration-200 motion-reduce:animate-none sm:max-w-125 sm:rounded-xl dark:ring-white/10 [&>button]:top-2 [&>button]:right-2"
       >
         <DialogDescription className="sr-only">
           <Trans>Software update status</Trans>
         </DialogDescription>
-        {showBetaVersions ? (
-          <BetaVersionsView
-            status={status}
-            currentVersion={currentVersion}
-            onClose={close}
-          />
-        ) : (
-          <UpdateStateSurface
-            status={status}
-            currentVersion={currentVersion}
-            TitleTag={DialogTitle}
-            onCheck={check}
-            onDownload={download}
-            onCancel={cancel}
-            onInstallNow={install}
-            onInstallLater={async () => {
-              await installOnQuit()
-              close()
-            }}
-            onClose={close}
-            onShowWhatsNew={onShowWhatsNew}
-            onSeeDetails={
-              onSeeDetails && detailsPayload
-                ? () => onSeeDetails(detailsPayload)
-                : undefined
-            }
-          />
-        )}
+        <UpdateStateSurface
+          status={status}
+          currentVersion={currentVersion}
+          TitleTag={DialogTitle}
+          onCheck={check}
+          onDownload={download}
+          onCancel={cancel}
+          onInstallNow={install}
+          onInstallLater={async () => {
+            await installOnQuit()
+            close()
+          }}
+          onClose={close}
+          onShowWhatsNew={onShowWhatsNew}
+          onSeeDetails={
+            onSeeDetails && detailsPayload
+              ? () => onSeeDetails(detailsPayload)
+              : undefined
+          }
+        />
       </DialogContent>
     </Dialog>
   )

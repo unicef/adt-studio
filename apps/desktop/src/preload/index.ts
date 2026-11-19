@@ -5,6 +5,7 @@ import type {
   UpdateStatus,
 } from '../main/services/auto-updater'
 import type { PostUpdateInfo } from '../main/services/update-state'
+import type { PreviewBuildStatus } from '../main/services/preview-build'
 import type { StageNotificationPayload } from '../main/ipc/notifications'
 
 type ApiLogCallback = (entry: ApiLogEntry) => void
@@ -63,6 +64,8 @@ const updates = {
     ipcRenderer.invoke('updates:select-version', version),
   getPostUpdate: (): Promise<PostUpdateInfo | null> =>
     ipcRenderer.invoke('updates:get-post-update'),
+  previewBuild: (): Promise<PreviewBuildStatus | null> =>
+    ipcRenderer.invoke('updates:preview-build'),
   onStatus: (cb: UpdateStatusCallback): (() => void) => {
     const handler = (_: Electron.IpcRendererEvent, status: UpdateStatus) =>
       cb(status)

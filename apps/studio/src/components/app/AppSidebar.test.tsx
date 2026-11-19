@@ -35,7 +35,11 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: "/" }),
   useNavigate: () => vi.fn(),
 }))
-vi.mock("@/components/updates", () => ({ useUpdateDialog: () => ({ showWhatsNew: vi.fn() }) }))
+vi.mock("@/components/updates", () => ({
+  AttentionDot: () => null,
+  useUpdateDialog: () => ({ showWhatsNew: vi.fn() }),
+}))
+vi.mock("@/hooks/use-preview-build", () => ({ usePreviewBuild: () => ({ needsAttention: false }) }))
 vi.mock("./SidebarLogo", () => ({ SidebarLogo: () => null }))
 vi.mock("@/hooks/use-sharing-update", () => ({ useSharingUpdate: () => sharingUpdate }))
 vi.mock("@/hooks/use-api-key", () => ({

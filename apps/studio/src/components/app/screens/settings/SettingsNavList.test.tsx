@@ -23,6 +23,8 @@ vi.mock("@/hooks/use-api-key", () => ({
   useRejectedTextProvider: () => rejected,
   useNeedsTextProvider: () => needsProvider,
 }))
+vi.mock("@/components/updates", () => ({ AttentionDot: () => null }))
+vi.mock("@/hooks/use-preview-build", () => ({ usePreviewBuild: () => ({ needsAttention: false }) }))
 vi.mock("@/hooks/use-sharing-update", () => ({ useSharingUpdate: () => sharingUpdate }))
 
 const { SettingsNavList } = await import("./SettingsNavList")

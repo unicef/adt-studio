@@ -1,4 +1,5 @@
 import {
+  betaNumberOf,
   compareReleaseVersions as compareParsedReleaseVersions,
   isBetaVersion,
   parseReleaseTag,
@@ -59,7 +60,7 @@ const RELEASE_BY_TAG_URL =
   "https://api.github.com/repos/unicef/adt-studio/releases/tags";
 const RELEASE_DOWNLOAD_URL =
   "https://github.com/unicef/adt-studio/releases/download";
-const GITHUB_HEADERS = {
+export const GITHUB_HEADERS = {
   Accept: "application/vnd.github+json",
   "User-Agent": "ADT-Studio-Updater",
   "X-GitHub-Api-Version": "2022-11-28",
@@ -72,6 +73,45 @@ let releaseRequest: Promise<GitHubRelease[]> | undefined;
 export function isBetaReleaseVersion(value: string): boolean {
   const parsed = parseReleaseTag(value);
   return parsed !== null && isBetaVersion(parsed);
+}
+
+export function isNumberedBeta(value: string): boolean {
+  const parsed = parseReleaseTag(value);
+  return parsed !== null && betaNumberOf(parsed) !== null;
+}
+
+/**
+ * The staging line a version belongs to — its first pre-release identifier,
+ * e.g. `beta-pr-803` for `0.9.1-beta-pr-803.2` — or undefined for anything that
+ * is not a staging (preview) build.
+ */
+export function stagingLineOf(value: string): string | undefined {
+  const first = parseReleaseTag(value)?.prerelease?.[0];
+  return typeof first === "string" && first.startsWith("beta-")
+    ? first
+    : undefined;
+}
+
+/**
+ * Which releases the update prompt may offer. A numbered beta is only offered
+ * newer numbered betas. A staging (preview) build is only offered a newer build
+ * of its own staging line — a rebuild of the same PR — never a numbered beta
+ * (the preview notice handles leaving for one) or another PR's build.
+ */
+export function isOfferedRelease(
+  version: string,
+  currentVersion: string,
+): boolean {
+  if (!isBetaReleaseVersion(currentVersion)) return true;
+  const currentLine = stagingLineOf(currentVersion);
+  if (currentLine) {
+    return (
+      stagingLineOf(version) === currentLine &&
+      compareReleaseVersions(version, currentVersion) > 0
+    );
+  }
+  if (!isNumberedBeta(currentVersion) || !isNumberedBeta(version)) return false;
+  return compareReleaseVersions(version, currentVersion) > 0;
 }
 
 export function compareReleaseVersions(left: string, right: string): number {

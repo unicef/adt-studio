@@ -43,7 +43,7 @@ jobs:
           STAGING_BRANCH="staging/$SLUG"
 
           RELEASES=$(gh release list --repo "$REPO" --limit 200 --json tagName \
-            --jq '.[].tagName' | { grep -E -- "-beta-${SLUG}$" || true; })
+            --jq '.[].tagName' | { grep -E -- "-beta-${SLUG}(\.[0-9]+)?$" || true; })
           if [[ -z "$RELEASES" ]]; then
             echo "No staging pre-release found for '$SLUG'; skipping."
           else
