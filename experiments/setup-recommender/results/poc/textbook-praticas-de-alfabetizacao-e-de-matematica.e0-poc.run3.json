@@ -1,0 +1,166 @@
+{
+  "bookId": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+  "variant": "e0-poc",
+  "run": 3,
+  "model": "gpt-5.4-mini",
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "O conteúdo é didático, com seções temáticas, explicações curtas e várias propostas de अभ्यास/exercícios para o aluno preencher e responder."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "As páginas combinam texto corrido, campos para preenchimento, caixas e imagens pequenas; a prioridade é reflow responsivo com preservação semântica, não fidelidade geométrica exata."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "As páginas funcionam como unidades próprias, com exercícios e conteúdo autossuficientes por página; não há evidência de composições atravessando o vão central entre páginas."
+    },
+    "sectioningMode": {
+      "value": "dynamic",
+      "rule": "A maior parte do material pode ficar por página, mas há páginas com múltiplas atividades distintas e blocos de exercício que se beneficiam de divisão interna."
+    },
+    "activitiesGenerator": {
+      "value": "enabled",
+      "rule": "Há vários exercícios explícitos, campos de resposta, perguntas numeradas e atividades de preenchimento que devem ser convertidos em elementos interativos."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Existem imagens e composições com valor visual, como a carteira de identidade e a ficha de inscrição, que podem justificar extração de figuras compostas quando representadas melhor visualmente do que como HTML semântico."
+    }
+  },
+  "trace": {
+    "sampledPagePairs": [
+      {
+        "pages": [
+          {
+            "pageNumber": 2,
+            "extractedTextCharacters": 293
+          },
+          {
+            "pageNumber": 3,
+            "extractedTextCharacters": 298
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-praticas-de-alfabetizacao-e-de-matematica/poc-v1/pages-002-003.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 4,
+            "extractedTextCharacters": 293
+          },
+          {
+            "pageNumber": 5,
+            "extractedTextCharacters": 296
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-praticas-de-alfabetizacao-e-de-matematica/poc-v1/pages-004-005.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 6,
+            "extractedTextCharacters": 297
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-praticas-de-alfabetizacao-e-de-matematica/poc-v1/pages-006.png",
+        "maximumExtractedCharactersPerPage": 300
+      }
+    ],
+    "recommendation": {
+      "preset": {
+        "choice": "textbook",
+        "confidence": "high",
+        "reason": "O conteúdo é didático, com seções temáticas, explicações curtas e várias propostas de अभ्यास/exercícios para o aluno preencher e responder.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "renderStrategy": {
+        "choice": "llm",
+        "confidence": "high",
+        "reason": "As páginas combinam texto corrido, campos para preenchimento, caixas e imagens pequenas; a prioridade é reflow responsivo com preservação semântica, não fidelidade geométrica exata.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "pageGrouping": {
+        "choice": "single",
+        "confidence": "high",
+        "reason": "As páginas funcionam como unidades próprias, com exercícios e conteúdo autossuficientes por página; não há evidência de composições atravessando o vão central entre páginas.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "sectioningMode": {
+        "choice": "dynamic",
+        "confidence": "medium",
+        "reason": "A maior parte do material pode ficar por página, mas há páginas com múltiplas atividades distintas e blocos de exercício que se beneficiam de divisão interna.",
+        "alternative": "page",
+        "ambiguityReason": "As páginas também aparecem relativamente completas e autocontidas, então mantê-las inteiras por página continua plausível; porém a presença de vários exercícios numerados e subseções sugere alguma segmentação interna.",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "activitiesGenerator": {
+        "choice": "enabled",
+        "confidence": "high",
+        "reason": "Há vários exercícios explícitos, campos de resposta, perguntas numeradas e atividades de preenchimento que devem ser convertidos em elementos interativos.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "figureExtraction": {
+        "choice": "auto",
+        "confidence": "medium",
+        "reason": "Existem imagens e composições com valor visual, como a carteira de identidade e a ficha de inscrição, que podem justificar extração de figuras compostas quando representadas melhor visualmente do que como HTML semântico.",
+        "alternative": "off",
+        "ambiguityReason": "Ao mesmo tempo, a maior parte do conteúdo é textual e os visuais parecem funcionar como apoio aos exercícios, então também seria defensável não criar recortes compostos para tudo.",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 8832,
+    "outputTokens": 533,
+    "calls": 1
+  },
+  "ms": 7468.96216
+}

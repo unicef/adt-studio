@@ -1,0 +1,140 @@
+{
+  "bookId": "reference-reimagining-target-aware-molecular",
+  "variant": "e3-facts-description",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "profileMs": 204.83577,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 3 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/5 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.034146456813465634
+    },
+    "textDensity": {
+      "medianChars": 3348,
+      "class": "dense"
+    },
+    "vectorDiagrams": {
+      "value": true,
+      "pagesWithDiagrams": 2,
+      "evidence": [
+        3,
+        5,
+        6
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "reference",
+      "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+      "value": "single_column",
+      "rule": "Reference material reads best as one clean column."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "answers": {
+      "genre": {
+        "answer": "reference",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "The pages show an academic research article with sections, equations, figures, tables, and experimental results about molecular design, not a narrative or learner exercise book."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "The shown pages are a research article about molecular design methods, with equations, figures, and results, and they do not contain reader exercises like questions, blanks, matching, or instructions to complete activities."
+      },
+      "composition": {
+        "answer": "text-mostly",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "The shown pages are dominated by dense paper text, and the figures are small or occupy only a limited portion of the page rather than having text woven into them."
+      },
+      "diagrams": {
+        "answer": "many",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          4,
+          5,
+          6
+        ],
+        "reason": "Pages 3–6 show multiple labeled figures and charts, including Figure 3 workflow diagrams, Figure 4 molecular comparison panels, Figure 5 improvement plots, and Table 1/2 with meaningful labels and metrics."
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 24545,
+    "outputTokens": 281,
+    "calls": 4
+  },
+  "ms": 3248.2161960000003
+}

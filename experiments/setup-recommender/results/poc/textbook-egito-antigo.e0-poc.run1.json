@@ -1,0 +1,155 @@
+{
+  "bookId": "textbook-egito-antigo",
+  "variant": "e0-poc",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "The pages present structured informational chapters about ancient Egypt with explanatory prose and captions, matching educational textbook content rather than narrative story or dense reference material."
+    },
+    "renderStrategy": {
+      "value": "llm-overlay",
+      "rule": "The book uses heavily illustrated pages with text placed around images, so preserving visual placement while keeping text accessible is the best fit."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "The sampled pages work as independent page compositions and there is no evidence that content routinely spans across the gutter into facing-page spreads."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each sampled page functions as a self-contained unit with its own heading, text, and images, so page-level sectioning is appropriate."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "The book is primarily expository reading content with images and captions; there is no clear evidence of exercises or interactive activities to convert."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "The pages contain many important illustrative images that should be captured as composite figures where helpful, but not every image needs forced extraction."
+    }
+  },
+  "trace": {
+    "sampledPagePairs": [
+      {
+        "pages": [
+          {
+            "pageNumber": 2,
+            "extractedTextCharacters": 29
+          },
+          {
+            "pageNumber": 3,
+            "extractedTextCharacters": 297
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-egito-antigo/poc-v1/pages-002-003.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 6,
+            "extractedTextCharacters": 275
+          },
+          {
+            "pageNumber": 7,
+            "extractedTextCharacters": 295
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-egito-antigo/poc-v1/pages-006-007.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 10,
+            "extractedTextCharacters": 297
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-egito-antigo/poc-v1/pages-010.png",
+        "maximumExtractedCharactersPerPage": 300
+      }
+    ],
+    "recommendation": {
+      "preset": {
+        "choice": "textbook",
+        "confidence": "high",
+        "reason": "The pages present structured informational chapters about ancient Egypt with explanatory prose and captions, matching educational textbook content rather than narrative story or dense reference material.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          6,
+          10
+        ]
+      },
+      "renderStrategy": {
+        "choice": "llm-overlay",
+        "confidence": "medium",
+        "reason": "The book uses heavily illustrated pages with text placed around images, so preserving visual placement while keeping text accessible is the best fit.",
+        "alternative": "llm",
+        "ambiguityReason": "The pages are visually rich but not dependent on exact page geometry for meaning, and the layout is not a fixed poster-like composition. That leaves some support for a fully reflowed llm layout, but the strong text-image integration makes overlay reconstruction more plausible.",
+        "evidencePages": [
+          2,
+          6,
+          10
+        ]
+      },
+      "pageGrouping": {
+        "choice": "single",
+        "confidence": "high",
+        "reason": "The sampled pages work as independent page compositions and there is no evidence that content routinely spans across the gutter into facing-page spreads.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          6,
+          10
+        ]
+      },
+      "sectioningMode": {
+        "choice": "page",
+        "confidence": "high",
+        "reason": "Each sampled page functions as a self-contained unit with its own heading, text, and images, so page-level sectioning is appropriate.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          6,
+          10
+        ]
+      },
+      "activitiesGenerator": {
+        "choice": "disabled",
+        "confidence": "high",
+        "reason": "The book is primarily expository reading content with images and captions; there is no clear evidence of exercises or interactive activities to convert.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          3,
+          6,
+          10
+        ]
+      },
+      "figureExtraction": {
+        "choice": "auto",
+        "confidence": "medium",
+        "reason": "The pages contain many important illustrative images that should be captured as composite figures where helpful, but not every image needs forced extraction.",
+        "alternative": "all",
+        "ambiguityReason": "The book is image-rich and the illustrations are central to the content, so a more aggressive all setting is also plausible. However, not every page appears to require every candidate to be extracted, so auto is the better balanced choice.",
+        "evidencePages": [
+          2,
+          6,
+          10
+        ]
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 8948,
+    "outputTokens": 478,
+    "calls": 1
+  },
+  "ms": 18212.965776999998
+}

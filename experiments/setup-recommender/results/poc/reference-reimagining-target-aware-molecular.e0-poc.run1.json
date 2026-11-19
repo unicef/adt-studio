@@ -1,0 +1,161 @@
+{
+  "bookId": "reference-reimagining-target-aware-molecular",
+  "variant": "e0-poc",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "settings": {
+    "preset": {
+      "value": "reference",
+      "rule": "The book is a dense technical paper with equations, tables, captions, and detailed experimental discussion, which fits a reference-style informational document best."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "The pages are text-heavy and multi-column, but the content is primarily linear technical prose with figures and tables rather than exact page-geometry-dependent layout, so AI reflow is the best fit."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "The sampled pages are standard single pages with no evidence that content regularly spans across facing-page spreads or depends on gutter-crossing compositions."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Most sampled pages function as self-contained paper pages with continuous sections, captions, and tables, so keeping each page whole is appropriate."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "This is a research article with figures, equations, tables, and analysis, but no exercise or interactive activity content is present."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "The book contains several complex scientific figures and tables that would benefit from composite figure handling, but not every graphic necessarily needs to be extracted as a composite."
+    }
+  },
+  "trace": {
+    "sampledPagePairs": [
+      {
+        "pages": [
+          {
+            "pageNumber": 2,
+            "extractedTextCharacters": 299
+          },
+          {
+            "pageNumber": 3,
+            "extractedTextCharacters": 298
+          }
+        ],
+        "evidenceImage": "output/evidence/reference-reimagining-target-aware-molecular/poc-v1/pages-002-003.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 4,
+            "extractedTextCharacters": 297
+          },
+          {
+            "pageNumber": 5,
+            "extractedTextCharacters": 299
+          }
+        ],
+        "evidenceImage": "output/evidence/reference-reimagining-target-aware-molecular/poc-v1/pages-004-005.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 6,
+            "extractedTextCharacters": 299
+          }
+        ],
+        "evidenceImage": "output/evidence/reference-reimagining-target-aware-molecular/poc-v1/pages-006.png",
+        "maximumExtractedCharactersPerPage": 300
+      }
+    ],
+    "recommendation": {
+      "preset": {
+        "choice": "reference",
+        "confidence": "high",
+        "reason": "The book is a dense technical paper with equations, tables, captions, and detailed experimental discussion, which fits a reference-style informational document best.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "renderStrategy": {
+        "choice": "llm",
+        "confidence": "medium",
+        "reason": "The pages are text-heavy and multi-column, but the content is primarily linear technical prose with figures and tables rather than exact page-geometry-dependent layout, so AI reflow is the best fit.",
+        "alternative": "fixed_layout",
+        "ambiguityReason": "The sampled pages also show substantial multi-column scientific layouts with embedded figures and tables, so preserving source geometry could still be useful for fidelity. However, the content remains readable as reflowed technical prose, so llm is the better overall match.",
+        "evidencePages": [
+          2,
+          4,
+          5,
+          6
+        ]
+      },
+      "pageGrouping": {
+        "choice": "single",
+        "confidence": "high",
+        "reason": "The sampled pages are standard single pages with no evidence that content regularly spans across facing-page spreads or depends on gutter-crossing compositions.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "sectioningMode": {
+        "choice": "page",
+        "confidence": "medium",
+        "reason": "Most sampled pages function as self-contained paper pages with continuous sections, captions, and tables, so keeping each page whole is appropriate.",
+        "alternative": "dynamic",
+        "ambiguityReason": "A few pages mix distinct content types, such as prose plus tables and figure-heavy panels, so splitting some pages could help. Still, the pages mostly behave as complete units rather than activity-like mixed sections.",
+        "evidencePages": [
+          4,
+          5,
+          6
+        ]
+      },
+      "activitiesGenerator": {
+        "choice": "disabled",
+        "confidence": "high",
+        "reason": "This is a research article with figures, equations, tables, and analysis, but no exercise or interactive activity content is present.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          4,
+          5,
+          6
+        ]
+      },
+      "figureExtraction": {
+        "choice": "auto",
+        "confidence": "medium",
+        "reason": "The book contains several complex scientific figures and tables that would benefit from composite figure handling, but not every graphic necessarily needs to be extracted as a composite.",
+        "alternative": "all",
+        "ambiguityReason": "There are many tightly integrated figure panels and table/figure composites on the sampled pages, so extracting every candidate is plausible. Still, the evidence supports selectively keeping only the best composite representations rather than forcing all of them.",
+        "evidencePages": [
+          3,
+          4,
+          5,
+          6
+        ]
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 8892,
+    "outputTokens": 539,
+    "calls": 1
+  },
+  "ms": 8435.794484
+}

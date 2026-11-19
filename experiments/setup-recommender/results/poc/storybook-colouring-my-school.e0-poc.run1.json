@@ -1,0 +1,165 @@
+{
+  "bookId": "storybook-colouring-my-school",
+  "variant": "e0-poc",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a picture-heavy narrative with large illustrations and short, verse-like text, matching a storybook format."
+    },
+    "renderStrategy": {
+      "value": "llm-overlay",
+      "rule": "The pages have strong illustration-driven composition with text placed over artwork, so reconstructing the page visually while preserving text accessibility fits best."
+    },
+    "pageGrouping": {
+      "value": "spread",
+      "rule": "The sampled contact sheets show illustrations continuing cleanly across the gutter, with the two facing pages functioning as one wide scene."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page reads as a self-contained illustrated spread/page with a single verse segment, and there is no sign of multi-activity pages requiring splitting."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "The book is a narrative picture book with no activity signal and no evidence of exercises to convert into interactive elements."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "The pages contain prominent illustrated scenes and text overlays, so composite figure extraction is useful for major visual elements without overproducing every candidate."
+    }
+  },
+  "trace": {
+    "sampledPagePairs": [
+      {
+        "pages": [
+          {
+            "pageNumber": 2,
+            "extractedTextCharacters": 3
+          },
+          {
+            "pageNumber": 3,
+            "extractedTextCharacters": 81
+          }
+        ],
+        "evidenceImage": "output/evidence/storybook-colouring-my-school/poc-v1/pages-002-003.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 6,
+            "extractedTextCharacters": 3
+          },
+          {
+            "pageNumber": 7,
+            "extractedTextCharacters": 107
+          }
+        ],
+        "evidenceImage": "output/evidence/storybook-colouring-my-school/poc-v1/pages-006-007.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 8,
+            "extractedTextCharacters": 112
+          }
+        ],
+        "evidenceImage": "output/evidence/storybook-colouring-my-school/poc-v1/pages-008.png",
+        "maximumExtractedCharactersPerPage": 300
+      }
+    ],
+    "recommendation": {
+      "preset": {
+        "choice": "storybook",
+        "confidence": "high",
+        "reason": "The book is a picture-heavy narrative with large illustrations and short, verse-like text, matching a storybook format.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          6,
+          7,
+          8
+        ]
+      },
+      "renderStrategy": {
+        "choice": "llm-overlay",
+        "confidence": "high",
+        "reason": "The pages have strong illustration-driven composition with text placed over artwork, so reconstructing the page visually while preserving text accessibility fits best.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          6,
+          7,
+          8
+        ]
+      },
+      "pageGrouping": {
+        "choice": "spread",
+        "confidence": "high",
+        "reason": "The sampled contact sheets show illustrations continuing cleanly across the gutter, with the two facing pages functioning as one wide scene.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          6,
+          7
+        ]
+      },
+      "sectioningMode": {
+        "choice": "page",
+        "confidence": "high",
+        "reason": "Each page reads as a self-contained illustrated spread/page with a single verse segment, and there is no sign of multi-activity pages requiring splitting.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          6,
+          7,
+          8
+        ]
+      },
+      "activitiesGenerator": {
+        "choice": "disabled",
+        "confidence": "high",
+        "reason": "The book is a narrative picture book with no activity signal and no evidence of exercises to convert into interactive elements.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          6,
+          7,
+          8
+        ]
+      },
+      "figureExtraction": {
+        "choice": "auto",
+        "confidence": "medium",
+        "reason": "The pages contain prominent illustrated scenes and text overlays, so composite figure extraction is useful for major visual elements without overproducing every candidate.",
+        "alternative": "all",
+        "ambiguityReason": "The book is entirely image-based with artwork spanning the page area, so a stronger case can be made for extracting every composite candidate; however, the evidence does not specifically show that every figure needs to be retained as a composite rather than handled selectively.",
+        "evidencePages": [
+          2,
+          3,
+          6,
+          7,
+          8
+        ]
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 7621,
+    "outputTokens": 444,
+    "calls": 1
+  },
+  "ms": 8906.142542
+}

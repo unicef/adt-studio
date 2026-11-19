@@ -1,0 +1,170 @@
+{
+  "bookId": "storybook-1930-el-viaje",
+  "variant": "e0-poc",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "El libro combina prólogo, capítulos/ secciones con títulos, explicación contextual, y un tono claramente educativo orientado a docentes y estudiantes."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "Predomina texto continuo con maquetación limpia y sin dependencia fuerte de posiciones exactas; conviene una refluencia adaptable más que una reconstrucción fija de página."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Las páginas funcionan como unidades independientes y no muestran composiciones que crucen el pliegue; el material se lee secuencialmente página por página."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Cada página se presenta como una unidad textual autónoma con títulos y párrafos continuos; no se observan varias actividades distintas dentro de una misma página que requieran división dinámica."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "Aunque el contenido es educativo, las páginas mostradas contienen principalmente prólogo y texto expositivo/narrativo, sin ejercicios interactivos ni consignas de actividad a convertir."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "Las páginas visibles son casi todo texto, con solo pequeñas marcas decorativas; no hay figuras compuestas relevantes que justifiquen crear recortes de figura."
+    }
+  },
+  "trace": {
+    "sampledPagePairs": [
+      {
+        "pages": [
+          {
+            "pageNumber": 2,
+            "extractedTextCharacters": 298
+          },
+          {
+            "pageNumber": 3,
+            "extractedTextCharacters": 291
+          }
+        ],
+        "evidenceImage": "output/evidence/storybook-1930-el-viaje/poc-v1/pages-002-003.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 4,
+            "extractedTextCharacters": 293
+          },
+          {
+            "pageNumber": 5,
+            "extractedTextCharacters": 0
+          }
+        ],
+        "evidenceImage": "output/evidence/storybook-1930-el-viaje/poc-v1/pages-004-005.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 6,
+            "extractedTextCharacters": 299
+          },
+          {
+            "pageNumber": 7,
+            "extractedTextCharacters": 294
+          }
+        ],
+        "evidenceImage": "output/evidence/storybook-1930-el-viaje/poc-v1/pages-006-007.png",
+        "maximumExtractedCharactersPerPage": 300
+      }
+    ],
+    "recommendation": {
+      "preset": {
+        "choice": "textbook",
+        "confidence": "high",
+        "reason": "El libro combina prólogo, capítulos/ secciones con títulos, explicación contextual, y un tono claramente educativo orientado a docentes y estudiantes.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ]
+      },
+      "renderStrategy": {
+        "choice": "llm",
+        "confidence": "medium",
+        "reason": "Predomina texto continuo con maquetación limpia y sin dependencia fuerte de posiciones exactas; conviene una refluencia adaptable más que una reconstrucción fija de página.",
+        "alternative": "fixed_layout",
+        "ambiguityReason": "Las páginas tienen un diseño editorial muy ordenado y algunos títulos centrados, por lo que fixed_layout también es plausible si se quisiera preservar la apariencia exacta. Aun así, no hay evidencia de que la geometría espacial sea esencial para el significado.",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ]
+      },
+      "pageGrouping": {
+        "choice": "single",
+        "confidence": "high",
+        "reason": "Las páginas funcionan como unidades independientes y no muestran composiciones que crucen el pliegue; el material se lee secuencialmente página por página.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ]
+      },
+      "sectioningMode": {
+        "choice": "page",
+        "confidence": "high",
+        "reason": "Cada página se presenta como una unidad textual autónoma con títulos y párrafos continuos; no se observan varias actividades distintas dentro de una misma página que requieran división dinámica.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ]
+      },
+      "activitiesGenerator": {
+        "choice": "disabled",
+        "confidence": "high",
+        "reason": "Aunque el contenido es educativo, las páginas mostradas contienen principalmente prólogo y texto expositivo/narrativo, sin ejercicios interactivos ni consignas de actividad a convertir.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ]
+      },
+      "figureExtraction": {
+        "choice": "off",
+        "confidence": "high",
+        "reason": "Las páginas visibles son casi todo texto, con solo pequeñas marcas decorativas; no hay figuras compuestas relevantes que justifiquen crear recortes de figura.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ]
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 9175,
+    "outputTokens": 492,
+    "calls": 1
+  },
+  "ms": 6151.5001330000005
+}

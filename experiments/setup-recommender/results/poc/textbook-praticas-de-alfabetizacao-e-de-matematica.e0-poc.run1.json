@@ -1,0 +1,166 @@
+{
+  "bookId": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+  "variant": "e0-poc",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "O livro tem conteúdo didático estruturado por seções, com explicações e exercícios/práticas em sequência."
+    },
+    "renderStrategy": {
+      "value": "llm-overlay",
+      "rule": "As páginas combinam texto instrucional com várias imagens, campos em branco e elementos diagramados, então manter a geometria visual ajuda a preservar a leitura e a interação com a página."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "As páginas funcionam bem isoladamente e não há evidência de composições que dependam do cruzamento da lombada; os pares mostram conteúdo autossuficiente em cada página."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Cada página apresenta uma unidade didática própria, com exercícios e campos de resposta que se mantêm coesos por página."
+    },
+    "activitiesGenerator": {
+      "value": "enabled",
+      "rule": "Há muitos enunciados de prática, comparação em ჯგუფos e campos de resposta, indicando exercícios que podem ser convertidos em atividades interativas."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "As páginas incluem figuras de documentos e caixas visuais que são melhor tratadas como candidatos a figura composta quando agregam valor visual, mas nem toda imagem precisa ser extraída."
+    }
+  },
+  "trace": {
+    "sampledPagePairs": [
+      {
+        "pages": [
+          {
+            "pageNumber": 2,
+            "extractedTextCharacters": 293
+          },
+          {
+            "pageNumber": 3,
+            "extractedTextCharacters": 298
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-praticas-de-alfabetizacao-e-de-matematica/poc-v1/pages-002-003.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 4,
+            "extractedTextCharacters": 293
+          },
+          {
+            "pageNumber": 5,
+            "extractedTextCharacters": 296
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-praticas-de-alfabetizacao-e-de-matematica/poc-v1/pages-004-005.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 6,
+            "extractedTextCharacters": 297
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-praticas-de-alfabetizacao-e-de-matematica/poc-v1/pages-006.png",
+        "maximumExtractedCharactersPerPage": 300
+      }
+    ],
+    "recommendation": {
+      "preset": {
+        "choice": "textbook",
+        "confidence": "high",
+        "reason": "O livro tem conteúdo didático estruturado por seções, com explicações e exercícios/práticas em sequência.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "renderStrategy": {
+        "choice": "llm-overlay",
+        "confidence": "medium",
+        "reason": "As páginas combinam texto instrucional com várias imagens, campos em branco e elementos diagramados, então manter a geometria visual ajuda a preservar a leitura e a interação com a página.",
+        "alternative": "llm",
+        "ambiguityReason": "Há bastante texto linear e o layout não é extremamente complexo, então uma reordenação reflowable também seria viável; porém as figuras e linhas de preenchimento ainda favorecem reconstrução visual.",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "pageGrouping": {
+        "choice": "single",
+        "confidence": "high",
+        "reason": "As páginas funcionam bem isoladamente e não há evidência de composições que dependam do cruzamento da lombada; os pares mostram conteúdo autossuficiente em cada página.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "sectioningMode": {
+        "choice": "page",
+        "confidence": "high",
+        "reason": "Cada página apresenta uma unidade didática própria, com exercícios e campos de resposta que se mantêm coesos por página.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "activitiesGenerator": {
+        "choice": "enabled",
+        "confidence": "high",
+        "reason": "Há muitos enunciados de prática, comparação em ჯგუფos e campos de resposta, indicando exercícios que podem ser convertidos em atividades interativas.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "figureExtraction": {
+        "choice": "auto",
+        "confidence": "medium",
+        "reason": "As páginas incluem figuras de documentos e caixas visuais que são melhor tratadas como candidatos a figura composta quando agregam valor visual, mas nem toda imagem precisa ser extraída.",
+        "alternative": "off",
+        "ambiguityReason": "Parte do conteúdo visual é simples e próxima de texto instrucional, então manter artefatos raster/vetor separados também é plausível; ainda assim, os documentos ilustrados e composições destacadas justificam extração automática seletiva.",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 8832,
+    "outputTokens": 520,
+    "calls": 1
+  },
+  "ms": 7085.326486
+}

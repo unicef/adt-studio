@@ -1,0 +1,142 @@
+{
+  "bookId": "storybook-1930-el-viaje",
+  "variant": "e2-facts",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 45.439109000002645,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 4 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/6 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.16726175988533135
+    },
+    "textDensity": {
+      "medianChars": 1175,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        2,
+        3,
+        4
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "es"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "reference",
+      "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+      "value": "single_column",
+      "rule": "Reference material reads best as one clean column."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "answers": {
+      "genre": {
+        "answer": "reference",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ],
+        "reason": "These pages present a prologue/introduction explaining an educational project and its aims, mention “cursos de acompañamiento, recursos educativos” and “público estudiantil,” and describe the book as an educational tool rather than a pure narrative with exercises."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ],
+        "reason": "The shown pages are prose introductions and descriptions of the book, with no numbered tasks, blanks, or instructions for the reader to do exercises."
+      },
+      "composition": {
+        "answer": "text-mostly",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ],
+        "reason": "The shown pages are dominated by continuous prose with no visible full-page illustrations, and the only picture elements are small decorative marks at the margins rather than text woven into art."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ],
+        "reason": "The shown pages are continuous prose with headings only; they do not show diagrams, charts, maps, labeled figures, or infographics with meaningful labels."
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 24477,
+    "outputTokens": 279,
+    "calls": 4
+  },
+  "ms": 2638.0352520000015
+}

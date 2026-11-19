@@ -1,0 +1,164 @@
+{
+  "bookId": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+  "variant": "e0-poc",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "O livro apresenta conteúdo didático estruturado, com seções numeradas, atividades guiadas e propostas de अभ्यास/exercícios para o aluno."
+    },
+    "renderStrategy": {
+      "value": "llm-overlay",
+      "rule": "As páginas combinam texto, imagens e campos de resposta com forte dependência da composição visual; reconstruir a página com sobreposição tende a preservar melhor a estrutura e os elementos posicionados."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "As páginas funcionam como unidades independentes, com atividades e blocos visuais próprios; não há indicação de composições que atravessem o gutter de forma frequente."
+    },
+    "sectioningMode": {
+      "value": "dynamic",
+      "rule": "A maior parte das páginas pode permanecer inteira, mas há páginas com múltiplas atividades e subitens que se beneficiam de divisão mais granular."
+    },
+    "activitiesGenerator": {
+      "value": "enabled",
+      "rule": "Há vários enunciados explícitos de prática, perguntas numeradas e campos de resposta que caracterizam atividades a serem convertidas em elementos interativos."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "As páginas incluem imagens e figuras documentais relevantes, como a carteira de identidade e a ficha ilustrada, que podem se beneficiar de composição visual quando representadas como figuras compostas."
+    }
+  },
+  "trace": {
+    "sampledPagePairs": [
+      {
+        "pages": [
+          {
+            "pageNumber": 2,
+            "extractedTextCharacters": 293
+          },
+          {
+            "pageNumber": 3,
+            "extractedTextCharacters": 298
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-praticas-de-alfabetizacao-e-de-matematica/poc-v1/pages-002-003.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 4,
+            "extractedTextCharacters": 293
+          },
+          {
+            "pageNumber": 5,
+            "extractedTextCharacters": 296
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-praticas-de-alfabetizacao-e-de-matematica/poc-v1/pages-004-005.png",
+        "maximumExtractedCharactersPerPage": 300
+      },
+      {
+        "pages": [
+          {
+            "pageNumber": 6,
+            "extractedTextCharacters": 297
+          }
+        ],
+        "evidenceImage": "output/evidence/textbook-praticas-de-alfabetizacao-e-de-matematica/poc-v1/pages-006.png",
+        "maximumExtractedCharactersPerPage": 300
+      }
+    ],
+    "recommendation": {
+      "preset": {
+        "choice": "textbook",
+        "confidence": "high",
+        "reason": "O livro apresenta conteúdo didático estruturado, com seções numeradas, atividades guiadas e propostas de अभ्यास/exercícios para o aluno.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "renderStrategy": {
+        "choice": "llm-overlay",
+        "confidence": "medium",
+        "reason": "As páginas combinam texto, imagens e campos de resposta com forte dependência da composição visual; reconstruir a página com sobreposição tende a preservar melhor a estrutura e os elementos posicionados.",
+        "alternative": "llm",
+        "ambiguityReason": "Há também bastante conteúdo linear e a leitura reflowable poderia funcionar, mas os elementos posicionados, linhas de პასუხის e caixas de atividade tornam a fidelidade visual mais importante do que numa página puramente textual.",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "pageGrouping": {
+        "choice": "single",
+        "confidence": "high",
+        "reason": "As páginas funcionam como unidades independentes, com atividades e blocos visuais próprios; não há indicação de composições que atravessem o gutter de forma frequente.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "sectioningMode": {
+        "choice": "dynamic",
+        "confidence": "medium",
+        "reason": "A maior parte das páginas pode permanecer inteira, mas há páginas com múltiplas atividades e subitens que se beneficiam de divisão mais granular.",
+        "alternative": "page",
+        "ambiguityReason": "Muitas páginas ainda se comportam como unidades autocontidas de exercício; por isso, manter por página também é plausível, embora a presença de vários itens e respostas em uma mesma página torne o modo dinâmico mais adequado.",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "activitiesGenerator": {
+        "choice": "enabled",
+        "confidence": "high",
+        "reason": "Há vários enunciados explícitos de prática, perguntas numeradas e campos de resposta que caracterizam atividades a serem convertidas em elementos interativos.",
+        "alternative": null,
+        "ambiguityReason": null,
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "figureExtraction": {
+        "choice": "auto",
+        "confidence": "medium",
+        "reason": "As páginas incluem imagens e figuras documentais relevantes, como a carteira de identidade e a ficha ilustrada, que podem se beneficiar de composição visual quando representadas como figuras compostas.",
+        "alternative": "off",
+        "ambiguityReason": "Parte do material é texto com imagens simples e áreas de resposta; manter tudo separado também é possível. Ainda assim, as figuras documentais centrais e os blocos visuais integrados dão suporte suficiente para extração automática quando a composição visual for melhor preservada.",
+        "evidencePages": [
+          2,
+          3,
+          6
+        ]
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 8832,
+    "outputTokens": 581,
+    "calls": 1
+  },
+  "ms": 7475.781206000001
+}
