@@ -217,10 +217,12 @@ export function FactList({ facts }: { facts: Array<{ label: string; value: strin
   )
 }
 
-/** The problems to fix, each with the file it is in and its code. */
+/** The problems to fix, each with the file it is in and its code. The list
+ * scrolls on its own: as a shrinking flex item it would otherwise be squeezed
+ * to the panel's height and clip every issue below the fold. */
 export function IssueList({ issues }: { issues: Issue[] }) {
   return (
-    <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+    <ul className="min-h-0 divide-y divide-border overflow-y-auto rounded-lg border border-border">
       {issues.map((issue, index) => (
         <li key={`${issue.code}:${issue.file}:${index}`} className="px-3.5 py-2.5">
           <div className="flex items-baseline justify-between gap-3">
