@@ -6,7 +6,8 @@
   `_render_node`.
 
   Parameters:
-    nodes  — RenderNode[]
+    nodes — RenderNode[]
+    parent_structure — structure of the container rendering these children
 {%- endcomment -%}
 {%- for node in nodes -%}
 {%- unless forloop.first %} {% endunless -%}
@@ -16,6 +17,9 @@
 <span class="font-mono" data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</span>
 {%- elsif node.role -%}
 <span data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</span>
+{%- elsif parent_structure == "list_item" and node.structure == "list" -%}
+{%- assign nested_list = nodes | slice: forloop.index0, 1 -%}
+{% include "_render_node", nodes: nested_list, depth: 0 %}
 {%- else -%}
 {% include "_render_node", nodes: node.children, depth: 0 %}
 {%- endif -%}
