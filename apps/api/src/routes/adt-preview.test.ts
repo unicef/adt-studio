@@ -508,9 +508,13 @@ describe("ADT preview routes", () => {
   })
 
   it("publishes authored element audio under the element id and lists it in element_audio.json", async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      "speech:\n  word_highlighting: true\n",
+    )
     const storage = createBookStorage(label, tmpDir)
     try {
-      putReadyCoreTts(storage, "pg001_im001_audio", "pg001_im001_easy_read")
+      putReadyCoreTts(storage, "pg001_im001_audio", "pg001_im001_easy_read", "pg001_im001")
       storage.putNodeData("element-audio", `${label}_p1`, {
         entries: [{ nodeId: "pg001_im001", text: "Mago" }],
         generatedAt: "2026-01-01T00:00:00.000Z",
@@ -533,7 +537,28 @@ describe("ADT preview routes", () => {
             model: "gpt-4o-mini-tts",
             cached: false,
           },
+          {
+            // The caption entry is written after the authored one: the
+            // post-pass, not the order, decides the winner (AC-18).
+            textId: "pg001_im001",
+            language: "en",
+            fileName: "pg001_im001.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+          },
         ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      storage.putNodeData("tts-timestamps", "en", {
+        entries: {
+          pg001_im001_audio: {
+            textId: "pg001_im001_audio",
+            language: "en",
+            duration: 0.5,
+            words: [{ word: "Mago", start: 0, end: 0.5 }],
+          },
+        },
         generatedAt: "2026-01-01T00:00:00.000Z",
       })
     } finally {
@@ -544,12 +569,27 @@ describe("ADT preview routes", () => {
     const speech = await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)
     const audios = await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)
     const manifest = await app.request(`/books/${label}/adt-preview/content/i18n/en/element_audio.json`)
+    const timecodes = await app.request(`/books/${label}/adt-preview/content/i18n/en/timecode/timecode_output.json`)
 
     const speechBody = await speech.json() as Record<string, string>
     expect(speechBody).toMatchObject({ pg001_im001: "pg001_im001_audio" })
     expect(speechBody.pg001_im001_easy_read).toBeUndefined()
     expect(await audios.json()).toEqual({ pg001_im001: "pg001_im001_audio.mp3" })
     expect(await manifest.json()).toEqual(["pg001_im001"])
+    // Authored scripts use block highlight: no word timecodes, like the bundle.
+    expect(await timecodes.json()).toEqual({})
+
+    // An explicit mute leaves no playable key and no trigger (AC-21).
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      "speech:\n  word_highlighting: true\n  excluded_text_ids:\n    - pg001_im001_audio\n",
+    )
+    expect(
+      await (await app.request(`/books/${label}/adt-preview/content/i18n/en/element_audio.json`)).json(),
+    ).toEqual([])
+    expect(
+      await (await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)).json(),
+    ).not.toHaveProperty("pg001_im001_audio")
   })
 
   // The preview manifest must resolve narrator names exactly the way the

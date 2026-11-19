@@ -354,7 +354,8 @@ export interface ElementAudioLocation {
  * move between pages (`pages.ts` move-section). The derived catalog follows
  * the element's current location, not the artifact's page key.
  */
-export function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<string, ElementAudioLocation> {  const index = new Map<string, ElementAudioLocation>()
+export function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<string, ElementAudioLocation> {
+  const index = new Map<string, ElementAudioLocation>()
   for (const page of pages) {
     const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
     if (!renderingRow) continue

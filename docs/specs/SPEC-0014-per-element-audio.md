@@ -587,17 +587,21 @@ last one.** (The four are tracked as #895–#898 under #894.)
    fetch, sweep inclusion, trigger and badge; the a11y attributes. **Written against merged
    `develop`** (SPEC-0001's filename/freshness contract). Value: the reader hears it.
 
-No feature flag; each PR reverts alone.
+No feature flag; each PR reverts alone. PR 4's artifact-aware `texts.json` exclusion supersedes PR 3's
+shape-based one, so reverting PR 4 alone restores the v1 shape classification documented below for that
+map; the stack is otherwise independent.
 
 ## Known limitations (v1)
 
 - **A pre-existing image id that itself ends in `_audio` is still classified by shape in the catalog/TTS
   predicates.** `getTextCatalogCategory`, `isTtsExcluded` and `speechPageId` receive only the id, so a
   real rendered image such as `pg003_im007_audio` is indistinguishable from an authored script: it
-  ignores category mutes and is left out of page batching/neighbour context. The paths that have the
-  artifact are correct - the page-save namespace reservation, packaging/export (audio, word timings and
-  `texts.json`) and the preview mirrors detect it from `element-audio`, not from the suffix. This is the
-  remaining R-16/AC-24 edge; making those predicates artifact-aware is tracked in #1167 and is
+  ignores category mutes and is left out of page batching/neighbour context. The Studio
+  Languages/Core TTS filter (`isElementAudioCatalogEntry`) also keys on the shape, so a legacy caption's
+  translation/Core TTS row can be hidden. The paths that have the artifact are correct - the page-save
+  namespace reservation, packaging/export (audio, word timings and `texts.json`), the glossary
+  occurrence count and the preview mirrors detect it from `element-audio`, not from the suffix. This is
+  the remaining R-16/AC-24 edge; making those predicates artifact-aware is tracked in #1167 and is
   deliberately out of the v1 scope so the stack stays within the §9 review budget.
 
 ## Decisions to ratify

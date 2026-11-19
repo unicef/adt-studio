@@ -8,6 +8,7 @@
  * and `fetchContentFiles`, restructured around atoms.
  */
 import { getDefaultStore } from "jotai"
+import type { ElementAudioManifest } from "@adt/types"
 import { runtimeBase } from "@/shared/runtime/base-path.js"
 import {
   audioFilesAtom,
@@ -289,7 +290,7 @@ async function loadContentFiles(
     safeJsonFetch<Record<string, string>>(`${base}/speech_texts.json${versionParam}`, "speech_texts.json"),
     safeJsonFetch<Record<string, string>>(`${base}/audios.json${versionParam}`, "audios.json"),
     safeOptionalJsonFetch<AudioVoicesManifest>(`${base}/audio_voices.json${versionParam}`),
-    safeOptionalJsonFetch<string[]>(`${base}/element_audio.json${versionParam}`),
+    safeOptionalJsonFetch<ElementAudioManifest>(`${base}/element_audio.json${versionParam}`),
     safeJsonFetch<Record<string, string>>(`${base}/videos.json${versionParam}`, "videos.json"),
     safeJsonFetch<Record<string, string>>(`${base}/images.json${versionParam}`, "images.json"),
   ])

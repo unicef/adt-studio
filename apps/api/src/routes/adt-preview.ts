@@ -1,5 +1,5 @@
 import { catalogOutputs } from "../services/catalog-output-service.js"
-import { reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks, collectElementAudioTextIds } from "@adt/pipeline"
+import { reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks, collectElementAudioTextIds, buildRuntimeTimecodeMap } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { createHash } from "node:crypto"
@@ -281,45 +281,6 @@ function getWordTimestamps(
     storage.getLatestNodeData("tts-timestamps", normalizedLanguage) ??
     storage.getLatestNodeData("tts-timestamps", legacyLanguage)
   return row?.data as WordTimestampOutput | undefined
-}
-
-function buildRuntimeTimecodeMap(
-  timestamps: WordTimestampOutput | undefined,
-  speechConfig?: SpeechConfig,
-  readySpeechIds?: ReadonlySet<string>,
-  voiceSlot: "primary" | "secondary" = "primary",
-): Record<string, {
-  timecodes: [null, {
-    word_timestamps: Array<{ text: string; start: number; end: number }>
-  }]
-}> {
-  const map: Record<string, {
-    timecodes: [null, {
-      word_timestamps: Array<{ text: string; start: number; end: number }>
-    }]
-  }> = {}
-
-  for (const entry of Object.values(timestamps?.entries ?? {})) {
-    if (resolveEntryVoiceSlot(entry) !== voiceSlot) continue
-    const textId = entry.textId
-    if (entry.words.length === 0) continue
-    if (readySpeechIds && !readySpeechIds.has(textId)) continue
-    if (isTtsExcluded(textId, speechConfig)) continue
-    map[textId] = {
-      timecodes: [
-        null,
-        {
-          word_timestamps: entry.words.map((word) => ({
-            text: word.word,
-            start: word.start,
-            end: word.end,
-          })),
-        },
-      ],
-    }
-  }
-
-  return map
 }
 
 /** Build the pages.json manifest — one entry per output page, in reading order. */
@@ -788,24 +749,23 @@ export function createAdtPreviewRoutes(
     const speechTexts = withStorage(c.req.param("label"), (storage) => {
       const map: Record<string, string> = {}
       const elementAudioTextIds = collectElementAudioTextIds(storage)
-      const authoredElementIds = new Set<string>()
+      const authored = new Map<string, string>()
       for (const entry of previewSpeech(storage, parseBookLabel(c.req.param("label")), lang)) {
         if ((entry.status === "ready" || entry.fallbackReason) && entry.speechText !== null) {
           // Authored element scripts publish under the element's own id, so the
           // runtime resolves them by `data-id` (SPEC-0014 §2). The artifact set
           // keeps a legacy image whose own id ends in `_audio` untouched.
-          const key = elementAudioTextIds.has(entry.id)
-            ? parseElementAudioTextId(entry.id) ?? entry.id
-            : entry.id
-          map[key] = entry.speechText
-          if (elementAudioTextIds.has(entry.id)) {
-            const elementId = parseElementAudioTextId(entry.id)
-            if (elementId) authoredElementIds.add(elementId)
-          }
+          const elementId = elementAudioTextIds.has(entry.id)
+            ? parseElementAudioTextId(entry.id)
+            : null
+          if (elementId) authored.set(elementId, entry.speechText)
+          else map[entry.id] = entry.speechText
         }
       }
-      // The authored script wins over the element's easy-read variant (AC-18).
-      for (const id of authoredElementIds) delete map[`${id}_easy_read`]
+      // Precedence is a post-pass, not loop order (SPEC-0014 §2). The authored
+      // script wins over the element's own caption entry (AC-18).
+      for (const [id, text] of authored) map[id] = text
+      for (const id of authored.keys()) delete map[`${id}_easy_read`]
       return map
     })
     setNoStoreHeaders(c)
@@ -824,12 +784,16 @@ export function createAdtPreviewRoutes(
         storage.getLatestNodeData("tts", lang) ??
         storage.getLatestNodeData("tts", legacyLang)
       )?.data as TTSOutput | undefined
+      const speechConfig = loadBookConfig(safeLabel, booksDir, configPath).speech
       const ready = includedSpeechIds(storage, safeLabel, lang)
       const elementAudioTextIds = collectElementAudioTextIds(storage)
       const ids = new Set<string>()
       for (const entry of ttsData?.entries ?? []) {
         if (!ready.has(entry.textId)) continue
         if (!elementAudioTextIds.has(entry.textId)) continue
+        // Match audios.json: an explicit mute leaves no playable key, so the
+        // manifest must not advertise a trigger (AC-10/AC-21).
+        if (isTtsExcluded(entry.textId, speechConfig)) continue
         const elementId = parseElementAudioTextId(entry.textId)
         if (elementId) ids.add(elementId)
       }
@@ -900,24 +864,24 @@ export function createAdtPreviewRoutes(
       const ttsData = ttsRow?.data as TTSOutput | undefined
       const readySpeechIds = includedSpeechIds(storage, safeLabel, lang, "primary")
       const elementAudioTextIds = collectElementAudioTextIds(storage)
-      const authoredElementIds = new Set<string>()
+      const authored = new Map<string, string>()
       const map: Record<string, string> = {}
       if (ttsData?.entries) {
         for (const entry of ttsData.entries) {
           if (!readySpeechIds.has(entry.textId)) continue
           if (isTtsExcluded(entry.textId, speechConfig)) continue
           if (resolveEntryVoiceSlot(entry) !== "primary") continue
-          const key = elementAudioTextIds.has(entry.textId)
-            ? parseElementAudioTextId(entry.textId) ?? entry.textId
-            : entry.textId
-          map[key] = entry.fileName
-          if (elementAudioTextIds.has(entry.textId)) {
-            const elementId = parseElementAudioTextId(entry.textId)
-            if (elementId) authoredElementIds.add(elementId)
-          }
+          const elementId = elementAudioTextIds.has(entry.textId)
+            ? parseElementAudioTextId(entry.textId)
+            : null
+          if (elementId) authored.set(elementId, entry.fileName)
+          else map[entry.textId] = entry.fileName
         }
       }
-      for (const id of authoredElementIds) delete map[`${id}_easy_read`]
+      // Precedence is a post-pass, not loop order (SPEC-0014 §2): the authored
+      // script wins over the element's own caption entry (AC-18).
+      for (const [id, fileName] of authored) map[id] = fileName
+      for (const id of authored.keys()) delete map[`${id}_easy_read`]
       return map
     })
     setNoStoreHeaders(c)
@@ -943,7 +907,10 @@ export function createAdtPreviewRoutes(
         secondary: includedSpeechIds(storage, parseBookLabel(c.req.param("label")), lang, "secondary"),
       }
       const elementAudioTextIds = collectElementAudioTextIds(storage)
-      const authoredElementIds = new Set<string>()
+      const authoredBySlot: Record<VoiceSlot, Map<string, string>> = {
+        primary: new Map(),
+        secondary: new Map(),
+      }
       const voices = {
         primary: { label: "Primary", audios: {} as Record<string, string> },
         secondary: { label: "Secondary", audios: {} as Record<string, string> },
@@ -952,19 +919,17 @@ export function createAdtPreviewRoutes(
       for (const entry of ttsData?.entries ?? []) {
         const slot = resolveEntryVoiceSlot(entry)
         if (!readySpeechIds[slot].has(entry.textId) || isTtsExcluded(entry.textId, speechConfig)) continue
-        const key = elementAudioTextIds.has(entry.textId)
-          ? parseElementAudioTextId(entry.textId) ?? entry.textId
-          : entry.textId
-        voices[slot].audios[key] = entry.fileName
-        if (elementAudioTextIds.has(entry.textId)) {
-          const elementId = parseElementAudioTextId(entry.textId)
-          if (elementId) authoredElementIds.add(elementId)
-        }
+        const elementId = elementAudioTextIds.has(entry.textId)
+          ? parseElementAudioTextId(entry.textId)
+          : null
+        if (elementId) authoredBySlot[slot].set(elementId, entry.fileName)
+        else voices[slot].audios[entry.textId] = entry.fileName
         bySlot[slot].push(entry)
       }
-      for (const id of authoredElementIds) {
-        delete voices.primary.audios[`${id}_easy_read`]
-        delete voices.secondary.audios[`${id}_easy_read`]
+      // Precedence is a post-pass, not loop order (SPEC-0014 §2).
+      for (const slot of ["primary", "secondary"] as const) {
+        for (const [id, fileName] of authoredBySlot[slot]) voices[slot].audios[id] = fileName
+        for (const id of authoredBySlot[slot].keys()) delete voices[slot].audios[`${id}_easy_read`]
       }
       // Same resolution the packager uses, so the preview and the exported
       // bundle can never disagree about what a narrator is called.
@@ -991,6 +956,8 @@ export function createAdtPreviewRoutes(
             getWordTimestamps(storage, lang),
             bookConfig.speech,
             readySpeechIds,
+            "primary",
+            collectElementAudioTextIds(storage),
           )
         })
       : {}
@@ -1005,12 +972,13 @@ export function createAdtPreviewRoutes(
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = withStorage(c.req.param("label"), (storage) => {
       const timestamps = getWordTimestamps(storage, lang)
+      const elementAudioTextIds = collectElementAudioTextIds(storage)
       return {
         primary: bookConfig.speech?.word_highlighting === true
-          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, includedSpeechIds(storage, safeLabel, lang, "primary", "timestamps"), "primary")
+          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, includedSpeechIds(storage, safeLabel, lang, "primary", "timestamps"), "primary", elementAudioTextIds)
           : {},
         secondary: bookConfig.speech?.word_highlighting === true
-          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, includedSpeechIds(storage, safeLabel, lang, "secondary", "timestamps"), "secondary")
+          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, includedSpeechIds(storage, safeLabel, lang, "secondary", "timestamps"), "secondary", elementAudioTextIds)
           : {},
       }
     })

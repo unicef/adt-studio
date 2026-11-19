@@ -49,8 +49,7 @@ import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
  *  easy-read variant) must never become display text in `texts.json`. */
 const EASY_READ_ID_SUFFIX = /_easy_read$/
 
-/** Publish an authored script under the element's own `data-id`, so the
- *  runtime resolves it with the existing `[data-id]` lookup (SPEC-0014 §2). */import {
+import {
   bundleBookFontsIntoCss,
   readBookFontRegistry,
   resolveFontsCacheDir,
@@ -746,7 +745,7 @@ export async function packageAdtWeb(
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
   const elementAudioTextIds = collectElementAudioTextIds(storage)
   /** Publish an authored script under the element's own `data-id`, so the
-   *  runtime resolves it with the existing `[data-id]` lookup (SPEC-0014 2). */
+   *  runtime resolves it with the existing `[data-id]` lookup (SPEC-0014 §2). */
   const publishElementAudioId = (textId: string): string =>
     elementAudioTextIds.has(textId) ? parseElementAudioTextId(textId) ?? textId : textId
   /** Authored element audio (base and easy-read) is speech-only: it must not
@@ -814,11 +813,16 @@ export async function packageAdtWeb(
     // conversions are omitted, which also withholds their audio below.
     const speechTextsMap: Record<string, string> = {}
     const readySpeechIds = new Set<string>()
+    const authoredSpeechTexts = new Map<string, string>()
     for (const entry of speechEntries(lang)) {
       if ((entry.status === "ready" || entry.fallbackReason) && entry.speechText !== null) {
         // Authored element scripts publish under the element id; the original
         // synthetic id stays the identity of the `tts` entry below.
-        speechTextsMap[publishElementAudioId(entry.id)] = entry.speechText
+        const elementId = elementAudioTextIds.has(entry.id)
+          ? parseElementAudioTextId(entry.id)
+          : null
+        if (elementId) authoredSpeechTexts.set(elementId, entry.speechText)
+        else speechTextsMap[publishElementAudioId(entry.id)] = entry.speechText
         readySpeechIds.add(entry.id)
       }
     }
@@ -884,6 +888,15 @@ export async function packageAdtWeb(
           .filter((id): id is string => id !== null),
       ),
     ]
+    // Precedence is a post-pass, not loop order (SPEC-0014 §2): the authored
+    // script wins over the element's own caption entry even if the caption was
+    // written to the map later.
+    for (const [elementId, text] of authoredSpeechTexts) speechTextsMap[elementId] = text
+    for (const entry of [...copiedBySlot.primary, ...copiedBySlot.secondary]) {
+      if (!elementAudioTextIds.has(entry.textId)) continue
+      const elementId = parseElementAudioTextId(entry.textId)
+      if (elementId) audioVoices[resolveEntryVoiceSlot(entry)].audios[elementId] = entry.fileName
+    }
     // The authored script wins over the element's easy-read variant: remove the
     // `${elementId}_easy_read` speech/audio keys so the easy-read lookup falls
     // back to the authored file (AC-18). Only ids whose authored audio actually

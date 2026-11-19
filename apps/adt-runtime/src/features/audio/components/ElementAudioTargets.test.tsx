@@ -122,6 +122,70 @@ describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
     expect(document.querySelector("img")!.getAttribute("tabindex")).toBeNull()
   })
 
+  it("anchors the badge to its parent and keeps two targets apart", () => {
+    atoms.elementAudioIdsAtom.__value = ["pg001_im001", "pg001_im002"]
+    setContent(
+      '<section><img data-id="pg001_im001" alt="Uno" /><img data-id="pg001_im002" alt="Dos" /></section>',
+    )
+    const section = document.querySelector("section")!
+    const [first, second] = Array.from(document.querySelectorAll("img"))
+    const rect = (left: number, top: number, width: number, height: number) => ({
+      left,
+      top,
+      right: left + width,
+      bottom: top + height,
+      width,
+      height,
+      x: left,
+      y: top,
+      toJSON: () => ({}),
+    })
+    section.getBoundingClientRect = () => rect(0, 0, 400, 300)
+    first.getBoundingClientRect = () => rect(10, 20, 100, 80)
+    second.getBoundingClientRect = () => rect(200, 20, 100, 80)
+
+    render(<ElementAudioTargets />)
+
+    // The parent is the containing block, so the overlay cannot fall back to
+    // the viewport (the bug this test pins).
+    expect(section.style.position).toBe("relative")
+    const badges = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-element-audio-badge]"),
+    )
+    expect(badges.map((badge) => badge.dataset.elementAudioBadgeFor)).toEqual([
+      "pg001_im001",
+      "pg001_im002",
+    ])
+    expect(badges[0].style.left).toBe("96px")
+    expect(badges[1].style.left).toBe("286px")
+    expect(badges[0].style.top).toBe("20px")
+    expect(badges[1].style.top).toBe("20px")
+  })
+
+  it("restores the parent's position when the manifest drops the element", () => {
+    setContent('<section><img data-id="pg001_im001" alt="Mago" /></section>')
+    const section = document.querySelector("section")!
+    section.style.position = "absolute"
+    const { rerender } = render(<ElementAudioTargets />)
+    // Already positioned by the book: the runtime must not touch it.
+    expect(section.style.position).toBe("absolute")
+
+    atoms.elementAudioIdsAtom.__value = []
+    rerender(<ElementAudioTargets />)
+    expect(section.style.position).toBe("absolute")
+  })
+
+  it("restores a static parent when the manifest drops the element", () => {
+    setContent('<section><img data-id="pg001_im001" alt="Mago" /></section>')
+    const section = document.querySelector("section")!
+    const { rerender } = render(<ElementAudioTargets />)
+    expect(section.style.position).toBe("relative")
+
+    atoms.elementAudioIdsAtom.__value = []
+    rerender(<ElementAudioTargets />)
+    expect(section.style.position).toBe("")
+  })
+
   it("removes the runtime attributes when the manifest no longer includes the element", () => {
     setContent('<section><img data-id="pg001_im001" alt="Mago" /></section>')
     const { rerender } = render(<ElementAudioTargets />)
