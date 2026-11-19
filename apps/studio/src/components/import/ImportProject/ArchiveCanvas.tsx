@@ -38,6 +38,9 @@ const ICON_TONES = {
   danger: "border-destructive/40 bg-destructive/10 text-destructive",
 }
 
+// eslint-disable-next-line lingui/no-unlocalized-strings -- CSS selector, not user-visible copy.
+const INTERACTIVE = "button, a, summary, input, select, textarea, [role='button']"
+
 const ENTER = "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200"
 
 export function ArchiveCanvas({ view, onBrowse }: { view: CanvasView; onBrowse: () => void }) {
@@ -91,7 +94,13 @@ export function ArchiveCanvas({ view, onBrowse }: { view: CanvasView; onBrowse: 
           <div
             data-flip="body"
             key={`body:${view.bodyKey}`}
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              // A control in the body handles its own click: don't also open
+              // the picker (twice, for Browse files). The rest of the idle row
+              // is part of the drop area, so a click there still opens it.
+              const onControl = (event.target as Element).closest(INTERACTIVE)
+              if (onControl || view.state !== "idle") event.stopPropagation()
+            }}
             className={cn("flex w-full flex-col items-center gap-3", ENTER)}
           >
             {view.body}
