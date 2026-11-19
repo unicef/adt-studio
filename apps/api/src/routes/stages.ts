@@ -6,8 +6,9 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
-import type { Storage } from "@adt/storage"
+import type { Storage, StepRunRow } from "@adt/storage"
 import { AuthoredRunOptions, OUTPUT_KIND_TO_STAGE, SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, IMPORTED_ADT_LOCKED_STAGES, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
+import type { StepWarningSource, StepWarningView } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
@@ -397,7 +398,7 @@ export function createStageRoutes(
     }
 
     // Read step_runs from DB (or empty if no DB)
-    let stepRunRows: Array<{ step: string; status: string; error: string | null; message: string | null }> = []
+    let stepRunRows: StepRunRow[] = []
     let sourceUpdateStages: string[] = []
     if (fs.existsSync(dbPath)) {
       const storage = createBookStorage(safeLabel, booksDir)
@@ -415,6 +416,8 @@ export function createStageRoutes(
     const steps: Record<string, string> = {}
     const stepErrors: Record<string, string> = {}
     const stepMessages: Record<string, string> = {}
+    const stepWarnings: Record<string, StepWarningView[]> = {}
+    const stepWarningSources: Record<string, StepWarningSource> = {}
     for (const stage of PIPELINE) {
       for (const step of stage.steps) {
         const row = stepRunMap.get(step.name)
@@ -427,10 +430,15 @@ export function createStageRoutes(
         if (row?.status === "error" && row.error) {
           stepErrors[step.name] = row.error
         }
-        // Surface the message for running steps (page X/Y) and for done steps
-        // (e.g. "Completed — 2 page(s) skipped") so a skip note survives refetch.
+        // Surface the message for running steps (page X/Y) and for done steps.
         if ((status === "running" || status === "done") && row?.message) {
           stepMessages[step.name] = row.message
+        }
+        // Typed warnings of a finished step, for Studio to translate, and who
+        // recorded them: this app, or an older one (SPEC-0021, §Step warnings).
+        if (status === "done" && row?.warningSource) {
+          stepWarningSources[step.name] = row.warningSource
+          if (row.warnings) stepWarnings[step.name] = row.warnings
         }
       }
     }
@@ -490,6 +498,8 @@ export function createStageRoutes(
       error,
       stepErrors: hasStepErrors ? stepErrors : null,
       stepMessages: hasStepMessages ? stepMessages : null,
+      stepWarnings: Object.keys(stepWarnings).length > 0 ? stepWarnings : null,
+      stepWarningSources: Object.keys(stepWarningSources).length > 0 ? stepWarningSources : null,
       runStatus,
       runRevision,
       publicationAgeMs,

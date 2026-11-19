@@ -1,4 +1,4 @@
-export type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
+export type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput, StepRunRow } from "./storage.js"
 export {
   createBookStorage,
   resolveBookPaths,
@@ -6,6 +6,7 @@ export {
 } from "./book-storage.js"
 export { openBookDb, cleanupInterruptedSteps, readBookSchemaVersion } from "./db.js"
 export { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "./node-current.js"
+export { mergeStepCompletion, type StoredCompletion } from "./step-warnings.js"
 
 export { storeImmutableAsset, readBookAsset, UnsafeAssetPathError } from "./immutable-assets.js"
 export { withBookWriter, withNewBookWriter, ownsBookWriter, assertBookWriter, BookBusyError } from "./book-writer.js"

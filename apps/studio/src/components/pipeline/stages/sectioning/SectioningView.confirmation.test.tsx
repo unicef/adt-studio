@@ -7,7 +7,7 @@ const state = vi.hoisted(() => ({ queue: vi.fn(), status: "idle", page: null as 
 const interpolate = (strings: TemplateStringsArray, ...values: unknown[]) => strings.reduce((text, part, i) => text + part + (values[i] ?? ""), "")
 vi.mock("@lingui/react/macro", () => ({ Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>, useLingui: () => ({ t: interpolate }) }))
 vi.mock("@tanstack/react-router", () => ({ Link: ({ children }: { children: React.ReactNode }) => <span>{children}</span> }))
-vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ queueRun: state.queue, stageState: () => state.status, stepState: () => "idle", stepProgress: () => null, stepError: () => null, isCancelling: false, cancelRun: vi.fn() }) }))
+vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ queueRun: state.queue, stageState: () => state.status, stepState: () => "idle", stepProgress: () => null, stepError: () => null, stepWarnings: () => [], stepWarningSource: () => undefined, isCancelling: false, cancelRun: vi.fn() }) }))
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "test-only" }), useBookStructuredTextAvailability: () => true }))
 vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({ data: [{ pageId: "pg003", pageNumber: 3, sectionCount: 0 }] }), usePage: () => ({ data: state.page }) }))
 vi.mock("../../components/StepViewRouter", () => ({ useStepHeader: () => state.header }))

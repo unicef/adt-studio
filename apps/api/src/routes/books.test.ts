@@ -1186,6 +1186,7 @@ describe("GET /books/:label/step-status", () => {
     expect(body.error).toBeNull()
     expect(body.stepErrors).toBeNull()
     expect(body.stepMessages).toBeNull()
+    expect(body.stepWarnings).toBeNull()
   })
 
   it("returns queued stages from in-memory queue", async () => {
@@ -1368,6 +1369,53 @@ describe("GET /books/:label/step-status", () => {
     expect(body.stages.speech).toBe("running")
     expect(body.steps.tts).toBe("running")
     expect(body.stepMessages.tts).toBe("4/12 audio entries")
+  })
+
+  it("AC-25: returns a done step's typed warnings and their source, and none for a running step", async () => {
+    createTestBook("step-warning-test")
+    const warning = { kind: "pages-unchanged", pages: [{ pageId: "pg002", error: "HTTP 500" }] } as const
+    const storage = createBookStorage("step-warning-test", tmpDir)
+    try {
+      storage.markStepCompleted("image-segmentation", "Completed with 1 page(s) kept…", [warning])
+      storage.markStepCompleted("image-filtering")
+      storage.markStepStarted("image-cropping")
+    } finally {
+      storage.close()
+    }
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
+
+    const body = await (await app.request("/books/step-warning-test/step-status")).json()
+    expect(body.stepWarnings).toEqual({ "image-segmentation": [warning] })
+    expect(body.stepWarningSources).toEqual({ "image-segmentation": "recorded", "image-filtering": "recorded" })
+  })
+
+  it("AC-27: a step completed by an older app reads as legacy, with only its skip message adapted", async () => {
+    createTestBook("legacy-step-test")
+    const storage = createBookStorage("legacy-step-test", tmpDir)
+    storage.markStepCompleted("image-filtering")
+    storage.markStepCompleted("glossary")
+    storage.close()
+    // develop's markStepCompleted (before SPEC-0021), as an older app runs it.
+    const db = openBookDb(path.join(tmpDir, "legacy-step-test", "legacy-step-test.db"))
+    try {
+      db.run(
+        `INSERT INTO step_runs (step, status, completed_at, message) VALUES (?, 'done', ?, ?)
+         ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at, message=excluded.message`,
+        ["image-filtering", "2026-11-20T00:00:00.000Z", "Completed — 2 page(s) skipped"],
+      )
+      db.run(
+        `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'done', ?)
+         ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at`,
+        ["glossary", "2026-11-20T00:00:00.000Z"],
+      )
+    } finally {
+      db.close()
+    }
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
+
+    const body = await (await app.request("/books/legacy-step-test/step-status")).json()
+    expect(body.stepWarnings).toEqual({ "image-filtering": [{ kind: "pages-skipped", count: 2 }] })
+    expect(body.stepWarningSources).toMatchObject({ "image-filtering": "legacy", glossary: "legacy" })
   })
 
   it("shows active run range: running extract, queued storyboard", async () => {

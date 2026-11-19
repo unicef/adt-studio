@@ -20,8 +20,8 @@ import {
   hashPdfBytes,
 } from "@adt/types/fingerprint"
 import { renderPdfCover, countPdfPages } from "@adt/pdf"
-import { CURRENT_VERSION_ORDER, openBookDb, resolveBookPaths } from "@adt/storage"
-import { loadBookConfig } from "@adt/pipeline"
+import { CURRENT_VERSION_ORDER, mergeStepCompletion, openBookDb, resolveBookPaths, type StoredCompletion } from "@adt/storage"
+import { formatStepWarnings, loadBookConfig } from "@adt/pipeline"
 import { createZipStreamFromEntries } from "./zip-util.js"
 import { getBookConfig, readPartInfo, type BookSummary } from "./book-service.js"
 import type { ExportResult } from "./export-service.js"
@@ -800,8 +800,8 @@ export function mergePart(
     }>
 
     const partStepRuns = part.db.all(
-      "SELECT step, status FROM step_runs",
-    ) as Array<{ step: string; status: string }>
+      "SELECT step, status, completed_at, message, warnings FROM step_runs",
+    ) as Array<{ step: string; status: string } & StoredCompletion>
 
     const targetDb = openBookDb(targetPaths.dbPath)
     try {
@@ -885,12 +885,28 @@ export function mergePart(
       // Carry only statuses whose output is authoritative after assembly.
       // Outline-derived sectioning/rendering data remains inspectable in node
       // history, but its completion is cleared below until a whole-book rebuild.
+      // A done step carries its completion, message and stamped warnings
+      // together, so a recorded part stays recorded (SPEC-0021, §Step warnings).
+      const mergedAt = new Date().toISOString()
       for (const sr of partStepRuns) {
-        if (MERGE_AUTHORITATIVE_STEPS.has(sr.step) && (sr.status === "done" || sr.status === "skipped")) {
+        if (!MERGE_AUTHORITATIVE_STEPS.has(sr.step)) continue
+        if (sr.status === "skipped") {
           targetDb.run(
             `INSERT INTO step_runs (step, status) VALUES (?, ?)
-             ON CONFLICT (step) DO UPDATE SET status = excluded.status`,
+             ON CONFLICT (step) DO UPDATE SET status = excluded.status, warnings = NULL`,
             [sr.step, sr.status],
+          )
+        } else if (sr.status === "done") {
+          const [existing] = targetDb.all(
+            "SELECT completed_at, message, warnings FROM step_runs WHERE step = ? AND status = 'done'",
+            [sr.step],
+          ) as StoredCompletion[]
+          const merged = mergeStepCompletion(existing, sr, mergedAt, formatStepWarnings)
+          targetDb.run(
+            `INSERT INTO step_runs (step, status, completed_at, message, warnings) VALUES (?, 'done', ?, ?, ?)
+             ON CONFLICT (step) DO UPDATE SET status = 'done', completed_at = excluded.completed_at,
+               message = excluded.message, warnings = excluded.warnings`,
+            [sr.step, merged.completed_at, merged.message, merged.warnings],
           )
         }
       }

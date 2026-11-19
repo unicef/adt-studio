@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { StepName, StageName } from "./pipeline.js"
+import { StepWarning } from "./step-warning.js"
 
 export const ProgressEvent = z.discriminatedUnion("type", [
   z.object({
@@ -16,7 +17,10 @@ export const ProgressEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("step-complete"),
     step: StepName,
+    /** English text for the CLI and the log; with warnings, their English rendering. */
     message: z.string().optional(),
+    /** What the user should check after this step (SPEC-0021, §Step warnings). */
+    warnings: z.array(StepWarning).optional(),
   }),
   z.object({
     type: z.literal("step-skip"),

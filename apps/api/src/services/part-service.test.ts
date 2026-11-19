@@ -416,6 +416,69 @@ describe("mergePart", () => {
   })
 })
 
+describe("mergePart step warnings (SPEC-0021 §Step warnings, AC-27)", () => {
+  const unchanged = { kind: "pages-unchanged", pages: [{ pageId: "pg003", error: "HTTP 500" }] } as const
+  const skipped = { kind: "pages-skipped", count: 1 } as const
+  const cropping = (label: string) => {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      return storage.getStepRuns().find((row) => row.step === "image-cropping")
+    } finally {
+      storage.close()
+    }
+  }
+  const completeCropping = (label: string, warnings: Array<typeof unchanged | typeof skipped>) => {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.markStepCompleted("image-cropping", "note", [...warnings])
+    } finally {
+      storage.close()
+    }
+  }
+
+  it("a part this app completed stays recorded in the assembled book", async () => {
+    makeBook("raven")
+    addProcessedPage("raven", 1)
+    const zip = await buildCompletedPart("raven-p003-004", 3, 4, undefined, undefined, (label) => completeCropping(label, [unchanged]))
+    mergePart("raven", tmpDir, zip, {}, configPath)
+
+    expect(cropping("raven")).toMatchObject({ status: "done", warnings: [unchanged], warningSource: "recorded" })
+  })
+
+  it("parts that disagree are combined under a fresh stamp", async () => {
+    makeBook("raven")
+    addProcessedPage("raven", 1)
+    completeCropping("raven", [skipped])
+    const zip = await buildCompletedPart("raven-p003-004", 3, 4, undefined, undefined, (label) => completeCropping(label, [unchanged]))
+    mergePart("raven", tmpDir, zip, {}, configPath)
+
+    expect(cropping("raven")).toMatchObject({ status: "done", warnings: [skipped, unchanged], warningSource: "recorded" })
+  })
+
+  it("a part last completed by an older app makes the merged row legacy, without reviving its stale warnings", async () => {
+    makeBook("raven")
+    addProcessedPage("raven", 1)
+    completeCropping("raven", [skipped])
+    const zip = await buildCompletedPart("raven-p003-004", 3, 4, undefined, undefined, (label) => {
+      completeCropping(label, [unchanged])
+      // develop's markStepCompleted without a message (before SPEC-0021), as an older app runs it.
+      const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+      try {
+        db.run(
+          `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'done', ?)
+           ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at`,
+          ["image-cropping", "2026-11-20T00:00:00.000Z"],
+        )
+      } finally {
+        db.close()
+      }
+    })
+    mergePart("raven", tmpDir, zip, {}, configPath)
+
+    expect(cropping("raven")).toMatchObject({ status: "done", warnings: null, warningSource: "legacy" })
+  })
+})
+
 describe("importPart", () => {
   it("creates a book from a lightweight part archive and remembers it is a part", async () => {
     // Build a lightweight part archive by hand (pdf + config + manifest, no db).

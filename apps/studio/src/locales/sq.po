@@ -45,6 +45,9 @@ msgstr ", dhe "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? Kjo do të heqë të gjitha të dhënat e nxjerra dhe nuk mund të zhbëhet."
 
+msgid "… and {more} more"
+msgstr "… dhe {more} të tjera"
+
 msgid ".zip → added as-is"
 msgstr ".zip → shtuar siç është"
 
@@ -126,10 +129,18 @@ msgstr "{0, plural, one {# rezultat} other {# rezultate}}"
 msgid "{0, plural, one {# page added} other {# pages added}}"
 msgstr "{0, plural, one {# faqe e shtuar} other {# faqe të shtuara}}"
 
+#. placeholder {0}: warning.pages.length
+msgid "{0, plural, one {# page kept its extracted images unchanged because the model call failed.} other {# pages kept their extracted images unchanged because the model call failed.}}"
+msgstr "{0, plural, one {# faqe i mbajti imazhet e nxjerra pa ndryshime, sepse thirrja e modelit dështoi.} other {# faqe i mbajtën imazhet e nxjerra pa ndryshime, sepse thirrja e modelit dështoi.}}"
+
 #. placeholder {0}: preview.replacedPageNumbers.length
 #. placeholder {0}: result.replacedPages
 msgid "{0, plural, one {# page replaced} other {# pages replaced}}"
 msgstr "{0, plural, one {# faqe e zëvendësuar} other {# faqe të zëvendësuara}}"
+
+#. placeholder {0}: warning.count
+msgid "{0, plural, one {# page was skipped after it failed.} other {# pages were skipped after they failed.}}"
+msgstr "{0, plural, one {# faqe u anashkalua pasi dështoi.} other {# faqe u anashkaluan pasi dështuan.}}"
 
 #. placeholder {0}: Math.max(0, endPage - startPage + 1)
 #. placeholder {0}: book.pageCount
@@ -156,6 +167,10 @@ msgstr "{0, plural, one {# fazë} other {# faza}}"
 msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
 msgstr "{0, plural, one {# detyrë trashëgon këtë model} other {# detyra trashëgojnë këtë model}}"
 
+#. placeholder {0}: warning.count
+msgid "{0, plural, one {# warning this version of ADT Studio can't show; open the book in a newer version.} other {# warnings this version of ADT Studio can't show; open the book in a newer version.}}"
+msgstr "{0, plural, one {# paralajmërim që ky version i ADT Studio nuk mund ta shfaqë; hapeni librin në një version më të ri.} other {# paralajmërime që ky version i ADT Studio nuk mund t’i shfaqë; hapeni librin në një version më të ri.}}"
+
 #. placeholder {0}: reader.commentCount
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {koment} other {komente}}"
@@ -171,6 +186,10 @@ msgstr "{0, plural, one {I shkëputur. # Worker i një libri të ndarë mund të
 #. placeholder {0}: state.hours
 msgid "{0, plural, one {hour} other {hours}}"
 msgstr "{0, plural, one {orë} other {orë}}"
+
+#. placeholder {0}: warning.incompletePages
+msgid "{0, plural, one {Not fully assessed on # page.} other {Not fully assessed on # pages.}}"
+msgstr "{0, plural, one {Vlerësim i paplotë në # faqe.} other {Vlerësim i paplotë në # faqe.}}"
 
 #. placeholder {0}: openComments(resume)
 msgid "{0, plural, one {Review # comment} other {Review # comments}}"
@@ -606,6 +625,9 @@ msgstr "{inProgress, plural, one {# në progres} other {# në progres}}"
 
 msgid "{issueCount} {issueCount, plural, one {problem} other {problems}} to fix before import"
 msgstr "{issueCount} {issueCount, plural, one {problem për t’u rregulluar} other {probleme për t’u rregulluar}} para importimit"
+
+msgid "{issues, plural, one {The source PDF assessment found # issue to check.} other {The source PDF assessment found # issues to check.}}"
+msgstr "{issues, plural, one {Vlerësimi i PDF-së burimore gjeti # problem për t'u kontrolluar.} other {Vlerësimi i PDF-së burimore gjeti # probleme për t'u kontrolluar.}}"
 
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
@@ -3162,8 +3184,14 @@ msgstr "Përfunduar"
 msgid "Completed book part"
 msgstr "Pjesë libri e përfunduar"
 
+msgid "Completed by an older version of ADT Studio; it may not have recorded every warning."
+msgstr "Përfunduar nga një version i mëparshëm i ADT Studio; mund të mos i ketë regjistruar të gjitha paralajmërimet."
+
 msgid "Completed Part"
 msgstr "Pjesa e përfunduar"
+
+msgid "Completed with a warning"
+msgstr "Përfunduar me një paralajmërim"
 
 msgid "Completion"
 msgstr "Përfundim"
@@ -7455,6 +7483,9 @@ msgstr "Nuk u gjet asnjë version beta"
 
 msgid "No book outline has been extracted yet."
 msgstr "Ende nuk është nxjerrë asnjë strukturë e librit."
+
+msgid "No book summary was created because the model call failed. Later steps run without it."
+msgstr "Përmbledhja e librit nuk u krijua, sepse thirrja e modelit dështoi. Hapat e mëpasshëm ekzekutohen pa të."
 
 msgid "No books match your search"
 msgstr "Asnjë libër nuk përputhet me kërkimin tuaj"
@@ -11879,6 +11910,9 @@ msgstr "Detyrat po Ekzekutohen"
 
 msgid "Teaching the pixels new tricks..."
 msgstr "Duke i mësuar pikselëve truke të reja..."
+
+msgid "Technical details: {technical}"
+msgstr "Detaje teknike: {technical}"
 
 msgid "Technical documentation"
 msgstr "Dokumentacion teknik"
