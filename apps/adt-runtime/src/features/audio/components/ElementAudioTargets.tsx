@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { useAtomValue } from "jotai"
 import { elementAudioIdsAtom } from "@/features/language/state/language.atoms"
 import { pageEpochAtom } from "@/features/navigation/state/nav.atoms"
+import { embedModeAtom } from "@/shared/state/ui.atoms"
 import { useAudioPlayerContext } from "@/features/audio/hooks/AudioPlayerContext"
 
 /**
@@ -43,6 +44,7 @@ function accessibleName(el: HTMLElement): string {
 export function ElementAudioTargets() {
   const elementAudioIds = useAtomValue(elementAudioIdsAtom)
   const pageEpoch = useAtomValue(pageEpochAtom)
+  const embed = useAtomValue(embedModeAtom)
   const { playElement } = useAudioPlayerContext()
 
   useEffect(() => {
@@ -70,17 +72,18 @@ export function ElementAudioTargets() {
       // An <img> target needs only tabindex="0" plus a meaningful alt; any other
       // element needs an interactive role and an accessible name. Never a
       // positive tabindex (axe `tabindex`, serious).
-      const addedTabindex = !el.hasAttribute("tabindex")
-      const addedRole = el.tagName !== "IMG" && !el.hasAttribute("role")
-      if (el.tagName === "IMG") {
-        if (addedTabindex) el.setAttribute("tabindex", "0")
-      } else {
-        if (addedRole) el.setAttribute("role", "button")
-        if (addedTabindex) el.setAttribute("tabindex", "0")
+      const addedTabindex = !embed && !el.hasAttribute("tabindex")
+      const addedRole = !embed && el.tagName !== "IMG" && !el.hasAttribute("role")
+      if (!embed) {
+        if (el.tagName === "IMG") {
+          if (addedTabindex) el.setAttribute("tabindex", "0")
+        } else {
+          if (addedRole) el.setAttribute("role", "button")
+          if (addedTabindex) el.setAttribute("tabindex", "0")
+        }
+        el.addEventListener("click", activate)
+        el.addEventListener("keydown", onKeyDown)
       }
-
-      el.addEventListener("click", activate)
-      el.addEventListener("keydown", onKeyDown)
 
       let badge: HTMLSpanElement | null = null
       let badgeObserver: ResizeObserver | null = null
@@ -155,7 +158,7 @@ export function ElementAudioTargets() {
     return () => {
       for (const cleanup of cleanups) cleanup()
     }
-  }, [elementAudioIds, pageEpoch, playElement])
+  }, [elementAudioIds, pageEpoch, embed, playElement])
 
   return null
 }
