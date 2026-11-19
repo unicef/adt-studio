@@ -200,6 +200,19 @@ describe("ADT recovery workspace", () => {
     }
   })
 
+  // #1154: a root HTML page outside the reading order is named as a page, not
+  // as a stray folder, and is listed with the book's own problems.
+  it("reports a root HTML page that is not in the reading order as an unlisted page", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    files["credits.html"] = strToU8("<!doctype html><html><body><p>Credits</p></body></html>")
+    files["notes.txt"] = strToU8("scratch")
+    const { issues } = assessArchive(Buffer.from(zipSync(files)))
+    expect(issues).toEqual([
+      { code: "unlisted-root-page", pageHref: "credits.html", detail: "credits.html" },
+      { code: "unexpected-bundle-entry", pageHref: "notes.txt", detail: "notes.txt" },
+    ])
+  })
+
   it("rejects folders outside the canonical ADT bundle root", () => {
     expect(assessArchive(makeBundle())).toMatchObject({
       supported: false,

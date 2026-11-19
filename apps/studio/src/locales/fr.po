@@ -12581,6 +12581,9 @@ msgstr "La licence de cette police n'est pas open source et restreint l'intégra
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "La licence de cette police restreint l'incorporation — la distribuer dans le paquet du livre peut être illégal."
 
+msgid "This HTML page isn’t in the book’s reading order (content/pages.json), so it can’t be imported."
+msgstr "Cette page HTML ne figure pas dans l’ordre de lecture du livre (content/pages.json) : elle ne peut donc pas être importée."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Cette image est décorative. Les lecteurs d'écran l'ignoreront et aucune légende n'est nécessaire."
 

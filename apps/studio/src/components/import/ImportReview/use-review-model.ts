@@ -50,7 +50,7 @@ const STRUCTURE_CODES = new Set([
   "missing-section-type", "missing-data-id", "duplicate-data-id", "image-missing-data-id",
 ])
 const FILE_CODES = new Set([
-  "unexpected-bundle-entry", "remote-asset", "unsafe-asset", "unsupported-stylesheet",
+  "unexpected-bundle-entry", "unlisted-root-page", "remote-asset", "unsafe-asset", "unsupported-stylesheet",
   "unsupported-script", "unsupported-asset-location", "missing-asset",
 ])
 
@@ -77,6 +77,7 @@ export function useReviewModel(
       "unsupported-editing-contract": t`manifest.json uses an editing contract version this ADT Studio doesn’t support.`,
       "nested-page": t`Page HTML must stay at the top level of the archive.`,
       "unexpected-bundle-entry": t`The archive contains a folder or file outside the standard ADT layout.`,
+      "unlisted-root-page": t`This HTML page isn’t in the book’s reading order (content/pages.json), so it can’t be imported.`,
       "changed-page-structure": t`The page’s element ids no longer match the page lists in manifest.json and content/pages.json.`,
       "interleaved-reading-order": t`Sections of one page are split apart in the reading order.`,
       "missing-content-root": t`The page is missing its #content element.`,
