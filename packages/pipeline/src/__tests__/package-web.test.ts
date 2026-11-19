@@ -805,8 +805,10 @@ describe("packageAdtWeb", () => {
 
     const configJson = JSON.parse(
       fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
-    ) as { languages: { default: string; available: string[] } }
+    ) as { languages: { default: string; available: string[] }; features: { voiceVariants: boolean } }
     expect(configJson.languages.available).toEqual(["fr"])
+    // #1157: no second narrator, so the runtime skips the voice files.
+    expect(configJson.features.voiceVariants).toBe(false)
     expect(configJson.languages.default).toBe("fr")
 
     // F4: the deselected source language ships only what re-import needs.
@@ -1419,8 +1421,10 @@ describe("packageAdtWeb", () => {
 
     const configJson = JSON.parse(
       fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
-    ) as { features: { highlight: boolean } }
+    ) as { features: { highlight: boolean; voiceVariants: boolean } }
     expect(configJson.features.highlight).toBe(true)
+    // #1157: the runtime requests the voice files only when this says so.
+    expect(configJson.features.voiceVariants).toBe(true)
 
     const preloader = fs.readFileSync(
       path.join(bookDir, "adt", "assets", "offline-preloader.js"),
