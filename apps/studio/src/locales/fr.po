@@ -480,6 +480,9 @@ msgstr "il y a {0} min"
 msgid "{0}s ago"
 msgstr "il y a {0} s"
 
+msgid "{activityTotal} found, none to classify"
+msgstr "{activityTotal} trouvées, aucune à classer"
+
 msgid "{availableCount} more you can generate after import:"
 msgstr "{availableCount} autres à générer après l’import :"
 
@@ -834,6 +837,9 @@ msgstr "{unresolvedCount, plural, one {Choisissez un type pour # page d’activi
 
 msgid "{waiting, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{waiting, plural, one {# commentaire en attente} other {# commentaires en attente}}"
+
+msgid "{withoutEditor} of them keep their own scripts: Studio’s activity editor can’t edit them"
+msgstr "{withoutEditor} gardent leurs propres scripts : l’éditeur d’activités de Studio ne peut pas les modifier"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -1802,6 +1808,9 @@ msgstr "Tous les problèmes et éléments de révision manuelle"
 
 msgid "All languages"
 msgstr "Toutes les langues"
+
+msgid "All of them can be edited in Studio’s activity editor"
+msgstr "Toutes peuvent être modifiées dans l’éditeur d’activités de Studio"
 
 msgid "All pages"
 msgstr "Toutes les pages"
@@ -6254,6 +6263,9 @@ msgstr "KB"
 msgid "Keep"
 msgstr "Garder"
 
+msgid "Keep {activities} {activities, plural, one {activity} other {activities}}"
+msgstr "Conserver {activities} {activities, plural, one {activité} other {activités}}"
+
 msgid "Keep accepts existing content without regenerating it."
 msgstr "Conserver valide le contenu existant sans le régénérer."
 
@@ -7859,6 +7871,9 @@ msgstr "Aucun"
 msgid "None — anyone with the link can open it."
 msgstr "Aucun — toute personne avec le lien peut l’ouvrir."
 
+msgid "None found"
+msgstr "Aucune trouvée"
+
 msgid "Normalization"
 msgstr "Normalisation"
 
@@ -8001,8 +8016,8 @@ msgstr "Rien de résolu pour l’instant"
 msgid "Nothing split yet"
 msgstr "Rien de divisé pour l'instant"
 
-msgid "Nothing to classify"
-msgstr "Rien à classer"
+#~ msgid "Nothing to classify"
+#~ msgstr "Rien à classer"
 
 msgid "Nothing to edit yet"
 msgstr "Rien à modifier pour l'instant"
