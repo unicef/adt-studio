@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 
 import yaml from "js-yaml"
-import { normalizeLocale } from "@adt/pipeline"
+import { detectBundleReflowableFont, normalizeLocale } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 import { BookMetadata, TextCatalogOutput, type AdtActivityImportDecision } from "@adt/types"
 
@@ -157,6 +157,9 @@ export function seedImportedAdtProject(
   seedImportedSignLanguage(label, booksDir, bundle, files)
   seedImportedSpeech(label, booksDir, bundle, files, createdAt)
   warnOnUndetectedFixedLayout(bundle, storyboard.fixedLayoutPageCount)
+  // The export records the book font only in each page's head; without it the
+  // project falls back to `auto`, i.e. serif Merriweather (#1158).
+  const reflowableFont = detectBundleReflowableFont(Object.values(bundle.pageHtml))
   fs.writeFileSync(path.join(bookDir, "config.yaml"), yaml.dump({
     editing_language: sourceLanguage,
     // The existing Speech UI treats this as the selectable narration list;
@@ -164,6 +167,7 @@ export function seedImportedAdtProject(
     output_languages: [sourceLanguage, ...outputLanguages],
     ...(storyboard.fixedLayoutPageCount > 0 ? FIXED_LAYOUT_CONFIG : {}),
     ...(hasEasyRead ? { easy_read: { enabled: true } } : {}),
+    ...(reflowableFont ? { reflowable_font: reflowableFont } : {}),
   }))
 
   return {

@@ -1,4 +1,5 @@
 import { buildImageInventory } from "../catalog-reconciliation.js"
+import { reflowableBodyFontStyle } from "../adt-round-trip/font.js"
 import { answerTextId, resolveQuizOptionId } from "@adt/types"
 import { scopeLegacyActivityIds } from "../catalog-reconciliation.js"
 import { reconcileSpeechInputs } from "../speech-inputs.js"
@@ -1579,8 +1580,10 @@ ${fallbackHeadingHtml}${contentBlock}
   // Reflowable base-font override: re-declare the same elements fonts.css
   // targets with the chosen family, placed last in <head> so it wins. Omitted
   // for fixed-layout / serif-default books (keeps the global Merriweather).
+  // The import reads it back (detectBundleReflowableFont), so both share one
+  // writer.
   const bodyFontStyle = opts.bodyFontFamily
-    ? `\n    <style>\n      body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select { font-family: ${opts.bodyFontFamily}; }\n    </style>`
+    ? reflowableBodyFontStyle(opts.bodyFontFamily)
     : ""
 
   // Load any Google Fonts the page actually uses — fixed-layout pages declare

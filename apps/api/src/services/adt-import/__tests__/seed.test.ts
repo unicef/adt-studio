@@ -6,7 +6,7 @@ import path from "node:path"
 import { describe, expect, it } from "vitest"
 import { strToU8, unzipSync, zipSync } from "fflate"
 import yaml from "js-yaml"
-import { buildTextCatalog } from "@adt/pipeline"
+import { buildTextCatalog, reflowableBodyFontStyle } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 
 import { listBooks } from "../../book-service.js"
@@ -61,6 +61,30 @@ describe("ADT recovery workspace", () => {
     } finally {
       storage.close()
     }
+  })
+
+  // #1158: an imported reflowable book keeps the font it was exported with.
+  it("restores the book font the exporter wrote into the page heads", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    for (const href of ["index.html", "pg002_sec001.html"]) {
+      files[href] = strToU8(new TextDecoder().decode(files[href]).replace(
+        "<html>",
+        `<html><head>${reflowableBodyFontStyle("'Open Sans',Atkinson Hyperlegible,sans-serif")}</head>`,
+      ))
+    }
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-font-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir, "open-sans.zip")
+    const config = yaml.load(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8")) as Record<string, unknown>
+    expect(config.reflowable_font).toBe("open-sans")
+  })
+
+  it("leaves the font automatic when the pages declare none", () => {
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-font-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(makeCurrentBundleWithExternallyAddedPage(), booksDir, "plain.zip")
+    const config = yaml.load(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8")) as Record<string, unknown>
+    expect(config).not.toHaveProperty("reflowable_font")
   })
 
   it("accepts quiz pages emitted before Studio added data-section-id", () => {
