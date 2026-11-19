@@ -700,8 +700,8 @@ Key files:
 - `packages/types/src/pipeline.ts` — Pipeline definition and derived lookups
 - `packages/pipeline/src/dag.ts` — Generic DAG runner
 - `packages/pipeline/src/pipeline-dag.ts` — Pipeline-specific DAG executor
-- `apps/api/src/services/step-runner.ts` — API-side stage runners
-- `apps/studio/src/components/pipeline/StageRunCard.tsx` — UI card (sub-steps derived from PIPELINE)
+- `apps/api/src/services/stage-runner.ts` — API-side stage runners
+- `apps/studio/src/components/pipeline/components/StageRunCard.tsx` — UI card (sub-steps derived from PIPELINE)
 - `apps/studio/src/components/pipeline/stages/` — Per-stage view components
 
 ### Stage Run Queue
@@ -712,7 +712,8 @@ Stage runs are queued per-book — if a run is already active, new runs wait and
 - **Frontend**: All run handlers call `queueRun(options)` from `useBookRun()` — never `api.runStages` directly. This function does an optimistic cache update (mark stage "queued", clear downstream), then chains the API call through a promise chain to preserve click ordering.
 - **Data clearing**: Happens via a `beforeRun` callback when the job *starts executing*, not when enqueued. This prevents clearing data for a stage that hasn't started yet.
 - **SSE continuity**: The SSE stream is always-on (opens on book mount, closes on unmount). A `queue-next` event signals when a queued run begins executing, triggering a full refetch.
-- **Query invalidation**: Use `invalidateQueries` — never `removeQueries`. `removeQueries` deletes cached data, causing completed stages to flash to "unrun" while the refetch is in flight. `invalidateQueries` keeps stale data visible during the refetch, preventing visual glitches.
+- **Query invalidation**: Use `invalidateQueries` for shared book/status data. Removing those queries deletes cached data and makes completed stages flash to "unrun" during refetch. A request-owned, one-shot confirmation query can be removed after it settles; it is not a shared status snapshot.
+- **Queueing and consent**: Background status polling must not disable a ready Run button. Protected run entry points obtain a separate fresh saved-content read at the click, then freeze the versions shown for replacement consent. Ordinary progress/reconnection/publication refreshes leave that action read intact; deliberate book cancellation and book/stage scope changes still prevent it from authorizing a run.
 
 ```typescript
 // CORRECT: Use queueRun from context (handles optimistic update + API call + invalidation)
@@ -977,7 +978,7 @@ Pipeline progress uses a `ProgressEvent` discriminated union streamed via SSE. E
 - `queue-next` → `invalidateQueries` (new run started, full refetch)
 - `complete` → `invalidateQueries` (run finished, reconcile with DB)
 
-**Cancel in-flight fetches on SSE events**: SSE progress events cancel any pending `step-status` query fetch via `cancelQueries` before updating the cache. This prevents a race where a stale fetch response (initiated by the `open` handler or window focus) arrives *after* an SSE event has already updated the cache, overwriting the more-current SSE state with an older server snapshot. This is a general TanStack Query pattern: when you have a push-based update channel (SSE/WebSocket) alongside pull-based queries, cancel in-flight pulls before applying pushes.
+**Cancel in-flight fetches on SSE events**: SSE progress events cancel the exact shared `["books", label, "step-status"]` query via `cancelQueries({ queryKey, exact: true })` before updating the cache. Do not cancel the whole prefix: it also contains request-owned saved-content checks for pending run clicks. This prevents a race where a stale fetch response (initiated by the `open` handler or window focus) arrives *after* an SSE event has already updated the cache, overwriting the more-current SSE state with an older server snapshot. This is a general TanStack Query pattern: when you have a push-based update channel (SSE/WebSocket) alongside pull-based queries, cancel in-flight pulls before applying pushes.
 
 ### Stage & Step Status
 
@@ -1226,7 +1227,7 @@ pnpm lint
 | Type schemas | `packages/types/src/` |
 | Pipeline step implementations | `packages/pipeline/src/` |
 | DAG runner | `packages/pipeline/src/dag.ts` |
-| API stage runners | `apps/api/src/services/step-runner.ts` |
+| API stage runners | `apps/api/src/services/stage-runner.ts` |
 | LLM client | `packages/llm/src/client.ts` |
 | Stage view components | `apps/studio/src/components/pipeline/stages/` |
 | Stage run service (queue, SSE) | `apps/api/src/services/stage-service.ts` |
@@ -1235,7 +1236,7 @@ pnpm lint
 | Unified book run hook + context | `apps/studio/src/hooks/use-book-run.ts` |
 | Book layout (BookRunProvider) | `apps/studio/src/routes/books.$label.tsx` |
 | Stage config (colors, icons, labels) | `apps/studio/src/components/pipeline/stage-config.ts` |
-| Stage sidebar | `apps/studio/src/components/pipeline/StageSidebar.tsx` |
+| Stage sidebar | `apps/studio/src/components/pipeline/components/StageSidebar.tsx` |
 | Global config | `config/` |
 | Templates | `templates/` |
 

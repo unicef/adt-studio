@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { StageName } from "@adt/types"
@@ -23,6 +23,8 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const instanceId = useId()
+  const protectionRead = useRef(0)
   const protectedStage = stage === "sectioning" || stage === "toc"
   const status = useQuery({
     queryKey: ["books", bookLabel, "step-status"],
@@ -73,14 +75,21 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
         // Read again at the action boundary: a warm cache or a cancelled query
         // cannot silently turn unknown protection into an empty consent scope.
         let completed: { data: Awaited<ReturnType<typeof api.getStepStatus>>; signal: AbortSignal } | undefined
-        await queryClient.fetchQuery({
-          queryKey: ["books", bookLabel, "step-status"], staleTime: 0,
-          queryFn: async ({ signal }) => {
-            const data = await api.getStepStatus(bookLabel)
-            completed = { data, signal }
-            return data
-          },
-        })
+        // Own this read so polling cannot deduplicate it onto an older request.
+        // Keep it book-scoped so deliberate cancellation still invalidates it.
+        const queryKey = ["books", bookLabel, "step-status", "confirmation", stage, instanceId, ++protectionRead.current]
+        try {
+          await queryClient.fetchQuery({
+            queryKey, staleTime: 0, gcTime: 0,
+            queryFn: async ({ signal }) => {
+              const data = await api.getStepStatus(bookLabel)
+              completed = { data, signal }
+              return data
+            },
+          })
+        } finally {
+          queryClient.removeQueries({ queryKey, exact: true })
+        }
         if (!isCurrent()) return false
         // Query cancellation may resolve with reverted cached data. Only this
         // request's completed, non-aborted read can define replacement consent.
@@ -108,7 +117,9 @@ export function useStageRunConfirmation({ bookLabel, stage, available, affectedS
       }
     }
   }
-  const loading = protectedStage && (status.isPending || status.isFetching)
+  // A background poll must not disable queueing. The click still verifies saved
+  // content with its own fresh read before it can authorize any run.
+  const loading = protectedStage && status.isPending
   const disabledReason = busy || loading ? t`Loading saved content…` : protectedStage && status.isError ? status.error.message : undefined
   const work = snapshot?.scope === scope ? snapshot.work : []
   const stageLabel = getStageLabelI18n(stage)
