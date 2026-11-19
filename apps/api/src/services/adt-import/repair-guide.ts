@@ -45,7 +45,7 @@ const compatibilityIssueFix: Record<AdtImportCompatibilityIssueCode, string> = {
   "missing-editing-contract": "Re-export the book from ADT Studio, or restore manifest.json from the original export and reapply your edits.",
   "unsupported-editing-contract": "Restore the editingContract version from the original export; do not change it by hand.",
   "nested-page": "Move the page back to the archive root and update every link and index that points to it.",
-  "unexpected-bundle-entry": "Remove the folder, or move its files into the matching canonical folder. Don't leave a ZIP inside the archive.",
+  "unexpected-bundle-entry": "Move its files into the matching canonical folder, or save the folder in the restore kit, then remove it. Don't leave a ZIP inside the archive.",
   "changed-page-structure": "Compare the page's data-id values with its editingContract.pageDataIds entry: if an id was renamed, change it back; if it is new content, add it to pageDataIds in document order.",
   "interleaved-reading-order": "Move the split sections back next to each other, or give a moved section its own new page id.",
   "missing-content-root": "Restore the single #content element that wraps the page content.",
@@ -56,10 +56,10 @@ const compatibilityIssueFix: Record<AdtImportCompatibilityIssueCode, string> = {
   "missing-data-id": "Give the element a new data-id that is unique in the book, add it to the page's editingContract.pageDataIds in document order, and add its text to content/i18n/<language>/texts.json.",
   "duplicate-data-id": "Make the copies identical again, or give the new content its own data-id.",
   "image-missing-data-id": "Give the image a new data-id that is unique in the book and add it to the page's editingContract.pageDataIds in document order.",
-  "remote-asset": "ADT exports can't load files from the internet. Remove the reference; for an image, download it into images/ and point to it there. Don't add scripts or stylesheets, and don't put files in assets/.",
+  "remote-asset": "ADT exports can't load files from the internet. For an image, download it into images/ and point to it there. Otherwise save the reference in the restore kit, then remove it. Don't add scripts or stylesheets, and don't put files in assets/.",
   "unsafe-asset": "Point the reference at a file in images/ with a relative path such as images/example.png, with no ../ or absolute paths.",
-  "unsupported-stylesheet": "Remove the stylesheet and express its styles with the existing Tailwind utility classes or inline style attributes.",
-  "unsupported-script": "Remove the script. ADT exports run only the scripts they were exported with.",
+  "unsupported-stylesheet": "Save the stylesheet in the restore kit, then remove it and express its styles with the existing Tailwind utility classes or inline style attributes.",
+  "unsupported-script": "Save the script in the restore kit, then remove it. ADT exports run only the scripts they were exported with.",
   "unsupported-asset-location": "Move the media into images/ and update its references to relative paths such as images/example.png.",
   "missing-asset": "Add the missing file at the referenced path, or remove the reference.",
 }
@@ -70,6 +70,26 @@ const compatibilityIssueFix: Record<AdtImportCompatibilityIssueCode, string> = {
 export function repairedArchiveName(archiveName: string | undefined, fallbackLabel: string): string {
   const base = archiveName?.split(/[\\/]/).pop()?.replace(/\.zip$/i, "").trim()
   return nextFixedName(base || fallbackLabel)
+}
+
+/** The restore kit's folder: named after the book, not the round, so a
+ * second repair round adds to the same kit. */
+export function restoreKitName(output: string): string {
+  return `${output.replace(/-fixed(?:-\d+)?\.zip$/i, "").replace(/\.zip$/i, "")}-restore-kit`
+}
+
+/**
+ * What an author added on top of an export (a script, a stylesheet, a page) is
+ * deliberate work, and ADT Studio drops it on import. The kit lets the author
+ * put it back into the next export. Locations are anchors, because ADT Studio
+ * regenerates every page's HTML on export and line numbers don't survive.
+ */
+function restoreKitRules(kit: string): string[] {
+  return [
+    `- Some of what you remove may be the author's own work, added on purpose after export. Before removing anything only because ADT Studio can't import it (a script, a stylesheet, a link, a page, a file), save it in a restore kit: the folder ${kit}/ next to the new ZIP, outside the bundle folder and outside the new ZIP. If the folder exists from an earlier repair round, add to it.`,
+    "- The kit holds the removed files; each removed element with its page and an anchor that locates it, not by line number, because ADT Studio regenerates every page on export (for example the end of <head>, before </body>, or after the element with a given data-id); and a script that puts them back into an exported bundle. Running it twice must not add anything twice, and it must skip and report any item whose anchor it can't find.",
+    "- Renamed data-ids and media moved into images/ are repairs, not removals: leave them out of the kit. In your reply, say where the kit is and what it holds.",
+  ]
 }
 
 /** `book` → `book-fixed`, `book-fixed` → `book-fixed-2`, `book-fixed-2` →
@@ -164,6 +184,7 @@ export function createAdtImportRepairGuide(
     "Rules:",
     "- Fix only the problems listed. Change the book's text, images, and other content only where a fix requires it.",
     "- Where the guide covers a fix, follow the guide. If a fix is unclear, leave that part unchanged instead of guessing.",
+    ...restoreKitRules(restoreKitName(output)),
     "",
     ...DO_NOT_INTRODUCE_PROBLEMS,
     "",
