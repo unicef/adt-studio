@@ -655,8 +655,8 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {faqe} other {faqe}} të ris
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} faqe"
 
-msgid "{pendingActivities} {pendingActivities, plural, one {activity page will} other {activity pages will}} also need a type"
-msgstr "{pendingActivities} {pendingActivities, plural, one {faqe aktiviteti do të ketë} other {faqe aktivitetesh do të kenë}} gjithashtu nevojë për një lloj"
+msgid "{pendingActivities} {pendingActivities, plural, one {activity page also needs} other {activity pages also need}} a fix"
+msgstr "{pendingActivities} {pendingActivities, plural, one {faqe aktiviteti ka} other {faqe aktivitetesh kanë}} gjithashtu nevojë për rregullim"
 
 msgid "{position} of {total}"
 msgstr "{position} nga {total}"
@@ -1601,9 +1601,6 @@ msgstr "ADT Studio pranon arkiva ZIP deri në 1 GiB të kompresuara. Zgjidhni nj
 
 #~ msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
 #~ msgstr "ADT Studio pranon arkiva ZIP deri në 512 MiB të kompresuara. Zgjidhni një paketë më të vogël dhe provoni sërish."
-
-msgid "ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can handle both at once."
-msgstr "ADT Studio do t’ju pyesë për to sapo të rregullohen këto probleme. Kërkesa për riparim i përfshin ato, kështu që asistenti juaj i AI-së mund t’i trajtojë të dyja njëherësh."
 
 msgid "ADT Studio can’t import this ZIP"
 msgstr "ADT Studio nuk mund ta importojë këtë ZIP"
@@ -12398,6 +12395,9 @@ msgstr "I gjithë libri dërgohet si një skedar i vetëm, dhe Cloudflare pranon
 
 msgid "The world before us"
 msgstr "Bota para nesh"
+
+msgid "Their activity type is missing or unclear, or they fail the accessibility checks for their type. ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can fix both at once."
+msgstr "Lloji i aktivitetit mungon ose nuk është i qartë, ose ato nuk kalojnë kontrollet e aksesueshmërisë për llojin e tyre. ADT Studio do t’ju pyesë për to sapo të rregullohen këto probleme. Kërkesa për riparim i përfshin ato, kështu që asistenti juaj i AI-së mund t’i rregullojë të dyja njëherësh."
 
 msgid "Theme"
 msgstr "Tema"

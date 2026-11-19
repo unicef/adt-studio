@@ -217,8 +217,8 @@ export function useReviewModel(
       ? {
           tone: "amber",
           icon: Puzzle,
-          title: t`${pendingActivities} {pendingActivities, plural, one {activity page will} other {activity pages will}} also need a type`,
-          text: t`ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can handle both at once.`,
+          title: t`${pendingActivities} {pendingActivities, plural, one {activity page also needs} other {activity pages also need}} a fix`,
+          text: t`Their activity type is missing or unclear, or they fail the accessibility checks for their type. ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can fix both at once.`,
         }
       : null
     const status: Status = repair

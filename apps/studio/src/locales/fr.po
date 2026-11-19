@@ -655,8 +655,8 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {page} other {pages}} révis
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} pages"
 
-msgid "{pendingActivities} {pendingActivities, plural, one {activity page will} other {activity pages will}} also need a type"
-msgstr "{pendingActivities} {pendingActivities, plural, one {page d’activité aura} other {pages d’activité auront}} aussi besoin d’un type"
+msgid "{pendingActivities} {pendingActivities, plural, one {activity page also needs} other {activity pages also need}} a fix"
+msgstr "{pendingActivities} {pendingActivities, plural, one {page d’activité a} other {pages d’activité ont}} aussi besoin d’une correction"
 
 msgid "{position} of {total}"
 msgstr "{position} sur {total}"
@@ -1601,9 +1601,6 @@ msgstr "ADT Studio accepte les archives ZIP jusqu'à 1 Gio compressés. Choisiss
 
 #~ msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
 #~ msgstr "ADT Studio accepte les archives ZIP jusqu'à 512 Mio compressés. Choisissez un paquet plus petit et réessayez."
-
-msgid "ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can handle both at once."
-msgstr "ADT Studio vous les demandera une fois ces problèmes corrigés. La demande de réparation les inclut, donc votre assistant IA peut tout traiter en une seule fois."
 
 msgid "ADT Studio can’t import this ZIP"
 msgstr "ADT Studio ne peut pas importer ce ZIP"
@@ -12398,6 +12395,9 @@ msgstr "Le livre entier est envoyé en un seul fichier, et Cloudflare accepte au
 
 msgid "The world before us"
 msgstr "Le monde devant nous"
+
+msgid "Their activity type is missing or unclear, or they fail the accessibility checks for their type. ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can fix both at once."
+msgstr "Leur type d’activité manque ou n’est pas clair, ou elles échouent aux vérifications d’accessibilité de leur type. ADT Studio vous les demandera une fois ces problèmes corrigés. La demande de réparation les inclut, donc votre assistant IA peut tout corriger en une seule fois."
 
 msgid "Theme"
 msgstr "Thème"
