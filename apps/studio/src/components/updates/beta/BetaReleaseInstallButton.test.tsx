@@ -45,6 +45,25 @@ describe("BetaReleaseInstallButton", () => {
     expect(screen.queryByText(/Back up your books/)).toBeNull()
   })
 
+  it("asks before switching from one PR's preview to another's", () => {
+    // Prerelease tags compare as strings, so pr-1000 ranks below pr-900.
+    const onInstall = renderButton(
+      { version: "0.9.1-beta-pr-1000", direction: "downgrade" },
+      "0.9.1-beta-pr-900.2",
+    )
+    fireEvent.click(screen.getByRole("button", { name: /Install preview/ }))
+    expect(onInstall).not.toHaveBeenCalled()
+    expect(screen.getByText("Install a preview build?")).toBeTruthy()
+    expect(screen.queryByText(/Back up your books/)).toBeNull()
+  })
+
+  it("keeps the books warning for a preview built on an older version", () => {
+    renderButton({ version: "0.8.1-beta-pr-850.4", direction: "downgrade" }, "0.9.0-beta.3")
+    fireEvent.click(screen.getByRole("button", { name: /Install preview/ }))
+    expect(screen.getByText("Install a preview build?")).toBeTruthy()
+    expect(screen.getByText(/Back up your books/)).toBeTruthy()
+  })
+
   it("installs a newer build of the same PR without asking", () => {
     const onInstall = renderButton(
       { version: "0.8.1-beta-pr-900.3", direction: "upgrade" },

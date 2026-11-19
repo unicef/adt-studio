@@ -19,6 +19,18 @@ interface BetaReleaseInstallButtonProps {
   onInstall: () => void
 }
 
+/** Compares the X.Y.Z of two versions, ignoring any prerelease; 0 when either can't be read. */
+function compareCore(a: string, b: string): number {
+  const core = (version: string) => /^v?(\d+)\.(\d+)\.(\d+)/.exec(version.trim())?.slice(1).map(Number)
+  const left = core(a)
+  const right = core(b)
+  if (!left || !right) return 0
+  for (let index = 0; index < 3; index++) {
+    if (left[index] !== right[index]) return left[index] - right[index]
+  }
+  return 0
+}
+
 export function BetaReleaseInstallButton({
   release,
   currentVersion,
@@ -37,15 +49,15 @@ export function BetaReleaseInstallButton({
     )
   }
 
-  /** Older/newer only means something on the same track: another PR's preview isn't "older"
-   *  than a numbered beta, it's a different build, so it gets no downgrade label or warning. */
+  /** Older/newer only means something on the same track: a preview ranks below every numbered
+   *  beta of its X.Y.Z, so against a beta (or another PR's preview) "downgrade" says nothing —
+   *  unless the preview really is built on an older X.Y.Z, where the books warning still applies. */
   const sameTrack = showsDirection(release, currentVersion)
-  const downgrade = release.direction === "downgrade" && sameTrack
+  const olderCore = compareCore(release.version, currentVersion ?? "") < 0
+  const downgrade = release.direction === "downgrade" && (sameTrack || olderCore)
   const previewPr = previewPullRequestNumber(release.version)
   const otherPreview = previewPr != null && !sameTrack
-  const leavesBetaTrack =
-    previewPr != null && previewPullRequestNumber(currentVersion ?? "") == null
-  const confirm = downgrade || leavesBetaTrack
+  const confirm = downgrade || otherPreview
 
   const button = (
     <Button
@@ -61,10 +73,10 @@ export function BetaReleaseInstallButton({
       )}
       {preparing ? (
         <Trans>Preparing…</Trans>
-      ) : downgrade ? (
-        <Trans>Install older version</Trans>
       ) : otherPreview ? (
         <Trans>Install preview</Trans>
+      ) : downgrade ? (
+        <Trans>Install older version</Trans>
       ) : (
         <Trans>Install update</Trans>
       )}
@@ -88,13 +100,13 @@ export function BetaReleaseInstallButton({
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold">
-              {leavesBetaTrack ? (
+              {otherPreview ? (
                 <Trans>Install a preview build?</Trans>
               ) : (
                 <Trans>Install an older beta?</Trans>
               )}
             </p>
-            {leavesBetaTrack && (
+            {otherPreview && (
               <p className="mt-1 text-pretty text-xs leading-5 text-muted-foreground">
                 <Trans>
                   This is a preview of PR #{previewPr}. You'll get new builds of
@@ -125,10 +137,10 @@ export function BetaReleaseInstallButton({
               onInstall()
             }}
           >
-            {downgrade ? (
-              <Trans>Install older version</Trans>
-            ) : otherPreview ? (
+            {otherPreview ? (
               <Trans>Install preview</Trans>
+            ) : downgrade ? (
+              <Trans>Install older version</Trans>
             ) : (
               <Trans>Install update</Trans>
             )}
