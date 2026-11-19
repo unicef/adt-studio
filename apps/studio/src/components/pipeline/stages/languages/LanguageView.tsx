@@ -47,6 +47,7 @@ import {
   getEntryTtsExclusion,
   isAnswerEntry,
   isEasyReadEntry,
+  isElementAudioCatalogEntry,
   isGlossaryEntry,
   isImageEntry,
 } from "./lib/catalog-entries";
@@ -503,10 +504,15 @@ export function LanguageView({
     return [...byId.values()];
   }, [easyReadData]);
   const entries = useMemo(() => {
-    const base = catalog?.entries ?? [];
+    const base = (catalog?.entries ?? []).filter(
+      (entry) => !isElementAudioCatalogEntry(entry.id),
+    );
     if (easyReadEntries.length === 0) return base;
     const easyReadIds = new Set(easyReadEntries.map((entry) => entry.id));
-    return [...base.filter((entry) => !easyReadIds.has(entry.id)), ...easyReadEntries];
+    return [
+      ...base.filter((entry) => !easyReadIds.has(entry.id)),
+      ...easyReadEntries.filter((entry) => !isElementAudioCatalogEntry(entry.id)),
+    ];
   }, [catalog?.entries, easyReadEntries]);
   const sourceEntriesById = useMemo(
     () => new Map([...entries].reverse().map((entry) => [entry.id, entry.text])),
@@ -791,20 +797,18 @@ export function LanguageView({
   const selectedSpeechMap = useMemo(
     () =>
       new Map(
-        (speechCatalogFor(audioLang)?.entries ?? []).map((entry) => [
-          entry.id,
-          entry,
-        ]),
+        (speechCatalogFor(audioLang)?.entries ?? [])
+          .filter((entry) => !isElementAudioCatalogEntry(entry.id))
+          .map((entry) => [entry.id, entry]),
       ),
     [audioLang, speechCatalogFor],
   );
   const sourceSpeechMap = useMemo(
     () =>
       new Map(
-        (speechCatalogFor(editingLanguage)?.entries ?? []).map((entry) => [
-          entry.id,
-          entry,
-        ]),
+        (speechCatalogFor(editingLanguage)?.entries ?? [])
+          .filter((entry) => !isElementAudioCatalogEntry(entry.id))
+          .map((entry) => [entry.id, entry]),
       ),
     [editingLanguage, speechCatalogFor],
   );

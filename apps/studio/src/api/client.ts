@@ -802,6 +802,25 @@ export interface TextCatalogResponse {
   speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number; sourceSignature: string }>
 }
 
+export interface ElementAudioEntry {
+  nodeId: string
+  text: string
+  /** Page whose artifact row authored this entry (page membership). */
+  sourcePageId: string
+}
+
+export interface ElementAudioPageView {
+  pageId: string
+  versions: Record<string, number>
+  entries: ElementAudioEntry[]
+}
+
+export interface ElementAudioSaveEntry {
+  nodeId: string
+  text: string
+  sourcePageId: string
+}
+
 export interface TranslationEvaluationStatusResponse {
   language: string
   currentSourceCatalogVersion: number | null
@@ -2108,6 +2127,19 @@ export const api = {
 
   getTextCatalog: (label: string) =>
     request<TextCatalogResponse | null>(`/books/${label}/text-catalog`),
+
+  getElementAudio: (label: string, pageId: string) =>
+    request<ElementAudioPageView>(`/books/${label}/pages/${pageId}/element-audio`),
+
+  updateElementAudio: (
+    label: string,
+    pageId: string,
+    data: { versions: Record<string, number>; entries: ElementAudioSaveEntry[] },
+  ) =>
+    request<ElementAudioPageView>(`/books/${label}/pages/${pageId}/element-audio`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
 
   getEasyRead: (label: string) =>
     request<EasyReadResponse | null>(`/books/${label}/easy-read`),

@@ -3534,6 +3534,9 @@ msgstr "Impossible de copier le code d’accès."
 msgid "Couldn't copy the link — open the book's Sharing step and copy it there."
 msgstr "Impossible de copier le lien — ouvrez l’étape Partage du livre et copiez-le depuis là."
 
+msgid "Couldn't load the element audio."
+msgstr "Impossible de charger l'audio de l'élément."
+
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Impossible de charger l'aperçu du PDF. Les pages peuvent toujours être divisées à l'aide des commandes."
 
@@ -4445,6 +4448,12 @@ msgstr "Les modifications vont à ce préfixe de variante Tailwind"
 
 msgid "Effort"
 msgstr "Effort"
+
+msgid "Element audio"
+msgstr "Audio de l'élément"
+
+msgid "Element audio script"
+msgstr "Script audio de l'élément"
 
 msgid "Element style editor"
 msgstr "Éditeur de style d'élément"
@@ -8989,6 +8998,9 @@ msgstr "Privilégiez les termes centraux au sujet du livre. Évitez le vocabulai
 msgid "Preferences"
 msgstr "Préférences"
 
+msgid "Preparation failed"
+msgstr "La préparation a échoué"
+
 msgid "Prepare numbers, dates, and abbreviations for natural speech."
 msgstr "Préparer les nombres, les dates et les abréviations pour une diction naturelle."
 
@@ -10399,6 +10411,9 @@ msgstr "Enregistrez le nouveau type, puis choisissez Régénérer pour mettre à
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Enregistrez d'abord votre travail si vous souhaitez conserver ces modifications."
+
+msgid "Saved"
+msgstr "Enregistré"
 
 msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
 msgstr "Le contenu enregistré et les sections des pages sont conservés. Vérifiez les étapes concernées après le changement de langue. Aucune génération ne démarre automatiquement."
@@ -13055,6 +13070,9 @@ msgstr "Type"
 msgid "Type the code you were given"
 msgstr "Saisissez le code qu’on vous a donné"
 
+msgid "Type what the reader should hear"
+msgstr "Saisissez ce que le lecteur doit entendre"
+
 msgid "Typed Sections"
 msgstr "Sections tapées"
 
@@ -13897,6 +13915,9 @@ msgstr "Rédiger une réponse libre."
 
 msgid "Write correct/incorrect feedback for every step with AI"
 msgstr "Rédiger avec l'IA le retour correct/incorrect pour chaque étape"
+
+msgid "Write what this image should say when the reader taps it. Leave empty to remove the audio."
+msgstr "Saisissez ce que cette image doit dire lorsque le lecteur la touche. Laissez vide pour supprimer l'audio."
 
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."

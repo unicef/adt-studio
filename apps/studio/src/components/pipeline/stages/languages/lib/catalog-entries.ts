@@ -9,6 +9,7 @@
  */
 import {
   getTextCatalogCategory,
+  isElementAudioTextId,
   isTtsExcluded,
   sectionIdOfAnswerTextId,
   type TextCatalogCategory,
@@ -19,6 +20,12 @@ import {
 const IMAGE_ID_RE = /_im\d{3}/
 const GLOSSARY_ID_RE = /^gl(?:\d{3}|_manual_)/
 const EASY_READ_ID_RE = /_easy_read$/
+
+/** Authored element audio is speech-only and has its own inspector; it must
+ *  not appear as a text/translation/Core TTS row in the Languages stage. */
+export function isElementAudioCatalogEntry(id: string): boolean {
+  return isElementAudioTextId(id.replace(EASY_READ_ID_RE, ""))
+}
 
 export type CatalogCategory = "all" | TextCatalogCategory
 
