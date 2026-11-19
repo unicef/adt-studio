@@ -15,6 +15,9 @@ vi.mock("@/features/language/state/language.atoms", () => ({
 vi.mock("@/features/navigation/state/nav.atoms", () => ({
   pageEpochAtom: { __value: 1 },
 }))
+vi.mock("@/shared/state/ui.atoms", () => ({
+  embedModeAtom: { __value: false },
+}))
 vi.mock("@/features/audio/hooks/AudioPlayerContext", () => ({
   useAudioPlayerContext: () => ({ playElement }),
 }))
@@ -23,6 +26,9 @@ import { ElementAudioTargets } from "./ElementAudioTargets"
 
 const atoms = (await import("@/features/language/state/language.atoms")) as unknown as {
   elementAudioIdsAtom: { __value: string[] }
+}
+const uiAtoms = (await import("@/shared/state/ui.atoms")) as unknown as {
+  embedModeAtom: { __value: boolean }
 }
 
 function setContent(html: string): void {
@@ -33,6 +39,7 @@ describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
   beforeEach(() => {
     playElement.mockReset()
     atoms.elementAudioIdsAtom.__value = ["pg001_im001"]
+    uiAtoms.embedModeAtom.__value = false
     document.body.innerHTML = ""
   })
 
@@ -184,6 +191,23 @@ describe("ElementAudioTargets (SPEC-0014 §4/§5)", () => {
     atoms.elementAudioIdsAtom.__value = []
     rerender(<ElementAudioTargets />)
     expect(section.style.position).toBe("")
+  })
+
+  it("keeps body clicks selecting in the storyboard preview", () => {
+    uiAtoms.embedModeAtom.__value = true
+    setContent('<section><img data-id="pg001_im001" alt="Mago" /></section>')
+    render(<ElementAudioTargets />)
+
+    const img = document.querySelector("img")!
+    fireEvent.click(img)
+    // The preview's badge is the play control; the body must keep selecting.
+    expect(playElement).not.toHaveBeenCalled()
+    expect(img.getAttribute("tabindex")).toBeNull()
+    expect(img.getAttribute("role")).toBeNull()
+
+    const badge = document.querySelector<HTMLElement>("[data-element-audio-badge]")!
+    fireEvent.click(badge)
+    expect(playElement).toHaveBeenCalledWith("pg001_im001")
   })
 
   it("removes the runtime attributes when the manifest no longer includes the element", () => {
