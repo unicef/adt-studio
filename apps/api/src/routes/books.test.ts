@@ -1871,6 +1871,49 @@ describe("POST /books/preview-import", () => {
     expect(body.agentGuide.activityPrompt).toContain("no section id is listed in both")
   })
 
+  it("puts the activity pages in the repair request when the archive also needs repair", async () => {
+    const app = createBookRoutes(tmpDir)
+    const files = unzipSync(createExportedAdtZip({
+      editingContractVersion: 2,
+      activityInventory: [],
+      sectionType: "activity_custom_crossword",
+      extraSectionHtml: '<button aria-label="Check crossword">Check</button>',
+    }))
+    files["notes/todo.txt"] = new TextEncoder().encode("left over")
+    const formData = new FormData()
+    formData.append("zip", new Blob([zipSync(files)], { type: "application/zip" }), "both.zip")
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.compatibility.supported).toBe(false)
+    expect(body.activityReview.needsReviewCount).toBe(1)
+    // The activity pages only surface once the files are fixed, so a repair
+    // request without them costs the person a second round with the assistant.
+    const request: string = body.agentGuide.repairPrompt
+    expect(request).toContain("<problems>")
+    expect(request).toContain("<activity_review_candidates_json>")
+    expect(request).toContain('"sectionId": "pg001_sec001"')
+    expect(request).toContain("remove its entry from editingContract.nonActivities")
+    expect(request).toContain("validationErrors")
+    expect(request).toMatch(/type you chose for each activity page/)
+  })
+
+  it("leaves activity pages out of the repair request when none need review", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({ unsupportedStructure: true })], { type: "application/zip" }),
+      "unsupported-export.zip",
+    )
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    const body = await res.json()
+    expect(body.activityReview.needsReviewCount).toBe(0)
+    expect(body.agentGuide.repairPrompt).not.toContain("<activity_review_candidates_json>")
+  })
+
   it("reports unsupported exported HTML before import", async () => {
     const app = createBookRoutes(tmpDir)
     const formData = new FormData()

@@ -654,6 +654,77 @@ describe("ImportProject", () => {
     expect(screen.getByText("2 of them keep their own scripts: Studio’s activity editor can’t edit them")).toBeTruthy()
   })
 
+  it("says which activity pages will need a type after the repair", async () => {
+    const candidate = (sectionId: string) => ({
+      sectionId,
+      href: `${sectionId}.html`,
+      declaredType: null,
+      detectedType: null,
+      suggestedType: "activity_custom_external",
+      kind: "candidate",
+      status: "needs-review",
+      supportsStudioEditing: false,
+      reasons: ["invalid-structure"],
+      signals: [],
+      validationErrors: ["The activity <section> has no accessible name."],
+      textPreview: "Match the words.",
+      previewHtml: "<html><body><section></section></body></html>",
+    })
+    previewImport.mockResolvedValue({
+      isAdtBundle: true,
+      legacyRecovery: false,
+      label: "both-book",
+      title: "Both book",
+      coverBase64: null,
+      sourceLanguage: "en",
+      outputLanguages: [],
+      runtimeFeatures: {},
+      pageCount: 2,
+      glossaryEntryCount: 0,
+      tocEntryCount: 0,
+      translationLanguageCount: 0,
+      contentChanged: true,
+      exportComparisonStatus: "changed",
+      activityReview: {
+        inventoryVersion: 2,
+        items: [candidate("pg001_sec001"), candidate("pg002_sec001")],
+        needsReviewCount: 2,
+        quizCount: 0,
+        activityCount: 2,
+        typeOptions: ["activity_custom_external"],
+      },
+      compatibility: {
+        supported: false,
+        issues: [{ code: "unexpected-bundle-entry", pageHref: "notes/" }],
+      },
+      agentGuide: {
+        status: "current",
+        currentVersion: 2,
+        files: {
+          agentsMd: { present: true, version: 2, current: true },
+          claudeMd: { present: true, version: 2, current: true },
+        },
+        currentGuide: "<!-- adt-studio-agent-guide: 2 -->\n# Editing Both book",
+        repairPrompt: "Repair this exported ADT and classify its activity pages.",
+        activityPrompt: "Classify the activity pages.",
+      },
+      match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
+    })
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, {
+      target: { files: [new File(["zip"], "both.zip", { type: "application/zip" })] },
+    })
+
+    expect(await screen.findByText(/to fix before import/)).toBeTruthy()
+    // Without this, the activities surface only after the repaired ZIP comes back.
+    expect(screen.getByText(/also need a type/)).toBeTruthy()
+    expect(screen.getByText(/The repair request includes them/)).toBeTruthy()
+    // The type choice itself still waits for an archive without file problems.
+    expect(screen.queryByRole("button", { name: /Review 2 activities/ })).toBeNull()
+  })
+
   it("does not offer local projects as import destinations", async () => {
     previewImport.mockResolvedValue({
       isAdtBundle: true,
