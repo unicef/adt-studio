@@ -140,7 +140,7 @@ Image ID: {{ image.image_id }}
 Content tree (indentation shows hierarchy):
 <content_tree>
 {% include "_render_node", nodes: nodes, depth: 0 %}
-</content_tree>
+</content_tree>{% if book_context %}{% include "_book_context" %}{% endif %}
 {% if user_instructions != "" %}
 
 Additional instructions from the book's editor:

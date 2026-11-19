@@ -14,7 +14,7 @@ The content tree below is the current saved user state. Its depth-first order is
 - When correcting HTML, keep the tree's order and move layout positions as needed. Never restore or infer an older order from the page image.
 
 Content tree (authoritative reading order):
-{% include "_render_node", nodes: nodes, depth: 0 %}
+{% include "_render_node", nodes: nodes, depth: 0 %}{% if book_context %}{% include "_book_context" %}{% endif %}
 
 {% include "_learner_response_controls" %}
 

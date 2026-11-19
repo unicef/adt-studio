@@ -17,7 +17,7 @@ The editor requested these visual changes:
 </user_instructions>
 Honor this intent over source styling and default visual choices. Do not undo requested colors, layout or decoration. These instructions do not authorize changing IDs, exact content, reading order, heading ranks, the fixed type scale, or the functional TOC contract. Keep the requested design while repairing genuine clipping, overlap or other usability failures.
 {% endif %}
-{% if has_merged_content %}
+{% if book_context %}{% include "_book_context" %}{% endif %}{% if has_merged_content %}
 This section combines multiple source pages. Use ALL supplied continuation images; content absent from the primary image may belong to a continuation. Never remove it for that reason.
 {% endif %}
 {% if section_type == "table_of_contents" %}

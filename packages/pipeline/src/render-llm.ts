@@ -16,6 +16,7 @@ import {
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
 import { validateTypographyHierarchy } from "./validate-typography-hierarchy.js"
 import { inspectOrderingActivityHtml } from "./ordering-contract.js"
+import { bookContextPromptValue } from "./render-book-context.js"
 
 const BUILT_IN_STRICT_REVIEW_PROMPT = "visual_review"
 const USER_DIRECTED_REVIEW_PROMPT = "visual_review_flexible"
@@ -75,6 +76,7 @@ export async function renderSectionLlm(
     book_fonts: input.bookFonts ?? [],
     typography: (input.typography ?? DEFAULT_TYPOGRAPHY).styles,
     viewports: getViewportBreakpoints(),
+    book_context: bookContextPromptValue(input.bookContext, input.sectionIndex, "render"),
     _isActivity: isActivity,
     _allowNonHeadingFontSizes:
       isActivity || config.promptName === "web_generation_html_overlay",
@@ -144,6 +146,7 @@ export async function renderSectionLlm(
         nodes: renderContext.nodes,
         leaf_texts: renderContext.leaf_texts,
         has_merged_content: sourcePages.length > 0,
+        book_context: bookContextPromptValue(input.bookContext, input.sectionIndex, "review"),
         user_instructions: userInstructions,
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",

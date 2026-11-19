@@ -21,7 +21,7 @@ This section was re-rendered with explicit instructions from the user:
 
 Confirm the rendering HONORS these instructions, and treat every change made to satisfy them — colors, backgrounds, text styling, spacing, layout — as INTENTIONAL and correct, even when it deviates sharply from the original page. Do NOT flag, undo, or "restore toward the original" anything the user asked for. Reject ONLY when a genuine functional defect from the rejection list below is present AND is unrelated to the user's request (i.e. does not merely implement it). If the requested change was clearly applied and the result is functionally sound and readable, approve it.
 {% endif %}
-{% if has_merged_content %}
+{% if book_context %}{% include "_book_context" %}{% endif %}{% if has_merged_content %}
 ## MERGED CONTENT FROM ANOTHER PAGE
 This section combines content merged from MORE THAN ONE original page (for example an activity or passage that continues across a page break). Additional continuation page images are provided after the primary page image. When locating this section's content, check ALL of the provided page images — part of the rendering appears only in a continuation page image. Do NOT flag that content as extraneous, hallucinated, or missing from the original merely because it is absent from the primary page image, and do NOT remove it.
 {% endif %}

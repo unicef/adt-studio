@@ -118,6 +118,14 @@ export {
 } from "./web-rendering.js"
 export { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 export {
+  bookContextPromptValue,
+  buildRenderBookContext,
+  createRenderBookContextReader,
+  resolveRenderContextOptions,
+  type RenderBookContext,
+  type RenderContextOptions,
+} from "./render-book-context.js"
+export {
   inspectOrderingActivityHtml,
   inspectOrderingSection,
   type OrderingContract,

@@ -234,6 +234,15 @@ export const RenderStrategyConfig = z
   })
 export type RenderStrategyConfig = z.infer<typeof RenderStrategyConfig>
 
+export const RenderContextConfig = z.object({
+  enabled: z.boolean().optional(),
+  summary: z.boolean().optional(),
+  outline_position: z.boolean().optional(),
+  neighbor_pages: z.number().int().min(0).max(3).optional(),
+  neighbor_chars: z.number().int().min(0).max(4000).optional(),
+})
+export type RenderContextConfig = z.infer<typeof RenderContextConfig>
+
 export const AccessibilityAssessmentConfig = z.object({
   run_only_tags: z.array(z.string().min(1)).min(1).optional(),
   disabled_rules: z.array(z.string().min(1)).optional(),
@@ -304,6 +313,7 @@ export const AppConfig = z
     easy_read: EasyReadConfig.optional(),
     default_render_strategy: z.string().optional(),
     render_strategies: z.record(z.string(), RenderStrategyConfig).optional(),
+    render_context: RenderContextConfig.optional(),
     /** Base font for reflowable (non-fixed-layout) output. `auto` (default)
      *  picks the detected serif/sans category's default; an explicit id
      *  overrides. Ignored for fixed-layout books (they keep original fonts). */

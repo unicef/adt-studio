@@ -15,6 +15,7 @@ import type { BookFontPromptEntry } from "./fonts-bundle.js"
 import { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 import { renderSectionTemplate, type TemplateEngine } from "./render-template.js"
 import { repairTableOfContentsLayout } from "./toc-layout.js"
+import type { RenderBookContext } from "./render-book-context.js"
 
 export interface VisualRefinementConfig {
   enabled: boolean
@@ -112,6 +113,7 @@ export interface RenderSectionInput {
   bookFonts?: BookFontPromptEntry[]
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
+  bookContext?: RenderBookContext
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -131,6 +133,7 @@ export interface RenderPageInput {
   bookFonts?: BookFontPromptEntry[]
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
+  bookContext?: RenderBookContext
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -369,6 +372,7 @@ export async function renderPage(
       styleguide: input.styleguide,
       bookFonts: input.bookFonts,
       typography: input.typography,
+      bookContext: input.bookContext,
       userPrompt: input.userPrompt,
     }
 
