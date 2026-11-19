@@ -653,6 +653,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {page} other {pages}} review
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} pages"
 
+msgid "{pendingActivities} {pendingActivities, plural, one {activity page also needs} other {activity pages also need}} a fix"
+msgstr "{pendingActivities} {pendingActivities, plural, one {activity page also needs} other {activity pages also need}} a fix"
+
 msgid "{position} of {total}"
 msgstr "{position} of {total}"
 
@@ -12390,6 +12393,9 @@ msgstr "The whole book is sent as a single file, and Cloudflare accepts at most 
 
 msgid "The world before us"
 msgstr "The world before us"
+
+msgid "Their activity type is missing or unclear, or they fail the accessibility checks for their type. ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can fix both at once."
+msgstr "Their activity type is missing or unclear, or they fail the accessibility checks for their type. ADT Studio asks about them once these problems are fixed. The repair request includes them, so your AI assistant can fix both at once."
 
 msgid "Theme"
 msgstr "Theme"
