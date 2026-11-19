@@ -515,6 +515,7 @@ describe("ImportProject", () => {
     expect(screen.getByText("manifest.json")).toBeTruthy()
     expect(screen.getByText("missing-editing-contract")).toBeTruthy()
     expect(screen.getByText(/has no editing contract/)).toBeTruthy()
+    expect(screen.queryByText(/activity type is missing or unclear/)).toBeNull()
     // The guide opens beside the problems, rendered from the real guide text.
     fireEvent.click(screen.getByRole("button", { name: "AI repair guide" }))
     const guide = screen.getByRole("region", { name: "AI repair guide" })
@@ -654,7 +655,7 @@ describe("ImportProject", () => {
     expect(screen.getByText("2 of them keep their own scripts: Studio’s activity editor can’t edit them")).toBeTruthy()
   })
 
-  it("says which activity pages will need a type after the repair", async () => {
+  it("says which activity pages will also need a fix after the repair", async () => {
     const candidate = (sectionId: string) => ({
       sectionId,
       href: `${sectionId}.html`,
@@ -719,7 +720,7 @@ describe("ImportProject", () => {
 
     expect(await screen.findByText(/to fix before import/)).toBeTruthy()
     // Without this, the activities surface only after the repaired ZIP comes back.
-    expect(screen.getByText(/also need a type/)).toBeTruthy()
+    expect(screen.getByText(/activity type is missing or unclear/)).toBeTruthy()
     expect(screen.getByText(/The repair request includes them/)).toBeTruthy()
     // The type choice itself still waits for an archive without file problems.
     expect(screen.queryByRole("button", { name: /Review 2 activities/ })).toBeNull()
