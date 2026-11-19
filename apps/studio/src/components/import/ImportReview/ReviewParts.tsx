@@ -20,7 +20,7 @@ const TONE_CLASSNAMES: Record<Tone, string> = {
   // eslint-disable-next-line lingui/no-unlocalized-strings -- Tailwind classes, not user-visible copy.
   green: "bg-muted [&_svg]:text-emerald-600 dark:[&_svg]:text-emerald-400",
   amber: "bg-amber-500/10 [&_svg]:text-amber-600 dark:[&_svg]:text-amber-400",
-  red: "bg-destructive/10 [&_svg]:text-destructive",
+  red: "bg-destructive/10 ring-1 ring-inset ring-destructive/40 [&_svg]:text-destructive",
   blue: "bg-brand-500/10 [&_svg]:text-brand-600 dark:[&_svg]:text-brand-400",
 }
 
@@ -31,7 +31,10 @@ export function StatusRow({ status, children }: { status: Status; children?: Rea
       <Icon aria-hidden="true" className="mt-0.5 size-[18px] shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-foreground">{status.title}</p>
-        <p className="text-[12.5px] leading-relaxed text-muted-foreground text-pretty">{status.text}</p>
+        {/* Not text-muted-foreground: on the tinted boxes its contrast drops
+            below 4.5:1 in light mode (3.96:1 on the red one). foreground/80
+            stays secondary and measures about 10:1 in both themes. */}
+        <p className="text-[12.5px] leading-relaxed text-foreground/80 text-pretty">{status.text}</p>
         {children}
       </div>
     </div>
@@ -248,7 +251,9 @@ export function IssueGroupList({ groups }: { groups: IssueGroup[] }) {
           <header className="border-b border-border bg-muted/50 px-3.5 py-2.5">
             <div className="flex items-baseline justify-between gap-3">
               <h4 className="text-[13.5px] font-semibold text-foreground">{group.name}</h4>
-              <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-destructive">
+              {/* text-destructive on its own 10% tint is 3.99:1 in light mode;
+                  red-700 / red-300 measure 5.4:1 and 9.2:1. */}
+              <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-red-700 dark:text-red-300">
                 {group.countLabel}
               </span>
             </div>
