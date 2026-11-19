@@ -1892,10 +1892,12 @@ describe("POST /books/preview-import", () => {
     // request without them costs the person a second round with the assistant.
     const request: string = body.agentGuide.repairPrompt
     expect(request).toContain("<problems>")
-    expect(request).toContain("<activity_review_candidates_json>")
-    expect(request).toContain('"sectionId": "pg001_sec001"')
+    expect(request).toContain("<activity_pages>")
+    expect(request).toMatch(/^- index\.html \(section pg001_sec001\): suggested activity_custom_crossword; missing-declaration/m)
+    // Each reason is explained once, not per page.
+    expect(request).toContain("- missing-declaration: the page has an activity type but is not listed in editingContract.activities")
     expect(request).toContain("remove its entry from editingContract.nonActivities")
-    expect(request).toContain("validationErrors")
+    expect(request).not.toContain("<activity_review_candidates_json>")
     expect(request).toMatch(/type you chose for each activity page/)
   })
 
@@ -1911,7 +1913,7 @@ describe("POST /books/preview-import", () => {
     const res = await app.request("/books/preview-import", { method: "POST", body: formData })
     const body = await res.json()
     expect(body.activityReview.needsReviewCount).toBe(0)
-    expect(body.agentGuide.repairPrompt).not.toContain("<activity_review_candidates_json>")
+    expect(body.agentGuide.repairPrompt).not.toContain("<activity_pages>")
   })
 
   it("reports unsupported exported HTML before import", async () => {
