@@ -19,6 +19,7 @@ import { UPDATE_VERSIONS_QUERY_KEY } from "@/hooks/use-beta-update-versions"
 import { usePreviewBuild } from "@/hooks/use-preview-build"
 import { useUpdateStatus } from "@/hooks/use-update-status"
 import { isElectron } from "@/lib/utils"
+import { SETTINGS_PATHS } from "@/components/app/screens/settings/nav"
 
 interface UpdateDialogContextValue {
   openUpdateDialog: () => void
@@ -46,7 +47,6 @@ export function isPipelineRoute(pathname: string): boolean {
   return match[1] !== "new" && match[1] !== "import"
 }
 
-const VERSIONS_PATH = "/settings/versions"
 
 export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   const { status, check, download, cancel, install } = useUpdateStatus()
@@ -97,7 +97,7 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   const hideAmbientCard = useRouterState({
     select: (state) =>
       state.location.pathname.startsWith("/onboarding") ||
-      state.location.pathname.startsWith(VERSIONS_PATH) ||
+      state.location.pathname.startsWith(SETTINGS_PATHS.versions) ||
       isPipelineRoute(state.location.pathname),
   })
   const showToast =
@@ -127,7 +127,7 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
     const recheck =
       phase === "idle" || phase === "not-available" || phase === "error"
     if (isBetaBuild()) {
-      void navigate({ to: VERSIONS_PATH })
+      void navigate({ to: SETTINGS_PATHS.versions })
       if (recheck) {
         void queryClient.invalidateQueries({ queryKey: UPDATE_VERSIONS_QUERY_KEY })
       }
@@ -211,7 +211,7 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
         <PreviewBuildNotice
           status={preview.status}
           onDismiss={() => setPreviewNoticeClosed(true)}
-          onOpenVersions={() => void navigate({ to: VERSIONS_PATH })}
+          onOpenVersions={() => void navigate({ to: SETTINGS_PATHS.versions })}
         />
       )}
     </UpdateDialogContext>

@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import type { AvailableRelease } from "@/hooks/use-update-status"
 import { formatVersion, previewPullRequestNumber } from "../release-banner-utils"
+import { showsDirection } from "./beta-version-utils"
 
 interface BetaReleaseInstallButtonProps {
   release: AvailableRelease
@@ -36,8 +37,12 @@ export function BetaReleaseInstallButton({
     )
   }
 
-  const downgrade = release.direction === "downgrade"
+  /** Older/newer only means something on the same track: another PR's preview isn't "older"
+   *  than a numbered beta, it's a different build, so it gets no downgrade label or warning. */
+  const sameTrack = showsDirection(release, currentVersion)
+  const downgrade = release.direction === "downgrade" && sameTrack
   const previewPr = previewPullRequestNumber(release.version)
+  const otherPreview = previewPr != null && !sameTrack
   const leavesBetaTrack =
     previewPr != null && previewPullRequestNumber(currentVersion ?? "") == null
   const confirm = downgrade || leavesBetaTrack
@@ -58,6 +63,8 @@ export function BetaReleaseInstallButton({
         <Trans>Preparing…</Trans>
       ) : downgrade ? (
         <Trans>Install older version</Trans>
+      ) : otherPreview ? (
+        <Trans>Install preview</Trans>
       ) : (
         <Trans>Install update</Trans>
       )}
@@ -90,9 +97,9 @@ export function BetaReleaseInstallButton({
             {leavesBetaTrack && (
               <p className="mt-1 text-pretty text-xs leading-5 text-muted-foreground">
                 <Trans>
-                  This is a preview of PR #{previewPr}. Preview builds don't get
-                  update notices; Versions tells you when the PR merges or
-                  closes.
+                  This is a preview of PR #{previewPr}. You'll get new builds of
+                  this PR as updates, and Versions tells you when the PR merges
+                  or closes.
                 </Trans>
               </p>
             )}
@@ -120,6 +127,8 @@ export function BetaReleaseInstallButton({
           >
             {downgrade ? (
               <Trans>Install older version</Trans>
+            ) : otherPreview ? (
+              <Trans>Install preview</Trans>
             ) : (
               <Trans>Install update</Trans>
             )}

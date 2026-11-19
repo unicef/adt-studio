@@ -6093,6 +6093,9 @@ msgstr "Install older version"
 msgid "Install on quit"
 msgstr "Install on quit"
 
+msgid "Install preview"
+msgstr "Install preview"
+
 msgid "Install the update"
 msgstr "Install the update"
 
@@ -12658,8 +12661,11 @@ msgstr "This image is decorative. Screen readers will skip it and no caption is 
 msgid "This image is marked decorative — click to un-mark"
 msgstr "This image is marked decorative — click to un-mark"
 
-msgid "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
-msgstr "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
+#~ msgid "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
+#~ msgstr "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
+
+msgid "This is a preview of PR #{previewPr}. You'll get new builds of this PR as updates, and Versions tells you when the PR merges or closes."
+msgstr "This is a preview of PR #{previewPr}. You'll get new builds of this PR as updates, and Versions tells you when the PR merges or closes."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "This is a preview of the options you have selected for your book, each option affects the preview in a different way."

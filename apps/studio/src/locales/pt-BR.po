@@ -6093,6 +6093,9 @@ msgstr "Instalar versão anterior"
 msgid "Install on quit"
 msgstr "Instalar ao sair"
 
+msgid "Install preview"
+msgstr "Instalar prévia"
+
 msgid "Install the update"
 msgstr "Instalar a atualização"
 
@@ -12658,8 +12661,11 @@ msgstr "Esta imagem é decorativa. Leitores de tela vão ignorá-la, e ela não 
 msgid "This image is marked decorative — click to un-mark"
 msgstr "Esta imagem está marcada como decorativa — clique para desmarcar"
 
-msgid "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
-msgstr "Esta é uma prévia do PR #{previewPr}. Versões de prévia não recebem avisos de atualização; Versões avisa quando o PR for mesclado ou fechado."
+#~ msgid "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
+#~ msgstr "Esta é uma prévia do PR #{previewPr}. Versões de prévia não recebem avisos de atualização; Versões avisa quando o PR for mesclado ou fechado."
+
+msgid "This is a preview of PR #{previewPr}. You'll get new builds of this PR as updates, and Versions tells you when the PR merges or closes."
+msgstr "Esta é uma prévia do PR #{previewPr}. Você vai receber as novas versões deste PR como atualizações, e Versões avisa quando o PR for mesclado ou fechado."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Esta é uma prévia das opções que você selecionou para o seu livro. Cada opção afeta a prévia de um jeito diferente."

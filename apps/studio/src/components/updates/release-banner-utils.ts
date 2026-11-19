@@ -63,8 +63,9 @@ export function isBetaBuild(): boolean {
   return betaBuild
 }
 
+/** The PR a staging build was made from: `X.Y.Z-beta-pr-N`, or `X.Y.Z-beta-pr-N.M` for its rebuilds. */
 export function previewPullRequestNumber(version: string): number | undefined {
-  const match = /-beta-pr-(\d+)$/i.exec(version.trim())
+  const match = /-beta-pr-(\d+)(?:\.\d+)?$/i.exec(version.trim())
   return match ? Number(match[1]) : undefined
 }
 

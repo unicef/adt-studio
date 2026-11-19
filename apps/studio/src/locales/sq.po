@@ -6095,6 +6095,9 @@ msgstr "Instalo versionin më të vjetër"
 msgid "Install on quit"
 msgstr "Instalo gjatë daljes"
 
+msgid "Install preview"
+msgstr "Instalo versionin paraprak"
+
 msgid "Install the update"
 msgstr "Instalo përditësimin"
 
@@ -12660,8 +12663,11 @@ msgstr "Ky imazh është dekorativ. Lexuesit e ekranit do ta anashkalojnë dhe n
 msgid "This image is marked decorative — click to un-mark"
 msgstr "Ky imazh është shënuar si dekorativ — kliko për ta hequr shënimin"
 
-msgid "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
-msgstr "Ky është një version paraprak i PR #{previewPr}. Versionet paraprake nuk marrin njoftime për përditësime; Versionet të tregon kur PR-ja bashkohet ose mbyllet."
+#~ msgid "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
+#~ msgstr "Ky është një version paraprak i PR #{previewPr}. Versionet paraprake nuk marrin njoftime për përditësime; Versionet të tregon kur PR-ja bashkohet ose mbyllet."
+
+msgid "This is a preview of PR #{previewPr}. You'll get new builds of this PR as updates, and Versions tells you when the PR merges or closes."
+msgstr "Ky është një version paraprak i PR #{previewPr}. Do të merrni ndërtimet e reja të këtij PR si përditësime, dhe Versionet ju njofton kur PR bashkohet ose mbyllet."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Ky është një paraparim i opsioneve të zgjedhura për librin tuaj, çdo opsion ndikon paraparimimin në mënyra të ndryshme."

@@ -106,11 +106,17 @@ export function BetaVersionsView({
   };
 
   const requestError = installMutation.error ?? versionsQuery.error;
-  const error = requestError
+  const requestMessage = requestError
     ? requestError instanceof Error
       ? requestError.message
       : String(requestError)
     : undefined;
+  // A failed install also puts the updater into its error phase, which the
+  // Versions page already announces above the list — don't repeat it here.
+  const error =
+    status.phase === "error" && status.message === requestMessage
+      ? undefined
+      : requestMessage;
 
   const openDetails = (version: string) => {
     setSelectedVersion(version);

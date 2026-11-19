@@ -104,5 +104,11 @@ describe("showsDirection", () => {
     expect(
       showsDirection(release({ version: "0.9.1-beta-pr-804", direction: "upgrade" }), "0.9.1-beta-pr-803"),
     ).toBe(false)
+    expect(
+      showsDirection(release({ version: "0.9.1-beta-pr-804.2", direction: "upgrade" }), "0.9.1-beta-pr-803.3"),
+    ).toBe(false)
+    expect(
+      showsDirection(release({ version: "0.9.1-beta-pr-803.3", direction: "upgrade" }), "0.9.1-beta-pr-803.2"),
+    ).toBe(true)
   })
 })
