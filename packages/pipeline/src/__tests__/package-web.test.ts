@@ -1772,6 +1772,7 @@ describe("packageAdtWeb", () => {
     fs.writeFileSync(path.join(audioDir, "pg001_im001_audio.mp3"), "audio")
     fs.writeFileSync(path.join(audioDir, "pg001_im001_audio--secondary.mp3"), "audio-secondary")
     fs.writeFileSync(path.join(audioDir, "pg001_im001_easy_read.mp3"), "audio-easy-read")
+    fs.writeFileSync(path.join(audioDir, "pg001_im001.mp3"), "caption-audio")
 
     const pages: PageData[] = [{ pageId: "pg001", pageNumber: 1, text: "Page one" }]
 
@@ -1845,6 +1846,23 @@ describe("packageAdtWeb", () => {
                 contextHash: "context",
               },
             },
+            {
+              // The image's own caption is a different catalog entry; the
+              // authored script must still win under the element id.
+              id: "pg001_im001",
+              displayText: "Caption",
+              speechText: "Caption speech",
+              changed: false,
+              transformations: [],
+              status: "ready",
+              generation: {
+                mode: "unchanged",
+                generatedAt: "2026-01-01T00:00:00.000Z",
+                enabledTransformations: [],
+                sourceTextHash: "source",
+                contextHash: "context",
+              },
+            },
           ],
         },
       },
@@ -1872,6 +1890,16 @@ describe("packageAdtWeb", () => {
               textId: "pg001_im001_easy_read",
               language: "en",
               fileName: "pg001_im001_easy_read.mp3",
+              voice: "alloy",
+              model: "gpt-4o-mini-tts",
+              cached: false,
+            },
+            {
+              // Written after the authored entry: the post-pass, not the order,
+              // decides the winner under `pg001_im001`.
+              textId: "pg001_im001",
+              language: "en",
+              fileName: "pg001_im001.mp3",
               voice: "alloy",
               model: "gpt-4o-mini-tts",
               cached: false,

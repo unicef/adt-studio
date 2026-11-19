@@ -36,7 +36,9 @@ function accessibleName(el: HTMLElement): string {
  *   (the reader swaps `<main>` in place - #821/#941).
  * - The badge is a **sibling overlay**, never a child of the `[data-id]` element
  *   (`applyTranslationsToDOM` replaces children) and it never intercepts the
- *   click.
+ *   click. Its parent is made a containing block when needed, and the badge is
+ *   positioned from the element's own box, so two authored targets that share
+ *   a parent do not stack on the same corner.
  */
 export function ElementAudioTargets() {
   const elementAudioIds = useAtomValue(elementAudioIdsAtom)
@@ -81,14 +83,29 @@ export function ElementAudioTargets() {
       el.addEventListener("keydown", onKeyDown)
 
       let badge: HTMLSpanElement | null = null
+      let badgeObserver: ResizeObserver | null = null
+      let badgeResizeHandler: (() => void) | null = null
+      let previousParentPosition = ""
+      let parentPositionChanged = false
       const parent = el.parentElement
       if (parent) {
+        // `position:absolute` below is relative to the nearest positioned
+        // ancestor. Book exports usually have none, which would pin every badge
+        // to the viewport (or the preview frame). Make the parent the containing
+        // block, and restore its inline value when the target is released.
+        const parentPosition = getComputedStyle(parent).position
+        if (!parentPosition || parentPosition === "static") {
+          previousParentPosition = parent.style.position
+          parent.style.position = "relative"
+          parentPositionChanged = true
+        }
         badge = document.createElement("span")
         badge.setAttribute("aria-hidden", "true")
         badge.dataset.elementAudioBadge = "true"
+        badge.dataset.elementAudioBadgeFor = id
         badge.textContent = "🔊"
         badge.style.cssText =
-          "position:absolute;top:0;right:0;cursor:pointer;font-size:0.75rem;line-height:1;opacity:0.85"
+          "position:absolute;cursor:pointer;font-size:0.75rem;line-height:1;opacity:0.85;z-index:2"
         // The badge is the play control in the preview: it plays without
         // selecting the element (AC-10/AC-11). Keyboard users activate the
         // element itself, which already carries the keydown handler.
@@ -99,7 +116,31 @@ export function ElementAudioTargets() {
         }
         badge.addEventListener("click", onBadgeClick)
         parent.appendChild(badge)
-        cleanups.push(() => badge?.removeEventListener("click", onBadgeClick))
+        const placeBadge = () => {
+          if (!badge?.isConnected) return
+          const parentRect = parent.getBoundingClientRect()
+          const elementRect = el.getBoundingClientRect()
+          // A hidden element (activity page, collapsed section) has no box;
+          // leave it at the origin until a resize observer sees it.
+          if (elementRect.width === 0 && elementRect.height === 0) return
+          const badgeWidth = badge.getBoundingClientRect().width || 14
+          badge.style.left = `${Math.max(0, elementRect.right - parentRect.left - badgeWidth)}px`
+          badge.style.top = `${Math.max(0, elementRect.top - parentRect.top)}px`
+        }
+        placeBadge()
+        if (typeof ResizeObserver !== "undefined") {
+          badgeObserver = new ResizeObserver(placeBadge)
+          badgeObserver.observe(el)
+          badgeObserver.observe(parent)
+        }
+        badgeResizeHandler = placeBadge
+        window.addEventListener("resize", placeBadge)
+        cleanups.push(() => {
+          badge?.removeEventListener("click", onBadgeClick)
+          badgeObserver?.disconnect()
+          if (badgeResizeHandler) window.removeEventListener("resize", badgeResizeHandler)
+          if (parentPositionChanged) parent.style.position = previousParentPosition
+        })
       }
 
       cleanups.push(() => {

@@ -9,6 +9,7 @@
  */
 import { getDefaultStore } from "jotai"
 import { appConfigAtom } from "@/shared/state/config.atoms"
+import type { ElementAudioManifest } from "@adt/types"
 import { runtimeBase } from "@/shared/runtime/base-path.js"
 import {
   audioFilesAtom,
@@ -294,7 +295,7 @@ async function loadContentFiles(
     voiceVariants
       ? safeOptionalJsonFetch<AudioVoicesManifest>(`${base}/audio_voices.json${versionParam}`)
       : Promise.resolve(null),
-    safeOptionalJsonFetch<string[]>(`${base}/element_audio.json${versionParam}`),
+    safeOptionalJsonFetch<ElementAudioManifest>(`${base}/element_audio.json${versionParam}`),
     safeJsonFetch<Record<string, string>>(`${base}/videos.json${versionParam}`, "videos.json"),
     safeJsonFetch<Record<string, string>>(`${base}/images.json${versionParam}`, "images.json"),
   ])
