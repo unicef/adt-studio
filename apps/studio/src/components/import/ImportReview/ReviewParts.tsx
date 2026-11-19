@@ -92,7 +92,9 @@ export function ReadinessList({ steps }: { steps: Step[] }) {
           ))}
         </div>
       </div>
-      <ol className="flex flex-1 flex-col justify-between">
+      {/* Stacked from the top: spread over the panel's full height
+          (justify-between), a tall window left large gaps between steps. */}
+      <ol className="flex flex-col">
         {steps.map((step, index) => (
           <li
             key={step.title}
