@@ -5,7 +5,7 @@ status: in-progress
 owner: "@gaguerre-iugo"
 approvers: ["@gbergengruen"]
 issues: ["#890"]
-prs: ["#1145"]
+prs: ["#1145", "#1159"]
 adr: "docs/DECISIONS.md#028-per-element-authored-fields-with-no-catalog-home-live-in-their-own-versioned-node"
 created: 2026-09-23
 updated: 2026-11-18
@@ -215,9 +215,18 @@ catalog conflict, never silent.
 `GET` / `PUT /books/:label/pages/:pageId/element-audio` — with **immediate save**. It deliberately
 does **not** travel inside the Storyboard payload and does not use `pendingSectioning`, the floating
 save bar or the dirty chips. Precedent: `CoreTtsSpeechEditor` saves through `updateCoreTtsEntry`
-immediately, with its own button and error state. PR 2 resolves `GET` by `nodeId` across the page
-rows (page membership) and invalidates the text-catalog/outputs queries on save;
-`NODE_CACHE_RESOURCES["element-audio"]` is `[]`.
+immediately, with its own button and error state.
+
+`GET` resolves the elements rendered on the page by `nodeId` across **every** artifact row (page
+membership). It returns `{ pageId, versions, entries }`, where each entry is
+`{ nodeId, text, sourcePageId }` and `versions` is `{ [sourcePageId]: version }`. The page's own row
+version is always included, even when all of its entries are orphaned, pruned or moved away, so a new
+script has a baseline. `PUT` receives `{ versions, entries }`; the server merges each submitted entry
+into the row that authored it and returns the same shape as `GET`. A new entry is authored under the
+current page (`sourcePageId === pageId`) and must be rendered there. The image-only check applies to
+new entries; an existing legacy entry stays editable so a full-array save is not blocked. **PR 3**
+invalidates the text-catalog/outputs queries after a save; the API derives both on read, so PR 2
+needs no server-side invalidation. `NODE_CACHE_RESOURCES["element-audio"]` is `[]`.
 
 **Identity reservation.** The synthetic id is `${nodeId}_audio`, so a rendered `data-id` ending in
 `_audio` could collide with it. `collectSpentContentIds` and `findIntroducedDerivedIdCollision`
@@ -231,20 +240,35 @@ node join a page batch.
 
 In v1 the synthetic detection is **image-only**: `isElementAudioTextId` accepts only a base that
 looks like `_im{NNN}` (with optional suffix), so a real text id such as `pg001_listen_audio` is not
-misclassified and is not restale on upgrade. A new rendered **image** id ending in `_audio` is
+misclassified and is not restale on upgrade. The catalog likewise emits only an image `nodeId`: a
+legacy non-image entry stays in the artifact (and editable through the route) but produces no
+synthetic entry. A new rendered **image** id ending in `_audio` is
 rejected by the page-save image-id check (`findIntroducedImageAudioCollision`, called with the full
 content-id set, not the text-only reuse set); a pre-existing one is preserved. Text ids can adopt the
 suffix only after SPEC-0008.
 
 **Concurrency guard.** The node is one versioned row per page holding every image's script, so two
-editors on the same page must not lose each other's work. The `PUT` carries `baseVersion`. It follows
-the `core-tts-catalog` speech-entry PUT (`apps/api/src/routes/text-catalog.ts:283`) rather than
-`assertEditVersion`: when `current.version !== baseVersion`, it loads the row at `baseVersion` from
-history (`:317-319`), diffs the submitted entries against that baseline, applies only the `nodeId`s
-whose text actually changed, and preserves entries added by the other writer. If the **same**
-`nodeId` changed on both sides since `baseVersion`, it returns 409 with the current version
-(`:328`). It does **not** call `assertEditVersion`, which would reject every stale save before the
-merge could run. AC-1 asserts both the merge and the 409.
+editors on the same page must not lose each other's work. Because a page view can merge entries
+authored under several pages (page membership), the `PUT` carries a **`versions` map keyed by source
+page**, not a single `baseVersion`. It follows the `core-tts-catalog` speech-entry PUT
+(`apps/api/src/routes/text-catalog.ts:283`) rather than `assertEditVersion`: for each source row whose
+version differs from the submitted one, it loads the row at that version from history
+(`:317-319`), diffs the submitted entries against that baseline, applies only the `nodeId`s whose
+text actually changed, and preserves entries the client did not send (including ones added by the
+other writer). If the **same** `nodeId` changed on both sides since that source version, it returns
+409 with the current versions map (`:328`). It does **not** call `assertEditVersion`, which would
+reject every stale save before the merge could run. A source row missing from the map is treated as
+an **empty baseline**: two editors that both loaded before the row existed merge disjoint additions,
+and a `nodeId` already present with a different text is a 409. AC-1 asserts the merge and the 409,
+including the concurrent-first-save case.
+
+**Why a versions map, not one `baseVersion` (R-20).** The artifact is keyed by the page each script
+was authored under (R-14), but a page's view can hold entries from several rows once images move. A
+single `baseVersion` cannot say which row to diff. The alternative — rewriting the row key on every
+save so the artifact follows the element — would move authored content between pages, make two pages
+race over the same row, and break the "the artifact stays put" guarantee. The map keeps optimistic
+concurrency per row, lets the server preserve entries the client did not send, and keeps the
+artifact on its authored page while the catalog resolves the element's current location.
 
 ### 2. Production reuses the existing chain, and flows through catalog freshness
 
@@ -444,7 +468,7 @@ Chosen: **Option A**. Rough costs are per rollout PR; refer to the §9 review bu
   `packaging/web.ts` (the remap, the `texts.json` exclusion and `element_audio.json`);
   `speech.ts` / `output-catalog.ts` / `core-tts.ts` (the `speechPageId` exclusion, the shared batch
   predicate and the neighbour exclusions).
-- `apps/api`: the `element-audio` route (read/write, immediate save, `baseVersion` + merge);
+- `apps/api`: the `element-audio` route (read/write, immediate save, per-row `versions` + merge);
   `RestorableNode`; the preview mirrors in `adt-preview.ts` (including `element_audio.json`);
   batch-exclusion in `stage-runner.ts`.
 - `apps/studio`: an **unconditional** section in `StyleEditorPanel` (the fixed-layout-safe pattern,
@@ -481,7 +505,7 @@ Chosen: **Option A**. Rough costs are per rollout PR; refer to the §9 review bu
 
 ## Acceptance criteria
 
-- [ ] **AC-1** An author can select an **image** element in the Storyboard and save a spoken text for it; the text persists as a **new version** of the `element-audio` node for that page. The save carries `baseVersion`: two editors on different images of the same page **merge** without losing either edit, and the same `nodeId` changed on both sides returns **409** with the current version.
+- [ ] **AC-1** An author can select an **image** element in the Storyboard and save a spoken text for it; the text persists as a **new version** of the `element-audio` node for the page that authored it (the current page for a new script, the source row for an existing one). The save carries a **`versions` map keyed by source page**: two editors on different images of the same page **merge** without losing either edit, and the same `nodeId` changed on both sides returns **409** with the current versions.
 - [ ] **AC-2** After a pipeline run the element's audio exists on disk, and the packaged `speech_texts.json` / `audios.json` / `audio_voices.json` publish it **under the element's own `data-id`**; `element_audio.json` lists that id; the synthetic entry does **not** appear in `texts.json`. The entry flows through `catalogOutputs` freshness, uses the immutable filename contract, and its timestamps are not republished (AC-5).
 - [ ] **AC-3** Clicking the element in the exported reader plays **only** that element's audio and pauses any audio already playing.
 - [ ] **AC-4** The same element is played by the sequential read-aloud sweep using the **same** audio file (one audio, two triggers), including when `describeImagesMode` is off.
@@ -525,7 +549,7 @@ driven with a stub synthesizer and no API keys.
 | Configuration matrix | `gemini-item-compatibility.integration.test.ts`, `catalog-freshness.test.ts`, `element-audio-batching.test.ts` | **AC-17, AC-25** |
 | Invariant checker | source scan over `apps/api/src/**` and `packages/*/src` | **AC-7** |
 | Packaging remap | `packages/pipeline/src/__tests__/package-web.test.ts` | AC-2 (`element_audio.json`, no `texts.json` leak), AC-4, AC-18 (precedence + easy-read key), AC-5 (no timings) |
-| API routes | `apps/api/src/routes/` | AC-1 (including `baseVersion` merge/409 and page membership), AC-8, AC-14, **AC-16** (preparation states) |
+| API routes | `apps/api/src/routes/` | AC-1 (including the `versions`-map merge/409 and page membership), AC-8, AC-14, **AC-16** (preparation states) |
 | Staleness scoping | `apps/api/src/routes/` | **AC-15** — change one script, nothing else stale or deleted; a restore deletes nothing |
 | Batching exclusion | `gemini-item-compatibility.integration.test.ts`, `stage-runner.test.ts`, `output-catalog` tests | **AC-17** — `speechPageId` excludes `_audio` at every grouping site and the output-catalog wiring is exercised |
 | Preview mirrors | `apps/api/src/routes/adt-preview.test.ts` | AC-11 (mirrors), AC-20 (`element_audio.json`) |
@@ -547,10 +571,10 @@ last one.** (The four are tracked as #895–#898 under #894.)
    exclusion + caption/text category isolation + node registration (`PipelineNodeName`,
    `NODE_CACHE_RESOURCES`) + the hardened invariant checker.
    Value: verifiable by test that an authored script produces audio without widening invalidation.
-2. **PR 2 — API, no UI.** The `element-audio` read/write route with immediate save and
-   `baseVersion` merge/409, `RestorableNode` registration, a `GET` that resolves by `nodeId` across
-   pages (page membership), and the text-catalog/outputs query invalidation. Value: the script can be
-   saved and versioned through the API.
+2. **PR 2 — API, no UI.** The `element-audio` read/write route with immediate save and the
+   `versions`-map merge/409, `RestorableNode` registration, a `GET` that resolves by `nodeId` across
+   pages (page membership), and the per-page image-id validation. Value: the script can be saved and
+   versioned through the API. PR 3 owns the client-side query invalidation.
 3. **PR 3 — authoring.** The Storyboard inspector section in the **classic** `StyleEditorPanel`
    (unconditional pattern), the save-path wiring, `VersionedStep` registration, i18n, and the filter
    that hides `${nodeId}_audio` from the Languages/Core TTS editors. **Depends on the `texts.json`
@@ -590,3 +614,4 @@ Each of these is a **proposed decision for the reviewer**, not an owner ratifica
 | R-17 | The authored entry takes no preparation/ElevenLabs context from real neighbours, and real neighbours never see it | §2, AC-25 | Symmetric staleness |
 | R-18 | Muting captions or text does not silence authored element audio; an explicit `excluded_text_ids` entry still mutes it | §2, AC-21 | Target tap-to-hear use case |
 | R-19 | Read-time tolerates a duplicate `nodeId` with first-wins and emits the rest of the page; the write path rejects duplicates | §2, AC-26 | One bad write cannot hide a page |
+| R-20 | The write contract carries a `versions` map keyed by source page, not a single `baseVersion`; the artifact stays keyed by its authored page and the server merges per row | §1, AC-1 | A single version cannot address merged page membership |

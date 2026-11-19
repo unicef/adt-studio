@@ -16,6 +16,7 @@ import {
   WebRenderingOutput as WebRenderingOutputSchema,
   answerTextId,
   elementAudioTextId,
+  isElementAudioNodeId,
   resolveQuizId,
   resolveQuizOptionId,
   withResolvedQuizIds,
@@ -342,7 +343,7 @@ export function findIntroducedCatalogConflict(
   return after?.find(conflict => !before?.some(previous => previous.id === conflict.id && conflict.texts.every(text => previous.texts.includes(text))))
 }
 
-interface ElementAudioLocation {
+export interface ElementAudioLocation {
   pageId: string
   sectionId: string
 }
@@ -353,7 +354,7 @@ interface ElementAudioLocation {
  * move between pages (`pages.ts` move-section). The derived catalog follows
  * the element's current location, not the artifact's page key.
  */
-function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<string, ElementAudioLocation> {
+export function buildElementLocationIndex(storage: Storage, pages: PageData[]): Map<string, ElementAudioLocation> {
   const index = new Map<string, ElementAudioLocation>()
   for (const page of pages) {
     const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
@@ -414,6 +415,9 @@ function loadElementAudioEntries(
   for (const candidate of data.entries) {
     const parsed = ElementAudioEntrySchema.safeParse(candidate)
     if (!parsed.success) continue
+    // v1 emits image leaves only. A legacy non-image entry stays in the
+    // artifact (and is editable) but must not leak into the catalog.
+    if (!isElementAudioNodeId(parsed.data.nodeId)) continue
     const text = parsed.data.text.trim()
     if (text.length === 0) continue
     if (seen.has(parsed.data.nodeId)) continue

@@ -44,6 +44,15 @@ const ELEMENT_AUDIO_SUFFIX = "_audio"
 // the synthetic entry.
 const IMAGE_ID_BASE_RE = /_im\d{3,}(?:_|$)/
 
+/**
+ * v1 authoring scope: `element-audio` accepts image leaves only. The artifact
+ * schema stays generic so SPEC-0008 can widen the write path without a data
+ * migration.
+ */
+export function isElementAudioNodeId(nodeId: string): boolean {
+  return IMAGE_ID_BASE_RE.test(nodeId)
+}
+
 /** The synthetic text-catalog id used as internal plumbing. */
 export function elementAudioTextId(nodeId: string): string {
   return `${nodeId}${ELEMENT_AUDIO_SUFFIX}`
