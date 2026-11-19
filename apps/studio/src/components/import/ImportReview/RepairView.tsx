@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { RepairGuide } from "./RepairGuide"
 import { RepairRequest } from "./RepairRequest"
-import { IssueList, Panel, StatusRow } from "./ReviewParts"
-import type { Issue, Status } from "./use-review-model"
+import { IssueGroupList, Panel, StatusRow } from "./ReviewParts"
+import type { IssueGroup, Status } from "./use-review-model"
 
 const SWAP = "transition-[opacity,translate] duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:translate-x-0 motion-reduce:transition-opacity"
 
@@ -25,11 +25,11 @@ const GUIDE_APPENDIX = "\n\n<current_adt_agent_guide>"
 export function RepairView({
   preview,
   status,
-  issues,
+  issueGroups,
 }: {
   preview: AdtBundleImportPreview
   status: Status
-  issues: Issue[]
+  issueGroups: IssueGroup[]
 }) {
   const { t } = useLingui()
   const request = preview.agentGuide.repairPrompt
@@ -53,7 +53,7 @@ export function RepairView({
     >
       <Panel title={<Trans>To fix</Trans>}>
         <StatusRow status={status} />
-        <IssueList issues={issues} />
+        <IssueGroupList groups={issueGroups} />
       </Panel>
       <div className="grid min-h-0 min-w-0 [&>*]:col-start-1 [&>*]:row-start-1">
         <Panel className={cn(SWAP, guideOpen ? "pointer-events-none -translate-x-2.5 opacity-0" : "opacity-100")}>

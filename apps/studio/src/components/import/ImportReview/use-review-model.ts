@@ -27,10 +27,18 @@ export type ReviewMode = "ready" | "activity" | "repair" | "blocked"
 export interface Stat { value: string | null; label: string; long?: boolean }
 export interface Status { tone: Tone; icon: LucideIcon; title: string; text: string }
 export interface Check { icon: LucideIcon; label: string; value: string; state: CheckState }
-/** One problem to fix. The first row of each problem type carries
- * `countLabel`, how many of that type were found. With `more`, a summary row
- * instead: how many more of that type the report left out. */
-export interface Issue { file: string; text: string; code: string; countLabel?: string; more?: number }
+export interface Issue { file: string; text: string; code: string }
+/** All the problems of one type: its name, what it means, how many were
+ * found, a few examples, and how many more the list leaves out (the repair
+ * request includes them all). */
+export interface IssueGroup {
+  code: string
+  name: string
+  description: string
+  countLabel: string
+  examples: Array<{ file: string; detail?: string }>
+  moreLabel: string | null
+}
 /** One line of "Import will": done already, needs you before import, or
  * happens when you import (or later, for a part). */
 export interface Step { title: string; text: string; state: "done" | "todo" | "later"; status: string; noDivider?: boolean }
@@ -42,7 +50,7 @@ export interface ReviewModel {
   stats: Stat[]
   status: Status | null
   checks: Check[]
-  issues: Issue[]
+  issueGroups: IssueGroup[]
   steps: Step[]
   facts: Array<{ label: string; value: string }> | null
 }
@@ -74,31 +82,51 @@ export function useReviewModel(
   const { t, i18n } = useLingui()
   const locale = i18n?.locale ?? "en"
 
-  const issueText = (code: string, file: string, detail?: string): string => {
-    const messages: Record<string, string> = {
-      "missing-editing-contract": t`manifest.json has no editing contract, so ADT Studio can’t match pages to the book.`,
-      "unsupported-editing-contract": t`manifest.json uses an editing contract version this ADT Studio doesn’t support.`,
-      "nested-page": t`Page HTML must stay at the top level of the archive.`,
-      "unexpected-bundle-entry": t`The archive contains a folder or file outside the standard ADT layout.`,
-      "changed-page-structure": t`The page’s element ids no longer match the page lists in manifest.json and content/pages.json.`,
-      "interleaved-reading-order": t`Sections of one page are split apart in the reading order.`,
-      "missing-content-root": t`The page is missing its #content element.`,
-      "multiple-content-roots": t`The page has more than one #content element.`,
-      "missing-section": t`The page is missing its main section.`,
-      "multiple-sections": t`The page has more than one main section.`,
-      "missing-section-type": t`The main section has no data-section-type.`,
-      "missing-data-id": t`Editable content is missing its data-id.`,
-      "duplicate-data-id": t`Two elements share a data-id but their content differs.`,
-      "image-missing-data-id": t`An image is missing its data-id.`,
-      "remote-asset": t`The page loads a file from the internet.`,
-      "unsafe-asset": t`The page points to a file outside the archive.`,
-      "unsupported-stylesheet": t`The page uses a custom stylesheet instead of the bundled styles.`,
-      "unsupported-script": t`The page uses an unsupported external script.`,
-      "unsupported-asset-location": t`Page media is outside the images folder.`,
-      "missing-asset": t`The page uses a file that isn’t in the archive.`,
-    }
-    const base = messages[code] ?? code
-    return detail && detail !== code && !file.includes(detail) ? `${base} ${detail}` : base
+  /** A short name for each problem type: the heading of its group. */
+  const issueNames: Record<string, string> = {
+    "missing-editing-contract": t`Missing editing contract`,
+    "unsupported-editing-contract": t`Unsupported editing contract`,
+    "nested-page": t`Page inside a folder`,
+    "unexpected-bundle-entry": t`File or folder outside the ADT layout`,
+    "changed-page-structure": t`Page ids changed`,
+    "interleaved-reading-order": t`Page sections split apart`,
+    "missing-content-root": t`Missing #content element`,
+    "multiple-content-roots": t`More than one #content element`,
+    "missing-section": t`Missing main section`,
+    "multiple-sections": t`More than one main section`,
+    "missing-section-type": t`Section without a type`,
+    "missing-data-id": t`Content without a data-id`,
+    "duplicate-data-id": t`Repeated data-id with different content`,
+    "image-missing-data-id": t`Image without a data-id`,
+    "remote-asset": t`File loaded from the internet`,
+    "unsafe-asset": t`File path outside the archive`,
+    "unsupported-stylesheet": t`Custom stylesheet`,
+    "unsupported-script": t`Unsupported script`,
+    "unsupported-asset-location": t`Media outside the images folder`,
+    "missing-asset": t`Missing file`,
+  }
+  /** What each problem type means, under its heading. */
+  const issueDescriptions: Record<string, string> = {
+    "missing-editing-contract": t`manifest.json has no editing contract, so ADT Studio can’t match pages to the book.`,
+    "unsupported-editing-contract": t`manifest.json uses an editing contract version this ADT Studio doesn’t support.`,
+    "nested-page": t`Page HTML must stay at the top level of the archive.`,
+    "unexpected-bundle-entry": t`The archive contains a folder or file outside the standard ADT layout.`,
+    "changed-page-structure": t`The page’s element ids no longer match the page lists in manifest.json and content/pages.json.`,
+    "interleaved-reading-order": t`Sections of one page are split apart in the reading order.`,
+    "missing-content-root": t`The page is missing its #content element.`,
+    "multiple-content-roots": t`The page has more than one #content element.`,
+    "missing-section": t`The page is missing its main section.`,
+    "multiple-sections": t`The page has more than one main section.`,
+    "missing-section-type": t`The main section has no data-section-type.`,
+    "missing-data-id": t`Editable content is missing its data-id.`,
+    "duplicate-data-id": t`Two elements share a data-id but their content differs.`,
+    "image-missing-data-id": t`An image is missing its data-id.`,
+    "remote-asset": t`The page loads a file from the internet.`,
+    "unsafe-asset": t`The page points to a file outside the archive.`,
+    "unsupported-stylesheet": t`The page uses a custom stylesheet instead of the bundled styles.`,
+    "unsupported-script": t`The page uses an unsupported external script.`,
+    "unsupported-asset-location": t`Page media is outside the images folder.`,
+    "missing-asset": t`The page uses a file that isn’t in the archive.`,
   }
   const problems = (count: number) => count === 0 ? null : t`${count} {count, plural, one {problem} other {problems}}`
 
@@ -121,7 +149,7 @@ export function useReviewModel(
         { icon: FileText, label: t`PDF and settings`, value: t`Found`, state: "ok" },
         { icon: FolderPlus, label: t`New, separate project`, value: t`Yes`, state: "ok" },
       ],
-      issues: [],
+      issueGroups: [],
       steps: [
         { title: t`Archive checked`, text: t`Part details, PDF and settings found`, state: "done", status: t`Done` },
         { title: t`Create the project`, text: t`Only pages ${range} of the book`, state: "later", status: t`On import` },
@@ -156,7 +184,7 @@ export function useReviewModel(
       { icon: FileText, label: t`Source PDF`, value: preview.hasSourcePdf ? t`Found` : t`Not included`, state: preview.hasSourcePdf ? "ok" : "off" },
       { icon: FolderPlus, label: t`New, separate project`, value: blocked ? t`Not created` : t`Yes`, state: blocked ? "off" : "ok" },
     ],
-    issues: [],
+    issueGroups: [],
     steps: [
       { title: t`Archive checked`, text: preview.hasSourcePdf ? t`Project database and PDF found` : t`Project database found`, state: "done", status: t`Done` },
       { title: t`Create the project`, text: t`Separate from your other projects`, state: "later", status: t`On import` },
@@ -247,28 +275,26 @@ export function useReviewModel(
         { icon: ShieldCheck, label: t`Changes since export`, value: change.value, state: change.state },
         { icon: FolderPlus, label: t`New, separate project`, value: repair ? t`Not yet` : t`Yes`, state: repair ? "off" : "ok" },
       ],
-      issues: issues.flatMap((issue, index) => {
-        const shown = issues.filter((other) => other.code === issue.code).length
-        const total = counts?.[issue.code] ?? shown
-        const more = total - shown
-        // The first row of a type says how many of that type there are, the
-        // last one is followed by how many more the list leaves out.
-        const firstOfType = issues[index - 1]?.code !== issue.code
-        const lastOfType = issues[index + 1]?.code !== issue.code
-        const row: Issue = {
-          file: issue.pageHref,
-          code: issue.code,
-          text: issueText(issue.code, issue.pageHref, issue.detail),
-          ...(firstOfType && total > 1 ? { countLabel: t`${total} found` } : {}),
+      issueGroups: [...new Set(issues.map((issue) => issue.code))].map((code) => {
+        const examples = issues.filter((issue) => issue.code === code)
+        const count = counts?.[code] ?? examples.length
+        const more = count - examples.length
+        return {
+          code,
+          name: issueNames[code] ?? code,
+          description: issueDescriptions[code] ?? code,
+          countLabel: t`${count} {count, plural, one {issue} other {issues}}`,
+          examples: examples.map((issue) => ({
+            file: issue.pageHref,
+            // A stray entry's detail is its own name: show it once.
+            ...(issue.detail && issue.detail !== code && !issue.pageHref.includes(issue.detail)
+              ? { detail: issue.detail }
+              : {}),
+          })),
+          moreLabel: more > 0
+            ? t`+${more} more not listed here. The repair request includes them all.`
+            : null,
         }
-        return lastOfType && more > 0
-          ? [row, {
-              file: "",
-              code: issue.code,
-              text: t`+${more} more of this problem, not listed here. The repair request includes them all.`,
-              more,
-            }]
-          : [row]
       }),
       steps: adtSteps(adt),
       facts: null,

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 
 Element.prototype.scrollIntoView = vi.fn()
 const writeClipboard = vi.fn()
@@ -569,10 +569,13 @@ describe("ImportProject", () => {
     })
 
     expect(await screen.findByText(/^61 .*to fix before import/)).toBeTruthy()
-    expect(screen.getAllByText("unsupported-script")).toHaveLength(10)
-    // The type's count on its first row, and what the list leaves out after its last.
-    expect(screen.getByText("60 found")).toBeTruthy()
-    expect(screen.getByText("+50 more of this problem, not listed here. The repair request includes them all.")).toBeTruthy()
+    // One group per problem type: its name, how many were found, ten examples
+    // and how many more the list leaves out.
+    const scripts = screen.getByRole("region", { name: "Unsupported script" })
+    expect(within(scripts).getByText(/^60 /)).toBeTruthy()
+    expect(within(scripts).getByText("unsupported-script")).toBeTruthy()
+    expect(within(scripts).getAllByText(/^pg0\d\d_sec001\.html$/)).toHaveLength(10)
+    expect(within(scripts).getByText("+50 more not listed here. The repair request includes them all.")).toBeTruthy()
     expect(screen.getByText("creditos.html")).toBeTruthy()
   })
 

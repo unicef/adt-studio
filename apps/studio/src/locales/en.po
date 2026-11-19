@@ -809,8 +809,6 @@ msgstr "{toggleShortcut} to toggle"
 msgid "{total, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{total, plural, one {# comment waiting} other {# comments waiting}}"
 
-msgid "{total} found"
-msgstr "{total} found"
 
 msgid "{total} here"
 msgstr "{total} here"
@@ -843,8 +841,8 @@ msgstr "/ Section {0}"
 msgid "+{more} more"
 msgstr "+{more} more"
 
-msgid "+{more} more of this problem, not listed here. The repair request includes them all."
-msgstr "+{more} more of this problem, not listed here. The repair request includes them all."
+msgid "+{more} more not listed here. The repair request includes them all."
+msgstr "+{more} more not listed here. The repair request includes them all."
 
 
 msgid "×4"
@@ -3357,6 +3355,9 @@ msgstr "Content type"
 msgid "Content updates"
 msgstr "Content updates"
 
+msgid "Content without a data-id"
+msgstr "Content without a data-id"
+
 msgid "Contents"
 msgstr "Contents"
 
@@ -3790,6 +3791,9 @@ msgstr "Custom range"
 
 msgid "Custom section {index}"
 msgstr "Custom section {index}"
+
+msgid "Custom stylesheet"
+msgstr "Custom stylesheet"
 
 msgid "Cut a region out of any page"
 msgstr "Cut a region out of any page"
@@ -4994,6 +4998,15 @@ msgstr "Figure Extraction"
 msgid "File actions"
 msgstr "File actions"
 
+msgid "File loaded from the internet"
+msgstr "File loaded from the internet"
+
+msgid "File or folder outside the ADT layout"
+msgstr "File or folder outside the ADT layout"
+
+msgid "File path outside the archive"
+msgstr "File path outside the archive"
+
 msgid "Fill in a table"
 msgstr "Fill in a table"
 
@@ -5899,6 +5912,9 @@ msgstr "Image unavailable"
 
 msgid "Image upload failed"
 msgstr "Image upload failed"
+
+msgid "Image without a data-id"
+msgstr "Image without a data-id"
 
 msgid "Image-edit model used to regenerate each image with translated text."
 msgstr "Image-edit model used to regenerate each image with translated text."
@@ -6972,6 +6988,9 @@ msgstr "Media"
 msgid "Media & timing"
 msgstr "Media & timing"
 
+msgid "Media outside the images folder"
+msgstr "Media outside the images folder"
+
 msgid "Medical references"
 msgstr "Medical references"
 
@@ -7145,6 +7164,18 @@ msgstr "Misses"
 msgid "Missing"
 msgstr "Missing"
 
+msgid "Missing #content element"
+msgstr "Missing #content element"
+
+msgid "Missing editing contract"
+msgstr "Missing editing contract"
+
+msgid "Missing file"
+msgstr "Missing file"
+
+msgid "Missing main section"
+msgstr "Missing main section"
+
 msgid "Missing or added content"
 msgstr "Missing or added content"
 
@@ -7202,6 +7233,12 @@ msgstr "More info"
 
 msgid "More shortcuts — quick navigation, adding a book, opening this dialog — are still in development."
 msgstr "More shortcuts — quick navigation, adding a book, opening this dialog — are still in development."
+
+msgid "More than one #content element"
+msgstr "More than one #content element"
+
+msgid "More than one main section"
+msgstr "More than one main section"
 
 msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
 msgstr "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
@@ -8621,11 +8658,17 @@ msgstr "Page Grouping Mode"
 msgid "Page HTML must stay at the top level of the archive."
 msgstr "Page HTML must stay at the top level of the archive."
 
+msgid "Page ids changed"
+msgstr "Page ids changed"
+
 msgid "Page image"
 msgstr "Page image"
 
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
+
+msgid "Page inside a folder"
+msgstr "Page inside a folder"
 
 msgid "Page media is outside the images folder."
 msgstr "Page media is outside the images folder."
@@ -8665,6 +8708,9 @@ msgstr "Page Sectioning Prompt"
 
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Page Sectioning Refinement Prompt"
+
+msgid "Page sections split apart"
+msgstr "Page sections split apart"
 
 msgid "Page structure and element ids"
 msgstr "Page structure and element ids"
@@ -9846,6 +9892,9 @@ msgstr "Reopen"
 msgid "Repair request"
 msgstr "Repair request"
 
+msgid "Repeated data-id with different content"
+msgstr "Repeated data-id with different content"
+
 msgid "Replace"
 msgstr "Replace"
 
@@ -10659,6 +10708,9 @@ msgstr "Section pruned from flow"
 
 msgid "Section Types"
 msgstr "Section Types"
+
+msgid "Section without a type"
+msgstr "Section without a type"
 
 msgid "Sectioning"
 msgstr "Sectioning"
@@ -13224,6 +13276,12 @@ msgstr "Unsaved changes"
 
 msgid "Unsaved edit"
 msgstr "Unsaved edit"
+
+msgid "Unsupported editing contract"
+msgstr "Unsupported editing contract"
+
+msgid "Unsupported script"
+msgstr "Unsupported script"
 
 msgid "Untangling nested divs with care..."
 msgstr "Untangling nested divs with care..."

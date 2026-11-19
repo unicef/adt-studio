@@ -811,8 +811,6 @@ msgstr "{toggleShortcut} për të ndërruar"
 msgid "{total, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{total, plural, one {# koment në pritje} other {# komente në pritje}}"
 
-msgid "{total} found"
-msgstr "{total} të gjetura"
 
 msgid "{total} here"
 msgstr "{total} këtu"
@@ -845,8 +843,8 @@ msgstr "/ Seksioni {0}"
 msgid "+{more} more"
 msgstr "+{more} të tjera"
 
-msgid "+{more} more of this problem, not listed here. The repair request includes them all."
-msgstr "+{more} të tjera të këtij problemi, që nuk janë renditur këtu. Kërkesa për riparim i përfshin të gjitha."
+msgid "+{more} more not listed here. The repair request includes them all."
+msgstr "+{more} të tjera që nuk renditen këtu. Kërkesa për riparim i përfshin të gjitha."
 
 
 msgid "×4"
@@ -3359,6 +3357,9 @@ msgstr "Lloji i përmbajtjes"
 msgid "Content updates"
 msgstr "Përditësimet e përmbajtjes"
 
+msgid "Content without a data-id"
+msgstr "Përmbajtje pa data-id"
+
 msgid "Contents"
 msgstr "Përmbajtja"
 
@@ -3792,6 +3793,9 @@ msgstr "Interval i personalizuar"
 
 msgid "Custom section {index}"
 msgstr "Seksion i personalizuar {index}"
+
+msgid "Custom stylesheet"
+msgstr "Fletë stili e personalizuar"
 
 msgid "Cut a region out of any page"
 msgstr "Prit një zonë nga çdo faqe"
@@ -4996,6 +5000,15 @@ msgstr "Nxjerrja e figurave"
 msgid "File actions"
 msgstr "Veprimet e skedarit"
 
+msgid "File loaded from the internet"
+msgstr "Skedar i ngarkuar nga interneti"
+
+msgid "File or folder outside the ADT layout"
+msgstr "Skedar ose dosje jashtë strukturës së ADT-së"
+
+msgid "File path outside the archive"
+msgstr "Shteg skedari jashtë arkivit"
+
 msgid "Fill in a table"
 msgstr "Plotëso një tabelë"
 
@@ -5901,6 +5914,9 @@ msgstr "Imazhi nuk është i disponueshëm"
 
 msgid "Image upload failed"
 msgstr "Ngarkimi i imazhit dështoi"
+
+msgid "Image without a data-id"
+msgstr "Imazh pa data-id"
 
 msgid "Image-edit model used to regenerate each image with translated text."
 msgstr "Modeli i redaktimit të imazheve që përdoret për të rigjeneruar çdo imazh me tekst të përkthyer."
@@ -6974,6 +6990,9 @@ msgstr "Media"
 msgid "Media & timing"
 msgstr "Media & kohëzgjatja"
 
+msgid "Media outside the images folder"
+msgstr "Media jashtë dosjes images"
+
 msgid "Medical references"
 msgstr "Referenca mjekësore"
 
@@ -7147,6 +7166,18 @@ msgstr "Mungesa"
 msgid "Missing"
 msgstr "Mungon"
 
+msgid "Missing #content element"
+msgstr "Mungon elementi #content"
+
+msgid "Missing editing contract"
+msgstr "Mungon kontrata e redaktimit"
+
+msgid "Missing file"
+msgstr "Skedar që mungon"
+
+msgid "Missing main section"
+msgstr "Mungon seksioni kryesor"
+
 msgid "Missing or added content"
 msgstr "Përmbajtje e munguar ose e shtuar"
 
@@ -7204,6 +7235,12 @@ msgstr "Më shumë informacion"
 
 msgid "More shortcuts — quick navigation, adding a book, opening this dialog — are still in development."
 msgstr "Më shumë shkurtore — navigim i shpejtë, shtimi i një libri, hapja e këtij dialogu — janë ende në zhvillim."
+
+msgid "More than one #content element"
+msgstr "Më shumë se një element #content"
+
+msgid "More than one main section"
+msgstr "Më shumë se një seksion kryesor"
 
 msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
 msgstr "Shumica e librave lexohen faqe për faqe. Nëse i yti ka një ilustrim që shtrihet në dy faqe përballë, lidhi ato faqe që të përpunohen bashkë si një fletë e vetme e dyfishtë në vend që të ndahen në mes. Asgjë nuk ndryshon derisa të shtypni Zbato."
@@ -8623,11 +8660,17 @@ msgstr "Mënyra e grupimit të faqeve"
 msgid "Page HTML must stay at the top level of the archive."
 msgstr "HTML-ja e faqeve duhet të qëndrojë në nivelin e sipërm të arkivit."
 
+msgid "Page ids changed"
+msgstr "ID-të e faqes kanë ndryshuar"
+
 msgid "Page image"
 msgstr "Imazhi i faqes"
 
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Imazhi i faqes si sfond me tekst të pozicionuar sipër. Ruan kompozimin origjinal të faqes; ideal për libra me ilustrime."
+
+msgid "Page inside a folder"
+msgstr "Faqe brenda një dosjeje"
 
 msgid "Page media is outside the images folder."
 msgstr "Mediat e faqes janë jashtë dosjes images."
@@ -8667,6 +8710,9 @@ msgstr "Prompt i Ndarjes së Faqeve"
 
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt i Rafinimit të Ndarjes së Faqeve"
+
+msgid "Page sections split apart"
+msgstr "Seksione të një faqeje të ndara"
 
 msgid "Page structure and element ids"
 msgstr "Struktura e faqeve dhe id-të e elementeve"
@@ -9848,6 +9894,9 @@ msgstr "Rihap"
 msgid "Repair request"
 msgstr "Kërkesë për riparim"
 
+msgid "Repeated data-id with different content"
+msgstr "data-id i përsëritur me përmbajtje të ndryshme"
+
 msgid "Replace"
 msgstr "Zëvendëso"
 
@@ -10661,6 +10710,9 @@ msgstr "Seksion i hequr nga rrjedha"
 
 msgid "Section Types"
 msgstr "Llojet e Seksionit"
+
+msgid "Section without a type"
+msgstr "Seksion pa lloj"
 
 msgid "Sectioning"
 msgstr "Seksionim"
@@ -13226,6 +13278,12 @@ msgstr "Ndryshime të paruajtura"
 
 msgid "Unsaved edit"
 msgstr "Ndryshim i paruajtur"
+
+msgid "Unsupported editing contract"
+msgstr "Kontratë redaktimi e pambështetur"
+
+msgid "Unsupported script"
+msgstr "Skript i pambështetur"
 
 msgid "Untangling nested divs with care..."
 msgstr "Po zgjidhen divët e mbivendosur me kujdes..."

@@ -4,7 +4,7 @@ import { AlertCircle, Check as CheckIcon, Minus, MoreHorizontal, X } from "lucid
 import type { AnyImportPreview } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { FEATURES, featureStatus } from "./helpers"
-import type { Check, CheckState, Issue, Status, Step, Tone } from "./use-review-model"
+import type { Check, CheckState, Issue, IssueGroup, Status, Step, Tone } from "./use-review-model"
 
 
 export function Panel({ title, children, className }: { title?: ReactNode; children: ReactNode; className?: string }) {
@@ -217,35 +217,62 @@ export function FactList({ facts }: { facts: Array<{ label: string; value: strin
   )
 }
 
-/** The problems to fix, each with the file it is in and its code, grouped by
- * problem type. */
+/** The problems to fix, each with the file it is in and its code. */
 export function IssueList({ issues }: { issues: Issue[] }) {
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
-      {issues.map((issue, index) => issue.more ? (
-        <li
-          key={`${issue.code}:more`}
-          className="flex items-center gap-2 bg-destructive/[0.06] px-3.5 py-2 text-[12.5px] font-medium text-foreground"
-        >
-          <MoreHorizontal aria-hidden="true" className="size-4 shrink-0 text-destructive" />
-          {issue.text}
-        </li>
-      ) : (
+      {issues.map((issue, index) => (
         <li key={`${issue.code}:${issue.file}:${index}`} className="px-3.5 py-2.5">
           <div className="flex items-baseline justify-between gap-3">
             <code className="truncate font-mono text-xs font-semibold text-foreground">{issue.file}</code>
-            <span className="flex shrink-0 items-baseline gap-2">
-              <code className="font-mono text-[11px] text-muted-foreground">{issue.code}</code>
-              {issue.countLabel ? (
-                <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-destructive">
-                  {issue.countLabel}
-                </span>
-              ) : null}
-            </span>
+            <code className="shrink-0 font-mono text-[11px] text-muted-foreground">{issue.code}</code>
           </div>
           <p className="mt-1 break-words text-[13px] text-foreground">{issue.text}</p>
         </li>
       ))}
     </ul>
+  )
+}
+
+/** The problems to fix, one group per problem type: its name, how many were
+ * found, what it means, a few example files, and how many more there are. */
+export function IssueGroupList({ groups }: { groups: IssueGroup[] }) {
+  return (
+    <div className="flex flex-col gap-3">
+      {groups.map((group) => (
+        <section
+          key={group.code}
+          aria-label={group.name}
+          className="overflow-hidden rounded-lg border border-border"
+        >
+          <header className="border-b border-border bg-muted/50 px-3.5 py-2.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <h4 className="text-[13.5px] font-semibold text-foreground">{group.name}</h4>
+              <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-destructive">
+                {group.countLabel}
+              </span>
+            </div>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">{group.description}</p>
+            <code className="mt-1 block font-mono text-[11px] text-muted-foreground">{group.code}</code>
+          </header>
+          <ul className="divide-y divide-border">
+            {group.examples.map((example, index) => (
+              <li key={`${example.file}:${index}`} className="px-3.5 py-2">
+                <code className="block truncate font-mono text-xs font-semibold text-foreground">{example.file}</code>
+                {example.detail ? (
+                  <p className="mt-0.5 break-words text-[12.5px] text-foreground">{example.detail}</p>
+                ) : null}
+              </li>
+            ))}
+            {group.moreLabel ? (
+              <li className="flex items-center gap-2 bg-destructive/[0.06] px-3.5 py-2 text-[12.5px] font-medium text-foreground">
+                <MoreHorizontal aria-hidden="true" className="size-4 shrink-0 text-destructive" />
+                {group.moreLabel}
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ))}
+    </div>
   )
 }
