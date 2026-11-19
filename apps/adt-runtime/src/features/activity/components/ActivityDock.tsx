@@ -49,7 +49,10 @@ export function ActivityDock() {
         shouldHide && "opacity-0 pointer-events-none",
         shouldHide && (isTop ? "-translate-y-[150%]" : "translate-y-[150%]"),
       )}
-      aria-label={t("dock-label") || "Activity controls"}
+      // A label only counts on an element with a role; on a bare div screen
+      // readers drop it. As a named region the bar is also a landmark.
+      role="region"
+      aria-label={t("activity-dock-label", {}, "Activity controls")}
     >
       <DockActivityActions />
     </div>

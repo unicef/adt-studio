@@ -55,7 +55,7 @@ export function PageNav() {
   const dockMenuValue = useAtomValue(dockMenuValueAtom);
   const setDockMenuValue = useSetAtom(dockMenuValueAtom);
   const stopFollowing = useSetAtom(followedPeerAtom);
-  const { t } = useTranslation();
+  const { t, translations } = useTranslation();
   // The row follows the document direction, so in a right-to-left book "next"
   // sits on the left. Each chevron points the way its button turns the page.
   const rtl = useAtomValue(textDirectionAtom) === "rtl";
@@ -71,6 +71,15 @@ export function PageNav() {
   const pageNumber = currentPageFromMeta ?? currentRange?.[0] ?? null;
 
   const totalPages = pages.length
+
+  // Screen readers would read the visible counter as "3 slash 13", so they get
+  // "Page 3 of 13" instead (the same words the page-turn announcement uses).
+  // Only from the book's own catalog: a language without the string keeps the
+  // neutral numbers rather than switching to English mid-book.
+  const spokenPosition =
+    pageNumber !== null && totalPages > 0 && translations["page-n-of-m"]
+      ? t("page-n-of-m", { n: String(pageNumber), m: String(totalPages) })
+      : null
 
   const go = (href: string | undefined) => {
     if (!href) return;
@@ -105,7 +114,11 @@ export function PageNav() {
           a newly introduced Tailwind class is absent from books already built.
           `dir="ltr"` keeps "page / total" in that order in a right-to-left
           book, where the flex row would otherwise show it as "total / page". */}
-      <div dir="ltr" className="order-3 min-w-12 flex text-base tabular-nums px-2 text-foreground/80 select-none">
+      <div
+        dir="ltr"
+        aria-hidden={spokenPosition ? true : undefined}
+        className="order-3 min-w-12 flex text-base tabular-nums px-2 text-foreground/80 select-none"
+      >
         <span
           className="font-medium text-foreground text-right"
           style={{ minWidth: `${String(totalPages || 1).length}ch` }}
@@ -117,6 +130,7 @@ export function PageNav() {
           <span className="text-muted-foreground">{totalPages}</span>
         )}
       </div>
+      {spokenPosition ? <span className="sr-only">{spokenPosition}</span> : null}
       <DockIconButton
         ariaLabel={t("previous-page") || "Previous page"}
         disabled={!prev}

@@ -127,5 +127,8 @@
     "stepper-word-bank": "انتخاب کے لیے الفاظ",
     "stepper-open-ended-saved": "شاباش — آپ کا جواب محفوظ کر لیا گیا ہے۔",
     "stepper-open-ended-rephrase": "آئیے شائستہ رہیں — اپنا جواب دوسرے انداز میں لکھنے کی کوشش کریں۔",
-    "open-ended-answer-label": "آپ کا جواب"
+    "open-ended-answer-label": "آپ کا جواب",
+    "dock-label": "پڑھنے کے کنٹرولز",
+    "activity-dock-label": "سرگرمی کے کنٹرولز",
+    "page-n-of-m": "صفحہ ${n} از ${m}"
 }
