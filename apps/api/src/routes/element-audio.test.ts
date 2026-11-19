@@ -169,6 +169,28 @@ describe("element-audio route (SPEC-0014)", () => {
     }
   })
 
+  it("AC-1: refuses to save while a pipeline step is running", async () => {
+    const db = storage()
+    try {
+      db.markStepStarted("web-rendering")
+    } finally {
+      db.close()
+    }
+
+    const saved = await put("pg001", {
+      versions: {},
+      entries: [entry("pg001_im001", "Mago")],
+    })
+
+    expect(saved.status).toBe(409)
+    const after = storage()
+    try {
+      expect(after.getLatestNodeData("element-audio", "pg001")).toBeNull()
+    } finally {
+      after.close()
+    }
+  })
+
   it("AC-1: a save appends a new version instead of overwriting", async () => {
     await put("pg001", { versions: {}, entries: [entry("pg001_im001", "Mago")] })
     const second = await put("pg001", {

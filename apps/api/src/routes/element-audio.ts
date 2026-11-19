@@ -12,6 +12,7 @@ import {
 } from "@adt/types"
 import { buildElementLocationIndex } from "@adt/pipeline"
 import { createBookStorage, type PageData, type Storage } from "@adt/storage"
+import { assertAuthoredIdle } from "../services/authored-output-service.js"
 
 /** The client sends `sourcePageId` as a hint: it is ignored for an existing
  *  entry (the canonical row wins) and must name the current page for a new one. */
@@ -272,6 +273,9 @@ export function createElementAudioRoutes(booksDir: string): Hono {
         return storage.transaction(() => {
           const pages = storage.getPages()
           assertPage(pages, pageId)
+          // Same admission as every other authored write: a pipeline run reads
+          // the artifact, so a save mid-run would land outside that run.
+          assertAuthoredIdle(storage)
           const rows = readRows(storage)
 
           const seen = new Set<string>()
