@@ -77,8 +77,12 @@ export function collectAdtImportIssues(
       && pageHrefs.has(relativePath)
     if (!allowedRootHtml && !ADT_EDITING_ALLOWED_ROOT_ENTRIES.has(rootEntry) && !reportedStrayEntries.has(rootEntry)) {
       reportedStrayEntries.add(rootEntry)
+      // A page at the root that the reading order leaves out (credits, teacher
+      // notes) is a page, not a stray folder, and deleting it may break the
+      // delivered book (#1154).
+      const unlistedRootPage = !relativePath.includes("/") && /\.html?$/i.test(relativePath)
       issues.push({
-        code: "unexpected-bundle-entry",
+        code: unlistedRootPage ? "unlisted-root-page" : "unexpected-bundle-entry",
         // Name the folder, not its first file, so the whole folder is removed.
         pageHref: relativePath.includes("/") ? `${rootEntry}/` : relativePath,
         detail: rootEntry,
