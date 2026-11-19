@@ -1,0 +1,310 @@
+<title>Auto Mode Experiments</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column with wide bands for diagrams and charts; each section answers one question. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --ink: #18202b; --muted: #5b6676; --line: #dde2e9;
+  --accent: #2f55d4; --accent-soft: #e6ecfc;
+  --good: #1f8a5b; --good-soft: #def3e8; --bad: #c4423a; --bad-soft: #fbe3e1; --warn: #b7791f; --warn-soft: #fbf0d9;
+  --e0: #8a93a3; --e1: #6a5acd; --e2: #2f55d4; --e3: #1f8a8a;
+  --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11151b; --surface: #181d25; --ink: #e8ecf2; --muted: #9aa5b5; --line: #2a313c;
+  --accent: #7c9bff; --accent-soft: #1f2a48;
+  --good: #4cc38a; --good-soft: #163327; --bad: #f07a70; --bad-soft: #3a1d1b; --warn: #e3b05a; --warn-soft: #3a2d14;
+  --e0: #8a93a3; --e1: #a397f0; --e2: #7c9bff; --e3: #4fc4c4; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #181d25; --ink: #e8ecf2; --muted: #9aa5b5; --line: #2a313c;
+  --accent: #7c9bff; --accent-soft: #1f2a48;
+  --good: #4cc38a; --good-soft: #163327; --bad: #f07a70; --bad-soft: #3a1d1b; --warn: #e3b05a; --warn-soft: #3a2d14;
+  --e0: #8a93a3; --e1: #a397f0; --e2: #7c9bff; --e3: #4fc4c4; color-scheme: dark; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(28px, 5vw, 40px); }
+h2 { font-size: 24px; }
+h3 { font-size: 16px; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+section { display: grid; gap: 18px; min-width: 0; }
+.lede { font-size: 17px; color: var(--muted); }
+.tag { font: 500 12px var(--mono); padding: 2px 8px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+code, .mono { font-family: var(--mono); font-size: 13px; }
+
+/* headline tiles */
+.headline { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 4px; }
+.tile .num { font: 600 30px var(--display); font-variant-numeric: tabular-nums; }
+.tile .lbl { color: var(--muted); font-size: 13px; }
+.tile .num small { font-size: 15px; color: var(--muted); font-weight: 500; }
+
+/* flows */
+.flows { display: grid; gap: 14px; }
+.flow { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.flow-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+.flow-head .key { width: 12px; height: 12px; border-radius: 3px; flex: none; align-self: center; }
+.steps { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; }
+.step { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; background: var(--bg); max-width: 220px; }
+.step b { display: block; font-weight: 600; font-size: 13px; }
+.step span { color: var(--muted); font-size: 12px; }
+.step.ai { border-color: var(--accent); background: var(--accent-soft); }
+.step.user { border-style: dashed; border-color: var(--warn); background: var(--warn-soft); }
+.arrow { align-self: center; color: var(--muted); font-family: var(--mono); }
+.verdict { font-size: 13px; color: var(--muted); }
+
+/* bars */
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.bars { display: grid; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: 150px 1fr 70px; gap: 10px; align-items: center; font-size: 13px; }
+.track { height: 14px; border-radius: 4px; background: var(--bg); border: 1px solid var(--line); position: relative; overflow: hidden; }
+.fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+.val { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.note { font-size: 12px; color: var(--muted); }
+
+/* heatmap & grid */
+.scroll { overflow-x: auto; }
+table { border-collapse: separate; border-spacing: 3px; font-size: 12px; }
+th { font: 500 11px var(--mono); color: var(--muted); text-align: left; padding: 4px 6px; white-space: nowrap; }
+td.cell { border-radius: 5px; padding: 6px 8px; text-align: center; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.rowname { font-weight: 600; white-space: nowrap; padding-right: 8px; }
+.ok { background: var(--good-soft); color: var(--good); }
+.no { background: var(--bad-soft); color: var(--bad); }
+.flip { background: var(--warn-soft); color: var(--warn); outline: 1px dashed var(--warn); }
+.na { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button { font: 500 13px var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* groups */
+.groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.group { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 10px; padding: 16px; display: grid; gap: 8px; align-content: start; }
+.group ul { margin: 0; padding-left: 18px; font-size: 13px; }
+.group .who { font: 500 12px var(--mono); color: var(--c); }
+
+/* fact cards mock */
+.mock { display: grid; gap: 10px; max-width: 520px; }
+.fact { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; }
+.fact .q { font-size: 12px; color: var(--muted); }
+.fact .a { font-weight: 600; }
+.fact .ev { font-size: 12px; color: var(--muted); }
+.fact .btns { display: flex; gap: 6px; }
+.fact .btns span { font-size: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; }
+.fact .btns span.yes { border-color: var(--good); color: var(--good); }
+.fact.locked { border-color: var(--accent); }
+.fact.locked .q::after { content: " · can't change after import"; color: var(--accent); }
+
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 72ch; }
+@media (max-width: 560px) { .bar-row { grid-template-columns: 1fr 64px; } .bar-row .track { grid-column: 1 / -1; grid-row: 2; } }
+@media (prefers-reduced-motion: no-preference) { .fill { transition: width .4s ease; } }
+</style>
+
+<div class="wrap">
+
+<header style="display:grid;gap:12px">
+  <div class="eyebrow">Issue #333 · Add Book auto mode · local branch refactor/auto-mode-quality</div>
+  <h1>Why auto mode is unpredictable, and what we tried</h1>
+  <p class="lede">We ran the current recommender and three new approaches on the same six PDFs, three times each, and compared their picks with settings known to work.</p>
+  <div class="headline" id="headline"></div>
+</header>
+
+<section>
+  <div class="eyebrow">1 · The settings</div>
+  <h2>Not every setting is the same kind of question</h2>
+  <p>Before testing, we went through every setting in the code. Three different things decide them, and some of them can never be changed once the book is imported.</p>
+  <div class="groups">
+    <div class="group" style="--c: var(--bad)">
+      <div class="who">Decided by how the PDF is built</div>
+      <h3>Can't change after import</h3>
+      <ul><li>Page grouping (single / spread)</li><li>Figure extraction</li><li>Image filters and segmentation</li><li>Watermark removal</li><li>Page range</li></ul>
+      <p class="note">Extract can't be re-run on a book with pages. A wrong pick means a new book. Measure these; don't guess them.</p>
+    </div>
+    <div class="group" style="--c: var(--accent)">
+      <div class="who">Decided by what the book is</div>
+      <h3>Cheap to change later</h3>
+      <ul><li>Preset (textbook / storybook / reference)</li><li>Render strategy</li><li>Sectioning mode</li><li>Activities</li></ul>
+      <p class="note">Needs judgement about content: is it a story, are there exercises, does text sit on the pictures. This is where the AI helps.</p>
+    </div>
+    <div class="group" style="--c: var(--warn)">
+      <div class="who">Decided by the person</div>
+      <h3>Goals and preferences</h3>
+      <ul><li>Languages to publish in</li><li>Style guide</li><li>Easy read, speech, glossary</li></ul>
+      <p class="note">No PDF can answer these. Ask, or keep defaults.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">2 · The strategies</div>
+  <h2>Four ways to get from a PDF to settings</h2>
+  <div class="flows">
+    <div class="flow">
+      <div class="flow-head"><span class="key" style="background:var(--e0)"></span><h3>E0 · Current approach (Victor's PoC)</h3><span class="tag">e0-poc</span></div>
+      <div class="steps">
+        <div class="step"><b>Sample</b><span>3 pairs of pages, evenly spaced, 300 characters each</span></div><div class="arrow">→</div>
+        <div class="step ai"><b>One AI call</b><span>picks all six settings at once</span></div><div class="arrow">→</div>
+        <div class="step"><b>Settings</b><span>with an "alternative" when unsure</span></div>
+      </div>
+      <p class="verdict">Pages are always shown side by side, which nudges it toward "spread". The six answers influence each other inside one call.</p>
+    </div>
+    <div class="flow">
+      <div class="flow-head"><span class="key" style="background:var(--e1)"></span><h3>E1 · Measure only, no AI</h3><span class="tag">e1-measure</span></div>
+      <div class="steps">
+        <div class="step"><b>Measure every page</b><span>size, text, pictures, drawings, seams between pages</span></div><div class="arrow">→</div>
+        <div class="step"><b>Book facts</b><span>spreads? scanned? text on pictures? exercises?</span></div><div class="arrow">→</div>
+        <div class="step"><b>Fixed rules</b><span>same facts, same settings</span></div>
+      </div>
+      <p class="verdict">Under half a second and free. Guessing the content questions from numbers alone is fragile.</p>
+    </div>
+    <div class="flow">
+      <div class="flow-head"><span class="key" style="background:var(--e2)"></span><h3>E2 · Measure, then ask the AI plain questions</h3><span class="tag">e2-facts</span></div>
+      <div class="steps">
+        <div class="step"><b>Measure every page</b><span>as E1</span></div><div class="arrow">→</div>
+        <div class="step"><b>Pick pages</b><span>the exercise page, the picture page, the diagram page</span></div><div class="arrow">→</div>
+        <div class="step ai"><b>4 small AI questions</b><span>kind of book · exercises · text and pictures · diagrams</span></div><div class="arrow">→</div>
+        <div class="step user"><b>User confirms</b><span>in the product, not in this test</span></div><div class="arrow">→</div>
+        <div class="step"><b>Fixed rules</b><span>facts become settings</span></div>
+      </div>
+      <p class="verdict">The AI never sees a setting name. It describes the book; rules do the rest. Each answer cites pages the user can check.</p>
+    </div>
+    <div class="flow">
+      <div class="flow-head"><span class="key" style="background:var(--e3)"></span><h3>E3 · E2 plus the user's own description</h3><span class="tag">e3-facts-description</span></div>
+      <div class="steps">
+        <div class="step user"><b>User types one line</b><span>"A short story in Spanish for young readers"</span></div><div class="arrow">→</div>
+        <div class="step ai"><b>4 small AI questions</b><span>with the description as a hint</span></div><div class="arrow">→</div>
+        <div class="step"><b>Fixed rules</b></div>
+      </div>
+      <p class="verdict">Tests your "user describes first" idea. Descriptions here were written by us.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">3 · Results</div>
+  <h2>Right more often, and the same every time</h2>
+  <div class="two">
+    <div class="chart"><h3>Agreement with known-good settings</h3><div class="bars" id="agreeBars"></div><p class="note">Labelled decisions × 3 runs. E1 ran once (it has no randomness).</p></div>
+    <div class="chart"><h3>Same answer in all 3 runs</h3><div class="bars" id="stableBars"></div><p class="note">Book × setting pairs that never changed between runs, out of 36.</p></div>
+  </div>
+  <div class="chart">
+    <h3>Which settings each approach gets right</h3>
+    <div class="scroll"><table id="heat"></table></div>
+    <div class="legend"><span><i class="ok" style="display:inline-block"></i>all right</span><span><i class="no" style="display:inline-block"></i>some wrong</span><span><i class="na" style="display:inline-block"></i>no label to score</span></div>
+  </div>
+  <div class="two">
+    <div class="chart"><h3>Time per book</h3><div class="bars" id="timeBars"></div></div>
+    <div class="chart"><h3>Input tokens per book</h3><div class="bars" id="tokBars"></div><p class="note">E2 sends the page images with each of its 4 questions, so it reads about 3× more.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">4 · Book by book</div>
+  <h2>What each approach picked</h2>
+  <div class="tabs" id="tabs" role="group" aria-label="Approach"></div>
+  <div class="chart">
+    <div class="scroll"><table id="grid"></table></div>
+    <div class="legend"><span><i class="ok" style="display:inline-block"></i>matches</span><span><i class="no" style="display:inline-block"></i>differs (expected value shown)</span><span><i class="flip" style="display:inline-block"></i>changed between runs</span><span><i class="na" style="display:inline-block"></i>no label</span></div>
+  </div>
+  <ul class="plain">
+    <li><b>Current approach:</b> render strategy is where it fails. On the research paper it said <code>llm</code>, <code>llm-overlay</code> and <code>fixed_layout</code> in three runs. It called the Spanish story a textbook every time.</li>
+    <li><b>Facts approach:</b> all six misses are one book. The El Viaje excerpt is a novel's prologue, so from those pages "reference" is a fair answer. One user correction ("It's a story") fixes every setting.</li>
+    <li><b>Page grouping by measurement:</b> right on every book, every time. The spread detector ADT already has beats asking the AI.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="eyebrow">5 · What the user would see</div>
+  <h2>Confirm facts, not settings</h2>
+  <p>The answers are facts a person can check against the cited pages. Settings follow from the confirmed facts. Here is El Viaje, the book the AI got wrong:</p>
+  <div class="mock" aria-label="Example of the confirm step">
+    <div class="fact locked"><div class="q">How the pages are stored</div><div class="a">Each page stands alone, no spreads</div><div class="ev">Measured: 0 of 4 facing pairs continue across the fold</div><div class="btns"><span class="yes">Right</span><span>Change</span></div></div>
+    <div class="fact"><div class="q">What kind of book is this?</div><div class="a">Informational or reference material</div><div class="ev">"These pages are an explanatory prologue…" · pages 2, 3, 4, 6, 7</div><div class="btns"><span>Right</span><span class="yes">Change → It's a story</span></div></div>
+    <div class="fact"><div class="q">Text and pictures</div><div class="a">Mostly text, few pictures</div><div class="ev">pages 2, 3, 4</div><div class="btns"><span class="yes">Right</span><span>Change</span></div></div>
+  </div>
+  <p class="note">E3 showed that a description given as a hint is not enough: told "a short story", the AI still said "reference". The user's answer has to replace the fact.</p>
+</section>
+
+<section>
+  <div class="eyebrow">6 · How far to trust this</div>
+  <h2>Promising, not proven</h2>
+  <ul class="plain">
+    <li><b>Small set:</b> 4 labelled books plus 2 without full labels, and the PDFs are 7–12 page excerpts.</li>
+    <li><b>In-sample rules:</b> the rules and thresholds were written while looking at these same books. E1's perfect score is a fit, not evidence. E2 shares those rules.</li>
+    <li><b>Simulated descriptions:</b> the E3 one-liners were written by us.</li>
+    <li><b>Next:</b> run every approach unchanged on your converted books. A second agent is now trying more approaches (page-by-page voting, one call instead of four, a simulated confirm chat, text-only for providers without images) and will report back.</li>
+  </ul>
+</section>
+
+</div>
+
+<script id="data" type="application/json">{"variants":[{"variant":"e0-poc","agree":41,"total":54,"stable":27,"cells":36,"runsPerBook":3,"perDecision":{"preset":{"agree":9,"total":12},"renderStrategy":{"agree":5,"total":12},"pageGrouping":{"agree":10,"total":12},"sectioningMode":{"agree":11,"total":12},"activitiesGenerator":{"agree":3,"total":3},"figureExtraction":{"agree":3,"total":3}},"avgInputTokens":8620,"avgOutputTokens":487,"avgCalls":1,"avgMs":9419,"books":[{"id":"textbook-praticas-de-alfabetizacao-e-de-matematica","diagnostic":false,"d":{"preset":[["textbook","textbook","textbook"],"textbook"],"renderStrategy":[["llm-overlay","llm-overlay","llm"],"llm"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["page","dynamic","dynamic"],"dynamic"],"activitiesGenerator":[["enabled","enabled","enabled"],"enabled"],"figureExtraction":[["auto","auto","auto"],"auto"]}},{"id":"storybook-colouring-my-school","diagnostic":false,"d":{"preset":[["storybook","storybook","storybook"],"storybook"],"renderStrategy":[["llm-overlay","llm-overlay","llm-overlay"],"fixed_layout"],"pageGrouping":[["spread","spread","spread"],"spread"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["auto","auto","auto"],null]}},{"id":"storybook-hyena-and-raven","diagnostic":false,"d":{"preset":[["storybook","storybook","storybook"],"storybook"],"renderStrategy":[["two_column_story","two_column_story","two_column_story"],"two_column_story"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["auto","auto","auto"],null]}},{"id":"storybook-1930-el-viaje","diagnostic":false,"d":{"preset":[["textbook","textbook","textbook"],"storybook"],"renderStrategy":[["single_column","llm","single_column"],"llm"],"pageGrouping":[["spread","single","spread"],"single"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","enabled"],null],"figureExtraction":[["off","off","auto"],null]}},{"id":"reference-reimagining-target-aware-molecular","diagnostic":true,"d":{"preset":[["reference","reference","reference"],"reference"],"renderStrategy":[["llm","llm-overlay","fixed_layout"],"single_column"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["auto","auto","auto"],"auto"]}},{"id":"textbook-egito-antigo","diagnostic":true,"d":{"preset":[["textbook","storybook","textbook"],null],"renderStrategy":[["llm-overlay","two_column_story","llm-overlay"],null],"pageGrouping":[["single","single","single"],null],"sectioningMode":[["page","page","page"],null],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["auto","auto","auto"],null]}}]},{"variant":"e1-measure","agree":18,"total":18,"stable":36,"cells":36,"runsPerBook":1,"perDecision":{"preset":{"agree":4,"total":4},"renderStrategy":{"agree":4,"total":4},"pageGrouping":{"agree":4,"total":4},"sectioningMode":{"agree":4,"total":4},"activitiesGenerator":{"agree":1,"total":1},"figureExtraction":{"agree":1,"total":1}},"avgInputTokens":0,"avgOutputTokens":0,"avgCalls":0,"avgMs":194,"books":[{"id":"textbook-praticas-de-alfabetizacao-e-de-matematica","diagnostic":false,"d":{"preset":[["textbook"],"textbook"],"renderStrategy":[["llm"],"llm"],"pageGrouping":[["single"],"single"],"sectioningMode":[["dynamic"],"dynamic"],"activitiesGenerator":[["enabled"],"enabled"],"figureExtraction":[["auto"],"auto"]}},{"id":"storybook-colouring-my-school","diagnostic":false,"d":{"preset":[["storybook"],"storybook"],"renderStrategy":[["fixed_layout"],"fixed_layout"],"pageGrouping":[["spread"],"spread"],"sectioningMode":[["page"],"page"],"activitiesGenerator":[["disabled"],null],"figureExtraction":[["off"],null]}},{"id":"storybook-hyena-and-raven","diagnostic":false,"d":{"preset":[["storybook"],"storybook"],"renderStrategy":[["two_column_story"],"two_column_story"],"pageGrouping":[["single"],"single"],"sectioningMode":[["page"],"page"],"activitiesGenerator":[["disabled"],null],"figureExtraction":[["off"],null]}},{"id":"storybook-1930-el-viaje","diagnostic":false,"d":{"preset":[["storybook"],"storybook"],"renderStrategy":[["llm"],"llm"],"pageGrouping":[["single"],"single"],"sectioningMode":[["page"],"page"],"activitiesGenerator":[["disabled"],null],"figureExtraction":[["off"],null]}},{"id":"reference-reimagining-target-aware-molecular","diagnostic":true,"d":{"preset":[["reference"],"reference"],"renderStrategy":[["single_column"],"single_column"],"pageGrouping":[["single"],"single"],"sectioningMode":[["page"],"page"],"activitiesGenerator":[["disabled"],null],"figureExtraction":[["auto"],"auto"]}},{"id":"textbook-egito-antigo","diagnostic":true,"d":{"preset":[["storybook"],null],"renderStrategy":[["two_column_story"],null],"pageGrouping":[["single"],null],"sectioningMode":[["page"],null],"activitiesGenerator":[["disabled"],null],"figureExtraction":[["off"],null]}}]},{"variant":"e2-facts","agree":48,"total":54,"stable":36,"cells":36,"runsPerBook":3,"perDecision":{"preset":{"agree":9,"total":12},"renderStrategy":{"agree":9,"total":12},"pageGrouping":{"agree":12,"total":12},"sectioningMode":{"agree":12,"total":12},"activitiesGenerator":{"agree":3,"total":3},"figureExtraction":{"agree":3,"total":3}},"avgInputTokens":24225,"avgOutputTokens":276,"avgCalls":4,"avgMs":4741,"books":[{"id":"textbook-praticas-de-alfabetizacao-e-de-matematica","diagnostic":false,"d":{"preset":[["textbook","textbook","textbook"],"textbook"],"renderStrategy":[["llm","llm","llm"],"llm"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["dynamic","dynamic","dynamic"],"dynamic"],"activitiesGenerator":[["enabled","enabled","enabled"],"enabled"],"figureExtraction":[["auto","auto","auto"],"auto"]}},{"id":"storybook-colouring-my-school","diagnostic":false,"d":{"preset":[["storybook","storybook","storybook"],"storybook"],"renderStrategy":[["fixed_layout","fixed_layout","fixed_layout"],"fixed_layout"],"pageGrouping":[["spread","spread","spread"],"spread"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["off","off","off"],null]}},{"id":"storybook-hyena-and-raven","diagnostic":false,"d":{"preset":[["storybook","storybook","storybook"],"storybook"],"renderStrategy":[["two_column_story","two_column_story","two_column_story"],"two_column_story"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["off","off","off"],null]}},{"id":"storybook-1930-el-viaje","diagnostic":false,"d":{"preset":[["reference","reference","reference"],"storybook"],"renderStrategy":[["single_column","single_column","single_column"],"llm"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["off","off","off"],null]}},{"id":"reference-reimagining-target-aware-molecular","diagnostic":true,"d":{"preset":[["reference","reference","reference"],"reference"],"renderStrategy":[["single_column","single_column","single_column"],"single_column"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["auto","auto","auto"],"auto"]}},{"id":"textbook-egito-antigo","diagnostic":true,"d":{"preset":[["reference","reference","reference"],null],"renderStrategy":[["single_column","single_column","single_column"],null],"pageGrouping":[["single","single","single"],null],"sectioningMode":[["page","page","page"],null],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["auto","auto","auto"],null]}}]},{"variant":"e3-facts-description","agree":48,"total":54,"stable":36,"cells":36,"runsPerBook":3,"perDecision":{"preset":{"agree":9,"total":12},"renderStrategy":{"agree":9,"total":12},"pageGrouping":{"agree":12,"total":12},"sectioningMode":{"agree":12,"total":12},"activitiesGenerator":{"agree":3,"total":3},"figureExtraction":{"agree":3,"total":3}},"avgInputTokens":24304,"avgOutputTokens":280,"avgCalls":4,"avgMs":4725,"books":[{"id":"textbook-praticas-de-alfabetizacao-e-de-matematica","diagnostic":false,"d":{"preset":[["textbook","textbook","textbook"],"textbook"],"renderStrategy":[["llm","llm","llm"],"llm"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["dynamic","dynamic","dynamic"],"dynamic"],"activitiesGenerator":[["enabled","enabled","enabled"],"enabled"],"figureExtraction":[["auto","auto","auto"],"auto"]}},{"id":"storybook-colouring-my-school","diagnostic":false,"d":{"preset":[["storybook","storybook","storybook"],"storybook"],"renderStrategy":[["fixed_layout","fixed_layout","fixed_layout"],"fixed_layout"],"pageGrouping":[["spread","spread","spread"],"spread"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["off","off","off"],null]}},{"id":"storybook-hyena-and-raven","diagnostic":false,"d":{"preset":[["storybook","storybook","storybook"],"storybook"],"renderStrategy":[["two_column_story","two_column_story","two_column_story"],"two_column_story"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["off","off","off"],null]}},{"id":"storybook-1930-el-viaje","diagnostic":false,"d":{"preset":[["reference","reference","reference"],"storybook"],"renderStrategy":[["single_column","single_column","single_column"],"llm"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["off","off","off"],null]}},{"id":"reference-reimagining-target-aware-molecular","diagnostic":true,"d":{"preset":[["reference","reference","reference"],"reference"],"renderStrategy":[["single_column","single_column","single_column"],"single_column"],"pageGrouping":[["single","single","single"],"single"],"sectioningMode":[["page","page","page"],"page"],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["auto","auto","auto"],"auto"]}},{"id":"textbook-egito-antigo","diagnostic":true,"d":{"preset":[["textbook","textbook","textbook"],null],"renderStrategy":[["llm","llm","llm"],null],"pageGrouping":[["single","single","single"],null],"sectioningMode":[["page","page","page"],null],"activitiesGenerator":[["disabled","disabled","disabled"],null],"figureExtraction":[["auto","auto","auto"],null]}}]}]}</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("data").textContent)
+  const V = Object.fromEntries(data.variants.map((v) => [v.variant, v]))
+  const ORDER = ["e0-poc", "e1-measure", "e2-facts", "e3-facts-description"]
+  const NAME = { "e0-poc": "E0 · current", "e1-measure": "E1 · measure only", "e2-facts": "E2 · facts + rules", "e3-facts-description": "E3 · + description" }
+  const COLOR = { "e0-poc": "var(--e0)", "e1-measure": "var(--e1)", "e2-facts": "var(--e2)", "e3-facts-description": "var(--e3)" }
+  const DEC = ["preset", "renderStrategy", "pageGrouping", "sectioningMode", "activitiesGenerator", "figureExtraction"]
+  const DNAME = { preset: "Preset", renderStrategy: "Render", pageGrouping: "Page grouping", sectioningMode: "Sectioning", activitiesGenerator: "Activities", figureExtraction: "Figures" }
+  const BOOK = { "textbook-praticas-de-alfabetizacao-e-de-matematica": "Práticas (textbook)", "storybook-colouring-my-school": "Colouring My School", "storybook-hyena-and-raven": "Hyena and Raven", "storybook-1930-el-viaje": "El Viaje", "reference-reimagining-target-aware-molecular": "Molecular paper *", "textbook-egito-antigo": "Egito Antigo *" }
+  const el = (t, a = {}, ...kids) => { const e = document.createElement(t); for (const [k, v] of Object.entries(a)) k === "class" ? (e.className = v) : k === "style" ? (e.style.cssText = v) : e.setAttribute(k, v); for (const k of kids) e.append(k); return e }
+  const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0)
+
+  const e0 = V["e0-poc"], e2 = V["e2-facts"]
+  const tiles = [
+    [`${pct(e0.agree, e0.total)}% → ${pct(e2.agree, e2.total)}%`, "agreement with known-good settings, current → facts approach"],
+    [`${e0.stable} → ${e2.stable}<small> / 36</small>`, "settings that stayed the same across 3 runs"],
+    ["12 / 12", "page grouping right by measuring the PDF, no AI"],
+    [`${(e2.avgMs / 1000).toFixed(1)} s`, `per book for the facts approach, vs ${(e0.avgMs / 1000).toFixed(1)} s today`],
+  ]
+  const hl = document.getElementById("headline")
+  for (const [n, l] of tiles) { const t = el("div", { class: "tile" }); const num = el("div", { class: "num" }); num.innerHTML = n; t.append(num, el("div", { class: "lbl" }, l)); hl.append(t) }
+
+  function bars(id, value, max, fmt) {
+    const box = document.getElementById(id)
+    for (const k of ORDER) { const v = V[k]; if (!v) continue
+      const track = el("div", { class: "track" }, el("div", { class: "fill", style: `width:${(100 * value(v)) / max}%;background:${COLOR[k]}` }))
+      box.append(el("div", { class: "bar-row" }, el("span", {}, NAME[k]), track, el("span", { class: "val" }, fmt(v)))) }
+  }
+  bars("agreeBars", (v) => v.agree / v.total, 1, (v) => `${v.agree}/${v.total}`)
+  bars("stableBars", (v) => (v.runsPerBook > 1 ? v.stable / v.cells : 0), 1, (v) => (v.runsPerBook > 1 ? `${v.stable}/${v.cells}` : "1 run"))
+  const maxMs = Math.max(...ORDER.map((k) => V[k]?.avgMs ?? 0))
+  bars("timeBars", (v) => v.avgMs, maxMs, (v) => (v.avgMs < 1000 ? `${v.avgMs} ms` : `${(v.avgMs / 1000).toFixed(1)} s`))
+  const maxTok = Math.max(...ORDER.map((k) => V[k]?.avgInputTokens ?? 0))
+  bars("tokBars", (v) => v.avgInputTokens, maxTok, (v) => (v.avgInputTokens ? `${(v.avgInputTokens / 1000).toFixed(1)}k` : "0"))
+
+  const heat = document.getElementById("heat")
+  heat.append(el("tr", {}, el("th", {}), ...DEC.map((d) => el("th", {}, DNAME[d]))))
+  for (const k of ORDER) { const v = V[k]; if (!v) continue
+    heat.append(el("tr", {}, el("td", { class: "rowname" }, NAME[k]), ...DEC.map((d) => { const p = v.perDecision[d]
+      return p.total ? el("td", { class: `cell ${p.agree === p.total ? "ok" : "no"}` }, `${p.agree}/${p.total}`) : el("td", { class: "cell na" }, "–") }))) }
+
+  const tabs = document.getElementById("tabs"), grid = document.getElementById("grid")
+  function show(k) {
+    for (const b of tabs.children) b.setAttribute("aria-pressed", String(b.dataset.k === k))
+    grid.replaceChildren(el("tr", {}, el("th", {}, "Book"), ...DEC.map((d) => el("th", {}, DNAME[d]))))
+    for (const b of V[k].books) {
+      grid.append(el("tr", {}, el("td", { class: "rowname" }, BOOK[b.id] ?? b.id), ...DEC.map((d) => {
+        const [vals, label] = b.d[d]; const uniq = [...new Set(vals)]
+        if (!vals.length) return el("td", { class: "cell na" }, "–")
+        const text = uniq.join(" | ")
+        if (uniq.length > 1) return el("td", { class: "cell flip", title: `runs: ${vals.join(", ")}${label ? ` · expected ${label}` : ""}` }, text)
+        if (!label || b.diagnostic) return el("td", { class: "cell na", title: label ? `diagnostic: ${label}` : "no label" }, text)
+        return uniq[0] === label ? el("td", { class: "cell ok" }, text) : el("td", { class: "cell no", title: `expected ${label}` }, `${text} ≠ ${label}`)
+      })))
+    }
+  }
+  for (const k of ORDER) if (V[k]) { const b = el("button", { type: "button", "data-k": k, id: `tab-${k}` }, NAME[k]); b.addEventListener("click", () => show(k)); tabs.append(b) }
+  show("e0-poc")
+  grid.parentElement.after(el("p", { class: "note" }, "* Not scored: the molecular paper is a diagnostic book in the PoC's benchmark; Egito Antigo has no labels."))
+})()
+</script>
