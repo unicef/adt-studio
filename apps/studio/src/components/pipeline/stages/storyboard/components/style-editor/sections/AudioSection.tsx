@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Loader2, Save } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
-import { api } from "@/api/client"
+import { api, apiErrorStatus } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { useElementContext } from "../element-context"
@@ -62,6 +62,9 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
   const [saving, setSaving] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // A 409 means the stored row moved: only then does Retry reload (discarding
+  // the draft). Any other failure retries the save with the draft intact.
+  const [conflict, setConflict] = useState(false)
   const [saved, setSaved] = useState(false)
   const draftRef = useRef({ dataId, dirty: false, versions: query.data?.versions ?? {} })
   const valueRef = useRef(value)
@@ -136,6 +139,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
     setValue(next)
     setSaved(false)
     setError(null)
+    setConflict(false)
   }
 
   const discard = () => {
@@ -145,12 +149,14 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
     setValue(baseline)
     setSaved(false)
     setError(null)
+    setConflict(false)
   }
 
   const save = async () => {
     if (!bookLabel || saving || restoring || !dirty) return
     setSaving(true)
     setError(null)
+    setConflict(false)
     setSaved(false)
     try {
       const view = await api.updateElementAudio(bookLabel, pageId, {
@@ -171,6 +177,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
       ])
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
+      setConflict(apiErrorStatus(err) === 409)
     } finally {
       setSaving(false)
     }
@@ -189,6 +196,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
     setBaseline(freshText)
     setSaved(false)
     setError(null)
+    setConflict(false)
   }
 
   if (!bookLabel) return null
@@ -291,7 +299,7 @@ export function AudioSection({ dataId, pageId }: AudioSectionProps) {
           <p className="text-[10px] text-red-700">{error}</p>
           <button
             type="button"
-            onClick={() => void reload()}
+            onClick={() => void (conflict ? reload() : save())}
             className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
           >
             {t`Retry`}
