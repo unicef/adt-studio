@@ -12579,6 +12579,9 @@ msgstr "La licencia de esta fuente no es open source y restringe la incrustació
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "La licencia de esta fuente restringe la incrustación — distribuirla dentro del paquete del libro puede ser ilegal."
 
+msgid "This HTML page isn’t in the book’s reading order (content/pages.json), so it can’t be imported."
+msgstr "Esta página HTML no está en el orden de lectura del libro (content/pages.json), así que no se puede importar."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Esta imagen es decorativa. Los lectores de pantalla la omitirán y no se necesita leyenda."
 

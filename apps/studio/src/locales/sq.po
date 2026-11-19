@@ -12581,6 +12581,9 @@ msgstr "Licenca e këtij fonti nuk është open-source dhe kufizon përfshirjen 
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "Licenca e kësaj fonti kufizon ngulitjen — shpërndarja e saj brenda paketës së librit mund të jetë e paligjshme."
 
+msgid "This HTML page isn’t in the book’s reading order (content/pages.json), so it can’t be imported."
+msgstr "Kjo faqe HTML nuk është në rendin e leximit të librit (content/pages.json), prandaj nuk mund të importohet."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Ky imazh është dekorativ. Lexuesit e ekranit do ta anashkalojnë dhe nuk nevojitet titull."
 

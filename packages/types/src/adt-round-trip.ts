@@ -254,6 +254,7 @@ export const AdtImportCompatibilityIssueCode = z.enum([
   "unsupported-editing-contract",
   "nested-page",
   "unexpected-bundle-entry",
+  "unlisted-root-page",
   "changed-page-structure",
   "interleaved-reading-order",
   "missing-content-root",
