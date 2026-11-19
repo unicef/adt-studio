@@ -10,7 +10,7 @@ The page image is the authority for what exists on this page. The rules below on
 1. What is printed: every heading, paragraph, label, table row and exercise, in reading order. All of it goes into the tree, word for word, however long the page is.
 2. Where each exercise starts and ends. One numbered or lettered exercise is its number, its instruction, its examples, its pictures and ALL of its answer spaces. That block stays together.
 3. Where the learner actually writes or marks something. Count the printed lines, boxes, blanks and empty cells on the image. The tree gets exactly that many answer leaves, in those positions.
-4. Which extracted images are real pictures (photos, drawings, diagrams) and which are only crops of text you are transcribing anyway.
+4. Which extracted images show artwork (photos, drawings, comic panels, posters, maps, charts, diagrams, figures) and which show nothing but text you are transcribing anyway. Artwork with words inside it is still artwork.
 
 When a rule seems to require something the page does not show, re-read the page and encode the page.
 
@@ -165,7 +165,9 @@ Use these to disambiguate activity types:
      - a label on or near the image (e.g. "A", "Figure 1"),
      - text visually overlaid ON TOP of the image (image acts as a visual background behind title text, headings, or any other text). If text sits over an image, it is an `image_group` — not a bare image with the text as a sibling.
    - OMIT an available image entirely when it is not visible on the page or is not relevant to its content (e.g. a decorative crop from another page, an OCR artifact, or an image that has been replaced by text). Do not invent a placement for it.
-   - OMIT an available image that is mainly a crop of text you transcribe as leaves: a paragraph, an instruction, an exercise statement, a sidebar label, a page number, or a large region of the page that mixes body text with small pictures. The learner must not see the same words twice, once inside a picture and once as text. Never place such a crop and then repeat its words as the caption or label leaves of an `image_group`. Keep an image only for the artwork it shows; when a separate smaller image shows the same artwork without the text, use that one.
+   - OMIT an available image that shows only text you transcribe as leaves, with no drawing, photo or figure in it: a paragraph, an instruction, an exercise statement, a sidebar label or a page number. Never place such a crop and then repeat its words as the caption or label leaves of an `image_group`.
+   - KEEP every available image that shows artwork, even when the artwork carries words: comic panels with speech balloons, posters, illustrated scenes with labels, maps, charts, diagrams, and tables or figures printed as pictures. Place it in its reading position and transcribe the words that belong to the artwork once, as the `label` or `caption` leaves of its `image_group`. Replacing such an image with text leaves or an HTML table loses the picture and is wrong.
+   - When two available images show the same artwork, one cropped with surrounding body text and one without it, use the one without the text and omit the other.
 4. Multi-sentence visual paragraphs: when two or more sibling text leaves together form a single visual paragraph (or any visual unit), wrap them in a `structure: "group"` container. Do NOT wrap a single standalone leaf in a needless `group`.
 5. Activities:
    - An entire activity is a `structure: "activity"` container.
@@ -489,7 +491,7 @@ Keep `reasoning` focused: the activity evidence required above, and nothing else
 
 Before returning, check your JSON against each of these:
 - Every sentence, table row, cell, label and list item printed on the page is in the tree, word for word, exactly once. Nothing is summarised, shortened or invented.
-- No image leaf is a crop of text that the tree also carries as leaves.
+- No image leaf shows only text that the tree also carries as leaves, and every available image that shows artwork is placed.
 - Every numbered or lettered exercise sits whole in one section; no section holds only a fragment of an exercise.
 - The number of answer leaves equals the number of writing spaces you counted on the image; printed examples and oral tasks have none.
 - Every `section_type` is a SECTION TYPES key, and every leaf `role` is a ROLE TYPES key. No leaf uses an activity section type (such as `activity_open_ended_answer`) as its role.
