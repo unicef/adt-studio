@@ -475,6 +475,9 @@ msgstr "{0}m më parë"
 msgid "{0}s ago"
 msgstr "{0}s më parë"
 
+msgid "{activityTotal} found, none to classify"
+msgstr "{activityTotal} të gjetura, asnjë për t’u klasifikuar"
+
 msgid "{availableCount} more you can generate after import:"
 msgstr "Edhe {availableCount} që mund t’i gjeneroni pas importimit:"
 
@@ -829,6 +832,9 @@ msgstr "{unresolvedCount, plural, one {Zgjidhni një lloj për # faqe aktiviteti
 
 msgid "{waiting, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{waiting, plural, one {# koment në pritje} other {# komente në pritje}}"
+
+msgid "{withoutEditor} of them keep their own scripts: Studio’s activity editor can’t edit them"
+msgstr "{withoutEditor} prej tyre ruajnë skriptet e tyre: redaktori i aktiviteteve i Studio-s nuk mund t’i redaktojë"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -1800,6 +1806,9 @@ msgstr "Të gjitha problemet dhe elementet e rishikimit manual"
 
 msgid "All languages"
 msgstr "Të gjitha gjuhët"
+
+msgid "All of them can be edited in Studio’s activity editor"
+msgstr "Të gjitha mund të redaktohen në redaktorin e aktiviteteve të Studio-s"
 
 msgid "All pages"
 msgstr "Të gjitha faqet"
@@ -6305,6 +6314,9 @@ msgstr "KB"
 msgid "Keep"
 msgstr "Mbaj"
 
+msgid "Keep {activities} {activities, plural, one {activity} other {activities}}"
+msgstr "Ruaj {activities} {activities, plural, one {aktivitet} other {aktivitete}}"
+
 msgid "Keep accepts existing content without regenerating it."
 msgstr "Mbajtja pranon përmbajtjen ekzistuese pa e rigjeneruar."
 
@@ -7940,6 +7952,9 @@ msgstr "Asnjë"
 msgid "None — anyone with the link can open it."
 msgstr "Asnjë — kushdo me lidhjen mund ta hapë."
 
+msgid "None found"
+msgstr "Asnjë e gjetur"
+
 msgid "Normalization"
 msgstr "Normalizimi"
 
@@ -8085,8 +8100,8 @@ msgstr "Ende asgjë e zgjidhur"
 msgid "Nothing split yet"
 msgstr "Asgjë nuk është ndarë ende"
 
-msgid "Nothing to classify"
-msgstr "Asgjë për të klasifikuar"
+#~ msgid "Nothing to classify"
+#~ msgstr "Asgjë për të klasifikuar"
 
 msgid "Nothing to edit yet"
 msgstr "Ende s'ka asgjë për të redaktuar"

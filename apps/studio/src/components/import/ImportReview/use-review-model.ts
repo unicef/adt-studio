@@ -203,6 +203,11 @@ export function useReviewModel(
     const set = Math.max(0, total - unresolvedActivityCount)
     const recovered = FEATURES.filter((feature) => ["recovered", "partial"].includes(featureStatus(adt, feature.slug)))
     const recoveredCount = recovered.length
+    // Quizzes included, as in the Activities check; they all have an editor.
+    const activities = (adt.activityReview?.activityCount ?? 0) + (adt.activityReview?.quizCount ?? 0)
+    const withoutEditor = (adt.activityReview?.items ?? []).filter((item) => (
+      item.suggestedType !== "activity_quiz" && !item.supportsStudioEditing
+    )).length
     return [
       { title: t`Archive checked`, text: t`${plural(adt.pageCount, { one: "# page", other: "# pages" })} and ${plural(imageCount, { one: "# image", other: "# images" })} read`, state: "done", status: t`Done` },
       ...(total > 0 ? [{
@@ -213,6 +218,14 @@ export function useReviewModel(
       }] : []),
       { title: t`Create the project`, text: t`Separate from your other projects`, state: "later", status: t`On import` },
       { title: t`Use the exported pages`, text: t`They become the editable source`, state: "later", status: t`On import` },
+      ...(activities > 0 ? [{
+        title: t`Keep ${activities} {activities, plural, one {activity} other {activities}}`,
+        text: withoutEditor > 0
+          ? t`${withoutEditor} of them keep their own scripts: Studio’s activity editor can’t edit them`
+          : t`All of them can be edited in Studio’s activity editor`,
+        state: "later" as const,
+        status: t`On import`,
+      }] : []),
       ...(recoveredCount > 0 ? [{
         title: t`Recover ${recoveredCount} {recoveredCount, plural, one {feature} other {features}}`,
         // The Features column beside this list already names them.
@@ -237,6 +250,7 @@ export function useReviewModel(
     const repair = !adt.compatibility.supported
     const issueCount = countOf(() => true)
     const mode: ReviewMode = repair ? "repair" : unresolvedActivityCount > 0 ? "activity" : "ready"
+    const activityTotal = (adt.activityReview?.activityCount ?? 0) + (adt.activityReview?.quizCount ?? 0)
     const outputs = adt.outputLanguages?.length ?? 0
     const source = languageName(adt.sourceLanguage, locale)
     const changes: Record<AdtBundleImportPreview["exportComparisonStatus"], { status: Status; value: string; state: CheckState }> = {
@@ -271,7 +285,11 @@ export function useReviewModel(
         {
           icon: Puzzle,
           label: t`Activities`,
-          value: unresolvedActivityCount > 0 ? t`${unresolvedActivityCount} {unresolvedActivityCount, plural, one {needs} other {need}} a type` : t`Nothing to classify`,
+          // "Nothing to classify" alone read the same for a book whose
+          // activities were all recognized and for one with none at all.
+          value: unresolvedActivityCount > 0
+            ? t`${unresolvedActivityCount} {unresolvedActivityCount, plural, one {needs} other {need}} a type`
+            : activityTotal > 0 ? t`${activityTotal} found, none to classify` : t`None found`,
           state: unresolvedActivityCount > 0 ? "warn" : "ok",
         },
         { icon: ShieldCheck, label: t`Changes since export`, value: change.value, state: change.state },
