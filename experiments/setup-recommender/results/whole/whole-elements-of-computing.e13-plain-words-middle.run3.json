@@ -1,0 +1,145 @@
+{
+  "bookId": "whole-elements-of-computing",
+  "variant": "e13-plain-words-middle",
+  "run": 3,
+  "model": "gpt-5.4-mini",
+  "profileMs": 1865.357562000001,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 213 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/425 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.0014297388572224589
+    },
+    "textDensity": {
+      "medianChars": 1379,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        17,
+        222,
+        348
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 34,
+      "evidence": [
+        115,
+        279,
+        400
+      ]
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "The book is a textbook."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "Lessons and exercises need the AI layout to rebuild their structure."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "dynamic",
+      "rule": "Pages mix reading and exercises, so each page is split into sections."
+    },
+    "activitiesGenerator": {
+      "value": "enabled",
+      "rule": "The book has exercises for the reader, so they become interactive activities."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "pages": [
+      45,
+      125,
+      204,
+      244,
+      324,
+      403
+    ],
+    "answers": {
+      "genre": {
+        "answer": "textbook",
+        "confidence": "high",
+        "evidencePages": [
+          45,
+          125,
+          244,
+          324,
+          403
+        ],
+        "reason": "The pages explain concepts in lessons and include sections, figures, and instructions for learning and testing."
+      },
+      "exercises": {
+        "answer": "many",
+        "confidence": "high",
+        "evidencePages": [
+          324,
+          403
+        ],
+        "reason": "Page 324 gives step-by-step test instructions with bullets, and page 403 shows a default test script."
+      },
+      "composition": {
+        "answer": "text-beside-art",
+        "confidence": "high",
+        "evidencePages": [
+          45,
+          403
+        ],
+        "reason": "The pages place figures and code blocks in their own spaces with text above, below, or beside them rather than over the art."
+      },
+      "diagrams": {
+        "answer": "many",
+        "confidence": "high",
+        "evidencePages": [
+          45,
+          244,
+          403
+        ],
+        "reason": "The pages include labeled figures, structured code-style diagrams, and other explanatory boxed visuals."
+      }
+    },
+    "semantic": {
+      "genre": "textbook",
+      "exercises": "many",
+      "composition": "text-beside-art",
+      "diagrams": "many"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 7437,
+    "outputTokens": 194,
+    "calls": 1
+  },
+  "ms": 4812.826067000002
+}

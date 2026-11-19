@@ -1,7 +1,7 @@
 {
   "dataset": "poc",
-  "note": "adt-poc-llm fd36742 pdfs/ (7–12 page excerpts). Labels from its evaluation/benchmark.json; 'diagnostic' books are outside its 18-decision denominator. Descriptions are simulated (written from title and cover).",
-  "generatedAt": "2026-11-19T21:30:37.125Z",
+  "note": "adt-poc-llm fd36742 pdfs/ (7–12 page excerpts). Labels from its evaluation/benchmark.json; 'diagnostic' books are outside its 18-decision denominator. Descriptions are simulated (written from title and cover). 'descriptions' (vague, rich) were written by us for the describe-first variant (E9), knowing the books.",
+  "generatedAt": "2026-11-19T22:20:47.111Z",
   "variants": [
     {
       "variant": "e0-poc",
@@ -678,6 +678,1092 @@
       "avgOutputTokens": 0,
       "avgCalls": 0,
       "avgMs": 194
+    },
+    {
+      "variant": "e10-plain-words",
+      "agree": 52,
+      "total": 54,
+      "stable": 34,
+      "cells": 36,
+      "perDecision": {
+        "preset": {
+          "agree": 11,
+          "total": 12
+        },
+        "renderStrategy": {
+          "agree": 11,
+          "total": 12
+        },
+        "pageGrouping": {
+          "agree": 12,
+          "total": 12
+        },
+        "sectioningMode": {
+          "agree": 12,
+          "total": 12
+        },
+        "activitiesGenerator": {
+          "agree": 3,
+          "total": 3
+        },
+        "figureExtraction": {
+          "agree": 3,
+          "total": 3
+        }
+      },
+      "books": [
+        {
+          "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+          "diagnostic": false,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook",
+                "textbook",
+                "textbook"
+              ],
+              "label": "textbook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm",
+                "llm"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "dynamic",
+                "dynamic",
+                "dynamic"
+              ],
+              "label": "dynamic"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "enabled",
+                "enabled",
+                "enabled"
+              ],
+              "label": "enabled"
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto",
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "storybook-colouring-my-school",
+          "diagnostic": false,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "fixed_layout",
+                "fixed_layout",
+                "fixed_layout"
+              ],
+              "label": "fixed_layout"
+            },
+            "pageGrouping": {
+              "values": [
+                "spread",
+                "spread",
+                "spread"
+              ],
+              "label": "spread"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-hyena-and-raven",
+          "diagnostic": false,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "two_column_story",
+                "two_column_story",
+                "two_column_story"
+              ],
+              "label": "two_column_story"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-1930-el-viaje",
+          "diagnostic": false,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook",
+                "reference"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm",
+                "single_column"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "reference-reimagining-target-aware-molecular",
+          "diagnostic": true,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "reference",
+                "reference",
+                "reference"
+              ],
+              "label": "reference"
+            },
+            "renderStrategy": {
+              "values": [
+                "single_column",
+                "single_column",
+                "single_column"
+              ],
+              "label": "single_column"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto",
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "textbook-egito-antigo",
+          "diagnostic": true,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook",
+                "textbook",
+                "textbook"
+              ],
+              "label": null
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm",
+                "llm"
+              ],
+              "label": null
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single",
+                "single"
+              ],
+              "label": null
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page",
+                "page"
+              ],
+              "label": null
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto",
+                "auto"
+              ],
+              "label": null
+            }
+          }
+        }
+      ],
+      "diagnostic": {
+        "agree": 15,
+        "total": 15
+      },
+      "runsPerBook": 3,
+      "avgInputTokens": 6594,
+      "avgOutputTokens": 202,
+      "avgCalls": 1,
+      "avgMs": 4365
+    },
+    {
+      "variant": "e11-page-types-text",
+      "agree": 54,
+      "total": 54,
+      "stable": 32,
+      "cells": 36,
+      "perDecision": {
+        "preset": {
+          "agree": 12,
+          "total": 12
+        },
+        "renderStrategy": {
+          "agree": 12,
+          "total": 12
+        },
+        "pageGrouping": {
+          "agree": 12,
+          "total": 12
+        },
+        "sectioningMode": {
+          "agree": 12,
+          "total": 12
+        },
+        "activitiesGenerator": {
+          "agree": 3,
+          "total": 3
+        },
+        "figureExtraction": {
+          "agree": 3,
+          "total": 3
+        }
+      },
+      "books": [
+        {
+          "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+          "diagnostic": false,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook",
+                "textbook",
+                "textbook"
+              ],
+              "label": "textbook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm",
+                "llm"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "dynamic",
+                "dynamic",
+                "dynamic"
+              ],
+              "label": "dynamic"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "enabled",
+                "enabled",
+                "enabled"
+              ],
+              "label": "enabled"
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto",
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "storybook-colouring-my-school",
+          "diagnostic": false,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "fixed_layout",
+                "fixed_layout",
+                "fixed_layout"
+              ],
+              "label": "fixed_layout"
+            },
+            "pageGrouping": {
+              "values": [
+                "spread",
+                "spread",
+                "spread"
+              ],
+              "label": "spread"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-hyena-and-raven",
+          "diagnostic": false,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "two_column_story",
+                "two_column_story",
+                "two_column_story"
+              ],
+              "label": "two_column_story"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-1930-el-viaje",
+          "diagnostic": false,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm",
+                "llm"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "reference-reimagining-target-aware-molecular",
+          "diagnostic": true,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook",
+                "reference",
+                "reference"
+              ],
+              "label": "reference"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "single_column",
+                "single_column"
+              ],
+              "label": "single_column"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto",
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "textbook-egito-antigo",
+          "diagnostic": true,
+          "runs": 3,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook",
+                "storybook",
+                "textbook"
+              ],
+              "label": null
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "fixed_layout",
+                "llm"
+              ],
+              "label": null
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single",
+                "single"
+              ],
+              "label": null
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page",
+                "page"
+              ],
+              "label": null
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        }
+      ],
+      "diagnostic": {
+        "agree": 13,
+        "total": 15
+      },
+      "runsPerBook": 3,
+      "avgInputTokens": 1354,
+      "avgOutputTokens": 205,
+      "avgCalls": 1,
+      "avgMs": 2222
+    },
+    {
+      "variant": "e14-middle-lite",
+      "agree": 34,
+      "total": 36,
+      "stable": 34,
+      "cells": 36,
+      "perDecision": {
+        "preset": {
+          "agree": 7,
+          "total": 8
+        },
+        "renderStrategy": {
+          "agree": 7,
+          "total": 8
+        },
+        "pageGrouping": {
+          "agree": 8,
+          "total": 8
+        },
+        "sectioningMode": {
+          "agree": 8,
+          "total": 8
+        },
+        "activitiesGenerator": {
+          "agree": 2,
+          "total": 2
+        },
+        "figureExtraction": {
+          "agree": 2,
+          "total": 2
+        }
+      },
+      "books": [
+        {
+          "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook",
+                "textbook"
+              ],
+              "label": "textbook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "dynamic",
+                "dynamic"
+              ],
+              "label": "dynamic"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "enabled",
+                "enabled"
+              ],
+              "label": "enabled"
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "storybook-colouring-my-school",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "fixed_layout",
+                "fixed_layout"
+              ],
+              "label": "fixed_layout"
+            },
+            "pageGrouping": {
+              "values": [
+                "spread",
+                "spread"
+              ],
+              "label": "spread"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-hyena-and-raven",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "two_column_story",
+                "two_column_story"
+              ],
+              "label": "two_column_story"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-1930-el-viaje",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "reference"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "single_column"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "reference-reimagining-target-aware-molecular",
+          "diagnostic": true,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "reference",
+                "reference"
+              ],
+              "label": "reference"
+            },
+            "renderStrategy": {
+              "values": [
+                "single_column",
+                "single_column"
+              ],
+              "label": "single_column"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "textbook-egito-antigo",
+          "diagnostic": true,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "reference",
+                "reference"
+              ],
+              "label": null
+            },
+            "renderStrategy": {
+              "values": [
+                "single_column",
+                "single_column"
+              ],
+              "label": null
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": null
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": null
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto"
+              ],
+              "label": null
+            }
+          }
+        }
+      ],
+      "diagnostic": {
+        "agree": 10,
+        "total": 10
+      },
+      "runsPerBook": 2,
+      "avgInputTokens": 2796,
+      "avgOutputTokens": 203,
+      "avgCalls": 1,
+      "avgMs": 3091
     },
     {
       "variant": "e2-facts",
@@ -4044,6 +5130,984 @@
       "avgOutputTokens": 180,
       "avgCalls": 1,
       "avgMs": 4408
+    },
+    {
+      "variant": "e9-describe-rich",
+      "agree": 18,
+      "total": 18,
+      "stable": 36,
+      "cells": 36,
+      "perDecision": {
+        "preset": {
+          "agree": 4,
+          "total": 4
+        },
+        "renderStrategy": {
+          "agree": 4,
+          "total": 4
+        },
+        "pageGrouping": {
+          "agree": 4,
+          "total": 4
+        },
+        "sectioningMode": {
+          "agree": 4,
+          "total": 4
+        },
+        "activitiesGenerator": {
+          "agree": 1,
+          "total": 1
+        },
+        "figureExtraction": {
+          "agree": 1,
+          "total": 1
+        }
+      },
+      "books": [
+        {
+          "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+          "diagnostic": false,
+          "runs": 1,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook"
+              ],
+              "label": "textbook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "dynamic"
+              ],
+              "label": "dynamic"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "enabled"
+              ],
+              "label": "enabled"
+            },
+            "figureExtraction": {
+              "values": [
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "storybook-colouring-my-school",
+          "diagnostic": false,
+          "runs": 1,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "fixed_layout"
+              ],
+              "label": "fixed_layout"
+            },
+            "pageGrouping": {
+              "values": [
+                "spread"
+              ],
+              "label": "spread"
+            },
+            "sectioningMode": {
+              "values": [
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-hyena-and-raven",
+          "diagnostic": false,
+          "runs": 1,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "two_column_story"
+              ],
+              "label": "two_column_story"
+            },
+            "pageGrouping": {
+              "values": [
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-1930-el-viaje",
+          "diagnostic": false,
+          "runs": 1,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "reference-reimagining-target-aware-molecular",
+          "diagnostic": true,
+          "runs": 1,
+          "decisions": {
+            "preset": {
+              "values": [
+                "reference"
+              ],
+              "label": "reference"
+            },
+            "renderStrategy": {
+              "values": [
+                "single_column"
+              ],
+              "label": "single_column"
+            },
+            "pageGrouping": {
+              "values": [
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "textbook-egito-antigo",
+          "diagnostic": true,
+          "runs": 1,
+          "decisions": {
+            "preset": {
+              "values": [
+                "reference"
+              ],
+              "label": null
+            },
+            "renderStrategy": {
+              "values": [
+                "single_column"
+              ],
+              "label": null
+            },
+            "pageGrouping": {
+              "values": [
+                "single"
+              ],
+              "label": null
+            },
+            "sectioningMode": {
+              "values": [
+                "page"
+              ],
+              "label": null
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto"
+              ],
+              "label": null
+            }
+          }
+        }
+      ],
+      "diagnostic": {
+        "agree": 5,
+        "total": 5
+      },
+      "runsPerBook": 1,
+      "avgInputTokens": 4722,
+      "avgOutputTokens": 157,
+      "avgCalls": 1.6666666666666667,
+      "avgMs": 3817
+    },
+    {
+      "variant": "e9-describe-short",
+      "agree": 36,
+      "total": 36,
+      "stable": 36,
+      "cells": 36,
+      "perDecision": {
+        "preset": {
+          "agree": 8,
+          "total": 8
+        },
+        "renderStrategy": {
+          "agree": 8,
+          "total": 8
+        },
+        "pageGrouping": {
+          "agree": 8,
+          "total": 8
+        },
+        "sectioningMode": {
+          "agree": 8,
+          "total": 8
+        },
+        "activitiesGenerator": {
+          "agree": 2,
+          "total": 2
+        },
+        "figureExtraction": {
+          "agree": 2,
+          "total": 2
+        }
+      },
+      "books": [
+        {
+          "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook",
+                "textbook"
+              ],
+              "label": "textbook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "dynamic",
+                "dynamic"
+              ],
+              "label": "dynamic"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "enabled",
+                "enabled"
+              ],
+              "label": "enabled"
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "storybook-colouring-my-school",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "fixed_layout",
+                "fixed_layout"
+              ],
+              "label": "fixed_layout"
+            },
+            "pageGrouping": {
+              "values": [
+                "spread",
+                "spread"
+              ],
+              "label": "spread"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-hyena-and-raven",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "two_column_story",
+                "two_column_story"
+              ],
+              "label": "two_column_story"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-1930-el-viaje",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "reference-reimagining-target-aware-molecular",
+          "diagnostic": true,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "reference",
+                "reference"
+              ],
+              "label": "reference"
+            },
+            "renderStrategy": {
+              "values": [
+                "single_column",
+                "single_column"
+              ],
+              "label": "single_column"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "textbook-egito-antigo",
+          "diagnostic": true,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook",
+                "textbook"
+              ],
+              "label": null
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm"
+              ],
+              "label": null
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": null
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": null
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto"
+              ],
+              "label": null
+            }
+          }
+        }
+      ],
+      "diagnostic": {
+        "agree": 10,
+        "total": 10
+      },
+      "runsPerBook": 2,
+      "avgInputTokens": 7098,
+      "avgOutputTokens": 241,
+      "avgCalls": 2,
+      "avgMs": 5680
+    },
+    {
+      "variant": "e9-describe-vague",
+      "agree": 32,
+      "total": 36,
+      "stable": 36,
+      "cells": 36,
+      "perDecision": {
+        "preset": {
+          "agree": 6,
+          "total": 8
+        },
+        "renderStrategy": {
+          "agree": 6,
+          "total": 8
+        },
+        "pageGrouping": {
+          "agree": 8,
+          "total": 8
+        },
+        "sectioningMode": {
+          "agree": 8,
+          "total": 8
+        },
+        "activitiesGenerator": {
+          "agree": 2,
+          "total": 2
+        },
+        "figureExtraction": {
+          "agree": 2,
+          "total": 2
+        }
+      },
+      "books": [
+        {
+          "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook",
+                "textbook"
+              ],
+              "label": "textbook"
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "dynamic",
+                "dynamic"
+              ],
+              "label": "dynamic"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "enabled",
+                "enabled"
+              ],
+              "label": "enabled"
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "storybook-colouring-my-school",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "fixed_layout",
+                "fixed_layout"
+              ],
+              "label": "fixed_layout"
+            },
+            "pageGrouping": {
+              "values": [
+                "spread",
+                "spread"
+              ],
+              "label": "spread"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-hyena-and-raven",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "storybook",
+                "storybook"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "two_column_story",
+                "two_column_story"
+              ],
+              "label": "two_column_story"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "storybook-1930-el-viaje",
+          "diagnostic": false,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "reference",
+                "reference"
+              ],
+              "label": "storybook"
+            },
+            "renderStrategy": {
+              "values": [
+                "single_column",
+                "single_column"
+              ],
+              "label": "llm"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "off",
+                "off"
+              ],
+              "label": null
+            }
+          }
+        },
+        {
+          "id": "reference-reimagining-target-aware-molecular",
+          "diagnostic": true,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "reference",
+                "reference"
+              ],
+              "label": "reference"
+            },
+            "renderStrategy": {
+              "values": [
+                "single_column",
+                "single_column"
+              ],
+              "label": "single_column"
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": "single"
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": "page"
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto"
+              ],
+              "label": "auto"
+            }
+          }
+        },
+        {
+          "id": "textbook-egito-antigo",
+          "diagnostic": true,
+          "runs": 2,
+          "decisions": {
+            "preset": {
+              "values": [
+                "textbook",
+                "textbook"
+              ],
+              "label": null
+            },
+            "renderStrategy": {
+              "values": [
+                "llm",
+                "llm"
+              ],
+              "label": null
+            },
+            "pageGrouping": {
+              "values": [
+                "single",
+                "single"
+              ],
+              "label": null
+            },
+            "sectioningMode": {
+              "values": [
+                "page",
+                "page"
+              ],
+              "label": null
+            },
+            "activitiesGenerator": {
+              "values": [
+                "disabled",
+                "disabled"
+              ],
+              "label": null
+            },
+            "figureExtraction": {
+              "values": [
+                "auto",
+                "auto"
+              ],
+              "label": null
+            }
+          }
+        }
+      ],
+      "diagnostic": {
+        "agree": 10,
+        "total": 10
+      },
+      "runsPerBook": 2,
+      "avgInputTokens": 7208,
+      "avgOutputTokens": 283,
+      "avgCalls": 2,
+      "avgMs": 5686
     }
   ]
 }

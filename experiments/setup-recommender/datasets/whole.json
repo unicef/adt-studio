@@ -1,0 +1,20 @@
+{
+ "name": "whole",
+ "note": "Two whole books from the local books folder (not in the PoC set; the rulebook was never looked at with them). Facts hand-labelled by the developer from the pages BEFORE any run. Settings labels follow from those facts with rules.ts, so they test the reading and the asking, not the rulebook. PDFs and page images are copyrighted: keep them out of git.",
+ "books": [
+  {
+   "id": "whole-volcanoes",
+   "description": "A picture book for children about being ready for volcanoes.",
+   "labels": { "preset": "storybook", "renderStrategy": "fixed_layout", "pageGrouping": "single", "sectioningMode": "page", "activitiesGenerator": "disabled" },
+   "facts": { "genre": ["story"], "exercises": ["none"], "composition": ["text-in-art"], "diagrams": ["none", "some"] },
+   "pages": "52 pages. Cover, inside cover with 'What are volcanoes?' facts (p2), copyright (p4), title (p5), characters (p6-7), story p8-49, about the authors and series (p50-52). Labelled drawings: survival kit (p28). Diagrams: 'none' and 'some' both accepted, so Figures is not scored."
+  },
+  {
+   "id": "whole-elements-of-computing",
+   "description": "A university textbook about building a computer, with a project in every chapter.",
+   "labels": { "preset": "textbook", "renderStrategy": "llm", "pageGrouping": "single", "sectioningMode": "dynamic", "activitiesGenerator": "enabled", "figureExtraction": "auto" },
+   "facts": { "genre": ["textbook"], "exercises": ["some"], "composition": ["text-mostly"], "diagrams": ["some", "many"] },
+   "pages": "427 pages. Front matter p1-23 (title, contents, list of figures p6-13, preface p14-23), body p24-372, appendices p373-419, index p420-427. Figures are raster images, not vector drawings, so the AI's diagrams answer decides the locked Figures setting. Genre: 'reference' is defensible too (no learner exercises on most pages); labelled textbook because every chapter ends in a project."
+  }
+ ]
+}

@@ -1,0 +1,149 @@
+{
+  "bookId": "storybook-1930-el-viaje",
+  "variant": "e14-middle-lite",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 38.26640699999916,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 4 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/6 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.16726175988533135
+    },
+    "textDensity": {
+      "medianChars": 1175,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        2,
+        3,
+        4
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "es"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "reference",
+      "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+      "value": "single_column",
+      "rule": "Reference material reads best as one clean column."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "answers": {
+      "genre": {
+        "answer": "reference",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ],
+        "reason": "The pages explain and present the project/book as information about an educational initiative and its goals, rather than telling a single continuous story."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ],
+        "reason": "These pages are expository prose and show no write-in questions, blanks, matching, or other answer spaces."
+      },
+      "composition": {
+        "answer": "text-mostly",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ],
+        "reason": "The pages are mostly dense paragraphs with only small or no pictures visible."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          6,
+          7
+        ],
+        "reason": "No labeled diagrams, charts, or maps are visible on these pages, only text."
+      }
+    },
+    "semantic": {
+      "genre": "reference",
+      "exercises": "none",
+      "composition": "text-mostly",
+      "diagrams": "none"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 2861,
+    "outputTokens": 202,
+    "calls": 1
+  },
+  "ms": 3431.404819000003
+}

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auto Mode Prototypes</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f4ef;--surface:#fff;--line:#e2ddd2;--ink:#1d1b17;--ink-2:#5b574e;--ink-3:#8a857a;--accent:#1f5f5b;--soft:#dcebe8;--flag:#a15c00}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15140f;--surface:#1f1d18;--line:#37332a;--ink:#f2efe7;--ink-2:#bdb7aa;--ink-3:#8b8577;--accent:#6cc2b9;--soft:#1d3532;--flag:#f2b555}}
+:root[data-theme="dark"]{--bg:#15140f;--surface:#1f1d18;--line:#37332a;--ink:#f2efe7;--ink-2:#bdb7aa;--ink-3:#8b8577;--accent:#6cc2b9;--soft:#1d3532;--flag:#f2b555}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Figtree",system-ui,sans-serif;overflow-x:hidden}
+main{max-width:1080px;margin:0 auto;padding:32px 16px 48px}
+h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:600;margin:0}
+h2{font-size:21px;margin-top:36px}
+p{margin:6px 0 0;color:var(--ink-2)}
+code{font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;margin-top:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.card>a{display:block}
+.card>a img{width:100%;height:220px;object-fit:cover;object-position:top;border-bottom:1px solid var(--line);display:block}
+.card .body{padding:14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.card h3{font-size:18px}
+.card h3 a{color:inherit;text-decoration:none}
+.card h3 a:hover{color:var(--accent)}
+.tests{font-size:14px;background:var(--soft);border-radius:8px;padding:6px 10px;color:var(--ink)}
+.minis{display:flex;gap:6px;margin-top:4px}
+.minis a{flex:1;min-width:0}
+.minis img{width:100%;height:70px;object-fit:cover;object-position:top;border:1px solid var(--line);border-radius:6px;display:block}
+.minis span{display:block;font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.try{font-size:13px;color:var(--ink-2)}
+.try a{color:var(--accent)}
+.old .card>a img{height:150px}
+.tablewrap{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;font-size:14px;min-width:620px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+th,td{text-align:left;padding:8px 10px;border-top:1px solid var(--line);vertical-align:top}
+th{font-weight:600;border-top:0}
+.note{font-size:13px;color:var(--ink-3);margin-top:12px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Add Book auto mode: prototypes</h1>
+  <p>ADT Studio issue #333. Each prototype uses real AI answers, reasons, cited pages and page images from the PoC run (<code>results/poc</code>, via <code>prototypes/data</code>). The dot on a book tab means the AI asks something on that book. El Viaje (only the foreword was in the PDF) and Egypt (two guesses differ) are the books where the AI can be wrong.</p>
+
+  <h2>Round 3 · three directions to try side by side</h2>
+  <p>The same six books, rules, wording and data in all three; only the flow differs. The tabs at the top of each prototype switch between them on the same book. Settings that can't change after import always sit in the striped box with a lock.</p>
+  <div class="grid">
+    <div class="card">
+      <a href="r3-check-then-ask/index.html"><img src="r3-check-then-ask/shots/02-el-viaje-q1-kind.png" alt="El Viaje, question 1 of 3"></a>
+      <div class="body">
+        <h3><a href="r3-check-then-ask/index.html">Check, then ask</a></h3>
+        <p class="tests">Tests: is "Looks right" plus 0–3 questions only when unsure enough? Default candidate.</p>
+        <p class="small">Sure → one line and a summary. Unsure → every question in one card, counted. El Viaje's maps question is question 3, locked, nothing picked.</p>
+        <div class="minis">
+          <a href="r3-check-then-ask/shots/04-el-viaje-q3-maps-locked.png"><img src="r3-check-then-ask/shots/04-el-viaje-q3-maps-locked.png" alt=""><span>Q3, locked</span></a>
+          <a href="r3-check-then-ask/shots/09-my-school-looks-right.png"><img src="r3-check-then-ask/shots/09-my-school-looks-right.png" alt=""><span>Looks right</span></a>
+          <a href="r3-check-then-ask/shots/13-egypt-choose-pages.png"><img src="r3-check-then-ask/shots/13-egypt-choose-pages.png" alt=""><span>Choose pages</span></a>
+        </div>
+        <p class="try">18 screenshots in <a href="r3-check-then-ask/shots/">shots/</a>. Also try <a href="r3-check-then-ask/index.html?book=storybook-1930-el-viaje&stage=reading&t=3&slow">slow internet</a> and <a href="r3-check-then-ask/index.html?book=storybook-hyena-and-raven&stage=reading&long">a 200-page strip (sketch)</a>.</p>
+      </div>
+    </div>
+    <div class="card">
+      <a href="r3-tell-while-reading/index.html?book=storybook-1930-el-viaje&stage=reading&t=3"><img src="r3-tell-while-reading/shots/01-el-viaje-tell-while-reading.png" alt="Tell us while we read"></a>
+      <div class="body">
+        <h3><a href="r3-tell-while-reading/index.html?book=storybook-1930-el-viaje&stage=reading&t=3">Tell us while we read</a></h3>
+        <p class="tests">Tests: does the user's own answer (given during the 4 s wait) beat the AI's guess on hard books, without slowing easy ones?</p>
+        <p class="small">Two taps while the pages load. After: "Matches what we saw", or a side-by-side "You said / the pages look like" card when both AI guesses disagree with you.</p>
+        <div class="minis">
+          <a href="r3-tell-while-reading/shots/06-hyena-told-on-picture-conflict.png"><img src="r3-tell-while-reading/shots/06-hyena-told-on-picture-conflict.png" alt=""><span>Conflict</span></a>
+          <a href="r3-tell-while-reading/shots/02-el-viaje-told-both.png"><img src="r3-tell-while-reading/shots/02-el-viaje-told-both.png" alt=""><span>El Viaje told</span></a>
+          <a href="r3-tell-while-reading/shots/04-egypt-told-school-book.png"><img src="r3-tell-while-reading/shots/04-egypt-told-school-book.png" alt=""><span>Egypt told</span></a>
+        </div>
+        <p class="try">10 screenshots in <a href="r3-tell-while-reading/shots/">shots/</a>.</p>
+      </div>
+    </div>
+    <div class="card">
+      <a href="r3-teach-me/index.html?book=storybook-hyena-and-raven"><img src="r3-teach-me/shots/01-hyena-step1-kind-sure.png" alt="Teach me, step 1"></a>
+      <div class="body">
+        <h3><a href="r3-teach-me/index.html?book=storybook-hyena-and-raven">Teach me</a></h3>
+        <p class="tests">Tests: the product owner's teaching idea. Is one step per fact that matters, with what it is for, worth it for a first book?</p>
+        <p class="small">Each step says what the fact is for and shows the result of each answer. Sure → guess picked, "Yes, that's right". Unsure → nothing picked.</p>
+        <div class="minis">
+          <a href="r3-teach-me/shots/03-hyena-step3-maps-locked.png"><img src="r3-teach-me/shots/03-hyena-step3-maps-locked.png" alt=""><span>Locked step</span></a>
+          <a href="r3-teach-me/shots/05-el-viaje-step1-unsure.png"><img src="r3-teach-me/shots/05-el-viaje-step1-unsure.png" alt=""><span>El Viaje</span></a>
+          <a href="r3-teach-me/shots/07-teach-phone.png"><img src="r3-teach-me/shots/07-teach-phone.png" alt=""><span>Phone</span></a>
+        </div>
+        <p class="try">8 screenshots in <a href="r3-teach-me/shots/">shots/</a>.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>Questions per book in round 3</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Book</th><th>Check, then ask</th><th>Tell us while we read (told kind + words)</th><th>Teach me</th><th>AI right?</th></tr>
+    <tr><td>El Viaje</td><td>3 (kind, words, maps 🔒)</td><td>1 (maps 🔒)</td><td>3</td><td>Kind is a guess from the foreword</td></tr>
+    <tr><td>Egypt</td><td>1 (kind)</td><td>0</td><td>3</td><td>Both kinds are acceptable</td></tr>
+    <tr><td>My School</td><td>0</td><td>0</td><td>3</td><td>Yes</td></tr>
+    <tr><td>Práticas</td><td>0</td><td>0</td><td>2</td><td>Yes</td></tr>
+    <tr><td>Hyena &amp; Raven</td><td>0</td><td>0</td><td>3</td><td>Yes</td></tr>
+    <tr><td>Research paper</td><td>0</td><td>0</td><td>1</td><td>Yes</td></tr>
+  </table></div>
+  <p class="note">Counts are for run 1 of the AI, computed by the prototype; "Tell us" assumes the user gives the right kind and words. A conflict card in "Tell us" counts as an extra question. Each prototype has a "For testers" box with the AI's answers and the answer key.</p>
+
+  <h2>Earlier rounds (kept for reference)</h2>
+  <p>These use older wording and only four or five books. The round 3 prototypes replace them.</p>
+  <div class="grid old">
+    <div class="card"><a href="check-then-ask/index.html"><img src="check-then-ask/shots/03-el-viaje-q1-kind.png" alt=""></a><div class="body"><h3><a href="check-then-ask/index.html">R2 · D · Check, then ask</a></h3><p class="small">First mixed flow. Ana found a hidden third question in the side panel.</p></div></div>
+    <div class="card"><a href="confirm-facts/index.html"><img src="confirm-facts/shots/01-el-viaje-flagged.png" alt=""></a><div class="body"><h3><a href="confirm-facts/index.html">R1 · A · Check the reading</a></h3><p class="small">Everything pre-filled; asks only where two readings disagree.</p></div></div>
+    <div class="card"><a href="teaching-chat/index.html"><img src="teaching-chat/shots/05-my-school-words-on-art.png" alt=""></a><div class="body"><h3><a href="teaching-chat/index.html">R1 · B · Short conversation</a></h3><p class="small">One question at a time. Became "Teach me".</p></div></div>
+    <div class="card"><a href="describe-first/index.html"><img src="describe-first/shots/01-el-viaje-ask.png" alt=""></a><div class="body"><h3><a href="describe-first/index.html">R1 · C · Tell us first</a></h3><p class="small">User picks the kind first. Became "Tell us while we read".</p></div></div>
+  </div>
+  <p class="note">Built by <code>prototypes/_build/build.py</code> from <code>_build/round3.html</code>; screenshots by <code>_build/shots.mjs</code> (Playwright).</p>
+</main>
+</body>
+</html>

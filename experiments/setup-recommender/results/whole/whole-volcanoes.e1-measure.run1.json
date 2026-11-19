@@ -1,0 +1,94 @@
+{
+  "bookId": "whole-volcanoes",
+  "variant": "e1-measure",
+  "run": 1,
+  "model": null,
+  "profileMs": 3378.5846579999998,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "4 of 26 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "2/50 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": true,
+      "share": 0.8958333333333334,
+      "evidence": [
+        2,
+        13,
+        51
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 137,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 4,
+      "evidence": [
+        4,
+        6,
+        7
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "en",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "fixed_layout",
+      "rule": "Text is placed on the pictures, so the original page design is kept."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "semantic": {
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-in-art",
+      "diagrams": "none"
+    }
+  },
+  "usage": {
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "calls": 0
+  },
+  "ms": 0.07531999999991967
+}

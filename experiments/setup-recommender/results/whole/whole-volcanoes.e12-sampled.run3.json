@@ -1,0 +1,336 @@
+{
+  "bookId": "whole-volcanoes",
+  "variant": "e12-sampled",
+  "run": 3,
+  "model": "gpt-5.4-mini",
+  "profileMs": 3378.5846579999998,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "4 of 26 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "2/50 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": true,
+      "share": 0.8958333333333334,
+      "evidence": [
+        2,
+        13,
+        51
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 137,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 4,
+      "evidence": [
+        4,
+        6,
+        7
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "en",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "two_column_story",
+      "rule": "Text sits beside the pictures, so story text and art go side by side."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "plan": {
+      "opening": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "middle": [
+        13,
+        17,
+        20,
+        24,
+        28,
+        31,
+        35,
+        39,
+        42,
+        46
+      ],
+      "end": [
+        49,
+        50,
+        51,
+        52
+      ],
+      "all": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        13,
+        17,
+        20,
+        24,
+        28,
+        31,
+        35,
+        39,
+        42,
+        46,
+        49,
+        50,
+        51,
+        52
+      ],
+      "full": false
+    },
+    "pageLabels": [
+      {
+        "page": 1,
+        "type": "cover",
+        "textPlacement": "on-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 2,
+        "type": "front-matter",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 3,
+        "type": "blank",
+        "textPlacement": "no-text",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 4,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 5,
+        "type": "cover",
+        "textPlacement": "on-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 6,
+        "type": "front-matter",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 7,
+        "type": "front-matter",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 8,
+        "type": "story",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 9,
+        "type": "story",
+        "textPlacement": "on-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 10,
+        "type": "story",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 13,
+        "type": "lesson",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 17,
+        "type": "lesson",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 20,
+        "type": "story",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 24,
+        "type": "story",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 28,
+        "type": "lesson",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 31,
+        "type": "story",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 35,
+        "type": "story",
+        "textPlacement": "on-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 39,
+        "type": "story",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 42,
+        "type": "story",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 46,
+        "type": "story",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 49,
+        "type": "story",
+        "textPlacement": "on-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 50,
+        "type": "back-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 51,
+        "type": "back-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 52,
+        "type": "back-matter",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": false
+      }
+    ],
+    "bookGenre": "story",
+    "semantic": {
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-beside-art",
+      "diagrams": "some"
+    },
+    "flags": [],
+    "counts": {
+      "body": 14,
+      "story": 11,
+      "textbook": 3,
+      "reference": 0,
+      "exercisePages": 0,
+      "figurePages": 2,
+      "placement": {
+        "on-art": 3,
+        "beside-art": 11,
+        "text-only": 0
+      }
+    },
+    "range": {
+      "keepCover": true,
+      "start": 8,
+      "end": 49,
+      "skipped": [
+        {
+          "from": 2,
+          "to": 7,
+          "why": "opening"
+        },
+        {
+          "from": 50,
+          "to": 52,
+          "why": "end"
+        }
+      ],
+      "startExact": true,
+      "endExact": true
+    },
+    "uploadBytes": 6364991,
+    "llmMs": 4808.884981000003,
+    "renderAndCallMs": 6425.303083999999
+  },
+  "usage": {
+    "inputTokens": 8858,
+    "outputTokens": 527,
+    "calls": 1
+  },
+  "ms": 6425.305053999997
+}

@@ -1,0 +1,575 @@
+{
+ "id": "reference-reimagining-target-aware-molecular",
+ "pageCount": 7,
+ "engine": {
+  "proposal": "e5-page-types",
+  "check": "e4-one-call",
+  "run": 1
+ },
+ "thumbnails": {
+  "1": "pages/reference-reimagining-target-aware-molecular/p1.png",
+  "2": "pages/reference-reimagining-target-aware-molecular/p2.png",
+  "3": "pages/reference-reimagining-target-aware-molecular/p3.png",
+  "4": "pages/reference-reimagining-target-aware-molecular/p4.png",
+  "5": "pages/reference-reimagining-target-aware-molecular/p5.png",
+  "6": "pages/reference-reimagining-target-aware-molecular/p6.png",
+  "7": "pages/reference-reimagining-target-aware-molecular/p7.png"
+ },
+ "summary": "Reference reading, 7 pages: mostly text, no exercises, labelled diagrams throughout.",
+ "measured": {
+  "pageStorage": {
+   "value": "single-pages",
+   "evidence": [],
+   "detail": "0 of 3 facing pairs continue across the gutter",
+   "irreversible": true,
+   "plain": {
+    "en": "Each PDF page is one page of the book, so each becomes one screen.",
+    "pt-BR": "Cada página do PDF é uma página do livro, então cada uma vira uma tela.",
+    "es": "Cada página del PDF es una página del libro, así que cada una será una pantalla."
+   }
+  },
+  "textLayer": {
+   "value": "digital",
+   "evidence": [],
+   "detail": "0/5 pages look scanned",
+   "plain": {
+    "en": "The PDF has real text, so we read the words directly.",
+    "pt-BR": "O PDF tem texto de verdade, então lemos as palavras diretamente.",
+    "es": "El PDF tiene texto real, así que leemos las palabras directamente."
+   }
+  },
+  "language": {
+   "pdfTag": "",
+   "guess": "en"
+  },
+  "numbers": {
+   "medianChars": 3348,
+   "pictureCoverage": 0.034146456813465634,
+   "textOverPicturesShare": 0,
+   "exerciseCuePages": 0,
+   "diagramPages": 2
+  }
+ },
+ "facts": {
+  "genre": {
+   "question": "What kind of book is this?",
+   "proposed": "reference",
+   "proposedPlain": "reference reading",
+   "teachingQuestion": "Is this something people read to find information, like a report, an article or a manual?",
+   "plainQuestion": "What is this book mostly?",
+   "plainOptions": {
+    "story": "A story. Readers follow characters or events from start to end: a picture book, a tale or a novel. A story with a few colouring or drawing pages is still a story.",
+    "textbook": "A schoolbook. It teaches a subject in lessons and gives the learner tasks to do.",
+    "reference": "Something people read to find information: a report, an article, a manual or a guide. It has no tasks for the reader."
+   },
+   "unsupported": false,
+   "reason": "The pages are from a research article with sections, equations, figures, tables, and experimental results, which is informational academic material rather than a story or student lesson.",
+   "citedPages": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "reference",
+   "flag": null,
+   "matters": true,
+   "trueAnswer": [
+    "reference"
+   ]
+  },
+  "exercises": {
+   "question": "Does the book contain exercises or activities that the reader is meant to do (answer questions, fill in blanks, match, circle, write)?",
+   "proposed": "none",
+   "proposedPlain": "no exercises",
+   "teachingQuestion": "Is this book only for reading? (Colouring and drawing pages still count as reading.)",
+   "plainQuestion": "Does the book ask the reader to write or mark answers? (Colouring and drawing do not count.)",
+   "plainOptions": {
+    "none": "No. The reader only reads, or colours and draws. Questions inside the story that nobody writes an answer to do not count.",
+    "some": "Yes, on a few pages: questions to answer, blanks to fill, things to match, circle or tick.",
+    "many": "Yes, on most pages."
+   },
+   "unsupported": false,
+   "reason": "The pages contain exposition, equations, figures, and tables, but no numbered problems, blanks, answer prompts, or other reader activities.",
+   "citedPages": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "none",
+   "flag": null,
+   "matters": false,
+   "trueAnswer": [
+    "none"
+   ]
+  },
+  "composition": {
+   "question": "How are the text and the pictures arranged on the pages?",
+   "proposed": "text-mostly",
+   "proposedPlain": "mostly text",
+   "teachingQuestion": "Is it mostly words, with few or small pictures?",
+   "plainQuestion": "Where are the words on a page?",
+   "plainOptions": {
+    "text-in-art": "Printed on the picture itself, for example over the sky or the grass.",
+    "text-beside-art": "In their own space: above, below or next to the picture, or on the opposite page.",
+    "text-mostly": "It is mostly words. Pictures are few or small."
+   },
+   "unsupported": false,
+   "reason": "Most pages are dense with paragraphs and equations, while the pictures are small figures or tables occupying limited space rather than dominating the page.",
+   "citedPages": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "text-mostly",
+   "flag": "The page labels are split on this.",
+   "matters": false,
+   "trueAnswer": [
+    "text-mostly"
+   ]
+  },
+  "diagrams": {
+   "question": "Does the book contain diagrams, charts, maps, labelled figures or infographics whose labels carry meaning?",
+   "proposed": "many",
+   "proposedPlain": "labelled diagrams throughout",
+   "teachingQuestion": "Are there maps, charts or labelled drawings on many pages?",
+   "plainQuestion": "Are there pictures with labels that explain something, like maps, charts, diagrams or labelled drawings?",
+   "plainOptions": {
+    "none": "No. Only illustrations or photos. A caption under a photo does not count.",
+    "some": "Yes, a few.",
+    "many": "Yes, on many pages."
+   },
+   "unsupported": false,
+   "reason": "There are multiple meaningful figures and tables, including workflow diagrams, structure images, scatter plots, histograms, and comparison tables with labels and metrics.",
+   "citedPages": [
+    3,
+    4,
+    5,
+    6
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "many",
+   "flag": null,
+   "matters": false,
+   "trueAnswer": [
+    "some",
+    "many"
+   ]
+  }
+ },
+ "coverage": {
+  "pagesRead": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "pageCount": 7,
+  "sampled": false,
+  "bodyPages": [
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "contentStartsAt": 2,
+  "onlyFrontMatter": false,
+  "strip": [
+   {
+    "page": 1,
+    "type": "front-matter",
+    "kind": "opening",
+    "group": "all"
+   },
+   {
+    "page": 2,
+    "type": "lesson",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 3,
+    "type": "informational",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 4,
+    "type": "informational",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 5,
+    "type": "informational",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 6,
+    "type": "informational",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 7,
+    "type": "informational",
+    "kind": "book",
+    "group": "all"
+   }
+  ],
+  "say": "Read all 7 pages. The book starts on page 2.",
+  "sayI18n": {
+   "en": "We read all 7 pages.",
+   "pt-BR": "Lemos todas as 7 páginas.",
+   "es": "Leímos las 7 páginas."
+  },
+  "question": null,
+  "questionI18n": null
+ },
+ "range": {
+  "suggested": {
+   "keepCover": false,
+   "start": 2,
+   "end": 7,
+   "skipped": [
+    {
+     "from": 1,
+     "to": 1,
+     "why": "opening"
+    }
+   ],
+   "startExact": true,
+   "endExact": true
+  },
+  "say": [
+   {
+    "en": "The book seems to start on page 2.",
+    "pt-BR": "O livro parece começar na página 2.",
+    "es": "El libro parece empezar en la página 2."
+   },
+   {
+    "en": "Page 1 is left out.",
+    "pt-BR": "A página 1 fica de fora.",
+    "es": "La página 1 queda fuera."
+   }
+  ]
+ },
+ "previewPage": {
+  "page": 7,
+  "isBody": true,
+  "why": "From the middle of the pages we read (labelled informational); the words are plain text."
+ },
+ "ask": [],
+ "askAcrossRuns": {
+  "combos": 9,
+  "questions": [
+   0,
+   0,
+   0,
+   1,
+   1,
+   1,
+   0,
+   0,
+   0
+  ],
+  "avgQuestions": 0.3333333333333333,
+  "missed": {}
+ },
+ "pageLabels": [
+  {
+   "page": 1,
+   "type": "front-matter",
+   "textPlacement": "text-only",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 2,
+   "type": "lesson",
+   "textPlacement": "text-only",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 3,
+   "type": "informational",
+   "textPlacement": "on-art",
+   "meaningfulFigure": true
+  },
+  {
+   "page": 4,
+   "type": "informational",
+   "textPlacement": "beside-art",
+   "meaningfulFigure": true
+  },
+  {
+   "page": 5,
+   "type": "informational",
+   "textPlacement": "text-only",
+   "meaningfulFigure": true
+  },
+  {
+   "page": 6,
+   "type": "informational",
+   "textPlacement": "on-art",
+   "meaningfulFigure": true
+  },
+  {
+   "page": 7,
+   "type": "informational",
+   "textPlacement": "text-only",
+   "meaningfulFigure": true
+  }
+ ],
+ "pageCounts": {
+  "body": 6,
+  "story": 0,
+  "textbook": 1,
+  "reference": 5,
+  "exercisePages": 0,
+  "figurePages": 5,
+  "placement": {
+   "on-art": 2,
+   "beside-art": 1,
+   "text-only": 3
+  }
+ },
+ "settings": {
+  "preset": {
+   "value": "reference",
+   "rule": "The book is a reference.",
+   "irreversible": false,
+   "knownGood": "reference"
+  },
+  "renderStrategy": {
+   "value": "single_column",
+   "rule": "Reference material reads best as one clean column.",
+   "irreversible": false,
+   "knownGood": "single_column"
+  },
+  "pageGrouping": {
+   "value": "single",
+   "rule": "Pages stand alone.",
+   "irreversible": true,
+   "knownGood": "single"
+  },
+  "sectioningMode": {
+   "value": "page",
+   "rule": "Each page is one unit.",
+   "irreversible": false,
+   "knownGood": "page"
+  },
+  "activitiesGenerator": {
+   "value": "disabled",
+   "rule": "No exercises for the reader.",
+   "irreversible": false,
+   "knownGood": null
+  },
+  "figureExtraction": {
+   "value": "auto",
+   "rule": "Diagrams with text labels are kept together as figures.",
+   "irreversible": true,
+   "knownGood": "auto"
+  }
+ },
+ "whatIf": {
+  "genre": {
+   "story": {
+    "preset": {
+     "from": "reference",
+     "to": "storybook",
+     "rule": "The book is a story."
+    },
+    "renderStrategy": {
+     "from": "single_column",
+     "to": "llm",
+     "rule": "Mostly text, so the AI layout reflows it."
+    }
+   },
+   "textbook": {
+    "preset": {
+     "from": "reference",
+     "to": "textbook",
+     "rule": "The book is a textbook."
+    },
+    "renderStrategy": {
+     "from": "single_column",
+     "to": "llm",
+     "rule": "Lessons and exercises need the AI layout to rebuild their structure."
+    }
+   }
+  },
+  "exercises": {
+   "some": {},
+   "many": {}
+  },
+  "composition": {
+   "text-in-art": {},
+   "text-beside-art": {}
+  },
+  "diagrams": {
+   "none": {},
+   "some": {}
+  }
+ },
+ "questionOrder": [
+  "genre"
+ ],
+ "describeFirst": {
+  "short": {
+   "description": "A research paper about AI for molecular design.",
+   "parsed": {
+    "genre": {
+     "status": "stated",
+     "answer": "reference",
+     "quote": "A research paper about AI for molecular design."
+    },
+    "exercises": {
+     "status": "stated",
+     "answer": "none",
+     "quote": "A research paper about AI for molecular design."
+    },
+    "composition": {
+     "status": "unknown",
+     "answer": "text-mostly",
+     "quote": ""
+    },
+    "diagrams": {
+     "status": "unknown",
+     "answer": "none",
+     "quote": ""
+    }
+   },
+   "settledByDescription": [
+    "genre",
+    "exercises"
+   ],
+   "stillToAsk": []
+  },
+  "vague": {
+   "description": "A paper I need to make accessible.",
+   "parsed": {
+    "genre": {
+     "status": "unknown",
+     "answer": "reference",
+     "quote": ""
+    },
+    "exercises": {
+     "status": "unknown",
+     "answer": "none",
+     "quote": ""
+    },
+    "composition": {
+     "status": "unknown",
+     "answer": "text-mostly",
+     "quote": ""
+    },
+    "diagrams": {
+     "status": "unknown",
+     "answer": "none",
+     "quote": ""
+    }
+   },
+   "settledByDescription": [],
+   "stillToAsk": [
+    "genre"
+   ]
+  },
+  "rich": {
+   "description": "A machine-learning research paper with equations, charts and result tables.",
+   "parsed": {
+    "genre": {
+     "status": "stated",
+     "answer": "reference",
+     "quote": "A machine-learning research paper"
+    },
+    "exercises": {
+     "status": "stated",
+     "answer": "none",
+     "quote": "A machine-learning research paper with equations, charts and result tables."
+    },
+    "composition": {
+     "status": "unknown",
+     "answer": "text-mostly",
+     "quote": ""
+    },
+    "diagrams": {
+     "status": "stated",
+     "answer": "many",
+     "quote": "with equations, charts and result tables."
+    }
+   },
+   "settledByDescription": [
+    "genre",
+    "exercises",
+    "diagrams"
+   ],
+   "stillToAsk": []
+  }
+ },
+ "status": "looks-right",
+ "statusText": {
+  "en": "Looks right. Here's what we found.",
+  "pt-BR": "Parece certo. Veja o que encontramos.",
+  "es": "Parece correcto. Esto es lo que encontramos."
+ },
+ "questions": [],
+ "lockedSettings": [
+  {
+   "setting": "pageGrouping",
+   "label": {
+    "en": "Facing pages",
+    "pt-BR": "Páginas lado a lado",
+    "es": "Páginas enfrentadas"
+   },
+   "value": "single",
+   "valueText": {
+    "en": "One PDF page per screen",
+    "pt-BR": "Uma página do PDF por tela",
+    "es": "Una página del PDF por pantalla"
+   },
+   "from": "measured",
+   "askedIn": []
+  },
+  {
+   "setting": "figureExtraction",
+   "label": {
+    "en": "Maps and labelled drawings",
+    "pt-BR": "Mapas e desenhos com legendas",
+    "es": "Mapas y dibujos con rótulos"
+   },
+   "value": "auto",
+   "valueText": {
+    "en": "Kept together with their labels",
+    "pt-BR": "Mantidos junto com as legendas",
+    "es": "Se mantienen junto con sus rótulos"
+   },
+   "from": "measured",
+   "askedIn": []
+  }
+ ],
+ "oldOneShot": {
+  "preset": "reference",
+  "renderStrategy": "llm",
+  "pageGrouping": "single",
+  "sectioningMode": "page",
+  "activitiesGenerator": "disabled",
+  "figureExtraction": "auto"
+ }
+}

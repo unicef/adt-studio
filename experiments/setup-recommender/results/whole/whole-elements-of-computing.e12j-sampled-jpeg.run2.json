@@ -1,0 +1,448 @@
+{
+  "bookId": "whole-elements-of-computing",
+  "variant": "e12j-sampled-jpeg",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 1857.920103999999,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 213 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/425 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.0014297388572224589
+    },
+    "textDensity": {
+      "medianChars": 1379,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        17,
+        222,
+        348
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 34,
+      "evidence": [
+        115,
+        279,
+        400
+      ]
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "The book is a textbook."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "Lessons and exercises need the AI layout to rebuild their structure."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "dynamic",
+      "rule": "Pages mix reading and exercises, so each page is split into sections."
+    },
+    "activitiesGenerator": {
+      "value": "enabled",
+      "rule": "The book has exercises for the reader, so they become interactive activities."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "plan": {
+      "opening": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+      ],
+      "middle": [
+        45,
+        85,
+        125,
+        164,
+        204,
+        244,
+        284,
+        324,
+        363,
+        403
+      ],
+      "end": [
+        424,
+        425,
+        426,
+        427
+      ],
+      "all": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        45,
+        85,
+        125,
+        164,
+        204,
+        244,
+        284,
+        324,
+        363,
+        403,
+        424,
+        425,
+        426,
+        427
+      ],
+      "full": false
+    },
+    "pageLabels": [
+      {
+        "page": 1,
+        "type": "cover",
+        "textPlacement": "on-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 2,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 3,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 4,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 5,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 6,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 7,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 8,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 9,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 10,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 11,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 12,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 13,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 14,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 15,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 16,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 17,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 18,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 19,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 20,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 21,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 22,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 23,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 24,
+        "type": "lesson",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 45,
+        "type": "lesson",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 85,
+        "type": "lesson",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 125,
+        "type": "lesson",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 164,
+        "type": "lesson",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 204,
+        "type": "lesson",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 244,
+        "type": "lesson",
+        "textPlacement": "text-only",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 284,
+        "type": "lesson",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 324,
+        "type": "exercise",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 363,
+        "type": "lesson",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 403,
+        "type": "lesson",
+        "textPlacement": "beside-art",
+        "meaningfulFigure": true
+      },
+      {
+        "page": 424,
+        "type": "back-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 425,
+        "type": "back-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 426,
+        "type": "back-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 427,
+        "type": "back-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      }
+    ],
+    "bookGenre": "textbook",
+    "semantic": {
+      "genre": "textbook",
+      "exercises": "some",
+      "composition": "text-mostly",
+      "diagrams": "many"
+    },
+    "flags": [],
+    "counts": {
+      "body": 11,
+      "story": 0,
+      "textbook": 11,
+      "reference": 0,
+      "exercisePages": 1,
+      "figurePages": 4,
+      "placement": {
+        "on-art": 0,
+        "beside-art": 3,
+        "text-only": 8
+      }
+    },
+    "range": {
+      "keepCover": true,
+      "start": 24,
+      "end": 423,
+      "skipped": [
+        {
+          "from": 2,
+          "to": 23,
+          "why": "opening"
+        },
+        {
+          "from": 424,
+          "to": 427,
+          "why": "end"
+        }
+      ],
+      "startExact": true,
+      "endExact": false
+    },
+    "uploadBytes": 1518302,
+    "llmMs": 5474.326298,
+    "renderAndCallMs": 5829.880417
+  },
+  "usage": {
+    "inputTokens": 12941,
+    "outputTokens": 834,
+    "calls": 1
+  },
+  "ms": 5829.882053000001
+}

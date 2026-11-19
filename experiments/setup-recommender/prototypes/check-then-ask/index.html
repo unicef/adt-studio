@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check Then Ask</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4ef; --surface:#ffffff; --surface-2:#efece5; --line:#e2ddd2; --ink:#1d1b17; --ink-2:#5b574e; --ink-3:#8a857a;
+  --accent:#1f5f5b; --accent-ink:#ffffff; --accent-soft:#dcebe8;
+  --flag:#a15c00; --flag-soft:#fbefd9; --flag-line:#e8c27a;
+  --lock:#3d3a7a; --lock-soft:#e9e8f6; --lock-line:#b9b6e3;
+  --ok:#2c6e3f; --ok-soft:#e0f0e4; --changed:#fff2b8;
+  --shadow:0 1px 2px rgba(30,25,15,.06),0 4px 16px rgba(30,25,15,.06);
+  --radius:14px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15140f; --surface:#1f1d18; --surface-2:#29261f; --line:#37332a; --ink:#f2efe7; --ink-2:#bdb7aa; --ink-3:#8b8577;
+    --accent:#6cc2b9; --accent-ink:#0d1f1d; --accent-soft:#1d3532;
+    --flag:#f2b555; --flag-soft:#3a2c13; --flag-line:#7a5a22;
+    --lock:#b3afff; --lock-soft:#25233f; --lock-line:#4a4785;
+    --ok:#7fd196; --ok-soft:#1b3322; --changed:#4a3f10;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15140f; --surface:#1f1d18; --surface-2:#29261f; --line:#37332a; --ink:#f2efe7; --ink-2:#bdb7aa; --ink-3:#8b8577;
+  --accent:#6cc2b9; --accent-ink:#0d1f1d; --accent-soft:#1d3532;
+  --flag:#f2b555; --flag-soft:#3a2c13; --flag-line:#7a5a22;
+  --lock:#b3afff; --lock-soft:#25233f; --lock-line:#4a4785;
+  --ok:#7fd196; --ok-soft:#1b3322; --changed:#4a3f10;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Figtree",system-ui,sans-serif;overflow-x:hidden}
+h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:600;letter-spacing:-.01em;margin:0}
+h1{font-size:24px;line-height:1.2} h2{font-size:19px;line-height:1.25} h3{font-size:16px}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+img{display:block;max-width:100%}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+.muted{color:var(--ink-2)} .faint{color:var(--ink-3)} .small{font-size:13px} .tiny{font-size:12px}
+.row{display:flex;gap:8px;align-items:center} .wrapflex{flex-wrap:wrap}
+.stack>*+*{margin-top:12px}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:12px;min-height:56px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.brand{font-weight:600;font-size:14px;white-space:nowrap}
+.brand small{display:block;font-weight:400;color:var(--ink-3);font-size:12px}
+.books{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
+.bookbtn{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px 4px 4px;white-space:nowrap;font-size:13px}
+.bookbtn img{width:24px;height:24px;border-radius:50%;object-fit:cover}
+.bookbtn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.bookbtn .wrongdot{width:6px;height:6px;border-radius:50%;background:var(--flag)}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;width:36px;height:36px;display:grid;place-items:center;flex:none}
+
+/* buttons, chips */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px;font-weight:500}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{color:var(--ink)}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:14px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip .ai{font-size:11px;opacity:.75;margin-left:4px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:600;white-space:nowrap}
+.badge.lock{background:var(--lock-soft);color:var(--lock)}
+.badge.flag{background:var(--flag-soft);color:var(--flag)}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.later{background:var(--surface-2);color:var(--ink-2)}
+.badge svg{width:12px;height:12px}
+
+/* locked zone */
+.locked{border:1.5px solid var(--lock-line);border-radius:var(--radius);background:
+  repeating-linear-gradient(135deg,transparent 0 10px,color-mix(in srgb,var(--lock-soft) 60%,transparent) 10px 11px),var(--surface)}
+.locked-head{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border-bottom:1px solid var(--lock-line);color:var(--lock)}
+.locked-head p{color:var(--ink-2)}
+
+/* page thumbs */
+.thumbs{display:flex;gap:6px;flex-wrap:wrap}
+.thumb{position:relative;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface-2);padding:0}
+.thumb img{height:84px;width:auto}
+.thumb .pn{position:absolute;left:3px;bottom:3px;background:rgba(0,0,0,.65);color:#fff;font-size:10px;border-radius:4px;padding:0 4px}
+.thumb.cited{outline:2px solid var(--accent);outline-offset:-2px}
+.spreadpair{display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.spreadpair img{height:84px;width:auto}
+.spreadpair img+img{border-left:1px dashed var(--ink-3)}
+
+/* settings list */
+.setting{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.setting:first-child{border-top:0}
+.setting .name{font-size:13px;color:var(--ink-2)}
+.setting .val{font-weight:600}
+.setting .was{font-size:12px;color:var(--ink-3);text-decoration:line-through;margin-left:6px;font-weight:400}
+.setting .why{grid-column:1/-1;font-size:12px;color:var(--ink-3)}
+.setting.flash{animation:flash 1.6s ease-out}
+@keyframes flash{0%{background:var(--changed)}100%{background:transparent}}
+
+/* lightbox */
+.lightbox{position:fixed;inset:0;background:rgba(10,10,8,.8);display:none;place-items:center;z-index:50;padding:16px}
+.lightbox.open{display:grid}
+.lightbox img{max-height:86vh;max-width:100%;border-radius:8px;background:#fff}
+.lightbox .cap{color:#fff;text-align:center;margin-top:8px;font-size:14px}
+
+.note{font-size:12px;color:var(--ink-3);border-top:1px dashed var(--line);padding-top:10px;margin-top:24px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;padding-top:20px;padding-bottom:32px}
+@media (max-width:880px){.layout{grid-template-columns:minmax(0,1fr)}}
+.bookhead{display:flex;gap:14px;align-items:center}
+.bookhead img{width:56px;border-radius:6px;border:1px solid var(--line);flex:none}
+.status{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;margin-top:16px;font-size:15px}
+.status svg{width:18px;height:18px;flex:none;margin-top:2px}
+.status.calm{background:var(--ok-soft);color:var(--ok)}
+.status.unsure{background:var(--flag-soft);color:var(--flag)}
+.status p{color:var(--ink)}
+.sec{margin-top:24px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.sec-h h2{font-size:17px}
+.strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.strip figure{margin:0;flex:none;width:58px;text-align:center}
+.strip button{padding:0;border:0;background:none;display:block;width:100%}
+.strip img{width:58px;height:80px;object-fit:cover;object-position:top;border-radius:5px;border:1px solid var(--line);background:#fff}
+.strip figcaption{font-size:11px;line-height:1.2;color:var(--ink-2);margin-top:3px}
+.strip figure.front img{opacity:.75}
+.strip figure.front figcaption{color:var(--flag);font-weight:600}
+.strip figure.off img{opacity:.25;filter:grayscale(1)}
+.strip figure.off figcaption{text-decoration:line-through}
+.facts{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+.fact{padding:12px 14px;border-top:1px solid var(--line);display:grid;grid-template-columns:52px 1fr auto;gap:4px 12px;align-items:center}
+.fact:first-child{border-top:0}
+.fact .sk{grid-row:span 2;width:52px;height:38px;color:var(--ink-2)}
+.fact .q{font-size:13px;color:var(--ink-2)}
+.fact .a{font-weight:600}
+.fact .a .you{font-size:11px;font-weight:600;color:var(--accent);margin-left:6px}
+.fact .src{grid-column:2/-1;font-size:12px;color:var(--ink-3)}
+.fact .chg{font-size:13px;color:var(--accent);background:none;border:0;padding:4px 0}
+.fact .pick{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.fact .note{grid-column:1/-1;font-size:12px;color:var(--ink-2);background:var(--surface-2);border-radius:8px;padding:6px 8px;margin-top:4px}
+.fact.guess .src{color:var(--flag)}
+.qcard{border:1.5px solid var(--flag-line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.qcard.walk{border-color:var(--line)}
+.qtop{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 16px;background:var(--flag-soft);font-size:13px;color:var(--flag);font-weight:600;flex-wrap:wrap}
+.qcard.walk .qtop{background:var(--surface-2);color:var(--ink-2)}
+.qbody{padding:16px}
+.qbody h2{font-size:21px;margin:12px 0 4px}
+.why{font-size:14px;color:var(--ink-2)}
+.help{font-size:13px;color:var(--ink-2);margin-top:4px}
+.help b{color:var(--ink)}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+@media (max-width:640px){.opts{grid-template-columns:1fr}}
+.opt{text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.opt:hover{border-color:var(--ink-3)}
+.opt .sk{width:64px;height:46px;color:var(--ink-2)}
+.opt b{font-size:15px}
+.opt .d{font-size:12px;color:var(--ink-2)}
+.opt .eff{font-size:12px;color:var(--ink-3);border-top:1px dashed var(--line);padding-top:6px;margin-top:auto}
+.opt .eff b{font-size:12px;color:var(--ink-2)}
+.opt .tag{align-self:flex-start;font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;background:var(--surface-2);color:var(--ink-2)}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.qfoot{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.dots{display:flex;gap:6px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--flag)}
+.dots i.done{background:var(--accent)}
+/* right panel */
+.panel{align-self:start;position:sticky;top:76px}
+@media (max-width:880px){.panel{position:static}}
+.lockitem{padding:12px 16px;border-top:1px solid var(--lock-line)}
+.lockitem:first-of-type{border-top:0}
+.lockitem .k{font-size:13px;color:var(--ink-2)}
+.lockitem .v{font-weight:600}
+.lockitem .ev{font-size:12px;color:var(--ink-2);margin-top:4px}
+.lockitem .chk{font-size:12px;color:var(--flag);margin-top:4px;font-weight:600}
+.lockitem .lnk{font-size:12px;color:var(--lock);background:none;border:0;padding:0;margin-top:4px;text-decoration:underline}
+.later{padding:4px 16px 12px}
+.later .setting .val small{font-weight:400;color:var(--ink-3)}
+.preview{margin:10px 0 4px;display:flex;gap:12px;align-items:center}
+.device{flex:none;width:118px;height:160px;border:2px solid var(--ink-3);border-radius:12px;background:var(--surface);padding:7px;overflow:hidden;display:flex;flex-direction:column;gap:5px}
+.device.wide{width:190px;height:140px}
+.device img{width:100%;border-radius:3px}
+.device .ln{height:4px;border-radius:2px;background:var(--ink-3);opacity:.55}
+.device .hd{height:7px;width:70%;border-radius:2px;background:var(--ink-2)}
+.device .two{display:flex;gap:6px;flex:1;min-height:0}
+.device .two img{width:50%;height:100%;object-fit:cover}
+.device .two div{flex:1;display:flex;flex-direction:column;gap:5px;justify-content:center}
+.device .fit{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.device .fit img{max-height:100%;width:auto;max-width:100%;object-fit:contain}
+.device .pic{height:44px;object-fit:cover}
+.preview p{font-size:12px;color:var(--ink-2)}
+details.more summary{cursor:pointer;font-size:13px;color:var(--ink-2);padding:8px 0}
+.locked-head svg{width:20px;height:20px;flex:none;margin-top:2px}
+.dock{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:30}
+.dock .wrap{display:flex;gap:12px;align-items:center;justify-content:space-between;min-height:64px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+/* loader */
+.load{max-width:720px;margin:0 auto;padding:24px 0 32px}
+.lstep{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--line)}
+.lstep:first-of-type{border-top:0}
+.lstep .ico{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--surface-2);color:var(--ink-2)}
+.lstep .ico svg{width:14px;height:14px}
+.lstep.done .ico{background:var(--ok-soft);color:var(--ok)}
+.lstep.run .ico{background:var(--flag-soft);color:var(--flag)}
+.lstep .t{font-weight:600}
+.spin{width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.wait{margin-top:12px;border:1px dashed var(--line);border-radius:var(--radius);padding:14px 16px;background:var(--surface)}
+dialog{border:0;border-radius:var(--radius);padding:0;max-width:460px;width:calc(100% - 32px);background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(10,10,8,.5)}
+.dlg{padding:20px}
+.dlg input{font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:72px}
+.warn{color:var(--flag);font-size:13px;margin-top:8px}
+.srcnote{font-size:12px;color:var(--ink-3);margin-top:16px}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="wrap">
+  <div class="brand">Add book · auto<small>Round 2 · check, then ask</small></div>
+  <nav class="books" id="books" aria-label="Books"></nav>
+  <button class="iconbtn" id="theme" aria-label="Toggle theme"></button>
+</div></header>
+<main id="app"></main>
+<div class="dock" id="dock" hidden></div>
+<dialog id="dlg"></dialog>
+<script>
+const DATA = {"books": [{"id": "storybook-1930-el-viaje", "title": "1930: El Viaje", "short": "El Viaje", "run": 1, "source": "run 1, E4 one call + E5 page labels, gpt-5.4-mini", "pageCount": 8, "dims": {"1": [343, 500], "2": [343, 500], "3": [343, 500], "4": [343, 500], "5": [343, 500], "6": [343, 500], "7": [343, 500], "8": [343, 500]}, "measured": {"pageStorage": {"value": "single-pages", "evidence": [], "detail": "0 of 4 facing pairs continue across the gutter"}, "textLayer": {"value": "digital", "evidence": [], "detail": "0/6 pages look scanned"}, "textOverPictures": {"value": false, "share": 0, "evidence": []}, "pictureHeavy": {"value": false, "medianCoverage": 0.16726175988533135}, "textDensity": {"medianChars": 1175, "class": "medium"}, "vectorDiagrams": {"value": false, "pagesWithDiagrams": 0, "evidence": [2, 3, 4]}, "exerciseCues": {"value": false, "pagesWithCues": 0, "evidence": []}, "language": {"pdfTag": "", "guess": "es"}}, "readingA": {"genre": {"answer": "reference", "confidence": "high", "evidencePages": [2, 3, 4, 6, 7], "reason": "The pages are an informational prologue/intro about an educational project and book series, explaining its aims and context rather than telling a self-contained story."}, "exercises": {"answer": "none", "confidence": "high", "evidencePages": [2, 3, 4, 6, 7], "reason": "The shown pages contain only prose and rhetorical questions, and the page summary says there are no exercise cues like numbered items, blanks, or instructions."}, "composition": {"answer": "text-mostly", "confidence": "high", "evidencePages": [2, 3, 4, 6, 7], "reason": "The pages are dominated by dense blocks of text with no text woven into images, and the visible pictures cover only a small portion of the page."}, "diagrams": {"answer": "none", "confidence": "high", "evidencePages": [2, 3, 4, 6, 7], "reason": "The shown pages contain text-only layouts with no charts, maps, labeled figures, or infographics."}}, "readingB": {"semantic": {"genre": "story", "exercises": "none", "composition": "text-mostly", "diagrams": "none"}, "pages": [{"page": 1, "type": "cover", "textPlacement": "on-art", "meaningfulFigure": false}, {"page": 2, "type": "front-matter", "textPlacement": "text-only", "meaningfulFigure": false}, {"page": 3, "type": "front-matter", "textPlacement": "text-only", "meaningfulFigure": false}, {"page": 4, "type": "front-matter", "textPlacement": "text-only", "meaningfulFigure": false}, {"page": 5, "type": "blank", "textPlacement": "no-text", "meaningfulFigure": false}, {"page": 6, "type": "front-matter", "textPlacement": "text-only", "meaningfulFigure": false}, {"page": 7, "type": "front-matter", "textPlacement": "text-only", "meaningfulFigure": false}, {"page": 8, "type": "front-matter", "textPlacement": "text-only", "meaningfulFigure": false}], "counts": {"body": 0, "story": 0, "textbook": 0, "reference": 0, "exercisePages": 0, "figurePages": 0, "placement": {"on-art": 0, "beside-art": 0, "text-only": 6}}}, "truth": {"genre": ["story"], "exercises": ["none"], "composition": ["text-mostly"], "diagrams": ["none"]}}, {"id": "textbook-egito-antigo", "title": "Egito Antigo", "short": "Egypt", "run": 2, "source": "run 2, E4 one call + E5 page labels, gpt-5.4-mini", "pageCount": 11, "dims": {"1": [373, 500], "2": [403, 500], "3": [403, 500], "4": [403, 500], "5": [403, 500], "6": [403, 500], "7": [403, 500], "8": [403, 500], "9": [403, 500], "10": [403, 500], "11": [388, 500]}, "measured": {"pageStorage": {"value": "single-pages", "evidence": [], "detail": "0 of 5 facing pairs continue across the gutter"}, "textLayer": {"value": "digital", "evidence": [], "detail": "0/9 pages look scanned"}, "textOverPictures": {"value": false, "share": 0.3333333333333333, "evidence": [3, 4, 9]}, "pictureHeavy": {"value": true, "medianCoverage": 1}, "textDensity": {"medianChars": 263, "class": "sparse"}, "vectorDiagrams": {"value": false, "pagesWithDiagrams": 1, "evidence": [2, 6, 10]}, "exerciseCues": {"value": false, "pagesWithCues": 0, "evidence": []}, "language": {"pdfTag": "", "guess": "en"}}, "readingA": {"genre": {"answer": "reference", "confidence": "high", "evidencePages": [3, 5, 6, 10], "reason": "The pages present factual information about Ancient Egypt, the Nile, pharaohs, and Hatshepsut in an explanatory format rather than a plotted narrative or student workbook."}, "exercises": {"answer": "none", "confidence": "high", "evidencePages": [2, 3, 4, 5, 6, 10], "reason": "The shown pages contain only informational text and images; there are no questions, blanks, or directions for the reader to complete activities."}, "composition": {"answer": "text-beside-art", "confidence": "high", "evidencePages": [3, 4, 5, 6, 10], "reason": "On the shown pages, text is placed in its own blocks above or beside large illustrations, not woven into the pictures themselves."}, "diagrams": {"answer": "some", "confidence": "high", "evidencePages": [5], "reason": "Page 5 includes a labeled map with place names and a scale bar, which is a meaningful diagram."}}, "readingB": {"semantic": {"genre": "story", "exercises": "none", "composition": "text-beside-art", "diagrams": "some"}, "pages": [{"page": 1, "type": "cover", "textPlacement": "on-art", "meaningfulFigure": true}, {"page": 2, "type": "front-matter", "textPlacement": "on-art", "meaningfulFigure": false}, {"page": 3, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 4, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 5, "type": "informational", "textPlacement": "beside-art", "meaningfulFigure": true}, {"page": 6, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 7, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 8, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 9, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 10, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 11, "type": "back-matter", "textPlacement": "no-text", "meaningfulFigure": false}], "counts": {"body": 8, "story": 7, "textbook": 0, "reference": 1, "exercisePages": 0, "figurePages": 1, "placement": {"on-art": 0, "beside-art": 8, "text-only": 0}}}, "truth": {"genre": ["textbook", "reference"], "exercises": ["none"], "composition": ["text-beside-art"], "diagrams": ["none", "some"]}}, {"id": "storybook-colouring-my-school", "title": "Colouring My School", "short": "My School", "run": 1, "source": "run 1, E4 one call + E5 page labels, gpt-5.4-mini", "pageCount": 9, "dims": {"1": [325, 500], "2": [325, 500], "3": [325, 500], "4": [325, 500], "5": [325, 500], "6": [325, 500], "7": [325, 500], "8": [325, 500], "9": [325, 500]}, "measured": {"pageStorage": {"value": "spreads-as-separate-pages", "evidence": [2, 3, 8, 9, 6, 7], "detail": "3 of 4 facing pairs continue across the gutter"}, "textLayer": {"value": "digital", "evidence": [], "detail": "3/7 pages look scanned"}, "textOverPictures": {"value": true, "share": 1, "evidence": [5, 7, 8]}, "pictureHeavy": {"value": true, "medianCoverage": 1}, "textDensity": {"medianChars": 65, "class": "sparse"}, "vectorDiagrams": {"value": false, "pagesWithDiagrams": 0, "evidence": [3, 5, 8]}, "exerciseCues": {"value": false, "pagesWithCues": 0, "evidence": []}, "language": {"pdfTag": "", "guess": "en"}}, "readingA": {"genre": {"answer": "story", "confidence": "high", "evidencePages": [3, 5, 8], "reason": "The pages read like a narrated tour with rhyme and scene description, not like instructional material or an information reference."}, "exercises": {"answer": "none", "confidence": "high", "evidencePages": [2, 3, 4, 5, 6, 8], "reason": "The shown pages have descriptive sentences only, and the PDF notes say 0 pages show exercise cues such as questions, blanks, or instructions."}, "composition": {"answer": "text-in-art", "confidence": "high", "evidencePages": [3, 5, 8], "reason": "The sentences are placed inside large white text boxes over the illustrated classroom scenes rather than in a separate text area."}, "diagrams": {"answer": "none", "confidence": "high", "evidencePages": [2, 3, 4, 5, 6, 8], "reason": "The pages show illustrated classroom scenes and labels, but no charts, maps, diagrams, or other meaningful labeled figures."}}, "readingB": {"semantic": {"genre": "story", "exercises": "none", "composition": "text-in-art", "diagrams": "none"}, "pages": [{"page": 1, "type": "front-matter", "textPlacement": "text-only", "meaningfulFigure": false}, {"page": 2, "type": "story", "textPlacement": "no-text", "meaningfulFigure": false}, {"page": 3, "type": "story", "textPlacement": "on-art", "meaningfulFigure": false}, {"page": 4, "type": "story", "textPlacement": "no-text", "meaningfulFigure": false}, {"page": 5, "type": "story", "textPlacement": "on-art", "meaningfulFigure": false}, {"page": 6, "type": "story", "textPlacement": "no-text", "meaningfulFigure": false}, {"page": 7, "type": "story", "textPlacement": "on-art", "meaningfulFigure": false}, {"page": 8, "type": "story", "textPlacement": "on-art", "meaningfulFigure": false}, {"page": 9, "type": "story", "textPlacement": "no-text", "meaningfulFigure": false}], "counts": {"body": 8, "story": 8, "textbook": 0, "reference": 0, "exercisePages": 0, "figurePages": 0, "placement": {"on-art": 4, "beside-art": 0, "text-only": 0}}}, "truth": {"genre": ["story"], "exercises": ["none"], "composition": ["text-in-art"], "diagrams": ["none"]}}, {"id": "textbook-praticas-de-alfabetizacao-e-de-matematica", "title": "Práticas de Alfabetização e de Matemática", "short": "Práticas", "run": 1, "source": "run 1, E4 one call + E5 page labels, gpt-5.4-mini", "pageCount": 7, "dims": {"1": [373, 500], "2": [373, 500], "3": [373, 500], "4": [373, 500], "5": [373, 500], "6": [373, 500], "7": [373, 500]}, "measured": {"pageStorage": {"value": "single-pages", "evidence": [], "detail": "0 of 3 facing pairs continue across the gutter"}, "textLayer": {"value": "digital", "evidence": [], "detail": "0/5 pages look scanned"}, "textOverPictures": {"value": false, "share": 0, "evidence": [6]}, "pictureHeavy": {"value": false, "medianCoverage": 0}, "textDensity": {"medianChars": 465, "class": "medium"}, "vectorDiagrams": {"value": true, "pagesWithDiagrams": 3, "evidence": [2, 3, 5]}, "exerciseCues": {"value": true, "pagesWithCues": 3, "evidence": [2, 3, 5]}, "language": {"pdfTag": "", "guess": "pt"}}, "readingA": {"genre": {"answer": "textbook", "confidence": "high", "evidencePages": [2, 3, 4, 5, 6], "reason": "The pages teach content about identity documents and numbers and repeatedly ask the student to practice, complete forms, and answer questions."}, "exercises": {"answer": "many", "confidence": "high", "evidencePages": [2, 3, 4, 5, 6], "reason": "Most shown pages contain activities such as discussion prompts, blanks to fill in, and questions to answer."}, "composition": {"answer": "text-mostly", "confidence": "high", "evidencePages": [2, 3, 4, 5, 6], "reason": "The pages are mainly text with one small photo/figure and a form, so the layout is dominated by text rather than text woven into art."}, "diagrams": {"answer": "some", "confidence": "medium", "evidencePages": [2, 6], "reason": "The book includes meaningful document images and a form/number box used for the lesson, but not many diagram-like figures throughout."}}, "readingB": {"semantic": {"genre": "textbook", "exercises": "many", "composition": "text-beside-art", "diagrams": "many"}, "pages": [{"page": 1, "type": "cover", "textPlacement": "on-art", "meaningfulFigure": false}, {"page": 2, "type": "exercise", "textPlacement": "beside-art", "meaningfulFigure": true}, {"page": 3, "type": "exercise", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 4, "type": "lesson", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 5, "type": "exercise", "textPlacement": "text-only", "meaningfulFigure": false}, {"page": 6, "type": "exercise", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 7, "type": "lesson", "textPlacement": "beside-art", "meaningfulFigure": true}], "counts": {"body": 6, "story": 0, "textbook": 6, "reference": 0, "exercisePages": 4, "figurePages": 2, "placement": {"on-art": 0, "beside-art": 5, "text-only": 1}}}, "truth": {"genre": ["textbook"], "exercises": ["many"], "composition": ["text-mostly", "text-beside-art"], "diagrams": ["some", "many"]}}, {"id": "storybook-hyena-and-raven", "title": "Hyena and Raven", "short": "Hyena & Raven", "run": 1, "source": "run 1, E4 one call + E5 page labels, gpt-5.4-mini", "pageCount": 12, "dims": {"1": [500, 353], "2": [500, 353], "3": [500, 353], "4": [500, 353], "5": [500, 353], "6": [500, 353], "7": [500, 353], "8": [500, 353], "9": [500, 353], "10": [500, 353], "11": [500, 353], "12": [500, 353]}, "measured": {"pageStorage": {"value": "spreads-as-wide-pages", "evidence": [2, 3, 4], "detail": "100% of pages are landscape"}, "textLayer": {"value": "digital", "evidence": [], "detail": "0/10 pages look scanned"}, "textOverPictures": {"value": false, "share": 0, "evidence": []}, "pictureHeavy": {"value": false, "medianCoverage": 0.39250100040016006}, "textDensity": {"medianChars": 80, "class": "sparse"}, "vectorDiagrams": {"value": false, "pagesWithDiagrams": 0, "evidence": [2, 3, 4]}, "exerciseCues": {"value": false, "pagesWithCues": 0, "evidence": []}, "language": {"pdfTag": "", "guess": "en"}}, "readingA": {"genre": {"answer": "story", "confidence": "high", "evidencePages": [2, 3, 4, 5, 7, 11], "reason": "The pages tell a continuous narrative about Hyena and Raven as characters in a plot, not lessons or facts."}, "exercises": {"answer": "none", "confidence": "high", "evidencePages": [2, 3, 4, 5, 7, 11], "reason": "The shown pages are story pages with illustrations and narrative text, and there are no questions, blanks, or task instructions."}, "composition": {"answer": "text-beside-art", "confidence": "high", "evidencePages": [2, 3, 4, 5, 7, 11], "reason": "On each shown page, the picture is on one side and the text sits in a separate area beside it."}, "diagrams": {"answer": "none", "confidence": "high", "evidencePages": [2, 3, 4, 5, 7, 11], "reason": "The pages show story illustrations only, with no charts, maps, labeled figures, or infographics."}}, "readingB": {"semantic": {"genre": "story", "exercises": "none", "composition": "text-beside-art", "diagrams": "none"}, "pages": [{"page": 1, "type": "cover", "textPlacement": "on-art", "meaningfulFigure": false}, {"page": 2, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 3, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 4, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 5, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 6, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 7, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 8, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 9, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 10, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 11, "type": "story", "textPlacement": "beside-art", "meaningfulFigure": false}, {"page": 12, "type": "back-matter", "textPlacement": "text-only", "meaningfulFigure": false}], "counts": {"body": 10, "story": 10, "textbook": 0, "reference": 0, "exercisePages": 0, "figurePages": 0, "placement": {"on-art": 0, "beside-art": 10, "text-only": 0}}}, "truth": {"genre": ["story"], "exercises": ["none"], "composition": ["text-beside-art"], "diagrams": ["none"]}}]};
+/* Shared by every prototype. DATA is inlined by build.py. */
+const $ = (s, el = document) => el.querySelector(s)
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c])
+
+const ICON = {
+  lock: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>',
+  flag: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2 14.5 13.5h-13z"/><path d="M8 6.5v3.2M8 11.6v.1"/></svg>',
+  check: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8.5 3 3 7-7"/></svg>',
+  later: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v2.5H5"/></svg>',
+  sun: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13M3 13l1.4-1.4M11.6 4.4 13 3"/></svg>',
+  moon: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"/></svg>',
+}
+const lockBadge = (t = "Fixed at import") => `<span class="badge lock">${ICON.lock}${t}</span>`
+const laterBadge = (t = "Can change later") => `<span class="badge later">${ICON.later}${t}</span>`
+const flagBadge = (t = "Two readings disagree") => `<span class="badge flag">${ICON.flag}${t}</span>`
+
+/* ---- facts the AI answers, in plain words ---- */
+const FACTS = {
+  genre: {
+    q: "What kind of book is it?",
+    opts: { story: ["A story", "Characters and a plot: picture books, novels"], textbook: ["A textbook", "Teaches with lessons, often with exercises"], reference: ["Reference", "Information to read or look up: reports, papers"] },
+  },
+  exercises: {
+    q: "Does it ask the reader to do things?",
+    opts: { none: ["No", "Nothing to answer or fill in"], some: ["A few", "Some questions or tasks"], many: ["Yes, many", "Questions, blanks, tasks on most pages"] },
+  },
+  composition: {
+    q: "Where does the text sit?",
+    opts: { "text-in-art": ["On the pictures", "Words are part of the artwork"], "text-beside-art": ["Beside the pictures", "Picture in one area, text in another"], "text-mostly": ["Mostly text", "Few pictures"] },
+  },
+  diagrams: {
+    q: "Are there diagrams, maps or charts with labels?",
+    opts: { none: ["No", "Only illustrations or photos"], some: ["A few", "One or two labelled figures"], many: ["Many", "Labelled figures throughout"] },
+  },
+}
+const FACT_ORDER = ["genre", "exercises", "composition", "diagrams"]
+
+/* ---- settings ---- */
+const SETTINGS = {
+  pageGrouping: { name: "Page grouping", locked: true, vals: { single: "One page per screen", spread: "Facing pages as one screen" } },
+  figureExtraction: { name: "Diagrams", locked: true, vals: { off: "Off", auto: "Keep labelled diagrams together", all: "Group every image with its text" } },
+  preset: { name: "Preset", vals: { storybook: "Storybook", textbook: "Textbook", reference: "Reference" } },
+  renderStrategy: { name: "Layout", vals: { llm: "AI rebuilds the layout", "llm-overlay": "AI text over the art", single_column: "One clean column", two_column_story: "Picture beside text", fixed_layout: "Keep the original page" } },
+  sectioningMode: { name: "Sections", vals: { page: "One section per page", dynamic: "Split pages into parts" } },
+  activitiesGenerator: { name: "Activities", vals: { enabled: "Turn exercises into activities", disabled: "Off" } },
+}
+const SETTING_ORDER = ["pageGrouping", "figureExtraction", "preset", "renderStrategy", "sectioningMode", "activitiesGenerator"]
+const LOCKED = SETTING_ORDER.filter((k) => SETTINGS[k].locked)
+const CHEAP = SETTING_ORDER.filter((k) => !SETTINGS[k].locked)
+
+/* port of rules.ts decide() — same facts, same settings */
+function decide(d, s) {
+  const preset = { story: "storybook", textbook: "textbook", reference: "reference" }[s.genre]
+  const pageGrouping = d.pageStorage.value === "spreads-as-separate-pages"
+    ? { value: "spread", rule: "Facing pages continue across the fold, so each pair is joined into one screen." }
+    : { value: "single", rule: d.pageStorage.value === "spreads-as-wide-pages" ? "Spreads are already stored as one wide page." : "Pages stand alone." }
+  const hasText = d.textLayer.value === "digital"
+  let renderStrategy
+  if (preset === "reference") renderStrategy = { value: "single_column", rule: "Reference material reads best as one clean column." }
+  else if (preset === "textbook") renderStrategy = { value: "llm", rule: "Lessons and exercises need the AI layout to rebuild their structure." }
+  else if (s.composition === "text-in-art") renderStrategy = hasText ? { value: "fixed_layout", rule: "Text is placed on the pictures, so the original page design is kept." } : { value: "llm-overlay", rule: "Text is on the pictures but the PDF has no real text, so the AI rebuilds it over the art." }
+  else if (s.composition === "text-beside-art") renderStrategy = { value: "two_column_story", rule: "Text sits beside the pictures, so story text and art go side by side." }
+  else renderStrategy = { value: "llm", rule: "Mostly text, so the AI layout reflows it." }
+  const ex = s.exercises !== "none"
+  const activitiesGenerator = preset === "textbook" && ex ? { value: "enabled", rule: "The book has exercises, so they become interactive activities." } : { value: "disabled", rule: ex ? "Activities are only made in the Textbook preset." : "No exercises for the reader." }
+  const sectioningMode = preset === "textbook" && ex && renderStrategy.value !== "fixed_layout" ? { value: "dynamic", rule: "Pages mix reading and exercises, so each page is split into parts." } : { value: "page", rule: "Each page is one unit." }
+  const figureExtraction = hasText && (s.diagrams !== "none" || d.vectorDiagrams.value) ? { value: "auto", rule: "Diagrams with text labels are kept together as figures." } : { value: "off", rule: hasText ? "No labelled diagrams." : "Without real text there are no labels to group." }
+  return { preset: { value: preset, rule: `The book is ${s.genre === "reference" ? "reference material" : "a " + s.genre}.` }, renderStrategy, pageGrouping, sectioningMode, activitiesGenerator, figureExtraction }
+}
+
+/* which facts a setting listens to (for "this changes …" hints) */
+const FEEDS = { preset: ["genre"], renderStrategy: ["genre", "composition"], sectioningMode: ["genre", "exercises"], activitiesGenerator: ["genre", "exercises"], figureExtraction: ["diagrams"], pageGrouping: [] }
+
+/* ---- book helpers ---- */
+const bookById = (id) => DATA.books.find((b) => b.id === id) || DATA.books[0]
+const img = (b, p) => `../pages/${b.id}/p${p}.jpg`
+const aiFacts = (b) => Object.fromEntries(FACT_ORDER.map((k) => [k, b.readingA[k].answer]))
+const isTrue = (b, k, v) => (b.truth[k] || []).includes(v)
+const langName = (c) => ({ es: "Spanish", en: "English", pt: "Portuguese" })[c] || c
+
+/* Where reading A (one call, whole book) and reading B (page-by-page labels) disagree.
+   matters = picking one or the other changes at least one setting. */
+function disagreements(b) {
+  const A = aiFacts(b), Bs = b.readingB.semantic
+  return FACT_ORDER.filter((k) => A[k] !== Bs[k]).map((k) => {
+    const sa = decide(b.measured, A), sb = decide(b.measured, { ...A, [k]: Bs[k] })
+    const changes = SETTING_ORDER.filter((s) => sa[s].value !== sb[s].value)
+    return { fact: k, a: A[k], b: Bs[k], changes, matters: changes.length > 0 }
+  })
+}
+
+/* What the page-by-page reading saw, as a short sentence */
+function readingBSummary(b) {
+  const c = {}
+  for (const p of b.readingB.pages) c[p.type] = (c[p.type] || 0) + 1
+  const names = { cover: "cover", "front-matter": "front matter", "back-matter": "back matter", blank: "blank", story: "story", lesson: "lesson", exercise: "exercise", informational: "information" }
+  return Object.entries(c).map(([t, n]) => `${n} ${names[t] || t}`).join(" · ")
+}
+
+function spreadPairs(b) {
+  const e = b.measured.pageStorage.evidence || []
+  const out = []
+  for (let i = 0; i + 1 < e.length; i += 2) out.push([e[i], e[i + 1]].sort((x, y) => x - y))
+  return out.sort((x, y) => x[0] - y[0])
+}
+
+function measuredLine(b) {
+  const m = b.measured
+  return `${b.pageCount} pages · ${langName(m.language.guess)} · ${m.textLayer.value === "digital" ? "real text" : "scanned"}`
+}
+
+/* evidence for a locked setting, as HTML */
+function lockedEvidence(b, key, sem) {
+  const m = b.measured
+  if (key === "pageGrouping") {
+    const pairs = spreadPairs(b)
+    if (m.pageStorage.value === "spreads-as-separate-pages")
+      return { text: `Measured: ${m.pageStorage.detail.replace("gutter", "fold")}.`, html: `<div class="row wrapflex">${pairs.slice(0, 2).map(([x, y]) => `<button class="spreadpair" data-zoom="${x}"><img src="${img(b, x)}" alt="Page ${x}"><img src="${img(b, y)}" alt="Page ${y}"></button>`).join("")}</div>` }
+    if (m.pageStorage.value === "spreads-as-wide-pages")
+      return { text: `Measured: every page is landscape, so each page already holds a full spread.`, html: thumbs(b, [2, 3]) }
+    return { text: `Measured: ${m.pageStorage.detail.replace("gutter", "fold")}. Each page stands alone.`, html: thumbs(b, [2, 3]) }
+  }
+  if (key === "figureExtraction") {
+    const v = m.vectorDiagrams
+    const t = sem.diagrams === "none" && !v.value ? `No labelled diagrams found.` : `Labelled figures: the AI says “${FACTS.diagrams.opts[sem.diagrams][0].toLowerCase()}”, the PDF has drawn diagrams on ${v.pagesWithDiagrams} page${v.pagesWithDiagrams === 1 ? "" : "s"}.`
+    const pages = (b.readingA.diagrams.evidencePages || []).slice(0, 3)
+    return { text: t, html: sem.diagrams !== "none" ? thumbs(b, pages) : "" }
+  }
+  return { text: "", html: "" }
+}
+
+function thumbs(b, pages, cited = []) {
+  return `<div class="thumbs">${pages.map((p) => `<button class="thumb ${cited.includes(p) ? "cited" : ""}" data-zoom="${p}" aria-label="Open page ${p}"><img src="${img(b, p)}" alt="" loading="lazy"><span class="pn">p${p}</span></button>`).join("")}</div>`
+}
+
+/* ---- chrome ---- */
+function setupTheme() {
+  const btn = $("#theme")
+  if (!btn) return
+  const paint = () => { const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; btn.innerHTML = dark ? ICON.sun : ICON.moon; btn.title = dark ? "Light" : "Dark" }
+  btn.onclick = () => { const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; document.documentElement.dataset.theme = dark ? "light" : "dark"; paint() }
+  const t = new URLSearchParams(location.search).get("theme")
+  if (t) document.documentElement.dataset.theme = t
+  paint()
+}
+
+function renderBookTabs(current, onPick) {
+  const el = $("#books")
+  el.innerHTML = DATA.books.map((b) => `<button class="bookbtn" aria-pressed="${b.id === current}" data-book="${b.id}"><img src="${img(b, 1)}" alt="">${esc(b.short)}${disagreements(b).some((d) => d.matters) ? '<span class="wrongdot" title="AI likely wrong here"></span>' : ""}</button>`).join("")
+  el.onclick = (e) => { const t = e.target.closest("[data-book]"); if (t) onPick(t.dataset.book) }
+}
+
+function setupLightbox(getBook) {
+  const lb = document.createElement("div")
+  lb.className = "lightbox"
+  lb.innerHTML = `<div><img alt=""><div class="cap"></div></div>`
+  document.body.appendChild(lb)
+  lb.onclick = () => lb.classList.remove("open")
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-zoom]")
+    if (!t) return
+    const b = getBook(), p = +t.dataset.zoom
+    $("img", lb).src = img(b, p)
+    $(".cap", lb).textContent = `${b.title} · page ${p}`
+    lb.classList.add("open")
+  })
+}
+
+function params() { return new URLSearchParams(location.search) }
+function setParam(k, v) { const u = new URL(location.href); v == null ? u.searchParams.delete(k) : u.searchParams.set(k, v); history.replaceState(null, "", u) }
+
+
+/* ---------- plain words (round 2) ---------- */
+const F = {
+  genre: { short: "Kind of book", q: "What kind of book is it?", help: "Think of the whole book, not only the first pages.",
+    opts: { story: ["A story", "Characters and what happens to them: picture books, novels, tales"], textbook: ["A school book", "Lessons for learners, often with exercises"], reference: ["Information to read", "Reports, articles, manuals, guides"] } },
+  exercises: { short: "Things to answer or fill in", q: "Does the book ask the reader to write or answer something?",
+    help: "<b>Counts:</b> questions to answer, blanks to fill, matching, quizzes. <b>Doesn't count:</b> colouring, drawing, or questions inside the story.",
+    opts: { none: ["No", "Nothing to answer or fill in"], some: ["On some pages", "A few pages have tasks"], many: ["On most pages", "Tasks are part of every lesson"] } },
+  composition: { short: "Where the words are", q: "On most pages, where are the words?", help: "Look at a typical page in the middle of the book.",
+    opts: { "text-in-art": ["On the picture", "Printed on top of the art"], "text-beside-art": ["Next to the picture", "In their own space above, below or beside"], "text-mostly": ["Mostly words", "Few or small pictures"] } },
+  diagrams: { short: "Maps, charts, labelled drawings", q: "Are there maps, charts or drawings with labels?",
+    opts: { none: ["None", "Only pictures or photos"], some: ["A few", "One or two"], many: ["Many", "On most pages"] } },
+}
+const S = {
+  pageGrouping: { name: "Facing pages", vals: { single: "One page at a time", spread: "Shown together, as one screen" } },
+  figureExtraction: { name: "Maps and labelled drawings", vals: { off: "Treated as normal pictures", auto: "Kept whole, with their labels" } },
+  renderStrategy: { name: "Page layout", vals: { fixed_layout: "Keep the printed page", two_column_story: "Picture beside the words", llm: "Rebuilt to fit the screen", single_column: "One column, like an article", "llm-overlay": "Words redrawn over the picture" } },
+  activitiesGenerator: { name: "Activities", vals: { enabled: "Exercises become interactive", disabled: "None" } },
+  preset: { name: "Starting template", vals: { storybook: "Story", textbook: "School book", reference: "Information" } },
+  sectioningMode: { name: "Reading parts", vals: { page: "One page at a time", dynamic: "Each page split into reading and exercises" } },
+}
+const PAGE = { cover: "Cover", "front-matter": "Opening", "back-matter": "End pages", blank: "Blank", story: "Story", lesson: "Lesson", exercise: "Exercise", informational: "Information", textbook: "Lesson", reference: "Information" }
+const BODY = (t) => !["cover", "front-matter", "back-matter", "blank"].includes(t)
+
+/* small sketches for answers */
+function sk(fact, v) {
+  const L = (x, y, w) => `<rect x="${x}" y="${y}" width="${w}" height="3" rx="1.5" fill="currentColor" opacity=".55"/>`
+  const P = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="currentColor" opacity=".18"/><path d="M${x + 3} ${y + h - 3} l${w / 3} -${h / 2.2} l${w / 4} ${h / 4} l${w / 6} -${h / 6} l${w / 4 - 6} ${h / 2.2 - h / 4 + h / 6}" stroke="currentColor" opacity=".45" fill="none"/>`
+  const frame = (inner) => `<svg class="sk" viewBox="0 0 64 46" aria-hidden="true"><rect x="1" y="1" width="62" height="44" rx="5" fill="none" stroke="currentColor" opacity=".35"/>${inner}</svg>`
+  const m = {
+    "composition:text-in-art": P(5, 5, 54, 36) + L(10, 10, 26) + L(10, 16, 20),
+    "composition:text-beside-art": P(5, 5, 26, 36) + L(35, 12, 22) + L(35, 18, 20) + L(35, 24, 22) + L(35, 30, 14),
+    "composition:text-mostly": L(7, 7, 50) + L(7, 13, 46) + L(7, 19, 50) + L(7, 25, 40) + L(7, 31, 48) + L(7, 37, 30),
+    "genre:story": P(5, 5, 54, 24) + L(8, 33, 48) + L(8, 38, 34),
+    "genre:textbook": `<rect x="7" y="7" width="22" height="5" rx="1.5" fill="currentColor" opacity=".6"/>` + L(7, 16, 48) + L(7, 22, 40) + `<rect x="7" y="29" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" opacity=".7"/>` + `<rect x="17" y="33" width="34" height="1.5" fill="currentColor" opacity=".7"/>`,
+    "genre:reference": L(7, 7, 22) + L(7, 13, 22) + L(7, 19, 22) + L(7, 25, 22) + L(35, 7, 22) + L(35, 13, 22) + `<rect x="35" y="19" width="22" height="18" rx="2" fill="none" stroke="currentColor" opacity=".55"/>`,
+    "exercises:none": L(7, 9, 50) + L(7, 15, 46) + L(7, 21, 50) + L(7, 27, 40) + L(7, 33, 46),
+    "exercises:some": L(7, 9, 50) + L(7, 15, 46) + L(7, 21, 40) + `<rect x="7" y="29" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" opacity=".7"/><rect x="17" y="34" width="30" height="1.5" fill="currentColor" opacity=".7"/>`,
+    "exercises:many": [8, 19, 30].map((y) => `<rect x="7" y="${y}" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" opacity=".7"/><rect x="17" y="${y + 5}" width="38" height="1.5" fill="currentColor" opacity=".7"/>`).join(""),
+    "diagrams:none": P(8, 6, 48, 34),
+    "diagrams:some": L(7, 8, 50) + L(7, 14, 40) + `<circle cx="22" cy="31" r="8" fill="none" stroke="currentColor" opacity=".6"/><path d="M30 31h10" stroke="currentColor" opacity=".6"/>` + L(42, 30, 14),
+    "diagrams:many": `<circle cx="17" cy="15" r="7" fill="none" stroke="currentColor" opacity=".6"/><path d="M24 15h8" stroke="currentColor" opacity=".6"/>` + L(34, 14, 20) + `<rect x="10" y="27" width="6" height="12" fill="currentColor" opacity=".4"/><rect x="19" y="31" width="6" height="8" fill="currentColor" opacity=".4"/><rect x="28" y="24" width="6" height="15" fill="currentColor" opacity=".4"/>` + L(40, 30, 16),
+  }
+  return frame(m[`${fact}:${v}`] || "")
+}
+
+/* ---------- state ---------- */
+let book, stage, kind, ans, walk, extraPages, rangeFrom
+const ORDER = ["genre", "exercises", "composition", "diagrams"]
+
+function readA(b) { return Object.fromEntries(ORDER.map((k) => [k, b.readingA[k].answer])) }
+function readB(b) { return b.readingB.semantic }
+function frontOnly(b) { return b.readingB.pages.filter((p) => BODY(p.type)).length === 0 }
+
+/* the facts used right now: user answers > user's kind pick > agreed reading > page reading */
+function factsNow() {
+  const A = readA(book), B = readB(book), f = {}
+  for (const k of ORDER) f[k] = ans[k] ?? (k === "genre" && kind ? kind : (A[k] === B[k] ? A[k] : B[k]))
+  return f
+}
+/* does another answer to this fact change any setting, given the rest? */
+function changes(k, f) {
+  const base = decide(book.measured, f)
+  return Object.keys(F[k].opts).filter((v) => v !== f[k]).some((v) => { const o = decide(book.measured, { ...f, [k]: v }); return Object.keys(base).some((s) => o[s].value !== base[s].value) })
+}
+/* which facts to ask, in order. Rule: a fact is asked if it matters AND (the two guesses disagree OR we only saw opening pages).
+   Diagrams is never asked (never wrong in 36 readings); it is shown open in the locked box instead. */
+function toAsk() {
+  const A = readA(book), B = readB(book), out = []
+  const f = factsNow()
+  for (const k of ["genre", "exercises", "composition"]) {
+    if (k === "genre" && kind) continue
+    const f2 = { ...f }
+    if (!changes(k, f2)) continue
+    if (walk || A[k] !== B[k] || frontOnly(book)) out.push(k)
+  }
+  return out
+}
+function reasonFor(k) {
+  const A = readA(book), B = readB(book)
+  const split = A[k] !== B[k] ? ` Our two guesses: <b>${F[k].opts[A[k]][0].toLowerCase()}</b> or <b>${F[k].opts[B[k]][0].toLowerCase()}</b>.` : ""
+  if (frontOnly(book)) return { kind: split ? "split" : "front", text: k === "genre" ? "The pages we read are all the opening of the book: cover and foreword. We couldn't see the book itself." + split : "Our answer to this also comes from the opening pages only, so please check it." + split }
+  if (A[k] !== B[k]) return { kind: "split", text: `We got two different answers: <b>${F[k].opts[A[k]][0].toLowerCase()}</b> and <b>${F[k].opts[B[k]][0].toLowerCase()}</b>.` }
+  return { kind: "walk", text: "" }
+}
+
+/* what changes if the user picks v (vs now) */
+function effectOf(k, v) {
+  const f = factsNow(), a = decide(book.measured, f), b = decide(book.measured, { ...f, [k]: v })
+  const keys = ["renderStrategy", "activitiesGenerator", "figureExtraction"]
+  const diff = keys.filter((s) => a[s].value !== b[s].value)
+  const show = diff.length ? diff : ["renderStrategy"]
+  return show.map((s) => `${S[s].name}: <b>${S[s].vals[b[s].value]}</b>`).join("<br>")
+}
+
+/* ---------- pieces ---------- */
+function pageStrip(b, opts = {}) {
+  const lab = Object.fromEntries(b.readingB.pages.map((p) => [p.page, p.type]))
+  const n = b.pageCount, out = []
+  for (let p = 1; p <= n; p++) {
+    const t = lab[p] || "cover", front = !BODY(t) && t !== "cover"
+    const off = rangeFrom && p < rangeFrom
+    out.push(`<figure class="${off ? "off" : opts.flagFront && front ? "front" : ""}"><button data-zoom="${p}" aria-label="Open page ${p}"><img src="${img(b, p)}" alt="" loading="lazy"></button><figcaption>${opts.noLabels ? p : `${p} · ${PAGE[t] || t}`}</figcaption></figure>`)
+  }
+  return `<div class="strip">${out.join("")}</div>`
+}
+function bodyPage(b) {
+  const p = b.readingB.pages.find((x) => BODY(x.type) && x.textPlacement !== "text-only") || b.readingB.pages.find((x) => BODY(x.type)) || b.readingB.pages[1] || b.readingB.pages[0]
+  return p.page
+}
+function layoutPreview(b, v, spread) {
+  const p = bodyPage(b), im = img(b, p), ln = (w) => `<div class="ln" style="width:${w}%"></div>`
+  const pages = spreadPairs(b)[0]
+  const pr = {
+    fixed_layout: [`<div class="device ${spread ? "wide" : ""}"><div class="fit">${spread && pages ? `<img src="${img(b, pages[0])}" alt="" style="width:50%"><img src="${img(b, pages[1])}" alt="" style="width:50%">` : `<img src="${im}" alt="">`}</div></div>`, "Your pages look as printed. The words stay where they are on the picture, and can still be read aloud."],
+    two_column_story: [`<div class="device wide"><div class="two"><img src="${im}" alt=""><div>${ln(90)}${ln(80)}${ln(95)}${ln(60)}${ln(85)}</div></div></div>`, "The picture on one side and the words on the other. Words can be resized and read aloud."],
+    llm: [`<div class="device"><div class="hd"></div>${ln(95)}${ln(90)}${ln(97)}${ln(70)}<img class="pic" src="${im}" alt="">${ln(92)}${ln(85)}</div>`, "Same words and pictures, arranged again so they fit any screen, from phone to tablet."],
+    single_column: [`<div class="device"><div class="hd"></div>${ln(95)}${ln(92)}${ln(97)}${ln(88)}${ln(95)}<img class="pic" src="${im}" alt="">${ln(90)}</div>`, "One clean column of text, like an article. Figures sit between paragraphs."],
+    "llm-overlay": [`<div class="device"><div class="fit"><img src="${im}" alt=""></div></div>`, "The picture stays, and the words are redrawn on it as real text."],
+  }[v]
+  return `<div class="preview">${pr[0]}<p>${pr[1]}</p></div>`
+}
+
+function factRows() {
+  const f = factsNow(), A = readA(book), B = readB(book), guess = frontOnly(book)
+  return `<div class="facts">${ORDER.map((k) => {
+    const v = f[k], you = k in ans || (k === "genre" && kind)
+    const cited = (book.readingA[k].evidencePages || []).slice(0, 4)
+    const src = you ? "Your answer" : guess ? "A guess from the opening pages only" : `${v === "none" ? "Looked at" : "Seen on"} page${cited.length > 1 ? "s" : ""} ${cited.join(", ") || "–"}`
+    const note = k === "exercises" && v === "none" && book.id.includes("colouring") ? `<div class="note">Colouring pages don't count as exercises, so no activities are made from them.</div>` : ""
+    const open = walkEdit === k
+    return `<div class="fact ${guess && !you ? "guess" : ""}">${sk(k, v)}<div class="q">${F[k].short}</div><button class="chg" data-edit="${k}">${open ? "Done" : "Change"}</button><div class="a">${F[k].opts[v][0]}${you ? '<span class="you">you said</span>' : ""}</div><div></div><div class="src">${src}</div>${note}${open ? `<div class="pick">${Object.keys(F[k].opts).map((o) => `<button class="chip" aria-pressed="${o === v}" data-set="${k}:${o}">${F[k].opts[o][0]}</button>`).join("")}</div>${k === "exercises" ? `<div class="note">${F.exercises.help}</div>` : ""}` : ""}</div>`
+  }).join("")}</div>`
+}
+let walkEdit = null
+
+function lockBox(st, f) {
+  const m = book.measured, pairs = spreadPairs(book)
+  const pg = m.pageStorage.value === "spreads-as-separate-pages"
+    ? `We measured it: pictures run across ${m.pageStorage.detail.split(" of ")[0]} facing pairs.`
+    : m.pageStorage.value === "spreads-as-wide-pages" ? "We measured it: each PDF page is already a full two-page spread." : "We measured it: no picture runs across two pages."
+  const dg = f.diagrams === "none" ? "None found." : `Seen on page${(book.readingA.diagrams.evidencePages || []).length > 1 ? "s" : ""} ${(book.readingA.diagrams.evidencePages || []).join(", ")}.`
+  const range = rangeFrom ? `Pages ${rangeFrom}–${book.pageCount}` : `All ${book.pageCount} pages`
+  return `<section class="locked" aria-label="Set now">
+    <div class="locked-head">${ICON.lock}<div><h3>Set now. Can't change after import.</h3><p class="small">To change these later you would have to add the book again.</p></div></div>
+    <div class="lockitem"><div class="k">${S.pageGrouping.name}</div><div class="v">${S.pageGrouping.vals[st.pageGrouping.value]}</div><div class="ev">${pg}</div>${pairs.length ? `<div class="thumbs" style="margin-top:6px"><button class="spreadpair" data-zoom="${pairs[0][0]}"><img src="${img(book, pairs[0][0])}" alt="" style="height:56px"><img src="${img(book, pairs[0][1])}" alt="" style="height:56px"></button></div>` : ""}</div>
+    <div class="lockitem"><div class="k">${S.figureExtraction.name}</div><div class="v">${S.figureExtraction.vals[st.figureExtraction.value]}</div><div class="ev">${dg}</div>${frontOnly(book) ? `<div class="chk">${ICON.flag.replace("<svg", '<svg width="12" height="12" style="vertical-align:-2px"')} We only saw the opening pages. Does the rest of the book have maps or charts?</div><div class="pick row wrapflex" style="margin-top:6px">${["none", "some"].map((o) => `<button class="chip" aria-pressed="${f.diagrams === o}" data-set="diagrams:${o}">${o === "none" ? "No" : "Yes, some"}</button>`).join("")}</div>` : `<button class="lnk" data-edit-lock="diagrams">This is wrong</button>`}</div>
+    <div class="lockitem"><div class="k">Pages to import</div><div class="v">${range}</div><div class="ev">${rangeFrom ? `Pages 1–${rangeFrom - 1} are left out.` : (book.readingB.pages.some((p) => p.type === "front-matter") ? "Includes the cover and opening pages." : "Includes the cover.")}</div><button class="lnk" data-range>Choose pages</button></div>
+  </section>`
+}
+
+function laterBox(st) {
+  const spread = st.pageGrouping.value === "spread"
+  return `<section class="card" style="margin-top:12px" aria-label="Can change later">
+    <div class="ghead row" style="justify-content:space-between;padding:12px 16px 0"><h3>What you'll get</h3>${laterBadge()}</div>
+    <div class="later">
+      <div class="setting"><div><div class="name">${S.renderStrategy.name}</div><div class="val">${S.renderStrategy.vals[st.renderStrategy.value]}</div></div><div></div><div class="why" style="grid-column:1/-1">${layoutPreview(book, st.renderStrategy.value, spread)}</div></div>
+      <div class="setting"><div><div class="name">${S.activitiesGenerator.name}</div><div class="val">${S.activitiesGenerator.vals[st.activitiesGenerator.value]}</div></div><div></div><div class="why">${st.activitiesGenerator.rule}</div></div>
+      <details class="more"><summary>2 more settings</summary>
+        <div class="setting"><div><div class="name">${S.preset.name}</div><div class="val">${S.preset.vals[st.preset.value]}</div></div></div>
+        <div class="setting"><div><div class="name">${S.sectioningMode.name}</div><div class="val">${S.sectioningMode.vals[st.sectioningMode.value]}</div></div></div>
+      </details>
+    </div></section>`
+}
+
+/* ---------- screens ---------- */
+function renderLoader() {
+  const m = book.measured, t = +(params().get("t") ?? 99)
+  const done1 = t >= 1, done2 = t >= 5
+  const pg = m.pageStorage.value === "spreads-as-separate-pages" ? "Pictures run across facing pages" : m.pageStorage.value === "spreads-as-wide-pages" ? "Each page is a two-page spread" : "Each page stands on its own"
+  $("#app").innerHTML = `<div class="wrap"><div class="load">
+    <div class="bookhead"><img src="${img(book, 1)}" alt=""><div><h1>${esc(book.title)}</h1><p class="muted small">${book.pageCount} pages · ${langName(m.language.guess)}</p></div></div>
+    <div class="card" style="margin-top:20px;padding:4px 16px">
+      <div class="lstep ${done1 ? "done" : "run"}"><div class="ico">${done1 ? ICON.check : '<span class="spin"></span>'}</div><div><div class="t">Measured the PDF <span class="faint small">0.2 s</span></div><p class="small muted">${m.textLayer.value === "digital" ? "Real text, not a scan" : "Scanned pages"} · ${pg}</p></div></div>
+      <div class="lstep ${done2 ? "done" : "run"}"><div class="ico">${done2 ? ICON.check : '<span class="spin"></span>'}</div><div style="min-width:0;flex:1"><div class="t">Looking at each page <span class="faint small">about 4 s</span></div><p class="small muted">We read ${book.pageCount} of ${book.pageCount} pages. A long book: about 12 pages, spread from start to end.</p><div style="margin-top:8px">${pageStrip(book, { flagFront: done2, noLabels: !done2 })}</div></div></div>
+    </div>
+    <div class="wait">
+      <h3>While you wait: what kind of book is it?</h3><p class="small muted">Optional. You know the whole book; we only see some pages.</p>
+      <div class="row wrapflex" style="margin-top:10px">${Object.keys(F.genre.opts).map((o) => `<button class="chip" aria-pressed="${kind === o}" data-kind="${o}">${F.genre.opts[o][0]}</button>`).join("")}<button class="btn ghost small" data-kind="">Skip</button></div>
+      <p class="small muted" style="margin-top:12px">Does the book start later than page 1? <button class="lnk" style="color:var(--accent);background:none;border:0;padding:0;text-decoration:underline" data-range>Choose pages</button></p>
+    </div>
+  </div></div>`
+  $("#dock").hidden = false
+  $("#dock").innerHTML = `<div class="wrap"><span class="small muted">${done2 ? "Done reading." : "Reading…"}</span><button class="btn primary" data-go="result" ${done2 ? "" : "disabled"}>See what we found</button></div>`
+}
+
+function renderResult() {
+  const qs = toAsk(), answered = qs.filter((k) => k in ans), next = qs.find((k) => !(k in ans))
+  const asking = !!next
+  const f = factsNow(), st = decide(book.measured, f)
+  const unsure = !walk && qs.length > 0
+  const A = readA(book), B = readB(book)
+  const kindConflict = kind && (A.genre !== kind || B.genre !== kind)
+  let status
+  if (asking && unsure) status = `<div class="status unsure">${ICON.flag}<p><b>We're not sure about this book.</b> ${qs.length === 1 ? "One quick question" : qs.length + " quick questions"}, then you're done.</p></div>`
+  else if (asking && walk) status = `<div class="status calm">${ICON.check}<p>Here's what we found, one thing at a time. Our guess is already picked.</p></div>`
+  else if (answered.length) status = `<div class="status calm">${ICON.check}<p><b>Thanks, that's everything.</b> Check the summary and create the book.</p></div>`
+  else status = `<div class="status calm">${ICON.check}<p><b>Looks right.</b> Here's what we found.${kindConflict ? ` You said <b>${F.genre.opts[kind][0].toLowerCase()}</b>; one of our guesses was different, so we went with you.` : ""}</p></div>`
+
+  let main = ""
+  if (asking) {
+    const k = next, r = reasonFor(k), i = qs.indexOf(k)
+    const guesses = new Set(r.kind === "split" ? [A[k], B[k]] : [f[k]])
+    const pre = r.kind === "walk" ? f[k] : null
+    main = `<section class="sec"><div class="qcard ${walk ? "walk" : ""}">
+      <div class="qtop"><span>Question ${i + 1} of ${qs.length}</span><span class="dots">${qs.map((x, j) => `<i class="${x in ans ? "done" : j === i ? "on" : ""}"></i>`).join("")}</span></div>
+      <div class="qbody">
+        ${r.text ? `<p class="why">${r.text}</p>` : ""}
+        ${r.kind !== "walk" && k === "genre" ? `<div style="margin-top:10px">${pageStrip(book, { flagFront: true })}</div>` : ""}
+        <h2>${F[k].q}</h2>${F[k].help ? `<p class="help">${F[k].help}</p>` : ""}
+        <div class="opts">${Object.keys(F[k].opts).map((o) => `<button class="opt" aria-pressed="${pre === o}" data-ans="${k}:${o}">${guesses.has(o) && r.kind !== "front" ? `<span class="tag">${r.kind === "split" ? "One of our guesses" : "Our guess"}</span>` : r.kind === "front" && o === f[k] ? `<span class="tag">Our guess</span>` : ""}${sk(k, o)}<b>${F[k].opts[o][0]}</b><span class="d">${F[k].opts[o][1]}</span><span class="eff">${effectOf(k, o)}</span></button>`).join("")}</div>
+        <div class="qfoot"><button class="btn ghost small" data-back ${i === 0 ? "hidden" : ""}>Back</button><button class="btn small" data-guess="${k}">I'm not sure, use your guess</button></div>
+      </div></div></section>`
+  } else {
+    main = `<section class="sec"><div class="sec-h"><h2>About this book</h2>${walk || answered.length ? "" : `<button class="btn ghost small" data-walk>Walk me through it</button>`}</div>${factRows()}</section>`
+  }
+
+  $("#app").innerHTML = `<div class="wrap layout">
+    <div style="min-width:0">
+      <div class="bookhead"><img src="${img(book, 1)}" alt=""><div><h1>${esc(book.title)}</h1><p class="muted small">${book.pageCount} pages · ${langName(book.measured.language.guess)} · ${book.measured.textLayer.value === "digital" ? "real text" : "scanned"}</p></div></div>
+      ${status}
+      ${main}
+      <section class="sec"><div class="sec-h"><h2>Pages we read</h2><button class="btn ghost small" data-range>Choose pages to import</button></div>${pageStrip(book, { flagFront: frontOnly(book) })}</section>
+      <p class="srcnote">Real AI answers: ${esc(book.source)}. Tap a page to enlarge.</p>
+    </div>
+    <aside class="panel">${lockBox(st, f)}${laterBox(st)}</aside>
+  </div>`
+  $("#dock").hidden = false
+  $("#dock").innerHTML = `<div class="wrap"><span class="small muted">${asking ? `${qs.length - answered.length} question${qs.length - answered.length === 1 ? "" : "s"} left` : `<span class="row" style="gap:6px">${ICON.lock.replace("<svg", '<svg width="14" height="14"')} 3 settings are set now</span>`}</span><button class="btn primary" data-create ${asking ? "disabled" : ""}>Create book</button></div>`
+}
+
+function render() {
+  renderBookTabs(book.id, pick)
+  stage === "reading" ? renderLoader() : renderResult()
+}
+
+function createDialog() {
+  const st = decide(book.measured, factsNow())
+  const d = $("#dlg")
+  d.innerHTML = `<div class="dlg"><h2>Create the book?</h2><p class="muted small" style="margin-top:6px">These three can't be changed after import:</p>
+    <ul class="small" style="padding-left:18px"><li>${S.pageGrouping.name}: <b>${S.pageGrouping.vals[st.pageGrouping.value]}</b></li><li>${S.figureExtraction.name}: <b>${S.figureExtraction.vals[st.figureExtraction.value]}</b></li><li>Pages: <b>${rangeFrom ? `${rangeFrom}–${book.pageCount}` : `all ${book.pageCount}`}</b></li></ul>
+    <p class="muted small">Everything else can be changed later.</p>
+    <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn ghost" data-close>Back</button><button class="btn primary" data-close>Create book</button></div></div>`
+  d.showModal()
+}
+function rangeDialog() {
+  const d = $("#dlg")
+  d.innerHTML = `<div class="dlg"><h2>Choose pages to import</h2><p class="muted small" style="margin-top:6px">${lockBadge("Can't change after import")}</p>
+    <p class="small" style="margin-top:10px">Start at page <input type="number" min="1" max="${book.pageCount}" value="${rangeFrom || 1}" id="rf"> of ${book.pageCount}</p>
+    <p class="warn">Pages you leave out are not imported, and can't be added back without adding the book again.</p>
+    <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn ghost" data-close>Cancel</button><button class="btn primary" data-range-ok>Use these pages</button></div></div>`
+  d.showModal()
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button")
+  if (!t) return
+  const ds = t.dataset
+  if ("kind" in ds) { kind = ds.kind || null; setParam("kind", kind); render(); return }
+  if (ds.go) { stage = "result"; setParam("stage", null); render(); scrollTo(0, 0); return }
+  if (ds.ans) { const [k, v] = ds.ans.split(":"); ans[k] = v; syncAns(); render(); return }
+  if (ds.guess) { ans[ds.guess] = factsNow()[ds.guess]; syncAns(); render(); return }
+  if ("back" in ds) { const qs = toAsk(); const last = [...qs].reverse().find((k) => k in ans); if (last) delete ans[last]; syncAns(); render(); return }
+  if (ds.edit) { walkEdit = walkEdit === ds.edit ? null : ds.edit; render(); return }
+  if (ds.editLock) { walkEdit = "diagrams"; render(); document.querySelector('[data-edit="diagrams"]')?.scrollIntoView({ block: "center" }); return }
+  if (ds.set) { const [k, v] = ds.set.split(":"); ans[k] = v; syncAns(); render(); return }
+  if ("walk" in ds) { walk = true; setParam("walk", 1); render(); return }
+  if ("range" in ds) { rangeDialog(); return }
+  if ("rangeOk" in ds) { const v = +$("#rf").value; rangeFrom = v > 1 ? Math.min(v, book.pageCount) : null; setParam("from", rangeFrom); $("#dlg").close(); render(); return }
+  if ("create" in ds) { createDialog(); return }
+  if ("close" in ds) { $("#dlg").close(); return }
+})
+function syncAns() { setParam("a", Object.entries(ans).map(([k, v]) => `${k}:${v}`).join(",") || null) }
+
+function pick(id) { book = bookById(id); ans = {}; kind = null; walk = false; walkEdit = null; rangeFrom = null; stage = "result"; ["a", "kind", "walk", "from", "stage", "edit"].forEach((k) => setParam(k, null)); setParam("book", id); render() }
+
+function init() {
+  const p = params()
+  book = bookById(p.get("book") || DATA.books[0].id)
+  stage = p.get("stage") || "result"
+  kind = p.get("kind") || null
+  walk = p.has("walk")
+  walkEdit = p.get("edit")
+  rangeFrom = +p.get("from") || null
+  ans = Object.fromEntries((p.get("a") || "").split(",").filter(Boolean).map((x) => x.split(":")))
+  setupTheme(); setupLightbox(() => book); render()
+  if (p.get("dialog") === "create") createDialog()
+  if (p.get("dialog") === "range") rangeDialog()
+}
+init()
+</script>
+</body>
+</html>

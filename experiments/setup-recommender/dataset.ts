@@ -6,6 +6,8 @@ export type DecisionId = (typeof DECISIONS)[number]
 export interface DatasetBook {
   id: string // PDF basename
   description?: string
+  /** Extra simulated descriptions by style (vague, rich...), for describe-first variants. Written by us, not by users. */
+  descriptions?: Record<string, string>
   /** Known-good settings; only these fields are scored. */
   labels: Partial<Record<DecisionId, string>>
   /** True plain facts (genre, exercises, composition, diagrams), hand-labelled from the pages; every listed value is acceptable. */

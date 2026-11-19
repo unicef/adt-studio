@@ -11,6 +11,8 @@ export interface VariantContext {
   model: string
   /** One-line description the person adding the book would type (simulated in the PoC set). */
   description?: string
+  /** Extra simulated descriptions by style (vague, rich). */
+  descriptions?: Record<string, string>
   /** The true book facts (what an honest user would answer), for simulated user-in-the-loop variants only. */
   userFacts?: Partial<Record<string, string[]>>
 }

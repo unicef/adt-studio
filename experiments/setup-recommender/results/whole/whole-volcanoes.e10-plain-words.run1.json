@@ -1,0 +1,150 @@
+{
+  "bookId": "whole-volcanoes",
+  "variant": "e10-plain-words",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "profileMs": 3378.5846579999998,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "4 of 26 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "2/50 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": true,
+      "share": 0.8958333333333334,
+      "evidence": [
+        2,
+        13,
+        51
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 137,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 4,
+      "evidence": [
+        4,
+        6,
+        7
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "en",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "reference",
+      "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+      "value": "single_column",
+      "rule": "Reference material reads best as one clean column."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      27,
+      51
+    ],
+    "answers": {
+      "genre": {
+        "answer": "reference",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          4,
+          5,
+          27,
+          51
+        ],
+        "reason": "The pages present factual explanations and safety guidance about volcanoes rather than a plotted story or school lesson with tasks."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          27
+        ],
+        "reason": "The shown pages give information and advice, but they do not ask the reader to write, fill blanks, or mark answers."
+      },
+      "composition": {
+        "answer": "text-beside-art",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          5,
+          27,
+          51
+        ],
+        "reason": "Most pages place text in separate speech boxes or blocks alongside large illustrations, not mainly inside the artwork."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          5,
+          27,
+          51
+        ],
+        "reason": "The shown pages use illustrations and icons, but there are no labeled diagrams, maps, or charts."
+      }
+    },
+    "semantic": {
+      "genre": "reference",
+      "exercises": "none",
+      "composition": "text-beside-art",
+      "diagrams": "none"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 7530,
+    "outputTokens": 206,
+    "calls": 1
+  },
+  "ms": 4524.891374999999
+}

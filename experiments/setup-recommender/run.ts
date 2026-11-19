@@ -29,7 +29,7 @@ for (const entry of dataset.books) {
   const buffer = readFileSync(pdf)
   const book = profilePdf(entry.id, buffer)
   const facts = deriveFacts(book)
-  const ctx = { bookId: entry.id, buffer, book, facts, model: values.model!, description: entry.description, userFacts: entry.facts }
+  const ctx = { bookId: entry.id, buffer, book, facts, model: values.model!, description: entry.description, descriptions: entry.descriptions, userFacts: entry.facts }
   for (const variant of variants) {
     for (let run = 1; run <= (variant.deterministic ? 1 : runs); run++) {
       try {

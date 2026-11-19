@@ -127,8 +127,8 @@ function profilePage(doc: mupdf.Document, index: number): { profile: PageProfile
   }
 }
 
-/** Renders 1-indexed pages as PNGs, longest side about `size` px. */
-export function renderPages(buffer: Uint8Array, pages: number[], size = 1000): Map<number, Uint8Array> {
+/** Renders 1-indexed pages as PNGs (or JPEG, quality 70, round 3), longest side about `size` px. */
+export function renderPages(buffer: Uint8Array, pages: number[], size = 1000, format: "png" | "jpeg" = "png"): Map<number, Uint8Array> {
   const doc = mupdf.Document.openDocument(buffer, "application/pdf")
   const out = new Map<number, Uint8Array>()
   for (const n of pages) {
@@ -136,7 +136,7 @@ export function renderPages(buffer: Uint8Array, pages: number[], size = 1000): M
     const b = page.getBounds()
     const scale = size / Math.max(b[2] - b[0], b[3] - b[1])
     const pix = page.toPixmap(mupdf.Matrix.scale(scale, scale), mupdf.ColorSpace.DeviceRGB, false)
-    out.set(n, pix.asPNG())
+    out.set(n, format === "jpeg" ? pix.asJPEG(70) : pix.asPNG())
     pix.destroy?.()
   }
   return out

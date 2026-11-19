@@ -17,7 +17,7 @@ import type { Variant } from "./types.ts"
  * Idea: a few odd pages (a preface, a credits page) cannot drag the whole book, and the page counts
  * are something the user can check ("6 story pages, 2 front-matter pages").
  */
-const PAGE_TYPES = {
+export const PAGE_TYPES = {
   cover: "Front or back cover.",
   "front-matter": "Title page, copyright, contents, or a preface, foreword or introduction written about the book by its author, editor or publisher.",
   story: "Narrative: tells a story (fiction or tale), as prose or as text with illustrations.",
@@ -27,7 +27,7 @@ const PAGE_TYPES = {
   "back-matter": "Credits, licence, index, glossary, about the author, list of other titles.",
   blank: "Empty or nearly empty page, or a picture with no text that does not carry a story.",
 } as const
-const PLACEMENTS = {
+export const PLACEMENTS = {
   "on-art": "The text is placed on top of a picture that fills most of the page.",
   "beside-art": "The text sits in its own area next to, above or below a picture.",
   "text-only": "Mostly text; pictures small or absent.",
@@ -35,7 +35,7 @@ const PLACEMENTS = {
 } as const
 type PageType = keyof typeof PAGE_TYPES
 type Placement = keyof typeof PLACEMENTS
-type PageLabel = { page: number; type: PageType; textPlacement: Placement; meaningfulFigure: boolean }
+export type PageLabel = { page: number; type: PageType; textPlacement: Placement; meaningfulFigure: boolean }
 const NON_VOTING: PageType[] = ["cover", "front-matter", "back-matter", "blank"]
 
 export function aggregate(labels: PageLabel[], bookGuess: SemanticFacts["genre"]) {

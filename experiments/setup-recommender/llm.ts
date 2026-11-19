@@ -20,7 +20,7 @@ export async function askJson<T>(opts: {
   const content: unknown[] = [{ type: "input_text", text: opts.text }]
   for (const img of opts.images) {
     content.push({ type: "input_text", text: img.label })
-    content.push({ type: "input_image", image_url: `data:image/png;base64,${Buffer.from(img.png).toString("base64")}`, detail: opts.detail ?? "auto" })
+    content.push({ type: "input_image", image_url: `data:${img.png[0] === 0xff && img.png[1] === 0xd8 ? "image/jpeg" : "image/png"};base64,${Buffer.from(img.png).toString("base64")}`, detail: opts.detail ?? "auto" })
   }
   const started = performance.now()
   const res = await fetch("https://api.openai.com/v1/responses", {

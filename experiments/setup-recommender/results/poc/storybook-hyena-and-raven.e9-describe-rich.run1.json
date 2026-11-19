@@ -1,0 +1,152 @@
+{
+  "bookId": "storybook-hyena-and-raven",
+  "variant": "e9-describe-rich",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "profileMs": 75.24705600000016,
+  "facts": {
+    "pageStorage": {
+      "value": "spreads-as-wide-pages",
+      "evidence": [
+        2,
+        3,
+        4
+      ],
+      "detail": "100% of pages are landscape"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/10 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.39250100040016006
+    },
+    "textDensity": {
+      "medianChars": 80,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        2,
+        3,
+        4
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "two_column_story",
+      "rule": "Text sits beside the pictures, so story text and art go side by side."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Spreads are already stored as one wide page."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "description": "African folk tale for early readers; each page has a big picture with a short paragraph underneath it.",
+    "style": "rich",
+    "parsed": {
+      "genre": {
+        "status": "stated",
+        "answer": "story",
+        "quote": "\"African folk tale for early readers\""
+      },
+      "exercises": {
+        "status": "stated",
+        "answer": "none",
+        "quote": "\"each page has a big picture with a short paragraph underneath it\""
+      },
+      "composition": {
+        "status": "stated",
+        "answer": "text-beside-art",
+        "quote": "\"each page has a big picture with a short paragraph underneath it\""
+      },
+      "diagrams": {
+        "status": "unknown",
+        "answer": "none",
+        "quote": ""
+      }
+    },
+    "given": {
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-beside-art"
+    },
+    "settledByDescription": [
+      "genre",
+      "exercises",
+      "composition"
+    ],
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      7,
+      11
+    ],
+    "answers": {
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          7,
+          11
+        ],
+        "reason": "The shown pages contain only story illustrations with text beside them; there are no charts, maps, labelled diagrams, or infographics with meaningful labels."
+      }
+    },
+    "semantic": {
+      "diagrams": "none",
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-beside-art"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 6704,
+    "outputTokens": 180,
+    "calls": 2
+  },
+  "ms": 5189.022007
+}

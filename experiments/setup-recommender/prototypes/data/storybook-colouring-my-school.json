@@ -1,0 +1,640 @@
+{
+ "id": "storybook-colouring-my-school",
+ "pageCount": 9,
+ "engine": {
+  "proposal": "e5-page-types",
+  "check": "e4-one-call",
+  "run": 1
+ },
+ "thumbnails": {
+  "1": "pages/storybook-colouring-my-school/p1.png",
+  "2": "pages/storybook-colouring-my-school/p2.png",
+  "3": "pages/storybook-colouring-my-school/p3.png",
+  "4": "pages/storybook-colouring-my-school/p4.png",
+  "5": "pages/storybook-colouring-my-school/p5.png",
+  "6": "pages/storybook-colouring-my-school/p6.png",
+  "7": "pages/storybook-colouring-my-school/p7.png",
+  "8": "pages/storybook-colouring-my-school/p8.png"
+ },
+ "summary": "A story, 9 pages: text printed on the pictures, with pictures running across facing pages, no exercises, no labelled diagrams.",
+ "measured": {
+  "pageStorage": {
+   "value": "spreads-as-separate-pages",
+   "evidence": [
+    2,
+    3,
+    8,
+    9,
+    6,
+    7
+   ],
+   "detail": "3 of 4 facing pairs continue across the gutter",
+   "irreversible": true,
+   "plain": {
+    "en": "Pictures run across two facing pages, so we join each pair into one screen.",
+    "pt-BR": "As ilustrações passam de uma página para a outra, então juntamos cada par numa tela.",
+    "es": "Las ilustraciones pasan de una página a la de enfrente, así que unimos cada par en una pantalla."
+   }
+  },
+  "textLayer": {
+   "value": "digital",
+   "evidence": [],
+   "detail": "3/7 pages look scanned",
+   "plain": {
+    "en": "The PDF has real text, so we read the words directly.",
+    "pt-BR": "O PDF tem texto de verdade, então lemos as palavras diretamente.",
+    "es": "El PDF tiene texto real, así que leemos las palabras directamente."
+   }
+  },
+  "language": {
+   "pdfTag": "",
+   "guess": "en"
+  },
+  "numbers": {
+   "medianChars": 65,
+   "pictureCoverage": 1,
+   "textOverPicturesShare": 1,
+   "exerciseCuePages": 0,
+   "diagramPages": 0
+  }
+ },
+ "facts": {
+  "genre": {
+   "question": "What kind of book is this?",
+   "proposed": "story",
+   "proposedPlain": "a story",
+   "teachingQuestion": "Is this a story that readers follow from start to end?",
+   "plainQuestion": "What is this book mostly?",
+   "plainOptions": {
+    "story": "A story. Readers follow characters or events from start to end: a picture book, a tale or a novel. A story with a few colouring or drawing pages is still a story.",
+    "textbook": "A schoolbook. It teaches a subject in lessons and gives the learner tasks to do.",
+    "reference": "Something people read to find information: a report, an article, a manual or a guide. It has no tasks for the reader."
+   },
+   "unsupported": false,
+   "reason": "The pages read like a narrated tour with rhyme and scene description, not like instructional material or an information reference.",
+   "citedPages": [
+    3,
+    5,
+    8
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "story",
+   "flag": null,
+   "matters": true,
+   "trueAnswer": [
+    "story"
+   ]
+  },
+  "exercises": {
+   "question": "Does the book contain exercises or activities that the reader is meant to do (answer questions, fill in blanks, match, circle, write)?",
+   "proposed": "none",
+   "proposedPlain": "no exercises",
+   "teachingQuestion": "Is this book only for reading? (Colouring and drawing pages still count as reading.)",
+   "plainQuestion": "Does the book ask the reader to write or mark answers? (Colouring and drawing do not count.)",
+   "plainOptions": {
+    "none": "No. The reader only reads, or colours and draws. Questions inside the story that nobody writes an answer to do not count.",
+    "some": "Yes, on a few pages: questions to answer, blanks to fill, things to match, circle or tick.",
+    "many": "Yes, on most pages."
+   },
+   "unsupported": false,
+   "reason": "The shown pages have descriptive sentences only, and the PDF notes say 0 pages show exercise cues such as questions, blanks, or instructions.",
+   "citedPages": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    8
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "none",
+   "flag": null,
+   "matters": false,
+   "trueAnswer": [
+    "none"
+   ]
+  },
+  "composition": {
+   "question": "How are the text and the pictures arranged on the pages?",
+   "proposed": "text-in-art",
+   "proposedPlain": "text printed on the pictures",
+   "teachingQuestion": "Are the words printed on the pictures themselves?",
+   "plainQuestion": "Where are the words on a page?",
+   "plainOptions": {
+    "text-in-art": "Printed on the picture itself, for example over the sky or the grass.",
+    "text-beside-art": "In their own space: above, below or next to the picture, or on the opposite page.",
+    "text-mostly": "It is mostly words. Pictures are few or small."
+   },
+   "unsupported": false,
+   "reason": "The sentences are placed inside large white text boxes over the illustrated classroom scenes rather than in a separate text area.",
+   "citedPages": [
+    3,
+    5,
+    8
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "text-in-art",
+   "flag": null,
+   "matters": true,
+   "trueAnswer": [
+    "text-in-art"
+   ]
+  },
+  "diagrams": {
+   "question": "Does the book contain diagrams, charts, maps, labelled figures or infographics whose labels carry meaning?",
+   "proposed": "none",
+   "proposedPlain": "no labelled diagrams",
+   "teachingQuestion": "Are all the pictures plain illustrations or photos (no maps, charts or labelled drawings)?",
+   "plainQuestion": "Are there pictures with labels that explain something, like maps, charts, diagrams or labelled drawings?",
+   "plainOptions": {
+    "none": "No. Only illustrations or photos. A caption under a photo does not count.",
+    "some": "Yes, a few.",
+    "many": "Yes, on many pages."
+   },
+   "unsupported": false,
+   "reason": "The pages show illustrated classroom scenes and labels, but no charts, maps, diagrams, or other meaningful labeled figures.",
+   "citedPages": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    8
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "none",
+   "flag": null,
+   "matters": true,
+   "trueAnswer": [
+    "none"
+   ]
+  }
+ },
+ "coverage": {
+  "pagesRead": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "pageCount": 9,
+  "sampled": false,
+  "bodyPages": [
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "contentStartsAt": 2,
+  "onlyFrontMatter": false,
+  "strip": [
+   {
+    "page": 1,
+    "type": "front-matter",
+    "kind": "opening",
+    "group": "all"
+   },
+   {
+    "page": 2,
+    "type": "story",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 3,
+    "type": "story",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 4,
+    "type": "story",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 5,
+    "type": "story",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 6,
+    "type": "story",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 7,
+    "type": "story",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 8,
+    "type": "story",
+    "kind": "book",
+    "group": "all"
+   },
+   {
+    "page": 9,
+    "type": "story",
+    "kind": "book",
+    "group": "all"
+   }
+  ],
+  "say": "Read all 9 pages. The book starts on page 2.",
+  "sayI18n": {
+   "en": "We read all 9 pages.",
+   "pt-BR": "Lemos todas as 9 páginas.",
+   "es": "Leímos las 9 páginas."
+  },
+  "question": null,
+  "questionI18n": null
+ },
+ "range": {
+  "suggested": {
+   "keepCover": false,
+   "start": 2,
+   "end": 9,
+   "skipped": [
+    {
+     "from": 1,
+     "to": 1,
+     "why": "opening"
+    }
+   ],
+   "startExact": true,
+   "endExact": true
+  },
+  "say": [
+   {
+    "en": "The book seems to start on page 2.",
+    "pt-BR": "O livro parece começar na página 2.",
+    "es": "El libro parece empezar en la página 2."
+   },
+   {
+    "en": "Page 1 is left out.",
+    "pt-BR": "A página 1 fica de fora.",
+    "es": "La página 1 queda fuera."
+   }
+  ]
+ },
+ "previewPage": {
+  "page": 7,
+  "isBody": true,
+  "why": "From the middle of the pages we read (labelled story); the words are on the picture."
+ },
+ "ask": [],
+ "askAcrossRuns": {
+  "combos": 9,
+  "questions": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "avgQuestions": 0,
+  "missed": {}
+ },
+ "pageLabels": [
+  {
+   "page": 1,
+   "type": "front-matter",
+   "textPlacement": "text-only",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 2,
+   "type": "story",
+   "textPlacement": "no-text",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 3,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 4,
+   "type": "story",
+   "textPlacement": "no-text",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 5,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 6,
+   "type": "story",
+   "textPlacement": "no-text",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 7,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 8,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 9,
+   "type": "story",
+   "textPlacement": "no-text",
+   "meaningfulFigure": false
+  }
+ ],
+ "pageCounts": {
+  "body": 8,
+  "story": 8,
+  "textbook": 0,
+  "reference": 0,
+  "exercisePages": 0,
+  "figurePages": 0,
+  "placement": {
+   "on-art": 4,
+   "beside-art": 0,
+   "text-only": 0
+  }
+ },
+ "settings": {
+  "preset": {
+   "value": "storybook",
+   "rule": "The book is a story.",
+   "irreversible": false,
+   "knownGood": "storybook"
+  },
+  "renderStrategy": {
+   "value": "fixed_layout",
+   "rule": "Text is placed on the pictures, so the original page design is kept.",
+   "irreversible": false,
+   "knownGood": "fixed_layout"
+  },
+  "pageGrouping": {
+   "value": "spread",
+   "rule": "Facing pages continue across the gutter, so each pair is joined into one screen.",
+   "irreversible": true,
+   "knownGood": "spread"
+  },
+  "sectioningMode": {
+   "value": "page",
+   "rule": "Each page is one unit.",
+   "irreversible": false,
+   "knownGood": "page"
+  },
+  "activitiesGenerator": {
+   "value": "disabled",
+   "rule": "No exercises for the reader.",
+   "irreversible": false,
+   "knownGood": null
+  },
+  "figureExtraction": {
+   "value": "off",
+   "rule": "No labelled diagrams.",
+   "irreversible": true,
+   "knownGood": null
+  }
+ },
+ "whatIf": {
+  "genre": {
+   "textbook": {
+    "preset": {
+     "from": "storybook",
+     "to": "textbook",
+     "rule": "The book is a textbook."
+    },
+    "renderStrategy": {
+     "from": "fixed_layout",
+     "to": "llm",
+     "rule": "Lessons and exercises need the AI layout to rebuild their structure."
+    }
+   },
+   "reference": {
+    "preset": {
+     "from": "storybook",
+     "to": "reference",
+     "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+     "from": "fixed_layout",
+     "to": "single_column",
+     "rule": "Reference material reads best as one clean column."
+    }
+   }
+  },
+  "exercises": {
+   "some": {},
+   "many": {}
+  },
+  "composition": {
+   "text-beside-art": {
+    "renderStrategy": {
+     "from": "fixed_layout",
+     "to": "two_column_story",
+     "rule": "Text sits beside the pictures, so story text and art go side by side."
+    }
+   },
+   "text-mostly": {
+    "renderStrategy": {
+     "from": "fixed_layout",
+     "to": "llm",
+     "rule": "Mostly text, so the AI layout reflows it."
+    }
+   }
+  },
+  "diagrams": {
+   "some": {
+    "figureExtraction": {
+     "from": "off",
+     "to": "auto",
+     "rule": "Diagrams with text labels are kept together as figures."
+    }
+   },
+   "many": {
+    "figureExtraction": {
+     "from": "off",
+     "to": "auto",
+     "rule": "Diagrams with text labels are kept together as figures."
+    }
+   }
+  }
+ },
+ "questionOrder": [
+  "genre",
+  "composition",
+  "diagrams"
+ ],
+ "describeFirst": {
+  "short": {
+   "description": "A picture book for small children about their school.",
+   "parsed": {
+    "genre": {
+     "status": "implied",
+     "answer": "story",
+     "quote": "\"A picture book for small children about their school.\""
+    },
+    "exercises": {
+     "status": "unknown",
+     "answer": "none",
+     "quote": ""
+    },
+    "composition": {
+     "status": "unknown",
+     "answer": "text-beside-art",
+     "quote": ""
+    },
+    "diagrams": {
+     "status": "unknown",
+     "answer": "none",
+     "quote": ""
+    }
+   },
+   "settledByDescription": [],
+   "stillToAsk": [
+    "genre",
+    "composition",
+    "diagrams"
+   ]
+  },
+  "vague": {
+   "description": "Kids book.",
+   "parsed": {
+    "genre": {
+     "status": "unknown",
+     "answer": "story",
+     "quote": ""
+    },
+    "exercises": {
+     "status": "unknown",
+     "answer": "none",
+     "quote": ""
+    },
+    "composition": {
+     "status": "unknown",
+     "answer": "text-beside-art",
+     "quote": ""
+    },
+    "diagrams": {
+     "status": "unknown",
+     "answer": "none",
+     "quote": ""
+    }
+   },
+   "settledByDescription": [],
+   "stillToAsk": [
+    "genre",
+    "composition",
+    "diagrams"
+   ]
+  },
+  "rich": {
+   "description": "Picture book for 4-6 year olds about a school day; one short sentence per page printed over big colour illustrations.",
+   "parsed": {
+    "genre": {
+     "status": "stated",
+     "answer": "story",
+     "quote": "\"Picture book for 4-6 year olds about a school day\""
+    },
+    "exercises": {
+     "status": "stated",
+     "answer": "none",
+     "quote": "\"one short sentence per page printed over big colour illustrations\""
+    },
+    "composition": {
+     "status": "stated",
+     "answer": "text-in-art",
+     "quote": "\"one short sentence per page printed over big colour illustrations\""
+    },
+    "diagrams": {
+     "status": "unknown",
+     "answer": "none",
+     "quote": ""
+    }
+   },
+   "settledByDescription": [
+    "genre",
+    "exercises",
+    "composition"
+   ],
+   "stillToAsk": [
+    "diagrams"
+   ]
+  }
+ },
+ "status": "looks-right",
+ "statusText": {
+  "en": "Looks right. Here's what we found.",
+  "pt-BR": "Parece certo. Veja o que encontramos.",
+  "es": "Parece correcto. Esto es lo que encontramos."
+ },
+ "questions": [],
+ "lockedSettings": [
+  {
+   "setting": "pageGrouping",
+   "label": {
+    "en": "Facing pages",
+    "pt-BR": "Páginas lado a lado",
+    "es": "Páginas enfrentadas"
+   },
+   "value": "spread",
+   "valueText": {
+    "en": "Two facing pages joined on one screen",
+    "pt-BR": "Duas páginas unidas numa tela",
+    "es": "Dos páginas unidas en una pantalla"
+   },
+   "from": "measured",
+   "askedIn": []
+  },
+  {
+   "setting": "figureExtraction",
+   "label": {
+    "en": "Maps and labelled drawings",
+    "pt-BR": "Mapas e desenhos com legendas",
+    "es": "Mapas y dibujos con rótulos"
+   },
+   "value": "off",
+   "valueText": {
+    "en": "None",
+    "pt-BR": "Nenhum",
+    "es": "Ninguno"
+   },
+   "from": "ai",
+   "askedIn": []
+  }
+ ],
+ "oldOneShot": {
+  "preset": "storybook",
+  "renderStrategy": "llm-overlay",
+  "pageGrouping": "spread",
+  "sectioningMode": "page",
+  "activitiesGenerator": "disabled",
+  "figureExtraction": "auto"
+ }
+}

@@ -1,0 +1,147 @@
+{
+  "bookId": "whole-volcanoes",
+  "variant": "e13-plain-words-middle",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "profileMs": 3403.814105,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "4 of 26 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "2/50 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": true,
+      "share": 0.8958333333333334,
+      "evidence": [
+        2,
+        13,
+        51
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 137,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 4,
+      "evidence": [
+        4,
+        6,
+        7
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "en",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "fixed_layout",
+      "rule": "Text is placed on the pictures, so the original page design is kept."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "Activities are only converted in the Textbook preset."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "pages": [
+      13,
+      20,
+      28,
+      31,
+      39,
+      46
+    ],
+    "answers": {
+      "genre": {
+        "answer": "story",
+        "confidence": "high",
+        "evidencePages": [
+          20,
+          31,
+          39,
+          46
+        ],
+        "reason": "The pages follow characters through events in sequence, with dialogue and scenes, rather than teaching lessons or listing facts."
+      },
+      "exercises": {
+        "answer": "some",
+        "confidence": "high",
+        "evidencePages": [
+          13,
+          28
+        ],
+        "reason": "Page 13 tells readers to make an evacuation plan, and page 28 says to use tape, but there are no numbered tasks or blanks on the shown pages."
+      },
+      "composition": {
+        "answer": "text-in-art",
+        "confidence": "high",
+        "evidencePages": [
+          13,
+          20,
+          28,
+          31,
+          39,
+          46
+        ],
+        "reason": "On the shown pages the words are placed directly over the illustrations or within speech bubbles on the picture."
+      },
+      "diagrams": {
+        "answer": "some",
+        "confidence": "high",
+        "evidencePages": [
+          13,
+          28
+        ],
+        "reason": "Page 13 has a labelled volcano diagram, and page 28 has labelled kit items shown in a diagram-like layout."
+      }
+    },
+    "semantic": {
+      "genre": "story",
+      "exercises": "some",
+      "composition": "text-in-art",
+      "diagrams": "some"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 7536,
+    "outputTokens": 210,
+    "calls": 1
+  },
+  "ms": 4593.221402
+}

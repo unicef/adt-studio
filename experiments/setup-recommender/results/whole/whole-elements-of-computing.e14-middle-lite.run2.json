@@ -1,0 +1,149 @@
+{
+  "bookId": "whole-elements-of-computing",
+  "variant": "e14-middle-lite",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 1839.171174000001,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 213 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/425 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.0014297388572224589
+    },
+    "textDensity": {
+      "medianChars": 1379,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        17,
+        222,
+        348
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 34,
+      "evidence": [
+        115,
+        279,
+        400
+      ]
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "The book is a textbook."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "Lessons and exercises need the AI layout to rebuild their structure."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "dynamic",
+      "rule": "Pages mix reading and exercises, so each page is split into sections."
+    },
+    "activitiesGenerator": {
+      "value": "enabled",
+      "rule": "The book has exercises for the reader, so they become interactive activities."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "pages": [
+      45,
+      125,
+      204,
+      244,
+      324,
+      403
+    ],
+    "answers": {
+      "genre": {
+        "answer": "textbook",
+        "confidence": "high",
+        "evidencePages": [
+          45,
+          125,
+          204,
+          244,
+          324,
+          403
+        ],
+        "reason": "The pages are organized as numbered sections teaching concepts like computer architecture, VM translation, and compiler testing."
+      },
+      "exercises": {
+        "answer": "many",
+        "confidence": "high",
+        "evidencePages": [
+          324,
+          403
+        ],
+        "reason": "The shown pages include instructions, bullet-point tasks, and testing steps for the reader to follow."
+      },
+      "composition": {
+        "answer": "text-beside-art",
+        "confidence": "high",
+        "evidencePages": [
+          45,
+          125,
+          204,
+          244,
+          324,
+          403
+        ],
+        "reason": "The pages mostly have prose with figures or code blocks placed in their own spaces, not text printed over images."
+      },
+      "diagrams": {
+        "answer": "some",
+        "confidence": "high",
+        "evidencePages": [
+          45,
+          403
+        ],
+        "reason": "There are labeled figures and simulator screenshots that explain the material, but they do not appear on most pages."
+      }
+    },
+    "semantic": {
+      "genre": "textbook",
+      "exercises": "many",
+      "composition": "text-beside-art",
+      "diagrams": "some"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 3171,
+    "outputTokens": 200,
+    "calls": 1
+  },
+  "ms": 3054.094962000003
+}

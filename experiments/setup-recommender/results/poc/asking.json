@@ -1,0 +1,9212 @@
+{
+ "generatedAt": "2026-11-19T22:20:47.288Z",
+ "note": "Offline replay. Honest user = dataset's true facts. 'missed' = settings that differ from what the true facts give.",
+ "pairs": [
+  {
+   "proposal": "e5-page-types",
+   "check": "e5-page-types",
+   "rules": {
+    "none": {
+     "combos": 36,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/36"
+    },
+    "disagree": {
+     "combos": 36,
+     "questions": 16,
+     "maxQ": 2,
+     "combosMissed": 2,
+     "settingsMissed": 4,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 8,
+     "rightAnswersAsked": 8,
+     "avgQuestions": 0.44,
+     "combosWithMiss": "2/36"
+    },
+    "changes": {
+     "combos": 36,
+     "questions": 8,
+     "maxQ": 1,
+     "combosMissed": 2,
+     "settingsMissed": 4,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 4,
+     "rightAnswersAsked": 4,
+     "avgQuestions": 0.22,
+     "combosWithMiss": "2/36"
+    },
+    "changes+cover": {
+     "combos": 36,
+     "questions": 26,
+     "maxQ": 3,
+     "combosMissed": 2,
+     "settingsMissed": 4,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 4,
+     "rightAnswersAsked": 22,
+     "avgQuestions": 0.72,
+     "combosWithMiss": "2/36"
+    },
+    "changes+open": {
+     "combos": 36,
+     "questions": 18,
+     "maxQ": 3,
+     "combosMissed": 2,
+     "settingsMissed": 4,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 4,
+     "rightAnswersAsked": 14,
+     "avgQuestions": 0.5,
+     "combosWithMiss": "2/36"
+    },
+    "changes+diag": {
+     "combos": 36,
+     "questions": 32,
+     "maxQ": 2,
+     "combosMissed": 2,
+     "settingsMissed": 4,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 4,
+     "rightAnswersAsked": 28,
+     "avgQuestions": 0.89,
+     "combosWithMiss": "2/36"
+    },
+    "all-matter": {
+     "combos": 36,
+     "questions": 92,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 86,
+     "avgQuestions": 2.56,
+     "combosWithMiss": "0/36"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        1,
+        0,
+        1,
+        1,
+        0,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        2,
+        0,
+        2,
+        2,
+        0,
+        2
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        1,
+        0,
+        1,
+        1,
+        0,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        1,
+        0,
+        1,
+        1,
+        0,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        1,
+        0,
+        2,
+        2,
+        0,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        0,
+        1,
+        1,
+        0,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        2,
+        2,
+        1,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 4,
+        "renderStrategy": 4
+       }
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        1,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        1,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        1,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        0,
+        3,
+        0
+       ],
+       "avgQuestions": 2,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        2,
+        2,
+        2,
+        1,
+        2,
+        1
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e5-page-types",
+   "check": "e4-one-call",
+   "rules": {
+    "none": {
+     "combos": 54,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 9,
+     "settingsMissed": 18,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "9/54"
+    },
+    "disagree": {
+     "combos": 54,
+     "questions": 41,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 14,
+     "rightAnswersAsked": 27,
+     "avgQuestions": 0.76,
+     "combosWithMiss": "0/54"
+    },
+    "changes": {
+     "combos": 54,
+     "questions": 21,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 12,
+     "avgQuestions": 0.39,
+     "combosWithMiss": "0/54"
+    },
+    "changes+cover": {
+     "combos": 54,
+     "questions": 39,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 30,
+     "avgQuestions": 0.72,
+     "combosWithMiss": "0/54"
+    },
+    "changes+open": {
+     "combos": 54,
+     "questions": 60,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 51,
+     "avgQuestions": 1.11,
+     "combosWithMiss": "0/54"
+    },
+    "changes+diag": {
+     "combos": 54,
+     "questions": 57,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 48,
+     "avgQuestions": 1.06,
+     "combosWithMiss": "0/54"
+    },
+    "all-matter": {
+     "combos": 54,
+     "questions": 138,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 129,
+     "avgQuestions": 2.56,
+     "combosWithMiss": "0/54"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        1,
+        2
+       ],
+       "avgQuestions": 1.7777777777777777,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 3,
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        1,
+        2,
+        2,
+        1,
+        0,
+        0,
+        1
+       ],
+       "avgQuestions": 0.7777777777777778,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e5-page-types",
+   "check": "e10-plain-words",
+   "rules": {
+    "none": {
+     "combos": 54,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 9,
+     "settingsMissed": 18,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "9/54"
+    },
+    "disagree": {
+     "combos": 54,
+     "questions": 32,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 12,
+     "rightAnswersAsked": 20,
+     "avgQuestions": 0.59,
+     "combosWithMiss": "0/54"
+    },
+    "changes": {
+     "combos": 54,
+     "questions": 12,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 3,
+     "avgQuestions": 0.22,
+     "combosWithMiss": "0/54"
+    },
+    "changes+cover": {
+     "combos": 54,
+     "questions": 36,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 27,
+     "avgQuestions": 0.67,
+     "combosWithMiss": "0/54"
+    },
+    "changes+open": {
+     "combos": 54,
+     "questions": 33,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 24,
+     "avgQuestions": 0.61,
+     "combosWithMiss": "0/54"
+    },
+    "changes+diag": {
+     "combos": 54,
+     "questions": 48,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 39,
+     "avgQuestions": 0.89,
+     "combosWithMiss": "0/54"
+    },
+    "all-matter": {
+     "combos": 54,
+     "questions": 138,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 129,
+     "avgQuestions": 2.56,
+     "combosWithMiss": "0/54"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        2,
+        2,
+        2,
+        1,
+        2,
+        1
+       ],
+       "avgQuestions": 1.5555555555555556,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        3,
+        0,
+        0,
+        3,
+        0,
+        0,
+        3
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        2
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 3,
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e5-page-types",
+   "check": "e11-page-types-text",
+   "rules": {
+    "none": {
+     "combos": 54,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 9,
+     "settingsMissed": 18,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "9/54"
+    },
+    "disagree": {
+     "combos": 54,
+     "questions": 49,
+     "maxQ": 3,
+     "combosMissed": 3,
+     "settingsMissed": 6,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 11,
+     "rightAnswersAsked": 38,
+     "avgQuestions": 0.91,
+     "combosWithMiss": "3/54"
+    },
+    "changes": {
+     "combos": 54,
+     "questions": 24,
+     "maxQ": 3,
+     "combosMissed": 3,
+     "settingsMissed": 6,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 18,
+     "avgQuestions": 0.44,
+     "combosWithMiss": "3/54"
+    },
+    "changes+cover": {
+     "combos": 54,
+     "questions": 51,
+     "maxQ": 3,
+     "combosMissed": 3,
+     "settingsMissed": 6,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 45,
+     "avgQuestions": 0.94,
+     "combosWithMiss": "3/54"
+    },
+    "changes+open": {
+     "combos": 54,
+     "questions": 33,
+     "maxQ": 3,
+     "combosMissed": 1,
+     "settingsMissed": 2,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 8,
+     "rightAnswersAsked": 25,
+     "avgQuestions": 0.61,
+     "combosWithMiss": "1/54"
+    },
+    "changes+diag": {
+     "combos": 54,
+     "questions": 51,
+     "maxQ": 3,
+     "combosMissed": 3,
+     "settingsMissed": 6,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 45,
+     "avgQuestions": 0.94,
+     "combosWithMiss": "3/54"
+    },
+    "all-matter": {
+     "combos": 54,
+     "questions": 138,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 129,
+     "avgQuestions": 2.56,
+     "combosWithMiss": "0/54"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 3,
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        0,
+        1,
+        1,
+        2,
+        1,
+        1,
+        0
+       ],
+       "avgQuestions": 0.8888888888888888,
+       "missed": {
+        "preset": 1,
+        "renderStrategy": 1
+       }
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.4444444444444444,
+       "missed": {
+        "preset": 1,
+        "renderStrategy": 1
+       }
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.4444444444444444,
+       "missed": {
+        "preset": 1,
+        "renderStrategy": 1
+       }
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        0,
+        2,
+        2,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {
+        "preset": 1,
+        "renderStrategy": 1
+       }
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.4444444444444444,
+       "missed": {
+        "preset": 1,
+        "renderStrategy": 1
+       }
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        3,
+        2,
+        3,
+        2,
+        3,
+        3,
+        2,
+        3
+       ],
+       "avgQuestions": 2.5555555555555554,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        3,
+        2,
+        3,
+        3,
+        2,
+        3
+       ],
+       "avgQuestions": 2.2222222222222223,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        3,
+        2,
+        3,
+        3,
+        2,
+        3
+       ],
+       "avgQuestions": 2.2222222222222223,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        3,
+        2,
+        3,
+        3,
+        2,
+        3
+       ],
+       "avgQuestions": 2.2222222222222223,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e5-page-types",
+   "check": "e6-text-only",
+   "rules": {
+    "none": {
+     "combos": 54,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 9,
+     "settingsMissed": 18,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "9/54"
+    },
+    "disagree": {
+     "combos": 54,
+     "questions": 58,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 15,
+     "rightAnswersAsked": 43,
+     "avgQuestions": 1.07,
+     "combosWithMiss": "0/54"
+    },
+    "changes": {
+     "combos": 54,
+     "questions": 34,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 25,
+     "avgQuestions": 0.63,
+     "combosWithMiss": "0/54"
+    },
+    "changes+cover": {
+     "combos": 54,
+     "questions": 52,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 43,
+     "avgQuestions": 0.96,
+     "combosWithMiss": "0/54"
+    },
+    "changes+open": {
+     "combos": 54,
+     "questions": 81,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 72,
+     "avgQuestions": 1.5,
+     "combosWithMiss": "0/54"
+    },
+    "changes+diag": {
+     "combos": 54,
+     "questions": 70,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 61,
+     "avgQuestions": 1.3,
+     "combosWithMiss": "0/54"
+    },
+    "all-matter": {
+     "combos": 54,
+     "questions": 138,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 129,
+     "avgQuestions": 2.56,
+     "combosWithMiss": "0/54"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 3,
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 1.7777777777777777,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        1,
+        0,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 1.4444444444444444,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        1,
+        0,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 1.4444444444444444,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        3,
+        0,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 2.4444444444444446,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e11-page-types-text",
+   "check": "e6-text-only",
+   "rules": {
+    "none": {
+     "combos": 54,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/54"
+    },
+    "disagree": {
+     "combos": 54,
+     "questions": 50,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 21,
+     "rightAnswersAsked": 29,
+     "avgQuestions": 0.93,
+     "combosWithMiss": "0/54"
+    },
+    "changes": {
+     "combos": 54,
+     "questions": 36,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 7,
+     "rightAnswersAsked": 29,
+     "avgQuestions": 0.67,
+     "combosWithMiss": "0/54"
+    },
+    "changes+cover": {
+     "combos": 54,
+     "questions": 54,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 7,
+     "rightAnswersAsked": 47,
+     "avgQuestions": 1,
+     "combosWithMiss": "0/54"
+    },
+    "changes+open": {
+     "combos": 54,
+     "questions": 87,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 78,
+     "avgQuestions": 1.61,
+     "combosWithMiss": "0/54"
+    },
+    "changes+diag": {
+     "combos": 54,
+     "questions": 63,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 7,
+     "rightAnswersAsked": 56,
+     "avgQuestions": 1.17,
+     "combosWithMiss": "0/54"
+    },
+    "all-matter": {
+     "combos": 54,
+     "questions": 138,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 129,
+     "avgQuestions": 2.56,
+     "combosWithMiss": "0/54"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 3,
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 3,
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        3,
+        1,
+        2,
+        3,
+        2,
+        1,
+        3,
+        1
+       ],
+       "avgQuestions": 1.8888888888888888,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        2,
+        3,
+        2,
+        1,
+        2,
+        1
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        2,
+        3,
+        2,
+        1,
+        2,
+        1
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        2,
+        3,
+        2,
+        1,
+        2,
+        1
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e11-page-types-text",
+   "check": "e10-plain-words",
+   "rules": {
+    "none": {
+     "combos": 54,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/54"
+    },
+    "disagree": {
+     "combos": 54,
+     "questions": 48,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 24,
+     "rightAnswersAsked": 24,
+     "avgQuestions": 0.89,
+     "combosWithMiss": "0/54"
+    },
+    "changes": {
+     "combos": 54,
+     "questions": 21,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 12,
+     "avgQuestions": 0.39,
+     "combosWithMiss": "0/54"
+    },
+    "changes+cover": {
+     "combos": 54,
+     "questions": 45,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 36,
+     "avgQuestions": 0.83,
+     "combosWithMiss": "0/54"
+    },
+    "changes+open": {
+     "combos": 54,
+     "questions": 42,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 33,
+     "avgQuestions": 0.78,
+     "combosWithMiss": "0/54"
+    },
+    "changes+diag": {
+     "combos": 54,
+     "questions": 48,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 39,
+     "avgQuestions": 0.89,
+     "combosWithMiss": "0/54"
+    },
+    "all-matter": {
+     "combos": 54,
+     "questions": 138,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 129,
+     "avgQuestions": 2.56,
+     "combosWithMiss": "0/54"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        1,
+        2,
+        2,
+        1,
+        2,
+        2,
+        1,
+        2
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        3,
+        0,
+        0,
+        3,
+        0,
+        0,
+        3
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        2
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 3,
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 3,
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        3,
+        3,
+        3,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        3,
+        3,
+        3,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        3,
+        3,
+        3,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        3,
+        3,
+        3,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e10-plain-words",
+   "check": "e11-page-types-text",
+   "rules": {
+    "none": {
+     "combos": 54,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 3,
+     "settingsMissed": 6,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "3/54"
+    },
+    "disagree": {
+     "combos": 54,
+     "questions": 48,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 9,
+     "rightAnswersAsked": 39,
+     "avgQuestions": 0.89,
+     "combosWithMiss": "0/54"
+    },
+    "changes": {
+     "combos": 54,
+     "questions": 18,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 15,
+     "avgQuestions": 0.33,
+     "combosWithMiss": "0/54"
+    },
+    "changes+cover": {
+     "combos": 54,
+     "questions": 18,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 15,
+     "avgQuestions": 0.33,
+     "combosWithMiss": "0/54"
+    },
+    "changes+open": {
+     "combos": 54,
+     "questions": 36,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 33,
+     "avgQuestions": 0.67,
+     "combosWithMiss": "0/54"
+    },
+    "changes+diag": {
+     "combos": 54,
+     "questions": 45,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 42,
+     "avgQuestions": 0.83,
+     "combosWithMiss": "0/54"
+    },
+    "all-matter": {
+     "combos": 54,
+     "questions": 132,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 129,
+     "avgQuestions": 2.44,
+     "combosWithMiss": "0/54"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 3,
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2.6666666666666665,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        0,
+        1,
+        2,
+        0,
+        1,
+        2,
+        0,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        3,
+        2,
+        2,
+        3,
+        2,
+        2,
+        3,
+        2
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        2,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        2,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        2,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e4-one-call",
+   "check": "e4-one-call",
+   "rules": {
+    "none": {
+     "combos": 36,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/36"
+    },
+    "disagree": {
+     "combos": 36,
+     "questions": 8,
+     "maxQ": 1,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 2,
+     "rightAnswersAsked": 6,
+     "avgQuestions": 0.22,
+     "combosWithMiss": "6/36"
+    },
+    "changes": {
+     "combos": 36,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/36"
+    },
+    "changes+cover": {
+     "combos": 36,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/36"
+    },
+    "changes+open": {
+     "combos": 36,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/36"
+    },
+    "changes+diag": {
+     "combos": 36,
+     "questions": 24,
+     "maxQ": 1,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 24,
+     "avgQuestions": 0.67,
+     "combosWithMiss": "6/36"
+    },
+    "all-matter": {
+     "combos": 36,
+     "questions": 78,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 72,
+     "avgQuestions": 2.17,
+     "combosWithMiss": "0/36"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        1,
+        0,
+        1,
+        1,
+        0,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        1,
+        0,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e5-page-types@gpt-5.4",
+   "check": "e4-one-call@gpt-5.4",
+   "rules": {
+    "none": {
+     "combos": 54,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "0/54"
+    },
+    "disagree": {
+     "combos": 54,
+     "questions": 18,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 18,
+     "avgQuestions": 0.33,
+     "combosWithMiss": "0/54"
+    },
+    "changes": {
+     "combos": 54,
+     "questions": 9,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 9,
+     "avgQuestions": 0.17,
+     "combosWithMiss": "0/54"
+    },
+    "changes+cover": {
+     "combos": 54,
+     "questions": 36,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 36,
+     "avgQuestions": 0.67,
+     "combosWithMiss": "0/54"
+    },
+    "changes+open": {
+     "combos": 54,
+     "questions": 27,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 27,
+     "avgQuestions": 0.5,
+     "combosWithMiss": "0/54"
+    },
+    "changes+diag": {
+     "combos": 54,
+     "questions": 45,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 45,
+     "avgQuestions": 0.83,
+     "combosWithMiss": "0/54"
+    },
+    "all-matter": {
+     "combos": 54,
+     "questions": 135,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 135,
+     "avgQuestions": 2.5,
+     "combosWithMiss": "0/54"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        2,
+        2,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e5-page-types",
+   "check": "e14-middle-lite",
+   "rules": {
+    "none": {
+     "combos": 36,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/36"
+    },
+    "disagree": {
+     "combos": 36,
+     "questions": 23,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 8,
+     "rightAnswersAsked": 15,
+     "avgQuestions": 0.64,
+     "combosWithMiss": "0/36"
+    },
+    "changes": {
+     "combos": 36,
+     "questions": 11,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 5,
+     "avgQuestions": 0.31,
+     "combosWithMiss": "0/36"
+    },
+    "changes+cover": {
+     "combos": 36,
+     "questions": 26,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 20,
+     "avgQuestions": 0.72,
+     "combosWithMiss": "0/36"
+    },
+    "changes+open": {
+     "combos": 36,
+     "questions": 31,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 25,
+     "avgQuestions": 0.86,
+     "combosWithMiss": "0/36"
+    },
+    "changes+diag": {
+     "combos": 36,
+     "questions": 35,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 29,
+     "avgQuestions": 0.97,
+     "combosWithMiss": "0/36"
+    },
+    "all-matter": {
+     "combos": 36,
+     "questions": 92,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 86,
+     "avgQuestions": 2.56,
+     "combosWithMiss": "0/36"
+    }
+   },
+   "books": [
+    {
+     "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        2,
+        2,
+        1,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-colouring-my-school",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-hyena-and-raven",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "storybook-1930-el-viaje",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        1,
+        0,
+        1,
+        0,
+        1
+       ],
+       "avgQuestions": 0.5,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        1,
+        0,
+        1,
+        0,
+        1
+       ],
+       "avgQuestions": 0.5,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        3,
+        0,
+        3,
+        0,
+        3
+       ],
+       "avgQuestions": 1.5,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        2,
+        1,
+        2,
+        1,
+        2
+       ],
+       "avgQuestions": 1.5,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "reference-reimagining-target-aware-molecular",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 2,
+        "renderStrategy": 2
+       }
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        2,
+        2,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        2,
+        2,
+        1,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "textbook-egito-antigo",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 4,
+        "renderStrategy": 4
+       }
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "readings": [
+  {
+   "variant": "e4-one-call",
+   "runs": 18,
+   "wrong": {
+    "genre": 3,
+    "exercises": 0,
+    "composition": 1,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 3,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "where": [
+    "reimagining-target r3 composition=text-beside-art (no setting changes)",
+    "1930-el r1 genre=reference -> preset,renderStrategy",
+    "1930-el r2 genre=reference -> preset,renderStrategy",
+    "1930-el r3 genre=reference -> preset,renderStrategy"
+   ]
+  },
+  {
+   "variant": "e5-page-types",
+   "runs": 18,
+   "wrong": {
+    "genre": 3,
+    "exercises": 0,
+    "composition": 2,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 3,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "where": [
+    "reimagining-target r2 genre=textbook -> preset,renderStrategy",
+    "reimagining-target r2 composition=text-beside-art (no setting changes)",
+    "egito-antigo r2 genre=story -> preset,renderStrategy",
+    "egito-antigo r3 genre=story -> preset,renderStrategy",
+    "praticas-de r2 composition=text-in-art (no setting changes)"
+   ]
+  },
+  {
+   "variant": "e6-text-only",
+   "runs": 18,
+   "wrong": {
+    "genre": 3,
+    "exercises": 0,
+    "composition": 6,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 3,
+    "exercises": 0,
+    "composition": 3,
+    "diagrams": 0
+   },
+   "where": [
+    "1930-el r1 genre=reference -> preset,renderStrategy",
+    "1930-el r2 genre=reference -> preset,renderStrategy",
+    "1930-el r3 genre=reference -> preset,renderStrategy",
+    "hyena-and r1 composition=text-mostly -> renderStrategy",
+    "hyena-and r2 composition=text-mostly -> renderStrategy",
+    "hyena-and r3 composition=text-mostly -> renderStrategy",
+    "egito-antigo r1 composition=text-in-art (no setting changes)",
+    "egito-antigo r2 composition=text-mostly (no setting changes)",
+    "egito-antigo r3 composition=text-in-art (no setting changes)"
+   ]
+  },
+  {
+   "variant": "e10-plain-words",
+   "runs": 18,
+   "wrong": {
+    "genre": 1,
+    "exercises": 0,
+    "composition": 3,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 1,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "where": [
+    "reimagining-target r1 composition=text-beside-art (no setting changes)",
+    "reimagining-target r2 composition=text-beside-art (no setting changes)",
+    "reimagining-target r3 composition=text-beside-art (no setting changes)",
+    "1930-el r3 genre=reference -> preset,renderStrategy"
+   ]
+  },
+  {
+   "variant": "e11-page-types-text",
+   "runs": 18,
+   "wrong": {
+    "genre": 2,
+    "exercises": 0,
+    "composition": 4,
+    "diagrams": 3
+   },
+   "wrongThatMatters": {
+    "genre": 2,
+    "exercises": 0,
+    "composition": 1,
+    "diagrams": 0
+   },
+   "where": [
+    "reimagining-target r1 genre=textbook -> preset,renderStrategy",
+    "reimagining-target r2 composition=text-beside-art (no setting changes)",
+    "egito-antigo r1 composition=text-in-art (no setting changes)",
+    "egito-antigo r2 genre=story -> preset,renderStrategy",
+    "egito-antigo r2 composition=text-in-art -> renderStrategy",
+    "egito-antigo r3 composition=text-in-art (no setting changes)",
+    "praticas-de r1 diagrams=none (no setting changes)",
+    "praticas-de r2 diagrams=none (no setting changes)",
+    "praticas-de r3 diagrams=none (no setting changes)"
+   ]
+  },
+  {
+   "variant": "e4-one-call@gpt-5.4",
+   "runs": 18,
+   "wrong": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "where": []
+  },
+  {
+   "variant": "e5-page-types@gpt-5.4",
+   "runs": 18,
+   "wrong": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "where": []
+  },
+  {
+   "variant": "e14-middle-lite",
+   "runs": 12,
+   "wrong": {
+    "genre": 1,
+    "exercises": 0,
+    "composition": 2,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 1,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "where": [
+    "reimagining-target r1 composition=text-beside-art (no setting changes)",
+    "reimagining-target r2 composition=text-beside-art (no setting changes)",
+    "1930-el r2 genre=reference -> preset,renderStrategy"
+   ]
+  }
+ ],
+ "diagrams": [
+  {
+   "book": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "measuredVectorDiagrams": true,
+   "textLayer": "digital",
+   "aiAnswerDecidesFigures": false,
+   "truth": [
+    "some",
+    "many"
+   ],
+   "answers": [
+    {
+     "v": "e4-one-call",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e5-page-types",
+     "a": [
+      "many",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e6-text-only",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e10-plain-words",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e11-page-types-text",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e4-one-call@gpt-5.4",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e5-page-types@gpt-5.4",
+     "a": [
+      "some",
+      "some",
+      "many"
+     ]
+    },
+    {
+     "v": "e12-sampled",
+     "a": []
+    },
+    {
+     "v": "e12t-sampled-text",
+     "a": []
+    },
+    {
+     "v": "e13-plain-words-middle",
+     "a": []
+    },
+    {
+     "v": "e14-middle-lite",
+     "a": [
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e12j-sampled-jpeg",
+     "a": []
+    }
+   ],
+   "wrongRuns": 3,
+   "wrongIn": [
+    "e11-page-types-text",
+    "e11-page-types-text",
+    "e11-page-types-text"
+   ]
+  },
+  {
+   "book": "storybook-colouring-my-school",
+   "measuredVectorDiagrams": false,
+   "textLayer": "digital",
+   "aiAnswerDecidesFigures": true,
+   "truth": [
+    "none"
+   ],
+   "answers": [
+    {
+     "v": "e4-one-call",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e5-page-types",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e6-text-only",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e10-plain-words",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e11-page-types-text",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e4-one-call@gpt-5.4",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e5-page-types@gpt-5.4",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e12-sampled",
+     "a": []
+    },
+    {
+     "v": "e12t-sampled-text",
+     "a": []
+    },
+    {
+     "v": "e13-plain-words-middle",
+     "a": []
+    },
+    {
+     "v": "e14-middle-lite",
+     "a": [
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e12j-sampled-jpeg",
+     "a": []
+    }
+   ],
+   "wrongRuns": 0,
+   "wrongIn": []
+  },
+  {
+   "book": "storybook-hyena-and-raven",
+   "measuredVectorDiagrams": false,
+   "textLayer": "digital",
+   "aiAnswerDecidesFigures": true,
+   "truth": [
+    "none"
+   ],
+   "answers": [
+    {
+     "v": "e4-one-call",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e5-page-types",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e6-text-only",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e10-plain-words",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e11-page-types-text",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e4-one-call@gpt-5.4",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e5-page-types@gpt-5.4",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e12-sampled",
+     "a": []
+    },
+    {
+     "v": "e12t-sampled-text",
+     "a": []
+    },
+    {
+     "v": "e13-plain-words-middle",
+     "a": []
+    },
+    {
+     "v": "e14-middle-lite",
+     "a": [
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e12j-sampled-jpeg",
+     "a": []
+    }
+   ],
+   "wrongRuns": 0,
+   "wrongIn": []
+  },
+  {
+   "book": "storybook-1930-el-viaje",
+   "measuredVectorDiagrams": false,
+   "textLayer": "digital",
+   "aiAnswerDecidesFigures": true,
+   "truth": [
+    "none"
+   ],
+   "answers": [
+    {
+     "v": "e4-one-call",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e5-page-types",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e6-text-only",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e10-plain-words",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e11-page-types-text",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e4-one-call@gpt-5.4",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e5-page-types@gpt-5.4",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e12-sampled",
+     "a": []
+    },
+    {
+     "v": "e12t-sampled-text",
+     "a": []
+    },
+    {
+     "v": "e13-plain-words-middle",
+     "a": []
+    },
+    {
+     "v": "e14-middle-lite",
+     "a": [
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e12j-sampled-jpeg",
+     "a": []
+    }
+   ],
+   "wrongRuns": 0,
+   "wrongIn": []
+  },
+  {
+   "book": "reference-reimagining-target-aware-molecular",
+   "measuredVectorDiagrams": true,
+   "textLayer": "digital",
+   "aiAnswerDecidesFigures": false,
+   "truth": [
+    "some",
+    "many"
+   ],
+   "answers": [
+    {
+     "v": "e4-one-call",
+     "a": [
+      "many",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e5-page-types",
+     "a": [
+      "many",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e6-text-only",
+     "a": [
+      "many",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e10-plain-words",
+     "a": [
+      "many",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e11-page-types-text",
+     "a": [
+      "many",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e4-one-call@gpt-5.4",
+     "a": [
+      "many",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e5-page-types@gpt-5.4",
+     "a": [
+      "many",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e12-sampled",
+     "a": []
+    },
+    {
+     "v": "e12t-sampled-text",
+     "a": []
+    },
+    {
+     "v": "e13-plain-words-middle",
+     "a": []
+    },
+    {
+     "v": "e14-middle-lite",
+     "a": [
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e12j-sampled-jpeg",
+     "a": []
+    }
+   ],
+   "wrongRuns": 0,
+   "wrongIn": []
+  },
+  {
+   "book": "textbook-egito-antigo",
+   "measuredVectorDiagrams": false,
+   "textLayer": "digital",
+   "aiAnswerDecidesFigures": true,
+   "truth": [
+    "none",
+    "some"
+   ],
+   "answers": [
+    {
+     "v": "e4-one-call",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e5-page-types",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e6-text-only",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e10-plain-words",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e11-page-types-text",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e4-one-call@gpt-5.4",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e5-page-types@gpt-5.4",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e12-sampled",
+     "a": []
+    },
+    {
+     "v": "e12t-sampled-text",
+     "a": []
+    },
+    {
+     "v": "e13-plain-words-middle",
+     "a": []
+    },
+    {
+     "v": "e14-middle-lite",
+     "a": [
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e12j-sampled-jpeg",
+     "a": []
+    }
+   ],
+   "wrongRuns": 0,
+   "wrongIn": []
+  }
+ ]
+}

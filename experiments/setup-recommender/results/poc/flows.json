@@ -1,0 +1,300 @@
+{
+ "books": [
+  {
+   "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+   "factsThatMatter": [
+    "genre",
+    "exercises"
+   ],
+   "flaggedByCrossCheck": [
+    "composition",
+    "diagrams"
+   ],
+   "wrongInProposal": [],
+   "questions": {
+    "confirmAllFacts": 4,
+    "adaptiveFacts": 2,
+    "teachingChatSettings": 6,
+    "flaggedOnly": 2,
+    "flaggedThatMatter": 0,
+    "genreFirst": 3,
+    "describeFirst": {
+     "short": 0,
+     "vague": 2,
+     "rich": 0
+    }
+   }
+  },
+  {
+   "id": "storybook-colouring-my-school",
+   "factsThatMatter": [
+    "genre",
+    "composition",
+    "diagrams"
+   ],
+   "flaggedByCrossCheck": [],
+   "wrongInProposal": [],
+   "questions": {
+    "confirmAllFacts": 4,
+    "adaptiveFacts": 3,
+    "teachingChatSettings": 6,
+    "flaggedOnly": 0,
+    "flaggedThatMatter": 0,
+    "genreFirst": 1,
+    "describeFirst": {
+     "short": 3,
+     "vague": 3,
+     "rich": 1
+    }
+   }
+  },
+  {
+   "id": "storybook-hyena-and-raven",
+   "factsThatMatter": [
+    "genre",
+    "composition",
+    "diagrams"
+   ],
+   "flaggedByCrossCheck": [],
+   "wrongInProposal": [],
+   "questions": {
+    "confirmAllFacts": 4,
+    "adaptiveFacts": 3,
+    "teachingChatSettings": 6,
+    "flaggedOnly": 0,
+    "flaggedThatMatter": 0,
+    "genreFirst": 1,
+    "describeFirst": {
+     "short": 2,
+     "vague": 2,
+     "rich": 1
+    }
+   }
+  },
+  {
+   "id": "storybook-1930-el-viaje",
+   "factsThatMatter": [
+    "genre",
+    "composition",
+    "diagrams"
+   ],
+   "flaggedByCrossCheck": [
+    "genre"
+   ],
+   "wrongInProposal": [],
+   "questions": {
+    "confirmAllFacts": 4,
+    "adaptiveFacts": 3,
+    "teachingChatSettings": 6,
+    "flaggedOnly": 1,
+    "flaggedThatMatter": 1,
+    "genreFirst": 1,
+    "describeFirst": {
+     "short": 2,
+     "vague": 3,
+     "rich": 0
+    }
+   }
+  },
+  {
+   "id": "reference-reimagining-target-aware-molecular",
+   "factsThatMatter": [
+    "genre"
+   ],
+   "flaggedByCrossCheck": [],
+   "wrongInProposal": [],
+   "questions": {
+    "confirmAllFacts": 4,
+    "adaptiveFacts": 1,
+    "teachingChatSettings": 6,
+    "flaggedOnly": 1,
+    "flaggedThatMatter": 0,
+    "genreFirst": 2,
+    "describeFirst": {
+     "short": 0,
+     "vague": 1,
+     "rich": 0
+    }
+   }
+  },
+  {
+   "id": "textbook-egito-antigo",
+   "factsThatMatter": [
+    "genre",
+    "exercises",
+    "diagrams"
+   ],
+   "flaggedByCrossCheck": [
+    "genre"
+   ],
+   "wrongInProposal": [],
+   "questions": {
+    "confirmAllFacts": 4,
+    "adaptiveFacts": 3,
+    "teachingChatSettings": 6,
+    "flaggedOnly": 1,
+    "flaggedThatMatter": 1,
+    "genreFirst": 1,
+    "describeFirst": {
+     "short": 2,
+     "vague": 2,
+     "rich": 0
+    }
+   }
+  }
+ ],
+ "describeFirst": {
+  "note": "Descriptions written by us, knowing the books. 'stated' facts are taken as the user's answer.",
+  "statedFacts": {
+   "total": 30,
+   "right": 30
+  },
+  "settledPerBook": {
+   "short": 1.4166666666666667,
+   "vague": 0.4166666666666667,
+   "rich": 3.3333333333333335
+  },
+  "parserStability": {
+   "same": 46,
+   "total": 48,
+   "changed": [
+    {
+     "style": "short",
+     "book": "storybook-hyena-and-raven",
+     "fact": "diagrams",
+     "same": false
+    },
+    {
+     "style": "vague",
+     "book": "reference-reimagining-target-aware-molecular",
+     "fact": "genre",
+     "same": false
+    }
+   ]
+  },
+  "parallelConflicts": [
+   {
+    "book": "storybook-1930-el-viaje",
+    "style": "short",
+    "conflicts": [
+     {
+      "fact": "genre",
+      "userSaid": "story",
+      "pagesSay": "reference",
+      "userRight": true
+     }
+    ]
+   },
+   {
+    "book": "storybook-1930-el-viaje",
+    "style": "rich",
+    "conflicts": [
+     {
+      "fact": "genre",
+      "userSaid": "story",
+      "pagesSay": "reference",
+      "userRight": true
+     }
+    ]
+   },
+   {
+    "book": "textbook-egito-antigo",
+    "style": "short",
+    "conflicts": [
+     {
+      "fact": "genre",
+      "userSaid": "textbook",
+      "pagesSay": "reference",
+      "userRight": true
+     }
+    ]
+   },
+   {
+    "book": "textbook-egito-antigo",
+    "style": "vague",
+    "conflicts": [
+     {
+      "fact": "genre",
+      "userSaid": "textbook",
+      "pagesSay": "reference",
+      "userRight": true
+     }
+    ]
+   }
+  ]
+ },
+ "loaderMs": {
+  "e1-measure": {
+   "median": 171,
+   "max": 476,
+   "n": 6
+  },
+  "e4-one-call": {
+   "median": 4428,
+   "max": 8254,
+   "n": 18
+  },
+  "e5-page-types": {
+   "median": 3410,
+   "max": 4742,
+   "n": 18
+  },
+  "e6-text-only": {
+   "median": 2592,
+   "max": 4680,
+   "n": 18
+  },
+  "e9-describe-short": {
+   "median": 5533,
+   "max": 7680,
+   "n": 12
+  },
+  "e9-describe-vague": {
+   "median": 6012,
+   "max": 7298,
+   "n": 12
+  },
+  "e10-plain-words": {
+   "median": 3716,
+   "max": 6634,
+   "n": 18
+  },
+  "e11-page-types-text": {
+   "median": 2253,
+   "max": 2810,
+   "n": 18
+  },
+  "e12-sampled": {
+   "n": 0
+  },
+  "e12t-sampled-text": {
+   "n": 0
+  },
+  "e13-plain-words-middle": {
+   "n": 0
+  },
+  "e0-poc": {
+   "median": 7617,
+   "max": 18540,
+   "n": 18
+  }
+ },
+ "influence": {
+  "genre": [
+   "preset",
+   "renderStrategy",
+   "sectioningMode",
+   "activitiesGenerator"
+  ],
+  "exercises": [
+   "sectioningMode",
+   "activitiesGenerator"
+  ],
+  "composition": [
+   "renderStrategy"
+  ],
+  "diagrams": [
+   "figureExtraction"
+  ]
+ }
+}

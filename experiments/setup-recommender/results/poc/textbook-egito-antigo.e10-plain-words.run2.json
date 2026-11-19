@@ -1,0 +1,151 @@
+{
+  "bookId": "textbook-egito-antigo",
+  "variant": "e10-plain-words",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 282.9897450000135,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 5 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/9 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0.3333333333333333,
+      "evidence": [
+        3,
+        4,
+        9
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 263,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 1,
+      "evidence": [
+        2,
+        6,
+        10
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "The book is a textbook."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "Lessons and exercises need the AI layout to rebuild their structure."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      10
+    ],
+    "answers": {
+      "genre": {
+        "answer": "textbook",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          4,
+          5,
+          6,
+          10
+        ],
+        "reason": "The pages teach facts about Ancient Egypt in chapters, with informational text and no story plot."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          10
+        ],
+        "reason": "The shown pages only present reading text and pictures, and there are no questions, blanks, or numbered tasks."
+      },
+      "composition": {
+        "answer": "text-beside-art",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          10
+        ],
+        "reason": "Most pages place text in its own area above or beside large images rather than printing words over the art."
+      },
+      "diagrams": {
+        "answer": "some",
+        "confidence": "high",
+        "evidencePages": [
+          5
+        ],
+        "reason": "Page 5 includes a labeled map with place names and a scale bar, which is a diagram."
+      }
+    },
+    "semantic": {
+      "genre": "textbook",
+      "exercises": "none",
+      "composition": "text-beside-art",
+      "diagrams": "some"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 7314,
+    "outputTokens": 203,
+    "calls": 1
+  },
+  "ms": 6351.153615999996
+}

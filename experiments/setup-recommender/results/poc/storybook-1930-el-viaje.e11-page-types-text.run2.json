@@ -1,0 +1,157 @@
+{
+  "bookId": "storybook-1930-el-viaje",
+  "variant": "e11-page-types-text",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 38.70849499999895,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 4 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/6 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": []
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0.16726175988533135
+    },
+    "textDensity": {
+      "medianChars": 1175,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        2,
+        3,
+        4
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "es"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "Mostly text, so the AI layout reflows it."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "pageLabels": [
+      {
+        "page": 1,
+        "type": "cover",
+        "textPlacement": "on-art",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 2,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 3,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 4,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 5,
+        "type": "blank",
+        "textPlacement": "no-text",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 6,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 7,
+        "type": "story",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      },
+      {
+        "page": 8,
+        "type": "front-matter",
+        "textPlacement": "text-only",
+        "meaningfulFigure": false
+      }
+    ],
+    "bookGenre": "story",
+    "semantic": {
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-mostly",
+      "diagrams": "none"
+    },
+    "flags": [
+      "genre"
+    ],
+    "counts": {
+      "body": 1,
+      "story": 1,
+      "textbook": 0,
+      "reference": 0,
+      "exercisePages": 0,
+      "figurePages": 0,
+      "placement": {
+        "on-art": 0,
+        "beside-art": 0,
+        "text-only": 1
+      }
+    }
+  },
+  "usage": {
+    "inputTokens": 1216,
+    "outputTokens": 188,
+    "calls": 1
+  },
+  "ms": 1523.8121420000098
+}

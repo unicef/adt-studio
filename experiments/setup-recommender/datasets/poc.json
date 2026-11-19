@@ -1,6 +1,6 @@
 {
  "name": "poc",
- "note": "adt-poc-llm fd36742 pdfs/ (7–12 page excerpts). Labels from its evaluation/benchmark.json; 'diagnostic' books are outside its 18-decision denominator. Descriptions are simulated (written from title and cover).",
+ "note": "adt-poc-llm fd36742 pdfs/ (7–12 page excerpts). Labels from its evaluation/benchmark.json; 'diagnostic' books are outside its 18-decision denominator. Descriptions are simulated (written from title and cover). 'descriptions' (vague, rich) were written by us for the describe-first variant (E9), knowing the books.",
  "books": [
   {
    "id": "textbook-praticas-de-alfabetizacao-e-de-matematica",
@@ -28,6 +28,10 @@
      "some",
      "many"
     ]
+   },
+   "descriptions": {
+    "vague": "Material for my adult education class.",
+    "rich": "Workbook for adults learning to read and do maths, in Portuguese. Each lesson has a short text and exercises to fill in, with some tables and number charts."
    }
   },
   {
@@ -52,6 +56,10 @@
     "diagrams": [
      "none"
     ]
+   },
+   "descriptions": {
+    "vague": "Kids book.",
+    "rich": "Picture book for 4-6 year olds about a school day; one short sentence per page printed over big colour illustrations."
    }
   },
   {
@@ -76,6 +84,10 @@
     "diagrams": [
      "none"
     ]
+   },
+   "descriptions": {
+    "vague": "A story for children.",
+    "rich": "African folk tale for early readers; each page has a big picture with a short paragraph underneath it."
    }
   },
   {
@@ -100,6 +112,10 @@
     "diagrams": [
      "none"
     ]
+   },
+   "descriptions": {
+    "vague": "Spanish reading book.",
+    "rich": "The opening of a Spanish novel for teenagers; this excerpt is mostly the editor's foreword, plain text, no pictures."
    }
   },
   {
@@ -127,6 +143,10 @@
      "some",
      "many"
     ]
+   },
+   "descriptions": {
+    "vague": "A paper I need to make accessible.",
+    "rich": "A machine-learning research paper with equations, charts and result tables."
    }
   },
   {
@@ -149,6 +169,10 @@
      "none",
      "some"
     ]
+   },
+   "descriptions": {
+    "vague": "History book for school.",
+    "rich": "A history reader on Ancient Egypt for primary pupils: text next to photos and a map, no exercises."
    }
   }
  ],

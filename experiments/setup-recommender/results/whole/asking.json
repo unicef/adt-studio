@@ -1,0 +1,3527 @@
+{
+ "generatedAt": "2026-11-19T22:20:47.643Z",
+ "note": "Offline replay. Honest user = dataset's true facts. 'missed' = settings that differ from what the true facts give.",
+ "pairs": [
+  {
+   "proposal": "e4-one-call",
+   "check": "e4-one-call",
+   "rules": {
+    "none": {
+     "combos": 12,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/12"
+    },
+    "disagree": {
+     "combos": 12,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/12"
+    },
+    "changes": {
+     "combos": 12,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/12"
+    },
+    "changes+cover": {
+     "combos": 12,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/12"
+    },
+    "changes+open": {
+     "combos": 12,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "6/12"
+    },
+    "changes+diag": {
+     "combos": 12,
+     "questions": 12,
+     "maxQ": 1,
+     "combosMissed": 6,
+     "settingsMissed": 12,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 12,
+     "avgQuestions": 1,
+     "combosWithMiss": "6/12"
+    },
+    "all-matter": {
+     "combos": 12,
+     "questions": 30,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 24,
+     "avgQuestions": 2.5,
+     "combosWithMiss": "0/12"
+    }
+   },
+   "books": [
+    {
+     "id": "whole-volcanoes",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {
+        "preset": 6,
+        "renderStrategy": 6
+       }
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "whole-elements-of-computing",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e12-sampled",
+   "check": "e4-one-call",
+   "rules": {
+    "none": {
+     "combos": 18,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 3,
+     "settingsMissed": 3,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "3/18"
+    },
+    "disagree": {
+     "combos": 18,
+     "questions": 30,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 27,
+     "avgQuestions": 1.67,
+     "combosWithMiss": "0/18"
+    },
+    "changes": {
+     "combos": 18,
+     "questions": 21,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 18,
+     "avgQuestions": 1.17,
+     "combosWithMiss": "0/18"
+    },
+    "changes+cover": {
+     "combos": 18,
+     "questions": 21,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 18,
+     "avgQuestions": 1.17,
+     "combosWithMiss": "0/18"
+    },
+    "changes+open": {
+     "combos": 18,
+     "questions": 27,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 24,
+     "avgQuestions": 1.5,
+     "combosWithMiss": "0/18"
+    },
+    "changes+diag": {
+     "combos": 18,
+     "questions": 30,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 27,
+     "avgQuestions": 1.67,
+     "combosWithMiss": "0/18"
+    },
+    "all-matter": {
+     "combos": 18,
+     "questions": 54,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 51,
+     "avgQuestions": 3,
+     "combosWithMiss": "0/18"
+    }
+   },
+   "books": [
+    {
+     "id": "whole-volcanoes",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "whole-elements-of-computing",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e12-sampled",
+   "check": "e10-plain-words",
+   "rules": {
+    "none": {
+     "combos": 18,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 3,
+     "settingsMissed": 3,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "3/18"
+    },
+    "disagree": {
+     "combos": 18,
+     "questions": 34,
+     "maxQ": 3,
+     "combosMissed": 1,
+     "settingsMissed": 1,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 2,
+     "rightAnswersAsked": 32,
+     "avgQuestions": 1.89,
+     "combosWithMiss": "1/18"
+    },
+    "changes": {
+     "combos": 18,
+     "questions": 22,
+     "maxQ": 3,
+     "combosMissed": 1,
+     "settingsMissed": 1,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 2,
+     "rightAnswersAsked": 20,
+     "avgQuestions": 1.22,
+     "combosWithMiss": "1/18"
+    },
+    "changes+cover": {
+     "combos": 18,
+     "questions": 22,
+     "maxQ": 3,
+     "combosMissed": 1,
+     "settingsMissed": 1,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 2,
+     "rightAnswersAsked": 20,
+     "avgQuestions": 1.22,
+     "combosWithMiss": "1/18"
+    },
+    "changes+open": {
+     "combos": 18,
+     "questions": 27,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 24,
+     "avgQuestions": 1.5,
+     "combosWithMiss": "0/18"
+    },
+    "changes+diag": {
+     "combos": 18,
+     "questions": 31,
+     "maxQ": 3,
+     "combosMissed": 1,
+     "settingsMissed": 1,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 2,
+     "rightAnswersAsked": 29,
+     "avgQuestions": 1.72,
+     "combosWithMiss": "1/18"
+    },
+    "all-matter": {
+     "combos": 18,
+     "questions": 54,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 51,
+     "avgQuestions": 3,
+     "combosWithMiss": "0/18"
+    }
+   },
+   "books": [
+    {
+     "id": "whole-volcanoes",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        3,
+        2,
+        2,
+        3,
+        2,
+        2,
+        2,
+        3,
+        3
+       ],
+       "avgQuestions": 2.4444444444444446,
+       "missed": {
+        "renderStrategy": 1
+       }
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        3,
+        2,
+        2,
+        3,
+        2,
+        2,
+        2,
+        3,
+        3
+       ],
+       "avgQuestions": 2.4444444444444446,
+       "missed": {
+        "renderStrategy": 1
+       }
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        3,
+        2,
+        2,
+        3,
+        2,
+        2,
+        2,
+        3,
+        3
+       ],
+       "avgQuestions": 2.4444444444444446,
+       "missed": {
+        "renderStrategy": 1
+       }
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        3,
+        2,
+        2,
+        3,
+        2,
+        2,
+        2,
+        3,
+        3
+       ],
+       "avgQuestions": 2.4444444444444446,
+       "missed": {
+        "renderStrategy": 1
+       }
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "whole-elements-of-computing",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        2
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e12-sampled",
+   "check": "e12t-sampled-text",
+   "rules": {
+    "none": {
+     "combos": 18,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 3,
+     "settingsMissed": 3,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "3/18"
+    },
+    "disagree": {
+     "combos": 18,
+     "questions": 15,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 12,
+     "avgQuestions": 0.83,
+     "combosWithMiss": "0/18"
+    },
+    "changes": {
+     "combos": 18,
+     "questions": 12,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 9,
+     "avgQuestions": 0.67,
+     "combosWithMiss": "0/18"
+    },
+    "changes+cover": {
+     "combos": 18,
+     "questions": 12,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 9,
+     "avgQuestions": 0.67,
+     "combosWithMiss": "0/18"
+    },
+    "changes+open": {
+     "combos": 18,
+     "questions": 30,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 27,
+     "avgQuestions": 1.67,
+     "combosWithMiss": "0/18"
+    },
+    "changes+diag": {
+     "combos": 18,
+     "questions": 21,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 18,
+     "avgQuestions": 1.17,
+     "combosWithMiss": "0/18"
+    },
+    "all-matter": {
+     "combos": 18,
+     "questions": 54,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 51,
+     "avgQuestions": 3,
+     "combosWithMiss": "0/18"
+    }
+   },
+   "books": [
+    {
+     "id": "whole-volcanoes",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        0,
+        1,
+        2,
+        0,
+        2,
+        3,
+        1
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        2,
+        2,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        2,
+        2,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        0,
+        3,
+        3,
+        0,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "whole-elements-of-computing",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        0,
+        0,
+        3,
+        0,
+        0,
+        3,
+        0,
+        0
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e12t-sampled-text",
+   "check": "e10-plain-words",
+   "rules": {
+    "none": {
+     "combos": 18,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 3,
+     "settingsMissed": 3,
+     "lockedMissed": 3,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "3/18"
+    },
+    "disagree": {
+     "combos": 18,
+     "questions": 30,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 6,
+     "rightAnswersAsked": 24,
+     "avgQuestions": 1.67,
+     "combosWithMiss": "0/18"
+    },
+    "changes": {
+     "combos": 18,
+     "questions": 18,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 15,
+     "avgQuestions": 1,
+     "combosWithMiss": "0/18"
+    },
+    "changes+cover": {
+     "combos": 18,
+     "questions": 18,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 15,
+     "avgQuestions": 1,
+     "combosWithMiss": "0/18"
+    },
+    "changes+open": {
+     "combos": 18,
+     "questions": 36,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 33,
+     "avgQuestions": 2,
+     "combosWithMiss": "0/18"
+    },
+    "changes+diag": {
+     "combos": 18,
+     "questions": 30,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 27,
+     "avgQuestions": 1.67,
+     "combosWithMiss": "0/18"
+    },
+    "all-matter": {
+     "combos": 18,
+     "questions": 54,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 51,
+     "avgQuestions": 3,
+     "combosWithMiss": "0/18"
+    }
+   },
+   "books": [
+    {
+     "id": "whole-volcanoes",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        1,
+        1,
+        3,
+        2,
+        2,
+        3,
+        2,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        3,
+        2,
+        2
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        3,
+        2,
+        2
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        3,
+        2,
+        2,
+        3,
+        2,
+        2,
+        3,
+        2,
+        2
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "whole-elements-of-computing",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "figureExtraction": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        2,
+        1,
+        1,
+        2,
+        1,
+        1,
+        2
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e12-sampled",
+   "check": "e13-plain-words-middle",
+   "rules": {
+    "none": {
+     "combos": 18,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 3,
+     "settingsMissed": 3,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "3/18"
+    },
+    "disagree": {
+     "combos": 18,
+     "questions": 21,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 18,
+     "avgQuestions": 1.17,
+     "combosWithMiss": "0/18"
+    },
+    "changes": {
+     "combos": 18,
+     "questions": 3,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0.17,
+     "combosWithMiss": "0/18"
+    },
+    "changes+cover": {
+     "combos": 18,
+     "questions": 3,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0.17,
+     "combosWithMiss": "0/18"
+    },
+    "changes+open": {
+     "combos": 18,
+     "questions": 9,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 6,
+     "avgQuestions": 0.5,
+     "combosWithMiss": "0/18"
+    },
+    "changes+diag": {
+     "combos": 18,
+     "questions": 21,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 18,
+     "avgQuestions": 1.17,
+     "combosWithMiss": "0/18"
+    },
+    "all-matter": {
+     "combos": 18,
+     "questions": 54,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 51,
+     "avgQuestions": 3,
+     "combosWithMiss": "0/18"
+    }
+   },
+   "books": [
+    {
+     "id": "whole-volcanoes",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        2,
+        1,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2
+       ],
+       "avgQuestions": 1.3333333333333333,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "whole-elements-of-computing",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        1,
+        2,
+        2,
+        1,
+        2,
+        2,
+        1,
+        2
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e12t-sampled-text",
+   "check": "e13-plain-words-middle",
+   "rules": {
+    "none": {
+     "combos": 18,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 3,
+     "settingsMissed": 3,
+     "lockedMissed": 3,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "3/18"
+    },
+    "disagree": {
+     "combos": 18,
+     "questions": 28,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 5,
+     "rightAnswersAsked": 23,
+     "avgQuestions": 1.56,
+     "combosWithMiss": "0/18"
+    },
+    "changes": {
+     "combos": 18,
+     "questions": 9,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 6,
+     "avgQuestions": 0.5,
+     "combosWithMiss": "0/18"
+    },
+    "changes+cover": {
+     "combos": 18,
+     "questions": 9,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 6,
+     "avgQuestions": 0.5,
+     "combosWithMiss": "0/18"
+    },
+    "changes+open": {
+     "combos": 18,
+     "questions": 27,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 24,
+     "avgQuestions": 1.5,
+     "combosWithMiss": "0/18"
+    },
+    "changes+diag": {
+     "combos": 18,
+     "questions": 18,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 15,
+     "avgQuestions": 1,
+     "combosWithMiss": "0/18"
+    },
+    "all-matter": {
+     "combos": 18,
+     "questions": 54,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 51,
+     "avgQuestions": 3,
+     "combosWithMiss": "0/18"
+    }
+   },
+   "books": [
+    {
+     "id": "whole-volcanoes",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        1,
+        1,
+        1,
+        2,
+        2,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 1.1111111111111112,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "whole-elements-of-computing",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "figureExtraction": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        3,
+        2,
+        3,
+        2,
+        1,
+        2,
+        2,
+        1,
+        2
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e12-sampled",
+   "check": "e14-middle-lite",
+   "rules": {
+    "none": {
+     "combos": 18,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 3,
+     "settingsMissed": 3,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "3/18"
+    },
+    "disagree": {
+     "combos": 18,
+     "questions": 35,
+     "maxQ": 3,
+     "combosMissed": 2,
+     "settingsMissed": 2,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 1,
+     "rightAnswersAsked": 34,
+     "avgQuestions": 1.94,
+     "combosWithMiss": "2/18"
+    },
+    "changes": {
+     "combos": 18,
+     "questions": 5,
+     "maxQ": 1,
+     "combosMissed": 2,
+     "settingsMissed": 2,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 1,
+     "rightAnswersAsked": 4,
+     "avgQuestions": 0.28,
+     "combosWithMiss": "2/18"
+    },
+    "changes+cover": {
+     "combos": 18,
+     "questions": 5,
+     "maxQ": 1,
+     "combosMissed": 2,
+     "settingsMissed": 2,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 1,
+     "rightAnswersAsked": 4,
+     "avgQuestions": 0.28,
+     "combosWithMiss": "2/18"
+    },
+    "changes+open": {
+     "combos": 18,
+     "questions": 15,
+     "maxQ": 3,
+     "combosMissed": 2,
+     "settingsMissed": 2,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 1,
+     "rightAnswersAsked": 14,
+     "avgQuestions": 0.83,
+     "combosWithMiss": "2/18"
+    },
+    "changes+diag": {
+     "combos": 18,
+     "questions": 23,
+     "maxQ": 2,
+     "combosMissed": 2,
+     "settingsMissed": 2,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 1,
+     "rightAnswersAsked": 22,
+     "avgQuestions": 1.28,
+     "combosWithMiss": "2/18"
+    },
+    "all-matter": {
+     "combos": 18,
+     "questions": 54,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 3,
+     "rightAnswersAsked": 51,
+     "avgQuestions": 3,
+     "combosWithMiss": "0/18"
+    }
+   },
+   "books": [
+    {
+     "id": "whole-volcanoes",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {
+        "renderStrategy": 3
+       }
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        2,
+        1,
+        2,
+        2,
+        2,
+        1,
+        1
+       ],
+       "avgQuestions": 1.5555555555555556,
+       "missed": {
+        "renderStrategy": 2
+       }
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.5555555555555556,
+       "missed": {
+        "renderStrategy": 2
+       }
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.5555555555555556,
+       "missed": {
+        "renderStrategy": 2
+       }
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        3,
+        3,
+        0,
+        3,
+        3,
+        3,
+        0,
+        0
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {
+        "renderStrategy": 2
+       }
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        2,
+        2,
+        1,
+        2,
+        2,
+        2,
+        1,
+        1
+       ],
+       "avgQuestions": 1.5555555555555556,
+       "missed": {
+        "renderStrategy": 2
+       }
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "whole-elements-of-computing",
+     "perRule": {
+      "none": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 9,
+       "questions": [
+        2,
+        3,
+        2,
+        2,
+        3,
+        2,
+        2,
+        3,
+        2
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 9,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 9,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 9,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e12j-sampled-jpeg",
+   "check": "e13-plain-words-middle",
+   "rules": {
+    "none": {
+     "combos": 12,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "0/12"
+    },
+    "disagree": {
+     "combos": 12,
+     "questions": 12,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 12,
+     "avgQuestions": 1,
+     "combosWithMiss": "0/12"
+    },
+    "changes": {
+     "combos": 12,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "0/12"
+    },
+    "changes+cover": {
+     "combos": 12,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "0/12"
+    },
+    "changes+open": {
+     "combos": 12,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "0/12"
+    },
+    "changes+diag": {
+     "combos": 12,
+     "questions": 12,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 12,
+     "avgQuestions": 1,
+     "combosWithMiss": "0/12"
+    },
+    "all-matter": {
+     "combos": 12,
+     "questions": 36,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 36,
+     "avgQuestions": 3,
+     "combosWithMiss": "0/12"
+    }
+   },
+   "books": [
+    {
+     "id": "whole-volcanoes",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+       ],
+       "avgQuestions": 0.3333333333333333,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "whole-elements-of-computing",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        2,
+        1,
+        2,
+        2,
+        1,
+        2
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  },
+  {
+   "proposal": "e12j-sampled-jpeg",
+   "check": "e14-middle-lite",
+   "rules": {
+    "none": {
+     "combos": 12,
+     "questions": 0,
+     "maxQ": 0,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 0,
+     "avgQuestions": 0,
+     "combosWithMiss": "0/12"
+    },
+    "disagree": {
+     "combos": 12,
+     "questions": 24,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 24,
+     "avgQuestions": 2,
+     "combosWithMiss": "0/12"
+    },
+    "changes": {
+     "combos": 12,
+     "questions": 4,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 4,
+     "avgQuestions": 0.33,
+     "combosWithMiss": "0/12"
+    },
+    "changes+cover": {
+     "combos": 12,
+     "questions": 4,
+     "maxQ": 1,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 4,
+     "avgQuestions": 0.33,
+     "combosWithMiss": "0/12"
+    },
+    "changes+open": {
+     "combos": 12,
+     "questions": 12,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 12,
+     "avgQuestions": 1,
+     "combosWithMiss": "0/12"
+    },
+    "changes+diag": {
+     "combos": 12,
+     "questions": 16,
+     "maxQ": 2,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 16,
+     "avgQuestions": 1.33,
+     "combosWithMiss": "0/12"
+    },
+    "all-matter": {
+     "combos": 12,
+     "questions": 36,
+     "maxQ": 3,
+     "combosMissed": 0,
+     "settingsMissed": 0,
+     "lockedMissed": 0,
+     "wrongAnswersAsked": 0,
+     "rightAnswersAsked": 36,
+     "avgQuestions": 3,
+     "combosWithMiss": "0/12"
+    }
+   },
+   "books": [
+    {
+     "id": "whole-volcanoes",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        1,
+        2,
+        2,
+        1,
+        2,
+        2
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        1,
+        1,
+        0,
+        1,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        1,
+        1,
+        0,
+        1,
+        1
+       ],
+       "avgQuestions": 0.6666666666666666,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        3,
+        3,
+        0,
+        3,
+        3
+       ],
+       "avgQuestions": 2,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        2,
+        2,
+        1,
+        2,
+        2
+       ],
+       "avgQuestions": 1.6666666666666667,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    },
+    {
+     "id": "whole-elements-of-computing",
+     "perRule": {
+      "none": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "disagree": {
+       "combos": 6,
+       "questions": [
+        2,
+        3,
+        2,
+        2,
+        3,
+        2
+       ],
+       "avgQuestions": 2.3333333333333335,
+       "missed": {}
+      },
+      "changes": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+cover": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+open": {
+       "combos": 6,
+       "questions": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "avgQuestions": 0,
+       "missed": {}
+      },
+      "changes+diag": {
+       "combos": 6,
+       "questions": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "avgQuestions": 1,
+       "missed": {}
+      },
+      "all-matter": {
+       "combos": 6,
+       "questions": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+       ],
+       "avgQuestions": 3,
+       "missed": {}
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "readings": [
+  {
+   "variant": "e4-one-call",
+   "runs": 6,
+   "wrong": {
+    "genre": 3,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 3,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "where": [
+    "volcanoes r1 genre=reference -> preset,renderStrategy",
+    "volcanoes r2 genre=reference -> preset,renderStrategy",
+    "volcanoes r3 genre=reference -> preset,renderStrategy"
+   ]
+  },
+  {
+   "variant": "e10-plain-words",
+   "runs": 6,
+   "wrong": {
+    "genre": 3,
+    "exercises": 1,
+    "composition": 1,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 3,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "where": [
+    "elements-of r3 exercises=many (no setting changes)",
+    "volcanoes r1 genre=reference -> preset,renderStrategy",
+    "volcanoes r1 composition=text-beside-art (no setting changes)",
+    "volcanoes r2 genre=reference -> preset,renderStrategy",
+    "volcanoes r3 genre=reference -> preset,renderStrategy"
+   ]
+  },
+  {
+   "variant": "e12-sampled",
+   "runs": 6,
+   "wrong": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 1,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 1,
+    "diagrams": 0
+   },
+   "where": [
+    "volcanoes r3 composition=text-beside-art -> renderStrategy"
+   ]
+  },
+  {
+   "variant": "e12t-sampled-text",
+   "runs": 6,
+   "wrong": {
+    "genre": 0,
+    "exercises": 1,
+    "composition": 0,
+    "diagrams": 1
+   },
+   "wrongThatMatters": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 1
+   },
+   "where": [
+    "elements-of r1 diagrams=none -> figureExtraction",
+    "volcanoes r2 exercises=some (no setting changes)"
+   ]
+  },
+  {
+   "variant": "e13-plain-words-middle",
+   "runs": 6,
+   "wrong": {
+    "genre": 0,
+    "exercises": 4,
+    "composition": 2,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "where": [
+    "elements-of r1 exercises=many (no setting changes)",
+    "elements-of r1 composition=text-beside-art (no setting changes)",
+    "elements-of r2 exercises=many (no setting changes)",
+    "elements-of r3 exercises=many (no setting changes)",
+    "elements-of r3 composition=text-beside-art (no setting changes)",
+    "volcanoes r1 exercises=some (no setting changes)"
+   ]
+  },
+  {
+   "variant": "e14-middle-lite",
+   "runs": 6,
+   "wrong": {
+    "genre": 0,
+    "exercises": 6,
+    "composition": 5,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 2,
+    "diagrams": 0
+   },
+   "where": [
+    "elements-of r1 exercises=many (no setting changes)",
+    "elements-of r1 composition=text-beside-art (no setting changes)",
+    "elements-of r2 exercises=many (no setting changes)",
+    "elements-of r2 composition=text-beside-art (no setting changes)",
+    "elements-of r3 exercises=many (no setting changes)",
+    "elements-of r3 composition=text-beside-art (no setting changes)",
+    "volcanoes r1 exercises=some (no setting changes)",
+    "volcanoes r2 exercises=some (no setting changes)",
+    "volcanoes r2 composition=text-beside-art -> renderStrategy",
+    "volcanoes r3 exercises=some (no setting changes)",
+    "volcanoes r3 composition=text-beside-art -> renderStrategy"
+   ]
+  },
+  {
+   "variant": "e12j-sampled-jpeg",
+   "runs": 4,
+   "wrong": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "wrongThatMatters": {
+    "genre": 0,
+    "exercises": 0,
+    "composition": 0,
+    "diagrams": 0
+   },
+   "where": []
+  }
+ ],
+ "diagrams": [
+  {
+   "book": "whole-volcanoes",
+   "measuredVectorDiagrams": false,
+   "textLayer": "digital",
+   "aiAnswerDecidesFigures": true,
+   "truth": [
+    "none",
+    "some"
+   ],
+   "answers": [
+    {
+     "v": "e4-one-call",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e5-page-types",
+     "a": []
+    },
+    {
+     "v": "e6-text-only",
+     "a": []
+    },
+    {
+     "v": "e10-plain-words",
+     "a": [
+      "none",
+      "none",
+      "none"
+     ]
+    },
+    {
+     "v": "e11-page-types-text",
+     "a": []
+    },
+    {
+     "v": "e4-one-call@gpt-5.4",
+     "a": []
+    },
+    {
+     "v": "e5-page-types@gpt-5.4",
+     "a": []
+    },
+    {
+     "v": "e12-sampled",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e12t-sampled-text",
+     "a": [
+      "none",
+      "none",
+      "some"
+     ]
+    },
+    {
+     "v": "e13-plain-words-middle",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e14-middle-lite",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e12j-sampled-jpeg",
+     "a": [
+      "some",
+      "some"
+     ]
+    }
+   ],
+   "wrongRuns": 0,
+   "wrongIn": []
+  },
+  {
+   "book": "whole-elements-of-computing",
+   "measuredVectorDiagrams": false,
+   "textLayer": "digital",
+   "aiAnswerDecidesFigures": true,
+   "truth": [
+    "some",
+    "many"
+   ],
+   "answers": [
+    {
+     "v": "e4-one-call",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e5-page-types",
+     "a": []
+    },
+    {
+     "v": "e6-text-only",
+     "a": []
+    },
+    {
+     "v": "e10-plain-words",
+     "a": [
+      "some",
+      "some",
+      "some"
+     ]
+    },
+    {
+     "v": "e11-page-types-text",
+     "a": []
+    },
+    {
+     "v": "e4-one-call@gpt-5.4",
+     "a": []
+    },
+    {
+     "v": "e5-page-types@gpt-5.4",
+     "a": []
+    },
+    {
+     "v": "e12-sampled",
+     "a": [
+      "many",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e12t-sampled-text",
+     "a": [
+      "none",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e13-plain-words-middle",
+     "a": [
+      "many",
+      "many",
+      "many"
+     ]
+    },
+    {
+     "v": "e14-middle-lite",
+     "a": [
+      "many",
+      "some",
+      "many"
+     ]
+    },
+    {
+     "v": "e12j-sampled-jpeg",
+     "a": [
+      "many",
+      "many"
+     ]
+    }
+   ],
+   "wrongRuns": 1,
+   "wrongIn": [
+    "e12t-sampled-text"
+   ]
+  }
+ ]
+}

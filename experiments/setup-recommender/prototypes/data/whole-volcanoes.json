@@ -1,0 +1,755 @@
+{
+ "id": "whole-volcanoes",
+ "pageCount": 52,
+ "engine": {
+  "proposal": "e12-sampled",
+  "check": "e13-plain-words-middle",
+  "run": 1
+ },
+ "thumbnails": {
+  "1": "pages-local/whole-volcanoes/p1.png",
+  "2": "pages-local/whole-volcanoes/p2.png",
+  "3": "pages-local/whole-volcanoes/p3.png",
+  "4": "pages-local/whole-volcanoes/p4.png",
+  "5": "pages-local/whole-volcanoes/p5.png",
+  "6": "pages-local/whole-volcanoes/p6.png",
+  "7": "pages-local/whole-volcanoes/p7.png",
+  "8": "pages-local/whole-volcanoes/p8.png",
+  "9": "pages-local/whole-volcanoes/p9.png",
+  "10": "pages-local/whole-volcanoes/p10.png",
+  "13": "pages-local/whole-volcanoes/p13.png",
+  "17": "pages-local/whole-volcanoes/p17.png",
+  "20": "pages-local/whole-volcanoes/p20.png",
+  "24": "pages-local/whole-volcanoes/p24.png",
+  "28": "pages-local/whole-volcanoes/p28.png",
+  "31": "pages-local/whole-volcanoes/p31.png",
+  "35": "pages-local/whole-volcanoes/p35.png",
+  "39": "pages-local/whole-volcanoes/p39.png",
+  "42": "pages-local/whole-volcanoes/p42.png",
+  "46": "pages-local/whole-volcanoes/p46.png",
+  "49": "pages-local/whole-volcanoes/p49.png",
+  "50": "pages-local/whole-volcanoes/p50.png",
+  "51": "pages-local/whole-volcanoes/p51.png",
+  "52": "pages-local/whole-volcanoes/p52.png"
+ },
+ "summary": "A story, 52 pages: text printed on the pictures, no exercises, a few labelled diagrams.",
+ "measured": {
+  "pageStorage": {
+   "value": "single-pages",
+   "evidence": [],
+   "detail": "4 of 26 facing pairs continue across the gutter",
+   "irreversible": true,
+   "plain": {
+    "en": "Each PDF page is one page of the book, so each becomes one screen.",
+    "pt-BR": "Cada página do PDF é uma página do livro, então cada uma vira uma tela.",
+    "es": "Cada página del PDF es una página del libro, así que cada una será una pantalla."
+   }
+  },
+  "textLayer": {
+   "value": "digital",
+   "evidence": [],
+   "detail": "2/50 pages look scanned",
+   "plain": {
+    "en": "The PDF has real text, so we read the words directly.",
+    "pt-BR": "O PDF tem texto de verdade, então lemos as palavras diretamente.",
+    "es": "El PDF tiene texto real, así que leemos las palabras directamente."
+   }
+  },
+  "language": {
+   "pdfTag": "en",
+   "guess": "en"
+  },
+  "numbers": {
+   "medianChars": 137,
+   "pictureCoverage": 1,
+   "textOverPicturesShare": 0.8958333333333334,
+   "exerciseCuePages": 0,
+   "diagramPages": 4
+  }
+ },
+ "facts": {
+  "genre": {
+   "question": "What kind of book is this?",
+   "proposed": "story",
+   "proposedPlain": "a story",
+   "teachingQuestion": "Is this a story that readers follow from start to end?",
+   "plainQuestion": "What is this book mostly?",
+   "plainOptions": {
+    "story": "A story. Readers follow characters or events from start to end: a picture book, a tale or a novel. A story with a few colouring or drawing pages is still a story.",
+    "textbook": "A schoolbook. It teaches a subject in lessons and gives the learner tasks to do.",
+    "reference": "Something people read to find information: a report, an article, a manual or a guide. It has no tasks for the reader."
+   },
+   "unsupported": false,
+   "reason": "The pages follow characters through events in sequence, with dialogue and scenes, rather than teaching lessons or listing facts.",
+   "citedPages": [
+    20,
+    31,
+    39,
+    46
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "story",
+   "flag": null,
+   "matters": true,
+   "trueAnswer": [
+    "story"
+   ]
+  },
+  "exercises": {
+   "question": "Does the book contain exercises or activities that the reader is meant to do (answer questions, fill in blanks, match, circle, write)?",
+   "proposed": "none",
+   "proposedPlain": "no exercises",
+   "teachingQuestion": "Is this book only for reading? (Colouring and drawing pages still count as reading.)",
+   "plainQuestion": "Does the book ask the reader to write or mark answers? (Colouring and drawing do not count.)",
+   "plainOptions": {
+    "none": "No. The reader only reads, or colours and draws. Questions inside the story that nobody writes an answer to do not count.",
+    "some": "Yes, on a few pages: questions to answer, blanks to fill, things to match, circle or tick.",
+    "many": "Yes, on most pages."
+   },
+   "unsupported": false,
+   "reason": "Counted from the page labels: 0 of 24 pages.",
+   "citedPages": [],
+   "secondReadingReason": "Page 13 tells readers to make an evacuation plan, and page 28 says to use tape, but there are no numbered tasks or blanks on the shown pages.",
+   "selfConfidence": "high",
+   "secondReading": "some",
+   "flag": "Two readings disagree: page by page it is none, read as a whole it is some.",
+   "matters": false,
+   "trueAnswer": [
+    "none"
+   ]
+  },
+  "composition": {
+   "question": "How are the text and the pictures arranged on the pages?",
+   "proposed": "text-in-art",
+   "proposedPlain": "text printed on the pictures",
+   "teachingQuestion": "Are the words printed on the pictures themselves?",
+   "plainQuestion": "Where are the words on a page?",
+   "plainOptions": {
+    "text-in-art": "Printed on the picture itself, for example over the sky or the grass.",
+    "text-beside-art": "In their own space: above, below or next to the picture, or on the opposite page.",
+    "text-mostly": "It is mostly words. Pictures are few or small."
+   },
+   "unsupported": false,
+   "reason": "On the shown pages the words are placed directly over the illustrations or within speech bubbles on the picture.",
+   "citedPages": [
+    13,
+    20,
+    28,
+    31,
+    39,
+    46
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "text-in-art",
+   "flag": null,
+   "matters": true,
+   "trueAnswer": [
+    "text-in-art"
+   ]
+  },
+  "diagrams": {
+   "question": "Does the book contain diagrams, charts, maps, labelled figures or infographics whose labels carry meaning?",
+   "proposed": "some",
+   "proposedPlain": "a few labelled diagrams",
+   "teachingQuestion": "Are there a few maps, charts or labelled drawings?",
+   "plainQuestion": "Are there pictures with labels that explain something, like maps, charts, diagrams or labelled drawings?",
+   "plainOptions": {
+    "none": "No. Only illustrations or photos. A caption under a photo does not count.",
+    "some": "Yes, a few.",
+    "many": "Yes, on many pages."
+   },
+   "unsupported": false,
+   "reason": "Page 13 has a labelled volcano diagram, and page 28 has labelled kit items shown in a diagram-like layout.",
+   "citedPages": [
+    13,
+    28
+   ],
+   "secondReadingReason": null,
+   "selfConfidence": "high",
+   "secondReading": "some",
+   "flag": null,
+   "matters": true,
+   "trueAnswer": [
+    "none",
+    "some"
+   ]
+  }
+ },
+ "coverage": {
+  "pagesRead": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   13,
+   17,
+   20,
+   24,
+   28,
+   31,
+   35,
+   39,
+   42,
+   46,
+   49,
+   50,
+   51,
+   52
+  ],
+  "pageCount": 52,
+  "sampled": true,
+  "bodyPages": [
+   2,
+   8,
+   9,
+   10,
+   13,
+   17,
+   20,
+   24,
+   28,
+   31,
+   35,
+   39,
+   42,
+   46,
+   49
+  ],
+  "contentStartsAt": 2,
+  "onlyFrontMatter": false,
+  "strip": [
+   {
+    "page": 1,
+    "type": "cover",
+    "kind": "cover",
+    "group": "opening"
+   },
+   {
+    "page": 2,
+    "type": "informational",
+    "kind": "opening",
+    "group": "opening"
+   },
+   {
+    "page": 3,
+    "type": "blank",
+    "kind": "opening",
+    "group": "opening"
+   },
+   {
+    "page": 4,
+    "type": "front-matter",
+    "kind": "opening",
+    "group": "opening"
+   },
+   {
+    "page": 5,
+    "type": "front-matter",
+    "kind": "opening",
+    "group": "opening"
+   },
+   {
+    "page": 6,
+    "type": "front-matter",
+    "kind": "opening",
+    "group": "opening"
+   },
+   {
+    "page": 7,
+    "type": "front-matter",
+    "kind": "opening",
+    "group": "opening"
+   },
+   {
+    "page": 8,
+    "type": "story",
+    "kind": "book",
+    "group": "opening"
+   },
+   {
+    "page": 9,
+    "type": "story",
+    "kind": "book",
+    "group": "opening"
+   },
+   {
+    "page": 10,
+    "type": "story",
+    "kind": "book",
+    "group": "opening"
+   },
+   {
+    "page": 13,
+    "type": "lesson",
+    "kind": "book",
+    "group": "middle"
+   },
+   {
+    "page": 17,
+    "type": "lesson",
+    "kind": "book",
+    "group": "middle"
+   },
+   {
+    "page": 20,
+    "type": "story",
+    "kind": "book",
+    "group": "middle"
+   },
+   {
+    "page": 24,
+    "type": "story",
+    "kind": "book",
+    "group": "middle"
+   },
+   {
+    "page": 28,
+    "type": "lesson",
+    "kind": "book",
+    "group": "middle"
+   },
+   {
+    "page": 31,
+    "type": "story",
+    "kind": "book",
+    "group": "middle"
+   },
+   {
+    "page": 35,
+    "type": "story",
+    "kind": "book",
+    "group": "middle"
+   },
+   {
+    "page": 39,
+    "type": "story",
+    "kind": "book",
+    "group": "middle"
+   },
+   {
+    "page": 42,
+    "type": "story",
+    "kind": "book",
+    "group": "middle"
+   },
+   {
+    "page": 46,
+    "type": "story",
+    "kind": "book",
+    "group": "middle"
+   },
+   {
+    "page": 49,
+    "type": "story",
+    "kind": "book",
+    "group": "end"
+   },
+   {
+    "page": 50,
+    "type": "back-matter",
+    "kind": "end",
+    "group": "end"
+   },
+   {
+    "page": 51,
+    "type": "back-matter",
+    "kind": "end",
+    "group": "end"
+   },
+   {
+    "page": 52,
+    "type": "back-matter",
+    "kind": "end",
+    "group": "end"
+   }
+  ],
+  "say": "Looked at 24 of 52 pages.",
+  "sayI18n": {
+   "en": "We looked at 24 of 52 pages: the first 10, 10 from the middle and the last 4.",
+   "pt-BR": "Olhamos 24 de 52 páginas: as 10 primeiras, 10 do meio e as 4 últimas.",
+   "es": "Miramos 24 de 52 páginas: las 10 primeras, 10 del medio y las 4 últimas."
+  },
+  "question": null,
+  "questionI18n": null
+ },
+ "range": {
+  "suggested": {
+   "keepCover": true,
+   "start": 8,
+   "end": 49,
+   "skipped": [
+    {
+     "from": 2,
+     "to": 7,
+     "why": "opening"
+    },
+    {
+     "from": 50,
+     "to": 52,
+     "why": "end"
+    }
+   ],
+   "startExact": true,
+   "endExact": true
+  },
+  "say": [
+   {
+    "en": "Keep the cover (page 1).",
+    "pt-BR": "Manter a capa (página 1).",
+    "es": "Mantener la portada (página 1)."
+   },
+   {
+    "en": "The book seems to start on page 8.",
+    "pt-BR": "O livro parece começar na página 8.",
+    "es": "El libro parece empezar en la página 8."
+   },
+   {
+    "en": "Pages 2–7 are left out.",
+    "pt-BR": "As páginas 2–7 ficam de fora.",
+    "es": "Las páginas 2–7 quedan fuera."
+   },
+   {
+    "en": "Pages 50–52 are left out.",
+    "pt-BR": "As páginas 50–52 ficam de fora.",
+    "es": "Las páginas 50–52 quedan fuera."
+   }
+  ]
+ },
+ "previewPage": {
+  "page": 31,
+  "isBody": true,
+  "why": "From the middle of the pages we read (labelled story); the words are on the picture."
+ },
+ "ask": [],
+ "askAcrossRuns": {
+  "combos": 9,
+  "questions": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   1,
+   1,
+   1
+  ],
+  "avgQuestions": 0.3333333333333333,
+  "missed": {}
+ },
+ "pageLabels": [
+  {
+   "page": 1,
+   "type": "cover",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 2,
+   "type": "informational",
+   "textPlacement": "beside-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 3,
+   "type": "blank",
+   "textPlacement": "no-text",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 4,
+   "type": "front-matter",
+   "textPlacement": "text-only",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 5,
+   "type": "front-matter",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 6,
+   "type": "front-matter",
+   "textPlacement": "beside-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 7,
+   "type": "front-matter",
+   "textPlacement": "beside-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 8,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 9,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 10,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 13,
+   "type": "lesson",
+   "textPlacement": "on-art",
+   "meaningfulFigure": true
+  },
+  {
+   "page": 17,
+   "type": "lesson",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 20,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 24,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 28,
+   "type": "lesson",
+   "textPlacement": "on-art",
+   "meaningfulFigure": true
+  },
+  {
+   "page": 31,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 35,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 39,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 42,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 46,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 49,
+   "type": "story",
+   "textPlacement": "on-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 50,
+   "type": "back-matter",
+   "textPlacement": "text-only",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 51,
+   "type": "back-matter",
+   "textPlacement": "beside-art",
+   "meaningfulFigure": false
+  },
+  {
+   "page": 52,
+   "type": "back-matter",
+   "textPlacement": "beside-art",
+   "meaningfulFigure": true
+  }
+ ],
+ "pageCounts": {
+  "body": 15,
+  "story": 11,
+  "textbook": 3,
+  "reference": 1,
+  "exercisePages": 0,
+  "figurePages": 2,
+  "placement": {
+   "on-art": 14,
+   "beside-art": 1,
+   "text-only": 0
+  }
+ },
+ "settings": {
+  "preset": {
+   "value": "storybook",
+   "rule": "The book is a story.",
+   "irreversible": false,
+   "knownGood": "storybook"
+  },
+  "renderStrategy": {
+   "value": "fixed_layout",
+   "rule": "Text is placed on the pictures, so the original page design is kept.",
+   "irreversible": false,
+   "knownGood": "fixed_layout"
+  },
+  "pageGrouping": {
+   "value": "single",
+   "rule": "Pages stand alone.",
+   "irreversible": true,
+   "knownGood": "single"
+  },
+  "sectioningMode": {
+   "value": "page",
+   "rule": "Each page is one unit.",
+   "irreversible": false,
+   "knownGood": "page"
+  },
+  "activitiesGenerator": {
+   "value": "disabled",
+   "rule": "No exercises for the reader.",
+   "irreversible": false,
+   "knownGood": "disabled"
+  },
+  "figureExtraction": {
+   "value": "auto",
+   "rule": "Diagrams with text labels are kept together as figures.",
+   "irreversible": true,
+   "knownGood": null
+  }
+ },
+ "whatIf": {
+  "genre": {
+   "textbook": {
+    "preset": {
+     "from": "storybook",
+     "to": "textbook",
+     "rule": "The book is a textbook."
+    },
+    "renderStrategy": {
+     "from": "fixed_layout",
+     "to": "llm",
+     "rule": "Lessons and exercises need the AI layout to rebuild their structure."
+    }
+   },
+   "reference": {
+    "preset": {
+     "from": "storybook",
+     "to": "reference",
+     "rule": "The book is a reference."
+    },
+    "renderStrategy": {
+     "from": "fixed_layout",
+     "to": "single_column",
+     "rule": "Reference material reads best as one clean column."
+    }
+   }
+  },
+  "exercises": {
+   "some": {},
+   "many": {}
+  },
+  "composition": {
+   "text-beside-art": {
+    "renderStrategy": {
+     "from": "fixed_layout",
+     "to": "two_column_story",
+     "rule": "Text sits beside the pictures, so story text and art go side by side."
+    }
+   },
+   "text-mostly": {
+    "renderStrategy": {
+     "from": "fixed_layout",
+     "to": "llm",
+     "rule": "Mostly text, so the AI layout reflows it."
+    }
+   }
+  },
+  "diagrams": {
+   "none": {
+    "figureExtraction": {
+     "from": "auto",
+     "to": "off",
+     "rule": "No labelled diagrams."
+    }
+   },
+   "many": {}
+  }
+ },
+ "questionOrder": [
+  "genre",
+  "composition",
+  "diagrams"
+ ],
+ "describeFirst": {
+  "short": null,
+  "vague": null,
+  "rich": null
+ },
+ "status": "looks-right",
+ "statusText": {
+  "en": "Looks right. Here's what we found.",
+  "pt-BR": "Parece certo. Veja o que encontramos.",
+  "es": "Parece correcto. Esto es lo que encontramos."
+ },
+ "questions": [],
+ "lockedSettings": [
+  {
+   "setting": "pageGrouping",
+   "label": {
+    "en": "Facing pages",
+    "pt-BR": "Páginas lado a lado",
+    "es": "Páginas enfrentadas"
+   },
+   "value": "single",
+   "valueText": {
+    "en": "One PDF page per screen",
+    "pt-BR": "Uma página do PDF por tela",
+    "es": "Una página del PDF por pantalla"
+   },
+   "from": "measured",
+   "askedIn": []
+  },
+  {
+   "setting": "figureExtraction",
+   "label": {
+    "en": "Maps and labelled drawings",
+    "pt-BR": "Mapas e desenhos com legendas",
+    "es": "Mapas y dibujos con rótulos"
+   },
+   "value": "auto",
+   "valueText": {
+    "en": "Kept together with their labels",
+    "pt-BR": "Mantidos junto com as legendas",
+    "es": "Se mantienen junto con sus rótulos"
+   },
+   "from": "ai",
+   "askedIn": []
+  }
+ ],
+ "oldOneShot": null
+}

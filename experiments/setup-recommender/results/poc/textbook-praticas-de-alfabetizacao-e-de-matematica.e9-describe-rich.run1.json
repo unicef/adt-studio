@@ -1,0 +1,149 @@
+{
+  "bookId": "textbook-praticas-de-alfabetizacao-e-de-matematica",
+  "variant": "e9-describe-rich",
+  "run": 1,
+  "model": "gpt-5.4-mini",
+  "profileMs": 474.98964800000005,
+  "facts": {
+    "pageStorage": {
+      "value": "single-pages",
+      "evidence": [],
+      "detail": "0 of 3 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "0/5 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": false,
+      "share": 0,
+      "evidence": [
+        6
+      ]
+    },
+    "pictureHeavy": {
+      "value": false,
+      "medianCoverage": 0
+    },
+    "textDensity": {
+      "medianChars": 465,
+      "class": "medium"
+    },
+    "vectorDiagrams": {
+      "value": true,
+      "pagesWithDiagrams": 3,
+      "evidence": [
+        2,
+        3,
+        5
+      ]
+    },
+    "exerciseCues": {
+      "value": true,
+      "pagesWithCues": 3,
+      "evidence": [
+        2,
+        3,
+        5
+      ]
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "pt"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "textbook",
+      "rule": "The book is a textbook."
+    },
+    "renderStrategy": {
+      "value": "llm",
+      "rule": "Lessons and exercises need the AI layout to rebuild their structure."
+    },
+    "pageGrouping": {
+      "value": "single",
+      "rule": "Pages stand alone."
+    },
+    "sectioningMode": {
+      "value": "dynamic",
+      "rule": "Pages mix reading and exercises, so each page is split into sections."
+    },
+    "activitiesGenerator": {
+      "value": "enabled",
+      "rule": "The book has exercises for the reader, so they become interactive activities."
+    },
+    "figureExtraction": {
+      "value": "auto",
+      "rule": "Diagrams with text labels are kept together as figures."
+    }
+  },
+  "trace": {
+    "description": "Workbook for adults learning to read and do maths, in Portuguese. Each lesson has a short text and exercises to fill in, with some tables and number charts.",
+    "style": "rich",
+    "parsed": {
+      "genre": {
+        "status": "stated",
+        "answer": "textbook",
+        "quote": "\"Workbook for adults learning to read and do maths\""
+      },
+      "exercises": {
+        "status": "stated",
+        "answer": "many",
+        "quote": "\"Each lesson has a short text and exercises to fill in\""
+      },
+      "composition": {
+        "status": "unknown",
+        "answer": "text-beside-art",
+        "quote": ""
+      },
+      "diagrams": {
+        "status": "stated",
+        "answer": "some",
+        "quote": "\"with some tables and number charts\""
+      }
+    },
+    "given": {
+      "genre": "textbook",
+      "exercises": "many",
+      "diagrams": "some"
+    },
+    "settledByDescription": [
+      "genre",
+      "exercises",
+      "diagrams"
+    ],
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "answers": {
+      "composition": {
+        "answer": "text-beside-art",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          6
+        ],
+        "reason": "The pages are mostly text and exercises laid out in separate blocks, with the few pictures and the identity-card form sitting beside or below the text rather than text being woven into images."
+      }
+    },
+    "semantic": {
+      "composition": "text-beside-art",
+      "genre": "textbook",
+      "exercises": "many",
+      "diagrams": "some"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 7020,
+    "outputTokens": 178,
+    "calls": 2
+  },
+  "ms": 3133.487026999999
+}

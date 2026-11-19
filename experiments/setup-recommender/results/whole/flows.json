@@ -1,0 +1,141 @@
+{
+ "books": [
+  {
+   "id": "whole-volcanoes",
+   "factsThatMatter": [
+    "genre",
+    "composition",
+    "diagrams"
+   ],
+   "flaggedByCrossCheck": [
+    "exercises"
+   ],
+   "wrongInProposal": [],
+   "questions": {
+    "confirmAllFacts": 4,
+    "adaptiveFacts": 3,
+    "teachingChatSettings": 6,
+    "flaggedOnly": 1,
+    "flaggedThatMatter": 0,
+    "genreFirst": 2,
+    "describeFirst": {
+     "short": null,
+     "vague": null,
+     "rich": null
+    }
+   }
+  },
+  {
+   "id": "whole-elements-of-computing",
+   "factsThatMatter": [
+    "genre",
+    "exercises",
+    "diagrams"
+   ],
+   "flaggedByCrossCheck": [
+    "exercises",
+    "composition"
+   ],
+   "wrongInProposal": [],
+   "questions": {
+    "confirmAllFacts": 4,
+    "adaptiveFacts": 3,
+    "teachingChatSettings": 6,
+    "flaggedOnly": 2,
+    "flaggedThatMatter": 1,
+    "genreFirst": 3,
+    "describeFirst": {
+     "short": null,
+     "vague": null,
+     "rich": null
+    }
+   }
+  }
+ ],
+ "describeFirst": {
+  "note": "Descriptions written by us, knowing the books. 'stated' facts are taken as the user's answer.",
+  "statedFacts": {
+   "total": 0,
+   "right": 0
+  },
+  "settledPerBook": {
+   "short": 0,
+   "vague": 0,
+   "rich": 0
+  },
+  "parserStability": {
+   "same": 0,
+   "total": 0,
+   "changed": []
+  },
+  "parallelConflicts": []
+ },
+ "loaderMs": {
+  "e1-measure": {
+   "median": 3379,
+   "max": 3379,
+   "n": 2
+  },
+  "e4-one-call": {
+   "median": 7958,
+   "max": 8386,
+   "n": 6
+  },
+  "e5-page-types": {
+   "n": 0
+  },
+  "e6-text-only": {
+   "n": 0
+  },
+  "e9-describe-short": {
+   "n": 0
+  },
+  "e9-describe-vague": {
+   "n": 0
+  },
+  "e10-plain-words": {
+   "median": 7566,
+   "max": 8003,
+   "n": 6
+  },
+  "e11-page-types-text": {
+   "n": 0
+  },
+  "e12-sampled": {
+   "median": 9804,
+   "max": 10373,
+   "n": 6
+  },
+  "e12t-sampled-text": {
+   "median": 6984,
+   "max": 7286,
+   "n": 6
+  },
+  "e13-plain-words-middle": {
+   "median": 7974,
+   "max": 8023,
+   "n": 6
+  },
+  "e0-poc": {
+   "n": 0
+  }
+ },
+ "influence": {
+  "genre": [
+   "preset",
+   "renderStrategy",
+   "sectioningMode",
+   "activitiesGenerator"
+  ],
+  "exercises": [
+   "sectioningMode",
+   "activitiesGenerator"
+  ],
+  "composition": [
+   "renderStrategy"
+  ],
+  "diagrams": [
+   "figureExtraction"
+  ]
+ }
+}

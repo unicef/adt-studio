@@ -1,0 +1,184 @@
+{
+  "bookId": "storybook-colouring-my-school",
+  "variant": "e9-describe-vague",
+  "run": 2,
+  "model": "gpt-5.4-mini",
+  "profileMs": 91.45756799999981,
+  "facts": {
+    "pageStorage": {
+      "value": "spreads-as-separate-pages",
+      "evidence": [
+        2,
+        3,
+        8,
+        9,
+        6,
+        7
+      ],
+      "detail": "3 of 4 facing pairs continue across the gutter"
+    },
+    "textLayer": {
+      "value": "digital",
+      "evidence": [],
+      "detail": "3/7 pages look scanned"
+    },
+    "textOverPictures": {
+      "value": true,
+      "share": 1,
+      "evidence": [
+        5,
+        7,
+        8
+      ]
+    },
+    "pictureHeavy": {
+      "value": true,
+      "medianCoverage": 1
+    },
+    "textDensity": {
+      "medianChars": 65,
+      "class": "sparse"
+    },
+    "vectorDiagrams": {
+      "value": false,
+      "pagesWithDiagrams": 0,
+      "evidence": [
+        3,
+        5,
+        8
+      ]
+    },
+    "exerciseCues": {
+      "value": false,
+      "pagesWithCues": 0,
+      "evidence": []
+    },
+    "language": {
+      "pdfTag": "",
+      "guess": "en"
+    }
+  },
+  "settings": {
+    "preset": {
+      "value": "storybook",
+      "rule": "The book is a story."
+    },
+    "renderStrategy": {
+      "value": "fixed_layout",
+      "rule": "Text is placed on the pictures, so the original page design is kept."
+    },
+    "pageGrouping": {
+      "value": "spread",
+      "rule": "Facing pages continue across the gutter, so each pair is joined into one screen."
+    },
+    "sectioningMode": {
+      "value": "page",
+      "rule": "Each page is one unit."
+    },
+    "activitiesGenerator": {
+      "value": "disabled",
+      "rule": "No exercises for the reader."
+    },
+    "figureExtraction": {
+      "value": "off",
+      "rule": "No labelled diagrams."
+    }
+  },
+  "trace": {
+    "description": "Kids book.",
+    "style": "vague",
+    "parsed": {
+      "genre": {
+        "status": "unknown",
+        "answer": "story",
+        "quote": ""
+      },
+      "exercises": {
+        "status": "unknown",
+        "answer": "none",
+        "quote": ""
+      },
+      "composition": {
+        "status": "unknown",
+        "answer": "text-beside-art",
+        "quote": ""
+      },
+      "diagrams": {
+        "status": "unknown",
+        "answer": "none",
+        "quote": ""
+      }
+    },
+    "given": {},
+    "settledByDescription": [],
+    "pages": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      8
+    ],
+    "answers": {
+      "genre": {
+        "answer": "story",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          5,
+          8
+        ],
+        "reason": "The pages read like a simple narrated visit to a classroom and library, with rhyming sentences that describe what is seen rather than teaching facts or assigning tasks."
+      },
+      "exercises": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8
+        ],
+        "reason": "The shown pages contain descriptive text and illustrations, but no numbered problems, blanks, or instructions for the reader to complete."
+      },
+      "composition": {
+        "answer": "text-in-art",
+        "confidence": "high",
+        "evidencePages": [
+          3,
+          5,
+          8
+        ],
+        "reason": "On the text pages, the words are printed on large translucent boxes laid over the illustrated scenes instead of sitting in a separate text area."
+      },
+      "diagrams": {
+        "answer": "none",
+        "confidence": "high",
+        "evidencePages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8
+        ],
+        "reason": "The pages show illustrations of a classroom and students, but no diagrams, charts, maps, or labeled figures with explanatory parts."
+      }
+    },
+    "semantic": {
+      "genre": "story",
+      "exercises": "none",
+      "composition": "text-in-art",
+      "diagrams": "none"
+    },
+    "flags": []
+  },
+  "usage": {
+    "inputTokens": 6550,
+    "outputTokens": 298,
+    "calls": 2
+  },
+  "ms": 6057.510019000003
+}
