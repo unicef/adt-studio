@@ -735,6 +735,7 @@ export async function packageAdtWeb(
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
 
   const packagedLanguages = [...new Set([language, ...outputLanguages])]
+  let hasVoiceVariants = false
   for (const lang of packagedLanguages) {
     const localeDir = path.join(contentDir, "i18n", lang)
     fs.mkdirSync(localeDir, { recursive: true })
@@ -853,6 +854,7 @@ export async function packageAdtWeb(
     audioVoices.secondary.label = resolveNarratorLabel(copiedBySlot.secondary, "Secondary")
     writeJson(path.join(localeDir, "audios.json"), audioMap)
     if (Object.keys(audioVoices.secondary.audios).length > 0) {
+      hasVoiceVariants = true
       writeJson(path.join(localeDir, "audio_voices.json"), {
         defaultVoice: "primary",
         voices: audioVoices,
@@ -982,6 +984,9 @@ export async function packageAdtWeb(
       signLanguage: hasSignLanguageVideos,
       easyRead: hasEasyRead,
       glossary: hasGlossary,
+      // Tells the runtime whether to request audio_voices.json and
+      // timecode_voices.json, which only a second narrator writes (#1157).
+      voiceVariants: hasVoiceVariants,
       eli5: false,
       readAloud: hasTTS,
       autoplay: true,
