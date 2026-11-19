@@ -66,7 +66,7 @@ function createMockStorage(
     appendLlmLog: () => {},
     getSignLanguageVideos: () => [],
     getSignLanguageVideoPath: () => null,
-    getNodeItemIds: () => [],
+    getNodeItemIds: (node: string) => Object.keys(nodeData[node] ?? {}),
     getNodeVersionFingerprint: (excludeNodes: string[] = []) =>
       Object.entries(nodeData)
         .filter(([node]) => !excludeNodes.includes(node))
@@ -1001,6 +1001,12 @@ describe("packageAdtWeb", () => {
             generatedAt: "2026-01-01T00:00:00.000Z",
           },
         },
+        "element-audio": {
+          pg001: {
+            entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
         "easy-read": {
           book: {
             generatedAt: "2026-01-02T00:00:00.000Z",
@@ -1616,6 +1622,340 @@ describe("packageAdtWeb", () => {
       ),
     ) as Record<string, unknown>
     expect(Object.keys(timecodes)).toEqual(["pg001_t001"])
+  })
+
+  it("remaps authored element audio to the element id (SPEC-0014 §2)", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(bookDir, { recursive: true })
+    fs.mkdirSync(audioDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.writeFileSync(path.join(audioDir, "pg001_im001_audio.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg001_im001_audio--secondary.mp3"), "audio-secondary")
+    fs.writeFileSync(path.join(audioDir, "pg001_im001_easy_read.mp3"), "audio-easy-read")
+    fs.writeFileSync(path.join(audioDir, "pg001_im001.mp3"), "caption-audio")
+
+    const pages: PageData[] = [{ pageId: "pg001", pageNumber: 1, text: "Page one" }]
+
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: '<img data-id="pg001_im001" alt="Mago" />',
+            },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+      "element-audio": {
+        pg001: {
+          entries: [{ nodeId: "pg001_im001", text: "Mago" }],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+      "core-tts-catalog": {
+        en: {
+          language: "en",
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          entries: [
+            {
+              id: "pg001_im001_audio",
+              displayText: "Mago",
+              speechText: "Mago",
+              changed: false,
+              transformations: [],
+              status: "ready",
+              generation: {
+                mode: "unchanged",
+                generatedAt: "2026-01-01T00:00:00.000Z",
+                enabledTransformations: [],
+                sourceTextHash: "source",
+                contextHash: "context",
+              },
+            },
+            {
+              id: "pg001_im001_easy_read",
+              displayText: "Mago easy",
+              speechText: "Mago easy",
+              changed: false,
+              transformations: [],
+              status: "ready",
+              generation: {
+                mode: "unchanged",
+                generatedAt: "2026-01-01T00:00:00.000Z",
+                enabledTransformations: [],
+                sourceTextHash: "source",
+                contextHash: "context",
+              },
+            },
+            {
+              // The image's own caption is a different catalog entry; the
+              // authored script must still win under the element id.
+              id: "pg001_im001",
+              displayText: "Caption",
+              speechText: "Caption speech",
+              changed: false,
+              transformations: [],
+              status: "ready",
+              generation: {
+                mode: "unchanged",
+                generatedAt: "2026-01-01T00:00:00.000Z",
+                enabledTransformations: [],
+                sourceTextHash: "source",
+                contextHash: "context",
+              },
+            },
+          ],
+        },
+      },
+      tts: {
+        en: {
+          entries: [
+            {
+              textId: "pg001_im001_audio",
+              language: "en",
+              fileName: "pg001_im001_audio.mp3",
+              voice: "alloy",
+              model: "gpt-4o-mini-tts",
+              cached: false,
+            },
+            {
+              textId: "pg001_im001_audio",
+              language: "en",
+              fileName: "pg001_im001_audio--secondary.mp3",
+              voice: "shimmer",
+              voiceSlot: "secondary",
+              model: "gpt-4o-mini-tts",
+              cached: false,
+            },
+            {
+              textId: "pg001_im001_easy_read",
+              language: "en",
+              fileName: "pg001_im001_easy_read.mp3",
+              voice: "alloy",
+              model: "gpt-4o-mini-tts",
+              cached: false,
+            },
+            {
+              // Written after the authored entry: the post-pass, not the order,
+              // decides the winner under `pg001_im001`.
+              textId: "pg001_im001",
+              language: "en",
+              fileName: "pg001_im001.mp3",
+              voice: "alloy",
+              model: "gpt-4o-mini-tts",
+              cached: false,
+            },
+          ],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+      "tts-timestamps": {
+        en: {
+          entries: {
+            pg001_im001_audio: {
+              textId: "pg001_im001_audio",
+              language: "en",
+              duration: 0.5,
+              words: [{ word: "Mago", start: 0, end: 0.5 }],
+            },
+          },
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      speechConfig: { word_highlighting: true },
+    })
+
+    const localeDir = path.join(bookDir, "adt", "content", "i18n", "en")
+
+    // Audio and speech publish under the element's own id, not the synthetic one.
+    const audios = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "audios.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(audios).toEqual({ pg001_im001: "pg001_im001_audio.mp3" })
+
+    const speechTexts = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "speech_texts.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(speechTexts).toEqual({ pg001_im001: "Mago" })
+
+    // The optional manifest lists exactly the authored elements with audio.
+    const elementAudio = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "element_audio.json"), "utf-8"),
+    ) as string[]
+    expect(elementAudio).toEqual(["pg001_im001"])
+
+    // Both narrator slots publish under the element id too.
+    const voices = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "audio_voices.json"), "utf-8"),
+    ) as { voices: Record<string, { audios: Record<string, string> }> }
+    expect(voices.voices.primary.audios).toEqual({ pg001_im001: "pg001_im001_audio.mp3" })
+    expect(voices.voices.secondary.audios).toEqual({
+      pg001_im001: "pg001_im001_audio--secondary.mp3",
+    })
+
+    // The authored script is speech, not display text.
+    const texts = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "texts.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(texts.pg001_im001_audio).toBeUndefined()
+    expect(texts.pg001_im001).toBeUndefined()
+
+    // No word timecodes for an authored element script (block highlight only).
+    const timecodes = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "timecode", "timecode_output.json"), "utf-8"),
+    ) as Record<string, unknown>
+    expect(Object.keys(timecodes)).toEqual([])
+  })
+
+  it("AC-14/AC-24: a legacy image id ending _audio is not remapped", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(bookDir, { recursive: true })
+    fs.mkdirSync(audioDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.writeFileSync(path.join(audioDir, "pg003_im007_audio.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg003_im007_audio--secondary.mp3"), "audio-secondary")
+
+    const storage = createMockStorage(
+      [{ pageId: "pg003", pageNumber: 1, text: "Page three" }],
+      {
+        "web-rendering": {
+          pg003: {
+            sections: [
+              {
+                sectionIndex: 0,
+                sectionType: "images_only",
+                reasoning: "ok",
+                html: '<img data-id="pg003_im007_audio" alt="Mago" />',
+              },
+            ],
+          },
+        },
+        "page-sectioning": {
+          pg003: {
+            reasoning: "ok",
+            sections: [
+              {
+                sectionId: "pg003_sec001",
+                sectionType: "images_only",
+                nodes: [],
+                backgroundColor: "#fff",
+                textColor: "#000",
+                pageNumber: 1,
+                isPruned: false,
+              },
+            ],
+          },
+        },
+        "core-tts-catalog": { en: readyCoreTtsCatalog("pg003_im007_audio") },
+        tts: {
+          en: {
+            entries: [
+              {
+                textId: "pg003_im007_audio",
+                language: "en",
+                fileName: "pg003_im007_audio.mp3",
+                voice: "alloy",
+                model: "gpt-4o-mini-tts",
+                cached: false,
+              },
+              {
+                textId: "pg003_im007_audio",
+                language: "en",
+                fileName: "pg003_im007_audio--secondary.mp3",
+                voice: "shimmer",
+                voiceSlot: "secondary",
+                model: "gpt-4o-mini-tts",
+                cached: false,
+              },
+            ],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+        "tts-timestamps": {
+          en: {
+            entries: {
+              pg003_im007_audio: {
+                textId: "pg003_im007_audio",
+                language: "en",
+                duration: 0.5,
+                words: [{ word: "Mago", start: 0, end: 0.5 }],
+              },
+            },
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      },
+    )
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      speechConfig: { word_highlighting: true },
+    })
+
+    const localeDir = path.join(bookDir, "adt", "content", "i18n", "en")
+    const audios = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "audios.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(audios).toEqual({ pg003_im007_audio: "pg003_im007_audio.mp3" })
+
+    const speechTexts = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "speech_texts.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(speechTexts).toEqual({ pg003_im007_audio: "pg003_im007_audio" })
+
+    const voices = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "audio_voices.json"), "utf-8"),
+    ) as { voices: Record<string, { audios: Record<string, string> }> }
+    expect(voices.voices.primary.audios).toEqual({ pg003_im007_audio: "pg003_im007_audio.mp3" })
+    expect(voices.voices.secondary.audios).toEqual({
+      pg003_im007_audio: "pg003_im007_audio--secondary.mp3",
+    })
+
+    // No authored artifact -> no manifest.
+    expect(fs.existsSync(path.join(localeDir, "element_audio.json"))).toBe(false)
+
+    // The caption keeps its word timings.
+    const timecodes = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "timecode", "timecode_output.json"), "utf-8"),
+    ) as Record<string, unknown>
+    expect(Object.keys(timecodes)).toEqual(["pg003_im007_audio"])
   })
 
   it("emits defaultSettings and lockedSettings in config.json when provided", async () => {
