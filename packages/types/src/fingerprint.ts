@@ -78,6 +78,7 @@ export const PER_PAGE_PROMPT_KEYS = [
   "default_render_strategy",
   "render_strategies",
   "section_render_strategies",
+  "render_context",
   "visual_review_prompt",
   "visual_review_max_iterations",
   "storyboard_effort",

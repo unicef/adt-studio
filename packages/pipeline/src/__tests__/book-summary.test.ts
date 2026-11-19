@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { generateBookSummary, buildBookSummaryConfig } from "../book-summary.js"
 import type { BookSummaryConfig, BookSummaryPageInput } from "../book-summary.js"
+import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import type { BookSummaryOutput, AppConfig } from "@adt/types"
 import type { LLMModel, GenerateObjectResult, GenerateObjectOptions } from "@adt/llm"
 
@@ -101,7 +102,7 @@ describe("buildBookSummaryConfig", () => {
     expect(config.outputLanguage).toBe("pt-BR")
   })
 
-  it("defaults prompt/model/output language", () => {
+  it("AC-1: defaults prompt/model/output language with the default model", () => {
     const appConfig: AppConfig = {
       role_types: { heading: "Heading" },
       structure_types: { paragraph: "Paragraph" },
@@ -109,7 +110,7 @@ describe("buildBookSummaryConfig", () => {
 
     const config = buildBookSummaryConfig(appConfig)
     expect(config.promptName).toBe("book_summary")
-    expect(config.modelId).toBe("openai:gpt-5.4")
+    expect(config.modelId).toBe(DEFAULT_LLM_MODEL_ID)
     expect(config.maxRetries).toBe(5)
     expect(config.outputLanguage).toBe("en")
   })

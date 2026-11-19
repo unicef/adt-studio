@@ -12,6 +12,7 @@ import {
   DEFAULT_MODEL,
   mergePromptModelGroups,
   normalizePromptModelInput,
+  promptExistsForModel,
 } from "@/components/pipeline/stages/book/GlobalPromptsSettings/promptSettings"
 import { promptModelForSelectedModel } from "@/components/pipeline/components/PromptViewer/promptModel"
 import { toast } from "@/components/ui/sonner"
@@ -38,6 +39,7 @@ export interface DefaultLlmSetting {
   /** Advisory manifest check for the drafted model; null until `/providers` resolves. */
   support: ModelModalitySupport | null
   save: () => void
+  discard: () => void
 }
 
 export function useDefaultLlmSetting(): DefaultLlmSetting {
@@ -54,6 +56,10 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
   const promptModelsQuery = useQuery({
     queryKey: ["prompt-models"],
     queryFn: api.listPromptModels,
+  })
+  const promptListQuery = useQuery({
+    queryKey: ["prompts"],
+    queryFn: api.listPrompts,
   })
 
   const savedModel = defaultModelQuery.data?.model ?? DEFAULT_MODEL
@@ -84,6 +90,7 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["global-config"] }),
         queryClient.invalidateQueries({ queryKey: ["prompts"] }),
+        queryClient.invalidateQueries({ queryKey: ["task-models"] }),
         queryClient.invalidateQueries({ queryKey: ["debug", "config"] }),
         queryClient.invalidateQueries({ queryKey: ["providers"] }),
       ])
@@ -98,9 +105,14 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
 
   const promptModels = promptModelsQuery.data?.models ?? []
   const savedModelRequiresPrompts = promptModelForSelectedModel(savedModel) != null
+  // Tuned prompts exist when they were generated for the model (listed in
+  // .models.json) or ship as a model folder, like the built-in Sol variants.
   const hasPromptsForSavedModel = promptModels.some(
     (model) => normalizePromptModelInput(model) === normalizePromptModelInput(savedModel),
+  ) || (promptListQuery.data?.prompts ?? []).some(
+    (prompt) => promptExistsForModel(prompt, savedModel),
   )
+  const promptsLoaded = promptModelsQuery.isSuccess && promptListQuery.isSuccess
 
   const normalizedDraft = normalizeQualifiedModelInput(draft)
   const support =
@@ -117,9 +129,14 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
     isLoading: defaultModelQuery.isLoading || promptModelsQuery.isLoading,
     isError: defaultModelQuery.isError,
     isSaving: mutation.isPending,
-    showPromptWarning: savedModelRequiresPrompts && !hasPromptsForSavedModel,
+    showPromptWarning:
+      promptsLoaded &&
+      savedModel !== DEFAULT_MODEL &&
+      savedModelRequiresPrompts &&
+      !hasPromptsForSavedModel,
     support,
     save: () => mutation.mutate(),
+    discard: () => setDraft(savedModel),
   }
 }
 
@@ -129,12 +146,14 @@ export interface SpecializedDefaults {
   speechDraft: string
   setSpeechDraft: (value: string) => void
   isDirty: boolean
+  changeCount: number
   isLoading: boolean
   isError: boolean
   isSaving: boolean
   /** Advisory manifest check for the drafted image model; null until `/providers` resolves. */
   imageSupport: ModelModalitySupport | null
   save: () => void
+  discard: () => void
 }
 
 export function useSpecializedDefaults(): SpecializedDefaults {
@@ -195,18 +214,25 @@ export function useSpecializedDefaults(): SpecializedDefaults {
       ? checkModelModalitySupport(providers, normalizedImageDraft, "image")
       : null
 
+  const changeCount =
+    Number(normalizedImageDraft !== saved.imageGeneration) +
+    Number(normalizeSpeechModelInput(speechDraft) !== saved.speechGeneration)
+
   return {
     imageDraft,
     setImageDraft,
     speechDraft,
     setSpeechDraft,
-    isDirty:
-      normalizedImageDraft !== saved.imageGeneration ||
-      normalizeSpeechModelInput(speechDraft) !== saved.speechGeneration,
+    isDirty: changeCount > 0,
+    changeCount,
     isLoading: query.isLoading,
     isError: query.isError,
     isSaving: mutation.isPending,
     imageSupport,
     save: () => mutation.mutate(),
+    discard: () => {
+      setImageDraft(saved.imageGeneration)
+      setSpeechDraft(saved.speechGeneration)
+    },
   }
 }

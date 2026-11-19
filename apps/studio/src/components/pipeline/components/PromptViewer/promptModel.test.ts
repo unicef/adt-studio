@@ -5,6 +5,11 @@ import {
 } from "./promptModel"
 
 describe("prompt model resolution", () => {
+  it("AC-1: selects the Sol variant while GPT-5.4 continues to select the base", () => {
+    expect(promptNameForSelectedModel("section", "openai:gpt-6.1-sol")).toBe("section__openai_gpt_6_1_sol")
+    expect(promptNameForSelectedModel("section", "gpt-5.4")).toBe("section")
+  })
+
   it("uses GPT-5.4 as the base model by default", () => {
     expect(promptModelForSelectedModel("openai:gpt-5.4")).toBeNull()
     expect(promptNameForSelectedModel("section", "openai:gpt-5.4")).toBe(

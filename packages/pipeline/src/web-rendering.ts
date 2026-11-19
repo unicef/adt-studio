@@ -7,6 +7,7 @@ import {
   type BookTypography,
   type TextDirection,
   type WebRenderingOutput,
+  type ReasoningEffort,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
@@ -15,6 +16,7 @@ import type { BookFontPromptEntry } from "./fonts-bundle.js"
 import { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 import { renderSectionTemplate, type TemplateEngine } from "./render-template.js"
 import { repairTableOfContentsLayout } from "./toc-layout.js"
+import type { RenderBookContext } from "./render-book-context.js"
 
 export interface VisualRefinementConfig {
   enabled: boolean
@@ -22,6 +24,7 @@ export interface VisualRefinementConfig {
   promptName: string
   timeoutMs: number
   temperature: number
+  reasoningEffort?: ReasoningEffort
 }
 
 export interface RenderConfig {
@@ -32,6 +35,7 @@ export interface RenderConfig {
   maxRetries: number
   timeoutMs: number
   temperature: number
+  reasoningEffort?: ReasoningEffort
   // activity fields — answer generation prompt
   answerPromptName: string
   // template fields
@@ -110,6 +114,7 @@ export interface RenderSectionInput {
   bookFonts?: BookFontPromptEntry[]
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
+  bookContext?: RenderBookContext
   /**
    * The direction the book's pages are written in, from `resolvePageDirection()`.
    * Only `"rtl"` (the source language is right-to-left) changes anything here:
@@ -137,6 +142,7 @@ export interface RenderPageInput {
   bookFonts?: BookFontPromptEntry[]
   /** Book typography (editable size-per-role map), shared with every page. */
   typography?: BookTypography
+  bookContext?: RenderBookContext
   /**
    * The direction the book's pages are written in, from `resolvePageDirection()`.
    * Only `"rtl"` (the source language is right-to-left) changes anything here:
@@ -383,6 +389,7 @@ export async function renderPage(
       styleguide: input.styleguide,
       bookFonts: input.bookFonts,
       typography: input.typography,
+      bookContext: input.bookContext,
       pageDirection: input.pageDirection,
       userPrompt: input.userPrompt,
     }
@@ -490,6 +497,7 @@ export function buildRenderStrategyResolver(
       maxRetries: cfg?.max_retries ?? DEFAULT_RENDER_CONFIG.max_retries,
       timeoutMs: (cfg?.timeout ?? DEFAULT_RENDER_CONFIG.timeout) * 1000,
       temperature: cfg?.temperature ?? DEFAULT_RENDER_CONFIG.temperature,
+      reasoningEffort: cfg?.reasoning_effort ?? appConfig.default_reasoning_effort,
       answerPromptName: cfg?.answer_prompt ?? "",
       templateName: cfg?.template ?? "",
       ...(vr?.enabled && {
@@ -502,6 +510,8 @@ export function buildRenderStrategyResolver(
           promptName: appConfig.visual_review_prompt ?? vr.prompt ?? DEFAULT_VISUAL_REFINEMENT.prompt,
           timeoutMs: (vr.timeout ?? DEFAULT_VISUAL_REFINEMENT.timeout) * 1000,
           temperature: vr.temperature ?? DEFAULT_VISUAL_REFINEMENT.temperature,
+          reasoningEffort:
+            appConfig.visual_review?.reasoning_effort ?? vr.reasoning_effort ?? appConfig.default_reasoning_effort,
         },
       }),
     }
