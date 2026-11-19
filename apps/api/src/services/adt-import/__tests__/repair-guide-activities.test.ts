@@ -36,6 +36,11 @@ describe("activityPagesBlock", () => {
     expect(block).toContain("- pg002_sec001.html (section pg002_sec001): suggested activity_custom; invalid-structure; signals interactive-control; failed checks 1")
   })
 
+  it("counts a check that fails more than once on a page", () => {
+    const twice = activityPagesBlock([page("pg003_sec001", [sectionName, sectionName])]).join("\n")
+    expect(twice).toContain("failed checks 1 (2 times)")
+  })
+
   it("explains each reason once", () => {
     expect(block.match(/^- invalid-structure: /gm)).toHaveLength(1)
   })

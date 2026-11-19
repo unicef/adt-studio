@@ -245,7 +245,13 @@ export function activityPagesBlock(items: AdtImportedActivityReview["items"]): s
     parts.push(item.reasons.join(", "))
     if (item.signals.length > 0) parts.push(`signals ${item.signals.join(", ")}`)
     if (item.validationErrors.length > 0) {
-      parts.push(`failed checks ${item.validationErrors.map((error) => checks.indexOf(error) + 1).join(", ")}`)
+      // A check can fail more than once on a page, for example on two fields.
+      const counts = new Map<number, number>()
+      for (const error of item.validationErrors) {
+        const number = checks.indexOf(error) + 1
+        counts.set(number, (counts.get(number) ?? 0) + 1)
+      }
+      parts.push(`failed checks ${[...counts].map(([number, count]) => count > 1 ? `${number} (${count} times)` : `${number}`).join(", ")}`)
     }
     return `- ${item.href} (section ${item.sectionId}): ${parts.join("; ")}`
   })
