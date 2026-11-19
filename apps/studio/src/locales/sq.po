@@ -811,7 +811,6 @@ msgstr "{toggleShortcut} për të ndërruar"
 msgid "{total, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{total, plural, one {# koment në pritje} other {# komente në pritje}}"
 
-
 msgid "{total} here"
 msgstr "{total} këtu"
 
@@ -845,7 +844,6 @@ msgstr "+{more} të tjera"
 
 msgid "+{more} more not listed here. The repair request includes them all."
 msgstr "+{more} të tjera që nuk renditen këtu. Kërkesa për riparim i përfshin të gjitha."
-
 
 msgid "×4"
 msgstr "×4"
@@ -12250,6 +12248,9 @@ msgstr "Lidhja ndalon së funksionuari më {0}."
 
 msgid "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
 msgstr "Lidhja ndalon së funksionuari menjëherë, për të gjithë ata që e kanë atë. Kushdo që e hap do të shohë një mesazh të shkurtër që thotë se libri nuk është më i ndarë."
+
+msgid "The list below shows a few examples of each problem. The repair request lists every affected file."
+msgstr "Lista më poshtë tregon disa shembuj të secilit problem. Kërkesa për riparim rendit të gjithë skedarët e prekur."
 
 msgid "The login could not be finished. Try again in a moment."
 msgstr "Hyrja nuk u përfundua dot. Provoni sërish pas pak."

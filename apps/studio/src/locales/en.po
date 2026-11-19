@@ -809,7 +809,6 @@ msgstr "{toggleShortcut} to toggle"
 msgid "{total, plural, one {# comment waiting} other {# comments waiting}}"
 msgstr "{total, plural, one {# comment waiting} other {# comments waiting}}"
 
-
 msgid "{total} here"
 msgstr "{total} here"
 
@@ -843,7 +842,6 @@ msgstr "+{more} more"
 
 msgid "+{more} more not listed here. The repair request includes them all."
 msgstr "+{more} more not listed here. The repair request includes them all."
-
 
 msgid "×4"
 msgstr "×4"
@@ -12248,6 +12246,9 @@ msgstr "The link stops working on {0}."
 
 msgid "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
 msgstr "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
+
+msgid "The list below shows a few examples of each problem. The repair request lists every affected file."
+msgstr "The list below shows a few examples of each problem. The repair request lists every affected file."
 
 msgid "The login could not be finished. Try again in a moment."
 msgstr "The login could not be finished. Try again in a moment."
