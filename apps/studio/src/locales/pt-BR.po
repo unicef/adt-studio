@@ -12322,6 +12322,9 @@ msgstr "A solicitação aparece como <0>Wrangler</0> — a própria ferramenta d
 msgid "The rules ADT Studio checks. Your assistant gets them with the repair request."
 msgstr "As regras que o ADT Studio verifica. Seu assistente as recebe com a solicitação de reparo."
 
+msgid "The same data-id is used on more than one page."
+msgstr "O mesmo data-id é usado em mais de uma página."
+
 msgid "The same edition in every language."
 msgstr "A mesma edição em todos os idiomas."
 

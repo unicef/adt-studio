@@ -263,6 +263,7 @@ export const AdtImportCompatibilityIssueCode = z.enum([
   "missing-section-type",
   "missing-data-id",
   "duplicate-data-id",
+  "cross-page-duplicate-data-id",
   "image-missing-data-id",
   "remote-asset",
   "unsafe-asset",
