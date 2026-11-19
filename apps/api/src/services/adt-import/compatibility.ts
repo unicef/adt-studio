@@ -11,6 +11,7 @@ import {
   ADT_EDITING_CONTRACT_MIN_VERSION,
   type AdtImportCompatibility,
   type AdtImportCompatibilityIssue,
+  type AdtImportCompatibilityIssueCode,
 } from "@adt/types"
 
 import type { ReadAdtBundle } from "./bundle-reader.js"
@@ -44,12 +45,22 @@ function interleavedReadingOrder(
   return interleaved
 }
 
-const MAX_REPORTED_ISSUES = 50
+/** Examples of each problem type the report carries. One widespread problem
+ * (a script on every page) must not hide the others behind a global cap. */
+export const MAX_REPORTED_ISSUES_PER_CODE = 10
 
 export function assessAdtImportCompatibility(
   bundle: ReadAdtBundle,
   archiveFiles: Record<string, Uint8Array>,
 ): AdtImportCompatibility {
+  return summarizeAdtImportIssues(collectAdtImportIssues(bundle, archiveFiles))
+}
+
+/** Every problem in the archive, once each, uncapped. */
+export function collectAdtImportIssues(
+  bundle: ReadAdtBundle,
+  archiveFiles: Record<string, Uint8Array>,
+): AdtImportCompatibilityIssue[] {
   const archivePaths = new Set(Object.keys(archiveFiles))
   const issues: AdtImportCompatibilityIssue[] = []
   const pageHrefs = new Set(bundle.pages.map((page) => page.href))
@@ -231,20 +242,38 @@ export function assessAdtImportCompatibility(
       }
     }
   }
-  const unique = [...new Map(issues.map((issue) => [
+  return [...new Map(issues.map((issue) => [
     `${issue.code}:${issue.pageHref}:${issue.detail ?? ""}`,
     issue,
   ])).values()]
-  // Problems with the book's own pages first, stray files last; the report is
-  // capped, and says how many issues it left out.
-  const ordered = [
-    ...unique.filter((issue) => issue.code !== "unexpected-bundle-entry"),
-    ...unique.filter((issue) => issue.code === "unexpected-bundle-entry"),
+}
+
+/**
+ * The report the review and the repair request show: up to
+ * MAX_REPORTED_ISSUES_PER_CODE examples of each problem type, grouped by type
+ * in the order the types were found, stray files last, and the total of each
+ * type so the counts shown are the real ones.
+ */
+export function summarizeAdtImportIssues(
+  issues: readonly AdtImportCompatibilityIssue[],
+): AdtImportCompatibility {
+  const byCode = new Map<AdtImportCompatibilityIssueCode, AdtImportCompatibilityIssue[]>()
+  for (const issue of issues) {
+    const group = byCode.get(issue.code) ?? []
+    group.push(issue)
+    byCode.set(issue.code, group)
+  }
+  const codes = [
+    ...[...byCode.keys()].filter((code) => code !== "unexpected-bundle-entry"),
+    ...[...byCode.keys()].filter((code) => code === "unexpected-bundle-entry"),
   ]
-  const reported = ordered.slice(0, MAX_REPORTED_ISSUES)
+  const reported = codes.flatMap((code) => byCode.get(code)!.slice(0, MAX_REPORTED_ISSUES_PER_CODE))
   return {
-    supported: unique.length === 0,
+    supported: issues.length === 0,
     issues: reported,
-    ...(ordered.length > reported.length ? { omittedIssueCount: ordered.length - reported.length } : {}),
+    ...(issues.length > 0
+      ? { issueCounts: Object.fromEntries(codes.map((code) => [code, byCode.get(code)!.length])) }
+      : {}),
+    ...(issues.length > reported.length ? { omittedIssueCount: issues.length - reported.length } : {}),
   }
 }

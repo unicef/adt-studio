@@ -840,6 +840,9 @@ msgstr "/ Seção {0}"
 msgid "+{more} more"
 msgstr "+{more} mais"
 
+msgid "+{more} more not listed here. The repair request includes them all."
+msgstr "+{more} a mais não listados aqui. A solicitação de reparo inclui todos."
+
 msgid "×4"
 msgstr "×4"
 
@@ -3350,6 +3353,9 @@ msgstr "Tipo de conteúdo"
 msgid "Content updates"
 msgstr "Atualizações do conteúdo"
 
+msgid "Content without a data-id"
+msgstr "Conteúdo sem data-id"
+
 msgid "Contents"
 msgstr "Sumário"
 
@@ -3783,6 +3789,9 @@ msgstr "Intervalo personalizado"
 
 msgid "Custom section {index}"
 msgstr "Seção personalizada {index}"
+
+msgid "Custom stylesheet"
+msgstr "Folha de estilos personalizada"
 
 msgid "Cut a region out of any page"
 msgstr "Recorte uma região de qualquer página"
@@ -4987,6 +4996,15 @@ msgstr "Extração de figuras"
 msgid "File actions"
 msgstr "Ações do arquivo"
 
+msgid "File loaded from the internet"
+msgstr "Arquivo carregado da internet"
+
+msgid "File or folder outside the ADT layout"
+msgstr "Arquivo ou pasta fora da estrutura do ADT"
+
+msgid "File path outside the archive"
+msgstr "Caminho de arquivo fora do arquivo ZIP"
+
 msgid "Fill in a table"
 msgstr "Preencher uma tabela"
 
@@ -5892,6 +5910,9 @@ msgstr "Imagem indisponível"
 
 msgid "Image upload failed"
 msgstr "Falha ao enviar a imagem"
+
+msgid "Image without a data-id"
+msgstr "Imagem sem data-id"
 
 msgid "Image-edit model used to regenerate each image with translated text."
 msgstr "Modelo de edição de imagens usado para regenerar cada imagem com o texto traduzido."
@@ -6965,6 +6986,9 @@ msgstr "Mídia"
 msgid "Media & timing"
 msgstr "Mídia e temporização"
 
+msgid "Media outside the images folder"
+msgstr "Mídia fora da pasta images"
+
 msgid "Medical references"
 msgstr "Referências médicas"
 
@@ -7138,6 +7162,18 @@ msgstr "Falhas"
 msgid "Missing"
 msgstr "Faltando"
 
+msgid "Missing #content element"
+msgstr "Falta o elemento #content"
+
+msgid "Missing editing contract"
+msgstr "Falta o contrato de edição"
+
+msgid "Missing file"
+msgstr "Arquivo ausente"
+
+msgid "Missing main section"
+msgstr "Falta a seção principal"
+
 msgid "Missing or added content"
 msgstr "Conteúdo ausente ou adicionado"
 
@@ -7195,6 +7231,12 @@ msgstr "Mais informações"
 
 msgid "More shortcuts — quick navigation, adding a book, opening this dialog — are still in development."
 msgstr "Mais atalhos — navegação rápida, adicionar um livro, abrir esta janela — ainda estão em desenvolvimento."
+
+msgid "More than one #content element"
+msgstr "Mais de um elemento #content"
+
+msgid "More than one main section"
+msgstr "Mais de uma seção principal"
 
 msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
 msgstr "A maioria dos livros é lida uma página por vez. Se o seu tiver uma ilustração que ocupa duas páginas lado a lado, vincule essas páginas para que sejam processadas juntas como uma única página dupla, em vez de serem cortadas ao meio. Nada muda até você clicar em Aplicar."
@@ -8614,11 +8656,17 @@ msgstr "Modo de agrupamento de páginas"
 msgid "Page HTML must stay at the top level of the archive."
 msgstr "O HTML das páginas deve ficar no nível superior do arquivo."
 
+msgid "Page ids changed"
+msgstr "Os ids da página mudaram"
+
 msgid "Page image"
 msgstr "Imagem da página"
 
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Imagem da página como fundo com texto posicionado sobreposto. Preserva a composição original da página; ideal para livros ilustrados."
+
+msgid "Page inside a folder"
+msgstr "Página dentro de uma pasta"
 
 msgid "Page media is outside the images folder."
 msgstr "As mídias da página estão fora da pasta images."
@@ -8658,6 +8706,9 @@ msgstr "Prompt de seccionamento de página"
 
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt de refinamento do seccionamento de páginas"
+
+msgid "Page sections split apart"
+msgstr "Seções de uma página separadas"
 
 msgid "Page structure and element ids"
 msgstr "Estrutura das páginas e ids dos elementos"
@@ -9839,6 +9890,9 @@ msgstr "Reabrir"
 msgid "Repair request"
 msgstr "Solicitação de reparo"
 
+msgid "Repeated data-id with different content"
+msgstr "data-id repetido com conteúdo diferente"
+
 msgid "Replace"
 msgstr "Substituir"
 
@@ -10652,6 +10706,9 @@ msgstr "Seção removida do fluxo"
 
 msgid "Section Types"
 msgstr "Tipos de seção"
+
+msgid "Section without a type"
+msgstr "Seção sem tipo"
 
 msgid "Sectioning"
 msgstr "Seccionamento"
@@ -12190,6 +12247,9 @@ msgstr "O link para de funcionar em {0}."
 msgid "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
 msgstr "O link para de funcionar imediatamente, para todos que o têm. Qualquer pessoa que o abrir verá uma mensagem curta dizendo que o livro não está mais compartilhado."
 
+msgid "The list below shows a few examples of each problem. The repair request lists every affected file."
+msgstr "A lista abaixo mostra alguns exemplos de cada problema. A solicitação de reparo inclui todos os arquivos afetados."
+
 msgid "The login could not be finished. Try again in a moment."
 msgstr "O login não pôde ser concluído. Tente novamente em instantes."
 
@@ -13217,6 +13277,12 @@ msgstr "Alterações não salvas"
 
 msgid "Unsaved edit"
 msgstr "Edição não salva"
+
+msgid "Unsupported editing contract"
+msgstr "Contrato de edição não compatível"
+
+msgid "Unsupported script"
+msgstr "Script não compatível"
 
 msgid "Untangling nested divs with care..."
 msgstr "Desembaraçando divs aninhadas com cuidado..."
