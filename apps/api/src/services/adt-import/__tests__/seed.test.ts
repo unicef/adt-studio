@@ -120,6 +120,7 @@ describe("ADT recovery workspace", () => {
     expect(assessArchive(diverged)).toEqual({
       supported: false,
       issues: [{ code: "duplicate-data-id", pageHref: "index.html", detail: "pg001_t001" }],
+      issueCounts: { "duplicate-data-id": 1 },
     })
     expect(previewAdtRecoveryImport(diverged).compatibility.supported).toBe(false)
   })
@@ -150,6 +151,7 @@ describe("ADT recovery workspace", () => {
         pageHref: "pg001_sec002.html",
         detail: "pg001 resumes after pg002_sec001",
       }],
+      issueCounts: { "interleaved-reading-order": 1 },
     })
   })
 

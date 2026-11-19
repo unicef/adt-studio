@@ -27,7 +27,9 @@ export type ReviewMode = "ready" | "activity" | "repair" | "blocked"
 export interface Stat { value: string | null; label: string; long?: boolean }
 export interface Status { tone: Tone; icon: LucideIcon; title: string; text: string }
 export interface Check { icon: LucideIcon; label: string; value: string; state: CheckState }
-export interface Issue { file: string; text: string; code: string }
+/** One problem to fix. With `more`, a summary row instead: how many more of
+ * that type the report left out. */
+export interface Issue { file: string; text: string; code: string; more?: number }
 /** One line of "Import will": done already, needs you before import, or
  * happens when you import (or later, for a part). */
 export interface Step { title: string; text: string; state: "done" | "todo" | "later"; status: string; noDivider?: boolean }
@@ -193,11 +195,16 @@ export function useReviewModel(
 
   function adtModel(adt: AdtBundleImportPreview): ReviewModel {
     const issues = adt.compatibility.issues
-    const structure = issues.filter((issue) => STRUCTURE_CODES.has(issue.code)).length
-    const files = issues.filter((issue) => FILE_CODES.has(issue.code)).length
-    const order = issues.filter((issue) => issue.code === "interleaved-reading-order").length
+    // The report lists a few examples of each type; the counts are the totals.
+    const counts = adt.compatibility.issueCounts
+    const countOf = (match: (code: string) => boolean) => counts
+      ? Object.entries(counts).reduce((sum, [code, count]) => sum + (match(code) ? count ?? 0 : 0), 0)
+      : issues.filter((issue) => match(issue.code)).length
+    const structure = countOf((code) => STRUCTURE_CODES.has(code))
+    const files = countOf((code) => FILE_CODES.has(code))
+    const order = countOf((code) => code === "interleaved-reading-order")
     const repair = !adt.compatibility.supported
-    const issueCount = issues.length
+    const issueCount = countOf(() => true)
     const mode: ReviewMode = repair ? "repair" : unresolvedActivityCount > 0 ? "activity" : "ready"
     const outputs = adt.outputLanguages?.length ?? 0
     const source = languageName(adt.sourceLanguage, locale)
@@ -239,7 +246,16 @@ export function useReviewModel(
         { icon: ShieldCheck, label: t`Changes since export`, value: change.value, state: change.state },
         { icon: FolderPlus, label: t`New, separate project`, value: repair ? t`Not yet` : t`Yes`, state: repair ? "off" : "ok" },
       ],
-      issues: issues.map((issue) => ({ file: issue.pageHref, code: issue.code, text: issueText(issue.code, issue.pageHref, issue.detail) })),
+      issues: issues.flatMap((issue, index) => {
+        const row: Issue = { file: issue.pageHref, code: issue.code, text: issueText(issue.code, issue.pageHref, issue.detail) }
+        // After a type's last example, say how many more of it there are.
+        const lastOfType = issues[index + 1]?.code !== issue.code
+        const shown = issues.filter((other) => other.code === issue.code).length
+        const more = (counts?.[issue.code] ?? shown) - shown
+        return lastOfType && more > 0
+          ? [row, { file: "", code: issue.code, text: t`+${more} more with this problem`, more }]
+          : [row]
+      }),
       steps: adtSteps(adt),
       facts: null,
     }

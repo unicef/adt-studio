@@ -221,7 +221,11 @@ export function FactList({ facts }: { facts: Array<{ label: string; value: strin
 export function IssueList({ issues }: { issues: Issue[] }) {
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
-      {issues.map((issue, index) => (
+      {issues.map((issue, index) => issue.more ? (
+        <li key={`${issue.code}:more`} className="px-3.5 py-2 text-[12.5px] text-muted-foreground">
+          {issue.text}
+        </li>
+      ) : (
         <li key={`${issue.code}:${issue.file}:${index}`} className="px-3.5 py-2.5">
           <div className="flex items-baseline justify-between gap-3">
             <code className="truncate font-mono text-xs font-semibold text-foreground">{issue.file}</code>

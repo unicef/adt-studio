@@ -842,6 +842,9 @@ msgstr "/ Seksioni {0}"
 msgid "+{more} more"
 msgstr "+{more} të tjera"
 
+msgid "+{more} more with this problem"
+msgstr "+{more} të tjera me këtë problem"
+
 msgid "×4"
 msgstr "×4"
 

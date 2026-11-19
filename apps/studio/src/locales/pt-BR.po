@@ -840,6 +840,9 @@ msgstr "/ Seção {0}"
 msgid "+{more} more"
 msgstr "+{more} mais"
 
+msgid "+{more} more with this problem"
+msgstr "+{more} a mais com este problema"
+
 msgid "×4"
 msgstr "×4"
 

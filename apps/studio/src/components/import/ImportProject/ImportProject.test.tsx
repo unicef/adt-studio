@@ -518,6 +518,62 @@ describe("ImportProject", () => {
     expect(importAdt).not.toHaveBeenCalled()
   })
 
+  // The review shows the real totals, and how many of each type it left out.
+  it("counts every problem found and says how many of each type are not listed", async () => {
+    previewImport.mockResolvedValue({
+      isAdtBundle: true,
+      legacyRecovery: false,
+      label: "unsupported-book",
+      title: "Unsupported book",
+      coverBase64: null,
+      sourceLanguage: "en",
+      outputLanguages: [],
+      runtimeFeatures: {},
+      pageCount: 1,
+      glossaryEntryCount: 0,
+      tocEntryCount: 0,
+      translationLanguageCount: 0,
+      contentChanged: true,
+      exportComparisonStatus: "changed",
+      compatibility: {
+        supported: false,
+        issues: [
+          ...Array.from({ length: 10 }, (_, index) => ({
+            code: "unsupported-script",
+            pageHref: `pg${String(index + 1).padStart(3, "0")}_sec001.html`,
+            detail: "./assets/extras.js",
+          })),
+          { code: "unlisted-root-page", pageHref: "creditos.html", detail: "creditos.html" },
+        ],
+        issueCounts: { "unsupported-script": 60, "unlisted-root-page": 1 },
+        omittedIssueCount: 50,
+      },
+      agentGuide: {
+        status: "missing",
+        currentVersion: 2,
+        files: {
+          agentsMd: { present: false, version: null, current: false },
+          claudeMd: { present: false, version: null, current: false },
+        },
+        currentGuide: "<!-- adt-studio-agent-guide: 2 -->\n# Editing Unsupported book",
+        repairPrompt: "Repair this exported ADT using the current guide.",
+        activityPrompt: null,
+      },
+      match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
+    })
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, {
+      target: { files: [new File(["zip"], "broken.zip", { type: "application/zip" })] },
+    })
+
+    expect(await screen.findByText(/^61 .*to fix before import/)).toBeTruthy()
+    expect(screen.getAllByText("unsupported-script")).toHaveLength(10)
+    expect(screen.getByText("+50 more with this problem")).toBeTruthy()
+    expect(screen.getByText("creditos.html")).toBeTruthy()
+  })
+
   it("does not offer local projects as import destinations", async () => {
     previewImport.mockResolvedValue({
       isAdtBundle: true,
