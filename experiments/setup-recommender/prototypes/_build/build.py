@@ -103,3 +103,20 @@ for flow, folder, title in [("check", "r3-check-then-ask", "Check Then Ask"), ("
     os.makedirs(os.path.join(P, folder), exist_ok=True)
     open(os.path.join(P, folder, "index.html"), "w").write(out)
     print(folder, len(out))
+
+# ---- review-screen variants ("the AI runs, shows its picks, the user confirms or changes; ask only if needed").
+# One source (_build/confirm.html). The plain words, sketches and layout pictures are cut out of round3.html,
+# so the variants say exactly what round 3 says. Same DATA as round 3.
+def between(s, a, b):
+    i = s.index(a); j = s.index(b, i)
+    return s[i:j]
+r3css = src3[src3.index("<style>") + len("<style>"):src3.index("</style>")].replace("/*BASE_CSS*/", css)
+r3words = between(src3, "/* ---------- words", "/* ---------- state ---------- */")
+r3pics = between(src3, "/* ---------- layout pictures", "/* ---------- option card ---------- */")
+srcc = open(os.path.join(B, "confirm.html")).read()
+for flow, folder, title in [("picks", "v-picks-list", "Picks List"), ("result", "v-result-first", "Result First"), ("sure", "v-sure-unsure", "Sure Or Not"), ("settings", "v-settings", "Settings View"), ("sentence", "v-sentence", "One Sentence")]:
+    out = (srcc.replace("/*R3_CSS*/", r3css).replace("/*DATA*/", data3).replace("/*BASE_JS*/", js)
+           .replace("/*R3_WORDS*/", r3words).replace("/*R3_PICTURES*/", r3pics).replace("/*FLOW*/", flow).replace("/*TITLE*/", title))
+    os.makedirs(os.path.join(P, folder), exist_ok=True)
+    open(os.path.join(P, folder, "index.html"), "w").write(out)
+    print(folder, len(out))

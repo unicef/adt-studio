@@ -213,3 +213,28 @@ Findings:
 setting that differs between options), `lockedSettings[]`, `range`, `previewPage`, `coverage.strip`,
 `measured.*.plain`, and `engine.json` gains `i18n` (en, pt-BR, es; developer translations, unchecked).
 Whole-book page images go to `prototypes/data/pages-local/` (git-ignored).
+
+## Review screen: "show the picks, ask only if needed" (2026-11-19)
+
+No LLM calls. `analyze-confirm.ts` replays every saved run pair for a review screen (`results/poc/confirm-policies.json`,
+`results/whole/confirm-policies.json`). The honest user answers questions right and edits nothing else (the worst case
+for a review screen). Silent error = a setting at Create that differs from the one the true facts give.
+
+| Policy | E5 pick / E4 check (54 pairs): questions per book (max) | Silent errors: pairs, settings (locked) | Wrong picks that matter shown as sure | Whole books E12 / E13 (18 pairs): questions, silent |
+|---|---|---|---|---|
+| P0 never ask | 0 (0) | 9/54, 18 (0) | 9 | 0, 3/18 |
+| P1 guesses differ AND another answer changes a setting | 0.39 (1) | 0 | 0 | 0.67, 0 |
+| P2 P1 + only opening pages read | 0.72 (3) | 0 | 0 | 0.67, 0 |
+| P3 P2 + always ask maps when it decides Figures | 1.22 (3) | 0 | 0 | 1.67, 0 |
+| P4 ask only locked when unsure, highlight the rest | 0.17 (1) | 9/54, 18 (0), all 18 in highlighted rows | 0 | 0, 3/18 (highlighted) |
+
+- P1 already catches every error in the saved runs (also E5/E10: 0.22 q; E4 shown as the pick: 0.39 q). P2's coverage
+  rule and P3's maps rule caught nothing extra here; they guard cases this data does not contain (both readings wrong
+  the same way on opening pages; a wrong maps answer on a locked setting).
+- The only locked silent errors in all replays: text-only page labels (E12t) on the 427-page textbook said "no
+  diagrams" (P0: 3/18). P1, P2, P3 and P4 all catch it, because the image check disagrees.
+- P4 relies on people reading highlighted rows. Every error it lets through is in one, so its real error rate is
+  between P1's (0) and P0's, depending on attention. Measure that with users before choosing it.
+
+Prototypes: `prototypes/confirm-variants.html` (5 variants, `prototypes/v-*/`, source `prototypes/_build/confirm.html`),
+notes in `discussion/confirm-variants.md`.
