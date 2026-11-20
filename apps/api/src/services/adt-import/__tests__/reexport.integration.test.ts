@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 
 import { afterEach, describe, expect, it } from "vitest"
-import { packageAdtWeb } from "@adt/pipeline"
+import { loadBookConfig, packageAdtWeb, readerSettingsFromConfig } from "@adt/pipeline"
 import { exportAdt } from "../../export-service.js"
 import { createBookStorage } from "@adt/storage"
 import { strToU8, unzipSync, zipSync } from "fflate"
@@ -16,6 +16,7 @@ import { previewAdtRecoveryImport } from "../preview.js"
 import { importAdtProject } from "../project-import.js"
 import {
   makeBundleWithFillInTheBlankAnswers,
+  makeCurrentBundleWithExternallyAddedPage,
   makeFixedLayoutBundle,
   renameInArchive,
   seedFromArchive,
@@ -63,6 +64,8 @@ async function importThenExport(archive: Buffer): Promise<Buffer> {
       outputLanguages: source.manifest.languages.output,
       title: source.title,
       webAssetsDir,
+      // As the export service does: the book config's reader settings.
+      ...readerSettingsFromConfig(loadBookConfig(session.label, booksDir)),
     })
   } finally {
     storage.close()
@@ -87,6 +90,26 @@ describe("import, then export again", () => {
     const exported = Buffer.from(await new Response((await exportAdt(session.label, root)).stream).arrayBuffer())
     expect(readAdtBundle(exported).pageHtml["pg001_sec001.html"]).toContain("Ready for eruptions")
     expect(previewAdtRecoveryImport(exported).compatibility.supported).toBe(true)
+  })
+
+  // #1198: the reader's defaults and locks survive the round trip.
+  it("keeps the reader's default and locked settings", async () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    const config = JSON.parse(new TextDecoder().decode(files["assets/config.json"]))
+    files["assets/config.json"] = strToU8(JSON.stringify({
+      ...config,
+      defaultSettings: { dockLayout: { width: "full", position: "bottom", align: "spread" }, theme: "dark", iconSize: "md", reduceMotion: false },
+      lockedSettings: ["dockLayout", "theme", "iconSize", "reduceMotion"],
+    }))
+    const exported = unzipSync(await importThenExport(Buffer.from(zipSync(files))))
+    const exportedConfig = JSON.parse(new TextDecoder().decode(exported["assets/config.json"]))
+    expect(exportedConfig.defaultSettings).toEqual({
+      dockLayout: { width: "full", position: "bottom", align: "spread" },
+      theme: "dark",
+      iconSize: "md",
+      reduceMotion: false,
+    })
+    expect(exportedConfig.lockedSettings).toEqual(["dockLayout", "theme", "iconSize", "reduceMotion"])
   })
 
   it("keeps a quiz's exported id instead of renumbering it by position (review #4)", async () => {

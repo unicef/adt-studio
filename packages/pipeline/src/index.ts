@@ -400,6 +400,7 @@ export {
   type PackageEpubOptions,
 } from "./packaging/epub.js"
 export { packageWebpub } from "./packaging/webpub.js"
+export { readerSettingsFromConfig } from "./reader-settings.js"
 export { packagePnld, type PackagePnldOptions } from "./packaging/pnld.js"
 export { buildPreviewTailwindCss } from "./tailwind.js"
 export { htmlToXhtml } from "./html-semantics.js"

@@ -714,6 +714,23 @@ describe("ADT preview routes", () => {
     expect(config.bundleVersion).not.toBe("1")
 	  })
 
+  // #1198: the preview reports its settings back to Studio, and the export
+  // lets them override the book's. Starting from the book's own defaults and
+  // locks keeps them, instead of the reader's built-in values.
+  it("starts the preview from the book's reader defaults and locks", async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      "default_settings:\n  dock_layout:\n    position: bottom\n  theme: dark\n  icon_size: md\nlocked_settings:\n  - theme\n",
+    )
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+    const config = await (await app.request(`/books/${label}/adt-preview/assets/config.json`)).json() as {
+      defaultSettings?: unknown
+      lockedSettings?: unknown
+    }
+    expect(config.defaultSettings).toEqual({ dockLayout: { position: "bottom" }, theme: "dark", iconSize: "md" })
+    expect(config.lockedSettings).toEqual(["theme"])
+  })
+
 	  it("excludes muted entries from preview audio and timecode maps", async () => {
 	    fs.writeFileSync(
 	      path.join(tmpDir, label, "config.yaml"),

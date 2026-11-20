@@ -47,6 +47,7 @@ function bundle(
     pages: [{ section_id: sectionId, href: "index.html" }],
     pageHtml: { "index.html": html },
     runtimeFeatures: {},
+    runtimeConfig: null,
     toc: [],
     glossaries: {},
     texts: { en: { "text-1": "Text" } },
