@@ -699,8 +699,11 @@ msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua, prandaj l
 msgid "{providerKey, select, other {Your {name} key was rejected}}"
 msgstr "{providerKey, select, other {Çelësi juaj i {name} u refuzua}}"
 
-msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
-msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
+msgid "{regionCount} {regionCount, plural, one {region} other {regions}}"
+msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}}"
+
+#~ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
+#~ msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{rejectedProviderKey, select, other {API Key Settings — the {rejectedName} key was rejected}}"
@@ -1474,6 +1477,9 @@ msgstr "Shto kuiz"
 
 msgid "Add quiz here"
 msgstr "Shto kuiz këtu"
+
+msgid "Add region"
+msgstr "Shto rajon"
 
 msgid "Add reviewer guidance."
 msgstr "Shto udhëzime për rishikuesin."
@@ -9708,6 +9714,9 @@ msgstr "Rigjeneroni këtë aktivitet me AI (kërkon gjendje të ruajtur dhe një
 msgid "Region"
 msgstr "Rajon"
 
+msgid "Region {n}"
+msgstr "Rajoni {n}"
+
 msgid "Reject renderings that diverge stylistically from the original. More rejections and rerenders, closer match to the source."
 msgstr "Refuzo renderime që devijojnë stilistikisht nga origjinali. Sa më shumë refuzime dhe rirendime, aq më afër origjinalit."
 
@@ -9783,6 +9792,9 @@ msgstr "Hiq figurën"
 
 msgid "Remove placement"
 msgstr "Hiq vendosjen"
+
+msgid "Remove region"
+msgstr "Hiq rajonin"
 
 msgid "Remove second voice"
 msgstr "Hiq zërin e dytë"
