@@ -12,7 +12,7 @@ import {
   audioMimeType,
 } from "../shared/openai-rest/speech.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
-import { GOOGLE_PROVIDER_ID } from "../google/index.js"
+import { GOOGLE_API_KEY_PATTERN, GOOGLE_API_KEY_PLACEHOLDER, GOOGLE_PROVIDER_ID } from "../google/index.js"
 import { listGoogleTtsModels } from "../google/discovery.js"
 
 export const GEMINI_PROVIDER_ID = "gemini"
@@ -43,6 +43,8 @@ export const geminiManifest: ProviderManifest = {
       legacyHeaders: [],
       storageKey: "adt-studio-gemini-key",
       legacyStorageKeys: [],
+      placeholder: GOOGLE_API_KEY_PLACEHOLDER,
+      pattern: GOOGLE_API_KEY_PATTERN,
       // The same Google AI Studio key as the text/image provider. Falls back
       // to it wherever credentials are read, so the key is entered once; a
       // key saved for this provider still wins.

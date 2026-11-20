@@ -158,10 +158,6 @@ msgstr "{0, plural, one {# tarefa herda este modelo} other {# tarefas herdam est
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {comentário} other {comentários}}"
 
-#. placeholder {0}: health.modelCount
-msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-msgstr "{0, plural, one {Conectado com sucesso — # modelo disponível.} other {Conectado com sucesso — # modelos disponíveis.}}"
-
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {dia} other {dias}}"
@@ -683,6 +679,14 @@ msgstr "{providerKey, select, google {Configurações — a chave do {rejectedNa
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
 msgstr "{providerKey, select, google {A chave do {name} foi recusada. Atualize a chave.} gemini {A chave do {name} foi recusada. Atualize a chave.} azure {A chave do {name} foi recusada. Atualize a chave.} custom {A chave do {name} foi recusada. Atualize a chave.} ollama {A chave do {name} foi recusada. Atualize a chave.} codex {A chave do {name} foi recusada. Atualize a chave.} claude_agent {A chave do {name} foi recusada. Atualize a chave.} other {A chave da {name} foi recusada. Atualize a chave.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{providerKey, select, google {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} gemini {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} azure {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} custom {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} ollama {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} codex {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} claude_agent {Isso não parece uma chave de API do {name}. As chaves do {name} costumam começar com {example}} other {Isso não parece uma chave de API da {name}. As chaves da {name} costumam começar com {example}}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{providerKey, select, google {Isso não parece uma chave de API do {name}.} gemini {Isso não parece uma chave de API do {name}.} azure {Isso não parece uma chave de API do {name}.} custom {Isso não parece uma chave de API do {name}.} ollama {Isso não parece uma chave de API do {name}.} codex {Isso não parece uma chave de API do {name}.} claude_agent {Isso não parece uma chave de API do {name}.} other {Isso não parece uma chave de API da {name}.}}"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
@@ -1732,9 +1736,6 @@ msgstr "Sobreposição por IA"
 
 msgid "AI provider connected. Your book can be processed now."
 msgstr "Provedor de IA conectado. Seu livro já pode ser processado."
-
-msgid "AI provider credentials"
-msgstr "Credenciais de provedores de IA"
 
 msgid "AI providers"
 msgstr "Provedores de IA"
@@ -3216,17 +3217,11 @@ msgstr "Configure as informações básicas do documento e os caminhos de arquiv
 msgid "Configure features to include in the export"
 msgstr "Configure os recursos a incluir na exportação"
 
-msgid "Configure the credentials used by AI features on this device."
-msgstr "Configure as credenciais usadas pelos recursos de IA neste dispositivo."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configure as credenciais dos provedores usadas quando o ADT Studio executa passos do pipeline de IA nesta máquina."
 
 msgid "Configure voices and accents"
 msgstr "Configurar vozes e sotaques"
-
-msgid "Configured on server"
-msgstr "Configurado no servidor"
 
 msgid "Confirm merge"
 msgstr "Confirmar mesclagem"
@@ -3530,9 +3525,6 @@ msgstr "Não foi possível carregar o conteúdo salvo."
 
 msgid "Could not load saved content. Retry"
 msgstr "Não foi possível carregar o conteúdo salvo. Tentar novamente"
-
-msgid "Could not load the AI provider catalogue."
-msgstr "Não foi possível carregar o catálogo de provedores de IA."
 
 msgid "Could not load the book outline."
 msgstr "Não foi possível carregar a estrutura do livro."
@@ -6344,9 +6336,6 @@ msgstr "Teclado e navegação"
 msgid "Keyboard shortcuts"
 msgstr "Atalhos de teclado"
 
-msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-msgstr "As chaves são armazenadas localmente neste navegador ou sessão desktop e são enviadas apenas com solicitações de execução."
-
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "As chaves são armazenadas localmente neste dispositivo — nunca enviadas para nenhum outro lugar."
 
@@ -6647,9 +6636,6 @@ msgstr "Carregar os últimos valores salvos"
 
 msgid "Loading accessibility summary..."
 msgstr "Carregando resumo de acessibilidade..."
-
-msgid "Loading AI providers…"
-msgstr "Carregando provedores de IA…"
 
 msgid "Loading beta versions…"
 msgstr "Carregando versões beta…"
@@ -7907,6 +7893,9 @@ msgstr "Incompatível com layout fixo"
 msgid "Not configured"
 msgstr "Não configurado"
 
+msgid "Not connected"
+msgstr "Não conectado"
+
 msgid "Not created"
 msgstr "Não criado"
 
@@ -8224,9 +8213,6 @@ msgstr "Abrir todos no Storyboard"
 
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Abra um projeto ADT que <0>já existe</0> — um backup, uma parte de livro ou um exportado por outra pessoa. Nada é convertido. <1>.zip → adicionado como está</1>"
-
-msgid "Open API key settings"
-msgstr "Abrir configurações de chaves de API"
 
 msgid "Open command palette"
 msgstr "Abrir paleta de comandos"
@@ -9214,9 +9200,6 @@ msgstr "O provedor “{providerId}” não oferece suporte à geração de texto
 msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 msgstr "O provedor “{providerId}” não está registrado. Adicione as chaves de API dele em Configurações ou escolha outro modelo."
 
-msgid "Provider credentials"
-msgstr "Credenciais do provedor"
-
 msgid "Provider credentials saved."
 msgstr "Credenciais dos provedores salvas."
 
@@ -9225,9 +9208,6 @@ msgstr "Documentação do provedor"
 
 msgid "providers api key credentials endpoint"
 msgstr "provedores chave api credenciais endpoint"
-
-msgid "Providers unavailable"
-msgstr "Provedores indisponíveis"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Fornece padrões HTML/CSS consistentes para páginas geradas por LLM."
@@ -10969,6 +10949,10 @@ msgstr "Configurações"
 msgid "Settings — a sharing update is ready"
 msgstr "Configurações — há uma atualização do compartilhamento"
 
+#. missingName is the provider's name (OpenAI, Anthropic, Claude Agent…).
+msgid "Settings — the default AI provider isn't set up ({missingName})"
+msgstr "Configurações — o provedor de IA padrão não está configurado ({missingName})"
+
 msgid "Settings for this step are not yet available."
 msgstr "As configurações para esta etapa ainda não estão disponíveis."
 
@@ -11954,9 +11938,6 @@ msgstr "Os termos foram escolhidos pela IA a partir do livro. Edite uma definiç
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termos, nomes de personagens ou frases que o juiz deve preservar ou preferir."
 
-msgid "Test connection"
-msgstr "Testar conexão"
-
 msgid "Test notification"
 msgstr "Notificação de teste"
 
@@ -12107,9 +12088,6 @@ msgstr "Os comentários que as pessoas deixaram são mantidos. Você pode retoma
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "A comunidade de organismos vivos em um lugar e a forma como interagem entre si e com o ambiente."
-
-msgid "The connection check could not be completed."
-msgstr "Não foi possível concluir a verificação da conexão."
 
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "A conexão com o Cloudflare caiu ou demorou demais. Verifique sua internet e tente novamente — o que já foi configurado é mantido."
@@ -12446,6 +12424,9 @@ msgstr "Estas alterações ainda não foram aplicadas. Se você sair, serão per
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Esses recursos melhoram o acesso para pessoas com deficiência. Executá-los antes de exportar ajuda seu livro a atender aos padrões de acessibilidade do ADT."
 
+msgid "These keys are shared with Settings → AI providers and apply to every book."
+msgstr "Estas chaves são compartilhadas com Configurações → Provedores de IA e valem para todos os livros."
+
 msgid "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
 msgstr "Estas páginas vêm de uma exportação ADT importada. Edite-as aqui; a regeneração do Storyboard está desativada para que ela não possa sobrescrevê-las."
 
@@ -12744,9 +12725,6 @@ msgstr "Este projeto foi criado a partir de uma publicação ADT exportada, port
 
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em relação à página original. A seleção acima controla qual template é usado."
-
-msgid "This provider does not require local credentials."
-msgstr "Este provedor não requer credenciais locais."
 
 msgid "This provider has no automatic connection check."
 msgstr "Este provedor não possui verificação automática de conexão."

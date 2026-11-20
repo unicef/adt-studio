@@ -206,7 +206,7 @@ describe("renderPageHtml", () => {
       })
     const english = '<section><p class="text-left" data-id="t1">Hello</p><p class="text-right" data-id="t2">Signed</p></section>'
 
-    it("leaves a book with no right-to-left language exactly as it was", () => {
+    it("AC-8: leaves a book with no right-to-left language exactly as it was", () => {
       const single = page("en", ["en"], english)
       expect(single).toContain('class="text-left"')
       expect(single).toContain('class="text-right"')
@@ -214,7 +214,7 @@ describe("renderPageHtml", () => {
       expect(page("en", undefined, english)).toBe(single)
     })
 
-    it("converts alignment when a left-to-right book has a right-to-left translation", () => {
+    it("AC-8: converts alignment when a left-to-right book has a right-to-left translation", () => {
       const html = page("en", ["en", "ur"], english)
       expect(html).toContain('class="text-start" data-id="t1"')
       expect(html).toContain('class="text-end" data-id="t2"')
@@ -223,7 +223,7 @@ describe("renderPageHtml", () => {
       expect(html).toContain('<html lang="en">')
     })
 
-    it("converts a right-to-left book's pages and drops their redundant dir", () => {
+    it("AC-8: converts a right-to-left book's pages and drops their redundant dir", () => {
       const html = page("ur", ["ur", "en"], '<section dir="rtl"><p class="text-right" data-id="t1">متن</p></section>')
       expect(html).toContain('<html lang="ur" dir="rtl">')
       expect(html).toContain('class="text-start" data-id="t1"')
@@ -475,6 +475,53 @@ describe("renderPageHtml", () => {
     })
 
     expect((html.match(/<h1\b/g) ?? [])).toHaveLength(1)
+    expect(html).not.toContain('id="page-heading"')
+  })
+
+  it("injects the sr-only h1 fallback on fixed-layout pages too", () => {
+    const html = renderPageHtml({
+      content:
+        '<div id="content" data-section-type="fixed-layout-page" style="position:relative;width:800px;height:600px"><img src="images/pg001_im001.png" alt=""><p data-id="pg001_t1" style="position:absolute;left:10px;top:10px">Hello</p></div>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Book Title",
+      pageHeading: "Lesson heading",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      fixedViewport: { width: 800, height: 600 },
+    })
+
+    expect((html.match(/<h1\b/g) ?? [])).toHaveLength(1)
+    expect(html).toContain('<h1 class="sr-only" id="page-heading">Lesson heading</h1>')
+    // The fixed-layout shell is otherwise unchanged: bare <main>, fixed viewport
+    // meta, and the heading sits inside <main> ahead of #content.
+    expect(html).toContain("<main>")
+    expect(html).not.toContain('<main class="w-full">')
+    expect(html).toContain('content="width=800, height=600"')
+    const mainAt = html.indexOf("<main>")
+    const headingAt = html.indexOf('id="page-heading"')
+    const contentAt = html.indexOf('id="content"')
+    expect(headingAt).toBeGreaterThan(mainAt)
+    expect(headingAt).toBeLessThan(contentAt)
+  })
+
+  it("does not duplicate the h1 on a fixed-layout page that already has one", () => {
+    const html = renderPageHtml({
+      content:
+        '<div id="content" data-section-type="fixed-layout-page" style="position:relative;width:800px;height:600px"><h1 data-id="pg001_t1" style="position:absolute;left:10px;top:10px">Visible heading</h1></div>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Book Title",
+      pageHeading: "Lesson heading",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      fixedViewport: { width: 800, height: 600 },
+    })
+
+    expect((html.match(/<h1\b/g) ?? [])).toHaveLength(1)
+    expect(html).toContain("<h1 data-id=\"pg001_t1\"")
     expect(html).not.toContain('id="page-heading"')
   })
 })

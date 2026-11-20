@@ -158,10 +158,6 @@ msgstr "{0, plural, one {# task inherits this model} other {# tasks inherit this
 msgid "{0, plural, one {comment} other {comments}}"
 msgstr "{0, plural, one {comment} other {comments}}"
 
-#. placeholder {0}: health.modelCount
-msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-msgstr "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
-
 #. placeholder {0}: state.days
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {day} other {days}}"
@@ -683,6 +679,14 @@ msgstr "{providerKey, select, other {Settings — the {rejectedName} key was rej
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
 msgstr "{providerKey, select, other {The {name} key was rejected. Update the key.}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+msgstr "{providerKey, select, other {This doesn't look like an API key for {name}. {name} keys usually start with {example}}}"
+
+#. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
+msgid "{providerKey, select, other {This doesn't look like an API key for {name}.}}"
+msgstr "{providerKey, select, other {This doesn't look like an API key for {name}.}}"
 
 #. providerKey: openai, anthropic, google, gemini, azure, elevenlabs, custom, ollama, codex, claude_agent. Use it to pick a gendered article.
 msgid "{providerKey, select, other {Your {name} key was rejected, so books can't be processed yet.}}"
@@ -1732,9 +1736,6 @@ msgstr "AI Overlay"
 
 msgid "AI provider connected. Your book can be processed now."
 msgstr "AI provider connected. Your book can be processed now."
-
-msgid "AI provider credentials"
-msgstr "AI provider credentials"
 
 msgid "AI providers"
 msgstr "AI providers"
@@ -3216,17 +3217,11 @@ msgstr "Configure basic document information and file paths"
 msgid "Configure features to include in the export"
 msgstr "Configure features to include in the export"
 
-msgid "Configure the credentials used by AI features on this device."
-msgstr "Configure the credentials used by AI features on this device."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 
 msgid "Configure voices and accents"
 msgstr "Configure voices and accents"
-
-msgid "Configured on server"
-msgstr "Configured on server"
 
 msgid "Confirm merge"
 msgstr "Confirm merge"
@@ -3530,9 +3525,6 @@ msgstr "Could not load saved content."
 
 msgid "Could not load saved content. Retry"
 msgstr "Could not load saved content. Retry"
-
-msgid "Could not load the AI provider catalogue."
-msgstr "Could not load the AI provider catalogue."
 
 msgid "Could not load the book outline."
 msgstr "Could not load the book outline."
@@ -6344,9 +6336,6 @@ msgstr "Keyboard & navigation"
 msgid "Keyboard shortcuts"
 msgstr "Keyboard shortcuts"
 
-msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-msgstr "Keys are stored locally in this browser or desktop session and are sent only with run requests."
-
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "Keys are stored locally on this device — never sent anywhere else."
 
@@ -6647,9 +6636,6 @@ msgstr "Load latest saved values"
 
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
-
-msgid "Loading AI providers…"
-msgstr "Loading AI providers…"
 
 msgid "Loading beta versions…"
 msgstr "Loading beta versions…"
@@ -7907,6 +7893,9 @@ msgstr "Not compatible with Fixed Layout"
 msgid "Not configured"
 msgstr "Not configured"
 
+msgid "Not connected"
+msgstr "Not connected"
+
 msgid "Not created"
 msgstr "Not created"
 
@@ -8224,9 +8213,6 @@ msgstr "Open all in Storyboard"
 
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
-
-msgid "Open API key settings"
-msgstr "Open API key settings"
 
 msgid "Open command palette"
 msgstr "Open command palette"
@@ -9214,9 +9200,6 @@ msgstr "Provider \"{providerId}\" does not support text generation."
 msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 msgstr "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 
-msgid "Provider credentials"
-msgstr "Provider credentials"
-
 msgid "Provider credentials saved."
 msgstr "Provider credentials saved."
 
@@ -9225,9 +9208,6 @@ msgstr "Provider documentation"
 
 msgid "providers api key credentials endpoint"
 msgstr "providers api key credentials endpoint"
-
-msgid "Providers unavailable"
-msgstr "Providers unavailable"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Provides consistent HTML/CSS patterns for LLM-generated pages."
@@ -10969,6 +10949,10 @@ msgstr "Settings"
 msgid "Settings — a sharing update is ready"
 msgstr "Settings — a sharing update is ready"
 
+#. missingName is the provider's name (OpenAI, Anthropic, Claude Agent…).
+msgid "Settings — the default AI provider isn't set up ({missingName})"
+msgstr "Settings — the default AI provider isn't set up ({missingName})"
+
 msgid "Settings for this step are not yet available."
 msgstr "Settings for this step are not yet available."
 
@@ -11954,9 +11938,6 @@ msgstr "Terms were picked by AI from the book. Edit a definition or its emojis, 
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Terms, character names, or phrases the judge should preserve or prefer."
 
-msgid "Test connection"
-msgstr "Test connection"
-
 msgid "Test notification"
 msgstr "Test notification"
 
@@ -12107,9 +12088,6 @@ msgstr "The comments people left are kept. You can resume sharing later on this 
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "The community of living organisms in a place and the way they interact with each other and their environment."
-
-msgid "The connection check could not be completed."
-msgstr "The connection check could not be completed."
 
 msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 msgstr "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
@@ -12446,6 +12424,9 @@ msgstr "These edits haven't been applied yet. Leave and they'll be lost — or s
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 
+msgid "These keys are shared with Settings → AI providers and apply to every book."
+msgstr "These keys are shared with Settings → AI providers and apply to every book."
+
 msgid "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
 msgstr "These pages come from an imported ADT export. Edit them here; regenerating Storyboard is off so it can’t overwrite them."
 
@@ -12744,9 +12725,6 @@ msgstr "This project was created from an exported ADT publication, so it does no
 
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
-
-msgid "This provider does not require local credentials."
-msgstr "This provider does not require local credentials."
 
 msgid "This provider has no automatic connection check."
 msgstr "This provider has no automatic connection check."
