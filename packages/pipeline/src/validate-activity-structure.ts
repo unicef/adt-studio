@@ -473,7 +473,7 @@ function openEndedInputsShouldHaveAriaLabel(
     if (!attr(input, "aria-label") && !attr(input, "aria-labelledby")) {
       errors.push(
         `An <${input.name}> in this open-ended activity has no accessible label. ` +
-          `Add aria-label="..." (or aria-labelledby) describing what the learner is being asked to write.`,
+          `Add aria-label="..." (or aria-labelledby with an id attribute, not a data-id) describing what the learner is being asked to write.`,
       )
     }
   }
@@ -581,6 +581,22 @@ function labelledByText(section: Element, el: Element): string {
     .trim()
 }
 
+/**
+ * Why an element's aria-labelledby gives it no name, or null when it has none.
+ * A broken reference used to read like a missing one, and in an ADT bundle the
+ * identifier every element has is a data-id, so a data-id value is the usual
+ * mistake: say so.
+ */
+function labelledByProblem(section: Element, el: Element): string | null {
+  const ref = attr(el, "aria-labelledby")?.trim()
+  if (!ref) return null
+  const missing = ref.split(/\s+/).filter((id) => !elementById(section, id))
+  if (missing.length === 0) return `aria-labelledby="${ref}" points to an element with no visible text`
+  const dataIds = missing.filter((id) => findAll(section, (n) => attr(n, "data-id") === id).length > 0)
+  return `aria-labelledby="${ref}" matches no id attribute inside the activity section` +
+    (dataIds.length > 0 ? ` (${dataIds.map((id) => `"${id}"`).join(", ")} is a data-id, not an id)` : "")
+}
+
 /** True when the element carries an explicit, non-empty ARIA label. */
 function hasExplicitLabel(section: Element, el: Element): boolean {
   return Boolean(attr(el, "aria-label")?.trim() || labelledByText(section, el))
@@ -615,9 +631,11 @@ function customDropZonesAreAccessible(ctx: ActivityRuleContext): string[] {
   )) {
     const id = answerKeyId(zone)
     if (!hasExplicitLabel(ctx.section, zone)) {
+      const problem = labelledByProblem(ctx.section, zone)
       errors.push(
-        `Drop zone data-activity-target="${id}" has no accessible label. ` +
-          `Add aria-label="..." or aria-labelledby="<id>" naming the zone (e.g. "Top left space").`,
+        `Drop zone data-activity-target="${id}" has no accessible label${problem ? `: its ${problem}` : ""}. ` +
+          `Add aria-label="..." naming the zone (e.g. "Top left space"), or aria-labelledby with the id attribute ` +
+          `(not a data-id) of an element inside the section that names it.`,
       )
     }
     if (!hasRoleSemantics(zone)) {
@@ -678,9 +696,13 @@ function customInputsHaveAccessibleLabel(ctx: ActivityRuleContext): string[] {
 
 function customSectionHasLabel(ctx: ActivityRuleContext): string[] {
   if (hasExplicitLabel(ctx.section, ctx.section)) return []
+  const problem = labelledByProblem(ctx.section, ctx.section)
+  const sectionId = attr(ctx.section, "data-section-id") || "activity"
   return [
-    `The activity <section> has no accessible name. Add aria-labelledby="<heading-id>" ` +
-      `(or aria-label) so screen readers announce the activity by name.`,
+    `The activity <section> has no accessible name${problem ? `: its ${problem}` : ""}. ` +
+      `Give a visible heading inside the section an id attribute (not a data-id), for example ` +
+      `id="${sectionId}-title", and put that value in the section's aria-labelledby (or add aria-label), ` +
+      `so screen readers announce the activity by name.`,
   ]
 }
 

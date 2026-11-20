@@ -693,6 +693,60 @@ describe("validateActivityStructure — custom activities", () => {
     expect(errs.some((e) => e.includes("<section> has no accessible name"))).toBe(true)
   })
 
+  // An assistant read "heading-id" as the heading's data-id: the message must
+  // say an id attribute, and where to put it.
+  it("asks for an id attribute on a heading inside the section, never a data-id", () => {
+    const errs = check(`
+      <section data-section-id="pg014_sec003" data-section-type="activity_custom_drag_drop">
+        <div data-activity-target="t1" role="group" tabindex="0" aria-label="Bucket"></div>
+        <div data-activity-item="i1" role="button" tabindex="0">X</div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    const message = errs.find((e) => e.includes("<section> has no accessible name"))
+    expect(message).toContain("heading inside the section an id attribute (not a data-id)")
+    expect(message).toContain('id="pg014_sec003-title"')
+    expect(message).not.toContain("heading-id")
+  })
+
+  // A broken reference used to read exactly like a missing one.
+  it("names a reference that matches no id, and says when a data-id has that value", () => {
+    const errs = check(`
+      <section data-section-id="pg014_sec003" data-section-type="activity_custom_drag_drop" aria-labelledby="user_node_68cf7132">
+        <h3 data-id="user_node_68cf7132">Sort</h3>
+        <div data-activity-target="t1" role="group" tabindex="0" aria-label="Bucket"></div>
+        <div data-activity-item="i1" role="button" tabindex="0">X</div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    const message = errs.find((e) => e.includes("<section> has no accessible name"))
+    expect(message).toContain('aria-labelledby="user_node_68cf7132" matches no id attribute inside the activity section')
+    expect(message).toContain('"user_node_68cf7132" is a data-id, not an id')
+  })
+
+  it("names a reference whose element has no visible text", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_drag_drop" aria-labelledby="h1">
+        <h3 id="h1"></h3>
+        <div data-activity-target="t1" role="group" tabindex="0" aria-label="Bucket"></div>
+        <div data-activity-item="i1" role="button" tabindex="0">X</div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes('aria-labelledby="h1" points to an element with no visible text'))).toBe(true)
+  })
+
+  it("names a drop zone's broken reference the same way", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_jigsaw" aria-labelledby="h1">
+        <h3 id="h1">Puzzle</h3>
+        <span data-id="pg001_t005">Top left</span>
+        <div data-activity-target="slot-1" role="group" tabindex="0" aria-labelledby="pg001_t005"></div>
+        <div data-activity-item="i1" role="button" tabindex="0">Tile</div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes("slot-1")
+      && e.includes('aria-labelledby="pg001_t005" matches no id attribute')
+      && e.includes('"pg001_t005" is a data-id, not an id'))).toBe(true)
+  })
+
   it("flags a custom activity with no live region", () => {
     const errs = check(`
       <section data-section-type="activity_custom_drag_drop" aria-labelledby="h1">
