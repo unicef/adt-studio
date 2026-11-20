@@ -1,0 +1,1288 @@
+{
+  "target": "desktop",
+  "env": {
+    "when": "2026-11-20T22:14:54.012Z",
+    "windows": {
+      "Caption": "Microsoft Windows 11 Pro",
+      "Version": "10.0.26300",
+      "BuildNumber": "26300",
+      "OSArchitecture": "64-bit"
+    },
+    "filesystem": {
+      "DriveLetter": "C",
+      "FileSystem": "NTFS",
+      "DriveType": "Fixed"
+    },
+    "node": "v22.22.0",
+    "git": "e38a860f8cf148e5e9548a580dd0ac6da983ded8",
+    "branch": "spec/708-sectioning-mode-lifecycle",
+    "worktreeChanges": "M apps/studio/src/routeTree.gen.ts\n?? docs/verification/evidence/spec-0003-windows-smoke-2026-11-20/",
+    "defender": {
+      "AMServiceEnabled": true,
+      "AntivirusEnabled": true,
+      "RealTimeProtectionEnabled": true,
+      "OnAccessProtectionEnabled": true,
+      "BehaviorMonitorEnabled": true,
+      "IoavProtectionEnabled": true,
+      "IsTamperProtected": true,
+      "AMProductVersion": "4.18.26100.4",
+      "AntivirusSignatureVersion": "1.463.389.0"
+    },
+    "defenderExclusions": "N/A: Must be an administrator to view exclusions",
+    "controlledFolderAccess": "0",
+    "desktop": {
+      "exe": "ADT-Studio-Beta.exe",
+      "exeVersion": {
+        "FileVersion": "0.8.0-beta.1",
+        "ProductVersion": "0.8.0.0"
+      },
+      "electron": "41.2.0",
+      "builtAt": "2026-11-20T22:07:33.629Z"
+    }
+  },
+  "checks": [
+    {
+      "id": "ENV-defender-realtime-on",
+      "pass": true
+    },
+    {
+      "id": "BASE-open",
+      "pass": true,
+      "detail": 200
+    },
+    {
+      "id": "BASE-edit-saved",
+      "pass": true,
+      "detail": 200
+    },
+    {
+      "id": "BASE-close",
+      "pass": true,
+      "detail": {
+        "graceful": true,
+        "how": "WM_CLOSE via taskkill without /F",
+        "exit": {
+          "code": 0,
+          "signal": null
+        },
+        "apiGone": true,
+        "stragglersKilled": 0
+      }
+    },
+    {
+      "id": "BASE-close-left-no-lease",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "BASE-history-after-close",
+      "pass": true,
+      "detail": [
+        "Education Activities — Test Set",
+        "Open-Ended Questions",
+        "WIN1 close-reopen edit"
+      ]
+    },
+    {
+      "id": "BASE-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "BASE-reopen-shows-edit",
+      "pass": true,
+      "detail": "WIN1 close-reopen edit"
+    },
+    {
+      "id": "BASE-media-intact-after-reopen",
+      "pass": true
+    },
+    {
+      "id": "CYCLE-01-acquire-app-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.recovery.preparing-b32d4f21-9d72-4b82-b47e-c0acb6b1c88d"
+        ],
+        "afterKill": [
+          ".book-writer.json.recovery.preparing-b32d4f21-9d72-4b82-b47e-c0acb6b1c88d"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-01-acquire-app-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-01-acquire-app-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "Education Activities — Test Set",
+          "Open-Ended Questions",
+          "WIN1 close-reopen edit"
+        ],
+        "inflight": "CYCLE-01-acquire-app burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-01-acquire-app-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-01-acquire-app-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-01-acquire-app-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json.recovery.preparing-b32d4f21-9d72-4b82-b47e-c0acb6b1c88d"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-01-acquire-app-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "WIN1 close-reopen edit"
+      }
+    },
+    {
+      "id": "CYCLE-01-acquire-app-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-01-acquire-app-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-01-acquire-app post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-api-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.preparing-7fa27e9d-4ffb-4041-a9c2-76b25128c340",
+          ".book-writer.json.recovery"
+        ],
+        "afterKill": [
+          ".book-writer.json.preparing-7fa27e9d-4ffb-4041-a9c2-76b25128c340",
+          ".book-writer.json.recovery"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-api-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-02-publish-api-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "Open-Ended Questions",
+          "WIN1 close-reopen edit",
+          "CYCLE-01-acquire-app post-restart edit"
+        ],
+        "inflight": "CYCLE-02-publish-api burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-api-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-02-publish-api-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-api-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json.preparing-7fa27e9d-4ffb-4041-a9c2-76b25128c340",
+          ".book-writer.json.recovery"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-api-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-01-acquire-app post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-02-publish-api-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-02-publish-api-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-02-publish-api post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-03-held-app-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "afterKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-03-held-app-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-03-held-app-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "WIN1 close-reopen edit",
+          "CYCLE-01-acquire-app post-restart edit",
+          "CYCLE-02-publish-api post-restart edit"
+        ],
+        "inflight": "CYCLE-03-held-app burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-03-held-app-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-03-held-app-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-03-held-app-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-03-held-app-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-02-publish-api post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-03-held-app-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-03-held-app-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-03-held-app post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-04-random-api-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json",
+          ".book-writer.json.recovery"
+        ],
+        "afterKill": [
+          ".book-writer.json"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-04-random-api-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-04-random-api-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-01-acquire-app post-restart edit",
+          "CYCLE-02-publish-api post-restart edit",
+          "CYCLE-03-held-app post-restart edit"
+        ],
+        "inflight": "CYCLE-04-random-api burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-04-random-api-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-04-random-api-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-04-random-api-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-04-random-api-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-03-held-app post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-04-random-api-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-04-random-api-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-04-random-api post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-app-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.recovery.preparing-689ef2cf-c4f7-47ae-b1a7-be53f56fb351"
+        ],
+        "afterKill": [
+          ".book-writer.json.recovery.preparing-689ef2cf-c4f7-47ae-b1a7-be53f56fb351"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-app-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-05-acquire-app-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-02-publish-api post-restart edit",
+          "CYCLE-03-held-app post-restart edit",
+          "CYCLE-04-random-api post-restart edit"
+        ],
+        "inflight": "CYCLE-05-acquire-app burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-app-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-05-acquire-app-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-app-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json.recovery.preparing-689ef2cf-c4f7-47ae-b1a7-be53f56fb351"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-app-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-04-random-api post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-05-acquire-app-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-05-acquire-app-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-05-acquire-app post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-api-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json.preparing-dac86905-b5aa-429d-b124-faf11495cd99",
+          ".book-writer.json.recovery"
+        ],
+        "afterKill": [
+          ".book-writer.json.preparing-dac86905-b5aa-429d-b124-faf11495cd99",
+          ".book-writer.json.recovery"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-api-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-06-publish-api-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-03-held-app post-restart edit",
+          "CYCLE-04-random-api post-restart edit",
+          "CYCLE-05-acquire-app post-restart edit"
+        ],
+        "inflight": "CYCLE-06-publish-api burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-api-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-06-publish-api-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-api-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json.preparing-dac86905-b5aa-429d-b124-faf11495cd99",
+          ".book-writer.json.recovery"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-api-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-05-acquire-app post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-06-publish-api-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-06-publish-api-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-06-publish-api post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-07-held-app-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "afterKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-07-held-app-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-07-held-app-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-04-random-api post-restart edit",
+          "CYCLE-05-acquire-app post-restart edit",
+          "CYCLE-06-publish-api post-restart edit"
+        ],
+        "inflight": "CYCLE-07-held-app burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-07-held-app-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-07-held-app-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-07-held-app-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-07-held-app-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-06-publish-api post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-07-held-app-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-07-held-app-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-07-held-app post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-08-random-api-writer-killed",
+      "pass": true,
+      "detail": {
+        "atKill": [
+          ".book-writer.json"
+        ],
+        "afterKill": [
+          ".book-writer.json",
+          ".book-writer.json.preparing-b0eb3b2a-f549-4028-88d8-e5db6af637f9"
+        ],
+        "acked": 0,
+        "transportError": "ECONNRESET"
+      }
+    },
+    {
+      "id": "CYCLE-08-random-api-db-integrity",
+      "pass": true,
+      "detail": [
+        "ok"
+      ]
+    },
+    {
+      "id": "CYCLE-08-random-api-history-atomic",
+      "pass": true,
+      "detail": {
+        "tail": [
+          "CYCLE-05-acquire-app post-restart edit",
+          "CYCLE-06-publish-api post-restart edit",
+          "CYCLE-07-held-app post-restart edit"
+        ],
+        "inflight": "CYCLE-08-random-api burst 1"
+      }
+    },
+    {
+      "id": "CYCLE-08-random-api-versioned-rows-preserved",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "CYCLE-08-random-api-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    },
+    {
+      "id": "CYCLE-08-random-api-reopen-not-BOOK_BUSY",
+      "pass": true,
+      "detail": {
+        "attempts": [
+          200
+        ],
+        "leftOnDisk": [
+          ".book-writer.json",
+          ".book-writer.json.preparing-b0eb3b2a-f549-4028-88d8-e5db6af637f9"
+        ]
+      }
+    },
+    {
+      "id": "CYCLE-08-random-api-reopen-shows-last-committed",
+      "pass": true,
+      "detail": {
+        "title": "CYCLE-07-held-app post-restart edit"
+      }
+    },
+    {
+      "id": "CYCLE-08-random-api-no-blocking-artifacts-after-reopen",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "CYCLE-08-random-api-edit-after-restart",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-08-random-api post-restart edit"
+      }
+    },
+    {
+      "id": "LIVE-holder-lease-published",
+      "pass": true
+    },
+    {
+      "id": "LIVE-open-refused",
+      "pass": true
+    },
+    {
+      "id": "LIVE-edit-refused",
+      "pass": true
+    },
+    {
+      "id": "LIVE-recover-copy-refused",
+      "pass": true,
+      "detail": {
+        "status": 409,
+        "json": {
+          "error": "BOOK_BUSY: This book may still be in use. Finish any active work and close other book apps, then retry. If it stays unavailable, go to Library, select this book, and choose Recover a copy. If recovery is also refused, restart your computer and try again.",
+          "code": "BOOK_BUSY"
+        }
+      }
+    },
+    {
+      "id": "LIVE-no-copy-created",
+      "pass": true
+    },
+    {
+      "id": "LIVE-lease-bytes-unchanged",
+      "pass": true
+    },
+    {
+      "id": "LIVE-files-unchanged",
+      "pass": true
+    },
+    {
+      "id": "LIVE-holder-killed-lease-retained",
+      "pass": true
+    },
+    {
+      "id": "LIVE-dead-holder-reclaimed-by-running-app",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "title": "CYCLE-08-random-api post-restart edit"
+      }
+    },
+    {
+      "id": "LIVE-no-blocking-artifacts",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "LIVE-not-landed",
+      "pass": true
+    },
+    {
+      "id": "FINAL-close",
+      "pass": true,
+      "detail": {
+        "graceful": true,
+        "how": "WM_CLOSE via taskkill without /F",
+        "exit": {
+          "code": 0,
+          "signal": null
+        },
+        "apiGone": true,
+        "stragglersKilled": 0
+      }
+    },
+    {
+      "id": "FINAL-no-lease-left",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "id": "FINAL-db-integrity",
+      "pass": true
+    },
+    {
+      "id": "FINAL-history-equals-every-committed-edit-in-order",
+      "pass": true,
+      "detail": {
+        "versions": 11,
+        "current": 11
+      }
+    },
+    {
+      "id": "FINAL-current-pointer-is-latest",
+      "pass": true
+    },
+    {
+      "id": "FINAL-no-versioned-row-lost-since-start",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "FINAL-media-and-files-preserved",
+      "pass": true,
+      "detail": {
+        "changed": [],
+        "removed": [],
+        "added": []
+      }
+    }
+  ],
+  "notes": [
+    "launch 1: writer pid 23088",
+    "tracked non-DB files (media, PDF, assets, cache): 1053"
+  ],
+  "cycles": [
+    {
+      "id": "CYCLE-01-acquire-app",
+      "mode": "acquire",
+      "kind": "app",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "acquire",
+        "killedAt": "2026-11-20T22:15:12.974Z",
+        "triggerArtifacts": [
+          ".book-writer.json.recovery.preparing-b32d4f21-9d72-4b82-b47e-c0acb6b1c88d"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.recovery.preparing-b32d4f21-9d72-4b82-b47e-c0acb6b1c88d"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json.recovery.preparing-b32d4f21-9d72-4b82-b47e-c0acb6b1c88d"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-01-acquire-app burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "kind": "app",
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "stragglersKilled": 0
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json.recovery.preparing-b32d4f21-9d72-4b82-b47e-c0acb6b1c88d"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-02-publish-api",
+      "mode": "publish",
+      "kind": "api",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "publish",
+        "killedAt": "2026-11-20T22:15:18.684Z",
+        "triggerArtifacts": [
+          ".book-writer.json.preparing-7fa27e9d-4ffb-4041-a9c2-76b25128c340",
+          ".book-writer.json.recovery"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.preparing-7fa27e9d-4ffb-4041-a9c2-76b25128c340",
+          ".book-writer.json.recovery"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json.preparing-7fa27e9d-4ffb-4041-a9c2-76b25128c340",
+          ".book-writer.json.recovery"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-02-publish-api burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "kind": "api",
+        "mainSurvivedApiKill": true,
+        "closed": {
+          "graceful": true,
+          "how": "WM_CLOSE via taskkill without /F",
+          "exit": {
+            "code": 0,
+            "signal": null
+          },
+          "apiGone": true,
+          "stragglersKilled": 0
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json.preparing-7fa27e9d-4ffb-4041-a9c2-76b25128c340",
+        ".book-writer.json.recovery"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-03-held-app",
+      "mode": "held",
+      "kind": "app",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "held",
+        "killedAt": "2026-11-20T22:15:26.239Z",
+        "triggerArtifacts": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "leaseAtKill": "{\"token\":\"1f94d076-8c6e-458e-a372-da7661507f9f\",\"pid\":20560,\"host\":\"<host>\",\"coordinatedDatabases\":[\"Education_Activities_v2.db\"]}",
+        "artifactsAfterKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-03-held-app burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "kind": "app",
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "stragglersKilled": 0
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json",
+        "Education_Activities_v2.db.lock"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-04-random-api",
+      "mode": "random",
+      "kind": "api",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "random",
+        "randomSpinMicros": 10107,
+        "killedAt": "2026-11-20T22:15:31.715Z",
+        "triggerArtifacts": [
+          ".book-writer.json.recovery.preparing-7310a2ee-34ba-4c9e-ad04-f0dd08c75334"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json",
+          ".book-writer.json.recovery"
+        ],
+        "leaseAtKill": "{\"token\":\"7310a2ee-34ba-4c9e-ad04-f0dd08c75334\",\"pid\":11260,\"host\":\"<host>\",\"coordinatedDatabases\":[]}",
+        "artifactsAfterKill": [
+          ".book-writer.json"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-04-random-api burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "kind": "api",
+        "mainSurvivedApiKill": true,
+        "closed": {
+          "graceful": true,
+          "how": "WM_CLOSE via taskkill without /F",
+          "exit": {
+            "code": 0,
+            "signal": null
+          },
+          "apiGone": true,
+          "stragglersKilled": 0
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-05-acquire-app",
+      "mode": "acquire",
+      "kind": "app",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "acquire",
+        "killedAt": "2026-11-20T22:15:39.212Z",
+        "triggerArtifacts": [
+          ".book-writer.json.recovery.preparing-689ef2cf-c4f7-47ae-b1a7-be53f56fb351"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.recovery.preparing-689ef2cf-c4f7-47ae-b1a7-be53f56fb351"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json.recovery.preparing-689ef2cf-c4f7-47ae-b1a7-be53f56fb351"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-05-acquire-app burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "kind": "app",
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "stragglersKilled": 0
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json.recovery.preparing-689ef2cf-c4f7-47ae-b1a7-be53f56fb351"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-06-publish-api",
+      "mode": "publish",
+      "kind": "api",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "publish",
+        "killedAt": "2026-11-20T22:15:44.939Z",
+        "triggerArtifacts": [
+          ".book-writer.json.preparing-dac86905-b5aa-429d-b124-faf11495cd99",
+          ".book-writer.json.recovery"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json.preparing-dac86905-b5aa-429d-b124-faf11495cd99",
+          ".book-writer.json.recovery"
+        ],
+        "leaseAtKill": null,
+        "artifactsAfterKill": [
+          ".book-writer.json.preparing-dac86905-b5aa-429d-b124-faf11495cd99",
+          ".book-writer.json.recovery"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-06-publish-api burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "kind": "api",
+        "mainSurvivedApiKill": true,
+        "closed": {
+          "graceful": true,
+          "how": "WM_CLOSE via taskkill without /F",
+          "exit": {
+            "code": 0,
+            "signal": null
+          },
+          "apiGone": true,
+          "stragglersKilled": 0
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json.preparing-dac86905-b5aa-429d-b124-faf11495cd99",
+        ".book-writer.json.recovery"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-07-held-app",
+      "mode": "held",
+      "kind": "app",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "held",
+        "killedAt": "2026-11-20T22:15:52.453Z",
+        "triggerArtifacts": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        "leaseAtKill": "{\"token\":\"01983459-3144-4966-b02f-66b43ef47af1\",\"pid\":23404,\"host\":\"<host>\",\"coordinatedDatabases\":[\"Education_Activities_v2.db\"]}",
+        "artifactsAfterKill": [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-07-held-app burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "kind": "app",
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "stragglersKilled": 0
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json",
+        "Education_Activities_v2.db.lock"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    },
+    {
+      "id": "CYCLE-08-random-api",
+      "mode": "random",
+      "kind": "api",
+      "watcherCode": 0,
+      "kill": {
+        "killed": true,
+        "mode": "random",
+        "randomSpinMicros": 15435,
+        "killedAt": "2026-11-20T22:15:57.740Z",
+        "triggerArtifacts": [
+          ".book-writer.json.recovery.preparing-273bc0c9-a424-4333-9b29-2580119dc5f3"
+        ],
+        "artifactsAtKill": [
+          ".book-writer.json"
+        ],
+        "leaseAtKill": "{\"token\":\"273bc0c9-a424-4333-9b29-2580119dc5f3\",\"pid\":22076,\"host\":\"<host>\",\"coordinatedDatabases\":[]}",
+        "artifactsAfterKill": [
+          ".book-writer.json",
+          ".book-writer.json.preparing-b0eb3b2a-f549-4028-88d8-e5db6af637f9"
+        ]
+      },
+      "acked": 0,
+      "refusals": [],
+      "inflight": "CYCLE-08-random-api burst 1",
+      "transportError": "ECONNRESET",
+      "after": {
+        "kind": "api",
+        "mainSurvivedApiKill": true,
+        "closed": {
+          "graceful": true,
+          "how": "WM_CLOSE via taskkill without /F",
+          "exit": {
+            "code": 0,
+            "signal": null
+          },
+          "apiGone": true,
+          "stragglersKilled": 0
+        }
+      },
+      "transientLogLines": [],
+      "leftOnDisk": [
+        ".book-writer.json",
+        ".book-writer.json.preparing-b0eb3b2a-f549-4028-88d8-e5db6af637f9"
+      ],
+      "reopenAttempts": [
+        200
+      ],
+      "leftAfterReopen": []
+    }
+  ],
+  "transient": [],
+  "phaseSummary": {
+    "acquire": {
+      "attempted": 2,
+      "killed": 2,
+      "leaseArtifactsAtKill": [
+        [
+          ".book-writer.json.recovery.preparing-b32d4f21-9d72-4b82-b47e-c0acb6b1c88d"
+        ],
+        [
+          ".book-writer.json.recovery.preparing-689ef2cf-c4f7-47ae-b1a7-be53f56fb351"
+        ]
+      ]
+    },
+    "publish": {
+      "attempted": 2,
+      "killed": 2,
+      "leaseArtifactsAtKill": [
+        [
+          ".book-writer.json.preparing-7fa27e9d-4ffb-4041-a9c2-76b25128c340",
+          ".book-writer.json.recovery"
+        ],
+        [
+          ".book-writer.json.preparing-dac86905-b5aa-429d-b124-faf11495cd99",
+          ".book-writer.json.recovery"
+        ]
+      ]
+    },
+    "held": {
+      "attempted": 2,
+      "killed": 2,
+      "leaseArtifactsAtKill": [
+        [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ],
+        [
+          ".book-writer.json",
+          "Education_Activities_v2.db.lock"
+        ]
+      ]
+    },
+    "random": {
+      "attempted": 2,
+      "killed": 2,
+      "leaseArtifactsAtKill": [
+        [
+          ".book-writer.json",
+          ".book-writer.json.recovery"
+        ],
+        [
+          ".book-writer.json"
+        ]
+      ]
+    }
+  }
+}
