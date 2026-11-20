@@ -39,4 +39,28 @@ describe("detectBundleReflowableFont", () => {
   it("returns null for a family outside the approved reflowable fonts", () => {
     expect(detectBundleReflowableFont([pageWith("'Mouse Memoirs',serif")])).toBeNull()
   })
+
+  // Exports made before custom fonts kept the book font in assets/fonts.css,
+  // with no rule in the pages: the requester's legacy workbook is one.
+  const legacyFontsCss = `/* Apply the font globally */
+body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
+  font-family: 'Open Sans', 'Merriweather', sans-serif;
+}`
+
+  it("falls back to assets/fonts.css when no page declares a font", () => {
+    expect(detectBundleReflowableFont([pageWith(null)], legacyFontsCss)).toBe("open-sans")
+  })
+
+  it("prefers the pages over fonts.css", () => {
+    expect(detectBundleReflowableFont([pageWith("Roboto,sans-serif")], legacyFontsCss)).toBe("roboto")
+  })
+
+  // Today's fonts.css always declares the default, which says nothing about
+  // the book: keep the font automatic.
+  it("ignores the default font in fonts.css", () => {
+    expect(detectBundleReflowableFont([pageWith(null)], legacyFontsCss.replace(
+      "'Open Sans', 'Merriweather', sans-serif",
+      '"Merriweather", serif',
+    ))).toBeNull()
+  })
 })

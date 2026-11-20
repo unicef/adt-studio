@@ -11,7 +11,7 @@ const REFLOWABLE_BODY_FONT_SELECTOR =
 
 /**
  * The reflowable base-font override the exporter places last in each page's
- * <head>. It is the only place an export records the book font: fonts.css
+ * <head>. It is where a current export records the book font: its fonts.css
  * always declares the Merriweather default.
  */
 export function reflowableBodyFontStyle(fontFamilyChain: string): string {
@@ -23,25 +23,35 @@ const BODY_FONT_RULE = new RegExp(
 )
 
 /**
- * The approved reflowable font an exported bundle was written with, read back
- * from the base-font override in its pages (#1158). The font most pages
- * declare wins. Null when no page declares one (the Merriweather default) or
- * the family is not an approved reflowable font, so the book stays `auto`.
+ * The approved reflowable font an exported bundle was written with (#1158).
+ *
+ * Current exports write it as a base-font override in each page's head; the
+ * font most pages declare wins. Exports made before custom fonts declared it in
+ * `assets/fonts.css` instead, with no page rule, so that file is the fallback.
+ * There the template default (Merriweather) says nothing about the book, so it
+ * is ignored. Null when nothing names an approved non-default font: the book
+ * stays `auto`.
  */
 export function detectBundleReflowableFont(
   pageHtml: readonly string[],
+  fontsCss?: string | null,
 ): ReflowableFontSetting | null {
   const votes = new Map<string, number>()
   for (const html of pageHtml) {
-    const chain = BODY_FONT_RULE.exec(html)?.[1]
-    if (!chain) continue
-    const family = primaryFontFamily(chain.trim()).toLowerCase()
-    const font = REFLOWABLE_FONTS.find((candidate) => candidate.family.toLowerCase() === family)
+    const font = approvedFont(BODY_FONT_RULE.exec(html)?.[1])
     if (font) votes.set(font.id, (votes.get(font.id) ?? 0) + 1)
   }
   let best: string | null = null
   for (const [id, count] of votes) {
     if (best === null || count > (votes.get(best) ?? 0)) best = id
   }
-  return best as ReflowableFontSetting | null
+  if (best) return best as ReflowableFontSetting
+  const legacy = fontsCss ? approvedFont(BODY_FONT_RULE.exec(fontsCss)?.[1]) : undefined
+  return legacy && legacy.role !== "default" ? legacy.id as ReflowableFontSetting : null
+}
+
+function approvedFont(chain: string | undefined) {
+  if (!chain) return undefined
+  const family = primaryFontFamily(chain.trim()).toLowerCase()
+  return REFLOWABLE_FONTS.find((candidate) => candidate.family.toLowerCase() === family)
 }

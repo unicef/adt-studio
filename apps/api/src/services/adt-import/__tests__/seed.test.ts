@@ -79,6 +79,18 @@ describe("ADT recovery workspace", () => {
     expect(config.reflowable_font).toBe("open-sans")
   })
 
+  it("restores the book font a legacy export kept in assets/fonts.css", () => {
+    const files = unzipSync(makeCurrentBundleWithExternallyAddedPage())
+    files["assets/fonts.css"] = strToU8(
+      "body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {\n  font-family: 'Open Sans', 'Merriweather', sans-serif;\n}",
+    )
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-font-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir, "legacy-font.zip")
+    const config = yaml.load(fs.readFileSync(path.join(booksDir, session.label, "config.yaml"), "utf8")) as Record<string, unknown>
+    expect(config.reflowable_font).toBe("open-sans")
+  })
+
   it("leaves the font automatic when the pages declare none", () => {
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-font-"))
     temporaryRoots.push(booksDir)

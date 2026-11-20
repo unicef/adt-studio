@@ -159,7 +159,7 @@ export function seedImportedAdtProject(
   warnOnUndetectedFixedLayout(bundle, storyboard.fixedLayoutPageCount)
   // The export records the book font only in each page's head; without it the
   // project falls back to `auto`, i.e. serif Merriweather (#1158).
-  const reflowableFont = detectBundleReflowableFont(Object.values(bundle.pageHtml))
+  const reflowableFont = detectBundleReflowableFont(Object.values(bundle.pageHtml), bundle.fontsCss)
   fs.writeFileSync(path.join(bookDir, "config.yaml"), yaml.dump({
     editing_language: sourceLanguage,
     // The existing Speech UI treats this as the selectable narration list;
