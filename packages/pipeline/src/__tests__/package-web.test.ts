@@ -891,7 +891,7 @@ describe("packageAdtWeb", () => {
       ))
     }
     const agentsGuide = fs.readFileSync(path.join(bookDir, "adt", "AGENTS.md"), "utf-8")
-    expect(agentsGuide).toContain("<!-- adt-studio-agent-guide: 3 -->")
+    expect(agentsGuide).toContain("<!-- adt-studio-agent-guide: 4 -->")
     expect(agentsGuide).toContain("### Repairing a bundle ADT Studio rejected")
     expect(agentsGuide).toContain("editing contract version `2`")
     expect(agentsGuide).toContain("activity_custom_<descriptive_slug>")
@@ -902,6 +902,14 @@ describe("packageAdtWeb", () => {
     expect(agentsGuide).toContain("Choose exactly one answer from several options.")
     expect(agentsGuide).toContain("Audit every page for learning activities")
     expect(agentsGuide).toContain("Do not add custom stylesheet files")
+    // An assistant once put a heading's data-id in aria-labelledby: the guide
+    // must say these references point to id attributes inside the section.
+    expect(agentsGuide).toContain("never to a `data-id`")
+    expect(agentsGuide).toMatch(/aria-labelledby[^\n]*inside the same activity section/)
+    expect(agentsGuide).toMatch(/HTML parser or the DOM[^\n]*not text search/)
+    // Repair requests append this guide, and assistants limit how much text can be
+    // pasted: keep it short (#1185). 13,500 characters before version 4.
+    expect(agentsGuide.length).toBeLessThan(11_000)
     expect(fs.readFileSync(path.join(bookDir, "adt", "CLAUDE.md"), "utf-8")).toBe(agentsGuide)
   })
 
