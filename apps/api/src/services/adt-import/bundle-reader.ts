@@ -61,6 +61,9 @@ export interface AdtBundleIgnoredEdits {
 export interface ReadAdtBundle {
   root: string
   sourceFormat: "round-trip" | "legacy-studio-export"
+  /** Whether the archive had its own manifest.json. A legacy export has none,
+   * and `manifest` is then rebuilt from assets/config.json. */
+  hasManifest: boolean
   manifest: AdtRoundTripManifestData
   title: string
   cover: { bytes: Uint8Array; mimeType: string } | null
@@ -484,6 +487,7 @@ export function readAdtBundle(
   return {
     root,
     sourceFormat,
+    hasManifest: Boolean(manifestPath),
     manifest,
     title,
     cover: coverPath

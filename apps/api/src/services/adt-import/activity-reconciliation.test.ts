@@ -31,6 +31,7 @@ function bundle(
   return {
     root: "",
     sourceFormat: "round-trip",
+    hasManifest: true,
     manifest: AdtRoundTripManifest.parse({
       formatVersion: 1,
       editingContract,

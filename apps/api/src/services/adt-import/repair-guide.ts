@@ -93,8 +93,12 @@ export const DO_NOT_INTRODUCE_PROBLEMS = [
   "- leave an archive or scratch file inside the bundle folder.",
 ] as const
 
-function saveResultStep(output: string): string {
-  return `Save the result as ${output} next to the unzipped bundle folder, with manifest.json at the root of the ZIP. Do not overwrite the input ZIP, and do not put the new ZIP inside the bundle folder.`
+function saveResultStep(output: string, hasManifest: boolean): string {
+  // A legacy export has no manifest.json, and ADT Studio reads it without one.
+  const root = hasManifest
+    ? "with manifest.json at the root of the ZIP"
+    : "with the bundle's contents at the root of the ZIP. This bundle has no manifest.json: do not create one, and say so in your reply"
+  return `Save the result as ${output} next to the unzipped bundle folder, ${root}. Do not overwrite the input ZIP, and do not put the new ZIP inside the bundle folder.`
 }
 
 export function createAdtImportRepairGuide(
@@ -169,7 +173,7 @@ export function createAdtImportRepairGuide(
     "",
     "When you are done:",
     "1. Run the checklist in the guide.",
-    `2. ${saveResultStep(output)}`,
+    `2. ${saveResultStep(output, bundle.hasManifest)}`,
     "3. Reply with what you changed for each problem, and anything you left unfixed and why.",
     ...(status === "current"
       ? []
@@ -207,7 +211,7 @@ export function createAdtImportRepairGuide(
         "",
         "When you are done:",
         "1. Run the checklist in the guide, and confirm that no section id is listed in both editingContract.activities and editingContract.nonActivities.",
-        `2. ${saveResultStep(output)}`,
+        `2. ${saveResultStep(output, bundle.hasManifest)}`,
         "3. Reply with the type you chose for each page, and the pages you left unchanged and why.",
         ...(status === "current"
           ? []
