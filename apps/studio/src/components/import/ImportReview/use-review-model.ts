@@ -12,6 +12,7 @@ import {
   Scissors,
   ShieldCheck,
   TriangleAlert,
+  Type,
   type LucideIcon,
 } from "lucide-react"
 import type { AnyImportPreview, AdtBundleImportPreview } from "@/api/client"
@@ -229,6 +230,15 @@ export function useReviewModel(
       checks: [
         { icon: FileCode2, label: t`Page structure and element ids`, value: problems(structure) ?? t`OK`, state: structure ? "bad" : "ok" },
         { icon: Image, label: t`Images and other files`, value: problems(files) ?? t`All present`, state: files ? "bad" : "ok" },
+        // The font the project will use; fixed-layout books set fonts per element.
+        ...(adt.bookFont ? [{
+          icon: Type,
+          label: t`Book font`,
+          value: adt.bookFont.detected
+            ? adt.bookFont.family
+            : t({ message: `${adt.bookFont.family} (default)`, context: "book font" }),
+          state: "ok" as const,
+        }] : []),
         { icon: ListOrdered, label: t`Reading order`, value: problems(order) ?? t`Intact`, state: order ? "bad" : "ok" },
         {
           icon: Puzzle,
