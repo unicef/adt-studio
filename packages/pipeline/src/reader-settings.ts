@@ -6,7 +6,8 @@ import type { PackageAdtWebOptions } from "./packaging/web.js"
  * The book config's reader settings (`default_settings`, `locked_settings`) in
  * the shape the reader's config.json uses. Shared by the export and by the
  * Studio preview: the preview reports its settings back and the export lets
- * them override the book's, so both must start from the same values (#1198).
+ * them override the book's, so both must start from the same defaults (#1198).
+ * The preview leaves the locks out, so every setting stays changeable there.
  */
 export function readerSettingsFromConfig(
   config: Pick<AppConfig, "default_settings" | "locked_settings">,
