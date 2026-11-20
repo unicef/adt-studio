@@ -26,6 +26,10 @@ let dropZoneEnabled = true
 
 const interpolate = (strings: TemplateStringsArray, ...values: unknown[]) =>
   strings.reduce((text, part, index) => text + part + (index < values.length ? String(values[index]) : ""), "")
+// `t` is also called with a descriptor, `t({ message, context })`, whose
+// message the unmocked macro would have interpolated already.
+const translate = (strings: TemplateStringsArray | { message: string }, ...values: unknown[]) =>
+  "message" in strings ? strings.message : interpolate(strings, ...values)
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
@@ -39,7 +43,7 @@ const pluralize = (count: number, forms: { one: string; other: string }) => (
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Plural: ({ value, one, other }: { value: number; one: string; other: string }) => <>{pluralize(value, { one, other })}</>,
-  useLingui: () => ({ t: interpolate, i18n: { _: (value: { message?: string }) => value.message ?? "" } }),
+  useLingui: () => ({ t: translate, i18n: { _: (value: { message?: string }) => value.message ?? "" } }),
 }))
 
 vi.mock("@lingui/core/macro", () => ({
@@ -141,6 +145,7 @@ describe("ImportProject", () => {
       translationLanguageCount: 1,
       contentChanged: true,
       exportComparisonStatus: "unavailable",
+      bookFont: { family: "Open Sans", detected: true },
       featureRecovery: { speech: "partial", toc: "recovered" },
       compatibility: { supported: true, issues: [] },
       match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
@@ -163,6 +168,8 @@ describe("ImportProject", () => {
     expect(screen.getByText("Partly included")).toBeTruthy()
     expect(screen.getByText("Kept where nothing changed since export. The rest is generated again.")).toBeTruthy()
     expect(screen.getByText(/can’t tell whether its pages changed/)).toBeTruthy()
+    // The font the import found, the one the project will use (#1158).
+    expect(screen.getByText("Book font").closest("li")?.textContent).toContain("Open Sans")
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 
     expect(importProject).not.toHaveBeenCalled()
@@ -376,6 +383,7 @@ describe("ImportProject", () => {
       translationLanguageCount: 0,
       contentChanged: true,
       exportComparisonStatus: "changed",
+      bookFont: { family: "Merriweather", detected: false },
       activityReview: {
         inventoryVersion: 2,
         items: [{
@@ -418,6 +426,7 @@ describe("ImportProject", () => {
     fireEvent.change(input, { target: { files: [file] } })
 
     const review = await screen.findByRole("button", { name: "Review 1 activity" })
+    expect(screen.getByText("Book font").closest("li")?.textContent).toContain("Merriweather (default)")
     expect(review).toHaveProperty("disabled", false)
     // The banner names each page and what was found on it, then one primary action.
     expect(screen.getByText("Choose a type for 1 activity page")).toBeTruthy()
