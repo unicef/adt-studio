@@ -614,10 +614,12 @@ export function createAdtPreviewRoutes(
     })
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
-    // Start the preview from the book's reader defaults and locks: it reports
-    // its settings back to Studio, and the export lets those override the
-    // book's own (#1198).
-    return c.body(JSON.stringify({ ...previewConfig, ...readerSettingsFromConfig(bookConfig) }))
+    // Start the preview from the book's reader defaults: it reports its
+    // settings back to Studio, and the export lets those override the book's
+    // own (#1198). Locks stay out, so every setting can still be changed here;
+    // the export writes them.
+    const { defaultSettings } = readerSettingsFromConfig(bookConfig)
+    return c.body(JSON.stringify({ ...previewConfig, ...(defaultSettings ? { defaultSettings } : {}) }))
   })
 
   // Custom styles from an imported ADT are loaded into the Storyboard iframe

@@ -715,9 +715,11 @@ describe("ADT preview routes", () => {
 	  })
 
   // #1198: the preview reports its settings back to Studio, and the export
-  // lets them override the book's. Starting from the book's own defaults and
-  // locks keeps them, instead of the reader's built-in values.
-  it("starts the preview from the book's reader defaults and locks", async () => {
+  // lets them override the book's. Starting from the book's own defaults keeps
+  // them, instead of the reader's built-in values. Locks stay out of the
+  // preview, so the author can still change every setting there; the export
+  // writes them.
+  it("starts the preview from the book's reader defaults, without its locks", async () => {
     fs.writeFileSync(
       path.join(tmpDir, label, "config.yaml"),
       "default_settings:\n  dock_layout:\n    position: bottom\n  theme: dark\n  icon_size: md\nlocked_settings:\n  - theme\n",
@@ -728,7 +730,7 @@ describe("ADT preview routes", () => {
       lockedSettings?: unknown
     }
     expect(config.defaultSettings).toEqual({ dockLayout: { position: "bottom" }, theme: "dark", iconSize: "md" })
-    expect(config.lockedSettings).toEqual(["theme"])
+    expect(config.lockedSettings).toBeUndefined()
   })
 
 	  it("excludes muted entries from preview audio and timecode maps", async () => {
