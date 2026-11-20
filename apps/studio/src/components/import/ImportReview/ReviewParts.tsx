@@ -98,7 +98,7 @@ export function ReadinessList({ steps }: { steps: Step[] }) {
             key={step.title}
             className={cn(
               "flex items-start gap-3 py-2 [@media(max-height:960px)]:py-1",
-              index < steps.length - 1 && !step.noDivider && "border-b border-border",
+              index < steps.length - 1 && "border-b border-border",
             )}
           >
             <span

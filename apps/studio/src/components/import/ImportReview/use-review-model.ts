@@ -30,7 +30,7 @@ export interface Check { icon: LucideIcon; label: string; value: string; state: 
 export interface Issue { file: string; text: string; code: string }
 /** One line of "Import will": done already, needs you before import, or
  * happens when you import (or later, for a part). */
-export interface Step { title: string; text: string; state: "done" | "todo" | "later"; status: string; noDivider?: boolean }
+export interface Step { title: string; text: string; state: "done" | "todo" | "later"; status: string }
 
 export interface ReviewModel {
   mode: ReviewMode
@@ -185,7 +185,6 @@ export function useReviewModel(
         text: t`Listed under Features`,
         state: "later" as const,
         status: t`On import`,
-        noDivider: true,
       }] : []),
       { title: t`Open the book`, text: t`Right after import`, state: "later", status: t`On import` },
     ]
